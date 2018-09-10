@@ -111,8 +111,8 @@ venv.bak/
 dmypy.json
 
 # weather
-.nc
+*.nc
 
 # docs
-.docx
-.pdf
+*.docx
+*.pdf
