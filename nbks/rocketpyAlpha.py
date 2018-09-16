@@ -2012,6 +2012,36 @@ class Motor:
         
         return None
 
+    def info(self):
+        '''Prints out a summary of the data and graphs available about
+        the Motor.
+
+        Parameters
+        ----------
+        None
+        
+        Return
+        ------
+        None
+        '''
+        # Print motor details
+        print('\nMotor Details')
+        print('Total Burning Time: ' + str(self.burnOutTime) + ' s')
+        print('Total Propellant Mass: ' +
+              "{:.3f}".format(self.propellantInitialMass) + ' kg')
+        print('Propellant Exhaust Velocity: ' +
+              "{:.3f}".format(self.exhaustVelocity) + ' m/s')
+        print('Average Thrust: ' + "{:.3f}".format(self.averageThrust) + ' N')
+        print('Maximum Thrust: ' + str(self.maxThrust) + ' N at ' +
+              str(self.maxThrustTime) + ' s after ignition.')
+        print('Total Impulse: ' + "{:.3f}".format(self.totalImpulse) + ' Ns')
+
+        # Show plots
+        print('\nPlots')
+        self.thrust()
+    
+        return None
+
     def allInfo(self):
         '''Prints out all data and graphs available about the Motor.
 
@@ -2070,35 +2100,6 @@ class Motor:
     
         return None
 
-    def info(self):
-        '''Prints out a summary of the data and graphs available about
-        the Motor.
-
-        Parameters
-        ----------
-        None
-        
-        Return
-        ------
-        None
-        '''
-        # Print motor details
-        print('\nMotor Details')
-        print('Total Burning Time: ' + str(self.burnOutTime) + ' s')
-        print('Total Propellant Mass: ' +
-              "{:.3f}".format(self.propellantInitialMass) + ' kg')
-        print('Propellant Exhaust Velocity: ' +
-              "{:.3f}".format(self.exhaustVelocity) + ' m/s')
-        print('Average Thrust: ' + "{:.3f}".format(self.averageThrust) + ' N')
-        print('Maximum Thrust: ' + str(self.maxThrust) + ' N at ' +
-              str(self.maxThrustTime) + ' s after ignition.')
-        print('Total Impulse: ' + "{:.3f}".format(self.totalImpulse) + ' Ns')
-
-        # Show plots
-        print('\nPlots')
-        self.thrust()
-    
-        return None
 
 class Rocket:
     """Keeps all rocket information.
@@ -2123,7 +2124,8 @@ class Rocket:
         mass : int, float
             Unloaded rocket total mass (without propelant) in kg.
         inertiaI : int, float
-            Unloaded rocket lateral inertia (without propelant) in kg m^2.
+            Unloaded rocket lateral (perpendicular to axis of symmetry)
+            inertia (without propelant) in kg m^2.
         inertiaZ : int, float
             Unloaded rocket axial inertia (without propelant) in kg m^2.
         radius : int, float
@@ -2139,27 +2141,18 @@ class Rocket:
             entry to the Function class. See help(Function) for more
             information. If int or float is given, it is assumed constant. If
             callable, string or array is given, it must be a function o Mach
-            number.
+            number only.
         powerOnDrag : int, float, callable, string, array
             Rockets drag coefficient when the motor is on. Can be given as an
             entry to the Function class. See help(Function) for more
             information. If int or float is given, it is assumed constant. If
             callable, string or array is given, it must be a function o Mach
-            number.
+            number only.
         
         Returns
         -------
         None
         """
-        # Parachute data
-        self.parachutes = []
-
-        # Aerodynamic data initialization
-        self.aerodynamicSurfaces = []
-
-        # Define motor to be used
-        self.motor = motor
-
         # Define rocket inertia attributes in SI units
         self.mass = mass
         self.inertiaI = inertiaI
@@ -2174,22 +2167,21 @@ class Rocket:
         # Center of mass distance to points of interest
         self.distanceRocketNozzle = distanceRocketNozzle
         self.distanceRocketPropellant = distanceRocketPropellant
+        
+        # Define excentricity
         self.cpExcentricityX = 0
         self.cpExcentricityY = 0
-        self.motorExcentricityX = 0
-        self.motorExcentricityY = 0
+        self.thrustExcentricityY = 0
+        self.thrustExcentricityX = 0
 
-        # Important varying quantities to be calculated
-        self.reducedMass = None
-        self.totalMass = None
-        if self.motor is None:
-            print('''Please associate this rocket with a motor and call
-                     rocket.refresh()!''')
-        else:
-            self.evaluateReducedMass()
-            self.evaluateTotalMass()
 
-        # Define aerodynamic coefficients
+        # Parachute data initialization
+        self.parachutes = []
+
+        # Aerodynamic data initialization
+        self.aerodynamicSurfaces = []
+
+        # Define aerodynamic drag coefficients
         self.powerOffDrag = Function(powerOffDrag, 'Mach Number',
                                      'Drag Coefficient with Power Off',
                                      'spline', 'constant')
@@ -2197,8 +2189,485 @@ class Rocket:
                                     'Drag Coefficient with Power On',
                                     'spline', 'constant')
 
+        # Define motor to be used
+        self.motor = motor
+
+        # Important dynamic inertial quantities
+        self.reducedMass = None
+        self.totalMass = None
+
+        # Calculate dynamic inertial quantities
+        self.evaluateReducedMass()
+        self.evaluateTotalMass()
+
+        return None
+
+    def evaluateReducedMass(self):
+        """Calculates and returns the rocket's total reduced mass. The
+        reduced mass is defined as the product of the propellant mass
+        and the mass of the rocket with outpropellant, divided by the
+        sum of the propellant mass and the rocket mass. The function
+        returns a object of the Function class and is defined as a
+        function of time. 
+
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        self.reducedMass : Function
+            Function of time expressing the reduced mass of the rocket,
+            defined as the product of the propellant mass and the mass
+            of the rocket without propellant, divided by the sum of the
+            propellant mass and the rocket mass.
+        """
+        # Make sure there is a motor associated with the rocket
+        if self.motor is None:
+            print('Please associate this rocket with a motor!')
+            return False
+        
+        # Retrieve propellant mass as a function of time
+        motorMass = self.motor.mass
+
+        # Retrieve constant rocket mass with out propellant
+        mass = self.mass
+
+        # Calculate reduced mass
+        self.reducedMass = motorMass*mass/(motorMass+mass)
+        self.reducedMass.setDiscrete(0, self.motor.burnOutTime, 200)
+        self.reducedMass.setInputs('Time (s)')
+        self.reducedMass.setOutputs('Reduced Mass (kg)')
+
+        # Return reduced mass
+        return self.reducedMass
+
+    def evaluateTotalMass(self):
+        """Calculates and returns the rocket's total mass. The total
+        mass is defined as the sum of the propellant mass and the
+        rocket mass without propellant. The function returns an object
+        of the Function class and is defined as a function of time. 
+
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        self.totalMass : Function
+            Function of time expressing the total mass of the rocket,
+            defined as the sum of the propellant mass and the rocket
+            mass without propellant.
+        """
+        # Make sure there is a motor associated with the rocket
+        if self.motor is None:
+            print('Please associate this rocket with a motor!')
+            return False
+        
+        # Calculate total mass by summing up propellant and dry mass
+        self.totalMass = self.mass + self.motor.mass
+        self.totalMass.setDiscrete(0, self.motor.burnOutTime, 200)
+        self.totalMass.setInputs('Time (s)')
+        self.totalMass.setOutputs('Total Mass (Rocket + Propellant) (kg)')
+
+        # Return total mass
+        return self.totalMass
+
+    def evaluateStaticMargin(self):
+        """Calculates and returns the rocket's static margin when
+        loaded with propellant. The static margin is saved and returned
+        in units of rocket diameter or calibers. 
+
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        self.staticMargin : float
+            Float value corresponding to rocket static margin when
+            loaded with propellant in units of rokcet diameter or
+            calibers.
+        """
+        # Initialize total lift coeficient derivative and center of pressure
+        self.totalLiftCoeffDer = 0
+        self.cpPosition = 0
+
+        # Calculate total lift coeficient derivative and center of pressure        
+        for aerodynamicSurface in self.aerodynamicSurfaces:
+            self.totalLiftCoeffDer += aerodynamicSurface[1]
+            self.cpPosition += aerodynamicSurface[1]*aerodynamicSurface[0][2]
+        self.cpPosition /= self.totalLiftCoeffDer
+
+        # Calculate static margin
+        self.staticMargin = ((abs(self.cpPosition) - self.centerOfMass(0)) /
+                             (2*self.radius))
+        
+        # Return self
+        return self
+
+    def addTail(self, topRadius, bottomRadius, length, distanceToCM):
+        """Create a new tail or rocket diameter change, storing its
+        parameters as part of the aerodynamicSurfaces list. Its
+        parameters are the axial position along the rocket and its
+        derivative of the coefficient of lift in respect to angle of
+        attack.
+
+        Parameters
+        ----------
+        topRadius : int, float
+            Tail top radius in meters, considering positive direction
+            from center of mass to nose cone.
+        bottomRadius : int, float
+            Tail bottom radius in meters, considering positive direction
+            from center of mass to nose cone.
+        length : int, float
+            Tail length or height in meters. Must be a postive value.
+        distanceToCM : int, float
+            Tail position relative to rocket unloaded center of mass,
+            considering positive direction from center of mass to nose
+            cone. Consider the point belonging to the tail which is
+            closest to the unloaded center of mass to calculate
+            distance.
+
+        Returns
+        -------
+        self : Rocket
+            Object of the Rocket class.
+        """
+        # Calculate ratio between top and bottom radius
+        r = topRadius/bottomRadius
+
+        # Retrieve reference radius
+        rref = self.radius
+
+        # Calculate cp position relative to cm
+        if distanceToCM < 0:
+            cpz = distanceToCM - (length/3)*(1 + (1-r)/(1 - r**2))
+        else:
+            cpz = distanceToCM + (length/3)*(1 + (1-r)/(1 - r**2))
+        
+        # Calculate clalpha
+        clalpha = -2*(1 - r**(-2))*(topRadius/rref)**2
+        
+        # Store values as new aerodynamic surface
+        self.aerodynamicSurfaces.append([(0, 0, cpz), clalpha, 'Tail'])
+
+        # Refresh static margin calculation
+        self.evaluateStaticMargin()
+
+        # Return self
+        return self
+
+    def addNose(self, length, kind, distanceToCM):
+        """Create a nose cone, storing its parameters as part of the
+        aerodynamicSurfaces list. Its parameters are the axial position
+        along the rocket and its derivative of the coefficient of lift
+        in respect to angle of attack.
+
+
+        Parameters
+        ----------
+        length : int, float
+            Nose cone length or height in meters. Must be a postive
+            value.
+        kind : string
+            Nose cone type. Von Karman, conical, ogive, and lvhaack are
+            supported.
+        distanceToCM : int, float
+            Nose cone position relative to rocket unloaded center of
+            mass, considering positive direction from center of mass to
+            nose cone. Consider the center point belonging to the nose
+            cone base to calculate distance.
+
+        Returns
+        -------
+        self : Rocket
+            Object of the Rocket class.
+        """
+        # Analyze type
+        if kind == 'conical':
+            k = 1 - 1/3
+        elif kind == 'ogive':
+            k = 1 - 0.534
+        elif kind == 'lvhaack':
+            k = 1 - 0.437
+        else:
+            k = 0.5
+
+        # Calculate cp position relative to cm
+        if distanceToCM > 0:
+            cpz = distanceToCM + k*length
+        else:
+            cpz = distanceToCM - k*length
+        
+        # Calculate clalpha
+        clalpha = 2
+        
+        # Store values
+        self.aerodynamicSurfaces.append([(0, 0, cpz), clalpha, 'Nose Cone'])
+        
+        # Refresh static margin calculation
+        self.evaluateStaticMargin()
+
+        # Return self
+        return self
+
+    def addFins(self, n, span, rootChord, tipChord, distanceToCM, radius=0):
+        """Create a fin set, storing its parameters as part of the
+        aerodynamicSurfaces list. Its parameters are the axial position
+        along the rocket and its derivative of the coefficient of lift
+        in respect to angle of attack.
+
+        Parameters
+        ----------
+        n : int
+            Number of fins, from 2 to infinity.
+        span : int, float
+            Fin span in meters.
+        rootChord : int, float
+            Fin root chord in meters.
+        tipChord : int, float
+            Fin tip chord in meters.
+        distanceToCM : int, float
+            Fin set position relative to rocket unloaded center of
+            mass, considering positive direction from center of mass to
+            nose cone. Consider the center point belonging to the top
+            of the fins to calculate distance.
+        radius : int, float, optional
+            Reference radius to calculate lift coefficient. If 0, which
+            is default, use rocket radius. Otherwise, enter the radius
+            of the rocket in the section of the fins, as this impacts
+            its lift coefficient.
+
+        Returns
+        -------
+        self : Rocket
+            Object of the Rocket class.
+        """
+
+        # Retrieve parameters for calculations
+        Cr = rootChord
+        Ct = tipChord
+        Yr = rootChord + tipChord
+        s = span
+        Lf = np.sqrt((rootChord/2 - tipChord/2)**2 + span**2)
+        radius = self.radius if radius == 0 else radius
+        d = 2*radius
+
+        # Calculate cp position relative to cm
+        if distanceToCM < 0:
+            cpz = distanceToCM - (((Cr - Ct)/3)*((Cr + 2*Ct)/(Cr + Ct)) +
+                                  (1/6)*(Cr + Ct - Cr*Ct/(Cr + Ct)))
+        else:
+            cpz = distanceToCM + (((Cr - Ct)/3)*((Cr + 2*Ct)/(Cr + Ct)) +
+                                  (1/6)*(Cr + Ct - Cr*Ct/(Cr + Ct)))
+                                  
+        # Calculate clalpha
+        clalpha = (4*n*(s/d)**2)/(1 + np.sqrt(1 + (2*Lf/Yr)**2))
+        clalpha *= (1 + radius/(s + radius))
+
+        # Store values
+        self.aerodynamicSurfaces.append([(0, 0, cpz), clalpha, 'Fins'])
+        
+        # Refresh static margin calculation
+        self.evaluateStaticMargin()
+
+        # Return self
+        return self
+
+    def addParachute(self, name, CdS, trigger, samplingRate=100, lag=0):
+        """Create a new parachute, storing its parameters such as
+        opening delay, drag coefficients and trigger function.
+
+        Parameters
+        ----------
+        name : string
+            Parachute name, such as drogue and main. Has no impact in
+            simulation, as it is only used to display data in a more
+            organized matter.
+        CdS : float
+            Drag coefficient times reference area for parachute. It is
+            used to compute the drag force exerted on the parachute by
+            the equation F = ((1/2)*rho*V^2)*CdS, that is, the drag
+            force is the dynamic pressure computed on the parachute
+            times its CdS coefficient. Has units of area and must be
+            given in meters squared.
+        trigger : function
+            Function which defines if the parachute ejection system is
+            to be triggered. It must take as input the freestream
+            pressure in bars and the state vector of the simulation,
+            which is defined by [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz].
+            It will be called according to the sampling rate given next.
+            It should return True if the parachute ejection system is
+            to be triggered and False otherwise.
+        samplingRate : float, optional
+            Sampling rate in which the trigger function works. It is used to
+            simulate the refresh rate of onboard sensors such as barometers.
+            Default value is 100. Value must be given in Hertz.
+        lag : float, optional
+            Time between the parachute ejection system is triggered and the
+            parachute is fully opened. During this time, the simulation will
+            consider the rocket as flying without a parachute. Default value
+            is 0. Must be given in seconds.
+
+        Returns
+        -------
+        parachute : Parachute Object
+            Parachute object containing trigger, samplingRate, lag, CdS
+            and name as attributes.
+        """
+        # Create an object to serve as the parachute
+        parachute = type('', (), {})()
+
+        # Store Cds coefficient, lag, name and trigger function
+        parachute.trigger = trigger
+        parachute.samplingRate = samplingRate
+        parachute.lag = lag
+        parachute.CdS = CdS
+        parachute.name = name
+
+        # Add parachute to list of parachutes
+        self.parachutes.append(parachute)
+
+        # Return self
+        return 
+
+    def addCMExcentricity(self, x, y):
+        """Move line of action of aerodynamic and thrust forces by
+        equal translation ammount to simulate an excentricity in the
+        position of the center of mass of the rocket relative to its
+        geometrical center line. Should not be used together with
+        addCPExentricity and addThrustExentricity.
+
+        Parameters
+        ----------
+        x : float
+            Distance in meters by which the CM is to be translated in
+            the x direction relative to geometrical center line.
+        y : float
+            Distance in meters by which the CM is to be translated in
+            the y direction relative to geometrical center line.
+        
+        Returns
+        -------
+        self : Rocket
+            Object of the Rocket class.
+        """
+        # Move center of pressure to -x and -y
+        self.cpExcentricityX = -x
+        self.cpExcentricityY = -y
+
+        # Move thrust center by -x and -y
+        self.thrustExcentricityY = -x
+        self.thrustExcentricityX = -y
+
+        # Return self
+        return self
+    
+    def addCPExentricity(self, x, y):
+        """Move line of action of aerodynamic forces to simulate an
+        excentricity in the position of the center of pressure relative
+        to the center of mass of the rocket.
+
+        Parameters
+        ----------
+        x : float
+            Distance in meters by which the CP is to be translated in
+            the x direction relative to the center of mass axial line.
+        y : float
+            Distance in meters by which the CP is to be translated in
+            the y direction relative to the center of mass axial line.
+        
+        Returns
+        -------
+        self : Rocket
+            Object of the Rocket class.
+        """
+        # Move center of pressure by x and y
+        self.cpExcentricityX = x
+        self.cpExcentricityY = y
+
+        # Return self
+        return self
+
+    def addThrustExentricity(self, x, y):
+        """Move line of action of thrust forces to simulate a
+        disalignment of the thrust vector and the center of mass.
+
+        Parameters
+        ----------
+        x : float
+            Distance in meters by which the the line of action of the
+            thrust force is to be translated in the x direction
+            relative to the center of mass axial line.
+        y : float
+            Distance in meters by which the the line of action of the
+            thrust force is to be translated in the x direction
+            relative to the center of mass axial line.
+        
+        Returns
+        -------
+        self : Rocket
+            Object of the Rocket class.
+        """
+        # Move thrust line by x and y
+        self.thrustExcentricityY = x
+        self.thrustExcentricityX = y
+
+        # Return self
+        return self
+
     def info(self):
-        'Prints out details about the rocket and plots'
+        '''Prints out a summary of the data and graphs available about
+        the Rocket.
+
+        Parameters
+        ----------
+        None
+        
+        Return
+        ------
+        None
+        '''
+        # Print inertia details
+        print('Inertia Details')
+        print('Rocket Dry Mass: ' + str(self.mass) + ' kg (No Propellant)')
+        print('Rocket Total Mass: ' + str(self.totalMass(0)) + 
+              ' kg (With Propellant)')
+
+        # Print rocket geometrical parameters
+        print('\nGeometrical Parameters')
+        print('Rocket Radius: ' + str(self.radius) + ' m')
+
+        # Print rocket aerodynamics quantities
+        print('\nAerodynamics Stability')
+        print('Static Margin: ' +
+              "{:.3f}".format(self.staticMargin) + ' c')
+
+        # Print parachute data
+        for chute in self.parachutes:
+            print('\n' + chute.name.title() + ' Parachute')
+            print('CdS Coefficient: ' + str(chute.CdS) + ' m2')
+
+        # Show plots
+        print('\nAerodynamics Plots')
+        self.powerOnDrag()
+    
+        # Return None
+        return None
+
+    def allInfo(self):
+        '''Prints out all data and graphs available about the Rocket.
+
+        Parameters
+        ----------
+        None
+        
+        Return
+        ------
+        None
+        '''
         # Print inertia details
         print('Inertia Details')
         print('Rocket Mass: ' + str(self.mass) + ' kg (No Propellant)')
@@ -2263,277 +2732,38 @@ class Rocket:
         self.powerOnDrag()
         self.powerOffDrag()
 
-    def refresh(self):
-        'Recalculates important quantities'
-        if self.motor is None:
-            print('Please associate this rocket with a motor!')
-        else:
-            self.evaluateReducedMass()
-            self.evaluateTotalMass()
-
-    def evaluateReducedMass(self):
-        'Calculates and returns rocket\'s reduced mass as a Function of time.'
-        if self.motor is None:
-            print('Please associate this rocket with a motor!')
-            return False
-        motorMass = self.motor.mass
-        mass = self.mass
-        self.reducedMass = motorMass*mass/(motorMass+mass)
-        self.reducedMass.setDiscrete(0, self.motor.burnOutTime, 200)
-        self.reducedMass.setInputs('Time (s)')
-        self.reducedMass.setOutputs('Reduced Mass (kg)')
-        return self.reducedMass
-
-    def evaluateTotalMass(self):
-        'Calculates and returns rocket\'s total mass as a Function of time.'
-        if self.motor is None:
-            print('Please associate this rocket with a motor!')
-            return False
-        self.totalMass = self.mass + self.motor.mass
-        self.totalMass.setDiscrete(0, self.motor.burnOutTime, 200)
-        self.totalMass.setInputs('Time (s)')
-        self.totalMass.setOutputs('Total Mass (Rocket + Propellant) (kg)')
-        return self.totalMass
-
-    def setMotor(self, motor):
-        'Set motor and refresh important quantities'
-        if isinstance(motor, Motor):
-            self.motor = motor
-            self.refresh()
-        else:
-            print('Please specify a valid motor!')
-
-    # def addFin(self, numberOfFins=4, cl=2*np.pi, cpr=1, cpz=1,
-    #            gammas=[0, 0, 0, 0], angularPositions=None):
-    #     "Hey! I will document this function later"
-    #     self.aerodynamicSurfaces = []
-    #     pi = np.pi
-    #     # Calculate angular postions if not given
-    #     if angularPositions is None:
-    #         angularPositions = np.array(range(numberOfFins))*2*pi/numberOfFins
-    #     else:
-    #         angularPositions = np.array(angularPositions)*pi/180
-    #     # Convert gammas to degree
-    #     if isinstance(gammas, (int, float)):
-    #         gammas = [(pi/180)*gammas for i in range(numberOfFins)]
-    #     else:
-    #         gammas = [(pi/180)*gamma for gamma in gammas]
-    #     for i in range(numberOfFins):
-    #         # Get angular position and inclination for current fin
-    #         angularPosition = angularPositions[i]
-    #         gamma = gammas[i]
-    #         # Calculate position vector
-    #         cpx = cpr*np.cos(angularPosition)
-    #         cpy = cpr*np.sin(angularPosition)
-    #         positionVector = np.array([cpx, cpy, cpz])
-    #         # Calculate chord vector
-    #         auxVector = np.array([cpy, -cpx, 0])/(cpr)
-    #         chordVector = (np.cos(gamma)*np.array([0, 0, 1]) -
-    #                        np.sin(gamma)*auxVector)
-    #         self.aerodynamicSurfaces.append([positionVector, chordVector])
-    #     return None
-
-    def addTail(self, topRadius, bottomRadius, length, distanceToCM):
-        """Create a new tail or rocket diameter change, storing its parameters.
-
-        Parameters
-        ----------
-        topRadius : int, float
-            Tail top radius in meters, considering positive direction from
-            center of mass to nose cone.
-        bottomRadius : int, float
-            Tail bottom radius in meters, considering positive direction from
-            center of mass to nose cone.
-        length : int, float
-            Tail length or height in meters. Must be a postive value.
-        distanceToCM : int, float
-            Tail position relative to rocket unloaded center of mass,
-            considering positive direction from center of mass to nose cone.
-            Consider the point belonging to the tail which is closest to the
-            unloaded center of mass to calculate distance.
-
-        Returns
-        -------
-        None
-        """
-        r = topRadius/bottomRadius
-        rref = self.radius
-        # Calculate cp position relative to cm
-        if distanceToCM < 0:
-            cpz = distanceToCM - (length/3)*(1 + (1-r)/(1 - r**2))
-        else:
-            cpz = distanceToCM + (length/3)*(1 + (1-r)/(1 - r**2))
-        # Calculate clalpha
-        clalpha = -2*(1 - r**(-2))*(topRadius/rref)**2
-        # Store values
-        self.aerodynamicSurfaces.append([(0, 0, cpz), clalpha, 'Tail'])
-        self.refreshStaticMargin()
-        return self
-
-    def addNose(self, length, kind, distanceToCM):
-        """Create a nose cone, storing its parameters.
-
-        Parameters
-        ----------
-        length : int, float
-            Nose cone length or height in meters. Must be a postive value.
-        kind : string
-            Nose cone type. Von Karman, conical, ogive, and lvhaack are
-            supported.
-        distanceToCM : int, float
-            Nose cone position relative to rocket unloaded center of mass,
-            considering positive direction from center of mass to nose cone.
-            Consider the center point belonging to the nose cone base to
-            calculate distance.
-
-        Returns
-        -------
-        None
-        """
-        # Analyze type
-        if kind == 'conical':
-            k = 1 - 1/3
-        elif kind == 'ogive':
-            k = 1 - 0.534
-        elif kind == 'lvhaack':
-            k = 1 - 0.437
-        else:
-            k = 0.5
-        # Calculate cp position relative to cm
-        if distanceToCM > 0:
-            cpz = distanceToCM + k*length
-        else:
-            cpz = distanceToCM - k*length
-        # Calculate clalpha
-        clalpha = 2
-        # Store values
-        self.aerodynamicSurfaces.append([(0, 0, cpz), clalpha, 'Nose Cone'])
-        self.refreshStaticMargin()
-        return self
-
-    def addFins(self, n, span, rootChord, tipChord, distanceToCM, radius=0):
-        """Create a fin set, storing its parameters.
-
-        Parameters
-        ----------
-        n : int
-            Number of fins, from 2 to infinite.
-        span : int, float
-            Fin span in meters.
-        rootChord : int, float
-            Fin root chord in meters.
-        tipChord : int, float
-            Fin tip chord in meters.
-        distanceToCM : int, float
-            Fin set position relative to rocket unloaded center of mass,
-            considering positive direction from center of mass to nose cone.
-            Consider the center point belonging to the top of the fins to
-            calculate distance.
-        radius : int, float, optional
-            Reference radius to calculate lift coefficient. If 0, which is
-            default, use rocket radius.
-
-        Returns
-        -------
-        None
-        """
-        Cr = rootChord
-        Ct = tipChord
-        Yr = rootChord + tipChord
-        s = span
-        Lf = np.sqrt((rootChord/2 - tipChord/2)**2 + span**2)
-        radius = self.radius if radius == 0 else radius
-        d = 2*radius
-        # Calculate cp position relative to cm
-        if distanceToCM < 0:
-            cpz = distanceToCM - (((Cr - Ct)/3)*((Cr + 2*Ct)/(Cr + Ct)) +
-                                  (1/6)*(Cr + Ct - Cr*Ct/(Cr + Ct)))
-        else:
-            cpz = distanceToCM + (((Cr - Ct)/3)*((Cr + 2*Ct)/(Cr + Ct)) +
-                                  (1/6)*(Cr + Ct - Cr*Ct/(Cr + Ct)))
-        # Calculate clalpha
-        clalpha = (4*n*(s/d)**2)/(1 + np.sqrt(1 + (2*Lf/Yr)**2))
-        clalpha *= (1 + radius/(s + radius))
-        # Store values
-        self.aerodynamicSurfaces.append([(0, 0, cpz), clalpha, 'Fins'])
-        self.refreshStaticMargin()
-        return self
-
-    def refreshStaticMargin(self):
-        # Calculate total lift coeficient derivative and center of pressure
-        self.totalLiftCoeffDer = 0
-        self.cpPosition = 0
-        for aerodynamicSurface in self.aerodynamicSurfaces:
-            self.totalLiftCoeffDer += aerodynamicSurface[1]
-            self.cpPosition += aerodynamicSurface[1]*aerodynamicSurface[0][2]
-        self.cpPosition /= self.totalLiftCoeffDer
-        # Calculate static margin
-        self.staticMargin = ((abs(self.cpPosition) - self.centerOfMass(0)) /
-                             (2*self.radius))
-        return self
-
-    def addParachute(self, name, CdS, trigger, samplingRate=100, lag=0):
-        """Create a new parachute, storing its parameters such as opening
-        delay, drag coefficients and trigger function.
-
-        Parameters
-        ----------
-        name : string
-            Parachute name, such as drogue and main. Has no impact in
-            simulation, as it is only used to display data in a more organized
-            matter.
-        CdS : float
-            Drag coefficient times reference area for parachute. It is used
-            to compute the drag force exerted on the parachute by the equation
-            F = ((1/2)*rho*V^2)*CdS, that is, the drag force is the dynamic
-            pressure computed on the parachute times its CdS coefficient.
-            Has units of area and must be given in meters squared.
-        trigger : function
-            Function which defines if the parachute ejection system is to be
-            triggered. It must take as input the freestream pressure in bars.
-            Every simulation iteration it will be called. It should return
-            True if the parachute ejection system is to be triggered and False
-            otherwise.
-        samplingRate : float, optional
-            Sampling rate in which the trigger function works. It is used to
-            simulate the refresh rate of onboard sensors such as barometers.
-            Default value is 100. Value must be given in Hertz.
-        lag : float, optional
-            Time between the parachute ejection system is triggered and the
-            parachute is fully opened. During this time, the simulation will
-            consider the rocket as flying without a parachute. Default value
-            is 0. Must be given in seconds.
-
-        Returns
-        -------
-        None
-        """
-        # Store Cds coefficient, lag and trigger function
-        parachute = type('', (), {})()
-        parachute.trigger = trigger
-        parachute.samplingRate = samplingRate
-        parachute.lag = lag
-        parachute.CdS = CdS
-        parachute.name = name
-        self.parachutes.append(parachute)
+        # Return None
         return None
 
-    def addCMExcentricity(self, x, y):
-        self.cpExcentricityX = -x
-        self.cpExcentricityY = -y
-        self.motorExcentricityX = -x
-        self.motorExcentricityY = -y
-        return self
-    
-    def addCPExentricity(self, x, y):
-        self.cpExcentricityX = x
-        self.cpExcentricityY = y
-        return self
-
-    def addMotorExentricity(self, x, y):
-        self.motorExcentricityX = x
-        self.motorExcentricityY = y
-        return self
+    def addFin(self, numberOfFins=4, cl=2*np.pi, cpr=1, cpz=1,
+               gammas=[0, 0, 0, 0], angularPositions=None):
+        "Hey! I will document this function later"
+        self.aerodynamicSurfaces = []
+        pi = np.pi
+        # Calculate angular postions if not given
+        if angularPositions is None:
+            angularPositions = np.array(range(numberOfFins))*2*pi/numberOfFins
+        else:
+            angularPositions = np.array(angularPositions)*pi/180
+        # Convert gammas to degree
+        if isinstance(gammas, (int, float)):
+            gammas = [(pi/180)*gammas for i in range(numberOfFins)]
+        else:
+            gammas = [(pi/180)*gamma for gamma in gammas]
+        for i in range(numberOfFins):
+            # Get angular position and inclination for current fin
+            angularPosition = angularPositions[i]
+            gamma = gammas[i]
+            # Calculate position vector
+            cpx = cpr*np.cos(angularPosition)
+            cpy = cpr*np.sin(angularPosition)
+            positionVector = np.array([cpx, cpy, cpz])
+            # Calculate chord vector
+            auxVector = np.array([cpy, -cpx, 0])/(cpr)
+            chordVector = (np.cos(gamma)*np.array([0, 0, 1]) -
+                           np.sin(gamma)*auxVector)
+            self.aerodynamicSurfaces.append([positionVector, chordVector])
+        return None
 
 
 class Flight:
@@ -3217,8 +3447,8 @@ class Flight:
             # Thrust
             Thrust = self.rocket.motor.thrust.getValueOpt(t)
             # Off center moment
-            M1 += self.rocket.motorExcentricityY*Thrust
-            M2 -= self.rocket.motorExcentricityX*Thrust
+            M1 += self.rocket.thrustExcentricityX*Thrust
+            M2 -= self.rocket.thrustExcentricityY*Thrust
         else:
             # Motor stopped
             # Retrieve important motor quantities
