@@ -1453,7 +1453,89 @@ class Environment:
 
 class Motor:
     """Class to specify characteriscts and useful operations for solid
-    motors."""
+    motors.
+    
+    Class attributes:
+
+    Geometrical attributes:
+    Motor.nozzleRadius : float
+        Radius of motor nozzle outlet in meters.
+    Motor.throatRadius : float
+        Radius of motor nozzle throat in meters.
+    Motor.grainNumber : int
+        Number os solid grains.
+    Motor.grainSeparation : float
+        Distance between two grains in meters.
+    Motor.grainDensity : float
+        Density of each grain in kg/meters cubed.
+    Motor.grainOuterRadius : float
+        Outer radius of each grain in meters.
+    Motor.grainInitialInnerRadius : float
+        Initial inner radius of each grain in meters.
+    Motor.grainInitialHeight : float
+        Initial height of each grain in meters.
+    Motor.grainInitialVolume : float
+        Initial volume of each grain in meters cubed.
+    Motor.grainInnerRadius : Function
+        Inner radius of each grain in meters as a function of time.
+    Motor.grainHeight : Function
+        Height of each grain in meters as a function of time.
+
+    Mass and moment of inertia attributes:
+    Motor.grainInitalMass : float
+        Initial mass of each grain in kg.
+    Motor.propellantInitialMass : float
+        Total propellant initial mass in kg.
+    Motor.mass : Function
+        Propellant total mass in kg as a function of time.
+    Motor.massDot : Function
+        Time derivative of propellant total mass in kg/s as a function
+        of time.
+    Motor.inertiaI : Function
+        Propellant moment of inertia in kg*meter^2 with respect to axis
+        perpendicular to axis of cylindrical symmetry of each grain,
+        given as a function of time.
+    Motor.inertiaIDot : Function
+        Time derivative of inertiaI given in kg*meter^2/s as a function
+        of time.
+    Motor.inertiaZ : Function
+        Propellant moment of inertia in kg*meter^2 with respect to axis of
+        cylindrical symmetry of each grain, given as a function of time.
+    Motor.inertiaDot : Function
+        Time derivative of inertiaZ given in kg*meter^2/s as a function
+        of time.   
+    
+    Thrust and burn attributes:
+    Motor.thrust : Function
+        Motor thrust force, in Newtons, as a function of time.
+    Motor.totalImpulse : float
+        Total impulse of the thrust curve in N*s.
+    Motor.maxThrust : float
+        Maximum thrust value of the given thrust curve, in N.
+    Motor.maxThrustTime : float
+        Time, in seconds, in which the maximum thrust value is achieved.
+    Motor.averageThrust : float
+        Average thrust of the motor, given in N.
+    Motor.burnOutTime : float
+        Total motor burn out time, in seconds. Must include delay time
+        when motor takes time to ignite. Also seen as time to end thrust
+        curve.
+    Motor.exhaustVelocity : float
+        Propulsion gases exchaust velocity, assumed constant, in m/s.
+    Motor.burnArea : Function
+        Total burn area considering all grains, made out of inner
+        cilindrical burn area and grain top and bottom faces. Expressed
+        in meters squared as a function of time.
+    Motor.Kn : Function
+        Motor Kn as a function of time. Defined as burnArea devided by
+        nozzle throat cross sectional area. Has no units.
+    Motor.burnRate : Function
+        Propellant burn rate in meter/second as a function of time.
+    Motor.interpolate : string
+        Method of interpolation used in case thrust curve is given
+        by data set in .csv or .eng, or as an array. Options are 'spline'
+        'akima' and 'linear'. Default is "linear".
+    """
     def __init__(self,
                  thrustSource,
                  burnOut,
