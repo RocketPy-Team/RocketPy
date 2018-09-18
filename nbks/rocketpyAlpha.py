@@ -872,7 +872,7 @@ class Function:
                           [0, 1, 2*xr, 3*xr**2]])
             Y = np.array([yl, yr, dl, dr]).T
             coeffs[4*i:4*i+4] = np.linalg.solve(A, Y)
-            '''For some reason this doesnt always work!
+            """For some reason this doesnt always work!
             coeffs[4*i] = (dr*xl**2*xr*(-xl + xr) + dl*xl*xr**2*(-xl + xr) +
                            3*xl*xr**2*yl - xr**3*yl + xl**3*yr -
                           3*xl**2*xr*yr)/(xl-xr)**3
@@ -883,7 +883,7 @@ class Function:
                              dr*(-2*xl**2 + xl*xr + xr**2) +
                              3*(xl + xr)*(yl - yr))/(xl-xr)**3
             coeffs[4*i+3] = (dl*(xl - xr) + dr*(xl - xr) -
-                             2*yl + 2*yr)/(xl-xr)**3'''
+                             2*yl + 2*yr)/(xl-xr)**3"""
         self.__akimaCoefficients__ = coeffs
 
     # Define all possible algebraic operations
@@ -1038,8 +1038,90 @@ class Function:
 
 
 class Environment:
-    '''Keeps all environment information stored, such as wind and temperature
-    conditions, as well as gravity and rail length.'''
+    """Keeps all environment information stored, such as wind and temperature
+    conditions, as well as gravity and rail length.
+    
+    Class attributes:
+    Gravity and Rail Length:
+    Environment.rl : float
+        Launch rail length in meters.
+    Environment.g : float
+        Positive value of gravitational acceleration in m/s^2.
+
+    Atmosphere Static Conditions:
+    Environment.densitySL : float
+        Sea level air density in kg/m^3. Default value is 1.225.
+        Defined by US Standard Atmosphere.
+    Environment.pressureSL : float
+        Sea level atmospheric pressure in Pa. Default value is 
+        1.0132 * 10**5. Defined by US Standard Atmosphere.
+    Environment.temperatureSL : float
+        Sea level air temperature in Kelvin. Default value is 288.15.
+        Defined by US Standard Atmosphere.
+    Environment.speedOfSoundSL : float
+        Sea level speed of sound in air in m/s. Default value is 340.3.
+        Defined by US Standard Atmosphere.
+    Environment.viscositySL : float
+        Sea level air viscosity in kg/m*s. Default value is 1.79*10**(-5).
+        Defined by US Standard Atmosphere.
+    Environment.pressure : Function
+        Air pressure in Pa as a function of altitude. Defined by US
+        Standard Atmosphere.
+    Environment.temperature : Function
+        Air temperature in K as a function of altitude. Defined by US
+        Standard Atmosphere.
+    Environment.speedOfSound : Function
+        Speed of sound in air as a function of altitude. Defined by US
+        Standard Atmosphere.
+    
+    Atmosphere Wind Conditions: 
+    Environment.windDataSource : string
+        Indicates how the wind data was imported. Can be 'CSV',
+        'netCDF', 'pair' and 'matrix'.
+    Environment.windSpeed : Function
+        Wind speed in m/s as a function of altitude.
+    Environment.windHeading : Function
+        Wind heading in degrees relative to north (positive clockwise)
+        as a function of altitude.
+    Environment.windVelocityX : Function
+        X (east) component of wind velocity in m/s as a function of
+        altitude.
+    Environment.windVelocityY : Function
+        Y (east) component of wind velocity in m/s as a function of
+        altitude.
+    Environment.maxExpectedHeight : float
+        Maximum altitude in meters to keep weather data.
+    Environment.lonIndex : int
+        Defined if netCDF file is used. Index of the desired longitude
+        in the file.
+    Environment.latIndex : int
+        Defined if netCDF file is used. Index of the desired latitude
+        in the file. 
+    Environment.geopotentials : list
+        Defined if netCDF file is used. List of geopotentials available
+        in the latitude and longitude specified.
+    Environment.windUs : list
+        Defined if netCDF file is used. List of wind velocity U (east)
+        component corresponding to geopotential list.
+    Environment.windVs : list
+        Defined if netCDF file is used. List of wind velocity V (north)
+        component corresponding to geopotential list.
+    Environment.levels : list
+        Defined if netCDF file is used. List of pressure levels
+        corresponding to geopotential list.
+    Environment.times : list
+        Defined if netCDF file is used.
+    Environment.height : list
+        Defined if netCDF file is used.
+    
+    Spacetime position:
+    Environment.lat : float
+        Launch position latitude.
+    Environment.lon : float
+        Launch position longitude.
+    Environment.date : datetime
+        Date time of launch.    
+    """
     def __init__(self,
                  railLength,
                  gravity=9.8,
@@ -1191,7 +1273,7 @@ class Environment:
         return None
 
     def allInfo(self):
-        '''Prints out all data and graphs available about the Environment.
+        """Prints out all data and graphs available about the Environment.
 
         Parameters
         ----------
@@ -1200,7 +1282,7 @@ class Environment:
         Return
         ------
         None
-        '''
+        """
         # Print gravity details
         print('Gravity Details')
         print('Acceleration of Gravity: ' + str(self.g) + ' m/s2')
@@ -1231,7 +1313,7 @@ class Environment:
         self.density.plot(0, 4000)
 
     def info(self):
-        '''Prints most important data and graphs available about the Environment.
+        """Prints most important data and graphs available about the Environment.
 
         Parameters
         ----------
@@ -1240,7 +1322,7 @@ class Environment:
         Return
         ------
         None
-        '''
+        """
         # Print rail details
         print('\nRail Details')
         print('Rail Length: ' + str(self.rL) + ' m')
@@ -1257,7 +1339,7 @@ class Environment:
         self.windSpeed.plot(0, self.maxExpectedHeight)
 
     def processNetCDFFile(self, windData):
-        '''Process netCDF File and store attmospheric data to be used.
+        """Process netCDF File and store attmospheric data to be used.
         
         Parameters
         ----------
@@ -1267,7 +1349,7 @@ class Environment:
         Return
         ------
         None
-        '''
+        """
         # Check if date, lat and lon is know
         if self.date is None:
             raise TypeError('Please specify Date (array-like).')
@@ -1346,8 +1428,10 @@ class Environment:
         self.height = height
         self.maxExpectedHeight = height[0]
 
+        return None
+
     def reprocessNetCDFFile(self):
-        '''Reprocess netCDF File after date and/or location update
+        """Reprocess netCDF File after date and/or location update
         and store attmospheric data to be used.
         
         Parameters
@@ -1357,7 +1441,7 @@ class Environment:
         Return
         ------
         None
-        '''
+        """
         # Restore data
         lats = self.lats
         lons = self.lons
@@ -1395,6 +1479,8 @@ class Environment:
         self.windSpeed = Function(np.array([height, windSpeed]).T,
                                   'Height (m)', 'Wind Speed (m/s)',
                                   extrapolation='constant')
+        
+        return None
 
     def addWindGust(self, windGustX, windGustY):
         """ Adds a function to the current stored wind profile, in order to
@@ -1432,9 +1518,11 @@ class Environment:
         self.windSpeed = Function(lambda h: (self.windVelocityX(h)**2 + self.windVelocityY(h)**2)**0.5,
                                   'Height (m)', 'Wind Speed (m/s)',
                                   extrapolation='constant')
+        
+        return None
 
     def setDate(self, date):
-        '''Set date and time of launch and update weather conditions if
+        """Set date and time of launch and update weather conditions if
         available.
         
         Parameters
@@ -1445,10 +1533,12 @@ class Environment:
         Return
         ------
         None
-        '''
+        """
         self.date = datetime(*date)
         if self.windDataSource == 'netCDF':
             self.reprocessNetCDFFile()
+        
+        return None
 
 
 class Motor:
@@ -2095,7 +2185,7 @@ class Motor:
         return None
 
     def info(self):
-        '''Prints out a summary of the data and graphs available about
+        """Prints out a summary of the data and graphs available about
         the Motor.
 
         Parameters
@@ -2105,7 +2195,7 @@ class Motor:
         Return
         ------
         None
-        '''
+        """
         # Print motor details
         print('\nMotor Details')
         print('Total Burning Time: ' + str(self.burnOutTime) + ' s')
@@ -2125,7 +2215,7 @@ class Motor:
         return None
 
     def allInfo(self):
-        '''Prints out all data and graphs available about the Motor.
+        """Prints out all data and graphs available about the Motor.
 
         Parameters
         ----------
@@ -2134,7 +2224,7 @@ class Motor:
         Return
         ------
         None
-        '''
+        """
         # Print nozzle details
         print('Nozzle Details')
         print('Nozzle Radius: ' + str(self.nozzleRadius) + ' m')
@@ -2701,7 +2791,7 @@ class Rocket:
         return self
 
     def info(self):
-        '''Prints out a summary of the data and graphs available about
+        """Prints out a summary of the data and graphs available about
         the Rocket.
 
         Parameters
@@ -2711,7 +2801,7 @@ class Rocket:
         Return
         ------
         None
-        '''
+        """
         # Print inertia details
         print('Inertia Details')
         print('Rocket Dry Mass: ' + str(self.mass) + ' kg (No Propellant)')
@@ -2740,7 +2830,7 @@ class Rocket:
         return None
 
     def allInfo(self):
-        '''Prints out all data and graphs available about the Rocket.
+        """Prints out all data and graphs available about the Rocket.
 
         Parameters
         ----------
@@ -2749,7 +2839,7 @@ class Rocket:
         Return
         ------
         None
-        '''
+        """
         # Print inertia details
         print('Inertia Details')
         print('Rocket Mass: ' + str(self.mass) + ' kg (No Propellant)')
@@ -2849,8 +2939,8 @@ class Rocket:
 
 
 class Flight:
-    '''Keeps all flight information and has a method to simulate flight.
-    '''
+    """Keeps all flight information and has a method to simulate flight.
+    """
     def __init__(self, rocket, environment,
                  inclination=80, heading=90,
                  terminateOnApogee=False,
@@ -3454,8 +3544,8 @@ class Flight:
                 time.sleep(1/(fps*speed))
 
     def __uDotRailOpt(self, t, u, verbose=False):
-        '''Derivative of u in respect to time to be integrated by odesolver
-        while on rail.'''
+        """Derivative of u in respect to time to be integrated by odesolver
+        while on rail."""
         # Retrieve integration data
         x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
 
