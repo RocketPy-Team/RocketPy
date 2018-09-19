@@ -42,17 +42,17 @@ class Function:
         source : function, scalar, ndarray, string
             The actual function. If type is function, it will be called for
             evaluation. If type is int or float, it will be treated as a
-            constant function. If ndarray, its poitns will be used for
+            constant function. If ndarray, its points will be used for
             interpolation. A ndarray should be as [(x0, y0, z0), (x1, y1, z1),
             (x2, y2, z2), ...] where x0 and y0 are inputs and z0 is output. If
             string, imports file named by the string and treats it as csv.
             The file is converted into ndarray and should not have headers.
-        inputs : string, sequence of strigns, optional
+        inputs : string, sequence of strings, optional
             The name of the inputs of the function. Will be used for
             representation and graphing (axis names). 'Scalar' is default.
-            If souce is function, int or float and has multiple inputs,
+            If source is function, int or float and has multiple inputs,
             this parameters must be giving for correct operation.
-        outputs : string, sequence of strigns, optional
+        outputs : string, sequence of strings, optional
             The name of the outputs of the function. Will be used for
             representation and graphing (axis names). Scalar is default.
         interpolation : string, optional
@@ -64,7 +64,7 @@ class Function:
             Extrapolation method to be used if source type is ndarray.
             Options are 'natural', which keeps interpolation, 'constant',
             which returns the value of the function of edge of the interval,
-            and 'zero', wich returns zero for all points outside of source
+            and 'zero', which returns zero for all points outside of source
             range. Default for 1-D functions is constant.
 
         Returns
@@ -101,7 +101,7 @@ class Function:
         return self
 
     def setOutputs(self, outputs):
-        """Set the name and number of the ouput of the Function.
+        """Set the name and number of the output of the Function.
 
         Parameters
         ----------
@@ -125,7 +125,7 @@ class Function:
         source : function, scalar, ndarray, string
             The actual function. If type is function, it will be called for
             evaluation. If type is int or float, it will be treated as a
-            constant function. If ndarray, its poitns will be used for
+            constant function. If ndarray, its points will be used for
             interpolation. A ndarray should be as [(x0, y0, z0), (x1, y1, z1),
             (x2, y2, z2), ...] where x0 and y0 are inputs and z0 is output. If
             string, imports file named by the string and treats it as csv.
@@ -179,7 +179,7 @@ class Function:
                 source = source[source[:, 0].argsort()]
                 # Finally set data source as source
                 self.source = source
-                # Set default interpolation for point source if it hasnt
+                # Set default interpolation for point source if it hasn't
                 if self.__interpolation__ is None:
                     self.setInterpolation()
                 else:
@@ -229,7 +229,7 @@ class Function:
         return self
 
     def setExtrapolation(self, method='constant'):
-        """Set extrapolation behaviour of data set.
+        """Set extrapolation behavior of data set.
 
         Parameters
         ----------
@@ -237,7 +237,7 @@ class Function:
             Extrapolation method to be used if source type is ndarray.
             Options are 'natural', which keeps interpolation, 'constant',
             which returns the value of the function of edge of the interval,
-            and 'zero', wich returns zero for all points outside of source
+            and 'zero', which returns zero for all points outside of source
             range. Default is 'zero'.
 
         Returns
@@ -275,7 +275,7 @@ class Function:
             Extrapolation method to be used if source type is ndarray.
             Options are 'natural', which keeps interpolation, 'constant',
             which returns the value of the function of edge of the interval,
-            and 'zero', wich returns zero for all points outside of source
+            and 'zero', which returns zero for all points outside of source
             range. Default is 'constant'.
         oneByOne : boolean, optional
             If True, evaluate Function in each sample point separately. If
@@ -387,9 +387,9 @@ class Function:
                         denominatorSum = 1
                         break
                     else:
-                        weigth = distance**(-3)
-                        numeratorSum = numeratorSum + yData[o]*weigth
-                        denominatorSum = denominatorSum + weigth
+                        weight = distance**(-3)
+                        numeratorSum = numeratorSum + yData[o]*weight
+                        denominatorSum = denominatorSum + weight
                 ans[i] = numeratorSum/denominatorSum
             return ans if len(ans) > 1 else ans[0]
         # Returns value for polynomial interpolation function type
@@ -636,7 +636,7 @@ class Function:
         """ Plot 1-Dimensional Function, from a lower limit to an upper limit,
         by sampling the Function several times in the interval. The title of
         the graph is given by the name of the axis, which are taken from
-        the Function's input and ouput names.
+        the Function's input and output names.
 
         Parameters
         ----------
@@ -707,7 +707,7 @@ class Function:
         """ Plot 2-Dimensional Function, from a lower limit to an upper limit,
         by sampling the Function several times in the interval. The title of
         the graph is given by the name of the axis, which are taken from
-        the Function's inputs and ouput names.
+        the Function's inputs and output names.
 
         Parameters
         ----------
@@ -810,7 +810,7 @@ class Function:
         if np.amax(x)**degree > 1e308:
             print("Polynomial interpolation of too many points can't be done."
                   " Once the degree is too high, numbers get too large."
-                  " The process becomes ineficient. Using spline instead.")
+                  " The process becomes inefficient. Using spline instead.")
             return self.setInterpolation('spline')
         # Create coefficient matrix1
         A = np.zeros((degree + 1, degree + 1))
@@ -872,7 +872,7 @@ class Function:
                           [0, 1, 2*xr, 3*xr**2]])
             Y = np.array([yl, yr, dl, dr]).T
             coeffs[4*i:4*i+4] = np.linalg.solve(A, Y)
-            """For some reason this doesnt always work!
+            """For some reason this doesn't always work!
             coeffs[4*i] = (dr*xl**2*xr*(-xl + xr) + dl*xl*xr**2*(-xl + xr) +
                            3*xl*xr**2*yl - xr**3*yl + xl**3*yr -
                           3*xl**2*xr*yr)/(xl-xr)**3
@@ -962,7 +962,7 @@ class Function:
             The current numerical method used is scipy.integrate.quad.
             If False, try to calculate using interpolation information.
             Currently, only available for spline and linear interpolation. If
-            unavailabe, calculate numerically anyways.
+            unavailable, calculate numerically anyways.
         
         Returns
         -------
@@ -1139,12 +1139,12 @@ class Environment:
             moving along a fixed direction, that is, the line parallel to the
             rail.
         gravity : scalar, optional
-            Surface gravitational accelertion. Positive values point the
+            Surface gravitational acceleration. Positive values point the
             acceleration down. Default value is 9.8.
         windData : array of scalars or functions, string, optional
             Wind and atmospheric data input. If array of two scalars or
             functions is given, the first value is interpreted as wind speed, 
-            while the second value is intepreted as an angle, in degrees,
+            while the second value is interpreted as an angle, in degrees,
             specifying direction relative to north (0 deg). The scalar values
             will be interpreted as constants, while function values can
             are interpreted as a function of altitude in meters.If matrix
@@ -1270,7 +1270,7 @@ class Environment:
             # Throw error if array input not recognized
             else:
                 raise TypeError('Only arrays of length 2  and matrices (Nx3) '
-                                'are accepeted.')
+                                'are accepted.')
         return None
 
     def allInfo(self):
@@ -1340,7 +1340,7 @@ class Environment:
         self.windSpeed.plot(0, self.maxExpectedHeight)
 
     def processNetCDFFile(self, windData):
-        """Process netCDF File and store attmospheric data to be used.
+        """Process netCDF File and store atmospheric data to be used.
         
         Parameters
         ----------
@@ -1433,7 +1433,7 @@ class Environment:
 
     def reprocessNetCDFFile(self):
         """Reprocess netCDF File after date and/or location update
-        and store attmospheric data to be used.
+        and store atmospheric data to be used.
         
         Parameters
         ----------
@@ -1573,7 +1573,7 @@ class Motor:
             Height of each grain in meters as a function of time.
 
         Mass and moment of inertia attributes:
-        Motor.grainInitalMass : float
+        Motor.grainInitialMass : float
             Initial mass of each grain in kg.
         Motor.propellantInitialMass : float
             Total propellant initial mass in kg.
@@ -1612,13 +1612,13 @@ class Motor:
             when motor takes time to ignite. Also seen as time to end thrust
             curve.
         Motor.exhaustVelocity : float
-            Propulsion gases exchaust velocity, assumed constant, in m/s.
+            Propulsion gases exhaust velocity, assumed constant, in m/s.
         Motor.burnArea : Function
             Total burn area considering all grains, made out of inner
-            cilindrical burn area and grain top and bottom faces. Expressed
+            cylindrical burn area and grain top and bottom faces. Expressed
             in meters squared as a function of time.
         Motor.Kn : Function
-            Motor Kn as a function of time. Defined as burnArea devided by
+            Motor Kn as a function of time. Defined as burnArea divided by
             nozzle throat cross sectional area. Has no units.
         Motor.burnRate : Function
             Propellant burn rate in meter/second as a function of time.
@@ -1675,7 +1675,7 @@ class Motor:
             trajectory simulation.
         throatRadius : int, float, optional
             Motor's nozzle throat radius in meters. Its value has very low
-            impact in trajectory simulation, only useful to analyize
+            impact in trajectory simulation, only useful to analyze
             dynamic instabilities, therefore it is optional. 
         reshapeThrustCurve : boolean, tuple, optional
             If False, the original thrust curve supplied is not altered. If a
@@ -1759,17 +1759,17 @@ class Motor:
         self.averageThrust = None
         
         # Compute uncalculated quantities
-        # Thrust information - maximum and avarege
+        # Thrust information - maximum and average
         self.maxThrust = np.amax(self.thrust.source[:, 1])
         maxThrustIndex = np.argmax(self.thrust.source[:, 1])
         self.maxThrustTime = self.thrust.source[maxThrustIndex, 0]
         self.averageThrust = self.totalImpulse/self.burnOutTime
-        # Grain stinitial geometrical parameters
+        # Grains initial geometrical parameters
         self.grainInitialVolume = (self.grainInitialHeight * np.pi *
                                    (self.grainOuterRadius**2 -
                                     self.grainInitialInnerRadius**2))
-        self.grainInitalMass = self.grainDensity*self.grainInitialVolume
-        self.propellantInitialMass = self.grainNumber*self.grainInitalMass
+        self.grainInitialMass = self.grainDensity*self.grainInitialVolume
+        self.propellantInitialMass = self.grainNumber*self.grainInitialMass
         # Dynamic quantities
         self.evaluateExhaustVelocity()
         self.evaluateMassDot()
@@ -1878,7 +1878,7 @@ class Motor:
     def evaluateMassDot(self):
         """Calculates and returns the time derivative of propellant
         mass by assuming constant exhaust velocity. The formula used
-        is the opposite of thrust devided by exhaust velocty. The
+        is the opposite of thrust divided by exhaust velocity. The
         result is a function of time, object of the class Function,
         which is stored in self.massDot.
 
@@ -2101,7 +2101,7 @@ class Motor:
 
     def importEng(self, fileName):
         """ Read content from .eng file and process it, in order to
-        return the coments, description and data points.
+        return the comments, description and data points.
 
         Parameters
         ----------
@@ -2242,7 +2242,7 @@ class Motor:
         print('Grain Height: ' + str(self.grainInitialHeight) + ' m')
         print('Grain Volume: ' + "{:.3f}".format(self.grainInitialVolume) +
               ' m3')
-        print('Grain Mass: ' + "{:.3f}".format(self.grainInitalMass) + ' kg')
+        print('Grain Mass: ' + "{:.3f}".format(self.grainInitialMass) + ' kg')
 
         # Print motor details
         print('\nMotor Details')
@@ -2294,7 +2294,7 @@ class Rocket:
         
         Mass and Inertia attributes:
         Rocket.mass : float
-            Rocket's mass withouth propellant in kg.
+            Rocket's mass without propellant in kg.
         Rocket.inertiaI : float
             Rocket's moment of inertia, without propellant, with respect to
             to an axis perpendicular to the rocket's axis of cylindrical
@@ -2319,16 +2319,16 @@ class Rocket:
         Excentricity attributes:
         Rocket.cpExcentricityX : float
             Center of pressure position relative to center of mass in the x
-            axis, perpendicular to axis of cilindrical symmetry, in meters. 
+            axis, perpendicular to axis of cylindrical symmetry, in meters. 
         Rocket.cpExcentricityY : float
             Center of pressure position relative to center of mass in the y
-            axis, perpendicular to axis of cilindrical symmetry, in meters. 
+            axis, perpendicular to axis of cylindrical symmetry, in meters. 
         Rocket.thrustExcentricityY : float
             Thrust vector position relative to center of mass in the y
-            axis, perpendicular to axis of cilindrical symmetry, in meters. 
+            axis, perpendicular to axis of cylindrical symmetry, in meters. 
         Rocket.thrustExcentricityX : float 
             Thrust vector position relative to center of mass in the x
-            axis, perpendicular to axis of cilindrical symmetry, in meters. 
+            axis, perpendicular to axis of cylindrical symmetry, in meters. 
         
         Parachute attributes:
         Rocket.parachutes : list
@@ -2339,7 +2339,7 @@ class Rocket:
             List of aerodynamic surfaces of the rocket.
         Rocket.staticMargin : float
             Float value corresponding to rocket static margin when
-            loaded with propellant in units of rokcet diameter or
+            loaded with propellant in units of rocket diameter or
             calibers.
         Rocket.powerOffDrag : Function
             Rocket's drag coefficient as a function of Mach number when the
@@ -2362,7 +2362,7 @@ class Rocket:
                  distanceRocketPropellant,
                  powerOffDrag,
                  powerOnDrag):
-        """Initialize Rocket class, process intertial, geometrical and
+        """Initialize Rocket class, process inertial, geometrical and
         aerodynamic parameters.
 
         Parameters
@@ -2535,7 +2535,7 @@ class Rocket:
         -------
         self.staticMargin : float
             Float value corresponding to rocket static margin when
-            loaded with propellant in units of rokcet diameter or
+            loaded with propellant in units of rocket diameter or
             calibers.
         """
         # Initialize total lift coeficient derivative and center of pressure
@@ -2571,7 +2571,7 @@ class Rocket:
             Tail bottom radius in meters, considering positive direction
             from center of mass to nose cone.
         length : int, float
-            Tail length or height in meters. Must be a postive value.
+            Tail length or height in meters. Must be a positive value.
         distanceToCM : int, float
             Tail position relative to rocket unloaded center of mass,
             considering positive direction from center of mass to nose
@@ -3313,7 +3313,7 @@ class Flight:
                                   self.solver.y[5]**2)**(0.5)
 
         # Freeflight and event phases
-        # Intialize macro time counter, system state and flight phase
+        # Initialize macro time counter, system state and flight phase
         self.t = self.solver.t
         self.y = self.solver.y
         self.noise = np.random.normal(0, 8.3)
@@ -4171,7 +4171,7 @@ class Flight:
         axes = fig.gca(projection='3d')
         # Initialize time
         timeRange = np.linspace(start, stop, fps * (stop - start))
-        # Intialize first frame
+        # Initialize first frame
         axes.set_title('Trajectory and Velocity Animation')
         axes.set_xlabel('X (m)')
         axes.set_ylabel('Y (m)')
