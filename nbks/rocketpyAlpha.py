@@ -2274,7 +2274,71 @@ class Motor:
 
 
 class Rocket:
-    """Keeps all rocket information.
+    """Keeps all rocket and parachute information.
+
+    Class attributes:
+    Rocket.mass : float
+        Rocket's mass withouth propellant in kg.
+    Rocket.inertiaI : float
+        Rocket's moment of inertia, without propellant, with respect to
+        to an axis perpendicular to the rocket's axis of cylindrical
+        symmetry, in kg*m^2.
+    Rocket.inertiaZ : float
+        Rocket's moment of inertia, without propellant, with respect to
+        the rocket's axis of cylindrical symmetry, in kg*m^2.
+    Rocket.centerOfMass : Function
+        Distance of the rocket's center of mass, including propellant,
+        to rocket's center of mass without propellant, in meters.
+        Expressed as a function of time.
+    Rocket.radius : float
+        Rocket's largest radius in meters.
+    Rocket.area : float
+        Rocket's circular cross section largest frontal area in meters
+        squared.
+    Rocket.distanceRocketNozzle : float
+        Distance between rocket's center of mass, without propellant,
+        to the exit face of the nozzle, in meters. Always positive.
+    Rocket.distanceRocketPropellant : float
+        Distance between rocket's center of mass, without propellant,
+        to the center of mass of propellant, in meters. Always positive.
+    Rocket.cpExcentricityX : float
+        Center of pressure position relative to center of mass in the x
+        axis, perpendicular to axis of cilindrical symmetry, in meters. 
+    Rocket.cpExcentricityY : float
+        Center of pressure position relative to center of mass in the y
+        axis, perpendicular to axis of cilindrical symmetry, in meters. 
+    Rocket.thrustExcentricityY : float
+        Thrust vector position relative to center of mass in the y
+        axis, perpendicular to axis of cilindrical symmetry, in meters. 
+    Rocket.thrustExcentricityX : float 
+        Thrust vector position relative to center of mass in the x
+        axis, perpendicular to axis of cilindrical symmetry, in meters. 
+    Rocket.parachutes : list
+        List of parachutes of the rocket.
+    Rocket.aerodynamicSurfaces : list
+        List of aerodynamic surfaces of the rocket.
+    Rocket.staticMargin : float
+        Float value corresponding to rocket static margin when
+        loaded with propellant in units of rokcet diameter or
+        calibers.
+    Rocket.powerOffDrag : Function
+        Rocket's drag coefficient as a function of Mach number when the
+        motor is off.
+    Rocket.powerOnDrag : Function
+        Rocket's drag coefficient as a function of Mach number when the
+        motor is on.
+    Rocket.motor : Motor
+        Rocket's motor. See Motor class for more details.
+    Rocket.reducedMass : Function
+        Function of time expressing the reduced mass of the rocket,
+        defined as the product of the propellant mass and the mass
+        of the rocket without propellant, divided by the sum of the
+        propellant mass and the rocket mass.
+    Rocket.totalMass : Function
+        Function of time expressing the total mass of the rocket,
+        defined as the sum of the propellant mass and the rocket
+        mass without propellant.
+
     """
     def __init__(self,
                  motor,
@@ -2297,9 +2361,10 @@ class Rocket:
             Unloaded rocket total mass (without propelant) in kg.
         inertiaI : int, float
             Unloaded rocket lateral (perpendicular to axis of symmetry)
-            inertia (without propelant) in kg m^2.
+            moment of inertia (without propelant) in kg m^2.
         inertiaZ : int, float
-            Unloaded rocket axial inertia (without propelant) in kg m^2.
+            Unloaded rocket axial moment of inertia (without propelant)
+            in kg m^2.
         radius : int, float
             Rocket biggest outer radius in meters.
         distanceRocketNozzle : int, float
