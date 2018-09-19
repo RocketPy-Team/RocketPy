@@ -636,7 +636,7 @@ class Function:
         """ Plot 1-Dimensional Function, from a lower limit to an upper limit,
         by sampling the Function several times in the interval. The title of
         the graph is given by the name of the axis, which are taken from
-        the Function`s input and ouput names.
+        the Function's input and ouput names.
 
         Parameters
         ----------
@@ -707,7 +707,7 @@ class Function:
         """ Plot 2-Dimensional Function, from a lower limit to an upper limit,
         by sampling the Function several times in the interval. The title of
         the graph is given by the name of the axis, which are taken from
-        the Function`s inputs and ouput names.
+        the Function's inputs and ouput names.
 
         Parameters
         ----------
@@ -1042,85 +1042,86 @@ class Environment:
     conditions, as well as gravity and rail length.
     
     Class attributes:
-    Gravity and Rail Length:
-    Environment.rl : float
-        Launch rail length in meters.
-    Environment.g : float
-        Positive value of gravitational acceleration in m/s^2.
 
-    Atmosphere Static Conditions:
-    Environment.densitySL : float
-        Sea level air density in kg/m^3. Default value is 1.225.
-        Defined by US Standard Atmosphere.
-    Environment.pressureSL : float
-        Sea level atmospheric pressure in Pa. Default value is 
-        1.0132 * 10**5. Defined by US Standard Atmosphere.
-    Environment.temperatureSL : float
-        Sea level air temperature in Kelvin. Default value is 288.15.
-        Defined by US Standard Atmosphere.
-    Environment.speedOfSoundSL : float
-        Sea level speed of sound in air in m/s. Default value is 340.3.
-        Defined by US Standard Atmosphere.
-    Environment.viscositySL : float
-        Sea level air viscosity in kg/m*s. Default value is 1.79*10**(-5).
-        Defined by US Standard Atmosphere.
-    Environment.pressure : Function
-        Air pressure in Pa as a function of altitude. Defined by US
-        Standard Atmosphere.
-    Environment.temperature : Function
-        Air temperature in K as a function of altitude. Defined by US
-        Standard Atmosphere.
-    Environment.speedOfSound : Function
-        Speed of sound in air as a function of altitude. Defined by US
-        Standard Atmosphere.
-    
-    Atmosphere Wind Conditions: 
-    Environment.windDataSource : string
-        Indicates how the wind data was imported. Can be 'CSV',
-        'netCDF', 'pair' and 'matrix'.
-    Environment.windSpeed : Function
-        Wind speed in m/s as a function of altitude.
-    Environment.windHeading : Function
-        Wind heading in degrees relative to north (positive clockwise)
-        as a function of altitude.
-    Environment.windVelocityX : Function
-        X (east) component of wind velocity in m/s as a function of
-        altitude.
-    Environment.windVelocityY : Function
-        Y (east) component of wind velocity in m/s as a function of
-        altitude.
-    Environment.maxExpectedHeight : float
-        Maximum altitude in meters to keep weather data.
-    Environment.lonIndex : int
-        Defined if netCDF file is used. Index of the desired longitude
-        in the file.
-    Environment.latIndex : int
-        Defined if netCDF file is used. Index of the desired latitude
-        in the file. 
-    Environment.geopotentials : list
-        Defined if netCDF file is used. List of geopotentials available
-        in the latitude and longitude specified.
-    Environment.windUs : list
-        Defined if netCDF file is used. List of wind velocity U (east)
-        component corresponding to geopotential list.
-    Environment.windVs : list
-        Defined if netCDF file is used. List of wind velocity V (north)
-        component corresponding to geopotential list.
-    Environment.levels : list
-        Defined if netCDF file is used. List of pressure levels
-        corresponding to geopotential list.
-    Environment.times : list
-        Defined if netCDF file is used.
-    Environment.height : list
-        Defined if netCDF file is used.
-    
-    Spacetime position:
-    Environment.lat : float
-        Launch position latitude.
-    Environment.lon : float
-        Launch position longitude.
-    Environment.date : datetime
-        Date time of launch.    
+        Gravity and Rail Length:
+        Environment.rl : float
+            Launch rail length in meters.
+        Environment.g : float
+            Positive value of gravitational acceleration in m/s^2.
+
+        Atmosphere Static Conditions:
+        Environment.densitySL : float
+            Sea level air density in kg/m^3. Default value is 1.225.
+            Defined by US Standard Atmosphere.
+        Environment.pressureSL : float
+            Sea level atmospheric pressure in Pa. Default value is 
+            1.0132 * 10**5. Defined by US Standard Atmosphere.
+        Environment.temperatureSL : float
+            Sea level air temperature in Kelvin. Default value is 288.15.
+            Defined by US Standard Atmosphere.
+        Environment.speedOfSoundSL : float
+            Sea level speed of sound in air in m/s. Default value is 340.3.
+            Defined by US Standard Atmosphere.
+        Environment.viscositySL : float
+            Sea level air viscosity in kg/m*s. Default value is 1.79*10**(-5).
+            Defined by US Standard Atmosphere.
+        Environment.pressure : Function
+            Air pressure in Pa as a function of altitude. Defined by US
+            Standard Atmosphere.
+        Environment.temperature : Function
+            Air temperature in K as a function of altitude. Defined by US
+            Standard Atmosphere.
+        Environment.speedOfSound : Function
+            Speed of sound in air as a function of altitude. Defined by US
+            Standard Atmosphere.
+        
+        Atmosphere Wind Conditions: 
+        Environment.windDataSource : string
+            Indicates how the wind data was imported. Can be 'CSV',
+            'netCDF', 'pair' and 'matrix'.
+        Environment.windSpeed : Function
+            Wind speed in m/s as a function of altitude.
+        Environment.windHeading : Function
+            Wind heading in degrees relative to north (positive clockwise)
+            as a function of altitude.
+        Environment.windVelocityX : Function
+            X (east) component of wind velocity in m/s as a function of
+            altitude.
+        Environment.windVelocityY : Function
+            Y (east) component of wind velocity in m/s as a function of
+            altitude.
+        Environment.maxExpectedHeight : float
+            Maximum altitude in meters to keep weather data.
+        Environment.lonIndex : int
+            Defined if netCDF file is used. Index of the desired longitude
+            in the file.
+        Environment.latIndex : int
+            Defined if netCDF file is used. Index of the desired latitude
+            in the file. 
+        Environment.geopotentials : list
+            Defined if netCDF file is used. List of geopotentials available
+            in the latitude and longitude specified.
+        Environment.windUs : list
+            Defined if netCDF file is used. List of wind velocity U (east)
+            component corresponding to geopotential list.
+        Environment.windVs : list
+            Defined if netCDF file is used. List of wind velocity V (north)
+            component corresponding to geopotential list.
+        Environment.levels : list
+            Defined if netCDF file is used. List of pressure levels
+            corresponding to geopotential list.
+        Environment.times : list
+            Defined if netCDF file is used.
+        Environment.height : list
+            Defined if netCDF file is used.
+        
+        Spacetime position:
+        Environment.lat : float
+            Launch position latitude.
+        Environment.lon : float
+            Launch position longitude.
+        Environment.date : datetime
+            Date time of launch.    
     """
     def __init__(self,
                  railLength,
@@ -1547,84 +1548,84 @@ class Motor:
     
     Class attributes:
 
-    Geometrical attributes:
-    Motor.nozzleRadius : float
-        Radius of motor nozzle outlet in meters.
-    Motor.throatRadius : float
-        Radius of motor nozzle throat in meters.
-    Motor.grainNumber : int
-        Number os solid grains.
-    Motor.grainSeparation : float
-        Distance between two grains in meters.
-    Motor.grainDensity : float
-        Density of each grain in kg/meters cubed.
-    Motor.grainOuterRadius : float
-        Outer radius of each grain in meters.
-    Motor.grainInitialInnerRadius : float
-        Initial inner radius of each grain in meters.
-    Motor.grainInitialHeight : float
-        Initial height of each grain in meters.
-    Motor.grainInitialVolume : float
-        Initial volume of each grain in meters cubed.
-    Motor.grainInnerRadius : Function
-        Inner radius of each grain in meters as a function of time.
-    Motor.grainHeight : Function
-        Height of each grain in meters as a function of time.
+        Geometrical attributes:
+        Motor.nozzleRadius : float
+            Radius of motor nozzle outlet in meters.
+        Motor.throatRadius : float
+            Radius of motor nozzle throat in meters.
+        Motor.grainNumber : int
+            Number os solid grains.
+        Motor.grainSeparation : float
+            Distance between two grains in meters.
+        Motor.grainDensity : float
+            Density of each grain in kg/meters cubed.
+        Motor.grainOuterRadius : float
+            Outer radius of each grain in meters.
+        Motor.grainInitialInnerRadius : float
+            Initial inner radius of each grain in meters.
+        Motor.grainInitialHeight : float
+            Initial height of each grain in meters.
+        Motor.grainInitialVolume : float
+            Initial volume of each grain in meters cubed.
+        Motor.grainInnerRadius : Function
+            Inner radius of each grain in meters as a function of time.
+        Motor.grainHeight : Function
+            Height of each grain in meters as a function of time.
 
-    Mass and moment of inertia attributes:
-    Motor.grainInitalMass : float
-        Initial mass of each grain in kg.
-    Motor.propellantInitialMass : float
-        Total propellant initial mass in kg.
-    Motor.mass : Function
-        Propellant total mass in kg as a function of time.
-    Motor.massDot : Function
-        Time derivative of propellant total mass in kg/s as a function
-        of time.
-    Motor.inertiaI : Function
-        Propellant moment of inertia in kg*meter^2 with respect to axis
-        perpendicular to axis of cylindrical symmetry of each grain,
-        given as a function of time.
-    Motor.inertiaIDot : Function
-        Time derivative of inertiaI given in kg*meter^2/s as a function
-        of time.
-    Motor.inertiaZ : Function
-        Propellant moment of inertia in kg*meter^2 with respect to axis of
-        cylindrical symmetry of each grain, given as a function of time.
-    Motor.inertiaDot : Function
-        Time derivative of inertiaZ given in kg*meter^2/s as a function
-        of time.   
-    
-    Thrust and burn attributes:
-    Motor.thrust : Function
-        Motor thrust force, in Newtons, as a function of time.
-    Motor.totalImpulse : float
-        Total impulse of the thrust curve in N*s.
-    Motor.maxThrust : float
-        Maximum thrust value of the given thrust curve, in N.
-    Motor.maxThrustTime : float
-        Time, in seconds, in which the maximum thrust value is achieved.
-    Motor.averageThrust : float
-        Average thrust of the motor, given in N.
-    Motor.burnOutTime : float
-        Total motor burn out time, in seconds. Must include delay time
-        when motor takes time to ignite. Also seen as time to end thrust
-        curve.
-    Motor.exhaustVelocity : float
-        Propulsion gases exchaust velocity, assumed constant, in m/s.
-    Motor.burnArea : Function
-        Total burn area considering all grains, made out of inner
-        cilindrical burn area and grain top and bottom faces. Expressed
-        in meters squared as a function of time.
-    Motor.Kn : Function
-        Motor Kn as a function of time. Defined as burnArea devided by
-        nozzle throat cross sectional area. Has no units.
-    Motor.burnRate : Function
-        Propellant burn rate in meter/second as a function of time.
-    Motor.interpolate : string
-        Method of interpolation used in case thrust curve is given
-        by data set in .csv or .eng, or as an array. Options are 'spline'
-        'akima' and 'linear'. Default is "linear".
+        Mass and moment of inertia attributes:
+        Motor.grainInitalMass : float
+            Initial mass of each grain in kg.
+        Motor.propellantInitialMass : float
+            Total propellant initial mass in kg.
+        Motor.mass : Function
+            Propellant total mass in kg as a function of time.
+        Motor.massDot : Function
+            Time derivative of propellant total mass in kg/s as a function
+            of time.
+        Motor.inertiaI : Function
+            Propellant moment of inertia in kg*meter^2 with respect to axis
+            perpendicular to axis of cylindrical symmetry of each grain,
+            given as a function of time.
+        Motor.inertiaIDot : Function
+            Time derivative of inertiaI given in kg*meter^2/s as a function
+            of time.
+        Motor.inertiaZ : Function
+            Propellant moment of inertia in kg*meter^2 with respect to axis of
+            cylindrical symmetry of each grain, given as a function of time.
+        Motor.inertiaDot : Function
+            Time derivative of inertiaZ given in kg*meter^2/s as a function
+            of time.   
+        
+        Thrust and burn attributes:
+        Motor.thrust : Function
+            Motor thrust force, in Newtons, as a function of time.
+        Motor.totalImpulse : float
+            Total impulse of the thrust curve in N*s.
+        Motor.maxThrust : float
+            Maximum thrust value of the given thrust curve, in N.
+        Motor.maxThrustTime : float
+            Time, in seconds, in which the maximum thrust value is achieved.
+        Motor.averageThrust : float
+            Average thrust of the motor, given in N.
+        Motor.burnOutTime : float
+            Total motor burn out time, in seconds. Must include delay time
+            when motor takes time to ignite. Also seen as time to end thrust
+            curve.
+        Motor.exhaustVelocity : float
+            Propulsion gases exchaust velocity, assumed constant, in m/s.
+        Motor.burnArea : Function
+            Total burn area considering all grains, made out of inner
+            cilindrical burn area and grain top and bottom faces. Expressed
+            in meters squared as a function of time.
+        Motor.Kn : Function
+            Motor Kn as a function of time. Defined as burnArea devided by
+            nozzle throat cross sectional area. Has no units.
+        Motor.burnRate : Function
+            Propellant burn rate in meter/second as a function of time.
+        Motor.interpolate : string
+            Method of interpolation used in case thrust curve is given
+            by data set in .csv or .eng, or as an array. Options are 'spline'
+            'akima' and 'linear'. Default is "linear".
     """
     def __init__(self,
                  thrustSource,
@@ -2277,68 +2278,79 @@ class Rocket:
     """Keeps all rocket and parachute information.
 
     Class attributes:
-    Rocket.mass : float
-        Rocket's mass withouth propellant in kg.
-    Rocket.inertiaI : float
-        Rocket's moment of inertia, without propellant, with respect to
-        to an axis perpendicular to the rocket's axis of cylindrical
-        symmetry, in kg*m^2.
-    Rocket.inertiaZ : float
-        Rocket's moment of inertia, without propellant, with respect to
-        the rocket's axis of cylindrical symmetry, in kg*m^2.
-    Rocket.centerOfMass : Function
-        Distance of the rocket's center of mass, including propellant,
-        to rocket's center of mass without propellant, in meters.
-        Expressed as a function of time.
-    Rocket.radius : float
-        Rocket's largest radius in meters.
-    Rocket.area : float
-        Rocket's circular cross section largest frontal area in meters
-        squared.
-    Rocket.distanceRocketNozzle : float
-        Distance between rocket's center of mass, without propellant,
-        to the exit face of the nozzle, in meters. Always positive.
-    Rocket.distanceRocketPropellant : float
-        Distance between rocket's center of mass, without propellant,
-        to the center of mass of propellant, in meters. Always positive.
-    Rocket.cpExcentricityX : float
-        Center of pressure position relative to center of mass in the x
-        axis, perpendicular to axis of cilindrical symmetry, in meters. 
-    Rocket.cpExcentricityY : float
-        Center of pressure position relative to center of mass in the y
-        axis, perpendicular to axis of cilindrical symmetry, in meters. 
-    Rocket.thrustExcentricityY : float
-        Thrust vector position relative to center of mass in the y
-        axis, perpendicular to axis of cilindrical symmetry, in meters. 
-    Rocket.thrustExcentricityX : float 
-        Thrust vector position relative to center of mass in the x
-        axis, perpendicular to axis of cilindrical symmetry, in meters. 
-    Rocket.parachutes : list
-        List of parachutes of the rocket.
-    Rocket.aerodynamicSurfaces : list
-        List of aerodynamic surfaces of the rocket.
-    Rocket.staticMargin : float
-        Float value corresponding to rocket static margin when
-        loaded with propellant in units of rokcet diameter or
-        calibers.
-    Rocket.powerOffDrag : Function
-        Rocket's drag coefficient as a function of Mach number when the
-        motor is off.
-    Rocket.powerOnDrag : Function
-        Rocket's drag coefficient as a function of Mach number when the
-        motor is on.
-    Rocket.motor : Motor
-        Rocket's motor. See Motor class for more details.
-    Rocket.reducedMass : Function
-        Function of time expressing the reduced mass of the rocket,
-        defined as the product of the propellant mass and the mass
-        of the rocket without propellant, divided by the sum of the
-        propellant mass and the rocket mass.
-    Rocket.totalMass : Function
-        Function of time expressing the total mass of the rocket,
-        defined as the sum of the propellant mass and the rocket
-        mass without propellant.
 
+        Geometrical attributes:
+        Rocket.radius : float
+            Rocket's largest radius in meters.
+        Rocket.area : float
+            Rocket's circular cross section largest frontal area in meters
+            squared.
+        Rocket.distanceRocketNozzle : float
+            Distance between rocket's center of mass, without propellant,
+            to the exit face of the nozzle, in meters. Always positive.
+        Rocket.distanceRocketPropellant : float
+            Distance between rocket's center of mass, without propellant,
+            to the center of mass of propellant, in meters. Always positive.
+        
+        Mass and Inertia attributes:
+        Rocket.mass : float
+            Rocket's mass withouth propellant in kg.
+        Rocket.inertiaI : float
+            Rocket's moment of inertia, without propellant, with respect to
+            to an axis perpendicular to the rocket's axis of cylindrical
+            symmetry, in kg*m^2.
+        Rocket.inertiaZ : float
+            Rocket's moment of inertia, without propellant, with respect to
+            the rocket's axis of cylindrical symmetry, in kg*m^2.
+        Rocket.centerOfMass : Function
+            Distance of the rocket's center of mass, including propellant,
+            to rocket's center of mass without propellant, in meters.
+            Expressed as a function of time.
+        Rocket.reducedMass : Function
+            Function of time expressing the reduced mass of the rocket,
+            defined as the product of the propellant mass and the mass
+            of the rocket without propellant, divided by the sum of the
+            propellant mass and the rocket mass.
+        Rocket.totalMass : Function
+            Function of time expressing the total mass of the rocket,
+            defined as the sum of the propellant mass and the rocket
+            mass without propellant.
+
+        Excentricity attributes:
+        Rocket.cpExcentricityX : float
+            Center of pressure position relative to center of mass in the x
+            axis, perpendicular to axis of cilindrical symmetry, in meters. 
+        Rocket.cpExcentricityY : float
+            Center of pressure position relative to center of mass in the y
+            axis, perpendicular to axis of cilindrical symmetry, in meters. 
+        Rocket.thrustExcentricityY : float
+            Thrust vector position relative to center of mass in the y
+            axis, perpendicular to axis of cilindrical symmetry, in meters. 
+        Rocket.thrustExcentricityX : float 
+            Thrust vector position relative to center of mass in the x
+            axis, perpendicular to axis of cilindrical symmetry, in meters. 
+        
+        Parachute attributes:
+        Rocket.parachutes : list
+            List of parachutes of the rocket.
+       
+        Aerodynamic attributes
+        Rocket.aerodynamicSurfaces : list
+            List of aerodynamic surfaces of the rocket.
+        Rocket.staticMargin : float
+            Float value corresponding to rocket static margin when
+            loaded with propellant in units of rokcet diameter or
+            calibers.
+        Rocket.powerOffDrag : Function
+            Rocket's drag coefficient as a function of Mach number when the
+            motor is off.
+        Rocket.powerOnDrag : Function
+            Rocket's drag coefficient as a function of Mach number when the
+            motor is on.
+        
+        Motor attributes:
+        Rocket.motor : Motor
+            Rocket's motor. See Motor class for more details.
     """
     def __init__(self,
                  motor,
@@ -3005,6 +3017,193 @@ class Rocket:
 
 class Flight:
     """Keeps all flight information and has a method to simulate flight.
+    
+    Class attributes:
+        Other classes:
+        Flight.env : Environment
+            Environment object describing rail length, gravity and
+            weather condition. See Environment class for more details.
+        Flight.rocket : Rocket
+            Rocket class describing rocket. See Rocket class for more
+            details.
+        
+        Simulation attributes:
+        Flight.maxTime : int, float
+            Maximum simulation time allowed. Refers to physical time
+            being simulated, not time taken to run simulation.
+        Flight.maxStepSize : int, float
+            Maximum step size to use during integration in seconds.
+        Flight.terminateOnApogee : bool
+            Wheater to terminate simulation when rocket reaches apogee.
+        Flight.solution : list
+            Solution array which keeps results from each numerical
+            integration.
+        Flight.tInitial : int, float
+            Initial simulation time in seconds. Usually 0.
+        Flight.solver : integrate.ode
+            Scipy integration scheme.
+        Flight.t : float
+            Current integration time.
+        Flight.y : list
+            Current integration state vector u.
+        Flight.noise : float
+            Noise generated with normal distribution to feed parachute
+            triggers.
+        Flight.noiseFunction : Function
+            Noise as a function of time.
+        Flight.pFunction : Function
+            Pressure supplied to parachutes trigger function as a
+            function of time.
+        Flight.simulating : bool
+            Indicates while simulation is running or not.
+        
+        
+        Solution monitor attributes:
+        Flight.initialSolution : list
+            List defininf initial condition - [self.tInitial, xInit,
+            yInit, zInit, vxInit, vyInit, vzInit, e0Init, e1Init,
+            e2Init, e3Init, w1Init, w2Init, w3Init]
+        Flight.outOfRailTime : int, float
+            Time, in seconds, in which the rocket completely leaves the
+            rail.
+        Flight.outOfRailState : list
+            State vector u corresponding to state when the rocket
+            completely leaves the rail.
+        Flight.outOfRailVelocity : int, float
+            Velocity, in m/s, with which the rocket completely leaves the
+            rail.
+        Flight.apogeeState : int, float
+            State vector u corresponding to state when the rocket's
+            vertical velocity is zero in the apogee.
+        Flight.apogeeTime : int, float
+            Time, in seconds, in which the rocket's vertical velocity
+            reaches zero in the apogee.
+        Flight.apogeeX : int, float
+            X coordinate (positive east) of the center of mass of the
+            rocket when it reaches apogee.
+        Flight.apogeeY : int, float
+            Y coordinate (positive north) of the center of mass of the
+            rocket when it reaches apogee.
+        Flight.apogee : int, float
+            Z coordinate, or altitute, of the center of mass of the
+            rocket when it reaches apogee.           
+        Flight.xImpact : int, float
+            X coordinate (positive east) of the center of mass of the
+            rocket when it impacts ground.
+        Flight.yImpact : int, float
+            Y coordinate (positive east) of the center of mass of the
+            rocket when it impacts ground.
+        Flight.impactVelocity : int, float
+            Velocity magnitude of the center of mass of the rocket when
+            it impacts ground.
+        Flight.flightPhases : list
+            List with rocket flight phases, including event information.
+        
+        Solution attributes:
+        Flight.x : Function
+            Rocket's X coordinate (positive east) as a function of time.
+        Flight.y : Function
+            Rocket's Y coordinate (positive north) as a function of time.
+        Flight.z : Function
+            Rocket's z coordinate (positive up) as a function of time.
+        Flight.vx : Function
+            Rocket's X velocity as a function of time.
+        Flight.vy : Function
+            Rocket's Y velocity as a function of time.
+        Flight.vz : Function
+            Rocket's Z velocity as a function of time.
+        Flight.e0 : Function
+            Rocket's Euler parameter 0 as a function of time.
+        Flight.e1 : Function
+            Rocket's Euler parameter 1 as a function of time.
+        Flight.e2 : Function
+            Rocket's Euler parameter 2 as a function of time.
+        Flight.e3 : Function
+            Rocket's Euler parameter 3 as a function of time.
+        Flight.w1 : Function
+            Rocket's angular velocity Omega 1 as a function of time.
+        Flight.w2 : Function
+            Rocket's angular velocity Omega 2 as a function of time.
+        Flight.w3 : Function
+            Rocket's angular velocity Omega 3 as a function of time.
+        
+        Secondary attributes:
+        Flight.maxVel : float
+            Maximum velocity in m/s reached by the rocket during any
+            flight phase.
+        Flight.maxAcc : float
+            Maximum acceleration in m/s^2 reached by the rocket during
+            any flight phase.
+        Flight.ax : Function
+            Rocket's X acceleration as a function of time, in m/s^2.
+        Flight.ay : Function
+            Rocket's Y acceleration as a function of time, in m/s^2.
+        Flight.az : Function
+            Rocket's Z acceleration as a function of time, in m/s^2.
+        Flight.alp1 : Function
+            Rocket's angular acceleration Alpha 1 as a function of time.
+            Units of rad/s^2.
+        Flight.alp2 : Function
+            Rocket's angular acceleration Alpha 2 as a function of time.
+            Units of rad/s^2.
+        Flight.alp3 : Function
+            Rocket's angular acceleration Alpha 3 as a function of time.
+            Units of rad/s^2.
+        Flight.cpPosition1 : Function
+        Flight.cpPosition2 : Function
+        Flight.cpPosition3 : Function
+        Flight.staticMargin : Function
+            Rocket's static margin function of time in calibers.
+        Flight.attackAngle : Function
+            Rocket's angle of attack during out of rail flight in
+            degrees as a function of time.
+        Flight.freestreamSpeed : Function
+            Freestream speed, in m/s, as a function of time.
+        Flight.streamVelX : Function
+            Freestream velocity X component, in m/s, as a function of
+            time.
+        Flight.streamVelY : Function
+            Freestream velocity y component, in m/s, as a function of
+            time.
+        Flight.streamVelZ : Function
+            Freestream velocity z component, in m/s, as a function of
+            time.
+        Flight.R1 : Function
+            Resultant force perpendicular to rockets axis due to
+            aerodynamic forces as a function of time. Units in N.
+        Flight.R2 : Function
+            Resultant force perpendicular to rockets axis due to
+            aerodynamic forces as a function of time. Units in N.
+        Flight.R3 : Function
+            Resultant force in rockets axis due to aerodynamic forces
+            as a function of time. Units in N. Usually just drag.
+        Flight.M1 : Function
+            Resultant momentum perpendicular to rockets axis due to
+            aerodynamic forces and excentricity as a function of time.
+            Units in N*m.
+        Flight.M2 : Function
+            Resultant momentum perpendicular to rockets axis due to
+            aerodynamic forces and excentricity as a function of time.
+            Units in N*m.
+        Flight.M3 : Function
+            Resultant momentum in rockets axis due to aerodynamic
+            forces and excentricity as a function of time. Units in N*m.
+        Flight.rotationalEnergy : Function
+            Rocket's rotational kinetic energy as a function of time.
+            Units in J.
+        Flight.translationalEnergy : Function
+            Rocket's translational kinetic energy as a function of time.
+            Units in J.
+        Flight.kineticEnergy : Function
+            Rocket's total kinetic energy as a function of time.
+            Units in J.
+        Flight.potentialEnergy : Function
+            Rocket's gravitational potential energy as a function of
+            time. Units in J.
+        Flight.totalEnergy : Function
+            Rocket's total mechanical energy as a function of time.
+            Units in J.
+
     """
     def __init__(self, rocket, environment,
                  inclination=80, heading=90,
@@ -3057,8 +3256,9 @@ class Flight:
         self.terminateOnApogee = terminateOnApogee
 
         # Initialize solution
+        self.initialSolution = initialSolution
         self.solution = []
-        if initialSolution is None:
+        if self.initialSolution is None:
             # Define launch heading and angle - initial attitude
             launchAngle = (90 - inclination)*(np.pi/180)
             rotAngle = (90 - heading)*(np.pi/180)
@@ -3073,13 +3273,13 @@ class Flight:
             e1Init = np.sin(launchAngle/2) * rotAxis[0]
             e2Init = np.sin(launchAngle/2) * rotAxis[1]
             e3Init = 0
-            self.solution.append([self.tInitial,
+            self.initialSolution = [self.tInitial,
                                   xInit, yInit, zInit,
                                   vxInit, vyInit, vzInit,
                                   e0Init, e1Init, e2Init, e3Init,
-                                  w1Init, w2Init, w3Init])
-        else:
-            self.solution.append(self.initialSolution)
+                                  w1Init, w2Init, w3Init]
+        # Append initial solution
+        self.solution.append(self.initialSolution)
         
         # Initialize solution monitors
         self.outOfRailTime = 0
@@ -3090,21 +3290,13 @@ class Flight:
         self.apogeeX = 0
         self.apogeeY = 0
         self.apogee = 0
-        self.drogueOpeningState = 0
-        self.drogueOpeningTime = 0
-        self.drogueOpeningVelocity = 0
-        self.mainOpeningState = 0
-        self.mainOpeningTime = 0
-        self.drogueX = 0
-        self.drogueY = 0
-        self.drogueZ = 0
         self.xImpact = 0
         self.yImpact = 0
         self.impactVelocity = 0
-        self.flightPhases = [[0, self.__uDotRailOpt, 0, 0]]
+        self.flightPhases = [[0, self.__uDotRail, 0, 0]]
 
         # Ignition to out of rail flight phase
-        self.solver = integrate.ode(self.__uDotRailOpt)
+        self.solver = integrate.ode(self.__uDotRail)
         self.solver.set_integrator('vode', method='adams')
         self.solver.set_initial_value(self.solution[0][1:], self.tInitial)
         while self.solver.successful() and (self.solver.y[0]**2 +
@@ -3130,9 +3322,9 @@ class Flight:
         self.lag = self.t
         self.parachuteCdS = 0
         self.newParachuteCdS = 0
-        self.derivative = self.__uDotOpt
-        self.newDerivative = self.__uDotOpt
-        self.flightPhases += [[self.t, self.__uDotOpt, 0, 0]]
+        self.derivative = self.__uDot
+        self.newDerivative = self.__uDot
+        self.flightPhases += [[self.t, self.__uDot, 0, 0]]
 
         # Initialize event monitors
         self.impactEvent = lambda t, y: y[2]
@@ -3251,366 +3443,28 @@ class Flight:
         # Terminate simulation
         self.flightPhases += [[self.t, 0, 0]]
         
-    def postProcess(self):
-        'Post-processing of integration  results'
-        # Transform solution into Functions
-        sol = np.array(self.solution)
-        self.x = Function(sol[:, [0, 1]], 'Time (s)', 'X (m)', 'spline', extrapolation="natural")
-        self.y = Function(sol[:, [0, 2]], 'Time (s)', 'Y (m)', 'spline', extrapolation="natural")
-        self.z = Function(sol[:, [0, 3]], 'Time (s)', 'Z (m)', 'spline', extrapolation="natural")
-        self.vx = Function(sol[:, [0, 4]], 'Time (s)', 'Vx (m/s)', 'spline', extrapolation="natural")
-        self.vy = Function(sol[:, [0, 5]], 'Time (s)', 'Vy (m/s)', 'spline', extrapolation="natural")
-        self.vz = Function(sol[:, [0, 6]], 'Time (s)', 'Vz (m/s)', 'spline', extrapolation="natural")
-        self.e0 = Function(sol[:, [0, 7]], 'Time (s)', 'e0', 'spline', extrapolation="natural")
-        self.e1 = Function(sol[:, [0, 8]], 'Time (s)', 'e1', 'spline', extrapolation="natural")
-        self.e2 = Function(sol[:, [0, 9]], 'Time (s)', 'e2', 'spline', extrapolation="natural")
-        self.e3 = Function(sol[:, [0, 10]], 'Time (s)', 'e3', 'spline', extrapolation="natural")
-        self.w1 = Function(sol[:, [0, 11]], 'Time (s)', 'ω1 (rad/s)', 'spline', extrapolation="natural")
-        self.w2 = Function(sol[:, [0, 12]], 'Time (s)', 'ω2 (rad/s)', 'spline', extrapolation="natural")
-        self.w3 = Function(sol[:, [0, 13]], 'Time (s)', 'ω3 (rad/s)', 'spline', extrapolation="natural")
-        self.noiseFunction = Function(self.noiseFunction, inputs='Time', outputs='Noise (Pa)')
-        self.pFunction = Function(self.pFunction, inputs='Time', outputs='Pressure (Pa)')
-        # Calculate aerodynamic forces and accelerations
-        self.cpPosition1, self.cpPosition2, self.cpPosition3 = [], [], []
-        self.staticMargin = []
-        self.attackAngle, self.freestreamSpeed = [], []
-        self.R1, self.R2, self.R3 = [], [], []
-        self.M1, self.M2, self.M3 = [], [], []
-        self.ax, self.ay, self.az = [], [], []
-        self.alp1, self.alp2, self.alp3 = [], [], []
-        self.streamVelX, self.streamVelY, self.streamVelZ = [], [], []
-        for i in range(len(self.flightPhases) - 1):
-            initTime = self.flightPhases[i][0]
-            self.currentDerivative = self.flightPhases[i][1]
-            self.parachuteCdS = self.flightPhases[i][2]
-            finalTime = self.flightPhases[i + 1][0]
-            for step in self.solution:
-                if initTime < step[0] <= finalTime:
-                    self.currentDerivative(step[0], step[1:], verbose=True)
-        self.cpPosition1 = Function(self.cpPosition1, 'Time (s)',
-                                    'CP Position in X (m)', 'linear')
-        self.cpPosition2 = Function(self.cpPosition2, 'Time (s)',
-                                    'CP Position in Y (m)', 'linear')
-        self.cpPosition3 = Function(self.cpPosition3, 'Time (s)',
-                                    'CP Position in Z (m)', 'linear')
-        self.staticMargin = Function(self.staticMargin, 'Time (s)',
-                                     'Static Margin (c)', 'linear')
-        self.attackAngle = Function(self.attackAngle, 'Time (s)',
-                                    'Angle of Attack', 'linear')
-        self.freestreamSpeed = Function(self.freestreamSpeed, 'Time (s)',
-                                        'Freestream Speed (m/s)', 'linear')
-        self.streamVelX = Function(self.streamVelX, 'Time (s)',
-                                   'Freestream VelX (m/s)', 'linear')
-        self.streamVelY = Function(self.streamVelY, 'Time (s)',
-                                   'Freestream VelY (m/s)', 'linear')
-        self.streamVelZ = Function(self.streamVelZ, 'Time (s)',
-                                   'Freestream VelZ (m/s)', 'linear')
-        self.R1 = Function(self.R1, 'Time (s)', 'R1 (N)', 'linear')
-        self.R2 = Function(self.R2, 'Time (s)', 'R2 (N)', 'linear')
-        self.R3 = Function(self.R3, 'Time (s)', 'R3 (N)', 'linear')
-        self.M1 = Function(self.M1, 'Time (s)', 'M1 (Nm)', 'linear')
-        self.M2 = Function(self.M2, 'Time (s)', 'M2 (Nm)', 'linear')
-        self.M3 = Function(self.M3, 'Time (s)', 'M3 (Nm)', 'linear')
-        self.ax = Function(self.ax, 'Time (s)', 'Ax (m/s2)', 'linear')
-        self.ay = Function(self.ay, 'Time (s)', 'Ay (m/s2)', 'linear')
-        self.az = Function(self.az, 'Time (s)', 'Az (m/s2)', 'linear')
-        self.alp1 = Function(self.alp1, 'Time (s)', 'α1 (rad/s2)', 'linear')
-        self.alp2 = Function(self.alp2, 'Time (s)', 'α2 (rad/s2)', 'linear')
-        self.alp3 = Function(self.alp3, 'Time (s)', 'α3 (rad/s2)', 'linear')
-        # Process velocity and acceleration magnitude
-        self.v = (self.vx**2 + self.vy**2 + self.vz**2)**0.5
-        self.v.setDiscrete(0, self.tFinal, 1000)
-        self.v.setInputs('Time (s)')
-        self.v.setOutputs('Velocity Magnitude (m/s)')
-        self.a = (self.ax**2 + self.ay**2 + self.az**2)**0.5
-        self.a.setDiscrete(0, self.tFinal, 1000)
-        self.a.setInputs('Time (s)')
-        self.a.setOutputs('Acceleration Magnitude (m/s)')
-        # Find out of rail and apogee velocity
-        self.outOfRailVelocity = (self.vx(self.outOfRailTime)**2 +
-                                  self.vy(self.outOfRailTime)**2 +
-                                  self.vz(self.outOfRailTime)**2)**(0.5)
-        self.apogeeVelocity = (self.vx(self.apogeeTime)**2 +
-                               self.vy(self.apogeeTime)**2)**(0.5)
-        # Find out maximum velocity and acceleration
-        self.maxVel = np.amax(self.v.source[:, 1])
-        self.maxAcc = np.amax(self.a.source[:, 1])
-        # Calculate Energies
-        # Retrieve variables
-        # Geometry
-        b = self.rocket.distanceRocketPropellant
-        # Mass
-        totalMass = self.rocket.totalMass
-        mu = self.rocket.reducedMass
-        # Inertias
-        Rz = self.rocket.inertiaZ
-        Ri = self.rocket.inertiaI
-        Tz = self.rocket.motor.inertiaZ
-        Ti = self.rocket.motor.inertiaI
-        I1, I2, I3 = (Ri + Ti + mu*b**2), (Ri + Ti + mu*b**2), (Rz + Tz)
-        # Velocities
-        vx, vy, vz = self.vx, self.vy, self.vz
-        w1, w2, w3 = self.w1, self.w2, self.w3
-        # Calculate Energy Quantities
-        # Kinetic Energy
-        self.rotationalEnergy = 0.5*(I1*w1**2 + I2*w2**2 + I3*w3**2)
-        self.rotationalEnergy.setInputs('Time (s)')
-        self.rotationalEnergy.setOutputs('Rotational Kinetic Energy (J)')
-        self.rotationalEnergy.setDiscrete(self.tInitial, self.tFinal, 1000)
-        self.translationalEnergy = 0.5*totalMass*(vx**2 + vy**2 + vz**2)
-        self.translationalEnergy.setInputs('Time (s)')
-        self.translationalEnergy.setOutputs('Translational Kinetic Energy (J)')
-        self.translationalEnergy.setDiscrete(self.tInitial, self.tFinal, 1000)
-        self.kineticEnergy = self.rotationalEnergy + self.translationalEnergy
-        self.kineticEnergy.setInputs('Time (s)')
-        self.kineticEnergy.setOutputs('Kinetic Energy (J)')
-        self.kineticEnergy.setDiscrete(self.tInitial, self.tFinal, 1000)
-        # Potential Energy
-        self.potentialEnergy = self.rocket.totalMass*self.env.g*self.z
-        self.potentialEnergy.setInputs('Time (s)')
-        self.potentialEnergy.setOutputs('Potential Energy (J)')
-        self.potentialEnergy.setDiscrete(self.tInitial, self.tFinal, 1000)
-        # Total Mechanical Energy
-        self.totalEnergy = self.kineticEnergy + self.potentialEnergy
-        self.totalEnergy.setInputs('Time (s)')
-        self.totalEnergy.setOutputs('Total Mechanical Energy (J)')
-        self.totalEnergy.setDiscrete(self.tInitial, self.tFinal, 1000)
+    def __uDotRail(self, t, u, verbose=False):
+        """Calculates derivative of u state vector with respect to time
+        when rocket is flying in 1 DOF motion in the rail.
 
-    def info(self):
-        'Prints out details about the flight'
-        # Post-process results
-        self.postProcess()
+        Parameters
+        ----------
+        t : float
+            Time in seconds
+        u : list
+            State vector defined by u = [x, y, z, vx, vy, vz, e0, e1,
+            e2, e3, omega1, omega2, omega3].
+        verbose : bool, optional
+            If True, adds flight data information directly to self
+            variables such as self.attackAngle. Default is False.
+        
+        Return
+        ------
+        uDot : list
+            State vector defined by uDot = [vx, vy, vz, ax, ay, az,
+            e0Dot, e1Dot, e2Dot, e3Dot, alpha1, alpha2, alpha3].
 
-        # Print 0ff rail conditions
-        print('\nOff Rail Conditions')
-        print('Rail Departure Time: ' +
-              "{:.3f}".format(self.outOfRailTime) + ' s')
-        print('Rail Departure Velocity: ' +
-              "{:.3f}".format(self.outOfRailVelocity) + ' m/s')
-
-        # Print Apogee conditions
-        print('\nApogee')
-        print('Height: ' + "{:.3f}".format(self.apogee) + ' m')
-        print('Velocity: ' + "{:.3f}".format(self.apogeeVelocity) + ' m/s')
-        print('Time: ' + "{:.3f}".format(self.apogeeTime) + ' s')
-        print('Freestream Speed: ' +
-              "{:.3f}".format(self.freestreamSpeed(self.apogeeTime)) + ' m/s')
-
-        # Print Events registered
-        print('\nEvents')
-        for phase in self.flightPhases:
-            if len(phase) == 5:
-                ejectionTime = phase[0]
-                fireTime = phase[-2]
-                pc = phase[-1]
-                velocity = self.freestreamSpeed(ejectionTime)
-                print(pc.name.title() + ' Ejection Fired at: ' + "{:.3f}".format(fireTime) + ' s')
-                print(pc.name.title() + ' Fully Ejected at: ' + "{:.3f}".format(ejectionTime) + ' s')
-                print(pc.name.title() + ' Ejected with Freestream Speed: ' + "{:.3f}".format(velocity) + ' m/s')
-                print(pc.name.title() + ' Ejected at Height of: ' + "{:.3f}".format(self.z(ejectionTime)) + ' m')
-
-        # Print Impact conditions
-        print('\nImpact')
-        print('X Impact: ' + "{:.3f}".format(self.xImpact) + ' m')
-        print('Y Impact: ' + "{:.3f}".format(self.yImpact) + ' m')
-        print('Time of Impact: ' + "{:.3f}".format(self.tFinal) + ' s')
-        print('Velocity at Impact: ' + "{:.3f}".format(self.impactVelocity) +
-              ' m/s')
-
-        # Print maximum velocity and maximum acceleration
-        print('\nMaximum Velocity and Acceleration')
-        print('Velocity: ' + "{:.3f}".format(self.maxVel) + ' m/s')
-        print('Acceleration: ' + "{:.3f}".format(self.maxAcc) + ' m/s2')
-
-        print('\nTrajectory Plots')
-        fig = plt.figure()
-        ax = fig.gca(projection='3d')
-        ax.set_xlabel('X (m)')
-        ax.set_ylabel('Y (m)')
-        ax.set_zlabel('Z (m)')
-        ax.plot(self.x.source[:, 1], self.y.source[:, 1], self.z.source[:, 1])
-        plt.show()
-        # self.z()
-        # print('\nVelocity Plots')
-        # self.vz()
-        # print('\nAcceleration Plots')
-        # self.az()
-        # print('\nAerodynamic Forces')
-        # self.attackAngle()
-    
-    def allInfo(self):
-        'Prints out details about the flight'
-        # Post-process results
-        self.postProcess()
-        # Print environment details
-        print('Environment Details')
-        print('Gravitational Acceleration: ' + str(self.env.g) + ' m/s2')
-        print('Rail Length: ' + str(self.env.rL) + ' m')
-
-        # Print initial conditions
-        print('\nInitial Conditions')
-        print('Position - x: ' + str(self.x(0)) + ' m')
-        print('Position - y: ' + str(self.y(0)) + ' m')
-        print('Position - z: ' + str(self.z(0)) + ' m')
-        print('Velocity - Vx: ' + str(self.vx(0)) + ' m/s')
-        print('Velocity - Vy: ' + str(self.vy(0)) + ' m/s')
-        print('Velocity - Vz: ' + str(self.vz(0)) + ' m/s')
-        print('Orientation - e0: ' + str(self.e0(0)))
-        print('Orientation - e1: ' + str(self.e1(0)))
-        print('Orientation - e2: ' + str(self.e2(0)))
-        print('Orientation - e3: ' + str(self.e3(0)))
-        print('Angular Velocity - ω1: ' + str(self.w1(0)) + ' rad/s')
-        print('Angular Velocity - ω2: ' + str(self.w2(0)) + ' rad/s')
-        print('Angular Velocity - ω3: ' + str(self.w3(0)) + ' rad/s')
-
-        # Print 0ff rail conditions
-        print('\nOff Rail Conditions')
-        print('Rail Departure Time: ' +
-              "{:.3f}".format(self.outOfRailTime) + ' s')
-        print('Rail Departure Velocity: ' +
-              "{:.3f}".format(self.outOfRailVelocity) + ' m/s')
-        # Print Apogee conditions
-        print('\nApogee')
-        print('Height: ' + "{:.3f}".format(self.apogee) + ' m')
-        print('Velocity: ' + "{:.3f}".format(self.apogeeVelocity) + ' m/s')
-        print('Time: ' + "{:.3f}".format(self.apogeeTime) + ' s')
-        print('Freestream Speed: ' +
-              "{:.3f}".format(self.freestreamSpeed(self.apogeeTime)) + ' m/s')
-        # Print Events registered
-        print('\nEvents')
-        for phase in self.flightPhases:
-            if len(phase) == 5:
-                ejectionTime = phase[0]
-                fireTime = phase[-2]
-                pc = phase[-1]
-                velocity = self.freestreamSpeed(ejectionTime)
-                print(pc.name.title() + ' Ejection Fired at: ' + "{:.3f}".format(fireTime) + ' s')
-                print(pc.name.title() + ' Fully Ejected at: ' + "{:.3f}".format(ejectionTime) + ' s')
-                print(pc.name.title() + ' Ejected with Freestream Speed: ' + "{:.3f}".format(velocity) + ' m/s')
-                print(pc.name.title() + ' Ejected at Height of: ' + "{:.3f}".format(self.z(ejectionTime)) + ' m')
-        # Print Impact conditions
-        print('\nImpact')
-        print('X Impact: ' + "{:.3f}".format(self.xImpact) + ' m')
-        print('Y Impact: ' + "{:.3f}".format(self.yImpact) + ' m')
-        print('Time of Impact: ' + "{:.3f}".format(self.tFinal) + ' s')
-        print('Velocity at Impact: ' + "{:.3f}".format(self.impactVelocity) +
-              ' m/s')
-        # Print maximum velocity and maximum acceleration
-        print('\nMaximum Velocity and Acceleration')
-        print('Velocity: ' + "{:.3f}".format(self.maxVel) + ' m/s')
-        print('Acceleration: ' + "{:.3f}".format(self.maxAcc) + ' m/s2')
-
-        print('\nTrajectory Plots')
-        fig = plt.figure()
-        ax = fig.gca(projection='3d')
-        ax.set_xlabel('X (m)')
-        ax.set_ylabel('Y (m)')
-        ax.set_zlabel('Z (m)')
-        ax.plot(self.x.source[:, 1], self.y.source[:, 1], self.z.source[:, 1])
-        plt.show()
-        self.x()
-        self.y()
-        self.z()
-        print('\nVelocity Plots')
-        self.vx()
-        self.vy()
-        self.vz()
-        print('\nAcceleration Plots')
-        self.ax()
-        self.ay()
-        self.az()
-        print('\nAttitude Plots')
-        self.e0()
-        self.e1()
-        self.e2()
-        self.e3()
-        print('\nAngular Velocity Plots')
-        self.w1()
-        self.w2()
-        self.w3()
-        print('\nAngular Acceleration Plots')
-        self.alp1()
-        self.alp2()
-        self.alp3()
-        print('\nEnergy Plots')
-        self.rotationalEnergy()
-        self.translationalEnergy()
-        self.kineticEnergy()
-        self.potentialEnergy()
-        self.totalEnergy()
-        print('\nAerodynamic Forces')
-        self.attackAngle()
-        self.freestreamSpeed()
-        self.R1()
-        self.R2()
-        self.R3()
-        self.M1()
-        self.M2()
-        self.M3()
-
-    def animate(self, start=0, stop=None, fps=12, speed=4,
-                elev=None, azim=None):
-        'Plays an animation the flight.'
-        # Set up stopping time
-        stop = self.tFinal if stop is None else stop
-        # Speed = 4 makes it almost real time - matplotlib is way to slow
-        # Set up graph
-        fig = plt.figure(figsize=(12, 9))
-        axes = fig.gca(projection='3d')
-        # Initialize time
-        timeRange = np.linspace(start, stop, fps * (stop - start))
-        # Intialize first frame
-        axes.set_title('Trajectory and Velocity Animation')
-        axes.set_xlabel('X (m)')
-        axes.set_ylabel('Y (m)')
-        axes.set_zlabel('Z (m)')
-        axes.view_init(elev, azim)
-        R = axes.quiver(0, 0, 0, 0, 0, 0, color='r', label='Rocket')
-        V = axes.quiver(0, 0, 0, 0, 0, 0, color='g', label='Velocity')
-        W = axes.quiver(0, 0, 0, 0, 0, 0, color='b', label='Wind')
-        S = axes.quiver(0, 0, 0, 0, 0, 0, color='black', label='Freestream')
-        axes.legend()
-        # Animate
-        for t in timeRange:
-            R.remove()
-            V.remove()
-            W.remove()
-            S.remove()
-            # Calculate rocket position
-            Rx, Ry, Rz = self.x(t), self.y(t), self.z(t)
-            Ru = 1*(2*(self.e1(t)*self.e3(t) + self.e0(t)*self.e2(t)))
-            Rv = 1*(2*(self.e2(t)*self.e3(t) - self.e0(t)*self.e1(t)))
-            Rw = 1*(1 - 2*(self.e1(t)**2 + self.e2(t)**2))
-            # Caclulate rocket Mach number
-            Vx = self.vx(t)/340.40
-            Vy = self.vy(t)/340.40
-            Vz = self.vz(t)/340.40
-            # Caculate wind Mach Number
-            z = self.z(t)
-            Wx = self.env.windVelocityX(z)/20
-            Wy = self.env.windVelocityY(z)/20
-            # Calculate freestream Mach Number
-            Sx = self.streamVelX(t)/340.40
-            Sy = self.streamVelY(t)/340.40
-            Sz = self.streamVelZ(t)/340.40
-            # Plot Quivers
-            R = axes.quiver(Rx, Ry, Rz, Ru, Rv, Rw, color='r')
-            V = axes.quiver(Rx, Ry, Rz, -Vx, -Vy, -Vz, color='g')
-            W = axes.quiver(Rx - Vx, Ry - Vy, Rz - Vz, Wx, Wy, 0, color='b')
-            S = axes.quiver(Rx, Ry, Rz, Sx, Sy, Sz, color='black')
-            # Adjust axis
-            axes.set_xlim(Rx - 1, Rx + 1)
-            axes.set_ylim(Ry - 1, Ry + 1)
-            axes.set_zlim(Rz - 1, Rz + 1)
-            # plt.pause(1/(fps*speed))
-            try:
-                plt.pause(1/(fps*speed))
-            except:
-                time.sleep(1/(fps*speed))
-
-    def __uDotRailOpt(self, t, u, verbose=False):
-        """Derivative of u in respect to time to be integrated by odesolver
-        while on rail."""
+        """
         # Retrieve integration data
         x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
 
@@ -3660,17 +3514,39 @@ class Flight:
             self.ax.append([t, ax])
             self.ay.append([t, ay])
             self.az.append([t, az])
+
         return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
 
-    def __uDotOpt(self, t, u, verbose=False, slow=False):
-        'Derivative of u in respect to time to be integrated by odesolver.'
+    def __uDot(self, t, u, verbose=False):
+        """Calculates derivative of u state vector with respect to time
+        when rocket is flying in 6 DOF motion during ascent out of rail
+        and descent without parachute.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds
+        u : list
+            State vector defined by u = [x, y, z, vx, vy, vz, e0, e1,
+            e2, e3, omega1, omega2, omega3].
+        verbose : bool, optional
+            If True, adds flight data information directly to self
+            variables such as self.attackAngle. Default is False.
+        
+        Return
+        ------
+        uDot : list
+            State vector defined by uDot = [vx, vy, vz, ax, ay, az,
+            e0Dot, e1Dot, e2Dot, e3Dot, alpha1, alpha2, alpha3].
+
+        """
         # Retrieve integration data
         x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
         # Determine lift force and moment
         R1, R2 = 0, 0
         M1, M2, M3 = 0, 0, 0
         # Determine current behaviour
-        if t < self.rocket.motor.burnOutTime or slow:
+        if t < self.rocket.motor.burnOutTime:
             # Motor burning
             # Retrieve important motor quantities
             # Inertias
@@ -3874,105 +3750,29 @@ class Flight:
         # Return uDot
         return uDot
 
-    def __uDotDrogue(self, t, u, verbose=False):
-        # Drogue data
-        S = self.rocket.drogueArea
-        Cd = self.rocket.drogueCd
-        ka = 1
-        R = 0.5
-        rho = self.env.density(u[2])
-        ma = ka*rho*(4/3)*np.pi*R**3
-        mp = self.rocket.mass
-        # Get relevant state data
-        x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
-        # Get wind data
-        windVelocityX = self.env.windVelocityX.getValueOpt(z)
-        windVelocityY = self.env.windVelocityY.getValueOpt(z)
-        freestreamSpeed = ((windVelocityX - vx)**2 +
-                           (windVelocityY - vy)**2 +
-                           (vz)**2)**0.5
-        freestreamX = vx - windVelocityX
-        freestreamY = vy - windVelocityY
-        freestreamZ = vz
-        # Determine drag force
-        pseudoD = -0.5 * S * Cd * freestreamSpeed
-        Dx = pseudoD * freestreamX
-        Dy = pseudoD * freestreamY
-        Dz = pseudoD * freestreamZ
-        ax = Dx/(mp+ma)
-        ay = Dy/(mp+ma)
-        az = (Dz - 9.8*mp)/(mp+ma)
-
-        if verbose:
-            windVelocity = np.array([self.env.windVelocityX(z),
-                                     self.env.windVelocityY(z), 0])
-            rocketVelocity = np.array([vx, vy, vz])
-            freestreamVelocity = windVelocity - rocketVelocity
-            self.freestreamSpeed.append([t, freestreamSpeed])
-            self.streamVelX.append([t, freestreamVelocity[0]])
-            self.streamVelY.append([t, freestreamVelocity[1]])
-            self.streamVelZ.append([t, freestreamVelocity[2]])
-            self.R1.append([t, Dx])
-            self.R2.append([t, Dy])
-            self.R3.append([t, Dz])
-            self.ax.append([t, ax])
-            self.ay.append([t, ay])
-            self.az.append([t, az])
-
-        return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
-
-    def __uDotMain(self, t, u, verbose=False):
-        # Main data
-        S = self.rocket.mainArea
-        Cd = self.rocket.mainCd
-        ka = 1
-        R = 1.5
-        rho = self.env.density(u[2])
-        to = 1.2
-        ma = ka*rho*(4/3)*np.pi*R**3
-        mp = self.rocket.mass
-        eta = 1
-        Rdot = (6*R*(1-eta)/(1.2**6))*((1-eta)*t**5 + eta*(to**3)*(t**2))
-        Rdot = 0
-        # Get relevant state data
-        x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
-        # Get wind data
-        windVelocityX = self.env.windVelocityX.getValueOpt(z)
-        windVelocityY = self.env.windVelocityY.getValueOpt(z)
-        freestreamSpeed = ((windVelocityX - vx)**2 +
-                           (windVelocityY - vy)**2 +
-                           (vz)**2)**0.5
-        freestreamX = vx - windVelocityX
-        freestreamY = vy - windVelocityY
-        freestreamZ = vz
-        # Determine drag force
-        pseudoD = -0.5 * S * Cd * freestreamSpeed - ka*rho*4*np.pi*(R**2)*Rdot
-        Dx = pseudoD * freestreamX
-        Dy = pseudoD * freestreamY
-        Dz = pseudoD * freestreamZ
-        ax = Dx/(mp+ma)
-        ay = Dy/(mp+ma)
-        az = (Dz - 9.8*mp)/(mp+ma)
-
-        if verbose:
-            windVelocity = np.array([self.env.windVelocityX(z),
-                                     self.env.windVelocityY(z), 0])
-            rocketVelocity = np.array([vx, vy, vz])
-            freestreamVelocity = windVelocity - rocketVelocity
-            self.freestreamSpeed.append([t, freestreamSpeed])
-            self.streamVelX.append([t, freestreamVelocity[0]])
-            self.streamVelY.append([t, freestreamVelocity[1]])
-            self.streamVelZ.append([t, freestreamVelocity[2]])
-            self.R1.append([t, Dx])
-            self.R2.append([t, Dy])
-            self.R3.append([t, Dz])
-            self.ax.append([t, ax])
-            self.ay.append([t, ay])
-            self.az.append([t, az])
-
-        return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
-
     def __uDotParachute(self, t, u, verbose=False):
+        """Calculates derivative of u state vector with respect to time
+        when rocket is flying under parachute. A 3 DOF aproximation is
+        used.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds
+        u : list
+            State vector defined by u = [x, y, z, vx, vy, vz, e0, e1,
+            e2, e3, omega1, omega2, omega3].
+        verbose : bool, optional
+            If True, adds flight data information directly to self
+            variables such as self.attackAngle. Default is False.
+        
+        Return
+        ------
+        uDot : list
+            State vector defined by uDot = [vx, vy, vz, ax, ay, az,
+            e0Dot, e1Dot, e2Dot, e3Dot, alpha1, alpha2, alpha3].
+
+        """
         # Parachute data
         CdS = self.parachuteCdS
         ka = 1
@@ -4021,3 +3821,401 @@ class Flight:
             self.az.append([t, az])
 
         return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
+
+    def postProcess(self):
+        """Post-process all Flight information produced during
+        simulation. Includes the calculation of maximum values,
+        calculation of secundary values such as energy and conversion
+        of lists to Function objects to facilitate plotting.
+
+        Parameters
+        ----------
+        None
+        
+        Return
+        ------
+        None
+        """
+        # Transform solution array into Functions
+        sol = np.array(self.solution)
+        self.x = Function(sol[:, [0, 1]], 'Time (s)', 'X (m)', 'spline', extrapolation="natural")
+        self.y = Function(sol[:, [0, 2]], 'Time (s)', 'Y (m)', 'spline', extrapolation="natural")
+        self.z = Function(sol[:, [0, 3]], 'Time (s)', 'Z (m)', 'spline', extrapolation="natural")
+        self.vx = Function(sol[:, [0, 4]], 'Time (s)', 'Vx (m/s)', 'spline', extrapolation="natural")
+        self.vy = Function(sol[:, [0, 5]], 'Time (s)', 'Vy (m/s)', 'spline', extrapolation="natural")
+        self.vz = Function(sol[:, [0, 6]], 'Time (s)', 'Vz (m/s)', 'spline', extrapolation="natural")
+        self.e0 = Function(sol[:, [0, 7]], 'Time (s)', 'e0', 'spline', extrapolation="natural")
+        self.e1 = Function(sol[:, [0, 8]], 'Time (s)', 'e1', 'spline', extrapolation="natural")
+        self.e2 = Function(sol[:, [0, 9]], 'Time (s)', 'e2', 'spline', extrapolation="natural")
+        self.e3 = Function(sol[:, [0, 10]], 'Time (s)', 'e3', 'spline', extrapolation="natural")
+        self.w1 = Function(sol[:, [0, 11]], 'Time (s)', 'ω1 (rad/s)', 'spline', extrapolation="natural")
+        self.w2 = Function(sol[:, [0, 12]], 'Time (s)', 'ω2 (rad/s)', 'spline', extrapolation="natural")
+        self.w3 = Function(sol[:, [0, 13]], 'Time (s)', 'ω3 (rad/s)', 'spline', extrapolation="natural")
+        self.noiseFunction = Function(self.noiseFunction, inputs='Time', outputs='Noise (Pa)')
+        self.pFunction = Function(self.pFunction, inputs='Time', outputs='Pressure (Pa)')
+        
+        # Calculate aerodynamic forces and accelerations
+        self.cpPosition1, self.cpPosition2, self.cpPosition3 = [], [], []
+        self.staticMargin = []
+        self.attackAngle, self.freestreamSpeed = [], []
+        self.R1, self.R2, self.R3 = [], [], []
+        self.M1, self.M2, self.M3 = [], [], []
+        self.ax, self.ay, self.az = [], [], []
+        self.alp1, self.alp2, self.alp3 = [], [], []
+        self.streamVelX, self.streamVelY, self.streamVelZ = [], [], []
+        for i in range(len(self.flightPhases) - 1):
+            initTime = self.flightPhases[i][0]
+            self.currentDerivative = self.flightPhases[i][1]
+            self.parachuteCdS = self.flightPhases[i][2]
+            finalTime = self.flightPhases[i + 1][0]
+            for step in self.solution:
+                if initTime < step[0] <= finalTime:
+                    self.currentDerivative(step[0], step[1:], verbose=True)
+        self.cpPosition1 = Function(self.cpPosition1, 'Time (s)',
+                                    'CP Position in X (m)', 'linear')
+        self.cpPosition2 = Function(self.cpPosition2, 'Time (s)',
+                                    'CP Position in Y (m)', 'linear')
+        self.cpPosition3 = Function(self.cpPosition3, 'Time (s)',
+                                    'CP Position in Z (m)', 'linear')
+        self.staticMargin = Function(self.staticMargin, 'Time (s)',
+                                     'Static Margin (c)', 'linear')
+        self.attackAngle = Function(self.attackAngle, 'Time (s)',
+                                    'Angle of Attack', 'linear')
+        self.freestreamSpeed = Function(self.freestreamSpeed, 'Time (s)',
+                                        'Freestream Speed (m/s)', 'linear')
+        self.streamVelX = Function(self.streamVelX, 'Time (s)',
+                                   'Freestream VelX (m/s)', 'linear')
+        self.streamVelY = Function(self.streamVelY, 'Time (s)',
+                                   'Freestream VelY (m/s)', 'linear')
+        self.streamVelZ = Function(self.streamVelZ, 'Time (s)',
+                                   'Freestream VelZ (m/s)', 'linear')
+        self.R1 = Function(self.R1, 'Time (s)', 'R1 (N)', 'linear')
+        self.R2 = Function(self.R2, 'Time (s)', 'R2 (N)', 'linear')
+        self.R3 = Function(self.R3, 'Time (s)', 'R3 (N)', 'linear')
+        self.M1 = Function(self.M1, 'Time (s)', 'M1 (Nm)', 'linear')
+        self.M2 = Function(self.M2, 'Time (s)', 'M2 (Nm)', 'linear')
+        self.M3 = Function(self.M3, 'Time (s)', 'M3 (Nm)', 'linear')
+        self.ax = Function(self.ax, 'Time (s)', 'Ax (m/s2)', 'linear')
+        self.ay = Function(self.ay, 'Time (s)', 'Ay (m/s2)', 'linear')
+        self.az = Function(self.az, 'Time (s)', 'Az (m/s2)', 'linear')
+        self.alp1 = Function(self.alp1, 'Time (s)', 'α1 (rad/s2)', 'linear')
+        self.alp2 = Function(self.alp2, 'Time (s)', 'α2 (rad/s2)', 'linear')
+        self.alp3 = Function(self.alp3, 'Time (s)', 'α3 (rad/s2)', 'linear')
+        
+        # Process velocity and acceleration magnitude
+        self.v = (self.vx**2 + self.vy**2 + self.vz**2)**0.5
+        self.v.setDiscrete(0, self.tFinal, 1000)
+        self.v.setInputs('Time (s)')
+        self.v.setOutputs('Velocity Magnitude (m/s)')
+        self.a = (self.ax**2 + self.ay**2 + self.az**2)**0.5
+        self.a.setDiscrete(0, self.tFinal, 1000)
+        self.a.setInputs('Time (s)')
+        self.a.setOutputs('Acceleration Magnitude (m/s)')
+        
+        # Find out of rail and apogee velocity
+        self.outOfRailVelocity = (self.vx(self.outOfRailTime)**2 +
+                                  self.vy(self.outOfRailTime)**2 +
+                                  self.vz(self.outOfRailTime)**2)**(0.5)
+        self.apogeeVelocity = (self.vx(self.apogeeTime)**2 +
+                               self.vy(self.apogeeTime)**2)**(0.5)
+        
+        # Find out maximum velocity and acceleration
+        self.maxVel = np.amax(self.v.source[:, 1])
+        self.maxAcc = np.amax(self.a.source[:, 1])
+        
+        # Calculate Energies
+        # Retrieve variables
+        # Geometry
+        b = self.rocket.distanceRocketPropellant
+        # Mass
+        totalMass = self.rocket.totalMass
+        mu = self.rocket.reducedMass
+        # Inertias
+        Rz = self.rocket.inertiaZ
+        Ri = self.rocket.inertiaI
+        Tz = self.rocket.motor.inertiaZ
+        Ti = self.rocket.motor.inertiaI
+        I1, I2, I3 = (Ri + Ti + mu*b**2), (Ri + Ti + mu*b**2), (Rz + Tz)
+        # Velocities
+        vx, vy, vz = self.vx, self.vy, self.vz
+        w1, w2, w3 = self.w1, self.w2, self.w3
+        # Calculate Energy Quantities
+        # Kinetic Energy
+        self.rotationalEnergy = 0.5*(I1*w1**2 + I2*w2**2 + I3*w3**2)
+        self.rotationalEnergy.setInputs('Time (s)')
+        self.rotationalEnergy.setOutputs('Rotational Kinetic Energy (J)')
+        self.rotationalEnergy.setDiscrete(self.tInitial, self.tFinal, 1000)
+        self.translationalEnergy = 0.5*totalMass*(vx**2 + vy**2 + vz**2)
+        self.translationalEnergy.setInputs('Time (s)')
+        self.translationalEnergy.setOutputs('Translational Kinetic Energy (J)')
+        self.translationalEnergy.setDiscrete(self.tInitial, self.tFinal, 1000)
+        self.kineticEnergy = self.rotationalEnergy + self.translationalEnergy
+        self.kineticEnergy.setInputs('Time (s)')
+        self.kineticEnergy.setOutputs('Kinetic Energy (J)')
+        self.kineticEnergy.setDiscrete(self.tInitial, self.tFinal, 1000)
+        # Potential Energy
+        self.potentialEnergy = self.rocket.totalMass*self.env.g*self.z
+        self.potentialEnergy.setInputs('Time (s)')
+        self.potentialEnergy.setOutputs('Potential Energy (J)')
+        self.potentialEnergy.setDiscrete(self.tInitial, self.tFinal, 1000)
+        # Total Mechanical Energy
+        self.totalEnergy = self.kineticEnergy + self.potentialEnergy
+        self.totalEnergy.setInputs('Time (s)')
+        self.totalEnergy.setOutputs('Total Mechanical Energy (J)')
+        self.totalEnergy.setDiscrete(self.tInitial, self.tFinal, 1000)
+
+        return None
+
+    def info(self):
+        """Prints out a summary of the data and graphs available about
+        the Flight.
+
+        Parameters
+        ----------
+        None
+        
+        Return
+        ------
+        None
+        """
+        # Post-process results
+        self.postProcess()
+
+        # Print off rail conditions
+        print('\nOff Rail Conditions')
+        print('Rail Departure Time: ' +
+              "{:.3f}".format(self.outOfRailTime) + ' s')
+        print('Rail Departure Velocity: ' +
+              "{:.3f}".format(self.outOfRailVelocity) + ' m/s')
+
+        # Print apogee conditions
+        print('\nApogee')
+        print('Height: ' + "{:.3f}".format(self.apogee) + ' m')
+        print('Velocity: ' + "{:.3f}".format(self.apogeeVelocity) + ' m/s')
+        print('Time: ' + "{:.3f}".format(self.apogeeTime) + ' s')
+        print('Freestream Speed: ' +
+              "{:.3f}".format(self.freestreamSpeed(self.apogeeTime)) + ' m/s')
+
+        # Print events registered
+        print('\nEvents')
+        for phase in self.flightPhases:
+            if len(phase) == 5:
+                ejectionTime = phase[0]
+                fireTime = phase[-2]
+                pc = phase[-1]
+                velocity = self.freestreamSpeed(ejectionTime)
+                print(pc.name.title() + ' Ejection Fired at: ' + "{:.3f}".format(fireTime) + ' s')
+                print(pc.name.title() + ' Fully Ejected at: ' + "{:.3f}".format(ejectionTime) + ' s')
+                print(pc.name.title() + ' Ejected with Freestream Speed: ' + "{:.3f}".format(velocity) + ' m/s')
+                print(pc.name.title() + ' Ejected at Height of: ' + "{:.3f}".format(self.z(ejectionTime)) + ' m')
+
+        # Print impact conditions
+        print('\nImpact')
+        print('X Impact: ' + "{:.3f}".format(self.xImpact) + ' m')
+        print('Y Impact: ' + "{:.3f}".format(self.yImpact) + ' m')
+        print('Time of Impact: ' + "{:.3f}".format(self.tFinal) + ' s')
+        print('Velocity at Impact: ' + "{:.3f}".format(self.impactVelocity) +
+              ' m/s')
+
+        # Print maximum velocity and maximum acceleration
+        print('\nMaximum Velocity and Acceleration')
+        print('Velocity: ' + "{:.3f}".format(self.maxVel) + ' m/s')
+        print('Acceleration: ' + "{:.3f}".format(self.maxAcc) + ' m/s2')
+
+        print('\nTrajectory Plots')
+        fig = plt.figure()
+        ax = fig.gca(projection='3d')
+        ax.set_xlabel('X (m)')
+        ax.set_ylabel('Y (m)')
+        ax.set_zlabel('Z (m)')
+        ax.plot(self.x.source[:, 1], self.y.source[:, 1], self.z.source[:, 1])
+        plt.show()
+        return None
+    
+    def allInfo(self):
+        """Prints out all data and graphs available about the Flight.
+
+        Parameters
+        ----------
+        None
+        
+        Return
+        ------
+        None
+        """
+        # Post-process results
+        self.postProcess()
+        # Print environment details
+        print('Environment Details')
+        print('Gravitational Acceleration: ' + str(self.env.g) + ' m/s2')
+        print('Rail Length: ' + str(self.env.rL) + ' m')
+
+        # Print initial conditions
+        print('\nInitial Conditions')
+        print('Position - x: ' + str(self.x(0)) + ' m')
+        print('Position - y: ' + str(self.y(0)) + ' m')
+        print('Position - z: ' + str(self.z(0)) + ' m')
+        print('Velocity - Vx: ' + str(self.vx(0)) + ' m/s')
+        print('Velocity - Vy: ' + str(self.vy(0)) + ' m/s')
+        print('Velocity - Vz: ' + str(self.vz(0)) + ' m/s')
+        print('Orientation - e0: ' + str(self.e0(0)))
+        print('Orientation - e1: ' + str(self.e1(0)))
+        print('Orientation - e2: ' + str(self.e2(0)))
+        print('Orientation - e3: ' + str(self.e3(0)))
+        print('Angular Velocity - ω1: ' + str(self.w1(0)) + ' rad/s')
+        print('Angular Velocity - ω2: ' + str(self.w2(0)) + ' rad/s')
+        print('Angular Velocity - ω3: ' + str(self.w3(0)) + ' rad/s')
+
+        # Print off rail conditions
+        print('\nOff Rail Conditions')
+        print('Rail Departure Time: ' +
+              "{:.3f}".format(self.outOfRailTime) + ' s')
+        print('Rail Departure Velocity: ' +
+              "{:.3f}".format(self.outOfRailVelocity) + ' m/s')
+        
+        # Print apogee conditions
+        print('\nApogee')
+        print('Height: ' + "{:.3f}".format(self.apogee) + ' m')
+        print('Velocity: ' + "{:.3f}".format(self.apogeeVelocity) + ' m/s')
+        print('Time: ' + "{:.3f}".format(self.apogeeTime) + ' s')
+        print('Freestream Speed: ' +
+              "{:.3f}".format(self.freestreamSpeed(self.apogeeTime)) + ' m/s')
+        
+        # Print events registered
+        print('\nEvents')
+        for phase in self.flightPhases:
+            if len(phase) == 5:
+                ejectionTime = phase[0]
+                fireTime = phase[-2]
+                pc = phase[-1]
+                velocity = self.freestreamSpeed(ejectionTime)
+                print(pc.name.title() + ' Ejection Fired at: ' + "{:.3f}".format(fireTime) + ' s')
+                print(pc.name.title() + ' Fully Ejected at: ' + "{:.3f}".format(ejectionTime) + ' s')
+                print(pc.name.title() + ' Ejected with Freestream Speed: ' + "{:.3f}".format(velocity) + ' m/s')
+                print(pc.name.title() + ' Ejected at Height of: ' + "{:.3f}".format(self.z(ejectionTime)) + ' m')
+        
+        # Print impact conditions
+        print('\nImpact')
+        print('X Impact: ' + "{:.3f}".format(self.xImpact) + ' m')
+        print('Y Impact: ' + "{:.3f}".format(self.yImpact) + ' m')
+        print('Time of Impact: ' + "{:.3f}".format(self.tFinal) + ' s')
+        print('Velocity at Impact: ' + "{:.3f}".format(self.impactVelocity) +
+              ' m/s')
+        
+        # Print maximum velocity and maximum acceleration
+        print('\nMaximum Velocity and Acceleration')
+        print('Velocity: ' + "{:.3f}".format(self.maxVel) + ' m/s')
+        print('Acceleration: ' + "{:.3f}".format(self.maxAcc) + ' m/s2')
+
+        # All plots
+        print('\nTrajectory Plots')
+        fig = plt.figure()
+        ax = fig.gca(projection='3d')
+        ax.set_xlabel('X (m)')
+        ax.set_ylabel('Y (m)')
+        ax.set_zlabel('Z (m)')
+        ax.plot(self.x.source[:, 1], self.y.source[:, 1], self.z.source[:, 1])
+        plt.show()
+        self.x()
+        self.y()
+        self.z()
+        print('\nVelocity Plots')
+        self.vx()
+        self.vy()
+        self.vz()
+        print('\nAcceleration Plots')
+        self.ax()
+        self.ay()
+        self.az()
+        print('\nAttitude Plots')
+        self.e0()
+        self.e1()
+        self.e2()
+        self.e3()
+        print('\nAngular Velocity Plots')
+        self.w1()
+        self.w2()
+        self.w3()
+        print('\nAngular Acceleration Plots')
+        self.alp1()
+        self.alp2()
+        self.alp3()
+        print('\nEnergy Plots')
+        self.rotationalEnergy()
+        self.translationalEnergy()
+        self.kineticEnergy()
+        self.potentialEnergy()
+        self.totalEnergy()
+        print('\nAerodynamic Forces')
+        self.attackAngle()
+        self.freestreamSpeed()
+        self.R1()
+        self.R2()
+        self.R3()
+        self.M1()
+        self.M2()
+        self.M3()
+
+        return None
+
+    def animate(self, start=0, stop=None, fps=12, speed=4,
+                elev=None, azim=None):
+        """Plays an animation the flight. Not implemented yet. Only
+        kinda works outside notebook.
+        """
+        # Set up stopping time
+        stop = self.tFinal if stop is None else stop
+        # Speed = 4 makes it almost real time - matplotlib is way to slow
+        # Set up graph
+        fig = plt.figure(figsize=(12, 9))
+        axes = fig.gca(projection='3d')
+        # Initialize time
+        timeRange = np.linspace(start, stop, fps * (stop - start))
+        # Intialize first frame
+        axes.set_title('Trajectory and Velocity Animation')
+        axes.set_xlabel('X (m)')
+        axes.set_ylabel('Y (m)')
+        axes.set_zlabel('Z (m)')
+        axes.view_init(elev, azim)
+        R = axes.quiver(0, 0, 0, 0, 0, 0, color='r', label='Rocket')
+        V = axes.quiver(0, 0, 0, 0, 0, 0, color='g', label='Velocity')
+        W = axes.quiver(0, 0, 0, 0, 0, 0, color='b', label='Wind')
+        S = axes.quiver(0, 0, 0, 0, 0, 0, color='black', label='Freestream')
+        axes.legend()
+        # Animate
+        for t in timeRange:
+            R.remove()
+            V.remove()
+            W.remove()
+            S.remove()
+            # Calculate rocket position
+            Rx, Ry, Rz = self.x(t), self.y(t), self.z(t)
+            Ru = 1*(2*(self.e1(t)*self.e3(t) + self.e0(t)*self.e2(t)))
+            Rv = 1*(2*(self.e2(t)*self.e3(t) - self.e0(t)*self.e1(t)))
+            Rw = 1*(1 - 2*(self.e1(t)**2 + self.e2(t)**2))
+            # Caclulate rocket Mach number
+            Vx = self.vx(t)/340.40
+            Vy = self.vy(t)/340.40
+            Vz = self.vz(t)/340.40
+            # Caculate wind Mach Number
+            z = self.z(t)
+            Wx = self.env.windVelocityX(z)/20
+            Wy = self.env.windVelocityY(z)/20
+            # Calculate freestream Mach Number
+            Sx = self.streamVelX(t)/340.40
+            Sy = self.streamVelY(t)/340.40
+            Sz = self.streamVelZ(t)/340.40
+            # Plot Quivers
+            R = axes.quiver(Rx, Ry, Rz, Ru, Rv, Rw, color='r')
+            V = axes.quiver(Rx, Ry, Rz, -Vx, -Vy, -Vz, color='g')
+            W = axes.quiver(Rx - Vx, Ry - Vy, Rz - Vz, Wx, Wy, 0, color='b')
+            S = axes.quiver(Rx, Ry, Rz, Sx, Sy, Sz, color='black')
+            # Adjust axis
+            axes.set_xlim(Rx - 1, Rx + 1)
+            axes.set_ylim(Ry - 1, Ry + 1)
+            axes.set_zlim(Rz - 1, Rz + 1)
+            # plt.pause(1/(fps*speed))
+            try:
+                plt.pause(1/(fps*speed))
+            except:
+                time.sleep(1/(fps*speed))
