@@ -2334,7 +2334,7 @@ class Motor:
         """
         # Calculate exhaust velocity if not done so already
         if self.exhaustVelocity is None:
-            self.evaluateExhaustVelocity())
+            self.evaluateExhaustVelocity()
 
         # Create mass dot Function
         self.massDot = -self.thrust/self.exhaustVelocity
