@@ -1,5 +1,5 @@
 # RocketPy
-RocketPy is a trajectory simulation for High-Power Rocketry built by [Projeto Jupiter](https://www.facebook.com/ProjetoJupiter/). The code is written as a [Python](http://www.python.org) libray and allows for a complete 6 degrees of freedom simulation of a rocket's flight trajectory, including high fidelity variable mass effects as well as descent under parachutes. Weather conditions, such as wind profile, can be imported from sophisticated datasets, allowing for realistic scenarios. Furthermore, the implementation facilitates complex simulations, such as multi-stage rockets, design and trajectory optimization and dispersion analysis.
+RocketPy is a trajectory simulation for High-Power Rocketry built by [Projeto Jupiter](https://www.facebook.com/ProjetoJupiter/). The code is written as a [Python](http://www.python.org) library and allows for a complete 6 degrees of freedom simulation of a rocket's flight trajectory, including high fidelity variable mass effects as well as descent under parachutes. Weather conditions, such as wind profile, can be imported from sophisticated datasets, allowing for realistic scenarios. Furthermore, the implementation facilitates complex simulations, such as multi-stage rockets, design and trajectory optimization and dispersion analysis.
 
 ## Previewing
 
@@ -9,7 +9,7 @@ Then, you can read the *Getting Started* section to get your own copy!
 
 ## Getting Started
 
-These instructions will get you a copy of Rocketpy up and running on your local machine for development and testing purposes.
+These instructions will get you a copy of RocketPy up and running on your local machine for development and testing purposes.
 
 ### Prerequisites
 
@@ -21,11 +21,11 @@ The following is needed in order to run RocketPy:
  - Matplotlib >= 3.0
  - netCDF4 >= 1.4 (optional, requires Cython)
  
-The first 4 prerequistes come with Anaconda, but Scipy might need updating. The nedCDF4 package can be installed if there is interest in importing weather data from netCDF files. To update Scipy and install netCDF4 using Conda, the following code is used:
+The first 4 prerequisites come with Anaconda, but Scipy might need updating. The nedCDF4 package can be installed if there is interest in importing weather data from netCDF files. To update Scipy and install netCDF4 using Conda, the following code is used:
 
 ```
->> conda install scipy>=1.0
->> conda install -c anaconda netcdf4>=1.4
+$ conda install scipy>=1.0
+$ conda install -c anaconda netcdf4>=1.4
 ```
 
 Alternatively, if you only have Python 3.X installed, the four packages needed can be installed using pip:
@@ -37,7 +37,7 @@ $ pip install matplotlib>=3.0
 $ pip install netCDF4>=1.4
 ```
 
-Although [Jupyter Notebooks](http://jupyter.org/) are by no means required to run RocketPy, they are strongly recommend. They already come with Anaconda builds, but can also be installed separetely using pip:
+Although [Jupyter Notebooks](http://jupyter.org/) are by no means required to run RocketPy, they are strongly recommend. They already come with Anaconda builds, but can also be installed separately using pip:
 
 ```
 $ pip install jupyter
@@ -67,7 +67,7 @@ The main Python library is kept under the **_nkbs_** folder and is currently nam
 
 ### Running Your First Simulation
 
-In order to run you first rocket trajectory simulation using RocketPy, you can start a Jupyter Notebook and navigate to the **_nbks_** folder. Open **_Calisto.ipynb_** and you are ready to go.
+In order to run your first rocket trajectory simulation using RocketPy, you can start a Jupyter Notebook and navigate to the **_nbks_** folder. Open **_Calisto.ipynb_** and you are ready to go.
 
 Otherwise, you may want to create your own script or your own notebook using RocketPy. To do this, let's see how to use RocketPy's four main classes:
 
@@ -169,7 +169,7 @@ To actually create a Flight object, use:
 >> TestFlight = Flight(rocket=Calisto, environment=Env, inclination=85, heading=0, maxStepSize=0.01, maxTime=600)
 ```
 
-Once the TestFlight object is created, you simulation is done! Use the following code to get a summary of the results:
+Once the TestFlight object is created, your simulation is done! Use the following code to get a summary of the results:
 
 ```
 TestFlight.info()
@@ -177,6 +177,63 @@ TestFlight.info()
 
 To seel all available results, use:
 ```
+TestFlight.allInfo()
+```
+
+To summarize, the complete code would be:
+
+```
+>> from rocketpyAlpha import *
+
+>> Env = Environment(railLength=5.2,
+                     gravity=9.8,
+                     windData="../data/weather/SpacePort.nc",
+                     location=(32.990254, -106.974998),
+                     date=(2016, 6, 20, 18))
+                     
+>> Cesaroni_M1670 = Motor(thrustSource="../data/motors/Cesaroni_M1670.eng",
+                          burnOut=3.9,
+                          grainNumber=5,
+                          grainSeparation=5/1000,
+                          grainDensity=1815,
+                          grainOuterRadius=33/1000,
+                          grainInitialInnerRadius=15/1000,
+                          grainInitialHeight=120/1000,
+                          nozzleRadius=33/1000,
+                          throatRadius=11/1000)
+
+>> Calisto = Rocket(motor=Cesaroni_M1670,
+                 radius=127/2000,
+                 mass=19.197-2.956,
+                 inertiaI=6.60,
+                 inertiaZ=0.0351,
+                 distanceRocketNozzle=1.255,
+                 distanceRocketPropellant=0.85704,
+                 powerOffDrag='../data/calisto/powerOffDragCurve.csv',
+                 powerOnDrag='../data/calisto/powerOnDragCurve.csv')
+
+>> Calisto.addNose(length=0.55829, kind="vonKarman", distanceToCM=0.71971)
+
+>> Calisto.addFins(4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956)
+
+>> Calisto.addTail(topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656)
+
+>> Calisto.addParachute('Drogue',
+                     CdS=1.0,
+                     trigger=lambda p, y: return y[5] < 0,
+                     samplingRate=1,
+                     lag=1.5)
+
+>> Calisto.addParachute('Main',
+                     CdS=10.0,
+                     trigger=lambda p, y: return (y[2] < 500 and y[5] < 0), 
+                     samplingRate=1,
+                     lag=1.5)
+
+>> TestFlight = Flight(rocket=Calisto, environment=Env, inclination=85, heading=0, maxStepSize=0.01, maxTime=600)
+
+TestFlight.info()
+
 TestFlight.allInfo()
 ```
 
@@ -189,7 +246,7 @@ TestFlight.allInfo()
 
 ## Contributing
 
-Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us. - **_Still working on this!_**
+Please read [CONTRIBUTING.md](https://github.com/giovaniceotto/RocketPy/blob/master/CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us. - **_Still working on this!_**
 
 ## Versioning
 
@@ -203,7 +260,7 @@ See also the list of [contributors](https://github.com/giovaniceotto/RocketPy/co
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/giovaniceotto/RocketPy/blob/master/LICENSE) file for details
 
 ## Acknowledgments
 
