@@ -172,26 +172,26 @@ To actually create a Flight object, use:
 Once the TestFlight object is created, your simulation is done! Use the following code to get a summary of the results:
 
 ```
-TestFlight.info()
+>> TestFlight.info()
 ```
 
 To seel all available results, use:
 ```
-TestFlight.allInfo()
+>> TestFlight.allInfo()
 ```
 
 To summarize, the complete code would be:
 
 ```
->> from rocketpyAlpha import *
+from rocketpyAlpha import *
 
->> Env = Environment(railLength=5.2,
+Env = Environment(railLength=5.2,
                      gravity=9.8,
                      windData="../data/weather/SpacePort.nc",
                      location=(32.990254, -106.974998),
                      date=(2016, 6, 20, 18))
                      
->> Cesaroni_M1670 = Motor(thrustSource="../data/motors/Cesaroni_M1670.eng",
+Cesaroni_M1670 = Motor(thrustSource="../data/motors/Cesaroni_M1670.eng",
                           burnOut=3.9,
                           grainNumber=5,
                           grainSeparation=5/1000,
@@ -202,7 +202,7 @@ To summarize, the complete code would be:
                           nozzleRadius=33/1000,
                           throatRadius=11/1000)
 
->> Calisto = Rocket(motor=Cesaroni_M1670,
+Calisto = Rocket(motor=Cesaroni_M1670,
                  radius=127/2000,
                  mass=19.197-2.956,
                  inertiaI=6.60,
@@ -212,25 +212,25 @@ To summarize, the complete code would be:
                  powerOffDrag='../data/calisto/powerOffDragCurve.csv',
                  powerOnDrag='../data/calisto/powerOnDragCurve.csv')
 
->> Calisto.addNose(length=0.55829, kind="vonKarman", distanceToCM=0.71971)
+Calisto.addNose(length=0.55829, kind="vonKarman", distanceToCM=0.71971)
 
->> Calisto.addFins(4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956)
+Calisto.addFins(4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956)
 
->> Calisto.addTail(topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656)
+Calisto.addTail(topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656)
 
->> Calisto.addParachute('Drogue',
+Calisto.addParachute('Drogue',
                      CdS=1.0,
                      trigger=lambda p, y: return y[5] < 0,
                      samplingRate=1,
                      lag=1.5)
 
->> Calisto.addParachute('Main',
+Calisto.addParachute('Main',
                      CdS=10.0,
                      trigger=lambda p, y: return (y[2] < 500 and y[5] < 0), 
                      samplingRate=1,
                      lag=1.5)
 
->> TestFlight = Flight(rocket=Calisto, environment=Env, inclination=85, heading=0, maxStepSize=0.01, maxTime=600)
+TestFlight = Flight(rocket=Calisto, environment=Env, inclination=85, heading=0, maxStepSize=0.01, maxTime=600)
 
 TestFlight.info()
 
