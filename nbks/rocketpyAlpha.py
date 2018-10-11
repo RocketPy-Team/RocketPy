@@ -139,7 +139,20 @@ class Function:
         """
         # Import CSV if source is a string and convert values to ndarray
         if isinstance(source, str):
-            source = np.loadtxt(source, delimiter=',', dtype=np.float64)
+            # Read file and check for headers
+            f = open(source, 'r')
+            firstLine = f.readline()
+            # If headers are found...
+            if firstLine[0] in ['"', "'"]:
+                # Headers available
+                firstLine = firstLine.replace('"', ' ').replace("'", ' ')
+                firstLine = firstLine.split(" , ")
+                self.setInputs(firstLine[0])
+                self.setOutputs(firstLine[1:])
+                source = np.loadtxt(source, delimiter=',', skiprows=1, dtype=float)
+            # if headers are not found
+            else:
+                source = np.loadtxt(source, delimiter=',', dtype=float)
         # Convert to ndarray if source is a list
         if isinstance(source, (list, tuple)):
             source = np.array(source, dtype=np.float64)
@@ -589,23 +602,22 @@ class Function:
                             x[i] = yData[0] if x[i] < xmin else yData[-1]
             elif self.__interpolation__ == 'linear':
                 for i in range(len(x)):
+                    # Interval found... interpolate... or extrapolate
                     inter = xIntervals[i]
-                    if x[i] == xmin or x[i] == xmax:
-                        x[i] = yData[inter]
-                    elif xmin < x[i] < xmax or (self.__extrapolation__ ==
-                                                'natural'):
-                        if not(xmin < x[i] < xmax):
-                            y0 = yData[0] if x[i] < xmin else yData[-1]
-                            inter = 1 if x[i] < xmin else -1
-                        else:
-                            y0 = yData[inter-1]
+                    if xmin <= x[i] <= xmax:
+                        # Interpolate
                         dx = float(xData[inter]-xData[inter-1])
                         dy = float(yData[inter]-yData[inter-1])
-                        x[i] = ((x[i]-xData[inter-1])*(dy/dx) + y0)
+                        x[i] = ((x[i]-xData[inter-1])*(dy/dx) + yData[inter-1])
                     else:
                         # Extrapolate
-                        if self.__extrapolation__ == 'zero':
-                            x[i] = 0
+                        if self.__extrapolation__ == 'zero': # Extrapolation == zero
+                            x[i] = 0 
+                        elif self.__extrapolation__ == 'natural': # Extrapolation == natural
+                            inter = 1 if x[i] < xmin else -1
+                            dx = float(xData[inter]-xData[inter-1])
+                            dy = float(yData[inter]-yData[inter-1])
+                            x[i] = ((x[i]-xData[inter-1])*(dy/dx) + yData[inter-1])
                         else:  # Extrapolation is set to constant
                             x[i] = yData[0] if x[i] < xmin else yData[-1]
             else:
@@ -927,19 +939,23 @@ class Function:
         """Call Function.plot1D if Function is 1-Dimensional or call
         Function.plot2D if Function is 2-Dimensional and forward arguments
         and key-word arguments."""
-        if self.__domDim__ == 1:
-            self.plot1D(*args, **kwargs)
-        elif self.__domDim__ == 2:
-            self.plot2D(*args, **kwargs)
+        if isinstance(self, list):
+            # Compare multiple plots
+            Function.comparePlots(self)
         else:
-            print('Error: Only functions with 1D or 2D domains are plottable!')
+            if self.__domDim__ == 1:
+                self.plot1D(*args, **kwargs)
+            elif self.__domDim__ == 2:
+                self.plot2D(*args, **kwargs)
+            else:
+                print('Error: Only functions with 1D or 2D domains are plottable!')
 
     def plot1D(self, lower=None, upper=None, samples=1000, forceData=False,
-               forcePoints=False):
+               forcePoints=False, returnObject=False):
         """ Plot 1-Dimensional Function, from a lower limit to an upper limit,
         by sampling the Function several times in the interval. The title of
         the graph is given by the name of the axis, which are taken from
-        the Function's input and output names.
+        the Function`s input and ouput names.
 
         Parameters
         ----------
@@ -971,7 +987,8 @@ class Function:
         None
         """
         # Define a mesh and y values at mesh nodes for plotting
-        figure = plt.figure()
+        fig = plt.figure()
+        ax = fig._get_axes
         if callable(self.source):
             # Determine boundaries
             lower = 0 if lower is None else lower
@@ -1004,13 +1021,15 @@ class Function:
         plt.xlabel(self.__inputs__[0].title())
         plt.ylabel(self.__outputs__[0].title())
         plt.show()
+        if returnObject:
+            return fig, ax
 
     def plot2D(self, lower=None, upper=None, samples=[30, 30], forceData=True,
                dispType='surface'):
         """ Plot 2-Dimensional Function, from a lower limit to an upper limit,
         by sampling the Function several times in the interval. The title of
         the graph is given by the name of the axis, which are taken from
-        the Function's inputs and output names.
+        the Function`s inputs and ouput names.
 
         Parameters
         ----------
@@ -1100,6 +1119,117 @@ class Function:
         axes.set_ylabel(self.__inputs__[1].title())
         axes.set_zlabel(self.__outputs__[0].title())
         plt.show()
+
+    def comparePlots(self, lower=None, upper=None, samples=1000,
+                     title="", xlabel="", ylabel="",
+                     forceData=False, forcePoints=False, returnObject=False):
+        """ Plots N 1-Dimensional Functions in the same plot, from a lower
+        limit to an upper limit, by sampling the Function several times in
+        the interval.
+
+        Parameters
+        ----------
+        self : list
+            List of Functions or list of tuples in the format (Function,
+            label), where label is a string which will be displayed in the
+            legend.
+        lower : scalar, optional
+            The lower limit of the interval in which the Functions are to be
+            ploted. The default value for function type Functions is 0. By
+            contrast, if the Functions given are defined by a dataset, the
+            default value is the lowest value of the datasets.
+        upper : scalar, optional
+            The upper limit of the interval in which the Functions are to be
+            ploted. The default value for function type Functions is 10. By
+            contrast, if the Functions given are defined by a dataset, the
+            default value is the highest value of the datasets.
+        samples : int, optional
+            The number of samples in which the functions will be evaluated for
+            plotting it, which draws lines between each evaluated point.
+            The default value is 1000.
+        title : string, optional
+            Title of the plot. Default value is an empty string.
+        xlabel : string, optional
+            X-axis label. Default value is an empty string.
+        ylabel : string, optional
+            Y-axis label. Default value is an empty string.
+        forceData : Boolean, optional
+            If Function is given by an interpolated dataset, setting forceData
+            to True will plot all points, as a scatter, in the dataset.
+            Default value is False.
+        forcePoints : Boolean, optional
+            Setting forcePoints to True will plot all points, as a scatter, in
+            which the Function was evaluated to plot it. Default value is
+            False.
+
+        Returns
+        -------
+        None
+        """
+        # Convert to list of tuples if list of Function was given
+        plots = []
+        if isinstance(self[0], (tuple, list)) == False:
+            for i in range(len(plots)):
+                plots.append((plot, " "))
+        else:
+            plots = self
+
+        # Create plot figure
+        fig, ax = plt.subplots()
+
+        # Define a mesh and y values at mesh nodes for plotting
+        if lower is None:
+            lower = 0
+            for plot in plots:
+                if not callable(plot[0].source):
+                    # Determine boundaries
+                    xmin = plot[0].source[0, 0]
+                    lower = xmin if xmin < lower else lower
+        if upper is None:
+            upper = 10
+            for plot in plots:
+                if not callable(plot[0].source):
+                    # Determine boundaries
+                    xmax = plot[0].source[-1, 0]
+                    upper = xmax if xmax > upper else upper
+        x = np.linspace(lower, upper, samples)
+
+        # Iterate to plot all plots
+        for plot in plots:
+            # Calculate function at mesh nodes
+            y = plot[0].getValue(x.tolist())
+            # Plots function
+            ax.plot(x, y, label=plot[1])
+            if forcePoints:
+                ax.scatter(x, y, marker='o')
+    
+        # Plot data points if specified
+        if forceData:
+            for plot in plots:
+                if not callable(plot[0].source):
+                    xData = plot[0].source[:, 0]
+                    xmin, xmax = xData[0], xData[-1]
+                    tooLow = True if xmin >= lower else False
+                    tooHigh = True if xmax <= upper else False
+                    loInd = 0 if tooLow else np.where(xData >= lower)[0][0]
+                    upInd = len(xData) - 1 if tooHigh else np.where(xData <= upper)[0][0]
+                    points = plot[0].source[loInd:(upInd+1), :].T.tolist()
+                    ax.scatter(points[0], points[1], marker='o')
+
+        # Setup legend
+        ax.legend(loc='best', shadow=True, fontsize='x-large')
+
+        # Turn on grid and set title and axis
+        plt.grid(True)
+        plt.title(title)
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+
+        # Show plot
+        plt.show()
+
+        if returnObject:
+            return fig, ax
 
     # Define all interpolation methods
     def __interpolatePolynomial__(self):
@@ -1235,7 +1365,7 @@ class Function:
                 return Function(lambda x: (self.getValueOpt2(x)/other(x)))
         # If other is Float except...
         except:
-            if isinstance(other, (float, int)):
+            if isinstance(other, (float, int, complex)):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
@@ -1271,7 +1401,7 @@ class Function:
             A Function object which gives the result of other(x)/self(x).
         """
         # Check if Function object source is array and other is float
-        if isinstance(other, (float, int)):
+        if isinstance(other, (float, int, complex)):
             if isinstance(self.source, np.ndarray):
                 # Operate on grid values
                 Ys = other/self.source[:, 1]
@@ -1335,7 +1465,7 @@ class Function:
                 return Function(lambda x: (self.getValueOpt2(x)**other(x)))
         # If other is Float except...
         except:
-            if isinstance(other, (float, int)):
+            if isinstance(other, (float, int, complex)):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
@@ -1371,7 +1501,7 @@ class Function:
             A Function object which gives the result of other(x)**self(x).
         """
         # Check if Function object source is array and other is float
-        if isinstance(other, (float, int)):
+        if isinstance(other, (float, int, complex)):
             if isinstance(self.source, np.ndarray):
                 # Operate on grid values
                 Ys = other**self.source[:, 1]
@@ -1435,7 +1565,7 @@ class Function:
                 return Function(lambda x: (self.getValue(x)*other(x)))
         # If other is Float except...
         except:
-            if isinstance(other, (float, int)):
+            if isinstance(other, (float, int, complex)):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
@@ -1471,7 +1601,7 @@ class Function:
             A Function object which gives the result of other(x)*self(x).
         """
         # Check if Function object source is array and other is float
-        if isinstance(other, (float, int)):
+        if isinstance(other, (float, int, complex)):
             if isinstance(self.source, np.ndarray):
                 # Operate on grid values
                 Ys = other*self.source[:, 1]
@@ -1535,7 +1665,7 @@ class Function:
                 return Function(lambda x: (self.getValue(x) + other(x)))
         # If other is Float except...
         except:
-            if isinstance(other, (float, int)):
+            if isinstance(other, (float, int, complex)):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
@@ -1571,7 +1701,7 @@ class Function:
             A Function object which gives the result of other(x)/+self(x).
         """
         # Check if Function object source is array and other is float
-        if isinstance(other, (float, int)):
+        if isinstance(other, (float, int, complex)):
             if isinstance(self.source, np.ndarray):
                 # Operate on grid values
                 Ys = other + self.source[:, 1]
@@ -1635,7 +1765,7 @@ class Function:
                 return Function(lambda x: (self.getValue(x)*other(x)))
         # If other is Float except...
         except:
-            if isinstance(other, (float, int)):
+            if isinstance(other, (float, int, complex)):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
@@ -1671,7 +1801,7 @@ class Function:
             A Function object which gives the result of other(x)-self(x).
         """
         # Check if Function object source is array and other is float
-        if isinstance(other, (float, int)):
+        if isinstance(other, (float, int, complex)):
             if isinstance(self.source, np.ndarray):
                 # Operate on grid values
                 Ys = other - self.source[:, 1]
