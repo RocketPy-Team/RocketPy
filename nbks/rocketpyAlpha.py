@@ -16,6 +16,7 @@ import time
 from datetime import datetime
 from inspect import signature, getsourcelines
 import bisect
+from numba import jit
 try:
     import netCDF4
 except ImportError:
@@ -74,12 +75,13 @@ class Function:
         # Set input and output
         self.setInputs(inputs)
         self.setOutputs(outputs)
-        # Set interpolation method
+        # Save interpolation method
         self.__interpolation__ = interpolation
         self.__extrapolation__ = extrapolation
+        # Initialize last_interval
+        self.last_interval = 0
         # Set source
         self.setSource(source)
-        self.last_interval = 0
         # Return
         return None
 
@@ -149,6 +151,8 @@ class Function:
         if callable(source):
             # Set source
             self.source = source
+            # Set geValueOpt2
+            self.getValueOpt = source
             # Set arguments name and domain dimensions
             parameters = signature(source).parameters
             self.__domDim__ = len(parameters)
@@ -204,7 +208,7 @@ class Function:
         ----------
         method : string, optional
             Interpolation method to be used if source type is ndarray.
-            For 1-D functions, linear, polynomail, akima and spline is
+            For 1-D functions, linear, polynomial, akima and spline is
             supported. For N-D functions, only shepard is suporrted.
             Default is 'spline'.
 
@@ -222,8 +226,10 @@ class Function:
             self.__interpolatePolynomial__()
         elif method == 'akima':
             self.__interpolateAkima__()
-        else:
-            pass
+        
+        # Set geValueOpt2
+        self.setGetValueOpt()
+
         # Returns self
         return self
 
@@ -246,6 +252,147 @@ class Function:
         # Set extrapolation method
         self.__extrapolation__ = method
         # Return self
+        return self
+
+    def setGetValueOpt(self):
+        """Crates a method that evaluates interpolations rather quickly
+        when compared to other options available, such as just calling
+        the object instance or calling self.getValue directly. See
+        Function.getValueOpt for documentation.
+
+        Returns
+        -------
+        self : Function
+        """
+        # Retrieve general info
+        xData = self.source[:, 0]
+        yData = self.source[:, 1]
+        xmin, xmax = xData[0], xData[-1]
+        if self.__extrapolation__ == 'zero':
+            extrapolation = 0 # Extrapolation is zero
+        elif self.__extrapolation__ == 'natural':
+            extrapolation = 1 # Extrapolation is natural
+        else:
+            extrapolation = 2 # Extrapolation is constant
+
+        # Crete method to interpolate this info for each interpolation type
+        if self.__interpolation__ == 'spline':
+            coeffs = self.__splineCoefficients__
+            @jit(nopython=True)
+            def getValueOpt(x):
+                xInterval = np.searchsorted(xData, x)
+                # Interval found... interpolate... or extrapolate
+                if xmin <= x <= xmax:
+                    # Interpolate
+                    xInterval = xInterval if xInterval != 0 else 1
+                    a = coeffs[:, xInterval-1]
+                    x = x - xData[xInterval-1]
+                    y = (a[3]*x**3 + a[2]*x**2 + a[1]*x + a[0])
+                else:
+                    # Extrapolate
+                    if extrapolation == 0: # Extrapolation == zero
+                        y = 0 
+                    elif extrapolation == 1: # Extrapolation == natural
+                        a = coeffs[:, 0] if x < xmin else coeffs[:, -1]
+                        x = x - xData[0] if x < xmin else x - xData[-2]
+                        y = (a[3]*x**3 + a[2]*x**2 + a[1]*x + a[0])
+                    else:  # Extrapolation is set to constant
+                        y = yData[0] if x < xmin else yData[-1]
+                return y
+            self.getValueOpt = getValueOpt
+        
+        elif self.__interpolation__ == 'linear':
+            @jit(nopython=True)
+            def getValueOpt(x):
+                xInterval = np.searchsorted(xData, x)
+                # Interval found... interpolate... or extrapolate
+                if xmin <= x <= xmax:
+                    # Interpolate
+                    dx = float(xData[xInterval]-xData[xInterval-1])
+                    dy = float(yData[xInterval]-yData[xInterval-1])
+                    y = ((x-xData[xInterval-1])*(dy/dx) + yData[xInterval-1])
+                else:
+                    # Extrapolate
+                    if extrapolation == 0: # Extrapolation == zero
+                        y = 0 
+                    elif extrapolation == 1: # Extrapolation == natural
+                        xInterval = 1 if x < xmin else -1
+                        dx = float(xData[xInterval]-xData[xInterval-1])
+                        dy = float(yData[xInterval]-yData[xInterval-1])
+                        y = ((x-xData[xInterval-1])*(dy/dx) + yData[xInterval-1])
+                    else:  # Extrapolation is set to constant
+                        y = yData[0] if x < xmin else yData[-1]
+                return y
+            self.getValueOpt = getValueOpt
+        
+        elif self.__interpolation__ == 'akima':
+            coeffs = np.array(self.__akimaCoefficients__)
+            @jit(nopython=True)
+            def getValueOpt(x):
+                xInterval = np.searchsorted(xData, x)
+                # Interval found... interpolate... or extrapolate
+                if xmin <= x <= xmax:
+                    # Interpolate
+                    xInterval = xInterval if xInterval != 0 else 1
+                    a = coeffs[4*xInterval - 4:4*xInterval]
+                    y = (a[3]*x**3 + a[2]*x**2 + a[1]*x + a[0])
+                else:
+                    # Extrapolate
+                    if extrapolation == 0: # Extrapolation == zero
+                        y = 0 
+                    elif extrapolation == 1: # Extrapolation == natural
+                        a = coeffs[:4] if x < xmin else coeffs[-4:]
+                        y = (a[3]*x**3 + a[2]*x**2 + a[1]*x + a[0])
+                    else:  # Extrapolation is set to constant
+                        y = yData[0] if x < xmin else yData[-1]
+                return y
+            self.getValueOpt = getValueOpt
+        
+        elif self.__interpolation__ == 'polynomial':
+            coeffs = self.__polynomialCoefficients__
+            @jit(nopython=True)
+            def getValueOpt(x):
+                # Interpolate... or extrapolate
+                if xmin <= x <= xmax:
+                    # Interpolate
+                    y = 0
+                    for i in range(len(coeffs)):
+                        y += coeffs[i]*(x**i)
+                else:
+                    # Extrapolate
+                    if extrapolation == 0: # Extrapolation == zero
+                        y = 0 
+                    elif extrapolation == 1: # Extrapolation == natural
+                        y = 0
+                        for i in range(len(coeffs)):
+                            y += coeffs[i]*(x**i)
+                    else:  # Extrapolation is set to constant
+                        y = yData[0] if x < xmin else yData[-1]
+                return y
+            self.getValueOpt = getValueOpt
+        
+        elif self.__interpolation__ == 'shepard':
+            xData = self.source[:, 0:-1] # Support for N-Dimensions
+            len_yData = len(yData) # A little speed up
+            def getValueOpt(*args):
+                x = np.array([[float(x) for x in list(args)]])
+                numeratorSum = 0
+                denominatorSum = 0
+                for i in range(len_yData):
+                    sub = xData[i] - x
+                    distance = np.linalg.norm(sub)
+                    if distance == 0:
+                        numeratorSum = yData[i]
+                        denominatorSum = 1
+                        break
+                    else:
+                        weight = distance**(-3)
+                        numeratorSum = numeratorSum + yData[i]*weight
+                        denominatorSum = denominatorSum + weight
+                return numeratorSum/denominatorSum
+            self.getValueOpt = getValueOpt
+        
+        # Returns self
         return self
 
     def setDiscrete(self, lower=0, upper=10, samples=200,
@@ -489,9 +636,166 @@ class Function:
         """This method returns the value of the Function at the specified
         point in a limited but optimized manner. See Function.getValue for an
         implementation which allows more kinds of inputs.
-        It is optimized for Functions which interpolates lists of data and are
-        called repeatedly in such a way that the next call will want to know
-        the value of the function at a point near the last point used. 
+        This method optimizes the Function.getValue method by only
+        implementing function evaluations of single inputes, i.e., it is not
+        vectorized. Furthermore, it actually implements a different method
+        for each interpolation type, eliminating some if statements.
+        Finally, it uses Numba to compile the methods, which further optmizes
+        the implementation.
+        Currenly supports callables and spline, linear, akima, polynomial and
+        shepard interpolated Function objects.
+        The code below is here for documentation porpuses only. It is
+        overwritten for all instances by the Function.setGetValuteOpt2 method.
+
+        Parameters
+        ----------
+        args : scalar
+            Value where the Function is to be evaluated. If the Function is
+            1-D, only one argument is expected, which may be an int or a float
+            If the function is N-D, N arguments must be given, each one being
+            an int or a float.
+
+        Returns
+        -------
+        x : scalar
+        """
+        # Callables
+        if callable(self.source):
+            return self.source(*args)
+
+        # Interpolated Function
+        # Retrieve general info
+        xData = self.source[:, 0]
+        yData = self.source[:, 1]
+        xmin, xmax = xData[0], xData[-1]
+        if self.__extrapolation__ == 'zero':
+            extrapolation = 0 # Extrapolation is zero
+        elif self.__extrapolation__ == 'natural':
+            extrapolation = 1 # Extrapolation is natural
+        else:
+            extrapolation = 2 # Extrapolation is constant
+
+        # Interpolate this info for each interpolation type
+        # Spline
+        if self.__interpolation__ == 'spline':
+            x = args[0]
+            coeffs = self.__splineCoefficients__
+            xInterval = np.searchsorted(xData, x)
+            # Interval found... interpolate... or extrapolate
+            if xmin <= x <= xmax:
+                # Interpolate
+                xInterval = xInterval if xInterval != 0 else 1
+                a = coeffs[:, xInterval-1]
+                x = x - xData[xInterval-1]
+                y = (a[3]*x**3 + a[2]*x**2 + a[1]*x + a[0])
+            else:
+                # Extrapolate
+                if extrapolation == 0: # Extrapolation == zero
+                    y = 0 
+                elif extrapolation == 1: # Extrapolation == natural
+                    a = coeffs[:, 0] if x < xmin else coeffs[:, -1]
+                    x = x - xData[0] if x < xmin else x - xData[-2]
+                    y = (a[3]*x**3 + a[2]*x**2 + a[1]*x + a[0])
+                else:  # Extrapolation is set to constant
+                    y = yData[0] if x < xmin else yData[-1]
+            return y
+        # Linear
+        elif self.__interpolation__ == 'linear':
+            x = args[0]
+            xInterval = np.searchsorted(xData, x)
+            # Interval found... interpolate... or extrapolate
+            if xmin <= x <= xmax:
+                # Interpolate
+                dx = float(xData[xInterval]-xData[xInterval-1])
+                dy = float(yData[xInterval]-yData[xInterval-1])
+                y = ((x-xData[xInterval-1])*(dy/dx) + yData[xInterval-1])
+            else:
+                # Extrapolate
+                if extrapolation == 0: # Extrapolation == zero
+                    y = 0 
+                elif extrapolation == 1: # Extrapolation == natural
+                    xInterval = 1 if x < xmin else -1
+                    dx = float(xData[xInterval]-xData[xInterval-1])
+                    dy = float(yData[xInterval]-yData[xInterval-1])
+                    y = ((x-xData[xInterval-1])*(dy/dx) + yData[xInterval-1])
+                else:  # Extrapolation is set to constant
+                    y = yData[0] if x < xmin else yData[-1]
+            return y
+        # Akima
+        elif self.__interpolation__ == 'akima':
+            x = args[0]
+            coeffs = np.array(self.__akimaCoefficients__)
+            xInterval = np.searchsorted(xData, x)
+            # Interval found... interpolate... or extrapolate
+            if xmin <= x <= xmax:
+                # Interpolate
+                xInterval = xInterval if xInterval != 0 else 1
+                a = coeffs[4*xInterval - 4:4*xInterval]
+                y = (a[3]*x**3 + a[2]*x**2 + a[1]*x + a[0])
+            else:
+                # Extrapolate
+                if extrapolation == 0: # Extrapolation == zero
+                    y = 0 
+                elif extrapolation == 1: # Extrapolation == natural
+                    a = coeffs[:4] if x < xmin else coeffs[-4:]
+                    y = (a[3]*x**3 + a[2]*x**2 + a[1]*x + a[0])
+                else:  # Extrapolation is set to constant
+                    y = yData[0] if x < xmin else yData[-1]
+            return y
+        # Polynominal
+        elif self.__interpolation__ == 'polynomial':
+            x = args[0]
+            coeffs = self.__polynomialCoefficients__
+            # Interpolate... or extrapolate
+            if xmin <= x <= xmax:
+                # Interpolate
+                y = 0
+                for i in range(len(coeffs)):
+                    y += coeffs[i]*(x**i)
+            else:
+                # Extrapolate
+                if extrapolation == 0: # Extrapolation == zero
+                    y = 0 
+                elif extrapolation == 1: # Extrapolation == natural
+                    y = 0
+                    for i in range(len(coeffs)):
+                        y += coeffs[i]*(x**i)
+                else:  # Extrapolation is set to constant
+                    y = yData[0] if x < xmin else yData[-1]
+            return y
+        # Shepard
+        elif self.__interpolation__ == 'shepard':
+            xData = self.source[:, 0:-1] # Support for N-Dimensions
+            len_yData = len(yData) # A little speed up
+            x = np.array([[float(x) for x in list(args)]])
+            numeratorSum = 0
+            denominatorSum = 0
+            for i in range(len_yData):
+                sub = xData[i] - x
+                distance = np.linalg.norm(sub)
+                if distance == 0:
+                    numeratorSum = yData[i]
+                    denominatorSum = 1
+                    break
+                else:
+                    weight = distance**(-3)
+                    numeratorSum = numeratorSum + yData[i]*weight
+                    denominatorSum = denominatorSum + weight
+            return numeratorSum/denominatorSum
+
+    def getValueOpt2(self, *args):
+        """DEPRECATED!! - See Function.getValueOpt for new version.
+        This method returns the value of the Function at the specified
+        point in a limited but optimized manner. See Function.getValue for an
+        implementation which allows more kinds of inputs.
+        This method optimizes the Function.getValue method by only
+        implementing function evaluations of single inputes, i.e., it is not
+        vectorized. Furthermore, it actually implements a different method
+        for each interpolation type, eliminating some if statements.
+        Finally, it uses Numba to compile the methods, which further optmizes
+        the implementation.
+        The code below is here for documentation porpuses only. It is
+        overwritten for all instances by the Function.setGetValuteOpt2 method.
 
         Parameters
         ----------
@@ -928,7 +1232,7 @@ class Function:
                 # Create new Function object
                 return Function(source, inputs, outputs, interpolation)
             else:
-                return Function(lambda x: (self.getValue(x)/other(x)))
+                return Function(lambda x: (self.getValueOpt2(x)/other(x)))
         # If other is Float except...
         except:
             if isinstance(other, (float, int)):
@@ -946,10 +1250,10 @@ class Function:
                     # Create new Function object
                     return Function(source, inputs, outputs, interpolation)
                 else:
-                    return Function(lambda x: (self.getValue(x)/other))
+                    return Function(lambda x: (self.getValueOpt2(x)/other))
             # Or if it is just a callable
             elif callable(other):
-                return Function(lambda x: (self.getValue(x)/other(x)))
+                return Function(lambda x: (self.getValueOpt2(x)/other(x)))
 
     def __rtruediv__(self, other):
         """Devides 'other' by a Function object and returns a new Function
@@ -981,10 +1285,10 @@ class Function:
                 # Create new Function object
                 return Function(source, inputs, outputs, interpolation)
             else:
-                return Function(lambda x: (other/self.getValue(x)))
+                return Function(lambda x: (other/self.getValueOpt2(x)))
         # Or if it is just a callable
         elif callable(other):
-            return Function(lambda x: (other(x)/self.getValue(x)))
+            return Function(lambda x: (other(x)/self.getValueOpt2(x)))
 
     def __pow__(self, other):
         """Raises a Function object to the power of 'other' and
@@ -1028,7 +1332,7 @@ class Function:
                 # Create new Function object
                 return Function(source, inputs, outputs, interpolation)
             else:
-                return Function(lambda x: (self.getValue(x)**other(x)))
+                return Function(lambda x: (self.getValueOpt2(x)**other(x)))
         # If other is Float except...
         except:
             if isinstance(other, (float, int)):
@@ -1622,23 +1926,22 @@ class Environment:
         self.temperatureSL = 288.15 # K
         self.speedOfSoundSL = 340.3 # m/s
         self.viscositySL = 1.79 * 10**(-5) # kg/m-s
-        self.pressure = Function(lambda z: (self.pressureSL*np.exp(-0.118*(z/1000)
+        self.pressure = Function(jit(lambda z: ((1.0132 * 10**5)*np.exp(-0.118*(z/1000)
                                             - (0.0015*(z/1000)**2)/(1-0.018*(z/1000) + 
-                                            0.0011*(z/1000)**2))),
+                                            0.0011*(z/1000)**2))), nopython=True),
                                  'Altitude (m)', 'Pressure (Pa)')
-        self.temperature = Function(lambda z: (216.65 + 2*np.log(1 + np.exp(35.75 - 3.25*(z/1000)) +
-                                               np.exp(-3 + 0.0003*(z/1000)**3))),
+        self.temperature = Function(jit(lambda z: (216.65 + 2*np.log(1 + np.exp(35.75 - 3.25*(z/1000)) +
+                                               np.exp(-3 + 0.0003*(z/1000)**3))), nopython=True),
                                     'Altitude (m)', 'Temperature (K)')
-        self.speedOfSound = Function(lambda z: (401.856*(216.65 + 2*np.log(1 + np.exp(35.75 - 3.25*(z/1000)) +
-                                                       np.exp(-3 + 0.0003*(z/1000)**3))))**0.5,
+        self.speedOfSound = Function(jit(lambda z: (401.856*(216.65 + 2*np.log(1 + np.exp(35.75 - 3.25*(z/1000)) +
+                                                       np.exp(-3 + 0.0003*(z/1000)**3))))**0.5, nopython=True),
                                      'Altitude (m)', 'Speed of Sound (m/s)')
-        self.density = Function(lambda z:(self.pressureSL*np.exp(-0.118*(z/1000) -
+        self.density = Function(jit(lambda z:((1.0132 * 10**5)*np.exp(-0.118*(z/1000) -
                                           (0.0015*(z/1000)**2)/(1-0.018*(z/1000) +
                                           0.0011*(z/1000)**2))) /
                                          (287.04*(216.65 + 2*np.log(1 + np.exp(35.75 - 3.25*(z/1000)) +
-                                         np.exp(-3 + 0.0003*(z/1000)**3)))),
+                                         np.exp(-3 + 0.0003*(z/1000)**3)))), nopython=True),
                                 'Altitude (m)', 'Density (kg/m3)')
-        self.density.setDiscrete(0, 3000, 100)
 
         # Define Spacetime Location
         if location is None:
@@ -2337,7 +2640,7 @@ class Motor:
             self.evaluateExhaustVelocity()
 
         # Create mass dot Function
-        self.massDot = -self.thrust/self.exhaustVelocity
+        self.massDot = self.thrust/(-self.exhaustVelocity)
         self.massDot.setOutputs('Mass Dot (kg/s)')
         self.massDot.setExtrapolation('zero')
 
@@ -2377,7 +2680,7 @@ class Motor:
         # Create Function
         self.mass = Function(np.concatenate(([T], [y])).
                              transpose(), 'Time (s)',
-                             'Propellant Total Mass (kg)', 'spline',
+                             'Propellant Total Mass (kg)', self.interpolate,
                              'constant')
 
         # Return Mass Function
@@ -2429,11 +2732,11 @@ class Motor:
         self.grainInnerRadius = Function(np.concatenate(([t], [sol[:, 0]])).
                                          transpose().tolist(), 'Time (s)',
                                          'Grain Inner Radius (m)',
-                                         'spline', 'constant')
+                                         self.interpolate, 'constant')
         self.grainHeight = Function(np.concatenate(([t], [sol[:, 1]])).
                                     transpose().tolist(),
                                     'Time (s)', 'Grain Height (m)',
-                                    'spline', 'constant')
+                                    self.interpolate, 'constant')
 
         # Create functions describing burn rate, Kn and burn area
         # Burn Area
@@ -2448,7 +2751,7 @@ class Motor:
                                     [self.burnArea.source[:, 1]/throatArea]
                                     )).transpose()).tolist()
         self.Kn = Function(KnSource, 'Grain Inner Radius (m)',
-                           'Kn (m2/m2)', 'linear', 'constant')
+                           'Kn (m2/m2)', self.interpolate, 'constant')
         # Burn Rate
         self.burnRate = (-1)*self.massDot/(self.burnArea*self.grainDensity)
         self.burnRate.setOutputs('Burn Rate (m/s)')
@@ -3828,7 +4131,7 @@ class Flight:
                     break
 
                 # Convert state into pressure signal
-                self.p = self.env.pressure(self.y[2])
+                self.p = self.env.pressure.getValueOpt(self.y[2])
 
                 # Add noise to pressure signal
                 alpha = 0.5
@@ -4077,7 +4380,7 @@ class Flight:
                 if -1 * compStreamVzBn < 1:
                     compAttackAngle = np.arccos(-compStreamVzBn)
                     # Component lift force magnitude
-                    compLift = (0.5*self.env.density(z)*(compStreamSpeed**2)*
+                    compLift = (0.5*rho*(compStreamSpeed**2)*
                                 self.rocket.area*clalpha*compAttackAngle)
                     # Component lift force components
                     liftDirNorm = (compStreamVxB**2+compStreamVyB**2)**0.5
@@ -4195,7 +4498,7 @@ class Flight:
         CdS = self.parachuteCdS
         ka = 1
         R = 1.5
-        rho = self.env.density(u[2])
+        rho = self.env.density.getValueOpt(u[2])
         to = 1.2
         ma = ka*rho*(4/3)*np.pi*R**3
         mp = self.rocket.mass
