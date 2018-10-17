@@ -24,8 +24,8 @@ The following is needed in order to run RocketPy:
 The first 4 prerequisites come with Anaconda, but Scipy might need updating. The nedCDF4 package can be installed if there is interest in importing weather data from netCDF files. To update Scipy and install netCDF4 using Conda, the following code is used:
 
 ```
-$ conda install scipy>=1.0
-$ conda install -c anaconda netcdf4>=1.4
+$ conda install "scipy>=1.0"
+$ conda install -c anaconda "netcdf4>=1.4"
 ```
 
 Alternatively, if you only have Python 3.X installed, the four packages needed can be installed using pip:
