@@ -31,10 +31,10 @@ $ conda install -c anaconda netcdf4>=1.4
 Alternatively, if you only have Python 3.X installed, the four packages needed can be installed using pip:
 
 ```
-$ pip install numpy>=1.0
-$ pip install scipy>=1.0
-$ pip install matplotlib>=3.0
-$ pip install netCDF4>=1.4
+$ pip install "numpy>=1.0"
+$ pip install "scipy>=1.0"
+$ pip install "matplotlib>=3.0"
+$ pip install "netCDF4>=1.4"
 ```
 
 Although [Jupyter Notebooks](http://jupyter.org/) are by no means required to run RocketPy, they are strongly recommend. They already come with Anaconda builds, but can also be installed separately using pip:
