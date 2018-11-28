@@ -4059,8 +4059,10 @@ class Flight:
     def __init__(self, rocket, environment,
                  inclination=80, heading=90,
                  terminateOnApogee=False,
-                 maxTime=600, maxStepSize=0.01,
-                 tol=1e-6, initialSolution=None):
+                 maxTime=600,
+                 maxStepSize=1e-2, minStepSize=1e-6,
+                 rtol=1e-6, atol=1e-6,
+                 initialSolution=None):
         """Run a trajectory simulation.
 
         Parameters
@@ -4187,14 +4189,24 @@ class Flight:
         
         # Simulate
         self.simulating = True
+        self.solver = integrate.LSODA(self.derivative,
+                                      t0=self.t, y0=self.y,
+                                      t_bound=maxTime,
+                                      min_step=minStepSize, max_step=maxStepSize,
+                                      rtol=rtol, atol=atol)
+        self.nfevs = []
+        self.dts = []
+        o = 0
+
         while self.simulating:
             # Determine macro discretization points based on active sensors
+            # Each point has the following structure: [time stamp, [objects with trigger function]]
             points = [[self.t, []], [self.t + self.lag, []], [self.maxTime, []]]
             for pc in self.parachutes:
                 points += [[i, [pc]] for i in np.arange(self.t, self.maxTime,
                                                      1/pc.samplingRate)]
             
-            # Sorts points and merge repeated ones
+            # Sorts points and merge repeated ones creating a macro discretization list
             points.sort(key=lambda x: x[0])
             macroDiscretizationPoints = [points[0]]
             for i in range(1, len(points)):
@@ -4203,11 +4215,16 @@ class Flight:
                     # Combine points
                     macroDiscretizationPoints[-1][1] += points[i][1]
                 else:
-                    # Add point to macrodiscretization
+                    # Add point to macro discretization
                     macroDiscretizationPoints += [points[i]]
 
             # Add third and forth line to macroDiscretization with
             # derivative to be used and parachute CdS if applicable
+            # Each point has the following structure:
+            #     [time stamp,
+            #      [objects with trigger function],
+            #      derivative to be used,
+            #      parachute CdS to be used]
             for point in macroDiscretizationPoints:
                 if point[0] < self.t + self.lag:
                     point += [self.derivative, self.parachuteCdS]
@@ -4216,49 +4233,62 @@ class Flight:
 
             # Iterate over each macro discretization point
             i = 0
-            while i < len(macroDiscretizationPoints) - 1:
+            self.iterating = True
+            while i < len(macroDiscretizationPoints) - 1 and self.iterating:
                 # Update time, state, phase parachute CdS and derivative
                 self.parachuteCdS = macroDiscretizationPoints[i][3]
-                self.derivative = macroDiscretizationPoints[i][2]
-                timeSpan = [self.t, macroDiscretizationPoints[i+1][0]]
+                if self.derivative != macroDiscretizationPoints[i][2]:
+                    self.derivative = macroDiscretizationPoints[i][2]
+                    self.solver = integrate.LSODA(self.derivative,
+                                      t0=self.t, y0=self.y,
+                                      t_bound=maxTime,
+                                      min_step=minStepSize, max_step=maxStepSize,
+                                      rtol=rtol, atol=atol)
+                    o = 0
+                self.solver.t_bound = macroDiscretizationPoints[i+1][0]
+                self.solver._lsoda_solver._integrator.rwork[0] = self.solver.t_bound
+                self.solver._lsoda_solver._integrator.call_args[4] = self.solver._lsoda_solver._integrator.rwork
+                self.solver.status = 'running'
 
-                # Iterate one micro iteration
-                self.solver = integrate.solve_ivp(self.derivative, timeSpan,
-                                                  self.y, method='LSODA',
-                                                  events=[self.impactEvent,
-                                                          self.apogeeEvent],
-                                                  rtol=tol, atol=tol,
-                                                  dense_output=True)
+                # Performe micro iterations
+                while self.solver.status != 'finished':
+                    self.solver.step()
+                    self.solution += [[self.solver.t, *self.solver.y]]
 
-                # Save micro iteration result
-                self.solution += [[self.solver.t[j], *self.solver.y[:, j]] for j in range(1, len(self.solver.t))]
-               
-                # Update time and state
-                self.t = self.solver.t[-1]
-                self.y = self.solver.y[:, -1]
+                    self.nfevs.append(self.solver.nfev - o)
+                    o = self.solver.nfev
+                    self.dts.append(self.solver.step_size)
+                
+                    # Update time and state
+                    self.t = self.solver.t
+                    self.y = self.solver.y
 
-                # Check for apogee event
-                if len(self.solver.t_events[1]) > 0:
-                    # Apogee reported
-                    self.apogeeState = self.solver.sol(self.solver.t_events[1][0])
-                    self.apogeeTime = self.solver.t_events[1][0]
-                    self.apogeeX = self.apogeeState[0]
-                    self.apogeeY = self.apogeeState[1]
-                    self.apogee = self.apogeeState[2]
-                    if self.solver.status == 1:
-                        self.tFinal = self.solver.t_events[1][0]
+                    # Check for apogee event
+                    if self.apogeeState is 0 and self.y[5] < 0:
+                        # Apogee reported
+                        self.apogeeState = self.y
+                        self.apogeeTime = self.t
+                        self.apogeeX = self.apogeeState[0]
+                        self.apogeeY = self.apogeeState[1]
+                        self.apogee = self.apogeeState[2]
+                        if self.terminateOnApogee:
+                            self.tFinal = self.solver.t
+                            self.simulating = False
+                            break
+                    
+                    # Check for impact event
+                    if self.y[2] < 0:
+                        # Impact reported
+                        self.impactState = self.y
+                        self.xImpact = self.impactState[0]
+                        self.yImpact = self.impactState[1]
+                        self.zImpact = self.impactState[2]
+                        self.impactVelocity = self.impactState[5]
+                        self.tFinal = self.t
+                        # Force the end of the simulation
                         self.simulating = False
-                # Check for impact event
-                if len(self.solver.t_events[0]) > 0:
-                    # Impact reported
-                    self.impactState = self.solver.sol(self.solver.t_events[0][0])
-                    self.xImpact = self.impactState[0]
-                    self.yImpact = self.impactState[1]
-                    self.zImpact = self.impactState[2]
-                    self.impactVelocity = self.impactState[5]
-                    self.tFinal = self.solver.t_events[0][0]
-                    self.simulating = False
-                    break
+                        self.iterating = False
+                        break
 
                 # Convert state into pressure signal
                 self.p = self.env.pressure.getValueOpt(self.y[2])
@@ -4280,7 +4310,7 @@ class Flight:
                         self.lag = pc.lag
                         self.parachutes.remove(pc)
                         # Time to re-discretize time
-                        i = len(macroDiscretizationPoints)
+                        self.iterating = False
 
                 # Feed counter
                 i += 1
@@ -5056,3 +5086,64 @@ class Flight:
                 plt.pause(1/(fps*speed))
             except:
                 time.sleep(1/(fps*speed))
+
+if __name__ == '__main__':
+    Env = Environment(railLength=5.2,
+              gravity=9.8,
+              windData="data/weather/SpacePort.nc",
+              location=(32.990254, -106.974998),
+              date=(2016, 6, 20, 18))
+
+
+    Pro75M1670 = Motor(thrustSource="data/motors/Cesaroni_M1670.eng",
+                burnOut=3.9,
+                grainNumber=5,
+                grainSeparation=5/1000,
+                grainDensity=1815,
+                grainOuterRadius=33/1000,
+                grainInitialInnerRadius=15/1000,
+                grainInitialHeight=120/1000,
+                nozzleRadius=33/1000,
+                throatRadius=11/1000,
+                interpolationMethod='linear')
+
+    def drogueTrigger(p, y):
+        return False
+        return True if y[5] < 0 else False
+
+    def mainTrigger(p, y):
+        return False
+        return True if y[5] < 0 and y[2] < 500 else False
+
+
+    Calisto = Rocket(motor=Pro75M1670,
+                radius=127/2000,
+                mass=19.197-2.956,
+                inertiaI=6.60,
+                inertiaZ=0.0351,
+                distanceRocketNozzle=1.255,
+                distanceRocketPropellant=0.85704,
+                powerOffDrag='data/calisto/powerOffDragCurve.csv',
+                powerOnDrag='data/calisto/powerOnDragCurve.csv')
+
+    Calisto.addNose(length=0.55829, kind="vonKarman", distanceToCM=0.71971)
+
+    Calisto.addFins(4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956)
+
+    Calisto.addTail(topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656)
+
+    Calisto.addParachute('Drogue',
+                        CdS=1.0,
+                        trigger=drogueTrigger, 
+                        samplingRate=100,
+                        lag=1.5)
+
+    Calisto.addParachute('Main',
+                        CdS=10.0,
+                        trigger=mainTrigger, 
+                        samplingRate=100,
+                        lag=1.5)
+                    
+    F = Flight(rocket=Calisto, environment=Env, inclination=85, heading=0, maxStepSize=0.1, maxTime=600)
+
+    F.info()   
