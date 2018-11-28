@@ -19,21 +19,24 @@ The following is needed in order to run RocketPy:
  - Numpy >= 1.0
  - Scipy >= 1.0
  - Matplotlib >= 3.0
+ - Numba
  - netCDF4 >= 1.4 (optional, requires Cython)
  
-The first 4 prerequisites come with Anaconda, but Scipy might need updating. The nedCDF4 package can be installed if there is interest in importing weather data from netCDF files. To update Scipy and install netCDF4 using Conda, the following code is used:
+The first 4 prerequisites come with Anaconda, but Scipy might need updating. Numba must be installed seperately. The nedCDF4 package can be installed if there is interest in importing weather data from netCDF files. To update Scipy and install Numba and netCDF4 using Conda, the following code is used:
 
 ```
 $ conda install "scipy>=1.0"
+$ conda install numba
 $ conda install -c anaconda "netcdf4>=1.4"
 ```
 
-Alternatively, if you only have Python 3.X installed, the four packages needed can be installed using pip:
+Alternatively, if you only have Python 3.X installed, the packages needed can be installed using pip:
 
 ```
 $ pip install "numpy>=1.0"
 $ pip install "scipy>=1.0"
 $ pip install "matplotlib>=3.0"
+$ pip install numba
 $ pip install "netCDF4>=1.4"
 ```
 
@@ -242,6 +245,7 @@ TestFlight.allInfo()
 * [Numpy](http://www.numpy.org/)
 * [Scipy](https://www.scipy.org/)
 * [Matplotlib](https://matplotlib.org/)
+* [Numba](http://numba.pydata.org/)
 * [netCDF4](https://github.com/Unidata/netcdf4-python)
 
 ## Contributing
