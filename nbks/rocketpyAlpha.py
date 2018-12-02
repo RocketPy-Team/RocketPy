@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 from inspect import signature, getsourcelines
 import bisect
-from numba import jit
+
 try:
     import netCDF4
 except ImportError:
@@ -291,7 +291,7 @@ class Function:
         # Crete method to interpolate this info for each interpolation type
         if self.__interpolation__ == 'spline':
             coeffs = self.__splineCoefficients__
-            @jit(nopython=True)
+            # @jit(nopython=True)
             def getValueOpt(x):
                 xInterval = np.searchsorted(xData, x)
                 # Interval found... interpolate... or extrapolate
@@ -315,7 +315,7 @@ class Function:
             self.getValueOpt = getValueOpt
         
         elif self.__interpolation__ == 'linear':
-            @jit(nopython=True)
+            # @jit(nopython=True)
             def getValueOpt(x):
                 xInterval = np.searchsorted(xData, x)
                 # Interval found... interpolate... or extrapolate
@@ -340,7 +340,7 @@ class Function:
         
         elif self.__interpolation__ == 'akima':
             coeffs = np.array(self.__akimaCoefficients__)
-            @jit(nopython=True)
+            # @jit(nopython=True)
             def getValueOpt(x):
                 xInterval = np.searchsorted(xData, x)
                 # Interval found... interpolate... or extrapolate
@@ -363,7 +363,7 @@ class Function:
         
         elif self.__interpolation__ == 'polynomial':
             coeffs = self.__polynomialCoefficients__
-            @jit(nopython=True)
+            # @jit(nopython=True)
             def getValueOpt(x):
                 # Interpolate... or extrapolate
                 if xmin <= x <= xmax:
@@ -649,15 +649,13 @@ class Function:
         point in a limited but optimized manner. See Function.getValue for an
         implementation which allows more kinds of inputs.
         This method optimizes the Function.getValue method by only
-        implementing function evaluations of single inputes, i.e., it is not
+        implementing function evaluations of single inputs, i.e., it is not
         vectorized. Furthermore, it actually implements a different method
         for each interpolation type, eliminating some if statements.
-        Finally, it uses Numba to compile the methods, which further optmizes
-        the implementation.
-        Currenly supports callables and spline, linear, akima, polynomial and
+        Currently supports callables and spline, linear, akima, polynomial and
         shepard interpolated Function objects.
-        The code below is here for documentation porpuses only. It is
-        overwritten for all instances by the Function.setGetValuteOpt2 method.
+        The code below is here for documentation proposes only. It is
+        overwritten for all instances by the Function.setGetValuteOpt method.
 
         Parameters
         ----------
@@ -1914,8 +1912,9 @@ class Environment:
     """Keeps all environment information stored, such as wind and temperature
     conditions, as well as gravity and rail length.
     
-    Class attributes:
-
+    Class attributes
+    ----------------
+    
         Gravity and Rail Length:
         Environment.rl : float
             Launch rail length in meters.
@@ -2056,21 +2055,21 @@ class Environment:
         self.temperatureSL = 288.15 # K
         self.speedOfSoundSL = 340.3 # m/s
         self.viscositySL = 1.79 * 10**(-5) # kg/m-s
-        self.pressure = Function(jit(lambda z: ((1.0132 * 10**5)*np.exp(-0.118*(z/1000)
+        self.pressure = Function(lambda z: ((1.0132 * 10**5)*np.exp(-0.118*(z/1000)
                                             - (0.0015*(z/1000)**2)/(1-0.018*(z/1000) + 
-                                            0.0011*(z/1000)**2))), nopython=True),
+                                            0.0011*(z/1000)**2))),
                                  'Altitude (m)', 'Pressure (Pa)')
-        self.temperature = Function(jit(lambda z: (216.65 + 2*np.log(1 + np.exp(35.75 - 3.25*(z/1000)) +
-                                               np.exp(-3 + 0.0003*(z/1000)**3))), nopython=True),
+        self.temperature = Function(lambda z: (216.65 + 2*np.log(1 + np.exp(35.75 - 3.25*(z/1000)) +
+                                               np.exp(-3 + 0.0003*(z/1000)**3))),
                                     'Altitude (m)', 'Temperature (K)')
-        self.speedOfSound = Function(jit(lambda z: (401.856*(216.65 + 2*np.log(1 + np.exp(35.75 - 3.25*(z/1000)) +
-                                                       np.exp(-3 + 0.0003*(z/1000)**3))))**0.5, nopython=True),
+        self.speedOfSound = Function(lambda z: (401.856*(216.65 + 2*np.log(1 + np.exp(35.75 - 3.25*(z/1000)) +
+                                                       np.exp(-3 + 0.0003*(z/1000)**3))))**0.5,
                                      'Altitude (m)', 'Speed of Sound (m/s)')
-        self.density = Function(jit(lambda z:((1.0132 * 10**5)*np.exp(-0.118*(z/1000) -
+        self.density = Function(lambda z:((1.0132 * 10**5)*np.exp(-0.118*(z/1000) -
                                           (0.0015*(z/1000)**2)/(1-0.018*(z/1000) +
                                           0.0011*(z/1000)**2))) /
                                          (287.04*(216.65 + 2*np.log(1 + np.exp(35.75 - 3.25*(z/1000)) +
-                                         np.exp(-3 + 0.0003*(z/1000)**3)))), nopython=True),
+                                         np.exp(-3 + 0.0003*(z/1000)**3)))),
                                 'Altitude (m)', 'Density (kg/m3)')
 
         # Define Spacetime Location
@@ -2419,8 +2418,9 @@ class Motor:
     """Class to specify characteriscts and useful operations for solid
     motors.
     
-    Class attributes:
-
+    Class attributes
+    ----------------
+    
         Geometrical attributes:
         Motor.nozzleRadius : float
             Radius of motor nozzle outlet in meters.
@@ -3130,10 +3130,11 @@ class Motor:
 
 
 class Rocket:
+    
     """Keeps all rocket and parachute information.
 
-    Class attributes:
-
+    Class attributes
+    ----------------
         Geometrical attributes:
         Rocket.radius : float
             Rocket's largest radius in meters.
@@ -3576,7 +3577,7 @@ class Rocket:
         # Return self
         return self
 
-    def addParachute(self, name, CdS, trigger, samplingRate=100, lag=0):
+    def addParachute(self, name, CdS, trigger, samplingRate=100, lag=0, noise=(0, 0, 0)):
         """Create a new parachute, storing its parameters such as
         opening delay, drag coefficients and trigger function.
 
@@ -3610,12 +3611,18 @@ class Rocket:
             parachute is fully opened. During this time, the simulation will
             consider the rocket as flying without a parachute. Default value
             is 0. Must be given in seconds.
-
+        noise : tupple, list, optional
+            List in the format (mean, standard deviation, time-correlation).
+            The values are used to add noise to the pressure signal which is
+            passed to the trigger function. Default value is (0, 0, 0).
+        
         Returns
         -------
         parachute : Parachute Object
-            Parachute object containing trigger, samplingRate, lag, CdS
-            and name as attributes.
+            Parachute object containing trigger, samplingRate, lag, CdS, noise
+            and name as attributes. Furthermore, it stores cleanPressureSignal,
+            noiseSignal and noisyPressureSignal which is filled in during
+            Flight simulation.
         """
         # Create an object to serve as the parachute
         parachute = type('', (), {})()
@@ -3626,6 +3633,14 @@ class Rocket:
         parachute.lag = lag
         parachute.CdS = CdS
         parachute.name = name
+        parachute.noiseBias = noise[0]
+        parachute.noiseDeviation = noise[1]
+        parachute.noiseCorr = (noise[2], (1-noise[2]**2)**0.5)
+        alpha, beta = parachute.noiseCorr
+        parachute.noiseFunction = lambda: alpha*parachute.noiseSignal[-1][1] + beta*np.random.normal(noise[0], noise[1])
+        parachute.cleanPressureSignal = []
+        parachute.noisyPressureSignal = []
+        parachute.noiseSignal = [[-1e-6, np.random.normal(noise[0], noise[1])]]
 
         # Add parachute to list of parachutes
         self.parachutes.append(parachute)
@@ -3869,7 +3884,8 @@ class Rocket:
 class Flight:
     """Keeps all flight information and has a method to simulate flight.
     
-    Class attributes:
+    Class attributes
+    ----------------
         Other classes:
         Flight.env : Environment
             Environment object describing rail length, gravity and
@@ -3882,7 +3898,7 @@ class Flight:
         Flight.maxTime : int, float
             Maximum simulation time allowed. Refers to physical time
             being simulated, not time taken to run simulation.
-        Flight.maxStepSize : int, float
+        Flight.maxTimeStep : int, float
             Maximum step size to use during integration in seconds.
         Flight.terminateOnApogee : bool
             Wheater to terminate simulation when rocket reaches apogee.
@@ -4060,8 +4076,9 @@ class Flight:
                  inclination=80, heading=90,
                  terminateOnApogee=False,
                  maxTime=600,
-                 maxStepSize=1e-2, minStepSize=1e-6,
-                 rtol=1e-6, atol=1e-6,
+                 maxTimeStep=np.inf, minTimeStep=0,
+                 rtol=1e-6, atol=6*[1e-3] + 4*[1e-6] + 3*[1e-3],
+                 timeOvershoot=False,
                  initialSolution=None):
         """Run a trajectory simulation.
 
@@ -4084,32 +4101,81 @@ class Flight:
         maxTime : int, float, optional
             Maximum time in which to simulate trajectory in seconds.
             Default is 600.
-        maxStepSize : int, float, optional
-            Maximum step size to use during integration in seconds.
+        maxTimeStep : int, float, optional
+            Maximum time step to use during integration in seconds.
             Default is 0.01.
-        tol : int, float, optional
-            Relative and absolute error tolerance to use in the integration
-            scheme. Default is 1e-8.
+        minTimeStep : int, float, optional
+            Minimum time step to use during integration in seconds.
+            Default is 0.01.
+        rtol : float, optional
+            Maximum relative error tolerance to be tolerated in the
+            integration scheme. Default is 1e-6.
+        atol : float, optional
+            Maximum absolute error tolerance to be tolerated in the
+            integration scheme. Default is 1e-6.
+        timeOvershoot : bool, optional
+            If True, decouples ODE time step from parachute trigger functions
+            sampling rate. The time steps can overshoot the necessary trigger
+            function evaluation points and then interpolation is used to
+            calculate them and feed the triggers. Can greatly improve run
+            time in some cases. Default is False.
         initialSolution : array, optional
-            Initial solution array to be used. If none, start from 0. Default
-            is none.
+            Initial solution array to be used. Format is
+            initialSolution = [self.tInitial,
+                                xInit, yInit, zInit,
+                                vxInit, vyInit, vzInit,
+                                e0Init, e1Init, e2Init, e3Init,
+                                w1Init, w2Init, w3Init].
+            If None, the initial solution will start with all null values,
+            except for the euler parameters which will be calculated based
+            on given values of inclination and heading. Default is None.
 
         Returns
         -------
         None
         """
-        # Save rocket, parachutes and environment
+        # Fetch helper classes and functions
+        FlightPhases = self.FlightPhases
+        TimeNodes = self.TimeNodes
+        timeIterator = self.timeIterator
+        
+        # Save rocket, parachutes, environment, maximum simulation time
+        # and termination events
         self.env = environment
         self.rocket = rocket
         self.parachutes = self.rocket.parachutes[:]
-
-        # Register maximum simulation time and flightePhases
+        self.inclination = inclination
+        self.heading = heading
         self.maxTime = maxTime
-        self.maxStepSize = maxStepSize
+        self.maxTimeStep = maxTimeStep
+        self.minTimeStep = minTimeStep
+        self.rtol = rtol
+        self.atol = atol
+        self.initialSolution = initialSolution
+        self.timeOvershoot = timeOvershoot
         self.terminateOnApogee = terminateOnApogee
 
-        # Initialize solution
-        self.initialSolution = initialSolution
+
+        # Flight initialization
+        # Initialize solution monitors
+        self.outOfRailTime = 0
+        self.outOfRailState = 0
+        self.outOfRailVelocity = 0
+        self.apogeeState = 0
+        self.apogeeTime = 0
+        self.apogeeX = 0
+        self.apogeeY = 0
+        self.apogee = 0
+        self.xImpact = 0
+        self.yImpact = 0
+        self.impactVelocity = 0
+        self.impactState = 0
+        self.parachuteEvents = []
+        # Intialize solver monitors
+        self.functionEvaluations = []
+        self.functionEvaluationsPerTimeStep = []
+        self.timeSteps = []
+        # Initialize solution state
         self.solution = []
         if self.initialSolution is None:
             # Define launch heading and angle - initial attitude
@@ -4127,204 +4193,323 @@ class Flight:
             e2Init = np.sin(launchAngle/2) * rotAxis[1]
             e3Init = 0
             self.initialSolution = [self.tInitial,
-                                  xInit, yInit, zInit,
-                                  vxInit, vyInit, vzInit,
-                                  e0Init, e1Init, e2Init, e3Init,
-                                  w1Init, w2Init, w3Init]
-        # Append initial solution
+                                    xInit, yInit, zInit,
+                                    vxInit, vyInit, vzInit,
+                                    e0Init, e1Init, e2Init, e3Init,
+                                    w1Init, w2Init, w3Init]
         self.solution.append(self.initialSolution)
+        self.t = self.solution[-1][0]
+        self.y = self.solution[-1][1:]
         
-        # Initialize solution monitors
-        self.outOfRailTime = 0
-        self.outOfRailState = 0
-        self.outOfRailVelocity = 0
-        self.apogeeState = 0
-        self.apogeeTime = 0
-        self.apogeeX = 0
-        self.apogeeY = 0
-        self.apogee = 0
-        self.xImpact = 0
-        self.yImpact = 0
-        self.impactVelocity = 0
-        self.flightPhases = [[0, self.__uDotRail, 0, 0]]
+        # Create knonw flight phases
+        self.flightPhases = FlightPhases()
+        self.flightPhases.addPhase(self.tInitial, self.uDotRail, clear=False)
+        self.flightPhases.addPhase(self.maxTime)
 
-        # Ignition to out of rail flight phase
-        self.solver = integrate.ode(self.__uDotRail)
-        self.solver.set_integrator('vode', method='adams')
-        self.solver.set_initial_value(self.solution[0][1:], self.tInitial)
-        while self.solver.successful() and (self.solver.y[0]**2 +
-                                            self.solver.y[1]**2 +
-                                            self.solver.y[2]**2 <=
-                                            self.env.rL**2 and
-                                            self.solver.t < self.maxTime):
-            self.solver.integrate(self.solver.t + self.maxStepSize)
-            self.solution.append([self.solver.t, *self.solver.y])
-        self.outOfRailTime = self.solver.t
-        self.outOfRailState = self.solver.y
-        self.outOfRailVelocity = (self.solver.y[3]**2 +
-                                  self.solver.y[4]**2 +
-                                  self.solver.y[5]**2)**(0.5)
-
-        # Freeflight and event phases
-        # Initialize macro time counter, system state and flight phase
-        self.t = self.solver.t
-        self.y = self.solver.y
-        self.noise = np.random.normal(0, 8.3)
-        self.noiseFunction = [[0, 0]]
-        self.pFunction = [[0, 0]]
-        self.lag = self.t
-        self.parachuteCdS = 0
-        self.newParachuteCdS = 0
-        self.derivative = self.__uDot
-        self.newDerivative = self.__uDot
-        self.flightPhases += [[self.t, self.__uDot, 0, 0]]
-
-        # Initialize event monitors
-        self.impactEvent = lambda t, y: y[2]
-        self.impactEvent.terminal = True
-        self.impactEvent.direction = -1
-        self.apogeeEvent = lambda t,y: y[5]
-        self.apogeeEvent.terminal = self.terminateOnApogee
-        self.apogeeEvent.direction = -1
-        
-        # Simulate
-        self.simulating = True
-        self.solver = integrate.LSODA(self.derivative,
-                                      t0=self.t, y0=self.y,
-                                      t_bound=maxTime,
-                                      min_step=minStepSize, max_step=maxStepSize,
-                                      rtol=rtol, atol=atol)
-        self.nfevs = []
-        self.dts = []
-        o = 0
-
-        while self.simulating:
-            # Determine macro discretization points based on active sensors
-            # Each point has the following structure: [time stamp, [objects with trigger function]]
-            points = [[self.t, []], [self.t + self.lag, []], [self.maxTime, []]]
-            for pc in self.parachutes:
-                points += [[i, [pc]] for i in np.arange(self.t, self.maxTime,
-                                                     1/pc.samplingRate)]
+        # Simulate fligh
+        for phase_index, phase in timeIterator(self.flightPhases):
+            # print('\nCurrent Flight Phase List')
+            # print(self.flightPhases)
+            # print('\n\tCurrent Flight Phase')
+            # print('\tIndex: ', phase_index, ' | Phase: ', phase)
+            # Determine maximum time for this flight phase
+            phase.timeBound = self.flightPhases[phase_index + 1].t
             
-            # Sorts points and merge repeated ones creating a macro discretization list
-            points.sort(key=lambda x: x[0])
-            macroDiscretizationPoints = [points[0]]
-            for i in range(1, len(points)):
-                # Check if current point is already in discretization
-                if points[i][0] - macroDiscretizationPoints[-1][0] < 1e-6:
-                    # Combine points
-                    macroDiscretizationPoints[-1][1] += points[i][1]
-                else:
-                    # Add point to macro discretization
-                    macroDiscretizationPoints += [points[i]]
+            # Evaluate callbacks
+            for callback in phase.callbacks:
+                callback(self)
 
-            # Add third and forth line to macroDiscretization with
-            # derivative to be used and parachute CdS if applicable
-            # Each point has the following structure:
-            #     [time stamp,
-            #      [objects with trigger function],
-            #      derivative to be used,
-            #      parachute CdS to be used]
-            for point in macroDiscretizationPoints:
-                if point[0] < self.t + self.lag:
-                    point += [self.derivative, self.parachuteCdS]
-                else:
-                    point += [self.newDerivative, self.newParachuteCdS]
+            # Create solver for this flight phase
+            self.functionEvaluations.append(0)
+            phase.solver = integrate.LSODA(phase.derivative,
+                                            t0=phase.t, y0=self.y,
+                                            t_bound=phase.timeBound,
+                                            min_step=self.minTimeStep,
+                                            max_step=self.maxTimeStep,
+                                            rtol=self.rtol, atol=self.atol)
+            # print('\n\tSolver Initialization Details')
+            # print('\tInitial Time: ', phase.t)
+            # print('\tInitial State: ', self.y)
+            # print('\tTime Bound: ', phase.timeBound)
+            # print('\tMin Step: ', self.minTimeStep)
+            # print('\tMax Step: ', self.maxTimeStep)
+            # print('\tTolerances: ', self.rtol, self.atol)
 
-            # Iterate over each macro discretization point
-            i = 0
-            self.iterating = True
-            while i < len(macroDiscretizationPoints) - 1 and self.iterating:
-                # Update time, state, phase parachute CdS and derivative
-                self.parachuteCdS = macroDiscretizationPoints[i][3]
-                if self.derivative != macroDiscretizationPoints[i][2]:
-                    self.derivative = macroDiscretizationPoints[i][2]
-                    self.solver = integrate.LSODA(self.derivative,
-                                      t0=self.t, y0=self.y,
-                                      t_bound=maxTime,
-                                      min_step=minStepSize, max_step=maxStepSize,
-                                      rtol=rtol, atol=atol)
-                    o = 0
-                self.solver.t_bound = macroDiscretizationPoints[i+1][0]
-                self.solver._lsoda_solver._integrator.rwork[0] = self.solver.t_bound
-                self.solver._lsoda_solver._integrator.call_args[4] = self.solver._lsoda_solver._integrator.rwork
-                self.solver.status = 'running'
+            # Initialize phase time nodes
+            phase.timeNodes = TimeNodes()
+            # Add first time node to permanent list
+            phase.timeNodes.addNode(phase.t, [], [])
+            # Add non-overshootable parachute time nodes
+            if self.timeOvershoot is False:
+                phase.timeNodes.addParachutes(self.parachutes, phase.t, phase.timeBound)
+            # Add lst time node to permanent list
+            phase.timeNodes.addNode(phase.timeBound, [], [])
+            # Sort time nodes
+            phase.timeNodes.sort()
+            # Merge equal time nodes
+            phase.timeNodes.merge()
+            # Clear triggers from first time node if necessary
+            if phase.clear:
+                phase.timeNodes[0].parachutes = []
+                phase.timeNodes[0].callbacks = []
 
-                # Performe micro iterations
-                while self.solver.status != 'finished':
-                    self.solver.step()
-                    self.solution += [[self.solver.t, *self.solver.y]]
+            # print('\n\tPhase Time Nodes')
+            # print('\tTime Nodes Length: ', str(len(phase.timeNodes)), ' | Time Nodes Preview: ', phase.timeNodes[0:3])
 
-                    self.nfevs.append(self.solver.nfev - o)
-                    o = self.solver.nfev
-                    self.dts.append(self.solver.step_size)
+            # Iterate through time nodes
+            for node_index, node in timeIterator(phase.timeNodes):
+                # print('\n\t\tCurrent Time Node')
+                # print('\t\tIndex: ', node_index, ' | Time Node: ', node)
+                # Determine time bound for this time node
+                node.timeBound = phase.timeNodes[node_index + 1].t
+                phase.solver.t_bound = node.timeBound
+                phase.solver._lsoda_solver._integrator.rwork[0] = phase.solver.t_bound
+                phase.solver._lsoda_solver._integrator.call_args[4] = phase.solver._lsoda_solver._integrator.rwork
+                phase.solver.status = 'running'
+
+                # Feed required parachute and discrete controller triggers
+                for callback in node.callbacks:
+                    callback(self)
+
+                for parachute in node.parachutes:
+                    # Calculate and save pressure signal
+                    pressure = self.env.pressure.getValueOpt(self.y[2])
+                    parachute.cleanPressureSignal.append([node.t, pressure])
+                    # Calculate and save noise
+                    noise = parachute.noiseFunction()
+                    parachute.noiseSignal.append([node.t, noise])
+                    parachute.noisyPressureSignal.append([node.t, pressure + noise])
+                    if parachute.trigger(pressure + noise, self.y):
+                        # print('\nEVENT DETECTED')
+                        # print('Parachute Triggered')
+                        # print('Name: ', parachute.name, ' | Lag: ', parachute.lag)
+                        # Remove parachute from flight parachutes
+                        self.parachutes.remove(parachute)
+                        # Create flight phase for time after detection and before inflation
+                        self.flightPhases.addPhase(node.t, phase.derivative, clear=True, index=phase_index + 1)
+                        # Create flight phase for time after inflation
+                        callbacks = [lambda self, parachuteCdS=parachute.CdS: setattr(self, 'parachuteCdS', parachuteCdS)]
+                        self.flightPhases.addPhase(node.t + parachute.lag, self.uDotParachute, callbacks, clear=False, index=phase_index + 2)
+                        # Prepare to leave loops and start new flight phase
+                        phase.timeNodes.flushAfter(node_index)
+                        phase.timeNodes.addNode(self.t, [], [])
+                        phase.solver.status = 'finished'
+                        # Save parachute event
+                        self.parachuteEvents.append([self.t, parachute])
                 
+                # Step through simulation
+                while phase.solver.status == 'running':
+                    # Step
+                    phase.solver.step()
+                    # Save step result
+                    self.solution += [[phase.solver.t, *phase.solver.y]]
+                    # Step step metrics
+                    self.functionEvaluationsPerTimeStep.append(phase.solver.nfev - self.functionEvaluations[-1])
+                    self.functionEvaluations.append(phase.solver.nfev)
+                    self.timeSteps.append(phase.solver.step_size)
                     # Update time and state
-                    self.t = self.solver.t
-                    self.y = self.solver.y
-
+                    self.t = phase.solver.t
+                    self.y = phase.solver.y
+                    # print('\n\t\t\tCurrent Step Details')
+                    # print('\t\t\tIState: ', phase.solver._lsoda_solver._integrator.istate)
+                    # print('\t\t\tTime: ', phase.solver.t)
+                    # print('\t\t\tAltitude: ', phase.solver.y[2])
+                    # print('\t\t\tEvals: ', self.functionEvaluationsPerTimeStep[-1])
+                    # Check for out of rail event
+                    if self.outOfRailState is 0 and (self.y[0]**2 + self.y[1]**2 + self.y[2]**2 >= self.env.rL**2):
+                        # Rocket is out of rail
+                        # Check exactly when it went out using root finding
+                        # States before and after
+                        # t0 -> 0
+                        # print('\nEVENT DETECTED')
+                        # print('Rocket is Out of Rail!')
+                        y0 = sum([self.solution[-2][i]**2 for i in [1, 2, 3]]) - self.env.rL**2
+                        yp0 = 2*sum([self.solution[-2][i]*self.solution[-2][i+3] for i in [1, 2, 3]])
+                        t1 = self.solution[-1][0] - self.solution[-2][0]
+                        y1 = sum([self.solution[-1][i]**2 for i in [1, 2, 3]]) - self.env.rL**2
+                        yp1 = 2*sum([self.solution[-1][i]*self.solution[-1][i+3] for i in [1, 2, 3]])
+                        # Cubic Hermite interpolation (ax**3 + bx**2 + cx + d)
+                        D = float(phase.solver.step_size)
+                        d = float(y0)
+                        c = float(yp0)
+                        b = float((3*y1 - yp1*D - 2*c*D - 3*d)/(D**2))
+                        a = float(-(2*y1 - yp1*D - c*D - 2*d)/(D**3))
+                        # Find roots
+                        d0 = b**2 - 3*a*c
+                        d1 = 2*b**3 - 9*a*b*c + 27*d*a**2
+                        c1 = ((d1 + (d1**2 - 4*d0**3)**(0.5))/2)**(1/3)
+                        t_roots = []
+                        for k in [0, 1, 2]:
+                            c2 = c1*(-1/2 + 1j*(3**0.5)/2)**k
+                            t_roots.append(-(1/(3*a))*(b + c2 + d0/c2))
+                        # Find correct root
+                        valid_t_root = []
+                        for t_root in t_roots:
+                            if 0 < t_root.real < t1 and abs(t_root.imag) < 0.001:
+                                valid_t_root.append(t_root.real)
+                        if len(valid_t_root) > 1:
+                            raise ValueError('Multiple roots found when solving for rail exit time.')
+                        # Determine final state when going out of rail
+                        self.t = valid_t_root[0] + self.solution[-2][0]
+                        interpolator = phase.solver.dense_output()
+                        self.y = interpolator(self.t)
+                        self.solution[-1] = [self.t, *self.y]
+                        self.outOfRailTime = self.t
+                        self.outOfRailState = self.y
+                        self.outOfRailVelocity = (self.y[3]**2 +
+                                                  self.y[4]**2 +
+                                                  self.y[5]**2)**(0.5)
+                        # Create new flight phase
+                        self.flightPhases.addPhase(self.t, self.uDot, index=phase_index+1)
+                        # Prepare to leave loops and start new flight phase
+                        phase.timeNodes.flushAfter(node_index)
+                        phase.timeNodes.addNode(self.t, [], [])
+                        phase.solver.status = 'finished' 
                     # Check for apogee event
                     if self.apogeeState is 0 and self.y[5] < 0:
+                        # print('\nPASSIVE EVENT DETECTED')
+                        # print('Rocket Has Reached Apogee!')
                         # Apogee reported
-                        self.apogeeState = self.y
-                        self.apogeeTime = self.t
+                        # Assume linear vz(t) to detect when vz = 0
+                        vz0 = self.solution[-2][6]
+                        t0 = self.solution[-2][0]
+                        vz1 = self.solution[-1][6]
+                        t1 = self.solution[-1][0]
+                        t_root = -(t1-t0)*vz0/(vz1-vz0) + t0
+                        # Fecth state at t_root
+                        interpolator = phase.solver.dense_output()
+                        self.apogeeState = interpolator(t_root)
+                        # Store apogee data
+                        self.apogeeTime = t_root
                         self.apogeeX = self.apogeeState[0]
                         self.apogeeY = self.apogeeState[1]
                         self.apogee = self.apogeeState[2]
                         if self.terminateOnApogee:
-                            self.tFinal = self.solver.t
-                            self.simulating = False
-                            break
-                    
+                            # print('Terminate on Apogee Activated!')
+                            self.t = t_root
+                            self.tFinal = self.t
+                            self.state = self.apogeeState
+                            # Roll back solution
+                            self.solution[-1] = [self.t, *self.state]
+                            # Set last flight phase
+                            self.flightPhases.flushAfter(phase_index)
+                            self.flightPhases.addPhase(self.t)
+                            # Prepare to leave loops and start new flight phase
+                            phase.timeNodes.flushAfter(node_index)
+                            phase.timeNodes.addNode(self.t, [], [])
+                            phase.solver.status = 'finished' 
+                            return
                     # Check for impact event
                     if self.y[2] < 0:
+                        # print('\nPASSIVE EVENT DETECTED')
+                        # print('Rocket Has Reached Ground!')
                         # Impact reported
+                        # Check exactly when it went out using root finding
+                        # States before and after
+                        # t0 -> 0
+                        y0 = self.solution[-2][3]
+                        yp0 = self.solution[-2][6]
+                        t1 = self.solution[-1][0] - self.solution[-2][0]
+                        y1 = self.solution[-1][3]
+                        yp1 = self.solution[-1][6]
+                        # Cubic Hermite interpolation (ax**3 + bx**2 + cx + d)
+                        D = float(phase.solver.step_size)
+                        d = float(y0)
+                        c = float(yp0)
+                        b = float((3*y1 - yp1*D - 2*c*D - 3*d)/(D**2))
+                        a = float(-(2*y1 - yp1*D - c*D - 2*d)/(D**3))
+                        # Find roots
+                        d0 = b**2 - 3*a*c
+                        d1 = 2*b**3 - 9*a*b*c + 27*d*a**2
+                        c1 = ((d1 + (d1**2 - 4*d0**3)**(0.5))/2)**(1/3)
+                        t_roots = []
+                        for k in [0, 1, 2]:
+                            c2 = c1*(-1/2 + 1j*(3**0.5)/2)**k
+                            t_roots.append(-(1/(3*a))*(b + c2 + d0/c2))
+                        # Find correct root
+                        valid_t_root = []
+                        for t_root in t_roots:
+                            if 0 < t_root.real < t1 and abs(t_root.imag) < 0.001:
+                                valid_t_root.append(t_root.real)
+                        if len(valid_t_root) > 1:
+                            raise ValueError('Multiple roots found when solving for impact time.')
+                        # Determine impact state at t_root
+                        self.t = valid_t_root[0] + self.solution[-2][0]
+                        interpolator = phase.solver.dense_output()
+                        self.y = interpolator(self.t)
+                        # Roll back solution
+                        self.solution[-1] = [self.t, *self.y]
+                        # Save impact state
                         self.impactState = self.y
                         self.xImpact = self.impactState[0]
                         self.yImpact = self.impactState[1]
                         self.zImpact = self.impactState[2]
                         self.impactVelocity = self.impactState[5]
                         self.tFinal = self.t
-                        # Force the end of the simulation
-                        self.simulating = False
-                        self.iterating = False
-                        break
+                        # Set last flight phase
+                        self.flightPhases.flushAfter(phase_index)
+                        self.flightPhases.addPhase(self.t)
+                        # Prepare to leave loops and start new flight phase
+                        phase.timeNodes.flushAfter(node_index)
+                        phase.timeNodes.addNode(self.t, [], [])
+                        phase.solver.status = 'finished'
+                        return  
+                    
+                    # List and feed overshootable time nodes
+                    if self.timeOvershoot:
+                        # Initialize phase overshootable time nodes
+                        overshootableNodes = TimeNodes()
+                        # Add overshootable parachute time nodes
+                        overshootableNodes.addParachutes(self.parachutes, self.solution[-2][0], self.t)
+                        # Add last time node (always skipped)
+                        overshootableNodes.addNode(self.t, [], [])
+                        # print('\n\t\t\t\tOvershootable Time Nodes')
+                        # print('\t\t\t\tInterval: ', self.solution[-2][0], self.t)
+                        # print('\t\t\t\tOvershootable Nodes Length: ', str(len(overshootableNodes)), ' | Overshootable Nodes: ', overshootableNodes)
+                        if len(overshootableNodes) > 0:
+                            # Sort overshootable time nodes
+                            overshootableNodes.sort()
+                            # Merge equal overshootable time nodes
+                            overshootableNodes.merge()
+                            # print('\t\t\t\tOvershootable Nodes Length: ', str(len(overshootableNodes)), ' | Overshootable Nodes: ', overshootableNodes)
+                            # Feed overshootable time nodes trigger
+                            interpolator = phase.solver.dense_output()
+                            for overshootable_index, overshootableNode in timeIterator(overshootableNodes):
+                                # print('\n\t\t\t\tCurrent tOvershootable Node')
+                                # print('\t\t\t\tIndex: ', overshootable_index, ' | Overshootable Node: ', overshootableNode)
+                                # Calculate state at node time
+                                overshootableNode.y = interpolator(overshootableNode.t)
+                                # Calculate and save pressure signal
+                                pressure = self.env.pressure.getValueOpt(overshootableNode.y[2])
+                                for parachute in overshootableNode.parachutes:
+                                    # Save pressure signal
+                                    parachute.cleanPressureSignal.append([overshootableNode.t, pressure])
+                                    # Calculate and save noise
+                                    noise = parachute.noiseFunction()
+                                    parachute.noiseSignal.append([overshootableNode.t, noise])
+                                    parachute.noisyPressureSignal.append([overshootableNode.t, pressure + noise])
+                                    if parachute.trigger(pressure + noise, overshootableNode.y):
+                                        # print('\nEVENT DETECTED')
+                                        # print('Parachute Triggered')
+                                        # print('Name: ', parachute.name, ' | Lag: ', parachute.lag)
+                                        # Remove parachute from flight parachutes
+                                        self.parachutes.remove(parachute)
+                                        # Create flight phase for time after detection and before inflation
+                                        self.flightPhases.addPhase(overshootableNode.t, phase.derivative, clear=True, index=phase_index + 1)
+                                        # Create flight phase for time after inflation
+                                        callbacks = [lambda self, parachuteCdS=parachute.CdS: setattr(self, 'parachuteCdS', parachuteCdS)]
+                                        self.flightPhases.addPhase(overshootableNode.t + parachute.lag, self.uDotParachute, callbacks, clear=False, index=phase_index + 2)
+                                        # Rollback history
+                                        self.solution[-1] = [overshootableNode.t, *overshootableNode.y]
+                                        # Prepare to leave loops and start new flight phase
+                                        overshootableNodes.flushAfter(overshootable_index)
+                                        phase.timeNodes.flushAfter(node_index)
+                                        phase.timeNodes.addNode(self.t, [], [])
+                                        phase.solver.status = 'finished'
+                                        # Save parachute event
+                                        self.parachuteEvents.append([self.t, parachute])
 
-                # Convert state into pressure signal
-                self.p = self.env.pressure.getValueOpt(self.y[2])
-
-                # Add noise to pressure signal
-                alpha = 0.5
-                beta = (1-alpha**2)**0.5
-                self.noise = alpha*self.noise + beta*np.random.normal(0, 8.3)
-                self.p += self.noise
-                self.noiseFunction.append([self.t, self.noise])
-                self.pFunction.append([self.t, self.p])
-
-                # Feed triggers with current pressure and check for event
-                for pc in macroDiscretizationPoints[i][1]:
-                    if pc.trigger(self.p, self.y):
-                        self.flightPhases += [(self.t + pc.lag, self.__uDotParachute, pc.CdS, self.t, pc)]
-                        self.newParachuteCdS = pc.CdS
-                        self.newDerivative = self.__uDotParachute
-                        self.lag = pc.lag
-                        self.parachutes.remove(pc)
-                        # Time to re-discretize time
-                        self.iterating = False
-
-                # Feed counter
-                i += 1
-            
-            # Terminate simulation in case max time has been exceeded
-            # due to some error
-            if self.t >= self.maxTime:
-                self.simulating = False
-                self.tFinal = self.t
-
-        # Terminate simulation
-        self.flightPhases += [[self.t, 0, 0]]
-        
-    def __uDotRail(self, t, u, verbose=False):
+    def uDotRail(self, t, u, verbose=False):
         """Calculates derivative of u state vector with respect to time
         when rocket is flying in 1 DOF motion in the rail.
 
@@ -4397,8 +4582,8 @@ class Flight:
             self.az.append([t, az])
 
         return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
-
-    def __uDot(self, t, u, verbose=False):
+    
+    def uDot(self, t, u, verbose=False):
         """Calculates derivative of u state vector with respect to time
         when rocket is flying in 6 DOF motion during ascent out of rail
         and descent without parachute.
@@ -4421,6 +4606,7 @@ class Flight:
             e0Dot, e1Dot, e2Dot, e3Dot, alpha1, alpha2, alpha3].
 
         """
+        
         # Retrieve integration data
         x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
         # Determine lift force and moment
@@ -4497,9 +4683,9 @@ class Flight:
         # Determine aerodynamics forces
         # Determine Drag Force
         if t > self.rocket.motor.burnOutTime:
-            dragCoeff = self.rocket.powerOffDrag.getValueOpt(freestreamMach)
-        else:
             dragCoeff = self.rocket.powerOnDrag.getValueOpt(freestreamMach)
+        else:
+            dragCoeff = self.rocket.powerOffDrag.getValueOpt(freestreamMach)
         rho = self.env.density.getValueOpt(z)
         R3 = -0.5*rho*(freestreamSpeed**2)*self.rocket.area*(dragCoeff)
         # Off center moment
@@ -4631,7 +4817,7 @@ class Flight:
         # Return uDot
         return uDot
 
-    def __uDotParachute(self, t, u, verbose=False):
+    def uDotParachute(self, t, u, verbose=False):
         """Calculates derivative of u state vector with respect to time
         when rocket is flying under parachute. A 3 DOF aproximation is
         used.
@@ -4732,8 +4918,6 @@ class Flight:
         self.w1 = Function(sol[:, [0, 11]], 'Time (s)', 'ω1 (rad/s)', 'spline', extrapolation="natural")
         self.w2 = Function(sol[:, [0, 12]], 'Time (s)', 'ω2 (rad/s)', 'spline', extrapolation="natural")
         self.w3 = Function(sol[:, [0, 13]], 'Time (s)', 'ω3 (rad/s)', 'spline', extrapolation="natural")
-        self.noiseFunction = Function(self.noiseFunction, inputs='Time', outputs='Noise (Pa)')
-        self.pFunction = Function(self.pFunction, inputs='Time', outputs='Pressure (Pa)')
         
         # Calculate aerodynamic forces and accelerations
         self.cpPosition1, self.cpPosition2, self.cpPosition3 = [], [], []
@@ -4744,14 +4928,17 @@ class Flight:
         self.ax, self.ay, self.az = [], [], []
         self.alp1, self.alp2, self.alp3 = [], [], []
         self.streamVelX, self.streamVelY, self.streamVelZ = [], [], []
-        for i in range(len(self.flightPhases) - 1):
-            initTime = self.flightPhases[i][0]
-            self.currentDerivative = self.flightPhases[i][1]
-            self.parachuteCdS = self.flightPhases[i][2]
-            finalTime = self.flightPhases[i + 1][0]
+        
+        for phase_index, phase in self.timeIterator(self.flightPhases):
+            initTime = phase.t
+            finalTime = self.flightPhases[phase_index + 1].t
+            currentDerivative = phase.derivative
+            for callback in phase.callbacks:
+                callback(self)
             for step in self.solution:
                 if initTime < step[0] <= finalTime:
-                    self.currentDerivative(step[0], step[1:], verbose=True)
+                    currentDerivative(step[0], step[1:], verbose=True)
+ 
         self.cpPosition1 = Function(self.cpPosition1, 'Time (s)',
                                     'CP Position in X (m)', 'linear')
         self.cpPosition2 = Function(self.cpPosition2, 'Time (s)',
@@ -4857,7 +5044,7 @@ class Flight:
 
         # Print apogee conditions
         print('\nApogee')
-        print('Height: ' + "{:.3f}".format(self.apogee) + ' m')
+        print('Altitude: ' + "{:.3f}".format(self.apogee) + ' m')
         print('Velocity: ' + "{:.3f}".format(self.apogeeVelocity) + ' m/s')
         print('Time: ' + "{:.3f}".format(self.apogeeTime) + ' s')
         print('Freestream Speed: ' +
@@ -4865,25 +5052,32 @@ class Flight:
 
         # Print events registered
         print('\nEvents')
-        for phase in self.flightPhases:
-            if len(phase) == 5:
-                ejectionTime = phase[0]
-                fireTime = phase[-2]
-                pc = phase[-1]
-                velocity = self.freestreamSpeed(ejectionTime)
-                print(pc.name.title() + ' Ejection Fired at: ' + "{:.3f}".format(fireTime) + ' s')
-                print(pc.name.title() + ' Fully Ejected at: ' + "{:.3f}".format(ejectionTime) + ' s')
-                print(pc.name.title() + ' Ejected with Freestream Speed: ' + "{:.3f}".format(velocity) + ' m/s')
-                print(pc.name.title() + ' Ejected at Height of: ' + "{:.3f}".format(self.z(ejectionTime)) + ' m')
+        if len(self.parachuteEvents) == 0:
+            print('No Parachute Events Were Triggered.')
+        for event in self.parachuteEvents:
+            triggerTime = event[0]
+            parachute = event[1]
+            openTime = triggerTime + parachute.lag
+            velocity = self.freestreamSpeed(openTime)
+            altitude = self.z(openTime)
+            name = parachute.name.title()
+            print(name + ' Ejection Triggered at: ' + "{:.3f}".format(triggerTime) + ' s')
+            print(name + ' Parachute Inflated at: ' + "{:.3f}".format(openTime) + ' s')
+            print(name + ' Parachute Inflated with Freestream Speed of: ' + "{:.3f}".format(velocity) + ' m/s')
+            print(name + ' Parachute Inflated at Height of: ' + "{:.3f}".format(altitude) + ' m')
 
         # Print impact conditions
-        print('\nImpact')
-        print('X Impact: ' + "{:.3f}".format(self.xImpact) + ' m')
-        print('Y Impact: ' + "{:.3f}".format(self.yImpact) + ' m')
-        print('Time of Impact: ' + "{:.3f}".format(self.tFinal) + ' s')
-        print('Velocity at Impact: ' + "{:.3f}".format(self.impactVelocity) +
-              ' m/s')
-
+        if not (self.impactState is 0):
+            print('\nImpact')
+            print('X Impact: ' + "{:.3f}".format(self.xImpact) + ' m')
+            print('Y Impact: ' + "{:.3f}".format(self.yImpact) + ' m')
+            print('Time of Impact: ' + "{:.3f}".format(self.tFinal) + ' s')
+            print('Velocity at Impact: ' + "{:.3f}".format(self.impactVelocity) +
+                ' m/s')
+        elif self.terminateOnApogee is False:   
+            print('\nEnd of Simulation:')
+            print('Time: ' + "{:.3f}".format(self.solution[-1][0]) + ' s')
+            print('Altitude: ' + "{:.3f}".format(self.solution[-1][3]) + ' m')
         # Print maximum velocity and maximum acceleration
         print('\nMaximum Velocity and Acceleration')
         print('Velocity: ' + "{:.3f}".format(self.maxVel) + ' m/s')
@@ -4942,7 +5136,7 @@ class Flight:
         
         # Print apogee conditions
         print('\nApogee')
-        print('Height: ' + "{:.3f}".format(self.apogee) + ' m')
+        print('Altitude: ' + "{:.3f}".format(self.apogee) + ' m')
         print('Velocity: ' + "{:.3f}".format(self.apogeeVelocity) + ' m/s')
         print('Time: ' + "{:.3f}".format(self.apogeeTime) + ' s')
         print('Freestream Speed: ' +
@@ -4950,25 +5144,33 @@ class Flight:
         
         # Print events registered
         print('\nEvents')
-        for phase in self.flightPhases:
-            if len(phase) == 5:
-                ejectionTime = phase[0]
-                fireTime = phase[-2]
-                pc = phase[-1]
-                velocity = self.freestreamSpeed(ejectionTime)
-                print(pc.name.title() + ' Ejection Fired at: ' + "{:.3f}".format(fireTime) + ' s')
-                print(pc.name.title() + ' Fully Ejected at: ' + "{:.3f}".format(ejectionTime) + ' s')
-                print(pc.name.title() + ' Ejected with Freestream Speed: ' + "{:.3f}".format(velocity) + ' m/s')
-                print(pc.name.title() + ' Ejected at Height of: ' + "{:.3f}".format(self.z(ejectionTime)) + ' m')
-        
+        if len(self.parachuteEvents) == 0:
+            print('No Parachute Events Were Triggered.')
+        for event in self.parachuteEvents:
+            triggerTime = event[0]
+            parachute = event[1]
+            openTime = triggerTime + parachute.lag
+            velocity = self.freestreamSpeed(openTime)
+            altitude = self.z(openTime)
+            name = parachute.name.title()
+            print(name + ' Ejection Triggered at: ' + "{:.3f}".format(triggerTime) + ' s')
+            print(name + ' Parachute Inflated at: ' + "{:.3f}".format(openTime) + ' s')
+            print(name + ' Parachute Inflated with Freestream Speed of: ' + "{:.3f}".format(velocity) + ' m/s')
+            print(name + ' Parachute Inflated at Height of: ' + "{:.3f}".format(altitude) + ' m')
+
         # Print impact conditions
-        print('\nImpact')
-        print('X Impact: ' + "{:.3f}".format(self.xImpact) + ' m')
-        print('Y Impact: ' + "{:.3f}".format(self.yImpact) + ' m')
-        print('Time of Impact: ' + "{:.3f}".format(self.tFinal) + ' s')
-        print('Velocity at Impact: ' + "{:.3f}".format(self.impactVelocity) +
-              ' m/s')
-        
+        if not (self.impactState is 0):
+            print('\nImpact')
+            print('X Impact: ' + "{:.3f}".format(self.xImpact) + ' m')
+            print('Y Impact: ' + "{:.3f}".format(self.yImpact) + ' m')
+            print('Time of Impact: ' + "{:.3f}".format(self.tFinal) + ' s')
+            print('Velocity at Impact: ' + "{:.3f}".format(self.impactVelocity) +
+                ' m/s')
+        elif self.terminateOnApogee is False:
+            print('\nEnd of Simulation:')
+            print('Time: ' + "{:.3f}".format(self.solution[-1][0]) + ' s')
+            print('Altitude: ' + "{:.3f}".format(self.solution[-1][3]) + ' m')
+
         # Print maximum velocity and maximum acceleration
         print('\nMaximum Velocity and Acceleration')
         print('Velocity: ' + "{:.3f}".format(self.maxVel) + ' m/s')
@@ -5087,6 +5289,149 @@ class Flight:
             except:
                 time.sleep(1/(fps*speed))
 
+    def timeIterator(self, nodeList):
+        i = 0
+        while i < len(nodeList) - 1:
+            yield i, nodeList[i]
+            i += 1
+
+    class FlightPhases:
+        def __init__(self, init_list=[]):
+            self.list = init_list[:]
+        
+        def __getitem__(self, index):
+            return self.list[index]
+
+        def __len__(self):
+            return len(self.list)
+
+        def __repr__(self):
+            return str(self.list)
+
+        def add(self, flightPhase, index=None):
+            # Handle first phase
+            if len(self.list) == 0:
+                self.list.append(flightPhase)
+            # Handle appending to last position
+            elif index is None:
+                # Check if new flight phase respects time
+                previousPhase = self.list[-1]
+                if flightPhase.t > previousPhase.t:
+                    # All good! Add phase.
+                    self.list.append(flightPhase)
+                elif flightPhase.t == previousPhase.t:
+                    print('WARNING: Trying to add a flight phase starting together with the one preceding it.')
+                    print('This may be caused by more than when parachute being triggered simultaneously.')
+                    flightPhase.t += 1e-7
+                    self.add(flightPhase)
+                elif flightPhase.t < previousPhase.t:
+                    print('WARNING: Trying to add a flight phase starting before the one preceding it.')
+                    print('This may be caused by more than when parachute being triggered simultaneously.')
+                    self.add(flightPhase, -2)
+            # Handle inserting into intermediary position
+            else:
+                # Check if new flight phase respects time
+                nextPhase = self.list[index]
+                previousPhase = self.list[index-1]
+                if previousPhase.t < flightPhase.t < nextPhase.t:
+                    # All good! Add phase.
+                    self.list.insert(index, flightPhase)
+                elif flightPhase.t < previousPhase.t:
+                    print('WARNING: Trying to add a flight phase starting before the one preceding it.')
+                    print('This may be caused by more than when parachute being triggered simultaneously.')
+                    self.add(flightPhase, index - 1)
+                elif flightPhase.t == previousPhase.t:
+                    print('WARNING: Trying to add a flight phase starting together with the one preceding it.')
+                    print('This may be caused by more than when parachute being triggered simultaneously.')
+                    flightPhase.t += 1e-7
+                    self.add(flightPhase, index)
+                elif flightPhase.t == nextPhase.t:
+                    print('WARNING: Trying to add a flight phase starting together with the one proceding it.')
+                    print('This may be caused by more than when parachute being triggered simultaneously.')
+                    flightPhase.t += 1e-7
+                    self.add(flightPhase, index + 1)
+                elif flightPhase.t > nextPhase.t:
+                    print('WARNING: Trying to add a flight phase starting after the one proceding it.')
+                    print('This may be caused by more than when parachute being triggered simultaneously.')
+                    self.add(flightPhase, index + 1)
+
+        def addPhase(self, t, derivatives=None, callback=[], clear=True, index=None):
+            self.add(self.FlightPhase(t, derivatives, callback, clear), index)
+
+        def flushAfter(self, index):
+            del self.list[index+1:]
+        
+        class FlightPhase:
+            def __init__(self, t, derivative=None, callbacks=[], clear=True):
+                self.t = t
+                self.derivative = derivative
+                self.callbacks = callbacks[:]
+                self.clear = clear
+
+            def __repr__(self):
+                if self.derivative is None:
+                    return '{Initial Time: ' + str(self.t) + ' | Derivative: None}'
+                return '{Initial Time: ' + str(self.t) + ' | Derivative: ' + self.derivative.__name__ + '}'
+
+    class TimeNodes:
+        def __init__(self, init_list=[]):
+            self.list = init_list[:]
+        
+        def __getitem__(self, index):
+            return self.list[index]
+        
+        def __len__(self):
+            return len(self.list)
+        
+        def __repr__(self):
+            return str(self.list)
+
+        def add(self, timeNode):
+            self.list.append(timeNode)
+        
+        def addNode(self, t, parachutes, callbacks):
+            self.list.append(self.TimeNode(t, parachutes, callbacks))
+
+        def addParachutes(self, parachutes, t_init, t_end):
+            # Iterate over parachutes
+            for parachute in parachutes:
+                # Calculate start of sampling time nodes
+                pcDt = 1/parachute.samplingRate
+                parachute_node_list = [self.TimeNode(i*pcDt, [parachute], []) for i in range(math.ceil(t_init/pcDt), math.floor(t_end/pcDt) + 1)]
+                self.list += parachute_node_list
+            
+        def sort(self):
+            self.list.sort(key=(lambda node: node.t))
+        
+        def merge(self):
+            # Initialize temporary list
+            self.tmp_list = [self.list[0]]
+            self.copy_list = self.list[1:]
+            # Iterate through all other time nodes
+            for node in self.copy_list:
+                # If there is already another node with similar time: merge
+                if abs(node.t - self.tmp_list[-1].t) < 1e-7:
+                    self.tmp_list[-1].parachutes += node.parachutes
+                    self.tmp_list[-1].callbacks += node.callbacks
+                # Add new node to tmp list if there is none with the same time
+                else:
+                    self.tmp_list.append(node)
+            # Save tmp list to permanent
+            self.list = self.tmp_list
+
+        def flushAfter(self, index):
+            del self.list[index+1:]
+
+        class TimeNode:
+            def __init__(self, t, parachutes, callbacks):
+                self.t = t
+                self.parachutes = parachutes
+                self.callbacks = callbacks
+
+            def __repr__(self):
+                return '{Initial Time: ' + str(self.t) + ' | Parachutes: ' + str(len(self.parachutes)) + '}'
+
+
 if __name__ == '__main__':
     Env = Environment(railLength=5.2,
               gravity=9.8,
@@ -5108,11 +5453,11 @@ if __name__ == '__main__':
                 interpolationMethod='linear')
 
     def drogueTrigger(p, y):
-        return False
+        # return False
         return True if y[5] < 0 else False
 
     def mainTrigger(p, y):
-        return False
+        # return False
         return True if y[5] < 0 and y[2] < 500 else False
 
 
@@ -5135,15 +5480,15 @@ if __name__ == '__main__':
     Calisto.addParachute('Drogue',
                         CdS=1.0,
                         trigger=drogueTrigger, 
-                        samplingRate=100,
+                        samplingRate=1,
                         lag=1.5)
 
     Calisto.addParachute('Main',
                         CdS=10.0,
                         trigger=mainTrigger, 
-                        samplingRate=100,
+                        samplingRate=1,
                         lag=1.5)
                     
-    F = Flight(rocket=Calisto, environment=Env, inclination=85, heading=0, maxStepSize=0.1, maxTime=600)
+    F = Flight(rocket=Calisto, environment=Env, inclination=85, heading=0, maxTime=250)
 
-    F.info()   
+    # F.info()   
