@@ -892,6 +892,33 @@ class Function:
                         x = yData[0] if x < xmin else yData[-1]
             return x
 
+    def __getitem__(self, args):
+        '''Returns item of the Function source. If the source is not an array,
+        an error will result.
+        
+        Parameters
+        ----------
+        args : int, float
+            Index of the item to be retrieved.
+        
+        Returns
+        -------
+        self.source[args] : float, array
+            Item specified from Function.source.
+        '''
+        return self.source[args]
+
+    def __len__(self):
+        '''Returns length of the Function source. If the source is not an
+        array, an error will result.
+            
+        Returns
+        -------
+        len(self.source) : int
+            Length of Function.source.
+        '''
+        return len(self.source)
+
     # Define all presentation methods
     def __call__(self, *args):
         """Plot the Function if no argument is given. If an
@@ -3597,7 +3624,7 @@ class Rocket:
         trigger : function
             Function which defines if the parachute ejection system is
             to be triggered. It must take as input the freestream
-            pressure in bars and the state vector of the simulation,
+            pressure in pascal and the state vector of the simulation,
             which is defined by [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz].
             It will be called according to the sampling rate given next.
             It should return True if the parachute ejection system is
@@ -4078,7 +4105,7 @@ class Flight:
                  maxTime=600,
                  maxTimeStep=np.inf, minTimeStep=0,
                  rtol=1e-6, atol=6*[1e-3] + 4*[1e-6] + 3*[1e-3],
-                 timeOvershoot=False,
+                 timeOvershoot=True,
                  initialSolution=None):
         """Run a trajectory simulation.
 
@@ -4118,7 +4145,7 @@ class Flight:
             sampling rate. The time steps can overshoot the necessary trigger
             function evaluation points and then interpolation is used to
             calculate them and feed the triggers. Can greatly improve run
-            time in some cases. Default is False.
+            time in some cases. Default is True.
         initialSolution : array, optional
             Initial solution array to be used. Format is
             initialSolution = [self.tInitial,
@@ -4463,19 +4490,22 @@ class Flight:
                         overshootableNodes.addParachutes(self.parachutes, self.solution[-2][0], self.t)
                         # Add last time node (always skipped)
                         overshootableNodes.addNode(self.t, [], [])
-                        # print('\n\t\t\t\tOvershootable Time Nodes')
-                        # print('\t\t\t\tInterval: ', self.solution[-2][0], self.t)
-                        # print('\t\t\t\tOvershootable Nodes Length: ', str(len(overshootableNodes)), ' | Overshootable Nodes: ', overshootableNodes)
-                        if len(overshootableNodes) > 0:
+                        if len(overshootableNodes) > 1:
                             # Sort overshootable time nodes
                             overshootableNodes.sort()
                             # Merge equal overshootable time nodes
                             overshootableNodes.merge()
+                            # Clear if necessary
+                            if overshootableNodes[0].t == phase.t and phase.clear:
+                                overshootableNodes[0].parachutes = []
+                                overshootableNodes[0].callbacks = []
+                            # print('\n\t\t\t\tOvershootable Time Nodes')
+                            # print('\t\t\t\tInterval: ', self.solution[-2][0], self.t)
                             # print('\t\t\t\tOvershootable Nodes Length: ', str(len(overshootableNodes)), ' | Overshootable Nodes: ', overshootableNodes)
                             # Feed overshootable time nodes trigger
                             interpolator = phase.solver.dense_output()
                             for overshootable_index, overshootableNode in timeIterator(overshootableNodes):
-                                # print('\n\t\t\t\tCurrent tOvershootable Node')
+                                # print('\n\t\t\t\tCurrent Overshootable Node')
                                 # print('\t\t\t\tIndex: ', overshootable_index, ' | Overshootable Node: ', overshootableNode)
                                 # Calculate state at node time
                                 overshootableNode.y = interpolator(overshootableNode.t)
@@ -4500,6 +4530,8 @@ class Flight:
                                         callbacks = [lambda self, parachuteCdS=parachute.CdS: setattr(self, 'parachuteCdS', parachuteCdS)]
                                         self.flightPhases.addPhase(overshootableNode.t + parachute.lag, self.uDotParachute, callbacks, clear=False, index=phase_index + 2)
                                         # Rollback history
+                                        self.t = overshootableNode.t
+                                        self.y = overshootableNode.y
                                         self.solution[-1] = [overshootableNode.t, *overshootableNode.y]
                                         # Prepare to leave loops and start new flight phase
                                         overshootableNodes.flushAfter(overshootable_index)
@@ -4508,6 +4540,7 @@ class Flight:
                                         phase.solver.status = 'finished'
                                         # Save parachute event
                                         self.parachuteEvents.append([self.t, parachute])
+        self.tFinal = self.t
 
     def uDotRail(self, t, u, verbose=False):
         """Calculates derivative of u state vector with respect to time
@@ -4783,6 +4816,12 @@ class Flight:
             if math.isnan(attackAngle):
                 print('Error: NaN at t: ' + str(t))
                 attackAngle = 0
+            # Calculate trajectory angle
+            rocketZVector = np.dot(np.array(K), np.array([0, 0, 1]))
+            # XZ plane
+            trajectoryAngleXZ = np.arctan2(rocketZVector[0], rocketZVector[2])
+            # YZ plane
+            trajectoryAngleYZ = np.arctan2(rocketZVector[1], rocketZVector[2])
             # Calculate Static Margin
             d = 2*self.rocket.radius
             R123 = np.dot(Kt, [R1, R2, 0])
@@ -4797,6 +4836,8 @@ class Flight:
             self.cpPosition3.append([t, cpPosition[2]])
             self.staticMargin.append([t, staticMargin])
             self.attackAngle.append([t, attackAngle*180/np.pi])
+            self.trajectoryAngleXZ.append([t, trajectoryAngleXZ*180/np.pi])
+            self.trajectoryAngleYZ.append([t, trajectoryAngleYZ*180/np.pi])
             self.freestreamSpeed.append([t, freestreamSpeed])
             self.streamVelX.append([t, freestreamVelocity[0]])
             self.streamVelY.append([t, freestreamVelocity[1]])
@@ -4919,10 +4960,17 @@ class Flight:
         self.w2 = Function(sol[:, [0, 12]], 'Time (s)', 'ω2 (rad/s)', 'spline', extrapolation="natural")
         self.w3 = Function(sol[:, [0, 13]], 'Time (s)', 'ω3 (rad/s)', 'spline', extrapolation="natural")
         
+        # Transform parachute sensor feed into functions
+        for parachute in self.rocket.parachutes:
+            parachute.cleanPressureSignal = Function(parachute.cleanPressureSignal, 'Time (s)', 'Pressure - Without Noise (Pa)', 'linear')
+            parachute.noisyPressureSignal = Function(parachute.noisyPressureSignal, 'Time (s)', 'Pressure - With Noise (Pa)', 'linear')
+            parachute.noiseSignal = Function(parachute.noiseSignal, 'Time (s)', 'Pressure Noise (Pa)', 'linear')
+
         # Calculate aerodynamic forces and accelerations
         self.cpPosition1, self.cpPosition2, self.cpPosition3 = [], [], []
         self.staticMargin = []
         self.attackAngle, self.freestreamSpeed = [], []
+        self.trajectoryAngleXZ, self.trajectoryAngleYZ = [], []
         self.R1, self.R2, self.R3 = [], [], []
         self.M1, self.M2, self.M3 = [], [], []
         self.ax, self.ay, self.az = [], [], []
@@ -4948,7 +4996,11 @@ class Flight:
         self.staticMargin = Function(self.staticMargin, 'Time (s)',
                                      'Static Margin (c)', 'linear')
         self.attackAngle = Function(self.attackAngle, 'Time (s)',
-                                    'Angle of Attack', 'linear')
+                                    'Angle of Attack (Deg)', 'linear')
+        self.trajectoryAngleXZ = Function(self.trajectoryAngleXZ, 'Time (s)',
+                                          'Trajectory Angle XZ (Deg)', 'linear')
+        self.trajectoryAngleYZ = Function(self.trajectoryAngleYZ, 'Time (s)',
+                                          'Trajectory Angle YZ (Deg)', 'linear')                                  
         self.freestreamSpeed = Function(self.freestreamSpeed, 'Time (s)',
                                         'Freestream Speed (m/s)', 'linear')
         self.streamVelX = Function(self.streamVelX, 'Time (s)',
@@ -5236,7 +5288,7 @@ class Flight:
         stop = self.tFinal if stop is None else stop
         # Speed = 4 makes it almost real time - matplotlib is way to slow
         # Set up graph
-        fig = plt.figure(figsize=(12, 9))
+        fig = plt.figure(figsize=(18, 15))
         axes = fig.gca(projection='3d')
         # Initialize time
         timeRange = np.linspace(start, stop, fps * (stop - start))
@@ -5435,12 +5487,19 @@ class Flight:
 if __name__ == '__main__':
     Env = Environment(railLength=5.2,
               gravity=9.8,
-              windData="data/weather/SpacePort.nc",
+              windData="../data/weather/SpacePort.nc",
               location=(32.990254, -106.974998),
               date=(2016, 6, 20, 18))
 
+    gust = lambda h: 70 if 1500 < h < 1600 else 0
 
-    Pro75M1670 = Motor(thrustSource="data/motors/Cesaroni_M1670.eng",
+    gust1 = lambda h: 15 if 0 < h < 10 else 0
+
+    Env.addWindGust(gust, gust)
+
+    Env.addWindGust(gust1, 0)
+
+    Pro75M1670 = Motor(thrustSource="../data/motors/Cesaroni_M1670.eng",
                 burnOut=3.9,
                 grainNumber=5,
                 grainSeparation=5/1000,
@@ -5468,8 +5527,8 @@ if __name__ == '__main__':
                 inertiaZ=0.0351,
                 distanceRocketNozzle=1.255,
                 distanceRocketPropellant=0.85704,
-                powerOffDrag='data/calisto/powerOffDragCurve.csv',
-                powerOnDrag='data/calisto/powerOnDragCurve.csv')
+                powerOffDrag='../data/calisto/powerOffDragCurve.csv',
+                powerOnDrag='../data/calisto/powerOnDragCurve.csv')
 
     Calisto.addNose(length=0.55829, kind="vonKarman", distanceToCM=0.71971)
 
@@ -5480,15 +5539,22 @@ if __name__ == '__main__':
     Calisto.addParachute('Drogue',
                         CdS=1.0,
                         trigger=drogueTrigger, 
-                        samplingRate=1,
-                        lag=1.5)
+                        samplingRate=100,
+                        lag=1.5,
+                        noise=(0, 0.83, 0.5))
 
     Calisto.addParachute('Main',
                         CdS=10.0,
                         trigger=mainTrigger, 
-                        samplingRate=1,
-                        lag=1.5)
-                    
-    F = Flight(rocket=Calisto, environment=Env, inclination=85, heading=0, maxTime=250)
+                        samplingRate=100,
+                        lag=1.5,
+                        noise=(0, 0.83, 0.5))
+         
+    F = Flight(rocket=Calisto, environment=Env, inclination=85, heading=0, maxTime=300)
 
+    F.postProcess()
+
+    F.attackAngle()
+
+    F.animate(speed=0.5)
     # F.info()   
