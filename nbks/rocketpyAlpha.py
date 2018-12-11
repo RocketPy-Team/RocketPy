@@ -1191,6 +1191,7 @@ class Function:
         -------
         None
         """
+        noRangeSpecified = True if lower is None and upper is None else False
         # Convert to list of tuples if list of Function was given
         plots = []
         if isinstance(self[0], (tuple, list)) == False:
@@ -1221,12 +1222,18 @@ class Function:
 
         # Iterate to plot all plots
         for plot in plots:
-            # Calculate function at mesh nodes
-            y = plot[0].getValue(x.tolist())
-            # Plots function
-            ax.plot(x, y, label=plot[1])
-            if forcePoints:
-                ax.scatter(x, y, marker='o')
+            # Deal with discrete data sets when no range is given
+            if noRangeSpecified and not callable(plot[0].source):
+                ax.plot(plot[0][:, 0], plot[0][:, 1], label=plot[1])
+                if forcePoints:
+                    ax.scatter(plot[0][:, 0], plot[0][:, 1], marker='o')
+            else:
+                # Calculate function at mesh nodes
+                y = plot[0].getValue(x.tolist())
+                # Plots function
+                ax.plot(x, y, label=plot[1])
+                if forcePoints:
+                    ax.scatter(x, y, marker='o')
     
         # Plot data points if specified
         if forceData:
@@ -1242,7 +1249,7 @@ class Function:
                     ax.scatter(points[0], points[1], marker='o')
 
         # Setup legend
-        ax.legend(loc='best', shadow=True, fontsize='x-large')
+        ax.legend(loc='best', shadow=True)
 
         # Turn on grid and set title and axis
         plt.grid(True)
@@ -3421,15 +3428,18 @@ class Rocket:
         self.totalLiftCoeffDer = 0
         self.cpPosition = 0
 
-        # Calculate total lift coeficient derivative and center of pressure        
-        for aerodynamicSurface in self.aerodynamicSurfaces:
-            self.totalLiftCoeffDer += aerodynamicSurface[1]
-            self.cpPosition += aerodynamicSurface[1]*aerodynamicSurface[0][2]
-        self.cpPosition /= self.totalLiftCoeffDer
+        # Calculate total lift coeficient derivative and center of pressure   
+        if len(self.aerodynamicSurfaces) > 0:     
+            for aerodynamicSurface in self.aerodynamicSurfaces:
+                self.totalLiftCoeffDer += aerodynamicSurface[1]
+                self.cpPosition += aerodynamicSurface[1]*aerodynamicSurface[0][2]
+            self.cpPosition /= self.totalLiftCoeffDer
 
         # Calculate static margin
-        self.staticMargin = ((abs(self.cpPosition) - self.centerOfMass(0)) /
+        self.staticMargin = ((self.centerOfMass - self.cpPosition) /
                              (2*self.radius))
+        self.staticMargin.setInputs('Time (s)')
+        self.staticMargin.setOutputs('Static Margin (c)')
         
         # Return self
         return self
@@ -3479,13 +3489,14 @@ class Rocket:
         clalpha = -2*(1 - r**(-2))*(topRadius/rref)**2
         
         # Store values as new aerodynamic surface
-        self.aerodynamicSurfaces.append([(0, 0, cpz), clalpha, 'Tail'])
+        tail = [(0, 0, cpz), clalpha, 'Tail']
+        self.aerodynamicSurfaces.append(tail)
 
         # Refresh static margin calculation
         self.evaluateStaticMargin()
 
         # Return self
-        return self
+        return self.aerodynamicSurfaces[-1]
 
     def addNose(self, length, kind, distanceToCM):
         """Create a nose cone, storing its parameters as part of the
@@ -3533,13 +3544,14 @@ class Rocket:
         clalpha = 2
         
         # Store values
-        self.aerodynamicSurfaces.append([(0, 0, cpz), clalpha, 'Nose Cone'])
+        nose = [(0, 0, cpz), clalpha, 'Nose Cone']
+        self.aerodynamicSurfaces.append(nose)
         
         # Refresh static margin calculation
         self.evaluateStaticMargin()
 
         # Return self
-        return self
+        return self.aerodynamicSurfaces[-1]
 
     def addFins(self, n, span, rootChord, tipChord, distanceToCM, radius=0):
         """Create a fin set, storing its parameters as part of the
@@ -3596,13 +3608,14 @@ class Rocket:
         clalpha *= (1 + radius/(s + radius))
 
         # Store values
-        self.aerodynamicSurfaces.append([(0, 0, cpz), clalpha, 'Fins'])
+        fin = [(0, 0, cpz), clalpha, 'Fins']
+        self.aerodynamicSurfaces.append(fin)
         
         # Refresh static margin calculation
         self.evaluateStaticMargin()
 
         # Return self
-        return self
+        return self.aerodynamicSurfaces[-1]
 
     def addParachute(self, name, CdS, trigger, samplingRate=100, lag=0, noise=(0, 0, 0)):
         """Create a new parachute, storing its parameters such as
@@ -3673,7 +3686,7 @@ class Rocket:
         self.parachutes.append(parachute)
 
         # Return self
-        return 
+        return  self.parachutes[-1]
 
     def addCMExcentricity(self, x, y):
         """Move line of action of aerodynamic and thrust forces by
@@ -3784,8 +3797,10 @@ class Rocket:
 
         # Print rocket aerodynamics quantities
         print('\nAerodynamics Stability')
-        print('Static Margin: ' +
-              "{:.3f}".format(self.staticMargin) + ' c')
+        print('Initial Static Margin: ' +
+              "{:.3f}".format(self.staticMargin(0)) + ' c')
+        print('Final Static Margin: ' +
+              "{:.3f}".format(self.staticMargin(self.motor.burnOutTime)) + ' c')
 
         # Print parachute data
         for chute in self.parachutes:
@@ -3846,10 +3861,12 @@ class Rocket:
             cpz = aerodynamicSurface[0][2]
             print(name + " Center of Pressure to CM: {:.3f}".format(cpz)
                   + ' m')
-        print('Static Center of Pressure to CM: ' +
+        print('Distance - Center of Pressure to CM: ' +
               "{:.3f}".format(self.cpPosition) + ' m')
-        print('Static Margin: ' +
-              "{:.3f}".format(self.staticMargin) + ' c')
+        print('Initial Static Margin: ' +
+              "{:.3f}".format(self.staticMargin(0)) + ' c')
+        print('Final Static Margin: ' +
+              "{:.3f}".format(self.staticMargin(self.motor.burnOutTime)) + ' c')
 
         # Print parachute data
         for chute in self.parachutes:
@@ -3871,6 +3888,7 @@ class Rocket:
         self.totalMass()
         self.reducedMass()
         print('\nAerodynamics Plots')
+        self.staticMargin()
         self.powerOnDrag()
         self.powerOffDrag()
 
@@ -4101,12 +4119,13 @@ class Flight:
     """
     def __init__(self, rocket, environment,
                  inclination=80, heading=90,
+                 initialSolution=None,
                  terminateOnApogee=False,
                  maxTime=600,
                  maxTimeStep=np.inf, minTimeStep=0,
                  rtol=1e-6, atol=6*[1e-3] + 4*[1e-6] + 3*[1e-3],
                  timeOvershoot=True,
-                 initialSolution=None):
+                 verbose=True):
         """Run a trajectory simulation.
 
         Parameters
@@ -4122,6 +4141,16 @@ class Flight:
         heading : int, float, optional
             Heading angle relative to north given in degrees.
             Default is 90, which points in the x direction.
+        initialSolution : array, optional
+            Initial solution array to be used. Format is
+            initialSolution = [self.tInitial,
+                                xInit, yInit, zInit,
+                                vxInit, vyInit, vzInit,
+                                e0Init, e1Init, e2Init, e3Init,
+                                w1Init, w2Init, w3Init].
+            If None, the initial solution will start with all null values,
+            except for the euler parameters which will be calculated based
+            on given values of inclination and heading. Default is None.
         terminateOnApogee : boolean, optioanal
             Wheater to terminate simulation when rocket reaches apogee.
             Default is False.
@@ -4146,16 +4175,8 @@ class Flight:
             function evaluation points and then interpolation is used to
             calculate them and feed the triggers. Can greatly improve run
             time in some cases. Default is True.
-        initialSolution : array, optional
-            Initial solution array to be used. Format is
-            initialSolution = [self.tInitial,
-                                xInit, yInit, zInit,
-                                vxInit, vyInit, vzInit,
-                                e0Init, e1Init, e2Init, e3Init,
-                                w1Init, w2Init, w3Init].
-            If None, the initial solution will start with all null values,
-            except for the euler parameters which will be calculated based
-            on given values of inclination and heading. Default is None.
+        verbose : bool, optional
+            If true, verbose mode is activated. Default is False.
 
         Returns
         -------
@@ -4337,6 +4358,7 @@ class Flight:
                     # Update time and state
                     self.t = phase.solver.t
                     self.y = phase.solver.y
+                    if verbose: print('Current Simulation Time: {:3.4f} s'.format(self.t), end='\r')
                     # print('\n\t\t\tCurrent Step Details')
                     # print('\t\t\tIState: ', phase.solver._lsoda_solver._integrator.istate)
                     # print('\t\t\tTime: ', phase.solver.t)
@@ -4425,7 +4447,6 @@ class Flight:
                             phase.timeNodes.flushAfter(node_index)
                             phase.timeNodes.addNode(self.t, [], [])
                             phase.solver.status = 'finished' 
-                            return
                     # Check for impact event
                     if self.y[2] < 0:
                         # print('\nPASSIVE EVENT DETECTED')
@@ -4479,8 +4500,7 @@ class Flight:
                         # Prepare to leave loops and start new flight phase
                         phase.timeNodes.flushAfter(node_index)
                         phase.timeNodes.addNode(self.t, [], [])
-                        phase.solver.status = 'finished'
-                        return  
+                        phase.solver.status = 'finished'  
                     
                     # List and feed overshootable time nodes
                     if self.timeOvershoot:
@@ -4541,6 +4561,7 @@ class Flight:
                                         # Save parachute event
                                         self.parachuteEvents.append([self.t, parachute])
         self.tFinal = self.t
+        if verbose: print('Simulation Completed at Time: {:3.4f} s'.format(self.t))
 
     def uDotRail(self, t, u, verbose=False):
         """Calculates derivative of u state vector with respect to time
@@ -4597,7 +4618,7 @@ class Flight:
                                      self.env.windVelocityY(z), 0])
             rocketVelocity = np.array([vx, vy, vz])
             freestreamVelocity = windVelocity - rocketVelocity
-            staticMargin = (abs(self.rocket.cpPosition) - self.rocket.centerOfMass(t))/(2*self.rocket.radius)
+            staticMargin = self.rocket.staticMargin(t)
             self.attackAngle.append([t, 0])
             self.staticMargin.append([t, staticMargin])
             self.freestreamSpeed.append([t, freestreamSpeed])
@@ -4829,7 +4850,7 @@ class Flight:
             cpPosition = np.cross(R123, [M1, M2, M3])/Rsquared
             staticMargin = (abs(cpPosition[2]) - a)/d
             staticMargin = ((M1**2 + M2**2)/Rsquared - a)/d
-            staticMargin = (abs(self.rocket.cpPosition) - self.rocket.centerOfMass(t))/d
+            staticMargin = self.rocket.staticMargin(t)
             # Store Data
             self.cpPosition1.append([t, cpPosition[0]])
             self.cpPosition2.append([t, cpPosition[1]])
@@ -4971,6 +4992,7 @@ class Flight:
         self.staticMargin = []
         self.attackAngle, self.freestreamSpeed = [], []
         self.trajectoryAngleXZ, self.trajectoryAngleYZ = [], []
+        self.trajectoryXZ, self.trajectoryYZ, self.trajectoryXY = [], [], []
         self.R1, self.R2, self.R3 = [], [], []
         self.M1, self.M2, self.M3 = [], [], []
         self.ax, self.ay, self.az = [], [], []
@@ -5021,7 +5043,10 @@ class Flight:
         self.alp1 = Function(self.alp1, 'Time (s)', 'α1 (rad/s2)', 'linear')
         self.alp2 = Function(self.alp2, 'Time (s)', 'α2 (rad/s2)', 'linear')
         self.alp3 = Function(self.alp3, 'Time (s)', 'α3 (rad/s2)', 'linear')
-        
+        self.trajectoryXZ = Function(np.array([self.x[:, 1], self.z[:, 1]]).T, 'X (m)', 'Z (m)', 'linear')
+        self.trajectoryYZ = Function(np.array([self.y[:, 1], self.z[:, 1]]).T, 'Y (m)', 'Z (m)', 'linear')
+        self.trajectoryXY = Function(np.array([self.x[:, 1], self.y[:, 1]]).T, 'X (m)', 'Y (m)', 'linear')
+
         # Process velocity and acceleration magnitude
         self.v = (self.vx**2 + self.vy**2 + self.vz**2)**0.5
         self.v.setOutputs('Velocity Magnitude (m/s)')
@@ -5485,7 +5510,7 @@ class Flight:
 
 
 if __name__ == '__main__':
-    Env = Environment(railLength=5.2,
+    Env = Environment(railLength=2.2,
               gravity=9.8,
               windData="../data/weather/SpacePort.nc",
               location=(32.990254, -106.974998),
@@ -5495,12 +5520,12 @@ if __name__ == '__main__':
 
     gust1 = lambda h: 15 if 0 < h < 10 else 0
 
-    Env.addWindGust(gust, gust)
+    # Env.addWindGust(gust, gust)
 
-    Env.addWindGust(gust1, 0)
+    # Env.addWindGust(gust1, 0)
 
     Pro75M1670 = Motor(thrustSource="../data/motors/Cesaroni_M1670.eng",
-                burnOut=3.9,
+                burnOut=1.9,
                 grainNumber=5,
                 grainSeparation=5/1000,
                 grainDensity=1815,
@@ -5532,7 +5557,7 @@ if __name__ == '__main__':
 
     Calisto.addNose(length=0.55829, kind="vonKarman", distanceToCM=0.71971)
 
-    Calisto.addFins(4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956)
+    Calisto.addFins(4, span=0.070, rootChord=0.060, tipChord=0.040, distanceToCM=-1.04956)
 
     Calisto.addTail(topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656)
 
@@ -5550,6 +5575,8 @@ if __name__ == '__main__':
                         lag=1.5,
                         noise=(0, 0.83, 0.5))
          
+    Calisto.info()
+
     F = Flight(rocket=Calisto, environment=Env, inclination=85, heading=0, maxTime=300)
 
     F.postProcess()
