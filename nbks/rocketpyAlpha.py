@@ -4125,7 +4125,7 @@ class Flight:
                  maxTimeStep=np.inf, minTimeStep=0,
                  rtol=1e-6, atol=6*[1e-3] + 4*[1e-6] + 3*[1e-3],
                  timeOvershoot=True,
-                 verbose=True):
+                 verbose=False):
         """Run a trajectory simulation.
 
         Parameters
