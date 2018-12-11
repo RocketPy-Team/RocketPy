@@ -4702,8 +4702,8 @@ class Flight:
         M = Mt + Mr
         mu = (Mt * Mr)/(Mt + Mr)
         # Geometry
-        b = self.rocket.distanceRocketPropellant
-        c = self.rocket.distanceRocketNozzle
+        b = -self.rocket.distanceRocketPropellant
+        c = -self.rocket.distanceRocketNozzle
         a = b*Mt/M
         rN = self.rocket.motor.nozzleRadius
         # Prepare transformation matrix
