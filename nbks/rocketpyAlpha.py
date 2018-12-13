@@ -3369,6 +3369,8 @@ class Rocket:
 
         # Aerodynamic data initialization
         self.aerodynamicSurfaces = []
+        self.cpPosition = 0
+        self.staticMargin = Function(lambda x:0, inputs='Time (s)', outputs='Static Margin (c)')
 
         # Define aerodynamic drag coefficients
         self.powerOffDrag = Function(powerOffDrag, 'Mach Number',
