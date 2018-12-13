@@ -466,24 +466,6 @@ class Function:
             self.__interpolation__ = 'shepard'
         return self
 
-    def append(self, item):
-        """ Appends item to Function instance source attribute, if source is
-        a list or array.
-
-        Parameters
-        ----------
-        item : list, tuple
-            Corresponds to a coordinate to be added to the list of coordinates
-            which are interpolated to describe the Function.
-        
-        Returns
-        -------
-        self : Function
-            Same Function class instance.
-        """
-        self.source = np.append(self.source, item)
-        return self
-
     # Define all get methods
     def getInputs(self):
         'Return tuple of inputs of the function.'
@@ -5003,9 +4985,9 @@ class Flight:
         
         # Transform parachute sensor feed into functions
         for parachute in self.rocket.parachutes:
-            parachute.cleanPressureSignal = Function(parachute.cleanPressureSignal, 'Time (s)', 'Pressure - Without Noise (Pa)', 'linear')
-            parachute.noisyPressureSignal = Function(parachute.noisyPressureSignal, 'Time (s)', 'Pressure - With Noise (Pa)', 'linear')
-            parachute.noiseSignal = Function(parachute.noiseSignal, 'Time (s)', 'Pressure Noise (Pa)', 'linear')
+            parachute.cleanPressureSignalFunction = Function(parachute.cleanPressureSignal, 'Time (s)', 'Pressure - Without Noise (Pa)', 'linear')
+            parachute.noisyPressureSignalFunction = Function(parachute.noisyPressureSignal, 'Time (s)', 'Pressure - With Noise (Pa)', 'linear')
+            parachute.noiseSignalFunction = Function(parachute.noiseSignal, 'Time (s)', 'Pressure Noise (Pa)', 'linear')
 
         # Calculate aerodynamic forces and accelerations
         self.cpPosition1, self.cpPosition2, self.cpPosition3 = [], [], []
@@ -5321,6 +5303,12 @@ class Flight:
         self.M1()
         self.M2()
         self.M3()
+        print('\nParachute Trigger Pressure Signals')
+        for parachute in self.rocket.parachutes:
+            print('Parachute: ', parachute.name)
+            parachute.noiseSignalFunction()
+            parachute.noisyPressureSignalFunction()
+            parachute.cleanPressureSignalFunction()
 
         return None
 
@@ -5530,32 +5518,7 @@ class Flight:
 
 
 if __name__ == '__main__':
-    Env = Environment(railLength=2.2,
-              gravity=9.8,
-              windData="../data/weather/SpacePort.nc",
-              location=(32.990254, -106.974998),
-              date=(2016, 6, 20, 18))
-
-    gust = lambda h: 70 if 1500 < h < 1600 else 0
-
-    gust1 = lambda h: 15 if 0 < h < 10 else 0
-
-    # Env.addWindGust(gust, gust)
-
-    # Env.addWindGust(gust1, 0)
-
-    Pro75M1670 = Motor(thrustSource="../data/motors/Cesaroni_M1670.eng",
-                burnOut=1.9,
-                grainNumber=5,
-                grainSeparation=5/1000,
-                grainDensity=1815,
-                grainOuterRadius=33/1000,
-                grainInitialInnerRadius=15/1000,
-                grainInitialHeight=120/1000,
-                nozzleRadius=33/1000,
-                throatRadius=11/1000,
-                interpolationMethod='linear')
-
+    
     def drogueTrigger(p, y):
         # return False
         return True if y[5] < 0 else False
@@ -5564,44 +5527,59 @@ if __name__ == '__main__':
         # return False
         return True if y[5] < 0 and y[2] < 500 else False
 
+    # Prepare Environment
+    Env = Environment(railLength=5.2,
+                  gravity=9.8,
+                  windData="data/weather/SpacePort.nc",
+                  location=(32.990254, -106.974998),
+                  date=(2016, 6, 20, 18))
 
+    # Prepare Motor
+    Pro75M1670 = Motor(thrustSource="data/motors/Cesaroni_M1670.eng",
+                   burnOut=3.9,
+                   grainNumber=5,
+                   grainSeparation=5/1000,
+                   grainDensity=1815,
+                   grainOuterRadius=33/1000,
+                   grainInitialInnerRadius=15/1000,
+                   grainInitialHeight=120/1000,
+                   nozzleRadius=33/1000,
+                   throatRadius=11/1000,
+                   interpolationMethod='linear')
+
+    # Prepare Rocket
     Calisto = Rocket(motor=Pro75M1670,
-                radius=127/2000,
-                mass=19.197-2.956,
-                inertiaI=6.60,
-                inertiaZ=0.0351,
-                distanceRocketNozzle=1.255,
-                distanceRocketPropellant=0.85704,
-                powerOffDrag='../data/calisto/powerOffDragCurve.csv',
-                powerOnDrag='../data/calisto/powerOnDragCurve.csv')
+                         radius=127/2000,
+                         mass=19,
+                         inertiaI=6.60,
+                         inertiaZ=0.0351,
+                         distanceRocketNozzle=-1.255,
+                         distanceRocketPropellant=-0.85704,
+                         powerOffDrag='data/calisto/powerOffDragCurve.csv',
+                         powerOnDrag='data/calisto/powerOnDragCurve.csv')
+    Nose = Calisto.addNose(length=0.55829, kind="vonKarman", distanceToCM=0.71971)
+    FinSet = Calisto.addFins(4, span=0.1, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956)
+    Tail = Calisto.addTail(topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656)
+    Drogue = Calisto.addParachute('Drogue',
+                            CdS=1.0,
+                            trigger=drogueTrigger, 
+                            samplingRate=100,
+                            lag=1.5,
+                            noise=(0, 0.83, 0.5))
 
-    Calisto.addNose(length=0.55829, kind="vonKarman", distanceToCM=0.71971)
+    Main = Calisto.addParachute('Main',
+                            CdS=10.0,
+                            trigger=mainTrigger, 
+                            samplingRate=100,
+                            lag=1.5,
+                            noise=(0, 0.83, 0.5))
+    
+    # Simulate Flight until Apogee
+    TestFlight = Flight(rocket=Calisto, environment=Env, inclination=85, heading=0)
 
-    Calisto.addFins(4, span=0.070, rootChord=0.060, tipChord=0.040, distanceToCM=-1.04956)
+    TestFlight.postProcess()
 
-    Calisto.addTail(topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656)
+    TestFlight = Flight(rocket=Calisto, environment=Env, inclination=85, heading=0)
 
-    Calisto.addParachute('Drogue',
-                        CdS=1.0,
-                        trigger=drogueTrigger, 
-                        samplingRate=100,
-                        lag=1.5,
-                        noise=(0, 0.83, 0.5))
-
-    Calisto.addParachute('Main',
-                        CdS=10.0,
-                        trigger=mainTrigger, 
-                        samplingRate=100,
-                        lag=1.5,
-                        noise=(0, 0.83, 0.5))
-         
-    Calisto.info()
-
-    F = Flight(rocket=Calisto, environment=Env, inclination=85, heading=0, maxTime=300)
-
-    F.postProcess()
-
-    F.attackAngle()
-
-    F.animate(speed=0.5)
-    # F.info()   
+    Main.noiseSignal()
+           
