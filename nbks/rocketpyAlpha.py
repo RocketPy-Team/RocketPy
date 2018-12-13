@@ -3321,10 +3321,14 @@ class Rocket:
             Rocket biggest outer radius in meters.
         distanceRocketNozzle : int, float
             Distance from rocket's unloaded center of mass to nozzle outlet,
-            in meters.
+            in meters. Generally negative, meaning a negative position in the
+            z axis which has an origin in the rocket's center of mass (with
+            out propellant) and points towards the nose cone.
         distanceRocketPropellant : int, float
             Distance from rocket's unloaded center of mass to propellant
-            center of mass, in meters.
+            center of mass, in meters. Generally negative, meaning a negative
+            position in the z axis which has an origin in the rocket's center
+            of mass (with out propellant) and points towards the nose cone.
         powerOffDrag : int, float, callable, string, array
             Rockets drag coefficient when the motor is off. Can be given as an
             entry to the Function class. See help(Function) for more
