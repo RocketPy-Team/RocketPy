@@ -466,6 +466,24 @@ class Function:
             self.__interpolation__ = 'shepard'
         return self
 
+    def append(self, item):
+        """ Appends item to Function instance source attribute, if source is
+        a list or array.
+
+        Parameters
+        ----------
+        item : list, tuple
+            Corresponds to a coordinate to be added to the list of coordinates
+            which are interpolated to describe the Function.
+        
+        Returns
+        -------
+        self : Function
+            Same Function class instance.
+        """
+        self.source = np.append(self.source, item)
+        return self
+
     # Define all get methods
     def getInputs(self):
         'Return tuple of inputs of the function.'
@@ -3654,7 +3672,8 @@ class Rocket:
         noise : tupple, list, optional
             List in the format (mean, standard deviation, time-correlation).
             The values are used to add noise to the pressure signal which is
-            passed to the trigger function. Default value is (0, 0, 0).
+            passed to the trigger function. Default value is (0, 0, 0). Units
+            are in Pascal.
         
         Returns
         -------
@@ -4560,6 +4579,7 @@ class Flight:
                                         phase.solver.status = 'finished'
                                         # Save parachute event
                                         self.parachuteEvents.append([self.t, parachute])
+        
         self.tFinal = self.t
         if verbose: print('Simulation Completed at Time: {:3.4f} s'.format(self.t))
 
@@ -5067,7 +5087,7 @@ class Flight:
         # Calculate Energies
         # Retrieve variables
         # Geometry
-        b = self.rocket.distanceRocketPropellant
+        b = -self.rocket.distanceRocketPropellant
         # Mass
         totalMass = self.rocket.totalMass
         mu = self.rocket.reducedMass
