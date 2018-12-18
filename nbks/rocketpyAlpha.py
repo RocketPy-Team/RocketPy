@@ -2132,7 +2132,7 @@ class Environment:
                 self.windVelocityY = Function(np.column_stack((h, wy)), 'Height (m)', 'Wind Velocity y (m/s)')
                 self.maxExpectedHeight = windData[-1, 0]
             # Store netCDF input
-            elif windData[-3:] == '.nc':
+            elif windData[-3:] == '.nc' or True:
                 self.windDataSource = 'netCDF'
                 windData = netCDF4.Dataset(windData)
                 self.processNetCDFFile(windData)
