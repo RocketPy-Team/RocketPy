@@ -2117,7 +2117,7 @@ class Environment:
             self.date = datetime(*date)
 
         # Import wind data
-        self.maxExpectedHeight = 1000
+        self.maxExpectedHeight = 10000
         # Process string input
         if isinstance(windData, str):
             # Store CSV input
