@@ -2034,7 +2034,8 @@ class Environment:
                  gravity=9.8,
                  windData=(0, 0),
                  location=None,
-                 date=None):
+                 date=None,
+                 translator='ERA'):
         """Initialize Environment class, process rail, gravity and
         atmospheric data and store the results.
 
@@ -2062,8 +2063,10 @@ class Environment:
             column must contain wind speed data, in m/s, and the third column
             must contain wind direction data, in deg. In the case of the
             netCDF file, it should contain wind velocity data and geopotential
-            data, both for several pressure levels. Default value is (0, 0),
-            corresponding to no wind.
+            data, both for several pressure levels. OPeNDAP is also supported.
+            When either netCDF of OPeNDAP is given, the translator input should
+            also be set approprietly.
+            Default value is (0, 0), corresponding to no wind.
         location : array of float, optional
             Array of length 2, stating (latitude, longitude) of rocket launch
             location. Must be given if wind data source is a netCDF file,
@@ -2072,6 +2075,15 @@ class Environment:
             Array of length 4, stating (year, month, day, hour (UTC)) of
             rocket launch. Must be given if wind data source is a netCDF file,
             other wise it is optional.
+        translator : string, dictionary, optional
+            Translator to be used when reading netCDF and OPeNDAP files,
+            allowing the correct retrieval of data. Acceptable values
+            include 'ERA', 'GFS' and a dictionary in the format of
+            {'time': 'time', 'latitude': 'lat', 'longitude':'lon', 'level': 'lev',
+            'geopotential_height': 'hgtprs', 'u_wind': 'ugrdprs', 'v_wind':
+            'vgrdprs'}, which in fact is the dictionary used when 'GFS' is
+            chosen. Instead of 'geopotential_height', 'geopotential' given
+            in m^2 / s^2 is also supported. Default value is 'ERA'.
 
         Returns
         -------
@@ -2131,15 +2143,12 @@ class Environment:
                 self.windVelocityX = Function(np.column_stack((h, wx)), 'Height (m)', 'Wind Velocity X (m/s)')
                 self.windVelocityY = Function(np.column_stack((h, wy)), 'Height (m)', 'Wind Velocity y (m/s)')
                 self.maxExpectedHeight = windData[-1, 0]
-            # Store netCDF input
-            elif windData[-3:] == '.nc' or True:
+            # Store netCDF or oPeNDAPinput
+            else:
                 self.windDataSource = 'netCDF'
+                self.translator = translator
                 windData = netCDF4.Dataset(windData)
                 self.processNetCDFFile(windData)
-            # Throw error if string input not recognized
-            else:
-                raise TypeError('Only .csv and .nc file formats '
-                                'are supported.')
         # Process array input
         elif isinstance(windData, (tuple, list, np.ndarray)):
             # Process pair array input
@@ -2242,8 +2251,17 @@ class Environment:
 
         # Show plots
         print('\nWind Plots')
-        self.windHeading.plot(0, self.maxExpectedHeight)
         self.windSpeed.plot(0, self.maxExpectedHeight)
+        self.windHeading.plot(0, self.maxExpectedHeight)
+        # plt.figure()
+        # ax = plt.subplot(111, projection='polar')
+        # ax.plot((np.pi/180)*self.windHeading(np.arange(0, self.maxExpectedHeight, 10)), np.arange(0, self.maxExpectedHeight, 10))
+        # ax.set_rmax(self.windHeading[-1, 0])
+        # # ax.set_rticks(self.windHeading[:, 0])  # less radial ticks
+        # # ax.set_rlabel_position(-22.5)  # get radial labels away from plotted line
+        # ax.grid(True)
+        # ax.set_title("Wind Heading", va='bottom')
+        # plt.show()
 
     def processNetCDFFile(self, windData):
         """Process netCDF File and store atmospheric data to be used.
@@ -2263,14 +2281,37 @@ class Environment:
         if self.lat is None:
             raise TypeError('Please specify Location (lat, lon).')
 
+        # Process default translators
+        if self.translator == 'GFS':
+            self.translator = {'time': 'time',
+                           'latitude': 'lat', 
+                          'longitude': 'lon',
+                              'level': 'lev',
+                'geopotential_height': 'hgtprs',
+                             'u_wind': 'ugrdprs',
+                             'v_wind': 'vgrdprs'}
+        elif self.translator == 'ERA':
+            self.translator = {'time': 'time',
+                           'latitude': 'latitude', 
+                          'longitude': 'longitude',
+                              'level': 'level',
+                       'geopotential': 'z',
+                             'u_wind': 'u',
+                             'v_wind': 'v'}
+
         # Get data from file
-        times = windData.variables['time']
-        lons = windData.variables['longitude']
-        lats = windData.variables['latitude']
-        levels = windData.variables['level']
-        geopotentials = windData.variables['z']
-        windUs = windData.variables['u']
-        windVs = windData.variables['v']
+        times = windData.variables[self.translator['time']]
+        lons = windData.variables[self.translator['longitude']]
+        lats = windData.variables[self.translator['latitude']]
+        levels = windData.variables[self.translator['level']]
+        windUs = windData.variables[self.translator['u_wind']]
+        windVs = windData.variables[self.translator['v_wind']]
+        try:
+            geopotentials = windData.variables[self.translator['geopotential_height']]
+            g0 = 1
+        except:
+            g0 = self.g
+            geopotentials = windData.variables[self.translator['geopotential']]
 
         # Find time index
         timeIndex = netCDF4.date2index(self.date, times, select='nearest')
@@ -2303,8 +2344,7 @@ class Environment:
             windV.append(windVs[timeIndex, i, latIndex, lonIndex])
         height = []
         for i in range(len(levels)):
-            height.append(geopotentials[timeIndex, i, latIndex, lonIndex]/self.g)
-
+            height.append(geopotentials[timeIndex, i, latIndex, lonIndex]/g0)
         # Convert wind data into functions
         self.windVelocityX = Function(np.array([height, windU]).T,
                                       'Height (m)', 'Wind Velocity X (m/s)',
@@ -2333,7 +2373,8 @@ class Environment:
         self.levels = levels
         self.times = times
         self.height = height
-        self.maxExpectedHeight = height[0]
+        self.maxExpectedHeight = self.windSpeed[-1, 0]
+        self.windData = windData
 
         return None
 
