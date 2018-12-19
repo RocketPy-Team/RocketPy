@@ -2223,10 +2223,10 @@ class Environment:
         self.windVelocityX.plot(0, self.maxExpectedHeight)
         self.windVelocityY.plot(0, self.maxExpectedHeight)
         print('\n Standard Atmosphere Plots')
-        self.pressure.plot(0, 4000)
-        self.temperature.plot(0, 4000)
-        self.speedOfSound.plot(0, 4000)
-        self.density.plot(0, 4000)
+        self.pressure.plot(0, self.maxExpectedHeight)
+        self.temperature.plot(0, self.maxExpectedHeight)
+        self.speedOfSound.plot(0, self.maxExpectedHeight)
+        self.density.plot(0, self.maxExpectedHeight)
 
     def info(self):
         """Prints most important data and graphs available about the Environment.
