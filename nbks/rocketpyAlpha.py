@@ -20,7 +20,7 @@ import bisect
 try:
     import netCDF4
 except ImportError:
-    print('Unable to load netCDF4. NetCDF files will not be imported.')
+    print('Unable to load netCDF4. NetCDF files and OPeNDAP will not be imported.')
 
 
 class Function:
@@ -2070,11 +2070,15 @@ class Environment:
         location : array of float, optional
             Array of length 2, stating (latitude, longitude) of rocket launch
             location. Must be given if wind data source is a netCDF file,
-            other wise it is optional.
+            or a OPeNDAP file. If not, it is optional. When given, it is used
+            to retrieve weather data from netCDF and OPeNDAP by using bi-linear
+            interpolation of the variables available in the file.
         date : array, optional
             Array of length 4, stating (year, month, day, hour (UTC)) of
             rocket launch. Must be given if wind data source is a netCDF file,
-            other wise it is optional.
+            or a OPeNDAP file. If not, it is optional. When given, it is used
+            to retrieve weather data from netCDF and OPeNDAP by using the
+            nearest time to the specified date available in the file.
         translator : string, dictionary, optional
             Translator to be used when reading netCDF and OPeNDAP files,
             allowing the correct retrieval of data. Acceptable values
@@ -2324,7 +2328,7 @@ class Environment:
             if (lons[i - 1] - lon)*(lon - lons[i]) >= 0:
                 lonIndex = i
         if lonIndex is None:
-            raise ValueError('Longitude not inside region covered by file.')
+            raise ValueError('Longitude {:f} not inside region covered by file, which is from {:f} to {:f}.'.format(lon, lons[0], lons[-1]))
 
         # Find latitude index
         latIndex = None
@@ -2333,18 +2337,58 @@ class Environment:
             if (lats[i - 1] - self.lat)*(self.lat - lats[i]) >= 0:
                 latIndex = i
         if latIndex is None:
-            raise ValueError('Latitude not inside region covered by file.')
+            raise ValueError('Latitude {:f} not inside region covered by file, which is from {:f} to {:f}.'.format(self.lat, lats[0], lats[-1]))
 
         # Determine wind u and v components and height
         windU = []
         for i in range(len(levels)):
-            windU.append(windUs[timeIndex, i, latIndex, lonIndex])
+            # Bilinear interpolation based on https://en.wikipedia.org/wiki/Bilinear_interpolation
+            x, y = self.lat, self.lon%360
+            x1, y1 = lats[latIndex-1], lons[lonIndex-1]
+            x2, y2 = lats[latIndex], lons[lonIndex]
+        
+            f_x1_y1 = windUs[timeIndex, i, latIndex-1, lonIndex-1]
+            f_x1_y2 = windUs[timeIndex, i, latIndex-1, lonIndex]
+            f_x2_y1 = windUs[timeIndex, i, latIndex, lonIndex-1]
+            f_x2_y2 = windUs[timeIndex, i, latIndex, lonIndex]
+
+            f_x_y1 = ((x2 - x)/(x2 - x1))*f_x1_y1 + ((x - x1)/(x2 - x1))*f_x2_y1
+            f_x_y2 = ((x2 - x)/(x2 - x1))*f_x1_y2 + ((x - x1)/(x2 - x1))*f_x2_y2
+            f_x_y = ((y2 - y)/(y2 - y1))*f_x_y1 + ((y - y1)/(y2 - y1))*f_x_y2
+            windU.append(f_x_y)
         windV = []
         for i in range(len(levels)):
-            windV.append(windVs[timeIndex, i, latIndex, lonIndex])
+            # Bilinear interpolation based on https://en.wikipedia.org/wiki/Bilinear_interpolation
+            x, y = self.lat, self.lon%360
+            x1, y1 = lats[latIndex-1], lons[lonIndex-1]
+            x2, y2 = lats[latIndex], lons[lonIndex]
+        
+            f_x1_y1 = windVs[timeIndex, i, latIndex-1, lonIndex-1]
+            f_x1_y2 = windVs[timeIndex, i, latIndex-1, lonIndex]
+            f_x2_y1 = windVs[timeIndex, i, latIndex, lonIndex-1]
+            f_x2_y2 = windVs[timeIndex, i, latIndex, lonIndex]
+
+            f_x_y1 = ((x2 - x)/(x2 - x1))*f_x1_y1 + ((x - x1)/(x2 - x1))*f_x2_y1
+            f_x_y2 = ((x2 - x)/(x2 - x1))*f_x1_y2 + ((x - x1)/(x2 - x1))*f_x2_y2
+            f_x_y = ((y2 - y)/(y2 - y1))*f_x_y1 + ((y - y1)/(y2 - y1))*f_x_y2
+            windV.append(f_x_y)
         height = []
         for i in range(len(levels)):
-            height.append(geopotentials[timeIndex, i, latIndex, lonIndex]/g0)
+            # Bilinear interpolation based on https://en.wikipedia.org/wiki/Bilinear_interpolation
+            x, y = self.lat, self.lon%360
+            x1, y1 = lats[latIndex-1], lons[lonIndex-1]
+            x2, y2 = lats[latIndex], lons[lonIndex]
+        
+            f_x1_y1 = geopotentials[timeIndex, i, latIndex-1, lonIndex-1]/g0
+            f_x1_y2 = geopotentials[timeIndex, i, latIndex-1, lonIndex]/g0
+            f_x2_y1 = geopotentials[timeIndex, i, latIndex, lonIndex-1]/g0
+            f_x2_y2 = geopotentials[timeIndex, i, latIndex, lonIndex]/g0
+
+            f_x_y1 = ((x2 - x)/(x2 - x1))*f_x1_y1 + ((x - x1)/(x2 - x1))*f_x2_y1
+            f_x_y2 = ((x2 - x)/(x2 - x1))*f_x1_y2 + ((x - x1)/(x2 - x1))*f_x2_y2
+            f_x_y = ((y2 - y)/(y2 - y1))*f_x_y1 + ((y - y1)/(y2 - y1))*f_x_y2
+            height.append(f_x_y)
+        
         # Convert wind data into functions
         self.windVelocityX = Function(np.array([height, windU]).T,
                                       'Height (m)', 'Wind Velocity X (m/s)',
@@ -2407,11 +2451,53 @@ class Environment:
         # Determine wind u and v components and height
         windU = []
         for i in range(len(levels)):
-            windU.append(windUs[timeIndex, i, latIndex, lonIndex])
+            # Bilinear interpolation based on https://en.wikipedia.org/wiki/Bilinear_interpolation
+            x, y = self.lat, self.lon%360
+            x1, y1 = lats[latIndex-1], lons[lonIndex-1]
+            x2, y2 = lats[latIndex], lons[lonIndex]
+        
+            f_x1_y1 = windUs[timeIndex, i, latIndex-1, lonIndex-1]
+            f_x1_y2 = windUs[timeIndex, i, latIndex-1, lonIndex]
+            f_x2_y1 = windUs[timeIndex, i, latIndex, lonIndex-1]
+            f_x2_y2 = windUs[timeIndex, i, latIndex, lonIndex]
+
+            f_x_y1 = ((x2 - x)/(x2 - x1))*f_x1_y1 + ((x - x1)/(x2 - x1))*f_x2_y1
+            f_x_y2 = ((x2 - x)/(x2 - x1))*f_x1_y2 + ((x - x1)/(x2 - x1))*f_x2_y2
+            f_x_y = ((y2 - y)/(y2 - y1))*f_x_y1 + ((y - y1)/(y2 - y1))*f_x_y2
+            windU.append(f_x_y)
         windV = []
         for i in range(len(levels)):
-            windV.append(windVs[timeIndex, i, latIndex, lonIndex])
+            # Bilinear interpolation based on https://en.wikipedia.org/wiki/Bilinear_interpolation
+            x, y = self.lat, self.lon%360
+            x1, y1 = lats[latIndex-1], lons[lonIndex-1]
+            x2, y2 = lats[latIndex], lons[lonIndex]
+        
+            f_x1_y1 = windVs[timeIndex, i, latIndex-1, lonIndex-1]
+            f_x1_y2 = windVs[timeIndex, i, latIndex-1, lonIndex]
+            f_x2_y1 = windVs[timeIndex, i, latIndex, lonIndex-1]
+            f_x2_y2 = windVs[timeIndex, i, latIndex, lonIndex]
 
+            f_x_y1 = ((x2 - x)/(x2 - x1))*f_x1_y1 + ((x - x1)/(x2 - x1))*f_x2_y1
+            f_x_y2 = ((x2 - x)/(x2 - x1))*f_x1_y2 + ((x - x1)/(x2 - x1))*f_x2_y2
+            f_x_y = ((y2 - y)/(y2 - y1))*f_x_y1 + ((y - y1)/(y2 - y1))*f_x_y2
+            windV.append(f_x_y)
+        height = []
+        for i in range(len(levels)):
+            # Bilinear interpolation based on https://en.wikipedia.org/wiki/Bilinear_interpolation
+            x, y = self.lat, self.lon%360
+            x1, y1 = lats[latIndex-1], lons[lonIndex-1]
+            x2, y2 = lats[latIndex], lons[lonIndex]
+        
+            f_x1_y1 = geopotentials[timeIndex, i, latIndex-1, lonIndex-1]/g0
+            f_x1_y2 = geopotentials[timeIndex, i, latIndex-1, lonIndex]/g0
+            f_x2_y1 = geopotentials[timeIndex, i, latIndex, lonIndex-1]/g0
+            f_x2_y2 = geopotentials[timeIndex, i, latIndex, lonIndex]/g0
+
+            f_x_y1 = ((x2 - x)/(x2 - x1))*f_x1_y1 + ((x - x1)/(x2 - x1))*f_x2_y1
+            f_x_y2 = ((x2 - x)/(x2 - x1))*f_x1_y2 + ((x - x1)/(x2 - x1))*f_x2_y2
+            f_x_y = ((y2 - y)/(y2 - y1))*f_x_y1 + ((y - y1)/(y2 - y1))*f_x_y2
+            height.append(f_x_y)
+        
         # Convert wind data into functions
         self.windVelocityX = Function(np.array([self.height, windU]).T,
                                       'Height (m)', 'Wind Velocity X (m/s)', extrapolation='constant')
