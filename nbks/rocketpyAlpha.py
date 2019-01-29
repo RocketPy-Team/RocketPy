@@ -16,6 +16,7 @@ import time
 from datetime import datetime
 from inspect import signature, getsourcelines
 import bisect
+import warnings
 
 try:
     import netCDF4
@@ -2320,6 +2321,28 @@ class Environment:
         # Find time index
         timeIndex = netCDF4.date2index(self.date, times, select='nearest')
 
+        # Convert times do dates and numbers
+        inputTimeNum = netCDF4.date2num(self.date, times.units)
+        fileTimeNum = times[timeIndex]
+        fileTimeDate = netCDF4.num2date(times[timeIndex], times.units)
+
+        # Temporary prints
+        # print('Time index: ', timeIndex)
+        # print('Input Num: ', inputTimeNum)
+        # print('Input Date: ', self.date)
+        # print('File Num: ', fileTimeNum)
+        # print('File Date: ', fileTimeDate)
+
+        # Check if time is inside range supplied by file
+        if timeIndex == 0 and inputTimeNum < fileTimeNum:
+            raise ValueError('Chosen launch time is not available in the provided file, which starts at {:%Y-%m-%d %H:%M}.'.format(fileTimeDate))
+        elif timeIndex == len(times) - 1 and inputTimeNum > fileTimeNum:
+            raise ValueError('Chosen launch time is not available in the provided file, which ends at {:%Y-%m-%d %H:%M}.'.format(fileTimeDate))
+        
+        # Check if time is exactly equal to one in the file
+        if inputTimeNum != fileTimeNum:
+            warnings.warn('Exact chosen launch time is not available in the provided file, using {:%Y-%m-%d %H:%M} UTC instead.'.format(fileTimeDate))
+
         # Find longitude index
         lon = self.lon%360
         lonIndex = None
@@ -2447,6 +2470,29 @@ class Environment:
 
         # Find time index
         timeIndex = netCDF4.date2index(self.date, times, select='nearest')
+
+        # Convert times do dates and numbers
+        inputTimeNum = netCDF4.date2num(self.date, times.units)
+        fileTimeNum = times[timeIndex]
+        fileTimeDate = netCDF4.num2date(times[timeIndex], times.units)
+
+        # Temporary prints
+        # print('Time index: ', timeIndex)
+        # print('Input Num: ', inputTimeNum)
+        # print('Input Date: ', self.date)
+        # print('File Num: ', fileTimeNum)
+        # print('File Date: ', fileTimeDate)
+
+        # Check if time is inside range supplied by file
+        if timeIndex == 0 and inputTimeNum < fileTimeNum:
+            raise ValueError('Chosen launch time is not available in the provided file, which starts at {:%Y-%m-%d %H:%M}.'.format(fileTimeDate))
+        elif timeIndex == len(times) - 1 and inputTimeNum > fileTimeNum:
+            raise ValueError('Chosen launch time is not available in the provided file, which ends at {:%Y-%m-%d %H:%M}.'.format(fileTimeDate))
+        
+        # Check if time is exactly equal to one in the file
+        if inputTimeNum != fileTimeNum:
+            warnings.warn('Exact chosen launch time is not available in the provided file, using {:%Y-%m-%d %H:%M} UTC instead.'.format(fileTimeDate))
+
 
         # Determine wind u and v components and height
         windU = []
