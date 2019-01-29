@@ -2073,13 +2073,16 @@ class Environment:
             location. Must be given if wind data source is a netCDF file,
             or a OPeNDAP file. If not, it is optional. When given, it is used
             to retrieve weather data from netCDF and OPeNDAP by using bi-linear
-            interpolation of the variables available in the file.
+            interpolation of the variables available in the file. If the location
+            given is outside of the grid given in the file, an exception is raised.
         date : array, optional
             Array of length 4, stating (year, month, day, hour (UTC)) of
             rocket launch. Must be given if wind data source is a netCDF file,
             or a OPeNDAP file. If not, it is optional. When given, it is used
             to retrieve weather data from netCDF and OPeNDAP by using the
-            nearest time to the specified date available in the file.
+            nearest time to the specified date available in the file. If the date
+            given is outside of the range of dates given in the file, an
+            exception is raised.
         translator : string, dictionary, optional
             Translator to be used when reading netCDF and OPeNDAP files,
             allowing the correct retrieval of data. Acceptable values
