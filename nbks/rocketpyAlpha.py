@@ -2066,7 +2066,9 @@ class Environment:
             netCDF file, it should contain wind velocity data and geopotential
             data, both for several pressure levels. OPeNDAP is also supported.
             When either netCDF of OPeNDAP is given, the translator input should
-            also be set approprietly.
+            also be set appropriately. Furthermore, the latitude and longitude
+            data of the file should be rectangular grided and sorted in either
+            ascending or descending order.
             Default value is (0, 0), corresponding to no wind.
         location : array of float, optional
             Array of length 2, stating (latitude, longitude) of rocket launch
@@ -2309,8 +2311,8 @@ class Environment:
 
         # Get data from file
         times = windData.variables[self.translator['time']]
-        lons = windData.variables[self.translator['longitude']]
-        lats = windData.variables[self.translator['latitude']]
+        lons = windData.variables[self.translator['longitude']][:].tolist()
+        lats = windData.variables[self.translator['latitude']][:].tolist()
         levels = windData.variables[self.translator['level']]
         windUs = windData.variables[self.translator['u_wind']]
         windVs = windData.variables[self.translator['v_wind']]
@@ -2348,22 +2350,47 @@ class Environment:
 
         # Find longitude index
         lon = self.lon%360
-        lonIndex = None
-        for i in range(1, len(lons)):
-            # Determine if longitude is between lons[i - 1] and lons[i]
-            if (lons[i - 1] - lon)*(lon - lons[i]) >= 0:
-                lonIndex = i
-        if lonIndex is None:
+        # Check if reversed or sorted
+        if lons[0] < lons[-1]:
+            # Deal with sorted lons
+            lonIndex = bisect.bisect(lons, lon)
+        else:
+            # Deal with reversed lons
+            lons.reverse()
+            lonIndex = len(lons) - bisect.bisect_left(lons, lon)
+            lons.reverse()
+        # Take care of longitude value equal to maximum longitude in the grid
+        if lonIndex == len(lons) and lons[lonIndex-1] == lon:
+            lonIndex = lonIndex-1
+        # Check if longitude value is inside the grid
+        if lonIndex == 0  or lonIndex == len(lons):
             raise ValueError('Longitude {:f} not inside region covered by file, which is from {:f} to {:f}.'.format(lon, lons[0], lons[-1]))
 
         # Find latitude index
-        latIndex = None
-        for i in range(1, len(lats)):
-            # Determine if longitude is between lons[i - 1] and lons[i]
-            if (lats[i - 1] - self.lat)*(self.lat - lats[i]) >= 0:
-                latIndex = i
-        if latIndex is None:
+        # Check if reversed or sorted
+        if lats[0] < lats[-1]:
+            # Deal with sorted lats
+            latIndex = bisect.bisect(lats, self.lat)
+        else:
+            # Deal with reversed lats
+            lats.reverse()
+            latIndex = len(lats) - bisect.bisect_left(lats, self.lat)
+            lats.reverse()
+        # Take care of latitude value equal to maximum longitude in the grid
+        if latIndex == len(lats) and lats[latIndex-1] == self.lat:
+            latIndex = latIndex-1
+        # Check if latitude value is inside the grid
+        if latIndex == 0  or latIndex == len(lats):
             raise ValueError('Latitude {:f} not inside region covered by file, which is from {:f} to {:f}.'.format(self.lat, lats[0], lats[-1]))
+
+        # print('Longitude: ', lons)
+        # print('Before Lon: ', lons[lonIndex - 1])
+        # print('Input Lon: ', lon)
+        # print('After Lon:', lons[lonIndex])
+        # print('Latitudes: ', lats)
+        # print('Before Lat: ', lats[latIndex - 1])
+        # print('Input Lat: ', self.lat)
+        # print('After Lat:', lats[latIndex])
 
         # Determine wind u and v components and height
         windU = []
