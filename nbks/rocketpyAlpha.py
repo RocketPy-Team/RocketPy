@@ -2077,6 +2077,7 @@ class Environment:
             to retrieve weather data from netCDF and OPeNDAP by using bi-linear
             interpolation of the variables available in the file. If the location
             given is outside of the grid given in the file, an exception is raised.
+            Latitude ranges from -90 to 90 and longitude ranges from -180 to 360.
         date : array, optional
             Array of length 4, stating (year, month, day, hour (UTC)) of
             rocket launch. Must be given if wind data source is a netCDF file,
@@ -2349,7 +2350,13 @@ class Environment:
             warnings.warn('Exact chosen launch time is not available in the provided file, using {:%Y-%m-%d %H:%M} UTC instead.'.format(fileTimeDate))
 
         # Find longitude index
-        lon = self.lon%360
+        # Determine if file uses -180 to 180 or 0 to 360
+        if lons[0] < 0 or lons[-1] < 0:
+            # Convert input to -180 - 180
+            lon = self.lon if self.lon < 180 else -180 + self.lon%180
+        else:
+            # Convert input to 0 - 360
+            lon = self.lon%360
         # Check if reversed or sorted
         if lons[0] < lons[-1]:
             # Deal with sorted lons
