@@ -2580,12 +2580,14 @@ class Environment:
                 attemptCount = 0
                 while not success and attemptCount < 10:
                     timeAttempt -= timedelta(hours=6*attemptCount)
-                    file = 'http://nomads.ncep.noaa.gov:9090/dods/gfs_0p25/gfs{:04d}{:02d}{:02d}/gfs_0p25_{:02d}z'.format(timeAttempt.year, timeAttempt.month, timeAttempt.day, 6*(timeAttempt.hour//6))
+                    file = 'https://nomads.ncep.noaa.gov:9090/dods/gfs_0p25/gfs{:04d}{:02d}{:02d}/gfs_0p25_{:02d}z'.format(timeAttempt.year, timeAttempt.month, timeAttempt.day, 6*(timeAttempt.hour//6))
                     try:
                         self.processForecastReanalysis(file, dictionary)
                         success = True
                     except OSError:
                         attemptCount += 1
+                if not success:
+                    raise RuntimeError('Unable to load latest weather data for GFS through ' + file)
             elif file == 'FV3':
                 # Define dictionary
                 dictionary = {'time': 'time', 'latitude': 'lat', 'longitude': 'lon', 
@@ -2599,12 +2601,14 @@ class Environment:
                 attemptCount = 0
                 while not success and attemptCount < 10:
                     timeAttempt -= timedelta(hours=6*attemptCount)
-                    file = 'http://nomads.ncep.noaa.gov:9090/dods/gfs_0p25_preparafv3/gfs{:04d}{:02d}{:02d}/gfs_0p25_preparafv3_{:02d}z'.format(timeAttempt.year, timeAttempt.month, timeAttempt.day, 6*(timeAttempt.hour//6))
+                    file = 'https://nomads.ncep.noaa.gov:9090/dods/gfs_0p25_preparafv3/gfs{:04d}{:02d}{:02d}/gfs_0p25_preparafv3_{:02d}z'.format(timeAttempt.year, timeAttempt.month, timeAttempt.day, 6*(timeAttempt.hour//6))
                     try:
                         self.processForecastReanalysis(file, dictionary)
                         success = True
                     except OSError:
                         attemptCount += 1
+                if not success:
+                    raise RuntimeError('Unable to load latest weather data for FV3 through ' + file)
             elif file == 'NAM':
                 # Define dictionary
                 dictionary = {'time': 'time', 'latitude': 'lat', 'longitude': 'lon', 
@@ -2618,12 +2622,14 @@ class Environment:
                 attemptCount = 0
                 while not success and attemptCount < 10:
                     timeAttempt -= timedelta(hours=6*attemptCount)
-                    file = 'http://nomads.ncep.noaa.gov:9090/dods/nam/nam{:04d}{:02d}{:02d}/nam_conusnest_{:02d}z'.format(timeAttempt.year, timeAttempt.month, timeAttempt.day, 6*(timeAttempt.hour//6))
+                    file = 'https://nomads.ncep.noaa.gov:9090/dods/nam/nam{:04d}{:02d}{:02d}/nam_conusnest_{:02d}z'.format(timeAttempt.year, timeAttempt.month, timeAttempt.day, 6*(timeAttempt.hour//6))
                     try:
                         self.processForecastReanalysis(file, dictionary)
                         success = True
                     except OSError:
                         attemptCount += 1
+                if not success:
+                    raise RuntimeError('Unable to load latest weather data for NAM through ' + file)
             elif file == 'RAP':
                 # Define dictionary
                 dictionary = {'time': 'time', 'latitude': 'lat', 'longitude': 'lon', 
@@ -2637,12 +2643,14 @@ class Environment:
                 attemptCount = 0
                 while not success and attemptCount < 10:
                     timeAttempt -= timedelta(hours=1*attemptCount)
-                    file = 'http://nomads.ncep.noaa.gov:9090/dods/rap/rap{:04d}{:02d}{:02d}/rap_{:02d}z'.format(timeAttempt.year, timeAttempt.month, timeAttempt.day, timeAttempt.hour)
+                    file = 'https://nomads.ncep.noaa.gov:9090/dods/rap/rap{:04d}{:02d}{:02d}/rap_{:02d}z'.format(timeAttempt.year, timeAttempt.month, timeAttempt.day, timeAttempt.hour)
                     try:
                         self.processForecastReanalysis(file, dictionary)
                         success = True
                     except OSError:
                         attemptCount += 1
+                if not success:
+                    raise RuntimeError('Unable to load latest weather data for RAP through ' + file)
             # Process other forecasts or reanalysis
             else:
                 # Check if default dictionary was requested
@@ -2678,12 +2686,14 @@ class Environment:
                 attemptCount = 0
                 while not success and attemptCount < 10:
                     timeAttempt -= timedelta(hours=6*attemptCount)
-                    file = 'http://nomads.ncep.noaa.gov:9090/dods/gens_bc/gens{:04d}{:02d}{:02d}/gep_all_{:02d}z'.format(timeAttempt.year, timeAttempt.month, timeAttempt.day, 6*(timeAttempt.hour//6))
+                    file = 'https://nomads.ncep.noaa.gov:9090/dods/gens_bc/gens{:04d}{:02d}{:02d}/gep_all_{:02d}z'.format(timeAttempt.year, timeAttempt.month, timeAttempt.day, 6*(timeAttempt.hour//6))
                     try:
                         self.processEnsemble(file, dictionary)
                         success = True
                     except OSError:
                         attemptCount += 1
+                if not success:
+                    raise RuntimeError('Unable to load latest weather data for GEFS through ' + file)
             elif file == 'CMC':
                 # Define dictionary
                 dictionary = {'time': 'time', 'latitude': 'lat', 'longitude': 'lon', 
@@ -2697,12 +2707,14 @@ class Environment:
                 attemptCount = 0
                 while not success and attemptCount < 10:
                     timeAttempt -= timedelta(hours=12*attemptCount)
-                    file = 'http://nomads.ncep.noaa.gov:9090/dods/cmcens/cmcens{:04d}{:02d}{:02d}/cmcens_all_{:02d}z'.format(timeAttempt.year, timeAttempt.month, timeAttempt.day, 12*(timeAttempt.hour//12))
+                    file = 'https://nomads.ncep.noaa.gov:9090/dods/cmcens/cmcens{:04d}{:02d}{:02d}/cmcens_all_{:02d}z'.format(timeAttempt.year, timeAttempt.month, timeAttempt.day, 12*(timeAttempt.hour//12))
                     try:
                         self.processEnsemble(file, dictionary)
                         success = True
                     except OSError:
                         attemptCount += 1
+                if not success:
+                    raise RuntimeError('Unable to load latest weather data for CMC through ' + file)
             # Process other forecasts or reanalysis
             else:
                 # Check if default dictionary was requested
@@ -3423,7 +3435,7 @@ class Environment:
         
         # Read weather file
         weatherData = netCDF4.Dataset(file)
-
+        
         # Get time, latitude and longitude data from file
         timeArray = weatherData.variables[dictionary['time']]
         lonArray = weatherData.variables[dictionary['longitude']][:].tolist()
