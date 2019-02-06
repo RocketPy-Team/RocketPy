@@ -2008,7 +2008,11 @@ class Environment:
             Air density in kg/m³ as a function of altitude.
             Can be accessed as regular array, or called
             as a function. See Function for more information.
-        
+        Environment.dynamicViscosity : Function
+            Air dynamic viscosity in Pa s as a function of altitude.
+            Can be accessed as regular array, or called
+            as a function. See Function for more information.
+
         Atmosphere Wind Conditions: 
         Environment.windSpeed : Function
             Wind speed in m/s as a function of altitude.
@@ -2253,12 +2257,9 @@ class Environment:
         
         # Update atmospheric conditions if atmosphere type is Forecast,
         # Reanalysis or Ensemble
-        if self.atmosphericModelType in ['Forecast', 'Reanalysis']:
-            self.processForecastReanalysis(self.atmosphericModelFile,
-                                           self.atmosphericModelDict)
-        elif self.atmosphericModelType == 'Ensemble':
-            self.processEnsemble(self.atmosphericModelFile,
-                                 self.atmosphericModelDict)
+        if self.atmosphericModelType in ['Forecast', 'Reanalysis', 'Ensemble']:
+            self.setAtmosphericModel(self.atmosphericModelFile,
+                                     self.atmosphericModelDict)
         
         return None
 
@@ -2285,12 +2286,9 @@ class Environment:
 
         # Update atmospheric conditions if atmosphere type is Forecast,
         # Reanalysis or Ensemble
-        if self.atmosphericModelType in ['Forecast', 'Reanalysis']:
-            self.processForecastReanalysis(self.atmosphericModelFile,
-                                           self.atmosphericModelDict)
-        elif self.atmosphericModelType == 'Ensemble':
-            self.processEnsemble(self.atmosphericModelFile,
-                                 self.atmosphericModelDict)
+        if self.atmosphericModelType in ['Forecast', 'Reanalysis', 'Ensemble']:
+            self.setAtmosphericModel(self.atmosphericModelFile,
+                                     self.atmosphericModelDict)
         
         # Return None
 
@@ -2745,6 +2743,9 @@ class Environment:
 
         # Calculate speed of sound
         self.calculateSpeedOfSoundProfile()
+
+        # Update dynamic viscosity
+        self.calculateDynamicViscosity()
 
         return None
 
@@ -3313,8 +3314,13 @@ class Environment:
         height = R * height / (R - height)
 
         # Combine all data into big array
-        data_array = np.column_stack([levels, height, temperature, windU, windV, windHeading, windDirection, windSpeed])
+        data_array = np.ma.column_stack([levels, height, temperature, windU, windV, windHeading, windDirection, windSpeed])
 
+        # Remove lines with masked content
+        if np.any(data_array.mask):
+            data_array = np.ma.compress_rows(data_array)
+            warnings.warn('Some values were missing from this weather dataset, therefore, certain pressure levels were removed.')
+        
         # Save atmospheric data
         self.pressure = Function(data_array[:, (1, 0)], inputs='Height Above Sea Level (m)', outputs='Pressure (Pa)', interpolation='linear')
         self.temperature = Function(data_array[:, (1, 2)], inputs='Height Above Sea Level (m)', outputs='Temperature (K)', interpolation='linear')
@@ -3680,8 +3686,13 @@ class Environment:
         windSpeed = self.windSpeedEnsemble[member, :]
 
         # Combine all data into big array
-        data_array = np.column_stack([levels, height, temperature, windU, windV, windHeading, windDirection, windSpeed])
+        data_array = np.ma.column_stack([levels, height, temperature, windU, windV, windHeading, windDirection, windSpeed])
 
+        # Remove lines with masked content
+        if np.any(data_array.mask):
+            data_array = np.ma.compress_rows(data_array)
+            warnings.warn('Some values were missing from this weather dataset, therefore, certain pressure levels were removed.')
+        
         # Save atmospheric data
         self.pressure = Function(data_array[:, (1, 0)], inputs='Height Above Sea Level (m)', outputs='Pressure (Pa)', interpolation='linear')
         self.temperature = Function(data_array[:, (1, 2)], inputs='Height Above Sea Level (m)', outputs='Temperature (K)', interpolation='linear')
@@ -3696,6 +3707,15 @@ class Environment:
 
         # Save ensemble member
         self.ensembleMember = member
+
+        # Update air density
+        self.calculateDensityProfile()
+
+        # Update speed of sound
+        self.calculateSpeedOfSoundProfile()
+
+        # Update dynamic viscosity
+        self.calculateDynamicViscosity()
 
         return None
 
@@ -3825,6 +3845,35 @@ class Environment:
 
         return None
     
+    def calculateDynamicViscosity(self):
+        """ Compute the dynamic viscosity of the atmosphere as a function of
+        heigth by using the formula given in ISO 2533 u = B*T^(1.5)/(T+S).
+        This function is automatically called whenever a new atmospheric model is set.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None       
+        """
+        # Retrieve temperature T and set constants
+        T = self.temperature
+        B = 1.458e-6 # Kg/m/s/K^0.5
+        S = 110.4 # K
+        
+        # Compute dynamic viscosity using u = B*T^(1.4)/(T+S) (See ISO2533)
+        u = (B * T**(1.5)) / (T + S)
+
+        # Set new output for the calculated density
+        u.setOutputs('Dynamic Viscosity (Pa s)')
+
+        # Save calculated density
+        self.dynamicViscosity = u
+
+        return None
+
     def addWindGust(self, windGustX, windGustY):
         """ Adds a function to the current stored wind profile, in order to
         simulate a wind gust.
