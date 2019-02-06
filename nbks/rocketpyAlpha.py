@@ -2664,6 +2664,8 @@ class Environment:
                                 'surface_geopotential_height': 'hgtsfc',
                                 'geopotential_height': 'hgtprs', 'geopotential': None,
                                 'u_wind': 'ugrdprs', 'v_wind': 'vgrdprs'}
+                else:
+                    raise TypeError('Please specify a dictionary or choose a default one such as ECMWF or NOAA.')
                 # Process forecast or reanalysis
                 self.processForecastReanalysis(file, dictionary)  
             # Save dicitonary and file
