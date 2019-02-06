@@ -3233,7 +3233,7 @@ class Environment:
 
         # Get pressure level data from file
         try:
-            levels = weatherData.variables[dictionary['level']][:]
+            levels = 100*weatherData.variables[dictionary['level']][:] # Convert mbar to Pa
         except:
             raise ValueError('Unable to read pressure levels from file. Check file and dictionary.')
         
@@ -3513,7 +3513,7 @@ class Environment:
         
         # Get pressure level data from file
         try:
-            levels = weatherData.variables[dictionary['level']][:]
+            levels = 100*weatherData.variables[dictionary['level']][:] # Convert mbar to Pa
         except:
             raise ValueError('Unable to read pressure levels from file. Check file and dictionary.')
         
