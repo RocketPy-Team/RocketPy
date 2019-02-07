@@ -3,9 +3,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# C extensions
-*.so
-
 # Distribution / packaging
 .Python
 build/
@@ -110,10 +107,22 @@ venv.bak/
 .dmypy.json
 dmypy.json
 
-# weather
-*.nc
+# big weather
+CuritibaRioSaoPauloEnsemble_2018_ERA-5.nc
+CuritibaRioSaoPaulo_2018_ERA-5.nc
+CuritibaRioSaoPaulo_2017_ERA-5.nc
+CuritibaRioSaoPaulo_2016_ERA-5.nc
+CuritibaRioSaoPaulo_2015_ERA-5.nc
+fetchCuritibaRioSaoPaulo.py
+fetchCuritibaRioSaoPauloEnsemble.py
 
 # docs
 *.docx
 *.pdf
-.vscode/settings.json
+
+# VS Code
+.vscode/
+
+# Tests
+naboI/
+
