@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="rocketpyalpha", 
-    version="0.9.0",
+    version="0.9.1",
     author="Giovani Hidalgo Ceotto",
     author_email="ghceotto@gmail.com",
     description="Advanced 6-DOF trajectory simulation for High-Power Rocketry.",
