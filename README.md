@@ -9,7 +9,7 @@ Then, you can read the *Getting Started* section to get your own copy!
 
 ## Getting Started
 
-These instructions will get you a copy of RocketPy up and running on your local machine for development and testing purposes.
+These instructions will get you a copy of RocketPy up and running on your local machine.
 
 ### Prerequisites
 
@@ -43,9 +43,15 @@ Although [Jupyter Notebooks](http://jupyter.org/) are by no means required to ru
 $ pip install jupyter
 ```
 
-### Downloading
+### Installation
 
-To get a copy of RocketPy, you currently have two options:
+To get a copy of RocketPy, just run:
+
+```
+$ pip install "rocketpyalpha"
+```
+
+Alternatively, you may want to downloaded from sorce:
 
 - Download it from [RocketPy's GitHub](https://github.com/giovaniceotto/RocketPy) page
     - Unzip the folder and you are ready to go
@@ -57,29 +63,35 @@ The repository comes with the following content:
 - Files
   - README.md
   - LICENSE.md
+  - setup.py
 - Folders
+  - rocketpyalpha - Python Library
   - data - Input data for the simulation, such as motor thrust curves and wind profiles.
   - disp - Example of dispersion analysis, but needs to be refined.
   - docs - Documentation available about the physics models used.
   - nbks - Main python library, some example notebooks and other random files which will soon be cleaned up.
 
-The main Python library is kept under the **_nkbs_** folder and is currently named **_rocketpyAlpha.py_**. Keep in mind that the files are still being organized for a proper release.
+The RockeyPy library can then be installed by running:
+
+```
+$ python setup.py install 
+```
 
 ### Running Your First Simulation
 
-In order to run your first rocket trajectory simulation using RocketPy, you can start a Jupyter Notebook and navigate to the **_nbks_** folder. Open **_Calisto.ipynb_** and you are ready to go.
+In order to run your first rocket trajectory simulation using RocketPy, you can start a Jupyter Notebook and navigate to the **_nbks_** folder. Open **_Getting Started - Examples.ipynb_** and you are ready to go.
 
 Otherwise, you may want to create your own script or your own notebook using RocketPy. To do this, let's see how to use RocketPy's four main classes:
 
 - Environment - Keeps data related to weather.
-- Motor - Keeps data related to solid motors.
+- SolidMotor - Keeps data related to solid motors. Hybrid motor suport is coming in the next weeks.
 - Rocket - Keeps data related to a rocket.
-- Flight - Runs the simulation and process the results.
+- Flight - Runs the simulation and keeps the results.
 
 A typical workflow starts with importing these classes from RocketPy:
 
 ```python
-from rocketpyAlpha import *
+from rocketpyalpha import Environment, Rocket, SolidMotor, Flight
 ```
 
 Then create an Environment object. To learn more about it, you can use:
@@ -91,37 +103,42 @@ help(Environment)
 A sample code is:
 
 ```python
-Env = Environment(railLength=5.2
-                  latitude=32.990254
-                  longitude=-106.974998,
-                  elevation=1400,
-                  date=(2018, 6, 20, 18))
+Env = Environment(
+    railLength=5.2,
+    latitude=32.990254,
+    longitude=-106.974998,
+    elevation=1400,
+    date=(2020, 3, 4, 12) # Tomorrow's date in year, month, day, hour UTC format
+) 
 
-Env.setAtmosphericModel(type='Reanalysis', file='../data/weather/SpaceportAmerica2018.nc')
+Env.setAtmosphericModel(type='Forecast', file='GFS')
 ```
 
-This can be followed up by starting a Motor object. To get help on it, just use:
+This can be followed up by starting a Solid Motor object. To get help on it, just use:
 
 ```python
-help(Motor)
+help(SolidMotor)
 ```
 
 A sample Motor object can be created by the following code:
 
 ```python
-Cesaroni_M1670 = Motor(thrustSource="../data/motors/Cesaroni_M1670.eng",
-                       burnOut=3.9,
-                       grainNumber=5,
-                       grainSeparation=5/1000,
-                       grainDensity=1815,
-                       grainOuterRadius=33/1000,
-                       grainInitialInnerRadius=15/1000,
-                       grainInitialHeight=120/1000,
-                       nozzleRadius=33/1000,
-                       throatRadius=11/1000)
+Pro75M1670 = SolidMotor(
+    thrustSource="../data/motors/Cesaroni_M1670.eng",
+    burnOut=3.9,
+    grainNumber=5,
+    grainSeparation=5/1000,
+    grainDensity=1815,
+    grainOuterRadius=33/1000,
+    grainInitialInnerRadius=15/1000,
+    grainInitialHeight=120/1000,
+    nozzleRadius=33/1000,
+    throatRadius=11/1000,
+    interpolationMethod='linear'
+)
 ```
 
-With a Motor defined, you are ready to create your Rocket object. As you may have guessed, to get help on it, use:
+With a Solid Motor defined, you are ready to create your Rocket object. As you may have guessed, to get help on it, use:
 
 ```python
 help(Rocket)
@@ -130,33 +147,49 @@ help(Rocket)
 A sample code to create a Rocket is:
 
 ```python
-Calisto = Rocket(motor=Cesaroni_M1670,
-                 radius=127/2000,
-                 mass=19.197-2.956,
-                 inertiaI=6.60,
-                 inertiaZ=0.0351,
-                 distanceRocketNozzle=1.255,
-                 distanceRocketPropellant=0.85704,
-                 powerOffDrag='../data/calisto/powerOffDragCurve.csv',
-                 powerOnDrag='../data/calisto/powerOnDragCurve.csv')
+Calisto = Rocket(
+    motor=Pro75M1670,
+    radius=127/2000,
+    mass=19.197-2.956,
+    inertiaI=6.60,
+    inertiaZ=0.0351,
+    distanceRocketNozzle=-1.255,
+    distanceRocketPropellant=-0.85704,
+    powerOffDrag='../data/calisto/powerOffDragCurve.csv',
+    powerOnDrag='../data/calisto/powerOnDragCurve.csv'
+)
 
-Calisto.addNose(length=0.55829, kind="vonKarman", distanceToCM=0.71971)
+Calisto.setRailButtons([0.2, -0.5])
 
-Calisto.addFins(4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.049)
+NoseCone = Calisto.addNose(length=0.55829, kind="vonKarman", distanceToCM=0.71971)
 
-Calisto.addTail(topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194)
+FinSet = Calisto.addFins(4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956)
 
-Calisto.addParachute('Drogue',
-                     CdS=1.0,
-                     trigger=lambda p, y: return y[5] < 0,
-                     samplingRate=1,
-                     lag=1.5)
+Tail = Calisto.addTail(topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656)
+```
 
-Calisto.addParachute('Main',
-                     CdS=10.0,
-                     trigger=lambda p, y: return (y[2] < 500 and y[5] < 0), 
-                     samplingRate=1,
-                     lag=1.5)
+You may want to add parachutes to your rocket as well:
+
+```python
+def drogueTrigger(p, y):
+    return True if y[5] < 0 else False
+
+def mainTrigger(p, y):
+    return True if y[5] < 0 and y[2] < 800 else False
+
+Main = Calisto.addParachute('Main',
+                            CdS=10.0,
+                            trigger=mainTrigger, 
+                            samplingRate=105,
+                            lag=1.5,
+                            noise=(0, 8.3, 0.5))
+
+Drogue = Calisto.addParachute('Drogue',
+                              CdS=1.0,
+                              trigger=drogueTrigger, 
+                              samplingRate=105,
+                              lag=1.5,
+                              noise=(0, 8.3, 0.5))
 ```
 
 Finally, you can create a Flight object to simulate your trajectory. To get help on the Flight class, use:
@@ -180,65 +213,6 @@ TestFlight.info()
 To seel all available results, use:
 
 ```python
-TestFlight.allInfo()
-```
-
-To summarize, the complete code would be:
-
-```python
-from rocketpyAlpha import *
-
-Env = Environment(railLength=5.2
-                  latitude=32.990254
-                  longitude=-106.974998,
-                  elevation=1400,
-                  date=(2018, 6, 20, 18))
-
-Env.setAtmosphericModel(type='Reanalysis', file='../data/weather/SpaceportAmerica2018.nc')
-
-Cesaroni_M1670 = Motor(thrustSource="../data/motors/Cesaroni_M1670.eng",
-                       burnOut=3.9,
-                       grainNumber=5,
-                       grainSeparation=5/1000,
-                       grainDensity=1815,
-                       grainOuterRadius=33/1000,
-                       grainInitialInnerRadius=15/1000,
-                       grainInitialHeight=120/1000,
-                       nozzleRadius=33/1000,
-                       throatRadius=11/1000)
-
-Calisto = Rocket(motor=Cesaroni_M1670,
-                 radius=127/2000,
-                 mass=19.197-2.956,
-                 inertiaI=6.60,
-                 inertiaZ=0.0351,
-                 distanceRocketNozzle=1.255,
-                 distanceRocketPropellant=0.85704,
-                 powerOffDrag='../data/calisto/powerOffDragCurve.csv',
-                 powerOnDrag='../data/calisto/powerOnDragCurve.csv')
-
-Calisto.addNose(length=0.55829, kind="vonKarman", distanceToCM=0.71971)
-
-Calisto.addFins(4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.049)
-
-Calisto.addTail(topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194)
-
-Calisto.addParachute('Drogue',
-                     CdS=1.0,
-                     trigger=lambda p, y: return y[5] < 0,
-                     samplingRate=1,
-                     lag=1.5)
-
-Calisto.addParachute('Main',
-                     CdS=10.0,
-                     trigger=lambda p, y: return (y[2] < 500 and y[5] < 0), 
-                     samplingRate=1,
-                     lag=1.5)
-
-TestFlight = Flight(rocket=Calisto, environment=Env, inclination=85, heading=0)
-
-TestFlight.info()
-
 TestFlight.allInfo()
 ```
 
