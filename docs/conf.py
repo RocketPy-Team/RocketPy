@@ -22,11 +22,11 @@ copyright = '2020, Projeto Jupiter'
 author = 'Giovani Hdalgo Ceotto'
 
 # The full version, including alpha/beta/rc tags
-release = '0.9'
+release = '0.9.2'
 
 
 # -- General configuration ---------------------------------------------------
-
+master_doc = 'index'
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
