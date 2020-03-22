@@ -32,8 +32,8 @@ class Environment:
     """Keeps all environment information stored, such as wind and temperature
     conditions, as well as gravity and rail length.
     
-    Class attributes
-    ----------------
+    Attributes
+    ----------
     
         Constants
         Environment.earthRadius : float

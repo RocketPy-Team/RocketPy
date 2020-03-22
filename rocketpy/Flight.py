@@ -26,8 +26,8 @@ from .Function import Function
 class Flight:
     """Keeps all flight information and has a method to simulate flight.
     
-    Class attributes
-    ----------------
+    Attributes
+    ----------
         Other classes:
         Flight.env : Environment
             Environment object describing rail length, gravity and

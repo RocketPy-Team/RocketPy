@@ -27,8 +27,8 @@ class SolidMotor:
     """Class to specify characteriscts and useful operations for solid
     motors.
     
-    Class attributes
-    ----------------
+    Attributes
+    ----------
     
         Geometrical attributes:
         Motor.nozzleRadius : float

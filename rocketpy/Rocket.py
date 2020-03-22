@@ -27,8 +27,8 @@ class Rocket:
 
     """Keeps all rocket and parachute information.
 
-    Class attributes
-    ----------------
+    Attributes
+    ----------
         Geometrical attributes:
         Rocket.radius : float
             Rocket's largest radius in meters.
