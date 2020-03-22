@@ -1,3 +1,10 @@
+.. image:: https://mybinder.org/badge_logo.svg
+ :target: https://mybinder.org/v2/gh/giovaniceotto/RocketPy/master?filepath=docs%2Fnotebooks%2Fgetting_started.ipynb
+ 
+.. image:: https://readthedocs.org/projects/rocketpyalpha/badge/?version=latest
+:target: https://rocketpyalpha.readthedocs.io/en/latest/?badge=latest
+:alt: Documentation Status
+
 RocketPy
 ========
 
