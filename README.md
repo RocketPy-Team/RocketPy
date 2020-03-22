@@ -3,7 +3,7 @@ RocketPy is a trajectory simulation for High-Power Rocketry built by [Projeto Ju
 
 ## Previewing
 
-You can preview RocketPy's main functionalities by browsing through a [sample notebook](https://mybinder.org/v2/gh/giovaniceotto/RocketPy/master?filepath=nbks%2FCalisto.ipynb)!
+You can preview RocketPy's main functionalities by browsing through a [sample notebook](https://mybinder.org/v2/gh/giovaniceotto/RocketPy/master?filepath=docs%2notebooks%2Fgetting_started.ipynb)!
 
 Then, you can read the *Getting Started* section to get your own copy!
 
@@ -91,7 +91,7 @@ Otherwise, you may want to create your own script or your own notebook using Roc
 A typical workflow starts with importing these classes from RocketPy:
 
 ```python
-from rocketpyalpha import Environment, Rocket, SolidMotor, Flight
+from rocketpy import Environment, Rocket, SolidMotor, Flight
 ```
 
 Then create an Environment object. To learn more about it, you can use:
