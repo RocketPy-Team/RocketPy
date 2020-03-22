@@ -2,4 +2,4 @@ rocketpyalpha
 numpy>=1.0
 scipy>=1.0
 matplotlib>=3.0
-netCDF4>=3.0
+netCDF4>=1.4
