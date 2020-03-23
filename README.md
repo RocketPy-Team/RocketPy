@@ -22,9 +22,19 @@ The following is needed in order to run RocketPy:
  - Numpy >= 1.0
  - Scipy >= 1.0
  - Matplotlib >= 3.0
+ - requests
  - netCDF4 >= 1.4 (optional, requires Cython)
  
-The first 4 prerequisites come with Anaconda, but Scipy might need updating. The nedCDF4 package can be installed if there is interest in importing weather data from netCDF files. To update Scipy and install netCDF4 using Conda, the following code is used:
+All of these packages, with the exception of netCDF4, should be automatically
+installed when RocketPy is installed using either pip or conda.
+
+However, in case the user wants to install these packages manually, they can do
+so by following the instructions bellow:
+
+The first 4 prerequisites come with Anaconda, but Scipy might need
+updating. The nedCDF4 package can be installed if there is interest in
+importing weather data from netCDF files. To update Scipy and install
+netCDF4 using Conda, the following code is used:
 
 ```
 $ conda install "scipy>=1.0"
@@ -38,6 +48,7 @@ $ pip install "numpy>=1.0"
 $ pip install "scipy>=1.0"
 $ pip install "matplotlib>=3.0"
 $ pip install "netCDF4>=1.4"
+$ pip install "requests"
 ```
 
 Although [Jupyter Notebooks](http://jupyter.org/) are by no means required to run RocketPy, they are strongly recommend. They already come with Anaconda builds, but can also be installed separately using pip:
@@ -48,37 +59,34 @@ $ pip install jupyter
 
 ### Installation
 
-To get a copy of RocketPy, just run:
+To get a copy of RocketPy using pip, just run:
 
 ```
-$ pip install "rocketpyalpha"
+$ pip install rocketpyalpha
 ```
 
-Alternatively, you may want to downloaded from sorce:
+Alternatively, the package can also be installed using conda:
 
-- Download it from [RocketPy's GitHub](https://github.com/giovaniceotto/RocketPy) page
+```
+$ conda install -c giovani.ceotto rocketpy
+```
+
+If you want to downloaded it from source, you may do so either by:
+
+- Downloading it from [RocketPy's GitHub](https://github.com/giovaniceotto/RocketPy) page
     - Unzip the folder and you are ready to go
-- Or clone it to a desired directory using git:
+- Or cloning it to a desired directory using git:
     - ```$ git clone https://github.com/giovaniceotto/RocketPy.git```
-
-The repository comes with the following content:
-
-- Files
-  - README.md
-  - LICENSE.md
-  - setup.py
-- Folders
-  - rocketpyalpha - Python Library
-  - data - Input data for the simulation, such as motor thrust curves and wind profiles.
-  - disp - Example of dispersion analysis, but needs to be refined.
-  - docs - Documentation available about the physics models used.
-  - nbks - Main python library, some example notebooks and other random files which will soon be cleaned up.
 
 The RockeyPy library can then be installed by running:
 
 ```
 $ python setup.py install 
 ```
+
+### Documentations
+
+You can find RocketPy's documentation at [Read the Docs](https://rocketpyalpha.readthedocs.io/en/latest/).
 
 ### Running Your First Simulation
 
