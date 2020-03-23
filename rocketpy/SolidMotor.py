@@ -5,7 +5,6 @@ __copyright__ = "Copyright 20XX, Projeto Jupiter"
 __license__ = "MIT"
 
 import re
-import requests
 import math
 import bisect
 import warnings

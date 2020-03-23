@@ -5,7 +5,6 @@ __copyright__ = "Copyright 20XX, Projeto Jupiter"
 __license__ = "MIT"
 
 import re
-import requests
 import math
 import bisect
 import warnings
@@ -20,6 +19,7 @@ from scipy import linalg
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
+import requests
 
 try:
     import netCDF4

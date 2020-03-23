@@ -15,13 +15,12 @@ __author__ = "Giovani Hidalgo Ceotto"
 __copyright__ = "Copyright 20XX, Projeto Jupiter"
 __credits__ = ["Matheus Marques Araujo", "Rodrigo Schmitt", "Guilherme Tavares"]
 __license__ = "MIT"
-__version__ = "0.9.2"
+__version__ = "0.9.3"
 __maintainer__ = "Giovani Hidalgo Ceotto"
 __email__ = "ghceotto@gmail.com"
 __status__ = "Production"
 
 import re
-import requests
 import math
 import bisect
 import warnings

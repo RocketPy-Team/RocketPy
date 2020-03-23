@@ -5,11 +5,12 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="rocketpyalpha", 
-    version="0.9.2",
+    version="0.9.3",
     install_requires = [
         'numpy>=1.0',
         'scipy>=1.0',
-        'matplotlib>=3.0'
+        'matplotlib>=3.0',
+        'requests'
     ],
     author="Giovani Hidalgo Ceotto",
     author_email="ghceotto@gmail.com",
