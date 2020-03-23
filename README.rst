@@ -24,7 +24,7 @@ Previewing
 
 You can preview RocketPy's main functionalities by browsing through a
 `sample
-notebook <https://mybinder.org/v2/gh/giovaniceotto/RocketPy/master?filepath=docs%2notebooks%2Fgetting_started.ipynb>`__!
+notebook <https://mybinder.org/v2/gh/giovaniceotto/RocketPy/master?filepath=docs%2Fnotebooks%2Fgetting_started.ipynb>`__!
 
 Then, you can read the *Getting Started* section to get your own copy!
 
