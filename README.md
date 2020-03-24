@@ -69,7 +69,7 @@ $ pip install rocketpyalpha
 Alternatively, the package can also be installed using conda:
 
 ```
-$ conda install -c giovani.ceotto rocketpy
+$ conda install -c conda-forge rocketpy
 ```
 
 If you want to downloaded it from source, you may do so either by:
