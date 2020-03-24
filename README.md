@@ -1,4 +1,5 @@
 [![Documentation Status](https://readthedocs.org/projects/rocketpyalpha/badge/?version=latest)](https://rocketpyalpha.readthedocs.io/en/latest/?badge=latest)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/giovaniceotto/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/giovaniceotto/RocketPy/master?filepath=docs%2Fnotebooks%2Fgetting_started.ipynb)
 
 # RocketPy
@@ -6,7 +7,7 @@ RocketPy is a trajectory simulation for High-Power Rocketry built by [Projeto Ju
 
 ## Previewing
 
-You can preview RocketPy's main functionalities by browsing through a [sample notebook](https://mybinder.org/v2/gh/giovaniceotto/RocketPy/master?filepath=docs%2Fnotebooks%2Fgetting_started.ipynb)!
+You can preview RocketPy's main functionalities by browsing through a sample notebook either in [Google Colab](https://colab.research.google.com/github/giovaniceotto/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb) or in [MyBinder](https://mybinder.org/v2/gh/giovaniceotto/RocketPy/master?filepath=docs%2Fnotebooks%2Fgetting_started.ipynb)!
 
 Then, you can read the *Getting Started* section to get your own copy!
 
