@@ -1,9 +1,12 @@
-.. image:: https://mybinder.org/badge_logo.svg
- :target: https://mybinder.org/v2/gh/giovaniceotto/RocketPy/master?filepath=docs%2Fnotebooks%2Fgetting_started.ipynb
- 
 .. image:: https://readthedocs.org/projects/rocketpyalpha/badge/?version=latest
  :target: https://rocketpyalpha.readthedocs.io/en/latest/?badge=latest
  :alt: Documentation Status
+
+.. image:: https://colab.research.google.com/assets/colab-badge.svg
+ :target: https://colab.research.google.com/github/giovaniceotto/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb
+
+.. image:: https://mybinder.org/badge_logo.svg
+ :target: https://mybinder.org/v2/gh/giovaniceotto/RocketPy/master?filepath=docs%2Fnotebooks%2Fgetting_started.ipynb
 
 RocketPy
 ========
@@ -22,9 +25,7 @@ optimization and dispersion analysis.
 Previewing
 ----------
 
-You can preview RocketPy's main functionalities by browsing through a
-`sample
-notebook <https://mybinder.org/v2/gh/giovaniceotto/RocketPy/master?filepath=docs%2Fnotebooks%2Fgetting_started.ipynb>`__!
+You can preview RocketPy's main functionalities by browsing through a sample notebook either in `Google Colab <https://colab.research.google.com/github/giovaniceotto/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb>`__ or in `MyBinder <https://mybinder.org/v2/gh/giovaniceotto/RocketPy/master?filepath=docs%2Fnotebooks%2Fgetting_started.ipynb>`__!
 
 Then, you can read the *Getting Started* section to get your own copy!
 
@@ -116,7 +117,7 @@ The RockeyPy library can then be installed by running:
 Documentation
 ~~~~~~~~~~~~~
 
-You can find RocketPy's documentation at `Read the Docs<https://rocketpyalpha.readthedocs.io/en/latest/>`.
+You can find RocketPy's documentation at `Read the Docs<https://rocketpyalpha.readthedocs.io/en/latest/>`__.
 
 Running Your First Simulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
