@@ -1,11 +1,11 @@
 import setuptools
 
-with open("README.md", "r") as fh:
+with open("README.rst", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="rocketpyalpha", 
-    version="0.9.3",
+    name="rocket.py", 
+    version="0.9.4",
     install_requires = [
         'numpy>=1.0',
         'scipy>=1.0',
