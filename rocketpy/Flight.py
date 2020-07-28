@@ -787,7 +787,7 @@ class Flight:
                     # print('\t\t\tAltitude: ', phase.solver.y[2])
                     # print('\t\t\tEvals: ', self.functionEvaluationsPerTimeStep[-1])
                     # Check for out of rail event
-                    if self.outOfRailState is 0 and (
+                    if self.outOfRailState == 0 and (
                         self.y[0] ** 2
                         + self.y[1] ** 2
                         + (self.y[2] - self.env.elevation) ** 2
@@ -869,7 +869,7 @@ class Flight:
                         phase.timeNodes.addNode(self.t, [], [])
                         phase.solver.status = "finished"
                     # Check for apogee event
-                    if self.apogeeState is 0 and self.y[5] < 0:
+                    if self.apogeeState == 0 and self.y[5] < 0:
                         # print('\nPASSIVE EVENT DETECTED')
                         # print('Rocket Has Reached Apogee!')
                         # Apogee reported
@@ -2016,7 +2016,7 @@ class Flight:
             print(name + " Parachute Inflated at Height of: {:.3f} m".format(altitude))
 
         # Print impact conditions
-        if not (self.impactState is 0):
+        if self.impactState != 0:
             print("\n\nImpact\n")
             print("X Impact: {:.3f} m".format(self.xImpact))
             print("Y Impact: {:.3f} m".format(self.yImpact))
@@ -2174,7 +2174,7 @@ class Flight:
             print(name + " Parachute Inflated at Height of: {:.3f} m".format(altitude))
 
         # Print impact conditions
-        if not (self.impactState is 0):
+        if self.impactState != 0:
             print("\n\nImpact\n")
             print("X Impact: {:.3f} m".format(self.xImpact))
             print("Y Impact: {:.3f} m".format(self.yImpact))
