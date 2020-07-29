@@ -3132,7 +3132,7 @@ class Flight:
 
         return None
 
-    def pressureSignalPlots(self):
+    def plotPressureSignals(self):
         """ Prints out all Parachute Trigger Pressure Signals.
         This function can be called also for plot pressure data for flights
         without Parachutes, in this case the Pressure Signals will be simply
