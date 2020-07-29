@@ -582,9 +582,9 @@ class Flight:
         # Flight initialization
         # Initialize solution monitors
         self.outOfRailTime = 0
-        self.outOfRailState = 0
+        self.outOfRailState = np.array([0]) 
         self.outOfRailVelocity = 0
-        self.apogeeState = 0
+        self.apogeeState = np.array([0])
         self.apogeeTime = 0
         self.apogeeX = 0
         self.apogeeY = 0
@@ -592,7 +592,7 @@ class Flight:
         self.xImpact = 0
         self.yImpact = 0
         self.impactVelocity = 0
-        self.impactState = 0
+        self.impactState = np.array([0])
         self.parachuteEvents = []
         self.postProcessed = False
         # Intialize solver monitors
@@ -787,7 +787,7 @@ class Flight:
                     # print('\t\t\tAltitude: ', phase.solver.y[2])
                     # print('\t\t\tEvals: ', self.functionEvaluationsPerTimeStep[-1])
                     # Check for out of rail event
-                    if self.outOfRailState == 0 and (
+                    if (self.outOfRailState == 0).all() and (
                         self.y[0] ** 2
                         + self.y[1] ** 2
                         + (self.y[2] - self.env.elevation) ** 2
@@ -869,7 +869,7 @@ class Flight:
                         phase.timeNodes.addNode(self.t, [], [])
                         phase.solver.status = "finished"
                     # Check for apogee event
-                    if self.apogeeState == 0 and self.y[5] < 0:
+                    if (self.apogeeState == 0).all() and self.y[5] < 0:
                         # print('\nPASSIVE EVENT DETECTED')
                         # print('Rocket Has Reached Apogee!')
                         # Apogee reported
@@ -2016,7 +2016,7 @@ class Flight:
             print(name + " Parachute Inflated at Height of: {:.3f} m".format(altitude))
 
         # Print impact conditions
-        if self.impactState != 0:
+        if (self.impactState != 0).all():
             print("\n\nImpact\n")
             print("X Impact: {:.3f} m".format(self.xImpact))
             print("Y Impact: {:.3f} m".format(self.yImpact))
@@ -2174,7 +2174,7 @@ class Flight:
             print(name + " Parachute Inflated at Height of: {:.3f} m".format(altitude))
 
         # Print impact conditions
-        if self.impactState != 0:
+        if (self.impactState != 0).all():
             print("\n\nImpact\n")
             print("X Impact: {:.3f} m".format(self.xImpact))
             print("Y Impact: {:.3f} m".format(self.yImpact))
