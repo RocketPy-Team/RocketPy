@@ -1993,7 +1993,7 @@ class Flight:
         print("Lateral Surface Wind Speed: {:.2f} m/s".format(self.lateralSurfaceWind))
 
         # Print of rail conditions
-        print("\n\nOut Off Rail State\n")
+        print("\n\n Rail Departure State\n")
         print("Rail Departure Time: {:.3f} s".format(self.outOfRailTime))
         print("Rail Departure Velocity: {:.3f} m/s".format(self.outOfRailVelocity))
         print(
