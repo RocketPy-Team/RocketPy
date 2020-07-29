@@ -2188,7 +2188,7 @@ class Flight:
 
         return None
 
-        def numericalIntegrationPrints(self):
+        def printNumericalIntegration(self):
         """Prints out the Numerical Integration settings
 
         Parameters
