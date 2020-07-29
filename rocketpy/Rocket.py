@@ -815,7 +815,7 @@ class Rocket:
 
         # Print rocket geometrical parameters
         print("\nGeometrical Parameters")
-        print("Rocket largest Radius: " + str(self.radius) + " m")
+        print("Rocket Maximum Radius: " + str(self.radius) + " m")
         print("Rocket Frontal Area: " + "{:.6f}".format(self.area) + " m2")
         print("\nRocket Distances")
         print(
@@ -932,4 +932,3 @@ class Rocket:
 
     # Variables
     railButtonPair = namedtuple("railButtonPair", "distanceToCM angularPosition")
-
