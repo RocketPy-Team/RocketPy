@@ -2008,7 +2008,7 @@ class Flight:
         )
         print(
             "Rail Departure Thrust-Weight Ratio: {:.3f}".format(
-            (self.rocket.motor.thrust(self.outOfRailTime))/(self.env.g * self.rocket.totalMass(self.outOfRailTime))
+            self.rocket.thrustToWeight(self.outOfRailTime)
             )
         )
         print(
