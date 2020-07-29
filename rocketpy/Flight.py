@@ -3057,7 +3057,7 @@ class Flight:
 
         return None
 
-    def stabilityControlPlots(self):
+    def plotStabilityAndControlData(self):
         """Prints out Rocket Stability and Control parameters graphs available 
         about the Flight
 
