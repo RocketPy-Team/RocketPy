@@ -2910,7 +2910,7 @@ class Flight:
 
         return None
 
-    def finFlutterAnalysis(self, finThickness, shearModulus):
+    def calculateFinFlutterAnalysis(self, finThickness, shearModulus):
         """ Calculate, create and plot the Fin Flutter velocity, based on the
         pressure profile provided by Atmosferic model selected. It considers the
         Flutter Boundary Equation that is based on a calculation published in
@@ -3529,4 +3529,3 @@ class Flight:
                     + str(len(self.parachutes))
                     + "}"
                 )
-
