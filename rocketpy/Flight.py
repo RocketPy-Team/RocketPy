@@ -2248,7 +2248,7 @@ class Flight:
 
         return None
 
-    def trajectory3dPlot(self):
+    def plot3dTrajectory(self):
         """Plot a 3D graph of the trajectory
 
         Parameters
