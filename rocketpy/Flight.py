@@ -2402,7 +2402,7 @@ class Flight:
         plt.show()
         return None
 
-    def angularPositionPlots(self):
+    def plotAttitudeData(self):
         """Prints out all Angular position graphs available about the Flight
 
         Parameters
