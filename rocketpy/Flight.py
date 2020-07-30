@@ -2735,7 +2735,7 @@ class Flight:
 
         return None
 
-    def energyPlots(self):
+    def plotEnergyData(self):
         """Prints out all Energy components graphs available about the Flight
 
         Parameters
