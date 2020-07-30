@@ -2830,7 +2830,7 @@ class Flight:
 
         return None
 
-    def fluidMechanicsPlots(self):
+    def plotFluidMechanicsData(self):
         """Prints out a summary of the Fluid Mechanics graphs available about 
         the Flight
 
