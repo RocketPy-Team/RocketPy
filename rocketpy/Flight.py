@@ -2469,7 +2469,7 @@ class Flight:
 
         return None
 
-    def attitudePlots(self):
+    def plotFlightPathAngleData(self):
         """Prints out Flight path and Rocket Attitude angle graphs available
         about the Flight
 
