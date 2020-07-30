@@ -2218,7 +2218,7 @@ class Flight:
 
         return None
 
-    def maxWindVelocityPrints(self, maxAngle):
+    def calculateStallWindVelocity(self, stallAngle):
         """ Function to calculate the maximum wind velocity before the angle of
         attack exceeds a desired angle, at the instant of departing rail launch.
         Can be helpful if you know the exact stall angle of all aerodynamics 
