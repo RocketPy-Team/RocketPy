@@ -2524,7 +2524,7 @@ class Flight:
 
         return None
 
-    def angularVeloAccPlots(self):
+    def plotAngularKinematicsData(self):
         """Prints out all Angular veolcity and acceleration graphs available
         about the Flight
 
