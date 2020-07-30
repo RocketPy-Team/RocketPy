@@ -490,14 +490,14 @@ class Flight:
                 the freestream velocity vector. Can be called or accessed as
                 array.
         Fin Flutter Analysis:
-            Flight.mFlutter: Function
+            Flight.flutterMachNumber: Function
                 The freestream velocity at which begins flutter phenomenon in
                 rocket's fins. It's expressed as a function of the air pressure
                 experienced  for the rocket. Can be called or accessed as array.
             Flight.difference: Function
-                Difference between mFlutter and machNumber, as a function of time.
+                Difference between flutterMachNumber and machNumber, as a function of time.
             Flight.safetyFactor: Function
-                Ratio between the mFlutter and machNumber, as a function of time.     
+                Ratio between the flutterMachNumber and machNumber, as a function of time.     
         """
 
     def __init__(
@@ -1375,7 +1375,6 @@ class Flight:
             self.pressure.append([t, self.env.pressure(z)])
             self.speedOfSound.append([t, self.env.speedOfSound(z)])
 
-        # Return uDot
         return uDot
 
     def uDotParachute(self, t, u, postProcessing=False):
@@ -2145,7 +2144,7 @@ class Flight:
 
         return None
 
-    def initialConditionsPrints(self):
+    def printInitialConditionsData(self):
         """Prints all initial conditions data available about the flight 
 
         Parameters
@@ -2188,7 +2187,7 @@ class Flight:
 
         return None
 
-        def printNumericalIntegration(self):
+    def printNumericalIntegrationSettings(self):
         """Prints out the Numerical Integration settings
 
         Parameters
@@ -2226,7 +2225,7 @@ class Flight:
 
         Parameters
         ----------
-        maxAngle : float
+        stallAngle : float
             Angle, in degrees, for which you would like to know the maximum wind
             speed before the angle of attack exceeds it
         Return
@@ -2237,14 +2236,14 @@ class Flight:
 
         # Convert angle to radians
         tetha = self.inclination * np.pi /180
-        maxAngle = maxAngle * np.pi /180
+        stallAngle = stallAngle * np.pi /180
 
-        c = (math.cos(maxAngle)**2 - math.cos(tetha)**2)/ math.sin(maxAngle)**2
+        c = (math.cos(stallAngle)**2 - math.cos(tetha)**2)/ math.sin(stallAngle)**2
         wV = (2*vF*math.cos(tetha)/c + (4*vF*vF*math.cos(tetha)*math.cos(tetha)/(c**2) + 4*1*vF*vF/c )**0.5 )/2
         
-        # Convert maxAngle to degrees
-        maxAngle = maxAngle * 180 / np.pi
-        print("Maximum wind velocity at Rail Departure time before angle of attack exceeds {:.3f}°: {:.3f} m/s".format(maxAngle, wV))
+        # Convert stallAngle to degrees
+        stallAngle = stallAngle * 180 / np.pi
+        print("Maximum wind velocity at Rail Departure time before angle of attack exceeds {:.3f}°: {:.3f} m/s".format(stallAngle, wV))
 
         return None
 
@@ -2308,36 +2307,6 @@ class Flight:
         # Post-process results
         if self.postProcessed is False:
             self.postProcess()
-
-        # 3D trajectory plot
-        # Get max and min x and y
-        maxZ = max(self.z[:, 1])
-        maxX = max(self.x[:, 1])
-        minX = min(self.x[:, 1])
-        maxY = max(self.y[:, 1])
-        minY = min(self.y[:, 1])
-        maxXY = max(maxX, maxY)
-        minXY = min(minX, minY)
-
-        # Create figure
-        fig1 = plt.figure(figsize=(9, 9))
-        ax1 = plt.subplot(111, projection="3d")
-        ax1.plot(
-            self.x[:, 1], self.y[:, 1], zs=self.env.elevation, zdir="z", linestyle="--"
-        )
-        ax1.plot(self.x[:, 1], self.z[:, 1], zs=minXY, zdir="y", linestyle="--")
-        ax1.plot(self.y[:, 1], self.z[:, 1], zs=minXY, zdir="x", linestyle="--")
-        ax1.plot(self.x[:, 1], self.y[:, 1], self.z[:, 1], linewidth='2')
-        ax1.scatter(0, 0, self.env.elevation)
-        ax1.set_xlabel("X - East (m)")
-        ax1.set_ylabel("Y - North (m)")
-        ax1.set_zlabel("Z - Altitude Above Sea Level (m)")
-        ax1.set_title("Flight Trajectory")
-        ax1.set_zlim3d([self.env.elevation, maxZ])
-        ax1.set_ylim3d([minXY, maxXY])
-        ax1.set_xlim3d([minXY, maxXY])
-        ax1.view_init(15, 45)
-        plt.show()
 
         # Velocity and acceleration plots
         fig2 = plt.figure(figsize=(9, 12))
@@ -2850,13 +2819,6 @@ class Flight:
         outOfRailTimeIndexs = np.nonzero(self.x[:, 0] == self.outOfRailTime)
         outOfRailTimeIndex = -1 if len(outOfRailTimeIndexs) == 0 else outOfRailTimeIndexs[0][0]
 
-        # Get index of time before parachute event
-        if len(self.parachuteEvents) > 0:
-            eventTime = self.parachuteEvents[0][0] + self.parachuteEvents[0][1].lag
-            eventTimeIndex = np.nonzero(self.x[:, 0] == eventTime)[0][0]
-        else:
-            eventTime = self.tFinal
-            eventTimeIndex = -1
         
         # Trajectory Fluid Mechanics Plots
         fig10 = plt.figure(figsize=(9, 12))
@@ -2939,21 +2901,21 @@ class Flight:
         la = self.rocket.tipChord / self.rocket.rootChord
  
         # Calculate the Fin Flutter Mach Number
-        self.mFlutter = ((shearModulus*2*(ar+2)*(finThickness/self.rocket.rootChord)**3)/(1.337 * (ar**3) *(la+1) * self.pressure ))**0.5 
+        self.flutterMachNumber = ((shearModulus*2*(ar+2)*(finThickness/self.rocket.rootChord)**3)/(1.337 * (ar**3) *(la+1) * self.pressure ))**0.5 
         
         # Calculate difference between Fin Flutter Mach Number and the Rocket Speed
-        self.difference =  self.mFlutter - self.MachNumber
+        self.difference =  self.flutterMachNumber - self.MachNumber
 
         # Calculate a safety factor for flutter
-        self.safetyFactor = self.mFlutter / self.MachNumber
+        self.safetyFactor = self.flutterMachNumber / self.MachNumber
 
         # Calculate the minimun Fin Flutter Mach Number and Velocity
         # Calculate the time and height of minimun Fin Flutter Mach Number
-        minMFlutterTimeIndex = np.argmin(self.mFlutter[:,1])
-        minMFlutter = self.mFlutter[minMFlutterTimeIndex,1]
-        minMFTime = self.mFlutter[minMFlutterTimeIndex,0]
+        minflutterMachNumberTimeIndex = np.argmin(self.flutterMachNumber[:,1])
+        minflutterMachNumber = self.flutterMachNumber[minflutterMachNumberTimeIndex,1]
+        minMFTime = self.flutterMachNumber[minflutterMachNumberTimeIndex,0]
         minMFHeight = self.z(minMFTime) - self.env.elevation
-        minMFVelocity = minMFlutter * self.env.speedOfSound(minMFHeight)
+        minMFVelocity = minflutterMachNumber * self.env.speedOfSound(minMFHeight)
 
         # Calculate minimum difference between Fin Flutter Mach Number and the Rocket Speed
         # Calculate the time and height of the difference ...
@@ -2989,7 +2951,7 @@ class Flight:
             )
         )
         print(
-            "Minimum Fin Flutter Mach Number: {:.3f} ".format(minMFlutter)
+            "Minimum Fin Flutter Mach Number: {:.3f} ".format(minflutterMachNumber)
         )
         #print(
         #    "Altitude of minimum Fin Flutter Velocity: {:.3f} m (AGL)".format(
@@ -3002,7 +2964,7 @@ class Flight:
             )
         )
         print(
-            "Minimum of (Fin Flutter Mach Number - Rocket Speed): {:.3f} Mach".format(
+            "Minimum of (Fin Flutter Mach Number - Rocket Speed): {:.3f} Mach at {:.2f} s".format(
                 minDif, minDifTime 
             )
         )
@@ -3026,7 +2988,7 @@ class Flight:
         fig12 = plt.figure(figsize=(6, 9))
         ax1 = plt.subplot(311)
         ax1.plot()
-        ax1.plot(self.mFlutter[:,0] , self.mFlutter[:,1], label = "Fin flutter Mach Number")
+        ax1.plot(self.flutterMachNumber[:,0] , self.flutterMachNumber[:,1], label = "Fin flutter Mach Number")
         ax1.plot(self.MachNumber[:,0], self.MachNumber[:,1], label= "Rocket Freestream Speed")
         ax1.set_xlim(0, self.apogeeTime)
         ax1.set_title("Fin Flutter Mach Number x Time(s)")
@@ -3072,14 +3034,6 @@ class Flight:
         # Post-process results
         if self.postProcessed is False:
             self.postProcess()
-
-        # Get index of time before parachute event
-        if len(self.parachuteEvents) > 0:
-            eventTime = self.parachuteEvents[0][0] + self.parachuteEvents[0][1].lag
-            eventTimeIndex = np.nonzero(self.x[:, 0] == eventTime)[0][0]
-        else:
-            eventTime = self.tFinal
-            eventTimeIndex = -1
         
         fig9 = plt.figure(figsize=(9, 6))
 
@@ -3244,7 +3198,7 @@ class Flight:
 
         # Print initial conditions
         print("Initial Conditions\n")
-        self.initialConditionsPrints()
+        self.printInitialConditionsData()
 
         # Print launch rail orientation
         print("\n\nLaunch Rail Orientation\n")
@@ -3255,34 +3209,34 @@ class Flight:
         self.info()
         
         print("\n\nNumerical Integration Information\n")
-        self.numericalIntegrationPrints()
+        self.printNumericalIntegrationSettings()
 
         print("\n\nTrajectory 3d Plot\n")
-        self.trajectory3dPlot()
+        self.plot3dTrajectory()
 
         print("\n\nTrajectory Kinematic Plots\n")
-        self.kinematicsPlots()
+        self.plotLinearKinematicsData()
         
         print("\n\nAngular Position Plots\n")
-        self.angularPositionPlots()
+        self.plotFlightPathAngleData()
         
         print("\n\nPath, Attitude and Lateral Attitude Angle plots\n")
-        self.attitudePlots()
+        self.plotAttitudeData()
         
         print("\n\nTrajectory Angular Velocity and Acceleration Plots\n")
-        self.angularVeloAccPlots()
+        self.plotAngularKinematicsData()
         
         print("\n\nTrajectory Force Plots\n")
-        self.trajectoryForcePlots()
+        self.plotTrajectoryForceData()
         
         print("\n\nTrajectory Energy Plots\n")
-        self.energyPlots()
+        self.plotEnergyData()
         
         print("\n\nTrajectory Fluid Mechanics Plots\n")
-        self.fluidMechanicsPlots()
+        self.plotFluidMechanicsData()
 
         print("\n\nTrajectory Stability and Control Plots\n")
-        self.stabilityControlPlots()
+        self.plotStabilityAndControlData()
 
         return None
 
