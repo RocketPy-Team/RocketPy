@@ -2294,7 +2294,7 @@ class Flight:
 
         return None
 
-    def kinematicsPlots(self):
+    def plotLinearKinematicsData(self):
         """Prints out all Kinematics graphs available about the Flight
 
         Parameters
