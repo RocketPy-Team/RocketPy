@@ -2609,7 +2609,7 @@ class Flight:
 
         return None
 
-    def trajectoryForcePlots(self):
+    def plotTrajectoryForceData(self):
         """Prints out all Forces and Moments graphs available about the Flight
 
         Parameters
