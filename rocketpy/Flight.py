@@ -3312,9 +3312,9 @@ class Flight:
             Wx = self.env.windVelocityX(z) / 20
             Wy = self.env.windVelocityY(z) / 20
             # Calculate freestream Mach Number
-            Sx = self.streamVelX(t) / 340.40
-            Sy = self.streamVelY(t) / 340.40
-            Sz = self.streamVelZ(t) / 340.40
+            Sx = self.streamVelocityX(t) / 340.40
+            Sy = self.streamVelocityY(t) / 340.40
+            Sz = self.streamVelocityZ(t) / 340.40
             # Plot Quivers
             R = axes.quiver(Rx, Ry, Rz, Ru, Rv, Rw, color="r")
             V = axes.quiver(Rx, Ry, Rz, -Vx, -Vy, -Vz, color="g")
