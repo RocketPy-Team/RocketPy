@@ -618,12 +618,12 @@ class Rocket:
         parachute.noiseDeviation = noise[1]
         parachute.noiseCorr = (noise[2], (1 - noise[2] ** 2) ** 0.5)
         alpha, beta = parachute.noiseCorr
+        parachute.noiseSignal = [[-1e-6, np.random.normal(noise[0], noise[1])]]
         parachute.noiseFunction = lambda: alpha * parachute.noiseSignal[-1][
             1
         ] + beta * np.random.normal(noise[0], noise[1])
         parachute.cleanPressureSignal = []
         parachute.noisyPressureSignal = []
-        parachute.noiseSignal = [[-1e-6, np.random.normal(noise[0], noise[1])]]
 
         # Add parachute to list of parachutes
         self.parachutes.append(parachute)
