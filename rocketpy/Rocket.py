@@ -523,6 +523,12 @@ class Rocket:
         radius = self.radius if radius == 0 else radius
         d = 2 * radius
 
+        # Save geometric parameters for later Fin Flutter Analysis 
+        self.rootChord = Cr
+        self.tipChord = Ct
+        self.span = s
+        self.distanceRocketFins = distanceToCM
+
         # Calculate cp position relative to cm
         if distanceToCM < 0:
             cpz = distanceToCM - (
@@ -802,14 +808,14 @@ class Rocket:
         """
         # Print inertia details
         print("Inertia Details")
-        print("Rocket Mass: " + str(self.mass) + " kg (No Propellant)")
-        print("Rocket Mass: " + str(self.totalMass(0)) + " kg (With Propellant)")
-        print("Inertia I: " + str(self.inertiaI) + " kg*m2")
-        print("Inertia Z: " + str(self.inertiaZ) + " kg*m2")
+        print("Rocket Mass: {:.3f} kg (No Propellant)".format(self.mass))
+        print("Rocket Mass: {:.3f} kg (With Propellant)".format(self.totalMass(0)))
+        print("Rocket Inertia I: {:.3f} kg*m2".format(self.inertiaI))
+        print("Rocket Inertia Z: {:.3f} kg*m2".format(self.inertiaZ))
 
         # Print rocket geometrical parameters
         print("\nGeometrical Parameters")
-        print("Rocket Radius: " + str(self.radius) + " m")
+        print("Rocket Maximum Radius: " + str(self.radius) + " m")
         print("Rocket Frontal Area: " + "{:.6f}".format(self.area) + " m2")
         print("\nRocket Distances")
         print(
@@ -926,4 +932,3 @@ class Rocket:
 
     # Variables
     railButtonPair = namedtuple("railButtonPair", "distanceToCM angularPosition")
-
