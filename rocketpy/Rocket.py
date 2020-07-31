@@ -891,7 +891,7 @@ class Rocket:
         self.staticMargin()
         self.powerOnDrag()
         self.powerOffDrag()
-        self.thrustToWeight()
+        self.thrustToWeight.plot(lower=0, upper=self.motor.burnOutTime)
 
         #ax = plt.subplot(415)
         #ax.plot(  , self.rocket.motor.thrust()/(self.env.g() * self.rocket.totalMass()))
