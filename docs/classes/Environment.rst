@@ -1,5 +1,5 @@
 Environment Class
 -----------------
 
-.. automodule:: rocketpyalpha.Environment
+.. automodule:: rocketpy.Environment
    :members:

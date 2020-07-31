@@ -1,1 +1,8 @@
 nbsphinx
+m2r2
+sphinx-rtd-theme
+numpy>=1.0
+scipy>=1.0
+matplotlib>=3.0
+netCDF4>=1.4
+requests

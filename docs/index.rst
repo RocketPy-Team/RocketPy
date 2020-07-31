@@ -12,13 +12,13 @@ Welcome to RocketPy's documentation!
 
    notebooks/getting_started.ipynb
    notebooks/environment_class_usage.ipynb
+   notebooks/dispersion_analysis.ipynb
    classes
-..   notebooks/dispersion_analysis.ipynb
 
 
 .. _`Projeto Jupiter`: https://www.facebook.com/ProjetoJupiter/
 
-.. include:: ../README.rst
+.. mdinclude:: ../README.md
 
 Indices and tables
 ==================

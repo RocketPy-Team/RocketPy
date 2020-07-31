@@ -1,5 +1,5 @@
 Rocket Class
 ------------
 
-.. automodule:: rocketpyalpha.Rocket
+.. automodule:: rocketpy.Rocket
    :members:
