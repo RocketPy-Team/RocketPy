@@ -269,7 +269,7 @@ class Rocket:
         # Calculate dynamic inertial quantities
         self.evaluateReducedMass()
         self.evaluateTotalMass()
-        self.thrustToWeight = self.motor.thrust()/(9.80665*self.totalMass())
+        self.thrustToWeight = self.motor.thrust/(9.80665*self.totalMass)
 
         return None
 
