@@ -64,6 +64,9 @@ class Rocket:
             Function of time expressing the total mass of the rocket,
             defined as the sum of the propellant mass and the rocket
             mass without propellant.
+        Rocket.thrustToWeight : Function
+            Function of time expressing the motor thrust force divided by rocket
+            weight 
 
         Excentricity attributes:
         Rocket.cpExcentricityX : float
@@ -267,6 +270,7 @@ class Rocket:
         # Calculate dynamic inertial quantities
         self.evaluateReducedMass()
         self.evaluateTotalMass()
+        self.thrustToWeight = self.rocket.motor.thrust()/(self.env.g() * self.rocket.totalMass())
 
         return None
 
