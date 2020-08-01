@@ -1559,20 +1559,20 @@ class Environment:
         # Check if time is inside range supplied by file
         if timeIndex == 0 and inputTimeNum < fileTimeNum:
             raise ValueError(
-                "Chosen launch time is not available in the provided file, which starts at {:%Y-%m-%d %H:%M}.".format(
+                "Chosen launch time is not available in the provided file, which starts at {:}.".format(
                     fileTimeDate
                 )
             )
         elif timeIndex == len(timeArray) - 1 and inputTimeNum > fileTimeNum:
             raise ValueError(
-                "Chosen launch time is not available in the provided file, which ends at {:%Y-%m-%d %H:%M}.".format(
+                "Chosen launch time is not available in the provided file, which ends at {:}.".format(
                     fileTimeDate
                 )
             )
         # Check if time is exactly equal to one in the file
         if inputTimeNum != fileTimeNum:
             warnings.warn(
-                "Exact chosen launch time is not available in the provided file, using {:%Y-%m-%d %H:%M} UTC instead.".format(
+                "Exact chosen launch time is not available in the provided file, using {:} UTC instead.".format(
                     fileTimeDate
                 )
             )
@@ -1942,20 +1942,20 @@ class Environment:
         # Check if time is inside range supplied by file
         if timeIndex == 0 and inputTimeNum < fileTimeNum:
             raise ValueError(
-                "Chosen launch time is not available in the provided file, which starts at {:%Y-%m-%d %H:%M}.".format(
+                "Chosen launch time is not available in the provided file, which starts at {:}.".format(
                     fileTimeDate
                 )
             )
         elif timeIndex == len(timeArray) - 1 and inputTimeNum > fileTimeNum:
             raise ValueError(
-                "Chosen launch time is not available in the provided file, which ends at {:%Y-%m-%d %H:%M}.".format(
+                "Chosen launch time is not available in the provided file, which ends at {:}.".format(
                     fileTimeDate
                 )
             )
         # Check if time is exactly equal to one in the file
         if inputTimeNum != fileTimeNum:
             warnings.warn(
-                "Exact chosen launch time is not available in the provided file, using {:%Y-%m-%d %H:%M} UTC instead.".format(
+                "Exact chosen launch time is not available in the provided file, using {:} UTC instead.".format(
                     fileTimeDate
                 )
             )
