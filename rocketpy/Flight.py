@@ -2724,13 +2724,6 @@ class Flight:
         ax4.set_title("Aerodynamic Spin Moment")
         ax4.grid()
 
-        #ax5 = plt.subplot(415)
-        #ax5.plot(  , self.rocket.motor.thrust()/(self.env.g() * self.rocket.totalMass()))
-        #ax5.set_xlim(0, self.rocket.motor.burnOutTime)
-        #ax5.set_xlabel("Time (s)")
-        #ax5.set_ylabel("Thrust/Weight")
-        #ax5.set_title("Thrust-Weight Ratio")
-
         plt.subplots_adjust(hspace=0.5)
         plt.show()
 

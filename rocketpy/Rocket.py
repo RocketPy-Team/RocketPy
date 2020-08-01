@@ -64,6 +64,9 @@ class Rocket:
             Function of time expressing the total mass of the rocket,
             defined as the sum of the propellant mass and the rocket
             mass without propellant.
+        Rocket.thrustToWeight : Function
+            Function of time expressing the motor thrust force divided by rocket
+            weight. The gravitational acceleration is assumed as 9.80665 m/s^2.
 
         Excentricity attributes:
         Rocket.cpExcentricityX : float
@@ -131,8 +134,7 @@ class Rocket:
                 Function of noisyPressureSignal.
             cleanPressureSignalFunction : Function
                 Function of cleanPressureSignal.
-
-       
+ 
         Aerodynamic attributes
         Rocket.aerodynamicSurfaces : list
             List of aerodynamic surfaces of the rocket.
@@ -267,6 +269,9 @@ class Rocket:
         # Calculate dynamic inertial quantities
         self.evaluateReducedMass()
         self.evaluateTotalMass()
+        self.thrustToWeight = self.motor.thrust/(9.80665*self.totalMass)
+        self.thrustToWeight.setInputs('Time (s)')
+        self.thrustToWeight.setOutputs('Thrust/Weight')
 
         return None
 
@@ -888,6 +893,14 @@ class Rocket:
         self.staticMargin()
         self.powerOnDrag()
         self.powerOffDrag()
+        self.thrustToWeight.plot(lower=0, upper=self.motor.burnOutTime)
+
+        #ax = plt.subplot(415)
+        #ax.plot(  , self.rocket.motor.thrust()/(self.env.g() * self.rocket.totalMass()))
+        #ax.set_xlim(0, self.rocket.motor.burnOutTime)
+        #ax.set_xlabel("Time (s)")
+        #ax.set_ylabel("Thrust/Weight")
+        #ax.set_title("Thrust-Weight Ratio")
 
         # Return None
         return None
