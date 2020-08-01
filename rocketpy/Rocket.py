@@ -270,6 +270,8 @@ class Rocket:
         self.evaluateReducedMass()
         self.evaluateTotalMass()
         self.thrustToWeight = self.motor.thrust/(9.80665*self.totalMass)
+        self.thrustToWeight.setInputs('Time (s)')
+        self.thrustToWeight.setOutputs('Thrust/Weight')
 
         return None
 
