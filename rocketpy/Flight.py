@@ -819,7 +819,7 @@ class Flight:
                     # print('\t\t\tEvals: ', self.functionEvaluationsPerTimeStep[-1])
 
                     # Check for first out of rail event
-                    if (self.outOfRailState == 0).all() and (
+                    if len(self.outOfRailState) == 1 and (
                         self.y[0] ** 2
                         + self.y[1] ** 2
                         + (self.y[2] - self.env.elevation) ** 2
