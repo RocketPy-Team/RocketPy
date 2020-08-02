@@ -679,7 +679,7 @@ class Environment:
                 attemptCount = 0
                 while not success and attemptCount < 10:
                     timeAttempt -= timedelta(hours=6 * attemptCount)
-                    file = "https://nomads.ncep.noaa.gov:9090/dods/gfs_0p25/gfs{:04d}{:02d}{:02d}/gfs_0p25_{:02d}z".format(
+                    file = "https://nomads.ncep.noaa.gov/dods/gfs_0p25/gfs{:04d}{:02d}{:02d}/gfs_0p25_{:02d}z".format(
                         timeAttempt.year,
                         timeAttempt.month,
                         timeAttempt.day,
@@ -714,7 +714,7 @@ class Environment:
                 attemptCount = 0
                 while not success and attemptCount < 10:
                     timeAttempt -= timedelta(hours=6 * attemptCount)
-                    file = "https://nomads.ncep.noaa.gov:9090/dods/gfs_0p25_parafv3/gfs{:04d}{:02d}{:02d}/gfs_0p25_parafv3_{:02d}z".format(
+                    file = "https://nomads.ncep.noaa.gov/dods/gfs_0p25_parafv3/gfs{:04d}{:02d}{:02d}/gfs_0p25_parafv3_{:02d}z".format(
                         timeAttempt.year,
                         timeAttempt.month,
                         timeAttempt.day,
@@ -749,7 +749,7 @@ class Environment:
                 attemptCount = 0
                 while not success and attemptCount < 10:
                     timeAttempt -= timedelta(hours=6 * attemptCount)
-                    file = "https://nomads.ncep.noaa.gov:9090/dods/nam/nam{:04d}{:02d}{:02d}/nam_conusnest_{:02d}z".format(
+                    file = "https://nomads.ncep.noaa.gov/dods/nam/nam{:04d}{:02d}{:02d}/nam_conusnest_{:02d}z".format(
                         timeAttempt.year,
                         timeAttempt.month,
                         timeAttempt.day,
@@ -784,7 +784,7 @@ class Environment:
                 attemptCount = 0
                 while not success and attemptCount < 10:
                     timeAttempt -= timedelta(hours=1 * attemptCount)
-                    file = "https://nomads.ncep.noaa.gov:9090/dods/rap/rap{:04d}{:02d}{:02d}/rap_{:02d}z".format(
+                    file = "https://nomads.ncep.noaa.gov/dods/rap/rap{:04d}{:02d}{:02d}/rap_{:02d}z".format(
                         timeAttempt.year,
                         timeAttempt.month,
                         timeAttempt.day,
@@ -860,7 +860,7 @@ class Environment:
                 attemptCount = 0
                 while not success and attemptCount < 10:
                     timeAttempt -= timedelta(hours=6 * attemptCount)
-                    file = "https://nomads.ncep.noaa.gov:9090/dods/gens_bc/gens{:04d}{:02d}{:02d}/gep_all_{:02d}z".format(
+                    file = "https://nomads.ncep.noaa.gov/dods/gens_bc/gens{:04d}{:02d}{:02d}/gep_all_{:02d}z".format(
                         timeAttempt.year,
                         timeAttempt.month,
                         timeAttempt.day,
@@ -896,7 +896,7 @@ class Environment:
                 attemptCount = 0
                 while not success and attemptCount < 10:
                     timeAttempt -= timedelta(hours=12 * attemptCount)
-                    file = "https://nomads.ncep.noaa.gov:9090/dods/cmcens/cmcens{:04d}{:02d}{:02d}/cmcens_all_{:02d}z".format(
+                    file = "https://nomads.ncep.noaa.gov/dods/cmcens/cmcens{:04d}{:02d}{:02d}/cmcens_all_{:02d}z".format(
                         timeAttempt.year,
                         timeAttempt.month,
                         timeAttempt.day,
