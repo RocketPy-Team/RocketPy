@@ -613,9 +613,9 @@ class Flight:
         # Flight initialization
         # Initialize solution monitors
         self.outOfRailTime = 0
-        self.outOfRailState = 0
+        self.outOfRailState = np.array([0]) 
         self.outOfRailVelocity = 0
-        self.apogeeState = 0
+        self.apogeeState = np.array([0])
         self.apogeeTime = 0
         self.apogeeX = 0
         self.apogeeY = 0
@@ -623,7 +623,7 @@ class Flight:
         self.xImpact = 0
         self.yImpact = 0
         self.impactVelocity = 0
-        self.impactState = 0
+        self.impactState = np.array([0])
         self.parachuteEvents = []
         self.postProcessed = False
         # Intialize solver monitors
@@ -817,9 +817,9 @@ class Flight:
                     # print('\t\t\tTime: ', phase.solver.t)
                     # print('\t\t\tAltitude: ', phase.solver.y[2])
                     # print('\t\t\tEvals: ', self.functionEvaluationsPerTimeStep[-1])
-                    
+
                     # Check for first out of rail event
-                    if self.outOfRailState is 0 and (
+                    if len(self.outOfRailState) == 1 and (
                         self.y[0] ** 2
                         + self.y[1] ** 2
                         + (self.y[2] - self.env.elevation) ** 2
@@ -902,7 +902,7 @@ class Flight:
                         phase.solver.status = "finished"
                     
                     # Check for apogee event
-                    if self.apogeeState is 0 and self.y[5] < 0:
+                    if len(self.apogeeState) == 1 and self.y[5] < 0:
                         # print('\nPASSIVE EVENT DETECTED')
                         # print('Rocket Has Reached Apogee!')
                         # Apogee reported
@@ -2110,7 +2110,7 @@ class Flight:
             print(name + " Parachute Inflated at Height of: {:.3f} m (AGL)".format(altitude - self.env.elevation))
 
         # Print impact conditions
-        if not (self.impactState is 0):
+        if len(self.impactState) != 0:
             print("\n\nImpact\n")
             print("X Impact: {:.3f} m".format(self.xImpact))
             print("Y Impact: {:.3f} m".format(self.yImpact))
@@ -2216,8 +2216,8 @@ class Flight:
                 self.w1(0), self.w2(0), self.w3(0)
             )
         )
-
         return None
+
 
     def printNumericalIntegrationSettings(self):
         """Prints out the Numerical Integration settings
