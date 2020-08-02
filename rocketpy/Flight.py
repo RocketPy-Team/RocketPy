@@ -902,7 +902,7 @@ class Flight:
                         phase.solver.status = "finished"
                     
                     # Check for apogee event
-                    if (self.apogeeState == 0).all() and self.y[5] < 0:
+                    if len(self.apogeeState) == 1 and self.y[5] < 0:
                         # print('\nPASSIVE EVENT DETECTED')
                         # print('Rocket Has Reached Apogee!')
                         # Apogee reported
