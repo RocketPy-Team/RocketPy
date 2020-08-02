@@ -2110,7 +2110,7 @@ class Flight:
             print(name + " Parachute Inflated at Height of: {:.3f} m (AGL)".format(altitude - self.env.elevation))
 
         # Print impact conditions
-        if (self.impactState != 0).all():
+        if len(self.impactState) != 0:
             print("\n\nImpact\n")
             print("X Impact: {:.3f} m".format(self.xImpact))
             print("Y Impact: {:.3f} m".format(self.yImpact))
