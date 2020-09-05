@@ -240,10 +240,6 @@ TestFlight.allInfo()
 
 Please read [CONTRIBUTING.md](https://github.com/giovaniceotto/RocketPy/blob/master/CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us. - **_Still working on this!_**
 
-## Versioning
-
-**_Still working on this!_**
-
 ## Authors
 
 * **Giovani Hidalgo Ceotto**
@@ -254,6 +250,6 @@ See also the list of [contributors](https://github.com/giovaniceotto/RocketPy/co
 
 This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/giovaniceotto/RocketPy/blob/master/LICENSE) file for details
 
-## Acknowledgments
+## Release Notes
+Want to know which bugs have been fixed and new features of each version? Check out the [release notes](https://github.com/giovaniceotto/RocketPy/releases).
 
-**_Still working on this!_**

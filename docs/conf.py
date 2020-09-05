@@ -22,7 +22,7 @@ copyright = '2020, Projeto Jupiter'
 author = 'Giovani Hdalgo Ceotto'
 
 # The full version, including alpha/beta/rc tags
-release = '0.9.5'
+release = '0.9.6'
 
 
 # -- General configuration ---------------------------------------------------
