@@ -1457,7 +1457,7 @@ class Flight:
         freestreamY = vy - windVelocityY
         freestreamZ = vz
         # Determine drag force
-        pseudoD = -0.5 * CdS * freestreamSpeed - ka * rho * 4 * np.pi * (R ** 2) * Rdot
+        pseudoD = -0.5 * rho * CdS * freestreamSpeed - ka * rho * 4 * np.pi * (R ** 2) * Rdot
         Dx = pseudoD * freestreamX
         Dy = pseudoD * freestreamY
         Dz = pseudoD * freestreamZ
