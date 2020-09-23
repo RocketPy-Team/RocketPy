@@ -1,5 +1,5 @@
 SolidMotor Class
 ----------------
 
-.. automodule:: rocketpyalpha.SolidMotor
+.. automodule:: rocketpy.SolidMotor
    :members:

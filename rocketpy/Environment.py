@@ -679,7 +679,7 @@ class Environment:
                 attemptCount = 0
                 while not success and attemptCount < 10:
                     timeAttempt -= timedelta(hours=6 * attemptCount)
-                    file = "https://nomads.ncep.noaa.gov:9090/dods/gfs_0p25/gfs{:04d}{:02d}{:02d}/gfs_0p25_{:02d}z".format(
+                    file = "https://nomads.ncep.noaa.gov/dods/gfs_0p25/gfs{:04d}{:02d}{:02d}/gfs_0p25_{:02d}z".format(
                         timeAttempt.year,
                         timeAttempt.month,
                         timeAttempt.day,
@@ -714,7 +714,7 @@ class Environment:
                 attemptCount = 0
                 while not success and attemptCount < 10:
                     timeAttempt -= timedelta(hours=6 * attemptCount)
-                    file = "https://nomads.ncep.noaa.gov:9090/dods/gfs_0p25_parafv3/gfs{:04d}{:02d}{:02d}/gfs_0p25_parafv3_{:02d}z".format(
+                    file = "https://nomads.ncep.noaa.gov/dods/gfs_0p25_parafv3/gfs{:04d}{:02d}{:02d}/gfs_0p25_parafv3_{:02d}z".format(
                         timeAttempt.year,
                         timeAttempt.month,
                         timeAttempt.day,
@@ -749,7 +749,7 @@ class Environment:
                 attemptCount = 0
                 while not success and attemptCount < 10:
                     timeAttempt -= timedelta(hours=6 * attemptCount)
-                    file = "https://nomads.ncep.noaa.gov:9090/dods/nam/nam{:04d}{:02d}{:02d}/nam_conusnest_{:02d}z".format(
+                    file = "https://nomads.ncep.noaa.gov/dods/nam/nam{:04d}{:02d}{:02d}/nam_conusnest_{:02d}z".format(
                         timeAttempt.year,
                         timeAttempt.month,
                         timeAttempt.day,
@@ -784,7 +784,7 @@ class Environment:
                 attemptCount = 0
                 while not success and attemptCount < 10:
                     timeAttempt -= timedelta(hours=1 * attemptCount)
-                    file = "https://nomads.ncep.noaa.gov:9090/dods/rap/rap{:04d}{:02d}{:02d}/rap_{:02d}z".format(
+                    file = "https://nomads.ncep.noaa.gov/dods/rap/rap{:04d}{:02d}{:02d}/rap_{:02d}z".format(
                         timeAttempt.year,
                         timeAttempt.month,
                         timeAttempt.day,
@@ -860,7 +860,7 @@ class Environment:
                 attemptCount = 0
                 while not success and attemptCount < 10:
                     timeAttempt -= timedelta(hours=6 * attemptCount)
-                    file = "https://nomads.ncep.noaa.gov:9090/dods/gens_bc/gens{:04d}{:02d}{:02d}/gep_all_{:02d}z".format(
+                    file = "https://nomads.ncep.noaa.gov/dods/gens_bc/gens{:04d}{:02d}{:02d}/gep_all_{:02d}z".format(
                         timeAttempt.year,
                         timeAttempt.month,
                         timeAttempt.day,
@@ -896,7 +896,7 @@ class Environment:
                 attemptCount = 0
                 while not success and attemptCount < 10:
                     timeAttempt -= timedelta(hours=12 * attemptCount)
-                    file = "https://nomads.ncep.noaa.gov:9090/dods/cmcens/cmcens{:04d}{:02d}{:02d}/cmcens_all_{:02d}z".format(
+                    file = "https://nomads.ncep.noaa.gov/dods/cmcens/cmcens{:04d}{:02d}{:02d}/cmcens_all_{:02d}z".format(
                         timeAttempt.year,
                         timeAttempt.month,
                         timeAttempt.day,
@@ -1559,20 +1559,20 @@ class Environment:
         # Check if time is inside range supplied by file
         if timeIndex == 0 and inputTimeNum < fileTimeNum:
             raise ValueError(
-                "Chosen launch time is not available in the provided file, which starts at {:%Y-%m-%d %H:%M}.".format(
+                "Chosen launch time is not available in the provided file, which starts at {:}.".format(
                     fileTimeDate
                 )
             )
         elif timeIndex == len(timeArray) - 1 and inputTimeNum > fileTimeNum:
             raise ValueError(
-                "Chosen launch time is not available in the provided file, which ends at {:%Y-%m-%d %H:%M}.".format(
+                "Chosen launch time is not available in the provided file, which ends at {:}.".format(
                     fileTimeDate
                 )
             )
         # Check if time is exactly equal to one in the file
         if inputTimeNum != fileTimeNum:
             warnings.warn(
-                "Exact chosen launch time is not available in the provided file, using {:%Y-%m-%d %H:%M} UTC instead.".format(
+                "Exact chosen launch time is not available in the provided file, using {:} UTC instead.".format(
                     fileTimeDate
                 )
             )
@@ -1942,20 +1942,20 @@ class Environment:
         # Check if time is inside range supplied by file
         if timeIndex == 0 and inputTimeNum < fileTimeNum:
             raise ValueError(
-                "Chosen launch time is not available in the provided file, which starts at {:%Y-%m-%d %H:%M}.".format(
+                "Chosen launch time is not available in the provided file, which starts at {:}.".format(
                     fileTimeDate
                 )
             )
         elif timeIndex == len(timeArray) - 1 and inputTimeNum > fileTimeNum:
             raise ValueError(
-                "Chosen launch time is not available in the provided file, which ends at {:%Y-%m-%d %H:%M}.".format(
+                "Chosen launch time is not available in the provided file, which ends at {:}.".format(
                     fileTimeDate
                 )
             )
         # Check if time is exactly equal to one in the file
         if inputTimeNum != fileTimeNum:
             warnings.warn(
-                "Exact chosen launch time is not available in the provided file, using {:%Y-%m-%d %H:%M} UTC instead.".format(
+                "Exact chosen launch time is not available in the provided file, using {:} UTC instead.".format(
                     fileTimeDate
                 )
             )

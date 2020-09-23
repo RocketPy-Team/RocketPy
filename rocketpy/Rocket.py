@@ -64,6 +64,9 @@ class Rocket:
             Function of time expressing the total mass of the rocket,
             defined as the sum of the propellant mass and the rocket
             mass without propellant.
+        Rocket.thrustToWeight : Function
+            Function of time expressing the motor thrust force divided by rocket
+            weight. The gravitational acceleration is assumed as 9.80665 m/s^2.
 
         Excentricity attributes:
         Rocket.cpExcentricityX : float
@@ -131,8 +134,7 @@ class Rocket:
                 Function of noisyPressureSignal.
             cleanPressureSignalFunction : Function
                 Function of cleanPressureSignal.
-
-       
+ 
         Aerodynamic attributes
         Rocket.aerodynamicSurfaces : list
             List of aerodynamic surfaces of the rocket.
@@ -267,6 +269,9 @@ class Rocket:
         # Calculate dynamic inertial quantities
         self.evaluateReducedMass()
         self.evaluateTotalMass()
+        self.thrustToWeight = self.motor.thrust/(9.80665*self.totalMass)
+        self.thrustToWeight.setInputs('Time (s)')
+        self.thrustToWeight.setOutputs('Thrust/Weight')
 
         return None
 
@@ -523,6 +528,12 @@ class Rocket:
         radius = self.radius if radius == 0 else radius
         d = 2 * radius
 
+        # Save geometric parameters for later Fin Flutter Analysis 
+        self.rootChord = Cr
+        self.tipChord = Ct
+        self.span = s
+        self.distanceRocketFins = distanceToCM
+
         # Calculate cp position relative to cm
         if distanceToCM < 0:
             cpz = distanceToCM - (
@@ -612,12 +623,12 @@ class Rocket:
         parachute.noiseDeviation = noise[1]
         parachute.noiseCorr = (noise[2], (1 - noise[2] ** 2) ** 0.5)
         alpha, beta = parachute.noiseCorr
+        parachute.noiseSignal = [[-1e-6, np.random.normal(noise[0], noise[1])]]
         parachute.noiseFunction = lambda: alpha * parachute.noiseSignal[-1][
             1
         ] + beta * np.random.normal(noise[0], noise[1])
         parachute.cleanPressureSignal = []
         parachute.noisyPressureSignal = []
-        parachute.noiseSignal = [[-1e-6, np.random.normal(noise[0], noise[1])]]
 
         # Add parachute to list of parachutes
         self.parachutes.append(parachute)
@@ -802,14 +813,14 @@ class Rocket:
         """
         # Print inertia details
         print("Inertia Details")
-        print("Rocket Mass: " + str(self.mass) + " kg (No Propellant)")
-        print("Rocket Mass: " + str(self.totalMass(0)) + " kg (With Propellant)")
-        print("Inertia I: " + str(self.inertiaI) + " kg*m2")
-        print("Inertia Z: " + str(self.inertiaZ) + " kg*m2")
+        print("Rocket Mass: {:.3f} kg (No Propellant)".format(self.mass))
+        print("Rocket Mass: {:.3f} kg (With Propellant)".format(self.totalMass(0)))
+        print("Rocket Inertia I: {:.3f} kg*m2".format(self.inertiaI))
+        print("Rocket Inertia Z: {:.3f} kg*m2".format(self.inertiaZ))
 
         # Print rocket geometrical parameters
         print("\nGeometrical Parameters")
-        print("Rocket Radius: " + str(self.radius) + " m")
+        print("Rocket Maximum Radius: " + str(self.radius) + " m")
         print("Rocket Frontal Area: " + "{:.6f}".format(self.area) + " m2")
         print("\nRocket Distances")
         print(
@@ -882,6 +893,14 @@ class Rocket:
         self.staticMargin()
         self.powerOnDrag()
         self.powerOffDrag()
+        self.thrustToWeight.plot(lower=0, upper=self.motor.burnOutTime)
+
+        #ax = plt.subplot(415)
+        #ax.plot(  , self.rocket.motor.thrust()/(self.env.g() * self.rocket.totalMass()))
+        #ax.set_xlim(0, self.rocket.motor.burnOutTime)
+        #ax.set_xlabel("Time (s)")
+        #ax.set_ylabel("Thrust/Weight")
+        #ax.set_title("Thrust-Weight Ratio")
 
         # Return None
         return None
@@ -926,4 +945,3 @@ class Rocket:
 
     # Variables
     railButtonPair = namedtuple("railButtonPair", "distanceToCM angularPosition")
-

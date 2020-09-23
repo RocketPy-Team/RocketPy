@@ -658,8 +658,11 @@ class Function:
             else:
                 return x if len(x) > 1 else x[0]
 
-    def getValueOpt(self, *args):
-        """This method returns the value of the Function at the specified
+    def getValueOpt_deprecated(self, *args):
+        """THE CODE BELOW IS HERE FOR DOCUMENTATION PORPOSES ONLY. IT WAS
+        REPLACED FOR ALL INSTANCES BY THE FUNCTION.SETGETVALUEOPT METHOD.
+
+        This method returns the value of the Function at the specified
         point in a limited but optimized manner. See Function.getValue for an
         implementation which allows more kinds of inputs.
         This method optimizes the Function.getValue method by only
@@ -668,8 +671,6 @@ class Function:
         for each interpolation type, eliminating some if statements.
         Currently supports callables and spline, linear, akima, polynomial and
         shepard interpolated Function objects.
-        The code below is here for documentation proposes only. It is
-        overwritten for all instances by the Function.setGetValuteOpt method.
 
         Parameters
         ----------
@@ -1046,7 +1047,7 @@ class Function:
         """
         # Define a mesh and y values at mesh nodes for plotting
         fig = plt.figure()
-        ax = fig._get_axes
+        ax = fig.axes
         if callable(self.source):
             # Determine boundaries
             lower = 0 if lower is None else lower
@@ -1165,7 +1166,7 @@ class Function:
                 z,
                 rstride=1,
                 cstride=1,
-                cmap=cm.coolwarm,
+                # cmap=cm.coolwarm,
                 linewidth=0,
                 alpha=0.6,
             )
@@ -1195,8 +1196,9 @@ class Function:
         axes.set_zlabel(self.__outputs__[0].title())
         plt.show()
 
+    @staticmethod
     def comparePlots(
-        self,
+        plot_list,
         lower=None,
         upper=None,
         samples=1000,
@@ -1208,12 +1210,12 @@ class Function:
         returnObject=False,
     ):
         """ Plots N 1-Dimensional Functions in the same plot, from a lower
-        limit to an upper limit, by sampling the Function several times in
+        limit to an upper limit, by sampling the Functions several times in
         the interval.
 
         Parameters
         ----------
-        self : list
+        plot_list : list
             List of Functions or list of tuples in the format (Function,
             label), where label is a string which will be displayed in the
             legend.
@@ -1251,13 +1253,22 @@ class Function:
         None
         """
         noRangeSpecified = True if lower is None and upper is None else False
-        # Convert to list of tuples if list of Function was given
+        # Convert to list of tuples if list of Function was given        
         plots = []
-        if isinstance(self[0], (tuple, list)) == False:
-            for i in range(len(plots)):
-                plots.append((plot, " "))
-        else:
-            plots = self
+        for plot in plot_list:
+            if isinstance(plot, (tuple, list)):
+                plots.append(plot)
+            else:
+                plots.append((plot, ""))
+
+
+        # plots = []
+        # if isinstance(plot_list[0], (tuple, list)) == False:
+        #     for plot in plot_list:
+        #         plots.append((plot, " "))
+        # else:
+        #     plots = plot_list
+
 
         # Create plot figure
         fig, ax = plt.subplots()
@@ -2018,7 +2029,7 @@ class Function:
             return np.trapz(self.source[:, 1], x=self.source[:, 0])
         else:
             # Integrate numerically
-            ans, error = integrate.quad(self, a, b, epsabs=0.1, limit=10000)
+            ans,_ = integrate.quad(self, a, b, epsabs=0.1, limit=10000)
         return ans
 
     # Not implemented

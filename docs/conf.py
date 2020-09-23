@@ -22,7 +22,7 @@ copyright = '2020, Projeto Jupiter'
 author = 'Giovani Hdalgo Ceotto'
 
 # The full version, including alpha/beta/rc tags
-release = '0.9.3'
+release = '0.9.6'
 
 
 # -- General configuration ---------------------------------------------------
@@ -34,8 +34,12 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx_rtd_theme',
     'sphinx.ext.napoleon',
-    'nbsphinx'
+    'nbsphinx',
+    'm2r2',
 ]
+
+# source_suffix = '.rst'
+# source_suffix = ['.rst', '.md']
 
 # Don't run notebooks
 nbsphinx_execute = 'never'
