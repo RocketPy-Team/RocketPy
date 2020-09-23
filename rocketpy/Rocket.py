@@ -404,7 +404,7 @@ class Rocket:
 
         Returns
         -------
-        self.cldata : Function
+        cldata : Function
             Object of the Function class. Contains tail's lift data.
         self : Rocket
             Object of the Rocket class.
@@ -423,10 +423,10 @@ class Rocket:
 
         # Calculate clalpha
         clalpha = -2 * (1 - r ** (-2)) * (topRadius / rref) ** 2
-        self.cldata = Function(lambda x: clalpha*x, 'Alpha (rad)', 'Cl', interpolation='linear')
+        cldata = Function(lambda x: clalpha*x, 'Alpha (rad)', 'Cl', interpolation='linear')
 
         # Store values as new aerodynamic surface
-        tail = [(0, 0, cpz), self.cldata, "Tail"]
+        tail = [(0, 0, cpz), cldata, "Tail"]
         self.aerodynamicSurfaces.append(tail)
 
         # Refresh static margin calculation
@@ -458,7 +458,7 @@ class Rocket:
 
         Returns
         -------
-        self.cldata : Function
+        cldata : Function
             Object of the Function class. Contains nose's lift data.
         self : Rocket
             Object of the Rocket class.
@@ -481,10 +481,10 @@ class Rocket:
 
         # Calculate clalpha
         clalpha = 2
-        self.cldata = Function(lambda x: clalpha*x, 'Alpha (rad)', 'Cl', interpolation='linear', extrapolation = 'natural')
+        cldata = Function(lambda x: clalpha*x, 'Alpha (rad)', 'Cl', interpolation='linear', extrapolation = 'natural')
 
         # Store values
-        nose = [(0, 0, cpz), self.cldata, "Nose Cone"]
+        nose = [(0, 0, cpz), cldata, "Nose Cone"]
         self.aerodynamicSurfaces.append(nose)
 
         # Refresh static margin calculation
@@ -527,7 +527,7 @@ class Rocket:
 
         Returns
         -------
-        self.cldata : Function
+        cldata : Function
             Object of the Function class. Contains fin's lift data.
         self : Rocket
             Object of the Rocket class.
@@ -567,10 +567,10 @@ class Rocket:
             clalpha *= 1 + radius / (s + radius)
 
             # # Create a function of lift values by attack angle
-            self.cldata = Function(lambda x: clalpha*x,'Alpha (rad)', 'Cl', interpolation='linear')
+            cldata = Function(lambda x: clalpha*x,'Alpha (rad)', 'Cl', interpolation='linear')
 
             # Store values
-            fin = [(0, 0, cpz), self.cldata, "Fins"]
+            fin = [(0, 0, cpz), cldata, "Fins"]
             self.aerodynamicSurfaces.append(fin)
 
             # Refresh static margin calculation
@@ -581,13 +581,13 @@ class Rocket:
 
         else:
             # Import the lift curve as a function of lift values by attack angle
-            self.cldata = Function(genfromtxt(airfoil, delimiter = ','), 'Alpha (rad)', 'Cl', interpolation='linear', extrapolation = 'natural')
+            cldata = Function(genfromtxt(airfoil, delimiter = ','), 'Alpha (rad)', 'Cl', interpolation='linear', extrapolation = 'natural')
 
             # Takes an approximation to an angular coefficient
-            clalpha = self.cldata.differentiate(x=0, dx=1e-3)
+            clalpha = cldata.differentiate(x=0, dx=1e-3)
 
             # Store values
-            fin = [(0, 0, cpz), self.cldata, "Fins"]
+            fin = [(0, 0, cpz), cldata, "Fins"]
             self.aerodynamicSurfaces.append(fin)
 
             # Refresh static margin calculation
