@@ -580,11 +580,38 @@ class Rocket:
             return self.aerodynamicSurfaces[-1]
 
         else:
-            # Import the lift curve as a function of lift values by attack angle
-            cldata = Function(genfromtxt(airfoil, delimiter = ','), 'Alpha (rad)', 'Cl', interpolation='linear', extrapolation = 'natural')
+            def cnalfa1(cn):
+                """Calculates the normal force coefficient derivative of a 3D 
+                airfoil for a given Cnalfa0
 
+                Parameters
+                ----------
+                cn : int
+                    Normal force coefficient derivative of a 2D airfoil.
+
+                Returns
+                -------
+                Cnalfa1 : int
+                    Normal force coefficient derivative of a 3D airfoil.
+                """
+               
+                # Retrieve parameters for calculations
+                Af = (Cr + Ct) * span / 2; # fin area
+                AR= 2 * (span**2) / Af # Aspect ratio
+                gamac = np.arctan( (Cr - Ct) / (2 * span) ); # mid chord angle
+                FD = 2 * np.pi * AR / (cn *np.cos(gamac))
+                Cnalfa1 = cn * FD * (Af/self.area) * np.cos(gamac) / (2 + FD * ( 1 + (4/FD**2) )**0.5)
+                return Cnalfa1
+
+            # Import the lift curve as a function of lift values by attack angle
+            read = genfromtxt(airfoil, delimiter = ',')
+
+            # Aplies number of fins to lift coefficient data
+            data = [[cl[0], (n / 2) * cnalfa1(cl[1])] for cl in read]
+            cldata = Function(data, 'Alpha (rad)', 'Cl', interpolation='linear', extrapolation = 'natural')
+            
             # Takes an approximation to an angular coefficient
-            clalpha = cldata.differentiate(x=0, dx=1e-3)
+            clalpha = cldata.differentiate(x=0, dx=1e-2)
 
             # Store values
             fin = [(0, 0, cpz), cldata, "Fins"]
