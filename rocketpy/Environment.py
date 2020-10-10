@@ -3108,6 +3108,102 @@ class Environment:
         
         return x, y, utmZone, utmLetter, hemis, EW
 
+    def utmToGeodesic(self, x, y, utmZone, hemis, datum):
+        """ Function to convert UTM coordinates to geodesic coordinates 
+        (i.e. latitude and longitude). The latitude should be between -80° 
+        and 84°
+
+        Parameters
+        ----------
+        x : float
+            East UTM coordinate in meters
+        y : float
+            North UTM coordinate in meters
+        utmZone : int
+            The number of the UTM zone of the point of analysis, can vary between
+            1 and 60
+        hemis : string
+            Equals to "S" for southern hemisphere and "N" for Northern hemisphere
+        datum : string
+            The desired reference ellipsoide model, the following optiions are 
+            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default 
+            is "SIRGAS2000", then this model will be used if the user make some 
+            typing mistake
+
+        Returns
+        -------
+        lat: float
+            latitude of the analysed point
+        lon: float
+            latitude of the analysed point
+        """
+        
+        if hemis == "N":
+            y = y + 10000000
+
+        # Calculate the Central Meridian from the UTM zone number
+        centralMeridian = utmZone*6 - 183  #degress
+
+        # Select the desired datum
+        if datum == "SAD69":
+            semiMajorAxis = 6378160.0
+            flattening = 1/298.25
+        elif datum == "WGS84":
+            semiMajorAxis = 6378137.0
+            flattening = 1/298.257223563
+        elif datum == "NAD83":
+            semiMajorAxis = 6378137.0
+            flattening = 1/298.257024899
+        else: 
+            # SIRGAS2000
+            semiMajorAxis = 6378137.0
+            flattening = 1/298.257223563
+
+        # Calculate reference values
+        K0 = 1 - 1/2500
+        e2 = 2*flattening - flattening**2
+        e2lin = e2/(1-e2)
+        e1 = (1 - (1-e2)**0.5)/(1+(1-e2)**0.5)
+        
+        # Calculate auxiliary values
+        A = e2*e2
+        B = A*e2
+        C = e1*e1 
+        D = e1*C
+        E = e1*D
+
+        m = (y - 10000000)/K0
+        mi = m/(semiMajorAxis*(1- e2/4 -3*A/64 - 5*B/256))
+
+        # Calculate others auxiliary values
+        F = (3*e1/2 - 27*D/32)*np.sin(2*mi)
+        G = (21*C/16 - 55*E/32)*np.sin(4*mi)
+        H = (151*D/96)*np.sin(6*mi)
+
+        lat1 = mi + F + G + H
+        c1 = e2lin*(np.cos(lat1)**2)
+        t1 = np.tan(lat1)**2
+        n1 = semiMajorAxis/((1 - e2*(np.sin(lat1)**2))**0.5)
+        quoc = (1 - e2*np.sin(lat1)*np.sin(lat1))**3
+        r1 = semiMajorAxis*(1 - e2)/(quoc**0.5)
+        d = (x - 500000)/(n1*K0)
+
+        # Calculate others auxiliary values
+        I = (5 + 3*t1 + 10*c1 - 4*c1*c1 - 9*e2lin)*d*d*d*d/24
+        J = (61 + 90*t1 + 298*c1 + 45*t1*t1 - 252*e2lin - 3*c1*c1)*(d**6)/720
+        K = d - (1 + 2*t1 + c1)*d*d*d/6
+        L = (5 - 2*c1 + 28*t1 - 3*c1*c1 + 8*e2lin + 24*t1*t1)*(d**5)/120
+
+        # Finally calcute the coordinates in lat/lot
+        lat = lat1 - (n1*np.tan(lat1)/r1)*(d*d/2 - I + J)
+        lon = centralMeridian*np.pi/180 + (K + L)/np.cos(lat1) 
+    
+        # Convert final lat/lon to Degrees
+        lat = lat*180/np.pi
+        lon = lon*180/np.pi
+
+        return lat, lon
+
     def calculateEarthRadius(self, lat, datum):
         """ Simple function to calculate the Earth Radius at a specific latitude
         based on ellipsoidal reference model (datum). The earth radius here is
