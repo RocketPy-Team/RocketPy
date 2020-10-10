@@ -21,12 +21,15 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 import requests
 
+#import ee 
+
 try:
     import netCDF4
 except ImportError:
     warnings.warn("Unable to load netCDF4. NetCDF files and OPeNDAP will not be imported.", ImportWarning)
 
 from .Function import Function
+#from rocketpy import Function
 
 class Environment:
     """Keeps all environment information stored, such as wind and temperature
@@ -52,16 +55,34 @@ class Environment:
             Launch site latitude.
         Environment.lon : float
             Launch site longitude.
+        Environment.datum: string
+            The desired reference ellipsoide model, the following optiions are 
+            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default 
+            is "SIRGAS2000", then this model will be used if the user make some 
+            typing mistake
+        Environment.initialEast: float
+            Launch site East UTM coordinate
+        Environment.initialNorth:  float
+            Launch site North UTM coordinate
+        Environment.initialUtmZone: int
+            Launch site UTM zone number
+        Environment.initialUtmLetter: string
+            Launch site UTM letter, to keep the latitude band and describe the 
+            UTM Zone
+        Environment.initialHemisphere: string
+            Launch site S/N hemisphere
+        Environment.initialEW: string
+            Launch site E/W hemisphere
         Environment.elevation : float
             Launch site elevation.
         Environment.date : datetime
             Date time of launch.    
+        
+        Atmosphere Static Conditions:
         Environment.maxExpectedHeight : float
             Maximum altitude in meters to keep weather data.
             Used especially for plotting range.
             Can be altered as desired.
-
-        Atmosphere Static Conditions:
         Environment.pressureISA : Function
             Air pressure in Pa as a function of altitude as defined
             by the International Standard Atmosphere ISO 2533.
@@ -254,6 +275,7 @@ class Environment:
         latitude=None,
         longitude=None,
         elevation=0,
+        datum="SIRGAS2000",
     ):
         """Initialize Environment class, saving launch rail length,
         launch date, location coordinates and elevation. Note that
@@ -301,12 +323,8 @@ class Environment:
         # Save gravity value
         self.g = gravity
 
-        # Initialize constants
-        self.earthRadius = 6.3781e6
-        self.airGasConstant = 287.05287  # in J/K/Kg
-
-        # Initialize atmosphere
-        self.setAtmosphericModel("StandardAtmosphere")
+        # Save datum
+        self.datum = datum
 
         # Save date
         if date != None:
@@ -314,14 +332,35 @@ class Environment:
         else:
             self.date = None
 
+        # Initialize constants
+        self.earthRadius = 6.3781*(10**6)
+        self.airGasConstant = 287.05287  # in J/K/Kg
+
+        # Initialize atmosphere
+        self.setAtmosphericModel("StandardAtmosphere")
+
+
         # Save latitude and longitude
         if latitude != None and longitude != None:
             self.setLocation(latitude, longitude)
         else:
             self.lat, self.lon = None, None
 
+        # Store launch site coordinates referenced to UTM projection system
+        if self.lat >-80 and self.lat<84:
+            convert = self.geodesicToUtm(self.lat, self.lon, self.datum)
+            self.initialNorth = convert[1]
+            self.initialEast = convert[0]
+            self.initialUtmZone = convert[2]
+            self.initialUtmLetter = convert[3]
+            self.initialHemisphere = convert[4]
+            self.initialEW = convert[5]
+
         # Save elevation
         self.setElevation(elevation)
+
+        # Recalculate Earth Radius
+        self.earthRadius = self.calculateEarthRadius(self.lat, self.datum) #in m
 
         return None
 
@@ -398,8 +437,21 @@ class Environment:
         ------
         None
         """
-        if elevation != "Open-Elevation":
+        if elevation != "Open-Elevation" and elevation != "SRTM":
             self.elevation = elevation
+        # elif elevation == "SRTM" and self.lat != None and self.lon != None:
+        #     # Trigger the authentication flow.
+        #     #ee.Authenticate()
+        #     # Initialize the library.
+        #     ee.Initialize()
+
+        #     # Calculate elevation
+        #     dem  = ee.Image('USGS/SRTMGL1_003')
+        #     xy   = ee.Geometry.Point([self.lon, self.lat])
+        #     elev = dem.sample(xy, 30).first().get('elevation').getInfo()
+
+        #     self.elevation = elev
+
         elif self.lat != None and self.lon != None:
             try:
                 print("Fetching elevation from open-elevation.com...")
@@ -2482,7 +2534,7 @@ class Environment:
         # Retrieve gas constant R and temperature T
         R = self.airGasConstant
         T = self.temperature
-        G = 1.4
+        G = 1.4   # Unused variable, why?
 
         # Compute speed of sound using sqrt(gamma*R*T)
         a = (1.4 * R * T) ** 0.5
@@ -2591,6 +2643,11 @@ class Environment:
         if self.lat != None and self.lon != None:
             print("Launch Site Latitude: {:.5f}°".format(self.lat))
             print("Launch Site Longitude: {:.5f}°".format(self.lon))
+        print("Reference Datum: " + self.datum)
+        print("Launch Site UTM coordinates: {:.2f} ".format(self.initialEast) 
+            + self.initialEW + "    {:.2f} ".format(self.initialNorth) + self.initialHemisphere 
+        )
+        print("Launch Site UTM zone:", str(self.initialUtmZone) + self.initialUtmLetter)
         print("Launch Site Surface Elevation: {:.1f} m".format(self.elevation))
 
         # Print atmospheric model details
@@ -2916,6 +2973,214 @@ class Environment:
 
         # Clean up
         self.selectEnsembleMember(currentMember)
+
+        return None
+
+    # Auxiliary functions - Geodesic Coordinates
+    def geodesicToUtm(self, lat, lon, datum):
+        """ Function that converts geodetic coordinates, i.e. lat/lon, to UTM 
+        projection coordinates. Can be used only for latitudes between -80.00° 
+        and 84.00°
+
+        Parameters
+        ----------
+        lat : float
+            The latitude coordinates of the point of analysis, must be contained 
+            between -80.00° and 84.00°
+        lon : float
+            The longitude coordinates of the point of analysis, must be contained 
+            between -180.00° and 180.00°
+        datum : string
+            The desired reference ellipsoide model, the following optiions are 
+            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default 
+            is "SIRGAS2000", then this model will be used if the user make some 
+            typing mistake  
+
+        Returns
+        -------
+        x: float
+            East coordinate, always positive
+        y:
+            North coordinate, always positive
+        utmZone: int
+            The number of the UTM zone of the point of analysis, can vary between
+            1 and 60
+        utmLetter: string
+            The letter of the UTM zone of the point of analysis, can vary between
+            C and X, omitting the letters "I" and "O"
+        hemis: string
+            Returns "S" for southern hemisphere and "N" for Northern hemisphere
+        EW: string
+            Returns "W" for western hemisphere and "E" for eastern hemisphere
+        """
+
+        # Calculate the central meridian of UTM zone
+        if lon!=0:
+            signal = lon/abs(lon)
+            if signal > 0:
+                aux = lon - 3
+                aux = aux*signal
+                div = aux//6
+                lon_mc = div*6 + 3
+                EW = "E"
+            else:
+                aux = lon + 3
+                aux = aux*signal
+                div = aux//6
+                lon_mc = (div*6 + 3)*signal
+                EW = "W"
+        else:
+            lon_mc = 3
+            EW = "W|E"
+
+        # Select the desired datum (i.e. the ellipsoid parameters)
+        if datum == "SAD69":
+            semiMajorAxis = 6378160.0
+            flattening = 1/298.25
+        elif datum == "WGS84":
+            semiMajorAxis = 6378137.0
+            flattening = 1/298.257223563
+        elif datum == "NAD83":
+            semiMajorAxis = 6378137.0
+            flattening = 1/298.257024899
+        else: 
+            # SIRGAS2000
+            semiMajorAxis = 6378137.0
+            flattening = 1/298.257223563
+
+        # Evaluate the hemisphere and determine the N coordinate at the Equator
+        if lat<0:
+            N0 = 10000000
+            hemis = "S"
+        else:
+            N0 = 0
+            hemis = "N"
+
+        # Convert the input lat and lon to radians
+        lat = lat*np.pi/180
+        lon = lon*np.pi/180
+        lon_mc = lon_mc*np.pi/180
+
+        # Evaluate reference parameters
+        K0 = 1 - 1/2500
+        e2 = 2*flattening - flattening**2
+        e2lin = e2/(1-e2)
+
+        # Evaluate auxiliary parameters
+        A = e2*e2
+        B = A*e2
+        C = np.sin(2*lat)
+        D = np.sin(4*lat)
+        E = np.sin(6*lat)
+        F = (1 - e2/4 - 3*A/64 - 5*B/256)*lat
+        G = (3*e2/8 + 3*A/32 + 45*B/1024)*C
+        H = (15*A/256 + 45*B/1024)*D 
+        I = (35*B/3072)*E
+
+        # Evaluate other reference parameters
+        n = semiMajorAxis/((1 - e2*(np.sin(lat)**2))**0.5)
+        t = np.tan(lat)**2
+        c = e2lin*(np.cos(lat)**2)
+        ag = (lon - lon_mc)*np.cos(lat)
+        m = semiMajorAxis*(F - G + H - I)
+
+        # Evaluate new auxiliary parameters
+        J = (1 - t + c)*ag*ag*ag/6
+        K = (5 - 18*t + t*t + 72*c - 58*e2lin)*(ag**5)/120
+        L = (5 - t + 9*c + 4*c*c)*ag*ag*ag*ag/24 
+        M = (61 - 58*t + t*t + 600*c - 330*e2lin)*(ag**6)/720
+
+        # Evaluate the final coordinates
+        x = 500000 + K0*n*(ag + J + K)
+        y = N0 + K0*(m + n*np.tan(lat)*(ag*ag/2 + L + M))
+
+        # Convert the output lat and lon to degress
+        lat = lat*180/np.pi
+        lon = lon*180/np.pi
+        lon_mc = lon_mc*180/np.pi
+
+        # Calculate the UTM zone number
+        utmZone = int((lon_mc + 183)/6)
+
+        # Calculate the UTM zone letter
+        letters = 'CDEFGHJKLMNPQRSTUVWXX'
+        utmLetter = letters[int(80 + lat)>>3]
+        
+        return x, y, utmZone, utmLetter, hemis, EW
+
+    def calculateEarthRadius(self, lat, datum):
+        """ Simple function to calculate the Earth Radius at a specific latitude
+        based on ellipsoidal reference model (datum). The earth radius here is
+        assumed as the distance between the ellipsoid's center of gravity and a
+        point on ellipsoid surface at the desired 
+        Pay attention: The ellipsoid is an ideal earth model and obvously will
+        not give us the perfect distance between earth relief and its center of
+        gravity. 
+
+        Parameters
+        ----------
+        lat : float
+            latitude in which the Earth radius will be calculated 
+        datum : string
+            The desired reference ellipsoide model, the following optiions are 
+            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default 
+            is "SIRGAS2000", then this model will be used if the user make some 
+            typing mistake
+
+        Returns
+        -------
+        float:
+            Earth Radius at the desired latitude in meters
+        """
+        # Select the desired datum (i.e. the ellipsoid parameters)
+        if datum == "SAD69":
+            semiMajorAxis = 6378160.0
+            flattening = 1/298.25
+        elif datum == "WGS84":
+            semiMajorAxis = 6378137.0
+            flattening = 1/298.257223563
+        elif datum == "NAD83":
+            semiMajorAxis = 6378137.0
+            flattening = 1/298.257024899
+        else: 
+            # SIRGAS2000
+            semiMajorAxis = 6378137.0
+            flattening = 1/298.257223563
+
+        # Calculate the semi minor axis length
+        #semiMinorAxis = semiMajorAxis - semiMajorAxis*(flattening**(-1))
+        semiMinorAxis = semiMajorAxis*(1 - flattening)
+
+        # Convert latitude to radians
+        lat = lat*np.pi/180
+
+        # Calculate the Earth Radius in meters
+        eRadius = np.sqrt(
+            ((np.cos(lat)*(semiMajorAxis**2))**2 + (np.sin(lat)*(semiMinorAxis**2))**2)/
+            ((np.cos(lat)*semiMajorAxis)**2 + (np.sin(lat)*semiMinorAxis)**2)
+        )
+
+        # Convert latitude to degress
+        lat = lat*180/np.pi
+
+        return eRadius
+
+    def printEarthDetails(self):
+        """ Function to print informations about the Earth Model used in the 
+        Evironment Class
+        """
+        # Print launch site details
+        #print("Launch Site Details")
+        #print("Launch Site Latitude: {:.5f}°".format(self.lat))
+        #print("Launch Site Longitude: {:.5f}°".format(self.lon))
+        #print("Reference Datum: " + self.datum)
+        #print("Launch Site UTM coordinates: {:.2f} ".format(self.initialEast) 
+        #    + self.initialEW + "    {:.2f} ".format(self.initialNorth) + self.initialHemisphere 
+        #)
+        #print("Launch Site UTM zone number: ", self.initialUtmZone)
+        #print("Launch Site Surface Elevation: {:.1f} m".format(self.elevation))
+        print("Earth Radius at Launch site: {:.1f} m".format(self.earthRadius))
+        print("Gravity acceleration at launch site: Still not implemented :(")
 
         return None
 
