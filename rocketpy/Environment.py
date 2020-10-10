@@ -3261,9 +3261,45 @@ class Environment:
 
         return eRadius
 
+    def decimalDegressToArcSeconds(self, angle):
+        """ Function to convert an angle in decimal degrees to deg/min/sec.
+         Converts (°) to (° ' ")
+
+        Parameters
+        ----------
+        angle : float
+            The angle that you need convert to deg/min/sec. Must be given in
+            decimal degrees
+            
+        Returns
+        -------
+        deg: float
+            The degrees
+        min: float
+            The arc minutes. 1 arc-minute = (1/60)*degree 
+        sec: float
+            The arc Seconds. 1 arc-secon = (1/360)*degree
+        """
+
+        if angle<0:
+            signal = -1
+        else:
+            signal = 1
+
+        deg = (signal*angle)//1
+        min = abs(signal*angle - deg)*60//1
+        sec = abs((signal*angle - deg)*60 - min)*60
+        #print("The angle {:f} is equals to {:.0f}º {:.0f}' {:.3f}'' ".format(
+        #    angle, signal*deg, min, sec
+        #))
+
+        return deg, min, sec
+
     def printEarthDetails(self):
-        """ Function to print informations about the Earth Model used in the 
+        """ [UNDER CONSTRUCTION]
+        Function to print informations about the Earth Model used in the 
         Evironment Class
+        
         """
         # Print launch site details
         #print("Launch Site Details")
