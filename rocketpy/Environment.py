@@ -323,6 +323,7 @@ class Environment:
             'Open-Elevation' which uses the Open-Elevation API to
             find elevation data. For this option, latitude and
             longitude must also be specified. Default value is 0.
+        datum:
 
         Returns
         -------
