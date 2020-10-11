@@ -25,6 +25,7 @@ import requests
 
 try:
     import netCDF4
+    from netCDF4 import Dataset
 except ImportError:
     warnings.warn("Unable to load netCDF4. NetCDF files and OPeNDAP will not be imported.", ImportWarning)
 
@@ -78,6 +79,16 @@ class Environment:
         Environment.date : datetime
             Date time of launch.    
         
+        Topographic informations:
+        Environment.elevLonArray: array
+            Unidimentional array containing the longitude coordinates
+        Environment.elevLatArray: array
+            Unidimentional array containing the latitude coordinates
+        Environment.elevArray: array
+            Two-Dimentional Array containing the elevation information 
+        Environment.topograficProfileAticvated: bool
+            True if the user already set a topographic plofile
+
         Atmosphere Static Conditions:
         Environment.maxExpectedHeight : float
             Maximum altitude in meters to keep weather data.
@@ -469,6 +480,140 @@ class Environment:
                 "Latitude and longitude must be set to use"
                 " Open-Elevation API. See Environment.setLocation."
             )
+
+    def setTopographicProfile(
+        self,
+        type,
+        file,
+        dictionary='netCDF4',
+        crs=None
+    ):
+        """ [UNDER CONSTRUCTION] Defines the Topographic profile, importing data
+        from previous downloaded files. Mainly data from the Shuttle Radar 
+        Topography Mission (SRTM) and NASA Digital Elevation Model will be used
+        but other models and methods can be implemented in the future.
+        So far, this function can only handle data from NASADEM, available at:
+        https://cmr.earthdata.nasa.gov/search/concepts/C1546314436-LPDAAC_ECS.html
+
+        Parameters
+        ----------
+        type : string
+            Defines the topographic model to be used, usually 'NASADEM Merged 
+            DEM Global 1 arc second nc' can be used. To download this kind of 
+            data, acess 'https://search.earthdata.nasa.gov/search'. 
+            NASADEM data products were derived from original telemetry data from
+            the Shuttle Radar Topography Mission (SRTM).
+        file : string
+            The path/name of the topografic file. Usually .nc provided by 
+        dictionary : string, optional
+            Dictionary that you help with reading the spcified file, by default 
+            'netCDF4' which works well with .nc files will be supported
+        crs : string, optional
+            Coordinate reference system, by default None, which will use the crs 
+            provided by the file
+        """
+
+        if type=='NASADEM_HGT':
+            if dictionary== 'netCDF4':
+                rootgrp = Dataset(file, "r", format="NETCDF4")
+                self.elevLonArray = rootgrp.variables["lon"][:].tolist()
+                self.elevLatArray = rootgrp.variables["lat"][:].tolist()
+                self.elevArray = rootgrp.variables['NASADEM_HGT'][:].tolist()
+                #crsArray = rootgrp.variables['crs'][:].tolist().
+                self.topograficProfileAticvated = True
+                
+                print("Region covered by the Topographical file: ")
+                print("Latitude from {:.6f}° to {:.6f}°".format(
+                    self.elevLatArray[-1], self.elevLatArray[0]
+                ))
+                print("Longitude from {:.6f}° to {:.6f}°".format(
+                    self.elevLonArray[0], self.elevLonArray[-1]
+                ))
+        
+        return None
+
+    def getElevationFromTopograghicProfile(self, lat, lon):
+        """ Function that receives the coordinates of a point and find its 
+        elevation in the provided Topographic Profile
+
+        Parameters
+        ----------
+        lat : float
+            latitude of the point
+        lon : float
+            longitude of the point
+
+        Returns
+        -------
+        elevation: float
+            Elevation provided by the topographic data, in meters
+
+        Raises
+        ------
+        ValueError
+            [description]
+        ValueError
+            [description]
+        """
+        if self.topograficProfileAticvated == False:
+            print(
+                "You must define a Topographic profile first, please use the method Environment.setTopograghicProfile()"
+                )
+            return None
+        
+        # Find latitude index
+        # Check if reversed or sorted
+        if self.elevLatArray[0] < self.elevLatArray[-1]:
+            # Deal with sorted self.elevLatArray
+            latIndex = bisect.bisect(self.elevLatArray, lat)
+        else:
+            # Deal with reversed self.elevLatArray
+            self.elevLatArray.reverse()
+            latIndex = len(self.elevLatArray) - bisect.bisect_left(self.elevLatArray, lat)
+            self.elevLatArray.reverse()
+        # Take care of latitude value equal to maximum longitude in the grid
+        if latIndex == len(self.elevLatArray) and self.elevLatArray[latIndex - 1] == lat:
+            latIndex = latIndex - 1
+        # Check if latitude value is inside the grid
+        if latIndex == 0 or latIndex == len(self.elevLatArray):
+            raise ValueError(
+                "Latitude {:f} not inside region covered by file, which is from {:f} to {:f}.".format(
+                    lat, self.elevLatArray[0], self.elevLatArray[-1]
+                    )
+                )
+
+        # Find longitude index
+        # Determine if file uses -180 to 180 or 0 to 360
+        if self.elevLonArray[0] < 0 or self.elevLonArray[-1] < 0:
+            # Convert input to -180 - 180
+            lon = lon if lon < 180 else -180 + lon % 180
+        else:
+            # Convert input to 0 - 360
+            lon = lon % 360
+        # Check if reversed or sorted
+        if self.elevLonArray[0] < self.elevLonArray[-1]:
+            # Deal with sorted self.elevLonArray
+            lonIndex = bisect.bisect(self.elevLonArray, lon)
+        else:
+            # Deal with reversed self.elevLonArray
+            self.elevLonArray.reverse()
+            lonIndex = len(self.elevLonArray) - bisect.bisect_left(self.elevLonArray, lon)
+            self.elevLonArray.reverse()
+        # Take care of longitude value equal to maximum longitude in the grid
+        if lonIndex == len(self.elevLonArray) and self.elevLonArray[lonIndex - 1] == lon:
+            lonIndex = lonIndex - 1
+        # Check if longitude value is inside the grid
+        if lonIndex == 0 or lonIndex == len(self.elevLonArray):
+            raise ValueError(
+                "Longitude {:f} not inside region covered by file, which is from {:f} to {:f}.".format(
+                    lon, self.elevLonArray[0], self.elevLonArray[-1]
+                )
+            )
+
+        # Get the elevation
+        elevation= self.elevArray[latIndex][lonIndex]
+
+        return elevation
 
     def setAtmosphericModel(
         self,
