@@ -243,6 +243,7 @@ Please read [CONTRIBUTING.md](https://github.com/giovaniceotto/RocketPy/blob/mas
 ## Authors
 
 * **Giovani Hidalgo Ceotto**
+* **Rodrigo Nascente Schmitt**
 
 See also the list of [contributors](https://github.com/giovaniceotto/RocketPy/contributors) who participated in this project.
 
