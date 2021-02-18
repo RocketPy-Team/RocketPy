@@ -274,6 +274,9 @@ class Rocket:
         self.thrustToWeight.setInputs('Time (s)')
         self.thrustToWeight.setOutputs('Thrust/Weight')
 
+        # Evaluate static margin (even though no aerodynamic surfaces are present yet)
+        self.evaluateStaticMargin()
+
         return None
 
     def evaluateReducedMass(self):
@@ -374,6 +377,7 @@ class Rocket:
         self.staticMargin = (self.centerOfMass - self.cpPosition) / (2 * self.radius)
         self.staticMargin.setInputs("Time (s)")
         self.staticMargin.setOutputs("Static Margin (c)")
+        self.staticMargin.setDiscrete(lower=0, upper=self.motor.burnOutTime, samples=200)
 
         # Return self
         return self
