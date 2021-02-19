@@ -662,6 +662,15 @@ class Flight:
                 w2Init,
                 w3Init,
             ]
+            # Set initial derivative for rail phase 
+            self.initialDerivative = self.uDotRail1
+        else:
+            # Initial solution given, ignore rail phase
+            # TODO: Check if rocket is actually out of rail. Otherwise, start at rail
+            self.outOfRailState = self.initialSolution[1:]
+            self.outOfRailTime = self.initialSolution[0]        
+            self.initialDerivative = self.uDot
+
         self.tInitial = self.initialSolution[0]
         self.solution.append(self.initialSolution)
         self.t = self.solution[-1][0]
@@ -680,7 +689,7 @@ class Flight:
 
         # Create knonw flight phases
         self.flightPhases = FlightPhases()
-        self.flightPhases.addPhase(self.tInitial, self.uDotRail1, clear=False)
+        self.flightPhases.addPhase(self.tInitial, self.initialDerivative, clear=False)
         self.flightPhases.addPhase(self.maxTime)
 
         # Simulate flight
@@ -864,7 +873,7 @@ class Flight:
                         d = float(y0)
                         c = float(yp0)
                         b = float((3 * y1 - yp1 * D - 2 * c * D - 3 * d) / (D ** 2))
-                        a = float(-(2 * y1 - yp1 * D - c * D - 2 * d) / (D ** 3))
+                        a = float(-(2 * y1 - yp1 * D - c * D - 2 * d) / (D ** 3)) + 1e-5
                         # Find roots
                         d0 = b ** 2 - 3 * a * c
                         d1 = 2 * b ** 3 - 9 * a * b * c + 27 * d * a ** 2
@@ -1744,18 +1753,24 @@ class Flight:
         self.railButton2ShearForce = F21 * -np.sin(alpha) + F22 * np.cos(alpha)
         self.railButton2ShearForce.setOutputs("Lower Rail Button Shear Force (N)")
         # Rail Button Maximum Forces
-        self.maxRailButton1NormalForce = np.amax(
-            self.railButton1NormalForce[:outOfRailTimeIndex]
-        )
-        self.maxRailButton1ShearForce = np.amax(
-            self.railButton1ShearForce[:outOfRailTimeIndex]
-        )
-        self.maxRailButton2NormalForce = np.amax(
-            self.railButton2NormalForce[:outOfRailTimeIndex]
-        )
-        self.maxRailButton2ShearForce = np.amax(
-            self.railButton2ShearForce[:outOfRailTimeIndex]
-        )
+        if outOfRailTimeIndex == 0:
+            self.maxRailButton1NormalForce = 0
+            self.maxRailButton1ShearForce = 0
+            self.maxRailButton2NormalForce = 0
+            self.maxRailButton2ShearForce = 0
+        else: 
+            self.maxRailButton1NormalForce = np.amax(
+                self.railButton1NormalForce[:outOfRailTimeIndex]
+            )
+            self.maxRailButton1ShearForce = np.amax(
+                self.railButton1ShearForce[:outOfRailTimeIndex]
+            )
+            self.maxRailButton2NormalForce = np.amax(
+                self.railButton2NormalForce[:outOfRailTimeIndex]
+            )
+            self.maxRailButton2ShearForce = np.amax(
+                self.railButton2ShearForce[:outOfRailTimeIndex]
+            )
         # Aerodynamic Lift and Drag
         self.aerodynamicLift = (self.R1 ** 2 + self.R2 ** 2) ** 0.5
         self.aerodynamicLift.setOutputs("Aerodynamic Lift Force (N)")
@@ -2217,7 +2232,6 @@ class Flight:
         )
         return None
 
-
     def printNumericalIntegrationSettings(self):
         """Prints out the Numerical Integration settings
 
@@ -2650,7 +2664,7 @@ class Flight:
             self.railButton2NormalForce[:outOfRailTimeIndex, 1],
             label="Lower Rail Button",
         )
-        ax1.set_xlim(0, self.outOfRailTime)
+        ax1.set_xlim(0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal)
         ax1.legend()
         ax1.grid(True)
         ax1.set_xlabel("Time (s)")
@@ -2668,7 +2682,7 @@ class Flight:
             self.railButton2ShearForce[:outOfRailTimeIndex, 1],
             label="Lower Rail Button",
         )
-        ax2.set_xlim(0, self.outOfRailTime)
+        ax2.set_xlim(0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal)
         ax2.legend()
         ax2.grid(True)
         ax2.set_xlabel("Time (s)")
@@ -2767,7 +2781,7 @@ class Flight:
             self.translationalEnergy[:, 1],
             label="Translational Energy",
         )
-        ax1.set_xlim(0, self.apogeeTime)
+        ax1.set_xlim(0, self.apogeeTime if self.apogeeTime != 0.0 else self.tFinal)
         ax1.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
         ax1.set_title("Kinetic Energy Components")
         ax1.set_xlabel("Time (s)")
@@ -2786,7 +2800,7 @@ class Flight:
             self.potentialEnergy[:, 1],
             label="Potential Energy",
         )
-        ax2.set_xlim(0, self.apogeeTime)
+        ax2.set_xlim(0, self.apogeeTime if self.apogeeTime != 0.0 else self.tFinal)
         ax2.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
         ax2.set_title("Total Mechanical Energy Components")
         ax2.set_xlabel("Time (s)")
@@ -2806,7 +2820,7 @@ class Flight:
 
         ax4 = plt.subplot(414)
         ax4.plot(self.dragPower[:, 0], -self.dragPower[:, 1], label="|Drag Power|")
-        ax4.set_xlim(0, self.apogeeTime)
+        ax4.set_xlim(0, self.apogeeTime if self.apogeeTime != 0.0 else self.tFinal)
         ax3.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
         ax4.set_title("Drag Absolute Power")
         ax4.set_xlabel("Time (s)")
@@ -2880,7 +2894,7 @@ class Flight:
 
         ax4 = plt.subplot(414)
         ax4.plot(self.angleOfAttack[:, 0], self.angleOfAttack[:, 1])
-        ax4.set_xlim(self.outOfRailTime, 10*self.outOfRailTime)
+        ax4.set_xlim(self.outOfRailTime, 10*self.outOfRailTime+1) # +1 Prevents problem when self.outOfRailTime=0
         ax4.set_ylim(0, self.angleOfAttack(self.outOfRailTime))
         ax4.set_title("Angle of Attack")
         ax4.set_xlabel("Time (s)")
@@ -3011,7 +3025,7 @@ class Flight:
         ax1.plot()
         ax1.plot(self.flutterMachNumber[:,0] , self.flutterMachNumber[:,1], label = "Fin flutter Mach Number")
         ax1.plot(self.MachNumber[:,0], self.MachNumber[:,1], label= "Rocket Freestream Speed")
-        ax1.set_xlim(0, self.apogeeTime)
+        ax1.set_xlim(0, self.apogeeTime if self.apogeeTime != 0.0 else self.tFinal)
         ax1.set_title("Fin Flutter Mach Number x Time(s)")
         ax1.set_xlabel("Time (s)")
         ax1.set_ylabel("Mach")
@@ -3020,7 +3034,7 @@ class Flight:
 
         ax2 = plt.subplot(312)
         ax2.plot(self.difference[:,0], self.difference[:,1])
-        ax2.set_xlim(0, self.apogeeTime)
+        ax2.set_xlim(0, self.apogeeTime if self.apogeeTime != 0.0 else self.tFinal)
         ax2.set_title("Mach flutter - Freestream velocity")
         ax2.set_xlabel("Time (s)")
         ax2.set_ylabel("Mach")
