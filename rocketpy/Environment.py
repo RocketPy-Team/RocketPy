@@ -283,8 +283,8 @@ class Environment:
         railLength,
         gravity=9.80665,
         date=None,
-        latitude=None,
-        longitude=None,
+        latitude=0,
+        longitude=0,
         elevation=0,
         datum="SIRGAS2000",
     ):
@@ -394,10 +394,13 @@ class Environment:
 
         # Update atmospheric conditions if atmosphere type is Forecast,
         # Reanalysis or Ensemble
-        if self.atmosphericModelType in ["Forecast", "Reanalysis", "Ensemble"]:
-            self.setAtmosphericModel(
-                self.atmosphericModelFile, self.atmosphericModelDict
-            )
+        try:
+            if self.atmosphericModelType in ["Forecast", "Reanalysis", "Ensemble"]:
+                self.setAtmosphericModel(
+                    self.atmosphericModelFile, self.atmosphericModelDict
+                )
+        except AttributeError:
+            pass
 
         return None
 
