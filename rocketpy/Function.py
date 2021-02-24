@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 
+
 class Function:
     """Class converts a python function or a data sequence into an object
     which can be handled more naturally, enabling easy interpolation,
@@ -34,7 +35,7 @@ class Function:
         interpolation=None,
         extrapolation=None,
     ):
-        """ Convert source into a Function, to be used more naturally.
+        """Convert source into a Function, to be used more naturally.
         Set inputs, outputs, domain dimension, interpolation and extrapolation
         method, and process the source.
 
@@ -910,12 +911,12 @@ class Function:
     def __getitem__(self, args):
         """Returns item of the Function source. If the source is not an array,
         an error will result.
-        
+
         Parameters
         ----------
         args : int, float
             Index of the item to be retrieved.
-        
+
         Returns
         -------
         self.source[args] : float, array
@@ -926,7 +927,7 @@ class Function:
     def __len__(self):
         """Returns length of the Function source. If the source is not an
         array, an error will result.
-            
+
         Returns
         -------
         len(self.source) : int
@@ -1011,7 +1012,7 @@ class Function:
         forcePoints=False,
         returnObject=False,
     ):
-        """ Plot 1-Dimensional Function, from a lower limit to an upper limit,
+        """Plot 1-Dimensional Function, from a lower limit to an upper limit,
         by sampling the Function several times in the interval. The title of
         the graph is given by the name of the axis, which are taken from
         the Function`s input and ouput names.
@@ -1090,7 +1091,7 @@ class Function:
         forceData=True,
         dispType="surface",
     ):
-        """ Plot 2-Dimensional Function, from a lower limit to an upper limit,
+        """Plot 2-Dimensional Function, from a lower limit to an upper limit,
         by sampling the Function several times in the interval. The title of
         the graph is given by the name of the axis, which are taken from
         the Function`s inputs and ouput names.
@@ -1209,7 +1210,7 @@ class Function:
         forcePoints=False,
         returnObject=False,
     ):
-        """ Plots N 1-Dimensional Functions in the same plot, from a lower
+        """Plots N 1-Dimensional Functions in the same plot, from a lower
         limit to an upper limit, by sampling the Functions several times in
         the interval.
 
@@ -1253,7 +1254,7 @@ class Function:
         None
         """
         noRangeSpecified = True if lower is None and upper is None else False
-        # Convert to list of tuples if list of Function was given        
+        # Convert to list of tuples if list of Function was given
         plots = []
         for plot in plot_list:
             if isinstance(plot, (tuple, list)):
@@ -1261,14 +1262,12 @@ class Function:
             else:
                 plots.append((plot, ""))
 
-
         # plots = []
         # if isinstance(plot_list[0], (tuple, list)) == False:
         #     for plot in plot_list:
         #         plots.append((plot, " "))
         # else:
         #     plots = plot_list
-
 
         # Create plot figure
         fig, ax = plt.subplots()
@@ -1943,7 +1942,7 @@ class Function:
             return Function(lambda x: (other(x) - self.getValue(x)))
 
     def integral(self, a, b, numerical=False):
-        """ Evaluate a definite integral of a 1-D Function in the interval
+        """Evaluate a definite integral of a 1-D Function in the interval
         from a to b.
 
         Parameters
@@ -1958,7 +1957,7 @@ class Function:
             If False, try to calculate using interpolation information.
             Currently, only available for spline and linear interpolation. If
             unavailable, calculate numerically anyways.
-        
+
         Returns
         -------
         ans : float
@@ -2029,7 +2028,7 @@ class Function:
             return np.trapz(self.source[:, 1], x=self.source[:, 0])
         else:
             # Integrate numerically
-            ans,_ = integrate.quad(self, a, b, epsabs=0.1, limit=10000)
+            ans, _ = integrate.quad(self, a, b, epsabs=0.1, limit=10000)
         return ans
 
     # Not implemented
@@ -2038,4 +2037,3 @@ class Function:
         # h = (10)**-300
         # z = x + h*1j
         # return self(z).imag/h
-
