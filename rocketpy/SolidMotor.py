@@ -22,13 +22,14 @@ from matplotlib import cm
 
 from .Function import Function
 
+
 class SolidMotor:
     """Class to specify characteriscts and useful operations for solid
     motors.
-    
+
     Attributes
     ----------
-    
+
         Geometrical attributes:
         Motor.nozzleRadius : float
             Radius of motor nozzle outlet in meters.
@@ -75,8 +76,8 @@ class SolidMotor:
             cylindrical symmetry of each grain, given as a function of time.
         Motor.inertiaDot : Function
             Time derivative of inertiaZ given in kg*meter^2/s as a function
-            of time.   
-        
+            of time.
+
         Thrust and burn attributes:
         Motor.thrust : Function
             Motor thrust force, in Newtons, as a function of time.
@@ -160,7 +161,7 @@ class SolidMotor:
         throatRadius : int, float, optional
             Motor's nozzle throat radius in meters. Its value has very low
             impact in trajectory simulation, only useful to analyze
-            dynamic instabilities, therefore it is optional. 
+            dynamic instabilities, therefore it is optional.
         reshapeThrustCurve : boolean, tuple, optional
             If False, the original thrust curve supplied is not altered. If a
             tuple is given, whose first parameter is a new burn out time and
@@ -173,7 +174,7 @@ class SolidMotor:
             Method of interpolation to be used in case thrust curve is given
             by data set in .csv or .eng, or as an array. Options are 'spline'
             'akima' and 'linear'. Default is "linear".
-        
+
         Returns
         -------
         None
@@ -288,7 +289,7 @@ class SolidMotor:
             are 0 Newtons, translating the thrust curve so that
             thrust starts at time equals 0. If False, no translation
             is applied.
-        
+
         Returns
         -------
         None
@@ -326,7 +327,7 @@ class SolidMotor:
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         self.totalImpulse : float
@@ -341,13 +342,13 @@ class SolidMotor:
     def evaluateExhaustVelocity(self):
         """Calculates and returns exhaust velocity by assuming it
         as a constant. The formula used is total impulse/propellant
-        initial mass. The value is also stored in 
+        initial mass. The value is also stored in
         self.exhaustVelocity.
 
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         self.exhaustVelocity : float
@@ -373,7 +374,7 @@ class SolidMotor:
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         self.massDot : Function
@@ -403,7 +404,7 @@ class SolidMotor:
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         self.mass : Function
@@ -448,7 +449,7 @@ class SolidMotor:
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         geometry : list of Functions
@@ -543,7 +544,7 @@ class SolidMotor:
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         list of Functions
@@ -609,7 +610,7 @@ class SolidMotor:
         return [self.inertiaI, self.inertiaZ]
 
     def importEng(self, fileName):
-        """ Read content from .eng file and process it, in order to
+        """Read content from .eng file and process it, in order to
         return the comments, description and data points.
 
         Parameters
@@ -655,7 +656,7 @@ class SolidMotor:
         return comments, description, dataPoints
 
     def exportEng(self, fileName, motorName):
-        """ Exports thrust curve data points and motor description to
+        """Exports thrust curve data points and motor description to
         .eng file format. A description of the format can be found
         here: http://www.thrustcurve.org/raspformat.shtml
 
@@ -708,7 +709,7 @@ class SolidMotor:
         Parameters
         ----------
         None
-        
+
         Return
         ------
         None
@@ -748,7 +749,7 @@ class SolidMotor:
         Parameters
         ----------
         None
-        
+
         Return
         ------
         None
@@ -808,4 +809,3 @@ class SolidMotor:
         self.inertiaZDot()
 
         return None
-

@@ -5,6 +5,7 @@ import pytest
 
 from rocketpy import Environment, SolidMotor, Rocket, Flight
 
+
 @patch("matplotlib.pyplot.show")
 def test_flight(mock_show):
     test_env = Environment(
@@ -12,42 +13,50 @@ def test_flight(mock_show):
         latitude=32.990254,
         longitude=-106.974998,
         elevation=1400,
-        datum="WGS84"
+        datum="WGS84",
     )
     tomorrow = datetime.date.today() + datetime.timedelta(days=1)
-    test_env.setDate((tomorrow.year, tomorrow.month, tomorrow.day, 12)) # Hour given in UTC time
+    test_env.setDate(
+        (tomorrow.year, tomorrow.month, tomorrow.day, 12)
+    )  # Hour given in UTC time
 
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
         burnOut=3.9,
         grainNumber=5,
-        grainSeparation=5/1000,
+        grainSeparation=5 / 1000,
         grainDensity=1815,
-        grainOuterRadius=33/1000,
-        grainInitialInnerRadius=15/1000,
-        grainInitialHeight=120/1000,
-        nozzleRadius=33/1000,
-        throatRadius=11/1000,
-        interpolationMethod='linear'
+        grainOuterRadius=33 / 1000,
+        grainInitialInnerRadius=15 / 1000,
+        grainInitialHeight=120 / 1000,
+        nozzleRadius=33 / 1000,
+        throatRadius=11 / 1000,
+        interpolationMethod="linear",
     )
 
     test_rocket = Rocket(
         motor=test_motor,
-        radius=127/2000,
-        mass=19.197-2.956,
+        radius=127 / 2000,
+        mass=19.197 - 2.956,
         inertiaI=6.60,
         inertiaZ=0.0351,
         distanceRocketNozzle=-1.255,
         distanceRocketPropellant=-0.85704,
-        powerOffDrag='data/calisto/powerOffDragCurve.csv',
-        powerOnDrag='data/calisto/powerOnDragCurve.csv'
+        powerOffDrag="data/calisto/powerOffDragCurve.csv",
+        powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
 
     test_rocket.setRailButtons([0.2, -0.5])
 
-    NoseCone = test_rocket.addNose(length=0.55829, kind="vonKarman", distanceToCM=0.71971)
-    FinSet = test_rocket.addFins(4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956)
-    Tail = test_rocket.addTail(topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656)
+    NoseCone = test_rocket.addNose(
+        length=0.55829, kind="vonKarman", distanceToCM=0.71971
+    )
+    FinSet = test_rocket.addFins(
+        4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
+    )
+    Tail = test_rocket.addTail(
+        topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656
+    )
 
     def drogueTrigger(p, y):
         # p = pressure
@@ -62,26 +71,29 @@ def test_flight(mock_show):
         return True if y[5] < 0 and y[2] < 800 else False
 
     Main = test_rocket.addParachute(
-        'Main',
+        "Main",
         CdS=10.0,
-        trigger=mainTrigger, 
+        trigger=mainTrigger,
         samplingRate=105,
         lag=1.5,
-        noise=(0, 8.3, 0.5)
+        noise=(0, 8.3, 0.5),
     )
 
     Drogue = test_rocket.addParachute(
-        'Drogue',
+        "Drogue",
         CdS=1.0,
-        trigger=drogueTrigger, 
+        trigger=drogueTrigger,
         samplingRate=105,
         lag=1.5,
-        noise=(0, 8.3, 0.5)
+        noise=(0, 8.3, 0.5),
     )
 
-    test_flight = Flight(rocket=test_rocket, environment=test_env, inclination=85, heading=0)
+    test_flight = Flight(
+        rocket=test_rocket, environment=test_env, inclination=85, heading=0
+    )
 
     assert test_flight.allInfo() == None
+
 
 @patch("matplotlib.pyplot.show")
 def test_initial_solution(mock_show):
@@ -90,42 +102,50 @@ def test_initial_solution(mock_show):
         latitude=32.990254,
         longitude=-106.974998,
         elevation=1400,
-        datum="WGS84"
+        datum="WGS84",
     )
     tomorrow = datetime.date.today() + datetime.timedelta(days=1)
-    test_env.setDate((tomorrow.year, tomorrow.month, tomorrow.day, 12)) # Hour given in UTC time
+    test_env.setDate(
+        (tomorrow.year, tomorrow.month, tomorrow.day, 12)
+    )  # Hour given in UTC time
 
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
         burnOut=3.9,
         grainNumber=5,
-        grainSeparation=5/1000,
+        grainSeparation=5 / 1000,
         grainDensity=1815,
-        grainOuterRadius=33/1000,
-        grainInitialInnerRadius=15/1000,
-        grainInitialHeight=120/1000,
-        nozzleRadius=33/1000,
-        throatRadius=11/1000,
-        interpolationMethod='linear'
+        grainOuterRadius=33 / 1000,
+        grainInitialInnerRadius=15 / 1000,
+        grainInitialHeight=120 / 1000,
+        nozzleRadius=33 / 1000,
+        throatRadius=11 / 1000,
+        interpolationMethod="linear",
     )
 
     test_rocket = Rocket(
         motor=test_motor,
-        radius=127/2000,
-        mass=19.197-2.956,
+        radius=127 / 2000,
+        mass=19.197 - 2.956,
         inertiaI=6.60,
         inertiaZ=0.0351,
         distanceRocketNozzle=-1.255,
         distanceRocketPropellant=-0.85704,
-        powerOffDrag='data/calisto/powerOffDragCurve.csv',
-        powerOnDrag='data/calisto/powerOnDragCurve.csv'
+        powerOffDrag="data/calisto/powerOffDragCurve.csv",
+        powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
 
     test_rocket.setRailButtons([0.2, -0.5])
 
-    NoseCone = test_rocket.addNose(length=0.55829, kind="vonKarman", distanceToCM=0.71971)
-    FinSet = test_rocket.addFins(4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956)
-    Tail = test_rocket.addTail(topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656)
+    NoseCone = test_rocket.addNose(
+        length=0.55829, kind="vonKarman", distanceToCM=0.71971
+    )
+    FinSet = test_rocket.addFins(
+        4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
+    )
+    Tail = test_rocket.addTail(
+        topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656
+    )
 
     def drogueTrigger(p, y):
         # p = pressure
@@ -140,21 +160,21 @@ def test_initial_solution(mock_show):
         return True if y[5] < 0 and y[2] < 800 else False
 
     Main = test_rocket.addParachute(
-        'Main',
+        "Main",
         CdS=10.0,
-        trigger=mainTrigger, 
+        trigger=mainTrigger,
         samplingRate=105,
         lag=1.5,
-        noise=(0, 8.3, 0.5)
+        noise=(0, 8.3, 0.5),
     )
 
     Drogue = test_rocket.addParachute(
-        'Drogue',
+        "Drogue",
         CdS=1.0,
-        trigger=drogueTrigger, 
+        trigger=drogueTrigger,
         samplingRate=105,
         lag=1.5,
-        noise=(0, 8.3, 0.5)
+        noise=(0, 8.3, 0.5),
     )
 
     test_flight = Flight(
@@ -168,7 +188,7 @@ def test_initial_solution(mock_show):
         rtol=1e-8,
         atol=1e-6,
         verbose=True,
-        initialSolution = [
+        initialSolution=[
             0.0,
             0.0,
             0.0,
@@ -183,7 +203,7 @@ def test_initial_solution(mock_show):
             0.0,
             0.0,
             0.0,
-        ]
+        ],
     )
 
     assert test_flight.allInfo() == None

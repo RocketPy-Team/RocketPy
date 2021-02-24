@@ -21,24 +21,26 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 import requests
 
-#import ee 
+# import ee
 
 try:
     import netCDF4
     from netCDF4 import Dataset
 except ImportError:
-    warnings.warn("Unable to load netCDF4. NetCDF files and OPeNDAP will not be imported.", ImportWarning)
+    warnings.warn(
+        "Unable to load netCDF4. NetCDF files and OPeNDAP will not be imported.",
+        ImportWarning,
+    )
 
 from .Function import Function
-#from rocketpy import Function
 
 class Environment:
     """Keeps all environment information stored, such as wind and temperature
     conditions, as well as gravity and rail length.
-    
+
     Attributes
     ----------
-    
+
         Constants
         Environment.earthRadius : float
             Value of Earth's Radius = 6.3781e6 m.
@@ -57,9 +59,9 @@ class Environment:
         Environment.lon : float
             Launch site longitude.
         Environment.datum: string
-            The desired reference ellipsoide model, the following optiions are 
-            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default 
-            is "SIRGAS2000", then this model will be used if the user make some 
+            The desired reference ellipsoide model, the following optiions are
+            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
+            is "SIRGAS2000", then this model will be used if the user make some
             typing mistake
         Environment.initialEast: float
             Launch site East UTM coordinate
@@ -68,7 +70,7 @@ class Environment:
         Environment.initialUtmZone: int
             Launch site UTM zone number
         Environment.initialUtmLetter: string
-            Launch site UTM letter, to keep the latitude band and describe the 
+            Launch site UTM letter, to keep the latitude band and describe the
             UTM Zone
         Environment.initialHemisphere: string
             Launch site S/N hemisphere
@@ -77,15 +79,15 @@ class Environment:
         Environment.elevation : float
             Launch site elevation.
         Environment.date : datetime
-            Date time of launch.    
-        
+            Date time of launch.
+
         Topographic informations:
         Environment.elevLonArray: array
             Unidimentional array containing the longitude coordinates
         Environment.elevLatArray: array
             Unidimentional array containing the latitude coordinates
         Environment.elevArray: array
-            Two-Dimentional Array containing the elevation information 
+            Two-Dimentional Array containing the elevation information
         Environment.topograficProfileAticvated: bool
             True if the user already set a topographic plofile
 
@@ -129,7 +131,7 @@ class Environment:
             Can be accessed as regular array, or called
             as a function. See Function for more information.
 
-        Atmosphere Wind Conditions: 
+        Atmosphere Wind Conditions:
         Environment.windSpeed : Function
             Wind speed in m/s as a function of altitude.
             Can be accessed as regular array, or called
@@ -254,7 +256,7 @@ class Environment:
            Defined if netCDF or OPeNDAP file is used, for Forecasts,
            Reanalysis and Ensembles. List of geometric height
            corresponding to launch site location.
-        
+
         Atmospheric Model Ensemble Specific Data
         Environment.levelEnsemble : array
             Only defined when using Ensembles.
@@ -276,7 +278,7 @@ class Environment:
             Number of ensemble members. Only defined when using Ensembles.
         Environment.ensembleMember : int
             Current selected ensemble member. Only defined when using Ensembles.
-        """
+    """
 
     def __init__(
         self,
@@ -345,12 +347,11 @@ class Environment:
             self.date = None
 
         # Initialize constants
-        self.earthRadius = 6.3781*(10**6)
+        self.earthRadius = 6.3781 * (10 ** 6)
         self.airGasConstant = 287.05287  # in J/K/Kg
 
         # Initialize atmosphere
         self.setAtmosphericModel("StandardAtmosphere")
-
 
         # Save latitude and longitude
         if latitude != None and longitude != None:
@@ -359,7 +360,7 @@ class Environment:
             self.lat, self.lon = None, None
 
         # Store launch site coordinates referenced to UTM projection system
-        if self.lat >-80 and self.lat<84:
+        if self.lat > -80 and self.lat < 84:
             convert = self.geodesicToUtm(self.lat, self.lon, self.datum)
             self.initialNorth = convert[1]
             self.initialEast = convert[0]
@@ -372,19 +373,19 @@ class Environment:
         self.setElevation(elevation)
 
         # Recalculate Earth Radius
-        self.earthRadius = self.calculateEarthRadius(self.lat, self.datum) #in m
+        self.earthRadius = self.calculateEarthRadius(self.lat, self.datum)  # in m
 
         return None
 
     def setDate(self, date):
         """Set date and time of launch and update weather conditions if
         date dependent atmospheric model is used.
-        
+
         Parameters
         ----------
         date : Date
             Date object specifying launch date and time.
-        
+
         Return
         ------
         None
@@ -407,7 +408,7 @@ class Environment:
     def setLocation(self, latitude, longitude):
         """Set latitude and longitude of launch and update atmospheric
         conditions if location dependent model is being used.
-        
+
         Parameters
         ----------
         latitude : float
@@ -416,7 +417,7 @@ class Environment:
         longitude : float
             Longitude of launch site. Either from 0 to 360 degrees
             or from -180 to 180 degrees.
-        
+
         Return
         ------
         None
@@ -437,7 +438,7 @@ class Environment:
     def setElevation(self, elevation="Open-Elevation"):
         """Set elevation of launch site given user input or using the
         Open-Elevation API.
-        
+
         Parameters
         ----------
         elevation : float, string, optional
@@ -447,7 +448,7 @@ class Environment:
             the Open-Elevation API to find elevation data. For this
             option, latitude and longitude must have already been
             specified. See Environment.setLocation for more details.
-        
+
         Return
         ------
         None
@@ -485,15 +486,9 @@ class Environment:
                 " Open-Elevation API. See Environment.setLocation."
             )
 
-    def setTopographicProfile(
-        self,
-        type,
-        file,
-        dictionary='netCDF4',
-        crs=None
-    ):
-        """ [UNDER CONSTRUCTION] Defines the Topographic profile, importing data
-        from previous downloaded files. Mainly data from the Shuttle Radar 
+    def setTopographicProfile(self, type, file, dictionary="netCDF4", crs=None):
+        """[UNDER CONSTRUCTION] Defines the Topographic profile, importing data
+        from previous downloaded files. Mainly data from the Shuttle Radar
         Topography Mission (SRTM) and NASA Digital Elevation Model will be used
         but other models and methods can be implemented in the future.
         So far, this function can only handle data from NASADEM, available at:
@@ -502,42 +497,46 @@ class Environment:
         Parameters
         ----------
         type : string
-            Defines the topographic model to be used, usually 'NASADEM Merged 
-            DEM Global 1 arc second nc' can be used. To download this kind of 
-            data, acess 'https://search.earthdata.nasa.gov/search'. 
+            Defines the topographic model to be used, usually 'NASADEM Merged
+            DEM Global 1 arc second nc' can be used. To download this kind of
+            data, acess 'https://search.earthdata.nasa.gov/search'.
             NASADEM data products were derived from original telemetry data from
             the Shuttle Radar Topography Mission (SRTM).
         file : string
-            The path/name of the topografic file. Usually .nc provided by 
+            The path/name of the topografic file. Usually .nc provided by
         dictionary : string, optional
-            Dictionary that you help with reading the spcified file, by default 
+            Dictionary that you help with reading the spcified file, by default
             'netCDF4' which works well with .nc files will be supported
         crs : string, optional
-            Coordinate reference system, by default None, which will use the crs 
+            Coordinate reference system, by default None, which will use the crs
             provided by the file
         """
 
-        if type=='NASADEM_HGT':
-            if dictionary== 'netCDF4':
+        if type == "NASADEM_HGT":
+            if dictionary == "netCDF4":
                 rootgrp = Dataset(file, "r", format="NETCDF4")
                 self.elevLonArray = rootgrp.variables["lon"][:].tolist()
                 self.elevLatArray = rootgrp.variables["lat"][:].tolist()
-                self.elevArray = rootgrp.variables['NASADEM_HGT'][:].tolist()
-                #crsArray = rootgrp.variables['crs'][:].tolist().
+                self.elevArray = rootgrp.variables["NASADEM_HGT"][:].tolist()
+                # crsArray = rootgrp.variables['crs'][:].tolist().
                 self.topograficProfileAticvated = True
-                
+
                 print("Region covered by the Topographical file: ")
-                print("Latitude from {:.6f}° to {:.6f}°".format(
-                    self.elevLatArray[-1], self.elevLatArray[0]
-                ))
-                print("Longitude from {:.6f}° to {:.6f}°".format(
-                    self.elevLonArray[0], self.elevLonArray[-1]
-                ))
-        
+                print(
+                    "Latitude from {:.6f}° to {:.6f}°".format(
+                        self.elevLatArray[-1], self.elevLatArray[0]
+                    )
+                )
+                print(
+                    "Longitude from {:.6f}° to {:.6f}°".format(
+                        self.elevLonArray[0], self.elevLonArray[-1]
+                    )
+                )
+
         return None
 
     def getElevationFromTopograghicProfile(self, lat, lon):
-        """ Function that receives the coordinates of a point and find its 
+        """Function that receives the coordinates of a point and find its
         elevation in the provided Topographic Profile
 
         Parameters
@@ -562,9 +561,9 @@ class Environment:
         if self.topograficProfileAticvated == False:
             print(
                 "You must define a Topographic profile first, please use the method Environment.setTopograghicProfile()"
-                )
+            )
             return None
-        
+
         # Find latitude index
         # Check if reversed or sorted
         if self.elevLatArray[0] < self.elevLatArray[-1]:
@@ -573,18 +572,23 @@ class Environment:
         else:
             # Deal with reversed self.elevLatArray
             self.elevLatArray.reverse()
-            latIndex = len(self.elevLatArray) - bisect.bisect_left(self.elevLatArray, lat)
+            latIndex = len(self.elevLatArray) - bisect.bisect_left(
+                self.elevLatArray, lat
+            )
             self.elevLatArray.reverse()
         # Take care of latitude value equal to maximum longitude in the grid
-        if latIndex == len(self.elevLatArray) and self.elevLatArray[latIndex - 1] == lat:
+        if (
+            latIndex == len(self.elevLatArray)
+            and self.elevLatArray[latIndex - 1] == lat
+        ):
             latIndex = latIndex - 1
         # Check if latitude value is inside the grid
         if latIndex == 0 or latIndex == len(self.elevLatArray):
             raise ValueError(
                 "Latitude {:f} not inside region covered by file, which is from {:f} to {:f}.".format(
                     lat, self.elevLatArray[0], self.elevLatArray[-1]
-                    )
                 )
+            )
 
         # Find longitude index
         # Determine if file uses -180 to 180 or 0 to 360
@@ -601,10 +605,15 @@ class Environment:
         else:
             # Deal with reversed self.elevLonArray
             self.elevLonArray.reverse()
-            lonIndex = len(self.elevLonArray) - bisect.bisect_left(self.elevLonArray, lon)
+            lonIndex = len(self.elevLonArray) - bisect.bisect_left(
+                self.elevLonArray, lon
+            )
             self.elevLonArray.reverse()
         # Take care of longitude value equal to maximum longitude in the grid
-        if lonIndex == len(self.elevLonArray) and self.elevLonArray[lonIndex - 1] == lon:
+        if (
+            lonIndex == len(self.elevLonArray)
+            and self.elevLonArray[lonIndex - 1] == lon
+        ):
             lonIndex = lonIndex - 1
         # Check if longitude value is inside the grid
         if lonIndex == 0 or lonIndex == len(self.elevLonArray):
@@ -615,7 +624,7 @@ class Environment:
             )
 
         # Get the elevation
-        elevation= self.elevArray[latIndex][lonIndex]
+        elevation = self.elevArray[latIndex][lonIndex]
 
         return elevation
 
@@ -629,7 +638,7 @@ class Environment:
         wind_u=0,
         wind_v=0,
     ):
-        """ Defines an atmospheric model for the Environment.
+        """Defines an atmospheric model for the Environment.
         Supported functionality includes using data from the
         International Standard Atmosphere, importing data from
         weather reanalysis, forecasts and ensemble forecasts,
@@ -638,7 +647,7 @@ class Environment:
 
         Parameters
         ----------
-        type : string 
+        type : string
             One of the following options:
             - 'StandardAtmosphere': sets pressure and temperature
             profiles corresponding to the International Standard
@@ -654,7 +663,7 @@ class Environment:
             http://weather.uwyo.edu/upperair/sounding.html.
             An example of a valid link would be:
             http://weather.uwyo.edu/cgi-bin/sounding?region=samer&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=02&FROM=0200&TO=0200&STNM=82599
-            
+
             - 'NOAARucSounding': sets pressure, temperature, wind-u
             and wind-v profiles and surface elevation obtained from
             an upper air sounding given by the file parameter through
@@ -673,10 +682,10 @@ class Environment:
             forecast file in netCDF format or from an OPeNDAP URL, both
             given through the file parameter. When this type
             is chosen, the date and location of the launch
-            should already have been set through the date and 
+            should already have been set through the date and
             location parameters when initializing the Environment.
-            The netCDF and OPeNDAP datasets must contain at least 
-            geopotential height or geopotential, temperature, 
+            The netCDF and OPeNDAP datasets must contain at least
+            geopotential height or geopotential, temperature,
             wind-u and wind-v profiles as a function of pressure levels.
             If surface geopotential or geopotential height is given,
             elevation is also set. Otherwise, elevation is not changed.
@@ -687,19 +696,19 @@ class Environment:
             dataset to be accurately read. Lastly, the dataset must use
             a rectangular grid sorted in either ascending or descending
             order of latitude and longitude.
-            
+
             - 'Reanalysis': sets pressure, temperature, wind-u and wind-v
             profiles and surface elevation obtained from a weather
             forecast file in netCDF format or from an OPeNDAP URL, both
             given through the file parameter. When this type
             is chosen, the date and location of the launch
-            should already have been set through the date and 
+            should already have been set through the date and
             location parameters when initializing the Environment.
-            The netCDF and OPeNDAP datasets must contain at least 
-            geopotential height or geopotential, temperature, 
+            The netCDF and OPeNDAP datasets must contain at least
+            geopotential height or geopotential, temperature,
             wind-u and wind-v profiles as a function of pressure levels.
             If surface geopotential or geopotential height is given,
-            elevation is also set. Otherwise, elevation is not changed. 
+            elevation is also set. Otherwise, elevation is not changed.
             Profiles are interpolated bi-linearly using supplied
             latitude and longitude. The date used is the nearest one
             to the date supplied. Furthermore, a dictionary must be
@@ -707,16 +716,16 @@ class Environment:
             dataset to be accurately read. Lastly, the dataset must use
             a rectangular grid sorted in either ascending or descending
             order of latitude and longitude.
-            
+
             - 'Ensemble': sets pressure, temperature, wind-u and wind-v
             profiles and surface elevation obtained from a weather
             forecast file in netCDF format or from an OPeNDAP URL, both
             given through the file parameter. When this type
             is chosen, the date and location of the launch
-            should already have been set through the date and 
+            should already have been set through the date and
             location parameters when initializing the Environment.
-            The netCDF and OPeNDAP datasets must contain at least 
-            geopotential height or geopotential, temperature, 
+            The netCDF and OPeNDAP datasets must contain at least
+            geopotential height or geopotential, temperature,
             wind-u and wind-v profiles as a function of pressure
             levels. If surface geopotential or geopotential height
             is given, elevation is also set. Otherwise, elevation is not
@@ -729,7 +738,7 @@ class Environment:
             order of latitude and longitude. By default the first ensemble
             forecast is activated. To activate other ensemble forecasts
             see Environment.selectEnsembleMemberMember().
-            
+
             - 'CustomAtmosphere': sets pressure, temperature, wind-u
             and wind-v profiles given though the pressure, temperature,
             wind-u and wind-v parameters of this method. If pressure
@@ -768,7 +777,7 @@ class Environment:
             An example is the following dicitonary, used for 'NOAA':
                                   {'time': 'time',
                                'latitude': 'lat',
-                              'longitude': 'lon', 
+                              'longitude': 'lon',
                                   'level': 'lev',
                                'ensemble': 'ens',
                             'temperature': 'tmpprs',
@@ -839,7 +848,7 @@ class Environment:
             Finally, a callable or function is also acepted. The
             function should take one argument, the height above sea
             level in meters and return a corresponding wind-v in m/s.
-        
+
         Return
         ------
         None
@@ -1165,7 +1174,7 @@ class Environment:
         return None
 
     def processStandardAtmosphere(self):
-        """ Sets pressure and temperature profiles corresponding to the
+        """Sets pressure and temperature profiles corresponding to the
         International Standard Atmosphere defined by ISO 2533 and
         ranging from -2 km to 80 km of altitude above sea level. Note
         that the wind profiles are set to zero.
@@ -1223,7 +1232,7 @@ class Environment:
     def processCostumAtmosphere(
         self, pressure=None, temperature=None, wind_u=0, wind_v=0
     ):
-        """ Import pressure, temperature and wind profile given by user.
+        """Import pressure, temperature and wind profile given by user.
 
         Parameters
         ----------
@@ -1289,7 +1298,7 @@ class Environment:
             Finally, a callable or function is also acepted. The
             function should take one argument, the height above sea
             level in meters and return a corresponding wind-v in m/s.
-        
+
         Return
         ------
         None
@@ -1384,7 +1393,7 @@ class Environment:
         return None
 
     def processWyomingSounding(self, file):
-        """ Import and process the upper air sounding data from Wyoming
+        """Import and process the upper air sounding data from Wyoming
         Upper Air Soundings database given by the url in file. Sets
         pressure, temperature, wind-u, wind-v profiles and surface elevation.
 
@@ -1397,7 +1406,7 @@ class Environment:
             http://weather.uwyo.edu/cgi-bin/sounding?region=samer&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=02&FROM=0200&TO=0200&STNM=82599
             More can be found at:
             http://weather.uwyo.edu/upperair/sounding.html.
-            
+
         Returns
         -------
         None
@@ -1509,7 +1518,7 @@ class Environment:
         return None
 
     def processNOAARUCSounding(self, file):
-        """ Import and process the upper air sounding data from NOAA
+        """Import and process the upper air sounding data from NOAA
         Ruc Soundings database (https://rucsoundings.noaa.gov/) given as
         ASCII GSD format pages passed by its url to the file parameter. Sets
         pressure, temperature, wind-u, wind-v profiles and surface elevation.
@@ -1523,7 +1532,7 @@ class Environment:
             https://rucsoundings.noaa.gov/get_raobs.cgi?data_source=RAOB&latest=latest&start_year=2019&start_month_name=Feb&start_mday=5&start_hour=12&start_min=0&n_hrs=1.0&fcst_len=shortest&airport=83779&text=Ascii%20text%20%28GSD%20format%29&hydrometeors=false&start=latest
             More can be found at:
             https://rucsoundings.noaa.gov/.
-            
+
         Returns
         -------
         None
@@ -1677,19 +1686,19 @@ class Environment:
         self.maxExpectedHeight = pressure_array[-1, 0]
 
     def processForecastReanalysis(self, file, dictionary):
-        """ Import and process atmospheric data from weather forecasts
+        """Import and process atmospheric data from weather forecasts
         and reanalysis given as netCDF or OPeNDAP files.
         Sets pressure, temperature, wind-u and wind-v
         profiles and surface elevation obtained from a weather
         file in netCDF format or from an OPeNDAP URL, both
         given through the file parameter. The date and location of the launch
-        should already have been set through the date and 
+        should already have been set through the date and
         location parameters when initializing the Environment.
-        The netCDF and OPeNDAP datasets must contain at least 
-        geopotential height or geopotential, temperature, 
+        The netCDF and OPeNDAP datasets must contain at least
+        geopotential height or geopotential, temperature,
         wind-u and wind-v profiles as a function of pressure levels.
         If surface geopotential or geopotential height is given,
-        elevation is also set. Otherwise, elevation is not changed. 
+        elevation is also set. Otherwise, elevation is not changed.
         Profiles are interpolated bi-linearly using supplied
         latitude and longitude. The date used is the nearest one
         to the date supplied. Furthermore, a dictionary must be
@@ -1714,7 +1723,7 @@ class Environment:
             generally used to read OPeNDAP files from NOAA's NOMAD
             server:               {'time': 'time',
                                'latitude': 'lat',
-                              'longitude': 'lon', 
+                              'longitude': 'lon',
                                   'level': 'lev',
                             'temperature': 'tmpprs',
             'surface_geopotential_height': 'hgtsfc',
@@ -1722,7 +1731,7 @@ class Environment:
                            'geopotential': None,
                                  'u_wind': 'ugrdprs',
                                  'v_wind': 'vgrdprs'}
-        
+
         Returns
         -------
         None
@@ -2058,16 +2067,16 @@ class Environment:
         return None
 
     def processEnsemble(self, file, dictionary):
-        """ Import and process atmospheric data from weather ensembles
+        """Import and process atmospheric data from weather ensembles
         given as netCDF or OPeNDAP files.
         Sets pressure, temperature, wind-u and wind-v
         profiles and surface elevation obtained from a weather
         ensemble file in netCDF format or from an OPeNDAP URL, both
         given through the file parameter. The date and location of the launch
-        should already have been set through the date and 
+        should already have been set through the date and
         location parameters when initializing the Environment.
-        The netCDF and OPeNDAP datasets must contain at least 
-        geopotential height or geopotential, temperature, 
+        The netCDF and OPeNDAP datasets must contain at least
+        geopotential height or geopotential, temperature,
         wind-u and wind-v profiles as a function of pressure
         levels. If surface geopotential or geopotential height
         is given, elevation is also set. Otherwise, elevation is not
@@ -2097,7 +2106,7 @@ class Environment:
             generally used to read OPeNDAP files from NOAA's NOMAD
             server:               {'time': 'time',
                                'latitude': 'lat',
-                              'longitude': 'lon', 
+                              'longitude': 'lon',
                                   'level': 'lev',
                                'ensemble': 'ens',
             'surface_geopotential_height': 'hgtsfc',
@@ -2105,7 +2114,7 @@ class Environment:
                            'geopotential': None,
                                  'u_wind': 'ugrdprs',
                                  'v_wind': 'vgrdprs'}
-        
+
         Returns
         -------
         None
@@ -2409,7 +2418,7 @@ class Environment:
         return None
 
     def selectEnsembleMember(self, member=0):
-        """ Activates ensemble member, meaning that all atmospheric
+        """Activates ensemble member, meaning that all atmospheric
         variables read from the Environment instance will correspond
         to the desired ensemble member.
 
@@ -2523,7 +2532,7 @@ class Environment:
         return None
 
     def loadInternationalStandardAtmosphere(self):
-        """ Defines the pressure and temperature profile functions set
+        """Defines the pressure and temperature profile functions set
         by ISO 2533 for the International Standard atmosphere and saves
         them as self.pressureISA and self.temperatureISA.
 
@@ -2638,7 +2647,7 @@ class Environment:
         return None
 
     def calculateDensityProfile(self):
-        """ Compute the density of the atmosphere as a function of
+        """Compute the density of the atmosphere as a function of
         heigth by using the formula rho = P/(RT). This function is
         automatically called whenever a new atmospheric model is set.
 
@@ -2648,7 +2657,7 @@ class Environment:
 
         Returns
         -------
-        None       
+        None
         """
         # Retrieve pressure P, gas constant R and temperature T
         P = self.pressure
@@ -2667,7 +2676,7 @@ class Environment:
         return None
 
     def calculateSpeedOfSoundProfile(self):
-        """ Compute the speed of sound in the atmosphere as a function
+        """Compute the speed of sound in the atmosphere as a function
         of heigth by using the formula a = sqrt(gamma*R*T). This
         function is automatically called whenever a new atmospheric
         model is set.
@@ -2678,12 +2687,12 @@ class Environment:
 
         Returns
         -------
-        None       
+        None
         """
         # Retrieve gas constant R and temperature T
         R = self.airGasConstant
         T = self.temperature
-        G = 1.4   # Unused variable, why?
+        G = 1.4  # Unused variable, why?
 
         # Compute speed of sound using sqrt(gamma*R*T)
         a = (1.4 * R * T) ** 0.5
@@ -2697,7 +2706,7 @@ class Environment:
         return None
 
     def calculateDynamicViscosity(self):
-        """ Compute the dynamic viscosity of the atmosphere as a function of
+        """Compute the dynamic viscosity of the atmosphere as a function of
         heigth by using the formula given in ISO 2533 u = B*T^(1.5)/(T+S).
         This function is automatically called whenever a new atmospheric model is set.
 
@@ -2707,7 +2716,7 @@ class Environment:
 
         Returns
         -------
-        None       
+        None
         """
         # Retrieve temperature T and set constants
         T = self.temperature
@@ -2726,7 +2735,7 @@ class Environment:
         return None
 
     def addWindGust(self, windGustX, windGustY):
-        """ Adds a function to the current stored wind profile, in order to
+        """Adds a function to the current stored wind profile, in order to
         simulate a wind gust.
 
         Parameters
@@ -2779,7 +2788,7 @@ class Environment:
         Parameters
         ----------
         None
-        
+
         Return
         ------
         None
@@ -2793,8 +2802,11 @@ class Environment:
             print("Launch Site Latitude: {:.5f}°".format(self.lat))
             print("Launch Site Longitude: {:.5f}°".format(self.lon))
         print("Reference Datum: " + self.datum)
-        print("Launch Site UTM coordinates: {:.2f} ".format(self.initialEast) 
-            + self.initialEW + "    {:.2f} ".format(self.initialNorth) + self.initialHemisphere 
+        print(
+            "Launch Site UTM coordinates: {:.2f} ".format(self.initialEast)
+            + self.initialEW
+            + "    {:.2f} ".format(self.initialNorth)
+            + self.initialHemisphere
         )
         print("Launch Site UTM zone:", str(self.initialUtmZone) + self.initialUtmLetter)
         print("Launch Site Surface Elevation: {:.1f} m".format(self.elevation))
@@ -2899,7 +2911,7 @@ class Environment:
         Parameters
         ----------
         None
-        
+
         Return
         ------
         None
@@ -3127,23 +3139,23 @@ class Environment:
 
     # Auxiliary functions - Geodesic Coordinates
     def geodesicToUtm(self, lat, lon, datum):
-        """ Function that converts geodetic coordinates, i.e. lat/lon, to UTM 
-        projection coordinates. Can be used only for latitudes between -80.00° 
+        """Function that converts geodetic coordinates, i.e. lat/lon, to UTM
+        projection coordinates. Can be used only for latitudes between -80.00°
         and 84.00°
 
         Parameters
         ----------
         lat : float
-            The latitude coordinates of the point of analysis, must be contained 
+            The latitude coordinates of the point of analysis, must be contained
             between -80.00° and 84.00°
         lon : float
-            The longitude coordinates of the point of analysis, must be contained 
+            The longitude coordinates of the point of analysis, must be contained
             between -180.00° and 180.00°
         datum : string
-            The desired reference ellipsoide model, the following optiions are 
-            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default 
-            is "SIRGAS2000", then this model will be used if the user make some 
-            typing mistake  
+            The desired reference ellipsoide model, the following optiions are
+            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
+            is "SIRGAS2000", then this model will be used if the user make some
+            typing mistake
 
         Returns
         -------
@@ -3164,19 +3176,19 @@ class Environment:
         """
 
         # Calculate the central meridian of UTM zone
-        if lon!=0:
-            signal = lon/abs(lon)
+        if lon != 0:
+            signal = lon / abs(lon)
             if signal > 0:
                 aux = lon - 3
-                aux = aux*signal
-                div = aux//6
-                lon_mc = div*6 + 3
+                aux = aux * signal
+                div = aux // 6
+                lon_mc = div * 6 + 3
                 EW = "E"
             else:
                 aux = lon + 3
-                aux = aux*signal
-                div = aux//6
-                lon_mc = (div*6 + 3)*signal
+                aux = aux * signal
+                div = aux // 6
+                lon_mc = (div * 6 + 3) * signal
                 EW = "W"
         else:
             lon_mc = 3
@@ -3185,20 +3197,20 @@ class Environment:
         # Select the desired datum (i.e. the ellipsoid parameters)
         if datum == "SAD69":
             semiMajorAxis = 6378160.0
-            flattening = 1/298.25
+            flattening = 1 / 298.25
         elif datum == "WGS84":
             semiMajorAxis = 6378137.0
-            flattening = 1/298.257223563
+            flattening = 1 / 298.257223563
         elif datum == "NAD83":
             semiMajorAxis = 6378137.0
-            flattening = 1/298.257024899
-        else: 
+            flattening = 1 / 298.257024899
+        else:
             # SIRGAS2000
             semiMajorAxis = 6378137.0
-            flattening = 1/298.257223563
+            flattening = 1 / 298.257223563
 
         # Evaluate the hemisphere and determine the N coordinate at the Equator
-        if lat<0:
+        if lat < 0:
             N0 = 10000000
             hemis = "S"
         else:
@@ -3206,60 +3218,60 @@ class Environment:
             hemis = "N"
 
         # Convert the input lat and lon to radians
-        lat = lat*np.pi/180
-        lon = lon*np.pi/180
-        lon_mc = lon_mc*np.pi/180
+        lat = lat * np.pi / 180
+        lon = lon * np.pi / 180
+        lon_mc = lon_mc * np.pi / 180
 
         # Evaluate reference parameters
-        K0 = 1 - 1/2500
-        e2 = 2*flattening - flattening**2
-        e2lin = e2/(1-e2)
+        K0 = 1 - 1 / 2500
+        e2 = 2 * flattening - flattening ** 2
+        e2lin = e2 / (1 - e2)
 
         # Evaluate auxiliary parameters
-        A = e2*e2
-        B = A*e2
-        C = np.sin(2*lat)
-        D = np.sin(4*lat)
-        E = np.sin(6*lat)
-        F = (1 - e2/4 - 3*A/64 - 5*B/256)*lat
-        G = (3*e2/8 + 3*A/32 + 45*B/1024)*C
-        H = (15*A/256 + 45*B/1024)*D 
-        I = (35*B/3072)*E
+        A = e2 * e2
+        B = A * e2
+        C = np.sin(2 * lat)
+        D = np.sin(4 * lat)
+        E = np.sin(6 * lat)
+        F = (1 - e2 / 4 - 3 * A / 64 - 5 * B / 256) * lat
+        G = (3 * e2 / 8 + 3 * A / 32 + 45 * B / 1024) * C
+        H = (15 * A / 256 + 45 * B / 1024) * D
+        I = (35 * B / 3072) * E
 
         # Evaluate other reference parameters
-        n = semiMajorAxis/((1 - e2*(np.sin(lat)**2))**0.5)
-        t = np.tan(lat)**2
-        c = e2lin*(np.cos(lat)**2)
-        ag = (lon - lon_mc)*np.cos(lat)
-        m = semiMajorAxis*(F - G + H - I)
+        n = semiMajorAxis / ((1 - e2 * (np.sin(lat) ** 2)) ** 0.5)
+        t = np.tan(lat) ** 2
+        c = e2lin * (np.cos(lat) ** 2)
+        ag = (lon - lon_mc) * np.cos(lat)
+        m = semiMajorAxis * (F - G + H - I)
 
         # Evaluate new auxiliary parameters
-        J = (1 - t + c)*ag*ag*ag/6
-        K = (5 - 18*t + t*t + 72*c - 58*e2lin)*(ag**5)/120
-        L = (5 - t + 9*c + 4*c*c)*ag*ag*ag*ag/24 
-        M = (61 - 58*t + t*t + 600*c - 330*e2lin)*(ag**6)/720
+        J = (1 - t + c) * ag * ag * ag / 6
+        K = (5 - 18 * t + t * t + 72 * c - 58 * e2lin) * (ag ** 5) / 120
+        L = (5 - t + 9 * c + 4 * c * c) * ag * ag * ag * ag / 24
+        M = (61 - 58 * t + t * t + 600 * c - 330 * e2lin) * (ag ** 6) / 720
 
         # Evaluate the final coordinates
-        x = 500000 + K0*n*(ag + J + K)
-        y = N0 + K0*(m + n*np.tan(lat)*(ag*ag/2 + L + M))
+        x = 500000 + K0 * n * (ag + J + K)
+        y = N0 + K0 * (m + n * np.tan(lat) * (ag * ag / 2 + L + M))
 
         # Convert the output lat and lon to degress
-        lat = lat*180/np.pi
-        lon = lon*180/np.pi
-        lon_mc = lon_mc*180/np.pi
+        lat = lat * 180 / np.pi
+        lon = lon * 180 / np.pi
+        lon_mc = lon_mc * 180 / np.pi
 
         # Calculate the UTM zone number
-        utmZone = int((lon_mc + 183)/6)
+        utmZone = int((lon_mc + 183) / 6)
 
         # Calculate the UTM zone letter
-        letters = 'CDEFGHJKLMNPQRSTUVWXX'
-        utmLetter = letters[int(80 + lat)>>3]
-        
+        letters = "CDEFGHJKLMNPQRSTUVWXX"
+        utmLetter = letters[int(80 + lat) >> 3]
+
         return x, y, utmZone, utmLetter, hemis, EW
 
     def utmToGeodesic(self, x, y, utmZone, hemis, datum):
-        """ Function to convert UTM coordinates to geodesic coordinates 
-        (i.e. latitude and longitude). The latitude should be between -80° 
+        """Function to convert UTM coordinates to geodesic coordinates
+        (i.e. latitude and longitude). The latitude should be between -80°
         and 84°
 
         Parameters
@@ -3274,9 +3286,9 @@ class Environment:
         hemis : string
             Equals to "S" for southern hemisphere and "N" for Northern hemisphere
         datum : string
-            The desired reference ellipsoide model, the following optiions are 
-            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default 
-            is "SIRGAS2000", then this model will be used if the user make some 
+            The desired reference ellipsoide model, the following optiions are
+            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
+            is "SIRGAS2000", then this model will be used if the user make some
             typing mistake
 
         Returns
@@ -3286,90 +3298,98 @@ class Environment:
         lon: float
             latitude of the analysed point
         """
-        
+
         if hemis == "N":
             y = y + 10000000
 
         # Calculate the Central Meridian from the UTM zone number
-        centralMeridian = utmZone*6 - 183  #degress
+        centralMeridian = utmZone * 6 - 183  # degress
 
         # Select the desired datum
         if datum == "SAD69":
             semiMajorAxis = 6378160.0
-            flattening = 1/298.25
+            flattening = 1 / 298.25
         elif datum == "WGS84":
             semiMajorAxis = 6378137.0
-            flattening = 1/298.257223563
+            flattening = 1 / 298.257223563
         elif datum == "NAD83":
             semiMajorAxis = 6378137.0
-            flattening = 1/298.257024899
-        else: 
+            flattening = 1 / 298.257024899
+        else:
             # SIRGAS2000
             semiMajorAxis = 6378137.0
-            flattening = 1/298.257223563
+            flattening = 1 / 298.257223563
 
         # Calculate reference values
-        K0 = 1 - 1/2500
-        e2 = 2*flattening - flattening**2
-        e2lin = e2/(1-e2)
-        e1 = (1 - (1-e2)**0.5)/(1+(1-e2)**0.5)
-        
-        # Calculate auxiliary values
-        A = e2*e2
-        B = A*e2
-        C = e1*e1 
-        D = e1*C
-        E = e1*D
+        K0 = 1 - 1 / 2500
+        e2 = 2 * flattening - flattening ** 2
+        e2lin = e2 / (1 - e2)
+        e1 = (1 - (1 - e2) ** 0.5) / (1 + (1 - e2) ** 0.5)
 
-        m = (y - 10000000)/K0
-        mi = m/(semiMajorAxis*(1- e2/4 -3*A/64 - 5*B/256))
+        # Calculate auxiliary values
+        A = e2 * e2
+        B = A * e2
+        C = e1 * e1
+        D = e1 * C
+        E = e1 * D
+
+        m = (y - 10000000) / K0
+        mi = m / (semiMajorAxis * (1 - e2 / 4 - 3 * A / 64 - 5 * B / 256))
 
         # Calculate others auxiliary values
-        F = (3*e1/2 - 27*D/32)*np.sin(2*mi)
-        G = (21*C/16 - 55*E/32)*np.sin(4*mi)
-        H = (151*D/96)*np.sin(6*mi)
+        F = (3 * e1 / 2 - 27 * D / 32) * np.sin(2 * mi)
+        G = (21 * C / 16 - 55 * E / 32) * np.sin(4 * mi)
+        H = (151 * D / 96) * np.sin(6 * mi)
 
         lat1 = mi + F + G + H
-        c1 = e2lin*(np.cos(lat1)**2)
-        t1 = np.tan(lat1)**2
-        n1 = semiMajorAxis/((1 - e2*(np.sin(lat1)**2))**0.5)
-        quoc = (1 - e2*np.sin(lat1)*np.sin(lat1))**3
-        r1 = semiMajorAxis*(1 - e2)/(quoc**0.5)
-        d = (x - 500000)/(n1*K0)
+        c1 = e2lin * (np.cos(lat1) ** 2)
+        t1 = np.tan(lat1) ** 2
+        n1 = semiMajorAxis / ((1 - e2 * (np.sin(lat1) ** 2)) ** 0.5)
+        quoc = (1 - e2 * np.sin(lat1) * np.sin(lat1)) ** 3
+        r1 = semiMajorAxis * (1 - e2) / (quoc ** 0.5)
+        d = (x - 500000) / (n1 * K0)
 
         # Calculate others auxiliary values
-        I = (5 + 3*t1 + 10*c1 - 4*c1*c1 - 9*e2lin)*d*d*d*d/24
-        J = (61 + 90*t1 + 298*c1 + 45*t1*t1 - 252*e2lin - 3*c1*c1)*(d**6)/720
-        K = d - (1 + 2*t1 + c1)*d*d*d/6
-        L = (5 - 2*c1 + 28*t1 - 3*c1*c1 + 8*e2lin + 24*t1*t1)*(d**5)/120
+        I = (5 + 3 * t1 + 10 * c1 - 4 * c1 * c1 - 9 * e2lin) * d * d * d * d / 24
+        J = (
+            (61 + 90 * t1 + 298 * c1 + 45 * t1 * t1 - 252 * e2lin - 3 * c1 * c1)
+            * (d ** 6)
+            / 720
+        )
+        K = d - (1 + 2 * t1 + c1) * d * d * d / 6
+        L = (
+            (5 - 2 * c1 + 28 * t1 - 3 * c1 * c1 + 8 * e2lin + 24 * t1 * t1)
+            * (d ** 5)
+            / 120
+        )
 
         # Finally calcute the coordinates in lat/lot
-        lat = lat1 - (n1*np.tan(lat1)/r1)*(d*d/2 - I + J)
-        lon = centralMeridian*np.pi/180 + (K + L)/np.cos(lat1) 
-    
+        lat = lat1 - (n1 * np.tan(lat1) / r1) * (d * d / 2 - I + J)
+        lon = centralMeridian * np.pi / 180 + (K + L) / np.cos(lat1)
+
         # Convert final lat/lon to Degrees
-        lat = lat*180/np.pi
-        lon = lon*180/np.pi
+        lat = lat * 180 / np.pi
+        lon = lon * 180 / np.pi
 
         return lat, lon
 
     def calculateEarthRadius(self, lat, datum):
-        """ Simple function to calculate the Earth Radius at a specific latitude
+        """Simple function to calculate the Earth Radius at a specific latitude
         based on ellipsoidal reference model (datum). The earth radius here is
         assumed as the distance between the ellipsoid's center of gravity and a
-        point on ellipsoid surface at the desired 
+        point on ellipsoid surface at the desired
         Pay attention: The ellipsoid is an ideal earth model and obvously will
         not give us the perfect distance between earth relief and its center of
-        gravity. 
+        gravity.
 
         Parameters
         ----------
         lat : float
-            latitude in which the Earth radius will be calculated 
+            latitude in which the Earth radius will be calculated
         datum : string
-            The desired reference ellipsoide model, the following optiions are 
-            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default 
-            is "SIRGAS2000", then this model will be used if the user make some 
+            The desired reference ellipsoide model, the following optiions are
+            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
+            is "SIRGAS2000", then this model will be used if the user make some
             typing mistake
 
         Returns
@@ -3380,38 +3400,41 @@ class Environment:
         # Select the desired datum (i.e. the ellipsoid parameters)
         if datum == "SAD69":
             semiMajorAxis = 6378160.0
-            flattening = 1/298.25
+            flattening = 1 / 298.25
         elif datum == "WGS84":
             semiMajorAxis = 6378137.0
-            flattening = 1/298.257223563
+            flattening = 1 / 298.257223563
         elif datum == "NAD83":
             semiMajorAxis = 6378137.0
-            flattening = 1/298.257024899
-        else: 
+            flattening = 1 / 298.257024899
+        else:
             # SIRGAS2000
             semiMajorAxis = 6378137.0
-            flattening = 1/298.257223563
+            flattening = 1 / 298.257223563
 
         # Calculate the semi minor axis length
-        #semiMinorAxis = semiMajorAxis - semiMajorAxis*(flattening**(-1))
-        semiMinorAxis = semiMajorAxis*(1 - flattening)
+        # semiMinorAxis = semiMajorAxis - semiMajorAxis*(flattening**(-1))
+        semiMinorAxis = semiMajorAxis * (1 - flattening)
 
         # Convert latitude to radians
-        lat = lat*np.pi/180
+        lat = lat * np.pi / 180
 
         # Calculate the Earth Radius in meters
         eRadius = np.sqrt(
-            ((np.cos(lat)*(semiMajorAxis**2))**2 + (np.sin(lat)*(semiMinorAxis**2))**2)/
-            ((np.cos(lat)*semiMajorAxis)**2 + (np.sin(lat)*semiMinorAxis)**2)
+            (
+                (np.cos(lat) * (semiMajorAxis ** 2)) ** 2
+                + (np.sin(lat) * (semiMinorAxis ** 2)) ** 2
+            )
+            / ((np.cos(lat) * semiMajorAxis) ** 2 + (np.sin(lat) * semiMinorAxis) ** 2)
         )
 
         # Convert latitude to degress
-        lat = lat*180/np.pi
+        lat = lat * 180 / np.pi
 
         return eRadius
 
     def decimalDegressToArcSeconds(self, angle):
-        """ Function to convert an angle in decimal degrees to deg/min/sec.
+        """Function to convert an angle in decimal degrees to deg/min/sec.
          Converts (°) to (° ' ")
 
         Parameters
@@ -3419,49 +3442,48 @@ class Environment:
         angle : float
             The angle that you need convert to deg/min/sec. Must be given in
             decimal degrees
-            
+
         Returns
         -------
         deg: float
             The degrees
         min: float
-            The arc minutes. 1 arc-minute = (1/60)*degree 
+            The arc minutes. 1 arc-minute = (1/60)*degree
         sec: float
             The arc Seconds. 1 arc-secon = (1/360)*degree
         """
 
-        if angle<0:
+        if angle < 0:
             signal = -1
         else:
             signal = 1
 
-        deg = (signal*angle)//1
-        min = abs(signal*angle - deg)*60//1
-        sec = abs((signal*angle - deg)*60 - min)*60
-        #print("The angle {:f} is equals to {:.0f}º {:.0f}' {:.3f}'' ".format(
+        deg = (signal * angle) // 1
+        min = abs(signal * angle - deg) * 60 // 1
+        sec = abs((signal * angle - deg) * 60 - min) * 60
+        # print("The angle {:f} is equals to {:.0f}º {:.0f}' {:.3f}'' ".format(
         #    angle, signal*deg, min, sec
-        #))
+        # ))
 
         return deg, min, sec
 
     def printEarthDetails(self):
-        """ [UNDER CONSTRUCTION]
-        Function to print informations about the Earth Model used in the 
+        """[UNDER CONSTRUCTION]
+        Function to print informations about the Earth Model used in the
         Evironment Class
-        
+
         """
         # Print launch site details
-        #print("Launch Site Details")
-        #print("Launch Site Latitude: {:.5f}°".format(self.lat))
-        #print("Launch Site Longitude: {:.5f}°".format(self.lon))
-        #print("Reference Datum: " + self.datum)
-        #print("Launch Site UTM coordinates: {:.2f} ".format(self.initialEast) 
-        #    + self.initialEW + "    {:.2f} ".format(self.initialNorth) + self.initialHemisphere 
-        #)
-        #print("Launch Site UTM zone number: ", self.initialUtmZone)
-        #print("Launch Site Surface Elevation: {:.1f} m".format(self.elevation))
+        # print("Launch Site Details")
+        # print("Launch Site Latitude: {:.5f}°".format(self.lat))
+        # print("Launch Site Longitude: {:.5f}°".format(self.lon))
+        # print("Reference Datum: " + self.datum)
+        # print("Launch Site UTM coordinates: {:.2f} ".format(self.initialEast)
+        #    + self.initialEW + "    {:.2f} ".format(self.initialNorth) + self.initialHemisphere
+        # )
+        # print("Launch Site UTM zone number: ", self.initialUtmZone)
+        # print("Launch Site Surface Elevation: {:.1f} m".format(self.elevation))
         print("Earth Radius at Launch site: {:.1f} m".format(self.earthRadius))
         print("Gravity acceleration at launch site: Still not implemented :(")
 
         return None
-

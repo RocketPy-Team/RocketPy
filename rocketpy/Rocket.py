@@ -23,6 +23,7 @@ from numpy import genfromtxt
 
 from .Function import Function
 
+
 class Rocket:
 
     """Keeps all rocket and parachute information.
@@ -41,7 +42,7 @@ class Rocket:
         Rocket.distanceRocketPropellant : float
             Distance between rocket's center of mass, without propellant,
             to the center of mass of propellant, in meters. Always positive.
-        
+
         Mass and Inertia attributes:
         Rocket.mass : float
             Rocket's mass without propellant in kg.
@@ -72,17 +73,17 @@ class Rocket:
         Excentricity attributes:
         Rocket.cpExcentricityX : float
             Center of pressure position relative to center of mass in the x
-            axis, perpendicular to axis of cylindrical symmetry, in meters. 
+            axis, perpendicular to axis of cylindrical symmetry, in meters.
         Rocket.cpExcentricityY : float
             Center of pressure position relative to center of mass in the y
-            axis, perpendicular to axis of cylindrical symmetry, in meters. 
+            axis, perpendicular to axis of cylindrical symmetry, in meters.
         Rocket.thrustExcentricityY : float
             Thrust vector position relative to center of mass in the y
-            axis, perpendicular to axis of cylindrical symmetry, in meters. 
-        Rocket.thrustExcentricityX : float 
+            axis, perpendicular to axis of cylindrical symmetry, in meters.
+        Rocket.thrustExcentricityX : float
             Thrust vector position relative to center of mass in the x
-            axis, perpendicular to axis of cylindrical symmetry, in meters. 
-        
+            axis, perpendicular to axis of cylindrical symmetry, in meters.
+
         Parachute attributes:
         Rocket.parachutes : list
             List of parachutes of the rocket.
@@ -135,7 +136,7 @@ class Rocket:
                 Function of noisyPressureSignal.
             cleanPressureSignalFunction : Function
                 Function of cleanPressureSignal.
- 
+
         Aerodynamic attributes
         Rocket.aerodynamicSurfaces : list
             List of aerodynamic surfaces of the rocket.
@@ -149,7 +150,7 @@ class Rocket:
         Rocket.powerOnDrag : Function
             Rocket's drag coefficient as a function of Mach number when the
             motor is on.
-        
+
         Motor attributes:
         Rocket.motor : Motor
             Rocket's motor. See Motor class for more details.
@@ -206,7 +207,7 @@ class Rocket:
             information. If int or float is given, it is assumed constant. If
             callable, string or array is given, it must be a function o Mach
             number only.
-        
+
         Returns
         -------
         None
@@ -270,9 +271,9 @@ class Rocket:
         # Calculate dynamic inertial quantities
         self.evaluateReducedMass()
         self.evaluateTotalMass()
-        self.thrustToWeight = self.motor.thrust/(9.80665*self.totalMass)
-        self.thrustToWeight.setInputs('Time (s)')
-        self.thrustToWeight.setOutputs('Thrust/Weight')
+        self.thrustToWeight = self.motor.thrust / (9.80665 * self.totalMass)
+        self.thrustToWeight.setInputs("Time (s)")
+        self.thrustToWeight.setOutputs("Thrust/Weight")
 
         # Evaluate static margin (even though no aerodynamic surfaces are present yet)
         self.evaluateStaticMargin()
@@ -285,12 +286,12 @@ class Rocket:
         and the mass of the rocket with outpropellant, divided by the
         sum of the propellant mass and the rocket mass. The function
         returns a object of the Function class and is defined as a
-        function of time. 
+        function of time.
 
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         self.reducedMass : Function
@@ -321,12 +322,12 @@ class Rocket:
         """Calculates and returns the rocket's total mass. The total
         mass is defined as the sum of the propellant mass and the
         rocket mass without propellant. The function returns an object
-        of the Function class and is defined as a function of time. 
+        of the Function class and is defined as a function of time.
 
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         self.totalMass : Function
@@ -349,12 +350,12 @@ class Rocket:
     def evaluateStaticMargin(self):
         """Calculates and returns the rocket's static margin when
         loaded with propellant. The static margin is saved and returned
-        in units of rocket diameter or calibers. 
+        in units of rocket diameter or calibers.
 
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         self.staticMargin : float
@@ -369,15 +370,22 @@ class Rocket:
         # Calculate total lift coeficient derivative and center of pressure
         if len(self.aerodynamicSurfaces) > 0:
             for aerodynamicSurface in self.aerodynamicSurfaces:
-                self.totalLiftCoeffDer += aerodynamicSurface[1].differentiate(x = 1e-2, dx = 1e-3)
-                self.cpPosition += aerodynamicSurface[1].differentiate(x = 1e-2, dx = 1e-3) * aerodynamicSurface[0][2]
+                self.totalLiftCoeffDer += aerodynamicSurface[1].differentiate(
+                    x=1e-2, dx=1e-3
+                )
+                self.cpPosition += (
+                    aerodynamicSurface[1].differentiate(x=1e-2, dx=1e-3)
+                    * aerodynamicSurface[0][2]
+                )
             self.cpPosition /= self.totalLiftCoeffDer
 
         # Calculate static margin
         self.staticMargin = (self.centerOfMass - self.cpPosition) / (2 * self.radius)
         self.staticMargin.setInputs("Time (s)")
         self.staticMargin.setOutputs("Static Margin (c)")
-        self.staticMargin.setDiscrete(lower=0, upper=self.motor.burnOutTime, samples=200)
+        self.staticMargin.setDiscrete(
+            lower=0, upper=self.motor.burnOutTime, samples=200
+        )
 
         # Return self
         return self
@@ -427,7 +435,9 @@ class Rocket:
 
         # Calculate clalpha
         clalpha = -2 * (1 - r ** (-2)) * (topRadius / rref) ** 2
-        cldata = Function(lambda x: clalpha*x, 'Alpha (rad)', 'Cl', interpolation='linear')
+        cldata = Function(
+            lambda x: clalpha * x, "Alpha (rad)", "Cl", interpolation="linear"
+        )
 
         # Store values as new aerodynamic surface
         tail = [(0, 0, cpz), cldata, "Tail"]
@@ -485,7 +495,13 @@ class Rocket:
 
         # Calculate clalpha
         clalpha = 2
-        cldata = Function(lambda x: clalpha*x, 'Alpha (rad)', 'Cl', interpolation='linear', extrapolation = 'natural')
+        cldata = Function(
+            lambda x: clalpha * x,
+            "Alpha (rad)",
+            "Cl",
+            interpolation="linear",
+            extrapolation="natural",
+        )
 
         # Store values
         nose = [(0, 0, cpz), cldata, "Nose Cone"]
@@ -497,7 +513,9 @@ class Rocket:
         # Return self
         return self.aerodynamicSurfaces[-1]
 
-    def addFins(self, n, span, rootChord, tipChord, distanceToCM, radius=0, airfoil = None):
+    def addFins(
+        self, n, span, rootChord, tipChord, distanceToCM, radius=0, airfoil=None
+    ):
         """Create a fin set, storing its parameters as part of the
         aerodynamicSurfaces list. Its parameters are the axial position
         along the rocket and its derivative of the coefficient of lift
@@ -523,9 +541,9 @@ class Rocket:
             is default, use rocket radius. Otherwise, enter the radius
             of the rocket in the section of the fins, as this impacts
             its lift coefficient.
-        airfoil : string 
-            Fin's lift curve. It must be a .csv file. The .csv file shall 
-            contain no headers and the first column must specify time in 
+        airfoil : string
+            Fin's lift curve. It must be a .csv file. The .csv file shall
+            contain no headers and the first column must specify time in
             seconds, while the second column specifies lift coefficient. Lift
             coeffitient is adimentional.
 
@@ -546,7 +564,7 @@ class Rocket:
         radius = self.radius if radius == 0 else radius
         d = 2 * radius
 
-        # Save geometric parameters for later Fin Flutter Analysis 
+        # Save geometric parameters for later Fin Flutter Analysis
         self.rootChord = Cr
         self.tipChord = Ct
         self.span = s
@@ -571,7 +589,9 @@ class Rocket:
             clalpha *= 1 + radius / (s + radius)
 
             # # Create a function of lift values by attack angle
-            cldata = Function(lambda x: clalpha*x,'Alpha (rad)', 'Cl', interpolation='linear')
+            cldata = Function(
+                lambda x: clalpha * x, "Alpha (rad)", "Cl", interpolation="linear"
+            )
 
             # Store values
             fin = [(0, 0, cpz), cldata, "Fins"]
@@ -584,8 +604,9 @@ class Rocket:
             return self.aerodynamicSurfaces[-1]
 
         else:
+
             def cnalfa1(cn):
-                """Calculates the normal force coefficient derivative of a 3D 
+                """Calculates the normal force coefficient derivative of a 3D
                 airfoil for a given Cnalfa0
 
                 Parameters
@@ -598,22 +619,36 @@ class Rocket:
                 Cnalfa1 : int
                     Normal force coefficient derivative of a 3D airfoil.
                 """
-               
+
                 # Retrieve parameters for calculations
-                Af = (Cr + Ct) * span / 2; # fin area
-                AR= 2 * (span**2) / Af # Aspect ratio
-                gamac = np.arctan( (Cr - Ct) / (2 * span) ); # mid chord angle
-                FD = 2 * np.pi * AR / (cn *np.cos(gamac))
-                Cnalfa1 = cn * FD * (Af/self.area) * np.cos(gamac) / (2 + FD * ( 1 + (4/FD**2) )**0.5)
+                Af = (Cr + Ct) * span / 2
+                # fin area
+                AR = 2 * (span ** 2) / Af  # Aspect ratio
+                gamac = np.arctan((Cr - Ct) / (2 * span))
+                # mid chord angle
+                FD = 2 * np.pi * AR / (cn * np.cos(gamac))
+                Cnalfa1 = (
+                    cn
+                    * FD
+                    * (Af / self.area)
+                    * np.cos(gamac)
+                    / (2 + FD * (1 + (4 / FD ** 2)) ** 0.5)
+                )
                 return Cnalfa1
 
             # Import the lift curve as a function of lift values by attack angle
-            read = genfromtxt(airfoil, delimiter = ',')
+            read = genfromtxt(airfoil, delimiter=",")
 
             # Aplies number of fins to lift coefficient data
             data = [[cl[0], (n / 2) * cnalfa1(cl[1])] for cl in read]
-            cldata = Function(data, 'Alpha (rad)', 'Cl', interpolation='linear', extrapolation = 'natural')
-            
+            cldata = Function(
+                data,
+                "Alpha (rad)",
+                "Cl",
+                interpolation="linear",
+                extrapolation="natural",
+            )
+
             # Takes an approximation to an angular coefficient
             clalpha = cldata.differentiate(x=0, dx=1e-2)
 
@@ -668,7 +703,7 @@ class Rocket:
             The values are used to add noise to the pressure signal which is
             passed to the trigger function. Default value is (0, 0, 0). Units
             are in Pascal.
-        
+
         Returns
         -------
         parachute : Parachute Object
@@ -704,7 +739,7 @@ class Rocket:
         return self.parachutes[-1]
 
     def setRailButtons(self, distanceToCM, angularPosition=45):
-        """ Adds rail buttons to the rocket, allowing for the
+        """Adds rail buttons to the rocket, allowing for the
         calculation of forces exerted by them when the rocket is
         slinding in the launch rail. Furthermore, rail buttons are
         also needed for the simulation of the planar flight phase,
@@ -755,7 +790,7 @@ class Rocket:
         y : float
             Distance in meters by which the CM is to be translated in
             the y direction relative to geometrical center line.
-        
+
         Returns
         -------
         self : Rocket
@@ -785,7 +820,7 @@ class Rocket:
         y : float
             Distance in meters by which the CP is to be translated in
             the y direction relative to the center of mass axial line.
-        
+
         Returns
         -------
         self : Rocket
@@ -812,7 +847,7 @@ class Rocket:
             Distance in meters by which the the line of action of the
             thrust force is to be translated in the x direction
             relative to the center of mass axial line.
-        
+
         Returns
         -------
         self : Rocket
@@ -832,7 +867,7 @@ class Rocket:
         Parameters
         ----------
         None
-        
+
         Return
         ------
         None
@@ -873,7 +908,7 @@ class Rocket:
         Parameters
         ----------
         None
-        
+
         Return
         ------
         None
@@ -912,7 +947,7 @@ class Rocket:
         print("\nAerodynamics Lift Coefficient Derivatives")
         for aerodynamicSurface in self.aerodynamicSurfaces:
             name = aerodynamicSurface[-1]
-            clalpha = aerodynamicSurface[1].differentiate(x = 1e-2, dx = 1e-3)
+            clalpha = aerodynamicSurface[1].differentiate(x=1e-2, dx=1e-3)
             print(
                 name + " Lift Coefficient Derivative: {:.3f}".format(clalpha) + "/rad"
             )
@@ -962,12 +997,12 @@ class Rocket:
         self.powerOffDrag()
         self.thrustToWeight.plot(lower=0, upper=self.motor.burnOutTime)
 
-        #ax = plt.subplot(415)
-        #ax.plot(  , self.rocket.motor.thrust()/(self.env.g() * self.rocket.totalMass()))
-        #ax.set_xlim(0, self.rocket.motor.burnOutTime)
-        #ax.set_xlabel("Time (s)")
-        #ax.set_ylabel("Thrust/Weight")
-        #ax.set_title("Thrust-Weight Ratio")
+        # ax = plt.subplot(415)
+        # ax.plot(  , self.rocket.motor.thrust()/(self.env.g() * self.rocket.totalMass()))
+        # ax.set_xlim(0, self.rocket.motor.burnOutTime)
+        # ax.set_xlabel("Time (s)")
+        # ax.set_ylabel("Thrust/Weight")
+        # ax.set_title("Thrust-Weight Ratio")
 
         # Return None
         return None
