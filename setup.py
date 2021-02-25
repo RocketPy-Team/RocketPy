@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="rocketpyalpha", 
-    version="0.9.6",
+    version="0.9.7",
     install_requires = [
         'numpy>=1.0',
         'scipy>=1.0',
