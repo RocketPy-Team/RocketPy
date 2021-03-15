@@ -1763,7 +1763,7 @@ class Environment:
         # Find time index
         timeIndex = netCDF4.date2index(self.date, timeArray, select="nearest")
         # Convert times do dates and numbers
-        inputTimeNum = netCDF4.date2num(self.date, timeArray.units)
+        inputTimeNum = netCDF4.date2num(self.date, timeArray.units, calendar='standard')
         fileTimeNum = timeArray[timeIndex]
         fileTimeDate = netCDF4.num2date(timeArray[timeIndex], timeArray.units)
         # Check if time is inside range supplied by file
