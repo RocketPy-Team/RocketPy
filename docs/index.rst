@@ -12,7 +12,7 @@ Welcome to RocketPy's documentation!
 
    notebooks/getting_started.ipynb
    notebooks/environment_class_usage.ipynb
-   notebooks/dispersion_analysis.ipynb
+   notebooks/dispersion_analysis/dispersion_analysis.ipynb
    classes
 
 
