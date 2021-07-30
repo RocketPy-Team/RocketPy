@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__author__ = "Giovani Hidalgo Ceotto"
+__author__ = "Giovani Hidalgo Ceotto, Lucas Kierulff Balabram"
 __copyright__ = "Copyright 20XX, Projeto Jupiter"
 __license__ = "MIT"
 
