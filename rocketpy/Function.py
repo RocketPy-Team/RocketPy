@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__author__ = "Giovani Hidalgo Ceotto"
+__author__ = "Giovani Hidalgo Ceotto, Lucas Kierulff Balabram"
 __copyright__ = "Copyright 20XX, Projeto Jupiter"
 __license__ = "MIT"
 
@@ -45,7 +45,7 @@ class Function:
             The actual function. If type is function, it will be called for
             evaluation. If type is int or float, it will be treated as a
             constant function. If ndarray, its points will be used for
-            interpolation. A ndarray should be as [(x0, y0, z0), (x1, y1, z1),
+            interpolation. An ndarray should be as [(x0, y0, z0), (x1, y1, z1),
             (x2, y2, z2), ...] where x0 and y0 are inputs and z0 is output. If
             string, imports file named by the string and treats it as csv.
             The file is converted into ndarray and should not have headers.
@@ -53,19 +53,19 @@ class Function:
             The name of the inputs of the function. Will be used for
             representation and graphing (axis names). 'Scalar' is default.
             If source is function, int or float and has multiple inputs,
-            this parameters must be giving for correct operation.
+            this parameter must be given for correct operation.
         outputs : string, sequence of strings, optional
             The name of the outputs of the function. Will be used for
             representation and graphing (axis names). Scalar is default.
         interpolation : string, optional
             Interpolation method to be used if source type is ndarray.
-            For 1-D functions, linear, polynomail, akima and spline are
+            For 1-D functions, linear, polynomial, akima and spline are
             supported. For N-D functions, only shepard is suporrted.
             Default for 1-D functions is spline.
         extrapolation : string, optional
             Extrapolation method to be used if source type is ndarray.
             Options are 'natural', which keeps interpolation, 'constant',
-            which returns the value of the function of edge of the interval,
+            which returns the value of the function at the edge of the interval,
             and 'zero', which returns zero for all points outside of source
             range. Default for 1-D functions is constant.
 
@@ -129,7 +129,7 @@ class Function:
             The actual function. If type is function, it will be called for
             evaluation. If type is int or float, it will be treated as a
             constant function. If ndarray, its points will be used for
-            interpolation. A ndarray should be as [(x0, y0, z0), (x1, y1, z1),
+            interpolation. An ndarray should be as [(x0, y0, z0), (x1, y1, z1),
             (x2, y2, z2), ...] where x0 and y0 are inputs and z0 is output. If
             string, imports file named by the string and treats it as csv.
             The file is converted into ndarray and should not have headers.
@@ -240,7 +240,7 @@ class Function:
         elif method == "akima":
             self.__interpolateAkima__()
 
-        # Set geValueOpt2
+        # Set geValueOpt
         self.setGetValueOpt()
 
         # Returns self
@@ -254,7 +254,7 @@ class Function:
         extrapolation : string, optional
             Extrapolation method to be used if source type is ndarray.
             Options are 'natural', which keeps interpolation, 'constant',
-            which returns the value of the function of edge of the interval,
+            which returns the value of the function at the edge of the interval,
             and 'zero', which returns zero for all points outside of source
             range. Default is 'zero'.
 
@@ -447,7 +447,7 @@ class Function:
         extrapolation : string, optional
             Extrapolation method to be used if source type is ndarray.
             Options are 'natural', which keeps interpolation, 'constant',
-            which returns the value of the function of edge of the interval,
+            which returns the value of the function at the edge of the interval,
             and 'zero', which returns zero for all points outside of source
             range. Default is 'constant'.
         oneByOne : boolean, optional
@@ -490,7 +490,7 @@ class Function:
         return self.__outputs__
 
     def getSource(self):
-        "Return source list or function of the function."
+        "Return source list or function of the Function."
         return self.source
 
     def getImageDim(self):
@@ -660,7 +660,7 @@ class Function:
                 return x if len(x) > 1 else x[0]
 
     def getValueOpt_deprecated(self, *args):
-        """THE CODE BELOW IS HERE FOR DOCUMENTATION PORPOSES ONLY. IT WAS
+        """THE CODE BELOW IS HERE FOR DOCUMENTATION PURPOSES ONLY. IT WAS
         REPLACED FOR ALL INSTANCES BY THE FUNCTION.SETGETVALUEOPT METHOD.
 
         This method returns the value of the Function at the specified
@@ -818,9 +818,9 @@ class Function:
         implementing function evaluations of single inputes, i.e., it is not
         vectorized. Furthermore, it actually implements a different method
         for each interpolation type, eliminating some if statements.
-        Finally, it uses Numba to compile the methods, which further optmizes
+        Finally, it uses Numba to compile the methods, which further optimizes
         the implementation.
-        The code below is here for documentation porpuses only. It is
+        The code below is here for documentation purposes only. It is
         overwritten for all instances by the Function.setGetValuteOpt2 method.
 
         Parameters
@@ -1014,7 +1014,7 @@ class Function:
     ):
         """Plot 1-Dimensional Function, from a lower limit to an upper limit,
         by sampling the Function several times in the interval. The title of
-        the graph is given by the name of the axis, which are taken from
+        the graph is given by the name of the axes, which are taken from
         the Function`s input and ouput names.
 
         Parameters
@@ -1094,7 +1094,7 @@ class Function:
         """Plot 2-Dimensional Function, from a lower limit to an upper limit,
         by sampling the Function several times in the interval. The title of
         the graph is given by the name of the axis, which are taken from
-        the Function`s inputs and ouput names.
+        the Function`s inputs and output names.
 
         Parameters
         ----------
@@ -1608,7 +1608,7 @@ class Function:
         Parameters
         ----------
         other : int, float, callable
-            What self will exponantiate.
+            What self will exponentiate.
 
         Returns
         -------
