@@ -141,7 +141,7 @@ class SolidMotor:
             Arrays may also be specified, following rules set by the class
             Function. See help(Function). Thrust units are Newtons.
         burnOut : int, float
-            Motor burns out time in seconds.
+            Motor burn out time in seconds.
         grainNumber : int
             Number of solid grains
         grainDensity : int, float
