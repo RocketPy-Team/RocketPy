@@ -85,7 +85,7 @@ class Flight:
             calculate them and feed the triggers. Can greatly improve run
             time in some cases.
         Flight.terminateOnApogee : bool
-            Wheater to terminate simulation when rocket reaches apogee.
+            Whether to terminate simulation when rocket reaches apogee.
         Flight.solver : scipy.integrate.LSODA
             Scipy LSODA integration scheme.
 
@@ -461,7 +461,7 @@ class Flight:
         Flight.apogeeFreestreamSpeed : float
             Freestream speed of the rocket at apogee in m/s.
         Flight.MachNumber : Function
-            Rocket's Mach number defined as it's freestream speed
+            Rocket's Mach number defined as its freestream speed
             devided by the speed of sound at its altitude. Expressed
             as a function of time. Can be called or accessed as array.
         Flight.maxMachNumber : float
@@ -469,7 +469,7 @@ class Flight:
         Flight.maxMachNumberTime : float
             Time at which the rocket experiences the maximum Mach number.
         Flight.ReynoldsNumber : Function
-            Rocket's Reynolds number, using it's diameter as reference
+            Rocket's Reynolds number, using its diameter as reference
             length and freestreamSpeed as reference velocity. Expressed
             as a function of time. Can be called or accessed as array.
         Flight.maxReynoldsNumber : float
@@ -550,7 +550,7 @@ class Flight:
             except for the euler parameters which will be calculated based
             on given values of inclination and heading. Default is None.
         terminateOnApogee : boolean, optioanal
-            Wheater to terminate simulation when rocket reaches apogee.
+            Whether to terminate simulation when rocket reaches apogee.
             Default is False.
         maxTime : int, float, optional
             Maximum time in which to simulate trajectory in seconds.
@@ -688,7 +688,7 @@ class Flight:
             headingRad
         )
 
-        # Create knonw flight phases
+        # Create known flight phases
         self.flightPhases = FlightPhases()
         self.flightPhases.addPhase(self.tInitial, self.initialDerivative, clear=False)
         self.flightPhases.addPhase(self.maxTime)
@@ -922,7 +922,7 @@ class Flight:
                         vz1 = self.solution[-1][6]
                         t1 = self.solution[-1][0]
                         t_root = -(t1 - t0) * vz0 / (vz1 - vz0) + t0
-                        # Fecth state at t_root
+                        # Fetch state at t_root
                         interpolator = phase.solver.dense_output()
                         self.apogeeState = interpolator(t_root)
                         # Store apogee data
@@ -1552,7 +1552,7 @@ class Flight:
         self.ax, self.ay, self.az = [], [], []
         self.alpha1, self.alpha2, self.alpha3 = [], [], []
         # Go throught each time step and calculate accelerations
-        # Get fligth phases
+        # Get flight phases
         for phase_index, phase in self.timeIterator(self.flightPhases):
             initTime = phase.t
             finalTime = self.flightPhases[phase_index + 1].t
@@ -1594,7 +1594,7 @@ class Flight:
         )
         self.windVelocityX, self.windVelocityY = [], []
         # Go throught each time step and calculate forces and atmospheric values
-        # Get fligth phases
+        # Get flight phases
         for phase_index, phase in self.timeIterator(self.flightPhases):
             initTime = phase.t
             finalTime = self.flightPhases[phase_index + 1].t
@@ -1631,7 +1631,7 @@ class Flight:
 
         # Process fourth type of output - values calculated from previous outputs
 
-        # Kinematicss functions and values
+        # Kinematics functions and values
         # Velocity Magnitude
         self.speed = (self.vx ** 2 + self.vy ** 2 + self.vz ** 2) ** 0.5
         self.speed.setOutputs("Speed - Velocity Magnitude (m/s)")
@@ -2036,7 +2036,7 @@ class Flight:
         print("Frontal Surface Wind Speed: {:.2f} m/s".format(self.frontalSurfaceWind))
         print("Lateral Surface Wind Speed: {:.2f} m/s".format(self.lateralSurfaceWind))
 
-        # Print of rail conditions
+        # Print out of rail conditions
         print("\n\n Rail Departure State\n")
         print("Rail Departure Time: {:.3f} s".format(self.outOfRailTime))
         print("Rail Departure Velocity: {:.3f} m/s".format(self.outOfRailVelocity))
@@ -2573,7 +2573,7 @@ class Flight:
         return None
 
     def plotAngularKinematicsData(self):
-        """Prints out all Angular veolcity and acceleration graphs available
+        """Prints out all Angular velocity and acceleration graphs available
         about the Flight
 
         Parameters
@@ -3190,7 +3190,7 @@ class Flight:
         has not been added.
 
         This function aims to help the engineer to visually check if there
-        isn't no anomalies with the Flight Simulation.
+        are anomalies with the Flight Simulation.
 
         Parameters
         ----------
