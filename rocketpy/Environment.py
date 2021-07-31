@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__author__ = "Giovani Hidalgo Ceotto"
+__author__ = "Giovani Hidalgo Ceotto, Guilherme Fernandes Alves, Lucas Azevedo Pezente"
 __copyright__ = "Copyright 20XX, Projeto Jupiter"
 __license__ = "MIT"
 
@@ -59,7 +59,7 @@ class Environment:
         Environment.lon : float
             Launch site longitude.
         Environment.datum: string
-            The desired reference ellipsoide model, the following optiions are
+            The desired reference ellipsoide model, the following options are
             available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
             is "SIRGAS2000", then this model will be used if the user make some
             typing mistake
@@ -83,11 +83,11 @@ class Environment:
 
         Topographic informations:
         Environment.elevLonArray: array
-            Unidimentional array containing the longitude coordinates
+            Unidimensional array containing the longitude coordinates
         Environment.elevLatArray: array
-            Unidimentional array containing the latitude coordinates
+            Unidimensional array containing the latitude coordinates
         Environment.elevArray: array
-            Two-Dimentional Array containing the elevation information
+            Two-dimensional Array containing the elevation information
         Environment.topograficProfileAticvated: bool
             True if the user already set a topographic plofile
 
@@ -162,7 +162,7 @@ class Environment:
         Atmospheric Model Details
         Environment.atmosphericModelType : string
             Describes the atmospheric model which is being used.
-            Can take the only the following values: 'StandardAtmosphere',
+            Can only assume the following values: 'StandardAtmosphere',
             'CustomAtmosphere', 'WyomingSounding', 'NOAARucSounding',
             'Forecast', 'Reanalysis', 'Ensemble'.
         Environment.atmosphericModelFile : string
@@ -499,17 +499,17 @@ class Environment:
         type : string
             Defines the topographic model to be used, usually 'NASADEM Merged
             DEM Global 1 arc second nc' can be used. To download this kind of
-            data, acess 'https://search.earthdata.nasa.gov/search'.
+            data, access 'https://search.earthdata.nasa.gov/search'.
             NASADEM data products were derived from original telemetry data from
             the Shuttle Radar Topography Mission (SRTM).
         file : string
             The path/name of the topografic file. Usually .nc provided by
         dictionary : string, optional
-            Dictionary that you help with reading the spcified file, by default
-            'netCDF4' which works well with .nc files will be supported
+            Dictionary which helps to read the specified file. By default
+            'netCDF4' which works well with .nc files will be used.
         crs : string, optional
             Coordinate reference system, by default None, which will use the crs
-            provided by the file
+            provided by the file.
         """
 
         if type == "NASADEM_HGT":
@@ -536,20 +536,20 @@ class Environment:
         return None
 
     def getElevationFromTopograghicProfile(self, lat, lon):
-        """Function that receives the coordinates of a point and find its
+        """Function which receives as inputs the coordinates of a point and finds its
         elevation in the provided Topographic Profile
 
         Parameters
         ----------
         lat : float
-            latitude of the point
+            latitude of the point.
         lon : float
-            longitude of the point
+            longitude of the point.
 
         Returns
         -------
         elevation: float
-            Elevation provided by the topographic data, in meters
+            Elevation provided by the topographic data, in meters.
 
         Raises
         ------
@@ -774,7 +774,7 @@ class Environment:
             geopotential height profile, wind-u and wind-v profiles in
             the dataset given in the file parameter. Additionally,
             ensemble dictionaries must have the ensemble as well.
-            An example is the following dicitonary, used for 'NOAA':
+            An example is the following dictionary, used for 'NOAA':
                                   {'time': 'time',
                                'latitude': 'lat',
                               'longitude': 'lon',
@@ -820,7 +820,7 @@ class Environment:
             This defines the atmospheric wind-u profile, corresponding
             the the magnitude of the wind speed heading East.
             Should be given if the type parameter is 'CustomAtmosphere'. If not,
-            it will be assumed constant and 0.
+            it will be assumed to be constant and equal to 0.
             If a float is given, it will define a constant wind-u
             profile. The float should be in units of m/s.
             If a string is given, it should point to a .CSV file
@@ -836,7 +836,7 @@ class Environment:
             This defines the atmospheric wind-v profile, corresponding
             the the magnitude of the wind speed heading North.
             Should be given if the type parameter is 'CustomAtmosphere'. If not,
-            it will be assumed constant and 0.
+            it will be assumed to be constant and equal to 0.
             If a float is given, it will define a constant wind-v
             profile. The float should be in units of m/s.
             If a string is given, it should point to a .CSV file
@@ -1044,7 +1044,7 @@ class Environment:
                     )
                 # Process forecast or reanalysis
                 self.processForecastReanalysis(file, dictionary)
-            # Save dicitonary and file
+            # Save dictionary and file
             self.atmosphericModelFile = file
             self.atmosphericModelDict = dictionary
         elif type == "Ensemble":
@@ -1154,7 +1154,7 @@ class Environment:
                     }
                 # Process forecast or reanalysis
                 self.processEnsemble(file, dictionary)
-            # Save dicitonary and file
+            # Save dictionary and file
             self.atmosphericModelFile = file
             self.atmosphericModelDict = dictionary
         elif type == "CostumAtmosphere":
@@ -1303,7 +1303,7 @@ class Environment:
         ------
         None
         """
-        # Intialize a estimage of maximum expected atmospheric model height
+        # Initialize an estimate of the maximum expected atmospheric model height
         maxExpectedHeight = 1000
 
         # Save pressure profile
@@ -1333,7 +1333,7 @@ class Environment:
                 outputs="Temperature (K)",
                 interpolation="linear",
             )
-            # Check maximum height of costum temperature input
+            # Check maximum height of custom temperature input
             if not callable(self.temperature.source):
                 maxExpectedHeight = max(self.temperature[-1, 0], maxExpectedHeight)
 
@@ -1350,7 +1350,7 @@ class Environment:
             outputs="Wind Velocity Y (m/s)",
             interpolation="linear",
         )
-        # Check maximum height of costum wind input
+        # Check maximum height of custom wind input
         if not callable(self.windVelocityX.source):
             maxExpectedHeight = max(self.windVelocityX[-1, 0], maxExpectedHeight)
         if not callable(self.windVelocityY.source):
@@ -2350,7 +2350,7 @@ class Environment:
         R = self.earthRadius
         height = R * height / (R - height)
 
-        # Save enesemble data
+        # Save ensemble data
         self.levelEnsemble = levels
         self.heightEnsemble = height
         self.temperatureEnsemble = temperature
@@ -2707,7 +2707,7 @@ class Environment:
 
     def calculateDynamicViscosity(self):
         """Compute the dynamic viscosity of the atmosphere as a function of
-        heigth by using the formula given in ISO 2533 u = B*T^(1.5)/(T+S).
+        height by using the formula given in ISO 2533 u = B*T^(1.5)/(T+S).
         This function is automatically called whenever a new atmospheric model is set.
 
         Parameters
@@ -3139,7 +3139,7 @@ class Environment:
 
     # Auxiliary functions - Geodesic Coordinates
     def geodesicToUtm(self, lat, lon, datum):
-        """Function that converts geodetic coordinates, i.e. lat/lon, to UTM
+        """Function which converts geodetic coordinates, i.e. lat/lon, to UTM
         projection coordinates. Can be used only for latitudes between -80.00°
         and 84.00°
 
@@ -3152,7 +3152,7 @@ class Environment:
             The longitude coordinates of the point of analysis, must be contained
             between -180.00° and 180.00°
         datum : string
-            The desired reference ellipsoide model, the following optiions are
+            The desired reference ellipsoide model, the following options are
             available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
             is "SIRGAS2000", then this model will be used if the user make some
             typing mistake
@@ -3286,7 +3286,7 @@ class Environment:
         hemis : string
             Equals to "S" for southern hemisphere and "N" for Northern hemisphere
         datum : string
-            The desired reference ellipsoide model, the following optiions are
+            The desired reference ellipsoide model, the following options are
             available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
             is "SIRGAS2000", then this model will be used if the user make some
             typing mistake
@@ -3336,7 +3336,7 @@ class Environment:
         m = (y - 10000000) / K0
         mi = m / (semiMajorAxis * (1 - e2 / 4 - 3 * A / 64 - 5 * B / 256))
 
-        # Calculate others auxiliary values
+        # Calculate other auxiliary values
         F = (3 * e1 / 2 - 27 * D / 32) * np.sin(2 * mi)
         G = (21 * C / 16 - 55 * E / 32) * np.sin(4 * mi)
         H = (151 * D / 96) * np.sin(6 * mi)
@@ -3349,7 +3349,7 @@ class Environment:
         r1 = semiMajorAxis * (1 - e2) / (quoc ** 0.5)
         d = (x - 500000) / (n1 * K0)
 
-        # Calculate others auxiliary values
+        # Calculate other auxiliary values
         I = (5 + 3 * t1 + 10 * c1 - 4 * c1 * c1 - 9 * e2lin) * d * d * d * d / 24
         J = (
             (61 + 90 * t1 + 298 * c1 + 45 * t1 * t1 - 252 * e2lin - 3 * c1 * c1)
@@ -3363,7 +3363,7 @@ class Environment:
             / 120
         )
 
-        # Finally calcute the coordinates in lat/lot
+        # Finally calculate the coordinates in lat/lot
         lat = lat1 - (n1 * np.tan(lat1) / r1) * (d * d / 2 - I + J)
         lon = centralMeridian * np.pi / 180 + (K + L) / np.cos(lat1)
 
@@ -3378,16 +3378,16 @@ class Environment:
         based on ellipsoidal reference model (datum). The earth radius here is
         assumed as the distance between the ellipsoid's center of gravity and a
         point on ellipsoid surface at the desired
-        Pay attention: The ellipsoid is an ideal earth model and obvously will
-        not give us the perfect distance between earth relief and its center of
-        gravity.
+        Pay attention: The ellipsoid is an approximation for the earth model and 
+        will obviously output an estimate of the perfect distance between earth's 
+        relief and its center of gravity.
 
         Parameters
         ----------
         lat : float
             latitude in which the Earth radius will be calculated
         datum : string
-            The desired reference ellipsoide model, the following optiions are
+            The desired reference ellipsoide model, the following options are
             available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
             is "SIRGAS2000", then this model will be used if the user make some
             typing mistake
@@ -3441,12 +3441,12 @@ class Environment:
         ----------
         angle : float
             The angle that you need convert to deg/min/sec. Must be given in
-            decimal degrees
+            decimal degrees.
 
         Returns
         -------
         deg: float
-            The degrees
+            The degrees.
         min: float
             The arc minutes. 1 arc-minute = (1/60)*degree
         sec: float
@@ -3470,7 +3470,7 @@ class Environment:
     def printEarthDetails(self):
         """[UNDER CONSTRUCTION]
         Function to print informations about the Earth Model used in the
-        Evironment Class
+        Environment Class
 
         """
         # Print launch site details
