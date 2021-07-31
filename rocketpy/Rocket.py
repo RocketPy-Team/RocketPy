@@ -34,8 +34,8 @@ class Rocket:
         Rocket.radius : float
             Rocket's largest radius in meters.
         Rocket.area : float
-            Rocket's circular cross section largest frontal area in meters
-            squared.
+            Rocket's circular cross section largest frontal area in squared
+            meters.
         Rocket.distanceRocketNozzle : float
             Distance between rocket's center of mass, without propellant,
             to the exit face of the nozzle, in meters. Always positive.
@@ -98,7 +98,7 @@ class Rocket:
                 the equation F = ((1/2)*rho*V^2)*CdS, that is, the drag
                 force is the dynamic pressure computed on the parachute
                 times its CdS coefficient. Has units of area and must be
-                given in meters squared.
+                given in squared meters.
             trigger : function
                 Function which defines if the parachute ejection system is
                 to be triggered. It must take as input the freestream
@@ -110,17 +110,17 @@ class Rocket:
             samplingRate : float, optional
                 Sampling rate in which the trigger function works. It is used to
                 simulate the refresh rate of onboard sensors such as barometers.
-                Default value is 100. Value must be given in Hertz.
+                Default value is 100. Value must be given in hertz.
             lag : float, optional
                 Time between the parachute ejection system is triggered and the
                 parachute is fully opened. During this time, the simulation will
                 consider the rocket as flying without a parachute. Default value
                 is 0. Must be given in seconds.
-            noise : tupple, list, optional
+            noise : tuple, list, optional
                 List in the format (mean, standard deviation, time-correlation).
                 The values are used to add noise to the pressure signal which is
                 passed to the trigger function. Default value is (0, 0, 0). Units
-                are in Pascal.
+                are in pascal.
             noiseSignal : list
                 List of (t, noise signal) corresponding to signal passed to
                 trigger function. Completed after running a simulation.
@@ -168,7 +168,7 @@ class Rocket:
         powerOffDrag,
         powerOnDrag,
     ):
-        """Initialize Rocket class, process inertial, geometrical and
+        """Initializes Rocket class, process inertial, geometrical and
         aerodynamic parameters.
 
         Parameters
@@ -188,24 +188,24 @@ class Rocket:
         distanceRocketNozzle : int, float
             Distance from rocket's unloaded center of mass to nozzle outlet,
             in meters. Generally negative, meaning a negative position in the
-            z axis which has an origin in the rocket's center of mass (with
-            out propellant) and points towards the nose cone.
+            z axis which has an origin in the rocket's center of mass (without
+            propellant) and points towards the nose cone.
         distanceRocketPropellant : int, float
             Distance from rocket's unloaded center of mass to propellant
             center of mass, in meters. Generally negative, meaning a negative
             position in the z axis which has an origin in the rocket's center
             of mass (with out propellant) and points towards the nose cone.
         powerOffDrag : int, float, callable, string, array
-            Rockets drag coefficient when the motor is off. Can be given as an
+            Rocket's drag coefficient when the motor is off. Can be given as an
             entry to the Function class. See help(Function) for more
             information. If int or float is given, it is assumed constant. If
-            callable, string or array is given, it must be a function o Mach
+            callable, string or array is given, it must be a function of Mach
             number only.
         powerOnDrag : int, float, callable, string, array
-            Rockets drag coefficient when the motor is on. Can be given as an
+            Rocket's drag coefficient when the motor is on. Can be given as an
             entry to the Function class. See help(Function) for more
             information. If int or float is given, it is assumed constant. If
-            callable, string or array is given, it must be a function o Mach
+            callable, string or array is given, it must be a function of Mach
             number only.
 
         Returns
@@ -283,9 +283,9 @@ class Rocket:
     def evaluateReducedMass(self):
         """Calculates and returns the rocket's total reduced mass. The
         reduced mass is defined as the product of the propellant mass
-        and the mass of the rocket with outpropellant, divided by the
+        and the mass of the rocket without propellant, divided by the
         sum of the propellant mass and the rocket mass. The function
-        returns a object of the Function class and is defined as a
+        returns an object of the Function class and is defined as a
         function of time.
 
         Parameters
@@ -308,7 +308,7 @@ class Rocket:
         # Retrieve propellant mass as a function of time
         motorMass = self.motor.mass
 
-        # Retrieve constant rocket mass with out propellant
+        # Retrieve constant rocket mass without propellant
         mass = self.mass
 
         # Calculate reduced mass
@@ -450,7 +450,7 @@ class Rocket:
         return self.aerodynamicSurfaces[-1]
 
     def addNose(self, length, kind, distanceToCM):
-        """Create a nose cone, storing its parameters as part of the
+        """Creates a nose cone, storing its parameters as part of the
         aerodynamicSurfaces list. Its parameters are the axial position
         along the rocket and its derivative of the coefficient of lift
         in respect to angle of attack.
@@ -665,7 +665,7 @@ class Rocket:
     def addParachute(
         self, name, CdS, trigger, samplingRate=100, lag=0, noise=(0, 0, 0)
     ):
-        """Create a new parachute, storing its parameters such as
+        """Creates a new parachute, storing its parameters such as
         opening delay, drag coefficients and trigger function.
 
         Parameters
@@ -680,7 +680,7 @@ class Rocket:
             the equation F = ((1/2)*rho*V^2)*CdS, that is, the drag
             force is the dynamic pressure computed on the parachute
             times its CdS coefficient. Has units of area and must be
-            given in meters squared.
+            given in squared meters.
         trigger : function
             Function which defines if the parachute ejection system is
             to be triggered. It must take as input the freestream
@@ -692,24 +692,24 @@ class Rocket:
         samplingRate : float, optional
             Sampling rate in which the trigger function works. It is used to
             simulate the refresh rate of onboard sensors such as barometers.
-            Default value is 100. Value must be given in Hertz.
+            Default value is 100. Value must be given in hertz.
         lag : float, optional
             Time between the parachute ejection system is triggered and the
             parachute is fully opened. During this time, the simulation will
             consider the rocket as flying without a parachute. Default value
             is 0. Must be given in seconds.
-        noise : tupple, list, optional
+        noise : tuple, list, optional
             List in the format (mean, standard deviation, time-correlation).
             The values are used to add noise to the pressure signal which is
             passed to the trigger function. Default value is (0, 0, 0). Units
-            are in Pascal.
+            are in pascal.
 
         Returns
         -------
         parachute : Parachute Object
             Parachute object containing trigger, samplingRate, lag, CdS, noise
             and name as attributes. Furthermore, it stores cleanPressureSignal,
-            noiseSignal and noisyPressureSignal which is filled in during
+            noiseSignal and noisyPressureSignal which are filled in during
             Flight simulation.
         """
         # Create an object to serve as the parachute
@@ -743,7 +743,7 @@ class Rocket:
         calculation of forces exerted by them when the rocket is
         slinding in the launch rail. Furthermore, rail buttons are
         also needed for the simulation of the planar flight phase,
-        when the rocket experiences 3 degree of freedom motion while
+        when the rocket experiences 3 degrees of freedom motion while
         only one rail button is still in the launch rail.
 
         Parameters
@@ -752,7 +752,7 @@ class Rocket:
             Two values organized in a tuple, list or array which
             represent the distance of each of the two rail buttons
             to the center of mass of the rocket without propellant.
-            If the rail button is position above the center of mass,
+            If the rail button is positioned above the center of mass,
             its distance should be a positive value. If it is below,
             its distance should be a negative value. The order does
             not matter. All values should be in meters.
@@ -776,7 +776,7 @@ class Rocket:
         return None
 
     def addCMExcentricity(self, x, y):
-        """Move line of action of aerodynamic and thrust forces by
+        """Moves line of action of aerodynamic and thrust forces by
         equal translation ammount to simulate an excentricity in the
         position of the center of mass of the rocket relative to its
         geometrical center line. Should not be used together with
@@ -808,7 +808,7 @@ class Rocket:
         return self
 
     def addCPExentricity(self, x, y):
-        """Move line of action of aerodynamic forces to simulate an
+        """Moves line of action of aerodynamic forces to simulate an
         excentricity in the position of the center of pressure relative
         to the center of mass of the rocket.
 
@@ -834,17 +834,17 @@ class Rocket:
         return self
 
     def addThrustExentricity(self, x, y):
-        """Move line of action of thrust forces to simulate a
+        """Moves line of action of thrust forces to simulate a
         disalignment of the thrust vector and the center of mass.
 
         Parameters
         ----------
         x : float
-            Distance in meters by which the the line of action of the
+            Distance in meters by which the line of action of the
             thrust force is to be translated in the x direction
             relative to the center of mass axial line.
         y : float
-            Distance in meters by which the the line of action of the
+            Distance in meters by which the line of action of the
             thrust force is to be translated in the x direction
             relative to the center of mass axial line.
 
