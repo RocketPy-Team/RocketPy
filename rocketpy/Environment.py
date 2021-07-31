@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__author__ = "Giovani Hidalgo Ceotto, Lucas Azevedo Pezente"
+__author__ = "Giovani Hidalgo Ceotto, Guilherme Fernandes Alves, Lucas Azevedo Pezente"
 __copyright__ = "Copyright 20XX, Projeto Jupiter"
 __license__ = "MIT"
 
@@ -3152,7 +3152,7 @@ class Environment:
             The longitude coordinates of the point of analysis, must be contained
             between -180.00° and 180.00°
         datum : string
-            The desired reference ellipsoide model, the following optiions are
+            The desired reference ellipsoide model, the following options are
             available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
             is "SIRGAS2000", then this model will be used if the user make some
             typing mistake
@@ -3286,7 +3286,7 @@ class Environment:
         hemis : string
             Equals to "S" for southern hemisphere and "N" for Northern hemisphere
         datum : string
-            The desired reference ellipsoide model, the following optiions are
+            The desired reference ellipsoide model, the following options are
             available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
             is "SIRGAS2000", then this model will be used if the user make some
             typing mistake
