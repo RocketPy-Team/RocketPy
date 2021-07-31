@@ -336,7 +336,7 @@ class Flight:
             Direction 3 is in the rocket's body axis and points in the
             direction of cylindrical symmetry.
         Flight.M1 : Function
-            Resultant momentum perpendicular to rockets axis due to
+            Resultant moment (torque) perpendicular to rockets axis due to
             aerodynamic forces and excentricity as a function of time.
             Units in N*m.
             Expressed as a function of time. Can be called or accessed
@@ -344,7 +344,7 @@ class Flight:
             Direction 1 is in the rocket's body axis and points perpendicular
             to the rocket's axis of cylindrical symmetry.
         Flight.M2 : Function
-            Resultant momentum perpendicular to rockets axis due to
+            Resultant moment (torque) perpendicular to rockets axis due to
             aerodynamic forces and excentricity as a function of time.
             Units in N*m.
             Expressed as a function of time. Can be called or accessed
@@ -352,7 +352,7 @@ class Flight:
             Direction 2 is in the rocket's body axis and points perpendicular
             to the rocket's axis of cylindrical symmetry and direction 1.
         Flight.M3 : Function
-            Resultant momentum in rockets axis due to aerodynamic
+            Resultant moment (torque) in rockets axis due to aerodynamic
             forces and excentricity as a function of time. Units in N*m.
             Expressed as a function of time. Can be called or accessed
             as array.
