@@ -24,7 +24,7 @@ from .Function import Function
 
 
 class SolidMotor:
-    """Class to specify characteriscts and useful operations for solid
+    """Class to specify characteristics and useful operations for solid
     motors.
 
     Attributes
@@ -36,7 +36,7 @@ class SolidMotor:
         Motor.throatRadius : float
             Radius of motor nozzle throat in meters.
         Motor.grainNumber : int
-            Number os solid grains.
+            Number of solid grains.
         Motor.grainSeparation : float
             Distance between two grains in meters.
         Motor.grainDensity : float
@@ -91,7 +91,7 @@ class SolidMotor:
             Average thrust of the motor, given in N.
         Motor.burnOutTime : float
             Total motor burn out time, in seconds. Must include delay time
-            when motor takes time to ignite. Also seen as time to end thrust
+            when the motor takes time to ignite. Also seen as time to end thrust
             curve.
         Motor.exhaustVelocity : float
             Propulsion gases exhaust velocity, assumed constant, in m/s.
@@ -132,16 +132,16 @@ class SolidMotor:
         ----------
         thrustSource : int, float, callable, string, array
             Motor's thrust curve. Can be given as an int or float, in which
-            case the thrust will be considerared constant in time. It can
+            case the thrust will be considered constant in time. It can
             also be given as a callable function, whose argument is time in
             seconds and returns the thrust supplied by the motor in the
             instant. If a string is given, it must point to a .csv or .eng file.
             The .csv file shall contain no headers and the first column must
             specify time in seconds, while the second column specifies thrust.
             Arrays may also be specified, following rules set by the class
-            Function. See help(Function). Thrust units is Newtons.
+            Function. See help(Function). Thrust units are Newtons.
         burnOut : int, float
-            Motor burn out time in seconds.
+            Motor burns out time in seconds.
         grainNumber : int
             Number of solid grains
         grainDensity : int, float
@@ -156,7 +156,7 @@ class SolidMotor:
             Distance between grains, in meters. Default is 0.
         nozzleRadius : int, float, optional
             Motor's nozzle outlet radius in meters. Used to calculate Kn curve.
-            Optional if Kn curve is not if intereste. Its value does not impact
+            Optional if the Kn curve is not interesting. Its value does not impact
             trajectory simulation.
         throatRadius : int, float, optional
             Motor's nozzle throat radius in meters. Its value has very low
@@ -271,7 +271,7 @@ class SolidMotor:
         """Transforms the thrust curve supplied by changing its total
         burn time and/or its total impulse, without altering the
         general shape of the curve. May translate the curve so that
-        thrust starts at time equals 0, with out any delays.
+        thrust starts at time equals 0, without any delays.
 
         Parameters
         ----------
@@ -622,10 +622,10 @@ class SolidMotor:
         Returns
         -------
         comments : list
-            All comments in the .eng file, separeted by line in a list. Each
+            All comments in the .eng file, separated by line in a list. Each
             line is an entry of the list.
         description: list
-            Description of the motor. All attributes are returned separeted in
+            Description of the motor. All attributes are returned separated in
             a list. E.g. "F32 24 124 5-10-15 .0377 .0695 RV\n" is return as
             ['F32', '24', '124', '5-10-15', '.0377', '.0695', 'RV\n']
         dataPoints: list
