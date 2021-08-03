@@ -34,6 +34,7 @@ except ImportError:
 
 from .Function import Function
 
+
 class Environment:
     """Keeps all environment information stored, such as wind and temperature
     conditions, as well as gravity and rail length.
@@ -1761,11 +1762,17 @@ class Environment:
         latArray = weatherData.variables[dictionary["latitude"]][:].tolist()
 
         # Find time index
-        timeIndex = netCDF4.date2index(self.date, timeArray, calendar="gregorian", select="nearest")
+        timeIndex = netCDF4.date2index(
+            self.date, timeArray, calendar="gregorian", select="nearest"
+        )
         # Convert times do dates and numbers
-        inputTimeNum = netCDF4.date2num(self.date, timeArray.units, calendar="gregorian")
+        inputTimeNum = netCDF4.date2num(
+            self.date, timeArray.units, calendar="gregorian"
+        )
         fileTimeNum = timeArray[timeIndex]
-        fileTimeDate = netCDF4.num2date(timeArray[timeIndex], timeArray.units, calendar="gregorian")
+        fileTimeDate = netCDF4.num2date(
+            timeArray[timeIndex], timeArray.units, calendar="gregorian"
+        )
         # Check if time is inside range supplied by file
         if timeIndex == 0 and inputTimeNum < fileTimeNum:
             raise ValueError(
@@ -2038,10 +2045,16 @@ class Environment:
                 )
 
         # Compute info data
-        self.atmosphericModelInitDate = netCDF4.num2date(timeArray[0], timeArray.units, calendar="gregorian")
-        self.atmosphericModelEndDate = netCDF4.num2date(timeArray[-1], timeArray.units, calendar="gregorian")
+        self.atmosphericModelInitDate = netCDF4.num2date(
+            timeArray[0], timeArray.units, calendar="gregorian"
+        )
+        self.atmosphericModelEndDate = netCDF4.num2date(
+            timeArray[-1], timeArray.units, calendar="gregorian"
+        )
         self.atmosphericModelInterval = netCDF4.num2date(
-            (timeArray[-1] - timeArray[0]) / (len(timeArray) - 1), timeArray.units, calendar="gregorian"
+            (timeArray[-1] - timeArray[0]) / (len(timeArray) - 1),
+            timeArray.units,
+            calendar="gregorian",
         ).hour
         self.atmosphericModelInitLat = latArray[0]
         self.atmosphericModelEndLat = latArray[-1]
@@ -2144,11 +2157,17 @@ class Environment:
         latArray = weatherData.variables[dictionary["latitude"]][:].tolist()
 
         # Find time index
-        timeIndex = netCDF4.date2index(self.date, timeArray, calendar="gregorian", select="nearest")
+        timeIndex = netCDF4.date2index(
+            self.date, timeArray, calendar="gregorian", select="nearest"
+        )
         # Convert times do dates and numbers
-        inputTimeNum = netCDF4.date2num(self.date, timeArray.units, calendar="gregorian")
+        inputTimeNum = netCDF4.date2num(
+            self.date, timeArray.units, calendar="gregorian"
+        )
         fileTimeNum = timeArray[timeIndex]
-        fileTimeDate = netCDF4.num2date(timeArray[timeIndex], timeArray.units, calendar="gregorian")
+        fileTimeDate = netCDF4.num2date(
+            timeArray[timeIndex], timeArray.units, calendar="gregorian"
+        )
         # Check if time is inside range supplied by file
         if timeIndex == 0 and inputTimeNum < fileTimeNum:
             raise ValueError(
@@ -2389,10 +2408,16 @@ class Environment:
                 )
 
         # Compute info data
-        self.atmosphericModelInitDate = netCDF4.num2date(timeArray[0], timeArray.units, calendar="gregorian")
-        self.atmosphericModelEndDate = netCDF4.num2date(timeArray[-1], timeArray.units, calendar="gregorian")
+        self.atmosphericModelInitDate = netCDF4.num2date(
+            timeArray[0], timeArray.units, calendar="gregorian"
+        )
+        self.atmosphericModelEndDate = netCDF4.num2date(
+            timeArray[-1], timeArray.units, calendar="gregorian"
+        )
         self.atmosphericModelInterval = netCDF4.num2date(
-            (timeArray[-1] - timeArray[0]) / (len(timeArray) - 1), timeArray.units, calendar="gregorian"
+            (timeArray[-1] - timeArray[0]) / (len(timeArray) - 1),
+            timeArray.units,
+            calendar="gregorian",
         ).hour
         self.atmosphericModelInitLat = latArray[0]
         self.atmosphericModelEndLat = latArray[-1]
@@ -3378,8 +3403,8 @@ class Environment:
         based on ellipsoidal reference model (datum). The earth radius here is
         assumed as the distance between the ellipsoid's center of gravity and a
         point on ellipsoid surface at the desired
-        Pay attention: The ellipsoid is an approximation for the earth model and 
-        will obviously output an estimate of the perfect distance between earth's 
+        Pay attention: The ellipsoid is an approximation for the earth model and
+        will obviously output an estimate of the perfect distance between earth's
         relief and its center of gravity.
 
         Parameters
