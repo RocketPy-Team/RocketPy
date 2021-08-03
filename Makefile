@@ -12,6 +12,10 @@ install:
 	pip install -r requirements.txt
 	python setup.py install
 
+verify-lint:
+	black --check rocketpy
+	black --check tests
+
 lint:
 	black rocketpy
 	black tests

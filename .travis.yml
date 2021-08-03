@@ -6,7 +6,7 @@ install:
   pip install -r requirements_test.txt
 
 before_script:
-  make lint
+  make verify-lint
 script:
   make test
 
