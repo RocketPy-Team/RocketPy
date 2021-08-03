@@ -2,8 +2,11 @@ language: python
 python:
   - "3.8"
 install:
-  - pip install -r requirements.txt
-  - pip install -r requirements_test.txt
-# command to run tests
-script: pytest
-~                    
+  make install
+  pip install -r requirements_test.txt
+
+before_script:
+  make lint
+script:
+  make test
+
