@@ -1,2 +1,3 @@
 pytest==6.2.4
 pytest-coverage
+black
