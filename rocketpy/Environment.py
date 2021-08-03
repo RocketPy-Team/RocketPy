@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__author__ = "Giovani Hidalgo Ceotto, Guilherme Fernandes Alves, Lucas Azevedo Pezente"
+__author__ = "Giovani Hidalgo Ceotto, Guilherme Fernandes Alves, Lucas Azevedo Pezente, Oscar Mauricio Prada Ramirez, Lucas Kierulff Balabram"
 __copyright__ = "Copyright 20XX, Projeto Jupiter"
 __license__ = "MIT"
 
@@ -1712,7 +1712,7 @@ class Environment:
         file : string
             String containing path to local netCDF file or URL of an
             OPeNDAP file, such as NOAA's NOMAD or UCAR TRHEDDS server.
-        dicitonary : dictionary
+        dictionary : dictionary
             Specifies the dictionary to be used when reading netCDF and
             OPeNDAP files, allowing for the correct retrieval of data.
             The dictionary structure should specify the short names
@@ -1761,11 +1761,11 @@ class Environment:
         latArray = weatherData.variables[dictionary["latitude"]][:].tolist()
 
         # Find time index
-        timeIndex = netCDF4.date2index(self.date, timeArray, select="nearest")
+        timeIndex = netCDF4.date2index(self.date, timeArray, calendar="gregorian", select="nearest")
         # Convert times do dates and numbers
-        inputTimeNum = netCDF4.date2num(self.date, timeArray.units, calendar='standard')
+        inputTimeNum = netCDF4.date2num(self.date, timeArray.units, calendar="gregorian")
         fileTimeNum = timeArray[timeIndex]
-        fileTimeDate = netCDF4.num2date(timeArray[timeIndex], timeArray.units)
+        fileTimeDate = netCDF4.num2date(timeArray[timeIndex], timeArray.units, calendar="gregorian")
         # Check if time is inside range supplied by file
         if timeIndex == 0 and inputTimeNum < fileTimeNum:
             raise ValueError(
@@ -2038,10 +2038,10 @@ class Environment:
                 )
 
         # Compute info data
-        self.atmosphericModelInitDate = netCDF4.num2date(timeArray[0], timeArray.units)
-        self.atmosphericModelEndDate = netCDF4.num2date(timeArray[-1], timeArray.units)
+        self.atmosphericModelInitDate = netCDF4.num2date(timeArray[0], timeArray.units, calendar="gregorian")
+        self.atmosphericModelEndDate = netCDF4.num2date(timeArray[-1], timeArray.units, calendar="gregorian")
         self.atmosphericModelInterval = netCDF4.num2date(
-            (timeArray[-1] - timeArray[0]) / (len(timeArray) - 1), timeArray.units
+            (timeArray[-1] - timeArray[0]) / (len(timeArray) - 1), timeArray.units, calendar="gregorian"
         ).hour
         self.atmosphericModelInitLat = latArray[0]
         self.atmosphericModelEndLat = latArray[-1]
@@ -2144,11 +2144,11 @@ class Environment:
         latArray = weatherData.variables[dictionary["latitude"]][:].tolist()
 
         # Find time index
-        timeIndex = netCDF4.date2index(self.date, timeArray, select="nearest")
+        timeIndex = netCDF4.date2index(self.date, timeArray, calendar="gregorian", select="nearest")
         # Convert times do dates and numbers
-        inputTimeNum = netCDF4.date2num(self.date, timeArray.units)
+        inputTimeNum = netCDF4.date2num(self.date, timeArray.units, calendar="gregorian")
         fileTimeNum = timeArray[timeIndex]
-        fileTimeDate = netCDF4.num2date(timeArray[timeIndex], timeArray.units)
+        fileTimeDate = netCDF4.num2date(timeArray[timeIndex], timeArray.units, calendar="gregorian")
         # Check if time is inside range supplied by file
         if timeIndex == 0 and inputTimeNum < fileTimeNum:
             raise ValueError(
@@ -2389,10 +2389,10 @@ class Environment:
                 )
 
         # Compute info data
-        self.atmosphericModelInitDate = netCDF4.num2date(timeArray[0], timeArray.units)
-        self.atmosphericModelEndDate = netCDF4.num2date(timeArray[-1], timeArray.units)
+        self.atmosphericModelInitDate = netCDF4.num2date(timeArray[0], timeArray.units, calendar="gregorian")
+        self.atmosphericModelEndDate = netCDF4.num2date(timeArray[-1], timeArray.units, calendar="gregorian")
         self.atmosphericModelInterval = netCDF4.num2date(
-            (timeArray[-1] - timeArray[0]) / (len(timeArray) - 1), timeArray.units
+            (timeArray[-1] - timeArray[0]) / (len(timeArray) - 1), timeArray.units, calendar="gregorian"
         ).hour
         self.atmosphericModelInitLat = latArray[0]
         self.atmosphericModelEndLat = latArray[-1]
