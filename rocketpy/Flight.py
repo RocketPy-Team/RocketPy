@@ -22,6 +22,7 @@ from matplotlib import cm
 
 from .Function import Function
 
+
 class Flight:
     """Keeps all flight information and has a method to simulate flight.
 
