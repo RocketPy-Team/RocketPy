@@ -13,8 +13,8 @@ install:
 	python setup.py install
 
 verify-lint:
-	black --check rocketpy
-	black --check tests
+	flake8 --select BLK rocketpy
+	flake8 --select BLK test
 
 lint:
 	black rocketpy
