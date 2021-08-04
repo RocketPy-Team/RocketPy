@@ -166,6 +166,7 @@ def test_cmc_atmosphere(mock_show, example_env_robust):
 #     )
 #     assert example_env_robust.allInfo() == None
 
+
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_hiresw_ensemble_atmosphere(mock_show, example_env_robust):
