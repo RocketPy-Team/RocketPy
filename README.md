@@ -11,8 +11,11 @@ RocketPy is a trajectory simulation for High-Power Rocketry built by [Projeto Ju
 
 - Nonlinear 6 degrees of freedom simulations
   - Solved using LSODA with adjustable error tolerances
+  - Highly optimized to run fast
 - Rigorous treatment of mass variation effects
-- Barrowman equations for lift coefficients (optional)
+- Aerodynamic models:
+  - Barrowman equations for lift coefficients (optional)
+  - Drag coefficients can be easily imported from other sources (e.g. CFD simulations)
 - Parachutes with external trigger functions
   - Test the exact code that will fly
   - Sensor data can be augmented with noise
@@ -26,10 +29,11 @@ RocketPy is a trajectory simulation for High-Power Rocketry built by [Projeto Ju
   - Weather ensembles
 - Monte Carlo simulations for dispersion and sensitivity analysis
 - Flexible and modular
-  - Multi-stage rockets
+  - Straightforward engineering analysis (e.g. apogee and lifting off speed as a function of mass)
   - Non-standard flights (e.g. parachute drop test from helicopter)
-  - Custom continuos and discrete control laws
-  - Easy to create new classes (e.g. other types of motors)
+  - Multi-stage rockets
+  - Custom continuous and discrete control laws
+  - Create new classes (e.g. other types of motors)
 
 ## Join Our Community!
 RocketPy is growing fast! Many unviersity groups and rocket hobbyist have already started using it. The number of stars and forks for this repository is skyrocketing. And this is all thanks to a great community of users, engineers, developers, marketing specialists, and everyone interested in helping.
