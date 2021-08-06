@@ -7,6 +7,34 @@
 # RocketPy
 RocketPy is a trajectory simulation for High-Power Rocketry built by [Projeto Jupiter](https://www.facebook.com/ProjetoJupiter/). The code is written as a [Python](http://www.python.org) library and allows for a complete 6 degrees of freedom simulation of a rocket's flight trajectory, including high fidelity variable mass effects as well as descent under parachutes. Weather conditions, such as wind profile, can be imported from sophisticated datasets, allowing for realistic scenarios. Furthermore, the implementation facilitates complex simulations, such as multi-stage rockets, design and trajectory optimization and dispersion analysis.
 
+## Main features
+
+- Nonlinear 6 degrees of freedom simulations
+  - Solved using LSODA with adjustable error tolerances
+  - Highly optimized to run fast
+- Rigorous treatment of mass variation effects
+- Aerodynamic models:
+  - Barrowman equations for lift coefficients (optional)
+  - Drag coefficients can be easily imported from other sources (e.g. CFD simulations)
+- Parachutes with external trigger functions
+  - Test the exact code that will fly
+  - Sensor data can be augmented with noise
+- Solid motors models:
+  - Burn rate and mass variation properties from thrust curve
+- Accurate weather modeling
+  - International Standard Atmosphere (1976)
+  - Custom atmospheric profiles
+  - Soundings (Wyoming, NOAARuc)
+  - Weather forecasts and reanalysis
+  - Weather ensembles
+- Monte Carlo simulations for dispersion and sensitivity analysis
+- Flexible and modular
+  - Straightforward engineering analysis (e.g. apogee and lifting off speed as a function of mass)
+  - Non-standard flights (e.g. parachute drop test from helicopter)
+  - Multi-stage rockets
+  - Custom continuous and discrete control laws
+  - Create new classes (e.g. other types of motors)
+
 ## Join Our Community!
 RocketPy is growing fast! Many unviersity groups and rocket hobbyist have already started using it. The number of stars and forks for this repository is skyrocketing. And this is all thanks to a great community of users, engineers, developers, marketing specialists, and everyone interested in helping.
 
