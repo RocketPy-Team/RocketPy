@@ -34,6 +34,7 @@ except ImportError:
 
 from .Function import Function
 
+
 class Environment:
     """Keeps all environment information stored, such as wind and temperature
     conditions, as well as gravity and rail length.
@@ -1763,7 +1764,7 @@ class Environment:
         # Find time index
         timeIndex = netCDF4.date2index(self.date, timeArray, select="nearest")
         # Convert times do dates and numbers
-        inputTimeNum = netCDF4.date2num(self.date, timeArray.units, calendar='standard')
+        inputTimeNum = netCDF4.date2num(self.date, timeArray.units, calendar="standard")
         fileTimeNum = timeArray[timeIndex]
         fileTimeDate = netCDF4.num2date(timeArray[timeIndex], timeArray.units)
         # Check if time is inside range supplied by file
@@ -3378,8 +3379,8 @@ class Environment:
         based on ellipsoidal reference model (datum). The earth radius here is
         assumed as the distance between the ellipsoid's center of gravity and a
         point on ellipsoid surface at the desired
-        Pay attention: The ellipsoid is an approximation for the earth model and 
-        will obviously output an estimate of the perfect distance between earth's 
+        Pay attention: The ellipsoid is an approximation for the earth model and
+        will obviously output an estimate of the perfect distance between earth's
         relief and its center of gravity.
 
         Parameters
