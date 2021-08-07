@@ -435,6 +435,10 @@ class SolidMotor:
         # Return Mass Function
         return self.mass
 
+    @property
+    def throatArea(self):
+        return np.pi * self.throatRadius ** 2
+
     def evaluateGeometry(self):
         """Calculates grain inner radius and grain height as a
         function of time by assuming that every propellant mass
@@ -464,10 +468,10 @@ class SolidMotor:
         # Define time mesh
         t = self.massDot.source[:, 0]
 
-        # Define system of differential equations
         density = self.grainDensity
         rO = self.grainOuterRadius
 
+        # Define system of differential equations
         def geometryDot(y, t):
             grainMassDot = self.massDot(t) / self.grainNumber
             rI, h = y
@@ -497,25 +501,37 @@ class SolidMotor:
         )
 
         # Create functions describing burn rate, Kn and burn area
-        # Burn Area
+        self.evaluateBurnArea()
+        self.evaluateKn()
+        self.evaluateBurnRate()
+
+        return [self.grainInnerRadius, self.grainHeight]
+
+    def evaluateBurnArea(self):
         self.burnArea = (
-            2
-            * np.pi
-            * (
-                self.grainOuterRadius ** 2
-                - self.grainInnerRadius ** 2
-                + self.grainInnerRadius * self.grainHeight
-            )
-            * self.grainNumber
+                2
+                * np.pi
+                * (
+                        self.grainOuterRadius ** 2
+                        - self.grainInnerRadius ** 2
+                        + self.grainInnerRadius * self.grainHeight
+                )
+                * self.grainNumber
         )
         self.burnArea.setOutputs("Burn Area (m2)")
-        # Kn
-        throatArea = np.pi * (self.throatRadius) ** 2
+        return self.burnArea
+
+    def evaluateBurnRate(self):
+        self.burnRate = (-1) * self.massDot / (self.burnArea * self.grainDensity)
+        self.burnRate.setOutputs("Burn Rate (m/s)")
+        return self.burnRate
+
+    def evaluateKn(self):
         KnSource = (
             np.concatenate(
                 (
                     [self.grainInnerRadius.source[:, 1]],
-                    [self.burnArea.source[:, 1] / throatArea],
+                    [self.burnArea.source[:, 1] / self.throatArea],
                 )
             ).transpose()
         ).tolist()
@@ -526,11 +542,7 @@ class SolidMotor:
             self.interpolate,
             "constant",
         )
-        # Burn Rate
-        self.burnRate = (-1) * self.massDot / (self.burnArea * self.grainDensity)
-        self.burnRate.setOutputs("Burn Rate (m/s)")
-
-        return [self.grainInnerRadius, self.grainHeight]
+        return self.Kn
 
     def evaluateInertia(self):
         """Calculates propellant inertia I, relative to directions
