@@ -1336,7 +1336,7 @@ class Function:
 
     # Define all interpolation methods
     def __interpolatePolynomial__(self):
-        """ Calculate polynomail coefficients that fit the data exactly."""
+        """Calculate polynomail coefficients that fit the data exactly."""
         # Find the degree of the polynomial interpolation
         degree = self.source.shape[0] - 1
         # Get x and y values for all supplied points.
