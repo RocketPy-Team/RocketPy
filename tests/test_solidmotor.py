@@ -1,8 +1,9 @@
 from unittest.mock import patch
 
+import numpy as np
 import pytest
 
-from rocketpy import Environment, SolidMotor, Rocket, Flight
+from rocketpy import SolidMotor, Function
 
 
 @patch("matplotlib.pyplot.show")
@@ -22,3 +23,19 @@ def test_motor(mock_show):
     )
 
     assert example_motor.allInfo() == None
+
+@patch("matplotlib.pyplot.show")
+def test_initilize_motor_correctly(mock_plt, solid_motor):
+    grain_vol = 0.12 * (np.pi * (0.033**2 - 0.015**2))
+    grain_mass = grain_vol * 1815
+
+    assert solid_motor.maxThrust == 2200.0
+    assert solid_motor.maxThrustTime == 0.15
+    assert solid_motor.burnOutTime == 3.9
+    assert solid_motor.totalImpulse == solid_motor.thrust.integral(0, 3.9)
+    assert solid_motor.averageThrust == solid_motor.thrust.integral(0, 3.9) / 3.9
+    assert solid_motor.grainInitialVolume == grain_vol
+    assert solid_motor.grainInitialMass == grain_mass
+    assert solid_motor.propellantInitialMass == 5 * grain_mass
+    assert solid_motor.exaust_velocity == solid_motor.thrust.integral(0, 3.9) / (5 * grain_mass)
+
