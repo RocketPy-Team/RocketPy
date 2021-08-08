@@ -590,11 +590,11 @@ class SolidMotor:
 
         # Calculate each grain's distance d to propellant center of mass
         initialValue = (grainNumber - 1) / 2
-        d = np.linspace(-initialValue, initialValue, self.grainNumber)
+        d = np.linspace(-initialValue, initialValue, grainNumber)
         d = d * (self.grainInitialHeight + self.grainSeparation)
 
         # Calculate inertia for all grains
-        self.inertiaI = grainNumber * (grainInertiaI) + grainMass * np.sum(d ** 2)
+        self.inertiaI = grainNumber * grainInertiaI + grainMass * np.sum(d ** 2)
         self.inertiaI.setOutputs("Propellant Inertia I (kg*m2)")
 
         # Inertia I Dot

@@ -3,7 +3,7 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
-from rocketpy import SolidMotor, Function
+from rocketpy import SolidMotor
 
 
 @patch("matplotlib.pyplot.show")
@@ -65,3 +65,36 @@ def test_burn_area_asserts_extreme_values(solid_motor):
 
     assert np.allclose(solid_motor.burnArea.getSource()[0][-1], initial_burn_area)
     assert np.allclose(solid_motor.burnArea.getSource()[-1][-1], final_burn_area)
+
+
+def test_evaluate_inertia_I_asserts_extreme_values(solid_motor):
+    grain_vol = 0.12 * (np.pi * (0.033 ** 2 - 0.015 ** 2))
+    grain_mass = grain_vol * 1815
+
+    grainNumber = 5
+    grainInertiaI_initial = grain_mass * (
+            (1 / 4) * (0.033 ** 2 + 0.016 ** 2)
+            + (1 / 12) * 0.12 ** 2
+    )
+
+    initialValue = (grainNumber - 1) / 2
+    d = np.linspace(-initialValue, initialValue, grainNumber)
+    d = d * (0.12 + 0.005)
+
+    inertiaI_initial = grainNumber * grainInertiaI_initial + grain_mass * np.sum(d ** 2)
+
+    assert np.allclose(solid_motor.inertiaI.getSource()[0][-1], inertiaI_initial, atol=0.01)
+    assert np.allclose(solid_motor.inertiaI.getSource()[-1][-1], 0, atol=1e-16)
+
+
+def test_evaluate_inertia_Z_asserts_extreme_values(solid_motor):
+    grain_vol = 0.12 * (np.pi * (0.033 ** 2 - 0.015 ** 2))
+    grain_mass = grain_vol * 1815
+
+    grainInertiaZ_initial = \
+        grain_mass \
+        * (1 / 2.0) \
+        * (0.016 ** 2 + 0.033 ** 2)
+
+    assert np.allclose(solid_motor.inertiaZ.getSource()[0][-1], grainInertiaZ_initial, atol=0.01)
+    assert np.allclose(solid_motor.inertiaZ.getSource()[-1][-1], 0, atol=1e-16)
