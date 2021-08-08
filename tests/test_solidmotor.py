@@ -1,4 +1,5 @@
 from unittest.mock import patch
+import os
 
 import numpy as np
 import pytest
@@ -9,7 +10,7 @@ from rocketpy import SolidMotor
 @patch("matplotlib.pyplot.show")
 def test_motor(mock_show):
     example_motor = SolidMotor(
-        thrustSource="data/motors/Cesaroni_M1670.eng",
+        thrustSource="tests/fixtures/motor/Cesaroni_M1670.eng",
         burnOut=3.9,
         grainNumber=5,
         grainSeparation=5 / 1000,
@@ -98,3 +99,92 @@ def test_evaluate_inertia_Z_asserts_extreme_values(solid_motor):
 
     assert np.allclose(solid_motor.inertiaZ.getSource()[0][-1], grainInertiaZ_initial, atol=0.01)
     assert np.allclose(solid_motor.inertiaZ.getSource()[-1][-1], 0, atol=1e-16)
+
+
+def tests_import_eng_asserts_read_values_correctly(solid_motor):
+    comments, description, dataPoints = solid_motor.importEng("tests/fixtures/motor/Cesaroni_M1670.eng")
+
+    assert comments == [';this motor is COTS\n', ';3.9 burnTime\n']
+    assert description == ['M1670-BS', '75', '757', '0', '3.101', '5.231', 'CTI', '\n']
+    assert dataPoints == [
+        [0, 0],
+        [0.055, 100.0],
+        [0.092, 1500.0],
+        [0.1, 2000.0],
+        [0.15, 2200.0],
+        [0.2, 1800.0],
+        [0.5, 1950.0],
+        [1.0, 2034.0],
+        [1.5, 2000.0],
+        [2.0, 1900.0],
+        [2.5, 1760.0],
+        [2.9, 1700.0],
+        [3.0, 1650.0],
+        [3.3, 530.0],
+        [3.4, 350.0],
+        [3.9, 0.0]
+    ]
+
+
+def tests_export_eng_asserts_exported_values_correct(solid_motor):
+    grain_vol = 0.12 * (np.pi * (0.033 ** 2 - 0.015 ** 2))
+    grain_mass = grain_vol * 1815 * 5
+
+    solid_motor.exportEng(fileName='tests/solid_motor.eng', motorName='test_motor')
+    comments, description, dataPoints = solid_motor.importEng('tests/solid_motor.eng')
+    os.remove('tests/solid_motor.eng')
+
+    assert comments == []
+    assert description == [
+        'test_motor',
+        '{:3.1f}'.format(2000 * 0.033),
+        '{:3.1f}'.format(1000 * 5 * (0.12 + 0.005)),
+        '0',
+        '{:2.3}'.format(grain_mass),
+        '{:2.3}'.format(grain_mass),
+        'PJ',
+        '\n'
+    ]
+
+    assert dataPoints == [
+        [0, 0],
+        [0.055, 100.0],
+        [0.092, 1500.0],
+        [0.1, 2000.0],
+        [0.15, 2200.0],
+        [0.2, 1800.0],
+        [0.5, 1950.0],
+        [1.0, 2034.0],
+        [1.5, 2000.0],
+        [2.0, 1900.0],
+        [2.5, 1760.0],
+        [2.9, 1700.0],
+        [3.0, 1650.0],
+        [3.3, 530.0],
+        [3.4, 350.0],
+        [3.9, 0.0]
+    ]
+
+
+def test_reshape_thrust_curve_asserts_resultant_thrust_curve_correct():
+    example_motor = SolidMotor(
+        thrustSource="tests/fixtures/motor/Cesaroni_M1670_shifted.eng",
+        burnOut=3.9,
+        grainNumber=5,
+        grainSeparation=5 / 1000,
+        grainDensity=1815,
+        grainOuterRadius=33 / 1000,
+        grainInitialInnerRadius=15 / 1000,
+        grainInitialHeight=120 / 1000,
+        nozzleRadius=33 / 1000,
+        throatRadius=11 / 1000,
+        reshapeThrustCurve=(5, 3000),
+        interpolationMethod="linear",
+    )
+
+    thrust_reshaped = example_motor.thrust.getSource()
+    assert thrust_reshaped[1][0] == 0.155 * (5/4)
+    assert thrust_reshaped[-1][0] == 5
+
+    assert thrust_reshaped[1][1] == 100 * (3000/7539.1875)
+    assert thrust_reshaped[7][1] == 2034 * (3000/7539.1875)

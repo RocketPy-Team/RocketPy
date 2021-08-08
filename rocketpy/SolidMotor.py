@@ -295,7 +295,6 @@ class SolidMotor:
         # Retrieve current thrust curve data points
         timeArray = self.thrust.source[:, 0]
         thrustArray = self.thrust.source[:, 1]
-
         # Move start to time = 0
         if startAtZero and timeArray[0] != 0:
             timeArray = timeArray - timeArray[0]
@@ -715,7 +714,7 @@ class SolidMotor:
         )
 
         # Write thrust curve data points
-        for item in self.thrust.source[:-1, :]:
+        for item in self.thrust.source[:-1, :][1:]:
             time = item[0]
             thrust = item[1]
             file.write("{:.4f} {:.3f}\n".format(time, thrust))
