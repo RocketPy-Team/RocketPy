@@ -508,14 +508,14 @@ class SolidMotor:
         Function representing the burn area progression with the time.
         """
         self.burnArea = (
-                2
-                * np.pi
-                * (
-                        self.grainOuterRadius ** 2
-                        - self.grainInnerRadius ** 2
-                        + self.grainInnerRadius * self.grainHeight
-                )
-                * self.grainNumber
+            2
+            * np.pi
+            * (
+                self.grainOuterRadius ** 2
+                - self.grainInnerRadius ** 2
+                + self.grainInnerRadius * self.grainHeight
+            )
+            * self.grainNumber
         )
         self.burnArea.setOutputs("Burn Area (m2)")
         return self.burnArea
@@ -624,12 +624,9 @@ class SolidMotor:
         self.inertiaZ.setOutputs("Propellant Inertia Z (kg*m2)")
 
         # Inertia Z Dot
-        self.inertiaZDot = (
-            (1 / 2.0)
-            * self.massDot
-            * (self.grainOuterRadius ** 2 + self.grainInnerRadius ** 2)
-            + self.mass * self.grainInnerRadius * self.burnRate
-        )
+        self.inertiaZDot = (1 / 2.0) * self.massDot * (
+            self.grainOuterRadius ** 2 + self.grainInnerRadius ** 2
+        ) + self.mass * self.grainInnerRadius * self.burnRate
         self.inertiaZDot.setOutputs("Propellant Inertia Z Dot (kg*m2/s)")
 
         return [self.inertiaI, self.inertiaZ]

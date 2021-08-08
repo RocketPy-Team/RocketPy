@@ -27,7 +27,7 @@ def test_motor(mock_show):
 
 
 def test_initilize_motor_asserts_dynamic_values(solid_motor):
-    grain_vol = 0.12 * (np.pi * (0.033**2 - 0.015**2))
+    grain_vol = 0.12 * (np.pi * (0.033 ** 2 - 0.015 ** 2))
     grain_mass = grain_vol * 1815
 
     assert solid_motor.maxThrust == 2200.0
@@ -38,13 +38,23 @@ def test_initilize_motor_asserts_dynamic_values(solid_motor):
     assert solid_motor.grainInitialVolume == grain_vol
     assert solid_motor.grainInitialMass == grain_mass
     assert solid_motor.propellantInitialMass == 5 * grain_mass
-    assert solid_motor.exhaustVelocity == solid_motor.thrust.integral(0, 3.9) / (5 * grain_mass)
+    assert solid_motor.exhaustVelocity == solid_motor.thrust.integral(0, 3.9) / (
+        5 * grain_mass
+    )
 
 
 def test_grain_geometry_progession_asserts_extreme_values(solid_motor):
-    assert np.allclose(solid_motor.grainInnerRadius.getSource()[-1][-1], solid_motor.grainOuterRadius)
-    assert solid_motor.grainInnerRadius.getSource()[0][-1] < solid_motor.grainInnerRadius.getSource()[-1][-1]
-    assert solid_motor.grainHeight.getSource()[0][-1] > solid_motor.grainHeight.getSource()[-1][-1]
+    assert np.allclose(
+        solid_motor.grainInnerRadius.getSource()[-1][-1], solid_motor.grainOuterRadius
+    )
+    assert (
+        solid_motor.grainInnerRadius.getSource()[0][-1]
+        < solid_motor.grainInnerRadius.getSource()[-1][-1]
+    )
+    assert (
+        solid_motor.grainHeight.getSource()[0][-1]
+        > solid_motor.grainHeight.getSource()[-1][-1]
+    )
 
 
 def test_mass_curve_asserts_extreme_values(solid_motor):
@@ -56,13 +66,25 @@ def test_mass_curve_asserts_extreme_values(solid_motor):
 
 
 def test_burn_area_asserts_extreme_values(solid_motor):
-    initial_burn_area = 2 * np.pi * (
-            solid_motor.grainOuterRadius**2 - solid_motor.grainInitialInnerRadius**2 +
-            solid_motor.grainInitialInnerRadius * solid_motor.grainInitialHeight
-    ) * 5
-    final_burn_area = 2 * np.pi * (
-        solid_motor.grainInnerRadius.getSource()[-1][-1] * solid_motor.grainHeight.getSource()[-1][-1]
-    ) * 5
+    initial_burn_area = (
+        2
+        * np.pi
+        * (
+            solid_motor.grainOuterRadius ** 2
+            - solid_motor.grainInitialInnerRadius ** 2
+            + solid_motor.grainInitialInnerRadius * solid_motor.grainInitialHeight
+        )
+        * 5
+    )
+    final_burn_area = (
+        2
+        * np.pi
+        * (
+            solid_motor.grainInnerRadius.getSource()[-1][-1]
+            * solid_motor.grainHeight.getSource()[-1][-1]
+        )
+        * 5
+    )
 
     assert np.allclose(solid_motor.burnArea.getSource()[0][-1], initial_burn_area)
     assert np.allclose(solid_motor.burnArea.getSource()[-1][-1], final_burn_area)
@@ -74,8 +96,7 @@ def test_evaluate_inertia_I_asserts_extreme_values(solid_motor):
 
     grainNumber = 5
     grainInertiaI_initial = grain_mass * (
-            (1 / 4) * (0.033 ** 2 + 0.016 ** 2)
-            + (1 / 12) * 0.12 ** 2
+        (1 / 4) * (0.033 ** 2 + 0.016 ** 2) + (1 / 12) * 0.12 ** 2
     )
 
     initialValue = (grainNumber - 1) / 2
@@ -84,7 +105,9 @@ def test_evaluate_inertia_I_asserts_extreme_values(solid_motor):
 
     inertiaI_initial = grainNumber * grainInertiaI_initial + grain_mass * np.sum(d ** 2)
 
-    assert np.allclose(solid_motor.inertiaI.getSource()[0][-1], inertiaI_initial, atol=0.01)
+    assert np.allclose(
+        solid_motor.inertiaI.getSource()[0][-1], inertiaI_initial, atol=0.01
+    )
     assert np.allclose(solid_motor.inertiaI.getSource()[-1][-1], 0, atol=1e-16)
 
 
@@ -92,20 +115,21 @@ def test_evaluate_inertia_Z_asserts_extreme_values(solid_motor):
     grain_vol = 0.12 * (np.pi * (0.033 ** 2 - 0.015 ** 2))
     grain_mass = grain_vol * 1815
 
-    grainInertiaZ_initial = \
-        grain_mass \
-        * (1 / 2.0) \
-        * (0.016 ** 2 + 0.033 ** 2)
+    grainInertiaZ_initial = grain_mass * (1 / 2.0) * (0.016 ** 2 + 0.033 ** 2)
 
-    assert np.allclose(solid_motor.inertiaZ.getSource()[0][-1], grainInertiaZ_initial, atol=0.01)
+    assert np.allclose(
+        solid_motor.inertiaZ.getSource()[0][-1], grainInertiaZ_initial, atol=0.01
+    )
     assert np.allclose(solid_motor.inertiaZ.getSource()[-1][-1], 0, atol=1e-16)
 
 
 def tests_import_eng_asserts_read_values_correctly(solid_motor):
-    comments, description, dataPoints = solid_motor.importEng("tests/fixtures/motor/Cesaroni_M1670.eng")
+    comments, description, dataPoints = solid_motor.importEng(
+        "tests/fixtures/motor/Cesaroni_M1670.eng"
+    )
 
-    assert comments == [';this motor is COTS\n', ';3.9 burnTime\n']
-    assert description == ['M1670-BS', '75', '757', '0', '3.101', '5.231', 'CTI', '\n']
+    assert comments == [";this motor is COTS\n", ";3.9 burnTime\n"]
+    assert description == ["M1670-BS", "75", "757", "0", "3.101", "5.231", "CTI", "\n"]
     assert dataPoints == [
         [0, 0],
         [0.055, 100.0],
@@ -122,7 +146,7 @@ def tests_import_eng_asserts_read_values_correctly(solid_motor):
         [3.0, 1650.0],
         [3.3, 530.0],
         [3.4, 350.0],
-        [3.9, 0.0]
+        [3.9, 0.0],
     ]
 
 
@@ -130,20 +154,20 @@ def tests_export_eng_asserts_exported_values_correct(solid_motor):
     grain_vol = 0.12 * (np.pi * (0.033 ** 2 - 0.015 ** 2))
     grain_mass = grain_vol * 1815 * 5
 
-    solid_motor.exportEng(fileName='tests/solid_motor.eng', motorName='test_motor')
-    comments, description, dataPoints = solid_motor.importEng('tests/solid_motor.eng')
-    os.remove('tests/solid_motor.eng')
+    solid_motor.exportEng(fileName="tests/solid_motor.eng", motorName="test_motor")
+    comments, description, dataPoints = solid_motor.importEng("tests/solid_motor.eng")
+    os.remove("tests/solid_motor.eng")
 
     assert comments == []
     assert description == [
-        'test_motor',
-        '{:3.1f}'.format(2000 * 0.033),
-        '{:3.1f}'.format(1000 * 5 * (0.12 + 0.005)),
-        '0',
-        '{:2.3}'.format(grain_mass),
-        '{:2.3}'.format(grain_mass),
-        'PJ',
-        '\n'
+        "test_motor",
+        "{:3.1f}".format(2000 * 0.033),
+        "{:3.1f}".format(1000 * 5 * (0.12 + 0.005)),
+        "0",
+        "{:2.3}".format(grain_mass),
+        "{:2.3}".format(grain_mass),
+        "PJ",
+        "\n",
     ]
 
     assert dataPoints == [
@@ -162,7 +186,7 @@ def tests_export_eng_asserts_exported_values_correct(solid_motor):
         [3.0, 1650.0],
         [3.3, 530.0],
         [3.4, 350.0],
-        [3.9, 0.0]
+        [3.9, 0.0],
     ]
 
 
@@ -183,8 +207,8 @@ def test_reshape_thrust_curve_asserts_resultant_thrust_curve_correct():
     )
 
     thrust_reshaped = example_motor.thrust.getSource()
-    assert thrust_reshaped[1][0] == 0.155 * (5/4)
+    assert thrust_reshaped[1][0] == 0.155 * (5 / 4)
     assert thrust_reshaped[-1][0] == 5
 
-    assert thrust_reshaped[1][1] == 100 * (3000/7539.1875)
-    assert thrust_reshaped[7][1] == 2034 * (3000/7539.1875)
+    assert thrust_reshaped[1][1] == 100 * (3000 / 7539.1875)
+    assert thrust_reshaped[7][1] == 2034 * (3000 / 7539.1875)
