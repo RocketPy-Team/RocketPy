@@ -228,7 +228,6 @@ class SolidMotor:
         self.grainInitialInnerRadius = grainInitialInnerRadius
         self.grainInitialHeight = grainInitialHeight
         # Other quantities that will be computed
-        self.exhaustVelocity = None
         self.massDot = None
         self.mass = None
         self.grainInnerRadius = None
@@ -259,7 +258,6 @@ class SolidMotor:
         self.grainInitialMass = self.grainDensity * self.grainInitialVolume
         self.propellantInitialMass = self.grainNumber * self.grainInitialMass
         # Dynamic quantities
-        self.evaluateExhaustVelocity()
         self.evaluateMassDot()
         self.evaluateMass()
         self.evaluateGeometry()
@@ -339,7 +337,8 @@ class SolidMotor:
         # Return total impulse
         return self.totalImpulse
 
-    def evaluateExhaustVelocity(self):
+    @property
+    def exhaustVelocity(self):
         """Calculates and returns exhaust velocity by assuming it
         as a constant. The formula used is total impulse/propellant
         initial mass. The value is also stored in
@@ -354,15 +353,7 @@ class SolidMotor:
         self.exhaustVelocity : float
             Constant gas exhaust velocity of the motor.
         """
-        # Calculate total impulse if not yet done so
-        if self.totalImpulse is None:
-            self.evaluateTotalImpulse()
-
-        # Calculate exhaust velocity
-        self.exhaustVelocity = self.totalImpulse / self.propellantInitialMass
-
-        # Return exhaust velocity
-        return self.exhaustVelocity
+        return self.totalImpulse / self.propellantInitialMass
 
     def evaluateMassDot(self):
         """Calculates and returns the time derivative of propellant
@@ -381,10 +372,6 @@ class SolidMotor:
             Time derivative of total propellant mas as a function
             of time.
         """
-        # Calculate exhaust velocity if not done so already
-        if self.exhaustVelocity is None:
-            self.evaluateExhaustVelocity()
-
         # Create mass dot Function
         self.massDot = self.thrust / (-self.exhaustVelocity)
         self.massDot.setOutputs("Mass Dot (kg/s)")
@@ -508,6 +495,19 @@ class SolidMotor:
         return [self.grainInnerRadius, self.grainHeight]
 
     def evaluateBurnArea(self):
+        """Calculates the BurnArea of the grain for
+        each time. Assuming that the grains are cylindrical
+        BATES grains.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        burnArea : Function
+        Function representing the burn area progression with the time.
+        """
         self.burnArea = (
                 2
                 * np.pi
@@ -522,6 +522,19 @@ class SolidMotor:
         return self.burnArea
 
     def evaluateBurnRate(self):
+        """Calculates the BurnRate with respect to time.
+        This evaluation assumes that it was already
+        calculated the massDot, burnArea timeseries.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        burnRate : Function
+        Rate of progression of the inner radius during the combustion.
+        """
         self.burnRate = (-1) * self.massDot / (self.burnArea * self.grainDensity)
         self.burnRate.setOutputs("Burn Rate (m/s)")
         return self.burnRate

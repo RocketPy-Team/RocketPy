@@ -25,7 +25,7 @@ def test_motor(mock_show):
     assert example_motor.allInfo() == None
 
 
-def test_initilize_motor_correctly(solid_motor):
+def test_initilize_motor_asserts_dynamic_values(solid_motor):
     grain_vol = 0.12 * (np.pi * (0.033**2 - 0.015**2))
     grain_mass = grain_vol * 1815
 
@@ -40,7 +40,28 @@ def test_initilize_motor_correctly(solid_motor):
     assert solid_motor.exhaustVelocity == solid_motor.thrust.integral(0, 3.9) / (5 * grain_mass)
 
 
-def test_grain_geometry_progession(solid_motor):
+def test_grain_geometry_progession_asserts_extreme_values(solid_motor):
     assert np.allclose(solid_motor.grainInnerRadius.getSource()[-1][-1], solid_motor.grainOuterRadius)
     assert solid_motor.grainInnerRadius.getSource()[0][-1] < solid_motor.grainInnerRadius.getSource()[-1][-1]
     assert solid_motor.grainHeight.getSource()[0][-1] > solid_motor.grainHeight.getSource()[-1][-1]
+
+
+def test_mass_curve_asserts_extreme_values(solid_motor):
+    grain_vol = 0.12 * (np.pi * (0.033 ** 2 - 0.015 ** 2))
+    grain_mass = grain_vol * 1815
+
+    assert np.allclose(solid_motor.mass.getSource()[-1][-1], 0)
+    assert np.allclose(solid_motor.mass.getSource()[0][-1], 5 * grain_mass)
+
+
+def test_burn_area_asserts_extreme_values(solid_motor):
+    initial_burn_area = 2 * np.pi * (
+            solid_motor.grainOuterRadius**2 - solid_motor.grainInitialInnerRadius**2 +
+            solid_motor.grainInitialInnerRadius * solid_motor.grainInitialHeight
+    ) * 5
+    final_burn_area = 2 * np.pi * (
+        solid_motor.grainInnerRadius.getSource()[-1][-1] * solid_motor.grainHeight.getSource()[-1][-1]
+    ) * 5
+
+    assert np.allclose(solid_motor.burnArea.getSource()[0][-1], initial_burn_area)
+    assert np.allclose(solid_motor.burnArea.getSource()[-1][-1], final_burn_area)
