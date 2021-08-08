@@ -626,8 +626,9 @@ class SolidMotor:
 
         # Inertia Z Dot
         self.inertiaZDot = (
-            (1 / 2.0) * (self.massDot * self.grainOuterRadius ** 2)
-            + (1 / 2.0) * (self.massDot * self.grainInnerRadius ** 2)
+            (1 / 2.0)
+            * self.massDot
+            * (self.grainOuterRadius ** 2 + self.grainInnerRadius ** 2)
             + self.mass * self.grainInnerRadius * self.burnRate
         )
         self.inertiaZDot.setOutputs("Propellant Inertia Z Dot (kg*m2/s)")
