@@ -7,6 +7,9 @@ tests:
 coverage: 
 	python -m pytest --cov=rocketpy tests -vv
 
+coverage-report:
+	python -m pytest --cov=rocketpy tests -vv --cov-report html
+
 install: 
 	python -m pip install --upgrade pip
 	pip install -r requirements.txt
