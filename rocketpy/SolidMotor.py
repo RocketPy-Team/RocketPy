@@ -238,7 +238,7 @@ class SolidMotor:
         self.inertiaI = None
         self.inertiaIDot = None
         self.inertiaZ = None
-        self.inertiaDot = None
+        self.inertiaZDot = None
         self.maxThrust = None
         self.maxThrustTime = None
         self.averageThrust = None
@@ -611,7 +611,7 @@ class SolidMotor:
         )
 
         # Calculate inertia I dot for all grains
-        self.inertiaIDot = grainNumber * (grainInertiaIDot) + grainMassDot * np.sum(
+        self.inertiaIDot = grainNumber * grainInertiaIDot + grainMassDot * np.sum(
             d ** 2
         )
         self.inertiaIDot.setOutputs("Propellant Inertia I Dot (kg*m2/s)")
