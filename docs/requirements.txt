@@ -1,7 +1,6 @@
 nbsphinx
 pydata-sphinx-theme==0.6.3
 m2r2
-sphinx-rtd-theme
 numpy>=1.0
 scipy>=1.0
 matplotlib>=3.0
