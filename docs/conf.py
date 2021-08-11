@@ -49,6 +49,7 @@ templates_path = ['_templates']
 
 napoleon_numpy_docstring = True
 autodoc_member_order = 'bysource'
+autoclass_content = 'both'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
