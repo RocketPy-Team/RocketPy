@@ -7,33 +7,77 @@
 # RocketPy
 RocketPy is a trajectory simulation for High-Power Rocketry built by [Projeto Jupiter](https://www.facebook.com/ProjetoJupiter/). The code is written as a [Python](http://www.python.org) library and allows for a complete 6 degrees of freedom simulation of a rocket's flight trajectory, including high fidelity variable mass effects as well as descent under parachutes. Weather conditions, such as wind profile, can be imported from sophisticated datasets, allowing for realistic scenarios. Furthermore, the implementation facilitates complex simulations, such as multi-stage rockets, design and trajectory optimization and dispersion analysis.
 
-## Main features
+### Main features
 
-- Nonlinear 6 degrees of freedom simulations
-  - Solved using LSODA with adjustable error tolerances
-  - Highly optimized to run fast
-- Rigorous treatment of mass variation effects
-- Aerodynamic models:
-  - Barrowman equations for lift coefficients (optional)
-  - Drag coefficients can be easily imported from other sources (e.g. CFD simulations)
-- Parachutes with external trigger functions
-  - Test the exact code that will fly
-  - Sensor data can be augmented with noise
-- Solid motors models:
-  - Burn rate and mass variation properties from thrust curve
-- Accurate weather modeling
-  - International Standard Atmosphere (1976)
-  - Custom atmospheric profiles
-  - Soundings (Wyoming, NOAARuc)
-  - Weather forecasts and reanalysis
-  - Weather ensembles
-- Monte Carlo simulations for dispersion and sensitivity analysis
-- Flexible and modular
-  - Straightforward engineering analysis (e.g. apogee and lifting off speed as a function of mass)
-  - Non-standard flights (e.g. parachute drop test from helicopter)
-  - Multi-stage rockets
-  - Custom continuous and discrete control laws
-  - Create new classes (e.g. other types of motors)
+<details>
+<summary>Nonlinear 6 degrees of freedom simulations</summary>
+<ul>
+  <li>Rigorous treatment of mass variation effects</li>
+  <li>Solved using LSODA with adjustable error tolerances</li>
+  <li>Highly optimized to run fast</li>
+</ul>
+</details>
+
+<details>
+<summary>Accurate weather modeling</summary>
+<ul>
+  <li>International Standard Atmosphere (1976)</li>
+  <li>Custom atmospheric profiles</li>
+  <li>Soundings (Wyoming, NOAARuc)</li>
+  <li>Weather forecasts and reanalysis</li>
+  <li>Weather ensembles</li>
+</ul>
+</details>
+
+<details>
+<summary>Aerodynamic models</summary>
+<ul>
+  <li>Barrowman equations for lift coefficients (optional)</li>
+  <li>Drag coefficients can be easily imported from other sources (e.g. CFD simulations)</li>
+</ul>
+</details>
+
+<details>
+<summary>Parachutes with external trigger functions</summary>
+<ul>
+  <li>Test the exact code that will fly</li>
+  <li>Sensor data can be augmented with noise</li>
+</ul>
+</details>
+
+<details>
+<summary>Solid motors models</summary>
+<ul>
+  <li>Burn rate and mass variation properties from thrust curve</li>
+  <li>CSV and ENG file support</li>
+</ul>
+</details>
+
+<details>
+<summary>Monte Carlo simulations</summary>
+<ul>
+  <li>Dispersion analysis</li>
+  <li>Global sensitivity analysis</li>
+</ul>
+</details>
+
+<details>
+<summary>Flexible and modular</summary>
+<ul>
+  <li>Straightforward engineering analysis (e.g. apogee and lifting off speed as a function of mass)</li>
+  <li>Non-standard flights (e.g. parachute drop test from helicopter)</li>
+  <li>Multi-stage rockets</li>
+  <li>Custom continuous and discrete control laws</li>
+  <li>Create new classes (e.g. other types of motors)</li>
+</ul>
+</details>
+
+### Documentation
+
+Check out documentation details using the links below:
+  - [User Guide](https://rocketpyalpha.readthedocs.io/en/latest/user/index.html)
+  - [Code Documentation](https://rocketpyalpha.readthedocs.io/en/latest/reference/index.html)
+  - [Development Guide](https://rocketpyalpha.readthedocs.io/en/latest/development/index.html)
 
 ## Join Our Community!
 RocketPy is growing fast! Many unviersity groups and rocket hobbyist have already started using it. The number of stars and forks for this repository is skyrocketing. And this is all thanks to a great community of users, engineers, developers, marketing specialists, and everyone interested in helping.
