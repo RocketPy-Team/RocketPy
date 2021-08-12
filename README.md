@@ -175,7 +175,7 @@ In order to run your first rocket trajectory simulation using RocketPy, you can 
 Otherwise, you may want to create your own script or your own notebook using RocketPy. To do this, let's see how to use RocketPy's four main classes:
 
 - Environment - Keeps data related to weather.
-- SolidMotor - Keeps data related to solid motors. Hybrid motor suport is coming in the next weeks.
+- SolidMotor - Keeps data related to solid motors. Hybrid motor support is coming in the next weeks.
 - Rocket - Keeps data related to a rocket.
 - Flight - Runs the simulation and keeps the results.
 
@@ -320,10 +320,9 @@ Please read [CONTRIBUTING.md](https://github.com/giovaniceotto/RocketPy/blob/mas
 
 ## Authors
 
-* **Giovani Hidalgo Ceotto**
-* **Rodrigo Nascente Schmitt**
+* Creator: **Giovani Hidalgo Ceotto**
 
-See also the list of [contributors](https://github.com/giovaniceotto/RocketPy/contributors) who participated in this project.
+See the list of [contributors](https://github.com/giovaniceotto/RocketPy/contributors) who are actively working on RocketPy.
 
 ## License
 
