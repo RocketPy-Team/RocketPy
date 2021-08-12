@@ -1,5 +1,5 @@
-Code Documentation
-==================
+Welcome to RocketPy's code documentation!
+=========================================
 
 RocketPy's code is fairly well documented. The code is structured into 5 main classes:
 
@@ -10,7 +10,7 @@ RocketPy's code is fairly well documented. The code is structured into 5 main cl
  - Flight: the class that takes the rocket and the environment and actually perform the flight simulation, post-processing the results.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
 
    classes/Function
