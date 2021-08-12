@@ -5,7 +5,7 @@ Welcome to RocketPy's user documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   notebooks/getting_started.ipynb
-   notebooks/environment_class_usage.ipynb
-   notebooks/dispersion_analysis/dispersion_analysis.ipynb
+   ../notebooks/getting_started.ipynb
+   ../notebooks/environment_class_usage.ipynb
+   ../notebooks/dispersion_analysis/dispersion_analysis.ipynb
 
