@@ -212,6 +212,7 @@ class Rocket:
         -------
         None
         """
+        raise ValueError
         # Define rocket inertia attributes in SI units
         self.mass = mass
         self.inertiaI = inertiaI
