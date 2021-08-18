@@ -32,8 +32,8 @@ master_doc = 'index'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx_rtd_theme',
     'sphinx.ext.napoleon',
+    'sphinx.ext.viewcode',
     'nbsphinx',
     'm2r2',
 ]
@@ -49,6 +49,7 @@ templates_path = ['_templates']
 
 napoleon_numpy_docstring = True
 autodoc_member_order = 'bysource'
+autoclass_content = 'both'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -66,21 +67,14 @@ html_theme = 'pydata_sphinx_theme'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = ['static']
 html_logo = "static/RocketPy_Logo_Black.svg"
+html_favicon = 'static/favicon.ico'
 html_theme_options = {
-    "icon_links": [
-        {
-            "name": "GitHub",
-            "url": "https://github.com/Projeto-Jupiter/RocketPy",
-            "icon": "fab fa-github-square",
-        },
-        {
-            "name": "LinkedIn",
-            "url": "https://www.linkedin.com/company/rocketpy/",
-            "icon": "fab fa-linkedin",
-        },
-    ],
+  "logo_link": "index",
+  "github_url": "https://github.com/Projeto-Jupiter/RocketPy",
+  "collapse_navigation": True,
+  "show_toc_level": 3,
 }
 
 html_sidebars = {
@@ -90,3 +84,9 @@ html_theme_options = {
     "navbar_end": ["navbar-icon-links.html", "search-field.html"]
 }
 
+html_use_modindex = True
+html_copy_source = False
+html_domain_indices = False
+html_file_suffix = '.html'
+
+htmlhelp_basename = 'rocketpy'

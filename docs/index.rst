@@ -3,18 +3,13 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to RocketPy's documentation!
-====================================
-
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :hidden:
 
-   notebooks/getting_started.ipynb
-   notebooks/environment_class_usage.ipynb
-   notebooks/dispersion_analysis/dispersion_analysis.ipynb
-   classes
-
+   User Guide <user/index>
+   Code Reference <reference/index>
+   Development <development/index>
 
 .. _`Projeto Jupiter`: https://www.facebook.com/ProjetoJupiter/
 
