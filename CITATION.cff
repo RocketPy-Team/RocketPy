@@ -1,0 +1,32 @@
+cff-version: 1.2.0
+message: "If you use RocketPy, please cite it as below."
+authors:
+- family-names: "Ceotto"
+  given-names: "Giovani H."
+  orcid: "https://orcid.org/0000-0002-1614-3028"
+title: "RocketPy: Six Degree-of-Freedom Rocket Trajectory Simulator"
+doi: "10.1061/(ASCE)AS.1943-5525.0001331"
+date-released: 2021-08-20
+url: "https://github.com/github/linguist"
+preferred-citation:
+  type: article
+  authors:
+  - family-names: "Ceotto"
+    given-names: "Giovani H."
+    orcid: "https://orcid.org/0000-0002-1614-3028"
+  - family-names: "Schimitt"
+    given-names: "Rodrigo N."
+  - family-names: "Alves"
+    given-names: "Guilherme F."
+  - family-names: "Pezente"
+    given-names: "Lucas A."
+  - family-names: "Carmo"
+    given-names: "Bruno S."
+    orcid: "https://orcid.org/0000-0002-2486-7026"
+  doi: "10.1061/(ASCE)AS.1943-5525.0001331"
+  journal: "Journal of Aerospace Engineering"
+  month: 8
+  title: "RocketPy: Six Degree-of-Freedom Rocket Trajectory Simulator"
+  issue: 6
+  volume: 34
+  year: 2021
