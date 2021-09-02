@@ -142,7 +142,7 @@ $ pip install jupyter
 To get a copy of RocketPy using pip, just run:
 
 ```
-$ pip install rocketpyalpha
+$ pip install rocketpy
 ```
 
 Alternatively, the package can also be installed using conda:
