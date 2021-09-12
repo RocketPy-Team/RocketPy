@@ -169,6 +169,9 @@ $ python setup.py install
 
 You can find RocketPy's documentation at [Read the Docs](https://rocketpyalpha.readthedocs.io/en/latest/).
 
+## Class diagram
+![Diagram](docs\static\Fluxogram-Page-2.svg)
+
 ### Running Your First Simulation
 
 In order to run your first rocket trajectory simulation using RocketPy, you can start a Jupyter Notebook and navigate to the **_nbks_** folder. Open **_Getting Started - Examples.ipynb_** and you are ready to go.
