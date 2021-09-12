@@ -16,4 +16,3 @@ deploy:
   password: $PYPI_SECRET
   on:
     all_branches: true
-
