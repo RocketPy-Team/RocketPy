@@ -84,7 +84,6 @@ RocketPy is growing fast! Many unviersity groups and rocket hobbyist have alread
 
 If you want to be a part of this and make RocketPy your own, join our [Discord](https://discord.gg/b6xYnNh) server today!
 
-
 ## Previewing
 
 You can preview RocketPy's main functionalities by browsing through a sample notebook either in [Google Colab](https://colab.research.google.com/github/giovaniceotto/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb) or in [MyBinder](https://mybinder.org/v2/gh/giovaniceotto/RocketPy/master?filepath=docs%2Fnotebooks%2Fgetting_started.ipynb)!
@@ -170,7 +169,7 @@ $ python setup.py install
 You can find RocketPy's documentation at [Read the Docs](https://rocketpyalpha.readthedocs.io/en/latest/).
 
 ## Class diagram
-![Diagram](docs\static\Fluxogram-Page-2.svg)
+![Diagram](https://github.com/Projeto-Jupiter/RocketPy/tree/master/docs/static/Fluxogram-Page-2.svg)
 
 ### Running Your First Simulation
 
