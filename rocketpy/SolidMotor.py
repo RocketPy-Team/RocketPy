@@ -700,7 +700,7 @@ class SolidMotor:
         # Write first line
         file.write(
             motorName
-            + " {:3.1f} {:3.1f} 0 {:2.3} {:2.3} PJ \n".format(
+            + " {:3.1f} {:3.1f} 0 {:2.3} {:2.3} RocketPy \n".format(
                 2000 * self.grainOuterRadius,
                 1000
                 * self.grainNumber
@@ -711,9 +711,8 @@ class SolidMotor:
         )
 
         # Write thrust curve data points
-        for item in self.thrust.source[:-1, :][1:]:
-            time = item[0]
-            thrust = item[1]
+        for time, thrust in self.thrust.source[1:, :]:
+            # time, thrust = item
             file.write("{:.4f} {:.3f}\n".format(time, thrust))
 
         # Write last line
