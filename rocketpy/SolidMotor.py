@@ -668,7 +668,7 @@ class SolidMotor:
                 else:
                     if description == []:
                         # Extract description
-                        description = line.split(" ")
+                        description = line.strip().split(" ")
                     else:
                         # Extract thrust curve data points
                         time, thrust = re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", line)
@@ -711,7 +711,7 @@ class SolidMotor:
         )
 
         # Write thrust curve data points
-        for time, thrust in self.thrust.source[1:, :]:
+        for time, thrust in self.thrust.source[1:-1, :]:
             # time, thrust = item
             file.write("{:.4f} {:.3f}\n".format(time, thrust))
 

@@ -137,7 +137,7 @@ def tests_import_eng_asserts_read_values_correctly(solid_motor):
     )
 
     assert comments == [";this motor is COTS\n", ";3.9 burnTime\n"]
-    assert description == ["M1670-BS", "75", "757", "0", "3.101", "5.231", "CTI", "\n"]
+    assert description == ["M1670-BS", "75", "757", "0", "3.101", "5.231", "CTI"]
     assert dataPoints == [
         [0, 0],
         [0.055, 100.0],
@@ -174,8 +174,7 @@ def tests_export_eng_asserts_exported_values_correct(solid_motor):
         "0",
         "{:2.3}".format(grain_mass),
         "{:2.3}".format(grain_mass),
-        "RocketPy",
-        "\n",
+        "RocketPy"
     ]
 
     assert dataPoints == [
