@@ -9,3 +9,10 @@ before_script:
   - make verify-lint
 script:
   - make test
+
+deploy:
+  provider: pypi
+  username: PYPI_USERNAME
+  password: PYPI_SECRET
+  on:
+    branch: master
