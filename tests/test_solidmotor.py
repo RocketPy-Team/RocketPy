@@ -174,7 +174,7 @@ def tests_export_eng_asserts_exported_values_correct(solid_motor):
         "0",
         "{:2.3}".format(grain_mass),
         "{:2.3}".format(grain_mass),
-        "PJ",
+        "RocketPy",
         "\n",
     ]
 

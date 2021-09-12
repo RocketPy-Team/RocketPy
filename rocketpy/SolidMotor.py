@@ -700,7 +700,7 @@ class SolidMotor:
         # Write first line
         file.write(
             motorName
-            + " {:3.1f} {:3.1f} 0 {:2.3} {:2.3} RocketPy \n".format(
+            + " {:3.1f} {:3.1f} 0 {:2.3} {:2.3} RocketPy\n".format(
                 2000 * self.grainOuterRadius,
                 1000
                 * self.grainNumber
