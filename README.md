@@ -169,7 +169,7 @@ $ python setup.py install
 You can find RocketPy's documentation at [Read the Docs](https://rocketpyalpha.readthedocs.io/en/latest/).
 
 ## Class diagram
-![Diagram](https://github.com/Projeto-Jupiter/RocketPy/tree/master/docs/static/Fluxogram-Page-2.svg)
+![Diagram](docs/static/Fluxogram-Page-2.svg)
 
 ### Running Your First Simulation
 
