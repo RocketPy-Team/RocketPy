@@ -84,8 +84,6 @@ RocketPy is growing fast! Many unviersity groups and rocket hobbyist have alread
 
 If you want to be a part of this and make RocketPy your own, join our [Discord](https://discord.gg/b6xYnNh) server today!
 
-## Class diagram
-![diagram](https://github.com/Projeto-Jupiter/RocketPy/tree/master/docs/static/Fluxogram-Page-2.svg)
 
 ## Previewing
 
