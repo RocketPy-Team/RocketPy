@@ -228,7 +228,6 @@ class SolidMotor:
         self.grainInitialInnerRadius = grainInitialInnerRadius
         self.grainInitialHeight = grainInitialHeight
         # Other quantities that will be computed
-        self.exhaustVelocity = None
         self.massDot = None
         self.mass = None
         self.grainInnerRadius = None
@@ -239,7 +238,7 @@ class SolidMotor:
         self.inertiaI = None
         self.inertiaIDot = None
         self.inertiaZ = None
-        self.inertiaDot = None
+        self.inertiaZDot = None
         self.maxThrust = None
         self.maxThrustTime = None
         self.averageThrust = None
@@ -259,7 +258,6 @@ class SolidMotor:
         self.grainInitialMass = self.grainDensity * self.grainInitialVolume
         self.propellantInitialMass = self.grainNumber * self.grainInitialMass
         # Dynamic quantities
-        self.evaluateExhaustVelocity()
         self.evaluateMassDot()
         self.evaluateMass()
         self.evaluateGeometry()
@@ -297,7 +295,6 @@ class SolidMotor:
         # Retrieve current thrust curve data points
         timeArray = self.thrust.source[:, 0]
         thrustArray = self.thrust.source[:, 1]
-
         # Move start to time = 0
         if startAtZero and timeArray[0] != 0:
             timeArray = timeArray - timeArray[0]
@@ -339,7 +336,8 @@ class SolidMotor:
         # Return total impulse
         return self.totalImpulse
 
-    def evaluateExhaustVelocity(self):
+    @property
+    def exhaustVelocity(self):
         """Calculates and returns exhaust velocity by assuming it
         as a constant. The formula used is total impulse/propellant
         initial mass. The value is also stored in
@@ -354,15 +352,7 @@ class SolidMotor:
         self.exhaustVelocity : float
             Constant gas exhaust velocity of the motor.
         """
-        # Calculate total impulse if not yet done so
-        if self.totalImpulse is None:
-            self.evaluateTotalImpulse()
-
-        # Calculate exhaust velocity
-        self.exhaustVelocity = self.totalImpulse / self.propellantInitialMass
-
-        # Return exhaust velocity
-        return self.exhaustVelocity
+        return self.totalImpulse / self.propellantInitialMass
 
     def evaluateMassDot(self):
         """Calculates and returns the time derivative of propellant
@@ -381,10 +371,6 @@ class SolidMotor:
             Time derivative of total propellant mas as a function
             of time.
         """
-        # Calculate exhaust velocity if not done so already
-        if self.exhaustVelocity is None:
-            self.evaluateExhaustVelocity()
-
         # Create mass dot Function
         self.massDot = self.thrust / (-self.exhaustVelocity)
         self.massDot.setOutputs("Mass Dot (kg/s)")
@@ -435,6 +421,10 @@ class SolidMotor:
         # Return Mass Function
         return self.mass
 
+    @property
+    def throatArea(self):
+        return np.pi * self.throatRadius ** 2
+
     def evaluateGeometry(self):
         """Calculates grain inner radius and grain height as a
         function of time by assuming that every propellant mass
@@ -464,10 +454,10 @@ class SolidMotor:
         # Define time mesh
         t = self.massDot.source[:, 0]
 
-        # Define system of differential equations
         density = self.grainDensity
         rO = self.grainOuterRadius
 
+        # Define system of differential equations
         def geometryDot(y, t):
             grainMassDot = self.massDot(t) / self.grainNumber
             rI, h = y
@@ -497,7 +487,26 @@ class SolidMotor:
         )
 
         # Create functions describing burn rate, Kn and burn area
-        # Burn Area
+        self.evaluateBurnArea()
+        self.evaluateKn()
+        self.evaluateBurnRate()
+
+        return [self.grainInnerRadius, self.grainHeight]
+
+    def evaluateBurnArea(self):
+        """Calculates the BurnArea of the grain for
+        each time. Assuming that the grains are cylindrical
+        BATES grains.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        burnArea : Function
+        Function representing the burn area progression with the time.
+        """
         self.burnArea = (
             2
             * np.pi
@@ -509,13 +518,32 @@ class SolidMotor:
             * self.grainNumber
         )
         self.burnArea.setOutputs("Burn Area (m2)")
-        # Kn
-        throatArea = np.pi * (self.throatRadius) ** 2
+        return self.burnArea
+
+    def evaluateBurnRate(self):
+        """Calculates the BurnRate with respect to time.
+        This evaluation assumes that it was already
+        calculated the massDot, burnArea timeseries.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        burnRate : Function
+        Rate of progression of the inner radius during the combustion.
+        """
+        self.burnRate = (-1) * self.massDot / (self.burnArea * self.grainDensity)
+        self.burnRate.setOutputs("Burn Rate (m/s)")
+        return self.burnRate
+
+    def evaluateKn(self):
         KnSource = (
             np.concatenate(
                 (
                     [self.grainInnerRadius.source[:, 1]],
-                    [self.burnArea.source[:, 1] / throatArea],
+                    [self.burnArea.source[:, 1] / self.throatArea],
                 )
             ).transpose()
         ).tolist()
@@ -526,11 +554,7 @@ class SolidMotor:
             self.interpolate,
             "constant",
         )
-        # Burn Rate
-        self.burnRate = (-1) * self.massDot / (self.burnArea * self.grainDensity)
-        self.burnRate.setOutputs("Burn Rate (m/s)")
-
-        return [self.grainInnerRadius, self.grainHeight]
+        return self.Kn
 
     def evaluateInertia(self):
         """Calculates propellant inertia I, relative to directions
@@ -565,11 +589,11 @@ class SolidMotor:
 
         # Calculate each grain's distance d to propellant center of mass
         initialValue = (grainNumber - 1) / 2
-        d = np.linspace(-initialValue, initialValue, self.grainNumber)
+        d = np.linspace(-initialValue, initialValue, grainNumber)
         d = d * (self.grainInitialHeight + self.grainSeparation)
 
         # Calculate inertia for all grains
-        self.inertiaI = grainNumber * (grainInertiaI) + grainMass * np.sum(d ** 2)
+        self.inertiaI = grainNumber * grainInertiaI + grainMass * np.sum(d ** 2)
         self.inertiaI.setOutputs("Propellant Inertia I (kg*m2)")
 
         # Inertia I Dot
@@ -586,7 +610,7 @@ class SolidMotor:
         )
 
         # Calculate inertia I dot for all grains
-        self.inertiaIDot = grainNumber * (grainInertiaIDot) + grainMassDot * np.sum(
+        self.inertiaIDot = grainNumber * grainInertiaIDot + grainMassDot * np.sum(
             d ** 2
         )
         self.inertiaIDot.setOutputs("Propellant Inertia I Dot (kg*m2/s)")
@@ -600,11 +624,9 @@ class SolidMotor:
         self.inertiaZ.setOutputs("Propellant Inertia Z (kg*m2)")
 
         # Inertia Z Dot
-        self.inertiaZDot = (
-            (1 / 2.0) * (self.massDot * self.grainOuterRadius ** 2)
-            + (1 / 2.0) * (self.massDot * self.grainInnerRadius ** 2)
-            + self.mass * self.grainInnerRadius * self.burnRate
-        )
+        self.inertiaZDot = (1 / 2.0) * self.massDot * (
+            self.grainOuterRadius ** 2 + self.grainInnerRadius ** 2
+        ) + self.mass * self.grainInnerRadius * self.burnRate
         self.inertiaZDot.setOutputs("Propellant Inertia Z Dot (kg*m2/s)")
 
         return [self.inertiaI, self.inertiaZ]
@@ -646,7 +668,7 @@ class SolidMotor:
                 else:
                     if description == []:
                         # Extract description
-                        description = line.split(" ")
+                        description = line.strip().split(" ")
                     else:
                         # Extract thrust curve data points
                         time, thrust = re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", line)
@@ -678,7 +700,7 @@ class SolidMotor:
         # Write first line
         file.write(
             motorName
-            + " {:3.1f} {:3.1f} 0 {:2.3} {:2.3} PJ \n".format(
+            + " {:3.1f} {:3.1f} 0 {:2.3} {:2.3} RocketPy\n".format(
                 2000 * self.grainOuterRadius,
                 1000
                 * self.grainNumber
@@ -689,9 +711,8 @@ class SolidMotor:
         )
 
         # Write thrust curve data points
-        for item in self.thrust.source[:-1, :]:
-            time = item[0]
-            thrust = item[1]
+        for time, thrust in self.thrust.source[1:-1, :]:
+            # time, thrust = item
             file.write("{:.4f} {:.3f}\n".format(time, thrust))
 
         # Write last line

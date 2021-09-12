@@ -1,11 +1,14 @@
 test:
-	pytest tests -vv
+	python -m pytest tests -vv
 
 tests: 
 	test
 
 coverage: 
-	pytest --cov=rocketpy tests -vv
+	python -m pytest --cov=rocketpy tests -vv
+
+coverage-report:
+	python -m pytest --cov=rocketpy tests -vv --cov-report html
 
 install: 
 	python -m pip install --upgrade pip
