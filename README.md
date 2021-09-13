@@ -168,9 +168,6 @@ $ python setup.py install
 
 You can find RocketPy's documentation at [Read the Docs](https://rocketpyalpha.readthedocs.io/en/latest/).
 
-## Class diagram
-![Diagram](docs/static/Fluxogram-Page-2.svg)
-
 ### Running Your First Simulation
 
 In order to run your first rocket trajectory simulation using RocketPy, you can start a Jupyter Notebook and navigate to the **_nbks_** folder. Open **_Getting Started - Examples.ipynb_** and you are ready to go.
@@ -181,6 +178,9 @@ Otherwise, you may want to create your own script or your own notebook using Roc
 - SolidMotor - Keeps data related to solid motors. Hybrid motor support is coming in the next weeks.
 - Rocket - Keeps data related to a rocket.
 - Flight - Runs the simulation and keeps the results.
+
+The following image shows how the four main classes interact with each other:: 
+![Diagram](docs/static/Fluxogram-Page-2.svg)
 
 A typical workflow starts with importing these classes from RocketPy:
 
