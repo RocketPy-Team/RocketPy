@@ -12,7 +12,7 @@ script:
 
 deploy:
   provider: pypi
-  username: ""
+  username: " "
   password: ""
   on:
     all_branches: true
