@@ -1,7 +1,7 @@
-# EPFL ROCKET TEAM - PROJETO JUPITER collaboration, started on 2020 September.
-# Thanks to **Antoine Scardigli** for all helps during these analysis!
-# *Brazil - Switzerland*
+# Bella Lui Kaltbrunn Mission from ERT (EPFL Rocket Team)
+# Permission to use flight data given by Antoine Scardigli, 2020
 
+# Importing libraries
 from rocketpy import Environment, SolidMotor, Rocket, Flight, Function
 import numpy as np
 import matplotlib.pyplot as plt
@@ -112,13 +112,12 @@ Tail = BellaLui.addTail(
     distanceToCM=parameters.get("tailDistanceToCM")[0],
 )
 
-
+# Parachute set-up
 def drogueTrigger(p, y):
     # p = pressure
     # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
     # activate drogue when vz < 0 m/s.
     return True if y[5] < 0 else False
-
 
 Drogue = BellaLui.addParachute(
     "Drogue",

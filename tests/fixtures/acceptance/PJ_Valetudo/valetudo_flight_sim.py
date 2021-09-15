@@ -1,3 +1,8 @@
+# Valetudo Flight from Projeto Jupiter
+# Launched at LASC 2019
+# Permission to use flight data given by Projeto Jupiter, 2020
+
+# Importing libraries
 from rocketpy import Environment, SolidMotor, Rocket, Flight, Function
 from scipy.signal import savgol_filter
 import numpy as np
@@ -59,16 +64,13 @@ Env = Environment(
     latitude=-23.363611,
     longitude=-48.011389,
 )
-
 Env.setElevation(668)
 Env.maxExpectedHeight = 1500
-
 Env.setAtmosphericModel(
     type="Reanalysis",
     file="tests/fixtures/acceptance/PJ_Valetudo/valetudo_weather_data_ERA5.nc",
     dictionary="ECMWF",
 )
-
 Env.railLength = analysis_parameters.get("railLength")[0]
 
 # Create motor
@@ -102,12 +104,8 @@ Valetudo = Rocket(
     powerOffDrag="tests/fixtures/acceptance/PJ_Valetudo/valetudo_drag_power_off.csv",
     powerOnDrag="tests/fixtures/acceptance/PJ_Valetudo/valetudo_drag_power_on.csv",
 )
-# powerOffDrag='cd_openRocket.csv',
-# powerOnDrag='cd_openRocket.csv')
-
 Valetudo.powerOffDrag *= analysis_parameters.get("powerOffDrag")[0]
 Valetudo.powerOnDrag *= analysis_parameters.get("powerOnDrag")[0]
-
 NoseCone = Valetudo.addNose(
     length=analysis_parameters.get("noseLength")[0],
     kind="vonKarman",
@@ -120,15 +118,12 @@ FinSet = Valetudo.addFins(
     span=analysis_parameters.get("finSpan")[0],
     distanceToCM=analysis_parameters.get("finDistanceToCM")[0],
 )
-
 Valetudo.setRailButtons([0.224, -0.93], 30)
 
 # Set up parachutes
 sisRecDrogue = SisRec.SisRecSt(0.8998194205245451, 0.2)
 def drogueTrigger(p, y):
     return True if sisRecDrogue.update(p/100000) == 2 else False
-
-# Add parachute
 Drogue = Valetudo.addParachute(
     'Drogue',
     CdS=analysis_parameters['CdSDrogue'][0],
@@ -149,7 +144,6 @@ TestFlight = Flight(
     maxTime=600,
 )
 TestFlight.postProcess()
-print(TestFlight.apogee - Env.elevation)
-print(TestFlight.apogeeTime)
-print(TestFlight.maxSpeed)
-print(TestFlight.vz(TestFlight.tFinal))
+
+# Print summary
+TestFlight.info()

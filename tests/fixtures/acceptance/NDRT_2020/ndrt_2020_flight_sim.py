@@ -1,6 +1,14 @@
-# Notre Dame Rocket Team Flight Simulation
-# Importing libraries
+# Notre Dame Rocket Team 2020 Flight
+# Launched at 19045-18879 Avery Rd, Three Oaks, MI 49128
+# Permission to use flight data given by Brooke Mumma, 2020
+# 
+# IMPORTANT RESULTS  (23rd feb)
+# Measured Stability Margin 2.875 cal
+# Official Target Altitude 4,444 ft
+# Measured Altitude 4,320 ft or 1316.736 m
+# Drift: 2275 ft
 
+# Importing libraries
 from rocketpy import Environment, SolidMotor, Rocket, Flight, Function
 from scipy.signal import savgol_filter
 import numpy as np
@@ -52,9 +60,6 @@ parameters = {
 }
 
 # Environment conditions
-# Launched at 19045-18879 Avery Rd, Three Oaks, MI 49128
-# latitude= 41.775327
-# longitude= -86.572445
 Env23 = Environment(
     railLength=parameters.get("railLength")[0],
     gravity=9.81,
@@ -117,20 +122,18 @@ Transition = NDRT2020.addTail(
     distanceToCM=parameters.get("transitiondistanceToCM")[0],
 )
 
-
+# Parachute set-up
 def drogueTrigger(p, y):
     # p = pressure
     # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
     # activate drogue when vz < 0 m/s.
     return True if y[5] < 0 else False
 
-
 def mainTrigger(p, y):
     # p = pressure
     # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
     # activate main when vz < 0 m/s and z < 167.64 m (AGL) or 550 ft (AGL)
     return True if y[5] < 0 and y[2] < (167.64 + Env23.elevation) else False
-
 
 Drogue = NDRT2020.addParachute(
     "Drogue",
@@ -148,13 +151,8 @@ Main = NDRT2020.addParachute(
     lag=parameters.get("lag_rec")[0],
     noise=(0, 8.3, 0.5),
 )
+
 # Flight
-# >>>>>>>>>>>>> IMPORTANT RESULTS  (23rd feb)
-# Measured Stability Margin 2.875 cal
-# Official Target Altitude 4,444 ft
-# Predicted Altitude 4,541 ft
-# Measured Altitude 4,320 ft or 1316.736 m
-# Drift: 2275 ft
 Flight23 = Flight(
     rocket=NDRT2020,
     environment=Env23,
@@ -162,7 +160,6 @@ Flight23 = Flight(
     heading=parameters.get("heading")[0],
 )
 Flight23.postProcess()
-
 df_ndrt_rocketpy = pd.DataFrame(Flight23.z[:, :], columns=["Time", "Altitude"])
 df_ndrt_rocketpy["Vertical Velocity"] = Flight23.vz[:, 1]
 df_ndrt_rocketpy["Altitude"] -= Env23.elevation
@@ -171,13 +168,10 @@ df_ndrt_rocketpy["Altitude"] -= Env23.elevation
 df_ndrt_raven = pd.read_csv(
     "tests/fixtures/acceptance/NDRT_2020/ndrt_2020_flight_data.csv"
 )
-
 # convert feet to meters
 df_ndrt_raven[" Altitude (m-AGL)"] = df_ndrt_raven[" Altitude (Ft-AGL)"] / 3.28084
 df_ndrt_raven[" Time (s)"]
-
 # Calculate the vertical velocity as a derivative of the altitude
-
 velocity_raven = [0]
 for i in range(1, len(df_ndrt_raven[" Altitude (m-AGL)"]), 1):
     v = (
@@ -199,6 +193,7 @@ for i in range(1, len(df_ndrt_raven[" Altitude (m-AGL)"]), 1):
 # Filter the data for a better resolution:
 velocity_raven_filt = savgol_filter(velocity_raven, 51, 3)
 
+# Output comparison between flight and simulation data: summary
 print("Apogee raven NDRT: ", max(df_ndrt_raven[" Altitude (m-AGL)"]), "m")
 print("Apogee RocketPy: ", max(df_ndrt_rocketpy["Altitude"]), "m")
 print(
@@ -207,7 +202,6 @@ print(
     * (max(df_ndrt_rocketpy["Altitude"]) - max(df_ndrt_raven[" Altitude (m-AGL)"]))
     / max(df_ndrt_raven[" Altitude (m-AGL)"]),
 )
-
 print("Apogee time raven NDRT: ", 17.095, "s")
 print("Apogee time Rocketpy: ", 16.77, "s")
 print("Relative error:", 100 * (16.77 - 17.095) / 17.095, "%")
