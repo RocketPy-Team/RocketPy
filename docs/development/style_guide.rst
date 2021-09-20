@@ -59,7 +59,34 @@ Git Style
 Branch Naming Conventions
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Under construction.
+RocketPy tries to follow the `GitHub Flow <https://guides.github.com/introduction/flow/>`_ convention, keeping it simple!
+However, we aren't exactly strict about it.
+So here are a couple of **guidelines** to help you when creating new branches to contribute to the project:
+
+* Use branch names that follow the ``type/description`` convention.
+* ``type`` can be one of the following:
+
+    #. ``bug``: when your branch attempts to fix a bug
+    #. ``doc``: when your branch adds documentation changes
+    #. ``enh``: when you add new features and enhancements
+    #. ``maint``: when your branch is all about refactoring, fixing typos, etc.
+    #. ``rel``: when your branch makes changes related to creating new releases
+
+* Use ``-`` instead of spaces for the description text.
+* Keep branch names with lowercase letters.
+* Reference issue numbers and context if relevant.
+
+Here are a couple of example branch names:
+
+- ``maint/refactor-parachute-implementation``
+- ``bug/issue-98-upside-down-rockets``
+- ``enh/hybrid-motor-feature``
+- ``maint/typos-flight-class``
+
+Once you are ready to create a Pull Request for your branch, we advise you to merge with the ``dev`` branch instead of the default ``master`` branch.
+This way, we keep the ``master`` branch stable and use the ``dev`` branch to test out new features!
+
+If you have any doubts, just open an issue! And don't forget that these are recommendations. Don't let them keep you from contributing.
 
 Commit Messages
 ^^^^^^^^^^^^^^^
