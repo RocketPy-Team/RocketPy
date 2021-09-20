@@ -322,11 +322,17 @@ TestFlight.allInfo()
 
 Please read [CONTRIBUTING.md](https://github.com/giovaniceotto/RocketPy/blob/master/CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us. - **_Still working on this!_**
 
-## Authors
+## Authors and Contributors
 
-* Creator: **Giovani Hidalgo Ceotto**
+This package was originally created by [Giovani Ceotto](https://github.com/giovaniceotto/) as part of his work at Projeto Jupiter. [Rodrigo Schmitt](https://github.com/rodrigo-schmitt/) was one of the first contributors.
 
-See the list of [contributors](https://github.com/giovaniceotto/RocketPy/contributors) who are actively working on RocketPy.
+Later, [Guilherme Fernandes](https://github.com/Gui-FernandesBR/) and [Lucas Azevedo](https://github.com/lucasfourier/) joined the team to work on the expansion and sustainability of this project.
+
+Since then, the team has been growing fast and our contributors are what makes us special!
+
+![GitHub Contributors Image](https://contrib.rocks/image?repo=Projeto-Jupiter/RocketPy)
+
+See a [detailed list of contributors](https://github.com/giovaniceotto/RocketPy/contributors) who are actively working on RocketPy.
 
 ## License
 
