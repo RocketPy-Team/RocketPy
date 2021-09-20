@@ -19,7 +19,8 @@ However, PEP8 specifies the following::
     mixedCase is allowed only in contexts where that is already the prevailing style (e.g. threading.py), to retain backwards compatibility.
 
 Therefore, `Snake Case <https://en.wikipedia.org/wiki/Snake_case>`_ is preferred.
-For this reason, RocketPy is being converted from Camel to Snake and any new contributions should strive to follow Snake case as well.
+For this reason, RocketPy is being converted from Camel to Snake as of version ``1.0.0``.
+New contributions should strive to follow Snake case as well.
 
 Furthermore, when it comes to naming new variables, functions, classes or anything in RocketPy, always try to use descriptive names.
 
