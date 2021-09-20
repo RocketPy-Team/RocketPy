@@ -328,7 +328,7 @@ This package was originally created by [Giovani Ceotto](https://github.com/giova
 
 Later, [Guilherme Fernandes](https://github.com/Gui-FernandesBR/) and [Lucas Azevedo](https://github.com/lucasfourier/) joined the team to work on the expansion and sustainability of this project.
 
-Since then, the team has been growing fast and our contributors are what makes us special!
+Since then, the [RocketPy Team](https://github.com/orgs/Projeto-Jupiter/teams/rocketpy-team) has been growing fast and our contributors are what makes us special!
 
 ![GitHub Contributors Image](https://contrib.rocks/image?repo=Projeto-Jupiter/RocketPy)
 
