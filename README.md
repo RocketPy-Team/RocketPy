@@ -1,6 +1,6 @@
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/giovaniceotto/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb)
 [![PyPI](https://img.shields.io/pypi/v/rocketpy?color=g)](https://pypi.org/project/rocketpy/)
-[![Downloads](https://pepy.tech/badge/rocketpyalpha)](https://pepy.tech/project/rocketpy)
+[![Downloads](https://pepy.tech/badge/rocketpy)](https://pepy.tech/project/rocketpy)
 [![Documentation Status](https://readthedocs.org/projects/rocketpyalpha/badge/?version=latest)](https://rocketpyalpha.readthedocs.io/en/latest/?badge=latest)
 [![Build Status](https://app.travis-ci.com/Projeto-Jupiter/RocketPy.svg?branch=master)](https://app.travis-ci.com/Projeto-Jupiter/RocketPy)
 [![DOI](https://img.shields.io/badge/DOI-10.1061%2F(ASCE)AS.1943--5525.0001331-blue.svg)](http://dx.doi.org/10.1061/(ASCE)AS.1943-5525.0001331)
