@@ -84,8 +84,8 @@ Here are a couple of example branch names:
 - ``enh/hybrid-motor-feature``
 - ``maint/typos-flight-class``
 
-Once you are ready to create a Pull Request for your branch, we advise you to merge with the ``dev`` branch instead of the default ``master`` branch.
-This way, we keep the ``master`` branch stable and use the ``dev`` branch to test out new features!
+Once you are ready to create a Pull Request for your branch, we advise you to merge with the ``develop`` branch instead of the default ``master`` branch.
+This way, we keep the ``master`` branch stable and use the ``develop`` branch to test out new features!
 
 If you have any doubts, just open an issue! And don't forget that these are recommendations. Don't let them keep you from contributing.
 
