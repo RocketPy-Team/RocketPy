@@ -19,7 +19,7 @@ from scipy import linalg
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
-from numpy import genfromtxt
+from numpy import genfromtxt, sqrt
 
 from .Function import Function
 
@@ -165,8 +165,12 @@ class Rocket:
         radius,
         distanceRocketNozzle,
         distanceRocketPropellant,
-        powerOffDrag,
-        powerOnDrag,
+        powerOffDrag=None,
+        powerOnDrag=None,
+        rocket_length=None,
+        speed_of_sound=340.293988026089,
+        air_density=1.225000018124288,
+        dynamic_viscosity=1.789380278077583e-05,
     ):
         """Initializes Rocket class, process inertial, geometrical and
         aerodynamic parameters.
@@ -207,16 +211,36 @@ class Rocket:
             information. If int or float is given, it is assumed constant. If
             callable, string or array is given, it must be a function of Mach
             number only.
-
+        rocket_length : int, float, optional
+            Rocket length used in the expressions for estimating drag coefficients
+            in meters (m).
+            Air density used in the expressions for estimating drag coefficients
+            in kg/m³.
+        speed_of_sound : int, float, optional
+            Speed of sound used for estimating drag coefficients, in
+            meters per second (m/s). The default value was obtained from the
+            Environment class at sea level and standard atmosphere.
+        air_density : int, float, optional
+            Air density used in the expressions for estimating drag coefficients
+            in kg/m³.
+        dynamic_viscosity : int, float, optional
+            Dynamic viscosity of the fluid used in the expressions for
+            estimating drag coefficients in Pa s.
         Returns
         -------
         None
         """
+        # Define relavant physical constants
+        self.speed_of_sound = speed_of_sound
+        self.air_density = air_density
+        self.dynamic_viscosity = dynamic_viscosity
+
         # Define rocket inertia attributes in SI units
         self.mass = mass
         self.inertiaI = inertiaI
         self.inertiaZ = inertiaZ
         self.centerOfMass = distanceRocketPropellant * motor.mass / (mass + motor.mass)
+        self.rocket_length = rocket_length
 
         # Define rocket geometrical parameters in SI units
         self.radius = radius
@@ -279,6 +303,49 @@ class Rocket:
         self.evaluateStaticMargin()
 
         return None
+
+    def evaluateViscousFrictionCoefficient(self):
+        """Calculates and returns the viscous friction coefficient as
+        a function of the Mach number. The viscous friction coefficient
+        depends on the Reynolds number and given by a mathematical
+        expression. Some assumptions for calculating this coefficient
+        are that the angle of attack equals zero and the speed of sound
+        is constant and equal to the value passed in init.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        self.viscous_friction_coefficient : Function
+            Function of mach number expressing the viscous friction coefficient,
+            defined as in the literature.
+        """
+
+        def calculations(mach):
+            reynolds = (
+                (self.air_density ** 2)
+                * self.speed_of_sound
+                * self.rocket_length
+                * mach
+                / self.dynamic_viscosity
+            )
+            reynolds_critical = 5e5
+
+            if reynolds <= reynolds_critical:
+                return 1.328 / sqrt(reynolds)
+            else:
+                B = reynolds_critical * (
+                    0.074 / (reynolds ** (1 / 5)) - 1.328 / sqrt(reynolds)
+                )
+                return 0.074 / (reynolds ** (1 / 5)) - B / reynolds
+
+        self.viscous_friction_coefficient = Function(
+            calculations, "Mach Number", "Viscous Friction Coefficient"
+        )
+
+        return self.viscous_friction_coefficient
 
     def evaluateReducedMass(self):
         """Calculates and returns the rocket's total reduced mass. The
@@ -438,6 +505,9 @@ class Rocket:
         cldata = Function(
             lambda x: clalpha * x, "Alpha (rad)", "Cl", interpolation="linear"
         )
+
+        # Calculate Cd
+        # drag_coefficient =
 
         # Store values as new aerodynamic surface
         tail = [(0, 0, cpz), cldata, "Tail"]
