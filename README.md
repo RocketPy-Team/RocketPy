@@ -76,6 +76,14 @@ RocketPy is a trajectory simulation for High-Power Rocketry built by [Projeto Ju
 </ul>
 </details>
 
+### Quick Installation
+
+To install RocketPy's latest stable version from PyPI, just open up your terminal and run:
+
+```shell
+pip install rocketpy
+```
+
 ### Documentation
 
 Check out documentation details using the links below:
@@ -84,15 +92,15 @@ Check out documentation details using the links below:
   - [Development Guide](https://rocketpyalpha.readthedocs.io/en/latest/development/index.html)
 
 ## Join Our Community!
-RocketPy is growing fast! Many unviersity groups and rocket hobbyist have already started using it. The number of stars and forks for this repository is skyrocketing. And this is all thanks to a great community of users, engineers, developers, marketing specialists, and everyone interested in helping.
+RocketPy is growing fast! Many university groups and rocket hobbyist have already started using it. The number of stars and forks for this repository is skyrocketing. And this is all thanks to a great community of users, engineers, developers, marketing specialists, and everyone interested in helping.
 
 If you want to be a part of this and make RocketPy your own, join our [Discord](https://discord.gg/b6xYnNh) server today!
 
 ## Previewing
 
-You can preview RocketPy's main functionalities by browsing through a sample notebook either in [Google Colab](https://colab.research.google.com/github/giovaniceotto/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb) or in [MyBinder](https://mybinder.org/v2/gh/giovaniceotto/RocketPy/master?filepath=docs%2Fnotebooks%2Fgetting_started.ipynb)!
+You can preview RocketPy's main functionalities by browsing through a sample notebook in [Google Colab](https://colab.research.google.com/github/giovaniceotto/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb)!
 
-Then, you can read the *Getting Started* section to get your own copy!
+When you are ready to run RocketPy locally, you can read the *Getting Started* section!
 
 ## Getting Started
 
@@ -167,10 +175,6 @@ The RockeyPy library can then be installed by running:
 ```
 $ python setup.py install 
 ```
-
-### Documentations
-
-You can find RocketPy's documentation at [Read the Docs](https://rocketpyalpha.readthedocs.io/en/latest/).
 
 ### Running Your First Simulation
 
