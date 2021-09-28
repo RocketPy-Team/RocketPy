@@ -10,7 +10,7 @@
 # RocketPy
 RocketPy is a trajectory simulation for High-Power Rocketry built by [Projeto Jupiter](https://www.facebook.com/ProjetoJupiter/). The code is written as a [Python](http://www.python.org) library and allows for a complete 6 degrees of freedom simulation of a rocket's flight trajectory, including high fidelity variable mass effects as well as descent under parachutes. Weather conditions, such as wind profile, can be imported from sophisticated datasets, allowing for realistic scenarios. Furthermore, the implementation facilitates complex simulations, such as multi-stage rockets, design and trajectory optimization and dispersion analysis.
 
-### Main features
+## Main features
 
 <details>
 <summary>Nonlinear 6 degrees of freedom simulations</summary>
@@ -75,17 +75,10 @@ RocketPy is a trajectory simulation for High-Power Rocketry built by [Projeto Ju
 </ul>
 </details>
 
-### Quick Installation
-
-To install RocketPy's latest stable version from PyPI, just open up your terminal and run:
-
-```shell
-pip install rocketpy
-```
-
-### Documentation
+## Documentation
 
 Check out documentation details using the links below:
+
   - [User Guide](https://rocketpyalpha.readthedocs.io/en/latest/user/index.html)
   - [Code Documentation](https://rocketpyalpha.readthedocs.io/en/latest/reference/index.html)
   - [Development Guide](https://rocketpyalpha.readthedocs.io/en/latest/development/index.html)
@@ -97,83 +90,22 @@ If you want to be a part of this and make RocketPy your own, join our [Discord](
 
 ## Previewing
 
-You can preview RocketPy's main functionalities by browsing through a sample notebook in [Google Colab](https://colab.research.google.com/github/giovaniceotto/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb)!
+You can preview RocketPy's main functionalities by browsing through a sample notebook in [Google Colab](https://colab.research.google.com/github/giovaniceotto/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb).  No installation required!
 
 When you are ready to run RocketPy locally, you can read the *Getting Started* section!
 
 ## Getting Started
 
-These instructions will get you a copy of RocketPy up and running on your local machine.
+### Quick Installation
 
-### Prerequisites
+To install RocketPy's latest stable version from PyPI, just open up your terminal and run:
 
-The following is needed in order to run RocketPy:
-
- - Python >= 3.0
- - Numpy >= 1.0
- - Scipy >= 1.0
- - Matplotlib >= 3.0
- - requests
- - netCDF4 >= 1.4 (optional, requires Cython)
- 
-All of these packages, with the exception of netCDF4, should be automatically
-installed when RocketPy is installed using either pip or conda.
-
-However, in case the user wants to install these packages manually, they can do
-so by following the instructions bellow:
-
-The first 4 prerequisites come with Anaconda, but Scipy might need
-updating. The nedCDF4 package can be installed if there is interest in
-importing weather data from netCDF files. To update Scipy and install
-netCDF4 using Conda, the following code is used:
-
-```
-$ conda install "scipy>=1.0"
-$ conda install -c anaconda "netcdf4>=1.4"
+```shell
+pip install rocketpy
 ```
 
-Alternatively, if you only have Python 3.X installed, the packages needed can be installed using pip:
-
-```
-$ pip install "numpy>=1.0"
-$ pip install "scipy>=1.0"
-$ pip install "matplotlib>=3.0"
-$ pip install "netCDF4>=1.4"
-$ pip install "requests"
-```
-
-Although [Jupyter Notebooks](http://jupyter.org/) are by no means required to run RocketPy, they are strongly recommend. They already come with Anaconda builds, but can also be installed separately using pip:
-
-```
-$ pip install jupyter
-```
-
-### Installation
-
-To get a copy of RocketPy using pip, just run:
-
-```
-$ pip install rocketpy
-```
-
-Alternatively, the package can also be installed using conda:
-
-```
-$ conda install -c conda-forge rocketpy
-```
-
-If you want to downloaded it from source, you may do so either by:
-
-- Downloading it from [RocketPy's GitHub](https://github.com/giovaniceotto/RocketPy) page
-    - Unzip the folder and you are ready to go
-- Or cloning it to a desired directory using git:
-    - ```$ git clone https://github.com/giovaniceotto/RocketPy.git```
-
-The RockeyPy library can then be installed by running:
-
-```
-$ python setup.py install 
-```
+For other installation options, visit our [Installation Docs](https://docs.rocketpy.org/en/latest/user/installation.html).
+To learn more about RocketPy's requirements, visit our [Requirements Docs](https://docs.rocketpy.org/en/latest/user/requirements.html).
 
 ### Running Your First Simulation
 
@@ -186,7 +118,8 @@ Otherwise, you may want to create your own script or your own notebook using Roc
 - Rocket - Keeps data related to a rocket.
 - Flight - Runs the simulation and keeps the results.
 
-The following image shows how the four main classes interact with each other:: 
+The following image shows how the four main classes interact with each other:
+
 ![Diagram](docs/static/Fluxogram-Page-2.svg)
 
 A typical workflow starts with importing these classes from RocketPy:
@@ -317,17 +250,6 @@ To seel all available results, use:
 TestFlight.allInfo()
 ```
 
-## Built With
-
-* [Numpy](http://www.numpy.org/)
-* [Scipy](https://www.scipy.org/)
-* [Matplotlib](https://matplotlib.org/)
-* [netCDF4](https://github.com/Unidata/netcdf4-python)
-
-## Contributing
-
-Please read [CONTRIBUTING.md](https://github.com/giovaniceotto/RocketPy/blob/master/CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us. - **_Still working on this!_**
-
 ## Authors and Contributors
 
 This package was originally created by [Giovani Ceotto](https://github.com/giovaniceotto/) as part of his work at Projeto Jupiter. [Rodrigo Schmitt](https://github.com/rodrigo-schmitt/) was one of the first contributors.
@@ -339,6 +261,10 @@ Since then, the [RocketPy Team](https://github.com/orgs/Projeto-Jupiter/teams/ro
 [![GitHub Contributors Image](https://contrib.rocks/image?repo=Projeto-Jupiter/RocketPy)](https://github.com/giovaniceotto/RocketPy/contributors)
 
 See a [detailed list of contributors](https://github.com/giovaniceotto/RocketPy/contributors) who are actively working on RocketPy.
+
+## Contributing
+
+Please read [CONTRIBUTING.md](https://github.com/giovaniceotto/RocketPy/blob/master/CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us. - **_Still working on this!_**
 
 ## License
 
