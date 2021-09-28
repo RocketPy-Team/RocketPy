@@ -1,6 +1,6 @@
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/giovaniceotto/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb)
 [![PyPI](https://img.shields.io/pypi/v/rocketpy?color=g)](https://pypi.org/project/rocketpy/)
-[![Documentation Status](https://readthedocs.org/projects/rocketpyalpha/badge/?version=latest)](https://rocketpyalpha.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/rocketpyalpha/badge/?version=latest)](https://docs.rocketpy.org/en/latest/?badge=latest)
 [![Build Status](https://app.travis-ci.com/Projeto-Jupiter/RocketPy.svg?branch=master)](https://app.travis-ci.com/Projeto-Jupiter/RocketPy)
 [![Chat on Discord](https://img.shields.io/discord/765037887016140840?logo=discord)](https://discord.gg/b6xYnNh)
 [![Contributors](https://img.shields.io/github/contributors/Projeto-Jupiter/rocketpy)](https://github.com/Projeto-Jupiter/RocketPy/graphs/contributors)
@@ -79,9 +79,9 @@ RocketPy is a trajectory simulation for High-Power Rocketry built by [Projeto Ju
 
 Check out documentation details using the links below:
 
-  - [User Guide](https://rocketpyalpha.readthedocs.io/en/latest/user/index.html)
-  - [Code Documentation](https://rocketpyalpha.readthedocs.io/en/latest/reference/index.html)
-  - [Development Guide](https://rocketpyalpha.readthedocs.io/en/latest/development/index.html)
+  - [User Guide](https://docs.rocketpy.org/en/latest/user/index.html)
+  - [Code Documentation](https://docs.rocketpy.org/en/latest/reference/index.html)
+  - [Development Guide](https://docs.rocketpy.org/en/latest/development/index.html)
 
 ## Join Our Community!
 RocketPy is growing fast! Many university groups and rocket hobbyist have already started using it. The number of stars and forks for this repository is skyrocketing. And this is all thanks to a great community of users, engineers, developers, marketing specialists, and everyone interested in helping.
