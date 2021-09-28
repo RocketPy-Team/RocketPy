@@ -1,12 +1,11 @@
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/giovaniceotto/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb)
 [![PyPI](https://img.shields.io/pypi/v/rocketpy?color=g)](https://pypi.org/project/rocketpy/)
-[![Downloads](https://pepy.tech/badge/rocketpy)](https://pepy.tech/project/rocketpy)
 [![Documentation Status](https://readthedocs.org/projects/rocketpyalpha/badge/?version=latest)](https://rocketpyalpha.readthedocs.io/en/latest/?badge=latest)
 [![Build Status](https://app.travis-ci.com/Projeto-Jupiter/RocketPy.svg?branch=master)](https://app.travis-ci.com/Projeto-Jupiter/RocketPy)
-[![DOI](https://img.shields.io/badge/DOI-10.1061%2F%28ASCE%29AS.1943--5525.0001331-blue.svg)](http://dx.doi.org/10.1061/%28ASCE%29AS.1943-5525.0001331)
 [![Chat on Discord](https://img.shields.io/discord/765037887016140840?logo=discord)](https://discord.gg/b6xYnNh)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/company/rocketpy)
 [![Contributors](https://img.shields.io/github/contributors/Projeto-Jupiter/rocketpy)](https://github.com/Projeto-Jupiter/RocketPy/graphs/contributors)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/company/rocketpy)
+[![DOI](https://img.shields.io/badge/DOI-10.1061%2F%28ASCE%29AS.1943--5525.0001331-blue.svg)](http://dx.doi.org/10.1061/%28ASCE%29AS.1943-5525.0001331)
 
 # RocketPy
 RocketPy is a trajectory simulation for High-Power Rocketry built by [Projeto Jupiter](https://www.facebook.com/ProjetoJupiter/). The code is written as a [Python](http://www.python.org) library and allows for a complete 6 degrees of freedom simulation of a rocket's flight trajectory, including high fidelity variable mass effects as well as descent under parachutes. Weather conditions, such as wind profile, can be imported from sophisticated datasets, allowing for realistic scenarios. Furthermore, the implementation facilitates complex simulations, such as multi-stage rockets, design and trajectory optimization and dispersion analysis.
@@ -337,7 +336,7 @@ Later, [Guilherme Fernandes](https://github.com/Gui-FernandesBR/) and [Lucas Aze
 
 Since then, the [RocketPy Team](https://github.com/orgs/Projeto-Jupiter/teams/rocketpy-team) has been growing fast and our contributors are what makes us special!
 
-![GitHub Contributors Image](https://contrib.rocks/image?repo=Projeto-Jupiter/RocketPy)
+[![GitHub Contributors Image](https://contrib.rocks/image?repo=Projeto-Jupiter/RocketPy)](https://github.com/giovaniceotto/RocketPy/contributors)
 
 See a [detailed list of contributors](https://github.com/giovaniceotto/RocketPy/contributors) who are actively working on RocketPy.
 
