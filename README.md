@@ -120,7 +120,7 @@ Otherwise, you may want to create your own script or your own notebook using Roc
 
 The following image shows how the four main classes interact with each other:
 
-![Diagram](docs/static/Fluxogram-Page-2.svg)
+![Diagram](https://raw.githubusercontent.com/Projeto-Jupiter/RocketPy/master/docs/static/Fluxogram-Page-2.svg)
 
 A typical workflow starts with importing these classes from RocketPy:
 
