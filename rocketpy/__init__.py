@@ -38,6 +38,6 @@ from matplotlib import cm
 
 from .Function import Function
 from .Environment import Environment
-from .SolidMotor import SolidMotor
+from .Motor import SolidMotor, HybridMotor
 from .Rocket import Rocket
 from .Flight import Flight
