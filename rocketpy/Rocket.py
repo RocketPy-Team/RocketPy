@@ -732,6 +732,68 @@ class Rocket:
             # Return self
             return self.aerodynamicSurfaces[-1]
 
+    def calculateCds(
+        self,
+        finalSpeed = 9,
+        finalAirDensity = None,
+        parachuteKind = None,
+        Cd = None,
+        area = None
+    ):
+        """Calculates the parachute's Cds using its final speed and 
+        air density or its area, that can be given or calculated through
+        the Cd or kind of the parachute 
+        Parameters
+        ----------
+        finalSpeed : float
+            Final speed of the system rocket/parachute.
+        finalAirDensity : float
+            Air density at the lowest height in which the parachute 
+            is being used.
+        parachuteKind : string
+            Indicates the format of the parachute.
+        Cd : float
+            Value of the parachute's dragg coefficient.
+        area : float
+            Surface area of the parachute in squared meters.
+
+        Returns
+        -------
+        Cds : float
+            Estimated Cds of the parachute.
+        """
+
+        if finalAirDensity != None:
+            Cds = 2 * self.mass * 9.80665 / ((finalSpeed ** 2) * finalAirDensity)
+
+        elif Cd != None:
+            Cds = area * Cd
+
+        else:
+            if parachuteKind == "quarter spherical":
+                    Cd = 0.88
+
+            if parachuteKind == "semi-ellipsoidal":
+                    Cd = 0.9
+
+            if parachuteKind == "hemispherical":
+                    Cd = 0.7
+
+            if parachuteKind == "flat circular":
+                    Cd = 0.75
+
+            if parachuteKind == "conical":
+                    Cd = 0.8
+
+            if parachuteKind == "semi-toroidal":
+                    Cd = 1.1
+
+            if parachuteKind == "Ringsail":
+                    Cd = 0.75
+
+            Cds = area * Cd
+        return Cds
+    
     def addParachute(
         self, name, CdS, trigger, samplingRate=100, lag=0, noise=(0, 0, 0)
     ):
