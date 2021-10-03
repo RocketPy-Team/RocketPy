@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__author__ = "Giovani Hidalgo Ceotto, Franz Masatoshi Yuri"
+__author__ = "Giovani Hidalgo Ceotto, Franz Masatoshi Yuri, Lucas Azevedo Pezente, Lucas Kierulff Balabram"
 __copyright__ = "Copyright 20XX, Projeto Jupiter"
 __license__ = "MIT"
 
@@ -230,7 +230,7 @@ class Rocket:
         -------
         None
         """
-        # Define relavant physical constants
+        # Define relevant physical constants
         self.speed_of_sound = speed_of_sound
         self.air_density = air_density
         self.dynamic_viscosity = dynamic_viscosity
@@ -347,6 +347,27 @@ class Rocket:
 
         return self.viscous_friction_coefficient
 
+    def evaluateForebodyDragCoefficient(self):
+        """Calculates and returns the tail drag coefficient as a function
+        of the Mach number. The tail drag coefficient depends on geometric
+        parameters such as the total length of the rocket body, the length
+        of the boat tail, the maximum body diamater, and the diamater of the
+        rocket base.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        self.forebody_drag_coefficient : Function
+            Function of mach number expressing the tail drag coefficient,
+            defined as in the literature.
+        """
+
+        # Return something for mock purposes
+        self.forebody_drag_coefficient = Function(lambda mach: 1)
+
     def evaluateReducedMass(self):
         """Calculates and returns the rocket's total reduced mass. The
         reduced mass is defined as the product of the propellant mass
@@ -457,7 +478,9 @@ class Rocket:
         # Return self
         return self
 
-    def addTail(self, topRadius, bottomRadius, length, distanceToCM):
+    def addTail(
+        self, topRadius, bottomRadius, length, distanceToCM, drag_coefficient=None
+    ):
         """Create a new tail or rocket diameter change, storing its
         parameters as part of the aerodynamicSurfaces list. Its
         parameters are the axial position along the rocket and its
@@ -507,10 +530,15 @@ class Rocket:
         )
 
         # Calculate Cd
-        # drag_coefficient =
+        if drag_coefficient is None:
+            drag_coefficient = (
+                0.029
+                * ((bottomRadius / self.radius) ** 3)
+                / (self.evaluateForebodyDragCoefficient() ** 0.5)
+            )
 
         # Store values as new aerodynamic surface
-        tail = [(0, 0, cpz), cldata, "Tail"]
+        tail = [(0, 0, cpz), cldata, drag_coefficient, "Tail"]
         self.aerodynamicSurfaces.append(tail)
 
         # Refresh static margin calculation
@@ -584,7 +612,16 @@ class Rocket:
         return self.aerodynamicSurfaces[-1]
 
     def addFins(
-        self, n, span, rootChord, tipChord, distanceToCM, radius=0, airfoil=None
+        self,
+        n,
+        span,
+        rootChord,
+        tipChord,
+        distanceToCM,
+        drag_coefficient=None,
+        thickness=None,
+        radius=0,
+        airfoil=None,
     ):
         """Create a fin set, storing its parameters as part of the
         aerodynamicSurfaces list. Its parameters are the axial position
@@ -663,16 +700,6 @@ class Rocket:
                 lambda x: clalpha * x, "Alpha (rad)", "Cl", interpolation="linear"
             )
 
-            # Store values
-            fin = [(0, 0, cpz), cldata, "Fins"]
-            self.aerodynamicSurfaces.append(fin)
-
-            # Refresh static margin calculation
-            self.evaluateStaticMargin()
-
-            # Return self
-            return self.aerodynamicSurfaces[-1]
-
         else:
 
             def cnalfa1(cn):
@@ -709,7 +736,7 @@ class Rocket:
             # Import the lift curve as a function of lift values by attack angle
             read = genfromtxt(airfoil, delimiter=",")
 
-            # Aplies number of fins to lift coefficient data
+            # Applies number of fins to lift coefficient data
             data = [[cl[0], (n / 2) * cnalfa1(cl[1])] for cl in read]
             cldata = Function(
                 data,
@@ -719,18 +746,30 @@ class Rocket:
                 extrapolation="natural",
             )
 
-            # Takes an approximation to an angular coefficient
-            clalpha = cldata.differentiate(x=0, dx=1e-2)
+        # Calculate Cd
+        if drag_coefficient is None:
+            exposed_area = (1 / 2) * (rootChord + tipChord) * span
+            total_area = exposed_area + self.radius * rootChord
 
-            # Store values
-            fin = [(0, 0, cpz), cldata, "Fins"]
-            self.aerodynamicSurfaces.append(fin)
+            # In the formula, instead of span, it should be the distance between the
+            # midpoint of the root and the tip of the fin, but we are using
+            # span for now.
+            drag_coefficient = (
+                2
+                * self.evaluateViscousFrictionCoefficient()
+                * (1 + 2 * (thickness / span))
+                * (n * total_area / (np.pi * self.radius ** 2))
+            )
 
-            # Refresh static margin calculation
-            self.evaluateStaticMargin()
+        # Store values as new aerodynamic surface
+        fin = [(0, 0, cpz), cldata, drag_coefficient, "Fins"]
+        self.aerodynamicSurfaces.append(fin)
 
-            # Return self
-            return self.aerodynamicSurfaces[-1]
+        # Refresh static margin calculation
+        self.evaluateStaticMargin()
+
+        # Return self
+        return self.aerodynamicSurfaces[-1]
 
     def addParachute(
         self, name, CdS, trigger, samplingRate=100, lag=0, noise=(0, 0, 0)
