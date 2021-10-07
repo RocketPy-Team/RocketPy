@@ -217,6 +217,6 @@ def test_bella_lui_rocket_data_asserts_acceptance():
     apogee_time_simulated = TestFlight.apogeeTime
 
     assert abs(max(altitude_Kalt) - TestFlight.apogee + TestFlight.env.elevation)/max(altitude_Kalt) < 0.015
-    assert abs(max(velocity_rcp) - max(vertVel_Kalt))/max(vertVel_Kalt) < 0.05
+    assert abs(max(velocity_rcp) - max(vertVel_Kalt))/max(vertVel_Kalt) < 0.06
     assert abs(max(acceleration_rcp) - max(acceleration_Kalt_filt))/max(acceleration_Kalt_filt) < 0.05
     assert abs(apogee_time_measured - apogee_time_simulated) / apogee_time_simulated < 0.02
