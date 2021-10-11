@@ -240,11 +240,14 @@ class Rocket:
         self.inertiaI = inertiaI
         self.inertiaZ = inertiaZ
         self.centerOfMass = distanceRocketPropellant * motor.mass / (mass + motor.mass)
-        self.rocket_length = rocket_length
 
         # Define rocket geometrical parameters in SI units
         self.radius = radius
         self.area = np.pi * self.radius ** 2
+        self.rocket_length = rocket_length
+        self.nose_length = 0
+        self.tail_length = 0
+        self.tail_bottom_radius = 0
 
         # Center of mass distance to points of interest
         self.distanceRocketNozzle = distanceRocketNozzle
@@ -270,20 +273,24 @@ class Rocket:
         )
 
         # Define aerodynamic drag coefficients
-        self.powerOffDrag = Function(
-            powerOffDrag,
-            "Mach Number",
-            "Drag Coefficient with Power Off",
-            "spline",
-            "constant",
-        )
-        self.powerOnDrag = Function(
-            powerOnDrag,
-            "Mach Number",
-            "Drag Coefficient with Power On",
-            "spline",
-            "constant",
-        )
+        self.power_off_drag_as_input = powerOffDrag is not None
+        if self.power_off_drag_as_input:
+            self.powerOffDrag = Function(
+                powerOffDrag,
+                "Mach Number",
+                "Drag Coefficient with Power Off",
+                "spline",
+                "constant",
+            )
+        self.power_on_drag_as_input = powerOnDrag is not None
+        if self.power_on_drag_as_input:
+            self.powerOnDrag = Function(
+                powerOnDrag,
+                "Mach Number",
+                "Drag Coefficient with Power On",
+                "spline",
+                "constant",
+            )
 
         # Define motor to be used
         self.motor = motor
@@ -303,6 +310,34 @@ class Rocket:
         self.evaluateStaticMargin()
 
         return None
+
+    def evaluateDragCoefficient(self):
+        """Calculates and returns the drag coefficient as the sum of
+        of the individual drag coefficients at zero angle of attack
+        as a function of the Mach number. The angle of attack is
+        assumed to be zero.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        self.viscous_friction_coefficient : Function
+            Function of mach number expressing the viscous friction coefficient,
+            defined as in the literature.
+        """
+        self.drag_coefficient_estimate = (
+            self.evaluateForebodyDragCoefficient()
+            + np.sum(self.aerodynamicSurfaces[:, 2])
+        )
+
+        if not self.power_off_drag_as_input:
+            self.powerOffDrag = self.drag_coefficient_estimate
+        if not self.power_on_drag_as_input:
+            self.powerOnDrag = self.drag_coefficient_estimate
+
+        return self.drag_coefficient_estimate
 
     def evaluateViscousFrictionCoefficient(self):
         """Calculates and returns the viscous friction coefficient as
@@ -366,7 +401,36 @@ class Rocket:
         """
 
         # Return something for mock purposes
-        self.forebody_drag_coefficient = Function(lambda mach: 1)
+
+        def calculations(mach):
+            forebody_drag_coefficient = (
+                (
+                    1
+                    + 60 / ((self.rocket_length / (2 * self.radius)) ** 3)
+                    + 0.00125
+                    * (self.rocket_length - self.nose_length - self.tail_length)
+                    / self.radius
+                )
+                * (
+                    2.7 * self.nose_length / (self.radius)
+                    + 2
+                    * (self.rocket_length - self.nose_length - self.tail_length)
+                    / self.radius
+                    + 2
+                    * (1 - self.tail_bottom_radius / self.radius)
+                    * self.tail_length
+                    / (2 * self.radius)
+                )
+                * self.evaluateViscousFrictionCoefficient()
+            )
+
+            return forebody_drag_coefficient
+
+        self.forebody_drag_coefficient = Function(
+            calculations, "Mach Number", "Forebody Drag Coefficient"
+        )
+
+        return self.forebody_drag_coefficient
 
     def evaluateReducedMass(self):
         """Calculates and returns the rocket's total reduced mass. The
@@ -523,6 +587,10 @@ class Rocket:
         else:
             cpz = distanceToCM + (length / 3) * (1 + (1 - r) / (1 - r ** 2))
 
+        # Save tail length
+        self.tail_length = length
+        self.tail_bottom_radius = bottomRadius
+
         # Calculate clalpha
         clalpha = -2 * (1 - r ** (-2)) * (topRadius / rref) ** 2
         cldata = Function(
@@ -591,6 +659,9 @@ class Rocket:
         else:
             cpz = distanceToCM - k * length
 
+        # Save nose cone length
+        self.nose_length = length
+
         # Calculate clalpha
         clalpha = 2
         cldata = Function(
@@ -602,7 +673,13 @@ class Rocket:
         )
 
         # Store values
-        nose = [(0, 0, cpz), cldata, "Nose Cone"]
+        # Nose cone drag coefficient is given as a constant and equals zero as it has already been accounted for in the forebody.
+        nose = [
+            (0, 0, cpz),
+            cldata,
+            Function(lambda mach: 0, "Mach Number", "Nose Cone Drag Coefficient"),
+            "Nose Cone",
+        ]
         self.aerodynamicSurfaces.append(nose)
 
         # Refresh static margin calculation
@@ -747,7 +824,7 @@ class Rocket:
             )
 
         # Calculate Cd
-        if drag_coefficient is None:
+        if drag_coefficient is None and thickness is not None:
             exposed_area = (1 / 2) * (rootChord + tipChord) * span
             total_area = exposed_area + self.radius * rootChord
 
@@ -758,7 +835,7 @@ class Rocket:
                 2
                 * self.evaluateViscousFrictionCoefficient()
                 * (1 + 2 * (thickness / span))
-                * (n * total_area / (np.pi * self.radius ** 2))
+                * (n * (2 * total_area - exposed_area) / (np.pi * self.radius ** 2))
             )
 
         # Store values as new aerodynamic surface
