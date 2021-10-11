@@ -75,9 +75,12 @@ RocketPy is a trajectory simulation for High-Power Rocketry built by [Projeto Ju
 </ul>
 </details>
 
-Those features delivered have been validated in our latest paper published about RocketPy.
+## Validation
+
+
+RocketPy's features have been validated in our latest [research article published in the Journal of Aerospace Engineering](http://dx.doi.org/10.1061/%28ASCE%29AS.1943-5525.0001331).
 Below there is a comparison between experimental data and the output from RocketPy.
-The rockets used in this comparison were from a rocket from a European team and an American team.
+Flight data and rocket parameters used in this comparison were kindly provided by [EPFL Rocket Team](https://github.com/EPFLRocketTeam) and [Notre Dame Rocket Team](https://ndrocketry.weebly.com/).
 
 |        Mission        |    Result Paramater     | RocketPy | Measured | Relative  Error % |
 |:---------------------:|:---------------------:  |:--------:|:--------:|:----------------: |
