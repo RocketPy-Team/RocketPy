@@ -79,14 +79,14 @@ Those features delivered have been validated in our latest paper published about
 Below there is a comparison between experimental data and the output from RocketPy.
 The rockets used in this comparison were from a rocket from a European team and an American team.
 
-|        Mission        |    Result Paramater   | RocketPy | Measured | Relative   Error |
-|:---------------------:|:---------------------:|:--------:|:--------:|:----------------:|
-|   Bella Lui Kaltbrumn |  Apogee altitude (m)  |  461.03  |  458.97  |       0.45       |
-| Bella Lui Kaltbrumn   |    Apogee time (s)    |   10.61  |   10.56  |       0.47       |
-| Bella Lui Kaltbrumn   | Maximum velocity (ms) |   86.18  |   90.00  |       4.24       |
-|   NDRT launch vehicle |  Apogee altitude (m)  | 1,310.44 | 1,320.37 |       -0.75      |
-| NDRT launch vehicle   |    Apogee time (s)    |   16.77  |   17.10  |       -1.90      |
-| NDRT launch vehicle   | Maximum velocity (ms) |  172.86  |  168.95  |       2.31       |
+|        Mission        |    Result Paramater     | RocketPy | Measured | Relative  Error % |
+|:---------------------:|:---------------------:  |:--------:|:--------:|:----------------: |
+|   Bella Lui Kaltbrumn |  Apogee altitude (m)    |  461.03  |  458.97  |       **0.45**    |
+| Bella Lui Kaltbrumn   |    Apogee time (s)      |   10.61  |   10.56  |       **0.47**    |
+| Bella Lui Kaltbrumn   | Maximum velocity (m/s)  |   86.18  |   90.00  |      **4.24**     |
+|   NDRT launch vehicle |  Apogee altitude (m)    | 1,310.44 | 1,320.37 |       **-0.75**   |
+| NDRT launch vehicle   |    Apogee time (s)      |   16.77  |   17.10  |       **-1.90**   |
+| NDRT launch vehicle   | Maximum velocity (m/s)  |  172.86  |  168.95  |      **2.31**     |
 
 
 ## Documentation
