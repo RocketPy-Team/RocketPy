@@ -8,7 +8,7 @@
 [![DOI](https://img.shields.io/badge/DOI-10.1061%2F%28ASCE%29AS.1943--5525.0001331-blue.svg)](http://dx.doi.org/10.1061/%28ASCE%29AS.1943-5525.0001331)
 
 # RocketPy
-RocketPy is a trajectory simulation for High-Power Rocketry built by [Projeto Jupiter](https://www.facebook.com/ProjetoJupiter/). The code is written as a [Python](http://www.python.org) library and allows for a complete 6 degrees of freedom simulation of a rocket's flight trajectory, including high fidelity variable mass effects as well as descent under parachutes. Weather conditions, such as wind profile, can be imported from sophisticated datasets, allowing for realistic scenarios. Furthermore, the implementation facilitates complex simulations, such as multi-stage rockets, design and trajectory optimization and dispersion analysis.
+RocketPy is a next-generation trajectory simulation solution for High-Power Rocketry. The code is written as a [Python](http://www.python.org) library and allows for a complete 6 degrees of freedom simulation of a rocket's flight trajectory, including high fidelity variable mass effects as well as descent under parachutes. Weather conditions, such as wind profile, can be imported from sophisticated datasets, allowing for realistic scenarios. Furthermore, the implementation facilitates complex simulations, such as multi-stage rockets, design and trajectory optimization and dispersion analysis.
 
 ## Main features
 
@@ -74,22 +74,26 @@ RocketPy is a trajectory simulation for High-Power Rocketry built by [Projeto Ju
   <li>Create new classes (e.g. other types of motors)</li>
 </ul>
 </details>
+<br>
 
 ## Validation
 
-
 RocketPy's features have been validated in our latest [research article published in the Journal of Aerospace Engineering](http://dx.doi.org/10.1061/%28ASCE%29AS.1943-5525.0001331).
-Below there is a comparison between experimental data and the output from RocketPy.
+
+The tables below show a comparison between experimental data and the output from RocketPy.
 Flight data and rocket parameters used in this comparison were kindly provided by [EPFL Rocket Team](https://github.com/EPFLRocketTeam) and [Notre Dame Rocket Team](https://ndrocketry.weebly.com/).
 
-|        Mission        |    Result Paramater     | RocketPy | Measured | Relative  Error % |
-|:---------------------:|:---------------------:  |:--------:|:--------:|:----------------: |
-|   Bella Lui Kaltbrumn |  Apogee altitude (m)    |  461.03  |  458.97  |       **0.45**    |
-| Bella Lui Kaltbrumn   |    Apogee time (s)      |   10.61  |   10.56  |       **0.47**    |
-| Bella Lui Kaltbrumn   | Maximum velocity (m/s)  |   86.18  |   90.00  |      **4.24**     |
-|   NDRT launch vehicle |  Apogee altitude (m)    | 1,310.44 | 1,320.37 |       **-0.75**   |
-| NDRT launch vehicle   |    Apogee time (s)      |   16.77  |   17.10  |       **-1.90**   |
-| NDRT launch vehicle   | Maximum velocity (m/s)  |  172.86  |  168.95  |      **2.31**     |
+|         Mission         |    Result Paramater    | RocketPy  | Measured  | Relative   Error |
+|:-----------------------:|:-----------------------|:---------:|:---------:|:----------------:|
+|                         | Apogee altitude (m)    |   461.03  |   458.97  |   **0.45 %**     |
+| **Bella Lui Kaltbrumn** | Apogee time (s)        |    10.61  |    10.56  |   **0.47 %**     |
+|                         | Maximum velocity (m/s) |    86.18  |    90.00  |   **4.24 %**     |
+
+|         Mission         |    Result Paramater    | RocketPy  | Measured  | Relative   Error |
+|:-----------------------:|:-----------------------|:---------:|:---------:|:----------------:|
+|                         | Apogee altitude (m)    | 1,310.44  | 1,320.37  |   **-0.75 %**    |
+| **NDRT launch vehicle** | Apogee time (s)        |    16.77  |    17.10  |   **-1.90 %**    |
+|                         | Maximum velocity (m/s) |   172.86  |   168.95  |   **2.31 %**     |
 
 
 ## Documentation
@@ -269,24 +273,24 @@ TestFlight.allInfo()
 
 ## Authors and Contributors
 
-This package was originally created by [Giovani Ceotto](https://github.com/giovaniceotto/) as part of his work at Projeto Jupiter. [Rodrigo Schmitt](https://github.com/rodrigo-schmitt/) was one of the first contributors.
+This package was originally created by [Giovani Ceotto](https://github.com/giovaniceotto/) as part of his work at [Projeto Jupiter](https://github.com/Projeto-Jupiter/). [Rodrigo Schmitt](https://github.com/rodrigo-schmitt/) was one of the first contributors.
 
 Later, [Guilherme Fernandes](https://github.com/Gui-FernandesBR/) and [Lucas Azevedo](https://github.com/lucasfourier/) joined the team to work on the expansion and sustainability of this project.
 
 Since then, the [RocketPy Team](https://github.com/orgs/Projeto-Jupiter/teams/rocketpy-team) has been growing fast and our contributors are what makes us special!
 
-[![GitHub Contributors Image](https://contrib.rocks/image?repo=Projeto-Jupiter/RocketPy)](https://github.com/giovaniceotto/RocketPy/contributors)
+[![GitHub Contributors Image](https://contrib.rocks/image?repo=Projeto-Jupiter/RocketPy)](https://github.com/Projeto-Jupiter/RocketPy/contributors)
 
-See a [detailed list of contributors](https://github.com/giovaniceotto/RocketPy/contributors) who are actively working on RocketPy.
+See a [detailed list of contributors](https://github.com/Projeto-Jupiter/RocketPy/contributors) who are actively working on RocketPy.
 
 ## Contributing
 
-Please read [CONTRIBUTING.md](https://github.com/giovaniceotto/RocketPy/blob/master/CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us. - **_Still working on this!_**
+Please read [CONTRIBUTING.md](https://github.com/Projeto-Jupiter/RocketPy/blob/master/CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to contribute with RocketPy's code.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/giovaniceotto/RocketPy/blob/master/LICENSE) file for details
+This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/Projeto-Jupiter/RocketPy/blob/master/LICENSE) file for details
 
 ## Release Notes
-Want to know which bugs have been fixed and new features of each version? Check out the [release notes](https://github.com/giovaniceotto/RocketPy/releases).
+Want to know which bugs have been fixed and new features of each version? Check out the [release notes](https://github.com/Projeto-Jupiter/RocketPy/releases).
 
