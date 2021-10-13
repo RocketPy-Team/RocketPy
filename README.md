@@ -130,7 +130,7 @@ To learn more about RocketPy's requirements, visit our [Requirements Docs](https
 
 ### Running Your First Simulation
 
-In order to run your first rocket trajectory simulation using RocketPy, you can start a Jupyter Notebook and navigate to the **_nbks_** folder. Open **_Getting Started - Examples.ipynb_** and you are ready to go.
+In order to run your first rocket trajectory simulation using RocketPy, you can start a Jupyter Notebook and navigate to the _nbks_ folder. Open _Getting Started - Examples.ipynb_ and you are ready to go.
 
 Otherwise, you may want to create your own script or your own notebook using RocketPy. To do this, let's see how to use RocketPy's four main classes:
 
