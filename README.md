@@ -80,7 +80,7 @@ RocketPy is the next-generation trajectory simulation solution for High-Power Ro
 
 RocketPy's features have been validated in our latest [research article published in the Journal of Aerospace Engineering](http://dx.doi.org/10.1061/%28ASCE%29AS.1943-5525.0001331).
 
-The table below show a comparison between experimental data and the output from RocketPy.
+The table below shows a comparison between experimental data and the output from RocketPy.
 Flight data and rocket parameters used in this comparison were kindly provided by [EPFL Rocket Team](https://github.com/EPFLRocketTeam) and [Notre Dame Rocket Team](https://ndrocketry.weebly.com/).
 
 |         Mission         |    Result Paramater    | RocketPy  | Measured  | Relative Error |
