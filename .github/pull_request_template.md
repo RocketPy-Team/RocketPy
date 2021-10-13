@@ -5,6 +5,7 @@
 ## Pull request type
 
 Please check the type of change your PR introduces:
+
 - [ ] Code base additions (bugfix, features)
 - [ ] Code maintenance (refactoring, formatting, renaming)
 - [ ] ReadMe, Docs and GitHub maintenance
@@ -15,15 +16,18 @@ Please check the type of change your PR introduces:
 Please check if your PR fulfills the following requirements, depending on the type of PR:
 
 - ReadMe, Docs and GitHub maintenance:
+
   - [ ] Spelling has been verified
   - [ ] Code docs are working correctly 
 
 - Code base maintenance (for bug fixes / features):
+
   - [ ] Docs have been reviewed and added / updated if needed
   - [ ] Lint (`black rocketpy`) has passed locally and any fixes were made
   - [ ] All tests (`pytest --runslow`) have passed locally
 
 - Code base additions (for bug fixes / features):
+
   - [ ] Tests for the changes have been added
   - [ ] Docs have been reviewed and added / updated if needed
   - [ ] Lint (`black rocketpy`) has passed locally and any fixes were made
