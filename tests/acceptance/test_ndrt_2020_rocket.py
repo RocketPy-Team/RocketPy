@@ -201,7 +201,7 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     apogee_time_measured = df_ndrt_raven.loc[df_ndrt_raven[' Altitude (Ft-AGL)'].idxmax(), ' Time (s)']
     apogee_time_simulated = Flight23.apogeeTime
 
-    assert abs(max(df_ndrt_raven[" Altitude (m-AGL)"]) - max(df_ndrt_rocketpy["Altitude"])) / max(df_ndrt_raven[" Altitude (m-AGL)"]) < 0.015
+    assert abs(max(df_ndrt_raven[" Altitude (m-AGL)"]) - max(df_ndrt_rocketpy["Altitude"])) / \
+           max(df_ndrt_raven[" Altitude (m-AGL)"]) < 0.015
     assert (max(velocity_raven_filt) - Flight23.maxSpeed)/max(velocity_raven_filt) < 0.06
     assert abs(apogee_time_measured - apogee_time_simulated)/apogee_time_simulated < 0.02
-    assert abs(max(acceleration_rcp) - max(acceleration_Kalt_filt)) / max(acceleration_Kalt_filt) < 0.05
