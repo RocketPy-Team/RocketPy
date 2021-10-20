@@ -1,6 +1,6 @@
 name: LintBlack
 
-# Adapted from: https://github.com/marketplace/actions/lint-action
+# Adapted: https://github.com/marketplace/actions/lint-action
 
 on:
   # Trigger the workflow on pull request
@@ -24,9 +24,10 @@ jobs:
           python-version: 3.8
 
       - name: Install Python dependencies
-        run: pip install black
+        run: pip install black flake8
 
       - name: Run linters
         uses: wearerequired/lint-action@v1
         with:
           black: true
+          flake8: true
