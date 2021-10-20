@@ -51,9 +51,6 @@ Documentation Style
 Every class, method, attribute and function added to RocketPy should be well documented using docstrings.
 RocketPy follows NumPy style docstrings, which are very well explained here: `NumPyDoc Style Guide <https://numpydoc.readthedocs.io/en/latest/format.html>`_.
 
-Here is a short example of the simplest acceptable docstring:
-
-
 Git Style
 ---------
 
