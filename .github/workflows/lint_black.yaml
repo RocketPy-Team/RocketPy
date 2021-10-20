@@ -2,12 +2,7 @@ name: LintBlack
 
 # Adapted: https://github.com/marketplace/actions/lint-action
 
-on:
-  # Trigger the workflow on pull request
-  pull_request:
-    branches:
-      - main
-      - develop
+on: [pull_request]
 
 jobs:
   run-linters:
