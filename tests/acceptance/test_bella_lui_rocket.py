@@ -201,14 +201,16 @@ def test_bella_lui_rocket_data_asserts_acceptance():
     altitude_rcp.append(0)
     velocity_rcp.append(TestFlight.vz(TestFlight.tFinal))
     acceleration_rcp.append(TestFlight.az(TestFlight.tFinal))
-    
+
     # Acceleration comparison (will not be used in our publication)
     from scipy.signal import savgol_filter
 
     # Calculate the acceleration as a velocity derivative
     acceleration_Kalt = [0]
     for i in range(1, len(vertVel_Kalt), 1):
-        acc = (vertVel_Kalt[i] - vertVel_Kalt[i - 1]) / (time_Kalt[i] - time_Kalt[i - 1])
+        acc = (vertVel_Kalt[i] - vertVel_Kalt[i - 1]) / (
+            time_Kalt[i] - time_Kalt[i - 1]
+        )
         acceleration_Kalt.append(acc)
 
     acceleration_Kalt_filt = savgol_filter(acceleration_Kalt, 51, 3)  # Filter our data
@@ -216,7 +218,17 @@ def test_bella_lui_rocket_data_asserts_acceptance():
     apogee_time_measured = time_Kalt[np.argmax(altitude_Kalt)]
     apogee_time_simulated = TestFlight.apogeeTime
 
-    assert abs(max(altitude_Kalt) - TestFlight.apogee + TestFlight.env.elevation)/max(altitude_Kalt) < 0.015
-    assert abs(max(velocity_rcp) - max(vertVel_Kalt))/max(vertVel_Kalt) < 0.06
-    assert abs(max(acceleration_rcp) - max(acceleration_Kalt_filt))/max(acceleration_Kalt_filt) < 0.05
-    assert abs(apogee_time_measured - apogee_time_simulated) / apogee_time_simulated < 0.02
+    assert (
+        abs(max(altitude_Kalt) - TestFlight.apogee + TestFlight.env.elevation)
+        / max(altitude_Kalt)
+        < 0.015
+    )
+    assert abs(max(velocity_rcp) - max(vertVel_Kalt)) / max(vertVel_Kalt) < 0.06
+    assert (
+        abs(max(acceleration_rcp) - max(acceleration_Kalt_filt))
+        / max(acceleration_Kalt_filt)
+        < 0.05
+    )
+    assert (
+        abs(apogee_time_measured - apogee_time_simulated) / apogee_time_simulated < 0.02
+    )

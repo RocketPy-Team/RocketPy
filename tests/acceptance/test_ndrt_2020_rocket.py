@@ -182,15 +182,15 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     velocity_raven = [0]
     for i in range(1, len(df_ndrt_raven[" Altitude (m-AGL)"]), 1):
         v = (
-                    df_ndrt_raven[" Altitude (m-AGL)"][i]
-                    - df_ndrt_raven[" Altitude (m-AGL)"][i - 1]
-            ) / (df_ndrt_raven[" Time (s)"][i] - df_ndrt_raven[" Time (s)"][i - 1])
+            df_ndrt_raven[" Altitude (m-AGL)"][i]
+            - df_ndrt_raven[" Altitude (m-AGL)"][i - 1]
+        ) / (df_ndrt_raven[" Time (s)"][i] - df_ndrt_raven[" Time (s)"][i - 1])
         if (
-                v != 92.85844059786486
-                and v != -376.85000927682034
-                and v != -57.00530169566588
-                and v != -52.752200796647145
-                and v != 63.41561104540437
+            v != 92.85844059786486
+            and v != -376.85000927682034
+            and v != -57.00530169566588
+            and v != -52.752200796647145
+            and v != 63.41561104540437
         ):
             # This way we remove the outliers
             velocity_raven.append(v)
@@ -198,10 +198,19 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
             velocity_raven.append(velocity_raven[-1])
     velocity_raven_filt = savgol_filter(velocity_raven, 51, 3)
 
-    apogee_time_measured = df_ndrt_raven.loc[df_ndrt_raven[' Altitude (Ft-AGL)'].idxmax(), ' Time (s)']
+    apogee_time_measured = df_ndrt_raven.loc[
+        df_ndrt_raven[" Altitude (Ft-AGL)"].idxmax(), " Time (s)"
+    ]
     apogee_time_simulated = Flight23.apogeeTime
 
-    assert abs(max(df_ndrt_raven[" Altitude (m-AGL)"]) - max(df_ndrt_rocketpy["Altitude"])) / \
-           max(df_ndrt_raven[" Altitude (m-AGL)"]) < 0.015
-    assert (max(velocity_raven_filt) - Flight23.maxSpeed)/max(velocity_raven_filt) < 0.06
-    assert abs(apogee_time_measured - apogee_time_simulated)/apogee_time_simulated < 0.02
+    assert (
+        abs(max(df_ndrt_raven[" Altitude (m-AGL)"]) - max(df_ndrt_rocketpy["Altitude"]))
+        / max(df_ndrt_raven[" Altitude (m-AGL)"])
+        < 0.015
+    )
+    assert (max(velocity_raven_filt) - Flight23.maxSpeed) / max(
+        velocity_raven_filt
+    ) < 0.06
+    assert (
+        abs(apogee_time_measured - apogee_time_simulated) / apogee_time_simulated < 0.02
+    )

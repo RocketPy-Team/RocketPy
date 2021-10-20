@@ -5,11 +5,12 @@
 # the SWIG interface file instead.
 
 from sys import version_info as _swig_python_version_info
+
 if _swig_python_version_info < (2, 7, 0):
-    raise RuntimeError('Python 2.7 or later required')
+    raise RuntimeError("Python 2.7 or later required")
 
 # Import the low-level C/C++ module
-if __package__ or '.' in __name__:
+if __package__ or "." in __name__:
     from . import _SisRec
 else:
     import _SisRec
@@ -19,11 +20,12 @@ try:
 except ImportError:
     import __builtin__
 
+
 def _swig_setattr_nondynamic(self, class_type, name, value, static=1):
     if name == "thisown":
         return self.this.own(value)
     if name == "this":
-        if type(value).__name__ == 'SwigPyObject':
+        if type(value).__name__ == "SwigPyObject":
             self.__dict__[name] = value
             return
     method = class_type.__swig_setmethods__.get(name, None)
@@ -45,7 +47,9 @@ def _swig_getattr(self, class_type, name):
     method = class_type.__swig_getmethods__.get(name, None)
     if method:
         return method(self)
-    raise AttributeError("'%s' object has no attribute '%s'" % (class_type.__name__, name))
+    raise AttributeError(
+        "'%s' object has no attribute '%s'" % (class_type.__name__, name)
+    )
 
 
 def _swig_repr(self):
@@ -53,7 +57,11 @@ def _swig_repr(self):
         strthis = "proxy of " + self.this.__repr__()
     except __builtin__.Exception:
         strthis = ""
-    return "<%s.%s; %s >" % (self.__class__.__module__, self.__class__.__name__, strthis,)
+    return "<%s.%s; %s >" % (
+        self.__class__.__module__,
+        self.__class__.__name__,
+        strthis,
+    )
 
 
 def _swig_setattr_nondynamic_instance_variable(set):
@@ -66,6 +74,7 @@ def _swig_setattr_nondynamic_instance_variable(set):
             set(self, name, value)
         else:
             raise AttributeError("You cannot add instance attributes to %s" % self)
+
     return set_instance_attr
 
 
@@ -75,23 +84,29 @@ def _swig_setattr_nondynamic_class_variable(set):
             set(cls, name, value)
         else:
             raise AttributeError("You cannot add class attributes to %s" % cls)
+
     return set_class_attr
 
 
 def _swig_add_metaclass(metaclass):
     """Class decorator for adding a metaclass to a SWIG wrapped class - a slimmed down version of six.add_metaclass"""
+
     def wrapper(cls):
         return metaclass(cls.__name__, cls.__bases__, cls.__dict__.copy())
+
     return wrapper
 
 
 class _SwigNonDynamicMeta(type):
     """Meta class to enforce nondynamic attributes (no new attributes) for a class"""
+
     __setattr__ = _swig_setattr_nondynamic_class_variable(type.__setattr__)
 
 
 class SisRecSt(object):
-    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc='The membership flag')
+    thisown = property(
+        lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag"
+    )
     __repr__ = _swig_repr
     initialState = _SisRec.SisRecSt_initialState
     detectDrogue = _SisRec.SisRecSt_detectDrogue
@@ -115,10 +130,9 @@ class SisRecSt(object):
 
     def reset(self):
         return _SisRec.SisRecSt_reset(self)
+
     __swig_destroy__ = _SisRec.delete_SisRecSt
+
 
 # Register SisRecSt in _SisRec:
 _SisRec.SisRecSt_swigregister(SisRecSt)
-
-
-

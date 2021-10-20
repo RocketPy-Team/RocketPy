@@ -119,6 +119,7 @@ def drogueTrigger(p, y):
     # activate drogue when vz < 0 m/s.
     return True if y[5] < 0 else False
 
+
 Drogue = BellaLui.addParachute(
     "Drogue",
     CdS=parameters.get("CdSDrogue")[0],

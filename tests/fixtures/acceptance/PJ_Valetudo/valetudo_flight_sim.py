@@ -9,7 +9,7 @@ import numpy as np
 import os
 
 # Import parachute trigger algorithm named SisRec
-if os.name == 'nt':
+if os.name == "nt":
     from SisRecWindows import SisRec
 else:
     from SisRecLinux import SisRec
@@ -122,15 +122,19 @@ Valetudo.setRailButtons([0.224, -0.93], 30)
 
 # Set up parachutes
 sisRecDrogue = SisRec.SisRecSt(0.8998194205245451, 0.2)
+
+
 def drogueTrigger(p, y):
-    return True if sisRecDrogue.update(p/100000) == 2 else False
+    return True if sisRecDrogue.update(p / 100000) == 2 else False
+
+
 Drogue = Valetudo.addParachute(
-    'Drogue',
-    CdS=analysis_parameters['CdSDrogue'][0],
-    trigger=drogueTrigger, 
+    "Drogue",
+    CdS=analysis_parameters["CdSDrogue"][0],
+    trigger=drogueTrigger,
     samplingRate=105,
-    lag=analysis_parameters['lag_rec'][0] + analysis_parameters['lag_se'][0],
-    noise=(0, 8.3, 0.5)
+    lag=analysis_parameters["lag_rec"][0] + analysis_parameters["lag_se"][0],
+    noise=(0, 8.3, 0.5),
 )
 # Prepare parachutes
 sisRecDrogue.reset()

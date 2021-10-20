@@ -1,7 +1,7 @@
 # Notre Dame Rocket Team 2020 Flight
 # Launched at 19045-18879 Avery Rd, Three Oaks, MI 49128
 # Permission to use flight data given by Brooke Mumma, 2020
-# 
+#
 # IMPORTANT RESULTS  (23rd feb)
 # Measured Stability Margin 2.875 cal
 # Official Target Altitude 4,444 ft
@@ -129,11 +129,13 @@ def drogueTrigger(p, y):
     # activate drogue when vz < 0 m/s.
     return True if y[5] < 0 else False
 
+
 def mainTrigger(p, y):
     # p = pressure
     # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
     # activate main when vz < 0 m/s and z < 167.64 m (AGL) or 550 ft (AGL)
     return True if y[5] < 0 and y[2] < (167.64 + Env23.elevation) else False
+
 
 Drogue = NDRT2020.addParachute(
     "Drogue",
