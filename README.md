@@ -1,17 +1,26 @@
+![Diagram](https://raw.githubusercontent.com/Projeto-Jupiter/RocketPy/master/docs/static/RocketPy_Logo_Black.svg)
+
+<br/>
+<br/>
+
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/giovaniceotto/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb)
 [![PyPI](https://img.shields.io/pypi/v/rocketpy?color=g)](https://pypi.org/project/rocketpy/)
 [![Documentation Status](https://readthedocs.org/projects/rocketpyalpha/badge/?version=latest)](https://docs.rocketpy.org/en/latest/?badge=latest)
 [![Build Status](https://app.travis-ci.com/Projeto-Jupiter/RocketPy.svg?branch=master)](https://app.travis-ci.com/Projeto-Jupiter/RocketPy)
-[![Chat on Discord](https://img.shields.io/discord/765037887016140840?logo=discord)](https://discord.gg/b6xYnNh)
 [![Contributors](https://img.shields.io/github/contributors/Projeto-Jupiter/rocketpy)](https://github.com/Projeto-Jupiter/RocketPy/graphs/contributors)
+[![Chat on Discord](https://img.shields.io/discord/765037887016140840?logo=discord)](https://discord.gg/b6xYnNh)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/company/rocketpy)
 [![DOI](https://img.shields.io/badge/DOI-10.1061%2F%28ASCE%29AS.1943--5525.0001331-blue.svg)](http://dx.doi.org/10.1061/%28ASCE%29AS.1943-5525.0001331)
 
-# RocketPy
+<br/>
+<br/>
+
+# The RocketPy
 RocketPy is a trajectory simulation for High-Power Rocketry built by [Projeto Jupiter](https://www.facebook.com/ProjetoJupiter/). The code is written as a [Python](http://www.python.org) library and allows for a complete 6 degrees of freedom simulation of a rocket's flight trajectory, including high fidelity variable mass effects as well as descent under parachutes. Weather conditions, such as wind profile, can be imported from sophisticated datasets, allowing for realistic scenarios. Furthermore, the implementation facilitates complex simulations, such as multi-stage rockets, design and trajectory optimization and dispersion analysis.
 
-## Main features
+<br/>
 
+## Main features
 <details>
 <summary>Nonlinear 6 degrees of freedom simulations</summary>
 <ul>
@@ -75,8 +84,9 @@ RocketPy is a trajectory simulation for High-Power Rocketry built by [Projeto Ju
 </ul>
 </details>
 
-## Validation
+<br/>
 
+## Validation
 
 RocketPy's features have been validated in our latest [research article published in the Journal of Aerospace Engineering](http://dx.doi.org/10.1061/%28ASCE%29AS.1943-5525.0001331).
 Below there is a comparison between experimental data and the output from RocketPy.
@@ -91,6 +101,13 @@ Flight data and rocket parameters used in this comparison were kindly provided b
 | NDRT launch vehicle   |    Apogee time (s)      |   16.77  |   17.10  |       **-1.90**   |
 | NDRT launch vehicle   | Maximum velocity (m/s)  |  172.86  |  168.95  |      **2.31**     |
 
+RocketPy also displays several graphs for an better analisys, such as the landing dispersion and flight trejectory below.
+
+![Diagram](https://raw.githubusercontent.com/Projeto-Jupiter/RocketPy/master/docs/static/Dispesion_Graph.svg)
+
+![Diagram](https://raw.githubusercontent.com/Projeto-Jupiter/RocketPy/master/docs/static/Rocket_Trajectory.svg)
+
+<br/>
 
 ## Documentation
 
@@ -100,20 +117,31 @@ Check out documentation details using the links below:
   - [Code Documentation](https://docs.rocketpy.org/en/latest/reference/index.html)
   - [Development Guide](https://docs.rocketpy.org/en/latest/development/index.html)
 
-## Join Our Community!
+<br/>
+
+
+# Join Our Community!
 RocketPy is growing fast! Many university groups and rocket hobbyist have already started using it. The number of stars and forks for this repository is skyrocketing. And this is all thanks to a great community of users, engineers, developers, marketing specialists, and everyone interested in helping.
 
 If you want to be a part of this and make RocketPy your own, join our [Discord](https://discord.gg/b6xYnNh) server today!
 
-## Previewing
+<br/>
+
+# Previewing
 
 You can preview RocketPy's main functionalities by browsing through a sample notebook in [Google Colab](https://colab.research.google.com/github/giovaniceotto/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb).  No installation required!
 
 When you are ready to run RocketPy locally, you can read the *Getting Started* section!
 
-## Getting Started
+<br/>
+<br/>
 
-### Quick Installation
+
+# Getting Started
+
+<br/>
+
+## Quick Installation
 
 To install RocketPy's latest stable version from PyPI, just open up your terminal and run:
 
@@ -124,7 +152,10 @@ pip install rocketpy
 For other installation options, visit our [Installation Docs](https://docs.rocketpy.org/en/latest/user/installation.html).
 To learn more about RocketPy's requirements, visit our [Requirements Docs](https://docs.rocketpy.org/en/latest/user/requirements.html).
 
-### Running Your First Simulation
+<br/>
+
+
+## Running Your First Simulation
 
 In order to run your first rocket trajectory simulation using RocketPy, you can start a Jupyter Notebook and navigate to the **_nbks_** folder. Open **_Getting Started - Examples.ipynb_** and you are ready to go.
 
@@ -267,7 +298,10 @@ To seel all available results, use:
 TestFlight.allInfo()
 ```
 
-## Authors and Contributors
+<br/>
+<br/>
+
+# Authors and Contributors
 
 This package was originally created by [Giovani Ceotto](https://github.com/giovaniceotto/) as part of his work at Projeto Jupiter. [Rodrigo Schmitt](https://github.com/rodrigo-schmitt/) was one of the first contributors.
 
@@ -279,14 +313,20 @@ Since then, the [RocketPy Team](https://github.com/orgs/Projeto-Jupiter/teams/ro
 
 See a [detailed list of contributors](https://github.com/giovaniceotto/RocketPy/contributors) who are actively working on RocketPy.
 
+<br/>
+
+
 ## Contributing
 
 Please read [CONTRIBUTING.md](https://github.com/giovaniceotto/RocketPy/blob/master/CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us. - **_Still working on this!_**
+
+<br/>
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/giovaniceotto/RocketPy/blob/master/LICENSE) file for details
 
+<br/>
+
 ## Release Notes
 Want to know which bugs have been fixed and new features of each version? Check out the [release notes](https://github.com/giovaniceotto/RocketPy/releases).
-
