@@ -1,13 +1,8 @@
 name: LintBlack
 
-# Adapted from: https://github.com/marketplace/actions/lint-action
+# Adapted: https://github.com/marketplace/actions/lint-action
 
-on:
-  # Trigger the workflow on pull request
-  pull_request:
-    branches:
-      - main
-      - develop
+on: [pull_request]
 
 jobs:
   run-linters:
@@ -30,3 +25,4 @@ jobs:
         uses: wearerequired/lint-action@v1
         with:
           black: true
+          auto_fix: true

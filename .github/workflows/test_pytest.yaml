@@ -1,11 +1,6 @@
 name: PyTest
 
-on:
-  # Trigger the workflow on pull request
-  pull_request:
-    branches:
-      - main
-      - develop
+on: [pull_request]
 
 jobs:
   build:
