@@ -7,7 +7,7 @@
 Please check the type of change your PR introduces:
 
 - [ ] Code base additions (bugfix, features)
-- [ ] Code maintenance (refactoring, formatting, renaming)
+- [ ] Code maintenance (refactoring, formatting, renaming, tests)
 - [ ] ReadMe, Docs and GitHub maintenance
 - [ ] Other (please describe):
 
@@ -20,7 +20,7 @@ Please check if your PR fulfills the following requirements, depending on the ty
   - [ ] Spelling has been verified
   - [ ] Code docs are working correctly 
 
-- Code base maintenance (for bug fixes / features):
+- Code base maintenance (refactoring, formatting, renaming):
 
   - [ ] Docs have been reviewed and added / updated if needed
   - [ ] Lint (`black rocketpy`) has passed locally and any fixes were made
