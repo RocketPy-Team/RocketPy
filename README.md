@@ -103,9 +103,9 @@ Flight data and rocket parameters used in this comparison were kindly provided b
 
 RocketPy also displays several graphs for an better analisys, such as the landing dispersion and flight trejectory below.
 
-![Diagram](https://raw.githubusercontent.com/Projeto-Jupiter/RocketPy/master/docs/static/Dispesion_Graph.svg)
+![Diagram](docs\static\Dispesion_Graph.svg)
 
-![Diagram](https://raw.githubusercontent.com/Projeto-Jupiter/RocketPy/master/docs/static/Rocket_Trajectory.svg)
+![Diagram](docs\static\Rocket_Trajectory.svg)
 
 <br/>
 
