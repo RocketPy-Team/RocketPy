@@ -16,7 +16,7 @@
 <br/>
 
 # The RocketPy
-RocketPy is a trajectory simulation for High-Power Rocketry built by [Projeto Jupiter](https://www.facebook.com/ProjetoJupiter/). The code is written as a [Python](http://www.python.org) library and allows for a complete 6 degrees of freedom simulation of a rocket's flight trajectory, including high fidelity variable mass effects as well as descent under parachutes. Weather conditions, such as wind profile, can be imported from sophisticated datasets, allowing for realistic scenarios. Furthermore, the implementation facilitates complex simulations, such as multi-stage rockets, design and trajectory optimization and dispersion analysis.
+RocketPy is the next-generation trajectory simulation solution for High-Power Rocketry. The code is written as a [Python](http://www.python.org) library and allows for a complete 6 degrees of freedom simulation of a rocket's flight trajectory, including high fidelity variable mass effects as well as descent under parachutes. Weather conditions, such as wind profile, can be imported from sophisticated datasets, allowing for realistic scenarios. Furthermore, the implementation facilitates complex simulations, such as multi-stage rockets, design and trajectory optimization and dispersion analysis.
 
 <br/>
 
@@ -83,23 +83,25 @@ RocketPy is a trajectory simulation for High-Power Rocketry built by [Projeto Ju
   <li>Create new classes (e.g. other types of motors)</li>
 </ul>
 </details>
+<br>
 
 <br/>
 
 ## Validation
 
 RocketPy's features have been validated in our latest [research article published in the Journal of Aerospace Engineering](http://dx.doi.org/10.1061/%28ASCE%29AS.1943-5525.0001331).
-Below there is a comparison between experimental data and the output from RocketPy.
+
+The table below shows a comparison between experimental data and the output from RocketPy.
 Flight data and rocket parameters used in this comparison were kindly provided by [EPFL Rocket Team](https://github.com/EPFLRocketTeam) and [Notre Dame Rocket Team](https://ndrocketry.weebly.com/).
 
-|        Mission        |    Result Paramater     | RocketPy | Measured | Relative  Error % |
-|:---------------------:|:---------------------:  |:--------:|:--------:|:----------------: |
-| Bella Lui Kaltbrunn   |  Apogee altitude (m)    |  461.03  |  458.97  |       **0.45**    |
-| Bella Lui Kaltbrunn   |    Apogee time (s)      |   10.61  |   10.56  |       **0.47**    |
-| Bella Lui Kaltbrunn   | Maximum velocity (m/s)  |   86.18  |   90.00  |      **4.24**     |
-| NDRT launch vehicle   |  Apogee altitude (m)    | 1,310.44 | 1,320.37 |       **-0.75**   |
-| NDRT launch vehicle   |    Apogee time (s)      |   16.77  |   17.10  |       **-1.90**   |
-| NDRT launch vehicle   | Maximum velocity (m/s)  |  172.86  |  168.95  |      **2.31**     |
+|         Mission         |    Result Paramater    | RocketPy  | Measured  | Relative Error |
+|:-----------------------:|:-----------------------|:---------:|:---------:|:--------------:|
+|   Bella Lui Kaltbrumn   | Apogee altitude (m)    |   461.03  |   458.97  |   **0.45 %**   |
+|   Bella Lui Kaltbrumn   | Apogee time (s)        |    10.61  |    10.56  |   **0.47 %**   |
+|   Bella Lui Kaltbrumn   | Maximum velocity (m/s) |    86.18  |    90.00  |   **4.24 %**   |
+|   NDRT launch vehicle   | Apogee altitude (m)    | 1,310.44  | 1,320.37  |   **-0.75 %**  |
+|   NDRT launch vehicle   | Apogee time (s)        |    16.77  |    17.10  |   **-1.90 %**  |
+|   NDRT launch vehicle   | Maximum velocity (m/s) |   172.86  |   168.95  |   **2.31 %**   |
 
 RocketPy also displays several graphs for an better analisys, such as the landing dispersion and flight trejectory below.
 
@@ -157,7 +159,7 @@ To learn more about RocketPy's requirements, visit our [Requirements Docs](https
 
 ## Running Your First Simulation
 
-In order to run your first rocket trajectory simulation using RocketPy, you can start a Jupyter Notebook and navigate to the **_nbks_** folder. Open **_Getting Started - Examples.ipynb_** and you are ready to go.
+In order to run your first rocket trajectory simulation using RocketPy, you can start a Jupyter Notebook and navigate to the _nbks_ folder. Open _Getting Started - Examples.ipynb_ and you are ready to go.
 
 Otherwise, you may want to create your own script or your own notebook using RocketPy. To do this, let's see how to use RocketPy's four main classes:
 
@@ -303,30 +305,37 @@ TestFlight.allInfo()
 
 # Authors and Contributors
 
-This package was originally created by [Giovani Ceotto](https://github.com/giovaniceotto/) as part of his work at Projeto Jupiter. [Rodrigo Schmitt](https://github.com/rodrigo-schmitt/) was one of the first contributors.
+This package was originally created by [Giovani Ceotto](https://github.com/giovaniceotto/) as part of his work at [Projeto Jupiter](https://github.com/Projeto-Jupiter/). [Rodrigo Schmitt](https://github.com/rodrigo-schmitt/) was one of the first contributors.
 
 Later, [Guilherme Fernandes](https://github.com/Gui-FernandesBR/) and [Lucas Azevedo](https://github.com/lucasfourier/) joined the team to work on the expansion and sustainability of this project.
 
 Since then, the [RocketPy Team](https://github.com/orgs/Projeto-Jupiter/teams/rocketpy-team) has been growing fast and our contributors are what makes us special!
 
-[![GitHub Contributors Image](https://contrib.rocks/image?repo=Projeto-Jupiter/RocketPy)](https://github.com/giovaniceotto/RocketPy/contributors)
+[![GitHub Contributors Image](https://contrib.rocks/image?repo=Projeto-Jupiter/RocketPy)](https://github.com/Projeto-Jupiter/RocketPy/contributors)
 
-See a [detailed list of contributors](https://github.com/giovaniceotto/RocketPy/contributors) who are actively working on RocketPy.
+See a [detailed list of contributors](https://github.com/Projeto-Jupiter/RocketPy/contributors) who are actively working on RocketPy.
+
+## Supporting RocketPy and Contributing
+
+The easiest way to help RocketPy is to demonstrate your support by starring our repository! ![GitHub Repo stars](https://img.shields.io/github/stars/Projeto-Jupiter/RocketPy?style=social)
 
 <br/>
 
+If you are actively using RocketPy in one of your projects, reaching out to our core team via [Discord](https://discord.gg/b6xYnNh) and providing feedback can help improve RocketPy a lot!
 
-## Contributing
-
-Please read [CONTRIBUTING.md](https://github.com/giovaniceotto/RocketPy/blob/master/CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us. - **_Still working on this!_**
+And if you are interested in going one step further, please read [CONTRIBUTING.md](https://github.com/Projeto-Jupiter/RocketPy/blob/master/CONTRIBUTING.md) for details on our code of conduct and learn more on how you can contribute with the development of this next-gen trajectory simulation solution for rocketry.
 
 <br/>
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/giovaniceotto/RocketPy/blob/master/LICENSE) file for details
+This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/Projeto-Jupiter/RocketPy/blob/master/LICENSE) file for details
+
 
 <br/>
+
+## Release Notes
+Want to know which bugs have been fixed and new features of each version? Check out the [release notes](https://github.com/Projeto-Jupiter/RocketPy/releases).
 
 ## Release Notes
 Want to know which bugs have been fixed and new features of each version? Check out the [release notes](https://github.com/giovaniceotto/RocketPy/releases).
