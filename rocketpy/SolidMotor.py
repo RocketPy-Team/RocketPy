@@ -664,7 +664,7 @@ class SolidMotor:
             for line in file:
                 if re.search(r";.*", line):
                     # Extract comment
-                    comments.append(re.findall(r";.*", line))
+                    comments.append(re.findall(r";.*\n", line)[0])
                     line = re.sub(r";.*", "", line)
                 if not line.isspace():
                     if description == []:
