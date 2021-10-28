@@ -662,10 +662,11 @@ class SolidMotor:
         # Open and read .eng file
         with open(fileName) as file:
             for line in file:
-                if line[0] == ";":
+                if re.search(r";.*", line):
                     # Extract comment
-                    comments.append(line)
-                else:
+                    comments.append(re.findall(r";.*\n", line)[0])
+                    line = re.sub(r";.*", "", line)
+                if not line.isspace():
                     if description == []:
                         # Extract description
                         description = line.strip().split(" ")
