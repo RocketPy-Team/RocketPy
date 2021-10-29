@@ -644,7 +644,7 @@ class Environment:
         International Standard Atmosphere, importing data from
         weather reanalysis, forecasts and ensemble forecasts,
         importing data from upper air soundings and inputing
-        data as costum functions, arrays or csv files.
+        data as custom functions, arrays or csv files.
 
         Parameters
         ----------
@@ -1158,8 +1158,8 @@ class Environment:
             # Save dictionary and file
             self.atmosphericModelFile = file
             self.atmosphericModelDict = dictionary
-        elif type == "CostumAtmosphere":
-            self.processCostumAtmosphere(pressure, temperature, wind_u, wind_v)
+        elif type == "CustomAtmosphere":
+            self.processCustomAtmosphere(pressure, temperature, wind_u, wind_v)
         else:
             raise ValueError("Unknown model type.")
 
@@ -1230,7 +1230,7 @@ class Environment:
 
         return None
 
-    def processCostumAtmosphere(
+    def processCustomAtmosphere(
         self, pressure=None, temperature=None, wind_u=0, wind_v=0
     ):
         """Import pressure, temperature and wind profile given by user.
@@ -1312,14 +1312,14 @@ class Environment:
             # Use standard atmosphere
             self.pressure = self.pressureISA
         else:
-            # Use costum input
+            # Use custom input
             self.pressure = Function(
                 pressure,
                 inputs="Height Above Sea Level (m)",
                 outputs="Pressure (Pa)",
                 interpolation="linear",
             )
-            # Check maximum height of costum pressure input
+            # Check maximum height of custom pressure input
             if not callable(self.pressure.source):
                 maxExpectedHeight = max(self.pressure[-1, 0], maxExpectedHeight)
 
