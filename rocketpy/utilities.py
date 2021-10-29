@@ -24,7 +24,7 @@ from rocketpy import Environment, Rocket, SolidMotor, Flight
 
 def compute_cds_from_drop_test(final_air_density, final_speed, rocket_mass, gravity):
     """Returns the parachute's Cds calculated through its final speed, air 
-    density and the rocket's mass.
+    density, the rocket's mass and the force of gravity in the landing point.
 
     Parameters
     ----------
@@ -34,6 +34,8 @@ def compute_cds_from_drop_test(final_air_density, final_speed, rocket_mass, grav
         Air density right before the rocket lands.
     rocket_mass : float
         Rocket's mass in kgpygame.examples.mask.main()
+    gravity : float
+        force of gravity in the landing point.
 
     Returns
     -------
