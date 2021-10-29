@@ -22,7 +22,7 @@ from matplotlib import cm
 
 from rocketpy import Environment, Rocket, SolidMotor, Flight
 
-def calculate_cds(final_air_density, final_speed, rocket_mass):
+def compute_cds_from_drop_test(final_air_density, final_speed, rocket_mass, gravity):
     """Returns the parachute's Cds calculated through its final speed, air 
     density and the rocket's mass.
 
@@ -42,5 +42,5 @@ def calculate_cds(final_air_density, final_speed, rocket_mass):
 
     """
         
-    cds = 2 * rocket_mass * 9.80665 / ((final_speed ** 2) * final_air_density)
+    cds = 2 * rocket_mass * gravity / ((final_speed ** 2) * final_air_density)
     return cds
