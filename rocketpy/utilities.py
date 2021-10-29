@@ -30,11 +30,11 @@ def compute_cds_from_drop_test(final_speed, final_air_density, rocket_mass, grav
     Parameters
     ----------
     final_speed : float
-        Rocket's speed when landing.
+        Rocket's speed in m/s^2 when landing.
     final_air_density : float
-        Air density right before the rocket lands.
+        Air density, in kg/m^3, right before the rocket lands.
     rocket_mass : float
-        Rocket's mass in kgpygame.examples.mask.main()
+        Rocket's mass in kg.
     gravity : float
         force of gravity in the landing point in newtons.
 
