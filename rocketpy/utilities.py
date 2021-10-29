@@ -36,7 +36,7 @@ def compute_cds_from_drop_test(final_speed, final_air_density, rocket_mass, grav
     rocket_mass : float
         Rocket's mass in kgpygame.examples.mask.main()
     gravity : float
-        force of gravity in the landing point.
+        force of gravity in the landing point in newtons.
 
     Returns
     -------
