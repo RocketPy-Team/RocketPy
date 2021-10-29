@@ -67,9 +67,9 @@ def test_standard_atmosphere(mock_show, example_env):
 
 
 @patch("matplotlib.pyplot.show")
-def test_costum_atmosphere(mock_show, example_env):
+def test_custom_atmosphere(mock_show, example_env):
     example_env.setAtmosphericModel(
-        type="CostumAtmosphere",
+        type="CustomAtmosphere",
         pressure=None,
         temperature=300,
         wind_u=[(0, 5), (1000, 10)],
