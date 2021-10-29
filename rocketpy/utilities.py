@@ -23,8 +23,8 @@ from matplotlib import cm
 from rocketpy import Environment, Rocket, SolidMotor, Flight
 
 def calculate_cds(final_air_density, final_speed, rocket_mass):
-    """Returns the parachute's Cds calculated through its final speed and 
-    air density.
+    """Returns the parachute's Cds calculated through its final speed, air 
+    density and the rocket's mass.
 
     Parameters
     ----------
