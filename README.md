@@ -336,6 +336,3 @@ This project is licensed under the MIT License - see the [LICENSE.md](https://gi
 
 ## Release Notes
 Want to know which bugs have been fixed and new features of each version? Check out the [release notes](https://github.com/Projeto-Jupiter/RocketPy/releases).
-
-## Release Notes
-Want to know which bugs have been fixed and new features of each version? Check out the [release notes](https://github.com/giovaniceotto/RocketPy/releases).
