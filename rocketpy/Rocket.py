@@ -546,8 +546,6 @@ class Rocket:
             contain no headers and the first column must specify time in
             seconds, while the second column specifies lift coefficient. Lift
             coeffitient is adimentional.
-        hello : string
-            hello idiota denovo
 
         Returns
         -------
