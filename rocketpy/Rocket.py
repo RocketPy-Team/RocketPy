@@ -546,6 +546,8 @@ class Rocket:
             contain no headers and the first column must specify time in
             seconds, while the second column specifies lift coefficient. Lift
             coeffitient is adimentional.
+        hello : string
+            hello idiota denovo
 
         Returns
         -------
@@ -561,6 +563,9 @@ class Rocket:
         Yr = rootChord + tipChord
         s = span
         Lf = np.sqrt((rootChord / 2 - tipChord / 2) ** 2 + span ** 2)
+        Af = (rootChord + tipChord) * span / 2  # fin area
+        AR = 2 * (span ** 2) / Af  # Aspect ratio
+        gamac = np.arctan((Cr - Ct) / (2 * span))  # mid chord angle
         radius = self.radius if radius == 0 else radius
         d = 2 * radius
 
@@ -583,78 +588,45 @@ class Rocket:
             )
 
         # Calculate lift parameters for planar fins
-        if not airfoil:
-            # Calculate clalpha
-            clalpha = (4 * n * (s / d) ** 2) / (1 + np.sqrt(1 + (2 * Lf / Yr) ** 2))
-            clalpha *= 1 + radius / (s + radius)
 
-            # # Create a function of lift values by attack angle
-            cldata = Function(
-                lambda x: clalpha * x, "Alpha (rad)", "Cl", interpolation="linear"
-            )
-
-            # Store values
-            fin = [(0, 0, cpz), cldata, "Fins"]
-            self.aerodynamicSurfaces.append(fin)
-
-            # Refresh static margin calculation
-            self.evaluateStaticMargin()
-
-            # Return self
-            return self.aerodynamicSurfaces[-1]
-
-        else:
-
-            def cnalfa1(cn, Cnalfa0):
-                """Calculates the normal force coefficient derivative of a 3D
-                airfoil for a given Cnalfa0
-
-                Parameters
-                ----------
-                cn : int
-                    Normal force coefficient derivative of a 2D airfoil.
-
-                Returns
-                -------
-                Cnalfa1 : int
-                    Normal force coefficient derivative of a 3D airfoil.
-                """
-
-                # Retrieve parameters for calculations
-
-                Af = (Cr + Ct) * span / 2   # fin area
-                AR = 2 * (span ** 2) / Af   # Aspect ratio
-                gamac = np.arctan((Cr - Ct) / (2 * span))   # mid chord angle
-                FD = 2 * np.pi * AR / (Cnalfa0 * np.cos(gamac))
-                Cnalfa1 = (
-                    cn
-                    * FD
-                    * (Af / self.area)
-                    * np.cos(gamac)
-                    / (2 + FD * (1 + (4 / FD ** 2)) ** 0.5)
-                )
-                return Cnalfa1
-
+        if airfoil:
             # Import the lift curve as a function of lift values by attack angle
             read = genfromtxt(airfoil, delimiter=",")
-            cnalfa0 = Function(read).differentiate(0, 1e-1)
+            cnalfa0 = Function(read, extrapolation="natural").differentiate(0, 1e-01)
 
-            # Aplies number of fins to lift coefficient data
-            data = [[cl[0], (n / 2) * cnalfa1(cl[1], cnalfa0)] for cl in read]
-            cldata = Function(data, 'Alpha (rad)', 'Cl', interpolation='linear', extrapolation = 'natural')
+            # Calculate clalpha
+            FD = 2 * np.pi * AR / (cnalfa0 * np.cos(gamac))
+            clalpha = (
+                cnalfa0
+                * FD
+                * (Af / self.area)
+                * np.cos(gamac)
+                / (2 + FD * (1 + (4 / FD ** 2)) ** 0.5)
+            )
 
-            # Takes an approximation to an angular coefficient
-            clalpha = cldata.differentiate(x=0, dx=1e-2)
+            # Aplies number of fins to lift coefficient
+            clalpha *= n / 2
+        else:
+            # Calculate clalpha
+            clalpha = (4 * n * (s / d) ** 2) / (1 + np.sqrt(1 + (2 * Lf / Yr) ** 2))
 
-            # Store values
-            fin = [(0, 0, cpz), cldata, "Fins"]
-            self.aerodynamicSurfaces.append(fin)
+        # Fin–body interference correction
+        clalpha *= 1 + radius / (s + radius)
 
-            # Refresh static margin calculation
-            self.evaluateStaticMargin()
+        # Create a function of lift values by attack angle
+        cldata = Function(
+            lambda x: clalpha * x, "Alpha (rad)", "Cl", interpolation="linear"
+        )
 
-            # Return self
-            return self.aerodynamicSurfaces[-1]
+        # Store values
+        fin = [(0, 0, cpz), cldata, "Fins"]
+        self.aerodynamicSurfaces.append(fin)
+
+        # Refresh static margin calculation
+        self.evaluateStaticMargin()
+
+        # Return self
+        return self.aerodynamicSurfaces[-1]
 
     def addParachute(
         self, name, CdS, trigger, samplingRate=100, lag=0, noise=(0, 0, 0)
