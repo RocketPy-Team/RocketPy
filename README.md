@@ -103,11 +103,9 @@ Flight data and rocket parameters used in this comparison were kindly provided b
 |   NDRT launch vehicle   | Apogee time (s)        |    16.77  |    17.10  |   **-1.90 %**  |
 |   NDRT launch vehicle   | Maximum velocity (m/s) |   172.86  |   168.95  |   **2.31 %**   |
 
-RocketPy also displays several graphs for an better analisys, such as the landing dispersion and flight trejectory below.
+RocketPy also displays several graphs for an better analisys, such as the one shown below.
 
-![Diagram](docs\static\Dispesion_Graph.svg)
-
-![Diagram](docs\static\Rocket_Trajectory.svg)
+![Diagram](docs\static\rocketpy_example_trajectory.svg)
 
 <br/>
 
