@@ -9,6 +9,7 @@ import math
 import bisect
 import warnings
 import time
+import pytz
 from datetime import datetime, timedelta
 from inspect import signature, getsourcelines
 from collections import namedtuple
@@ -346,6 +347,12 @@ class Environment:
             self.setDate(date)
         else:
             self.date = None
+            
+        # Save local date
+        self.local_date = None
+
+        # Save local time zone
+        self.time_zone = None
 
         # Initialize constants
         self.earthRadius = 6.3781 * (10 ** 6)
@@ -380,12 +387,15 @@ class Environment:
 
     def setDate(self, date):
         """Set date and time of launch and update weather conditions if
-        date dependent atmospheric model is used.
+        date dependent atmospheric model is used. To see all time zones use
+        print(pytz.all_timezones).
 
         Parameters
         ----------
         date : Date
             Date object specifying launch date and time.
+        time_zone : string, optional
+            Name of the time zone.
 
         Return
         ------
@@ -393,6 +403,11 @@ class Environment:
         """
         # Store date
         self.date = datetime(*date)
+
+        if time_zone != None:
+            self.time_zone = time_zone
+            tz = pytz.timezone(self.time_zone)
+            self.local_date = self.date.replace(tzinfo=pytz.UTC).astimezone(tz)
 
         # Update atmospheric conditions if atmosphere type is Forecast,
         # Reanalysis or Ensemble
@@ -2823,6 +2838,8 @@ class Environment:
         print("\nLaunch Rail Length: ", self.rL, " m")
         if self.date != None:
             print("Launch Date: ", self.date, " UTC")
+        if self.local_date != None:
+            print("Launch Date: ", self.local_date, self.time_zone)
         if self.lat != None and self.lon != None:
             print("Launch Site Latitude: {:.5f}°".format(self.lat))
             print("Launch Site Longitude: {:.5f}°".format(self.lon))
@@ -2950,6 +2967,8 @@ class Environment:
         print("\nLaunch Rail Length: ", self.rL, " m")
         if self.date != None:
             print("Launch Date: ", self.date, " UTC")
+        if self.local_date != None:
+            print("Launch Date: ", self.local_date, self.time_zone)
         if self.lat != None and self.lon != None:
             print("Launch Site Latitude: {:.5f}°".format(self.lat))
             print("Launch Site Longitude: {:.5f}°".format(self.lon))
