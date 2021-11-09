@@ -309,6 +309,8 @@ class Rocket:
         # Evaluate static margin (even though no aerodynamic surfaces are present yet)
         self.evaluateStaticMargin()
 
+        self.evaluateDragCoefficient()
+
         return None
 
     def evaluateDragCoefficient(self):
@@ -327,9 +329,12 @@ class Rocket:
             Function of mach number expressing the viscous friction coefficient,
             defined as in the literature.
         """
+
+        self.evaluateViscousFrictionCoefficient()
+
         self.drag_coefficient_estimate = (
             self.evaluateForebodyDragCoefficient()
-            + np.sum(self.aerodynamicSurfaces[:, 2])
+            + np.sum([self.aerodynamicSurfaces[i][2] for i in range(len(self.aerodynamicSurfaces))])
         )
 
         if not self.power_off_drag_as_input:
@@ -369,12 +374,12 @@ class Rocket:
             reynolds_critical = 5e5
 
             if reynolds <= reynolds_critical:
-                return 1.328 / sqrt(reynolds)
+                return 1.328 / (sqrt(reynolds))
             else:
                 B = reynolds_critical * (
-                    0.074 / (reynolds ** (1 / 5)) - 1.328 / sqrt(reynolds)
+                    0.074 / (reynolds ** (1 / 5)) - (1.328 / (sqrt(reynolds)))
                 )
-                return 0.074 / (reynolds ** (1 / 5)) - B / reynolds
+                return 0.074 / (reynolds ** (1 / 5)) - (B / reynolds)
 
         self.viscous_friction_coefficient = Function(
             calculations, "Mach Number", "Viscous Friction Coefficient"
@@ -412,7 +417,7 @@ class Rocket:
                     / self.radius
                 )
                 * (
-                    2.7 * self.nose_length / (self.radius)
+                    2.7 * self.nose_length / (2 * self.radius)
                     + 2
                     * (self.rocket_length - self.nose_length - self.tail_length)
                     / self.radius
@@ -421,7 +426,7 @@ class Rocket:
                     * self.tail_length
                     / (2 * self.radius)
                 )
-                * self.evaluateViscousFrictionCoefficient()
+                * self.viscous_friction_coefficient(mach)
             )
 
             return forebody_drag_coefficient
@@ -612,6 +617,9 @@ class Rocket:
         # Refresh static margin calculation
         self.evaluateStaticMargin()
 
+        # Refresh Drag coefficient calculation
+        self.evaluateDragCoefficient()
+
         # Return self
         return self.aerodynamicSurfaces[-1]
 
@@ -684,6 +692,9 @@ class Rocket:
 
         # Refresh static margin calculation
         self.evaluateStaticMargin()
+
+        # Refresh Drag coefficient calculation
+        self.evaluateDragCoefficient()
 
         # Return self
         return self.aerodynamicSurfaces[-1]
@@ -844,6 +855,9 @@ class Rocket:
 
         # Refresh static margin calculation
         self.evaluateStaticMargin()
+
+        # Refresh Drag coefficient calculation
+        self.evaluateDragCoefficient()
 
         # Return self
         return self.aerodynamicSurfaces[-1]
