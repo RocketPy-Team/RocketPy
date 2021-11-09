@@ -385,7 +385,7 @@ class Environment:
 
         return None
 
-    def setDate(self, date, time_zone = None):
+    def setDate(self, date, time_zone=None):
         """Set date and time of launch and update weather conditions if
         date dependent atmospheric model is used. To see all time zones use
         print(pytz.all_timezones).
