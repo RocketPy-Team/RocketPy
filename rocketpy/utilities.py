@@ -6,7 +6,8 @@ __license__ = "MIT"
 
 
 
-def compute_cds_from_drop_test(final_speed, final_air_density, rocket_mass, gravity):
+def compute_CdS_from_drop_test(terminal_velocity, rocket_mass, air_density=1.225, gravity=9.80665):
+
     """Returns the parachute's Cds calculated through its final speed, air
     density in the landing point, the rocket's mass and the force of gravity
     in the landing point.
