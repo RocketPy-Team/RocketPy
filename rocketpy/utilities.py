@@ -37,7 +37,8 @@ def compute_cds_from_drop_test(final_speed, final_air_density, rocket_mass, grav
     rocket_mass : float
         Rocket's mass in kg.
     gravity : float
-        force of gravity in the landing point in newtons.
+        Gravitational acceleration experienced by the rocket and parachute during descent in m/s^2. Default value is the standard gravity, 9.80665.
+
 
     Returns
     -------
