@@ -16,8 +16,9 @@ def compute_CdS_from_drop_test(terminal_velocity, rocket_mass, air_density=1.225
     ----------
     final_speed : float
         Rocket's speed in m/s^2 when landing.
-    final_air_density : float
-        Air density, in kg/m^3, right before the rocket lands.
+    final_air_density : float, optional
+        Air density, in kg/m^3, right before the rocket lands. Default value is 1.225.
+
     rocket_mass : float
         Rocket's mass in kg.
     gravity : float
