@@ -329,12 +329,13 @@ class Rocket:
             Function of mach number expressing the viscous friction coefficient,
             defined as in the literature.
         """
-
         self.evaluateViscousFrictionCoefficient()
 
-        self.drag_coefficient_estimate = (
-            self.evaluateForebodyDragCoefficient()
-            + np.sum([self.aerodynamicSurfaces[i][2] for i in range(len(self.aerodynamicSurfaces))])
+        self.drag_coefficient_estimate = self.viscous_friction_coefficient + np.sum(
+            [
+                self.aerodynamicSurfaces[i][2]
+                for i in range(len(self.aerodynamicSurfaces))
+            ]
         )
 
         if not self.power_off_drag_as_input:
@@ -373,7 +374,9 @@ class Rocket:
             )
             reynolds_critical = 5e5
 
-            if reynolds <= reynolds_critical:
+            if reynolds <= 1e4:
+                return 1.328e-2
+            elif reynolds <= reynolds_critical:
                 return 1.328 / (sqrt(reynolds))
             else:
                 B = reynolds_critical * (
@@ -609,6 +612,8 @@ class Rocket:
                 * ((bottomRadius / self.radius) ** 3)
                 / (self.evaluateForebodyDragCoefficient() ** 0.5)
             )
+            drag_coefficient.setInputs("Mach Number")
+            drag_coefficient.setOutputs("Tail Drag Coefficient")
 
         # Store values as new aerodynamic surface
         tail = [(0, 0, cpz), cldata, drag_coefficient, "Tail"]
@@ -848,6 +853,8 @@ class Rocket:
                 * (1 + 2 * (thickness / span))
                 * (n * (2 * total_area - exposed_area) / (np.pi * self.radius ** 2))
             )
+            drag_coefficient.setInputs("Mach Number")
+            drag_coefficient.setOutputs("Fins Drag Coefficient")
 
         # Store values as new aerodynamic surface
         fin = [(0, 0, cpz), cldata, drag_coefficient, "Fins"]
