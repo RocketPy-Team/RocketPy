@@ -104,6 +104,16 @@ class SolidMotor:
             nozzle throat cross sectional area. Has no units.
         Motor.burnRate : Function
             Propellant burn rate in meter/second as a function of time.
+        exitPressure : float
+            Pressure at nozzle's outlet, in Pa. Used to calculate pressure thrust 
+            term. Should be consistent with atmospheric pressure for the supplied
+            thrustSource data.
+        altitudeCompensatingNozzle : bool
+            If True, assumes optimum nozzle expansion throughout the flight and
+            neglects pressure thrust term. Should be used if your supplied thrust
+            data already accounts for thrust variations based on altitude. Renders
+            exitPressure argument redundant. Checking this will resort to pre-0.9.9
+            rocketpy behaviour. Default is False.
         Motor.interpolate : string
             Method of interpolation used in case thrust curve is given
             by data set in .csv or .eng, or as an array. Options are 'spline'
@@ -119,9 +129,11 @@ class SolidMotor:
         grainOuterRadius,
         grainInitialInnerRadius,
         grainInitialHeight,
-        grainSeparation=0,
-        nozzleRadius=0.0335,
+        nozzleRadius,
         throatRadius=0.0114,
+        grainSeparation=0,
+        exitPressure=101325,
+        altitudeCompensatingNozzle=False,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
     ):
@@ -152,16 +164,27 @@ class SolidMotor:
             Solid grain initial inner radius in meters.
         grainInitialHeight : int, float
             Solid grain initial height in meters.
-        grainSeparation : int, float, optional
-            Distance between grains, in meters. Default is 0.
-        nozzleRadius : int, float, optional
-            Motor's nozzle outlet radius in meters. Used to calculate Kn curve.
-            Optional if the Kn curve is not interesting. Its value does not impact
-            trajectory simulation.
+        nozzleRadius : int, float
+            Motor's nozzle outlet radius in meters. Used to calculate pressure
+            thrust and Kn curve.
         throatRadius : int, float, optional
             Motor's nozzle throat radius in meters. Its value has very low
             impact in trajectory simulation, only useful to analyze
             dynamic instabilities, therefore it is optional.
+        grainSeparation : int, float, optional
+            Distance between grains, in meters. Default is 0.
+        exitPressure : int, float, optional
+            Pressure at nozzle's outlet, in Pa. Used to calculate pressure thrust 
+            term. Most motors are designed to produce a fixed exit pressure which 
+            does not always correspond to freestream pressure. This value should also 
+            be consistent with atmospheric pressure for the supplied thrustSource data.
+            Default is 1 standard atmosphere.
+        altitudeCompensatingNozzle : bool, optional
+            If True, assumes optimum nozzle expansion throughout the flight and
+            neglects pressure thrust term. Should be used if your supplied thrust
+            data already accounts for thrust variations based on altitude. Renders
+            exitPressure argument redundant. Checking this will resort to pre-0.9.9
+            rocketpy behaviour. Default is False.
         reshapeThrustCurve : boolean, tuple, optional
             If False, the original thrust curve supplied is not altered. If a
             tuple is given, whose first parameter is a new burn out time and
@@ -182,6 +205,10 @@ class SolidMotor:
         # Thrust parameters
         self.interpolate = interpolationMethod
         self.burnOutTime = burnOut
+
+        # Pressure thrust related parameters
+        self.exitPressure = exitPressure
+        self.altitudeCompensatingNozzle = altitudeCompensatingNozzle
 
         # Check if thrustSource is csv, eng, function or other
         if isinstance(thrustSource, str):
