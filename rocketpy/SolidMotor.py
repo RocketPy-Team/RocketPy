@@ -105,7 +105,7 @@ class SolidMotor:
         Motor.burnRate : Function
             Propellant burn rate in meter/second as a function of time.
         exitPressure : float
-            Pressure at nozzle's outlet, in Pa. Used to calculate pressure thrust 
+            Pressure at nozzle's outlet, in Pa. Used to calculate pressure thrust
             term. Should be consistent with atmospheric pressure for the supplied
             thrustSource data.
         altitudeCompensatingNozzle : bool
@@ -174,9 +174,9 @@ class SolidMotor:
         grainSeparation : int, float, optional
             Distance between grains, in meters. Default is 0.
         exitPressure : int, float, optional
-            Pressure at nozzle's outlet, in Pa. Used to calculate pressure thrust 
-            term. Most motors are designed to produce a fixed exit pressure which 
-            does not always correspond to freestream pressure. This value should also 
+            Pressure at nozzle's outlet, in Pa. Used to calculate pressure thrust
+            term. Most motors are designed to produce a fixed exit pressure which
+            does not always correspond to freestream pressure. This value should also
             be consistent with atmospheric pressure for the supplied thrustSource data.
             Default is 1 standard atmosphere.
         altitudeCompensatingNozzle : bool, optional
