@@ -1228,8 +1228,19 @@ class Flight:
             # Mass
             MtDot = self.rocket.motor.massDot.getValueOpt(t)
             Mt = self.rocket.motor.mass.getValueOpt(t)
+            # Pressures
+            exitPressure = self.rocket.motor.exitPressure
+            freestreamPressure = self.env.pressure(z)
+            # Check for optimal expansion
+            calculatePT = not self.rocket.motor.altitudeCompensatingNozzle
             # Thrust
-            Thrust = self.rocket.motor.thrust.getValueOpt(t)
+            pressureThrust = (
+                calculatePT
+                * (exitPressure - freestreamPressure)
+                * np.pi
+                * self.rocket.motor.nozzleRadius ** 2
+            )
+            Thrust = self.rocket.motor.thrust.getValueOpt(t) + pressureThrust
             # Off center moment
             M1 += self.rocket.thrustExcentricityX * Thrust
             M2 -= self.rocket.thrustExcentricityY * Thrust
