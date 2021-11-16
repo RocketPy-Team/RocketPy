@@ -1230,7 +1230,7 @@ class Flight:
             Mt = self.rocket.motor.mass.getValueOpt(t)
             # Pressures
             exitPressure = self.rocket.motor.exitPressure
-            freestreamPressure = self.env.pressure(z)
+            freestreamPressure = self.env.pressure.getValueOpt(z)
             # Check for optimal expansion
             calculatePT = not self.rocket.motor.altitudeCompensatingNozzle
             # Thrust
