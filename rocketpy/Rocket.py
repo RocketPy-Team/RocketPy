@@ -330,8 +330,9 @@ class Rocket:
             defined as in the literature.
         """
         self.evaluateViscousFrictionCoefficient()
+        self.evaluateForebodyDragCoefficient()
 
-        self.drag_coefficient_estimate = self.viscous_friction_coefficient + np.sum(
+        self.drag_coefficient_estimate = self.forebody_drag_coefficient + np.sum(
             [
                 self.aerodynamicSurfaces[i][2]
                 for i in range(len(self.aerodynamicSurfaces))
