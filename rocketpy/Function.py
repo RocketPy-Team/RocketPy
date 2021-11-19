@@ -534,7 +534,6 @@ class Function:
                 if isinstance(args[0][0], (tuple, list)):
                     return [self.source(*arg) for arg in args[0]]
                 else:
-                    print(self.source(args[0][0]))
                     return [self.source(arg) for arg in args[0]]
             elif len(args) == 1 and isinstance(args[0], np.ndarray):
                 return self.source(args[0])
