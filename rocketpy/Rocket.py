@@ -168,9 +168,9 @@ class Rocket:
         powerOffDrag=None,
         powerOnDrag=None,
         rocket_length=None,
-        speed_of_sound=340.293988026089,
-        air_density=1.225000018124288,
-        dynamic_viscosity=1.789380278077583e-05,
+        speed_of_sound=340.29,
+        air_density=1.2250,
+        dynamic_viscosity=1.7893e-05,
     ):
         """Initializes Rocket class, process inertial, geometrical and
         aerodynamic parameters.
@@ -214,8 +214,6 @@ class Rocket:
         rocket_length : int, float, optional
             Rocket length used in the expressions for estimating drag coefficients
             in meters (m).
-            Air density used in the expressions for estimating drag coefficients
-            in kg/m³.
         speed_of_sound : int, float, optional
             Speed of sound used for estimating drag coefficients, in
             meters per second (m/s). The default value was obtained from the
@@ -315,9 +313,9 @@ class Rocket:
 
     def evaluateDragCoefficient(self):
         """Calculates and returns the drag coefficient as the sum of
-        of the individual drag coefficients at zero angle of attack
-        as a function of the Mach number. The angle of attack is
-        assumed to be zero.
+        the individual drag coefficients at zero angle of attack as
+        a function of the Mach number. The angle of attack is assumed
+        to be zero.
 
         Parameters
         ----------
@@ -325,8 +323,8 @@ class Rocket:
 
         Returns
         -------
-        self.viscous_friction_coefficient : Function
-            Function of mach number expressing the viscous friction coefficient,
+        self.drag_coefficient_estimate : Function
+            Function of mach number expressing the estimate for the drag coefficient,
             defined as in the literature.
         """
         self.evaluateViscousFrictionCoefficient()
@@ -338,6 +336,10 @@ class Rocket:
                 for i in range(len(self.aerodynamicSurfaces))
             ]
         )
+
+        if self.drag_coefficient_estimate is not None:
+            self.drag_coefficient_estimate.setInputs("Mach Number")
+            self.drag_coefficient_estimate.setOutputs("Drag Coefficient")
 
         if not self.power_off_drag_as_input:
             self.powerOffDrag = self.drag_coefficient_estimate
