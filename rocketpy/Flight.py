@@ -1324,7 +1324,7 @@ class Flight:
                 compStreamVzBn = compStreamVzB / compStreamSpeed
                 if -1 * compStreamVzBn < 1:
                     compAttackAngle = np.arccos(-compStreamVzBn)
-                    cLift = abs(aerodynamicSurface[1](compAttackAngle))
+                    cLift = abs(aerodynamicSurface[1](compAttackAngle, freestreamMach))
                     # Component lift force magnitude
                     compLift = (
                         0.5 * rho * (compStreamSpeed ** 2) * self.rocket.area * cLift
