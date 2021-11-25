@@ -59,15 +59,12 @@ Parachute attributes:
         is 0. Must be given in seconds.
     noiseBias : float
         Mean value of the noise added to the pressure signal, which is
-        passed to the trigger function.
+        passed to the trigger function. Unit is in pascal.
     noiseDeviation : float
         Standard deviation of the noise added to the pressure signal, 
-        which is passed to the trigger function.
-    noise : tuple, list
-        List in the format (mean, standard deviation, time-correlation).
-        The values are used to add noise to the pressure signal which is
-        passed to the trigger function. Default value is (0, 0, 0). Units
-        are in pascal.
+        which is passed to the trigger function. Unit is in pascal.
+    noiseCorr : tuple, list
+        Tupple with the correlation between noise and time.
     noiseSignal : list
         List of (t, noise signal) corresponding to signal passed to
         trigger function. Completed after running a simulation.
