@@ -369,7 +369,7 @@ class Rocket:
 
         def calculations(mach):
             reynolds = (
-                (self.air_density ** 2)
+                self.air_density
                 * self.speed_of_sound
                 * self.rocket_length
                 * mach
