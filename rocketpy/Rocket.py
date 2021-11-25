@@ -23,6 +23,38 @@ from numpy import genfromtxt
 
 from .Function import Function
 
+class FinSet:
+    def __init__ (self, distanceToCM, nFins, shoulderRadius, radius, airfoil = False):
+        #Saving parameters
+        self.distanceToCM = distanceToCM
+        self.nFins = nFins
+        self.shoulderRadius = shoulderRadius
+        self.radius = radius
+        self.airfoil = airfoil
+        
+        #Initializing parameters
+        self.cp = ()
+        self.clData = Function(lambda x:0,"Alpha (rad)","Lift Coefficient")
+        self.name = "" 
+
+        return None
+
+    def createTrapezoidalFin(
+        self, n, span, rootChord, tipChord, distanceToCM, radius=0, airfoil=None
+    ):
+        # Calculate lift coefficient, cp position relative to cm
+        return None 
+    
+    def createElipticalFin(
+        self, n, span, rootChord, distanceToCM, radius=0, airfoil=None
+    ):
+        # Calculate lift coefficient, cp position relative to cm
+        return None 
+    
+    # def evaluateCP (): Pesquisar como achar o CP numericamente para o caso geral 
+
+
+
 
 class Rocket:
 
