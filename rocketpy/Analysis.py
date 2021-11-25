@@ -22,3 +22,6 @@ class Analysis:
         self.motor = motor
         self.rocket = rocket
         self.flight = flight
+
+    def teste():
+        return ()
