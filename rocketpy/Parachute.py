@@ -83,14 +83,37 @@ Parachute attributes:
     """
 
     def __init__(
-    self,
-    name,
-    CdS,
-    Trigger,
-    samplingRate,
-    lag,
-    noise,
+        self,
+        name,
+        CdS,
+        Trigger,
+        samplingRate,
+        lag,
+        noise,
     ):
+        """Initializes Parachute class.
+        Parameters
+        ----------
+        name : string
+            Name of the parachute.
+        CdS : float
+            CdS of the parachute.
+        Trigger : function
+            Trigger function.
+        samplngRate : float
+            Sampling rate, in hertz, for the Trigger function.
+        lag : float
+            Time, in seconds, between the parachute ejection system is triggered and the
+        parachute is fully opened.
+        noise : tuple, list, optional
+            List in the format (mean, standard deviation, time-correlation).
+            The values are used to add noise to the pressure signal which is
+            passed to the trigger function. Default value is (0, 0, 0). Units
+            are in pascal.
+        Returns
+        -------
+        None
+        """
         self.name = name
         self.CdS = CdS
         self.trigger = Trigger
