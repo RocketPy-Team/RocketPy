@@ -654,7 +654,7 @@ class Rocket:
 
         Returns
         -------
-        parachute : Parachute 
+        parachute : Parachute
             Parachute  containing trigger, samplingRate, lag, CdS, noise
             and name. Furthermore, it stores cleanPressureSignal,
             noiseSignal and noisyPressureSignal which are filled in during

@@ -48,16 +48,22 @@ Parachute attributes:
         It will be called according to the sampling rate given next.
         It should return True if the parachute ejection system is
         to be triggered and False otherwise.
-    samplingRate : float, optional
+    samplingRate : float
         Sampling rate in which the trigger function works. It is used to
         simulate the refresh rate of onboard sensors such as barometers.
         Default value is 100. Value must be given in hertz.
-    lag : float, optional
+    lag : float
         Time between the parachute ejection system is triggered and the
         parachute is fully opened. During this time, the simulation will
         consider the rocket as flying without a parachute. Default value
         is 0. Must be given in seconds.
-    noise : tuple, list, optional
+    noiseBias : float
+        Mean value of the noise added to the pressure signal, which is
+        passed to the trigger function.
+    noiseDeviation : float
+        Standard deviation of the noise added to the pressure signal, 
+        which is passed to the trigger function.
+    noise : tuple, list
         List in the format (mean, standard deviation, time-correlation).
         The values are used to add noise to the pressure signal which is
         passed to the trigger function. Default value is (0, 0, 0). Units
@@ -76,9 +82,7 @@ Parachute attributes:
     noisyPressureSignalFunction : Function
         Function of noisyPressureSignal.
     cleanPressureSignalFunction : Function
-        Function of cleanPressureSignal.
-
-            
+        Function of cleanPressureSignal.      
     """
 
     def __init__(

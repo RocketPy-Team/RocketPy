@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from rocketpy import Environment, SolidMotor, Rocket, Flight
+from rocketpy import Environment, SolidMotor, Rocket, Flight, Parachute
 
 
 @patch("matplotlib.pyplot.show")
