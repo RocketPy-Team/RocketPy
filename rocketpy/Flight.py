@@ -3335,6 +3335,86 @@ class Flight:
 
         return None
 
+    def allInfoReturned(self):
+        """Returns as dicts all data available about the Flight.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        ------
+        info: Dict
+            Information relevant about the Flight class.
+        """
+
+        if self.postProcessed is False:
+            self.postProcess()
+
+        info = dict(
+            initialConditions=dict(
+                x=self.x(0),
+                y=self.y(0),
+                z=self.z(0),
+                vx=self.vx(0),
+                vy=self.vy(0),
+                vz=self.vz(0),
+                e0=self.e0(0),
+                e1=self.e1(0),
+                e2=self.e2(0),
+                e3=self.e3(0),
+                phi=self.phi(0),
+                theta=self.theta(0),
+                psi=self.psi(0),
+                w1=self.w1(0),
+                w2=self.w2(0),
+                w3=self.w3(0),
+            ),
+            inclination=self.inclination,
+            heading=self.heading,
+            # info() translation
+        )
+
+        return info
+
+    def allPlotInfoReturned(self):
+        """Returns a dictionary with all plot information available about the Flight.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        ------
+        plotInfo : Dict
+            Dict of data relevant to plot externally
+        """
+        if self.postProcessed is False:
+            self.postProcess()
+        plotInfo = dict(
+            # VelX and AccelX
+            velX=self.vx[:, 1].tolist(),
+            gridVelX=self.vx[:, 0].tolist(),
+            accelX=self.ax[:, 1].tolist(),
+            gridAccelX=self.ax[:, 0].tolist(),
+            # VelY and AccelY
+            velY=self.vy[:, 1].tolist(),
+            gridVelY=self.vy[:, 0].tolist(),
+            accelY=self.ay[:, 1].tolist(),
+            gridAccelY=self.ay[:, 0].tolist(),
+            # VelZ and AccelZ
+            velZ=self.vz[:, 1].tolist(),
+            gridVelZ=self.vz[:, 0].tolist(),
+            accelZ=self.az[:, 1].tolist(),
+            gridAccelZ=self.az[:, 0].tolist(),
+            # Vel Magnitude and Accel Magnitude
+            velMag=self.speed[:, 1].tolist(),
+            gridVelMag=self.speed[:, 0].tolist(),
+            accelMag=self.acceleration[:, 1].tolist(),
+            gridAccelMag=self.acceleration[:, 0].tolist(),
+        )
+        return plotInfo
+
     def animate(self, start=0, stop=None, fps=12, speed=4, elev=None, azim=None):
         """Plays an animation of the flight. Not implemented yet. Only
         kinda works outside notebook.
