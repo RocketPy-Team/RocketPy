@@ -1353,6 +1353,14 @@ class HybridMotor(Motor):
         grainOuterRadius,
         grainInitialInnerRadius,
         grainInitialHeight,
+        oxidizerTankRadius,
+        oxidizerTankHeight,
+        oxidizerInitialPresure,
+        oxidizerDensity,
+        oxidizerMolarMass,
+        oxidizerInitialVolume,
+        distanceGrainToTank,
+        injectorArea,
         grainSeparation=0,
         nozzleRadius=0.0335,
         throatRadius=0.0114,
@@ -1386,6 +1394,22 @@ class HybridMotor(Motor):
             Solid grain initial inner radius in meters.
         grainInitialHeight : int, float
             Solid grain initial height in meters.
+        oxidizerTankRadius :
+            Oxidizer Tank inner radius.
+        oxidizerTankHeight :
+            Oxidizer Tank Height.
+        oxidizerInitialPresure :
+            Initial presure of the oxidizer tank, could be equal to the pressure of the source cylinder in atm.
+        oxidizerDensity :
+            Oxidizer theoretical density in liquit state, for N2O is equal to 1.98 (Kg/m^3).  
+        oxidizerMolarMass :
+            Oxidizer molar mass, for the N2O is equal to 44.01 (g/mol).
+        oxidizerInitialVolume : 
+            Initial volume of oxidizer charged in the tank.
+        distanceGrainToTank :
+            Distance between the solid grain center of mass and the base of the oxidizer tank.
+        injectorArea : 
+            injector outlet area.
         grainSeparation : int, float, optional
             Distance between grains, in meters. Default is 0.
         nozzleRadius : int, float, optional
@@ -1461,8 +1485,18 @@ class HybridMotor(Motor):
         self.grainOuterRadius = grainOuterRadius
         self.grainInitialInnerRadius = grainInitialInnerRadius
         self.grainInitialHeight = grainInitialHeight
+        self.oxidizerTankRadius = oxidizerTankRadius
+        self.oxidizerTankHeight = oxidizerTankHeight
+        self.oxidizerInitialPresure = oxidizerInitialPresure
+        self.oxidizerDensity = oxidizerDensity
+        self.oxidizerMolarMass = oxidizerMolarMass
+        self.oxidizerInitialVolume = oxidizerInitialVolume
+        self.distanceGrainToTank = distanceGrainToTank
+        self.injectorArea = injectorArea
         # Other quantities that will be computed
         self.massDot = None
+        self.yCM = None
+        self.oxidizerInitialMass = None
         self.mass = None
         self.grainInnerRadius = None
         self.grainHeight = None
@@ -1529,7 +1563,7 @@ class HybridMotor(Motor):
         Returns
         -------
         self.massDot : Function
-            Time derivative of total propellant mas as a function
+            Time derivative of total propellant mass as a function
             of time.
         """
         # Create mass dot Function
@@ -1539,10 +1573,79 @@ class HybridMotor(Motor):
 
         # Return Function
         return self.massDot
-    
-    def evaluateCenterOfMass(self):
 
-        pass
+    def evaluateCenterOfMass(self):
+        """Calculates and returns the time derivative of motor center of mass. 
+        The formulas used are the Bernoulli equation, law of the ideal gases and Boyle's law. 
+        The result is a function of time, object of the Function class, which is stored in self.yCM.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        yCM : Function
+            Time derivative of position of the center of mass as a function
+            of time.
+        """
+
+        Vel2 = (
+            (2 / self.oxidizerDensity)
+            * (
+                self.oxidizerInitialPresure
+                + (
+                    9.8
+                    * self.oxidizerDensity
+                    * (
+                        self.distanceGrainToTank
+                        + (
+                            self.oxidizerInitialVolume
+                            / (np.pi * self.oxidizerTankRadius ** 2)
+                        )
+                    )
+                )
+            )
+        ) ** (1 / 2)
+
+        Vox = self.injectorArea * Vel2
+
+        self.oxidizerInitialMass = self.oxidizerInitialVolume * self.oxidizerDensity
+
+        liquidMass = (self.oxidizerInitialMass) - (
+            self.oxidizerDensity * Vox * "Time (s)"
+        )
+
+        liquidCM = (
+            (self.oxidizerInitialVolume - (Vox * "Time (s)"))
+            / (np.pi * (self.oxidizerTankRadius ** 2))
+        ) / 2
+
+        solidMass = self.massDot - liquidMass
+        solidCM = 0
+
+        gasMass = (
+            (
+                np.pi
+                * (self.oxidizerTankRadius ** 2)
+                * (self.oxidizerTankHeight - (liquidCM * 2))
+            )
+            * (self.oxidizerMolarMass / (0.08205746 * 298.15))
+            * (self.oxidizerInitialPresure)
+        )
+
+        gasCM = (
+            self.oxidizerTankHeight(
+                (self.oxidizerInitialVolume - (Vox * "Time (s)"))
+                / (np.pi * (self.oxidizerTankRadius ** 2))
+            )
+        ) / 2
+
+        self.yCM = (
+            (solidMass * solidCM) + (liquidMass * liquidCM) + (gasMass * gasCM)
+        ) / (solidMass + liquidMass + gasMass)
+
+        return self.yCM
 
     def evaluateGeometry(self):
         """Calculates grain inner radius and grain height as a
