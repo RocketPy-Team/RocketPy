@@ -1401,14 +1401,14 @@ class HybridMotor(Motor):
         oxidizerInitialPresure :
             Initial presure of the oxidizer tank, could be equal to the pressure of the source cylinder in atm.
         oxidizerDensity :
-            Oxidizer theoretical density in liquit state, for N2O is equal to 1.98 (Kg/m^3).  
+            Oxidizer theoretical density in liquit state, for N2O is equal to 1.98 (Kg/m^3).
         oxidizerMolarMass :
             Oxidizer molar mass, for the N2O is equal to 44.01 (g/mol).
-        oxidizerInitialVolume : 
+        oxidizerInitialVolume :
             Initial volume of oxidizer charged in the tank.
         distanceGrainToTank :
             Distance between the solid grain center of mass and the base of the oxidizer tank.
-        injectorArea : 
+        injectorArea :
             injector outlet area.
         grainSeparation : int, float, optional
             Distance between grains, in meters. Default is 0.
@@ -1575,8 +1575,8 @@ class HybridMotor(Motor):
         return self.massDot
 
     def evaluateCenterOfMass(self):
-        """Calculates and returns the time derivative of motor center of mass. 
-        The formulas used are the Bernoulli equation, law of the ideal gases and Boyle's law. 
+        """Calculates and returns the time derivative of motor center of mass.
+        The formulas used are the Bernoulli equation, law of the ideal gases and Boyle's law.
         The result is a function of time, object of the Function class, which is stored in self.yCM.
 
         Parameters
@@ -1612,38 +1612,53 @@ class HybridMotor(Motor):
 
         self.oxidizerInitialMass = self.oxidizerInitialVolume * self.oxidizerDensity
 
-        liquidMass = (self.oxidizerInitialMass) - (
-            self.oxidizerDensity * Vox * "Time (s)"
+        liquidMass = lambda time: (
+            (self.oxidizerInitialMass) - (self.oxidizerDensity * Vox * time)
         )
 
-        liquidCM = (
-            (self.oxidizerInitialVolume - (Vox * "Time (s)"))
-            / (np.pi * (self.oxidizerTankRadius ** 2))
-        ) / 2
+        liquidCM = lambda time: (
+            (
+                (self.oxidizerInitialVolume - (Vox * time))
+                / (np.pi * (self.oxidizerTankRadius ** 2))
+            )
+            / 2
+        )
 
-        solidMass = self.massDot - liquidMass
+        solidMass = lambda time: (self.massDot - liquidMass(time))
         solidCM = 0
 
-        gasMass = (
+        gasMass = lambda time: (
             (
                 np.pi
                 * (self.oxidizerTankRadius ** 2)
-                * (self.oxidizerTankHeight - (liquidCM * 2))
+                * (self.oxidizerTankHeight - (liquidCM(time) * 2))
             )
             * (self.oxidizerMolarMass / (0.08205746 * 298.15))
             * (self.oxidizerInitialPresure)
         )
 
-        gasCM = (
-            self.oxidizerTankHeight(
-                (self.oxidizerInitialVolume - (Vox * "Time (s)"))
-                / (np.pi * (self.oxidizerTankRadius ** 2))
+        gasCM = lambda time: (
+            (
+                self.oxidizerTankHeight(
+                    (self.oxidizerInitialVolume - (Vox * time))
+                    / (np.pi * (self.oxidizerTankRadius ** 2))
+                )
             )
-        ) / 2
+            / 2
+        )
 
-        self.yCM = (
-            (solidMass * solidCM) + (liquidMass * liquidCM) + (gasMass * gasCM)
-        ) / (solidMass + liquidMass + gasMass)
+        self.yCM = Function(
+            lambda time: (
+                (
+                    (solidMass(time) * solidCM)
+                    + (liquidMass(time) * liquidCM(time))
+                    + (gasMass(time) * gasCM(time))
+                )
+                / (solidMass(time) + liquidMass(time) + gasMass(time))
+            ),
+            "Time (s)",
+            "yCM"
+        )
 
         return self.yCM
 
