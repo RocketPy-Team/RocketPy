@@ -1,5 +1,6 @@
 import pytest
 from rocketpy import SolidMotor
+from rocketpy import Rocket
 
 
 def pytest_addoption(parser):
@@ -28,6 +29,22 @@ def solid_motor():
         interpolationMethod="linear",
     )
     return example_motor
+
+
+@pytest.fixture
+def rocket(solid_motor):
+    example_rocket = Rocket(
+        motor=solid_motor,
+        radius=127 / 2000,
+        mass=19.197 - 2.956,
+        inertiaI=6.60,
+        inertiaZ=0.0351,
+        distanceRocketNozzle=-1.255,
+        distanceRocketPropellant=-0.85704,
+        powerOffDrag='data/calisto/powerOffDragCurve.csv',
+        powerOnDrag='data/calisto/powerOnDragCurve.csv'
+    )
+    return example_rocket
 
 
 def pytest_collection_modifyitems(config, items):

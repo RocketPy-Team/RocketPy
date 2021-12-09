@@ -350,7 +350,8 @@ class Rocket:
     def evaluateStaticMargin(self):
         """Calculates and returns the rocket's static margin when
         loaded with propellant. The static margin is saved and returned
-        in units of rocket diameter or calibers.
+        in units of rocket diameter or calibers. This function also calculates
+        the rocket center of pressure and total lift coefficients.
 
         Parameters
         ----------
