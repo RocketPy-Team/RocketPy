@@ -429,10 +429,7 @@ class Rocket:
         rref = self.radius
 
         # Calculate cp position relative to cm
-        if distanceToCM < 0:
-            cpz = distanceToCM - (length / 3) * (1 + (1 - r) / (1 - r ** 2))
-        else:
-            cpz = distanceToCM + (length / 3) * (1 + (1 - r) / (1 - r ** 2))
+        cpz = distanceToCM + np.sign(distanceToCM) * (length / 3) * (1 + (1 - r) / (1 - r ** 2))
 
         # Calculate clalpha
         clalpha = -2 * (1 - r ** (-2)) * (topRadius / rref) ** 2
@@ -489,10 +486,7 @@ class Rocket:
             k = 0.5
 
         # Calculate cp position relative to cm
-        if distanceToCM > 0:
-            cpz = distanceToCM + k * length
-        else:
-            cpz = distanceToCM - k * length
+        cpz = distanceToCM + np.sign(distanceToCM) * k * length
 
         # Calculate clalpha
         clalpha = 2
@@ -572,13 +566,7 @@ class Rocket:
         self.distanceRocketFins = distanceToCM
 
         # Calculate cp position relative to cm
-        if distanceToCM < 0:
-            cpz = distanceToCM - (
-                ((Cr - Ct) / 3) * ((Cr + 2 * Ct) / (Cr + Ct))
-                + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
-            )
-        else:
-            cpz = distanceToCM + (
+        cpz = distanceToCM + np.sign(distanceToCM) * (
                 ((Cr - Ct) / 3) * ((Cr + 2 * Ct) / (Cr + Ct))
                 + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
             )
