@@ -88,9 +88,19 @@ def test_evaluate_static_margin_assert_cp_equals_cm(rocket):
     assert rocket.cpPosition == 0
 
 
-def test_add_nose_assert_cp_cm_plus_nose(rocket):
-    rocket.addNose(length=0.55829, kind="vonKarman", distanceToCM=0.71971)
-    cpz = 0.71971 + 0.5 * 0.55829
+@pytest.mark.parametrize(
+    'k, type',
+    (
+            [1 - 1 / 3, 'conical'],
+            [1 - 0.534, 'ogive'],
+            [1 - 0.437, 'lvhaack'],
+            [0.5, 'default'],
+            [0.5, 'not a mapped string, to show default case'],
+    ),
+)
+def test_add_nose_assert_cp_cm_plus_nose(k, type, rocket):
+    rocket.addNose(length=0.55829, kind=type, distanceToCM=0.71971)
+    cpz = 0.71971 + k * 0.55829
     clalpha = 2
 
     assert (rocket.centerOfMass(0) - cpz) / (2 * rocket.radius) == rocket.staticMargin(0)
