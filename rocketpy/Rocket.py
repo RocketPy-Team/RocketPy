@@ -39,9 +39,11 @@ class Rocket:
         Rocket.distanceRocketNozzle : float
             Distance between rocket's center of mass, without propellant,
             to the exit face of the nozzle, in meters. Always positive.
-        Rocket.distanceRocketPropellant : float
+        Rocket.distanceRocketMotorReference : float
             Distance between rocket's center of mass, without propellant,
-            to the center of mass of propellant, in meters. Always positive.
+            to the motor refencen point, for solid and hybrid motor 
+            the reference point is the center of mass of propellant, 
+            in meters. Always positive.
 
         Mass and Inertia attributes:
         Rocket.mass : float
@@ -164,7 +166,7 @@ class Rocket:
         inertiaZ,
         radius,
         distanceRocketNozzle,
-        distanceRocketPropellant,
+        distanceRocketMotorReference,
         powerOffDrag,
         powerOnDrag,
     ):
@@ -190,9 +192,10 @@ class Rocket:
             in meters. Generally negative, meaning a negative position in the
             z axis which has an origin in the rocket's center of mass (without
             propellant) and points towards the nose cone.
-        distanceRocketPropellant : int, float
-            Distance from rocket's unloaded center of mass to propellant
-            center of mass, in meters. Generally negative, meaning a negative
+        distanceRocketMotorReference : int, float
+            Distance from rocket's unloaded center of mass to the motor refencen 
+            point, for solid and hybrid motor the reference point is the center 
+            of mass of propellant,, in meters. Generally negative, meaning a negative
             position in the z axis which has an origin in the rocket's center
             of mass (with out propellant) and points towards the nose cone.
         powerOffDrag : int, float, callable, string, array
@@ -216,7 +219,11 @@ class Rocket:
         self.mass = mass
         self.inertiaI = inertiaI
         self.inertiaZ = inertiaZ
-        self.centerOfMass = distanceRocketPropellant * motor.mass / (mass + motor.mass)
+        self.centerOfMass = (
+            (distanceRocketMotorReference - motor.yCM)
+            * motor.mass
+            / (mass + motor.mass)
+        )
 
         # Define rocket geometrical parameters in SI units
         self.radius = radius
@@ -224,7 +231,7 @@ class Rocket:
 
         # Center of mass distance to points of interest
         self.distanceRocketNozzle = distanceRocketNozzle
-        self.distanceRocketPropellant = distanceRocketPropellant
+        self.distanceRocketMotorReference = distanceRocketMotorReference
 
         # Excentricity data initialization
         self.cpExcentricityX = 0
@@ -931,8 +938,8 @@ class Rocket:
             + " m"
         )
         print(
-            "Rocket Center of Mass - Propellant Center of Mass Distance: "
-            + str(self.distanceRocketPropellant)
+            "Rocket Center of Mass - Motor reference point: "
+            + str(self.distanceRocketMotorReference)
             + " m"
         )
         print(

@@ -341,6 +341,23 @@ class Motor(ABC):
         """
         pass
 
+    def evaluateCenterOfMass(self):
+        """Calculates and returns the time derivative of motor center of mass.
+        The result is a function of time, object of the Function class, which is stored in self.yCM.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        yCM : Function
+            Position of the center of mass as a function
+            of time.
+        """
+
+        pass
+
     def evaluateMass(self):
         """Calculates and returns the total propellant mass curve by
         numerically integrating the MassDot curve, calculated in
@@ -895,6 +912,25 @@ class SolidMotor(Motor):
 
         # Return Function
         return self.massDot
+
+    def evaluateCenterOfMass(self):
+        """Calculates and returns the time derivative of motor center of mass.
+        The result is a function of time, object of the Function class, which is stored in self.yCM.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        yCM : Function
+            Position of the center of mass as a function
+            of time.
+        """
+
+        self.yCM = 0
+
+        return self.yCM
 
     def evaluateGeometry(self):
         """Calculates grain inner radius and grain height as a
@@ -1586,7 +1622,7 @@ class HybridMotor(Motor):
         Returns
         -------
         yCM : Function
-            Time derivative of position of the center of mass as a function
+            Position of the center of mass as a function
             of time.
         """
 
@@ -1657,7 +1693,7 @@ class HybridMotor(Motor):
                 / (solidMass(time) + liquidMass(time) + gasMass(time))
             ),
             "Time (s)",
-            "yCM"
+            "yCM",
         )
 
         return self.yCM
