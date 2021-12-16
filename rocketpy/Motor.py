@@ -229,6 +229,7 @@ class Motor(ABC):
         self.evaluateMass()
         self.evaluateGeometry()
         self.evaluateInertia()
+        self.evaluateCenterOfMass()
 
     def reshapeThrustCurve(
         self, burnTime, totalImpulse, oldTotalImpulse=None, startAtZero=True
@@ -870,6 +871,7 @@ class SolidMotor(Motor):
         self.evaluateMass()
         self.evaluateGeometry()
         self.evaluateInertia()
+        self.evaluateCenterOfMass()
 
     @property
     def exhaustVelocity(self):
@@ -1567,6 +1569,7 @@ class HybridMotor(Motor):
         self.evaluateMass()
         self.evaluateGeometry()
         self.evaluateInertia()
+        self.evaluateCenterOfMass()
 
     @property
     def exhaustVelocity(self):
