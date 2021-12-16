@@ -341,6 +341,7 @@ class Motor(ABC):
         """
         pass
 
+    @abstractmethod
     def evaluateCenterOfMass(self):
         """Calculates and returns the time derivative of motor center of mass.
         The result is a function of time, object of the Function class, which is stored in self.yCM.

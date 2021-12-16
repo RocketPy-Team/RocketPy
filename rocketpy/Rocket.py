@@ -41,8 +41,8 @@ class Rocket:
             to the exit face of the nozzle, in meters. Always positive.
         Rocket.distanceRocketMotorReference : float
             Distance between rocket's center of mass, without propellant,
-            to the motor refencen point, for solid and hybrid motor 
-            the reference point is the center of mass of propellant, 
+            to the motor reference point, for solid and hybrid motor 
+            the reference point is the center of mass of solid propellant, 
             in meters. Always positive.
 
         Mass and Inertia attributes:
@@ -195,7 +195,7 @@ class Rocket:
         distanceRocketMotorReference : int, float
             Distance from rocket's unloaded center of mass to the motor refencen 
             point, for solid and hybrid motor the reference point is the center 
-            of mass of propellant,, in meters. Generally negative, meaning a negative
+            of mass of solid propellant, in meters. Generally negative, meaning a negative
             position in the z axis which has an origin in the rocket's center
             of mass (with out propellant) and points towards the nose cone.
         powerOffDrag : int, float, callable, string, array
