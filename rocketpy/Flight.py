@@ -602,6 +602,8 @@ class Flight:
         self.atol = atol
         self.initialSolution = initialSolution
         self.timeOvershoot = timeOvershoot
+        self.parachuteEventTimeIndex = -1
+        self.parachuteEventTimeCalculated = False
         self.terminateOnApogee = terminateOnApogee
 
         # Modifying Rail Length for a better out of rail condition
@@ -1102,6 +1104,7 @@ class Flight:
                                         self.parachuteEvents.append([self.t, parachute])
 
         self.tFinal = self.t
+        self.parachuteEventTime = self.tFinal
         if verbose:
             print("Simulation Completed at Time: {:3.4f} s".format(self.t))
 
@@ -2002,6 +2005,20 @@ class Flight:
 
         return None
 
+    def timeBeforeParachuteEvent(self):
+        # Get index of time before parachute event
+        if len(self.parachuteEvents) > 0:
+            self.parachuteEventTime = (
+                self.parachuteEvents[0][0] + self.parachuteEvents[0][1].lag
+            )
+            self.parachuteEventTimeIndex = np.nonzero(
+                self.x[:, 0] == self.parachuteEventTime
+            )[0][0]
+        else:
+            self.parachuteEventTime = self.tFinal
+            self.parachuteEventTimeIndex = -1
+        parachuteEventTimeCalculated = True
+
     def info(self):
         """Prints out a summary of the data available about the Flight.
 
@@ -2023,13 +2040,8 @@ class Flight:
             -1 if len(outOfRailTimeIndexs) == 0 else outOfRailTimeIndexs[0][0]
         )
 
-        # Get index of time before parachute event
-        if len(self.parachuteEvents) > 0:
-            eventTime = self.parachuteEvents[0][0] + self.parachuteEvents[0][1].lag
-            eventTimeIndex = np.nonzero(self.x[:, 0] == eventTime)[0][0]
-        else:
-            eventTime = self.tFinal
-            eventTimeIndex = -1
+        if self.parachuteEventTimeCalculated is False:
+            self.timeBeforeParachuteEvent()
 
         # Print surface wind conditions
         print("Surface Wind Conditions\n")
@@ -2465,13 +2477,8 @@ class Flight:
         if self.postProcessed is False:
             self.postProcess()
 
-        # Get index of time before parachute event
-        if len(self.parachuteEvents) > 0:
-            eventTime = self.parachuteEvents[0][0] + self.parachuteEvents[0][1].lag
-            eventTimeIndex = np.nonzero(self.x[:, 0] == eventTime)[0][0]
-        else:
-            eventTime = self.tFinal
-            eventTimeIndex = -1
+        if self.parachuteEventTimeCalculated is False:
+            self.timeBeforeParachuteEvent()
 
         # Angular position plots
         fig3 = plt.figure(figsize=(9, 12))
@@ -2481,7 +2488,7 @@ class Flight:
         ax1.plot(self.e1[:, 0], self.e1[:, 1], label="$e_1$")
         ax1.plot(self.e2[:, 0], self.e2[:, 1], label="$e_2$")
         ax1.plot(self.e3[:, 0], self.e3[:, 1], label="$e_3$")
-        ax1.set_xlim(0, eventTime)
+        ax1.set_xlim(0, self.parachuteEventTime)
         ax1.set_xlabel("Time (s)")
         ax1.set_ylabel("Euler Parameters")
         ax1.set_title("Euler Parameters")
@@ -2490,7 +2497,7 @@ class Flight:
 
         ax2 = plt.subplot(412)
         ax2.plot(self.psi[:, 0], self.psi[:, 1])
-        ax2.set_xlim(0, eventTime)
+        ax2.set_xlim(0, self.parachuteEventTime)
         ax2.set_xlabel("Time (s)")
         ax2.set_ylabel("ψ (°)")
         ax2.set_title("Euler Precession Angle")
@@ -2498,7 +2505,7 @@ class Flight:
 
         ax3 = plt.subplot(413)
         ax3.plot(self.theta[:, 0], self.theta[:, 1], label="θ - Nutation")
-        ax3.set_xlim(0, eventTime)
+        ax3.set_xlim(0, self.parachuteEventTime)
         ax3.set_xlabel("Time (s)")
         ax3.set_ylabel("θ (°)")
         ax3.set_title("Euler Nutation Angle")
@@ -2506,7 +2513,7 @@ class Flight:
 
         ax4 = plt.subplot(414)
         ax4.plot(self.phi[:, 0], self.phi[:, 1], label="φ - Spin")
-        ax4.set_xlim(0, eventTime)
+        ax4.set_xlim(0, self.parachuteEventTime)
         ax4.set_xlabel("Time (s)")
         ax4.set_ylabel("φ (°)")
         ax4.set_title("Euler Spin Angle")
@@ -2533,13 +2540,8 @@ class Flight:
         if self.postProcessed is False:
             self.postProcess()
 
-        # Get index of time before parachute event
-        if len(self.parachuteEvents) > 0:
-            eventTime = self.parachuteEvents[0][0] + self.parachuteEvents[0][1].lag
-            eventTimeIndex = np.nonzero(self.x[:, 0] == eventTime)[0][0]
-        else:
-            eventTime = self.tFinal
-            eventTimeIndex = -1
+        if self.parachuteEventTimeCalculated is False:
+            self.timeBeforeParachuteEvent()
 
         # Path, Attitude and Lateral Attitude Angle
         # Angular position plots
@@ -2552,7 +2554,7 @@ class Flight:
             self.attitudeAngle[:, 1],
             label="Rocket Attitude Angle",
         )
-        ax1.set_xlim(0, eventTime)
+        ax1.set_xlim(0, self.parachuteEventTime)
         ax1.legend()
         ax1.grid(True)
         ax1.set_xlabel("Time (s)")
@@ -2561,7 +2563,7 @@ class Flight:
 
         ax2 = plt.subplot(212)
         ax2.plot(self.lateralAttitudeAngle[:, 0], self.lateralAttitudeAngle[:, 1])
-        ax2.set_xlim(0, eventTime)
+        ax2.set_xlim(0, self.parachuteEventTime)
         ax2.set_xlabel("Time (s)")
         ax2.set_ylabel("Lateral Attitude Angle (°)")
         ax2.set_title("Lateral Attitude Angle")
@@ -2588,19 +2590,14 @@ class Flight:
         if self.postProcessed is False:
             self.postProcess()
 
-        # Get index of time before parachute event
-        if len(self.parachuteEvents) > 0:
-            eventTime = self.parachuteEvents[0][0] + self.parachuteEvents[0][1].lag
-            eventTimeIndex = np.nonzero(self.x[:, 0] == eventTime)[0][0]
-        else:
-            eventTime = self.tFinal
-            eventTimeIndex = -1
+        if self.parachuteEventTimeCalculated is False:
+            self.timeBeforeParachuteEvent()
 
         # Angular velocity and acceleration plots
         fig4 = plt.figure(figsize=(9, 9))
         ax1 = plt.subplot(311)
         ax1.plot(self.w1[:, 0], self.w1[:, 1], color="#ff7f0e")
-        ax1.set_xlim(0, eventTime)
+        ax1.set_xlim(0, self.parachuteEventTime)
         ax1.set_xlabel("Time (s)")
         ax1.set_ylabel("Angular Velocity - ${\omega_1}$ (rad/s)", color="#ff7f0e")
         ax1.set_title(
@@ -2618,7 +2615,7 @@ class Flight:
 
         ax2 = plt.subplot(312)
         ax2.plot(self.w2[:, 0], self.w2[:, 1], color="#ff7f0e")
-        ax2.set_xlim(0, eventTime)
+        ax2.set_xlim(0, self.parachuteEventTime)
         ax2.set_xlabel("Time (s)")
         ax2.set_ylabel("Angular Velocity - ${\omega_2}$ (rad/s)", color="#ff7f0e")
         ax2.set_title(
@@ -2636,7 +2633,7 @@ class Flight:
 
         ax3 = plt.subplot(313)
         ax3.plot(self.w3[:, 0], self.w3[:, 1], color="#ff7f0e")
-        ax3.set_xlim(0, eventTime)
+        ax3.set_xlim(0, self.parachuteEventTime)
         ax3.set_xlabel("Time (s)")
         ax3.set_ylabel("Angular Velocity - ${\omega_3}$ (rad/s)", color="#ff7f0e")
         ax3.set_title(
@@ -2678,13 +2675,8 @@ class Flight:
             -1 if len(outOfRailTimeIndexs) == 0 else outOfRailTimeIndexs[0][0]
         )
 
-        # Get index of time before parachute event
-        if len(self.parachuteEvents) > 0:
-            eventTime = self.parachuteEvents[0][0] + self.parachuteEvents[0][1].lag
-            eventTimeIndex = np.nonzero(self.x[:, 0] == eventTime)[0][0]
-        else:
-            eventTime = self.tFinal
-            eventTimeIndex = -1
+        if self.parachuteEventTimeCalculated is False:
+            self.timeBeforeParachuteEvent()
 
         # Rail Button Forces
         fig6 = plt.figure(figsize=(9, 6))
@@ -2733,13 +2725,21 @@ class Flight:
 
         ax1 = plt.subplot(411)
         ax1.plot(
-            self.aerodynamicLift[:eventTimeIndex, 0],
-            self.aerodynamicLift[:eventTimeIndex, 1],
+            self.aerodynamicLift[: self.parachuteEventTimeIndex, 0],
+            self.aerodynamicLift[: self.parachuteEventTimeIndex, 1],
             label="Resultant",
         )
-        ax1.plot(self.R1[:eventTimeIndex, 0], self.R1[:eventTimeIndex, 1], label="R1")
-        ax1.plot(self.R2[:eventTimeIndex, 0], self.R2[:eventTimeIndex, 1], label="R2")
-        ax1.set_xlim(0, eventTime)
+        ax1.plot(
+            self.R1[: self.parachuteEventTimeIndex, 0],
+            self.R1[: self.parachuteEventTimeIndex, 1],
+            label="R1",
+        )
+        ax1.plot(
+            self.R2[: self.parachuteEventTimeIndex, 0],
+            self.R2[: self.parachuteEventTimeIndex, 1],
+            label="R2",
+        )
+        ax1.set_xlim(0, self.parachuteEventTime)
         ax1.legend()
         ax1.set_xlabel("Time (s)")
         ax1.set_ylabel("Lift Force (N)")
@@ -2748,10 +2748,10 @@ class Flight:
 
         ax2 = plt.subplot(412)
         ax2.plot(
-            self.aerodynamicDrag[:eventTimeIndex, 0],
-            self.aerodynamicDrag[:eventTimeIndex, 1],
+            self.aerodynamicDrag[: self.parachuteEventTimeIndex, 0],
+            self.aerodynamicDrag[: self.parachuteEventTimeIndex, 1],
         )
-        ax2.set_xlim(0, eventTime)
+        ax2.set_xlim(0, self.parachuteEventTime)
         ax2.set_xlabel("Time (s)")
         ax2.set_ylabel("Drag Force (N)")
         ax2.set_title("Aerodynamic Drag Force")
@@ -2759,13 +2759,21 @@ class Flight:
 
         ax3 = plt.subplot(413)
         ax3.plot(
-            self.aerodynamicBendingMoment[:eventTimeIndex, 0],
-            self.aerodynamicBendingMoment[:eventTimeIndex, 1],
+            self.aerodynamicBendingMoment[: self.parachuteEventTimeIndex, 0],
+            self.aerodynamicBendingMoment[: self.parachuteEventTimeIndex, 1],
             label="Resultant",
         )
-        ax3.plot(self.M1[:eventTimeIndex, 0], self.M1[:eventTimeIndex, 1], label="M1")
-        ax3.plot(self.M2[:eventTimeIndex, 0], self.M2[:eventTimeIndex, 1], label="M2")
-        ax3.set_xlim(0, eventTime)
+        ax3.plot(
+            self.M1[: self.parachuteEventTimeIndex, 0],
+            self.M1[: self.parachuteEventTimeIndex, 1],
+            label="M1",
+        )
+        ax3.plot(
+            self.M2[: self.parachuteEventTimeIndex, 0],
+            self.M2[: self.parachuteEventTimeIndex, 1],
+            label="M2",
+        )
+        ax3.set_xlim(0, self.parachuteEventTime)
         ax3.legend()
         ax3.set_xlabel("Time (s)")
         ax3.set_ylabel("Bending Moment (N m)")
@@ -2774,10 +2782,10 @@ class Flight:
 
         ax4 = plt.subplot(414)
         ax4.plot(
-            self.aerodynamicSpinMoment[:eventTimeIndex, 0],
-            self.aerodynamicSpinMoment[:eventTimeIndex, 1],
+            self.aerodynamicSpinMoment[: self.parachuteEventTimeIndex, 0],
+            self.aerodynamicSpinMoment[: self.parachuteEventTimeIndex, 1],
         )
-        ax4.set_xlim(0, eventTime)
+        ax4.set_xlim(0, self.parachuteEventTime)
         ax4.set_xlabel("Time (s)")
         ax4.set_ylabel("Spin Moment (N m)")
         ax4.set_title("Aerodynamic Spin Moment")
@@ -2805,13 +2813,8 @@ class Flight:
             -1 if len(outOfRailTimeIndexs) == 0 else outOfRailTimeIndexs[0][0]
         )
 
-        # Get index of time before parachute event
-        if len(self.parachuteEvents) > 0:
-            eventTime = self.parachuteEvents[0][0] + self.parachuteEvents[0][1].lag
-            eventTimeIndex = np.nonzero(self.x[:, 0] == eventTime)[0][0]
-        else:
-            eventTime = self.tFinal
-            eventTimeIndex = -1
+        if self.parachuteEventTimeCalculated is False:
+            self.timeBeforeParachuteEvent()
 
         fig8 = plt.figure(figsize=(9, 9))
 
@@ -3391,7 +3394,15 @@ class Flight:
         """
         if self.postProcessed is False:
             self.postProcess()
+
+        if self.parachuteEventTimeCalculated is False:
+            self.timeBeforeParachuteEvent()
+
         plotInfo = dict(
+            # PosX, PosY and PosZ
+            posX=self.x[:, 1].tolist(),
+            posY=self.y[:, 1].tolist(),
+            posZ=self.z[:, 1].tolist(),
             # VelX and AccelX
             velX=self.vx[:, 1].tolist(),
             gridVelX=self.vx[:, 0].tolist(),
@@ -3412,6 +3423,7 @@ class Flight:
             gridVelMag=self.speed[:, 0].tolist(),
             accelMag=self.acceleration[:, 1].tolist(),
             gridAccelMag=self.acceleration[:, 0].tolist(),
+            # Flight Path and angle data
         )
         return plotInfo
 

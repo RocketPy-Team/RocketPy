@@ -3163,7 +3163,7 @@ class Environment:
         return None
 
     def allPlotInfoReturned(self):
-        """Returns a dictionary with all plot information available about the Environment.
+        """Returns as dicts all data available about the Environment.
 
         Parameters
         ----------
@@ -3171,59 +3171,44 @@ class Environment:
 
         Returns
         ------
-        plotInfo : Dict
-            Dict of data relevant to plot externally
+        info: Dict
+            Information relevant about the Environment class.
         """
-        grid = np.linspace(self.elevation, self.maxExpectedHeight)
-        plotInfo = dict(
-            grid=[i for i in grid],
-            windSpeed=[self.windSpeed(i) for i in grid],
-            windDirection=[self.windDirection(i) for i in grid],
-            speedOfSound=[self.speedOfSound(i) for i in grid],
-            density=[self.density(i) for i in grid],
-            windVelX=[self.windVelocityX(i) for i in grid],
-            windVelY=[self.windVelocityY(i) for i in grid],
-            pressure=[self.pressure(i) / 100 for i in grid],
-            temperature=[self.temperature(i) for i in grid],
-        )
-        if self.atmosphericModelType != "Ensemble":
-            return plotInfo
-        currentMember = self.ensembleMember
-        # List for each ensemble
-        plotInfo["ensembleWindVelocityX"] = []
-        for i in range(self.numEnsembleMembers):
-            self.selectEnsembleMember(i)
-            plotInfo["ensembleWindVelocityX"].append(
-                [self.windVelocityX(i) for i in grid]
-            )
-        plotInfo["ensembleWindVelocityY"] = []
-        for i in range(self.numEnsembleMembers):
-            self.selectEnsembleMember(i)
-            plotInfo["ensembleWindVelocityY"].append(
-                [self.windVelocityY(i) for i in grid]
-            )
-        plotInfo["ensembleWindSpeed"] = []
-        for i in range(self.numEnsembleMembers):
-            self.selectEnsembleMember(i)
-            plotInfo["ensembleWindSpeed"].append([self.windSpeed(i) for i in grid])
-        plotInfo["ensembleWindDirection"] = []
-        for i in range(self.numEnsembleMembers):
-            self.selectEnsembleMember(i)
-            plotInfo["ensembleWindDirection"].append(
-                [self.windDirection(i) for i in grid]
-            )
-        plotInfo["ensemblePressure"] = []
-        for i in range(self.numEnsembleMembers):
-            self.selectEnsembleMember(i)
-            plotInfo["ensemblePressure"].append([self.pressure(i) for i in grid])
-        plotInfo["ensembleTemperature"] = []
-        for i in range(self.numEnsembleMembers):
-            self.selectEnsembleMember(i)
-            plotInfo["ensembleTemperature"].append([self.temperature(i) for i in grid])
 
-        # Clean up
-        self.selectEnsembleMember(currentMember)
-        return plotInfo
+        # Dictionary creation, if not commented follows the SI
+        info = dict(
+            grav=np.float64(self.g),
+            launch_rail_length=np.float64(self.rL),
+            elevation=np.float64(self.elevation),
+            modelType=self.atmosphericModelType,
+            modelTypeMaxExpectedHeight=np.float64(self.maxExpectedHeight),
+            windSpeed=np.float64(self.windSpeed(self.elevation)),
+            windDirection=np.float64(self.windDirection(self.elevation)),
+            windHeading=np.float64(self.windHeading(self.elevation)),
+            surfacePressure=np.float64(self.pressure(self.elevation) / 100),  # in hPa
+            surfaceTemperature=np.float64(self.temperature(self.elevation)),
+            surfaceAirDensity=np.float64(self.density(self.elevation)),
+            surfaceSpeedOfSound=np.float64(self.speedOfSound(self.elevation)),
+        )
+        if self.date != None:
+            info["launch_date"] = self.date.strftime("%Y-%d-%m %H:%M:%S")
+        if self.lat != None and self.lon != None:
+            info["lat"] = self.lat
+            info["lon"] = self.lon
+        if info["modelType"] in ["Forecast", "Reanalysis", "Ensemble"]:
+            info["initDate"] = self.atmosphericModelInitDate.strftime(
+                "%Y-%d-%m %H:%M:%S"
+            )
+            info["endDate"] = self.atmosphericModelEndDate.strftime("%Y-%d-%m %H:%M:%S")
+            info["interval"] = self.atmosphericModelInterval
+            info["initLat"] = self.atmosphericModelInitLat
+            info["endLat"] = self.atmosphericModelEndLat
+            info["initLon"] = self.atmosphericModelInitLon
+            info["endLon"] = self.atmosphericModelEndLon
+        if info["modelType"] == "Ensemble":
+            info["numEnsembleMembers"] = self.numEnsembleMembers
+            info["selectedEnsembleMember"] = self.ensembleMember
+        return info
 
     def allInfoReturned(self):
         """Returns as dicts all data available about the Environment.
