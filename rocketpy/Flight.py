@@ -1324,7 +1324,7 @@ class Flight:
                 compStreamVzBn = compStreamVzB / compStreamSpeed
                 if -1 * compStreamVzBn < 1:
                     compAttackAngle = np.arccos(-compStreamVzBn)
-                    cLift = abs(aerodynamicSurface[1](compAttackAngle, freestreamMach))
+                    cLift = abs(aerodynamicSurface[1](compAttackAngle))
                     # Component lift force magnitude
                     compLift = (
                         0.5 * rho * (compStreamSpeed ** 2) * self.rocket.area * cLift
@@ -1339,6 +1339,17 @@ class Flight:
                     # Add to total moment
                     M1 -= (compCp + a) * compLiftYB
                     M2 += (compCp + a) * compLiftXB
+            # Calculates Roll Moment
+            if aerodynamicSurface[-1] == "Fins":
+                delta = aerodynamicSurface[2][2]
+                if delta != 0:
+                    Clfdelta, Cldomega, delta = aerodynamicSurface[2]
+
+                    Clf = Clfdelta * delta
+
+                    Cld = Cldomega * omega3 / freestreamSpeed
+
+                    M3 += Clf - Cld
         # Calculate derivatives
         # Angular acceleration
         alpha1 = (
