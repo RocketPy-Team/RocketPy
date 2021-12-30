@@ -1341,14 +1341,10 @@ class Flight:
                     M2 += (compCp + a) * compLiftXB
             # Calculates Roll Moment
             if aerodynamicSurface[-1] == "Fins":
-                delta = aerodynamicSurface[2][2]
+                Clfdelta, Cldomega, delta = aerodynamicSurface[2]
                 if delta != 0:
-                    Clfdelta, Cldomega, delta = aerodynamicSurface[2]
-
                     Clf = Clfdelta * delta
-
                     Cld = Cldomega * omega3 / freestreamSpeed
-
                     M3 += Clf - Cld
         # Calculate derivatives
         # Angular acceleration

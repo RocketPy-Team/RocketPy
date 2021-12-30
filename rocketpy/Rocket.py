@@ -622,9 +622,7 @@ class Rocket:
                 trapezoidalConstant += ((Cr + 3 * Ct) / 12) * (s ** 3)
 
                 clfDelta = n * (Ymac + radius) * clalpha / d
-
                 cldOmega = n * clalpha * np.cos(delta) * trapezoidalConstant / (Af * d)
-
                 rollParameters = [clfDelta, cldOmega, delta]
 
             # Store values
