@@ -525,7 +525,7 @@ class Rocket:
         tipChord,
         distanceToCM,
         radius=0,
-        delta=0,
+        cantAngle=0,
         airfoil=None,
     ):
         """Create a fin set, storing its parameters as part of the
@@ -553,7 +553,7 @@ class Rocket:
             is default, use rocket radius. Otherwise, enter the radius
             of the rocket in the section of the fins, as this impacts
             its lift coefficient.
-        delta : int, float, optional
+        cantAngle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must 
             be given in degrees.
         airfoil : string
@@ -575,16 +575,17 @@ class Rocket:
         Ct = tipChord
         Yr = rootChord + tipChord
         s = span
-        Af = Yr * s / 2
-        # fin area
+        Af = Yr * s / 2  # fin area
         Ymac = (
             (s / 3) * (Cr + 2 * Ct) / Yr
         )  # span wise position of fin's mean aerodynamic chord
         Lf = np.sqrt((rootChord / 2 - tipChord / 2) ** 2 + span ** 2)
         radius = self.radius if radius == 0 else radius
         d = 2 * radius
-        delta = np.radians(delta)
-        rollParameters = [0, 0, 0]
+        cantAngleRad = np.radians(cantAngle)
+        trapezoidalConstant = ((Yr) / 2) * (radius ** 2) * s
+        trapezoidalConstant += ((Cr + 2 * Ct) / 3) * radius * (s ** 2)
+        trapezoidalConstant += ((Cr + 3 * Ct) / 12) * (s ** 3)
 
         # Save geometric parameters for later Fin Flutter Analysis and Roll Moment Calculation
         self.rootChord = Cr
@@ -615,15 +616,14 @@ class Rocket:
                 lambda x: clalpha * x, "Alpha (rad)", "Cl", interpolation="linear"
             )
 
-            # Parameters for Roll Moment
-            if delta != 0:
-                trapezoidalConstant = ((Yr) / 2) * (radius ** 2) * s
-                trapezoidalConstant += ((Cr + 2 * Ct) / 3) * radius * (s ** 2)
-                trapezoidalConstant += ((Cr + 3 * Ct) / 12) * (s ** 3)
-
-                clfDelta = n * (Ymac + radius) * clalpha / d
-                cldOmega = n * clalpha * np.cos(delta) * trapezoidalConstant / (Af * d)
-                rollParameters = [clfDelta, cldOmega, delta]
+            # Parameters for Roll Moment. Documented at: https://drive.google.com/file/d/1xR817-hMTlFucq1IKWM8SUmYqMtROJy6/view
+            clfDelta = n * (Ymac + radius) * clalpha / d
+            cldOmega = (
+                n * clalpha * np.cos(cantAngleRad) * trapezoidalConstant / (Af * d)
+            )
+            rollParameters = (
+                [clfDelta, cldOmega, cantAngleRad] if cantAngleRad != 0 else [0, 0, 0]
+            )
 
             # Store values
             fin = [(0, 0, cpz), cldata, rollParameters, "Fins"]
@@ -684,17 +684,14 @@ class Rocket:
             # Takes an approximation to an angular coefficient
             clalpha = cldata.differentiate(x=0, dx=1e-2)
 
-            # Parameters for Roll Moment
-            if delta != 0:
-                trapezoidalConstant = ((Yr) / 2) * (radius ** 2) * s
-                trapezoidalConstant += ((Cr + 2 * Ct) / 3) * radius * (s ** 2)
-                trapezoidalConstant += ((Cr + 3 * Ct) / 12) * (s ** 3)
-
-                clfDelta = n * (Ymac + radius) * clalpha / d
-
-                cldOmega = n * clalpha * np.cos(delta) * trapezoidalConstant / (Af * d)
-
-                rollParameters = [clfDelta, cldOmega, delta]
+            # Parameters for Roll Moment. Documented at: https://drive.google.com/file/d/1xR817-hMTlFucq1IKWM8SUmYqMtROJy6/view
+            clfDelta = n * (Ymac + radius) * clalpha / d
+            cldOmega = (
+                n * clalpha * np.cos(cantAngleRad) * trapezoidalConstant / (Af * d)
+            )
+            rollParameters = (
+                [clfDelta, cldOmega, cantAngleRad] if cantAngleRad != 0 else [0, 0, 0]
+            )
 
             # Store values
             fin = [(0, 0, cpz), cldata, rollParameters, "Fins"]
