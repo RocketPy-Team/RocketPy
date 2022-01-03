@@ -81,7 +81,11 @@ class Environment:
         Environment.elevation : float
             Launch site elevation.
         Environment.date : datetime
-            Date time of launch.
+            Date time of launch in UTC.
+        Environment.local_date : datetime
+                    Date time of launch in the local time_zone, defined by Environment.time_zone.
+        Environment.time_zone : string
+                    Local time zone specification.
 
         Topographic informations:
         Environment.elevLonArray: array
@@ -387,21 +391,21 @@ class Environment:
 
     def setDate(self, date, time_zone='UTC'):
         """Set date and time of launch and update weather conditions if
-        date dependent atmospheric model is used. To see all time zones use
-        print(pytz.all_timezones).
+        date dependent atmospheric model is used.
 
         Parameters
         ----------
         date : Datetime
             Datetime object specifying launch date and time.
         time_zone : string, optional
-            Name of the time zone.
+            Name of the time zone. To see all time zones, import pytz and run
+        print(pytz.all_timezones). Default time zone is "UTC".
 
         Return
         ------
         None
         """
-        # Store date
+        # Store date and configure time zone
         self.time_zone = time_zone
         tz = pytz.timezone(self.time_zone)
         local_date = datetime(*date)
