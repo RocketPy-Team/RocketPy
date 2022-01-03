@@ -415,7 +415,7 @@ class Environment:
         if localDate.tzinfo == None:
             localDate = tz.localize(localDate)
         self.localDate = localDate
-        self.date = self.localDate.replace(tzinfo=pytz.UTC)
+        self.date = self.localDate.astimezone(pytz.UTC)
 
         # Update atmospheric conditions if atmosphere type is Forecast,
         # Reanalysis or Ensemble
@@ -2844,10 +2844,11 @@ class Environment:
         # Print launch site details
         print("Launch Site Details")
         print("\nLaunch Rail Length: ", self.rL, " m")
+        time_format = "%Y-%m-%d %H:%M:%S"
         if self.date != None and 'UTC' not in self.timeZone:
-            print("Launch Date: ", self.date, " UTC |", self.localDate, self.timeZone)
+            print("Launch Date:", self.date.strftime(time_format), "UTC |", self.localDate.strftime(time_format), self.timeZone)
         else:
-            print("Launch Date: ", self.date, " UTC")
+            print("Launch Date:", self.date.strftime(time_format), "UTC")
         if self.lat != None and self.lon != None:
             print("Launch Site Latitude: {:.5f}°".format(self.lat))
             print("Launch Site Longitude: {:.5f}°".format(self.lon))
