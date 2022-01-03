@@ -10,7 +10,8 @@ setuptools.setup(
         'numpy>=1.0',
         'scipy>=1.0',
         'matplotlib>=3.0',
-        'requests'
+        'requests',
+        'pytz',
     ],
     maintainer="RocketPy Developers",
     author="Giovani Hidalgo Ceotto",
