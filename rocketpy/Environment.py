@@ -2847,7 +2847,7 @@ class Environment:
         time_format = "%Y-%m-%d %H:%M:%S"
         if self.date != None and 'UTC' not in self.timeZone:
             print("Launch Date:", self.date.strftime(time_format), "UTC |", self.localDate.strftime(time_format), self.timeZone)
-        else:
+        elif self.date != None:
             print("Launch Date:", self.date.strftime(time_format), "UTC")
         if self.lat != None and self.lon != None:
             print("Launch Site Latitude: {:.5f}°".format(self.lat))
@@ -2977,7 +2977,7 @@ class Environment:
         time_format = "%Y-%m-%d %H:%M:%S"
         if self.date != None and 'UTC' not in self.timeZone:
             print("Launch Date:", self.date.strftime(time_format), "UTC |", self.localDate.strftime(time_format), self.timeZone)
-        else:
+        elif self.date != None:
             print("Launch Date:", self.date.strftime(time_format), "UTC")
         if self.lat != None and self.lon != None:
             print("Launch Site Latitude: {:.5f}°".format(self.lat))
