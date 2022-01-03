@@ -615,8 +615,7 @@ class Rocket:
             cldata = Function(
                 lambda x: clalpha * x, "Alpha (rad)", "Cl", interpolation="linear"
             )
-
-            # Parameters for Roll Moment. Documented at: https://drive.google.com/file/d/1xR817-hMTlFucq1IKWM8SUmYqMtROJy6/view
+            # Parameters for Roll Moment. Documented at: https://github.com/Projeto-Jupiter/RocketPy/blob/develop/docs/technical/aerodynamics/Roll_Equations.pdf
             clfDelta = n * (Ymac + radius) * clalpha / d
             cldOmega = (
                 n * clalpha * np.cos(cantAngleRad) * trapezoidalConstant / (Af * d)
@@ -684,7 +683,7 @@ class Rocket:
             # Takes an approximation to an angular coefficient
             clalpha = cldata.differentiate(x=0, dx=1e-2)
 
-            # Parameters for Roll Moment. Documented at: https://drive.google.com/file/d/1xR817-hMTlFucq1IKWM8SUmYqMtROJy6/view
+            # Parameters for Roll Moment. Documented at: https://github.com/Projeto-Jupiter/RocketPy/blob/develop/docs/technical/aerodynamics/Roll_Equations.pdf
             clfDelta = n * (Ymac + radius) * clalpha / d
             cldOmega = (
                 n * clalpha * np.cos(cantAngleRad) * trapezoidalConstant / (Af * d)
