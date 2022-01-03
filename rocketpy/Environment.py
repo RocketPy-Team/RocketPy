@@ -83,9 +83,9 @@ class Environment:
         Environment.date : datetime
             Date time of launch in UTC.
         Environment.local_date : datetime
-                    Date time of launch in the local time_zone, defined by Environment.time_zone.
-        Environment.time_zone : string
-                    Local time zone specification.
+                    Date time of launch in the local time zone, defined by Environment.timeZone.
+        Environment.timeZone : string
+                    Local time zone specification. See pytz for time zone info.
 
         Topographic informations:
         Environment.elevLonArray: array
@@ -295,7 +295,7 @@ class Environment:
         longitude=0,
         elevation=0,
         datum="SIRGAS2000",
-        time_zone="UTC",
+        timeZone="UTC",
     ):
         """Initialize Environment class, saving launch rail length,
         launch date, location coordinates and elevation. Note that
@@ -337,7 +337,7 @@ class Environment:
             available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
             is "SIRGAS2000", then this model will be used if the user make some
             typing mistake.
-        time_zone : string, optional
+        timeZone : string, optional
             Name of the time zone. To see all time zones, import pytz and run 
 
         Returns
@@ -355,11 +355,11 @@ class Environment:
 
         # Save date
         if date != None:
-            self.setDate(date, time_zone)
+            self.setDate(date, timeZone)
         else:
             self.date = None
             self.local_date = None
-            self.time_zone = None
+            self.timeZone = None
 
         # Initialize constants
         self.earthRadius = 6.3781 * (10 ** 6)
@@ -392,7 +392,7 @@ class Environment:
 
         return None
 
-    def setDate(self, date, time_zone='UTC'):
+    def setDate(self, date, timeZone='UTC'):
         """Set date and time of launch and update weather conditions if
         date dependent atmospheric model is used.
 
@@ -400,7 +400,7 @@ class Environment:
         ----------
         date : Datetime
             Datetime object specifying launch date and time.
-        time_zone : string, optional
+        timeZone : string, optional
             Name of the time zone. To see all time zones, import pytz and run
         print(pytz.all_timezones). Default time zone is "UTC".
 
@@ -409,8 +409,8 @@ class Environment:
         None
         """
         # Store date and configure time zone
-        self.time_zone = time_zone
-        tz = pytz.timezone(self.time_zone)
+        self.timeZone = timeZone
+        tz = pytz.timezone(self.timeZone)
         local_date = datetime(*date)
         if local_date.tzinfo == None:
             local_date = tz.localize(local_date)
@@ -2844,8 +2844,8 @@ class Environment:
         # Print launch site details
         print("Launch Site Details")
         print("\nLaunch Rail Length: ", self.rL, " m")
-        if self.date != None and 'UTC' not in self.time_zone:
-            print("Launch Date: ", self.date, " UTC |", self.local_date, self.time_zone)
+        if self.date != None and 'UTC' not in self.timeZone:
+            print("Launch Date: ", self.date, " UTC |", self.local_date, self.timeZone)
         else:
             print("Launch Date: ", self.date, " UTC")
         if self.lat != None and self.lon != None:
@@ -2973,8 +2973,8 @@ class Environment:
         # Print launch site details
         print("\n\nLaunch Site Details")
         print("\nLaunch Rail Length: ", self.rL, " m")
-        if self.date != None and 'UTC' not in self.time_zone:
-            print("Launch Date: ", self.date, " UTC |", self.local_date, self.time_zone)
+        if self.date != None and 'UTC' not in self.timeZone:
+            print("Launch Date: ", self.date, " UTC |", self.local_date, self.timeZone)
         else:
             print("Launch Date: ", self.date, " UTC")
         if self.lat != None and self.lon != None:
