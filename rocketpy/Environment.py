@@ -295,6 +295,7 @@ class Environment:
         longitude=0,
         elevation=0,
         datum="SIRGAS2000",
+        time_zone="UTC",
     ):
         """Initialize Environment class, saving launch rail length,
         launch date, location coordinates and elevation. Note that
@@ -331,7 +332,13 @@ class Environment:
             'Open-Elevation' which uses the Open-Elevation API to
             find elevation data. For this option, latitude and
             longitude must also be specified. Default value is 0.
-        datum:
+        datum : string
+            The desired reference ellipsoide model, the following options are
+            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
+            is "SIRGAS2000", then this model will be used if the user make some
+            typing mistake.
+        time_zone : string, optional
+            Name of the time zone. To see all time zones, import pytz and run 
 
         Returns
         -------
@@ -348,15 +355,11 @@ class Environment:
 
         # Save date
         if date != None:
-            self.setDate(date)
+            self.setDate(date, time_zone)
         else:
             self.date = None
-
-        # Save local date
-        self.local_date = None
-
-        # Save local time zone
-        self.time_zone = None
+            self.local_date = None
+            self.time_zone = None
 
         # Initialize constants
         self.earthRadius = 6.3781 * (10 ** 6)
@@ -2841,10 +2844,10 @@ class Environment:
         # Print launch site details
         print("Launch Site Details")
         print("\nLaunch Rail Length: ", self.rL, " m")
-        if self.date != None:
+        if self.date != None and 'UTC' not in self.time_zone:
+            print("Launch Date: ", self.date, " UTC |", self.local_date, self.time_zone)
+        else:
             print("Launch Date: ", self.date, " UTC")
-        if self.local_date != None:
-            print("Launch Date: ", self.local_date, self.time_zone)
         if self.lat != None and self.lon != None:
             print("Launch Site Latitude: {:.5f}°".format(self.lat))
             print("Launch Site Longitude: {:.5f}°".format(self.lon))
@@ -2970,10 +2973,10 @@ class Environment:
         # Print launch site details
         print("\n\nLaunch Site Details")
         print("\nLaunch Rail Length: ", self.rL, " m")
-        if self.date != None:
+        if self.date != None and 'UTC' not in self.time_zone:
+            print("Launch Date: ", self.date, " UTC |", self.local_date, self.time_zone)
+        else:
             print("Launch Date: ", self.date, " UTC")
-        if self.local_date != None:
-            print("Launch Date: ", self.local_date, self.time_zone)
         if self.lat != None and self.lon != None:
             print("Launch Site Latitude: {:.5f}°".format(self.lat))
             print("Launch Site Longitude: {:.5f}°".format(self.lon))
