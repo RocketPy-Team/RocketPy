@@ -82,7 +82,7 @@ class Environment:
             Launch site elevation.
         Environment.date : datetime
             Date time of launch in UTC.
-        Environment.local_date : datetime
+        Environment.localDate : datetime
                     Date time of launch in the local time zone, defined by Environment.timeZone.
         Environment.timeZone : string
                     Local time zone specification. See pytz for time zone info.
@@ -358,7 +358,7 @@ class Environment:
             self.setDate(date, timeZone)
         else:
             self.date = None
-            self.local_date = None
+            self.localDate = None
             self.timeZone = None
 
         # Initialize constants
@@ -411,11 +411,11 @@ class Environment:
         # Store date and configure time zone
         self.timeZone = timeZone
         tz = pytz.timezone(self.timeZone)
-        local_date = datetime(*date)
-        if local_date.tzinfo == None:
-            local_date = tz.localize(local_date)
-        self.local_date = local_date
-        self.date = self.local_date.replace(tzinfo=pytz.UTC)
+        localDate = datetime(*date)
+        if localDate.tzinfo == None:
+            localDate = tz.localize(localDate)
+        self.localDate = localDate
+        self.date = self.localDate.replace(tzinfo=pytz.UTC)
 
         # Update atmospheric conditions if atmosphere type is Forecast,
         # Reanalysis or Ensemble
@@ -2845,7 +2845,7 @@ class Environment:
         print("Launch Site Details")
         print("\nLaunch Rail Length: ", self.rL, " m")
         if self.date != None and 'UTC' not in self.timeZone:
-            print("Launch Date: ", self.date, " UTC |", self.local_date, self.timeZone)
+            print("Launch Date: ", self.date, " UTC |", self.localDate, self.timeZone)
         else:
             print("Launch Date: ", self.date, " UTC")
         if self.lat != None and self.lon != None:
@@ -2974,7 +2974,7 @@ class Environment:
         print("\n\nLaunch Site Details")
         print("\nLaunch Rail Length: ", self.rL, " m")
         if self.date != None and 'UTC' not in self.timeZone:
-            print("Launch Date: ", self.date, " UTC |", self.local_date, self.timeZone)
+            print("Launch Date: ", self.date, " UTC |", self.localDate, self.timeZone)
         else:
             print("Launch Date: ", self.date, " UTC")
         if self.lat != None and self.lon != None:
