@@ -1339,6 +1339,13 @@ class Flight:
                     # Add to total moment
                     M1 -= (compCp + a) * compLiftYB
                     M2 += (compCp + a) * compLiftXB
+            # Calculates Roll Moment
+            if aerodynamicSurface[-1] == "Fins":
+                Clfdelta, Cldomega, cantAngleRad = aerodynamicSurface[2]
+                if cantAngleRad != 0:
+                    Clf = Clfdelta * cantAngleRad
+                    Cld = Cldomega * omega3 / freestreamSpeed
+                    M3 += Clf - Cld
         # Calculate derivatives
         # Angular acceleration
         alpha1 = (

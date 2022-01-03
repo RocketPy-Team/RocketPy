@@ -436,7 +436,11 @@ class Rocket:
         # Calculate clalpha
         clalpha = -2 * (1 - r ** (-2)) * (topRadius / rref) ** 2
         cldata = Function(
-            lambda x: clalpha * x, "Alpha (rad)", "Cl", interpolation="linear"
+            lambda x: clalpha * x,
+            "Alpha (rad)",
+            "Cl",
+            interpolation="linear",
+            extrapolation="natural",
         )
 
         # Store values as new aerodynamic surface
@@ -514,7 +518,15 @@ class Rocket:
         return self.aerodynamicSurfaces[-1]
 
     def addFins(
-        self, n, span, rootChord, tipChord, distanceToCM, radius=0, airfoil=None
+        self,
+        n,
+        span,
+        rootChord,
+        tipChord,
+        distanceToCM,
+        radius=0,
+        cantAngle=0,
+        airfoil=None,
     ):
         """Create a fin set, storing its parameters as part of the
         aerodynamicSurfaces list. Its parameters are the axial position
@@ -541,6 +553,9 @@ class Rocket:
             is default, use rocket radius. Otherwise, enter the radius
             of the rocket in the section of the fins, as this impacts
             its lift coefficient.
+        cantAngle : int, float, optional
+            Fins cant angle with respect to the rocket centerline. Must 
+            be given in degrees.
         airfoil : string
             Fin's lift curve. It must be a .csv file. The .csv file shall
             contain no headers and the first column must specify time in
@@ -560,11 +575,19 @@ class Rocket:
         Ct = tipChord
         Yr = rootChord + tipChord
         s = span
+        Af = Yr * s / 2  # fin area
+        Ymac = (
+            (s / 3) * (Cr + 2 * Ct) / Yr
+        )  # span wise position of fin's mean aerodynamic chord
         Lf = np.sqrt((rootChord / 2 - tipChord / 2) ** 2 + span ** 2)
         radius = self.radius if radius == 0 else radius
         d = 2 * radius
+        cantAngleRad = np.radians(cantAngle)
+        trapezoidalConstant = ((Yr) / 2) * (radius ** 2) * s
+        trapezoidalConstant += ((Cr + 2 * Ct) / 3) * radius * (s ** 2)
+        trapezoidalConstant += ((Cr + 3 * Ct) / 12) * (s ** 3)
 
-        # Save geometric parameters for later Fin Flutter Analysis
+        # Save geometric parameters for later Fin Flutter Analysis and Roll Moment Calculation
         self.rootChord = Cr
         self.tipChord = Ct
         self.span = s
@@ -592,9 +615,17 @@ class Rocket:
             cldata = Function(
                 lambda x: clalpha * x, "Alpha (rad)", "Cl", interpolation="linear"
             )
+            # Parameters for Roll Moment. Documented at: https://github.com/Projeto-Jupiter/RocketPy/blob/develop/docs/technical/aerodynamics/Roll_Equations.pdf
+            clfDelta = n * (Ymac + radius) * clalpha / d
+            cldOmega = (
+                n * clalpha * np.cos(cantAngleRad) * trapezoidalConstant / (Af * d)
+            )
+            rollParameters = (
+                [clfDelta, cldOmega, cantAngleRad] if cantAngleRad != 0 else [0, 0, 0]
+            )
 
             # Store values
-            fin = [(0, 0, cpz), cldata, "Fins"]
+            fin = [(0, 0, cpz), cldata, rollParameters, "Fins"]
             self.aerodynamicSurfaces.append(fin)
 
             # Refresh static margin calculation
@@ -652,8 +683,17 @@ class Rocket:
             # Takes an approximation to an angular coefficient
             clalpha = cldata.differentiate(x=0, dx=1e-2)
 
+            # Parameters for Roll Moment. Documented at: https://github.com/Projeto-Jupiter/RocketPy/blob/develop/docs/technical/aerodynamics/Roll_Equations.pdf
+            clfDelta = n * (Ymac + radius) * clalpha / d
+            cldOmega = (
+                n * clalpha * np.cos(cantAngleRad) * trapezoidalConstant / (Af * d)
+            )
+            rollParameters = (
+                [clfDelta, cldOmega, cantAngleRad] if cantAngleRad != 0 else [0, 0, 0]
+            )
+
             # Store values
-            fin = [(0, 0, cpz), cldata, "Fins"]
+            fin = [(0, 0, cpz), cldata, rollParameters, "Fins"]
             self.aerodynamicSurfaces.append(fin)
 
             # Refresh static margin calculation
