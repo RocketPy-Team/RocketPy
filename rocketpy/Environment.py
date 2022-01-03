@@ -385,15 +385,15 @@ class Environment:
 
         return None
 
-    def setDate(self, date, time_zone=None):
+    def setDate(self, date, time_zone='UTC'):
         """Set date and time of launch and update weather conditions if
         date dependent atmospheric model is used. To see all time zones use
         print(pytz.all_timezones).
 
         Parameters
         ----------
-        date : Date
-            Date object specifying launch date and time.
+        date : Datetime
+            Datetime object specifying launch date and time.
         time_zone : string, optional
             Name of the time zone.
 
@@ -402,12 +402,13 @@ class Environment:
         None
         """
         # Store date
-        self.date = datetime(*date)
-
-        if time_zone != None:
-            self.time_zone = time_zone
-            tz = pytz.timezone(self.time_zone)
-            self.local_date = self.date.replace(tzinfo=pytz.UTC).astimezone(tz)
+        self.time_zone = time_zone
+        tz = pytz.timezone(self.time_zone)
+        local_date = datetime(*date)
+        if local_date.tzinfo == None:
+            local_date = tz.localize(local_date)
+        self.local_date = local_date
+        self.date = self.local_date.replace(tzinfo=pytz.UTC)
 
         # Update atmospheric conditions if atmosphere type is Forecast,
         # Reanalysis or Ensemble
