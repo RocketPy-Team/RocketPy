@@ -677,7 +677,7 @@ class Rocket:
         rollParameters = (
             [clfDelta, cldOmega, cantAngleRad] if cantAngleRad != 0 else [0, 0, 0]
         )
-
+        
         # Store values
         fin = [(0, 0, cpz), cldata, rollParameters, "Fins"]
         self.aerodynamicSurfaces.append(fin)
