@@ -632,7 +632,7 @@ class Rocket:
             const = 1 + radius / (s + radius)
 
             # Aplies number of fins correction to lift coefficient
-            const *= finNumCorrection(n) / 2
+            const *= finNumCorrection(n)
 
             # Calculates clalpha * alpha
             cldata = Function(
