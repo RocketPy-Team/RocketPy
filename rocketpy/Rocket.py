@@ -558,10 +558,9 @@ class Rocket:
             Fins cant angle with respect to the rocket centerline. Must 
             be given in degrees.
         airfoil : bool, optional
-            Fin's lift curve. It must be a .csv file. The .csv file shall
-            contain no headers and the first column must specify time in
-            seconds, while the second column specifies lift coefficient. Lift
-            coeffitient is adimentional.
+            Fin's airfoil shape. If True, generic airfoil lift
+            calculations will be performed. If False, calculations for
+            the trapezoildal shape will be perfomed
 
         Returns
         -------
@@ -625,7 +624,8 @@ class Rocket:
                 + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
             )
 
-        if airfoil:  # Calculate lift parameters for generic airfoil. Documented at
+        if airfoil:  # Calculate lift parameters for generic airfoil.
+            # Documented at https://github.com/Projeto-Jupiter/RocketPy/blob/develop/docs/technical/aerodynamics/Fins_Lift_Coefficient.pdf
 
             # Fin–body interference correction
             const = 1 + radius / (s + radius)
@@ -671,13 +671,14 @@ class Rocket:
                 extrapolation="natural",
             )
 
-        # Parameters for Roll Moment. Documented at: https://github.com/Projeto-Jupiter/RocketPy/blob/develop/docs/technical/aerodynamics/Roll_Equations.pdf
+        # Parameters for Roll Moment.
+        # Documented at: https://github.com/Projeto-Jupiter/RocketPy/blob/develop/docs/technical/aerodynamics/Roll_Equations.pdf
         clfDelta = n * (Ymac + radius) * clalpha / d
         cldOmega = n * clalpha * np.cos(cantAngleRad) * trapezoidalConstant / (Af * d)
         rollParameters = (
             [clfDelta, cldOmega, cantAngleRad] if cantAngleRad != 0 else [0, 0, 0]
         )
-        
+
         # Store values
         fin = [(0, 0, cpz), cldata, rollParameters, "Fins"]
         self.aerodynamicSurfaces.append(fin)
