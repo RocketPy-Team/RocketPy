@@ -605,6 +605,7 @@ class Rocket:
             else:
                 return np.sqrt(mach ** 2 - 1)
 
+        # Defines number of fins correction
         def finNumCorrection(n):
             correctorFactor = [2.37, 2.74, 2.99, 3.24]
             if n >= 5 and n <= 8:
