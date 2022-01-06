@@ -23,68 +23,6 @@ from numpy import genfromtxt
 
 from .Function import Function
 
-class FinSet:
-    def __init__ (self, distanceToCM, nFins, shoulderRadius, radius, airfoil = False):
-        #Saving parameters
-        self.distanceToCM = distanceToCM
-        self.nFins = nFins
-        self.shoulderRadius = shoulderRadius
-        self.radius = radius
-        self.airfoil = airfoil
-        
-        #Initializing parameters
-        self.cp = ()
-        self.clData = Function(lambda x:0,"Alpha (rad)","Lift Coefficient")
-        self.name = "" 
-
-        return None
-
-    def createTrapezoidalFin(
-        self, n, span, rootChord, tipChord, distanceToCM, radius=0, airfoil=None
-    ):
-        # Calculate lift coefficient, cp position relative to cm
-        return None 
-    
-    def createElipticalFin(
-        self, n, span, rootChord, distanceToCM, radius=0, airfoil=None
-    ):
-        # Calculate lift coefficient, cp position relative to cm
-        return None 
-    
-    # def evaluateCP (): Pesquisar como achar o CP numericamente para o caso geral 
-
-
-
-
-class FinSet:
-    def __init__ (self, distanceToCM, nFins, shoulderRadius, radius, airfoil = False):
-        #Saving parameters
-        self.distanceToCM = distanceToCM
-        self.nFins = nFins
-        self.shoulderRadius = shoulderRadius
-        self.radius = radius
-        self.airfoil = airfoil
-
-        #Initializing parameters
-        self.cp = ()
-        self.clData = Function(lambda x:0,"Alpha (rad)","Lift Coefficient")
-        self.name = "" 
-
-        return None
-
-    def createTrapezoidalFin(
-        self, n, span, rootChord, tipChord, distanceToCM, radius=0, airfoil=None
-    ):
-        # Calculate lift coefficient, cp position relative to cm
-        return None 
-
-    def createElipticalFin(
-        self, n, span, rootChord, distanceToCM, radius=0, airfoil=None
-    ):
-        # Calculate lift coefficient, cp position relative to cm
-        return None 
-
-    # def evaluateCP (): Pesquisar como achar o CP numericamente para o caso geral
 
 class Rocket:
 
@@ -432,11 +370,13 @@ class Rocket:
         # Calculate total lift coeficient derivative and center of pressure
         if len(self.aerodynamicSurfaces) > 0:
             for aerodynamicSurface in self.aerodynamicSurfaces:
-                self.totalLiftCoeffDer += aerodynamicSurface[1].differentiate(
-                    x=1e-2, dx=1e-3
-                )
+                self.totalLiftCoeffDer += Function(
+                    lambda x: aerodynamicSurface[1](x, 0), extrapolation="natural"
+                ).differentiate(x=1e-2, dx=1e-3)
                 self.cpPosition += (
-                    aerodynamicSurface[1].differentiate(x=1e-2, dx=1e-3)
+                    Function(
+                        lambda x: aerodynamicSurface[1](x, 0), extrapolation="natural"
+                    ).differentiate(x=1e-2, dx=1e-3)
                     * aerodynamicSurface[0][2]
                 )
             self.cpPosition /= self.totalLiftCoeffDer
@@ -498,7 +438,10 @@ class Rocket:
         # Calculate clalpha
         clalpha = -2 * (1 - r ** (-2)) * (topRadius / rref) ** 2
         cldata = Function(
-            lambda x: clalpha * x, "Alpha (rad)", "Cl", interpolation="linear"
+            lambda x, mach: clalpha * x,
+            ["Alpha (rad)", "Mach"],
+            "Cl",
+            interpolation="linear",
         )
 
         # Store values as new aerodynamic surface
@@ -558,8 +501,8 @@ class Rocket:
         # Calculate clalpha
         clalpha = 2
         cldata = Function(
-            lambda x: clalpha * x,
-            "Alpha (rad)",
+            lambda x, mach: clalpha * x,
+            ["Alpha (rad)", "Mach"],
             "Cl",
             interpolation="linear",
             extrapolation="natural",
@@ -576,7 +519,14 @@ class Rocket:
         return self.aerodynamicSurfaces[-1]
 
     def addFins(
-        self, n, span, rootChord, tipChord, distanceToCM, radius=0, airfoil=None
+        self,
+        type,
+        dictionary,
+        n,
+        distanceToCM,
+        radius=0,
+        cantAngle=0,
+        airfoil=False,
     ):
         """Create a fin set, storing its parameters as part of the
         aerodynamicSurfaces list. Its parameters are the axial position
@@ -585,14 +535,13 @@ class Rocket:
 
         Parameters
         ----------
+        type: string
+            type of fin selected to the rocket. ("trapezoidal", "elliptical", and so on hehe)
+        dictionary: dictionary
+            trapezoidal = {"span": span, "rootChord": rootChord, "tipChord": tipChord}
+            elliptical = {"span": span, "rootChord": rootChord}
         n : int
             Number of fins, from 2 to infinity.
-        span : int, float
-            Fin span in meters.
-        rootChord : int, float
-            Fin root chord in meters.
-        tipChord : int, float
-            Fin tip chord in meters.
         distanceToCM : int, float
             Fin set position relative to rocket unloaded center of
             mass, considering positive direction from center of mass to
@@ -603,11 +552,13 @@ class Rocket:
             is default, use rocket radius. Otherwise, enter the radius
             of the rocket in the section of the fins, as this impacts
             its lift coefficient.
-        airfoil : string
-            Fin's lift curve. It must be a .csv file. The .csv file shall
-            contain no headers and the first column must specify time in
-            seconds, while the second column specifies lift coefficient. Lift
-            coeffitient is adimentional.
+        cantAngle : int, float, optional
+            Fins cant angle with respect to the rocket centerline. Must
+            be given in degrees.
+        airfoil : bool, optional
+            Fin's airfoil shape. If True, generic airfoil lift
+            calculations will be performed. If False, calculations for
+            the trapezoildal shape will be perfomed
 
         Returns
         -------
@@ -617,46 +568,126 @@ class Rocket:
             Object of the Rocket class.
         """
 
-        # Retrieve parameters for calculations
-        Cr = rootChord
-        Ct = tipChord
-        Yr = rootChord + tipChord
-        s = span
-        Lf = np.sqrt((rootChord / 2 - tipChord / 2) ** 2 + span ** 2)
-        radius = self.radius if radius == 0 else radius
-        d = 2 * radius
+        # Type verification
+        if type == "trapezoidal":
 
-        # Save geometric parameters for later Fin Flutter Analysis
-        self.rootChord = Cr
-        self.tipChord = Ct
-        self.span = s
-        self.distanceRocketFins = distanceToCM
+            # Retrieve parameters for calculations
+            Cr = dictionary["rootChord"]
+            Ct = dictionary["tipChord"]
+            Yr = Cr + Ct
+            s = dictionary["span"]
 
-        # Calculate cp position relative to cm
-        if distanceToCM < 0:
-            cpz = distanceToCM - (
-                ((Cr - Ct) / 3) * ((Cr + 2 * Ct) / (Cr + Ct))
-                + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
+            Af = Yr * s / 2  # fin area
+            gamac = np.arctan((Cr - Ct) / (2 * s))  # mid chord angle
+            Ymac = (
+                (s / 3) * (Cr + 2 * Ct) / Yr
+            )  # span wise position of fin's mean aerodynamic chord
+            Lf = np.sqrt((Cr / 2 - Ct / 2) ** 2 + s ** 2)
+            radius = self.radius if radius == 0 else radius
+            d = 2 * radius
+            cantAngleRad = np.radians(cantAngle)
+            trapezoidalConstant = ((Yr) / 2) * (radius ** 2) * s
+            trapezoidalConstant += ((Cr + 2 * Ct) / 3) * radius * (s ** 2)
+            trapezoidalConstant += ((Cr + 3 * Ct) / 12) * (s ** 3)
+
+            # Save geometric parameters for later Fin Flutter Analysis and Roll Moment Calculation
+            self.rootChord = Cr
+            self.tipChord = Ct
+            self.span = s
+            self.distanceRocketFins = distanceToCM
+
+            # Auxiliary functions
+            # Defines beta parameter
+            def beta(mach):
+                if mach < 0.8:
+                    return np.sqrt(1 - mach ** 2)
+                elif mach < 1.1:
+                    return np.sqrt(1 - 0.8 ** 2)
+                else:
+                    return np.sqrt(mach ** 2 - 1)
+
+            # Defines number of fins correction
+            def finNumCorrection(n):
+                correctorFactor = [2.37, 2.74, 2.99, 3.24]
+                if n >= 5 and n <= 8:
+                    return correctorFactor[n - 5]
+                else:
+                    return n / 2
+
+            # Calculate cp position relative to cm
+            if distanceToCM < 0:
+                cpz = distanceToCM - (
+                    ((Cr - Ct) / 3) * ((Cr + 2 * Ct) / (Cr + Ct))
+                    + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
+                )
+            else:
+                cpz = distanceToCM + (
+                    ((Cr - Ct) / 3) * ((Cr + 2 * Ct) / (Cr + Ct))
+                    + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
+                )
+
+            if airfoil:  # Calculate lift parameters for generic airfoil.
+                # Documented at https://github.com/Projeto-Jupiter/RocketPy/blob/develop/docs/technical/aerodynamics/Fins_Lift_Coefficient.pdf
+
+                # Fin–body interference correction
+                const = 1 + radius / (s + radius)
+
+                # Aplies number of fins correction to lift coefficient
+                const *= finNumCorrection(n)
+
+                # Calculates clalpha * alpha
+                cldata = Function(
+                    lambda x, mach: x
+                    * const
+                    * 2
+                    * np.pi
+                    * (s ** 2 / Af)
+                    / (
+                        1
+                        + np.sqrt(
+                            1 + ((beta(mach) * s ** 2) / (Af * np.cos(gamac))) ** 2
+                        )
+                    ),
+                    ["Alpha (rad)", "Mach"],
+                    "Cl",
+                    interpolation="linear",
+                    extrapolation="natural",
+                )
+
+                # Calculates clalpha
+                clalpha = Function(
+                    lambda x: cldata(x, 0), extrapolation="natural"
+                ).differentiate(x=1e-2, dx=1e-3)
+
+            else:  # Calculate lift parameters for trapezoildal planar fins
+
+                # Calculates clalpha
+                clalpha = (4 * n * (s / d) ** 2) / (1 + np.sqrt(1 + (2 * Lf / Yr) ** 2))
+
+                # Fin–body interference correction
+                clalpha *= 1 + radius / (s + radius)
+
+                # Create a function of lift values by attack angle
+                cldata = Function(
+                    lambda x, mach: clalpha * x,
+                    ["Alpha (rad)", "Mach"],
+                    "Cl",
+                    interpolation="linear",
+                    extrapolation="natural",
+                )
+
+            # Parameters for Roll Moment.
+            # Documented at: https://github.com/Projeto-Jupiter/RocketPy/blob/develop/docs/technical/aerodynamics/Roll_Equations.pdf
+            clfDelta = n * (Ymac + radius) * clalpha / d
+            cldOmega = (
+                n * clalpha * np.cos(cantAngleRad) * trapezoidalConstant / (Af * d)
             )
-        else:
-            cpz = distanceToCM + (
-                ((Cr - Ct) / 3) * ((Cr + 2 * Ct) / (Cr + Ct))
-                + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
-            )
-
-        # Calculate lift parameters for planar fins
-        if not airfoil:
-            # Calculate clalpha
-            clalpha = (4 * n * (s / d) ** 2) / (1 + np.sqrt(1 + (2 * Lf / Yr) ** 2))
-            clalpha *= 1 + radius / (s + radius)
-
-            # # Create a function of lift values by attack angle
-            cldata = Function(
-                lambda x: clalpha * x, "Alpha (rad)", "Cl", interpolation="linear"
+            rollParameters = (
+                [clfDelta, cldOmega, cantAngleRad] if cantAngleRad != 0 else [0, 0, 0]
             )
 
             # Store values
-            fin = [(0, 0, cpz), cldata, "Fins"]
+            fin = [(0, 0, cpz), cldata, rollParameters, "Fins"]
             self.aerodynamicSurfaces.append(fin)
 
             # Refresh static margin calculation
@@ -665,57 +696,97 @@ class Rocket:
             # Return self
             return self.aerodynamicSurfaces[-1]
 
-        else:
+        if type == "elliptical":
 
-            def cnalfa1(cn):
-                """Calculates the normal force coefficient derivative of a 3D
-                airfoil for a given Cnalfa0
+            # Retrieve parameters for calculations
+            Cr = dictionary["rootChord"]
+            s = dictionary["span"]
+            Af = (np.pi * Cr / 2 * s) / 2
+            gamac = 0
+            rollParameters = [0, 0, 0]
 
-                Parameters
-                ----------
-                cn : int
-                    Normal force coefficient derivative of a 2D airfoil.
+            radius = self.radius if radius == 0 else radius
+            d = 2 * radius
+            cantAngleRad = np.radians(cantAngle)
 
-                Returns
-                -------
-                Cnalfa1 : int
-                    Normal force coefficient derivative of a 3D airfoil.
-                """
+            # Auxiliary functions
+            # Defines beta parameter
+            def beta(mach):
+                if mach < 0.8:
+                    return np.sqrt(1 - mach ** 2)
+                elif mach < 1.1:
+                    return np.sqrt(1 - 0.8 ** 2)
+                else:
+                    return np.sqrt(mach ** 2 - 1)
 
-                # Retrieve parameters for calculations
-                Af = (Cr + Ct) * span / 2
-                # fin area
-                AR = 2 * (span ** 2) / Af  # Aspect ratio
-                gamac = np.arctan((Cr - Ct) / (2 * span))
-                # mid chord angle
-                FD = 2 * np.pi * AR / (cn * np.cos(gamac))
-                Cnalfa1 = (
-                    cn
-                    * FD
-                    * (Af / self.area)
-                    * np.cos(gamac)
-                    / (2 + FD * (1 + (4 / FD ** 2)) ** 0.5)
+            # Defines number of fins correction
+            def finNumCorrection(n):
+                correctorFactor = [2.37, 2.74, 2.99, 3.24]
+                if n >= 5 and n <= 8:
+                    return correctorFactor[n - 5]
+                else:
+                    return n / 2
+
+            # Calculate cp position relative to cm
+            if distanceToCM < 0:
+                cpz = distanceToCM - (0.288 * Cr)
+            else:
+                cpz = distanceToCM + (0.288 * Cr)
+
+            if airfoil:  # Calculate lift parameters for generic airfoil.
+                # Documented at https://github.com/Projeto-Jupiter/RocketPy/blob/develop/docs/technical/aerodynamics/Fins_Lift_Coefficient.pdf
+
+                # Fin–body interference correction
+                const = 1 + radius / (s + radius)
+
+                # Aplies number of fins correction to lift coefficient
+                const *= finNumCorrection(n)
+
+                # Calculates clalpha * alpha
+                cldata = Function(
+                    lambda x, mach: x
+                    * const
+                    * 2
+                    * np.pi
+                    * (s ** 2 / Af)
+                    / (
+                        1
+                        + np.sqrt(
+                            1 + ((beta(mach) * s ** 2) / (Af * np.cos(gamac))) ** 2
+                        )
+                    ),
+                    ["Alpha (rad)", "Mach"],
+                    "Cl",
+                    interpolation="linear",
+                    extrapolation="natural",
                 )
-                return Cnalfa1
 
-            # Import the lift curve as a function of lift values by attack angle
-            read = genfromtxt(airfoil, delimiter=",")
+                # Calculates clalpha
+                clalpha = Function(
+                    lambda x: cldata(x, 0), extrapolation="natural"
+                ).differentiate(x=1e-2, dx=1e-3)
 
-            # Aplies number of fins to lift coefficient data
-            data = [[cl[0], (n / 2) * cnalfa1(cl[1])] for cl in read]
-            cldata = Function(
-                data,
-                "Alpha (rad)",
-                "Cl",
-                interpolation="linear",
-                extrapolation="natural",
-            )
+            else:  # Calculate lift parameters for elliptical planar fins
 
-            # Takes an approximation to an angular coefficient
-            clalpha = cldata.differentiate(x=0, dx=1e-2)
+                # Calculates clalpha
+                clalpha = (4 * n * (s / d) ** 2) / (
+                    1 + np.sqrt(1 + 1.623 * (s / Cr) ** 2)
+                )
+
+                # Fin–body interference correction
+                clalpha *= 1 + radius / (s + radius)
+
+                # Create a function of lift values by attack angle
+                cldata = Function(
+                    lambda x, mach: clalpha * x,
+                    ["Alpha (rad)", "Mach"],
+                    "Cl",
+                    interpolation="linear",
+                    extrapolation="natural",
+                )
 
             # Store values
-            fin = [(0, 0, cpz), cldata, "Fins"]
+            fin = [(0, 0, cpz), cldata, rollParameters, "Fins"]
             self.aerodynamicSurfaces.append(fin)
 
             # Refresh static margin calculation
@@ -1009,7 +1080,9 @@ class Rocket:
         print("\nAerodynamics Lift Coefficient Derivatives")
         for aerodynamicSurface in self.aerodynamicSurfaces:
             name = aerodynamicSurface[-1]
-            clalpha = aerodynamicSurface[1].differentiate(x=1e-2, dx=1e-3)
+            clalpha = Function(
+                lambda x: aerodynamicSurface[1](x, 0), extrapolation="natural"
+            ).differentiate(x=1e-2, dx=1e-3)
             print(
                 name + " Lift Coefficient Derivative: {:.3f}".format(clalpha) + "/rad"
             )
