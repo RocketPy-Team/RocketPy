@@ -554,7 +554,7 @@ class Rocket:
             of the rocket in the section of the fins, as this impacts
             its lift coefficient.
         cantAngle : int, float, optional
-            Fins cant angle with respect to the rocket centerline. Must 
+            Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
         airfoil : string
             Fin's lift curve. It must be a .csv file. The .csv file shall
