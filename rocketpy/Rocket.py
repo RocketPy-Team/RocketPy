@@ -371,11 +371,11 @@ class Rocket:
         if len(self.aerodynamicSurfaces) > 0:
             for aerodynamicSurface in self.aerodynamicSurfaces:
                 self.totalLiftCoeffDer += Function(
-                    lambda x: aerodynamicSurface[1](x, 0), extrapolation="natural"
+                    lambda alpha: aerodynamicSurface[1](alpha, 0)
                 ).differentiate(x=1e-2, dx=1e-3)
                 self.cpPosition += (
                     Function(
-                        lambda x: aerodynamicSurface[1](x, 0), extrapolation="natural"
+                        lambda alpha: aerodynamicSurface[1](alpha, 0)
                     ).differentiate(x=1e-2, dx=1e-3)
                     * aerodynamicSurface[0][2]
                 )
@@ -438,10 +438,7 @@ class Rocket:
         # Calculate clalpha
         clalpha = -2 * (1 - r ** (-2)) * (topRadius / rref) ** 2
         cldata = Function(
-            lambda x, mach: clalpha * x,
-            ["Alpha (rad)", "Mach"],
-            "Cl",
-            interpolation="linear",
+            lambda alpha, mach: clalpha * alpha, ["Alpha (rad)", "Mach"], "Cl",
         )
 
         # Store values as new aerodynamic surface
@@ -501,11 +498,7 @@ class Rocket:
         # Calculate clalpha
         clalpha = 2
         cldata = Function(
-            lambda x, mach: clalpha * x,
-            ["Alpha (rad)", "Mach"],
-            "Cl",
-            interpolation="linear",
-            extrapolation="natural",
+            lambda alpha, mach: clalpha * alpha, ["Alpha (rad)", "Mach"], "Cl",
         )
 
         # Store values
@@ -636,7 +629,7 @@ class Rocket:
 
             # Calculates clalpha * alpha
             cldata = Function(
-                lambda x, mach: x
+                lambda alpha, mach: alpha
                 * const
                 * 2
                 * np.pi
@@ -646,14 +639,12 @@ class Rocket:
                 ),
                 ["Alpha (rad)", "Mach"],
                 "Cl",
-                interpolation="linear",
-                extrapolation="natural",
             )
 
             # Calculates clalpha
-            clalpha = Function(
-                lambda x: cldata(x, 0), extrapolation="natural"
-            ).differentiate(x=1e-2, dx=1e-3)
+            clalpha = Function(lambda alpha: cldata(alpha, 0),).differentiate(
+                x=1e-2, dx=1e-3
+            )
 
         else:  # Calculate lift parameters for trapezoildal planar fins
 
@@ -665,11 +656,7 @@ class Rocket:
 
             # Create a function of lift values by attack angle
             cldata = Function(
-                lambda x, mach: clalpha * x,
-                ["Alpha (rad)", "Mach"],
-                "Cl",
-                interpolation="linear",
-                extrapolation="natural",
+                lambda alpha, mach: clalpha * alpha, ["Alpha (rad)", "Mach"], "Cl",
             )
 
         # Parameters for Roll Moment.
@@ -976,7 +963,7 @@ class Rocket:
         for aerodynamicSurface in self.aerodynamicSurfaces:
             name = aerodynamicSurface[-1]
             clalpha = Function(
-                lambda x: aerodynamicSurface[1](x, 0), extrapolation="natural"
+                lambda alpha: aerodynamicSurface[1](alpha, 0),
             ).differentiate(x=1e-2, dx=1e-3)
             print(
                 name + " Lift Coefficient Derivative: {:.3f}".format(clalpha) + "/rad"
