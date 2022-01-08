@@ -47,7 +47,7 @@ class Environment:
         Environment.earthRadius : float
             Value of Earth's Radius = 6.3781e6 m.
         Environment.airGasConstant : float
-            Value of Air's Gast Constant = 287.05287 J/K/Kg
+            Value of Air's Gas Constant = 287.05287 J/K/Kg
 
         Gravity and Launch Rail Length:
         Environment.rl : float
@@ -87,14 +87,14 @@ class Environment:
         Environment.timeZone : string
                     Local time zone specification. See pytz for time zone info.
 
-        Topographic informations:
+        Topographic information:
         Environment.elevLonArray: array
             Unidimensional array containing the longitude coordinates
         Environment.elevLatArray: array
             Unidimensional array containing the latitude coordinates
         Environment.elevArray: array
             Two-dimensional Array containing the elevation information
-        Environment.topograficProfileAticvated: bool
+        Environment.topographicProfileActivated: bool
             True if the user already set a topographic plofile
 
         Atmosphere Static Conditions:
@@ -172,7 +172,7 @@ class Environment:
             'CustomAtmosphere', 'WyomingSounding', 'NOAARucSounding',
             'Forecast', 'Reanalysis', 'Ensemble'.
         Environment.atmosphericModelFile : string
-            Adress of the file used for the atmospheric model being used.
+            Address of the file used for the atmospheric model being used.
             Only defined for 'WyomingSounding', 'NOAARucSounding',
             'Forecast', 'Reanalysis', 'Ensemble'
         Environment.atmosphericModelDict : dictionary
@@ -344,7 +344,7 @@ class Environment:
         -------
         None
         """
-        # Save launch rail ength
+        # Save launch rail length
         self.rL = railLength
 
         # Save gravity value
@@ -527,7 +527,7 @@ class Environment:
             NASADEM data products were derived from original telemetry data from
             the Shuttle Radar Topography Mission (SRTM).
         file : string
-            The path/name of the topografic file. Usually .nc provided by
+            The path/name of the topographic file. Usually .nc provided by
         dictionary : string, optional
             Dictionary which helps to read the specified file. By default
             'netCDF4' which works well with .nc files will be used.
@@ -543,7 +543,7 @@ class Environment:
                 self.elevLatArray = rootgrp.variables["lat"][:].tolist()
                 self.elevArray = rootgrp.variables["NASADEM_HGT"][:].tolist()
                 # crsArray = rootgrp.variables['crs'][:].tolist().
-                self.topograficProfileAticvated = True
+                self.topographicProfileActivated = True
 
                 print("Region covered by the Topographical file: ")
                 print(
@@ -582,7 +582,7 @@ class Environment:
         ValueError
             [description]
         """
-        if self.topograficProfileAticvated == False:
+        if self.topographicProfileActivated == False:
             print(
                 "You must define a Topographic profile first, please use the method Environment.setTopograghicProfile()"
             )
@@ -667,7 +667,7 @@ class Environment:
         International Standard Atmosphere, importing data from
         weather reanalysis, forecasts and ensemble forecasts,
         importing data from upper air soundings and inputing
-        data as costum functions, arrays or csv files.
+        data as custom functions, arrays or csv files.
 
         Parameters
         ----------
@@ -773,7 +773,7 @@ class Environment:
             String that must be given when type is either
             'WyomingSounding', 'Forecast', 'Reanalysis' or 'Ensemble'.
             It specifies the location of the data given, either through
-            a local file adress or a URL.
+            a local file address or a URL.
             If type is 'Forecast', this parameter can also be either
             'GFS', 'FV3', 'RAP' or 'NAM' for latest of these forecasts.
             References: GFS: Global - 0.25deg resolution - Updates every 6 hours, forecast for 81 points spaced by 3 hours
@@ -782,7 +782,7 @@ class Environment:
                         NAM: Regional CONUS Nest - 5 km resolution - Updates every 6 hours, forecast for 21 points spaced by 3 hours
             If type is 'Ensemble', this parameter can also be either
             'GEFS', or 'CMC' for the latest of these ensembles.
-            Refrences: GEFS: Global, bias-corrected, 0.5deg resolution, 21 forecast members, Updates every 6 hours, forecast for 65 points spaced by 4 hours
+            References: GEFS: Global, bias-corrected, 0.5deg resolution, 21 forecast members, Updates every 6 hours, forecast for 65 points spaced by 4 hours
                        CMC: Global, 0.5deg resolution, 21 forecast members, Updates every 12 hours, forecast for 65 points spaced by 4 hours
         dictionary : dictionary, string, optional
             Dictionary that must be given when type is either
@@ -790,7 +790,7 @@ class Environment:
             It specifies the dictionary to be used when reading netCDF
             and OPeNDAP files, allowing the correct retrieval of data.
             Acceptable values include 'ECMWF', 'NOAA' and 'UCAR' for
-            default dicitonaries which can generally be used to read
+            default dictionaries which can generally be used to read
             datasets from these institutes.
             Alternatively, a dictionary structure can also be given,
             specifying the short names used for time, latitude, longitude,
@@ -822,7 +822,7 @@ class Environment:
             meters while the second column must be the pressure in Pa.
             If an array is given, it is expected to be a list or array
             of coordinates (height in meters, pressure in Pa).
-            Finally, a callable or function is also acepted. The
+            Finally, a callable or function is also accepted. The
             function should take one argument, the height above sea
             level in meters and return a corresponding pressure in Pa.
         temperature : float, string, array, callable, optional
@@ -837,7 +837,7 @@ class Environment:
             meters while the second column must be the temperature in K.
             If an array is given, it is expected to be a list or array
             of coordinates (height in meters, temperature in K).
-            Finally, a callable or function is also acepted. The
+            Finally, a callable or function is also accepted. The
             function should take one argument, the height above sea
             level in meters and return a corresponding temperature in K.
         wind_u : float, string, array, callable, optional
@@ -853,7 +853,7 @@ class Environment:
             meters while the second column must be the wind-u in m/s.
             If an array is given, it is expected to be an array of
             coordinates (height in meters, wind-u in m/s).
-            Finally, a callable or function is also acepted. The
+            Finally, a callable or function is also accepted. The
             function should take one argument, the height above sea
             level in meters and return a corresponding wind-u in m/s.
         wind_v : float, string, array, callable, optional
@@ -869,7 +869,7 @@ class Environment:
             meters while the second column must be the wind-v in m/s.
             If an array is given, it is expected to be an array of
             coordinates (height in meters, wind-v in m/s).
-            Finally, a callable or function is also acepted. The
+            Finally, a callable or function is also accepted. The
             function should take one argument, the height above sea
             level in meters and return a corresponding wind-v in m/s.
 
@@ -1181,8 +1181,8 @@ class Environment:
             # Save dictionary and file
             self.atmosphericModelFile = file
             self.atmosphericModelDict = dictionary
-        elif type == "CostumAtmosphere":
-            self.processCostumAtmosphere(pressure, temperature, wind_u, wind_v)
+        elif type == "CustomAtmosphere":
+            self.processCustomAtmosphere(pressure, temperature, wind_u, wind_v)
         else:
             raise ValueError("Unknown model type.")
 
@@ -1253,7 +1253,7 @@ class Environment:
 
         return None
 
-    def processCostumAtmosphere(
+    def processCustomAtmosphere(
         self, pressure=None, temperature=None, wind_u=0, wind_v=0
     ):
         """Import pressure, temperature and wind profile given by user.
@@ -1272,7 +1272,7 @@ class Environment:
             meters while the second column must be the pressure in Pa.
             If an array is given, it is expected to be a list or array
             of coordinates (height in meters, pressure in Pa).
-            Finally, a callable or function is also acepted. The
+            Finally, a callable or function is also accepted. The
             function should take one argument, the height above sea
             level in meters and return a corresponding pressure in Pa.
         temperature : float, string, array, callable, optional
@@ -1287,7 +1287,7 @@ class Environment:
             meters while the second column must be the temperature in K.
             If an array is given, it is expected to be a list or array
             of coordinates (height in meters, temperature in K).
-            Finally, a callable or function is also acepted. The
+            Finally, a callable or function is also accepted. The
             function should take one argument, the height above sea
             level in meters and return a corresponding temperature in K.
         wind_u : float, string, array, callable, optional
@@ -1303,7 +1303,7 @@ class Environment:
             meters while the second column must be the wind-u in m/s.
             If an array is given, it is expected to be an array of
             coordinates (height in meters, wind-u in m/s).
-            Finally, a callable or function is also acepted. The
+            Finally, a callable or function is also accepted. The
             function should take one argument, the height above sea
             level in meters and return a corresponding wind-u in m/s.
         wind_v : float, string, array, callable, optional
@@ -1319,7 +1319,7 @@ class Environment:
             meters while the second column must be the wind-v in m/s.
             If an array is given, it is expected to be an array of
             coordinates (height in meters, wind-v in m/s).
-            Finally, a callable or function is also acepted. The
+            Finally, a callable or function is also accepted. The
             function should take one argument, the height above sea
             level in meters and return a corresponding wind-v in m/s.
 
@@ -1335,14 +1335,14 @@ class Environment:
             # Use standard atmosphere
             self.pressure = self.pressureISA
         else:
-            # Use costum input
+            # Use custom input
             self.pressure = Function(
                 pressure,
                 inputs="Height Above Sea Level (m)",
                 outputs="Pressure (Pa)",
                 interpolation="linear",
             )
-            # Check maximum height of costum pressure input
+            # Check maximum height of custom pressure input
             if not callable(self.pressure.source):
                 maxExpectedHeight = max(self.pressure[-1, 0], maxExpectedHeight)
 
@@ -1425,7 +1425,7 @@ class Environment:
         ----------
         file : string
             URL of an upper air sounding data output from Wyoming
-            Upper Air Soundigs database.
+            Upper Air Soundings database.
             Example:
             http://weather.uwyo.edu/cgi-bin/sounding?region=samer&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=02&FROM=0200&TO=0200&STNM=82599
             More can be found at:
@@ -1743,7 +1743,7 @@ class Environment:
             used for time, latitude, longitude, pressure levels,
             temperature profile, geopotential or geopotential height
             profile, wind-u and wind-v profiles in the dataset given in
-            the file parameter. An example is the following dicitonary,
+            the file parameter. An example is the following dictionary,
             generally used to read OPeNDAP files from NOAA's NOMAD
             server:               {'time': 'time',
                                'latitude': 'lat',
@@ -1772,8 +1772,8 @@ class Environment:
             raise TypeError(
                 "Please specify Location (lat, lon). when "
                 "initializing this Environment. "
-                "Alternatively, use the Environment.setLoc"
-                "ation method."
+                "Alternatively, use the Environment."
+                "setLocation method."
             )
 
         # Read weather file
@@ -2131,14 +2131,14 @@ class Environment:
         file : string
             String containing path to local netCDF file or URL of an
             OPeNDAP file, such as NOAA's NOMAD or UCAR TRHEDDS server.
-        dicitonary : dictionary
+        dictionary : dictionary
             Specifies the dictionary to be used when reading netCDF and
             OPeNDAP files, allowing for the correct retrieval of data.
             The dictionary structure should specify the short names
             used for time, latitude, longitude, pressure levels,
             temperature profile, geopotential or geopotential height
             profile, wind-u and wind-v profiles in the dataset given in
-            the file parameter. An example is the following dicitonary,
+            the file parameter. An example is the following dictionary,
             generally used to read OPeNDAP files from NOAA's NOMAD
             server:               {'time': 'time',
                                'latitude': 'lat',
@@ -2167,8 +2167,8 @@ class Environment:
             raise TypeError(
                 "Please specify Location (lat, lon). when "
                 "initializing this Environment. "
-                "Alternatively, use the Environment.setLoc"
-                "ation method."
+                "Alternatively, use the Environment."
+                "setLocation method."
             )
 
         # Read weather file
@@ -2696,7 +2696,7 @@ class Environment:
 
     def calculateDensityProfile(self):
         """Compute the density of the atmosphere as a function of
-        heigth by using the formula rho = P/(RT). This function is
+        height by using the formula rho = P/(RT). This function is
         automatically called whenever a new atmospheric model is set.
 
         Parameters
@@ -2725,7 +2725,7 @@ class Environment:
 
     def calculateSpeedOfSoundProfile(self):
         """Compute the speed of sound in the atmosphere as a function
-        of heigth by using the formula a = sqrt(gamma*R*T). This
+        of height by using the formula a = sqrt(gamma*R*T). This
         function is automatically called whenever a new atmospheric
         model is set.
 
@@ -3321,7 +3321,7 @@ class Environment:
         x = 500000 + K0 * n * (ag + J + K)
         y = N0 + K0 * (m + n * np.tan(lat) * (ag * ag / 2 + L + M))
 
-        # Convert the output lat and lon to degress
+        # Convert the output lat and lon to degrees
         lat = lat * 180 / np.pi
         lon = lon * 180 / np.pi
         lon_mc = lon_mc * 180 / np.pi
@@ -3369,7 +3369,7 @@ class Environment:
             y = y + 10000000
 
         # Calculate the Central Meridian from the UTM zone number
-        centralMeridian = utmZone * 6 - 183  # degress
+        centralMeridian = utmZone * 6 - 183  # degrees
 
         # Select the desired datum
         if datum == "SAD69":
@@ -3516,7 +3516,7 @@ class Environment:
         min: float
             The arc minutes. 1 arc-minute = (1/60)*degree
         sec: float
-            The arc Seconds. 1 arc-secon = (1/360)*degree
+            The arc Seconds. 1 arc-second = (1/360)*degree
         """
 
         if angle < 0:
@@ -3535,7 +3535,7 @@ class Environment:
 
     def printEarthDetails(self):
         """[UNDER CONSTRUCTION]
-        Function to print informations about the Earth Model used in the
+        Function to print information about the Earth Model used in the
         Environment Class
 
         """

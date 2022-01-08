@@ -36,7 +36,7 @@ def test_motor(mock_show):
     assert example_motor.allInfo() == None
 
 
-def test_initilize_motor_asserts_dynamic_values(solid_motor):
+def test_initialize_motor_asserts_dynamic_values(solid_motor):
     grain_vol = grainInitialHeight * (
         np.pi * (grainOuterRadius ** 2 - grainInitialInnerRadius ** 2)
     )
@@ -150,7 +150,7 @@ def tests_import_eng_asserts_read_values_correctly(solid_motor):
         "tests/fixtures/motor/Cesaroni_M1670.eng"
     )
 
-    assert comments == [";this motor is COTS\n", ";3.9 burnTime\n"]
+    assert comments == [";this motor is COTS", ";3.9 burnTime", ";"]
     assert description == ["M1670-BS", "75", "757", "0", "3.101", "5.231", "CTI"]
     assert dataPoints == [
         [0, 0],
