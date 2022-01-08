@@ -6,12 +6,12 @@ with open("README.md", "r") as fh:
 setuptools.setup(
     name="rocketpy",
     version="0.9.9",
-    install_requires = [
-        'numpy>=1.0',
-        'scipy>=1.0',
-        'matplotlib>=3.0',
-        'requests',
-        'pytz',
+    install_requires=[
+        "numpy>=1.0",
+        "scipy>=1.0",
+        "matplotlib>=3.0",
+        "requests",
+        "pytz",
     ],
     maintainer="RocketPy Developers",
     author="Giovani Hidalgo Ceotto",
