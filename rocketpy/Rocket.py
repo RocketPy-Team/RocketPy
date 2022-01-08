@@ -654,6 +654,7 @@ class Rocket:
             # Fin–body interference correction
             clalpha *= 1 + radius / (s + radius)
 
+            # Create a function of lift values by attack angle
             cldata = Function(
                 lambda alpha, mach: clalpha * alpha, ["Alpha (rad)", "Mach"], "Cl",
             )
