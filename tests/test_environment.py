@@ -67,9 +67,9 @@ def test_standard_atmosphere(mock_show, example_env):
 
 
 @patch("matplotlib.pyplot.show")
-def test_costum_atmosphere(mock_show, example_env):
+def test_custom_atmosphere(mock_show, example_env):
     example_env.setAtmosphericModel(
-        type="CostumAtmosphere",
+        type="CustomAtmosphere",
         pressure=None,
         temperature=300,
         wind_u=[(0, 5), (1000, 10)],
@@ -81,6 +81,7 @@ def test_costum_atmosphere(mock_show, example_env):
     assert example_env.temperature(100) == 300
 
 
+@pytest.mark.skip(reason="no way of currently testing this")
 @patch("matplotlib.pyplot.show")
 def test_wyoming_sounding_atmosphere(mock_show, example_env):
     URL = "http://weather.uwyo.edu/cgi-bin/sounding?region=samer&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=02&FROM=0500&TO=0512&STNM=83779"

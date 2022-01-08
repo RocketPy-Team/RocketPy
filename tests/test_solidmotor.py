@@ -16,6 +16,7 @@ grainInitialHeight = 120 / 1000
 nozzleRadius = 33 / 1000
 throatRadius = 11 / 1000
 
+
 @patch("matplotlib.pyplot.show")
 def test_motor(mock_show):
     example_motor = SolidMotor(
@@ -35,15 +36,19 @@ def test_motor(mock_show):
     assert example_motor.allInfo() == None
 
 
-def test_initilize_motor_asserts_dynamic_values(solid_motor):
-    grain_vol = grainInitialHeight * (np.pi * (grainOuterRadius ** 2 - grainInitialInnerRadius ** 2))
+def test_initialize_motor_asserts_dynamic_values(solid_motor):
+    grain_vol = grainInitialHeight * (
+        np.pi * (grainOuterRadius ** 2 - grainInitialInnerRadius ** 2)
+    )
     grain_mass = grain_vol * grainDensity
 
     assert solid_motor.maxThrust == 2200.0
     assert solid_motor.maxThrustTime == 0.15
     assert solid_motor.burnOutTime == burnOut
     assert solid_motor.totalImpulse == solid_motor.thrust.integral(0, burnOut)
-    assert solid_motor.averageThrust == solid_motor.thrust.integral(0, burnOut) / burnOut
+    assert (
+        solid_motor.averageThrust == solid_motor.thrust.integral(0, burnOut) / burnOut
+    )
     assert solid_motor.grainInitialVolume == grain_vol
     assert solid_motor.grainInitialMass == grain_mass
     assert solid_motor.propellantInitialMass == grainNumber * grain_mass
@@ -67,7 +72,9 @@ def test_grain_geometry_progession_asserts_extreme_values(solid_motor):
 
 
 def test_mass_curve_asserts_extreme_values(solid_motor):
-    grain_vol = grainInitialHeight * (np.pi * (grainOuterRadius ** 2 - grainInitialInnerRadius ** 2))
+    grain_vol = grainInitialHeight * (
+        np.pi * (grainOuterRadius ** 2 - grainInitialInnerRadius ** 2)
+    )
     grain_mass = grain_vol * grainDensity
 
     assert np.allclose(solid_motor.mass.getSource()[-1][-1], 0)
@@ -100,11 +107,14 @@ def test_burn_area_asserts_extreme_values(solid_motor):
 
 
 def test_evaluate_inertia_I_asserts_extreme_values(solid_motor):
-    grain_vol = grainInitialHeight * (np.pi * (grainOuterRadius ** 2 - grainInitialInnerRadius ** 2))
+    grain_vol = grainInitialHeight * (
+        np.pi * (grainOuterRadius ** 2 - grainInitialInnerRadius ** 2)
+    )
     grain_mass = grain_vol * grainDensity
 
     grainInertiaI_initial = grain_mass * (
-        (1 / 4) * (grainOuterRadius ** 2 + grainInitialInnerRadius ** 2) + (1 / 12) * grainInitialHeight ** 2
+        (1 / 4) * (grainOuterRadius ** 2 + grainInitialInnerRadius ** 2)
+        + (1 / 12) * grainInitialHeight ** 2
     )
 
     initialValue = (grainNumber - 1) / 2
@@ -120,10 +130,14 @@ def test_evaluate_inertia_I_asserts_extreme_values(solid_motor):
 
 
 def test_evaluate_inertia_Z_asserts_extreme_values(solid_motor):
-    grain_vol = grainInitialHeight * (np.pi * (grainOuterRadius ** 2 - grainInitialInnerRadius ** 2))
+    grain_vol = grainInitialHeight * (
+        np.pi * (grainOuterRadius ** 2 - grainInitialInnerRadius ** 2)
+    )
     grain_mass = grain_vol * grainDensity
 
-    grainInertiaZ_initial = grain_mass * (1 / 2.0) * (grainInitialInnerRadius ** 2 + grainOuterRadius ** 2)
+    grainInertiaZ_initial = (
+        grain_mass * (1 / 2.0) * (grainInitialInnerRadius ** 2 + grainOuterRadius ** 2)
+    )
 
     assert np.allclose(
         solid_motor.inertiaZ.getSource()[0][-1], grainInertiaZ_initial, atol=0.01
@@ -136,7 +150,7 @@ def tests_import_eng_asserts_read_values_correctly(solid_motor):
         "tests/fixtures/motor/Cesaroni_M1670.eng"
     )
 
-    assert comments == [";this motor is COTS\n", ";3.9 burnTime\n"]
+    assert comments == [";this motor is COTS", ";3.9 burnTime", ";"]
     assert description == ["M1670-BS", "75", "757", "0", "3.101", "5.231", "CTI"]
     assert dataPoints == [
         [0, 0],
@@ -174,7 +188,7 @@ def tests_export_eng_asserts_exported_values_correct(solid_motor):
         "0",
         "{:2.3}".format(grain_mass),
         "{:2.3}".format(grain_mass),
-        "RocketPy"
+        "RocketPy",
     ]
 
     assert dataPoints == [
