@@ -36,7 +36,7 @@ def test_motor(mock_show):
     assert example_motor.allInfo() == None
 
 
-def test_initilize_motor_asserts_dynamic_values(solid_motor):
+def test_initialize_motor_asserts_dynamic_values(solid_motor):
     grain_vol = grainInitialHeight * (
         np.pi * (grainOuterRadius ** 2 - grainInitialInnerRadius ** 2)
     )
