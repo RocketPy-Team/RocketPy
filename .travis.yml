@@ -1,11 +1,18 @@
 language: python
 python:
-  - "3.8"
+- '3.8'
 install:
-  - make install
-  - pip install -r requirements_test.txt
-
+- make install
+- pip install -r requirements_test.txt
 before_script:
-  - make verify-lint
+- make verify-lint
 script:
-  - make test
+- make test
+deploy:
+  provider: pypi
+  username: __token__
+  password:
+    secure: ZgTCJPP2JyS9IoJeFZo1x8dwUmFW3ZZ5OzHKJvb/zKZXhpkQsaKWQOu79E00KYq2r36O6gnKiut8XbGuJoCcbIyZiPELizZ7KZskl+pJRhk78YAwb9eIp0yY7Fso6LmdDuYAdxLBHvaFcEpb60IEOXv6iBPbGSKIR18xVdOBzbb/kbscpOPez9Zmdgz6jTQYRwHA8BwW5Eo02FG20GDGiQCzbfhDZbIQcoHLXLM1fEDRLKZl7yBJOO62RGaMaTyn88CrGTIL5cz3od8okLS2c4FJvxGdieMw6LuCXOcJYWKhPCGGBXUOBEfjeEH0rVQz9YRV4Q+l2us/UtRAMXDWGCjWq8cnQU/4CUVWqxkF/7SN/CytkaKGJ0outqYO0nqT1zgRohiIJqL0lW6VrMHDSonA03VEq5DrueIh4/XAPMj4Vl7PIv8R1ztKm+vHEPO6fEjTd2S9B7mIc4VuOLI0NJuaPemlAO4HnIU/WO49T06QTVhjOdzoNnvN/N9W8mBnvMmytvTVvGyF0gAKpvFx48YxsI4ltTLyVjRTrV30mDrylUHr8bGkB2SI/ZEhQFLuO3J1qK7zitgT5h9ZXRtGMs5N08GMhHtAyKdRUmzLtb0+baZnkoLNi8XYbd0Np8fLwH+M080Soy4robPai+ZnZQKLyRObcxhRsfqKuu7L0LI=
+  on:
+    tags: true
+    branch: master
