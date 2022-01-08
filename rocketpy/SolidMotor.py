@@ -243,7 +243,7 @@ class SolidMotor:
         self.maxThrustTime = None
         self.averageThrust = None
 
-        # Compute uncalculated quantities
+        # Compute quantities
         # Thrust information - maximum and average
         self.maxThrust = np.amax(self.thrust.source[:, 1])
         maxThrustIndex = np.argmax(self.thrust.source[:, 1])
@@ -654,7 +654,7 @@ class SolidMotor:
             List of all data points in file. Each data point is an entry in
             the returned list and written as a list of two entries.
         """
-        # Intiailize arrays
+        # Initialize arrays
         comments = []
         description = []
         dataPoints = [[0, 0]]
@@ -662,10 +662,11 @@ class SolidMotor:
         # Open and read .eng file
         with open(fileName) as file:
             for line in file:
-                if line[0] == ";":
+                if re.search(r";.*", line):
                     # Extract comment
-                    comments.append(line)
-                else:
+                    comments.append(re.findall(r";.*", line)[0])
+                    line = re.sub(r";.*", "", line)
+                if line.strip():
                     if description == []:
                         # Extract description
                         description = line.strip().split(" ")

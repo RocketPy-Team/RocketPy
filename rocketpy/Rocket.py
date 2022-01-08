@@ -70,17 +70,17 @@ class Rocket:
             Function of time expressing the motor thrust force divided by rocket
             weight. The gravitational acceleration is assumed as 9.80665 m/s^2.
 
-        Excentricity attributes:
-        Rocket.cpExcentricityX : float
+        Eccentricity attributes:
+        Rocket.cpEccentricityX : float
             Center of pressure position relative to center of mass in the x
             axis, perpendicular to axis of cylindrical symmetry, in meters.
-        Rocket.cpExcentricityY : float
+        Rocket.cpEccentricityY : float
             Center of pressure position relative to center of mass in the y
             axis, perpendicular to axis of cylindrical symmetry, in meters.
-        Rocket.thrustExcentricityY : float
+        Rocket.thrustEccentricityY : float
             Thrust vector position relative to center of mass in the y
             axis, perpendicular to axis of cylindrical symmetry, in meters.
-        Rocket.thrustExcentricityX : float
+        Rocket.thrustEccentricityX : float
             Thrust vector position relative to center of mass in the x
             axis, perpendicular to axis of cylindrical symmetry, in meters.
 
@@ -226,11 +226,11 @@ class Rocket:
         self.distanceRocketNozzle = distanceRocketNozzle
         self.distanceRocketPropellant = distanceRocketPropellant
 
-        # Excentricity data initialization
-        self.cpExcentricityX = 0
-        self.cpExcentricityY = 0
-        self.thrustExcentricityY = 0
-        self.thrustExcentricityX = 0
+        # Eccentricity data initialization
+        self.cpEccentricityX = 0
+        self.cpEccentricityY = 0
+        self.thrustEccentricityY = 0
+        self.thrustEccentricityX = 0
 
         # Parachute data initialization
         self.parachutes = []
@@ -363,11 +363,11 @@ class Rocket:
             loaded with propellant in units of rocket diameter or
             calibers.
         """
-        # Initialize total lift coeficient derivative and center of pressure
+        # Initialize total lift coefficient derivative and center of pressure
         self.totalLiftCoeffDer = 0
         self.cpPosition = 0
 
-        # Calculate total lift coeficient derivative and center of pressure
+        # Calculate total lift coefficient derivative and center of pressure
         if len(self.aerodynamicSurfaces) > 0:
             for aerodynamicSurface in self.aerodynamicSurfaces:
                 self.totalLiftCoeffDer += aerodynamicSurface[1].differentiate(
@@ -436,7 +436,11 @@ class Rocket:
         # Calculate clalpha
         clalpha = -2 * (1 - r ** (-2)) * (topRadius / rref) ** 2
         cldata = Function(
-            lambda x: clalpha * x, "Alpha (rad)", "Cl", interpolation="linear"
+            lambda x: clalpha * x,
+            "Alpha (rad)",
+            "Cl",
+            interpolation="linear",
+            extrapolation="natural",
         )
 
         # Store values as new aerodynamic surface
@@ -459,7 +463,7 @@ class Rocket:
         Parameters
         ----------
         length : int, float
-            Nose cone length or height in meters. Must be a postive
+            Nose cone length or height in meters. Must be a positive
             value.
         kind : string
             Nose cone type. Von Karman, conical, ogive, and lvhaack are
@@ -514,7 +518,15 @@ class Rocket:
         return self.aerodynamicSurfaces[-1]
 
     def addFins(
-        self, n, span, rootChord, tipChord, distanceToCM, radius=0, airfoil=None
+        self,
+        n,
+        span,
+        rootChord,
+        tipChord,
+        distanceToCM,
+        radius=0,
+        cantAngle=0,
+        airfoil=None,
     ):
         """Create a fin set, storing its parameters as part of the
         aerodynamicSurfaces list. Its parameters are the axial position
@@ -541,11 +553,14 @@ class Rocket:
             is default, use rocket radius. Otherwise, enter the radius
             of the rocket in the section of the fins, as this impacts
             its lift coefficient.
+        cantAngle : int, float, optional
+            Fins cant angle with respect to the rocket centerline. Must
+            be given in degrees.
         airfoil : string
             Fin's lift curve. It must be a .csv file. The .csv file shall
             contain no headers and the first column must specify time in
             seconds, while the second column specifies lift coefficient. Lift
-            coeffitient is adimentional.
+            coefficient is dimensionaless.
 
         Returns
         -------
@@ -560,11 +575,19 @@ class Rocket:
         Ct = tipChord
         Yr = rootChord + tipChord
         s = span
+        Af = Yr * s / 2  # fin area
+        Ymac = (
+            (s / 3) * (Cr + 2 * Ct) / Yr
+        )  # span wise position of fin's mean aerodynamic chord
         Lf = np.sqrt((rootChord / 2 - tipChord / 2) ** 2 + span ** 2)
         radius = self.radius if radius == 0 else radius
         d = 2 * radius
+        cantAngleRad = np.radians(cantAngle)
+        trapezoidalConstant = ((Yr) / 2) * (radius ** 2) * s
+        trapezoidalConstant += ((Cr + 2 * Ct) / 3) * radius * (s ** 2)
+        trapezoidalConstant += ((Cr + 3 * Ct) / 12) * (s ** 3)
 
-        # Save geometric parameters for later Fin Flutter Analysis
+        # Save geometric parameters for later Fin Flutter Analysis and Roll Moment Calculation
         self.rootChord = Cr
         self.tipChord = Ct
         self.span = s
@@ -592,9 +615,17 @@ class Rocket:
             cldata = Function(
                 lambda x: clalpha * x, "Alpha (rad)", "Cl", interpolation="linear"
             )
+            # Parameters for Roll Moment. Documented at: https://github.com/Projeto-Jupiter/RocketPy/blob/develop/docs/technical/aerodynamics/Roll_Equations.pdf
+            clfDelta = n * (Ymac + radius) * clalpha / d
+            cldOmega = (
+                n * clalpha * np.cos(cantAngleRad) * trapezoidalConstant / (Af * d)
+            )
+            rollParameters = (
+                [clfDelta, cldOmega, cantAngleRad] if cantAngleRad != 0 else [0, 0, 0]
+            )
 
             # Store values
-            fin = [(0, 0, cpz), cldata, "Fins"]
+            fin = [(0, 0, cpz), cldata, rollParameters, "Fins"]
             self.aerodynamicSurfaces.append(fin)
 
             # Refresh static margin calculation
@@ -639,7 +670,7 @@ class Rocket:
             # Import the lift curve as a function of lift values by attack angle
             read = genfromtxt(airfoil, delimiter=",")
 
-            # Aplies number of fins to lift coefficient data
+            # Applies number of fins to lift coefficient data
             data = [[cl[0], (n / 2) * cnalfa1(cl[1])] for cl in read]
             cldata = Function(
                 data,
@@ -652,8 +683,17 @@ class Rocket:
             # Takes an approximation to an angular coefficient
             clalpha = cldata.differentiate(x=0, dx=1e-2)
 
+            # Parameters for Roll Moment. Documented at: https://github.com/Projeto-Jupiter/RocketPy/blob/develop/docs/technical/aerodynamics/Roll_Equations.pdf
+            clfDelta = n * (Ymac + radius) * clalpha / d
+            cldOmega = (
+                n * clalpha * np.cos(cantAngleRad) * trapezoidalConstant / (Af * d)
+            )
+            rollParameters = (
+                [clfDelta, cldOmega, cantAngleRad] if cantAngleRad != 0 else [0, 0, 0]
+            )
+
             # Store values
-            fin = [(0, 0, cpz), cldata, "Fins"]
+            fin = [(0, 0, cpz), cldata, rollParameters, "Fins"]
             self.aerodynamicSurfaces.append(fin)
 
             # Refresh static margin calculation
@@ -741,7 +781,7 @@ class Rocket:
     def setRailButtons(self, distanceToCM, angularPosition=45):
         """Adds rail buttons to the rocket, allowing for the
         calculation of forces exerted by them when the rocket is
-        slinding in the launch rail. Furthermore, rail buttons are
+        sliding in the launch rail. Furthermore, rail buttons are
         also needed for the simulation of the planar flight phase,
         when the rocket experiences 3 degrees of freedom motion while
         only one rail button is still in the launch rail.
@@ -775,12 +815,12 @@ class Rocket:
 
         return None
 
-    def addCMExcentricity(self, x, y):
+    def addCMEccentricity(self, x, y):
         """Moves line of action of aerodynamic and thrust forces by
-        equal translation ammount to simulate an excentricity in the
+        equal translation amount to simulate an eccentricity in the
         position of the center of mass of the rocket relative to its
         geometrical center line. Should not be used together with
-        addCPExentricity and addThrustExentricity.
+        addCPEccentricity and addThrustEccentricity.
 
         Parameters
         ----------
@@ -797,19 +837,19 @@ class Rocket:
             Object of the Rocket class.
         """
         # Move center of pressure to -x and -y
-        self.cpExcentricityX = -x
-        self.cpExcentricityY = -y
+        self.cpEccentricityX = -x
+        self.cpEccentricityY = -y
 
         # Move thrust center by -x and -y
-        self.thrustExcentricityY = -x
-        self.thrustExcentricityX = -y
+        self.thrustEccentricityY = -x
+        self.thrustEccentricityX = -y
 
         # Return self
         return self
 
-    def addCPExentricity(self, x, y):
+    def addCPEccentricity(self, x, y):
         """Moves line of action of aerodynamic forces to simulate an
-        excentricity in the position of the center of pressure relative
+        eccentricity in the position of the center of pressure relative
         to the center of mass of the rocket.
 
         Parameters
@@ -827,13 +867,13 @@ class Rocket:
             Object of the Rocket class.
         """
         # Move center of pressure by x and y
-        self.cpExcentricityX = x
-        self.cpExcentricityY = y
+        self.cpEccentricityX = x
+        self.cpEccentricityY = y
 
         # Return self
         return self
 
-    def addThrustExentricity(self, x, y):
+    def addThrustEccentricity(self, x, y):
         """Moves line of action of thrust forces to simulate a
         disalignment of the thrust vector and the center of mass.
 
@@ -854,8 +894,8 @@ class Rocket:
             Object of the Rocket class.
         """
         # Move thrust line by x and y
-        self.thrustExcentricityY = x
-        self.thrustExcentricityX = y
+        self.thrustEccentricityY = x
+        self.thrustEccentricityX = y
 
         # Return self
         return self
@@ -940,7 +980,7 @@ class Rocket:
             + "{:.3f}".format(self.centerOfMass(0))
             + " m"
         )
-        print("\nAerodynamic Coponents Parameters")
+        print("\nAerodynamic Components Parameters")
         print("Currently not implemented.")
 
         # Print rocket aerodynamics quantities
