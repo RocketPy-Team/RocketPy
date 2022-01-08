@@ -291,6 +291,7 @@ class Function:
         # Crete method to interpolate this info for each interpolation type
         if self.__interpolation__ == "spline":
             coeffs = self.__splineCoefficients__
+
             def getValueOpt(x):
                 xInterval = np.searchsorted(xData, x)
                 # Interval found... interpolate... or extrapolate
@@ -315,6 +316,7 @@ class Function:
             self.getValueOpt = getValueOpt
 
         elif self.__interpolation__ == "linear":
+
             def getValueOpt(x):
                 xInterval = np.searchsorted(xData, x)
                 # Interval found... interpolate... or extrapolate
@@ -342,6 +344,7 @@ class Function:
 
         elif self.__interpolation__ == "akima":
             coeffs = np.array(self.__akimaCoefficients__)
+
             def getValueOpt(x):
                 xInterval = np.searchsorted(xData, x)
                 # Interval found... interpolate... or extrapolate
@@ -365,6 +368,7 @@ class Function:
 
         elif self.__interpolation__ == "polynomial":
             coeffs = self.__polynomialCoefficients__
+
             def getValueOpt(x):
                 # Interpolate... or extrapolate
                 if xmin <= x <= xmax:
