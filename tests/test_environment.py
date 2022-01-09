@@ -1,4 +1,5 @@
 import datetime
+import pytz
 from unittest.mock import patch
 
 import pytest
@@ -32,7 +33,7 @@ def test_env_set_date(example_env):
     tomorrow = datetime.date.today() + datetime.timedelta(days=1)
     example_env.setDate((tomorrow.year, tomorrow.month, tomorrow.day, 12))
     assert example_env.date == datetime.datetime(
-        tomorrow.year, tomorrow.month, tomorrow.day, 12
+        tomorrow.year, tomorrow.month, tomorrow.day, 12, tzinfo=pytz.utc
     )
 
 
