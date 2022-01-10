@@ -438,7 +438,9 @@ class Rocket:
         # Calculate clalpha
         clalpha = -2 * (1 - r ** (-2)) * (topRadius / rref) ** 2
         cldata = Function(
-            lambda alpha, mach: clalpha * alpha, ["Alpha (rad)", "Mach"], "Cl",
+            lambda alpha, mach: clalpha * alpha,
+            ["Alpha (rad)", "Mach"],
+            "Cl",
         )
 
         # Store values as new aerodynamic surface
@@ -498,7 +500,9 @@ class Rocket:
         # Calculate clalpha
         clalpha = 2
         cldata = Function(
-            lambda alpha, mach: clalpha * alpha, ["Alpha (rad)", "Mach"], "Cl",
+            lambda alpha, mach: clalpha * alpha,
+            ["Alpha (rad)", "Mach"],
+            "Cl",
         )
 
         # Store values
@@ -642,9 +646,9 @@ class Rocket:
             )
 
             # Calculates clalpha
-            clalpha = Function(lambda alpha: cldata(alpha, 0),).differentiate(
-                x=1e-2, dx=1e-3
-            )
+            clalpha = Function(
+                lambda alpha: cldata(alpha, 0),
+            ).differentiate(x=1e-2, dx=1e-3)
 
         else:  # Calculate lift parameters for trapezoildal planar fins
 
@@ -656,7 +660,9 @@ class Rocket:
 
             # Create a function of lift values by attack angle
             cldata = Function(
-                lambda alpha, mach: clalpha * alpha, ["Alpha (rad)", "Mach"], "Cl",
+                lambda alpha, mach: clalpha * alpha,
+                ["Alpha (rad)", "Mach"],
+                "Cl",
             )
 
         # Parameters for Roll Moment.
