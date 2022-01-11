@@ -129,7 +129,7 @@ def test_add_fins_assert_cp_cm_plus_fins(rocket):
                 + (1 / 6) * (0.120 + 0.040 - 0.120 * 0.040 / (0.120 + 0.040))
             )
 
-    clalpha = (4 * 4 * (0.1 / -1.04956) ** 2) / \
+    clalpha = (4 * 4 * (0.1 / (2 * rocket.radius)) ** 2) / \
               (1 + np.sqrt(1 + (2 * np.sqrt((0.12 / 2 - 0.04 / 2) ** 2 + 0.1 ** 2) /
                                                                   (0.120 + 0.040)) ** 2))
     clalpha *= 1 + rocket.radius / (0.1 + rocket.radius)
@@ -150,15 +150,20 @@ def test_add_cm_excentricity_assert_properties_set(rocket):
     assert rocket.thrustExcentricityX == -5
 
 
-def test_add_cp_excentricity_assert_properties_set(rocket):
-    rocket.addCMExcentricity(x=4, y=5)
-
-    assert rocket.cpExcentricityX == -4
-    assert rocket.cpExcentricityY == -5
-
-
 def test_add_thrust_excentricity_assert_properties_set(rocket):
     rocket.addThrustExentricity(x=4, y=5)
 
     assert rocket.thrustExcentricityY == 4
     assert rocket.thrustExcentricityX == 5
+
+
+def test_add_cp_excentricity_assert_properties_set(rocket):
+    rocket.addCPExentricity(x=4, y=5)
+
+    assert rocket.cpExcentricityX == 4
+    assert rocket.cpExcentricityY == 5
+
+
+def test_set_rail_button_assert_distance_reverse(rocket):
+    rocket.setRailButtons([-0.5, 0.2])
+    assert rocket.railButtons == ([0.2, -0.5], 45)
