@@ -41,8 +41,8 @@ def rocket(solid_motor):
         inertiaZ=0.0351,
         distanceRocketNozzle=-1.255,
         distanceRocketPropellant=-0.85704,
-        powerOffDrag='data/calisto/powerOffDragCurve.csv',
-        powerOnDrag='data/calisto/powerOnDragCurve.csv'
+        powerOffDrag="data/calisto/powerOffDragCurve.csv",
+        powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
     return example_rocket
 

@@ -429,7 +429,9 @@ class Rocket:
         rref = self.radius
 
         # Calculate cp position relative to cm
-        cpz = distanceToCM + np.sign(distanceToCM) * (length / 3) * (1 + (1 - r) / (1 - r ** 2))
+        cpz = distanceToCM + np.sign(distanceToCM) * (length / 3) * (
+            1 + (1 - r) / (1 - r ** 2)
+        )
 
         # Calculate clalpha
         clalpha = -2 * (1 - r ** (-2)) * (topRadius / rref) ** 2
@@ -590,9 +592,9 @@ class Rocket:
 
         # Calculate cp position relative to cm
         cpz = distanceToCM + np.sign(distanceToCM) * (
-                ((Cr - Ct) / 3) * ((Cr + 2 * Ct) / (Cr + Ct))
-                + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
-            )
+            ((Cr - Ct) / 3) * ((Cr + 2 * Ct) / (Cr + Ct))
+            + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
+        )
 
         # Calculate lift parameters for planar fins
         if not airfoil:

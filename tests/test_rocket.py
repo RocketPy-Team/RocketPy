@@ -89,13 +89,13 @@ def test_evaluate_static_margin_assert_cp_equals_cm(rocket):
 
 
 @pytest.mark.parametrize(
-    'k, type',
+    "k, type",
     (
-            [1 - 1 / 3, 'conical'],
-            [1 - 0.534, 'ogive'],
-            [1 - 0.437, 'lvhaack'],
-            [0.5, 'default'],
-            [0.5, 'not a mapped string, to show default case'],
+        [1 - 1 / 3, "conical"],
+        [1 - 0.534, "ogive"],
+        [1 - 0.437, "lvhaack"],
+        [0.5, "default"],
+        [0.5, "not a mapped string, to show default case"],
     ),
 )
 def test_add_nose_assert_cp_cm_plus_nose(k, type, rocket):
@@ -103,40 +103,67 @@ def test_add_nose_assert_cp_cm_plus_nose(k, type, rocket):
     cpz = 0.71971 + k * 0.55829
     clalpha = 2
 
-    assert (rocket.centerOfMass(0) - cpz) / (2 * rocket.radius) == rocket.staticMargin(0)
-    assert (rocket.centerOfMass(-1) - cpz) / (2 * rocket.radius) == rocket.staticMargin(-1)
+    assert (rocket.centerOfMass(0) - cpz) / (2 * rocket.radius) == rocket.staticMargin(
+        0
+    )
+    assert (rocket.centerOfMass(-1) - cpz) / (2 * rocket.radius) == rocket.staticMargin(
+        -1
+    )
     assert clalpha == pytest.approx(rocket.totalLiftCoeffDer, clalpha)
     assert rocket.cpPosition == cpz
 
 
 def test_add_tail_assert_cp_cm_plus_tail(rocket):
-    rocket.addTail(topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656)
+    rocket.addTail(
+        topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656
+    )
 
-    clalpha = -2 * (1 - (0.0635/0.0435) ** (-2)) * (0.0635 / rocket.radius) ** 2
-    cpz = -1.194656 - (0.06 / 3) * (1 + (1 - (0.0635/0.0435)) / (1 - (0.0635/0.0435) ** 2))
+    clalpha = -2 * (1 - (0.0635 / 0.0435) ** (-2)) * (0.0635 / rocket.radius) ** 2
+    cpz = -1.194656 - (0.06 / 3) * (
+        1 + (1 - (0.0635 / 0.0435)) / (1 - (0.0635 / 0.0435) ** 2)
+    )
 
-    assert (rocket.centerOfMass(0) - cpz) / (2 * rocket.radius) == rocket.staticMargin(0)
-    assert (rocket.centerOfMass(-1) - cpz) / (2 * rocket.radius) == rocket.staticMargin(-1)
-    assert np.abs(clalpha) == pytest.approx(np.abs(rocket.totalLiftCoeffDer), np.abs(clalpha))
+    assert (rocket.centerOfMass(0) - cpz) / (2 * rocket.radius) == rocket.staticMargin(
+        0
+    )
+    assert (rocket.centerOfMass(-1) - cpz) / (2 * rocket.radius) == rocket.staticMargin(
+        -1
+    )
+    assert np.abs(clalpha) == pytest.approx(
+        np.abs(rocket.totalLiftCoeffDer), np.abs(clalpha)
+    )
     assert rocket.cpPosition == cpz
 
 
 def test_add_fins_assert_cp_cm_plus_fins(rocket):
-    rocket.addFins(4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956)
+    rocket.addFins(
+        4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
+    )
 
     cpz = -1.04956 - (
-                ((0.120 - 0.040) / 3) * ((0.120 + 2 * 0.040) / (0.120 + 0.040))
-                + (1 / 6) * (0.120 + 0.040 - 0.120 * 0.040 / (0.120 + 0.040))
-            )
+        ((0.120 - 0.040) / 3) * ((0.120 + 2 * 0.040) / (0.120 + 0.040))
+        + (1 / 6) * (0.120 + 0.040 - 0.120 * 0.040 / (0.120 + 0.040))
+    )
 
-    clalpha = (4 * 4 * (0.1 / (2 * rocket.radius)) ** 2) / \
-              (1 + np.sqrt(1 + (2 * np.sqrt((0.12 / 2 - 0.04 / 2) ** 2 + 0.1 ** 2) /
-                                                                  (0.120 + 0.040)) ** 2))
+    clalpha = (4 * 4 * (0.1 / (2 * rocket.radius)) ** 2) / (
+        1
+        + np.sqrt(
+            1
+            + (2 * np.sqrt((0.12 / 2 - 0.04 / 2) ** 2 + 0.1 ** 2) / (0.120 + 0.040))
+            ** 2
+        )
+    )
     clalpha *= 1 + rocket.radius / (0.1 + rocket.radius)
 
-    assert (rocket.centerOfMass(0) - cpz) / (2 * rocket.radius) == rocket.staticMargin(0)
-    assert (rocket.centerOfMass(-1) - cpz) / (2 * rocket.radius) == rocket.staticMargin(-1)
-    assert np.abs(clalpha) == pytest.approx(np.abs(rocket.totalLiftCoeffDer), np.abs(clalpha))
+    assert (rocket.centerOfMass(0) - cpz) / (2 * rocket.radius) == rocket.staticMargin(
+        0
+    )
+    assert (rocket.centerOfMass(-1) - cpz) / (2 * rocket.radius) == rocket.staticMargin(
+        -1
+    )
+    assert np.abs(clalpha) == pytest.approx(
+        np.abs(rocket.totalLiftCoeffDer), np.abs(clalpha)
+    )
     assert rocket.cpPosition == cpz
 
 
