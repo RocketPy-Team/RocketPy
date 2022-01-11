@@ -167,28 +167,28 @@ def test_add_fins_assert_cp_cm_plus_fins(rocket):
     assert rocket.cpPosition == cpz
 
 
-def test_add_cm_excentricity_assert_properties_set(rocket):
-    rocket.addCMExcentricity(x=4, y=5)
+def test_add_cm_eccentricity_assert_properties_set(rocket):
+    rocket.addCMEccentricity(x=4, y=5)
 
-    assert rocket.cpExcentricityX == -4
-    assert rocket.cpExcentricityY == -5
+    assert rocket.cpEccentricityX == -4
+    assert rocket.cpEccentricityY == -5
 
-    assert rocket.thrustExcentricityY == -4
-    assert rocket.thrustExcentricityX == -5
-
-
-def test_add_thrust_excentricity_assert_properties_set(rocket):
-    rocket.addThrustExentricity(x=4, y=5)
-
-    assert rocket.thrustExcentricityY == 4
-    assert rocket.thrustExcentricityX == 5
+    assert rocket.thrustEccentricityY == -4
+    assert rocket.thrustEccentricityX == -5
 
 
-def test_add_cp_excentricity_assert_properties_set(rocket):
-    rocket.addCPExentricity(x=4, y=5)
+def test_add_thrust_eccentricity_assert_properties_set(rocket):
+    rocket.addThrustEccentricity(x=4, y=5)
 
-    assert rocket.cpExcentricityX == 4
-    assert rocket.cpExcentricityY == 5
+    assert rocket.thrustEccentricityY == 4
+    assert rocket.thrustEccentricityX == 5
+
+
+def test_add_cp_eccentricity_assert_properties_set(rocket):
+    rocket.addCPEccentricity(x=4, y=5)
+
+    assert rocket.cpEccentricityX == 4
+    assert rocket.cpEccentricityY == 5
 
 
 def test_set_rail_button_assert_distance_reverse(rocket):
