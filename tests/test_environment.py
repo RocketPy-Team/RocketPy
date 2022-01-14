@@ -37,6 +37,16 @@ def test_env_set_date(example_env):
     )
 
 
+def test_env_set_date_timeZone(example_env):
+    tomorrow = datetime.date.today() + datetime.timedelta(days=1)
+    example_env.setDate((tomorrow.year, tomorrow.month, tomorrow.day, 12),timeZone='America/New_York')
+    dateNaive = datetime.datetime(tomorrow.year, tomorrow.month, tomorrow.day, 12)
+    timezone = pytz.timezone('America/New_York')
+    dateAwareLocalDate = timezone.localize(dateNaive)
+    dateAwareUTC=dateAwareLocalDate.astimezone(pytz.UTC)
+    assert example_env.date == dateAwareUTC
+
+
 def test_env_set_location(example_env):
     example_env.setLocation(-21.960641, -47.482122)
     assert example_env.lat == -21.960641 and example_env.lon == -47.482122
