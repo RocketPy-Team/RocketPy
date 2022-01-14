@@ -1344,7 +1344,11 @@ class Flight:
                 Clfdelta, Cldomega, cantAngleRad = aerodynamicSurface[2]
                 if cantAngleRad != 0:
                     Clf = Clfdelta * cantAngleRad
-                    Cld = Cldomega * omega3 / freestreamSpeed
+                    Cld = (
+                        Cldomega * omega3 * min(1, 1 / freestreamSpeed)
+                        if freestreamSpeed != 0
+                        else Cldomega * omega3
+                    )
                     M3 += Clf - Cld
         # Calculate derivatives
         # Angular acceleration
