@@ -39,11 +39,13 @@ def test_env_set_date(example_env):
 
 def test_env_set_date_timeZone(example_env):
     tomorrow = datetime.date.today() + datetime.timedelta(days=1)
-    example_env.setDate((tomorrow.year, tomorrow.month, tomorrow.day, 12),timeZone='America/New_York')
+    example_env.setDate(
+        (tomorrow.year, tomorrow.month, tomorrow.day, 12), timeZone="America/New_York"
+    )
     dateNaive = datetime.datetime(tomorrow.year, tomorrow.month, tomorrow.day, 12)
-    timezone = pytz.timezone('America/New_York')
+    timezone = pytz.timezone("America/New_York")
     dateAwareLocalDate = timezone.localize(dateNaive)
-    dateAwareUTC=dateAwareLocalDate.astimezone(pytz.UTC)
+    dateAwareUTC = dateAwareLocalDate.astimezone(pytz.UTC)
     assert example_env.date == dateAwareUTC
 
 
