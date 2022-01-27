@@ -36,8 +36,29 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 
-from .Function import Function
-from .Environment import Environment
-from .Motor import SolidMotor, HybridMotor
-from .Rocket import Rocket
-from .Flight import Flight
+# from Function import Function
+# from Environment import Environment
+from Motor import SolidMotor, HybridMotor
+
+# from Rocket import Rocket
+# from Flight import Flight
+
+my_motor = HybridMotor(
+    thrustSource=r"C:\Users\oscar\Documents\Repositorios\RocketPy\data\motors\Cesaroni_7450M2505-P.eng",
+    burnOut=3,
+    grainNumber=2,
+    grainDensity=1815,
+    grainOuterRadius=33 / 1000,
+    grainInitialInnerRadius=15 / 1000,
+    grainInitialHeight=120 / 1000,
+    oxidizerTankRadius=33 / 1000,
+    oxidizerTankHeight=200 / 1000,
+    oxidizerInitialPresure=60,
+    oxidizerDensity=1.98,
+    oxidizerMolarMass=44.01,
+    oxidizerInitialVolume=0.000341946,
+    distanceGrainToTank=120 / 1000,
+    injectorArea=10 / 1000,
+)
+
+my_motor.info()

@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 
-from .Function import Function
+from Function import Function
 
 
 class Motor(ABC):
@@ -1679,7 +1679,8 @@ class HybridMotor(Motor):
 
         gasCM = lambda time: (
             (
-                self.oxidizerTankHeight(
+                self.oxidizerTankHeight
+                * (
                     (self.oxidizerInitialVolume - (Vox * time))
                     / (np.pi * (self.oxidizerTankRadius ** 2))
                 )
@@ -1992,6 +1993,8 @@ class HybridMotor(Motor):
         # Show plots
         print("\nPlots")
         self.thrust()
+
+        self.yCM.plot()
 
         return None
 
