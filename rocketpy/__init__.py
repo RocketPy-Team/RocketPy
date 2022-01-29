@@ -25,6 +25,7 @@ import math
 import bisect
 import warnings
 import time
+from Function import Function
 from datetime import datetime, timedelta
 from inspect import signature, getsourcelines
 from collections import namedtuple
@@ -44,7 +45,7 @@ from Motor import SolidMotor, HybridMotor
 # from Flight import Flight
 
 my_motor = HybridMotor(
-    thrustSource=r"C:\Users\oscar\Documents\Repositorios\RocketPy\data\motors\Cesaroni_7450M2505-P.eng",
+    thrustSource=r"C:\Users\Lucas\Documents\GitHub\RocketPy\data\motors\Cesaroni_7450M2505-P.eng",
     burnOut=3,
     grainNumber=2,
     grainDensity=1815,
@@ -62,3 +63,11 @@ my_motor = HybridMotor(
 )
 
 my_motor.info()
+#print(my_motor.yCM)
+
+#a = lambda x: x**2
+#func = Function(lambda x: x**2 * a(x))
+#func()
+
+print(my_motor.yCM())
+

@@ -1664,7 +1664,7 @@ class HybridMotor(Motor):
             / 2
         )
 
-        solidMass = lambda time: (self.massDot - liquidMass(time))
+        solidMass = lambda time: (self.massDot(time) - liquidMass(time))
         solidCM = 0
 
         gasMass = lambda time: (
@@ -1992,9 +1992,9 @@ class HybridMotor(Motor):
 
         # Show plots
         print("\nPlots")
-        self.thrust()
+        #self.thrust()
 
-        self.yCM.plot()
+        self.yCM
 
         return None
 
