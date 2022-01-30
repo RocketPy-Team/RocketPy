@@ -865,7 +865,7 @@ class SolidMotor(Motor):
             * (self.grainOuterRadius ** 2 - self.grainInitialInnerRadius ** 2)
         )
         self.grainInitialMass = self.grainDensity * self.grainInitialVolume
-        self.propellantInitialMass = self.grainNumber * self.grainInitialMass
+        self.propellantInitialMass = self.grainNumber * self.grainInitialMass 
         # Dynamic quantities
         self.evaluateMassDot()
         self.evaluateMass()
@@ -1563,7 +1563,7 @@ class HybridMotor(Motor):
             * (self.grainOuterRadius ** 2 - self.grainInitialInnerRadius ** 2)
         )
         self.grainInitialMass = self.grainDensity * self.grainInitialVolume
-        self.propellantInitialMass = self.grainNumber * self.grainInitialMass
+        self.propellantInitialMass = self.grainNumber * self.grainInitialMass + self.oxidizerInitialVolume * self.oxidizerDensity
         # Dynamic quantities
         self.evaluateMassDot()
         self.evaluateMass()
@@ -1651,51 +1651,76 @@ class HybridMotor(Motor):
         Vox = self.injectorArea * Vel2
 
         self.oxidizerInitialMass = self.oxidizerInitialVolume * self.oxidizerDensity
+        
+        # liquidMass = lambda time: (
+        #     (self.oxidizerInitialMass) - (self.oxidizerDensity * Vox * time)
+        # )
 
-        liquidMass = lambda time: (
-            (self.oxidizerInitialMass) - (self.oxidizerDensity * Vox * time)
+        self.liquidMass = lambda time: (
+            max((self.oxidizerInitialMass) - (self.oxidizerDensity * Vox * time), 0) if time <= self.burnOutTime else self.liquidMass(self.burnOutTime)
         )
 
-        liquidCM = lambda time: (
-            (
-                (self.oxidizerInitialVolume - (Vox * time))
-                / (np.pi * (self.oxidizerTankRadius ** 2))
-            )
-            / 2
+        #funcao = lambda time: max(calculo * time, 0) if time <= tQueima else funcao(tQueima)
+
+        # liquidCM = lambda time: (
+        #     (
+        #         (self.oxidizerInitialVolume - (Vox * time))
+        #         / (np.pi * (self.oxidizerTankRadius ** 2))
+        #     )
+        #     / 2
+        # )
+
+        self.liquidCM = lambda time: (
+            max((self.oxidizerInitialVolume - (Vox * time))/ (np.pi * (self.oxidizerTankRadius ** 2))/2 + self.distanceGrainToTank, 0) if time <= self.burnOutTime else self.liquidCM(self.burnOutTime)
         )
 
-        solidMass = lambda time: (self.massDot(time) - liquidMass(time))
-        solidCM = 0
+        # solidMass = lambda time: (self.massDot(time) - liquidMass(time))
 
-        gasMass = lambda time: (
-            (
-                np.pi
-                * (self.oxidizerTankRadius ** 2)
-                * (self.oxidizerTankHeight - (liquidCM(time) * 2))
-            )
-            * (self.oxidizerMolarMass / (0.08205746 * 298.15))
-            * (self.oxidizerInitialPresure)
-        )
+        self.solidMass = lambda time: max((self.mass(time) - self.liquidMass(time)), 0) if time <= self.burnOutTime else self.solidMass(self.burnOutTime)
 
-        gasCM = lambda time: (
-            (
-                self.oxidizerTankHeight
-                * (
-                    (self.oxidizerInitialVolume - (Vox * time))
-                    / (np.pi * (self.oxidizerTankRadius ** 2))
-                )
-            )
-            / 2
-        )
+        self.solidCM = 0
+
+        # gasMass = lambda time: max((
+        #     (
+        #         np.pi
+        #         * (self.oxidizerTankRadius ** 2)
+        #         * (self.oxidizerTankHeight - (liquidCM(time) * 2))
+        #     )
+        #     * (self.oxidizerMolarMass / (0.08205746 * 298.15))
+        #     * (self.oxidizerInitialPresure)
+        # ), 0) if time <= self.burnOutTime else gasMass(self.burnOutTime)
+
+        # gasCM = lambda time: max((
+        #     (
+        #         self.oxidizerTankHeight
+        #         * (
+        #             (self.oxidizerInitialVolume - (Vox * time))
+        #             / (np.pi * (self.oxidizerTankRadius ** 2))
+        #         )
+        #     )
+        #     / 2 + self.distanceGrainToTank
+        # ), 0) if time <= self.burnOutTime else gasCM(self.burnOutTime)
+
+        # self.yCM = Function(
+        #     lambda time: (
+        #         (
+        #             (solidMass(time) * solidCM)
+        #             + (liquidMass(time) * liquidCM(time))
+        #             + (gasMass(time) * gasCM(time))
+        #         )
+        #         / (solidMass(time) + liquidMass(time) + gasMass(time))
+        #     ),
+        #     "Time (s)",
+        #     "yCM",
+        # )
 
         self.yCM = Function(
             lambda time: (
                 (
-                    (solidMass(time) * solidCM)
-                    + (liquidMass(time) * liquidCM(time))
-                    + (gasMass(time) * gasCM(time))
+                    (self.solidMass(time) * self.solidCM)
+                    + (self.liquidMass(time) * self.liquidCM(time))
                 )
-                / (solidMass(time) + liquidMass(time) + gasMass(time))
+                / (self.solidMass(time) + self.liquidMass(time))
             ),
             "Time (s)",
             "yCM",

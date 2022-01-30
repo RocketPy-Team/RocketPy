@@ -45,22 +45,25 @@ from Motor import SolidMotor, HybridMotor
 # from Flight import Flight
 
 my_motor = HybridMotor(
-    thrustSource=r"C:\Users\Lucas\Documents\GitHub\RocketPy\data\motors\Cesaroni_7450M2505-P.eng",
-    burnOut=3,
-    grainNumber=2,
-    grainDensity=1815,
-    grainOuterRadius=33 / 1000,
-    grainInitialInnerRadius=15 / 1000,
-    grainInitialHeight=120 / 1000,
-    oxidizerTankRadius=33 / 1000,
-    oxidizerTankHeight=200 / 1000,
-    oxidizerInitialPresure=60,
-    oxidizerDensity=1.98,
-    oxidizerMolarMass=44.01,
-    oxidizerInitialVolume=0.000341946,
-    distanceGrainToTank=120 / 1000,
-    injectorArea=10 / 1000,
+    thrustSource=r"C:\Users\Lucas\Documents\GitHub\RocketPy\data\motors\Cesaroni_7450M2505-P.eng", 
+    burnOut = 3,
+    grainNumber = 1, 
+    grainDensity = 1815, 
+    grainOuterRadius = 97 / 2000,
+    grainInitialInnerRadius = 25 / 1000, 
+    grainInitialHeight = 230 / 1000, 
+    oxidizerTankRadius = 62.5 / 1000, 
+    oxidizerTankHeight = 600 / 1000, 
+    oxidizerInitialPresure = 60e5, 
+    oxidizerDensity = 1.98 * 1000, 
+    oxidizerMolarMass = 44.01, 
+    oxidizerInitialVolume = 62.5 / 1000 * 62.5 / 1000 * np.pi * 600 / 1000, 
+    distanceGrainToTank = 200 / 1000, #does not matter rsrs
+    injectorArea = 3e-05,
 )
+
+#2.1237166338267
+#5.9215396
 
 my_motor.info()
 #print(my_motor.yCM)
@@ -71,3 +74,17 @@ my_motor.info()
 
 print(my_motor.yCM())
 
+
+# my_motor.mass.plot()
+
+# Function(my_motor.solidMass).plot()
+# Function(my_motor.liquidMass).plot()
+
+Function(my_motor.solidCM).plot()
+Function(my_motor.liquidCM).plot()
+
+Function.comparePlots(
+    [(Function(my_motor.solidMass), "solidMass"), (Function(my_motor.liquidMass), "liquidMass"), (my_motor.mass, "mass")], 
+)
+
+print(62.5 / 1000 * 62.5 / 1000 * np.pi * 600 / 1000)
