@@ -370,13 +370,8 @@ class Rocket:
         # Calculate total lift coefficient derivative and center of pressure
         if len(self.aerodynamicSurfaces) > 0:
             for aerodynamicSurface in self.aerodynamicSurfaces:
-                self.totalLiftCoeffDer += aerodynamicSurface[1].differentiate(
-                    x=1e-2, dx=1e-3
-                )
-                self.cpPosition += (
-                    aerodynamicSurface[1].differentiate(x=1e-2, dx=1e-3)
-                    * aerodynamicSurface[0][2]
-                )
+                self.totalLiftCoeffDer += aerodynamicSurface[1]
+                self.cpPosition += aerodynamicSurface[1] * aerodynamicSurface[0][2]
             self.cpPosition /= self.totalLiftCoeffDer
 
         # Calculate static margin
@@ -416,8 +411,6 @@ class Rocket:
 
         Returns
         -------
-        cldata : Function
-            Object of the Function class. Contains tail's lift data.
         self : Rocket
             Object of the Rocket class.
         """
@@ -435,16 +428,9 @@ class Rocket:
 
         # Calculate clalpha
         clalpha = -2 * (1 - r ** (-2)) * (topRadius / rref) ** 2
-        cldata = Function(
-            lambda x: clalpha * x,
-            "Alpha (rad)",
-            "Cl",
-            interpolation="linear",
-            extrapolation="natural",
-        )
 
         # Store values as new aerodynamic surface
-        tail = [(0, 0, cpz), cldata, "Tail"]
+        tail = [(0, 0, cpz), clalpha, "Tail"]
         self.aerodynamicSurfaces.append(tail)
 
         # Refresh static margin calculation
@@ -476,8 +462,6 @@ class Rocket:
 
         Returns
         -------
-        cldata : Function
-            Object of the Function class. Contains nose's lift data.
         self : Rocket
             Object of the Rocket class.
         """
@@ -499,16 +483,9 @@ class Rocket:
 
         # Calculate clalpha
         clalpha = 2
-        cldata = Function(
-            lambda x: clalpha * x,
-            "Alpha (rad)",
-            "Cl",
-            interpolation="linear",
-            extrapolation="natural",
-        )
 
         # Store values
-        nose = [(0, 0, cpz), cldata, "Nose Cone"]
+        nose = [(0, 0, cpz), clalpha, "Nose Cone"]
         self.aerodynamicSurfaces.append(nose)
 
         # Refresh static margin calculation
@@ -526,7 +503,6 @@ class Rocket:
         distanceToCM,
         radius=0,
         cantAngle=0,
-        airfoil=None,
     ):
         """Create a fin set, storing its parameters as part of the
         aerodynamicSurfaces list. Its parameters are the axial position
@@ -556,16 +532,9 @@ class Rocket:
         cantAngle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
-        airfoil : string
-            Fin's lift curve. It must be a .csv file. The .csv file shall
-            contain no headers and the first column must specify time in
-            seconds, while the second column specifies lift coefficient. Lift
-            coefficient is dimensionaless.
 
         Returns
         -------
-        cldata : Function
-            Object of the Function class. Contains fin's lift data.
         self : Rocket
             Object of the Rocket class.
         """
@@ -605,102 +574,26 @@ class Rocket:
                 + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
             )
 
-        # Calculate lift parameters for planar fins
-        if not airfoil:
-            # Calculate clalpha
-            clalpha = (4 * n * (s / d) ** 2) / (1 + np.sqrt(1 + (2 * Lf / Yr) ** 2))
-            clalpha *= 1 + radius / (s + radius)
+        # Calculate clalpha
+        clalpha = (4 * n * (s / d) ** 2) / (1 + np.sqrt(1 + (2 * Lf / Yr) ** 2))
+        clalpha *= 1 + radius / (s + radius)
 
-            # # Create a function of lift values by attack angle
-            cldata = Function(
-                lambda x: clalpha * x, "Alpha (rad)", "Cl", interpolation="linear"
-            )
-            # Parameters for Roll Moment. Documented at: https://github.com/Projeto-Jupiter/RocketPy/blob/develop/docs/technical/aerodynamics/Roll_Equations.pdf
-            clfDelta = n * (Ymac + radius) * clalpha / d
-            cldOmega = (
-                n * clalpha * np.cos(cantAngleRad) * trapezoidalConstant / (Af * d)
-            )
-            rollParameters = (
-                [clfDelta, cldOmega, cantAngleRad] if cantAngleRad != 0 else [0, 0, 0]
-            )
+        # Parameters for Roll Moment. Documented at: https://github.com/Projeto-Jupiter/RocketPy/blob/develop/docs/technical/aerodynamics/Roll_Equations.pdf
+        clfDelta = n * (Ymac + radius) * clalpha / d
+        cldOmega = n * clalpha * np.cos(cantAngleRad) * trapezoidalConstant / (Af * d)
+        rollParameters = (
+            [clfDelta, cldOmega, cantAngleRad] if cantAngleRad != 0 else [0, 0, 0]
+        )
 
-            # Store values
-            fin = [(0, 0, cpz), cldata, rollParameters, "Fins"]
-            self.aerodynamicSurfaces.append(fin)
+        # Store values
+        fin = [(0, 0, cpz), clalpha, rollParameters, "Fins"]
+        self.aerodynamicSurfaces.append(fin)
 
-            # Refresh static margin calculation
-            self.evaluateStaticMargin()
+        # Refresh static margin calculation
+        self.evaluateStaticMargin()
 
-            # Return self
-            return self.aerodynamicSurfaces[-1]
-
-        else:
-
-            def cnalfa1(cn):
-                """Calculates the normal force coefficient derivative of a 3D
-                airfoil for a given Cnalfa0
-
-                Parameters
-                ----------
-                cn : int
-                    Normal force coefficient derivative of a 2D airfoil.
-
-                Returns
-                -------
-                Cnalfa1 : int
-                    Normal force coefficient derivative of a 3D airfoil.
-                """
-
-                # Retrieve parameters for calculations
-                Af = (Cr + Ct) * span / 2
-                # fin area
-                AR = 2 * (span ** 2) / Af  # Aspect ratio
-                gamac = np.arctan((Cr - Ct) / (2 * span))
-                # mid chord angle
-                FD = 2 * np.pi * AR / (cn * np.cos(gamac))
-                Cnalfa1 = (
-                    cn
-                    * FD
-                    * (Af / self.area)
-                    * np.cos(gamac)
-                    / (2 + FD * (1 + (4 / FD ** 2)) ** 0.5)
-                )
-                return Cnalfa1
-
-            # Import the lift curve as a function of lift values by attack angle
-            read = genfromtxt(airfoil, delimiter=",")
-
-            # Applies number of fins to lift coefficient data
-            data = [[cl[0], (n / 2) * cnalfa1(cl[1])] for cl in read]
-            cldata = Function(
-                data,
-                "Alpha (rad)",
-                "Cl",
-                interpolation="linear",
-                extrapolation="natural",
-            )
-
-            # Takes an approximation to an angular coefficient
-            clalpha = cldata.differentiate(x=0, dx=1e-2)
-
-            # Parameters for Roll Moment. Documented at: https://github.com/Projeto-Jupiter/RocketPy/blob/develop/docs/technical/aerodynamics/Roll_Equations.pdf
-            clfDelta = n * (Ymac + radius) * clalpha / d
-            cldOmega = (
-                n * clalpha * np.cos(cantAngleRad) * trapezoidalConstant / (Af * d)
-            )
-            rollParameters = (
-                [clfDelta, cldOmega, cantAngleRad] if cantAngleRad != 0 else [0, 0, 0]
-            )
-
-            # Store values
-            fin = [(0, 0, cpz), cldata, rollParameters, "Fins"]
-            self.aerodynamicSurfaces.append(fin)
-
-            # Refresh static margin calculation
-            self.evaluateStaticMargin()
-
-            # Return self
-            return self.aerodynamicSurfaces[-1]
+        # Return self
+        return self.aerodynamicSurfaces[-1]
 
     def addParachute(
         self, name, CdS, trigger, samplingRate=100, lag=0, noise=(0, 0, 0)
@@ -987,7 +880,7 @@ class Rocket:
         print("\nAerodynamics Lift Coefficient Derivatives")
         for aerodynamicSurface in self.aerodynamicSurfaces:
             name = aerodynamicSurface[-1]
-            clalpha = aerodynamicSurface[1].differentiate(x=1e-2, dx=1e-3)
+            clalpha = aerodynamicSurface[1]
             print(
                 name + " Lift Coefficient Derivative: {:.3f}".format(clalpha) + "/rad"
             )
