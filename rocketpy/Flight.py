@@ -1256,6 +1256,8 @@ class Flight:
         c = -self.rocket.distanceRocketNozzle
         a = b * Mt / M
         rN = self.rocket.motor.nozzleRadius
+        Aref = self.rocket.area
+        d = self.rocket.radius * 2
         # Prepare transformation matrix
         a11 = 1 - 2 * (e2 ** 2 + e3 ** 2)
         a12 = 2 * (e1 * e2 - e0 * e3)
@@ -1324,7 +1326,7 @@ class Flight:
                 compStreamVzBn = compStreamVzB / compStreamSpeed
                 if -1 * compStreamVzBn < 1:
                     compAttackAngle = np.arccos(-compStreamVzBn)
-                    cLift = abs(aerodynamicSurface[1](compAttackAngle))
+                    cLift = abs(aerodynamicSurface[1](compAttackAngle, freestreamMach))
                     # Component lift force magnitude
                     compLift = (
                         0.5 * rho * (compStreamSpeed ** 2) * self.rocket.area * cLift
@@ -1342,13 +1344,25 @@ class Flight:
             # Calculates Roll Moment
             if aerodynamicSurface[-1] == "Fins":
                 Clfdelta, Cldomega, cantAngleRad = aerodynamicSurface[2]
-                Clf = Clfdelta * cantAngleRad
-                Cld = (
-                        Cldomega * omega3 * min(1, 1 / freestreamSpeed)
-                        if freestreamSpeed != 0
-                        else Cldomega * omega3
+                M3f = (
+                    (1 / 2 * rho * freestreamSpeed ** 2)
+                    * Aref
+                    * d
+                    * Clfdelta(freestreamMach)
+                    * cantAngleRad
+                )
+                M3d = (
+                    (
+                        (1 / 2 * rho * freestreamSpeed)
+                        * Aref
+                        * d
+                        * Cldomega(freestreamMach)
+                        * omega3
+                        * d
+                        /   2
                     )
-                M3 += Clf - Cld
+                )
+                M3 += M3f - M3d
         # Calculate derivatives
         # Angular acceleration
         alpha1 = (
