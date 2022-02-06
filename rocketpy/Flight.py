@@ -1352,15 +1352,13 @@ class Flight:
                     * cantAngleRad
                 )
                 M3d = (
-                    (
-                        (1 / 2 * rho * freestreamSpeed)
-                        * Aref
-                        * d
-                        * Cldomega(freestreamMach)
-                        * omega3
-                        * d
-                        /   2
-                    )
+                    (1 / 2 * rho * freestreamSpeed)
+                    * Aref
+                    * d
+                    * Cldomega(freestreamMach)
+                    * omega3
+                    * d
+                    / 2
                 )
                 M3 += M3f - M3d
         # Calculate derivatives
