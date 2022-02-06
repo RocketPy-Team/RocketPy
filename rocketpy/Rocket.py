@@ -724,7 +724,7 @@ class Rocket:
         clfDelta = (
             rollForcingInterferenceFactor * n * (Ymac + radius) * clalphaSingleFin / d
         )  # Function of mach number
-        cldOmega = Function(
+        cldOmega = (
             2
             * rollDampingInterferenceFactor
             * n
@@ -732,7 +732,8 @@ class Rocket:
             * np.cos(cantAngleRad)
             * trapezoidalConstant
             / (Aref * d ** 2)
-        )  # Function of mach number
+        )
+        # Function of mach number
         rollParameters = (
             [clfDelta, cldOmega, cantAngleRad] if cantAngleRad != 0 else [0, 0, 0]
         )
