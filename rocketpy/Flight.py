@@ -1626,13 +1626,23 @@ class Flight:
         self.M2 = Function(self.M2, "Time (s)", "M2 (Nm)", interpolation)
         self.M3 = Function(self.M3, "Time (s)", "M3 (Nm)", interpolation)
         self.windVelocityX = Function(
-            self.windVelocityX, "Time (s)", "Wind Velocity X (East) (m/s)", interpolation
+            self.windVelocityX,
+            "Time (s)",
+            "Wind Velocity X (East) (m/s)",
+            interpolation,
         )
         self.windVelocityY = Function(
-            self.windVelocityY, "Time (s)", "Wind Velocity Y (North) (m/s)", interpolation
+            self.windVelocityY,
+            "Time (s)",
+            "Wind Velocity Y (North) (m/s)",
+            interpolation,
         )
-        self.density = Function(self.density, "Time (s)", "Density (kg/m³)", interpolation)
-        self.pressure = Function(self.pressure, "Time (s)", "Pressure (Pa)", interpolation)
+        self.density = Function(
+            self.density, "Time (s)", "Density (kg/m³)", interpolation
+        )
+        self.pressure = Function(
+            self.pressure, "Time (s)", "Pressure (Pa)", interpolation
+        )
         self.dynamicViscosity = Function(
             self.dynamicViscosity, "Time (s)", "Dynamic Viscosity (Pa s)", interpolation
         )
@@ -2012,7 +2022,7 @@ class Flight:
         self.postProcessed = True
 
         return None
-        
+
     def info(self):
         """Prints out a summary of the data available about the Flight.
 
