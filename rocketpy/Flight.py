@@ -1501,7 +1501,7 @@ class Flight:
 
         return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
 
-    def postProcess(self):
+    def postProcess(self, interpolation="spline", extrapolation="natural"):
         """Post-process all Flight information produced during
         simulation. Includes the calculation of maximum values,
         calculation of secondary values such as energy and conversion
@@ -1519,43 +1519,43 @@ class Flight:
         # Transform solution array into Functions
         sol = np.array(self.solution)
         self.x = Function(
-            sol[:, [0, 1]], "Time (s)", "X (m)", "spline", extrapolation="natural"
+            sol[:, [0, 1]], "Time (s)", "X (m)", interpolation, extrapolation
         )
         self.y = Function(
-            sol[:, [0, 2]], "Time (s)", "Y (m)", "spline", extrapolation="natural"
+            sol[:, [0, 2]], "Time (s)", "Y (m)", interpolation, extrapolation
         )
         self.z = Function(
-            sol[:, [0, 3]], "Time (s)", "Z (m)", "spline", extrapolation="natural"
+            sol[:, [0, 3]], "Time (s)", "Z (m)", interpolation, extrapolation
         )
         self.vx = Function(
-            sol[:, [0, 4]], "Time (s)", "Vx (m/s)", "spline", extrapolation="natural"
+            sol[:, [0, 4]], "Time (s)", "Vx (m/s)", interpolation, extrapolation
         )
         self.vy = Function(
-            sol[:, [0, 5]], "Time (s)", "Vy (m/s)", "spline", extrapolation="natural"
+            sol[:, [0, 5]], "Time (s)", "Vy (m/s)", interpolation, extrapolation
         )
         self.vz = Function(
-            sol[:, [0, 6]], "Time (s)", "Vz (m/s)", "spline", extrapolation="natural"
+            sol[:, [0, 6]], "Time (s)", "Vz (m/s)", interpolation, extrapolation
         )
         self.e0 = Function(
-            sol[:, [0, 7]], "Time (s)", "e0", "spline", extrapolation="natural"
+            sol[:, [0, 7]], "Time (s)", "e0", interpolation, extrapolation
         )
         self.e1 = Function(
-            sol[:, [0, 8]], "Time (s)", "e1", "spline", extrapolation="natural"
+            sol[:, [0, 8]], "Time (s)", "e1", interpolation, extrapolation
         )
         self.e2 = Function(
-            sol[:, [0, 9]], "Time (s)", "e2", "spline", extrapolation="natural"
+            sol[:, [0, 9]], "Time (s)", "e2", interpolation, extrapolation
         )
         self.e3 = Function(
-            sol[:, [0, 10]], "Time (s)", "e3", "spline", extrapolation="natural"
+            sol[:, [0, 10]], "Time (s)", "e3", interpolation, extrapolation
         )
         self.w1 = Function(
-            sol[:, [0, 11]], "Time (s)", "ω1 (rad/s)", "spline", extrapolation="natural"
+            sol[:, [0, 11]], "Time (s)", "ω1 (rad/s)", interpolation, extrapolation
         )
         self.w2 = Function(
-            sol[:, [0, 12]], "Time (s)", "ω2 (rad/s)", "spline", extrapolation="natural"
+            sol[:, [0, 12]], "Time (s)", "ω2 (rad/s)", interpolation, extrapolation
         )
         self.w3 = Function(
-            sol[:, [0, 13]], "Time (s)", "ω3 (rad/s)", "spline", extrapolation="natural"
+            sol[:, [0, 13]], "Time (s)", "ω3 (rad/s)", interpolation, extrapolation
         )
 
         # Process second type of outputs - accelerations
@@ -1587,12 +1587,12 @@ class Flight:
                     self.alpha2.append([step[0], alpha2])
                     self.alpha3.append([step[0], alpha3])
         # Convert accelerations to functions
-        self.ax = Function(self.ax, "Time (s)", "Ax (m/s2)", "spline")
-        self.ay = Function(self.ay, "Time (s)", "Ay (m/s2)", "spline")
-        self.az = Function(self.az, "Time (s)", "Az (m/s2)", "spline")
-        self.alpha1 = Function(self.alpha1, "Time (s)", "α1 (rad/s2)", "spline")
-        self.alpha2 = Function(self.alpha2, "Time (s)", "α2 (rad/s2)", "spline")
-        self.alpha3 = Function(self.alpha3, "Time (s)", "α3 (rad/s2)", "spline")
+        self.ax = Function(self.ax, "Time (s)", "Ax (m/s2)", interpolation)
+        self.ay = Function(self.ay, "Time (s)", "Ay (m/s2)", interpolation)
+        self.az = Function(self.az, "Time (s)", "Az (m/s2)", interpolation)
+        self.alpha1 = Function(self.alpha1, "Time (s)", "α1 (rad/s2)", interpolation)
+        self.alpha2 = Function(self.alpha2, "Time (s)", "α2 (rad/s2)", interpolation)
+        self.alpha3 = Function(self.alpha3, "Time (s)", "α3 (rad/s2)", interpolation)
 
         # Process third type of outputs - temporary values calculated during integration
         # Initialize force and atmospheric arrays
@@ -1619,25 +1619,25 @@ class Flight:
                     # Call derivatives in post processing mode
                     uDot = currentDerivative(step[0], step[1:], postProcessing=True)
         # Convert forces and atmospheric arrays to functions
-        self.R1 = Function(self.R1, "Time (s)", "R1 (N)", "spline")
-        self.R2 = Function(self.R2, "Time (s)", "R2 (N)", "spline")
-        self.R3 = Function(self.R3, "Time (s)", "R3 (N)", "spline")
-        self.M1 = Function(self.M1, "Time (s)", "M1 (Nm)", "spline")
-        self.M2 = Function(self.M2, "Time (s)", "M2 (Nm)", "spline")
-        self.M3 = Function(self.M3, "Time (s)", "M3 (Nm)", "spline")
+        self.R1 = Function(self.R1, "Time (s)", "R1 (N)", interpolation)
+        self.R2 = Function(self.R2, "Time (s)", "R2 (N)", interpolation)
+        self.R3 = Function(self.R3, "Time (s)", "R3 (N)", interpolation)
+        self.M1 = Function(self.M1, "Time (s)", "M1 (Nm)", interpolation)
+        self.M2 = Function(self.M2, "Time (s)", "M2 (Nm)", interpolation)
+        self.M3 = Function(self.M3, "Time (s)", "M3 (Nm)", interpolation)
         self.windVelocityX = Function(
-            self.windVelocityX, "Time (s)", "Wind Velocity X (East) (m/s)", "spline"
+            self.windVelocityX, "Time (s)", "Wind Velocity X (East) (m/s)", interpolation
         )
         self.windVelocityY = Function(
-            self.windVelocityY, "Time (s)", "Wind Velocity Y (North) (m/s)", "spline"
+            self.windVelocityY, "Time (s)", "Wind Velocity Y (North) (m/s)", interpolation
         )
-        self.density = Function(self.density, "Time (s)", "Density (kg/m³)", "spline")
-        self.pressure = Function(self.pressure, "Time (s)", "Pressure (Pa)", "spline")
+        self.density = Function(self.density, "Time (s)", "Density (kg/m³)", interpolation)
+        self.pressure = Function(self.pressure, "Time (s)", "Pressure (Pa)", interpolation)
         self.dynamicViscosity = Function(
-            self.dynamicViscosity, "Time (s)", "Dynamic Viscosity (Pa s)", "spline"
+            self.dynamicViscosity, "Time (s)", "Dynamic Viscosity (Pa s)", interpolation
         )
         self.speedOfSound = Function(
-            self.speedOfSound, "Time (s)", "Speed of Sound (m/s)", "spline"
+            self.speedOfSound, "Time (s)", "Speed of Sound (m/s)", interpolation
         )
 
         # Process fourth type of output - values calculated from previous outputs
@@ -2012,7 +2012,7 @@ class Flight:
         self.postProcessed = True
 
         return None
-
+        
     def info(self):
         """Prints out a summary of the data available about the Flight.
 
