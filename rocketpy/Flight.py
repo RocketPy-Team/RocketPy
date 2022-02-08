@@ -3350,34 +3350,123 @@ class Flight:
         info: Dict
             Information relevant about the Flight class.
         """
-
         if self.postProcessed is False:
             self.postProcess()
+        outOfRailTimeIndexs = np.nonzero(self.x[:, 0] == self.outOfRailTime)
+        outOfRailTimeIndex = (
+            -1 if len(outOfRailTimeIndexs) == 0 else outOfRailTimeIndexs[0][0]
+        )
+
+        if self.parachuteEventTimeCalculated is False:
+            self.timeBeforeParachuteEvent()
 
         info = dict(
             initialConditions=dict(
-                x=self.x(0),
-                y=self.y(0),
-                z=self.z(0),
-                vx=self.vx(0),
-                vy=self.vy(0),
-                vz=self.vz(0),
-                e0=self.e0(0),
-                e1=self.e1(0),
-                e2=self.e2(0),
-                e3=self.e3(0),
-                phi=self.phi(0),
-                theta=self.theta(0),
-                psi=self.psi(0),
-                w1=self.w1(0),
-                w2=self.w2(0),
-                w3=self.w3(0),
+                x=np.float64(self.x(0)),
+                y=np.float64(self.y(0)),
+                z=np.float64(self.z(0)),
+                vx=np.float64(self.vx(0)),
+                vy=np.float64(self.vy(0)),
+                vz=np.float64(self.vz(0)),
+                e0=np.float64(self.e0(0)),
+                e1=np.float64(self.e1(0)),
+                e2=np.float64(self.e2(0)),
+                e3=np.float64(self.e3(0)),
+                phi=np.float64(self.phi(0)),
+                theta=np.float64(self.theta(0)),
+                psi=np.float64(self.psi(0)),
+                w1=np.float64(self.w1(0)),
+                w2=np.float64(self.w2(0)),
+                w3=np.float64(self.w3(0)),
             ),
-            inclination=self.inclination,
-            heading=self.heading,
-            # info() translation
+            inclination=np.float64(self.inclination),
+            heading=np.float64(self.heading),
+            frontalSurfaceWind=np.float64(self.frontalSurfaceWind),
+            lateralSurfaceWind=np.float64(self.lateralSurfaceWind),
+            outOfRailTime=np.float64(self.outOfRailTime),
+            outOfRailVelocity=np.float64(self.outOfRailVelocity),
+            departure=dict(
+                staticMargin=np.float64(self.staticMargin(self.outOfRailTime)),
+                angleOfAttack=np.float64(self.angleOfAttack(self.outOfRailTime)),
+                thrustToWeight=np.float64(
+                    self.rocket.thrustToWeight(self.outOfRailTime)
+                ),
+                reynoldsNumber=np.float64(self.ReynoldsNumber(self.outOfRailTime)),
+            ),
+            burnout=dict(
+                burnoutTime=np.float64(self.rocket.motor.burnOutTime),
+                altitude=(self.z(self.rocket.motor.burnOutTime) - self.env.elevation),
+                velocity=np.float64(
+                    self.speed(self.rocket.motor.burnOutTime),
+                    freestreamVelocity=(
+                        self.streamVelocityX(self.rocket.motor.burnOutTime) ** 2
+                        + self.streamVelocityY(self.rocket.motor.burnOutTime) ** 2
+                        + self.streamVelocityZ(self.rocket.motor.burnOutTime) ** 2
+                    )
+                    ** 0.5,
+                    machNumber=np.float64(
+                        self.MachNumber(self.rocket.motor.burnOutTime)
+                    ),
+                    kineticEnergy=np.float64(
+                        self.kineticEnergy(self.rocket.motor.burnOutTime)
+                    ),
+                ),
+            ),
+            apogee=dict(
+                aboveSeaLevel=np.float64(self.apogee),
+                aboveGroundLevel=np.float64(self.apogee - self.env.elevation),
+                apogeeTime=np.float64(self.apogeeTime),
+                freestreamSpeed=np.float64(self.apogeeFreestreamSpeed),
+            ),
+            maximumValues=dict(
+                speed=np.float64(self.maxSpeed),
+                speedTime=np.float64(self.maxSpeedTime),
+                machNumber=np.float64(self.maxMachNumber),
+                machNumberTime=np.float64(self.maxMachNumberTime),
+                reynoldsNumber=np.float64(self.maxReynoldsNumber),
+                reynoldsNumberTime=np.float64(self.maxReynoldsNumberTime),
+                dynamicPressure=np.float64(self.maxDynamicPressure),
+                dynamicPressureTime=np.float64(self.maxDynamicPressureTime),
+                acceleration=np.float64(self.maxAcceleration),
+                accelerationTime=np.float64(self.maxAccelerationTime),
+                maxG=np.float64(self.maxAcceleration / self.env.g),
+                maxGTime=np.float64(self.maxAccelerationTime),
+                railButton1NormalForce=np.float64(self.maxRailButton1NormalForce),
+                railButton1ShearForce=np.float64(self.maxRailButton1ShearForce),
+                railButton2NormalForce=np.float64(self.maxRailButton2NormalForce),
+                railButton2ShearForce=np.float64(self.maxRailButton2ShearForce),
+            ),
+            # if True show impact info on GUI
+            impactStateCondition=len(self.impactState) != 0,
+            terminateImpactOnApogeeCondition=self.terminateOnApogee is False,
         )
-
+        events = list()
+        for event in self.parachuteEvents:
+            events.append(
+                dict(
+                    triggerTime=event[0],
+                    parachute=event[1],
+                    openTime=triggerTime + parachute.lag,
+                    velocity=np.float64(self.freestreamSpeed(openTime)),
+                    altitude=np.float64(self.z(openTime)),
+                    name=parachute.name.title(),
+                    inflatedHeight=np.float64(altitude - self.env.elevation),
+                )
+            )
+        info.update(events)
+        if len(self.impactState) != 0:
+            impact = dict(
+                xImpact=np.float64(self.xImpact),
+                yImpact=np.float64(self.yImpact),
+                time=np.float64(self.tFinal),
+                velocity=np.float64(self.impactVelocity),
+            )
+        elif self.terminateOnApogee is False:
+            impact = dict(
+                time=np.float64(self.solution[-1][0]),
+                altitude=np.float64(self.solution[-1][3]),
+            )
+        info.update(impact)
         return info
 
     def allPlotInfoReturned(self):
@@ -3397,33 +3486,203 @@ class Flight:
 
         if self.parachuteEventTimeCalculated is False:
             self.timeBeforeParachuteEvent()
-
+        # Get index of out of rail time
+        outOfRailTimeIndexs = np.nonzero(self.x[:, 0] == self.outOfRailTime)
+        outOfRailTimeIndex = (
+            -1 if len(outOfRailTimeIndexs) == 0 else outOfRailTimeIndexs[0][0]
+        )
+        maxAttitude = max(self.attitudeFrequencyResponse[:, 1])
+        maxAttitude = maxAttitude if maxAttitude != 0 else 1
+        maxOmega1 = max(self.omega1FrequencyResponse[:, 1])
+        maxOmega1 = maxOmega1 if maxOmega1 != 0 else 1
+        maxOmega2 = max(self.omega2FrequencyResponse[:, 1])
+        maxOmega2 = maxOmega2 if maxOmega2 != 0 else 1
+        maxOmega3 = max(self.omega3FrequencyResponse[:, 1])
+        maxOmega3 = maxOmega3 if maxOmega3 != 0 else 1
         plotInfo = dict(
-            # PosX, PosY and PosZ
-            posX=self.x[:, 1].tolist(),
-            posY=self.y[:, 1].tolist(),
-            posZ=self.z[:, 1].tolist(),
-            # VelX and AccelX
-            velX=self.vx[:, 1].tolist(),
-            gridVelX=self.vx[:, 0].tolist(),
-            accelX=self.ax[:, 1].tolist(),
-            gridAccelX=self.ax[:, 0].tolist(),
-            # VelY and AccelY
-            velY=self.vy[:, 1].tolist(),
-            gridVelY=self.vy[:, 0].tolist(),
-            accelY=self.ay[:, 1].tolist(),
-            gridAccelY=self.ay[:, 0].tolist(),
-            # VelZ and AccelZ
-            velZ=self.vz[:, 1].tolist(),
-            gridVelZ=self.vz[:, 0].tolist(),
-            accelZ=self.az[:, 1].tolist(),
-            gridAccelZ=self.az[:, 0].tolist(),
-            # Vel Magnitude and Accel Magnitude
-            velMag=self.speed[:, 1].tolist(),
-            gridVelMag=self.speed[:, 0].tolist(),
-            accelMag=self.acceleration[:, 1].tolist(),
-            gridAccelMag=self.acceleration[:, 0].tolist(),
-            # Flight Path and angle data
+            trajectory3d=dict(
+                # PosX, PosY and PosZ
+                posX=self.x[:, 1].tolist(),
+                posY=self.y[:, 1].tolist(),
+                posZ=self.z[:, 1].tolist(),
+            ),
+            trajectoryKinematic=dict(
+                # VelX and AccelX
+                velX=self.vx[:, 1].tolist(),
+                gridVelX=self.vx[:, 0].tolist(),
+                accelX=self.ax[:, 1].tolist(),
+                gridAccelX=self.ax[:, 0].tolist(),
+                # VelY and AccelY
+                velY=self.vy[:, 1].tolist(),
+                gridVelY=self.vy[:, 0].tolist(),
+                accelY=self.ay[:, 1].tolist(),
+                gridAccelY=self.ay[:, 0].tolist(),
+                # VelZ and AccelZ
+                velZ=self.vz[:, 1].tolist(),
+                gridVelZ=self.vz[:, 0].tolist(),
+                accelZ=self.az[:, 1].tolist(),
+                gridAccelZ=self.az[:, 0].tolist(),
+                # Vel Magnitude and Accel Magnitude
+                velMag=self.speed[:, 1].tolist(),
+                gridVelMag=self.speed[:, 0].tolist(),
+                accelMag=self.acceleration[:, 1].tolist(),
+                gridAccelMag=self.acceleration[:, 0].tolist(),
+            ),
+            angularPosition=dict(
+                # Flight Path Angle
+                flightPathAngle=self.pathAngle[:, 1].tolist(),
+                gridPathAngle=self.pathAngle[:, 0].tolist(),
+                # Attitude Angle
+                attitudeAngle=self.attitudeAngle[:, 1].tolist(),
+                gridAttitudeAngle=self.attitudeAngle[:, 0].tolist(),
+                # Lateral Attitude Angle
+                lateralAttitudeAngle=self.lateralAttitudeAngle[:, 1].tolist(),
+                gridLateralAttitudeAngle=self.lateralAttitudeAngle[:, 0].tolist(),
+            ),
+            # Set time limit by parachute event time
+            xlimParachuteEventTime=self.parachuteEventTime,
+            # Attitude Data
+            # Euler Parameters
+            e=dict(
+                e0=self.e0[:, 1].tolist(),
+                e1=self.e1[:, 1].tolist(),
+                e2=self.e2[:, 1].tolist(),
+                e3=self.e3[:, 1].tolist(),
+            ),
+            gridE=self.e0[:, 0].tolist(),
+            # Euler Precession
+            psi=self.psi[:, 1].tolist(),
+            gridPsi=self.psi[:, 0].tolist(),
+            # Euler Nutation
+            theta=self.theta[:, 1].tolist(),
+            gridTheta=self.theta[:, 0].tolist(),
+            # Euler Spin
+            phi=self.phi[:, 1].tolist(),
+            gridPhi=self.phi[:, 0].tolist(),
+            # Angular Velocity and Acceleration
+            w1=self.w1[:, 1].tolist(),
+            alpha1=self.alpha1[:, 1].tolist(),
+            w2=self.w2[:, 1].tolist(),
+            alpha2=self.alpha2[:, 1].tolist(),
+            w3=self.w3[:, 1].tolist(),
+            alpha3=self.alpha3[:, 1].tolist(),
+            gridWandAlpha=self.w1[:, 0].tolist(),
+            # Force Data
+            # Button Normal Force
+            upperRailButtonNormalForce=self.railButton1NormalForce[
+                :outOfRailTimeIndex, 1
+            ].tolist(),
+            gridUpperRailButtonNormalForce=self.railButton1NormalForce[
+                :outOfRailTimeIndex, 0
+            ].tolist(),
+            lowerRailButtonNormalForce=self.railButton2NormalForce[
+                :outOfRailTimeIndex, 1
+            ].tolist(),
+            gridLowerRailButtonNormalForce=self.railButton2NormalForce[
+                :outOfRailTimeIndex, 0
+            ].tolist(),
+            # Button Shear Force
+            upperRailButtonShearForce=self.railButton1ShearForce[
+                :outOfRailTimeIndex, 1
+            ].tolist(),
+            gridUpperRailButtonShearForce=self.railButton1ShearForce[
+                :outOfRailTimeIndex, 0
+            ].tolist(),
+            lowerRailButtonShearForce=self.railButton2ShearForce[
+                :outOfRailTimeIndex, 1
+            ].tolist(),
+            gridLowerRailButtonShearForce=self.railButton2ShearForce[
+                :outOfRailTimeIndex, 0
+            ].tolist(),
+            xlimOutOfRail=self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal,
+            # Aerodynamic Lift Resultant Force
+            aerodynamicLift=self.aerodynamicLift[
+                : self.parachuteEventTimeIndex, 1
+            ].tolist(),
+            gridAerodynamicLift=self.aerodynamicLift[
+                : self.parachuteEventTimeIndex, 0
+            ].tolist(),
+            r1=self.R1[: self.parachuteEventTimeIndex, 1].tolist(),
+            gridR1=self.R1[: self.parachuteEventTimeIndex, 0].tolist(),
+            r2=self.R2[: self.parachuteEventTimeIndex, 1].tolist(),
+            gridR2=self.R2[: self.parachuteEventTimeIndex, 0].tolist(),
+            # Aerodynamic Drag Force
+            aerodynamicDrag=self.aerodynamicDrag[
+                : self.parachuteEventTimeIndex, 1
+            ].tolist(),
+            gridAerodynamicDrag=self.aerodynamicDrag[
+                : self.parachuteEventTimeIndex, 0
+            ].tolist(),
+            # Aerodynamic Bending Moment
+            aerodynamicBending=self.aerodynamicBendingMoment[
+                : self.parachuteEventTimeIndex, 1
+            ].tolist(),
+            gridAerodynamicBending=self.aerodynamicBendingMoment[
+                : self.parachuteEventTimeIndex, 0
+            ].tolist(),
+            m1=self.M1[: self.parachuteEventTimeIndex, 1].tolist(),
+            gridM1=self.M1[: self.parachuteEventTimeIndex, 0].tolist(),
+            m2=self.M2[: self.parachuteEventTimeIndex, 1].tolist(),
+            gridM2=self.M2[: self.parachuteEventTimeIndex, 0].tolist(),
+            # Aerodynamic Spin Moment
+            aerodynamicSpin=self.aerodynamicSpinMoment[
+                : self.parachuteEventTimeIndex, 1
+            ].tolist(),
+            gridAerodynamicSpin=self.aerodynamicSpinMoment[
+                : self.parachuteEventTimeIndex, 0
+            ].tolist(),
+            # Trajectory Energy Plots
+            # Kinetic Energy Components
+            kineticEnergy=self.kineticEnergy[:, 1].tolist(),
+            gridKineticEnergy=self.kineticEnergy[:, 0].tolist(),
+            rotationalEnergy=self.rotationalEnergy[:, 1].tolist(),
+            gridRotationalEnergy=self.rotationalEnergy[:, 0].tolist(),
+            translationalEnergy=self.translationalEnergy[:, 1].tolist(),
+            gridTranslationalEnergy=self.translationalEnergy[:, 0].tolist(),
+            # Total Mechanical Energy Components
+            totalEnergy=self.totalEnergy[:, 1].tolist(),
+            gridTotalEnergy=self.totalEnergy[:, 0].tolist(),
+            potentialEnergy=self.potentialEnergy[:, 1].tolist(),
+            gridPotentialEnergy=self.potentialEnergy[:, 0].tolist(),
+            # Thrust Absolute Power
+            thrustPower=self.thrustPower[:, 1].tolist(),
+            gridThrustPower=self.thrustPower[:, 0].tolist(),
+            xlimBurnOutTime=self.rocket.motor.burnOutTime,
+            dragPower=(-self.dragPower[:, 1]).tolist(),
+            gridDragPower=self.dragPower[:, 0].tolist(),
+            # Trajectory Fluid Mechanics Plots
+            # Mach Number
+            machNumber=self.MachNumber[:, 1].tolist(),
+            gridMachNumber=self.MachNumber[:, 0].tolist(),
+            # Reynolds Number
+            reynoldsNumber=self.ReynoldsNumber[:, 1].tolist(),
+            gridReynoldsNumber=self.ReynoldsNumber[:, 0].tolist(),
+            # Total and Dynamic Pressure
+            dynamicPressure=self.dynamicPressure[:, 1].tolist(),
+            gridDynamicPressure=self.dynamicPressure[:, 0].tolist(),
+            totalPressure=self.totalPressure[:, 1].tolist(),
+            gridTotalPressure=self.totalPressure[:, 0].tolist(),
+            staticPressure=self.pressure[:, 1].tolist(),
+            gridStaticPressure=self.pressure[:, 0].tolist(),
+            # Angle of Attack
+            angleOfattack=self.angleOfAttack[:, 1].tolist(),
+            gridAngleOfattack=self.angleOfAttack[:, 0].tolist(),
+            xboundariesAngleOfAttack=[self.outOfRailTime, 10 * self.outOfRailTime + 1],
+            # Trajectory Stability and Control Plots
+            # Static Margin
+            staticMargin=self.staticMargin[:, 1].tolist(),
+            grisStaticMargin=self.staticMargin[:, 0].tolist(),
+            # Frequency Response
+            attitudeFreqResponse=(
+                self.attitudeFrequencyResponse[:, 1] / maxAttitude
+            ).tolist(),
+            gridAttitudeFreqResponse=self.attitudeFrequencyResponse[:, 0].tolist(),
+            omega1FR=(self.omega1FrequencyResponse[:, 1] / maxOmega1).tolist(),
+            gridOmega1FR=self.omega1FrequencyResponse[:, 0].tolist(),
+            omega2FR=(self.omega2FrequencyResponse[:, 1] / maxOmega2).tolist(),
+            gridOmega2FR=self.omega2FrequencyResponse[:, 0].tolist(),
+            omega3FR=(self.omega3FrequencyResponse[:, 1] / maxOmega3).tolist(),
+            gridOmega3FR=self.omega3FrequencyResponse[:, 0].tolist(),
         )
         return plotInfo
 
