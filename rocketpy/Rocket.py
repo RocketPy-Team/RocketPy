@@ -419,7 +419,12 @@ class Rocket:
         Returns
         -------
         cl : Function
-            Object of the Function class. Contains tail's lift data.
+            Function of the angle of attack (Alpha) and the mach number
+            (Mach) expressing the tail's lift coefficient. The inputs
+            are the angle of attack (in radians) and the mach number.
+            The output is the tail's lift coefficient. In the current
+            implementation, the tail's lift coefficient does not vary
+            with mach.
         self : Rocket
             Object of the Rocket class.
         """
@@ -477,7 +482,12 @@ class Rocket:
         Returns
         -------
         cl : Function
-            Object of the Function class. Contains nose's lift data.
+            Function of the angle of attack (Alpha) and the mach number
+            (Mach) expressing the nose cone's lift coefficient. The inputs
+            are the angle of attack (in radians) and the mach number.
+            The output is the nose cone's lift coefficient. In the current
+            implementation, the nose cone's lift coefficient does not vary
+            with mach
         self : Rocket
             Object of the Rocket class.
         """
@@ -563,7 +573,10 @@ class Rocket:
         Returns
         -------
         cl : Function
-            Object of the Function class. Contains fin's lift data.
+            Function of the angle of attack (Alpha) and the mach number
+            (Mach) expressing the fin's lift coefficient. The inputs
+            are the angle of attack (in radians) and the mach number.
+            The output is the fin's lift coefficient.
         self : Rocket
             Object of the Rocket class.
         """
@@ -582,7 +595,7 @@ class Rocket:
         radius = self.radius if radius == 0 else radius
         d = 2 * radius
         Aref = np.pi * radius ** 2
-        AR = 2 * s ** 2 / Af
+        AR = 2 * s ** 2 / Af  # Barrowman's convention for fin's aspect ratio
         cantAngleRad = np.radians(cantAngle)
         trapezoidalConstant = (
             (Cr + 3 * Ct) * s ** 3
@@ -591,27 +604,23 @@ class Rocket:
         ) / 12
 
         # Fin–body interference correction parameters
-        tau = (s + radius) / radius
+        τ = (s + radius) / radius
         λ = Ct / Cr
-        liftInterferenceFactor = 1 + 1 / tau
+        liftInterferenceFactor = 1 + 1 / τ
         rollForcingInterferenceFactor = (1 / np.pi ** 2) * (
-            (np.pi ** 2 / 4) * ((tau + 1) ** 2 / tau ** 2)
-            + ((np.pi * (tau ** 2 + 1) ** 2) / (tau ** 2 * (tau - 1) ** 2))
-            * np.arcsin((tau ** 2 - 1) / (tau ** 2 + 1))
-            - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
-            + ((tau ** 2 + 1) ** 2)
-            / (tau ** 2 * (tau - 1) ** 2)
-            * (np.arcsin((tau ** 2 - 1) / (tau ** 2 + 1))) ** 2
-            - (4 * (tau + 1))
-            / (tau * (tau - 1))
-            * np.arcsin((tau ** 2 - 1) / (tau ** 2 + 1))
-            + (8 / (tau - 1) ** 2) * np.log((tau ** 2 + 1) / (2 * tau))
+            (np.pi ** 2 / 4) * ((τ + 1) ** 2 / τ ** 2)
+            + ((np.pi * (τ ** 2 + 1) ** 2) / (τ ** 2 * (τ - 1) ** 2))
+            * np.arcsin((τ ** 2 - 1) / (τ ** 2 + 1))
+            - (2 * np.pi * (τ + 1)) / (τ * (τ - 1))
+            + ((τ ** 2 + 1) ** 2)
+            / (τ ** 2 * (τ - 1) ** 2)
+            * (np.arcsin((τ ** 2 - 1) / (τ ** 2 + 1))) ** 2
+            - (4 * (τ + 1)) / (τ * (τ - 1)) * np.arcsin((τ ** 2 - 1) / (τ ** 2 + 1))
+            + (8 / (τ - 1) ** 2) * np.log((τ ** 2 + 1) / (2 * τ))
         )
         rollDampingInterferenceFactor = 1 + (
-            ((tau - λ) / (tau)) - ((1 - λ) / (tau - 1)) * np.log(tau)
-        ) / (
-            ((tau + 1) * (tau - λ)) / (2) - ((1 - λ) * (tau ** 3 - 1)) / (3 * (tau - 1))
-        )
+            ((τ - λ) / (τ)) - ((1 - λ) / (τ - 1)) * np.log(τ)
+        ) / (((τ + 1) * (τ - λ)) / (2) - ((1 - λ) * (τ ** 3 - 1)) / (3 * (τ - 1)))
 
         # Save geometric parameters for later Fin Flutter Analysis and Roll Moment Calculation
         self.rootChord = Cr
@@ -623,6 +632,21 @@ class Rocket:
 
         # Defines beta parameter
         def beta(mach):
+            """Defines a parameter that is commonly used in aerodynamic
+            equations. It is commonly used in the Prandtl factor which
+            corrects subsonic force coefficients for compressible flow.
+
+            Parameters
+            ----------
+            mach : int, float
+                Number of mach.
+
+            Returns
+            -------
+            beta : int, float
+                Value that characterizes flow speed based on the mach number.
+            """
+
             if mach < 0.8:
                 return np.sqrt(1 - mach ** 2)
             elif mach < 1.1:
@@ -632,6 +656,21 @@ class Rocket:
 
         # Defines number of fins correction
         def finNumCorrection(n):
+            """Calculates a corrector factor for the lift coefficient of multiple fins.
+            The specifics  values are documented at:
+            Niskanen, S. (2013). “OpenRocket technical documentation”. In: Development
+            of an Open Source model rocket simulation software.
+
+            Parameters
+            ----------
+            n : int
+                Number of fins.
+
+            Returns
+            -------
+            Corrector factor : int
+                Factor that accounts for the number of fins.
+            """
             correctorFactor = [2.37, 2.74, 2.99, 3.24]
             if n >= 5 and n <= 8:
                 return correctorFactor[n - 5]
@@ -735,7 +774,9 @@ class Rocket:
         )
         # Function of mach number
         rollParameters = (
-            [clfDelta, cldOmega, cantAngleRad] if cantAngleRad != 0 else [0, 0, 0]
+            [clfDelta, cldOmega, cantAngleRad]
+            if cantAngleRad != 0
+            else [Function(0), Function(0), 0]
         )
 
         # Store values
