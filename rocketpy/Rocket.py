@@ -354,7 +354,6 @@ class Rocket:
 
         Parameters
         ----------
-        None
 
         Returns
         -------
@@ -442,7 +441,6 @@ class Rocket:
             ["Alpha (rad)", "Mach"],
             "Cl",
             interpolation="linear",
-        )
 
         # Store values as new aerodynamic surface
         tail = [(0, 0, cpz), cldata, "Tail"]
@@ -690,11 +688,13 @@ class Rocket:
             fin = [(0, 0, cpz), cldata, rollParameters, "Fins"]
             self.aerodynamicSurfaces.append(fin)
 
-            # Refresh static margin calculation
-            self.evaluateStaticMargin()
+            # Fin–body interference correction
+            clalpha = 1 + radius / (s + radius)
 
-            # Return self
-            return self.aerodynamicSurfaces[-1]
+            # Create a function of lift values by attack angle
+            cldata = Function(
+                lambda x, mach: clalpha * x,  ["Alpha (rad)", "Mach"], "Cl", interpolation="linear", extrapolation="natural"
+            )
 
         if type == "elliptical":
 
@@ -789,11 +789,15 @@ class Rocket:
             fin = [(0, 0, cpz), cldata, rollParameters, "Fins"]
             self.aerodynamicSurfaces.append(fin)
 
-            # Refresh static margin calculation
-            self.evaluateStaticMargin()
+        # Store values
+        fin = [(0, 0, cpz), cldata, "Fins"]
+        self.aerodynamicSurfaces.append(fin)
 
-            # Return self
-            return self.aerodynamicSurfaces[-1]
+        # Refresh static margin calculation
+        self.evaluateStaticMargin()
+
+        # Return self
+        return self.aerodynamicSurfaces[-1]
 
     def addParachute(
         self, name, CdS, trigger, samplingRate=100, lag=0, noise=(0, 0, 0)
