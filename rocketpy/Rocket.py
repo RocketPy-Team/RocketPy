@@ -371,13 +371,13 @@ class Rocket:
         if len(self.aerodynamicSurfaces) > 0:
             for aerodynamicSurface in self.aerodynamicSurfaces:
                 self.totalLiftCoeffDer += Function(
-                    lambda alpha: aerodynamicSurface[1](alpha, 0)
+                    lambda alpha: aerodynamicSurface["cl"](alpha, 0)
                 ).differentiate(x=1e-2, dx=1e-3)
                 self.cpPosition += (
                     Function(
-                        lambda alpha: aerodynamicSurface[1](alpha, 0)
+                        lambda alpha: aerodynamicSurface["cl"](alpha, 0)
                     ).differentiate(x=1e-2, dx=1e-3)
-                    * aerodynamicSurface[0][2]
+                    * aerodynamicSurface["cp"][2]
                 )
             self.cpPosition /= self.totalLiftCoeffDer
 
@@ -444,7 +444,7 @@ class Rocket:
         )
 
         # Store values as new aerodynamic surface
-        tail = [(0, 0, cpz), cl, "Tail"]
+        tail = {"cp": (0, 0, cpz), "cl": cl, "name": "Tail"}
         self.aerodynamicSurfaces.append(tail)
 
         # Refresh static margin calculation
@@ -506,7 +506,7 @@ class Rocket:
         )
 
         # Store values
-        nose = [(0, 0, cpz), cl, "Nose Cone"]
+        nose = {"cp": (0, 0, cpz), "cl": cl, "name": "Nose Cone"}
         self.aerodynamicSurfaces.append(nose)
 
         # Refresh static margin calculation
@@ -739,7 +739,12 @@ class Rocket:
         )
 
         # Store values
-        fin = [(0, 0, cpz), cl, rollParameters, "Fins"]
+        fin = {
+            "cp": (0, 0, cpz),
+            "cl": cl,
+            "roll parameters": rollParameters,
+            "name": "Fins",
+        }
         self.aerodynamicSurfaces.append(fin)
 
         # Refresh static margin calculation
@@ -1032,9 +1037,9 @@ class Rocket:
         # Print rocket aerodynamics quantities
         print("\nAerodynamics Lift Coefficient Derivatives")
         for aerodynamicSurface in self.aerodynamicSurfaces:
-            name = aerodynamicSurface[-1]
+            name = aerodynamicSurface["name"]
             clalpha = Function(
-                lambda alpha: aerodynamicSurface[1](alpha, 0),
+                lambda alpha: aerodynamicSurface["cl"](alpha, 0),
             ).differentiate(x=1e-2, dx=1e-3)
             print(
                 name + " Lift Coefficient Derivative: {:.3f}".format(clalpha) + "/rad"
@@ -1042,8 +1047,8 @@ class Rocket:
 
         print("\nAerodynamics Center of Pressure")
         for aerodynamicSurface in self.aerodynamicSurfaces:
-            name = aerodynamicSurface[-1]
-            cpz = aerodynamicSurface[0][2]
+            name = aerodynamicSurface["name"]
+            cpz = aerodynamicSurface["cp"][2]
             print(name + " Center of Pressure to CM: {:.3f}".format(cpz) + " m")
         print(
             "Distance - Center of Pressure to CM: "
