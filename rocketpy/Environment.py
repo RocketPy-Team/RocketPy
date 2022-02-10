@@ -47,14 +47,8 @@ def requires_netCDF4(func):
     return wrapped_func
 
 
-def requires_netCDF4(func):
-    def wrapped_func(*args, **kwargs):
-        if not has_netCDF4:
-            raise ImportError("This feature requires netCDF4 to be installed. Install it with `pip install netCDF4`")
-        f(*args, **kwargs)
-    return wrapped_func
-
 from .Function import Function
+
 
 class Environment:
     """Keeps all environment information stored, such as wind and temperature
