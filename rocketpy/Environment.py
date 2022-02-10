@@ -34,15 +34,21 @@ except ImportError:
 else:
     has_netCDF4 = True
 
+
 def requires_netCDF4(func):
     def wrapped_func(*args, **kwargs):
         if has_netCDF4:
             func(*args, **kwargs)
         else:
-            raise ImportError("This feature requires netCDF4 to be installed. Install it with `pip install netCDF4`")
+            raise ImportError(
+                "This feature requires netCDF4 to be installed. Install it with `pip install netCDF4`"
+            )
+
     return wrapped_func
 
+
 from .Function import Function
+
 
 class Environment:
     """Keeps all environment information stored, such as wind and temperature
@@ -357,7 +363,7 @@ class Environment:
             self.date = None
 
         # Initialize constants
-        self.earthRadius = 6.3781 * (10 ** 6)
+        self.earthRadius = 6.3781 * (10**6)
         self.airGasConstant = 287.05287  # in J/K/Kg
 
         # Initialize atmosphere
@@ -1955,7 +1961,7 @@ class Environment:
         windV = ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
 
         # Determine wind speed, heading and direction
-        windSpeed = np.sqrt(windU ** 2 + windV ** 2)
+        windSpeed = np.sqrt(windU**2 + windV**2)
         windHeading = np.arctan2(windU, windV) * (180 / np.pi) % 360
         windDirection = (windHeading - 180) % 360
 
@@ -2373,7 +2379,7 @@ class Environment:
         windV = ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
 
         # Determine wind speed, heading and direction
-        windSpeed = np.sqrt(windU ** 2 + windV ** 2)
+        windSpeed = np.sqrt(windU**2 + windV**2)
         windHeading = np.arctan2(windU, windV) * (180 / np.pi) % 360
         windDirection = (windHeading - 180) % 360
 
@@ -3261,7 +3267,7 @@ class Environment:
 
         # Evaluate reference parameters
         K0 = 1 - 1 / 2500
-        e2 = 2 * flattening - flattening ** 2
+        e2 = 2 * flattening - flattening**2
         e2lin = e2 / (1 - e2)
 
         # Evaluate auxiliary parameters
@@ -3284,9 +3290,9 @@ class Environment:
 
         # Evaluate new auxiliary parameters
         J = (1 - t + c) * ag * ag * ag / 6
-        K = (5 - 18 * t + t * t + 72 * c - 58 * e2lin) * (ag ** 5) / 120
+        K = (5 - 18 * t + t * t + 72 * c - 58 * e2lin) * (ag**5) / 120
         L = (5 - t + 9 * c + 4 * c * c) * ag * ag * ag * ag / 24
-        M = (61 - 58 * t + t * t + 600 * c - 330 * e2lin) * (ag ** 6) / 720
+        M = (61 - 58 * t + t * t + 600 * c - 330 * e2lin) * (ag**6) / 720
 
         # Evaluate the final coordinates
         x = 500000 + K0 * n * (ag + J + K)
@@ -3359,7 +3365,7 @@ class Environment:
 
         # Calculate reference values
         K0 = 1 - 1 / 2500
-        e2 = 2 * flattening - flattening ** 2
+        e2 = 2 * flattening - flattening**2
         e2lin = e2 / (1 - e2)
         e1 = (1 - (1 - e2) ** 0.5) / (1 + (1 - e2) ** 0.5)
 
@@ -3383,20 +3389,20 @@ class Environment:
         t1 = np.tan(lat1) ** 2
         n1 = semiMajorAxis / ((1 - e2 * (np.sin(lat1) ** 2)) ** 0.5)
         quoc = (1 - e2 * np.sin(lat1) * np.sin(lat1)) ** 3
-        r1 = semiMajorAxis * (1 - e2) / (quoc ** 0.5)
+        r1 = semiMajorAxis * (1 - e2) / (quoc**0.5)
         d = (x - 500000) / (n1 * K0)
 
         # Calculate other auxiliary values
         I = (5 + 3 * t1 + 10 * c1 - 4 * c1 * c1 - 9 * e2lin) * d * d * d * d / 24
         J = (
             (61 + 90 * t1 + 298 * c1 + 45 * t1 * t1 - 252 * e2lin - 3 * c1 * c1)
-            * (d ** 6)
+            * (d**6)
             / 720
         )
         K = d - (1 + 2 * t1 + c1) * d * d * d / 6
         L = (
             (5 - 2 * c1 + 28 * t1 - 3 * c1 * c1 + 8 * e2lin + 24 * t1 * t1)
-            * (d ** 5)
+            * (d**5)
             / 120
         )
 
@@ -3459,8 +3465,8 @@ class Environment:
         # Calculate the Earth Radius in meters
         eRadius = np.sqrt(
             (
-                (np.cos(lat) * (semiMajorAxis ** 2)) ** 2
-                + (np.sin(lat) * (semiMinorAxis ** 2)) ** 2
+                (np.cos(lat) * (semiMajorAxis**2)) ** 2
+                + (np.sin(lat) * (semiMinorAxis**2)) ** 2
             )
             / ((np.cos(lat) * semiMajorAxis) ** 2 + (np.sin(lat) * semiMinorAxis) ** 2)
         )
