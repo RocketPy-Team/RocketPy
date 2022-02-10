@@ -27,13 +27,22 @@ try:
     import netCDF4
     from netCDF4 import Dataset
 except ImportError:
+    has_netCDF4 = False
     warnings.warn(
         "Unable to load netCDF4. NetCDF files and OPeNDAP will not be imported.",
         ImportWarning,
     )
+else:
+    has_netCDF4 = True
+
+def requires_netCDF4(func):
+    def wrapped_func(*args, **kwargs):
+        if not has_netCDF4:
+            raise ImportError("This feature requires netCDF4 to be installed. Install it with `pip install netCDF4`")
+        f(*args, **kwargs)
+    return wrapped_func
 
 from .Function import Function
-
 
 class Environment:
     """Keeps all environment information stored, such as wind and temperature
@@ -1686,6 +1695,7 @@ class Environment:
         # Save maximum expected height
         self.maxExpectedHeight = pressure_array[-1, 0]
 
+    @requires_netCDF4
     def processForecastReanalysis(self, file, dictionary):
         """Import and process atmospheric data from weather forecasts
         and reanalysis given as netCDF or OPeNDAP files.
@@ -2079,6 +2089,7 @@ class Environment:
 
         return None
 
+    @requires_netCDF4
     def processEnsemble(self, file, dictionary):
         """Import and process atmospheric data from weather ensembles
         given as netCDF or OPeNDAP files.
