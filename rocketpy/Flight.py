@@ -21,7 +21,6 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 
 from .Function import Function
-from .Parachute import Parachute
 
 
 class Flight:
