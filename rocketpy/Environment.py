@@ -25,15 +25,24 @@ import requests
 
 try:
     import netCDF4
-    from netCDF4 import Dataset
 except ImportError:
+    has_netCDF4 = False
     warnings.warn(
         "Unable to load netCDF4. NetCDF files and OPeNDAP will not be imported.",
         ImportWarning,
     )
+else:
+    has_netCDF4 = True
+
+def requires_netCDF4(func):
+    def wrapped_func(*args, **kwargs):
+        if has_netCDF4:
+            func(*args, **kwargs)
+        else:
+            raise ImportError("This feature requires netCDF4 to be installed. Install it with `pip install netCDF4`")
+    return wrapped_func
 
 from .Function import Function
-
 
 class Environment:
     """Keeps all environment information stored, such as wind and temperature
@@ -487,6 +496,7 @@ class Environment:
                 " Open-Elevation API. See Environment.setLocation."
             )
 
+    @requires_netCDF4
     def setTopographicProfile(self, type, file, dictionary="netCDF4", crs=None):
         """[UNDER CONSTRUCTION] Defines the Topographic profile, importing data
         from previous downloaded files. Mainly data from the Shuttle Radar
@@ -515,7 +525,7 @@ class Environment:
 
         if type == "NASADEM_HGT":
             if dictionary == "netCDF4":
-                rootgrp = Dataset(file, "r", format="NETCDF4")
+                rootgrp = netCDF4.Dataset(file, "r", format="NETCDF4")
                 self.elevLonArray = rootgrp.variables["lon"][:].tolist()
                 self.elevLatArray = rootgrp.variables["lat"][:].tolist()
                 self.elevArray = rootgrp.variables["NASADEM_HGT"][:].tolist()
@@ -1686,6 +1696,7 @@ class Environment:
         # Save maximum expected height
         self.maxExpectedHeight = pressure_array[-1, 0]
 
+    @requires_netCDF4
     def processForecastReanalysis(self, file, dictionary):
         """Import and process atmospheric data from weather forecasts
         and reanalysis given as netCDF or OPeNDAP files.
@@ -2079,6 +2090,7 @@ class Environment:
 
         return None
 
+    @requires_netCDF4
     def processEnsemble(self, file, dictionary):
         """Import and process atmospheric data from weather ensembles
         given as netCDF or OPeNDAP files.
