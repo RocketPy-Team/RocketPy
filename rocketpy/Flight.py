@@ -1298,7 +1298,7 @@ class Flight:
         # Calculate lift and moment for each component of the rocket
         for aerodynamicSurface in self.rocket.aerodynamicSurfaces:
             compCp = aerodynamicSurface[0][2]
-            clalpha = aerodynamicSurface[1]
+            compCl = aerodynamicSurface[1]
             # Component absolute velocity in body frame
             compVxB = vxB + compCp * omega2
             compVyB = vyB - compCp * omega1
@@ -1325,15 +1325,10 @@ class Flight:
                 compStreamVzBn = compStreamVzB / compStreamSpeed
                 if -1 * compStreamVzBn < 1:
                     compAttackAngle = np.arccos(-compStreamVzBn)
-                    cLift = aerodynamicSurface[1](compAttackAngle)
+                    compLift = compCl(compAttackAngle)
                     # Component lift force magnitude
                     compLift = (
-                        0.5
-                        * rho
-                        * (compStreamSpeed**2)
-                        * self.rocket.area
-                        * cLift
-                        * compAttackAngle
+                        0.5 * rho * (compStreamSpeed**2) * self.rocket.area * compLift
                     )
                     # Component lift force components
                     liftDirNorm = (compStreamVxB**2 + compStreamVyB**2) ** 0.5
