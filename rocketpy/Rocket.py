@@ -612,6 +612,7 @@ class Rocket:
             # Retrieve parameters for calculations
             Af = (np.pi * Cr / 2 * s) / 2
             gamac = 0
+            Ymac = s / (3 * np.pi) * np.sqrt(9 * np.pi ** 2 - 64)
             rollGeometricalConstant = (
                 Cr
                 * s
@@ -636,30 +637,33 @@ class Rocket:
         # Fin–body interference correction parameters
         tau = (s + radius) / radius
         liftInterferenceFactor = 1 + 1 / tau
-        if cantAngleRad != 0:
+        if type == "trapezoidal":
             λ = Ct / Cr
-            rollForcingInterferenceFactor = (1 / np.pi ** 2) * (
-                (np.pi ** 2 / 4) * ((tau + 1) ** 2 / tau ** 2)
-                + ((np.pi * (tau ** 2 + 1) ** 2) / (tau ** 2 * (tau - 1) ** 2))
-                * np.arcsin((tau ** 2 - 1) / (tau ** 2 + 1))
-                - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
-                + ((tau ** 2 + 1) ** 2)
-                / (tau ** 2 * (tau - 1) ** 2)
-                * (np.arcsin((tau ** 2 - 1) / (tau ** 2 + 1))) ** 2
-                - (4 * (tau + 1))
-                / (tau * (tau - 1))
-                * np.arcsin((tau ** 2 - 1) / (tau ** 2 + 1))
-                + (8 / (tau - 1) ** 2) * np.log((tau ** 2 + 1) / (2 * tau))
-            )
-            rollDampingInterferenceFactor = 1 + (
-                ((tau - λ) / (tau)) - ((1 - λ) / (tau - 1)) * np.log(tau)
-            ) / (
-                ((tau + 1) * (tau - λ)) / (2)
-                - ((1 - λ) * (tau ** 3 - 1)) / (3 * (tau - 1))
-            )
         else:
-            rollForcingInterferenceFactor = 0
-            rollDampingInterferenceFactor = 0
+            CtE = (
+                Cr
+                * (np.sqrt(9 * np.pi ** 2 - 64) - np.pi)
+                / (2 * np.pi - np.sqrt(9 * np.pi ** 2 - 64))
+            )
+            λ = CtE / Cr
+        rollForcingInterferenceFactor = (1 / np.pi ** 2) * (
+            (np.pi ** 2 / 4) * ((tau + 1) ** 2 / tau ** 2)
+            + ((np.pi * (tau ** 2 + 1) ** 2) / (tau ** 2 * (tau - 1) ** 2))
+            * np.arcsin((tau ** 2 - 1) / (tau ** 2 + 1))
+            - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
+            + ((tau ** 2 + 1) ** 2)
+            / (tau ** 2 * (tau - 1) ** 2)
+            * (np.arcsin((tau ** 2 - 1) / (tau ** 2 + 1))) ** 2
+            - (4 * (tau + 1))
+            / (tau * (tau - 1))
+            * np.arcsin((tau ** 2 - 1) / (tau ** 2 + 1))
+            + (8 / (tau - 1) ** 2) * np.log((tau ** 2 + 1) / (2 * tau))
+        )
+        rollDampingInterferenceFactor = 1 + (
+            ((tau - λ) / (tau)) - ((1 - λ) / (tau - 1)) * np.log(tau)
+        ) / (
+            ((tau + 1) * (tau - λ)) / (2) - ((1 - λ) * (tau ** 3 - 1)) / (3 * (tau - 1))
+        )
 
         # Auxiliary functions
         # Defines beta parameter
@@ -749,23 +753,18 @@ class Rocket:
 
         # Parameters for Roll Moment.
         # Documented at: https://github.com/Projeto-Jupiter/RocketPy/blob/develop/docs/technical/aerodynamics/Roll_Equations.pdf
-        if type == "trapezoidal":
-            clfDelta = (
-                rollForcingInterferenceFactor
-                * n
-                * (Ymac + radius)
-                * clalphaSingleFin
-                / d
-            )  # Function of mach number
-            cldOmega = (
-                2
-                * rollDampingInterferenceFactor
-                * n
-                * clalphaSingleFin
-                * np.cos(cantAngleRad)
-                * rollGeometricalConstant
-                / (Aref * d ** 2)
-            )
+        clfDelta = (
+            rollForcingInterferenceFactor * n * (Ymac + radius) * clalphaSingleFin / d
+        )  # Function of mach number
+        cldOmega = (
+            2
+            * rollDampingInterferenceFactor
+            * n
+            * clalphaSingleFin
+            * np.cos(cantAngleRad)
+            * rollGeometricalConstant
+            / (Aref * d ** 2)
+        )
         # Function of mach number
         rollParameters = (
             [clfDelta, cldOmega, cantAngleRad] if cantAngleRad != 0 else [0, 0, 0]
