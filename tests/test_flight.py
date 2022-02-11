@@ -256,14 +256,24 @@ def test_initial_solution(mock_show):
     assert test_flight.allInfo() == None
 
 
-def test_stability_static_margins():
+@pytest.mark.parametrize("wind_u, wind_v", [(0, 10), (0, -10), (10, 0), (-10, 0)])
+@pytest.mark.parametrize(
+    "static_margin, max_time",
+    [(-0.1, 2), (-0.01, 5), (0, 5), (0.01, 20), (0.1, 20), (1.0, 20)],
+)
+def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
     """Test stability margins for a constant velocity flight, 100 m/s, wind a
     lateral wind speed of 10 m/s. Rocket has infinite mass to prevent side motion.
     Check if a restoring moment exists depending on static margins."""
 
     # Create an environment with ZERO gravity to keep the rocket's speed constant
-    Env = Environment(
-        gravity=0, railLength=0, latitude=0, longitude=0, elevation=0  # zero gravity
+    Env = Environment(gravity=0, railLength=0, latitude=0, longitude=0, elevation=0)
+    Env.setAtmosphericModel(
+        type="CustomAtmosphere",
+        wind_u=wind_u,
+        wind_v=wind_v,
+        pressure=101325,
+        temperature=300,
     )
 
     # Create a motor with ZERO thrust and ZERO mass to keep the rocket's speed constant
@@ -293,63 +303,34 @@ def test_stability_static_margins():
         powerOnDrag=0,
     )
     DummyRocket.setRailButtons([0.2, -0.5])
+    setup_rocket_with_given_static_margin(DummyRocket, static_margin)
 
-    for wind_u, wind_v in [(0, 10), (0, -10), (10, 0), (-10, 0)]:
-        Env.setAtmosphericModel(
-            type="CustomAtmosphere",
-            wind_u=wind_u,
-            wind_v=wind_v,
-            pressure=101325,
-            temperature=300,
-        )
+    # Simulate
+    init_pos = [0, 0, 100]  # Start at 100 m of altitude
+    init_vel = [0, 0, 100]  # Start at 100 m/s
+    init_att = [1, 0, 0, 0]  # Inclination of 90 deg and heading of 0 deg
+    init_angvel = [0, 0, 0]
+    initial_solution = [0] + init_pos + init_vel + init_att + init_angvel
+    TestFlight = Flight(
+        rocket=DummyRocket,
+        environment=Env,
+        initialSolution=initial_solution,
+        maxTime=max_time,
+        maxTimeStep=1e-2,
+        verbose=False,
+    )
+    TestFlight.postProcess()
 
-        for static_margin, max_time in [
-            (-0.1, 2),
-            (-0.01, 5),
-            (0, 5),
-            (0.01, 20),
-            (0.1, 20),
-            (1.0, 20),
-        ]:
-            DummyRocket = setup_rocket_with_given_static_margin(
-                DummyRocket, static_margin
-            )
+    # Check stability according to static margin
+    if wind_u == 0:
+        moments = TestFlight.M1.source[:, 1]
+        wind_sign = np.sign(wind_v)
+    else:  # wind_v == 0
+        moments = TestFlight.M2.source[:, 1]
+        wind_sign = -np.sign(wind_u)
 
-            # Simulate
-            TestFlight = Flight(
-                rocket=DummyRocket,
-                environment=Env,
-                initialSolution=[
-                    0,
-                    0,
-                    0,
-                    100,  # Start at 100 m of altitude
-                    0,
-                    0,
-                    100,  # Start at 100 m/s
-                    1.0,  # Inclination of 90 deg and heading of 0 deg
-                    0.0,
-                    0.0,
-                    0.0,
-                    0,
-                    0,
-                    0,
-                ],  # Start at 100 m of altitude and 100 m/s of vertical velocity
-                maxTime=max_time,
-                maxTimeStep=1e-2,
-                verbose=False,
-            )
-            TestFlight.postProcess()
-
-            if wind_u == 0:
-                moments = TestFlight.M1.source[:, 1]
-                wind_sign = np.sign(wind_v)
-            else:  # wind_v == 0
-                moments = TestFlight.M2.source[:, 1]
-                wind_sign = -np.sign(wind_u)
-
-            assert (
-                (static_margin > 0 and np.max(moments) * np.min(moments) < 0)
-                or (static_margin < 0 and np.all(moments / wind_sign <= 0))
-                or (static_margin == 0 and np.all(np.abs(moments) <= 1e-10))
-            )
+    assert (
+        (static_margin > 0 and np.max(moments) * np.min(moments) < 0)
+        or (static_margin < 0 and np.all(moments / wind_sign <= 0))
+        or (static_margin == 0 and np.all(np.abs(moments) <= 1e-10))
+    )
