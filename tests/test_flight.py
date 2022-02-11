@@ -1,11 +1,10 @@
 import datetime
 from unittest.mock import patch
 
-import pytest
-
-from rocketpy import Environment, SolidMotor, Rocket, Flight
-
 import numpy as np
+import pytest
+from rocketpy import Environment, Flight, Rocket, SolidMotor
+from scipy import optimize
 
 
 @patch("matplotlib.pyplot.show")
@@ -226,9 +225,13 @@ def test_stability_static_margins():
                 tipChord=0.100,
                 distanceToCM=distanceToCM,
             )
+            rocket.addTail(
+                topRadius=0.0635,
+                bottomRadius=0.0435,
+                length=0.060,
+                distanceToCM=-1.194656,
+            )
             return rocket.staticMargin(0) - static_margin
-
-        from scipy import optimize
 
         sol = optimize.root_scalar(
             compute_static_margin_error_given_distance,
@@ -242,13 +245,6 @@ def test_stability_static_margins():
     # Create an environment with ZERO gravity and CONTROLLED wind
     Env = Environment(
         gravity=0, railLength=0, latitude=0, longitude=0, elevation=0  # zero gravity
-    )
-    Env.setAtmosphericModel(
-        type="CustomAtmosphere",
-        wind_u=10,  # 10 m/s constant wind velocity in the east direction
-        wind_v=0,
-        pressure=101325,
-        temperature=300,
     )
 
     # Create a motor with ZERO thrust and ZERO mass
@@ -277,17 +273,7 @@ def test_stability_static_margins():
         powerOffDrag=0,
         powerOnDrag=0,
     )
-
     DummyRocket.setRailButtons([0.2, -0.5])
-    NoseCone = DummyRocket.addNose(
-        length=0.55829, kind="vonKarman", distanceToCM=0.71971
-    )
-    FinSet = DummyRocket.addFins(
-        4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
-    )
-    Tail = DummyRocket.addTail(
-        topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656
-    )
 
     for wind_u, wind_v in [(0, 10), (0, -10), (10, 0), (-10, 0)]:
         Env.setAtmosphericModel(
