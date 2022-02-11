@@ -6,6 +6,52 @@ import pytest
 from rocketpy import Environment, Flight, Rocket, SolidMotor
 from scipy import optimize
 
+# Helper functions
+def setup_rocket_with_given_static_margin(rocket, static_margin):
+    """Takes any rocket, removes its aerodynamic surfaces and adds a set of
+    nose, fins and tail specially designed to have a given static margin.
+    The rocket is modified in place.
+
+    Parameters
+    ----------
+    rocket : Rocket
+        Rocket to be modified
+    static_margin : float
+        Static margin that the given rocket shall have
+
+    Returns
+    -------
+    rocket : Rocket
+        Rocket with the given static margin.
+    """
+
+    def compute_static_margin_error_given_distance(distanceToCM, static_margin, rocket):
+        rocket.aerodynamicSurfaces = []
+        rocket.addNose(length=0.5, kind="vonKarman", distanceToCM=1.0)
+        rocket.addFins(
+            4,
+            span=0.100,
+            rootChord=0.100,
+            tipChord=0.100,
+            distanceToCM=distanceToCM,
+        )
+        rocket.addTail(
+            topRadius=0.0635,
+            bottomRadius=0.0435,
+            length=0.060,
+            distanceToCM=-1.194656,
+        )
+        return rocket.staticMargin(0) - static_margin
+
+    sol = optimize.root_scalar(
+        compute_static_margin_error_given_distance,
+        bracket=[-2.0, 2.0],
+        method="brentq",
+        args=(static_margin, rocket),
+    )
+
+    return rocket
+
 
 @patch("matplotlib.pyplot.show")
 def test_flight(mock_show):
@@ -211,43 +257,12 @@ def test_initial_solution(mock_show):
 
 
 def test_stability_static_margins():
-    # Function to get rocket with any desired static margin easily
-    def setup_rocket_with_given_static_margin(rocket, static_margin):
-        def compute_static_margin_error_given_distance(
-            distanceToCM, static_margin, rocket
-        ):
-            rocket.aerodynamicSurfaces = []
-            rocket.addNose(length=0.5, kind="vonKarman", distanceToCM=1.0)
-            rocket.addFins(
-                4,
-                span=0.100,
-                rootChord=0.100,
-                tipChord=0.100,
-                distanceToCM=distanceToCM,
-            )
-            rocket.addTail(
-                topRadius=0.0635,
-                bottomRadius=0.0435,
-                length=0.060,
-                distanceToCM=-1.194656,
-            )
-            return rocket.staticMargin(0) - static_margin
-
-        sol = optimize.root_scalar(
-            compute_static_margin_error_given_distance,
-            bracket=[-2.0, 2.0],
-            method="brentq",
-            args=(static_margin, rocket),
-        )
-
-        return rocket
-
-    # Create an environment with ZERO gravity and CONTROLLED wind
+    # Create an environment with ZERO gravity to keep the rocket's speed constant
     Env = Environment(
         gravity=0, railLength=0, latitude=0, longitude=0, elevation=0  # zero gravity
     )
 
-    # Create a motor with ZERO thrust and ZERO mass
+    # Create a motor with ZERO thrust and ZERO mass to keep the rocket's speed constant
     DummyMotor = SolidMotor(
         thrustSource=1e-300,
         burnOut=1e-10,
@@ -261,7 +276,7 @@ def test_stability_static_margins():
         throatRadius=11 / 1000,
     )
 
-    # Create a rocket with ZERO drag and HUGE mass
+    # Create a rocket with ZERO drag and HUGE mass to keep the rocket's speed constant
     DummyRocket = Rocket(
         motor=DummyMotor,
         radius=127 / 2000,
@@ -300,8 +315,6 @@ def test_stability_static_margins():
             TestFlight = Flight(
                 rocket=DummyRocket,
                 environment=Env,
-                inclination=90,
-                heading=0,
                 initialSolution=[
                     0,
                     0,
