@@ -354,6 +354,7 @@ class Rocket:
 
         Parameters
         ----------
+        None
 
         Returns
         -------
@@ -441,6 +442,7 @@ class Rocket:
             ["Alpha (rad)", "Mach"],
             "Cl",
             interpolation="linear",
+        )
 
         # Store values as new aerodynamic surface
         tail = [(0, 0, cpz), cldata, "Tail"]
@@ -566,51 +568,32 @@ class Rocket:
             Object of the Rocket class.
         """
 
+        # Retrieves similar parameters
+        Cr = dictionary["rootChord"]
+        s = dictionary["span"]
+        radius = self.radius if radius == 0 else radius
+        cantAngleRad = np.radians(cantAngle)
+        d = 2 * radius
+
         # Type verification
         if type == "trapezoidal":
 
             # Retrieve parameters for calculations
-            Cr = dictionary["rootChord"]
             Ct = dictionary["tipChord"]
             Yr = Cr + Ct
-            s = dictionary["span"]
 
             Af = Yr * s / 2  # fin area
             gamac = np.arctan((Cr - Ct) / (2 * s))  # mid chord angle
             Ymac = (
                 (s / 3) * (Cr + 2 * Ct) / Yr
             )  # span wise position of fin's mean aerodynamic chord
-            Lf = np.sqrt((Cr / 2 - Ct / 2) ** 2 + s ** 2)
-            radius = self.radius if radius == 0 else radius
-            d = 2 * radius
-            cantAngleRad = np.radians(cantAngle)
-            trapezoidalConstant = ((Yr) / 2) * (radius ** 2) * s
-            trapezoidalConstant += ((Cr + 2 * Ct) / 3) * radius * (s ** 2)
-            trapezoidalConstant += ((Cr + 3 * Ct) / 12) * (s ** 3)
+            Lf = np.sqrt((Cr / 2 - Ct / 2) ** 2 + s ** 2)  #
 
-            # Save geometric parameters for later Fin Flutter Analysis and Roll Moment Calculation
-            self.rootChord = Cr
-            self.tipChord = Ct
-            self.span = s
-            self.distanceRocketFins = distanceToCM
-
-            # Auxiliary functions
-            # Defines beta parameter
-            def beta(mach):
-                if mach < 0.8:
-                    return np.sqrt(1 - mach ** 2)
-                elif mach < 1.1:
-                    return np.sqrt(1 - 0.8 ** 2)
-                else:
-                    return np.sqrt(mach ** 2 - 1)
-
-            # Defines number of fins correction
-            def finNumCorrection(n):
-                correctorFactor = [2.37, 2.74, 2.99, 3.24]
-                if n >= 5 and n <= 8:
-                    return correctorFactor[n - 5]
-                else:
-                    return n / 2
+            rollGeometricalConstant = (
+                (Cr + 3 * Ct) * s ** 3
+                + 4 * (Cr + 2 * Ct) * radius * s ** 2
+                + 6 * (Cr + Ct) * s * radius ** 2
+            ) / 12
 
             # Calculate cp position relative to cm
             if distanceToCM < 0:
@@ -624,108 +607,17 @@ class Rocket:
                     + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
                 )
 
-            if airfoil:  # Calculate lift parameters for generic airfoil.
-                # Documented at https://github.com/Projeto-Jupiter/RocketPy/blob/develop/docs/technical/aerodynamics/Fins_Lift_Coefficient.pdf
-
-                # Fin–body interference correction
-                const = 1 + radius / (s + radius)
-
-                # Aplies number of fins correction to lift coefficient
-                const *= finNumCorrection(n)
-
-                # Calculates clalpha * alpha
-                cldata = Function(
-                    lambda x, mach: x
-                    * const
-                    * 2
-                    * np.pi
-                    * (s ** 2 / Af)
-                    / (
-                        1
-                        + np.sqrt(
-                            1 + ((beta(mach) * s ** 2) / (Af * np.cos(gamac))) ** 2
-                        )
-                    ),
-                    ["Alpha (rad)", "Mach"],
-                    "Cl",
-                    interpolation="linear",
-                    extrapolation="natural",
-                )
-
-                # Calculates clalpha
-                clalpha = Function(
-                    lambda x: cldata(x, 0), extrapolation="natural"
-                ).differentiate(x=1e-2, dx=1e-3)
-
-            else:  # Calculate lift parameters for trapezoildal planar fins
-
-                # Calculates clalpha
-                clalpha = (4 * n * (s / d) ** 2) / (1 + np.sqrt(1 + (2 * Lf / Yr) ** 2))
-
-                # Fin–body interference correction
-                clalpha *= 1 + radius / (s + radius)
-
-                # Create a function of lift values by attack angle
-                cldata = Function(
-                    lambda x, mach: clalpha * x,
-                    ["Alpha (rad)", "Mach"],
-                    "Cl",
-                    interpolation="linear",
-                    extrapolation="natural",
-                )
-
-            # Parameters for Roll Moment.
-            # Documented at: https://github.com/Projeto-Jupiter/RocketPy/blob/develop/docs/technical/aerodynamics/Roll_Equations.pdf
-            clfDelta = n * (Ymac + radius) * clalpha / d
-            cldOmega = (
-                n * clalpha * np.cos(cantAngleRad) * trapezoidalConstant / (Af * d)
-            )
-            rollParameters = (
-                [clfDelta, cldOmega, cantAngleRad] if cantAngleRad != 0 else [0, 0, 0]
-            )
-
-            # Store values
-            fin = [(0, 0, cpz), cldata, rollParameters, "Fins"]
-            self.aerodynamicSurfaces.append(fin)
-
-            # Fin–body interference correction
-            clalpha = 1 + radius / (s + radius)
-
-            # Create a function of lift values by attack angle
-            cldata = Function(
-                lambda x, mach: clalpha * x,  ["Alpha (rad)", "Mach"], "Cl", interpolation="linear", extrapolation="natural"
-            )
-
-        if type == "elliptical":
+        elif type == "elliptical":
 
             # Retrieve parameters for calculations
-            Cr = dictionary["rootChord"]
-            s = dictionary["span"]
             Af = (np.pi * Cr / 2 * s) / 2
             gamac = 0
-            rollParameters = [0, 0, 0]
-
-            radius = self.radius if radius == 0 else radius
-            d = 2 * radius
-            cantAngleRad = np.radians(cantAngle)
-
-            # Auxiliary functions
-            # Defines beta parameter
-            def beta(mach):
-                if mach < 0.8:
-                    return np.sqrt(1 - mach ** 2)
-                elif mach < 1.1:
-                    return np.sqrt(1 - 0.8 ** 2)
-                else:
-                    return np.sqrt(mach ** 2 - 1)
-
-            # Defines number of fins correction
-            def finNumCorrection(n):
-                correctorFactor = [2.37, 2.74, 2.99, 3.24]
-                if n >= 5 and n <= 8:
-                    return correctorFactor[n - 5]
-                else:
-                    return n / 2
+            rollGeometricalConstant = (
+                Cr
+                * s
+                * (3 * np.pi * s ** 2 + 32 * radius * s + 12 * np.pi * radius ** 2)
+                / 48
+            )
 
             # Calculate cp position relative to cm
             if distanceToCM < 0:
@@ -733,64 +625,154 @@ class Rocket:
             else:
                 cpz = distanceToCM + (0.288 * Cr)
 
-            if airfoil:  # Calculate lift parameters for generic airfoil.
-                # Documented at https://github.com/Projeto-Jupiter/RocketPy/blob/develop/docs/technical/aerodynamics/Fins_Lift_Coefficient.pdf
+        else:
+            raise "Invalid finshape"
 
-                # Fin–body interference correction
-                const = 1 + radius / (s + radius)
+        # Retrieves similar parameters
+        Aref = np.pi * radius ** 2
+        AR = 2 * s ** 2 / Af
+        rollParameters = [0, 0, 0]
 
-                # Aplies number of fins correction to lift coefficient
-                const *= finNumCorrection(n)
+        # Fin–body interference correction parameters
+        tau = (s + radius) / radius
+        liftInterferenceFactor = 1 + 1 / tau
+        if cantAngleRad != 0:
+            λ = Ct / Cr
+            rollForcingInterferenceFactor = (1 / np.pi ** 2) * (
+                (np.pi ** 2 / 4) * ((tau + 1) ** 2 / tau ** 2)
+                + ((np.pi * (tau ** 2 + 1) ** 2) / (tau ** 2 * (tau - 1) ** 2))
+                * np.arcsin((tau ** 2 - 1) / (tau ** 2 + 1))
+                - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
+                + ((tau ** 2 + 1) ** 2)
+                / (tau ** 2 * (tau - 1) ** 2)
+                * (np.arcsin((tau ** 2 - 1) / (tau ** 2 + 1))) ** 2
+                - (4 * (tau + 1))
+                / (tau * (tau - 1))
+                * np.arcsin((tau ** 2 - 1) / (tau ** 2 + 1))
+                + (8 / (tau - 1) ** 2) * np.log((tau ** 2 + 1) / (2 * tau))
+            )
+            rollDampingInterferenceFactor = 1 + (
+                ((tau - λ) / (tau)) - ((1 - λ) / (tau - 1)) * np.log(tau)
+            ) / (
+                ((tau + 1) * (tau - λ)) / (2)
+                - ((1 - λ) * (tau ** 3 - 1)) / (3 * (tau - 1))
+            )
+        else:
+            rollForcingInterferenceFactor = 0
+            rollDampingInterferenceFactor = 0
 
-                # Calculates clalpha * alpha
-                cldata = Function(
-                    lambda x, mach: x
-                    * const
-                    * 2
-                    * np.pi
-                    * (s ** 2 / Af)
-                    / (
-                        1
-                        + np.sqrt(
-                            1 + ((beta(mach) * s ** 2) / (Af * np.cos(gamac))) ** 2
-                        )
-                    ),
-                    ["Alpha (rad)", "Mach"],
-                    "Cl",
-                    interpolation="linear",
-                    extrapolation="natural",
+        # Auxiliary functions
+        # Defines beta parameter
+        def beta(mach):
+            if mach < 0.8:
+                return np.sqrt(1 - mach ** 2)
+            elif mach < 1.1:
+                return np.sqrt(1 - 0.8 ** 2)
+            else:
+                return np.sqrt(mach ** 2 - 1)
+
+        # Defines number of fins correction
+        def finNumCorrection(n):
+            correctorFactor = [2.37, 2.74, 2.99, 3.24]
+            if n >= 5 and n <= 8:
+                return correctorFactor[n - 5]
+            else:
+                return n / 2
+
+        # Calculate lift parameters for planar fins
+        if not airfoil:
+
+            cnAlpha0 = Function(lambda mach: (2 * np.pi) / beta(mach))
+            fd = (AR * 2 * np.pi) / (cnAlpha0 * np.cos(gamac))  # function of mach
+            clalphaSingleFin = Function(
+                lambda mach: (cnAlpha0(mach) * fd(mach) * (Af / Aref) * np.cos(gamac))
+                / (2 + fd(mach) * np.sqrt(1 + (4 / fd(mach) ** 2)))
+            )
+
+            clalphaMultipleFins = (
+                liftInterferenceFactor * finNumCorrection(n) * clalphaSingleFin
+            )  # Function of mach number
+
+            # Calculates clalpha * alpha
+            cl = Function(
+                lambda alpha, mach: alpha * clalphaMultipleFins(mach),
+                ["Alpha (rad)", "Mach"],
+                "Cl",
+            )
+
+        else:
+
+            def cnalfa1(cn):
+                """Calculates the normal force coefficient derivative of a 3D
+                airfoil for a given Cnalfa0
+                Parameters
+                ----------
+                cn : int
+                    Normal force coefficient derivative of a 2D airfoil.
+                Returns
+                -------
+                Cnalfa1 : int
+                    Normal force coefficient derivative of a 3D airfoil.
+                """
+
+                # Retrieve parameters for calculations
+                Af = (Cr + Ct) * s / 2
+                # fin area
+                AR = 2 * (s ** 2) / Af  # Aspect ratio
+                gamac = np.arctan((Cr - Ct) / (2 * s))
+                # mid chord angle
+                FD = 2 * np.pi * AR / (cn * np.cos(gamac))
+                Cnalfa1 = (
+                    cn
+                    * FD
+                    * (Af / self.area)
+                    * np.cos(gamac)
+                    / (2 + FD * (1 + (4 / FD ** 2)) ** 0.5)
                 )
+                return Cnalfa1
 
-                # Calculates clalpha
-                clalpha = Function(
-                    lambda x: cldata(x, 0), extrapolation="natural"
-                ).differentiate(x=1e-2, dx=1e-3)
+            # Import the lift curve as a function of lift values by attack angle
+            read = genfromtxt(airfoil, delimiter=",")
 
-            else:  # Calculate lift parameters for elliptical planar fins
+            # Applies number of fins to lift coefficient data
+            data = [[cl[0], (n / 2) * cnalfa1(cl[1])] for cl in read]
+            cl = Function(
+                data,
+                "Alpha (rad)",
+                "Cl",
+                interpolation="linear",
+                extrapolation="natural",
+            )
 
-                # Calculates clalpha
-                clalpha = (4 * n * (s / d) ** 2) / (
-                    1 + np.sqrt(1 + 1.623 * (s / Cr) ** 2)
-                )
+            # Takes an approximation to an angular coefficient
+            clalpha = cl.differentiate(x=0, dx=1e-2)
 
-                # Fin–body interference correction
-                clalpha *= 1 + radius / (s + radius)
-
-                # Create a function of lift values by attack angle
-                cldata = Function(
-                    lambda x, mach: clalpha * x,
-                    ["Alpha (rad)", "Mach"],
-                    "Cl",
-                    interpolation="linear",
-                    extrapolation="natural",
-                )
-
-            # Store values
-            fin = [(0, 0, cpz), cldata, rollParameters, "Fins"]
-            self.aerodynamicSurfaces.append(fin)
+        # Parameters for Roll Moment.
+        # Documented at: https://github.com/Projeto-Jupiter/RocketPy/blob/develop/docs/technical/aerodynamics/Roll_Equations.pdf
+        if type == "trapezoidal":
+            clfDelta = (
+                rollForcingInterferenceFactor
+                * n
+                * (Ymac + radius)
+                * clalphaSingleFin
+                / d
+            )  # Function of mach number
+            cldOmega = (
+                2
+                * rollDampingInterferenceFactor
+                * n
+                * clalphaSingleFin
+                * np.cos(cantAngleRad)
+                * rollGeometricalConstant
+                / (Aref * d ** 2)
+            )
+        # Function of mach number
+        rollParameters = (
+            [clfDelta, cldOmega, cantAngleRad] if cantAngleRad != 0 else [0, 0, 0]
+        )
 
         # Store values
-        fin = [(0, 0, cpz), cldata, "Fins"]
+        fin = [(0, 0, cpz), cl, rollParameters, "Fins"]
         self.aerodynamicSurfaces.append(fin)
 
         # Refresh static margin calculation
