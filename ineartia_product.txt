@@ -1,0 +1,1 @@
+Implemented product of inertia calcs
