@@ -773,11 +773,7 @@ class Rocket:
             / (Aref * d ** 2)
         )
         # Function of mach number
-        rollParameters = (
-            [clfDelta, cldOmega, cantAngleRad]
-            if cantAngleRad != 0
-            else [Function(0), Function(0), 0]
-        )
+        rollParameters = [clfDelta, cldOmega, cantAngleRad]
 
         # Store values
         fin = {
