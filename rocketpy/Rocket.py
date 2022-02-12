@@ -587,7 +587,7 @@ class Rocket:
         Yr = rootChord + tipChord
         s = span
         Af = Yr * s / 2  # fin area
-        Ymac = (
+        Yma = (
             (s / 3) * (Cr + 2 * Ct) / Yr
         )  # span wise position of fin's mean aerodynamic chord
         gamac = np.arctan((Cr - Ct) / (2 * span))
@@ -761,7 +761,7 @@ class Rocket:
         # Parameters for Roll Moment.
         # Documented at: https://github.com/Projeto-Jupiter/RocketPy/blob/develop/docs/technical/aerodynamics/Roll_Equations.pdf
         clfDelta = (
-            rollForcingInterferenceFactor * n * (Ymac + radius) * clalphaSingleFin / d
+            rollForcingInterferenceFactor * n * (Yma + radius) * clalphaSingleFin / d
         )  # Function of mach number
         cldOmega = (
             2

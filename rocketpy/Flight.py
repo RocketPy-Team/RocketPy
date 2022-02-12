@@ -1355,10 +1355,10 @@ class Flight:
                 M3d = (
                     (1 / 2 * rho * freestreamSpeed)
                     * self.rocket.area
-                    * 2
-                    * self.rocket.radius ** 2
+                    * (2 * self.rocket.radius) ** 2
                     * Cldomega(freestreamMach)
                     * omega3
+                    / 2
                 )
                 M3 += M3f - M3d
         # Calculate derivatives
