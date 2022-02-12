@@ -1297,7 +1297,7 @@ class Flight:
         vzB = a13 * vx + a23 * vy + a33 * vz
         # Calculate lift and moment for each component of the rocket
         for aerodynamicSurface in self.rocket.aerodynamicSurfaces:
-            compCp = aerodynamicSurface[0][2]
+            compCp = aerodynamicSurface["cp"][2]
             # Component absolute velocity in body frame
             compVxB = vxB + compCp * omega2
             compVyB = vyB - compCp * omega1
@@ -1324,7 +1324,9 @@ class Flight:
                 compStreamVzBn = compStreamVzB / compStreamSpeed
                 if -1 * compStreamVzBn < 1:
                     compAttackAngle = np.arccos(-compStreamVzBn)
-                    cLift = abs(aerodynamicSurface[1](compAttackAngle))
+                    cLift = abs(
+                        aerodynamicSurface["cl"](compAttackAngle, freestreamMach)
+                    )
                     # Component lift force magnitude
                     compLift = (
                         0.5 * rho * (compStreamSpeed**2) * self.rocket.area * cLift
@@ -1340,11 +1342,25 @@ class Flight:
                     M1 -= (compCp + a) * compLiftYB
                     M2 += (compCp + a) * compLiftXB
             # Calculates Roll Moment
-            if aerodynamicSurface[-1] == "Fins":
-                Clfdelta, Cldomega, cantAngleRad = aerodynamicSurface[2]
-                Clf = Clfdelta * cantAngleRad
-                Cld = Cldomega * omega3 / freestreamSpeed if freestreamSpeed != 0 else 0
-                M3 += Clf - Cld
+            if aerodynamicSurface["name"] == "Fins":
+                Clfdelta, Cldomega, cantAngleRad = aerodynamicSurface["roll parameters"]
+                M3f = (
+                    (1 / 2 * rho * freestreamSpeed ** 2)
+                    * self.rocket.area
+                    * 2
+                    * self.rocket.radius
+                    * Clfdelta(freestreamMach)
+                    * cantAngleRad
+                )
+                M3d = (
+                    (1 / 2 * rho * freestreamSpeed)
+                    * self.rocket.area
+                    * (2 * self.rocket.radius) ** 2
+                    * Cldomega(freestreamMach)
+                    * omega3
+                    / 2
+                )
+                M3 += M3f - M3d
         # Calculate derivatives
         # Angular acceleration
         alpha1 = (
