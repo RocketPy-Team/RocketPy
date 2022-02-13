@@ -376,9 +376,7 @@ class SolidMotor:
         self.massDot.setInputs("Time (s)")
         self.massDot.setOutputs("Mass Dot (kg/s)")
         self.massDot.setExtrapolation("zero")
-        self.massDot.setDiscrete(
-            lower=0, upper=self.burnOutTime, samples=200
-        )
+        self.massDot.setDiscrete(lower=0, upper=self.burnOutTime, samples=200)
 
         # Return Function
         return self.massDot
@@ -487,7 +485,7 @@ class SolidMotor:
             "Time (s)",
             "Grain Height (m)",
             self.interpolate,
-            "constant"
+            "constant",
         )
 
         # Create functions describing burn rate, Kn and burn area
@@ -523,9 +521,7 @@ class SolidMotor:
         )
         self.burnArea.setInputs("Time (s)")
         self.burnArea.setOutputs("Burn Area (m2)")
-        self.burnArea.setDiscrete(
-            lower=0, upper=self.burnOutTime, samples=200
-        )
+        self.burnArea.setDiscrete(lower=0, upper=self.burnOutTime, samples=200)
         return self.burnArea
 
     def evaluateBurnRate(self):
@@ -545,9 +541,7 @@ class SolidMotor:
         self.burnRate = (-1) * self.massDot / (self.burnArea * self.grainDensity)
         self.burnRate.setInputs("Time (s)")
         self.burnRate.setOutputs("Burn Rate (m/s)")
-        self.burnRate.setDiscrete(
-            lower=0, upper=self.burnOutTime, samples=200
-        )
+        self.burnRate.setDiscrete(lower=0, upper=self.burnOutTime, samples=200)
         return self.burnRate
 
     def evaluateKn(self):
@@ -608,9 +602,7 @@ class SolidMotor:
         self.inertiaI = grainNumber * grainInertiaI + grainMass * np.sum(d**2)
         self.inertiaI.setInputs("Time (s)")
         self.inertiaI.setOutputs("Propellant Inertia I (kg*m2)")
-        self.inertiaI.setDiscrete(
-            lower=0, upper=self.burnOutTime, samples=200
-        )
+        self.inertiaI.setDiscrete(lower=0, upper=self.burnOutTime, samples=200)
 
         # Inertia I Dot
         # Calculate each grain's inertia I dot
@@ -631,9 +623,7 @@ class SolidMotor:
         )
         self.inertiaIDot.setInputs("Time (s)")
         self.inertiaIDot.setOutputs("Propellant Inertia I Dot (kg*m2/s)")
-        self.inertiaIDot.setDiscrete(
-            lower=0, upper=self.burnOutTime, samples=200
-        )
+        self.inertiaIDot.setDiscrete(lower=0, upper=self.burnOutTime, samples=200)
 
         # Inertia Z
         self.inertiaZ = (
@@ -643,9 +633,7 @@ class SolidMotor:
         )
         self.inertiaZ.setInputs("Time (s)")
         self.inertiaZ.setOutputs("Propellant Inertia Z (kg*m2)")
-        self.inertiaZ.setDiscrete(
-            lower=0, upper=self.burnOutTime, samples=200
-        )
+        self.inertiaZ.setDiscrete(lower=0, upper=self.burnOutTime, samples=200)
 
         # Inertia Z Dot
         self.inertiaZDot = (1 / 2.0) * self.massDot * (
@@ -653,9 +641,7 @@ class SolidMotor:
         ) + self.mass * self.grainInnerRadius * self.burnRate
         self.inertiaZDot.setInputs("Time (s)")
         self.inertiaZDot.setOutputs("Propellant Inertia Z Dot (kg*m2/s)")
-        self.inertiaZDot.setDiscrete(
-            lower=0, upper=self.burnOutTime, samples=200
-        )
+        self.inertiaZDot.setDiscrete(lower=0, upper=self.burnOutTime, samples=200)
 
         return [self.inertiaI, self.inertiaZ]
 
