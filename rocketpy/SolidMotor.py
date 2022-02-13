@@ -523,7 +523,7 @@ class SolidMotor:
         )
         self.burnArea.setInputs("Time (s)")
         self.burnArea.setOutputs("Burn Area (m2)")
-        self.burnArea..setDiscrete(
+        self.burnArea.setDiscrete(
             lower=0, upper=self.burnOutTime, samples=200
         )
         return self.burnArea
@@ -545,7 +545,7 @@ class SolidMotor:
         self.burnRate = (-1) * self.massDot / (self.burnArea * self.grainDensity)
         self.burnRate.setInputs("Time (s)")
         self.burnRate.setOutputs("Burn Rate (m/s)")
-        self.burnRate..setDiscrete(
+        self.burnRate.setDiscrete(
             lower=0, upper=self.burnOutTime, samples=200
         )
         return self.burnRate
@@ -608,7 +608,7 @@ class SolidMotor:
         self.inertiaI = grainNumber * grainInertiaI + grainMass * np.sum(d**2)
         self.inertiaI.setInputs("Time (s)")
         self.inertiaI.setOutputs("Propellant Inertia I (kg*m2)")
-        self.inertiaI..setDiscrete(
+        self.inertiaI.setDiscrete(
             lower=0, upper=self.burnOutTime, samples=200
         )
 
@@ -631,7 +631,7 @@ class SolidMotor:
         )
         self.inertiaIDot.setInputs("Time (s)")
         self.inertiaIDot.setOutputs("Propellant Inertia I Dot (kg*m2/s)")
-        self.inertiaIDot..setDiscrete(
+        self.inertiaIDot.setDiscrete(
             lower=0, upper=self.burnOutTime, samples=200
         )
 
@@ -643,7 +643,7 @@ class SolidMotor:
         )
         self.inertiaZ.setInputs("Time (s)")
         self.inertiaZ.setOutputs("Propellant Inertia Z (kg*m2)")
-        self.inertiaZ..setDiscrete(
+        self.inertiaZ.setDiscrete(
             lower=0, upper=self.burnOutTime, samples=200
         )
 
