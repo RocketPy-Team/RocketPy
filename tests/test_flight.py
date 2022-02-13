@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import numpy as np
 import pytest
-from rocketpy import Environment, Flight, Rocket, SolidMotor
+from rocketpy import Environment, Flight, Rocket, SolidMotor, Function
 from scipy import optimize
 
 # Helper functions
@@ -275,6 +275,9 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
         pressure=101325,
         temperature=300,
     )
+    # Make sure that the freestreamMach will always be 0, so that the rocket
+    # behaves as the STATIC (freestreamMach=0) margin predicts
+    Env.speedOfSound = Function(1e16)
 
     # Create a motor with ZERO thrust and ZERO mass to keep the rocket's speed constant
     DummyMotor = SolidMotor(
@@ -294,7 +297,7 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
     DummyRocket = Rocket(
         motor=DummyMotor,
         radius=127 / 2000,
-        mass=100e3,
+        mass=1e16,
         inertiaI=1,
         inertiaZ=0.0351,
         distanceRocketNozzle=-1.255,
@@ -319,7 +322,7 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
         maxTimeStep=1e-2,
         verbose=False,
     )
-    TestFlight.postProcess()
+    TestFlight.postProcess(interpolation="linear")
 
     # Check stability according to static margin
     if wind_u == 0:
