@@ -1345,7 +1345,7 @@ class Flight:
             if aerodynamicSurface["name"] == "Fins":
                 Clfdelta, Cldomega, cantAngleRad = aerodynamicSurface["roll parameters"]
                 M3f = (
-                    (1 / 2 * rho * freestreamSpeed ** 2)
+                    (1 / 2 * rho * freestreamSpeed**2)
                     * self.rocket.area
                     * 2
                     * self.rocket.radius

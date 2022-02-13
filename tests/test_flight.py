@@ -255,7 +255,7 @@ def test_initial_solution(mock_show):
 
     assert test_flight.allInfo() == None
 
-  
+
 @pytest.mark.parametrize("wind_u, wind_v", [(0, 10), (0, -10), (10, 0), (-10, 0)])
 @pytest.mark.parametrize(
     "static_margin, max_time",
@@ -334,7 +334,7 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
         or (static_margin < 0 and np.all(moments / wind_sign <= 0))
         or (static_margin == 0 and np.all(np.abs(moments) <= 1e-10))
     )
-    
+
 
 @patch("matplotlib.pyplot.show")
 def test_rolling_flight(mock_show):
