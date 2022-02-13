@@ -38,7 +38,7 @@ def test_motor(mock_show):
 
 def test_initialize_motor_asserts_dynamic_values(solid_motor):
     grain_vol = grainInitialHeight * (
-        np.pi * (grainOuterRadius ** 2 - grainInitialInnerRadius ** 2)
+        np.pi * (grainOuterRadius**2 - grainInitialInnerRadius**2)
     )
     grain_mass = grain_vol * grainDensity
 
@@ -73,7 +73,7 @@ def test_grain_geometry_progession_asserts_extreme_values(solid_motor):
 
 def test_mass_curve_asserts_extreme_values(solid_motor):
     grain_vol = grainInitialHeight * (
-        np.pi * (grainOuterRadius ** 2 - grainInitialInnerRadius ** 2)
+        np.pi * (grainOuterRadius**2 - grainInitialInnerRadius**2)
     )
     grain_mass = grain_vol * grainDensity
 
@@ -86,8 +86,8 @@ def test_burn_area_asserts_extreme_values(solid_motor):
         2
         * np.pi
         * (
-            grainOuterRadius ** 2
-            - grainInitialInnerRadius ** 2
+            grainOuterRadius**2
+            - grainInitialInnerRadius**2
             + grainInitialInnerRadius * grainInitialHeight
         )
         * grainNumber
@@ -108,20 +108,20 @@ def test_burn_area_asserts_extreme_values(solid_motor):
 
 def test_evaluate_inertia_I_asserts_extreme_values(solid_motor):
     grain_vol = grainInitialHeight * (
-        np.pi * (grainOuterRadius ** 2 - grainInitialInnerRadius ** 2)
+        np.pi * (grainOuterRadius**2 - grainInitialInnerRadius**2)
     )
     grain_mass = grain_vol * grainDensity
 
     grainInertiaI_initial = grain_mass * (
-        (1 / 4) * (grainOuterRadius ** 2 + grainInitialInnerRadius ** 2)
-        + (1 / 12) * grainInitialHeight ** 2
+        (1 / 4) * (grainOuterRadius**2 + grainInitialInnerRadius**2)
+        + (1 / 12) * grainInitialHeight**2
     )
 
     initialValue = (grainNumber - 1) / 2
     d = np.linspace(-initialValue, initialValue, grainNumber)
     d = d * (grainInitialHeight + grainSeparation)
 
-    inertiaI_initial = grainNumber * grainInertiaI_initial + grain_mass * np.sum(d ** 2)
+    inertiaI_initial = grainNumber * grainInertiaI_initial + grain_mass * np.sum(d**2)
 
     assert np.allclose(
         solid_motor.inertiaI.getSource()[0][-1], inertiaI_initial, atol=0.01
@@ -131,12 +131,12 @@ def test_evaluate_inertia_I_asserts_extreme_values(solid_motor):
 
 def test_evaluate_inertia_Z_asserts_extreme_values(solid_motor):
     grain_vol = grainInitialHeight * (
-        np.pi * (grainOuterRadius ** 2 - grainInitialInnerRadius ** 2)
+        np.pi * (grainOuterRadius**2 - grainInitialInnerRadius**2)
     )
     grain_mass = grain_vol * grainDensity
 
     grainInertiaZ_initial = (
-        grain_mass * (1 / 2.0) * (grainInitialInnerRadius ** 2 + grainOuterRadius ** 2)
+        grain_mass * (1 / 2.0) * (grainInitialInnerRadius**2 + grainOuterRadius**2)
     )
 
     assert np.allclose(
@@ -173,7 +173,7 @@ def tests_import_eng_asserts_read_values_correctly(solid_motor):
 
 
 def tests_export_eng_asserts_exported_values_correct(solid_motor):
-    grain_vol = 0.12 * (np.pi * (0.033 ** 2 - 0.015 ** 2))
+    grain_vol = 0.12 * (np.pi * (0.033**2 - 0.015**2))
     grain_mass = grain_vol * 1815 * 5
 
     solid_motor.exportEng(fileName="tests/solid_motor.eng", motorName="test_motor")
