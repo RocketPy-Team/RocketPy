@@ -3,7 +3,8 @@ from datetime import timedelta
 
 import numpy as np
 
-from rocketpy.Environment import Environment
+from .Environment import Environment
+from .Function import Function
 
 from windrose import WindroseAxes, WindAxes
 from matplotlib import pyplot as plt
@@ -53,9 +54,9 @@ class EnvironmentAnalysis:
         self.average_max_wind_gust = 0
         self.maximum_wind_gust = 0
 
-        self.wind_profile()
+        self.average_day_wind_profile = None
 
-        assert True == True
+        self.average_wind_profile()
 
     def process_data(self):
         self.calculate_average_max_temperature()
@@ -90,22 +91,35 @@ class EnvironmentAnalysis:
         self.maximum_wind_gust = np.max(
             [np.max(env.windSpeed.source[:, 1]) for env in self.environments])
 
-    def animate_wind_rose(self):
-        def get_data(i):
-            windDirection = []
-            windSpeed = []
-            for idx in range(i, len(self.environments), 8):
-                windDirection.extend(self.environments[idx].windDirection.source[:, 1])
-                windSpeed.extend(self.environments[idx].windSpeed.source[:, 1])
-            return windSpeed, windDirection
+    def get_wind_speed(self, i):
+        windDirection = []
+        windSpeed = []
+        for idx in range(i, len(self.environments), 8):
+            windDirection.extend(self.environments[idx].windDirection.source[:, 1])
+            windSpeed.extend(self.environments[idx].windSpeed.source[:, 1])
+        return windSpeed, windDirection
 
+    def animate_wind_rose(self):
         ax = WindroseAxes.from_ax()
         for i in range(8):
-            windSpeed, windDir = get_data(i)
+            windSpeed, windDir = self.get_wind_speed(i)
             ax.bar(windSpeed, windDir, normed=True, opening=0.8, edgecolor='white')
             plt.pause(0.3)
 
         plt.show()
+
+    def calculate_average_wind_profile(self):
+        windSpeedAverage = []
+        x = []
+
+        for i in range(8):
+            windSpeed, windDir = self.get_wind_speed(i)
+            windSpeedAverage.append(np.average(windSpeed))
+            x.append(i * 3)
+        average_speed = Function(np.array([x, windSpeedAverage]).T, inputs="Hour in the day",
+                                 outputs="Wind Speed (m/s)",
+                                 interpolation="linear", )
+        self.average_day_wind_profile = average_speed
 
     def wind_profile(self):
         windSpeed = []
