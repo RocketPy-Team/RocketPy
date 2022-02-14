@@ -12,16 +12,16 @@ import numpy as np
 
 class EnvironmentAnalysis:
     def __init__(
-            self,
-            railLength,
-            start_date,
-            end_date,
-            gravity=9.80665,
-            latitude=0,
-            longitude=0,
-            elevation=0,
-            datum="SIRGAS2000",
-            timeZone="UTC",
+        self,
+        railLength,
+        start_date,
+        end_date,
+        gravity=9.80665,
+        latitude=0,
+        longitude=0,
+        elevation=0,
+        datum="SIRGAS2000",
+        timeZone="UTC",
     ):
 
         # not the bast fashion
@@ -123,11 +123,11 @@ class EnvironmentAnalysis:
         plt.show()
 
     def allInfo(self):
-        print('Gust Information')
-        print(f'Global Maximum wind gust: {self.maximum_wind_gust} m/s')
-        print(f'Average maximum wind gust: {self.average_max_wind_gust} m/s')
-        print('Temeprature Information')
-        print(f'Global Maximum temperature: {self.max_temperature} ºC')
-        print(f'Global Minimum temperature: {self.min_temperature} ºC')
-        print(f'Average minimum temperture: {self.average_min_temperature} ºC')
-        print(f'Average maximum temperature: {self.average_max_temperature} ºC')
+        print("Gust Information")
+        print(f"Global Maximum wind gust: {self.maximum_wind_gust} m/s")
+        print(f"Average maximum wind gust: {self.average_max_wind_gust} m/s")
+        print("Temeprature Information")
+        print(f"Global Maximum temperature: {self.max_temperature} ºC")
+        print(f"Global Minimum temperature: {self.min_temperature} ºC")
+        print(f"Average minimum temperture: {self.average_min_temperature} ºC")
+        print(f"Average maximum temperature: {self.average_max_temperature} ºC")
