@@ -11,15 +11,18 @@ import numpy as np
 
 
 class EnvironmentAnalysis:
-    def __init__(self, railLength,
-                 start_date,
-                 end_date,
-                 gravity=9.80665,
-                 latitude=0,
-                 longitude=0,
-                 elevation=0,
-                 datum="SIRGAS2000",
-                 timeZone="UTC"):
+    def __init__(
+        self,
+        railLength,
+        start_date,
+        end_date,
+        gravity=9.80665,
+        latitude=0,
+        longitude=0,
+        elevation=0,
+        datum="SIRGAS2000",
+        timeZone="UTC",
+    ):
 
         # not the bast fashion
         hours = (datetime(*end_date) - datetime(*start_date)).days * 24
@@ -30,16 +33,18 @@ class EnvironmentAnalysis:
             date = datetime(*start_date) + timedelta(hours=hour)
 
             # may be a solution more slow, but less intrusive on the environment class
-            environment = Environment(railLength,
-                                      gravity=gravity,
-                                      date=date,
-                                      latitude=latitude,
-                                      longitude=longitude,
-                                      elevation=elevation,
-                                      datum=datum,
-                                      timeZone=timeZone)
+            environment = Environment(
+                railLength,
+                gravity=gravity,
+                date=date,
+                latitude=latitude,
+                longitude=longitude,
+                elevation=elevation,
+                datum=datum,
+                timeZone=timeZone,
+            )
             try:
-                environment.setAtmosphericModel(type='Forecast', file='GFS')
+                environment.setAtmosphericModel(type="Forecast", file="GFS")
             except ValueError as exc:
                 print(str(exc))
                 continue
@@ -68,27 +73,33 @@ class EnvironmentAnalysis:
 
     def calculate_average_max_temperature(self):
         self.average_max_temperature = np.average(
-            [np.max(env.temperature.source[:, 1]) for env in self.environments])
+            [np.max(env.temperature.source[:, 1]) for env in self.environments]
+        )
 
     def calculate_average_min_temperature(self):
         self.average_min_temperature = np.average(
-            [np.min(env.temperature.source[:, 1]) for env in self.environments])
+            [np.min(env.temperature.source[:, 1]) for env in self.environments]
+        )
 
     def calculate_max_temperature(self):
         self.max_temperature = np.max(
-            [np.max(env.temperature.source[:, 1]) for env in self.environments])
+            [np.max(env.temperature.source[:, 1]) for env in self.environments]
+        )
 
     def calculate_min_temperature(self):
         self.min_temperature = np.min(
-            [np.min(env.temperature.source[:, 1]) for env in self.environments])
+            [np.min(env.temperature.source[:, 1]) for env in self.environments]
+        )
 
     def calculate_average_max_wind_gust(self):
         self.average_max_wind_gust = np.average(
-            [np.max(env.windSpeed.source[:, 1]) for env in self.environments])
+            [np.max(env.windSpeed.source[:, 1]) for env in self.environments]
+        )
 
     def calculate_maximum_wind_gust(self):
         self.maximum_wind_gust = np.max(
-            [np.max(env.windSpeed.source[:, 1]) for env in self.environments])
+            [np.max(env.windSpeed.source[:, 1]) for env in self.environments]
+        )
 
     def animate_wind_rose(self):
         def get_data(i):
@@ -102,7 +113,7 @@ class EnvironmentAnalysis:
         ax = WindroseAxes.from_ax()
         for i in range(8):
             windSpeed, windDir = get_data(i)
-            ax.bar(windSpeed, windDir, normed=True, opening=0.8, edgecolor='white')
+            ax.bar(windSpeed, windDir, normed=True, opening=0.8, edgecolor="white")
             plt.pause(0.3)
 
         plt.show()
