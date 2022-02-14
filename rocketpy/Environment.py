@@ -2015,7 +2015,6 @@ class Environment:
             warnings.warn(
                 "Some values were missing from this weather dataset, therefore, certain pressure levels were removed."
             )
-        # import pdb; pdb.set_trace()
         # Save atmospheric data
         self.pressure = Function(
             data_array[:, (1, 0)],
