@@ -10,7 +10,7 @@ def compute_CdS_from_drop_test(
 ):
     """Returns the parachute's CdS calculated through its final speed, air
     density in the landing point, the rocket's mass and the force of gravity
-    in the landing point.
+    in the landing point. 
 
     Parameters
     ----------
