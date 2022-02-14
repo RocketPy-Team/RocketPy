@@ -111,14 +111,6 @@ class EnvironmentAnalysis:
         windSpeed = []
         for idx in range(0, len(self.environments)):
             windSpeed.extend(self.environments[idx].windSpeed.source[:, 1])
-
-        import ipdb;
-        ipdb.set_trace()
         ax = WindAxes.from_ax()
-        bins = np.arange(np.average(windSpeed), np.max(windSpeed)+30, 30)
-        bins = bins[1:]
-
-        ax, params = ax.pdf(windSpeed, bins=bins)
-
-        plt.hist(windSpeed, bins=np.linspace(np.average(windSpeed), np.max(windSpeed) + 30, 15), alpha=0.5, density=True)
+        ax.pdf(array, Nbins=20)
         plt.show()
