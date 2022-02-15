@@ -534,7 +534,7 @@ class Rocket:
         distanceToCM,
         radius=0,
         cantAngle=0,
-        airfoil=False,
+        airfoil=None,
     ):
         """Create a fin set, storing its parameters as part of the
         aerodynamicSurfaces list. Its parameters are the axial position
@@ -564,10 +564,11 @@ class Rocket:
         cantAngle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
-        airfoil : bool, optional
-            Fin's airfoil shape. If True, generic airfoil lift
-            calculations will be performed. If False, calculations for
-            the trapezoildal shape will be perfomed
+        airfoil : string
+            Fin's lift curve. It must be a .csv file. The .csv file shall
+            contain no headers and the first column must specify time in
+            seconds, while the second column specifies lift coefficient. Lift
+            coefficient is dimensionaless.
 
         Returns
         -------
@@ -710,7 +711,7 @@ class Rocket:
                 "Cl",
             )
 
-        else:  # Calculate lift parameters for trapezoildal planar fins
+        else:
 
             def cnalfa1(cn):
                 """Calculates the normal force coefficient derivative of a 3D
@@ -741,8 +742,8 @@ class Rocket:
                 )
                 return Cnalfa1
 
-            # Fin–body interference correction
-            clalpha *= 1 + radius / (s + radius)
+            # Import the lift curve as a function of lift values by attack angle
+            read = genfromtxt(airfoil, delimiter=",")
 
             # Applies number of fins to lift coefficient data
             data = [[cl[0], (n / 2) * cnalfa1(cl[1])] for cl in read]
@@ -750,6 +751,8 @@ class Rocket:
                 data,
                 "Alpha (rad)",
                 "Cl",
+                interpolation="linear",
+                extrapolation="natural",
             )
 
             # Takes an approximation to an angular coefficient
