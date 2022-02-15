@@ -1676,9 +1676,9 @@ class HybridMotor(Motor):
 
         # solidMass = lambda time: (self.massDot(time) - liquidMass(time))
 
-        self.solidMass = lambda time: max((self.mass(time) - self.liquidMass(time)), 0) if time <= self.burnOutTime else self.solidMass(self.burnOutTime)
+        self.massInChamber = lambda time: max(((self.grainNumber * self.grainInitialMass) + (self.oxidizerDensity * Vox * time)-(self.massDot(time)*time)), 0) if time <= self.burnOutTime else self.solidMass(self.burnOutTime)
 
-        self.solidCM = 0
+        self.massInChamberCM = 0
 
         # gasMass = lambda time: max((
         #     (
@@ -1717,10 +1717,10 @@ class HybridMotor(Motor):
         self.yCM = Function(
             lambda time: (
                 (
-                    (self.solidMass(time) * self.solidCM)
+                    (self.massInChamber(time) * self.massInChamberCM)
                     + (self.liquidMass(time) * self.liquidCM(time))
                 )
-                / (self.solidMass(time) + self.liquidMass(time))
+                / (self.massInChamber(time) + self.liquidMass(time))
             ),
             "Time (s)",
             "yCM",
