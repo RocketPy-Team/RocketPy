@@ -595,8 +595,8 @@ class Rocket:
         Yma = (
             (s / 3) * (Cr + 2 * Ct) / Yr
         )  # span wise position of fin's mean aerodynamic chord
-        gamac = np.arctan((Cr - Ct) / (2 * span))
-        Lf = np.sqrt((rootChord / 2 - tipChord / 2) ** 2 + span ** 2)
+        gamac = np.arctan((Cr - Ct) / (2 * s))
+        Lf = np.sqrt((Cr / 2 - Ct / 2) ** 2 + s ** 2)
         radius = self.radius if radius == 0 else radius
         d = 2 * radius
         Aref = np.pi * radius ** 2
@@ -700,17 +700,17 @@ class Rocket:
         else:
             # Defines clalpha2D as the derivative of the
             # lift coefficient curve for a specific airfoil
-            airfoilLift = Function(airfoil[0], extrapolation="natural")
+            airfoilCl = Function(
+                airfoil[0], interpolation="linear", extrapolation="natural"
+            )
             if airfoil[1] == "degrees":
-                for i in range(len(airfoilLift)):
-                    airfoilLift[i][0] = np.radians(airfoilLift[i][0])
-            clAirfoil = Function(airfoilLift, extrapolation="natural")
+                for i in range(len(airfoilCl)):
+                    airfoilCl[i][0] = np.radians(airfoilCl[i][0])
 
             # Differentiating at x = 0 and correctign for compressible flow
             clalpha2D = Function(
-                lambda mach: clAirfoil.differentiate(x=0, dx=0.1) / beta(mach)
+                lambda mach: airfoilCl.differentiate(x=0, dx=0.1) / beta(mach)
             )
-            clalpha2D.plot()
 
         # Diederich's Planform Correlation Parameter
         FD = 2 * np.pi * AR / (clalpha2D * np.cos(gamac))
