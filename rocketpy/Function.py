@@ -170,7 +170,7 @@ class Function:
             # Set arguments name and domain dimensions
             parameters = signature(source).parameters
             self.__domDim__ = len(parameters)
-            if self.__inputs__ == ["Time (s)"]:
+            if self.__inputs__ == ["Scalar"]:
                 self.__inputs__ = list(parameters)
             # Set interpolation and extrapolation
             self.__interpolation__ = None
