@@ -220,7 +220,7 @@ class Rocket:
 
         # Define rocket geometrical parameters in SI units
         self.radius = radius
-        self.area = np.pi * self.radius ** 2
+        self.area = np.pi * self.radius**2
 
         # Center of mass distance to points of interest
         self.distanceRocketNozzle = distanceRocketNozzle
@@ -436,9 +436,9 @@ class Rocket:
 
         # Calculate cp position relative to cm
         if distanceToCM < 0:
-            cpz = distanceToCM - (length / 3) * (1 + (1 - r) / (1 - r ** 2))
+            cpz = distanceToCM - (length / 3) * (1 + (1 - r) / (1 - r**2))
         else:
-            cpz = distanceToCM + (length / 3) * (1 + (1 - r) / (1 - r ** 2))
+            cpz = distanceToCM + (length / 3) * (1 + (1 - r) / (1 - r**2))
 
         # Calculate clalpha
         clalpha = -2 * (1 - r ** (-2)) * (topRadius / rref) ** 2
@@ -564,16 +564,18 @@ class Rocket:
         cantAngle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
-        airfoil : tuple, null
+        airfoil : tuple, optional
             Airfoil's lift curve. If Null, fins will be considered
-            planar. If tuple, fins will be considered airfoiled.
-            The tuple must contain as its first item a .csv or .txt
-            file with the aifoil's lift coefficient by angle of attack
-            curve. The file must contain no headers and the first column
-            must specify the angle of attack, while the second column
-            must specify the lift coefficient. The tuple must contain as
-            its second item the unit of the angle of attack, accepting
-            either "radians" or "degrees".
+            planar. If tuple, fins will be considered airfoiled. The
+            tuple's first item specefies the aifoil's lift coefficient
+            by angle of attack and must be either a .csv, .txt, ndarray
+            or callable. The .csv and .txt files must contain no headers
+            and the first column must specify the angle of attack, while
+            the second column must specify the lift coefficient. The
+            ndarray should be as [(x0, y0), (x1, y1), (x2, y2), ...]
+            where x0 is the angle of attack and y0 is the lift coefficient.
+            The tuple's second item is the unit of the angle of attack,
+            accepting either "radians" or "degrees".
 
         Returns
         -------
@@ -596,36 +598,36 @@ class Rocket:
             (s / 3) * (Cr + 2 * Ct) / Yr
         )  # span wise position of fin's mean aerodynamic chord
         gamac = np.arctan((Cr - Ct) / (2 * s))
-        Lf = np.sqrt((Cr / 2 - Ct / 2) ** 2 + s ** 2)
+        Lf = np.sqrt((Cr / 2 - Ct / 2) ** 2 + s**2)
         radius = self.radius if radius == 0 else radius
         d = 2 * radius
-        Aref = np.pi * radius ** 2
-        AR = 2 * s ** 2 / Af  # Barrowman's convention for fin's aspect ratio
+        Aref = np.pi * radius**2
+        AR = 2 * s**2 / Af  # Barrowman's convention for fin's aspect ratio
         cantAngleRad = np.radians(cantAngle)
         trapezoidalConstant = (
-            (Cr + 3 * Ct) * s ** 3
-            + 4 * (Cr + 2 * Ct) * radius * s ** 2
-            + 6 * (Cr + Ct) * s * radius ** 2
+            (Cr + 3 * Ct) * s**3
+            + 4 * (Cr + 2 * Ct) * radius * s**2
+            + 6 * (Cr + Ct) * s * radius**2
         ) / 12
 
         # Fin–body interference correction parameters
         τ = (s + radius) / radius
         λ = Ct / Cr
         liftInterferenceFactor = 1 + 1 / τ
-        rollForcingInterferenceFactor = (1 / np.pi ** 2) * (
-            (np.pi ** 2 / 4) * ((τ + 1) ** 2 / τ ** 2)
-            + ((np.pi * (τ ** 2 + 1) ** 2) / (τ ** 2 * (τ - 1) ** 2))
-            * np.arcsin((τ ** 2 - 1) / (τ ** 2 + 1))
+        rollForcingInterferenceFactor = (1 / np.pi**2) * (
+            (np.pi**2 / 4) * ((τ + 1) ** 2 / τ**2)
+            + ((np.pi * (τ**2 + 1) ** 2) / (τ**2 * (τ - 1) ** 2))
+            * np.arcsin((τ**2 - 1) / (τ**2 + 1))
             - (2 * np.pi * (τ + 1)) / (τ * (τ - 1))
-            + ((τ ** 2 + 1) ** 2)
-            / (τ ** 2 * (τ - 1) ** 2)
-            * (np.arcsin((τ ** 2 - 1) / (τ ** 2 + 1))) ** 2
-            - (4 * (τ + 1)) / (τ * (τ - 1)) * np.arcsin((τ ** 2 - 1) / (τ ** 2 + 1))
-            + (8 / (τ - 1) ** 2) * np.log((τ ** 2 + 1) / (2 * τ))
+            + ((τ**2 + 1) ** 2)
+            / (τ**2 * (τ - 1) ** 2)
+            * (np.arcsin((τ**2 - 1) / (τ**2 + 1))) ** 2
+            - (4 * (τ + 1)) / (τ * (τ - 1)) * np.arcsin((τ**2 - 1) / (τ**2 + 1))
+            + (8 / (τ - 1) ** 2) * np.log((τ**2 + 1) / (2 * τ))
         )
         rollDampingInterferenceFactor = 1 + (
             ((τ - λ) / (τ)) - ((1 - λ) / (τ - 1)) * np.log(τ)
-        ) / (((τ + 1) * (τ - λ)) / (2) - ((1 - λ) * (τ ** 3 - 1)) / (3 * (τ - 1)))
+        ) / (((τ + 1) * (τ - λ)) / (2) - ((1 - λ) * (τ**3 - 1)) / (3 * (τ - 1)))
 
         # Save geometric parameters for later Fin Flutter Analysis and Roll Moment Calculation
         self.rootChord = Cr
@@ -653,11 +655,11 @@ class Rocket:
             """
 
             if mach < 0.8:
-                return np.sqrt(1 - mach ** 2)
+                return np.sqrt(1 - mach**2)
             elif mach < 1.1:
-                return np.sqrt(1 - 0.8 ** 2)
+                return np.sqrt(1 - 0.8**2)
             else:
-                return np.sqrt(mach ** 2 - 1)
+                return np.sqrt(mach**2 - 1)
 
         # Defines number of fins correction
         def finNumCorrection(n):
@@ -701,15 +703,21 @@ class Rocket:
             # Defines clalpha2D as the derivative of the
             # lift coefficient curve for a specific airfoil
             airfoilCl = Function(
-                airfoil[0], interpolation="linear", extrapolation="natural"
+                airfoil[0],
+                interpolation="linear",
             )
+
+            # Convert to radians if needed
             if airfoil[1] == "degrees":
-                for i in range(len(airfoilCl)):
-                    airfoilCl[i][0] = np.radians(airfoilCl[i][0])
+                if callable(airfoil[0]):
+                    airfoilCl *= np.pi / 180
+                else:
+                    for i in range(len(airfoilCl)):
+                        airfoilCl[i][0] *= np.pi / 180
 
             # Differentiating at x = 0 and correctign for compressible flow
             clalpha2D = Function(
-                lambda mach: airfoilCl.differentiate(x=0, dx=0.1) / beta(mach)
+                lambda mach: airfoilCl.differentiate(x=1e-3, dx=1e-3) / beta(mach)
             )
 
         # Diederich's Planform Correlation Parameter
@@ -745,7 +753,7 @@ class Rocket:
             * clalphaSingleFin
             * np.cos(cantAngleRad)
             * trapezoidalConstant
-            / (Aref * d ** 2)
+            / (Aref * d**2)
         )
         # Function of mach number
         rollParameters = [clfDelta, cldOmega, cantAngleRad]
