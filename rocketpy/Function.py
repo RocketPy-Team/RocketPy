@@ -170,7 +170,7 @@ class Function:
             # Set arguments name and domain dimensions
             parameters = signature(source).parameters
             self.__domDim__ = len(parameters)
-            if self.__inputs__ == ["Time (s)"]:
+            if self.__inputs__ == ["Scalar"]:
                 self.__inputs__ = list(parameters)
             # Set interpolation and extrapolation
             self.__interpolation__ = None
@@ -181,7 +181,7 @@ class Function:
             newTotalDim = len(source[0, :])
             oldTotalDim = self.__domDim__ + self.__imgDim__
             dV = self.__inputs__ == ["Scalar"] and self.__outputs__ == ["Scalar"]
-            # If they dont, update default values or throw error
+            # If they don't, update default values or throw error
             if newTotalDim != oldTotalDim:
                 if dV:
                     # Update dimensions and inputs
@@ -291,7 +291,7 @@ class Function:
         # Crete method to interpolate this info for each interpolation type
         if self.__interpolation__ == "spline":
             coeffs = self.__splineCoefficients__
-            # @jit(nopython=True)
+
             def getValueOpt(x):
                 xInterval = np.searchsorted(xData, x)
                 # Interval found... interpolate... or extrapolate
@@ -316,7 +316,7 @@ class Function:
             self.getValueOpt = getValueOpt
 
         elif self.__interpolation__ == "linear":
-            # @jit(nopython=True)
+
             def getValueOpt(x):
                 xInterval = np.searchsorted(xData, x)
                 # Interval found... interpolate... or extrapolate
@@ -344,7 +344,7 @@ class Function:
 
         elif self.__interpolation__ == "akima":
             coeffs = np.array(self.__akimaCoefficients__)
-            # @jit(nopython=True)
+
             def getValueOpt(x):
                 xInterval = np.searchsorted(xData, x)
                 # Interval found... interpolate... or extrapolate
@@ -368,7 +368,7 @@ class Function:
 
         elif self.__interpolation__ == "polynomial":
             coeffs = self.__polynomialCoefficients__
-            # @jit(nopython=True)
+
             def getValueOpt(x):
                 # Interpolate... or extrapolate
                 if xmin <= x <= xmax:
@@ -815,7 +815,7 @@ class Function:
         point in a limited but optimized manner. See Function.getValue for an
         implementation which allows more kinds of inputs.
         This method optimizes the Function.getValue method by only
-        implementing function evaluations of single inputes, i.e., it is not
+        implementing function evaluations of single inputs, i.e., it is not
         vectorized. Furthermore, it actually implements a different method
         for each interpolation type, eliminating some if statements.
         Finally, it uses Numba to compile the methods, which further optimizes
@@ -1015,7 +1015,7 @@ class Function:
         """Plot 1-Dimensional Function, from a lower limit to an upper limit,
         by sampling the Function several times in the interval. The title of
         the graph is given by the name of the axes, which are taken from
-        the Function`s input and ouput names.
+        the Function`s input and output names.
 
         Parameters
         ----------

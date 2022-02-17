@@ -20,10 +20,11 @@ sys.path.insert(0, os.path.abspath("../"))
 
 project = "RocketPy"
 copyright = "2020, Projeto Jupiter"
-author = "Giovani Hdalgo Ceotto"
+
+author = "Giovani Hidalgo Ceotto"
 
 # The full version, including alpha/beta/rc tags
-release = "0.9.7"
+release = "0.9.9"
 
 
 # -- General configuration ---------------------------------------------------
@@ -69,6 +70,7 @@ html_theme = "pydata_sphinx_theme"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["static"]
+html_css_files = ["notebooks.css"]
 html_logo = "static/RocketPy_Logo_Black.svg"
 html_favicon = "static/favicon.ico"
 html_theme_options = {

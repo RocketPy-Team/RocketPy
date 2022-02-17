@@ -172,7 +172,7 @@ class Flight:
             Y coordinate (positive north) of the center of mass of the
             rocket when it reaches apogee.
         Flight.apogee : int, float
-            Z coordinate, or altitute, of the center of mass of the
+            Z coordinate, or altitude, of the center of mass of the
             rocket when it reaches apogee.
         Flight.xImpact : int, float
             X coordinate (positive east) of the center of mass of the
@@ -275,27 +275,27 @@ class Flight:
             plane. Measured in degrees and expressed as a function
             of time. Can be called or accessed as array.
         Flight.attitudeVectorX : Function
-            Rocket's attiude vector, or the vector that points
+            Rocket's attitude vector, or the vector that points
             in the rocket's axis of symmetry, component in the X
             direction (East) as a function of time.
             Can be called or accessed as array.
         Flight.attitudeVectorY : Function
-            Rocket's attiude vector, or the vector that points
+            Rocket's attitude vector, or the vector that points
             in the rocket's axis of symmetry, component in the Y
             direction (East) as a function of time.
             Can be called or accessed as array.
         Flight.attitudeVectorZ : Function
-            Rocket's attiude vector, or the vector that points
+            Rocket's attitude vector, or the vector that points
             in the rocket's axis of symmetry, component in the Z
             direction (East) as a function of time.
             Can be called or accessed as array.
         Flight.attitudeAngle : Function
-            Rocket's attiude angle, or the angle that the
+            Rocket's attitude angle, or the angle that the
             rocket's axis of symmetry makes with the horizontal (North-East)
             plane. Measured in degrees and expressed as a function
             of time. Can be called or accessed as array.
         Flight.lateralAttitudeAngle : Function
-            Rocket's lateral attiude angle, or the angle that the
+            Rocket's lateral attitude angle, or the angle that the
             rocket's axis of symmetry makes with plane defined by
             the launch rail direction and the Z (up) axis.
             Measured in degrees and expressed as a function
@@ -337,7 +337,7 @@ class Flight:
             direction of cylindrical symmetry.
         Flight.M1 : Function
             Resultant moment (torque) perpendicular to rockets axis due to
-            aerodynamic forces and excentricity as a function of time.
+            aerodynamic forces and eccentricity as a function of time.
             Units in N*m.
             Expressed as a function of time. Can be called or accessed
             as array.
@@ -345,7 +345,7 @@ class Flight:
             to the rocket's axis of cylindrical symmetry.
         Flight.M2 : Function
             Resultant moment (torque) perpendicular to rockets axis due to
-            aerodynamic forces and excentricity as a function of time.
+            aerodynamic forces and eccentricity as a function of time.
             Units in N*m.
             Expressed as a function of time. Can be called or accessed
             as array.
@@ -353,7 +353,7 @@ class Flight:
             to the rocket's axis of cylindrical symmetry and direction 1.
         Flight.M3 : Function
             Resultant moment (torque) in rockets axis due to aerodynamic
-            forces and excentricity as a function of time. Units in N*m.
+            forces and eccentricity as a function of time. Units in N*m.
             Expressed as a function of time. Can be called or accessed
             as array.
             Direction 3 is in the rocket's body axis and points in the
@@ -462,7 +462,7 @@ class Flight:
             Freestream speed of the rocket at apogee in m/s.
         Flight.MachNumber : Function
             Rocket's Mach number defined as its freestream speed
-            devided by the speed of sound at its altitude. Expressed
+            divided by the speed of sound at its altitude. Expressed
             as a function of time. Can be called or accessed as array.
         Flight.maxMachNumber : float
             Rocket's maximum Mach number experienced during flight.
@@ -549,7 +549,7 @@ class Flight:
             If None, the initial solution will start with all null values,
             except for the euler parameters which will be calculated based
             on given values of inclination and heading. Default is None.
-        terminateOnApogee : boolean, optioanal
+        terminateOnApogee : boolean, optional
             Whether to terminate simulation when rocket reaches apogee.
             Default is False.
         maxTime : int, float, optional
@@ -627,7 +627,7 @@ class Flight:
         self.impactState = np.array([0])
         self.parachuteEvents = []
         self.postProcessed = False
-        # Intialize solver monitors
+        # Initialize solver monitors
         self.functionEvaluations = []
         self.functionEvaluationsPerTimeStep = []
         self.timeSteps = []
@@ -1139,7 +1139,7 @@ class Flight:
         # Mass
         M = self.rocket.totalMass.getValueOpt(t)
 
-        # Get freestrean speed
+        # Get freestream speed
         freestreamSpeed = (
             (self.env.windVelocityX.getValueOpt(z) - vx) ** 2
             + (self.env.windVelocityY.getValueOpt(z) - vy) ** 2
@@ -1216,7 +1216,7 @@ class Flight:
         # Determine lift force and moment
         R1, R2 = 0, 0
         M1, M2, M3 = 0, 0, 0
-        # Determine current behaviour
+        # Determine current behavior
         if t < self.rocket.motor.burnOutTime:
             # Motor burning
             # Retrieve important motor quantities
@@ -1231,8 +1231,8 @@ class Flight:
             # Thrust
             Thrust = self.rocket.motor.thrust.getValueOpt(t)
             # Off center moment
-            M1 += self.rocket.thrustExcentricityX * Thrust
-            M2 -= self.rocket.thrustExcentricityY * Thrust
+            M1 += self.rocket.thrustEccentricityX * Thrust
+            M2 -= self.rocket.thrustEccentricityY * Thrust
         else:
             # Motor stopped
             # Retrieve important motor quantities
@@ -1272,7 +1272,7 @@ class Flight:
         Kt = [[a11, a21, a31], [a12, a22, a32], [a13, a23, a33]]
 
         # Calculate Forces and Moments
-        # Get freestrean speed
+        # Get freestream speed
         windVelocityX = self.env.windVelocityX.getValueOpt(z)
         windVelocityY = self.env.windVelocityY.getValueOpt(z)
         freestreamSpeed = (
@@ -1289,15 +1289,15 @@ class Flight:
         rho = self.env.density.getValueOpt(z)
         R3 = -0.5 * rho * (freestreamSpeed**2) * self.rocket.area * (dragCoeff)
         # Off center moment
-        M1 += self.rocket.cpExcentricityY * R3
-        M2 -= self.rocket.cpExcentricityX * R3
+        M1 += self.rocket.cpEccentricityY * R3
+        M2 -= self.rocket.cpEccentricityX * R3
         # Get rocket velocity in body frame
         vxB = a11 * vx + a21 * vy + a31 * vz
         vyB = a12 * vx + a22 * vy + a32 * vz
         vzB = a13 * vx + a23 * vy + a33 * vz
         # Calculate lift and moment for each component of the rocket
         for aerodynamicSurface in self.rocket.aerodynamicSurfaces:
-            compCp = aerodynamicSurface[0][2]
+            compCp = aerodynamicSurface["cp"][2]
             # Component absolute velocity in body frame
             compVxB = vxB + compCp * omega2
             compVyB = vyB - compCp * omega1
@@ -1324,7 +1324,7 @@ class Flight:
                 compStreamVzBn = compStreamVzB / compStreamSpeed
                 if -1 * compStreamVzBn < 1:
                     compAttackAngle = np.arccos(-compStreamVzBn)
-                    cLift = abs(aerodynamicSurface[1](compAttackAngle))
+                    cLift = aerodynamicSurface["cl"](compAttackAngle, freestreamMach)
                     # Component lift force magnitude
                     compLift = (
                         0.5 * rho * (compStreamSpeed**2) * self.rocket.area * cLift
@@ -1339,6 +1339,26 @@ class Flight:
                     # Add to total moment
                     M1 -= (compCp + a) * compLiftYB
                     M2 += (compCp + a) * compLiftXB
+            # Calculates Roll Moment
+            if aerodynamicSurface["name"] == "Fins":
+                Clfdelta, Cldomega, cantAngleRad = aerodynamicSurface["roll parameters"]
+                M3f = (
+                    (1 / 2 * rho * freestreamSpeed**2)
+                    * self.rocket.area
+                    * 2
+                    * self.rocket.radius
+                    * Clfdelta(freestreamMach)
+                    * cantAngleRad
+                )
+                M3d = (
+                    (1 / 2 * rho * freestreamSpeed)
+                    * self.rocket.area
+                    * (2 * self.rocket.radius) ** 2
+                    * Cldomega(freestreamMach)
+                    * omega3
+                    / 2
+                )
+                M3 += M3f - M3d
         # Calculate derivatives
         # Angular acceleration
         alpha1 = (
@@ -1416,7 +1436,7 @@ class Flight:
 
     def uDotParachute(self, t, u, postProcessing=False):
         """Calculates derivative of u state vector with respect to time
-        when rocket is flying under parachute. A 3 DOF aproximation is
+        when rocket is flying under parachute. A 3 DOF approximation is
         used.
 
         Parameters
@@ -1490,10 +1510,10 @@ class Flight:
 
         return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
 
-    def postProcess(self):
+    def postProcess(self, interpolation="spline", extrapolation="natural"):
         """Post-process all Flight information produced during
         simulation. Includes the calculation of maximum values,
-        calculation of secundary values such as energy and conversion
+        calculation of secondary values such as energy and conversion
         of lists to Function objects to facilitate plotting.
 
         Parameters
@@ -1508,50 +1528,50 @@ class Flight:
         # Transform solution array into Functions
         sol = np.array(self.solution)
         self.x = Function(
-            sol[:, [0, 1]], "Time (s)", "X (m)", "spline", extrapolation="natural"
+            sol[:, [0, 1]], "Time (s)", "X (m)", interpolation, extrapolation
         )
         self.y = Function(
-            sol[:, [0, 2]], "Time (s)", "Y (m)", "spline", extrapolation="natural"
+            sol[:, [0, 2]], "Time (s)", "Y (m)", interpolation, extrapolation
         )
         self.z = Function(
-            sol[:, [0, 3]], "Time (s)", "Z (m)", "spline", extrapolation="natural"
+            sol[:, [0, 3]], "Time (s)", "Z (m)", interpolation, extrapolation
         )
         self.vx = Function(
-            sol[:, [0, 4]], "Time (s)", "Vx (m/s)", "spline", extrapolation="natural"
+            sol[:, [0, 4]], "Time (s)", "Vx (m/s)", interpolation, extrapolation
         )
         self.vy = Function(
-            sol[:, [0, 5]], "Time (s)", "Vy (m/s)", "spline", extrapolation="natural"
+            sol[:, [0, 5]], "Time (s)", "Vy (m/s)", interpolation, extrapolation
         )
         self.vz = Function(
-            sol[:, [0, 6]], "Time (s)", "Vz (m/s)", "spline", extrapolation="natural"
+            sol[:, [0, 6]], "Time (s)", "Vz (m/s)", interpolation, extrapolation
         )
         self.e0 = Function(
-            sol[:, [0, 7]], "Time (s)", "e0", "spline", extrapolation="natural"
+            sol[:, [0, 7]], "Time (s)", "e0", interpolation, extrapolation
         )
         self.e1 = Function(
-            sol[:, [0, 8]], "Time (s)", "e1", "spline", extrapolation="natural"
+            sol[:, [0, 8]], "Time (s)", "e1", interpolation, extrapolation
         )
         self.e2 = Function(
-            sol[:, [0, 9]], "Time (s)", "e2", "spline", extrapolation="natural"
+            sol[:, [0, 9]], "Time (s)", "e2", interpolation, extrapolation
         )
         self.e3 = Function(
-            sol[:, [0, 10]], "Time (s)", "e3", "spline", extrapolation="natural"
+            sol[:, [0, 10]], "Time (s)", "e3", interpolation, extrapolation
         )
         self.w1 = Function(
-            sol[:, [0, 11]], "Time (s)", "ω1 (rad/s)", "spline", extrapolation="natural"
+            sol[:, [0, 11]], "Time (s)", "ω1 (rad/s)", interpolation, extrapolation
         )
         self.w2 = Function(
-            sol[:, [0, 12]], "Time (s)", "ω2 (rad/s)", "spline", extrapolation="natural"
+            sol[:, [0, 12]], "Time (s)", "ω2 (rad/s)", interpolation, extrapolation
         )
         self.w3 = Function(
-            sol[:, [0, 13]], "Time (s)", "ω3 (rad/s)", "spline", extrapolation="natural"
+            sol[:, [0, 13]], "Time (s)", "ω3 (rad/s)", interpolation, extrapolation
         )
 
         # Process second type of outputs - accelerations
         # Initialize acceleration arrays
         self.ax, self.ay, self.az = [], [], []
         self.alpha1, self.alpha2, self.alpha3 = [], [], []
-        # Go throught each time step and calculate accelerations
+        # Go through each time step and calculate accelerations
         # Get flight phases
         for phase_index, phase in self.timeIterator(self.flightPhases):
             initTime = phase.t
@@ -1561,7 +1581,7 @@ class Flight:
             for callback in phase.callbacks:
                 callback(self)
             # Loop through time steps in flight phase
-            for step in self.solution:  # Can be optmized
+            for step in self.solution:  # Can be optimized
                 if initTime < step[0] <= finalTime:
                     # Get derivatives
                     uDot = currentDerivative(step[0], step[1:])
@@ -1576,12 +1596,12 @@ class Flight:
                     self.alpha2.append([step[0], alpha2])
                     self.alpha3.append([step[0], alpha3])
         # Convert accelerations to functions
-        self.ax = Function(self.ax, "Time (s)", "Ax (m/s2)", "spline")
-        self.ay = Function(self.ay, "Time (s)", "Ay (m/s2)", "spline")
-        self.az = Function(self.az, "Time (s)", "Az (m/s2)", "spline")
-        self.alpha1 = Function(self.alpha1, "Time (s)", "α1 (rad/s2)", "spline")
-        self.alpha2 = Function(self.alpha2, "Time (s)", "α2 (rad/s2)", "spline")
-        self.alpha3 = Function(self.alpha3, "Time (s)", "α3 (rad/s2)", "spline")
+        self.ax = Function(self.ax, "Time (s)", "Ax (m/s2)", interpolation)
+        self.ay = Function(self.ay, "Time (s)", "Ay (m/s2)", interpolation)
+        self.az = Function(self.az, "Time (s)", "Az (m/s2)", interpolation)
+        self.alpha1 = Function(self.alpha1, "Time (s)", "α1 (rad/s2)", interpolation)
+        self.alpha2 = Function(self.alpha2, "Time (s)", "α2 (rad/s2)", interpolation)
+        self.alpha3 = Function(self.alpha3, "Time (s)", "α3 (rad/s2)", interpolation)
 
         # Process third type of outputs - temporary values calculated during integration
         # Initialize force and atmospheric arrays
@@ -1593,7 +1613,7 @@ class Flight:
             [],
         )
         self.windVelocityX, self.windVelocityY = [], []
-        # Go throught each time step and calculate forces and atmospheric values
+        # Go through each time step and calculate forces and atmospheric values
         # Get flight phases
         for phase_index, phase in self.timeIterator(self.flightPhases):
             initTime = phase.t
@@ -1603,30 +1623,40 @@ class Flight:
             for callback in phase.callbacks:
                 callback(self)
             # Loop through time steps in flight phase
-            for step in self.solution:  # Can be optmized
+            for step in self.solution:  # Can be optimized
                 if initTime < step[0] <= finalTime or (initTime == 0 and step[0] == 0):
                     # Call derivatives in post processing mode
                     uDot = currentDerivative(step[0], step[1:], postProcessing=True)
         # Convert forces and atmospheric arrays to functions
-        self.R1 = Function(self.R1, "Time (s)", "R1 (N)", "spline")
-        self.R2 = Function(self.R2, "Time (s)", "R2 (N)", "spline")
-        self.R3 = Function(self.R3, "Time (s)", "R3 (N)", "spline")
-        self.M1 = Function(self.M1, "Time (s)", "M1 (Nm)", "spline")
-        self.M2 = Function(self.M2, "Time (s)", "M2 (Nm)", "spline")
-        self.M3 = Function(self.M3, "Time (s)", "M3 (Nm)", "spline")
+        self.R1 = Function(self.R1, "Time (s)", "R1 (N)", interpolation)
+        self.R2 = Function(self.R2, "Time (s)", "R2 (N)", interpolation)
+        self.R3 = Function(self.R3, "Time (s)", "R3 (N)", interpolation)
+        self.M1 = Function(self.M1, "Time (s)", "M1 (Nm)", interpolation)
+        self.M2 = Function(self.M2, "Time (s)", "M2 (Nm)", interpolation)
+        self.M3 = Function(self.M3, "Time (s)", "M3 (Nm)", interpolation)
         self.windVelocityX = Function(
-            self.windVelocityX, "Time (s)", "Wind Velocity X (East) (m/s)", "spline"
+            self.windVelocityX,
+            "Time (s)",
+            "Wind Velocity X (East) (m/s)",
+            interpolation,
         )
         self.windVelocityY = Function(
-            self.windVelocityY, "Time (s)", "Wind Velocity Y (North) (m/s)", "spline"
+            self.windVelocityY,
+            "Time (s)",
+            "Wind Velocity Y (North) (m/s)",
+            interpolation,
         )
-        self.density = Function(self.density, "Time (s)", "Density (kg/m³)", "spline")
-        self.pressure = Function(self.pressure, "Time (s)", "Pressure (Pa)", "spline")
+        self.density = Function(
+            self.density, "Time (s)", "Density (kg/m³)", interpolation
+        )
+        self.pressure = Function(
+            self.pressure, "Time (s)", "Pressure (Pa)", interpolation
+        )
         self.dynamicViscosity = Function(
-            self.dynamicViscosity, "Time (s)", "Dynamic Viscosity (Pa s)", "spline"
+            self.dynamicViscosity, "Time (s)", "Dynamic Viscosity (Pa s)", interpolation
         )
         self.speedOfSound = Function(
-            self.speedOfSound, "Time (s)", "Speed of Sound (m/s)", "spline"
+            self.speedOfSound, "Time (s)", "Speed of Sound (m/s)", interpolation
         )
 
         # Process fourth type of output - values calculated from previous outputs
@@ -1673,16 +1703,16 @@ class Flight:
         )
         attitudeLateralProjX = attitudeLateralProj * lateralVectorX
         attitudeLateralProjY = attitudeLateralProj * lateralVectorY
-        attiutdeLateralPlaneProjX = self.attitudeVectorX[:, 1] - attitudeLateralProjX
-        attiutdeLateralPlaneProjY = self.attitudeVectorY[:, 1] - attitudeLateralProjY
-        attiutdeLateralPlaneProjZ = self.attitudeVectorZ[:, 1]
-        attiutdeLateralPlaneProj = (
-            attiutdeLateralPlaneProjX**2
-            + attiutdeLateralPlaneProjY**2
-            + attiutdeLateralPlaneProjZ**2
+        attitudeLateralPlaneProjX = self.attitudeVectorX[:, 1] - attitudeLateralProjX
+        attitudeLateralPlaneProjY = self.attitudeVectorY[:, 1] - attitudeLateralProjY
+        attitudeLateralPlaneProjZ = self.attitudeVectorZ[:, 1]
+        attitudeLateralPlaneProj = (
+            attitudeLateralPlaneProjX**2
+            + attitudeLateralPlaneProjY**2
+            + attitudeLateralPlaneProjZ**2
         ) ** 0.5
         lateralAttitudeAngle = (180 / np.pi) * np.arctan2(
-            attitudeLateralProj, attiutdeLateralPlaneProj
+            attitudeLateralProj, attitudeLateralPlaneProj
         )
         lateralAttitudeAngle = np.column_stack(
             [self.attitudeVectorZ[:, 0], lateralAttitudeAngle]
@@ -2018,9 +2048,9 @@ class Flight:
             self.postProcess()
 
         # Get index of out of rail time
-        outOfRailTimeIndexs = np.nonzero(self.x[:, 0] == self.outOfRailTime)
+        outOfRailTimeIndexes = np.nonzero(self.x[:, 0] == self.outOfRailTime)
         outOfRailTimeIndex = (
-            -1 if len(outOfRailTimeIndexs) == 0 else outOfRailTimeIndexs[0][0]
+            -1 if len(outOfRailTimeIndexes) == 0 else outOfRailTimeIndexes[0][0]
         )
 
         # Get index of time before parachute event
@@ -2289,16 +2319,16 @@ class Flight:
         vF = self.outOfRailVelocity
 
         # Convert angle to radians
-        tetha = self.inclination * np.pi / 180
+        theta = self.inclination * np.pi / 180
         stallAngle = stallAngle * np.pi / 180
 
-        c = (math.cos(stallAngle) ** 2 - math.cos(tetha) ** 2) / math.sin(
+        c = (math.cos(stallAngle) ** 2 - math.cos(theta) ** 2) / math.sin(
             stallAngle
         ) ** 2
         wV = (
-            2 * vF * math.cos(tetha) / c
+            2 * vF * math.cos(theta) / c
             + (
-                4 * vF * vF * math.cos(tetha) * math.cos(tetha) / (c**2)
+                4 * vF * vF * math.cos(theta) * math.cos(theta) / (c**2)
                 + 4 * 1 * vF * vF / c
             )
             ** 0.5
@@ -2673,9 +2703,9 @@ class Flight:
             self.postProcess()
 
         # Get index of out of rail time
-        outOfRailTimeIndexs = np.nonzero(self.x[:, 0] == self.outOfRailTime)
+        outOfRailTimeIndexes = np.nonzero(self.x[:, 0] == self.outOfRailTime)
         outOfRailTimeIndex = (
-            -1 if len(outOfRailTimeIndexs) == 0 else outOfRailTimeIndexs[0][0]
+            -1 if len(outOfRailTimeIndexes) == 0 else outOfRailTimeIndexes[0][0]
         )
 
         # Get index of time before parachute event
@@ -2800,9 +2830,9 @@ class Flight:
             self.postProcess()
 
         # Get index of out of rail time
-        outOfRailTimeIndexs = np.nonzero(self.x[:, 0] == self.outOfRailTime)
+        outOfRailTimeIndexes = np.nonzero(self.x[:, 0] == self.outOfRailTime)
         outOfRailTimeIndex = (
-            -1 if len(outOfRailTimeIndexs) == 0 else outOfRailTimeIndexs[0][0]
+            -1 if len(outOfRailTimeIndexes) == 0 else outOfRailTimeIndexes[0][0]
         )
 
         # Get index of time before parachute event
@@ -2898,9 +2928,9 @@ class Flight:
             self.postProcess()
 
         # Get index of out of rail time
-        outOfRailTimeIndexs = np.nonzero(self.x[:, 0] == self.outOfRailTime)
+        outOfRailTimeIndexes = np.nonzero(self.x[:, 0] == self.outOfRailTime)
         outOfRailTimeIndex = (
-            -1 if len(outOfRailTimeIndexs) == 0 else outOfRailTimeIndexs[0][0]
+            -1 if len(outOfRailTimeIndexes) == 0 else outOfRailTimeIndexes[0][0]
         )
 
         # Trajectory Fluid Mechanics Plots
@@ -2959,7 +2989,7 @@ class Flight:
 
     def calculateFinFlutterAnalysis(self, finThickness, shearModulus):
         """Calculate, create and plot the Fin Flutter velocity, based on the
-        pressure profile provided by Atmosferic model selected. It considers the
+        pressure profile provided by Atmospheric model selected. It considers the
         Flutter Boundary Equation that is based on a calculation published in
         NACA Technical Paper 4197.
         Be careful, these results are only estimates of a real problem and may
@@ -3185,7 +3215,7 @@ class Flight:
         """Prints out all Parachute Trigger Pressure Signals.
         This function can be called also for plot pressure data for flights
         without Parachutes, in this case the Pressure Signals will be simply
-        the pressure provided by the atmosfericModel, at Flight z positions.
+        the pressure provided by the atmosphericModel, at Flight z positions.
         This means that no noise will be considered if at least one parachute
         has not been added.
 
@@ -3236,7 +3266,7 @@ class Flight:
         clean pressure in Pascals and noisy pressure in Pascals. For flights without
         parachutes, the third column will be discarded
 
-        This function was created especially for the Projeto Jupiter Eletronics
+        This function was created especially for the Projeto Jupiter Electronics
         Subsystems team and aims to help in configuring microcontrollers.
 
         Parameters
@@ -3369,11 +3399,11 @@ class Flight:
             Ru = 1 * (2 * (self.e1(t) * self.e3(t) + self.e0(t) * self.e2(t)))
             Rv = 1 * (2 * (self.e2(t) * self.e3(t) - self.e0(t) * self.e1(t)))
             Rw = 1 * (1 - 2 * (self.e1(t) ** 2 + self.e2(t) ** 2))
-            # Caclulate rocket Mach number
+            # Calculate rocket Mach number
             Vx = self.vx(t) / 340.40
             Vy = self.vy(t) / 340.40
             Vz = self.vz(t) / 340.40
-            # Caculate wind Mach Number
+            # Calculate wind Mach Number
             z = self.z(t)
             Wx = self.env.windVelocityX(z) / 20
             Wy = self.env.windVelocityY(z) / 20
