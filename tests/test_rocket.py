@@ -77,7 +77,7 @@ def test_rocket(mock_show):
 
     static_margin = test_rocket.staticMargin(0)
 
-    assert test_rocket.allInfo() == None or not static_margin < 2
+    assert test_rocket.allInfo() == None or not abs(static_margin - 2.05) < 0.01
 
 
 @patch("matplotlib.pyplot.show")
@@ -165,4 +165,4 @@ def test_airfoil(mock_show):
 
     static_margin = test_rocket.staticMargin(0)
 
-    assert test_rocket.allInfo() == None or not static_margin < 2
+    assert test_rocket.allInfo() == None or not abs(static_margin - 2.03) < 0.01
