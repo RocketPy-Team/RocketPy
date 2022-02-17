@@ -1,10 +1,9 @@
 import datetime
-import pytz
 from unittest.mock import patch
 
 import pytest
-
-from rocketpy import Environment, SolidMotor, Rocket, Flight
+import pytz
+from rocketpy import Environment, Flight, Rocket, SolidMotor
 
 
 @pytest.fixture
@@ -37,7 +36,7 @@ def test_env_set_date(example_env):
     )
 
 
-def test_env_set_date_timeZone(example_env):
+def test_env_set_date_time_zone(example_env):
     tomorrow = datetime.date.today() + datetime.timedelta(days=1)
     example_env.setDate(
         (tomorrow.year, tomorrow.month, tomorrow.day, 12), timeZone="America/New_York"
