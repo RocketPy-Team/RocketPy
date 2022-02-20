@@ -13,7 +13,6 @@ setuptools.setup(
         "requests",
         "pytz",
     ],
-
     maintainer="RocketPy Developers",
     author="Giovani Hidalgo Ceotto",
     author_email="ghceotto@gmail.com",
