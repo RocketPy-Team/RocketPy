@@ -512,11 +512,20 @@ class Rocket:
         cantAngle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
-        airfoil : string
-            Fin's lift curve. It must be a .csv file. The .csv file shall
-            contain no headers and the first column must specify time in
-            seconds, while the second column specifies lift coefficient. Lift
-            coefficient is dimensionaless.
+        airfoil : tuple, optional
+            Default is null, in which case fins will be treated as flat plates.
+            Otherwise, if tuple, fins will be considered as airfoils. The
+            tuple's first item specefies the aifoil's lift coefficient
+            by angle of attack and must be either a .csv, .txt, ndarray
+            or callable. The .csv and .txt files must contain no headers
+            and the first column must specify the angle of attack, while
+            the second column must specify the lift coefficient. The
+            ndarray should be as [(x0, y0), (x1, y1), (x2, y2), ...]
+            where x0 is the angle of attack and y0 is the lift coefficient.
+            If callable, it should take an angle of attack as input and
+            return the lift coefficient at that angle of attack.
+            The tuple's second item is the unit of the angle of attack,
+            accepting either "radians" or "degrees".
 
         Returns
         -------
@@ -538,8 +547,8 @@ class Rocket:
         Yma = (
             (s / 3) * (Cr + 2 * Ct) / Yr
         )  # span wise position of fin's mean aerodynamic chord
-        gamac = np.arctan((Cr - Ct) / (2 * span))
-        Lf = np.sqrt((rootChord / 2 - tipChord / 2) ** 2 + span**2)
+        gamac = np.arctan((Cr - Ct) / (2 * s))
+        Lf = np.sqrt((Cr / 2 - Ct / 2) ** 2 + s**2)
         radius = self.radius if radius == 0 else radius
         d = 2 * radius
         Aref = np.pi * radius**2
@@ -637,74 +646,47 @@ class Rocket:
                 + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
             )
 
-        # Calculate lift parameters for planar fins
         if not airfoil:
-
-            clalphaSingleFin = Function(
-                lambda mach: 2
-                * np.pi
-                * AR
-                * (Af / Aref)
-                / (2 + np.sqrt(4 + ((beta(mach) * AR) / (np.cos(gamac))) ** 2)),
-            )
-
-            clalphaMultipleFins = (
-                liftInterferenceFactor * finNumCorrection(n) * clalphaSingleFin
-            )  # Function of mach number
-
-            # Calculates clalpha * alpha
-            cl = Function(
-                lambda alpha, mach: alpha * clalphaMultipleFins(mach),
-                ["Alpha (rad)", "Mach"],
-                "Cl",
-            )
-
+            # Defines clalpha2D as 2*pi for planar fins
+            clalpha2D = Function(lambda mach: 2 * np.pi / beta(mach))
         else:
-
-            def cnalfa1(cn):
-                """Calculates the normal force coefficient derivative of a 3D
-                airfoil for a given Cnalfa0
-                Parameters
-                ----------
-                cn : int
-                    Normal force coefficient derivative of a 2D airfoil.
-                Returns
-                -------
-                Cnalfa1 : int
-                    Normal force coefficient derivative of a 3D airfoil.
-                """
-
-                # Retrieve parameters for calculations
-                Af = (Cr + Ct) * span / 2
-                # fin area
-                AR = 2 * (span**2) / Af  # Aspect ratio
-                gamac = np.arctan((Cr - Ct) / (2 * span))
-                # mid chord angle
-                FD = 2 * np.pi * AR / (cn * np.cos(gamac))
-                Cnalfa1 = (
-                    cn
-                    * FD
-                    * (Af / self.area)
-                    * np.cos(gamac)
-                    / (2 + FD * (1 + (4 / FD**2)) ** 0.5)
-                )
-                return Cnalfa1
-
-            # Import the lift curve as a function of lift values by attack angle
-            read = genfromtxt(airfoil, delimiter=",")
-
-            # Applies number of fins to lift coefficient data
-            data = [[cl[0], (n / 2) * cnalfa1(cl[1])] for cl in read]
-            cl = Function(
-                data,
-                "Alpha (rad)",
-                "Cl",
+            # Defines clalpha2D as the derivative of the
+            # lift coefficient curve for a specific airfoil
+            airfoilCl = Function(
+                airfoil[0],
                 interpolation="linear",
-                extrapolation="natural",
             )
 
-            # Takes an approximation to an angular coefficient
-            clalpha = cl.differentiate(x=0, dx=1e-2)
+            # Differentiating at x = 0 to get cl_alpha
+            clalpha2D_Mach0 = airfoilCl.differentiate(x=1e-3, dx=1e-3)
+
+            # Convert to radians if needed
+            if airfoil[1] == "degrees":
+                clalpha2D_Mach0 *= 180 / np.pi
+
+            # Correcting for compressible flow
+            clalpha2D = Function(lambda mach: clalpha2D_Mach0 / beta(mach))
+
+        # Diederich's Planform Correlation Parameter
+        FD = 2 * np.pi * AR / (clalpha2D * np.cos(gamac))
+
+        # Lift coefficient derivative for a single fin
+        clalphaSingleFin = Function(
+            lambda mach: (clalpha2D(mach) * FD(mach) * (Af / Aref) * np.cos(gamac))
+            / (2 + FD(mach) * np.sqrt(1 + (2 / FD(mach)) ** 2))
+        )
+
+        # Lift coefficient derivative for a number of n fins corrected for Fin-Body interference
+        clalphaMultipleFins = (
+            liftInterferenceFactor * finNumCorrection(n) * clalphaSingleFin
+        )  # Function of mach number
+
+        # Calculates clalpha * alpha
+        cl = Function(
+            lambda alpha, mach: alpha * clalphaMultipleFins(mach),
+            ["Alpha (rad)", "Mach"],
+            "Cl",
+        )
 
         # Parameters for Roll Moment.
         # Documented at: https://github.com/Projeto-Jupiter/RocketPy/blob/develop/docs/technical/aerodynamics/Roll_Equations.pdf
