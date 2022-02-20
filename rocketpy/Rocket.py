@@ -565,8 +565,8 @@ class Rocket:
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
         airfoil : tuple, optional
-            Airfoil's lift curve. If Null, fins will be considered
-            planar. If tuple, fins will be considered airfoiled. The
+            Default is null, in which case fins will be treated as flat plates.
+            Otherwise, if tuple, fins will be considered as airfoils. The
             tuple's first item specefies the aifoil's lift coefficient
             by angle of attack and must be either a .csv, .txt, ndarray
             or callable. The .csv and .txt files must contain no headers
