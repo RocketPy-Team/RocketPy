@@ -574,6 +574,8 @@ class Rocket:
             the second column must specify the lift coefficient. The
             ndarray should be as [(x0, y0), (x1, y1), (x2, y2), ...]
             where x0 is the angle of attack and y0 is the lift coefficient.
+            If callable, it should take an angle of attack as input and
+            return the lift coefficient at that angle of attack.
             The tuple's second item is the unit of the angle of attack,
             accepting either "radians" or "degrees".
 
