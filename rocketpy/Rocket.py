@@ -713,12 +713,11 @@ class Rocket:
             clalpha2D_Mach0 = airfoilCl.differentiate(x=1e-3, dx=1e-3)
 
             # Convert to radians if needed
-            if airfoil[1] == "degrees": clalpha2D_Mach0 *= 180/np.pi
+            if airfoil[1] == "degrees":
+                clalpha2D_Mach0 *= 180 / np.pi
 
             # Correcting for compressible flow
-            clalpha2D = Function(
-                lambda mach: clalpha2D_Mach0 / beta(mach)
-            )
+            clalpha2D = Function(lambda mach: clalpha2D_Mach0 / beta(mach))
 
         # Diederich's Planform Correlation Parameter
         FD = 2 * np.pi * AR / (clalpha2D * np.cos(gamac))
