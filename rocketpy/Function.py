@@ -300,7 +300,7 @@ class Function:
                     xInterval = xInterval if xInterval != 0 else 1
                     a = coeffs[:, xInterval - 1]
                     x = x - xData[xInterval - 1]
-                    y = a[3] * x ** 3 + a[2] * x ** 2 + a[1] * x + a[0]
+                    y = a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
                 else:
                     # Extrapolate
                     if extrapolation == 0:  # Extrapolation == zero
@@ -308,7 +308,7 @@ class Function:
                     elif extrapolation == 1:  # Extrapolation == natural
                         a = coeffs[:, 0] if x < xmin else coeffs[:, -1]
                         x = x - xData[0] if x < xmin else x - xData[-2]
-                        y = a[3] * x ** 3 + a[2] * x ** 2 + a[1] * x + a[0]
+                        y = a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
                     else:  # Extrapolation is set to constant
                         y = yData[0] if x < xmin else yData[-1]
                 return y
@@ -352,14 +352,14 @@ class Function:
                     # Interpolate
                     xInterval = xInterval if xInterval != 0 else 1
                     a = coeffs[4 * xInterval - 4 : 4 * xInterval]
-                    y = a[3] * x ** 3 + a[2] * x ** 2 + a[1] * x + a[0]
+                    y = a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
                 else:
                     # Extrapolate
                     if extrapolation == 0:  # Extrapolation == zero
                         y = 0
                     elif extrapolation == 1:  # Extrapolation == natural
                         a = coeffs[:4] if x < xmin else coeffs[-4:]
-                        y = a[3] * x ** 3 + a[2] * x ** 2 + a[1] * x + a[0]
+                        y = a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
                     else:  # Extrapolation is set to constant
                         y = yData[0] if x < xmin else yData[-1]
                 return y
@@ -375,7 +375,7 @@ class Function:
                     # Interpolate
                     y = 0
                     for i in range(len(coeffs)):
-                        y += coeffs[i] * (x ** i)
+                        y += coeffs[i] * (x**i)
                 else:
                     # Extrapolate
                     if extrapolation == 0:  # Extrapolation == zero
@@ -383,7 +383,7 @@ class Function:
                     elif extrapolation == 1:  # Extrapolation == natural
                         y = 0
                         for i in range(len(coeffs)):
-                            y += coeffs[i] * (x ** i)
+                            y += coeffs[i] * (x**i)
                     else:  # Extrapolation is set to constant
                         y = yData[0] if x < xmin else yData[-1]
                 return y
@@ -576,7 +576,7 @@ class Function:
             coeffs = self.__polynomialCoefficients__
             A = np.zeros((len(args[0]), coeffs.shape[0]))
             for i in range(coeffs.shape[0]):
-                A[:, i] = x ** i
+                A[:, i] = x**i
             ans = A.dot(coeffs).tolist()
             for i in range(len(x)):
                 if not (xmin <= x[i] <= xmax):
@@ -713,7 +713,7 @@ class Function:
                 xInterval = xInterval if xInterval != 0 else 1
                 a = coeffs[:, xInterval - 1]
                 x = x - xData[xInterval - 1]
-                y = a[3] * x ** 3 + a[2] * x ** 2 + a[1] * x + a[0]
+                y = a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
             else:
                 # Extrapolate
                 if extrapolation == 0:  # Extrapolation == zero
@@ -721,7 +721,7 @@ class Function:
                 elif extrapolation == 1:  # Extrapolation == natural
                     a = coeffs[:, 0] if x < xmin else coeffs[:, -1]
                     x = x - xData[0] if x < xmin else x - xData[-2]
-                    y = a[3] * x ** 3 + a[2] * x ** 2 + a[1] * x + a[0]
+                    y = a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
                 else:  # Extrapolation is set to constant
                     y = yData[0] if x < xmin else yData[-1]
             return y
@@ -757,14 +757,14 @@ class Function:
                 # Interpolate
                 xInterval = xInterval if xInterval != 0 else 1
                 a = coeffs[4 * xInterval - 4 : 4 * xInterval]
-                y = a[3] * x ** 3 + a[2] * x ** 2 + a[1] * x + a[0]
+                y = a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
             else:
                 # Extrapolate
                 if extrapolation == 0:  # Extrapolation == zero
                     y = 0
                 elif extrapolation == 1:  # Extrapolation == natural
                     a = coeffs[:4] if x < xmin else coeffs[-4:]
-                    y = a[3] * x ** 3 + a[2] * x ** 2 + a[1] * x + a[0]
+                    y = a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
                 else:  # Extrapolation is set to constant
                     y = yData[0] if x < xmin else yData[-1]
             return y
@@ -777,7 +777,7 @@ class Function:
                 # Interpolate
                 y = 0
                 for i in range(len(coeffs)):
-                    y += coeffs[i] * (x ** i)
+                    y += coeffs[i] * (x**i)
             else:
                 # Extrapolate
                 if extrapolation == 0:  # Extrapolation == zero
@@ -785,7 +785,7 @@ class Function:
                 elif extrapolation == 1:  # Extrapolation == natural
                     y = 0
                     for i in range(len(coeffs)):
-                        y += coeffs[i] * (x ** i)
+                        y += coeffs[i] * (x**i)
                 else:  # Extrapolation is set to constant
                     y = yData[0] if x < xmin else yData[-1]
             return y
@@ -863,7 +863,7 @@ class Function:
                     else:
                         a = coeffs[:, xInterval - 1]
                         x = x - xData[xInterval - 1]
-                    x = a[3] * x ** 3 + a[2] * x ** 2 + a[1] * x + a[0]
+                    x = a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
                 else:
                     # Extrapolate
                     if self.__extrapolation__ == "zero":
@@ -896,10 +896,10 @@ class Function:
                     x = yData[xInterval]
                 elif xmin < x < xmax:
                     a = coeffs[4 * xInterval - 4 : 4 * xInterval]
-                    x = a[3] * x ** 3 + a[2] * x ** 2 + a[1] * x + a[0]
+                    x = a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
                 elif self.__extrapolation__ == "natural":
                     a = coeffs[:4] if x < xmin else coeffs[-4:]
-                    x = a[3] * x ** 3 + a[2] * x ** 2 + a[1] * x + a[0]
+                    x = a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
                 else:
                     # Extrapolate
                     if self.__extrapolation__ == "zero":
@@ -1353,7 +1353,7 @@ class Function:
         # Create coefficient matrix1
         A = np.zeros((degree + 1, degree + 1))
         for i in range(degree + 1):
-            A[:, i] = x ** i
+            A[:, i] = x**i
         # Solve the system and store the resultant coefficients
         self.__polynomialCoefficients__ = np.linalg.solve(A, y)
 
@@ -1408,10 +1408,10 @@ class Function:
             dl, dr = d[i], d[i + 1]
             A = np.array(
                 [
-                    [1, xl, xl ** 2, xl ** 3],
-                    [1, xr, xr ** 2, xr ** 3],
-                    [0, 1, 2 * xl, 3 * xl ** 2],
-                    [0, 1, 2 * xr, 3 * xr ** 2],
+                    [1, xl, xl**2, xl**3],
+                    [1, xr, xr**2, xr**3],
+                    [0, 1, 2 * xl, 3 * xl**2],
+                    [0, 1, 2 * xr, 3 * xr**2],
                 ]
             )
             Y = np.array([yl, yr, dl, dr]).T
@@ -1977,9 +1977,9 @@ class Function:
                     c = coeffs[:, 0]
                     subB = a - xData[0]  # subA = 0
                     ans -= (
-                        (c[3] * subB ** 4) / 4
-                        + (c[2] * subB ** 3 / 3)
-                        + (c[1] * subB ** 2 / 2)
+                        (c[3] * subB**4) / 4
+                        + (c[2] * subB**3 / 3)
+                        + (c[1] * subB**2 / 2)
                         + c[0] * subB
                     )
                 else:
@@ -1995,9 +1995,9 @@ class Function:
                 c = coeffs[:, i]
                 subB = xData[i + 1] - xData[i]  # subA = 0
                 ans += (
-                    (c[3] * subB ** 4) / 4
-                    + (c[2] * subB ** 3 / 3)
-                    + (c[1] * subB ** 2 / 2)
+                    (c[3] * subB**4) / 4
+                    + (c[2] * subB**3 / 3)
+                    + (c[1] * subB**2 / 2)
                     + c[0] * subB
                 )
                 i += 1
@@ -2010,15 +2010,15 @@ class Function:
                     subA = xData[-1] - xData[-2]
                     subB = b - xData[-2]
                     ans -= (
-                        (c[3] * subA ** 4) / 4
-                        + (c[2] * subA ** 3 / 3)
-                        + (c[1] * subA ** 2 / 2)
+                        (c[3] * subA**4) / 4
+                        + (c[2] * subA**3 / 3)
+                        + (c[1] * subA**2 / 2)
                         + c[0] * subA
                     )
                     ans += (
-                        (c[3] * subB ** 4) / 4
-                        + (c[2] * subB ** 3 / 3)
-                        + (c[1] * subB ** 2 / 2)
+                        (c[3] * subB**4) / 4
+                        + (c[2] * subB**3 / 3)
+                        + (c[1] * subB**2 / 2)
                         + c[0] * subB
                     )
                 else:
