@@ -835,7 +835,7 @@ class Flight:
                         self.y[0] ** 2
                         + self.y[1] ** 2
                         + (self.y[2] - self.env.elevation) ** 2
-                        >= self.effective1RL ** 2
+                        >= self.effective1RL**2
                     ):
                         # Rocket is out of rail
                         # Check exactly when it went out using root finding
@@ -849,7 +849,7 @@ class Flight:
                         # Get points
                         y0 = (
                             sum([self.solution[-2][i] ** 2 for i in [1, 2, 3]])
-                            - self.effective1RL ** 2
+                            - self.effective1RL**2
                         )
                         yp0 = 2 * sum(
                             [
@@ -860,7 +860,7 @@ class Flight:
                         t1 = self.solution[-1][0] - self.solution[-2][0]
                         y1 = (
                             sum([self.solution[-1][i] ** 2 for i in [1, 2, 3]])
-                            - self.effective1RL ** 2
+                            - self.effective1RL**2
                         )
                         yp1 = 2 * sum(
                             [
@@ -875,15 +875,15 @@ class Flight:
                         D = float(phase.solver.step_size)
                         d = float(y0)
                         c = float(yp0)
-                        b = float((3 * y1 - yp1 * D - 2 * c * D - 3 * d) / (D ** 2))
-                        a = float(-(2 * y1 - yp1 * D - c * D - 2 * d) / (D ** 3)) + 1e-5
+                        b = float((3 * y1 - yp1 * D - 2 * c * D - 3 * d) / (D**2))
+                        a = float(-(2 * y1 - yp1 * D - c * D - 2 * d) / (D**3)) + 1e-5
                         # Find roots
-                        d0 = b ** 2 - 3 * a * c
-                        d1 = 2 * b ** 3 - 9 * a * b * c + 27 * d * a ** 2
-                        c1 = ((d1 + (d1 ** 2 - 4 * d0 ** 3) ** (0.5)) / 2) ** (1 / 3)
+                        d0 = b**2 - 3 * a * c
+                        d1 = 2 * b**3 - 9 * a * b * c + 27 * d * a**2
+                        c1 = ((d1 + (d1**2 - 4 * d0**3) ** (0.5)) / 2) ** (1 / 3)
                         t_roots = []
                         for k in [0, 1, 2]:
-                            c2 = c1 * (-1 / 2 + 1j * (3 ** 0.5) / 2) ** k
+                            c2 = c1 * (-1 / 2 + 1j * (3**0.5) / 2) ** k
                             t_roots.append(-(1 / (3 * a)) * (b + c2 + d0 / c2))
                         # Find correct root
                         valid_t_root = []
@@ -970,15 +970,15 @@ class Flight:
                         D = float(phase.solver.step_size)
                         d = float(y0)
                         c = float(yp0)
-                        b = float((3 * y1 - yp1 * D - 2 * c * D - 3 * d) / (D ** 2))
-                        a = float(-(2 * y1 - yp1 * D - c * D - 2 * d) / (D ** 3))
+                        b = float((3 * y1 - yp1 * D - 2 * c * D - 3 * d) / (D**2))
+                        a = float(-(2 * y1 - yp1 * D - c * D - 2 * d) / (D**3))
                         # Find roots
-                        d0 = b ** 2 - 3 * a * c
-                        d1 = 2 * b ** 3 - 9 * a * b * c + 27 * d * a ** 2
-                        c1 = ((d1 + (d1 ** 2 - 4 * d0 ** 3) ** (0.5)) / 2) ** (1 / 3)
+                        d0 = b**2 - 3 * a * c
+                        d1 = 2 * b**3 - 9 * a * b * c + 27 * d * a**2
+                        c1 = ((d1 + (d1**2 - 4 * d0**3) ** (0.5)) / 2) ** (1 / 3)
                         t_roots = []
                         for k in [0, 1, 2]:
-                            c2 = c1 * (-1 / 2 + 1j * (3 ** 0.5) / 2) ** k
+                            c2 = c1 * (-1 / 2 + 1j * (3**0.5) / 2) ** k
                             t_roots.append(-(1 / (3 * a)) * (b + c2 + d0 / c2))
                         # Find correct root
                         valid_t_root = []
@@ -1154,14 +1154,14 @@ class Flight:
         # Calculate Forces
         Thrust = self.rocket.motor.thrust.getValueOpt(t)
         rho = self.env.density.getValueOpt(z)
-        R3 = -0.5 * rho * (freestreamSpeed ** 2) * self.rocket.area * (dragCoeff)
+        R3 = -0.5 * rho * (freestreamSpeed**2) * self.rocket.area * (dragCoeff)
 
         # Calculate Linear acceleration
-        a3 = (R3 + Thrust) / M - (e0 ** 2 - e1 ** 2 - e2 ** 2 + e3 ** 2) * self.env.g
+        a3 = (R3 + Thrust) / M - (e0**2 - e1**2 - e2**2 + e3**2) * self.env.g
         if a3 > 0:
             ax = 2 * (e1 * e3 + e0 * e2) * a3
             ay = 2 * (e2 * e3 - e0 * e1) * a3
-            az = (1 - 2 * (e1 ** 2 + e2 ** 2)) * a3
+            az = (1 - 2 * (e1**2 + e2**2)) * a3
         else:
             ax, ay, az = 0, 0, 0
 
@@ -1260,15 +1260,15 @@ class Flight:
         a = b * Mt / M
         rN = self.rocket.motor.nozzleRadius
         # Prepare transformation matrix
-        a11 = 1 - 2 * (e2 ** 2 + e3 ** 2)
+        a11 = 1 - 2 * (e2**2 + e3**2)
         a12 = 2 * (e1 * e2 - e0 * e3)
         a13 = 2 * (e1 * e3 + e0 * e2)
         a21 = 2 * (e1 * e2 + e0 * e3)
-        a22 = 1 - 2 * (e1 ** 2 + e3 ** 2)
+        a22 = 1 - 2 * (e1**2 + e3**2)
         a23 = 2 * (e2 * e3 - e0 * e1)
         a31 = 2 * (e1 * e3 - e0 * e2)
         a32 = 2 * (e2 * e3 + e0 * e1)
-        a33 = 1 - 2 * (e1 ** 2 + e2 ** 2)
+        a33 = 1 - 2 * (e1**2 + e2**2)
         # Transformation matrix: (123) -> (XYZ)
         K = [[a11, a12, a13], [a21, a22, a23], [a31, a32, a33]]
         # Transformation matrix: (XYZ) -> (123) or K transpose
@@ -1290,7 +1290,7 @@ class Flight:
         else:
             dragCoeff = self.rocket.powerOffDrag.getValueOpt(freestreamMach)
         rho = self.env.density.getValueOpt(z)
-        R3 = -0.5 * rho * (freestreamSpeed ** 2) * self.rocket.area * (dragCoeff)
+        R3 = -0.5 * rho * (freestreamSpeed**2) * self.rocket.area * (dragCoeff)
         # Off center moment
         M1 += self.rocket.cpExcentricityY * R3
         M2 -= self.rocket.cpExcentricityX * R3
@@ -1317,12 +1317,12 @@ class Flight:
             compStreamVyB = compWindVyB - compVyB
             compStreamVzB = compWindVzB - compVzB
             compStreamSpeed = (
-                compStreamVxB ** 2 + compStreamVyB ** 2 + compStreamVzB ** 2
+                compStreamVxB**2 + compStreamVyB**2 + compStreamVzB**2
             ) ** 0.5
             # Component attack angle and lift force
             compAttackAngle = 0
             compLift, compLiftXB, compLiftYB = 0, 0, 0
-            if compStreamVxB ** 2 + compStreamVyB ** 2 != 0:
+            if compStreamVxB**2 + compStreamVyB**2 != 0:
                 # Normalize component stream velocity in body frame
                 compStreamVzBn = compStreamVzB / compStreamSpeed
                 if -1 * compStreamVzBn < 1:
@@ -1330,10 +1330,10 @@ class Flight:
                     cLift = abs(aerodynamicSurface[1](compAttackAngle))
                     # Component lift force magnitude
                     compLift = (
-                        0.5 * rho * (compStreamSpeed ** 2) * self.rocket.area * cLift
+                        0.5 * rho * (compStreamSpeed**2) * self.rocket.area * cLift
                     )
                     # Component lift force components
-                    liftDirNorm = (compStreamVxB ** 2 + compStreamVyB ** 2) ** 0.5
+                    liftDirNorm = (compStreamVxB**2 + compStreamVyB**2) ** 0.5
                     compLiftXB = compLift * (compStreamVxB / liftDirNorm)
                     compLiftYB = compLift * (compStreamVyB / liftDirNorm)
                     # Add to total lift force
@@ -1347,26 +1347,26 @@ class Flight:
         alpha1 = (
             M1
             - (
-                omega2 * omega3 * (Rz + Tz - Ri - Ti - mu * b ** 2)
+                omega2 * omega3 * (Rz + Tz - Ri - Ti - mu * b**2)
                 + omega1
                 * (
                     (TiDot + MtDot * (Mr - 1) * (b / M) ** 2)
                     - MtDot * ((rN / 2) ** 2 + (c - b * mu / Mr) ** 2)
                 )
             )
-        ) / (Ri + Ti + mu * b ** 2)
+        ) / (Ri + Ti + mu * b**2)
         alpha2 = (
             M2
             - (
-                omega1 * omega3 * (Ri + Ti + mu * b ** 2 - Rz - Tz)
+                omega1 * omega3 * (Ri + Ti + mu * b**2 - Rz - Tz)
                 + omega2
                 * (
                     (TiDot + MtDot * (Mr - 1) * (b / M) ** 2)
                     - MtDot * ((rN / 2) ** 2 + (c - b * mu / Mr) ** 2)
                 )
             )
-        ) / (Ri + Ti + mu * b ** 2)
-        alpha3 = (M3 - omega3 * (TzDot - MtDot * (rN ** 2) / 2)) / (Rz + Tz)
+        ) / (Ri + Ti + mu * b**2)
+        alpha3 = (M3 - omega3 * (TzDot - MtDot * (rN**2) / 2)) / (Rz + Tz)
         # Euler parameters derivative
         e0Dot = 0.5 * (-omega1 * e1 - omega2 * e2 - omega3 * e3)
         e1Dot = 0.5 * (omega1 * e0 + omega3 * e2 - omega2 * e3)
@@ -1375,7 +1375,7 @@ class Flight:
 
         # Linear acceleration
         L = [
-            (R1 - b * Mt * (omega2 ** 2 + omega3 ** 2) - 2 * c * MtDot * omega2) / M,
+            (R1 - b * Mt * (omega2**2 + omega3**2) - 2 * c * MtDot * omega2) / M,
             (R2 + b * Mt * (alpha3 + omega1 * omega2) + 2 * c * MtDot * omega1) / M,
             (R3 - b * Mt * (alpha2 - omega1 * omega3) + Thrust) / M,
         ]
@@ -1446,11 +1446,11 @@ class Flight:
         R = 1.5
         rho = self.env.density.getValueOpt(u[2])
         to = 1.2
-        ma = ka * rho * (4 / 3) * np.pi * R ** 3
+        ma = ka * rho * (4 / 3) * np.pi * R**3
         mp = self.rocket.mass
         eta = 1
-        Rdot = (6 * R * (1 - eta) / (1.2 ** 6)) * (
-            (1 - eta) * t ** 5 + eta * (to ** 3) * (t ** 2)
+        Rdot = (6 * R * (1 - eta) / (1.2**6)) * (
+            (1 - eta) * t**5 + eta * (to**3) * (t**2)
         )
         Rdot = 0
         # Get relevant state data
@@ -1466,7 +1466,7 @@ class Flight:
         freestreamZ = vz
         # Determine drag force
         pseudoD = (
-            -0.5 * rho * CdS * freestreamSpeed - ka * rho * 4 * np.pi * (R ** 2) * Rdot
+            -0.5 * rho * CdS * freestreamSpeed - ka * rho * 4 * np.pi * (R**2) * Rdot
         )
         Dx = pseudoD * freestreamX
         Dy = pseudoD * freestreamY
@@ -1636,19 +1636,19 @@ class Flight:
 
         # Kinematics functions and values
         # Velocity Magnitude
-        self.speed = (self.vx ** 2 + self.vy ** 2 + self.vz ** 2) ** 0.5
+        self.speed = (self.vx**2 + self.vy**2 + self.vz**2) ** 0.5
         self.speed.setOutputs("Speed - Velocity Magnitude (m/s)")
         maxSpeedTimeIndex = np.argmax(self.speed[:, 1])
         self.maxSpeed = self.speed[maxSpeedTimeIndex, 1]
         self.maxSpeedTime = self.speed[maxSpeedTimeIndex, 0]
         # Acceleration
-        self.acceleration = (self.ax ** 2 + self.ay ** 2 + self.az ** 2) ** 0.5
+        self.acceleration = (self.ax**2 + self.ay**2 + self.az**2) ** 0.5
         self.acceleration.setOutputs("Acceleration Magnitude (m/s²)")
         maxAccelerationTimeIndex = np.argmax(self.acceleration[:, 1])
         self.maxAcceleration = self.acceleration[maxAccelerationTimeIndex, 1]
         self.maxAccelerationTime = self.acceleration[maxAccelerationTimeIndex, 0]
         # Path Angle
-        self.horizontalSpeed = (self.vx ** 2 + self.vy ** 2) ** 0.5
+        self.horizontalSpeed = (self.vx**2 + self.vy**2) ** 0.5
         pathAngle = (180 / np.pi) * np.arctan2(
             self.vz[:, 1], self.horizontalSpeed[:, 1]
         )
@@ -1657,9 +1657,9 @@ class Flight:
         # Attitude Angle
         self.attitudeVectorX = 2 * (self.e1 * self.e3 + self.e0 * self.e2)  # a13
         self.attitudeVectorY = 2 * (self.e2 * self.e3 - self.e0 * self.e1)  # a23
-        self.attitudeVectorZ = 1 - 2 * (self.e1 ** 2 + self.e2 ** 2)  # a33
+        self.attitudeVectorZ = 1 - 2 * (self.e1**2 + self.e2**2)  # a33
         horizontalAttitudeProj = (
-            self.attitudeVectorX ** 2 + self.attitudeVectorY ** 2
+            self.attitudeVectorX**2 + self.attitudeVectorY**2
         ) ** 0.5
         attitudeAngle = (180 / np.pi) * np.arctan2(
             self.attitudeVectorZ[:, 1], horizontalAttitudeProj[:, 1]
@@ -1680,9 +1680,9 @@ class Flight:
         attiutdeLateralPlaneProjY = self.attitudeVectorY[:, 1] - attitudeLateralProjY
         attiutdeLateralPlaneProjZ = self.attitudeVectorZ[:, 1]
         attiutdeLateralPlaneProj = (
-            attiutdeLateralPlaneProjX ** 2
-            + attiutdeLateralPlaneProjY ** 2
-            + attiutdeLateralPlaneProjZ ** 2
+            attiutdeLateralPlaneProjX**2
+            + attiutdeLateralPlaneProjY**2
+            + attiutdeLateralPlaneProjZ**2
         ) ** 0.5
         lateralAttitudeAngle = (180 / np.pi) * np.arctan2(
             attitudeLateralProj, attiutdeLateralPlaneProj
@@ -1774,11 +1774,11 @@ class Flight:
                 self.railButton2ShearForce[:outOfRailTimeIndex]
             )
         # Aerodynamic Lift and Drag
-        self.aerodynamicLift = (self.R1 ** 2 + self.R2 ** 2) ** 0.5
+        self.aerodynamicLift = (self.R1**2 + self.R2**2) ** 0.5
         self.aerodynamicLift.setOutputs("Aerodynamic Lift Force (N)")
         self.aerodynamicDrag = -1 * self.R3
         self.aerodynamicDrag.setOutputs("Aerodynamic Drag Force (N)")
-        self.aerodynamicBendingMoment = (self.M1 ** 2 + self.M2 ** 2) ** 0.5
+        self.aerodynamicBendingMoment = (self.M1**2 + self.M2**2) ** 0.5
         self.aerodynamicBendingMoment.setOutputs("Aerodynamic Bending Moment (N m)")
         self.aerodynamicSpinMoment = self.M3
         self.aerodynamicSpinMoment.setOutputs("Aerodynamic Spin Moment (N m)")
@@ -1790,7 +1790,7 @@ class Flight:
         Ri = self.rocket.inertiaI
         Tz = self.rocket.motor.inertiaZ
         Ti = self.rocket.motor.inertiaI
-        I1, I2, I3 = (Ri + Ti + mu * b ** 2), (Ri + Ti + mu * b ** 2), (Rz + Tz)
+        I1, I2, I3 = (Ri + Ti + mu * b**2), (Ri + Ti + mu * b**2), (Rz + Tz)
         # Redefine I1, I2 and I3 grid
         grid = self.vx[:, 0]
         I1 = Function(np.column_stack([grid, I1(grid)]), "Time (s)")
@@ -1806,9 +1806,9 @@ class Flight:
         vx, vy, vz = self.vx, self.vy, self.vz
         w1, w2, w3 = self.w1, self.w2, self.w3
         # Kinetic Energy
-        self.rotationalEnergy = 0.5 * (I1 * w1 ** 2 + I2 * w2 ** 2 + I3 * w3 ** 2)
+        self.rotationalEnergy = 0.5 * (I1 * w1**2 + I2 * w2**2 + I3 * w3**2)
         self.rotationalEnergy.setOutputs("Rotational Kinetic Energy (J)")
-        self.translationalEnergy = 0.5 * totalMass * (vx ** 2 + vy ** 2 + vz ** 2)
+        self.translationalEnergy = 0.5 * totalMass * (vx**2 + vy**2 + vz**2)
         self.translationalEnergy.setOutputs("Translational Kinetic Energy (J)")
         self.kineticEnergy = self.rotationalEnergy + self.translationalEnergy
         self.kineticEnergy.setOutputs("Kinetic Energy (J)")
@@ -1917,9 +1917,9 @@ class Flight:
         self.streamVelocityZ = -1 * self.vz
         self.streamVelocityZ.setOutputs("Freestream Velocity Z (m/s)")
         self.freestreamSpeed = (
-            self.streamVelocityX ** 2
-            + self.streamVelocityY ** 2
-            + self.streamVelocityZ ** 2
+            self.streamVelocityX**2
+            + self.streamVelocityY**2
+            + self.streamVelocityZ**2
         ) ** 0.5
         self.freestreamSpeed.setOutputs("Freestream Speed (m/s)")
         # Apogee Freestream speed
@@ -1939,7 +1939,7 @@ class Flight:
         self.maxReynoldsNumberTime = self.ReynoldsNumber[maxReynoldsNumberTimeIndex, 0]
         self.maxReynoldsNumber = self.ReynoldsNumber[maxReynoldsNumberTimeIndex, 1]
         # Dynamic Pressure
-        self.dynamicPressure = 0.5 * self.density * self.freestreamSpeed ** 2
+        self.dynamicPressure = 0.5 * self.density * self.freestreamSpeed**2
         self.dynamicPressure.setOutputs("Dynamic Pressure (Pa)")
         maxDynamicPressureTimeIndex = np.argmax(self.dynamicPressure[:, 1])
         self.maxDynamicPressureTime = self.dynamicPressure[
@@ -1947,7 +1947,7 @@ class Flight:
         ]
         self.maxDynamicPressure = self.dynamicPressure[maxDynamicPressureTimeIndex, 1]
         # Total Pressure
-        self.totalPressure = self.pressure * (1 + 0.2 * self.MachNumber ** 2) ** (3.5)
+        self.totalPressure = self.pressure * (1 + 0.2 * self.MachNumber**2) ** (3.5)
         self.totalPressure.setOutputs("Total Pressure (Pa)")
         maxtotalPressureTimeIndex = np.argmax(self.totalPressure[:, 1])
         self.maxtotalPressureTime = self.totalPressure[maxtotalPressureTimeIndex, 0]
@@ -2310,7 +2310,7 @@ class Flight:
         wV = (
             2 * vF * math.cos(tetha) / c
             + (
-                4 * vF * vF * math.cos(tetha) * math.cos(tetha) / (c ** 2)
+                4 * vF * vF * math.cos(tetha) * math.cos(tetha) / (c**2)
                 + 4 * 1 * vF * vF / c
             )
             ** 0.5
@@ -2992,7 +2992,7 @@ class Flight:
         # Calculate the Fin Flutter Mach Number
         self.flutterMachNumber = (
             (shearModulus * 2 * (ar + 2) * (finThickness / self.rocket.rootChord) ** 3)
-            / (1.337 * (ar ** 3) * (la + 1) * self.pressure)
+            / (1.337 * (ar**3) * (la + 1) * self.pressure)
         ) ** 0.5
 
         # Calculate difference between Fin Flutter Mach Number and the Rocket Speed
@@ -3398,18 +3398,16 @@ class Flight:
                 altitude=(self.z(self.rocket.motor.burnOutTime) - self.env.elevation),
                 velocity=np.float64(
                     self.speed(self.rocket.motor.burnOutTime),
-                    freestreamVelocity=(
-                        self.streamVelocityX(self.rocket.motor.burnOutTime) ** 2
-                        + self.streamVelocityY(self.rocket.motor.burnOutTime) ** 2
-                        + self.streamVelocityZ(self.rocket.motor.burnOutTime) ** 2
-                    )
-                    ** 0.5,
-                    machNumber=np.float64(
-                        self.MachNumber(self.rocket.motor.burnOutTime)
-                    ),
-                    kineticEnergy=np.float64(
-                        self.kineticEnergy(self.rocket.motor.burnOutTime)
-                    ),
+                ),
+                freestreamVelocity=(
+                    self.streamVelocityX(self.rocket.motor.burnOutTime) ** 2
+                    + self.streamVelocityY(self.rocket.motor.burnOutTime) ** 2
+                    + self.streamVelocityZ(self.rocket.motor.burnOutTime) ** 2
+                )
+                ** 0.5,
+                machNumber=np.float64(self.MachNumber(self.rocket.motor.burnOutTime)),
+                kineticEnergy=np.float64(
+                    self.kineticEnergy(self.rocket.motor.burnOutTime)
                 ),
             ),
             apogee=dict(
