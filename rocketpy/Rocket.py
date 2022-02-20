@@ -709,17 +709,15 @@ class Rocket:
                 interpolation="linear",
             )
 
-            # Convert to radians if needed
-            if airfoil[1] == "degrees":
-                if callable(airfoil[0]):
-                    airfoilCl *= np.pi / 180
-                else:
-                    for i in range(len(airfoilCl)):
-                        airfoilCl[i][0] *= np.pi / 180
+            # Differentiating at x = 0 to get cl_alpha
+            clalpha2D_Mach0 = airfoilCl.differentiate(x=1e-3, dx=1e-3)
 
-            # Differentiating at x = 0 and correctign for compressible flow
+            # Convert to radians if needed
+            if airfoil[1] == "degrees": clalpha2D_Mach0 *= 180/np.pi
+
+            # Correcting for compressible flow
             clalpha2D = Function(
-                lambda mach: airfoilCl.differentiate(x=1e-3, dx=1e-3) / beta(mach)
+                lambda mach: clalpha2D_Mach0 / beta(mach)
             )
 
         # Diederich's Planform Correlation Parameter
