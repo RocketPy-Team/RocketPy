@@ -106,8 +106,10 @@ class SolidMotor:
             Propellant burn rate in meter/second as a function of time.
         exitPressure : float
             Pressure at nozzle's outlet, in Pa. Used to calculate pressure thrust
-            term. Should be consistent with atmospheric pressure for the supplied
-            thrustSource data.
+            term.
+        staticFireAmbientPressure : float
+            External pressure at static fire location, in Pa. Used to correct
+            thrust data if it provides from a static fire test perfomed at altitude.
         altitudeCompensatingNozzle : bool
             If True, assumes optimum nozzle expansion throughout the flight and
             neglects pressure thrust term. Should be used if your supplied thrust
@@ -133,6 +135,7 @@ class SolidMotor:
         throatRadius=0.0114,
         grainSeparation=0,
         exitPressure=101325,
+        staticFireAmbientPressure=None,
         altitudeCompensatingNozzle=False,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
@@ -176,9 +179,14 @@ class SolidMotor:
         exitPressure : int, float, optional
             Pressure at nozzle's outlet, in Pa. Used to calculate pressure thrust
             term. Most motors are designed to produce a fixed exit pressure which
-            does not always correspond to freestream pressure. This value should also
-            be consistent with atmospheric pressure for the supplied thrustSource data.
-            Default is 1 standard atmosphere.
+            does not always correspond to freestream pressure. Default is 1
+            standard atmosphere.
+        staticFireAmbientPressure : int, float, optional
+            External pressure at static fire location, in Pa. Used to correct
+            thrust source if it provides from a static fire test perfomed at altitude.
+            Thrust due to pressure difference will be calculated and subtracted,
+            in order to keep only momentum thrust. By default, assumes same value
+            as exitPressure.
         altitudeCompensatingNozzle : bool, optional
             If True, assumes optimum nozzle expansion throughout the flight and
             neglects pressure thrust term. Should be used if your supplied thrust
@@ -238,6 +246,14 @@ class SolidMotor:
         if callable(thrustSource) or isinstance(thrustSource, (int, float)):
             self.thrust.setDiscrete(0, burnOut, 50, self.interpolate, "zero")
 
+        # Correct for thrust curve
+        if staticFireAmbientPressure is None:
+            staticFireAmbientPressure = self.exitPressure
+        imbued_pressure_thrust = (
+            (self.exitPressure - staticFireAmbientPressure) * np.pi * nozzleRadius**2
+        )
+        self.thrust -= imbued_pressure_thrust
+
         # Reshape curve and calculate impulse
         if reshapeThrustCurve:
             self.reshapeThrustCurve(*reshapeThrustCurve)
@@ -280,7 +296,7 @@ class SolidMotor:
         self.grainInitialVolume = (
             self.grainInitialHeight
             * np.pi
-            * (self.grainOuterRadius ** 2 - self.grainInitialInnerRadius ** 2)
+            * (self.grainOuterRadius**2 - self.grainInitialInnerRadius**2)
         )
         self.grainInitialMass = self.grainDensity * self.grainInitialVolume
         self.propellantInitialMass = self.grainNumber * self.grainInitialMass
@@ -450,7 +466,7 @@ class SolidMotor:
 
     @property
     def throatArea(self):
-        return np.pi * self.throatRadius ** 2
+        return np.pi * self.throatRadius**2
 
     def evaluateGeometry(self):
         """Calculates grain inner radius and grain height as a
@@ -489,9 +505,9 @@ class SolidMotor:
             grainMassDot = self.massDot(t) / self.grainNumber
             rI, h = y
             rIDot = (
-                -0.5 * grainMassDot / (density * np.pi * (rO ** 2 - rI ** 2 + rI * h))
+                -0.5 * grainMassDot / (density * np.pi * (rO**2 - rI**2 + rI * h))
             )
-            hDot = 1.0 * grainMassDot / (density * np.pi * (rO ** 2 - rI ** 2 + rI * h))
+            hDot = 1.0 * grainMassDot / (density * np.pi * (rO**2 - rI**2 + rI * h))
             return [rIDot, hDot]
 
         # Solve the system of differential equations
@@ -538,8 +554,8 @@ class SolidMotor:
             2
             * np.pi
             * (
-                self.grainOuterRadius ** 2
-                - self.grainInnerRadius ** 2
+                self.grainOuterRadius**2
+                - self.grainInnerRadius**2
                 + self.grainInnerRadius * self.grainHeight
             )
             * self.grainNumber
@@ -610,8 +626,8 @@ class SolidMotor:
         grainMassDot = self.massDot / self.grainNumber
         grainNumber = self.grainNumber
         grainInertiaI = grainMass * (
-            (1 / 4) * (self.grainOuterRadius ** 2 + self.grainInnerRadius ** 2)
-            + (1 / 12) * self.grainHeight ** 2
+            (1 / 4) * (self.grainOuterRadius**2 + self.grainInnerRadius**2)
+            + (1 / 12) * self.grainHeight**2
         )
 
         # Calculate each grain's distance d to propellant center of mass
@@ -620,7 +636,7 @@ class SolidMotor:
         d = d * (self.grainInitialHeight + self.grainSeparation)
 
         # Calculate inertia for all grains
-        self.inertiaI = grainNumber * grainInertiaI + grainMass * np.sum(d ** 2)
+        self.inertiaI = grainNumber * grainInertiaI + grainMass * np.sum(d**2)
         self.inertiaI.setOutputs("Propellant Inertia I (kg*m2)")
 
         # Inertia I Dot
@@ -628,8 +644,8 @@ class SolidMotor:
         grainInertiaIDot = (
             grainMassDot
             * (
-                (1 / 4) * (self.grainOuterRadius ** 2 + self.grainInnerRadius ** 2)
-                + (1 / 12) * self.grainHeight ** 2
+                (1 / 4) * (self.grainOuterRadius**2 + self.grainInnerRadius**2)
+                + (1 / 12) * self.grainHeight**2
             )
             + grainMass
             * ((1 / 2) * self.grainInnerRadius - (1 / 3) * self.grainHeight)
@@ -638,7 +654,7 @@ class SolidMotor:
 
         # Calculate inertia I dot for all grains
         self.inertiaIDot = grainNumber * grainInertiaIDot + grainMassDot * np.sum(
-            d ** 2
+            d**2
         )
         self.inertiaIDot.setOutputs("Propellant Inertia I Dot (kg*m2/s)")
 
@@ -646,13 +662,13 @@ class SolidMotor:
         self.inertiaZ = (
             (1 / 2.0)
             * self.mass
-            * (self.grainOuterRadius ** 2 + self.grainInnerRadius ** 2)
+            * (self.grainOuterRadius**2 + self.grainInnerRadius**2)
         )
         self.inertiaZ.setOutputs("Propellant Inertia Z (kg*m2)")
 
         # Inertia Z Dot
         self.inertiaZDot = (1 / 2.0) * self.massDot * (
-            self.grainOuterRadius ** 2 + self.grainInnerRadius ** 2
+            self.grainOuterRadius**2 + self.grainInnerRadius**2
         ) + self.mass * self.grainInnerRadius * self.burnRate
         self.inertiaZDot.setOutputs("Propellant Inertia Z Dot (kg*m2/s)")
 
