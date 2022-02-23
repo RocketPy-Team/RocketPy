@@ -217,6 +217,14 @@ class SolidMotor:
         # Pressure thrust related parameters
         self.exitPressure = exitPressure
         self.altitudeCompensatingNozzle = altitudeCompensatingNozzle
+        self.pressureThrust = Function(
+            lambda freestreamPressure: (not altitudeCompensatingNozzle)
+            * (self.exitPressure - freestreamPressure)
+            * np.pi
+            * nozzleRadius**2,
+            inputs=["Freestream Pressure (Pa)"],
+            outputs=["Pressure Thrust (N)"],
+        )
 
         # Check if thrustSource is csv, eng, function or other
         if isinstance(thrustSource, str):
@@ -286,7 +294,7 @@ class SolidMotor:
         self.maxThrustTime = None
         self.averageThrust = None
 
-        # Compute uncalculated quantities
+        # Compute quantities
         # Thrust information - maximum and average
         self.maxThrust = np.amax(self.thrust.source[:, 1])
         maxThrustIndex = np.argmax(self.thrust.source[:, 1])
@@ -697,7 +705,7 @@ class SolidMotor:
             List of all data points in file. Each data point is an entry in
             the returned list and written as a list of two entries.
         """
-        # Intiailize arrays
+        # Initialize arrays
         comments = []
         description = []
         dataPoints = [[0, 0]]
@@ -707,9 +715,9 @@ class SolidMotor:
             for line in file:
                 if re.search(r";.*", line):
                     # Extract comment
-                    comments.append(re.findall(r";.*\n", line)[0])
+                    comments.append(re.findall(r";.*", line)[0])
                     line = re.sub(r";.*", "", line)
-                if not line.isspace():
+                if line.strip():
                     if description == []:
                         # Extract description
                         description = line.strip().split(" ")
