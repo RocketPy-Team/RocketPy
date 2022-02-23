@@ -432,3 +432,72 @@ def test_rolling_flight(mock_show):
     )
 
     assert test_flight.allInfo() == None
+
+
+def test_export_data():
+    "Tests weather the method Flight.exportData is working as intended"
+
+    test_env = Environment(
+        railLength=5,
+        latitude=32.990254,
+        longitude=-106.974998,
+        elevation=1400,
+        datum="WGS84",
+    )
+
+    test_motor = SolidMotor(
+        thrustSource=1000,
+        burnOut=3.9,
+        grainNumber=5,
+        grainSeparation=5 / 1000,
+        grainDensity=1815,
+        grainOuterRadius=33 / 1000,
+        grainInitialInnerRadius=15 / 1000,
+        grainInitialHeight=120 / 1000,
+        nozzleRadius=33 / 1000,
+        throatRadius=11 / 1000,
+        interpolationMethod="linear",
+    )
+
+    test_rocket = Rocket(
+        motor=test_motor,
+        radius=127 / 2000,
+        mass=19.197 - 2.956,
+        inertiaI=6.60,
+        inertiaZ=0.0351,
+        distanceRocketNozzle=-1.255,
+        distanceRocketPropellant=-0.85704,
+        powerOffDrag=0.5,
+        powerOnDrag=0.5,
+    )
+
+    test_rocket.setRailButtons([0.2, -0.5])
+
+    NoseCone = test_rocket.addNose(
+        length=0.55829, kind="vonKarman", distanceToCM=0.71971
+    )
+    FinSet = test_rocket.addFins(
+        4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
+    )
+
+    test_flight = Flight(
+        rocket=test_rocket, environment=test_env, inclination=85, heading=0
+    )
+
+    # Basic export
+    test_flight.exportData("test_export_data_1.csv")
+
+    # Custom export
+    test_flight.exportData(
+        "test_export_data_2.csv", "z", "vz", "e1", "w3", "angleOfAttack", timeStep=0.1
+    )
+
+    # Load exported files and fixtures and compare them
+
+    test_1 = np.loadtxt("test_export_data_1.csv", delimiter=",")
+    ref__1 = np.loadtxt("tests/fixtures/flight/test_export_data_1.csv", delimiter=",")
+    test_2 = np.loadtxt("test_export_data_2.csv", delimiter=",")
+    ref__2 = np.loadtxt("tests/fixtures/flight/test_export_data_2.csv", delimiter=",")
+
+    assert np.allclose(ref__1, test_1) == True
+    assert np.allclose(ref__2, test_2) == True
