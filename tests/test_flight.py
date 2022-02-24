@@ -498,26 +498,26 @@ def test_export_data():
     test_2 = np.loadtxt("test_export_data_2.csv", delimiter=",")
 
     # Check if basic exported content matches data
-    assert test_flight.x[:, 0] == test_1[:, 0]
-    assert test_flight.x[:, 1] == test_1[:, 1]
-    assert test_flight.y[:, 1] == test_1[:, 2]
-    assert test_flight.z[:, 1] == test_1[:, 3]
-    assert test_flight.vx[:, 1] == test_1[:, 4]
-    assert test_flight.vy[:, 1] == test_1[:, 5]
-    assert test_flight.vz[:, 1] == test_1[:, 6]
-    assert test_flight.e0[:, 1] == test_1[:, 7]
-    assert test_flight.e1[:, 1] == test_1[:, 8]
-    assert test_flight.e2[:, 1] == test_1[:, 9]
-    assert test_flight.e3[:, 1] == test_1[:, 10]
-    assert test_flight.w1[:, 1] == test_1[:, 11]
-    assert test_flight.w2[:, 1] == test_1[:, 12]
-    assert test_flight.w3[:, 1] == test_1[:, 13]
+    assert np.allclose(test_flight.x[:, 0], test_1[:, 0]) == True
+    assert np.allclose(test_flight.x[:, 1], test_1[:, 1]) == True
+    assert np.allclose(test_flight.y[:, 1], test_1[:, 2]) == True
+    assert np.allclose(test_flight.z[:, 1], test_1[:, 3]) == True
+    assert np.allclose(test_flight.vx[:, 1], test_1[:, 4]) == True
+    assert np.allclose(test_flight.vy[:, 1], test_1[:, 5]) == True
+    assert np.allclose(test_flight.vz[:, 1], test_1[:, 6]) == True
+    assert np.allclose(test_flight.e0[:, 1], test_1[:, 7]) == True
+    assert np.allclose(test_flight.e1[:, 1], test_1[:, 8]) == True
+    assert np.allclose(test_flight.e2[:, 1], test_1[:, 9]) == True
+    assert np.allclose(test_flight.e3[:, 1], test_1[:, 10]) == True
+    assert np.allclose(test_flight.w1[:, 1], test_1[:, 11]) == True
+    assert np.allclose(test_flight.w2[:, 1], test_1[:, 12]) == True
+    assert np.allclose(test_flight.w3[:, 1], test_1[:, 13]) == True
 
     # Check if custom exported content matches data
     timePoints = np.arange(test_flight.tInitial, test_flight.tFinal, 0.1)
-    assert timePoints == test_1[:, 0]
-    assert testFlight.z(timePoints) == test_1[:, 1]
-    assert testFlight.vz(timePoints) == test_1[:, 2]
-    assert testFlight.e1(timePoints) == test_1[:, 3]
-    assert testFlight.w3(timePoints) == test_1[:, 4]
-    assert testFlight.angleOfAttack(timePoints) == test_1[:, 5]
+    assert np.allclose(timePoints, test_1[:, 0]) == True
+    assert np.allclose(testFlight.z(timePoints), test_1[:, 1]) == True
+    assert np.allclose(testFlight.vz(timePoints), test_1[:, 2]) == True
+    assert np.allclose(testFlight.e1(timePoints), test_1[:, 3]) == True
+    assert np.allclose(testFlight.w3(timePoints), test_1[:, 4]) == True
+    assert np.allclose(testFlight.angleOfAttack(timePoints), test_1[:, 5]) == True
