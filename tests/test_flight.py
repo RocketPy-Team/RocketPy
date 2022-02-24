@@ -520,4 +520,7 @@ def test_export_data():
     assert np.allclose(testFlight.vz(timePoints), test_1[:, 2], atol=1e-5) == True
     assert np.allclose(testFlight.e1(timePoints), test_1[:, 3], atol=1e-5) == True
     assert np.allclose(testFlight.w3(timePoints), test_1[:, 4], atol=1e-5) == True
-    assert np.allclose(testFlight.angleOfAttack(timePoints), test_1[:, 5], atol=1e-5) == True
+    assert (
+        np.allclose(testFlight.angleOfAttack(timePoints), test_1[:, 5], atol=1e-5)
+        == True
+    )
