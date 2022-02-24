@@ -495,9 +495,29 @@ def test_export_data():
     # Load exported files and fixtures and compare them
 
     test_1 = np.loadtxt("test_export_data_1.csv", delimiter=",")
-    ref__1 = np.loadtxt("tests/fixtures/flight/test_export_data_1.csv", delimiter=",")
     test_2 = np.loadtxt("test_export_data_2.csv", delimiter=",")
-    ref__2 = np.loadtxt("tests/fixtures/flight/test_export_data_2.csv", delimiter=",")
 
-    assert np.allclose(ref__1, test_1) == True
-    assert np.allclose(ref__2, test_2) == True
+    # Check if basic exported content matches data
+    assert test_flight.x[:, 0] == test_1[:, 0]
+    assert test_flight.x[:, 1] == test_1[:, 1]
+    assert test_flight.y[:, 1] == test_1[:, 2]
+    assert test_flight.z[:, 1] == test_1[:, 3]
+    assert test_flight.vx[:, 1] == test_1[:, 4]
+    assert test_flight.vy[:, 1] == test_1[:, 5]
+    assert test_flight.vz[:, 1] == test_1[:, 6]
+    assert test_flight.e0[:, 1] == test_1[:, 7]
+    assert test_flight.e1[:, 1] == test_1[:, 8]
+    assert test_flight.e2[:, 1] == test_1[:, 9]
+    assert test_flight.e3[:, 1] == test_1[:, 10]
+    assert test_flight.w1[:, 1] == test_1[:, 11]
+    assert test_flight.w2[:, 1] == test_1[:, 12]
+    assert test_flight.w3[:, 1] == test_1[:, 13]
+
+    # Check if custom exported content matches data
+    timePoints = np.arange(test_flight.tInitial, test_flight.tFinal, 0.1)
+    assert timePoints == test_1[:, 0]
+    assert testFlight.z(timePoints) == test_1[:, 1]
+    assert testFlight.vz(timePoints) == test_1[:, 2]
+    assert testFlight.e1(timePoints) == test_1[:, 3]
+    assert testFlight.w3(timePoints) == test_1[:, 4]
+    assert testFlight.angleOfAttack(timePoints) == test_1[:, 5]
