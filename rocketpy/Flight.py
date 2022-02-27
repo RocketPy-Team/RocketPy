@@ -2632,9 +2632,9 @@ class Flight:
         ax1.plot(self.w1[:, 0], self.w1[:, 1], color="#ff7f0e")
         ax1.set_xlim(0, eventTime)
         ax1.set_xlabel("Time (s)")
-        ax1.set_ylabel("Angular Velocity - ${\omega_1}$ (rad/s)", color="#ff7f0e")
+        ax1.set_ylabel(r"Angular Velocity - ${\omega_1}$ (rad/s)", color="#ff7f0e")
         ax1.set_title(
-            "Angular Velocity ${\omega_1}$ | Angular Acceleration ${\\alpha_1}$"
+            r"Angular Velocity ${\omega_1}$ | Angular Acceleration ${\alpha_1}$"
         )
         ax1.tick_params("y", colors="#ff7f0e")
         ax1.grid(True)
@@ -2642,7 +2642,7 @@ class Flight:
         ax1up = ax1.twinx()
         ax1up.plot(self.alpha1[:, 0], self.alpha1[:, 1], color="#1f77b4")
         ax1up.set_ylabel(
-            "Angular Acceleration - ${\\alpha_1}$ (rad/s²)", color="#1f77b4"
+            r"Angular Acceleration - ${\alpha_1}$ (rad/s²)", color="#1f77b4"
         )
         ax1up.tick_params("y", colors="#1f77b4")
 
@@ -2650,9 +2650,9 @@ class Flight:
         ax2.plot(self.w2[:, 0], self.w2[:, 1], color="#ff7f0e")
         ax2.set_xlim(0, eventTime)
         ax2.set_xlabel("Time (s)")
-        ax2.set_ylabel("Angular Velocity - ${\omega_2}$ (rad/s)", color="#ff7f0e")
+        ax2.set_ylabel(r"Angular Velocity - ${\omega_2}$ (rad/s)", color="#ff7f0e")
         ax2.set_title(
-            "Angular Velocity ${\omega_2}$ | Angular Acceleration ${\\alpha_2}$"
+            r"Angular Velocity ${\omega_2}$ | Angular Acceleration ${\alpha_2}$"
         )
         ax2.tick_params("y", colors="#ff7f0e")
         ax2.grid(True)
@@ -2660,7 +2660,7 @@ class Flight:
         ax2up = ax2.twinx()
         ax2up.plot(self.alpha2[:, 0], self.alpha2[:, 1], color="#1f77b4")
         ax2up.set_ylabel(
-            "Angular Acceleration - ${\\alpha_2}$ (rad/s²)", color="#1f77b4"
+            r"Angular Acceleration - ${\alpha_2}$ (rad/s²)", color="#1f77b4"
         )
         ax2up.tick_params("y", colors="#1f77b4")
 
@@ -2668,9 +2668,9 @@ class Flight:
         ax3.plot(self.w3[:, 0], self.w3[:, 1], color="#ff7f0e")
         ax3.set_xlim(0, eventTime)
         ax3.set_xlabel("Time (s)")
-        ax3.set_ylabel("Angular Velocity - ${\omega_3}$ (rad/s)", color="#ff7f0e")
+        ax3.set_ylabel(r"Angular Velocity - ${\omega_3}$ (rad/s)", color="#ff7f0e")
         ax3.set_title(
-            "Angular Velocity ${\omega_3}$ | Angular Acceleration ${\\alpha_3}$"
+            r"Angular Velocity ${\omega_3}$ | Angular Acceleration ${\alpha_3}$"
         )
         ax3.tick_params("y", colors="#ff7f0e")
         ax3.grid(True)
@@ -2678,7 +2678,7 @@ class Flight:
         ax3up = ax3.twinx()
         ax3up.plot(self.alpha3[:, 0], self.alpha3[:, 1], color="#1f77b4")
         ax3up.set_ylabel(
-            "Angular Acceleration - ${\\alpha_3}$ (rad/s²)", color="#1f77b4"
+            r"Angular Acceleration - ${\alpha_3}$ (rad/s²)", color="#1f77b4"
         )
         ax3up.tick_params("y", colors="#1f77b4")
 
@@ -2973,10 +2973,12 @@ class Flight:
 
         ax4 = plt.subplot(414)
         ax4.plot(self.angleOfAttack[:, 0], self.angleOfAttack[:, 1])
-        ax4.set_xlim(
-            self.outOfRailTime, 10 * self.outOfRailTime + 1
-        )  # +1 Prevents problem when self.outOfRailTime=0
-        ax4.set_ylim(0, self.angleOfAttack(self.outOfRailTime))
+        # Make sure bottom and top limits are different
+        if self.outOfRailTime*self.angleOfAttack(self.outOfRailTime) != 0:
+            ax4.set_xlim(
+                self.outOfRailTime, 10 * self.outOfRailTime + 1
+            )  
+            ax4.set_ylim(0, self.angleOfAttack(self.outOfRailTime))
         ax4.set_title("Angle of Attack")
         ax4.set_xlabel("Time (s)")
         ax4.set_ylabel("Angle of Attack (°)")
@@ -3183,21 +3185,21 @@ class Flight:
         ax2.plot(
             self.omega1FrequencyResponse[:, 0],
             self.omega1FrequencyResponse[:, 1] / maxOmega1,
-            label="$\omega_1$",
+            label=r"$\omega_1$",
         )
         maxOmega2 = max(self.omega2FrequencyResponse[:, 1])
         maxOmega2 = maxOmega2 if maxOmega2 != 0 else 1
         ax2.plot(
             self.omega2FrequencyResponse[:, 0],
             self.omega2FrequencyResponse[:, 1] / maxOmega2,
-            label="$\omega_2$",
+            label=r"$\omega_2$",
         )
         maxOmega3 = max(self.omega3FrequencyResponse[:, 1])
         maxOmega3 = maxOmega3 if maxOmega3 != 0 else 1
         ax2.plot(
             self.omega3FrequencyResponse[:, 0],
             self.omega3FrequencyResponse[:, 1] / maxOmega3,
-            label="$\omega_3$",
+            label=r"$\omega_3$",
         )
         ax2.set_title("Frequency Response")
         ax2.set_xlabel("Frequency (Hz)")
