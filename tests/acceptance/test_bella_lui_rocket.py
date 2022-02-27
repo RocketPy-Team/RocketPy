@@ -2,9 +2,12 @@
 # Permission to use flight data given by Antoine Scardigli, 2020
 
 # Importing libraries
-from rocketpy import Environment, SolidMotor, Rocket, Flight, Function
+import matplotlib as mpl
 import numpy as np
-import matplotlib.pyplot as plt
+
+from rocketpy import Environment, Flight, Function, Rocket, SolidMotor
+
+mpl.rc("figure", max_open_warning=0)  # Prevent matplotlib warnings
 
 
 def test_bella_lui_rocket_data_asserts_acceptance():
@@ -57,7 +60,7 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         gravity=9.81,
         latitude=47.213476,
         longitude=9.003336,
-        date=(2020, 2, 22, 13, 0, 1),
+        date=(2020, 2, 22, 13),
         elevation=407,
     )
     Env.setAtmosphericModel(

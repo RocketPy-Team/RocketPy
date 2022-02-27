@@ -1549,7 +1549,7 @@ class Environment:
 
         # Convert station elevation text into float value
         self.elevation = float(
-            re.findall("[0-9]+\.[0-9]+|[0-9]+", station_elevation_text)[0]
+            re.findall(r"[0-9]+\.[0-9]+|[0-9]+", station_elevation_text)[0]
         )
 
         # Save maximum expected height
@@ -1803,7 +1803,7 @@ class Environment:
 
         # Find time index
         timeIndex = netCDF4.date2index(
-            self.date, timeArray, calendar="gregorian", select="nearest"
+            self.date, timeArray, calendar="gregorian", select="before"
         )
         # Convert times do dates and numbers
         inputTimeNum = netCDF4.date2num(
@@ -2199,7 +2199,7 @@ class Environment:
 
         # Find time index
         timeIndex = netCDF4.date2index(
-            self.date, timeArray, calendar="gregorian", select="nearest"
+            self.date, timeArray, calendar="gregorian", select="before"
         )
         # Convert times do dates and numbers
         inputTimeNum = netCDF4.date2num(
