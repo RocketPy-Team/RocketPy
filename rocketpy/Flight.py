@@ -2974,10 +2974,8 @@ class Flight:
         ax4 = plt.subplot(414)
         ax4.plot(self.angleOfAttack[:, 0], self.angleOfAttack[:, 1])
         # Make sure bottom and top limits are different
-        if self.outOfRailTime*self.angleOfAttack(self.outOfRailTime) != 0:
-            ax4.set_xlim(
-                self.outOfRailTime, 10 * self.outOfRailTime + 1
-            )  
+        if self.outOfRailTime * self.angleOfAttack(self.outOfRailTime) != 0:
+            ax4.set_xlim(self.outOfRailTime, 10 * self.outOfRailTime + 1)
             ax4.set_ylim(0, self.angleOfAttack(self.outOfRailTime))
         ax4.set_title("Angle of Attack")
         ax4.set_xlabel("Time (s)")

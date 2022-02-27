@@ -8,7 +8,7 @@ from scipy import optimize
 
 from rocketpy import Environment, Flight, Function, Rocket, SolidMotor
 
-plt.rcParams.update({'figure.max_open_warning': 0})
+plt.rcParams.update({"figure.max_open_warning": 0})
 
 # Helper functions
 def setup_rocket_with_given_static_margin(rocket, static_margin):
