@@ -1,10 +1,14 @@
 import datetime
 from unittest.mock import patch
 
+import matplotlib as plt
 import numpy as np
 import pytest
-from rocketpy import Environment, Flight, Rocket, SolidMotor, Function
 from scipy import optimize
+
+from rocketpy import Environment, Flight, Function, Rocket, SolidMotor
+
+plt.rcParams.update({"figure.max_open_warning": 0})
 
 # Helper functions
 def setup_rocket_with_given_static_margin(rocket, static_margin):
