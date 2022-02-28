@@ -1,0 +1,477 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge,IE=9,chrome=1"><meta name="generator" content="MATLAB 2021b"><title>Getting Started with RocketPy in MATLAB®</title><style type="text/css">.rtcContent { padding: 30px; } .S0 { margin: 3px 10px 5px 4px; padding: 0px; line-height: 28.8px; min-height: 0px; white-space: pre-wrap; color: rgb(213, 80, 0); font-family: Helvetica, Arial, sans-serif; font-style: normal; font-size: 24px; font-weight: 400; text-align: left;  }
+.S1 { margin: 2px 10px 9px 4px; padding: 0px; line-height: 21px; min-height: 0px; white-space: pre-wrap; color: rgb(0, 0, 0); font-family: Helvetica, Arial, sans-serif; font-style: normal; font-size: 14px; font-weight: 400; text-align: left;  }
+.S2 { margin: 10px 0px 20px; padding-left: 0px; font-family: Helvetica, Arial, sans-serif; font-size: 14px;  }
+.S3 { margin-left: 56px; line-height: 21px; min-height: 0px; text-align: left; white-space: pre-wrap;  }
+.CodeBlock { background-color: #F7F7F7; margin: 10px 0 10px 0; overflow-x: auto}
+.S4 { border-left: 1px solid rgb(233, 233, 233); border-right: 1px solid rgb(233, 233, 233); border-top: 1px solid rgb(233, 233, 233); border-bottom: 1px solid rgb(233, 233, 233); border-radius: 4px; padding: 6px 45px 4px 13px; line-height: 17.234px; min-height: 18px; white-space: nowrap; color: rgb(0, 0, 0); font-family: Menlo, Monaco, Consolas, "Courier New", monospace; font-size: 14px;  }
+.S5 { margin: 3px 10px 5px 4px; padding: 0px; line-height: 20px; min-height: 0px; white-space: pre-wrap; color: rgb(60, 60, 60); font-family: Helvetica, Arial, sans-serif; font-style: normal; font-size: 20px; font-weight: 700; text-align: left;  }
+.S6 { border-left: 1px solid rgb(233, 233, 233); border-right: 1px solid rgb(233, 233, 233); border-top: 1px solid rgb(233, 233, 233); border-bottom: 0px none rgb(0, 0, 0); border-radius: 4px 4px 0px 0px; padding: 6px 45px 0px 13px; line-height: 17.234px; min-height: 18px; white-space: nowrap; color: rgb(0, 0, 0); font-family: Menlo, Monaco, Consolas, "Courier New", monospace; font-size: 14px;  }
+.S7 { border-left: 1px solid rgb(233, 233, 233); border-right: 1px solid rgb(233, 233, 233); border-top: 0px none rgb(0, 0, 0); border-bottom: 0px none rgb(0, 0, 0); border-radius: 0px; padding: 0px 45px 0px 13px; line-height: 17.234px; min-height: 18px; white-space: nowrap; color: rgb(0, 0, 0); font-family: Menlo, Monaco, Consolas, "Courier New", monospace; font-size: 14px;  }
+.S8 { border-left: 1px solid rgb(233, 233, 233); border-right: 1px solid rgb(233, 233, 233); border-top: 0px none rgb(0, 0, 0); border-bottom: 1px solid rgb(233, 233, 233); border-radius: 0px 0px 4px 4px; padding: 0px 45px 4px 13px; line-height: 17.234px; min-height: 18px; white-space: nowrap; color: rgb(0, 0, 0); font-family: Menlo, Monaco, Consolas, "Courier New", monospace; font-size: 14px;  }
+.S9 { margin: 10px 10px 9px 4px; padding: 0px; line-height: 21px; min-height: 0px; white-space: pre-wrap; color: rgb(0, 0, 0); font-family: Helvetica, Arial, sans-serif; font-style: normal; font-size: 14px; font-weight: 400; text-align: left;  }
+.S10 { border-left: 1px solid rgb(233, 233, 233); border-right: 1px solid rgb(233, 233, 233); border-top: 1px solid rgb(233, 233, 233); border-bottom: 1px solid rgb(233, 233, 233); border-radius: 4px 4px 0px 0px; padding: 6px 45px 4px 13px; line-height: 17.234px; min-height: 18px; white-space: nowrap; color: rgb(0, 0, 0); font-family: Menlo, Monaco, Consolas, "Courier New", monospace; font-size: 14px;  }
+.S11 { color: rgb(64, 64, 64); padding: 10px 0px 6px 17px; background: rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box; font-family: Menlo, Monaco, Consolas, "Courier New", monospace; font-size: 14px; overflow-x: hidden; line-height: 17.234px;  }
+/* Styling that is common to warnings and errors is in diagnosticOutput.css */.embeddedOutputsErrorElement {    min-height: 18px;    max-height: 550px;}
+.embeddedOutputsErrorElement .diagnosticMessage-errorType {    overflow: auto;}
+.embeddedOutputsErrorElement.inlineElement {}
+.embeddedOutputsErrorElement.rightPaneElement {}
+/* Styling that is common to warnings and errors is in diagnosticOutput.css */.embeddedOutputsWarningElement {    min-height: 18px;    max-height: 550px;}
+.embeddedOutputsWarningElement .diagnosticMessage-warningType {    overflow: auto;}
+.embeddedOutputsWarningElement.inlineElement {}
+.embeddedOutputsWarningElement.rightPaneElement {}
+/* Copyright 2015-2019 The MathWorks, Inc. *//* In this file, styles are not scoped to rtcContainer since they could be in the Dojo Tooltip */.diagnosticMessage-wrapper {    font-family: Menlo, Monaco, Consolas, "Courier New", monospace;    font-size: 12px;}
+.diagnosticMessage-wrapper.diagnosticMessage-warningType {    color: rgb(255,100,0);}
+.diagnosticMessage-wrapper.diagnosticMessage-warningType a {    color: rgb(255,100,0);    text-decoration: underline;}
+.diagnosticMessage-wrapper.diagnosticMessage-errorType {    color: rgb(230,0,0);}
+.diagnosticMessage-wrapper.diagnosticMessage-errorType a {    color: rgb(230,0,0);    text-decoration: underline;}
+.diagnosticMessage-wrapper .diagnosticMessage-messagePart,.diagnosticMessage-wrapper .diagnosticMessage-causePart {    white-space: pre-wrap;}
+.diagnosticMessage-wrapper .diagnosticMessage-stackPart {    white-space: pre;}
+.embeddedOutputsTextElement,.embeddedOutputsVariableStringElement {    white-space: pre;    word-wrap:  initial;    min-height: 18px;    max-height: 550px;}
+.embeddedOutputsTextElement .textElement,.embeddedOutputsVariableStringElement .textElement {    overflow: auto;}
+.textElement,.rtcDataTipElement .textElement {    padding-top: 3px;}
+.embeddedOutputsTextElement.inlineElement,.embeddedOutputsVariableStringElement.inlineElement {}
+.inlineElement .textElement {}
+.embeddedOutputsTextElement.rightPaneElement,.embeddedOutputsVariableStringElement.rightPaneElement {    min-height: 16px;}
+.rightPaneElement .textElement {    padding-top: 2px;    padding-left: 9px;}
+.S12 { margin: 3px 10px 5px 4px; padding: 0px; line-height: 18px; min-height: 0px; white-space: pre-wrap; color: rgb(60, 60, 60); font-family: Helvetica, Arial, sans-serif; font-style: normal; font-size: 17px; font-weight: 700; text-align: left;  }
+.variableValue { width: 100% !important; }
+.embeddedOutputsMatrixElement,.eoOutputWrapper .matrixElement {    min-height: 18px;    box-sizing: border-box;}
+.embeddedOutputsMatrixElement .matrixElement,.eoOutputWrapper  .matrixElement,.rtcDataTipElement .matrixElement {    position: relative;}
+.matrixElement .variableValue,.rtcDataTipElement .matrixElement .variableValue {    white-space: pre;    display: inline-block;    vertical-align: top;    overflow: hidden;}
+.embeddedOutputsMatrixElement.inlineElement {}
+.embeddedOutputsMatrixElement.inlineElement .topHeaderWrapper {    display: none;}
+.embeddedOutputsMatrixElement.inlineElement .veTable .body {    padding-top: 0 !important;    max-height: 100px;}
+.inlineElement .matrixElement {    max-height: 300px;}
+.embeddedOutputsMatrixElement.rightPaneElement {}
+.rightPaneElement .matrixElement,.rtcDataTipElement .matrixElement {    overflow: hidden;    padding-left: 9px;}
+.rightPaneElement .matrixElement {    margin-bottom: -1px;}
+.embeddedOutputsMatrixElement .matrixElement .valueContainer,.eoOutputWrapper .matrixElement .valueContainer,.rtcDataTipElement .matrixElement .valueContainer {    white-space: nowrap;    margin-bottom: 3px;}
+.embeddedOutputsMatrixElement .matrixElement .valueContainer .horizontalEllipsis.hide,.embeddedOutputsMatrixElement .matrixElement .verticalEllipsis.hide,.eoOutputWrapper .matrixElement .valueContainer .horizontalEllipsis.hide,.eoOutputWrapper .matrixElement .verticalEllipsis.hide,.rtcDataTipElement .matrixElement .valueContainer .horizontalEllipsis.hide,.rtcDataTipElement .matrixElement .verticalEllipsis.hide {    display: none;}
+.embeddedOutputsVariableMatrixElement .matrixElement .valueContainer.hideEllipses .verticalEllipsis, .embeddedOutputsVariableMatrixElement .matrixElement .valueContainer.hideEllipses .horizontalEllipsis {    display:none;}
+.embeddedOutputsMatrixElement .matrixElement .valueContainer .horizontalEllipsis,.eoOutputWrapper .matrixElement .valueContainer .horizontalEllipsis {    margin-bottom: -3px;}
+.eoOutputWrapper .embeddedOutputsVariableMatrixElement .matrixElement .valueContainer {    cursor: default !important;}
+.embeddedOutputsVariableElement {    white-space: pre-wrap;    word-wrap: break-word;    min-height: 18px;    max-height: 250px;    overflow: auto;}
+.variableElement {}
+.embeddedOutputsVariableElement.inlineElement {}
+.inlineElement .variableElement {}
+.embeddedOutputsVariableElement.rightPaneElement {    min-height: 16px;}
+.rightPaneElement .variableElement {    padding-top: 2px;    padding-left: 9px;}
+.variableNameElement {    margin-bottom: 3px;    display: inline-block;}
+/* * Ellipses as base64 for HTML export. */.matrixElement .horizontalEllipsis,.rtcDataTipElement .matrixElement .horizontalEllipsis {    display: inline-block;    margin-top: 3px;    /* base64 encoded version of images-liveeditor/HEllipsis.png */    width: 30px;    height: 12px;    background-repeat: no-repeat;    background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB0AAAAJCAYAAADO1CeCAAAAJUlEQVR42mP4//8/A70xw0i29BUDFPxnAEtTW37wWDqakIa4pQDvOOG89lHX2gAAAABJRU5ErkJggg==");}
+.matrixElement .verticalEllipsis,.textElement .verticalEllipsis,.rtcDataTipElement .matrixElement .verticalEllipsis,.rtcDataTipElement .textElement .verticalEllipsis {    margin-left: 35px;    /* base64 encoded version of images-liveeditor/VEllipsis.png */    width: 12px;    height: 30px;    background-repeat: no-repeat;    background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAZCAYAAAAIcL+IAAAALklEQVR42mP4//8/AzGYgWyFMECMwv8QddRS+P//KyimlmcGUOFoOI6GI/UVAgDnd8Dd4+NCwgAAAABJRU5ErkJggg==");}</style></head><body><div class = rtcContent><h1  class = 'S0'><span>Getting Started with RocketPy in MATLAB®</span></h1><div  class = 'S1'><span>In this Live Script, you will learn how to run RocketPy using the MATLAB® environment.</span></div><div  class = 'S1'><span>We start by configuring the Python environment. You can do so by following the guidelines presented in the MATLAB® documentation: </span><a href = "https://www.mathworks.com/help/matlab/matlab_external/install-supported-python-implementation.html?searchHighlight=python&amp;s_tid=srchtitle_python_4"><span>Configure Your System to Use Python - MATLAB &amp; Simulink (mathworks.com)</span></a><span>.</span></div><div  class = 'S1'><span>Once the Python environment is configured, RocketPy needs to installed using </span><span style=' font-family: monospace;'>pip</span><span> as outlined in RocketPy's documentation: </span><a href = "https://docs.rocketpy.org/en/latest/user/installation.html#quick-install-using-pip"><span>Installation — RocketPy documentation</span></a><span>.</span></div><div  class = 'S1'><span>Finally, all the prerequisites are complete and you can comeback to MATLAB®! We just need to set the execution mode as out of process and start working. MATLAB® can run Python scripts and functions in a separate process. Running Python in a separate process enables you to:</span></div><ul  class = 'S2'><li  class = 'S3'><span>Use some third-party libraries in the Python code that are not compatible with MATLAB®.</span></li><li  class = 'S3'><span>Isolate the MATLAB process from crashes in the Python code.</span></li></ul><div class="CodeBlock"><div class="inlineWrapper"><div  class = 'S4'><span style="white-space: pre"><span >pyenv(</span><span style="color: rgb(170, 4, 249);">"ExecutionMode"</span><span >,</span><span style="color: rgb(170, 4, 249);">"OutOfProcess"</span><span >);</span></span></div></div></div><div  class = 'S1'><span>Now, we will go through a simplified rocket trajectory simulation to get you started. Let's start by importing the rocketpy module.</span></div><div class="CodeBlock"><div class="inlineWrapper"><div  class = 'S4'><span style="white-space: pre"><span >rocketpy = py.importlib.import_module(</span><span style="color: rgb(170, 4, 249);">'rocketpy'</span><span >);</span></span></div></div></div><h2  class = 'S5'><span>Setting Up a Simulation</span></h2><div  class = 'S1'><span>Creating an Environment for Spaceport America</span></div><div class="CodeBlock"><div class="inlineWrapper"><div  class = 'S6'><span style="white-space: pre"><span style="color: rgb(2, 128, 9);">% rocketpy.Environment(railLength, latitude, longitude, elevation);</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >Env = rocketpy.Environment(pyargs(</span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'railLength'</span><span >, 5.2, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'latitude'</span><span >, 32.990254, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'longitude'</span><span >,-106.974998, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'elevation'</span><span >, 1400 </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S8'><span style="white-space: pre"><span >));</span></span></div></div></div><div  class = 'S9'><span>To get weather data from the GFS forecast, available online, we run the following lines.</span></div><div  class = 'S1'><span>First, we set tomorrow's date.</span></div><div class="CodeBlock"><div class="inlineWrapper"><div  class = 'S6'><span style="white-space: pre"><span >Tomorrow = datetime(</span><span style="color: rgb(170, 4, 249);">'tomorrow'</span><span >);</span></span></div></div><div class="inlineWrapper"><div  class = 'S8'><span style="white-space: pre"><span >Env.setDate({int32(Tomorrow.Year), int32(Tomorrow.Month), int32(Tomorrow.Day), int32(12)}) </span><span style="color: rgb(2, 128, 9);">% Hour given in UTC time (noon UTC)</span></span></div></div></div><div  class = 'S9'><span>Now, se tell our Environment object to retrieve a weather forecast for our specied location and date using GFS:</span></div><div class="CodeBlock"><div class="inlineWrapper"><div  class = 'S6'><span style="white-space: pre"><span >Env.setAtmosphericModel(pyargs( </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'type'</span><span >, </span><span style="color: rgb(170, 4, 249);">"Forecast"</span><span >, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'file'</span><span >, </span><span style="color: rgb(170, 4, 249);">"GFS" </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S8'><span style="white-space: pre"><span >))</span></span></div></div></div><div  class = 'S9'><span>We can see what the weather will look like by calling the info method!</span></div><div class="CodeBlock"><div class="inlineWrapper outputs"><div  class = 'S10'><span style="white-space: pre"><span >Env.info()</span></span></div><div  class = 'S11'><div class="inlineElement eoOutputWrapper embeddedOutputsTextElement" uid="B3ABCF64" data-scroll-top="null" data-scroll-left="null" data-testid="output_0" style="width: 668px; white-space: pre; font-style: normal; color: rgb(64, 64, 64); font-size: 12px;"><div class="textElement eoOutputContent" data-width="638" data-height="493" data-hashorizontaloverflow="false" style="max-height: 504px; white-space: pre; font-style: normal; color: rgb(64, 64, 64); font-size: 12px;">Launch Site Details
+
+Launch Rail Length: 5.2  m
+Launch Date: 2022-02-28 12:00:00 UTC
+Launch Site Latitude: 32.99025°
+Launch Site Longitude: -106.97500°
+Reference Datum: SIRGAS2000
+Launch Site UTM coordinates: 315468.64 W    3651938.65 N
+Launch Site UTM zone: 13S
+Launch Site Surface Elevation: 1471.5 m
+
+
+Atmospheric Model Details
+
+Atmospheric Model Type: Forecast
+Forecast Maximum Height: 79.823 km
+Forecast Time Period: From  2022-02-27 18:00:00  to  2022-03-15 18:00:00  UTC
+Forecast Hour Interval: 3  hrs
+Forecast Latitude Range: From  -90.0 ° To  90.0 °
+Forecast Longitude Range: From  0.0 ° To  359.75 °
+
+
+Surface Atmospheric Conditions
+
+Surface Wind Speed: 2.32 m/s
+Surface Wind Direction: 11.84°
+Surface Wind Heading: 191.84°
+Surface Pressure: 858.43 hPa
+Surface Temperature: 282.23 K
+Surface Air Density: 1.060 kg/m³
+Surface Speed of Sound: 336.78 m/s
+
+
+Atmospheric Model Plots</div></div></div></div></div><div  class = 'S9'><span>Plots will open in a separate window, so be sure to run this last cell to seem them!</span></div><h2  class = 'S5'><span>Creating a Motor</span></h2><div  class = 'S1'><span>A solid rocket motor is used in this case. To create a motor, the SolidMotor class is used and the required arguments are given.</span></div><div  class = 'S1'><span>The SolidMotor class requires the user to have a thrust curve ready. This can come either from a .eng file for a commercial motor, such as below, or a .csv file from a static test measurement.</span></div><div  class = 'S1'><span>Besides the thrust curve, other parameters such as grain properties and nozzle dimensions must also be given.</span></div><div class="CodeBlock"><div class="inlineWrapper"><div  class = 'S6'><span style="white-space: pre"><span >Pro75M1670 = rocketpy.SolidMotor(pyargs( </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'thrustSource'</span><span >, </span><span style="color: rgb(170, 4, 249);">"../../data/motors/Cesaroni_M1670.eng"</span><span >, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'burnOut'</span><span >, 3.9, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'grainNumber'</span><span >, int32(5), </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'grainSeparation'</span><span >, 5 / 1000, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'grainDensity'</span><span >, 1815, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'grainOuterRadius'</span><span >, 33 / 1000, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'grainInitialInnerRadius'</span><span >, 15 / 1000, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'grainInitialHeight'</span><span >, 120 / 1000, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'nozzleRadius'</span><span >, 33 / 1000, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'throatRadius'</span><span >, 11 / 1000, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'interpolationMethod'</span><span >, </span><span style="color: rgb(170, 4, 249);">"linear" </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S8'><span style="white-space: pre"><span >));</span></span></div></div></div><div  class = 'S9'><span>To see what our thrust curve looks like, along with other import properties, we invoke the info method yet again. You may try the allInfo method if you want more information all at once!</span></div><div class="CodeBlock"><div class="inlineWrapper outputs"><div  class = 'S10'><span style="white-space: pre"><span >Pro75M1670.info()</span></span></div><div  class = 'S11'><div class="inlineElement eoOutputWrapper embeddedOutputsTextElement" uid="EDBEACB7" data-scroll-top="null" data-scroll-left="null" data-testid="output_1" style="width: 668px; white-space: pre; font-style: normal; color: rgb(64, 64, 64); font-size: 12px;"><div class="textElement eoOutputContent" data-width="638" data-height="133" data-hashorizontaloverflow="false" style="max-height: 261px; white-space: pre; font-style: normal; color: rgb(64, 64, 64); font-size: 12px;">Motor Details
+Total Burning Time: 3.9 s
+Total Propellant Mass: 2.956 kg
+Propellant Exhaust Velocity: 2038.745 m/s
+Average Thrust: 1545.218 N
+Maximum Thrust: 2200.0 N at 0.15 s after ignition.
+Total Impulse: 6026.350 Ns
+
+Plots</div></div></div></div></div><div  class = 'S9'><span>Plots will open in a separate window, so be sure to run this last cell to seem them!</span></div><h2  class = 'S5'><span>Creating a Rocket</span></h2><div  class = 'S1'><span>A rocket is composed of several components. Namely, we must have a motor (good thing we have the Pro75M1670 ready), a couple of aerodynamic surfaces (nose cone, fins and tail) and parachutes (if we are not launching a missile).</span></div><div  class = 'S1'><span>Let's start by initializing our rocket, named Calisto, supplying it with the Pro75M1670 engine, entering its inertia properties, some dimensions and also its drag curves.</span></div><div class="CodeBlock"><div class="inlineWrapper"><div  class = 'S6'><span style="white-space: pre"><span >Calisto = rocketpy.Rocket(pyargs( </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'motor'</span><span >, Pro75M1670, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'radius'</span><span >, 127 / 2000, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'mass'</span><span >, 19.197 - 2.956, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'inertiaI'</span><span >, 6.60, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'inertiaZ'</span><span >, 0.0351, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'distanceRocketNozzle'</span><span >, -1.255, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'distanceRocketPropellant'</span><span >, -0.85704, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'powerOffDrag'</span><span >, </span><span style="color: rgb(170, 4, 249);">"../../data/calisto/powerOffDragCurve.csv"</span><span >, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'powerOnDrag'</span><span >, </span><span style="color: rgb(170, 4, 249);">"../../data/calisto/powerOnDragCurve.csv" </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >));</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'></div></div><div class="inlineWrapper"><div  class = 'S8'><span style="white-space: pre"><span >Calisto.setRailButtons([0.2, -0.5])</span></span></div></div></div><h3  class = 'S12'><span>Adding Aerodynamic Surfaces</span></h3><div  class = 'S1'><span>Now we define the aerodynamic surfaces. They are really straight forward.</span></div><div class="CodeBlock"><div class="inlineWrapper"><div  class = 'S6'><span style="white-space: pre"><span >NoseCone = rocketpy.Rocket.addNose(pyargs( </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'self'</span><span >, Calisto, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'length'</span><span >, 0.55829, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'kind'</span><span >, </span><span style="color: rgb(170, 4, 249);">"vonKarman"</span><span >, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'distanceToCM'</span><span >, 0.71971 </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >));</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >FinSet = rocketpy.Rocket.addFins(pyargs( </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'self'</span><span >, Calisto, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'n'</span><span >, int32(4), </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'span'</span><span >, 0.100, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'rootChord'</span><span >, 0.120, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'tipChord'</span><span >, 0.040, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'distanceToCM'</span><span >, -1.04956 </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >));</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >Tail = rocketpy.Rocket.addTail(pyargs( </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'self'</span><span >, Calisto, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'topRadius'</span><span >, 0.0635, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'bottomRadius'</span><span >, 0.0435, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'length'</span><span >, 0.060, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'distanceToCM'</span><span >, -1.194656 </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S8'><span style="white-space: pre"><span >));</span></span></div></div></div><h3  class = 'S12'><span>Adding Parachutes</span></h3><div  class = 'S1'><span>Finally, we have parachutes! Calisto will have two parachutes, Drogue and Main.</span></div><div  class = 'S1'><span>Both parachutes are activated by some special algorithm, which is usually really complex and a trade secret. Most algorithms are based on pressure sampling only, while some also use acceleration info.</span></div><div  class = 'S1'><span>RocketPy allows you to define a trigger function which will decide when to activate the ejection event for each parachute. This trigger function is supplied with pressure measurement at a predefined sampling rate. This pressure signal is usually noisy, so artificial noise parameters can be given. Call </span></div><div class="CodeBlock"><div class="inlineWrapper"><div  class = 'S4'><span style="white-space: pre"><span style="color: rgb(2, 128, 9);">% py.help(rocketpy.Rocket.addParachute)</span></span></div></div></div><div  class = 'S9'><span>for more details. Furthermore, the trigger function also recieves the complete state vector of the rocket, allowing us to use velocity, acceleration or even attitude to decide when the parachute event should be triggered.</span></div><div  class = 'S1'><span>Here, we define our trigger functions rather simply using Python. Unfortunately, defining these with MATLAB code is not yet possible.</span></div><div class="CodeBlock"><div class="inlineWrapper"><div  class = 'S6'><span style="white-space: pre"><span style="color: rgb(2, 128, 9);">% Drogue parachute is triggered when vertical velocity is negative, i.e. rocket is falling past apogee</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >drogueTrigger = py.eval(</span><span style="color: rgb(170, 4, 249);">"lambda p, y: y[5] &lt; 0"</span><span >, py.dict);</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span style="color: rgb(2, 128, 9);">% Main parachute is triggered when vertical velocity is negative and altitude is below 800 AGL </span></span></div></div><div class="inlineWrapper"><div  class = 'S8'><span style="white-space: pre"><span >mainTrigger = py.eval(</span><span style="color: rgb(170, 4, 249);">"lambda p, y: (y[5] &lt; 0) and (y[2] &lt; 800 + 1400)"</span><span >, py.dict); </span></span></div></div></div><div  class = 'S9'><span>Now we add both the drouge and the main parachute to our rocket.</span></div><div class="CodeBlock"><div class="inlineWrapper"><div  class = 'S6'><span style="white-space: pre"><span >Main = rocketpy.Rocket.addParachute(pyargs( </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'self'</span><span >, Calisto, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'name'</span><span >, </span><span style="color: rgb(170, 4, 249);">"Main"</span><span >, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'CdS'</span><span >, 10.0, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'trigger'</span><span >, mainTrigger, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'samplingRate'</span><span >, 105, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'lag'</span><span >, 1.5, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'noise'</span><span >, py.tuple({0, 8.3, 0.5}) </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >));</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >Drogue = rocketpy.Rocket.addParachute(pyargs( </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'self'</span><span >, Calisto, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'name'</span><span >, </span><span style="color: rgb(170, 4, 249);">"Drogue"</span><span >, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'CdS'</span><span >, 1.0, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'trigger'</span><span >, drogueTrigger, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'samplingRate'</span><span >, 105, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'lag'</span><span >, 1.5, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'noise'</span><span >, py.tuple({0, 8.3, 0.5}) </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S8'><span style="white-space: pre"><span >));</span></span></div></div></div><div  class = 'S9'><span style=' font-family: monospace;'>Just be careful if you run this last cell multiple times! If you do so, your rocket will end up with lots of parachutes which activate together, which may cause problems during the flight simulation. We advise you to re-run all cells which define our rocket before running this, preventing unwanted old parachutes. Alternatively, you can run the following lines to remove parachutes.</span></div><div class="CodeBlock"><div class="inlineWrapper"><div  class = 'S6'><span style="white-space: pre"><span style="color: rgb(2, 128, 9);">% Calisto.parachutes.remove(Drogue)</span></span></div></div><div class="inlineWrapper"><div  class = 'S8'><span style="white-space: pre"><span style="color: rgb(2, 128, 9);">% Calisto.parachutes.remove(Main)</span></span></div></div></div><h2  class = 'S5'><span style=' font-family: monospace;'>Simulating a Flight</span></h2><div  class = 'S1'><span style=' font-family: monospace;'>Simulating a flight trajectory is as simples as initializing a Flight class object givin the rocket and environement set up above as inputs. The launch rail inclination and heading are also given here.</span></div><div class="CodeBlock"><div class="inlineWrapper"><div  class = 'S6'><span style="white-space: pre"><span >TestFlight = rocketpy.Flight(pyargs(</span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'rocket'</span><span >, Calisto, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'environment'</span><span >,Env, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'inclination'</span><span >, 85, </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S7'><span style="white-space: pre"><span >    </span><span style="color: rgb(170, 4, 249);">'heading'</span><span >, 0 </span><span style="color: rgb(14, 0, 255);">...</span></span></div></div><div class="inlineWrapper"><div  class = 'S8'><span style="white-space: pre"><span >));</span></span></div></div></div><h2  class = 'S5'><span style=' font-family: monospace;'>Analysing the Results</span></h2><div  class = 'S1'><span style=' font-family: monospace;'>RocketPy gives you many plots, thats for sure! They are divided into sections to keep them organized. Alternatively, see the Flight class documentation to see how to get plots for specific variables only, instead of all of them at once.</span></div><div class="CodeBlock"><div class="inlineWrapper outputs"><div  class = 'S10'><span style="white-space: pre"><span >TestFlight.allInfo()</span></span></div><div  class = 'S11'><div class="inlineElement eoOutputWrapper embeddedOutputsTextElement scrollableOutput" uid="D96BE7B2" data-scroll-top="80" data-scroll-left="0" data-testid="output_2" style="width: 668px; white-space: pre; font-style: normal; color: rgb(64, 64, 64); font-size: 12px;"><div class="textElement eoOutputContent" data-width="638" data-height="1861" data-hashorizontaloverflow="true" style="max-height: 261px; white-space: pre; font-style: normal; color: rgb(64, 64, 64); font-size: 12px;">Initial Conditions
+
+Position - x: 0.00 m | y: 0.00 m | z: 1471.47 m
+Velocity - Vx: 0.00 m/s | Vy: 0.00 m/s | Vz: 0.00 m/s
+Attitude - e0: 0.999 | e1: -0.044 | e2: 0.000 | e3: -0.000
+Euler Angles - Spin φ : 0.00° | Nutation θ: -5.00° | Precession ψ: -0.00°
+Angular Velocity - ω1: 0.00 rad/s | ω2: 0.00 rad/s| ω3: 0.00 rad/s
+
+
+Launch Rail Orientation
+
+Launch Rail Inclination: 85.00°
+Launch Rail Heading: 0.00°
+
+
+Surface Wind Conditions
+
+Frontal Surface Wind Speed: -2.27 m/s
+Lateral Surface Wind Speed: 0.48 m/s
+
+
+ Rail Departure State
+
+Rail Departure Time: 0.363 s
+Rail Departure Velocity: 25.800 m/s
+Rail Departure Static Margin: 2.133 c
+Rail Departure Angle of Attack: 5.076°
+Rail Departure Thrust-Weight Ratio: 10.143
+Rail Departure Reynolds Number: 1.994e+05
+
+
+BurnOut State
+
+BurnOut time: 3.900 s
+Altitude at burnOut: 655.705 m (AGL)
+Rocket velocity at burnOut: 279.908 m/s
+Freestream velocity at burnOut: 279.824 m/s
+Mach Number at burnOut: 0.835
+Kinetic energy at burnOut: 6.362e+05 J
+
+
+Apogee
+
+Apogee Altitude: 4778.226 m (ASL) | 3306.759 m (AGL)
+Apogee Time: 25.883 s
+Apogee Freestream Speed: 28.641 m/s
+
+
+Events
+
+Drogue Ejection Triggered at: 25.886 s
+Drogue Parachute Inflated at: 27.386 s
+Drogue Parachute Inflated with Freestream Speed of: 32.030 m/s
+Drogue Parachute Inflated at Height of: 3295.789 m (AGL)
+Main Ejection Triggered at: 160.952 s
+Main Parachute Inflated at: 162.452 s
+Main Parachute Inflated with Freestream Speed of: 18.036 m/s
+Main Parachute Inflated at Height of: 701.428 m (AGL)
+
+
+Impact
+
+X Impact: 887.797 m
+Y Impact: 922.922 m
+Time of Impact: 287.252 s
+Velocity at Impact: -5.482 m/s
+
+
+Maximum Values
+
+Maximum Speed: 286.065 m/s at 3.38 s
+Maximum Mach Number: 0.853 Mach at 3.39 s
+Maximum Reynolds Number: 2.085e+06 at 3.31 s
+Maximum Dynamic Pressure: 4.109e+04 Pa at 3.35 s
+Maximum Acceleration: 105.103 m/s² at 0.15 s
+Maximum Gs: 10.718 g at 0.15 s
+Maximum Upper Rail Button Normal Force: 0.257 N
+Maximum Upper Rail Button Shear Force: 0.257 N
+Maximum Lower Rail Button Normal Force: 0.257 N
+Maximum Lower Rail Button Shear Force: 0.257 N
+
+
+Numerical Integration Information
+
+Maximum Allowed Flight Time: 600.000000 s
+Maximum Allowed Time Step: inf s
+Minimum Allowed Time Step: 0.000000e+00 s
+Relative Error Tolerance:  1e-06
+Absolute Error Tolerance:  [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 1e-06, 1e-06, 1e-06, 1e-06, 0.001, 0.001, 0.001]
+Allow Event Overshoot:  True
+Terminate Simulation on Apogee:  False
+Number of Time Steps Used:  729
+Number of Derivative Functions Evaluation:  2090
+Average Function Evaluations per Time Step: 2.866941
+
+
+Trajectory 3d Plot
+
+
+
+Trajectory Kinematic Plots
+
+
+
+Angular Position Plots
+
+
+
+Path, Attitude and Lateral Attitude Angle plots
+
+
+
+Trajectory Angular Velocity and Acceleration Plots
+
+
+
+Trajectory Force Plots
+
+
+
+Trajectory Energy Plots
+
+
+
+Trajectory Fluid Mechanics Plots
+
+
+
+Trajectory Stability and Control Plots</div></div></div></div></div><div  class = 'S9'><span>Plots will open in a separate window, so be sure to run this last cell to seem them!</span></div><h2  class = 'S5'><span>Working with Data Generated by RocketPy in MATLAB</span></h2><div  class = 'S1'><span>You can acess the entire trajectory solution matrix with the following line of code. The returned matrix contain the following columns: time </span><span style="font-family: STIXGeneral, STIXGeneral-webfont, serif; font-style: italic; font-weight: 400; color: rgb(0, 0, 0);">t</span><span> (s), </span><span style="font-family: STIXGeneral, STIXGeneral-webfont, serif; font-style: italic; font-weight: 400; color: rgb(0, 0, 0);">x</span><span> (m), </span><span style="font-family: STIXGeneral, STIXGeneral-webfont, serif; font-style: italic; font-weight: 400; color: rgb(0, 0, 0);">y</span><span> (m), </span><span style="font-family: STIXGeneral, STIXGeneral-webfont, serif; font-style: italic; font-weight: 400; color: rgb(0, 0, 0);">z</span><span> (m), </span><span texencoding="v_x" style="vertical-align:-6px"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB0AAAAoCAYAAAACJPERAAAB80lEQVRYR+3Wy8tNcRTG8c9LuSQkiZKYCEkyM2AitwETEblk4jJ1GaDILZFcIoooIdfwB6CMGDFgIiW5pZQBURSipUW7k/fss1/neAfv2bVn+7e+6/esZ621O3TD09ENTG1oS1Vvy9uWtykKtI3UFBk7C9Jz5R2MKZiEaZiIlXhQkKovdmANtuIUvlWpx9/k7YUZOI3RCT1XA92DjZnMEjz9V2ic74/DWIu92IbvhcDDcRKhzDK8aQY0YqzHIVzDKnwoBO6N3SnrzpqESvn13DsLN3EPS/GiEG0kjmE7HpVSaj6oB52a0E+YXzBTnImbh8T7qpoo+PWg43AFk9PJdzPhCdiU79uqtyyDDsNFzMRyXMAQHMFR3O8KsAw6NEFzEhqGWodXuIQfrYAOxHGswJaEvMPZrtSxmGC9mhZ79WO2SPRuZ9MnjLUI8zACi/E8TbcrnR6Or2ukInQzDjZ4wwW4nrA+eI8veIaHZdB+2I/HFefreFzNlooBcqI22VasthiNMbdD7hgqr2sN1wpobKEDmJ51ffI/oLGhAhorcjZutRo6BqtxO7fQ+dxSY3P9fS0zUqO9PwAL8RJz00SxHAL4GTeyxy//3kbNqOkonMEgRGvdQfwIbMg9HB0Q7RYJ/HqaAW1UkT/ftaGVJatyoOfI+xNo/F8pbY0YZQAAAABJRU5ErkJggg==" width="14.5" height="20" /></span><span> (m/s), </span><span texencoding="v_y" style="vertical-align:-6px"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAoCAYAAADpE0oSAAACIElEQVRYR+3WTajMYRTH8c9FXhaSJMXCgpKERCIWEtmwl5e8JDYWpLwUXS+JFCKUkBBSytJLUhZYYGPBxoKUUogoG6Kjc6d/c6eZudP8793MU7OamfM95/ec8ztPlwE6XQPE1QH3m/IdqTtSl6ZAp7lKk7Y6cEfqUZiF6ViIaViHlwWphmE/NmMvLuB3X++oltSDsBgXMTHBV6vAh7EjE1qJt+0AR4wROIktOIJ9+FMIPg7nEQqtxsd2gSPOdpzAbWzC90LwwTiUEh+oSqqpHOp19VI8wFOswvtCxAk4g268aopU9aN64HkJ/okVhQaL/4QCIffRVhorcqgHnoJbmJkd/iSTnopd+fnUSrWNwGNxA0uwBtcxGqdwGi9ahTYCj0nYsgRHk23DB9zE37LAI3EWa7EnQZ9xpdV7LSZa746Ls/wjxydmu5ZLxXjNxgLMwMNUK1jzsRPH8KwH3ix4N443UWk03mV8S2P5gjk4h3uozHw98PDM8k0f/DjihfFE1y/H86ww3C1ONOj/U8ZaDLnvZnWhUiyVkPoa3pUJHp+VBWQrJmFRyl3pjzIqHpqOFne7Ie02RjGurHLKAEfw2GoH02i+1uqRssA9Pv8ok+hlrWWBw+cv5ezfr+VwZYHnItZq7PNf/QWOdbkxXyhxvzVPuyqenA71GOtzqxUfDr3g7QL3PJPu5MvzdaPN1S7wEMQ2i2XS1FO3XeBGBfb6/h9RxWgpAJjVfQAAAABJRU5ErkJggg==" width="15" height="20" /></span><span> (m/s), </span><span texencoding="v_z" style="vertical-align:-6px"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABsAAAAoCAYAAAAPOoFWAAAB6klEQVRYR+3WS8gPYRTH8c+LQkiSFAtWJEmSUJJcsrJQlFyyESu3LNxDEilEKFGikJItWbFgxcaGhY1EiZRLktw6el49pvedmT/Tu5qp2T3nfJ/zm985Z7r04dPVhywtrBG1WxlbGUsVaA3SGqQjgwzHNEzBHEzGWjzKsgzEfqzHHpzHtzo69+TGfpiPCxiXYJcLsEPYli6xAs/+FRZxg3ECG3AYe/E9Szga5xBKrMKr/4FF7FYcxw2sw/ssYX8cTPIdKFykV25ZUy/CHTzASjzPsozFaezD4zpVxZky2KwE+4QlmUkiJioNKY/UNUcVbCKuY2py5v1UwSRsT+/rulVVwUbhKhZiNa5gBE7iFB52AqqCjUyAxQkWRtmCF7iGn03ChuEM1mBnSv4Wlzr5TvmFygyS99rHZPXovd6mxVDEdCk+Efu1SsYctgPHSkC5CjksRtluvKmCDcJRPKkx/8K5S3EWHxDm2pzi/vRnU5t6AOL9giHYhZuFAd7473cAN+Ipbhcd21Rl3Z9kGT7jFn4UndIkbG5aSdGDPTq2KdhsLEdsgHw7/FVcE7CYlRcxM22G2Oz3MB1jkqS/K20CNj5VE3MzVs4MxPZekICb8K4pWHEiTcA8xGq6i5fdB5qorPY8bmG1pSo7+Aut310ptmcGoQAAAABJRU5ErkJggg==" width="13.5" height="20" /></span><span> (m/s), </span><span texencoding="q_0" style="vertical-align:-6px"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB8AAAAoCAYAAAAG0SEsAAACx0lEQVRYR+3WS8iVVRTG8Z+kRURQUdgFCpo4dNBECMJQowZpRRJdlMSiIEu8YFF4SbEbVNBAKIjKCgyDqIjECGpQoBBoEJFB0MAgC8I0AymKR9Yru9fjd9RP/AadDYcD797vfvZ+1n+t9U4ygWPSBGobiU+I+yPbR7afUQdGwJ1Ruzuxke3DbL8Md2EOvsXl2MqRxnQ19uAD/D1so3Z+mO2TcTdewCt4CgdwHl7E/bXZPXj7ZISzdizxCDxev8fwPP5qBFZjPb7H7fj6dInnxivwDDZhFf5oNj+75pbhXdyH/adLfB7exA+4A9/1Nr645m/E8grByWoPtD1wbcbsun1i+09v51l4r57dhC+a+YvqQFfiZ1yB57Crf7pBMQ9gbxXV8/FN76VzarNH8FkB+VOtmYqXsbdCdQh3Yh0W9Q55zM3PLQsfKFsfKrpb/euwBXHoaQS8pFguEgZW4hbsrJe6EO3Dw/j9eBUu+ZuUmYkn69da3t0sTGTkP/md0YkE1tSEX+r5WdiAe3uHOubm0/AOpmNNvdQdNKn3LK7BDOzuwZhn2+v9pYjl3ViIN/pw9mPe3jzQdTadX/medLugQHwdS5oUnIv3K+ax/89GvOMo8KZmHB5UZALTxto88ymhPyLgvVYcvFphebCEOo1OoOWgmxt4sEG0X4JHi84p+BQv4XNcXyl2EDfjqwG3GySenpCQJBOOujKstreUZ+0TxcE2LMCvzYJx2z5WlWqrWtIr4WkzISB+iI9wSsCNJX4tPkbguwGf9BYfL9Xi2Noi/T/V8ERt7wpIOtuXlccBsR+WVL3w0haZCxFIMxbjt+6lExVPfU6jCXChPinYdrluv64IpSTntql8t1YHTO8PtEfHMPEUjtsQmFKAMvIxkUIU0tMDQn47Lq1UzUHSWK6qj5Ed/QY1THwsBsY9NxIft4WnssH/1/Z/AWXvoCnzYGo1AAAAAElFTkSuQmCC" width="15.5" height="20" /></span><span>, </span><span texencoding="q_1" style="vertical-align:-6px"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB8AAAAoCAYAAAAG0SEsAAACQElEQVRYR+3WS6iNYRQG4OeUa1IGJAzIxIyBiSK5xwARKZeBIsotFHINuRZKUZRLLkWUMqGkGDAzoCSUMjEycUuKaJ3Wrr/dvp6zO2dgr/ra9a/vX+/+3vW+6/s79GJ09CK2NnivsN+mvU17jzLQFlyP0l0Ca9Nej/YRWI7ZeIORuEPnxTQW73Aff+oVKubr0d4HK3AaF3EU3zAIZ7A2i63EzWaAY28t8ADYnWsXTuF3AWAfDuE9luBVq8DjxNtxHOexAz8KxftlbivuYg2+tAp8Ia7jA5bhbVnhoZmfi23ZgmaxK9Ie4rqGWXn66O3fssozcS+fzcOzsny0czx24lyFfOf2Sj0Pgd1IVS/F67LC/XESm/EkBfmpsGcMNmJROmFKo+ADk8J1SeuGVHcRfypuIRg6hhBe0WID8At7U5ANg4d/wzLTcDBXkfLhuIDQRET8hr8rRckNDYOPw21MwH4cLlQN653AREzCyypiLL3SNHjx5CG6TfiKwen3sNuQFOLV7G3RgkUGmgYPMR3J4lEoRuhHhPCupA4uZVvWZwuqWaxp8Cg0LC2yGn3xGGfxFNPTYt8xHy9qmLtL4NXqhS33pA4eYhU+9xR4carFqaI95cOnWz2vNSIn40GKbw4e1ZmnLaM9KI9LJG6253m3hxBrRcvAR6XSQ3Ch+rBgNYuVxvYBxGp4yJSfJIbJYixADKCI+JiIQRRKjzsglF+M0ZiBLTmsLucfjv0/ixvrfcnUYbZ76TZ49/jr4tv/L+3/AIYweyko1SwtAAAAAElFTkSuQmCC" width="15.5" height="20" /></span><span>, </span><span texencoding="q_2" style="vertical-align:-6px"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB8AAAAoCAYAAAAG0SEsAAACy0lEQVRYR+3XS6iXVRQF8N+llxGBA8M0R02kgThwYoRmqGGYllGEPQZiUZAGFpQoCmZphQ8yiSzK6IFFUWBgQQk6KHLQwCLCgiCQBiVEWtigNJbsG58f/4c3zTv5H/i4cM85e5299lp73ztkFNfQKGIbgI8K+wPaB7SfVwYGgjuvdA+DDWjvR/sE3IW5+BYT8S6nBtPV+A678Xe/QM39frRfiLuxBS9hA47hMmzF/RXsHrw1EuCc7QUegFX1rcRm/NUAWIMn8D1ux1fnCjwZP4qn8QIewx+N4BfX3gq8h/vw27kCvwVv4AfciUOtwONqfx4eqRKMFLsj7RHX65hT2ae2J1uRZ+OD+t1N+KyxPwUPYwbG4FM8h6/br+tU8wjszVL1HfimdekSPFsA+0qQP9WZ64qFXeWAxFqMA1hSMf8N1wa/tC4/ULQ+VOpu4s/E2whDGxHhxWIRaEQZ4P11IdqJWNfXuaeaLLbB499YZhbW1dekfDx2IJrIys/4O2syFmFTyxXT8GGdi0CPd2uvCfAOpmJtvXj4bDJ7Bgk2HQdbYkyW+f5slWk45p4GS6eO9Mo8oluOo7i8/B67jS0hvoZlLQt2Uvxw5jn7fvNAGzxiSl3i8ay00B8R4e0sHbxSZXmwStDPYkuxsLrhz73As3cFHi91XoS92FYiuqEs9jsW4Ms+yFfieWxviLCr2nvFCkurSwcf414c6XEh9U8DOlwOaPeKEf271Oxqsddptmk9Ig+NvyfVUGrOhP+UeRrIRyW+G/FJj6yvLxvmkc2ZcNqVfiO1acl4NE3k85rtEWKndS1uxZOtBpX634xXcaKT1bolc1UpPYKL6mPBThldg5fxBX5pBLugen0aUATc0edt8DST28oqaRZZ+WMijShKzwyI8rNS3xcxv0sGGUSx3a9nCt7HSWe3faY1PzuULrcH4P8Lrf2Cjirt/wAWd4op3Ppa1AAAAABJRU5ErkJggg==" width="15.5" height="20" /></span><span>, </span><span texencoding="q_3" style="vertical-align:-6px"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB8AAAAoCAYAAAAG0SEsAAACwklEQVRYR+3XS+hVZRQF8J+giZkUlERFkyaOzEGTQPBB9hpUFIVQJoRFgg98QIVRUdoTNCoICiLJoqQkbJBCBIUoOHCgEpGB9IAclINKsYGVLNkHjsfbvf8Lf/wPuh/cwT3fd/bae+219nfvJBO4Jk0gthH4hLA/on1E+wVlYCS4C0p3AzaifRDtV+F+3IxvcTU+5uzFdB2O4DP8PShQe38Q7ZPxALbgbbyAPzEdr+KRCrYEHwwDnLP9wAOwoT5PYDNOtwCewnP4Hvfi0HiBp+L1eAlv4jGcbAW/qPbW4hM8jN/HC/wubMNRLMZ3ncBX1P5tWFctGBa7J+0R13tYVNWnt/92It+ET+vZ7djb2p+NMJICsnZgI37uZter5xHY+6Xq+/BN56WpeAWr8VUJ8pc6c31pJK0KW3fj+XLCyk7rzqt8WlH4aNG6otTdxp+HjxCGXkSEF4slqegkif9ULzSJzu/Vvm7l8W8sswDP1qdN+ZV4q0VpqI2/s+KOy1vATcJJLgkvxbF+Pp+F7ZiDp6tXzfkEfxk34EYc/A8xtuNfijewGx92tdOv8ohuFf7AjOpl7HZZ0bsV5/WxhRzK44RLsAmnBgkuL0Qg6V1WRuiPiPDeLR28U21ZXi3oxsyMiBui+FtrM7ZNzF/70Z69mXgcD2EKvsTr+BoLy2IncAcO9DF3BlHa8yRu6WXbQbO9m2gCxbPp4YP4rQ94sxX7xR2x7DmTcBjw9lSLgtOe7vDplcvFeA3X1kw43hwaBnwudpX4QuMXY6g6R5rZkVmQvv81LHiSjIBys+2ruz1CHMvK7MjgSfU7BwmuV8BrSukRXFQfC7ZvuUaosdQ/NQ9+qKm3pp7ljmhfyQP/Iket9+BOZABl5cdEBlGUnoqi/KwMoWewrL7vwWF8jv2VwDmFDdPzsVA81JkR+FB0jdfh/y/tZwA9LYspKRpkTAAAAABJRU5ErkJggg==" width="15.5" height="20" /></span><span>,  </span><span texencoding="\omega_1" style="vertical-align:-6px"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACUAAAAoCAYAAAB5ADPdAAACgElEQVRYR+3WTchOeRgG8N/LlCRlshELDQs20qQQC5KaKTGabAxKUb4zLORbmoVSKEZhLDD5LAuTzczWR2ayRFY+FppZjBKh0Yjuuk8dj/M+z3meXmVxTp2ezvO////7Otd9Xfd9+nyGV99niEkDqm5VGqYapuoyUDeu0VTDVF0G6sY1mhpopgZhFMZjMO7g30wSz5MwAi9xL3/rYvgorlP5Aswc7MZDHMB9vKnI+CU2YgN24hf83wuydqCGYXvpPoj/OiQZjbOYgmW4MpCgAtB+rMWZfPvnmeALbMKuvA/jXa4NxSGsyt+t/bDaFmsVU/HfSpzA31iIv0qnfIdfMRzHE+DrClC/YwmedstWFaivcB7TECxsKZWtzETk2pt3FVMDCiqoP5ZvF6z8VnrTsTiHGf2sj0xNfYOTKfxXpf0hi+Xp4h0oGP6AzFamoiRHU6Q38QMel3ZMxx9Zuj+xOF1ZhEzEpWwRm1NXsTYE87EC31aUvS2owj2zUzfr8KK0Yyau53M4M8zwtrS+IB3XqsUwRxAwDhdxq0WLbUFNyE2TsS/dVU5agLqBpXhUOi2a6E/YhlNYX9FEi/O7AlXWTDTMSFK+vsdllEtTrBcGic6/CLcrXNcTqBDizynGVqYiWYh3XjbUWC+uKE84Mbr56nRv4cgytp5AxQGzcBoPUvBPMCZF+yyFHWWMXvZPijjGy49Zuujo/Y2XnkGFIL9GdONw411EWS/gar52NMW5CTxiYx4eadFYVc/sGVS3Dbib+AZUXbYapuoyVYyhGGHx+VNr9tU9vNu4mH1Tc1auyXm6B9fSwW3HTLfJPkl8p2/0T5K006ENqE4MFesNU3WZeg/Fx5YpIbhWOQAAAABJRU5ErkJggg==" width="18.5" height="20" /></span><span> (rad/s), </span><span texencoding="\omega_2" style="vertical-align:-6px"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACUAAAAoCAYAAAB5ADPdAAAC+UlEQVRYR+3XWehmcxwG8M8MmZiElG0uhhTjQpKyF6FcKHvJIIoiS7bsS0kiNZSlDC4wja1mityQEqFomgtZbywXQo2IrA2jp77n32/eOe9ieuffXLynTm/n/H7n931+z/d5nnPeBbbDY8F2iMkM1KRdmTE1Y2pSBiadN9PUjKlJGZh03kxT02ZqIfbBgdgBH2NDFcn1odgdv+HT+p0UwxbzxrUvYE7C3fgKK/A5/u6puAeuxTW4E09h49YgGwVqMW5vzofw15gi+2E1jsBFeGWaoALoQVyJ52r3v1SBHXE97qrzEWyqsZ3xMC6v31uHsDoSax9TuXcZnsR3OBMfNqucgVXYFSsL4B89oF7HBfjx/7LVB+oAvICjEBZubtrWMpFa99TZx9RUQYX6J2p3YeXVZqdL8TyOHTK+Z2nqVDxdwv8d2czFOBdHYj1exLPoWJ4rM8hUWvJ4ifR9LMc3Daij8Ua17gOcX67spizDyxURN5SuAij67AAfVJo7GNFcHL2ZSwdBde45sXRzFX5tQB2Hd+s6zkyxf5rx08txrRZPxlm4pcmvQ0oiefQ8fNHqbhBU0L+Ew3B/uast2oF6Dxfi62axhOi9uA3P4GqkdXHqm/iombsTHqix45H1hrav1UwCM0Xa42ysQdeadqwzSJI/2llXg7vgT/w7sFYiJVmWuS3gLf5iJZ8ewyU9TKVYxHtaBWqY7I5kV5yYNL+iWtM5si8ROqb2x6X4aRRTGTuhXPFl7eRbLCnR/lzCThuTZd9jUbnsumpdEn3c62XfCuW0OfM3O4aF5+HljLjxE6StsfBr9XRC8RQEeObmffjogMb6GMq91Mzzx1QG5iU+FtSwxaZ1P867EXfgh75Fx30lTAtIt87euK+y6bNRVE678LD1YqK4OV8Ob48qOl9MBdBNeAdvNV8VqZ+YyYfhHHPzASpxEQ3lY7EFFLL2wm7l3jnBb2tQSfkkf5wZJ/cd52DtuJyaL40NrbOtmdqqDc5ATUrbjKlJmfoPquyXKY09KgEAAAAASUVORK5CYII=" width="18.5" height="20" /></span><span> (rad/s), </span><span texencoding="\omega_3" style="vertical-align:-6px"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACUAAAAoCAYAAAB5ADPdAAAC50lEQVRYR+3XW6hVVRgF4O+UICGBWaDog4oP9WBEBCaKGSZKCObtpTQsEAwveHmI0hTEh8BraKFpkSZqilqKEAU9BBUaiS8W+ZL6EBYkimJeKItf/iWr1Tpn7/LgOcJesNjsPeea/5jjH2PMtdt0w6utG2LSAtVsV1pMtZhqloFm57U01WKqWQaandfSVGczdQ/6YQjuxQn8lkXi+6Pojcv4IT+bxfCveY3aF2DGYDlOYS1+xPWaig9gAebjDWzFH/8HWUegemFJ6V6Haw2K9MdOPIEXcbAzQQWgVZiDD3P3F7NADyzCsrw34K8cuw/rMTs/X2uH1Q6x1jEVv83CFpzFJHxbWuU57MD9eDcBXqkB9Rmm49x/ZasO1GDsxpMIFl4tta3MRNRakXcdU50KKqjfnLsLVg6VdjoQuzCinfEHU1Pj8V4K/3fEZmbipdzsUbyFfXVmqDIVLXknRfoNXsCZEqjh+DxbFws/n64spjyCvRkRi1NXocGluJqAH0o3j8VkfFFtbxVU4Z6nUzdzcan00Eh8ld/DmWGGP0vjE9NxZS0OS5Af4EbOjd8+wSasbATqYezBY3gz3VUuWoD6GjNwurRghGgUeB3bMC9DdBB+RWGGeKSosxHvNwJV1kwEZnUXU7AfRWvK6xUGieSfhu86cN2zGRuh3wD8j6vavsint1OQVaaiWIh3QgZqjBdX6CacGGn+Srq3cGS15lCsydSvBV4XCaOxHT+l4H/GgBTthRR2tDGy7Bf0TJctzNZFotcdL6HXeCaOoj5poGD841L43txAe+H5OCKNw43fI9r6EQ7ntiMUwz0BPObGeRj6KGusrntRr2/GQzgyDu+qg7vsH3LR7nBwNQu7DFSw+BS+TBdHy29djV5dOjDQbQ+FLj/FOBzpLqAiDp7JaDh/p0FNxct5xBzIwz1iISIkNHWyUU7ddk9qFhiF1XkQH8PxbFccM7WvNV2pqXYJaIFqVhstpu5qpv4GBo6ZKemRaD4AAAAASUVORK5CYII=" width="18.5" height="20" /></span><span> (rad/s).</span></div><div class="CodeBlock"><div class="inlineWrapper outputs"><div  class = 'S10'><span style="white-space: pre"><span >solution_matrix = double(py.numpy.array(TestFlight.solution))</span></span></div><div  class = 'S11'><div class="inlineElement eoOutputWrapper embeddedOutputsVariableMatrixElement" uid="608ED8F3" data-testid="output_3" data-width="638" style="width: 668px; white-space: normal; font-style: normal; color: rgb(64, 64, 64); font-size: 12px;"><div class="matrixElement veSpecifier eoOutputContent" style="white-space: normal; font-style: normal; color: rgb(64, 64, 64); font-size: 12px;"><div class="veVariableName variableNameElement double" style="width: 638px; white-space: normal; font-style: normal; color: rgb(64, 64, 64); font-size: 12px;"><div class="headerElementClickToInteract" style="white-space: normal; font-style: normal; color: rgb(64, 64, 64); font-size: 12px;"><span style="white-space: normal; font-style: normal; color: rgb(64, 64, 64); font-size: 12px;">solution_matrix = </span><span class="veVariableValueSummary veMetaSummary" style="white-space: normal; font-style: normal; color: rgb(179, 179, 179); font-size: 12px;">730×14</span></div></div><div class="veScalingFactor" style="white-space: normal; font-style: normal; color: rgb(64, 64, 64); font-size: 12px;">10<sup>3</sup><span class="multiply" style="white-space: normal; font-style: normal; color: rgb(64, 64, 64); font-size: 12px;"> ×</span></div><div class="valueContainer" data-layout="{&quot;columnWidth&quot;:66,&quot;totalColumns&quot;:14,&quot;totalRows&quot;:730,&quot;charsPerColumn&quot;:10}" style="white-space: nowrap; font-style: normal; color: rgb(64, 64, 64); font-size: 12px;"><div class="variableValue" style="width: 530px; white-space: pre; font-style: normal; color: rgb(64, 64, 64); font-size: 12px;">         0         0         0    1.4715         0         0         0    0.0010   -0.0000         0         0         0         0         0
+    0.0000         0         0    1.4715         0         0         0    0.0010   -0.0000         0         0         0         0         0
+    0.0000         0         0    1.4715         0         0         0    0.0010   -0.0000         0         0         0         0         0
+    0.0000         0         0    1.4715         0         0         0    0.0010   -0.0000         0         0         0         0         0
+    0.0000         0         0    1.4715         0         0         0    0.0010   -0.0000         0         0         0         0         0
+    0.0000         0         0    1.4715         0         0         0    0.0010   -0.0000         0         0         0         0         0
+    0.0000         0         0    1.4715         0         0         0    0.0010   -0.0000         0         0         0         0         0
+    0.0000         0         0    1.4715         0         0         0    0.0010   -0.0000         0         0         0         0         0
+    0.0000         0         0    1.4715         0         0         0    0.0010   -0.0000         0         0         0         0         0
+    0.0000         0         0    1.4715         0         0         0    0.0010   -0.0000         0         0         0         0         0
+</div><div class="horizontalEllipsis" style="white-space: nowrap; font-style: normal; color: rgb(64, 64, 64); font-size: 12px;"></div><div class="verticalEllipsis" style="white-space: nowrap; font-style: normal; color: rgb(64, 64, 64); font-size: 12px;"></div></div></div></div></div></div></div><div  class = 'S9'><span>Support for accessing secondary values calculated during post processing, such as energy, mach number, and angle of attack, is coming soon.</span></div>
+<br>
+<!-- 
+##### SOURCE BEGIN #####
+%% Getting Started with RocketPy in MATLAB®
+% In this Live Script, you will learn how to run RocketPy using the MATLAB® 
+% environment.
+% 
+% We start by configuring the Python environment. You can do so by following 
+% the guidelines presented in the MATLAB® documentation: <https://www.mathworks.com/help/matlab/matlab_external/install-supported-python-implementation.html?searchHighlight=python&s_tid=srchtitle_python_4 
+% Configure Your System to Use Python - MATLAB & Simulink (mathworks.com)>.
+% 
+% Once the Python environment is configured, RocketPy needs to installed using 
+% |pip| as outlined in RocketPy's documentation: <https://docs.rocketpy.org/en/latest/user/installation.html#quick-install-using-pip 
+% Installation — RocketPy documentation>.
+% 
+% Finally, all the prerequisites are complete and you can comeback to MATLAB®! 
+% We just need to set the execution mode as out of process and start working. 
+% MATLAB® can run Python scripts and functions in a separate process. Running 
+% Python in a separate process enables you to:
+%% 
+% * Use some third-party libraries in the Python code that are not compatible 
+% with MATLAB®.
+% * Isolate the MATLAB process from crashes in the Python code.
+
+pyenv("ExecutionMode","OutOfProcess");
+%% 
+% Now, we will go through a simplified rocket trajectory simulation to get you 
+% started. Let's start by importing the rocketpy module.
+
+rocketpy = py.importlib.import_module('rocketpy');
+%% Setting Up a Simulation
+% Creating an Environment for Spaceport America
+
+% rocketpy.Environment(railLength, latitude, longitude, elevation);
+Env = rocketpy.Environment(pyargs(...
+    'railLength', 5.2, ...
+    'latitude', 32.990254, ...
+    'longitude',-106.974998, ...
+    'elevation', 1400 ...
+));
+%% 
+% To get weather data from the GFS forecast, available online, we run the following 
+% lines.
+% 
+% First, we set tomorrow's date.
+
+Tomorrow = datetime('tomorrow');
+Env.setDate({int32(Tomorrow.Year), int32(Tomorrow.Month), int32(Tomorrow.Day), int32(12)}) % Hour given in UTC time (noon UTC)
+%% 
+% Now, se tell our Environment object to retrieve a weather forecast for our 
+% specied location and date using GFS:
+
+Env.setAtmosphericModel(pyargs( ...
+    'type', "Forecast", ...
+    'file', "GFS" ...
+))
+%% 
+% We can see what the weather will look like by calling the info method!
+
+Env.info()
+%% 
+% Plots will open in a separate window, so be sure to run this last cell to 
+% seem them!
+%% Creating a Motor
+% A solid rocket motor is used in this case. To create a motor, the SolidMotor 
+% class is used and the required arguments are given.
+% 
+% The SolidMotor class requires the user to have a thrust curve ready. This 
+% can come either from a .eng file for a commercial motor, such as below, or a 
+% .csv file from a static test measurement.
+% 
+% Besides the thrust curve, other parameters such as grain properties and nozzle 
+% dimensions must also be given.
+
+Pro75M1670 = rocketpy.SolidMotor(pyargs( ...
+    'thrustSource', "../../data/motors/Cesaroni_M1670.eng", ...
+    'burnOut', 3.9, ...
+    'grainNumber', int32(5), ...
+    'grainSeparation', 5 / 1000, ...
+    'grainDensity', 1815, ...
+    'grainOuterRadius', 33 / 1000, ...
+    'grainInitialInnerRadius', 15 / 1000, ...
+    'grainInitialHeight', 120 / 1000, ...
+    'nozzleRadius', 33 / 1000, ...
+    'throatRadius', 11 / 1000, ...
+    'interpolationMethod', "linear" ...
+));
+%% 
+% To see what our thrust curve looks like, along with other import properties, 
+% we invoke the info method yet again. You may try the allInfo method if you want 
+% more information all at once!
+
+Pro75M1670.info()
+%% 
+% Plots will open in a separate window, so be sure to run this last cell to 
+% seem them!
+%% Creating a Rocket
+% A rocket is composed of several components. Namely, we must have a motor (good 
+% thing we have the Pro75M1670 ready), a couple of aerodynamic surfaces (nose 
+% cone, fins and tail) and parachutes (if we are not launching a missile).
+% 
+% Let's start by initializing our rocket, named Calisto, supplying it with the 
+% Pro75M1670 engine, entering its inertia properties, some dimensions and also 
+% its drag curves.
+
+Calisto = rocketpy.Rocket(pyargs( ...
+    'motor', Pro75M1670, ...
+    'radius', 127 / 2000, ...
+    'mass', 19.197 - 2.956, ...
+    'inertiaI', 6.60, ...
+    'inertiaZ', 0.0351, ...
+    'distanceRocketNozzle', -1.255, ...
+    'distanceRocketPropellant', -0.85704, ...
+    'powerOffDrag', "../../data/calisto/powerOffDragCurve.csv", ...
+    'powerOnDrag', "../../data/calisto/powerOnDragCurve.csv" ...
+));
+
+Calisto.setRailButtons([0.2, -0.5])
+% Adding Aerodynamic Surfaces
+% Now we define the aerodynamic surfaces. They are really straight forward.
+
+NoseCone = rocketpy.Rocket.addNose(pyargs( ...
+    'self', Calisto, ...
+    'length', 0.55829, ...
+    'kind', "vonKarman", ...
+    'distanceToCM', 0.71971 ...
+));
+
+FinSet = rocketpy.Rocket.addFins(pyargs( ...
+    'self', Calisto, ...
+    'n', int32(4), ...
+    'span', 0.100, ...
+    'rootChord', 0.120, ...
+    'tipChord', 0.040, ...
+    'distanceToCM', -1.04956 ...
+));
+
+Tail = rocketpy.Rocket.addTail(pyargs( ...
+    'self', Calisto, ...
+    'topRadius', 0.0635, ...
+    'bottomRadius', 0.0435, ...
+    'length', 0.060, ...
+    'distanceToCM', -1.194656 ...
+));
+% Adding Parachutes
+% Finally, we have parachutes! Calisto will have two parachutes, Drogue and 
+% Main.
+% 
+% Both parachutes are activated by some special algorithm, which is usually 
+% really complex and a trade secret. Most algorithms are based on pressure sampling 
+% only, while some also use acceleration info.
+% 
+% RocketPy allows you to define a trigger function which will decide when to 
+% activate the ejection event for each parachute. This trigger function is supplied 
+% with pressure measurement at a predefined sampling rate. This pressure signal 
+% is usually noisy, so artificial noise parameters can be given. Call 
+
+% py.help(rocketpy.Rocket.addParachute)
+%% 
+% for more details. Furthermore, the trigger function also recieves the complete 
+% state vector of the rocket, allowing us to use velocity, acceleration or even 
+% attitude to decide when the parachute event should be triggered.
+% 
+% Here, we define our trigger functions rather simply using Python. Unfortunately, 
+% defining these with MATLAB code is not yet possible.
+
+% Drogue parachute is triggered when vertical velocity is negative, i.e. rocket is falling past apogee
+drogueTrigger = py.eval("lambda p, y: y[5] < 0", py.dict);
+
+% Main parachute is triggered when vertical velocity is negative and altitude is below 800 AGL 
+mainTrigger = py.eval("lambda p, y: (y[5] < 0) and (y[2] < 800 + 1400)", py.dict); 
+%% 
+% Now we add both the drouge and the main parachute to our rocket.
+
+Main = rocketpy.Rocket.addParachute(pyargs( ...
+    'self', Calisto, ...
+    'name', "Main", ...
+    'CdS', 10.0, ...
+    'trigger', mainTrigger, ...
+    'samplingRate', 105, ...
+    'lag', 1.5, ...
+    'noise', py.tuple({0, 8.3, 0.5}) ...
+));
+
+Drogue = rocketpy.Rocket.addParachute(pyargs( ...
+    'self', Calisto, ...
+    'name', "Drogue", ...
+    'CdS', 1.0, ...
+    'trigger', drogueTrigger, ...
+    'samplingRate', 105, ...
+    'lag', 1.5, ...
+    'noise', py.tuple({0, 8.3, 0.5}) ...
+));
+%% 
+% |Just be careful if you run this last cell multiple times! If you do so, your 
+% rocket will end up with lots of parachutes which activate together, which may 
+% cause problems during the flight simulation. We advise you to re-run all cells 
+% which define our rocket before running this, preventing unwanted old parachutes. 
+% Alternatively, you can run the following lines to remove parachutes.|
+
+% Calisto.parachutes.remove(Drogue)
+% Calisto.parachutes.remove(Main)
+%% |Simulating a Flight|
+% |Simulating a flight trajectory is as simples as initializing a Flight class 
+% object givin the rocket and environement set up above as inputs. The launch 
+% rail inclination and heading are also given here.|
+
+TestFlight = rocketpy.Flight(pyargs(...
+    'rocket', Calisto, ...
+    'environment',Env, ...
+    'inclination', 85, ...
+    'heading', 0 ...
+));
+%% |Analysing the Results|
+% |RocketPy gives you many plots, thats for sure! They are divided into sections 
+% to keep them organized. Alternatively, see the Flight class documentation to 
+% see how to get plots for specific variables only, instead of all of them at 
+% once.|
+
+TestFlight.allInfo()
+%% 
+% Plots will open in a separate window, so be sure to run this last cell to 
+% seem them!
+%% Working with Data Generated by RocketPy in MATLAB
+% You can acess the entire trajectory solution matrix with the following line 
+% of code. The returned matrix contain the following columns: time $t$ (s), $x$ 
+% (m), $y$ (m), $z$ (m), $v_x$ (m/s), $v_y$ (m/s), $v_z$ (m/s), $q_0$, $q_1$, 
+% $q_2$, $q_3$,  $\omega_1$ (rad/s), $\omega_2$ (rad/s), $\omega_3$ (rad/s).
+
+solution_matrix = double(py.numpy.array(TestFlight.solution))
+%% 
+% Support for accessing secondary values calculated during post processing, 
+% such as energy, mach number, and angle of attack, is coming soon.
+##### SOURCE END #####
+-->
+</div></body></html>
