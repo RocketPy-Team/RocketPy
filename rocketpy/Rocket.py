@@ -490,9 +490,9 @@ class Rocket:
             k = 1 - 0.437
         else:
             k = 0.5
-
+        import ipdb; ipdb.set_trace()
         # Calculate cp position relative to cm
-        cpz = distanceToCM + np.sign(distanceToCM) * k * length
+        cpz = distanceToCM + np.sign(distanceToCM) * k * length ** 2
 
         # Calculate clalpha
         clalpha = 2
