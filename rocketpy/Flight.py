@@ -3306,6 +3306,100 @@ class Flight:
 
         return None
 
+    def exportData(self, fileName, *variables, timeStep=None):
+        """Exports flight data to a comma separated value file (.csv).
+
+        Data is exported in columns, with the first column representing time
+        steps. The first line of the file is a header line, specifying the
+        meaning of each column and its units.
+
+        Parameters
+        ----------
+        fileName : string
+            The file name or path of the exported file. Example: flight_data.csv.
+            Do not use forbidden characters, such as '/' in Linux/Unix and
+            '<, >, :, ", /, \\, | ?, *' in Windows.
+        variables : strings, optional
+            Names of the data variables which shall be exported. Must be Flight
+            classes attribute which are an instance of the Function class. Usage
+            example: TestFlight.exportData('test.csv', 'z', 'angleOfAttack', 'machNumber').
+        timeStep : float, optional
+            Time step desired for the data. If None, all integration time steps
+            will be exported. Otherwise, linear interpolation is carried out to
+            calculate values at the desired time steps. Example: 0.001.
+        """
+        if self.postProcessed is False:
+            self.postProcess()
+
+        # Fast evaluation for the most basic scenario
+        if timeStep is None and len(variables) == 0:
+            np.savetxt(
+                fileName,
+                self.solution,
+                fmt="%.6f",
+                delimiter=",",
+                header=""
+                "Time (s),"
+                "X (m),"
+                "Y (m),"
+                "Z (m),"
+                "E0,"
+                "E1,"
+                "E2,"
+                "E3,"
+                "W1 (rad/s),"
+                "W2 (rad/s),"
+                "W3 (rad/s)",
+            )
+            return
+
+        # Not so fast evaluation for general case
+        if variables is None:
+            variables = [
+                "x",
+                "y",
+                "z",
+                "vx",
+                "vy",
+                "vz",
+                "e0",
+                "e1",
+                "e2",
+                "e3",
+                "w1",
+                "w2",
+                "w3",
+            ]
+
+        if timeStep is None:
+            # Get time from any Function, should all be the same
+            timePoints = self.x[:, 0]
+        else:
+            timePoints = np.arange(self.tInitial, self.tFinal, timeStep)
+
+        exportedMatrix = [timePoints]
+        exportedHeader = "Time (s)"
+
+        # Loop through variables, get points and names (for the header)
+        for variable in variables:
+            variableFunction = self.__dict__[variable]
+            variablePoints = variableFunction(timePoints)
+            exportedMatrix += [variablePoints]
+            exportedHeader += ", " + variableFunction.__outputs__[0]
+
+        exportedMatrix = np.array(exportedMatrix).T  # Fix matrix orientation
+
+        np.savetxt(
+            fileName,
+            exportedMatrix,
+            fmt="%.6f",
+            delimiter=",",
+            header=exportedHeader,
+            encoding="utf-8",
+        )
+
+        return
+
     def allInfo(self):
         """Prints out all data and graphs available about the Flight.
 
