@@ -3316,11 +3316,13 @@ class Flight:
         Parameters
         ----------
         fileName : string
-            The final file name of the exported file. Example: flight_data.csv
+            The file name or path of the exported file. Example: flight_data.csv.
+            Do not use forbidden characters, such as '/' in Linux/Unix and
+            '<, >, :, ", /, \, | ?, *' in Windows.
         variables : strings, optional
-            Names of the data which shall be exported. Must be a Flight class
-            attribute which is a Function. Examples: x, y, z, angleOfAttack,
-            Acceleration.
+            Names of the data variables which shall be exported. Must be Flight
+            classes attribute which are an instance of the Function class. Usage
+            example: TestFlight.exportData('test.csv', 'z', 'angleOfAttack', 'machNumber').
         timeStep : float, optional
             Time step desired for the data. If None, all integration time steps
             will be exported. Otherwise, linear interpolation is carried out to
