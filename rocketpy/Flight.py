@@ -3318,7 +3318,7 @@ class Flight:
         fileName : string
             The file name or path of the exported file. Example: flight_data.csv.
             Do not use forbidden characters, such as '/' in Linux/Unix and
-            '<, >, :, ", /, \, | ?, *' in Windows.
+            '<, >, :, ", /, \\, | ?, *' in Windows.
         variables : strings, optional
             Names of the data variables which shall be exported. Must be Flight
             classes attribute which are an instance of the Function class. Usage
