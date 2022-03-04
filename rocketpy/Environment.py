@@ -1803,7 +1803,7 @@ class Environment:
 
         # Find time index
         timeIndex = netCDF4.date2index(
-            self.date, timeArray, calendar="gregorian", select="before"
+            self.date, timeArray, calendar="gregorian", select="nearest"
         )
         # Convert times do dates and numbers
         inputTimeNum = netCDF4.date2num(
@@ -2199,7 +2199,7 @@ class Environment:
 
         # Find time index
         timeIndex = netCDF4.date2index(
-            self.date, timeArray, calendar="gregorian", select="before"
+            self.date, timeArray, calendar="gregorian", select="nearest"
         )
         # Convert times do dates and numbers
         inputTimeNum = netCDF4.date2num(
