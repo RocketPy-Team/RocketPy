@@ -612,6 +612,7 @@ class Flight:
         self.effective2RL = self.env.rL - abs(nozzle - lowerRButton)
 
         # Flight initialization
+        self.__init_post_process_variables()
         # Initialize solution monitors
         self.outOfRailTime = 0
         self.outOfRailState = np.array([0])
@@ -1104,6 +1105,89 @@ class Flight:
         self.tFinal = self.t
         if verbose:
             print("Simulation Completed at Time: {:3.4f} s".format(self.t))
+
+    def __init_post_process_variables(self):
+        """Initialize post-process variables."""
+        # Initialize all variables created during Flight.postProcess()
+        # Important to do so that MATLAB can access them
+        self.windVelocityX = Function(0)
+        self.windVelocityY = Function(0)
+        self.density = Function(0)
+        self.pressure = Function(0)
+        self.dynamicViscosity = Function(0)
+        self.speedOfSound = Function(0)
+        self.ax = Function(0)
+        self.ay = Function(0)
+        self.az = Function(0)
+        self.alpha1 = Function(0)
+        self.alpha2 = Function(0)
+        self.alpha3 = Function(0)
+        self.speed = Function(0)
+        self.maxSpeed = 0
+        self.maxSpeedTime = 0
+        self.horizontalSpeed = Function(0)
+        self.Acceleration = Function(0)
+        self.maxAcceleration = 0
+        self.maxAccelerationTime = 0
+        self.pathAngle = Function(0)
+        self.attitudeVectorX = Function(0)
+        self.attitudeVectorY = Function(0)
+        self.attitudeVectorZ = Function(0)
+        self.attitudeAngle = Function(0)
+        self.lateralAttitudeAngle = Function(0)
+        self.phi = Function(0)
+        self.theta = Function(0)
+        self.psi = Function(0)
+        self.R1 = Function(0)
+        self.R2 = Function(0)
+        self.R3 = Function(0)
+        self.M1 = Function(0)
+        self.M2 = Function(0)
+        self.M3 = Function(0)
+        self.aerodynamicLift = Function(0)
+        self.aerodynamicDrag = Function(0)
+        self.aerodynamicBendingMoment = Function(0)
+        self.aerodynamicSpinMoment = Function(0)
+        self.railButton1NormalForce = Function(0)
+        self.maxRailButton1NormalForce = 0
+        self.railButton1ShearForce = Function(0)
+        self.maxRailButton1ShearForce = 0
+        self.railButton2NormalForce = Function(0)
+        self.maxRailButton2NormalForce = 0
+        self.railButton2ShearForce = Function(0)
+        self.maxRailButton2ShearForce = 0
+        self.rotationalEnergy = Function(0)
+        self.translationalEnergy = Function(0)
+        self.kineticEnergy = Function(0)
+        self.potentialEnergy = Function(0)
+        self.totalEnergy = Function(0)
+        self.thrustPower = Function(0)
+        self.dragPower = Function(0)
+        self.attitudeFrequencyResponse = Function(0)
+        self.omega1FrequencyResponse = Function(0)
+        self.omega2FrequencyResponse = Function(0)
+        self.omega3FrequencyResponse = Function(0)
+        self.streamVelocityX = Function(0)
+        self.streamVelocityY = Function(0)
+        self.streamVelocityZ = Function(0)
+        self.freestreamSpeed = Function(0)
+        self.apogeeFreestreamSpeed = 0
+        self.MachNumber = Function(0)
+        self.maxMachNumber = 0
+        self.maxMachNumberTime = 0
+        self.ReynoldsNumber = Function(0)
+        self.maxReynoldsNumber = 0
+        self.maxReynoldsNumberTime = 0
+        self.dynamicPressure = Function(0)
+        self.maxDynamicPressure = 0
+        self.maxDynamicPressureTime = 0
+        self.totalPressure = Function(0)
+        self.maxTotalPressure = 0
+        self.maxTotalPressureTime = 0
+        self.angleOfAttack = Function(0)
+        self.flutterMachNumber= Function(0)
+        self.difference = Function(0)
+        self.safetyFactor = Function(0)
 
     def uDotRail1(self, t, u, postProcessing=False):
         """Calculates derivative of u state vector with respect to time
