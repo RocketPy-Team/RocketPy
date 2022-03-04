@@ -1185,7 +1185,7 @@ class Flight:
         self.maxTotalPressure = 0
         self.maxTotalPressureTime = 0
         self.angleOfAttack = Function(0)
-        self.flutterMachNumber= Function(0)
+        self.flutterMachNumber = Function(0)
         self.difference = Function(0)
         self.safetyFactor = Function(0)
 
