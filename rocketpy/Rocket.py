@@ -220,7 +220,7 @@ class Rocket:
 
         # Define rocket geometrical parameters in SI units
         self.radius = radius
-        self.area = np.pi * self.radius ** 2
+        self.area = np.pi * self.radius**2
 
         # Center of mass distance to points of interest
         self.distanceRocketNozzle = distanceRocketNozzle
@@ -431,7 +431,7 @@ class Rocket:
 
         # Calculate cp position relative to cm
         cpz = distanceToCM + np.sign(distanceToCM) * (length / 3) * (
-            1 + (1 - r) / (1 - r ** 2)
+            1 + (1 - r) / (1 - r**2)
         )
 
         # Calculate clalpha
@@ -577,13 +577,13 @@ class Rocket:
         Ymac = (
             (s / 3) * (Cr + 2 * Ct) / Yr
         )  # span wise position of fin's mean aerodynamic chord
-        Lf = np.sqrt((rootChord / 2 - tipChord / 2) ** 2 + span ** 2)
+        Lf = np.sqrt((rootChord / 2 - tipChord / 2) ** 2 + span**2)
         radius = self.radius if radius == 0 else radius
         d = 2 * radius
         cantAngleRad = np.radians(cantAngle)
-        trapezoidalConstant = ((Yr) / 2) * (radius ** 2) * s
-        trapezoidalConstant += ((Cr + 2 * Ct) / 3) * radius * (s ** 2)
-        trapezoidalConstant += ((Cr + 3 * Ct) / 12) * (s ** 3)
+        trapezoidalConstant = ((Yr) / 2) * (radius**2) * s
+        trapezoidalConstant += ((Cr + 2 * Ct) / 3) * radius * (s**2)
+        trapezoidalConstant += ((Cr + 3 * Ct) / 12) * (s**3)
 
         # Save geometric parameters for later Fin Flutter Analysis and Roll Moment Calculation
         self.rootChord = Cr
@@ -646,7 +646,7 @@ class Rocket:
                 # Retrieve parameters for calculations
                 Af = (Cr + Ct) * span / 2
                 # fin area
-                AR = 2 * (span ** 2) / Af  # Aspect ratio
+                AR = 2 * (span**2) / Af  # Aspect ratio
                 gamac = np.arctan((Cr - Ct) / (2 * span))
                 # mid chord angle
                 FD = 2 * np.pi * AR / (cn * np.cos(gamac))
@@ -655,7 +655,7 @@ class Rocket:
                     * FD
                     * (Af / self.area)
                     * np.cos(gamac)
-                    / (2 + FD * (1 + (4 / FD ** 2)) ** 0.5)
+                    / (2 + FD * (1 + (4 / FD**2)) ** 0.5)
                 )
                 return Cnalfa1
 
