@@ -121,7 +121,7 @@ def test_add_tail_assert_cp_cm_plus_tail(dimensioneless_rocket, m):
         topRadius=0.0635 * m, bottomRadius=0.0435 * m, length=0.060 * m, distanceToCM=-1.194656 * m
     )
 
-    clalpha = -2 * (1 - (0.0635 / 0.0435) ** (-2)) * (0.0635 / rocket.radius/m) ** 2
+    clalpha = -2 * (1 - (0.0635 / 0.0435) ** (-2)) * (0.0635 / (rocket.radius/m)) ** 2
     cpz = -1.194656 - (0.06 / 3) * (
         1 + (1 - (0.0635 / 0.0435)) / (1 - (0.0635 / 0.0435) ** 2)
     )
@@ -132,7 +132,7 @@ def test_add_tail_assert_cp_cm_plus_tail(dimensioneless_rocket, m):
 
     static_margin_final = (rocket.centerOfMass(-1) - cpz) / (2 * rocket.radius)
     assert static_margin_final == pytest.approx(rocket.staticMargin(-1), 1e-12)
-
+    
     assert np.abs(clalpha) == pytest.approx(np.abs(rocket.totalLiftCoeffDer), 1e-8)
     assert rocket.cpPosition == cpz
 
@@ -172,8 +172,7 @@ def test_add_fins_assert_cp_cm_plus_fins(dimensioneless_rocket, m):
 
 
 def test_add_cm_eccentricity_assert_properties_set(rocket):
-    import pdb; pdb.set_trace()
-    rocket.addCMExcentricity(x=4, y=5)
+    rocket.addCMEccentricity(x=4, y=5)
 
     assert rocket.cpEccentricityX == -4
     assert rocket.cpEccentricityY == -5
@@ -183,14 +182,14 @@ def test_add_cm_eccentricity_assert_properties_set(rocket):
 
 
 def test_add_thrust_eccentricity_assert_properties_set(rocket):
-    rocket.addThrustExentricity(x=4, y=5)
+    rocket.addThrustEccentricity(x=4, y=5)
 
     assert rocket.thrustEccentricityY == 4
     assert rocket.thrustEccentricityX == 5
 
 
 def test_add_cp_eccentricity_assert_properties_set(rocket):
-    rocket.addCPExentricity(x=4, y=5)
+    rocket.addCPEccentricity(x=4, y=5)
 
     assert rocket.cpEccentricityX == 4
     assert rocket.cpEccentricityY == 5

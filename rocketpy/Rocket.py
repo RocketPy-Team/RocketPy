@@ -374,6 +374,7 @@ class Rocket:
                 self.totalLiftCoeffDer += aerodynamicSurface[1].differentiate(
                     x=1e-2, dx=1e-3
                 )
+
                 self.cpPosition += (
                     aerodynamicSurface[1].differentiate(x=1e-2, dx=1e-3)
                     * aerodynamicSurface[0][2]
@@ -435,6 +436,7 @@ class Rocket:
 
         # Calculate clalpha
         clalpha = -2 * (1 - r ** (-2)) * (topRadius / rref) ** 2
+
         cldata = Function(
             lambda x: clalpha * x,
             "Alpha (rad)",
@@ -490,9 +492,8 @@ class Rocket:
             k = 1 - 0.437
         else:
             k = 0.5
-        import ipdb; ipdb.set_trace()
         # Calculate cp position relative to cm
-        cpz = distanceToCM + np.sign(distanceToCM) * k * length ** 2
+        cpz = distanceToCM + np.sign(distanceToCM) * k * length
 
         # Calculate clalpha
         clalpha = 2
