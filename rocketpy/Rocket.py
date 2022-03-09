@@ -639,13 +639,36 @@ class Rocket:
         liftInterferenceFactor = 1 + 1 / tau
         if type == "trapezoidal":
             λ = Ct / Cr
-        else:
-            CtE = (
-                Cr
-                * (np.sqrt(9 * np.pi ** 2 - 64) - np.pi)
-                / (2 * np.pi - np.sqrt(9 * np.pi ** 2 - 64))
+            rollDampingInterferenceFactor = 1 + (
+                ((tau - λ) / (tau)) - ((1 - λ) / (tau - 1)) * np.log(tau)
+            ) / (
+                ((tau + 1) * (tau - λ)) / (2)
+                - ((1 - λ) * (tau ** 3 - 1)) / (3 * (tau - 1))
             )
-            λ = CtE / Cr
+        else:
+            rollDampingInterferenceFactor = 1 + (
+                (
+                    np.sqrt(s ** 2 - radius ** 2)
+                    * (
+                        2
+                        * Cr
+                        * radius ** 2
+                        * np.log(
+                            (2 * s * np.sqrt(s ** 2 - radius ** 2) + 2 * s ** 2)
+                            / (radius)
+                        )
+                        - 2 * Cr * radius ** 2 * np.log(2 * s)
+                    )
+                    + 2 * Cr * s ** 3
+                    - np.pi * Cr * radius * s ** 2
+                    - 2 * Cr * radius ** 2 * s
+                    + np.pi * Cr * radius ** 3
+                )
+                / ((2 * radius * s ** 3 - 2 * radius ** 3 * s))
+            ) / Cr * (s ** 2 / 3 + np.pi * radius * s / 4)
+
+        self.rollDampingInterferenceFactor = rollDampingInterferenceFactor
+
         rollForcingInterferenceFactor = (1 / np.pi ** 2) * (
             (np.pi ** 2 / 4) * ((tau + 1) ** 2 / tau ** 2)
             + ((np.pi * (tau ** 2 + 1) ** 2) / (tau ** 2 * (tau - 1) ** 2))
@@ -658,11 +681,6 @@ class Rocket:
             / (tau * (tau - 1))
             * np.arcsin((tau ** 2 - 1) / (tau ** 2 + 1))
             + (8 / (tau - 1) ** 2) * np.log((tau ** 2 + 1) / (2 * tau))
-        )
-        rollDampingInterferenceFactor = 1 + (
-            ((tau - λ) / (tau)) - ((1 - λ) / (tau - 1)) * np.log(tau)
-        ) / (
-            ((tau + 1) * (tau - λ)) / (2) - ((1 - λ) * (tau ** 3 - 1)) / (3 * (tau - 1))
         )
 
         # Auxiliary functions
@@ -765,6 +783,7 @@ class Rocket:
             * rollGeometricalConstant
             / (Aref * d ** 2)
         )
+        
         # Function of mach number
         rollParameters = (
             [clfDelta, cldOmega, cantAngleRad] if cantAngleRad != 0 else [0, 0, 0]
