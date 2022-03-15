@@ -79,8 +79,8 @@ def test_rocket(mock_show):
     assert test_rocket.allInfo() == None
 
 
-def test_evaluate_static_margin_assert_cp_equals_cm(kg, m, dimensioneless_rocket):
-    rocket = dimensioneless_rocket
+def test_evaluate_static_margin_assert_cp_equals_cm(kg, m, dimensionless_rocket):
+    rocket = dimensionless_rocket
     rocket.evaluateStaticMargin()
 
     assert rocket.centerOfMass(0) / (2 * rocket.radius) == rocket.staticMargin(0)
@@ -99,8 +99,8 @@ def test_evaluate_static_margin_assert_cp_equals_cm(kg, m, dimensioneless_rocket
         [0.5, "not a mapped string, to show default case"],
     ),
 )
-def test_add_nose_assert_cp_cm_plus_nose(k, type, dimensioneless_rocket, m):
-    rocket = dimensioneless_rocket
+def test_add_nose_assert_cp_cm_plus_nose(k, type, dimensionless_rocket, m):
+    rocket = dimensionless_rocket
     rocket.addNose(length=0.55829 * m, kind=type, distanceToCM=0.71971 * m)
     cpz = (0.71971 + k * 0.55829) * m
     clalpha = 2
@@ -115,8 +115,8 @@ def test_add_nose_assert_cp_cm_plus_nose(k, type, dimensioneless_rocket, m):
     assert rocket.cpPosition == pytest.approx(cpz, 1e-12)
 
 
-def test_add_tail_assert_cp_cm_plus_tail(dimensioneless_rocket, m):
-    rocket = dimensioneless_rocket
+def test_add_tail_assert_cp_cm_plus_tail(dimensionless_rocket, m):
+    rocket = dimensionless_rocket
     rocket.addTail(
         topRadius=0.0635 * m,
         bottomRadius=0.0435 * m,
@@ -140,8 +140,8 @@ def test_add_tail_assert_cp_cm_plus_tail(dimensioneless_rocket, m):
     assert rocket.cpPosition == cpz
 
 
-def test_add_fins_assert_cp_cm_plus_fins(dimensioneless_rocket, m):
-    rocket = dimensioneless_rocket
+def test_add_fins_assert_cp_cm_plus_fins(dimensionless_rocket, m):
+    rocket = dimensionless_rocket
     rocket.addFins(
         4,
         span=0.100 * m,

@@ -59,7 +59,7 @@ def kg():
 
 
 @pytest.fixture
-def dimensioneless_solid_motor(kg, m):
+def dimensionless_solid_motor(kg, m):
     example_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
         burnOut=3.9,
@@ -77,9 +77,9 @@ def dimensioneless_solid_motor(kg, m):
 
 
 @pytest.fixture
-def dimensioneless_rocket(kg, m, dimensioneless_solid_motor):
+def dimensionless_rocket(kg, m, dimensionless_solid_motor):
     example_rocket = Rocket(
-        motor=dimensioneless_solid_motor,
+        motor=dimensionless_solid_motor,
         radius=127 / 2000 * m,
         mass=19.197 - 2.956 * kg,
         inertiaI=6.60 * (kg * m**2),
