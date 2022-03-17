@@ -1549,7 +1549,7 @@ class Environment:
 
         # Convert station elevation text into float value
         self.elevation = float(
-            re.findall("[0-9]+\.[0-9]+|[0-9]+", station_elevation_text)[0]
+            re.findall(r"[0-9]+\.[0-9]+|[0-9]+", station_elevation_text)[0]
         )
 
         # Save maximum expected height
