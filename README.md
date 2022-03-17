@@ -83,10 +83,10 @@ RocketPy is the next-generation trajectory simulation solution for High-Power Ro
 </details>
 
 <details>
-<summary>Integration with MATLAB</summary>
+<summary>Integration with MATLAB®</summary>
 <ul>
-  <li>Straightforward way to run RocketPy from MATLAB</li>
-  <li>Convert RocketPy results to MATLAB variables so that they can be processed by MATLAB</li>
+  <li>Straightforward way to run RocketPy from MATLAB®</li>
+  <li>Convert RocketPy results to MATLAB® variables so that they can be processed by MATLAB®</li>
 </ul>
 </details>
 

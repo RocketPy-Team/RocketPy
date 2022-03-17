@@ -1109,7 +1109,7 @@ class Flight:
     def __init_post_process_variables(self):
         """Initialize post-process variables."""
         # Initialize all variables created during Flight.postProcess()
-        # Important to do so that MATLAB can access them
+        # Important to do so that MATLAB® can access them
         self.windVelocityX = Function(0)
         self.windVelocityY = Function(0)
         self.density = Function(0)
