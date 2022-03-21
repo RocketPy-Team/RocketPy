@@ -4,6 +4,7 @@ __author__ = "Giovani Hidalgo Ceotto, João Lemes Gribel Soares"
 __copyright__ = "Copyright 20XX, Projeto Jupiter"
 __license__ = "MIT"
 
+from cmath import atan
 import re
 import math
 import bisect
@@ -2006,6 +2007,32 @@ class Flight:
         self.angleOfAttack = Function(
             angleOfAttack, "Time (s)", "Angle Of Attack (°)", "linear"
         )
+
+
+        # Converts x and y positions to lat and lon 
+        ## We are currently considering the earth as a sphere.
+        
+        distance = []
+        bearing = []
+        for i in range(len(self.x)):
+            distance.append( math.sqrt( (self.x **2) + (self.y ** 2)))
+            bearing.np.append( math.atan(self.x/self.y)) #TODO: Special conditions when bearing is 90º
+        self.distance = distance # Must be in meters
+        self.bearing = bearing   # Must be in radians
+
+        
+        lat1 = math.radians( np.math.radians(self.env.lat))  #Current lat point converted to radians
+        lon1 = math.radians( np.math.radians(self.env.lon))  #Current long point converted to radians
+
+        for i in range(len(self.distance)):
+            lat2 = math.asin( math.sin(lat1)*math.cos(self.distance[i]/self.env.earthRadius) + math.cos(lat1)*math.sin(self.distance[i]/self.env.earthRadius)*math.cos(self.bearing))
+
+            lon2 = lon1 + math.atan2(math.sin(self.bearing)*math.sin(self.distance[i]/self.env.earthRadius)*math.cos(lat1), math.cos(self.distance[i]/self.env.earthRadius)-math.sin(lat1)*math.sin(lat2))
+
+        
+        self.lat2 = lat2*180/np.pi #Converting final lat/lon to degress 
+        self.lon2 = lon2*180/np.pi #Converting final lat/lon to degress
+        
 
         # Post process other quantities
 
