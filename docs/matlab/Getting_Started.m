@@ -2,9 +2,12 @@
 % In this Live Script, you will learn how to run RocketPy using the MATLAB® 
 % environment.
 % 
-% We start by configuring the Python environment. You can do so by following 
-% the guidelines presented in the MATLAB® documentation: <https://www.mathworks.com/help/matlab/matlab_external/install-supported-python-implementation.html?searchHighlight=python&s_tid=srchtitle_python_4 
-% Configure Your System to Use Python - MATLAB® & Simulink (mathworks.com)>.
+% First things first: clone/download RocketPy's repository and set it as your 
+% MATLAB® working directory so that you can run this live script without any issues.
+% 
+% After that, we start by configuring our Python environment. You can do so 
+% by following the guidelines presented in the MATLAB® documentation: <https://www.mathworks.com/help/matlab/matlab_external/install-supported-python-implementation.html?searchHighlight=python&s_tid=srchtitle_python_4 
+% Configure Your System to Use Python - MATLAB & Simulink (mathworks.com)>.
 % 
 % Once the Python environment is configured, RocketPy needs to installed using 
 % |pip| as outlined in RocketPy's documentation: <https://docs.rocketpy.org/en/latest/user/installation.html#quick-install-using-pip 
@@ -20,6 +23,12 @@
 % * Isolate the MATLAB® process from crashes in the Python code.
 
 pyenv('ExecutionMode','OutOfProcess');
+%%
+% Note: if MATLAB® is not able to find Python automatically, you may have to 
+% run the command line above including a path to the Python exectuable installed 
+% on your computer:
+
+% pyenv('ExecutionMode','OutOfProcess', 'Version', '/path/to/python/executable');
 %% 
 % Now, we will go through a simplified rocket trajectory simulation to get you 
 % started. Let's start by importing the rocketpy module.
