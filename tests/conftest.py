@@ -81,7 +81,7 @@ def dimensionless_rocket(kg, m, dimensionless_solid_motor):
     example_rocket = Rocket(
         motor=dimensionless_solid_motor,
         radius=127 / 2000 * m,
-        mass=19.197 - 2.956 * kg,
+        mass=(19.197 - 2.956) * kg,
         inertiaI=6.60 * (kg * m**2),
         inertiaZ=0.0351 * (kg * m**2),
         distanceRocketNozzle=-1.255 * m,
