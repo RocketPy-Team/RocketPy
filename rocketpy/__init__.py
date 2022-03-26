@@ -45,7 +45,7 @@ from Motor import SolidMotor, HybridMotor
 # from Flight import Flight
 
 my_motor = HybridMotor(
-    thrustSource=r"C:\Users\Lucas\Documents\GitHub\RocketPy\data\motors\Cesaroni_7450M2505-P.eng",
+    thrustSource="data/motors/Cesaroni_7450M2505-P.eng",
     burnOut=3,
     grainNumber=1,
     grainDensity=1815,
@@ -72,7 +72,7 @@ my_motor.info()
 # func = Function(lambda x: x**2 * a(x))
 # func()
 
-print(my_motor.yCM())
+my_motor.yCM()
 
 
 # my_motor.mass.plot()
@@ -80,15 +80,15 @@ print(my_motor.yCM())
 # Function(my_motor.solidMass).plot()
 # Function(my_motor.liquidMass).plot()
 
-Function(my_motor.massInChamberCM).plot()
-Function(my_motor.liquidCM).plot()
+# Function(my_motor.massInChamberCM).plot()
+# Function(my_motor.liquidCM).plot()
 
-Function.comparePlots(
-    [
-        (Function(my_motor.massInChamber), "massInChamber"),
-        (Function(my_motor.liquidMass), "liquidMass"),
-        (my_motor.mass, "mass"),
-    ],
-)
+# Function.comparePlots(
+#     [
+#         (Function(my_motor.massInChamber), "massInChamber"),
+#         (Function(my_motor.liquidMass), "liquidMass"),
+#         (my_motor.mass, "mass"),
+#     ],
+# )
 
-print(62.5 / 1000 * 62.5 / 1000 * np.pi * 600 / 1000)
+print(my_motor.yCM(-1))
