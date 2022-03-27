@@ -620,6 +620,6 @@ def test_latlon_convertions(mock_show):
     assert abs(test_flight.latitude(0)) - abs(test_flight.env.lat) < 1e-6
     assert abs(test_flight.longitude(0)) - abs(test_flight.env.lon) < 1e-6
     assert test_flight.latitude(test_flight.tFinal) > test_flight.env.lat
-    assert test_flight.longitude(test_flight.tFinal) < test_flight.env.lon   
+    assert test_flight.longitude(test_flight.tFinal) > test_flight.env.lon   
     
     
