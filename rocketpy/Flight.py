@@ -2063,12 +2063,34 @@ class Flight:
         R = self.env.earthRadius
         lat2 = []
         lon2 = []
-        # Applies the heversine equation to find final lat/lon coordinates
+        # Applies the haversine equation to find final lat/lon coordinates
         for i in range(len(distance)):
-            lat2.append((180/np.pi) * np.arcsin( np.sin(lat1)*np.cos(distance[i]/R) + np.cos(lat1)*np.sin(distance[i]/R)*np.cos(bearing[i])))
-            lon2.append((180/np.pi) * lon1 + np.arctan2(np.sin(bearing[i])*np.sin(distance[i]/R)*np.cos(lat1), np.cos(distance[i]/R)-np.sin(lat1)*np.sin(lat2[i])))
-        self.latitude = Function(lat2, "Time (s)", "Latitude (°)", "linear")  
-        self.longitude = Function(lon2, "Time (s)", "Longitude (°)", "linear")
+            if self.x[i]==0 and self.y[i]==0:
+                lat2.append(lat1)
+                lon2.append(lon1)
+                continue
+            elif self.x[i]==0: 
+                lat2.append((180/np.pi) * np.arcsin( np.sin(lat1)*np.cos(distance[i]/R) + np.cos(lat1)*np.sin(distance[i]/R)*np.cos(bearing[i])))
+                lon2.append(0)
+                continue
+            elif self.y[i]==0:
+                lat2.append(0)
+                lon2.append((180/np.pi) * lon1 + np.arctan2(np.sin(bearing[i])*np.sin(distance[i]/R)*np.cos(lat1), np.cos(distance[i]/R)-np.sin(lat1)*np.sin(lat2[i])))
+                continue
+            else:
+                lat2.append((180/np.pi) * np.arcsin( np.sin(lat1)*np.cos(distance[i]/R) + np.cos(lat1)*np.sin(distance[i]/R)*np.cos(bearing[i])))
+                lon2.append((180/np.pi) * lon1 + np.arctan2(np.sin(bearing[i])*np.sin(distance[i]/R)*np.cos(lat1), np.cos(distance[i]/R)-np.sin(lat1)*np.sin(lat2[i])))
+        
+        latitude = []
+        longitude = []
+        for i in range(len(self.solution)):
+            latitude.append([self.solution[i][0], lat2[i]])
+            longitude.append([self.solution[i][0], lon2[i]])
+
+        # Store final values of lat/lon as a function of time
+        self.latitude =  Function(latitude, "Time (s)", "Latitude (°)", "linear")   
+        self.longitude = Function(longitude, "Time (s)", "Longitude (°)", "linear")
+
 
         # Post process other quantities
 
