@@ -2070,22 +2070,23 @@ class Flight:
         lon2 = []
         # Applies the haversine equation to find final lat/lon coordinates
         for i in range(len(distance)):
-            if self.x[i] == 0 and self.y[i] == 0:
-                lat2.append(lat1)
-                lon2.append(lon1)
+            # Please notice that for distances lower than 1 centimeter the difference on latitude or longitude too small
+            if abs(self.x[i][1]) < 1e-2 and abs(self.y[i][1]) < 1e-2:
+                lat2.append(self.env.lat)
+                lon2.append(self.env.lon)
                 continue
-            elif self.x[i] == 0:
+            elif abs(self.x[i][1]) < 1e-2:
                 lat2.append(
                     (180 / np.pi)
                     * np.arcsin(
-                        np.sin(lat1) * np.cos(distance[i] / R)
+                        np.sin(self.env.lat) * np.cos(distance[i] / R)
                         + np.cos(lat1) * np.sin(distance[i] / R) * np.cos(bearing[i])
                     )
                 )
-                lon2.append(0)
+                lon2.append(self.env.lon)
                 continue
-            elif self.y[i] == 0:
-                lat2.append(0)
+            elif abs(self.y[i][1]) < 1e-2:
+                lat2.append(self.env.lat)
                 lon2.append(
                     (180 / np.pi) * lon1
                     + np.arctan2(
