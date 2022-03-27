@@ -4,7 +4,6 @@ __author__ = "Giovani Hidalgo Ceotto, João Lemes Gribel Soares"
 __copyright__ = "Copyright 20XX, Projeto Jupiter"
 __license__ = "MIT"
 
-from cmath import atan
 import re
 import math
 import bisect
