@@ -2014,73 +2014,103 @@ class Flight:
             angleOfAttack, "Time (s)", "Angle Of Attack (°)", "linear"
         )
 
-
-        # Converts x and y positions to lat and lon 
+        # Converts x and y positions to lat and lon
         ## We are currently considering the earth as a sphere.
-        
+
         distance = []
         bearing = []
         for i in range(len(self.x)):
-            distance.append(((self.x[i][1] **2)+(self.y[i][1]**2))**0.5)
+            distance.append(((self.x[i][1] ** 2) + (self.y[i][1] ** 2)) ** 0.5)
 
             # Check if the point is over the grid (i.e. if x*y == 0)
             if self.x[i][1] == 0:
-              if self.y[i][1]<0: 
-                bearing.append(3.14159265359)
-              else:
-                bearing.append(0)
-              continue
+                if self.y[i][1] < 0:
+                    bearing.append(3.14159265359)
+                else:
+                    bearing.append(0)
+                continue
             if self.y[i][1] == 0:
-              if self.x[i][1] < 0:
-                bearing.append(3*3.14159265359/2)
-              elif self.x[i][1] > 0:
-                bearing.append(3.14159265359/2)
-              else:
-                bearing.append(0)
-              continue
-          
+                if self.x[i][1] < 0:
+                    bearing.append(3 * 3.14159265359 / 2)
+                elif self.x[i][1] > 0:
+                    bearing.append(3.14159265359 / 2)
+                else:
+                    bearing.append(0)
+                continue
+
             # Calculate bearing as the azimuth considering dirrerent quadrants
             if self.x[i][1] * self.y[i][1] > 0 and self.x[i][1] > 0:
-              bearing.append(np.arctan(abs(self.x[i][1])/abs(self.y[i][1])))
-              continue
-            elif self.x[i][1] * self.y[i][1] < 0 and self.x[i][1] > 0: 
-              bearing.append(3.14159265359/2 + np.arctan(abs(self.y[i][1])/abs(self.x[i][1])))
-              continue
-            elif self.x[i][1] * self.y[i][1] > 0 and self.x[i][1] < 0: 
-              bearing.append(3.14159265359 + np.arctan(abs(self.x[i][1])/abs(self.y[i][1])))
-              continue
-            elif self.x[i][1] * self.y[i][1] < 0 and self.x[i][1] < 0: 
-              bearing.append(3*3.14159265359/2 + np.arctan(abs(self.y[i][1])/abs(self.x[i][1])))
-              continue
+                bearing.append(np.arctan(abs(self.x[i][1]) / abs(self.y[i][1])))
+                continue
+            elif self.x[i][1] * self.y[i][1] < 0 and self.x[i][1] > 0:
+                bearing.append(
+                    3.14159265359 / 2 + np.arctan(abs(self.y[i][1]) / abs(self.x[i][1]))
+                )
+                continue
+            elif self.x[i][1] * self.y[i][1] > 0 and self.x[i][1] < 0:
+                bearing.append(
+                    3.14159265359 + np.arctan(abs(self.x[i][1]) / abs(self.y[i][1]))
+                )
+                continue
+            elif self.x[i][1] * self.y[i][1] < 0 and self.x[i][1] < 0:
+                bearing.append(
+                    3 * 3.14159265359 / 2
+                    + np.arctan(abs(self.y[i][1]) / abs(self.x[i][1]))
+                )
+                continue
 
-        # Store values of distance and bearing using approriate units  
+        # Store values of distance and bearing using approriate units
         # self.distance = distance      # Must be in meters
         # self.bearing = bearing        # Must be in radians
 
-        lat1 = np.pi*self.env.lat/180  # Launch lat point converted to radians
-        lon1 = np.pi*self.env.lon/180  # Launch long point converted to radians
+        lat1 = np.pi * self.env.lat / 180  # Launch lat point converted to radians
+        lon1 = np.pi * self.env.lon / 180  # Launch long point converted to radians
 
         R = self.env.earthRadius
         lat2 = []
         lon2 = []
         # Applies the haversine equation to find final lat/lon coordinates
         for i in range(len(distance)):
-            if self.x[i]==0 and self.y[i]==0:
+            if self.x[i] == 0 and self.y[i] == 0:
                 lat2.append(lat1)
                 lon2.append(lon1)
                 continue
-            elif self.x[i]==0: 
-                lat2.append((180/np.pi) * np.arcsin( np.sin(lat1)*np.cos(distance[i]/R) + np.cos(lat1)*np.sin(distance[i]/R)*np.cos(bearing[i])))
+            elif self.x[i] == 0:
+                lat2.append(
+                    (180 / np.pi)
+                    * np.arcsin(
+                        np.sin(lat1) * np.cos(distance[i] / R)
+                        + np.cos(lat1) * np.sin(distance[i] / R) * np.cos(bearing[i])
+                    )
+                )
                 lon2.append(0)
                 continue
-            elif self.y[i]==0:
+            elif self.y[i] == 0:
                 lat2.append(0)
-                lon2.append((180/np.pi) * lon1 + np.arctan2(np.sin(bearing[i])*np.sin(distance[i]/R)*np.cos(lat1), np.cos(distance[i]/R)-np.sin(lat1)*np.sin(lat2[i])))
+                lon2.append(
+                    (180 / np.pi) * lon1
+                    + np.arctan2(
+                        np.sin(bearing[i]) * np.sin(distance[i] / R) * np.cos(lat1),
+                        np.cos(distance[i] / R) - np.sin(lat1) * np.sin(lat2[i]),
+                    )
+                )
                 continue
             else:
-                lat2.append((180/np.pi) * np.arcsin( np.sin(lat1)*np.cos(distance[i]/R) + np.cos(lat1)*np.sin(distance[i]/R)*np.cos(bearing[i])))
-                lon2.append((180/np.pi) * lon1 + np.arctan2(np.sin(bearing[i])*np.sin(distance[i]/R)*np.cos(lat1), np.cos(distance[i]/R)-np.sin(lat1)*np.sin(lat2[i])))
-        
+                lat2.append(
+                    (180 / np.pi)
+                    * np.arcsin(
+                        np.sin(lat1) * np.cos(distance[i] / R)
+                        + np.cos(lat1) * np.sin(distance[i] / R) * np.cos(bearing[i])
+                    )
+                )
+                lon2.append(
+                    (180 / np.pi) * lon1
+                    + np.arctan2(
+                        np.sin(bearing[i]) * np.sin(distance[i] / R) * np.cos(lat1),
+                        np.cos(distance[i] / R) - np.sin(lat1) * np.sin(lat2[i]),
+                    )
+                )
+
         latitude = []
         longitude = []
         for i in range(len(self.solution)):
@@ -2088,9 +2118,8 @@ class Flight:
             longitude.append([self.solution[i][0], lon2[i]])
 
         # Store final values of lat/lon as a function of time
-        self.latitude =  Function(latitude, "Time (s)", "Latitude (°)", "linear")   
+        self.latitude = Function(latitude, "Time (s)", "Latitude (°)", "linear")
         self.longitude = Function(longitude, "Time (s)", "Longitude (°)", "linear")
-
 
         # Post process other quantities
 
