@@ -2015,24 +2015,53 @@ class Flight:
         distance = []
         bearing = []
         for i in range(len(self.x)):
-            distance.append( math.sqrt( (self.x **2) + (self.y ** 2)))
-            bearing.np.append( math.atan(self.x/self.y)) #TODO: Special conditions when bearing is 90º
+            distance.append(((self.x[i][1] **2)+(self.y[i][1]**2))**0.5)
+
+            # Check if the point is over the grid (i.e. if x*y == 0)
+            if self.x[i][1] == 0:
+              if self.y[i][1]<0: 
+                bearing.append(3.14159265359)
+              else:
+                bearing.append(0)
+              continue
+            if self.y[i][1] == 0:
+              if self.x[i][1] < 0:
+                bearing.append(3*3.14159265359/2)
+              elif self.x[i][1] > 0:
+                bearing.append(3.14159265359/2)
+              else:
+                bearing.append(0)
+              continue
+          
+            # Calculate bearing as the azimuth considering dirrerent quadrants
+            if self.x[i][1] * self.y[i][1] > 0 and self.x[i][1] > 0:
+              bearing.append(np.arctan(abs(self.x[i][1])/abs(self.y[i][1])))
+              continue
+            elif self.x[i][1] * self.y[i][1] < 0 and self.x[i][1] > 0: 
+              bearing.append(3.14159265359/2 + np.arctan(abs(self.y[i][1])/abs(self.x[i][1])))
+              continue
+            elif self.x[i][1] * self.y[i][1] > 0 and self.x[i][1] < 0: 
+              bearing.append(3.14159265359 + np.arctan(abs(self.x[i][1])/abs(self.y[i][1])))
+              continue
+            elif self.x[i][1] * self.y[i][1] < 0 and self.x[i][1] < 0: 
+              bearing.append(3*3.14159265359/2 + np.arctan(abs(self.y[i][1])/abs(self.x[i][1])))
+              continue
+
+        # Store values of distance and bearing using approriate units  
         self.distance = distance # Must be in meters
         self.bearing = bearing   # Must be in radians
 
-        
-        lat1 = math.radians( np.math.radians(self.env.lat))  #Current lat point converted to radians
-        lon1 = math.radians( np.math.radians(self.env.lon))  #Current long point converted to radians
+        lat1 = np.pi*self.env.lat/180  # Launch lat point converted to radians
+        lon1 = np.pi*self.env.lon/180  # Launch long point converted to radians
 
+        R = self.env.earthRadius
+        lat2 = []
+        lon2 = []
+        # Applies the heversine equation to find final lat/lon coordinates
         for i in range(len(self.distance)):
-            lat2 = math.asin( math.sin(lat1)*math.cos(self.distance[i]/self.env.earthRadius) + math.cos(lat1)*math.sin(self.distance[i]/self.env.earthRadius)*math.cos(self.bearing))
+            lat2.append((180/np.pi) * np.arcsin( np.sin(lat1)*np.cos(self.distance[i]/R) + np.cos(lat1)*np.sin(self.distance[i]/R)*np.cos(self.bearing[i])))
+            lon2.append((180/np.pi) * lon1 + np.arctan2(np.sin(self.bearing[i])*np.sin(self.distance[i]/R)*np.cos(lat1), np.cos(self.distance[i]/R)-np.sin(lat1)*np.sin(lat2[i])))
 
-            lon2 = lon1 + math.atan2(math.sin(self.bearing)*math.sin(self.distance[i]/self.env.earthRadius)*math.cos(lat1), math.cos(self.distance[i]/self.env.earthRadius)-math.sin(lat1)*math.sin(lat2))
-
-        
-        self.lat2 = lat2*180/np.pi #Converting final lat/lon to degress 
-        self.lon2 = lon2*180/np.pi #Converting final lat/lon to degress
-        
 
         # Post process other quantities
 
