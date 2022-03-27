@@ -618,6 +618,7 @@ class Flight:
         self.effective2RL = self.env.rL - abs(nozzle - lowerRButton)
 
         # Flight initialization
+        self.__init_post_process_variables()
         # Initialize solution monitors
         self.outOfRailTime = 0
         self.outOfRailState = np.array([0])
@@ -1110,6 +1111,89 @@ class Flight:
         self.tFinal = self.t
         if verbose:
             print("Simulation Completed at Time: {:3.4f} s".format(self.t))
+
+    def __init_post_process_variables(self):
+        """Initialize post-process variables."""
+        # Initialize all variables created during Flight.postProcess()
+        # Important to do so that MATLAB® can access them
+        self.windVelocityX = Function(0)
+        self.windVelocityY = Function(0)
+        self.density = Function(0)
+        self.pressure = Function(0)
+        self.dynamicViscosity = Function(0)
+        self.speedOfSound = Function(0)
+        self.ax = Function(0)
+        self.ay = Function(0)
+        self.az = Function(0)
+        self.alpha1 = Function(0)
+        self.alpha2 = Function(0)
+        self.alpha3 = Function(0)
+        self.speed = Function(0)
+        self.maxSpeed = 0
+        self.maxSpeedTime = 0
+        self.horizontalSpeed = Function(0)
+        self.Acceleration = Function(0)
+        self.maxAcceleration = 0
+        self.maxAccelerationTime = 0
+        self.pathAngle = Function(0)
+        self.attitudeVectorX = Function(0)
+        self.attitudeVectorY = Function(0)
+        self.attitudeVectorZ = Function(0)
+        self.attitudeAngle = Function(0)
+        self.lateralAttitudeAngle = Function(0)
+        self.phi = Function(0)
+        self.theta = Function(0)
+        self.psi = Function(0)
+        self.R1 = Function(0)
+        self.R2 = Function(0)
+        self.R3 = Function(0)
+        self.M1 = Function(0)
+        self.M2 = Function(0)
+        self.M3 = Function(0)
+        self.aerodynamicLift = Function(0)
+        self.aerodynamicDrag = Function(0)
+        self.aerodynamicBendingMoment = Function(0)
+        self.aerodynamicSpinMoment = Function(0)
+        self.railButton1NormalForce = Function(0)
+        self.maxRailButton1NormalForce = 0
+        self.railButton1ShearForce = Function(0)
+        self.maxRailButton1ShearForce = 0
+        self.railButton2NormalForce = Function(0)
+        self.maxRailButton2NormalForce = 0
+        self.railButton2ShearForce = Function(0)
+        self.maxRailButton2ShearForce = 0
+        self.rotationalEnergy = Function(0)
+        self.translationalEnergy = Function(0)
+        self.kineticEnergy = Function(0)
+        self.potentialEnergy = Function(0)
+        self.totalEnergy = Function(0)
+        self.thrustPower = Function(0)
+        self.dragPower = Function(0)
+        self.attitudeFrequencyResponse = Function(0)
+        self.omega1FrequencyResponse = Function(0)
+        self.omega2FrequencyResponse = Function(0)
+        self.omega3FrequencyResponse = Function(0)
+        self.streamVelocityX = Function(0)
+        self.streamVelocityY = Function(0)
+        self.streamVelocityZ = Function(0)
+        self.freestreamSpeed = Function(0)
+        self.apogeeFreestreamSpeed = 0
+        self.MachNumber = Function(0)
+        self.maxMachNumber = 0
+        self.maxMachNumberTime = 0
+        self.ReynoldsNumber = Function(0)
+        self.maxReynoldsNumber = 0
+        self.maxReynoldsNumberTime = 0
+        self.dynamicPressure = Function(0)
+        self.maxDynamicPressure = 0
+        self.maxDynamicPressureTime = 0
+        self.totalPressure = Function(0)
+        self.maxTotalPressure = 0
+        self.maxTotalPressureTime = 0
+        self.angleOfAttack = Function(0)
+        self.flutterMachNumber = Function(0)
+        self.difference = Function(0)
+        self.safetyFactor = Function(0)
 
     def uDotRail1(self, t, u, postProcessing=False):
         """Calculates derivative of u state vector with respect to time
@@ -2746,9 +2830,9 @@ class Flight:
         ax1.plot(self.w1[:, 0], self.w1[:, 1], color="#ff7f0e")
         ax1.set_xlim(0, eventTime)
         ax1.set_xlabel("Time (s)")
-        ax1.set_ylabel("Angular Velocity - ${\omega_1}$ (rad/s)", color="#ff7f0e")
+        ax1.set_ylabel(r"Angular Velocity - ${\omega_1}$ (rad/s)", color="#ff7f0e")
         ax1.set_title(
-            "Angular Velocity ${\omega_1}$ | Angular Acceleration ${\\alpha_1}$"
+            r"Angular Velocity ${\omega_1}$ | Angular Acceleration ${\alpha_1}$"
         )
         ax1.tick_params("y", colors="#ff7f0e")
         ax1.grid(True)
@@ -2756,7 +2840,7 @@ class Flight:
         ax1up = ax1.twinx()
         ax1up.plot(self.alpha1[:, 0], self.alpha1[:, 1], color="#1f77b4")
         ax1up.set_ylabel(
-            "Angular Acceleration - ${\\alpha_1}$ (rad/s²)", color="#1f77b4"
+            r"Angular Acceleration - ${\alpha_1}$ (rad/s²)", color="#1f77b4"
         )
         ax1up.tick_params("y", colors="#1f77b4")
 
@@ -2764,9 +2848,9 @@ class Flight:
         ax2.plot(self.w2[:, 0], self.w2[:, 1], color="#ff7f0e")
         ax2.set_xlim(0, eventTime)
         ax2.set_xlabel("Time (s)")
-        ax2.set_ylabel("Angular Velocity - ${\omega_2}$ (rad/s)", color="#ff7f0e")
+        ax2.set_ylabel(r"Angular Velocity - ${\omega_2}$ (rad/s)", color="#ff7f0e")
         ax2.set_title(
-            "Angular Velocity ${\omega_2}$ | Angular Acceleration ${\\alpha_2}$"
+            r"Angular Velocity ${\omega_2}$ | Angular Acceleration ${\alpha_2}$"
         )
         ax2.tick_params("y", colors="#ff7f0e")
         ax2.grid(True)
@@ -2774,7 +2858,7 @@ class Flight:
         ax2up = ax2.twinx()
         ax2up.plot(self.alpha2[:, 0], self.alpha2[:, 1], color="#1f77b4")
         ax2up.set_ylabel(
-            "Angular Acceleration - ${\\alpha_2}$ (rad/s²)", color="#1f77b4"
+            r"Angular Acceleration - ${\alpha_2}$ (rad/s²)", color="#1f77b4"
         )
         ax2up.tick_params("y", colors="#1f77b4")
 
@@ -2782,9 +2866,9 @@ class Flight:
         ax3.plot(self.w3[:, 0], self.w3[:, 1], color="#ff7f0e")
         ax3.set_xlim(0, eventTime)
         ax3.set_xlabel("Time (s)")
-        ax3.set_ylabel("Angular Velocity - ${\omega_3}$ (rad/s)", color="#ff7f0e")
+        ax3.set_ylabel(r"Angular Velocity - ${\omega_3}$ (rad/s)", color="#ff7f0e")
         ax3.set_title(
-            "Angular Velocity ${\omega_3}$ | Angular Acceleration ${\\alpha_3}$"
+            r"Angular Velocity ${\omega_3}$ | Angular Acceleration ${\alpha_3}$"
         )
         ax3.tick_params("y", colors="#ff7f0e")
         ax3.grid(True)
@@ -2792,7 +2876,7 @@ class Flight:
         ax3up = ax3.twinx()
         ax3up.plot(self.alpha3[:, 0], self.alpha3[:, 1], color="#1f77b4")
         ax3up.set_ylabel(
-            "Angular Acceleration - ${\\alpha_3}$ (rad/s²)", color="#1f77b4"
+            r"Angular Acceleration - ${\alpha_3}$ (rad/s²)", color="#1f77b4"
         )
         ax3up.tick_params("y", colors="#1f77b4")
 
@@ -3087,10 +3171,10 @@ class Flight:
 
         ax4 = plt.subplot(414)
         ax4.plot(self.angleOfAttack[:, 0], self.angleOfAttack[:, 1])
-        ax4.set_xlim(
-            self.outOfRailTime, 10 * self.outOfRailTime + 1
-        )  # +1 Prevents problem when self.outOfRailTime=0
-        ax4.set_ylim(0, self.angleOfAttack(self.outOfRailTime))
+        # Make sure bottom and top limits are different
+        if self.outOfRailTime * self.angleOfAttack(self.outOfRailTime) != 0:
+            ax4.set_xlim(self.outOfRailTime, 10 * self.outOfRailTime + 1)
+            ax4.set_ylim(0, self.angleOfAttack(self.outOfRailTime))
         ax4.set_title("Angle of Attack")
         ax4.set_xlabel("Time (s)")
         ax4.set_ylabel("Angle of Attack (°)")
@@ -3297,21 +3381,21 @@ class Flight:
         ax2.plot(
             self.omega1FrequencyResponse[:, 0],
             self.omega1FrequencyResponse[:, 1] / maxOmega1,
-            label="$\omega_1$",
+            label=r"$\omega_1$",
         )
         maxOmega2 = max(self.omega2FrequencyResponse[:, 1])
         maxOmega2 = maxOmega2 if maxOmega2 != 0 else 1
         ax2.plot(
             self.omega2FrequencyResponse[:, 0],
             self.omega2FrequencyResponse[:, 1] / maxOmega2,
-            label="$\omega_2$",
+            label=r"$\omega_2$",
         )
         maxOmega3 = max(self.omega3FrequencyResponse[:, 1])
         maxOmega3 = maxOmega3 if maxOmega3 != 0 else 1
         ax2.plot(
             self.omega3FrequencyResponse[:, 0],
             self.omega3FrequencyResponse[:, 1] / maxOmega3,
-            label="$\omega_3$",
+            label=r"$\omega_3$",
         )
         ax2.set_title("Frequency Response")
         ax2.set_xlabel("Frequency (Hz)")
@@ -3419,6 +3503,100 @@ class Flight:
         file.close()
 
         return None
+
+    def exportData(self, fileName, *variables, timeStep=None):
+        """Exports flight data to a comma separated value file (.csv).
+
+        Data is exported in columns, with the first column representing time
+        steps. The first line of the file is a header line, specifying the
+        meaning of each column and its units.
+
+        Parameters
+        ----------
+        fileName : string
+            The file name or path of the exported file. Example: flight_data.csv.
+            Do not use forbidden characters, such as '/' in Linux/Unix and
+            '<, >, :, ", /, \\, | ?, *' in Windows.
+        variables : strings, optional
+            Names of the data variables which shall be exported. Must be Flight
+            classes attribute which are an instance of the Function class. Usage
+            example: TestFlight.exportData('test.csv', 'z', 'angleOfAttack', 'machNumber').
+        timeStep : float, optional
+            Time step desired for the data. If None, all integration time steps
+            will be exported. Otherwise, linear interpolation is carried out to
+            calculate values at the desired time steps. Example: 0.001.
+        """
+        if self.postProcessed is False:
+            self.postProcess()
+
+        # Fast evaluation for the most basic scenario
+        if timeStep is None and len(variables) == 0:
+            np.savetxt(
+                fileName,
+                self.solution,
+                fmt="%.6f",
+                delimiter=",",
+                header=""
+                "Time (s),"
+                "X (m),"
+                "Y (m),"
+                "Z (m),"
+                "E0,"
+                "E1,"
+                "E2,"
+                "E3,"
+                "W1 (rad/s),"
+                "W2 (rad/s),"
+                "W3 (rad/s)",
+            )
+            return
+
+        # Not so fast evaluation for general case
+        if variables is None:
+            variables = [
+                "x",
+                "y",
+                "z",
+                "vx",
+                "vy",
+                "vz",
+                "e0",
+                "e1",
+                "e2",
+                "e3",
+                "w1",
+                "w2",
+                "w3",
+            ]
+
+        if timeStep is None:
+            # Get time from any Function, should all be the same
+            timePoints = self.x[:, 0]
+        else:
+            timePoints = np.arange(self.tInitial, self.tFinal, timeStep)
+
+        exportedMatrix = [timePoints]
+        exportedHeader = "Time (s)"
+
+        # Loop through variables, get points and names (for the header)
+        for variable in variables:
+            variableFunction = self.__dict__[variable]
+            variablePoints = variableFunction(timePoints)
+            exportedMatrix += [variablePoints]
+            exportedHeader += ", " + variableFunction.__outputs__[0]
+
+        exportedMatrix = np.array(exportedMatrix).T  # Fix matrix orientation
+
+        np.savetxt(
+            fileName,
+            exportedMatrix,
+            fmt="%.6f",
+            delimiter=",",
+            header=exportedHeader,
+            encoding="utf-8",
+        )
+
+        return
 
     def allInfo(self):
         """Prints out all data and graphs available about the Flight.
