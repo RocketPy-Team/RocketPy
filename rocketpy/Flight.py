@@ -124,6 +124,12 @@ class Flight:
             Rocket's angular velocity Omega 3 as a function of time.
             Direction 3 is in the rocket's body axis and points in the
             direction of cylindrical symmetry.
+        Flight.latitude: Function
+            Rocket's latitude coordinate (positive North) as a function of time
+            The Equator has latitude equals to 0, by convention.
+        Flight.longitude: Function
+            Rocket's longitude coordinate (positive East) as a function of time.
+            Greenwich meridian has longitude equals to 0, by convention.
 
         Solution attributes:
         Flight.inclination : int, float
@@ -2048,8 +2054,8 @@ class Flight:
               continue
 
         # Store values of distance and bearing using approriate units  
-        self.distance = distance # Must be in meters
-        self.bearing = bearing   # Must be in radians
+        # self.distance = distance      # Must be in meters
+        # self.bearing = bearing        # Must be in radians
 
         lat1 = np.pi*self.env.lat/180  # Launch lat point converted to radians
         lon1 = np.pi*self.env.lon/180  # Launch long point converted to radians
@@ -2058,10 +2064,11 @@ class Flight:
         lat2 = []
         lon2 = []
         # Applies the heversine equation to find final lat/lon coordinates
-        for i in range(len(self.distance)):
-            lat2.append((180/np.pi) * np.arcsin( np.sin(lat1)*np.cos(self.distance[i]/R) + np.cos(lat1)*np.sin(self.distance[i]/R)*np.cos(self.bearing[i])))
-            lon2.append((180/np.pi) * lon1 + np.arctan2(np.sin(self.bearing[i])*np.sin(self.distance[i]/R)*np.cos(lat1), np.cos(self.distance[i]/R)-np.sin(lat1)*np.sin(lat2[i])))
-
+        for i in range(len(distance)):
+            lat2.append((180/np.pi) * np.arcsin( np.sin(lat1)*np.cos(distance[i]/R) + np.cos(lat1)*np.sin(distance[i]/R)*np.cos(bearing[i])))
+            lon2.append((180/np.pi) * lon1 + np.arctan2(np.sin(bearing[i])*np.sin(distance[i]/R)*np.cos(lat1), np.cos(distance[i]/R)-np.sin(lat1)*np.sin(lat2[i])))
+        self.latitude = Function(lat2, "Time (s)", "Latitude (°)", "linear")  
+        self.longitude = Function(lon2, "Time (s)", "Longitude (°)", "linear")
 
         # Post process other quantities
 
