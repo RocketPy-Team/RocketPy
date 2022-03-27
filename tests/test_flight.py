@@ -437,6 +437,7 @@ def test_rolling_flight(mock_show):
 
     assert test_flight.allInfo() == None
 
+    
 def test_export_data():
     "Tests weather the method Flight.exportData is working as intended"
 
@@ -615,11 +616,10 @@ def test_latlon_convertions(mock_show):
     )
 
     # Check for initial and final lat/lon coordinates based on launch pad coordinates
-    assert abs(test_flight.latitude(0)) - abs(test_flight.env.lat) < 1e-12
-    assert abs(test_flight.longitude(0)) - abs(test_flight.env.lon) < 1e-12
-    assert test_flight.latitude(test_flight.tFinal) > test_flight.env.lat
-    assert test_flight.longitude(test_flight.tFinal) < test_flight.env.lon
-
     assert test_flight.allInfo() == None
+    assert abs(test_flight.latitude(0)) - abs(test_flight.env.lat) < 1e-6
+    assert abs(test_flight.longitude(0)) - abs(test_flight.env.lon) < 1e-6
+    assert test_flight.latitude(test_flight.tFinal) > test_flight.env.lat
+    assert test_flight.longitude(test_flight.tFinal) < test_flight.env.lon   
     
     
