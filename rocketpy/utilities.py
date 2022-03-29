@@ -39,56 +39,93 @@ def compute_CdS_from_drop_test(
     CdS = 2 * rocket_mass * gravity / ((terminal_velocity**2) * air_density)
     return CdS
 
+def calculateEquilibriumAltitude(
+    rocket_mass, CdS, z0, v0=0, env=None, eps=1e-3, seeGraphs=True
+):
+    """Returns a dictionary containing the time, height and velocoty of the
+    system rocket-parachute in which the terminal velocoty is reached.
 
-def calculateEquilibriumAltitude(mass, CdS, z0, v0 = 0, env = None, eps = 1e-3, seeGraphs = None):
+    Parameters
+    ----------
+    rocket_mass : float
+        Rocket's mass in kg.
+    CdS : float
+        Number equal to drag coefficient times reference area for parachute.
+    z0 : float
+        Initial height of the rocket in meters.
+    v0 : float, optional
+        Rocket's initial speed in m/s.
+    env : Environment, optional
+        Environmental conditions at the time of the launch.
+    eps : float, optional
+        acceptable error in meters.
+    seeGraphs : boolean, optional
+        True if you want to see time vs height and time vs speed graphs,
+        False otherwise.
+
+
+    Returns
+    -------
+    infos : dictionary
+        Dictionary containing the values for time, height and speed of
+        the rocket when it reaches terminal velocity.
+    """
 
     def check_constant(f, eps):
         for i in range(len(f) - 2):
             if abs(f[i + 2] - f[i + 1]) < eps and abs(f[i + 1] - f[i]) < eps:
                 return i
-        
+
         return None
 
     g = -9.80665
     if env == None:
         environment = Environment(
-    railLength=5.0,
-    latitude=0,
-    longitude=0,
-    elevation=1000,
-    date=(2020, 3, 4, 12)
-) 
+            railLength=5.0,
+            latitude=0,
+            longitude=0,
+            elevation=1000,
+            date=(2020, 3, 4, 12),
+        )
     else:
         environment = env
 
-
     def du(u, z):
-        return (u[1], g + environment.density(z) * (u[1] ** 2) * CdS / (2 * mass))
+        return (
+            u[1],
+            g + environment.density(z) * ((u[1]) ** 2) * CdS / (2 * rocket_mass),
+        )
 
     u0 = [z0, v0]
 
     ts = np.arange(0, 30, 0.05)
-    # must improve the timesteps 
+    # TODO: Improve the timesteps
     us = odeint(du, u0, ts)
+    # TODO: Check if the odeint worked
 
-    constant_index = check_constant(us[:,1], eps)
+    constant_index = check_constant(us[:, 1], eps)
 
     if constant_index is not None:
-        infos = {'time':ts[constant_index], 'height':us[constant_index,0], 'velocity':us[constant_index,1]}
+        infos = {
+            "time": ts[constant_index],
+            "height": us[constant_index, 0],
+            "velocity": us[constant_index, 1],
+        }
+    # TODO: Otherwise further simulations should be made with more time
 
     if seeGraphs:
         fig1 = plt.figure()
-        plt.plot(ts, us[:,0])
+        plt.plot(ts, us[:, 0])
         plt.title("Height")
         if constant_index is not None:
-            plt.scatter(ts[constant_index], us[constant_index,0], color="red")
+            plt.scatter(ts[constant_index], us[constant_index, 0], color="red")
 
         plt.show()
 
         fig2 = plt.figure()
-        plt.plot(ts, us[:,1])
+        plt.plot(ts, us[:, 1])
         if constant_index is not None:
-            plt.scatter(ts[constant_index], us[constant_index,1], color="red")
+            plt.scatter(ts[constant_index], us[constant_index, 1], color="red")
         plt.title("Velocity")
         plt.show()
 
