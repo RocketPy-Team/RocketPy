@@ -5,6 +5,7 @@ import numpy as np
 
 from .Function import Function
 from .Environment import Environment
+
 __author__ = "Franz Masatoshi Yuri, Lucas Kierulff Balabram"
 __copyright__ = "Copyright 20XX, Projeto Jupiter"
 __license__ = "MIT"
@@ -38,6 +39,7 @@ def compute_CdS_from_drop_test(
 
     CdS = 2 * rocket_mass * gravity / ((terminal_velocity**2) * air_density)
     return CdS
+
 
 def calculateEquilibriumAltitude(
     rocket_mass, CdS, z0, v0=0, env=None, eps=1e-3, seeGraphs=True
