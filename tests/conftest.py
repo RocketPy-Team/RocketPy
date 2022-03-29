@@ -1,6 +1,7 @@
 import pytest
 from rocketpy import SolidMotor
 from rocketpy import Rocket
+import numericalunits
 
 
 def pytest_addoption(parser):
@@ -41,6 +42,50 @@ def rocket(solid_motor):
         inertiaZ=0.0351,
         distanceRocketNozzle=-1.255,
         distanceRocketPropellant=-0.85704,
+        powerOffDrag="data/calisto/powerOffDragCurve.csv",
+        powerOnDrag="data/calisto/powerOnDragCurve.csv",
+    )
+    return example_rocket
+
+
+@pytest.fixture
+def m():
+    return numericalunits.m
+
+
+@pytest.fixture
+def kg():
+    return numericalunits.kg
+
+
+@pytest.fixture
+def dimensionless_solid_motor(kg, m):
+    example_motor = SolidMotor(
+        thrustSource="data/motors/Cesaroni_M1670.eng",
+        burnOut=3.9,
+        grainNumber=5,
+        grainSeparation=5 / 1000 * m,
+        grainDensity=1815 * (kg / m**3),
+        grainOuterRadius=33 / 1000 * m,
+        grainInitialInnerRadius=15 / 1000 * m,
+        grainInitialHeight=120 / 1000 * m,
+        nozzleRadius=33 / 1000 * m,
+        throatRadius=11 / 1000 * m,
+        interpolationMethod="linear",
+    )
+    return example_motor
+
+
+@pytest.fixture
+def dimensionless_rocket(kg, m, dimensionless_solid_motor):
+    example_rocket = Rocket(
+        motor=dimensionless_solid_motor,
+        radius=127 / 2000 * m,
+        mass=(19.197 - 2.956) * kg,
+        inertiaI=6.60 * (kg * m**2),
+        inertiaZ=0.0351 * (kg * m**2),
+        distanceRocketNozzle=-1.255 * m,
+        distanceRocketPropellant=-0.85704 * m,
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
