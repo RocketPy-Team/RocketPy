@@ -127,8 +127,8 @@ class Flight:
             Rocket's latitude coordinates (positive North) as a function of time.
             The Equator has a latitude equal to 0, by convention.
         Flight.longitude: Function
-            Rocket's longitude coordinate (positive East) as a function of time.
-            Greenwich meridian has longitude equals to 0, by convention.
+            Rocket's longitude coordinates (positive East) as a function of time.
+            Greenwich meridian has a longitude equal to 0, by convention.
 
         Solution attributes:
         Flight.inclination : int, float
