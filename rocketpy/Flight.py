@@ -2193,11 +2193,8 @@ class Flight:
                     )
                 )
 
-        latitude = []
-        longitude = []
-        for i in range(len(self.solution)):
-            latitude.append([self.solution[i][0], lat2[i]])
-            longitude.append([self.solution[i][0], lon2[i]])
+        latitude = [[self.solution[i][0], lat2[i]] for i in range(len(self.solution))]
+        longitude = [[self.solution[i][0], lon2[i]] for i in range(len(self.solution))]
 
         # Store final values of lat/lon as a function of time
         self.latitude = Function(latitude, "Time (s)", "Latitude (°)", "linear")
