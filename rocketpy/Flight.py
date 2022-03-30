@@ -124,8 +124,8 @@ class Flight:
             Direction 3 is in the rocket's body axis and points in the
             direction of cylindrical symmetry.
         Flight.latitude: Function
-            Rocket's latitude coordinate (positive North) as a function of time
-            The Equator has latitude equals to 0, by convention.
+            Rocket's latitude coordinates (positive North) as a function of time.
+            The Equator has a latitude equal to 0, by convention.
         Flight.longitude: Function
             Rocket's longitude coordinate (positive East) as a function of time.
             Greenwich meridian has longitude equals to 0, by convention.
