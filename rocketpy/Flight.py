@@ -2100,10 +2100,8 @@ class Flight:
         # Converts x and y positions to lat and lon
         ## We are currently considering the earth as a sphere.
 
-        distance = []
         bearing = []
-        for i in range(len(self.x)):
-            distance.append(((self.x[i][1] ** 2) + (self.y[i][1] ** 2)) ** 0.5)
+        distance = [(TestFlight.x[i][1] ** 2 + TestFlight.y[i][1] ** 2) ** 0.5 for i in range(len(TestFlight.x))]
 
             # Check if the point is over the grid (i.e. if x*y == 0)
             if self.x[i][1] == 0:
