@@ -100,7 +100,7 @@ class EnvironmentAnalysis:
 
         Sources of information:
         - https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels-preliminary-back-extension?tab=overview
-        - 
+        -
 
         Must get the following variables:
         - Geopotential
@@ -116,7 +116,7 @@ class EnvironmentAnalysis:
 
         Sources of information:
         - https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-pressure-levels-preliminary-back-extension?tab=overview
-        - 
+        -
 
         Must get the following variables:
         - 2m temperature
@@ -130,7 +130,7 @@ class EnvironmentAnalysis:
         - Cloud base height
 
         """
-        pass 
+        pass
 
     def process_data(self):
         self.calculate_average_max_temperature()
