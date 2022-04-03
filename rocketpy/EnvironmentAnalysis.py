@@ -1,8 +1,13 @@
 from datetime import datetime, timedelta
+import bisect
+from multiprocessing.sharedctypes import Value
 
 import numpy as np
 from matplotlib import pyplot as plt
-from windrose import WindAxes, WindroseAxes
+
+# from windrose import WindAxes, WindroseAxes
+import netCDF4
+from cftime import num2date
 
 from rocketpy.Environment import Environment
 from rocketpy.Function import Function
@@ -79,7 +84,7 @@ class EnvironmentAnalysis:
         self.average_wind_profile_13_sigma = Function(0)
 
         # Run calculations
-        self.process_data()
+        # self.process_data()
 
     # TODO: Check implementation and use when parsing files
     def __bilinear_interpolation(self, x, y, x1, x2, y1, y2, z11, z12, z21, z22):
@@ -94,6 +99,112 @@ class EnvironmentAnalysis:
             + z12 * (x2 - x) * (y - y1)
             + z22 * (x - x1) * (y - y1)
         ) / ((x2 - x1) * (y2 - y1))
+
+    def __init_surface_dictionary(self):
+        # Create dictionary of file variable names
+        self.surfaceFileDict = {
+            "surface100mWindVelocityX": "v100",  # TODO: fix this to u100 when you have a good file
+            "surface100mWindVelocityY": "v100",
+            "surface10mWindVelocityX": "u10",
+            "surface10mWindVelocityY": "v10",
+            "surfaceTemperature": "t2m",
+            "cloudBaseHeight": "cbh",
+            "surfaceWindGust": "i10fg",
+            "surfacePressure": "sp",
+            "totalPrecipitation": "tp",
+        }
+
+    def __getNearestIndex(self, array, value):
+        """Find nearest index of the given value in the array.
+        Made for latitudes and logintudes, suporting arrays that range from
+        -180 to 180 or from 0 to 360.
+
+        TODO: improve docs
+
+        Parameters
+        ----------
+        array : array
+        value : float
+
+        Returns
+        -------
+        index : int
+        """
+        # Create value convetion
+        if np.min(array) < 0:
+            # File uses range from -180 to 180, make sure value follows convetion
+            value = value if value < 180 else value % 180 - 180  # Example: 190 => -170
+        else:
+            # File probably uses range from 0 to 360, make sure value follows convention
+            value = value % 360  # Example: -10 becomes 350
+
+        # Find index
+        if array[0] < array[-1]:
+            # Array is sorted correctly, find index
+            # Deal with sorted array
+            index = bisect.bisect(array, value)
+        else:
+            # Array is reversed, no big deal, just bisect reversed one and subtract length
+            index = len(array) - bisect.bisect_left(array[::-1], value)
+
+        # Apply fix
+        if index == len(array) and array[index - 1] == value:
+            # If value equal the last array entry, fix to avoid being considered out of grid
+            index = index - 1
+
+        return index
+
+    def __timeNumToDateString(self, timeNum, units, calendar):
+        """Convert time number (usually hours before a certain date) into two
+        strings: one for the date (example: 2022.04.31) and one for the hour
+        (example: 14). See cftime.num2date for details on units and calendar.
+        """
+        dateTime = num2date(timeNum, units, calendar="gregorian")
+        dateString = f"{dateTime.year}.{dateTime.month}.{dateTime.day}"
+        hourString = f"{dateTime.hour}"
+        return dateString, hourString, dateTime
+
+    def __extractSurfaceDataValue(
+        self, surfaceData, variable, indices, lonArray, latArray
+    ):
+        """Extract value from surface data netCDF4 file. Performs bilinear
+        interpolation along longitude and latitude."""
+
+        timeIndex, lonIndex, latIndex = indices
+        variableData = surfaceData[variable]
+
+        # Get values for variable on the four nearest poins
+        z11 = variableData[timeIndex, lonIndex - 1, latIndex - 1]
+        z12 = variableData[timeIndex, lonIndex - 1, latIndex]
+        z21 = variableData[timeIndex, lonIndex, latIndex - 1]
+        z22 = variableData[timeIndex, lonIndex, latIndex]
+
+        # Compute interpolated value on desired lat lon pair
+        value = self.__bilinear_interpolation(
+            x=self.longitude,
+            y=self.latitude,
+            x1=lonArray[lonIndex - 1],
+            x2=lonArray[lonIndex],
+            y1=latArray[latIndex - 1],
+            y2=latArray[latIndex],
+            z11=z11,
+            z12=z12,
+            z21=z21,
+            z22=z22,
+        )
+
+        return value
+
+    def __check_coordinates_inside_grid(self, lonIndex, latIndex):
+        if (
+            lonIndex == 0
+            or lonIndex == len(lonArray) - 1
+            or latIndex == 0
+            or latIndex == len(latArray) - 1
+        ):
+            raise ValueError(
+                f"Latitude and longitude pair {(self.latitude, self.longitude)} is outside the grid availabel in the given file, which is defined by {(latArray[0], lonArray[0])} and {(latArray[-1], lonArray[-1])}."
+            )
 
     # Parsing Files
     # TODO: Implement
@@ -150,65 +261,80 @@ class EnvironmentAnalysis:
         self.pressureLevelDataDict = {}
         ...
 
-    # TODO: Implement
+    # TODO: Needs tests
     def parseSurfaceData(self):
         """
         Parse surface data from a weather file.
-
-        Sources of information:
-        - https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-pressure-levels-preliminary-back-extension?tab=overview
-        -
+        Currently only supports files from ECMWF.
 
         Must get the following variables:
-        - 2m temperature
-        - Surface pressure
-        - 10m u-component of wind
-        - 10m v-component of wind
-        - 100m u-component of wind
-        - 100m V-component of wind
-        - Instantaneous 10m wind gust
-        - Total precipitation
-        - Cloud base height
-
-        Must compute the following for each date and hour available in the dataset:
-        - surfaceTemperature = float
-        - surfacePressure = float
-        - surface10mWindVelocityX = float
-        - surface10mWindVelocityY = float
-        - surface100mWindVelocityX = float
-        - surface100mWindVelocityY = float
-        - surfaceWindGust = float
-        - totalPrecipitation = float
-        - cloudBaseHeight = float
+        - 2m temperature: surfaceTemperature = float
+        - Surface pressure: surfacePressure = float
+        - 10m u-component of wind: surface10mWindVelocityX = float
+        - 10m v-component of wind: surface10mWindVelocityY = float
+        - 100m u-component of wind: surface100mWindVelocityX = float
+        - 100m V-component of wind: surface100mWindVelocityY = float
+        - Instantaneous 10m wind gust: surfaceWindGust = float
+        - Total precipitation: totalPrecipitation = float
+        - Cloud base height: cloudBaseHeight = float
 
         Return a dictionary with all the computed data with the following structure:
         surfaceDataDict: {
             "date" : {
                 "hour": {
                     "data": ...,
-                    "data": ...
+                    ...
                 },
-                "hour": {
-                    "data": ...,
-                    "data": ...
-                }
+                ...
             },
-            "date" : {
-                "hour": {
-                    "data": ...,
-                    "data": ...
-                },
-                "hour": {
-                    "data": ...,
-                    "data": ...
-                }
-            }
+            ...
         }
         """
-        # TODO: Implement
-        print("parseSurfaceData not yet implemented.")
-        self.surfaceDataDict = {}
-        ...
+        # Setup dictionary used to read weather file
+        self.__init_surface_dictionary()
+
+        # Read weather file
+        surfaceData = netCDF4.Dataset(self.surfaceDataFile)
+
+        # Get time, latitude and longitude data from file
+        timeNumArray = surfaceData.variables["time"]
+        lonArray = surfaceData.variables["longitude"]
+        latArray = surfaceData.variables["latitude"]
+
+        # Find index needed for latitude and longitude for specified location
+        lonIndex = self.__getNearestIndex(lonArray, self.longitude)
+        latIndex = self.__getNearestIndex(latArray, self.latitude)
+
+        # Can't handle lat and lon out of grid
+        self.__check_coordinates_inside_grid(lonIndex, latIndex)
+
+        # Loop through time and save all values
+        for timeIndex, timeNum in enumerate(timeNumArray):
+
+            dateString, hourString, dateTime = self.__timeNumToDateString(
+                timeNum, timeNumArray.units, calendar="gregorian"
+            )
+
+            # Check if date is within analysis range
+            if not (self.start_date <= dateTime <= self.end_date):
+                continue
+
+            # Make sure keys exist
+            if dateString not in self.surfaceDataDict:
+                self.surfaceDataDict[dateString] = {}
+            if hourString not in self.surfaceDataDict[dateString]:
+                self.surfaceDataDict[dateString][hourString] = {}
+
+            # Extract data from weather file
+            indices = (timeIndex, lonIndex, latIndex)
+            for key, value in self.surfaceFileDict.items():
+                self.surfaceDataDict[dateString][hourString][
+                    key
+                ] = self.__extractSurfaceDataValue(
+                    surfaceData, value, indices, lonArray, latArray
+                )
+
+        return self.surfaceDataDict
 
     # Calculations
     def process_data(self):
@@ -223,37 +349,62 @@ class EnvironmentAnalysis:
         self.calculate_average_wind_profile()
         self.calculate_average_day_wind_rose()
 
-    # TODO: Adapt to new data format
+    # TODO: Create tests
     def calculate_average_max_temperature(self):
-        self.average_max_temperature = np.average(
-            [np.max(env.temperature.source[:, 1]) for env in self.environments]
-        )
+        self.max_temperature_list = [
+            np.max([dayDict[hour]["surfaceTemperature"] for hour in dayDict.keys()])
+            for dayDict in self.surfaceDataDict.values()
+        ]
+        self.average_max_temperature = np.average(self.max_temperature_list)
+        return self.average_max_temperature
 
-    # TODO: Adapt to new data format
+    # TODO: Create tests
     def calculate_average_min_temperature(self):
-        self.average_min_temperature = np.average(
-            [np.min(env.temperature.source[:, 1]) for env in self.environments]
-        )
+        self.min_temperature_list = [
+            np.min([dayDict[hour]["surfaceTemperature"] for hour in dayDict.keys()])
+            for dayDict in self.surfaceDataDict.values()
+        ]
+        self.average_min_temperature = np.average(self.min_temperature_list)
+        return self.average_min_temperature
 
-    # TODO: Adapt to new data format
+    # TODO: Create tests
     def calculate_record_max_temperature(self):
-        self.record_max_temperature = np.max(
-            [np.max(env.temperature.source[:, 1]) for env in self.environments]
-        )
+        self.temperature_list = [
+            dayDict[hour]["surfaceTemperature"]
+            for dayDict in self.surfaceDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        self.record_max_temperature = np.max(self.temperature_list)
+        return self.record_max_temperature
 
-    # TODO: Adapt to new data format
+    # TODO: Create tests
     def calculate_record_min_temperature(self):
-        self.record_min_temperature = np.min(
-            [np.min(env.temperature.source[:, 1]) for env in self.environments]
-        )
+        self.temperature_list = [
+            dayDict[hour]["surfaceTemperature"]
+            for dayDict in self.surfaceDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        self.record_min_temperature = np.min(self.temperature_list)
+        return self.record_min_temperature
 
-    # TODO: Implement
+    # TODO: Create tests
     def calculate_average_max_wind_gust(self):
-        ...
+        self.max_wind_gust_list = [
+            np.max([dayDict[hour]["surfaceWindGust"] for hour in dayDict.keys()])
+            for dayDict in self.surfaceDataDict.values()
+        ]
+        self.average_max_wind_gust = np.average(self.max_wind_gust_list)
+        return self.average_max_wind_gust
 
-    # TODO: Implement
+    # TODO: Create tests
     def calculate_maximum_wind_gust(self):
-        ...
+        self.wind_gust_list = [
+            dayDict[hour]["surfaceWindGust"]
+            for dayDict in self.surfaceDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        self.max_wind_gust = np.max(self.wind_gust_list)
+        return self.max_wind_gust
 
     # TODO: Implement
     def calculate_wind_gust_distribution(self):
