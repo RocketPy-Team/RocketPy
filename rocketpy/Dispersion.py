@@ -12,7 +12,7 @@ import glob
 
 
 import numpy as np
-from numpy.random import normal, uniform, choice
+from numpy.random import normal, uniform, choice, beta, binomial, chisquare, dirichlet, exponential, f, gamma, geometric, gumbel, hypergeometric, laplace, logistic, lognormal, logseries, multinomial, multivariate_normal, negative_binomial, noncentral_chisquare, noncentral_f, pareto, poisson, power, rayleigh, standard_cauchy, standard_exponential, standard_gamma, standard_normal, standard_t, triangular, vonmises, wald, weibull, zipf
 from IPython.display import display
 from rocketpy.Environment import Environment
 import matplotlib.pyplot as plt
@@ -38,7 +38,7 @@ class Dispersion:
         environment=None,
         motor=None,
         rocket=None,
-        distributionType="normal",  # TODO: make this variable for each possible parameter
+        distributionType=None,  
     ):
 
         self.flight = flight
@@ -55,7 +55,76 @@ class Dispersion:
             for parameter_key, parameter_value in analysis_parameters.items():
                 if type(parameter_value) is tuple:
                     parameter_value = (parameter_value[1], parameter_value[0])
-                    flight_setting[parameter_key] = normal(*parameter_value)
+                    if distributionType == "normal":
+                        flight_setting[parameter_key] = normal(*parameter_value)
+                    if distributionType == "beta":
+                        flight_setting[parameter_key] = beta(*parameter_value)
+                    if distributionType == "binomial":
+                        flight_setting[parameter_key] = binomial(*parameter_value)
+                    if distributionType == "chisquare":
+                        flight_setting[parameter_key] = chisquare(*parameter_value)
+                    if distributionType == "dirichlet":
+                        flight_setting[parameter_key] = dirichlet(*parameter_value)
+                    if distributionType == "exponential":
+                        flight_setting[parameter_key] = exponential(*parameter_value)
+                    if distributionType == "f":
+                        flight_setting[parameter_key] = f(*parameter_value)
+                    if distributionType == "gamma":
+                        flight_setting[parameter_key] = gamma(*parameter_value)
+                    if distributionType == "geometric":
+                        flight_setting[parameter_key] = geometric(*parameter_value)
+                    if distributionType == "gumbel":
+                        flight_setting[parameter_key] = gumbel(*parameter_value)
+                    if distributionType == "hypergeometric":
+                        flight_setting[parameter_key] = hypergeometric(*parameter_value)
+                    if distributionType == "laplace":
+                        flight_setting[parameter_key] = laplace(*parameter_value)
+                    if distributionType == "logistic":
+                        flight_setting[parameter_key] = logistic(*parameter_value)
+                    if distributionType == "lognormal":
+                        flight_setting[parameter_key] = lognormal(*parameter_value)
+                    if distributionType == "logseries":
+                        flight_setting[parameter_key] = logseries(*parameter_value)
+                    if distributionType == "multinomial":
+                        flight_setting[parameter_key] = multinomial(*parameter_value)
+                    if distributionType == "multivariate_normal":
+                        flight_setting[parameter_key] = multivariate_normal(*parameter_value)
+                    if distributionType == "negative_binomial":
+                        flight_setting[parameter_key] = negative_binomial(*parameter_value)
+                    if distributionType == "noncentral_chisquare":
+                        flight_setting[parameter_key] = noncentral_chisquare(*parameter_value)
+                    if distributionType == "noncentral_f":
+                        flight_setting[parameter_key] = noncentral_f(*parameter_value)
+                    if distributionType == "pareto":
+                        flight_setting[parameter_key] = pareto(*parameter_value)
+                    if distributionType == "poisson":
+                        flight_setting[parameter_key] = poisson(*parameter_value)
+                    if distributionType == "power":
+                        flight_setting[parameter_key] = power(*parameter_value)
+                    if distributionType == "rayleigh":
+                        flight_setting[parameter_key] = rayleigh(*parameter_value)
+                    if distributionType == "standard_cauchy":
+                        flight_setting[parameter_key] = standard_cauchy(*parameter_value)
+                    if distributionType == "standard_exponential":
+                        flight_setting[parameter_key] = standard_exponential(*parameter_value)
+                    if distributionType == "standard_gamma":
+                        flight_setting[parameter_key] = standard_gamma(*parameter_value)
+                    if distributionType == "standard_normal":
+                        flight_setting[parameter_key] = standard_normal(*parameter_value)
+                    if distributionType == "standard_t":
+                        flight_setting[parameter_key] = standard_t(*parameter_value)
+                    if distributionType == "triangular":
+                        flight_setting[parameter_key] = triangular(*parameter_value)
+                    if distributionType == "uniform":
+                        flight_setting[parameter_key] = uniform(*parameter_value)
+                    if distributionType == "vonmises":
+                        flight_setting[parameter_key] = vonmises(*parameter_value)
+                    if distributionType == "wald":
+                        flight_setting[parameter_key] = wald(*parameter_value)
+                    if distributionType == "weibull":
+                        flight_setting[parameter_key] = weibull(*parameter_value)
+                    if distributionType == "zipf":
+                        flight_setting[parameter_key] = zipf(*parameter_value)
                 else:
                     flight_setting[parameter_key] = choice(parameter_value)
 
@@ -91,20 +160,23 @@ class Dispersion:
             # Creates copy of environment
             envDispersion = self.environment
 
-            # Apply parameters variations on each iteration if possible
+            # Apply environment parameters variations on each iteration if possible
             envDispersion.railLength = (
                 setting["railLength"]
                 if "railLength" in setting
                 else envDispersion.railLength
             )
             envDispersion.gravity = (
-                setting["gravity"] if "gravity" in setting else envDispersion.gravity
+                setting["gravity"] if "gravity" in setting 
+                else envDispersion.gravity
             )
             envDispersion.date = (
-                setting["date"] if "date" in setting else envDispersion.date
+                setting["date"] if "date" in setting 
+                else envDispersion.date
             )
             envDispersion.latitude = (
-                setting["latitude"] if "latitude" in setting else envDispersion.latitude
+                setting["latitude"] if "latitude" in setting 
+                else envDispersion.latitude
             )
             envDispersion.longitude = (
                 setting["longitude"]
@@ -117,71 +189,177 @@ class Dispersion:
                 else envDispersion.elevation
             )
             envDispersion.datum = (
-                setting["datum"] if "datum" in setting else envDispersion.datum
+                setting["datum"] if "datum" in setting 
+                else envDispersion.datum
             )
             if "ensembleMember" in setting:
                 envDispersion.selectEnsembleMember(setting["ensembleMember"])
 
-            # Create motor
-            motorDispersion = SolidMotor(
-                thrustSource=self.motor.thrustSource,
-                burnOut=setting["burnOut"],
-                reshapeThrustCurve=(setting["burnOut"], setting["impulse"]),
-                nozzleRadius=setting["nozzleRadius"],
-                throatRadius=setting["throatRadius"],
-                grainNumber=self.motor.grainNumber,
-                grainSeparation=setting["grainSeparation"],
-                grainDensity=setting["grainDensity"],
-                grainOuterRadius=setting["grainOuterRadius"],
-                grainInitialInnerRadius=setting["grainInitialInnerRadius"],
-                grainInitialHeight=setting["grainInitialHeight"],
-                interpolationMethod="linear",
+            
+            # Creates copy of motor
+            motorDispersion = self.motor
+
+            # Apply motor parameters variations on each iteration if possible
+            motorDispersion.thrustSource = (
+                setting["thrustSource"]
+                if "thrustSource" in setting
+                else motorDispersion.thrustSource
+            )
+            motorDispersion.burnOut = (
+                setting["burnOut"]
+                if "burnOut" in setting
+                else motorDispersion.burnOut
+            )
+            motorDispersion.grainNumber = (
+                setting["grainNumber"]
+                if "grainNumber" in setting
+                else motorDispersion.grainNumber
+            )
+            motorDispersion.grainDensity = (
+                setting["grainDensity"]
+                if "grainDensity" in setting
+                else motorDispersion.grainDensity
+            )
+            motorDispersion.grainOuterRadius = (
+                setting["grainOuterRadius"]
+                if "grainOuterRadius" in setting
+                else motorDispersion.grainOuterRadius
+            )
+            motorDispersion.grainInitialInnerRadius = (
+                setting["grainInitialInnerRadius"]
+                if "grainInitialInnerRadius" in setting
+                else motorDispersion.grainInitialInnerRadius
+            )
+            motorDispersion.grainInitialHeight = (
+                setting["grainInitialHeight"]
+                if "grainInitialHeight" in setting
+                else motorDispersion.grainInitialHeight
+            )
+            motorDispersion.grainSeparation = (
+                setting["grainSeparation"]
+                if "grainSeparation" in setting
+                else motorDispersion.grainSeparation
+            )
+            motorDispersion.nozzleRadius = (
+                setting["nozzleRadius"]
+                if "nozzleRadius" in setting
+                else motorDispersion.nozzleRadius
+            )
+            motorDispersion.throatRadius = (
+                setting["throatRadius"]
+                if "throatRadius" in setting
+                else motorDispersion.throatRadius
+            )
+            motorDispersion.reshapeThrustCurve = (
+                setting["reshapeThrustCurve"]
+                if "reshapeThrustCurve" in setting
+                else motorDispersion.reshapeThrustCurve
+            )
+            motorDispersion.interpolationMethod = (      
+                setting["interpolationMethod"]
+                if "interpolationMethod" in setting
+                else motorDispersion.interpolationMethod
+            )
+            
+            # Creates copy of motor
+            rocketDispersion = self.rocket
+
+            # Apply rocket parameters variations on each iteration if possible
+            rocketDispersion.motor = (
+                setting["motor"]
+                if "motor" in setting
+                else rocketDispersion.motor
+            )
+            rocketDispersion.radius = (
+                setting["radius"]
+                if "radius" in setting
+                else rocketDispersion.radius
+            )
+            rocketDispersion.rocketMass = (
+                setting["rocketMass"]
+                if "rocketMass" in setting
+                else rocketDispersion.rocketMass
+            )
+            rocketDispersion.rocketMass = (
+                setting["inertiaI"]
+                if "inertiaI" in setting
+                else rocketDispersion.inertiaI
+            )
+            rocketDispersion.inertiaZ = (
+                setting["inertiaZ"]
+                if "inertiaZ" in setting
+                else rocketDispersion.inertiaZ
+            )
+            rocketDispersion.distanceRocketNozzle = (
+                setting["distanceRocketNozzle"]
+                if "distanceRocketNozzle" in setting
+                else rocketDispersion.distanceRocketNozzle
+            )
+            rocketDispersion.distanceRocketPropellant = (
+                setting["distanceRocketPropellant"]
+                if "distanceRocketPropellant" in setting
+                else rocketDispersion.distanceRocketPropellant
+            )
+            rocketDispersion.powerOffDrag = (
+                setting["powerOffDrag"]
+                if "powerOffDrag" in setting
+                else rocketDispersion.powerOffDrag
+            )
+            rocketDispersion.powerOnDrag = (
+                setting["powerOnDrag"]
+                if "powerOnDrag" in setting
+                else rocketDispersion.powerOnDrag
             )
 
-            # Create rocket
-            rocketDispersion = Rocket(
-                motor=motorDispersion,
-                radius=setting["radius"] if "radius" in setting else rocket.radius,
-                mass=setting["rocketMass"],
-                inertiaI=setting["inertiaI"],
-                inertiaZ=setting["inertiaZ"],
-                distanceRocketNozzle=setting["distanceRocketNozzle"],
-                distanceRocketPropellant=setting["distanceRocketPropellant"],
-                powerOffDrag=self.rocket.powerOffDrag * setting["powerOffDrag"],
-                powerOnDrag=self.rocket.powerOnDrag * setting["powerOnDrag"],
-            )
 
             # Add rocket nose, fins and tail
             rocketDispersion.addNose(
-                length=setting["noseLength"],
-                kind=self.rocket.kind,
-                distanceToCM=setting["noseDistanceToCM"],
+                length=setting["noseLength"] if "noseLength" in setting else rocket.noseLength,
+                kind=setting["kind"]if "kind" in setting else rocket.kind,
+                distanceToCM=setting["noseDistanceToCM"]if "noseLength" in setting else rocket.rtol,
             )
             rocketDispersion.addFins(
-                n=self.rocket.n,
-                rootChord=setting["finRootChord"],
-                tipChord=setting["finTipChord"],
-                span=setting["finSpan"],
-                distanceToCM=setting["finDistanceToCM"],
+                n=setting["n"] if "n" in setting else rocket.n,
+                rootChord=setting["finRootChord"] if "finRootChord" in setting else rocket.finRootChord,
+                tipChord=setting["finTipChord"] if "finTipChord" in setting else rocket.finTipChord,
+                span=setting["finSpan"] if "finSpan" in setting else rocket.finSpan,
+                distanceToCM=setting["finDistanceToCM"] if "finDistanceToCM" in setting else rocket.finDistanceToCM,
+                radius=setting["radius"] if "radius" in setting else rocket.radius, 
+                airfoil=setting["airfoil"] if "airfoil" in setting else rocket.airfoil
             )
+            rocketDispersion.addTail(
+               topRadius =setting["topRadius"] if "topRadius" in setting else rocket.topRadius,
+               bottomRadius=setting["bottomRadius"] if "bottomRadius" in setting else rocket.bottomRadius, 
+               length=setting["length"] if "length" in setting else rocket.length, 
+               distanceToCM=setting["distanceToCM"] if "distanceToCM" in setting else rocket.distanceToCM
+            )
+           
             # Add parachute
             rocketDispersion.addParachute(
-                self.rocket.name,
-                CdS=setting["CdSDrogue"],
-                trigger=self.rocket.trigger,
-                samplingRate=self.rocket.samplingRate,
-                lag=setting["lag_rec"] + setting["lag_se"],
-                noise=self.rocket.noise,
+                name=setting["name"] if "name" in setting else rocket.name,
+                CdS=setting["CdS"] if "CdS" in setting else rocket.CdS,
+                trigger=setting["trigger"] if "trigger" in setting else rocket.trigger,
+                samplingRate=setting["samplingRate"] if "samplingRate" in setting else rocket.samplingRate,
+                lag=setting["lag_rec"] if "lag_rec" in setting else rocket.lag_rec + setting["lag_se"] if "lag_se" in setting else rocket.lag_se,
+                noise=setting["noise"] if "noise" in setting else rocket.noise,
             )
 
             # Run trajectory simulation
             try:
                 TestFlight = Flight(
-                    rocket=Valetudo,
-                    environment=Env,
-                    inclination=setting["inclination"],
-                    heading=setting["heading"],
-                    maxTime=600,
+                    rocket=rocketDispersion,
+                    environment=envDispersion,
+                    inclination=envDispersion.inclination,
+                    heading=envDispersion.heading,
+                    initialSolution=setting["initialSolution"] if "initialSolution" in setting else flight.initialSolution,
+                    terminateOnApogee=setting["terminateOnApogee"] if "terminateOnApogee" in setting else flight.terminateOnApogee,
+                    maxTime=setting["maxTime"] if "maxTime" in setting else flight.maxTime,
+                    maxTimeStep=setting["maxTimeStep"] if "maxTimeStep" in setting else flight.maxTimeStep,
+                    minTimeStep=setting["minTimeStep"] if "minTimeStep" in setting else flight.minTimeStep,
+                    rtol=setting["rtol"] if "rtol" in setting else flight.rtol,
+                    atol=setting["atol"] if "atol" in setting else flight.atol,
+                    timeOvershoot=setting["timeOvershoot"] if "timeOvershoot" in setting else flight.timeOvershoot,
+                    verbose=setting["verbose"] if "verbose" in setting else flight.verbose,
                 )
                 export_flight_data(setting, TestFlight, process_time() - start_time)
             except Exception as E:
@@ -206,13 +384,6 @@ class Dispersion:
         dispersion_input_file.close()
         dispersion_output_file.close()
         dispersion_error_file.close()
-
-    def createDispersionDict(
-        self,
-        dispersionDict,  # Dicionario exemplo: {"mass": (desvio padrão, valor ~opcional~)}
-    ):
-
-        return analysis_parameters
 
     def importingDispersionResultsFromFile(self, dispersion_output_file):
 
@@ -662,6 +833,7 @@ class Dispersion:
         plt.savefig(str(filename) + ".pdf", bbox_inches="tight", pad_inches=0)
         plt.savefig(str(filename) + ".svg", bbox_inches="tight", pad_inches=0)
         plt.show()
+
 
     def plotOutOfRailVelocityByMass(self, minMass, maxMass, numPoints):
         def outOfRailVelocity(mass):
