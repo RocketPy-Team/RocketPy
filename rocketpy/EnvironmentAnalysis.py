@@ -114,6 +114,15 @@ class EnvironmentAnalysis:
             "totalPrecipitation": "tp",
         }
 
+    def __init_pressure_dictionary(self):
+        # Create dictionary of file variable names
+        self.pressureLevelFileDict = {
+            "Geopotential": "z",
+            "U-component": "u", 
+            "V-component": "v",
+            "Temperature": "t",
+        }
+
     def __getNearestIndex(self, array, value):
         """Find nearest index of the given value in the array.
         Made for latitudes and logintudes, suporting arrays that range from
@@ -194,7 +203,39 @@ class EnvironmentAnalysis:
         )
 
         return value
+"""
+não terminei essa
+    def __extractPressureLevelDataValue(
+        self, pressureLevelData, variable, indices, lonArray, latArray
+    ):
+        Extract value from surface data netCDF4 file. Performs bilinear
+        interpolation along longitude and latitude.
 
+        timeIndex, lonIndex, latIndex = indices
+        variableData = pressureLevelData[variable]
+
+        # Get values for variable on the four nearest poins
+        z11 = variableData[timeIndex, lonIndex - 1, latIndex - 1]
+        z12 = variableData[timeIndex, lonIndex - 1, latIndex]
+        z21 = variableData[timeIndex, lonIndex, latIndex - 1]
+        z22 = variableData[timeIndex, lonIndex, latIndex]
+
+        # Compute interpolated value on desired lat lon pair
+        value = self.__bilinear_interpolation(
+            x=self.longitude,
+            y=self.latitude,
+            x1=lonArray[lonIndex - 1],
+            x2=lonArray[lonIndex],
+            y1=latArray[latIndex - 1],
+            y2=latArray[latIndex],
+            z11=z11,
+            z12=z12,
+            z21=z21,
+            z22=z22,
+        )
+
+        return value
+"""
     def __check_coordinates_inside_grid(self, lonIndex, latIndex):
         if (
             lonIndex == 0
@@ -206,8 +247,6 @@ class EnvironmentAnalysis:
                 f"Latitude and longitude pair {(self.latitude, self.longitude)} is outside the grid availabel in the given file, which is defined by {(latArray[0], lonArray[0])} and {(latArray[-1], lonArray[-1])}."
             )
 
-    # Parsing Files
-    # TODO: Implement
     def parsePressureLevelData(self):
         """
         Parse pressure level data from a weather file.
@@ -257,9 +296,54 @@ class EnvironmentAnalysis:
         """
         # TODO: Implement funciton
         # Inspiration: see Environment.processForecastReanalysis
-        print("parsePressureLevelData not yet implemented.")
-        self.pressureLevelDataDict = {}
-        ...
+
+        pressureLevelData = netCDF4.Dataset(self.pressureLevelDataFile)
+
+
+        # Get time, latitude and longitude data from file
+        timeNumArray = pressureLevelData.variables["time"]
+        lonArray = pressureLevelData.variables["longitude"]
+        latArray = pressureLevelData.variables["latitude"]
+        
+
+        # Find index needed for latitude and longitude for specified location
+        lonIndex = self.__getNearestIndex(lonArray, self.longitude)
+        latIndex = self.__getNearestIndex(latArray, self.latitude)
+
+        # Can't handle lat and lon out of grid
+        self.__check_coordinates_inside_grid(lonIndex, latIndex)
+
+                # Loop through time and save all values
+        for timeIndex, timeNum in enumerate(timeNumArray):
+
+            dateString, hourString, dateTime = self.__timeNumToDateString(
+                timeNum, timeNumArray.units, calendar="gregorian"
+            )
+
+            # Check if date is within analysis range
+            if not (self.start_date <= dateTime <= self.end_date):
+                continue
+
+            # Make sure keys exist
+            if dateString not in self.pressureLevelDataDict:
+                self.pressureLevelDataDict[dateString] = {}
+            if hourString not in self.pressureLevelDataDict[dateString]:
+                self.pressureLevelDataDict[dateString][hourString] = {}
+
+            # Extract data from weather file
+            indices = (timeIndex, lonIndex, latIndex)
+            for key, value in self.pressureLevelFileDict.items():
+                self.pressureLevelDataDict[dateString][hourString][
+                    key
+                ] = self.__extractPressureLevelDataValue(
+                    pressureLevelData, value, indices, lonArray, latArray
+                )
+
+        #falta fazer as functions e conferir se ta dando certo
+
+        return self.pressureLevelDataDict
+
+
 
     # TODO: Needs tests
     def parseSurfaceData(self):
@@ -477,3 +561,5 @@ class EnvironmentAnalysis:
         print(f"Global Minimum temperature: {self.record_min_temperature} ºC")
         print(f"Average minimum temperture: {self.average_min_temperature} ºC")
         print(f"Average maximum temperature: {self.average_max_temperature} ºC")
+
+
