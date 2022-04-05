@@ -118,7 +118,7 @@ class EnvironmentAnalysis:
         # Create dictionary of file variable names
         self.pressureLevelFileDict = {
             "Geopotential": "z",
-            "U-component": "u", 
+            "U-component": "u",
             "V-component": "v",
             "Temperature": "t",
         }
@@ -235,7 +235,7 @@ class EnvironmentAnalysis:
 
         return value
 
-    def __check_coordinates_inside_grid(self, lonIndex, latIndex,lonArray,latArray):
+    def __check_coordinates_inside_grid(self, lonIndex, latIndex, lonArray, latArray):
         if (
             lonIndex == 0
             or lonIndex == len(lonArray) - 1
@@ -298,15 +298,13 @@ class EnvironmentAnalysis:
 
         pressureLevelData = netCDF4.Dataset(self.pressureLevelDataFile)
 
-
         # Get time, latitude and longitude data from file
         timeNumArray = pressureLevelData.variables["time"]
         lonArray = pressureLevelData.variables["longitude"]
         latArray = pressureLevelData.variables["latitude"]
-        
-        #FALTA FAZER TUDO QUE PRECISA ENVOLVENDO ISSO
+
+        # FALTA FAZER TUDO QUE PRECISA ENVOLVENDO ISSO
         levelArray = pressureLevelData.variables["level"]
-        
 
         # Find index needed for latitude and longitude for specified location
         lonIndex = self.__getNearestIndex(lonArray, self.longitude)
@@ -315,7 +313,7 @@ class EnvironmentAnalysis:
         # Can't handle lat and lon out of grid
         self.__check_coordinates_inside_grid(lonIndex, latIndex, lonArray, latArray)
 
-                # Loop through time and save all values
+        # Loop through time and save all values
         for timeIndex, timeNum in enumerate(timeNumArray):
 
             dateString, hourString, dateTime = self.__timeNumToDateString(
@@ -334,9 +332,6 @@ class EnvironmentAnalysis:
 
             # Extract data from weather file
 
-
-
-            
             indices = (timeIndex, lonIndex, latIndex)
             for key, value in self.pressureLevelFileDict.items():
                 self.pressureLevelDataDict[dateString][hourString][
@@ -345,14 +340,9 @@ class EnvironmentAnalysis:
                     pressureLevelData, value, indices, lonArray, latArray
                 )
 
-        #falta fazer as functions e conferir se ta dando certo
-
-
-
+        # falta fazer as functions e conferir se ta dando certo
 
         return self.pressureLevelDataDict
-
-
 
     # TODO: Needs tests
     def parseSurfaceData(self):
@@ -399,7 +389,7 @@ class EnvironmentAnalysis:
         latIndex = self.__getNearestIndex(latArray, self.latitude)
 
         # Can't handle lat and lon out of grid
-        self.__check_coordinates_inside_grid(lonIndex, latIndex,lonArray,latArray)
+        self.__check_coordinates_inside_grid(lonIndex, latIndex, lonArray, latArray)
 
         # Loop through time and save all values
         for timeIndex, timeNum in enumerate(timeNumArray):
@@ -570,5 +560,3 @@ class EnvironmentAnalysis:
         print(f"Global Minimum temperature: {self.record_min_temperature} ºC")
         print(f"Average minimum temperture: {self.average_min_temperature} ºC")
         print(f"Average maximum temperature: {self.average_max_temperature} ºC")
-
-
