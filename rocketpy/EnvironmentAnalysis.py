@@ -203,13 +203,12 @@ class EnvironmentAnalysis:
         )
 
         return value
-"""
-não terminei essa
+
     def __extractPressureLevelDataValue(
         self, pressureLevelData, variable, indices, lonArray, latArray
     ):
-        Extract value from surface data netCDF4 file. Performs bilinear
-        interpolation along longitude and latitude.
+        """Extract value from surface data netCDF4 file. Performs bilinear
+        interpolation along longitude and latitude."""
 
         timeIndex, lonIndex, latIndex = indices
         variableData = pressureLevelData[variable]
@@ -235,8 +234,8 @@ não terminei essa
         )
 
         return value
-"""
-    def __check_coordinates_inside_grid(self, lonIndex, latIndex):
+
+    def __check_coordinates_inside_grid(self, lonIndex, latIndex,lonArray,latArray):
         if (
             lonIndex == 0
             or lonIndex == len(lonArray) - 1
@@ -305,13 +304,16 @@ não terminei essa
         lonArray = pressureLevelData.variables["longitude"]
         latArray = pressureLevelData.variables["latitude"]
         
+        #FALTA FAZER TUDO QUE PRECISA ENVOLVENDO ISSO
+        levelArray = pressureLevelData.variables["level"]
+        
 
         # Find index needed for latitude and longitude for specified location
         lonIndex = self.__getNearestIndex(lonArray, self.longitude)
         latIndex = self.__getNearestIndex(latArray, self.latitude)
 
         # Can't handle lat and lon out of grid
-        self.__check_coordinates_inside_grid(lonIndex, latIndex)
+        self.__check_coordinates_inside_grid(lonIndex, latIndex, lonArray, latArray)
 
                 # Loop through time and save all values
         for timeIndex, timeNum in enumerate(timeNumArray):
@@ -331,6 +333,10 @@ não terminei essa
                 self.pressureLevelDataDict[dateString][hourString] = {}
 
             # Extract data from weather file
+
+
+
+            
             indices = (timeIndex, lonIndex, latIndex)
             for key, value in self.pressureLevelFileDict.items():
                 self.pressureLevelDataDict[dateString][hourString][
@@ -340,6 +346,9 @@ não terminei essa
                 )
 
         #falta fazer as functions e conferir se ta dando certo
+
+
+
 
         return self.pressureLevelDataDict
 
@@ -390,7 +399,7 @@ não terminei essa
         latIndex = self.__getNearestIndex(latArray, self.latitude)
 
         # Can't handle lat and lon out of grid
-        self.__check_coordinates_inside_grid(lonIndex, latIndex)
+        self.__check_coordinates_inside_grid(lonIndex, latIndex,lonArray,latArray)
 
         # Loop through time and save all values
         for timeIndex, timeNum in enumerate(timeNumArray):
