@@ -101,7 +101,7 @@ class EnvironmentAnalysis:
         ) / ((x2 - x1) * (y2 - y1))
 
     def __init_surface_dictionary(self):
-        # Create dictionary of file variable names
+        # Create dictionary of file variable names to process surface data
         self.surfaceFileDict = {
             "surface100mWindVelocityX": "v100",  # TODO: fix this to u100 when you have a good file
             "surface100mWindVelocityY": "v100",
@@ -114,13 +114,13 @@ class EnvironmentAnalysis:
             "totalPrecipitation": "tp",
         }
 
-    def __init_pressure_dictionary(self):
-        # Create dictionary of file variable names
+    def __init_pressure_level_dictionary(self):
+        # Create dictionary of file variable names to process pressure level data
         self.pressureLevelFileDict = {
-            "Geopotential": "z",
-            "U-component": "u",
-            "V-component": "v",
-            "Temperature": "t",
+            "geopotential": "z",
+            "u_wind": "u",
+            "v-wind": "v",
+            "temperature": "t",
         }
 
     def __getNearestIndex(self, array, value):
@@ -214,13 +214,13 @@ class EnvironmentAnalysis:
         variableData = pressureLevelData[variable]
 
         # Get values for variable on the four nearest poins
-        z11 = variableData[timeIndex, lonIndex - 1, latIndex - 1]
-        z12 = variableData[timeIndex, lonIndex - 1, latIndex]
-        z21 = variableData[timeIndex, lonIndex, latIndex - 1]
-        z22 = variableData[timeIndex, lonIndex, latIndex]
+        z11 = variableData[timeIndex, :, lonIndex - 1, latIndex - 1]
+        z12 = variableData[timeIndex, :, lonIndex - 1, latIndex]
+        z21 = variableData[timeIndex, :, lonIndex, latIndex - 1]
+        z22 = variableData[timeIndex, :, lonIndex, latIndex]
 
         # Compute interpolated value on desired lat lon pair
-        value = self.__bilinear_interpolation(
+        value_list_as_a_function_of_pressure_level = self.__bilinear_interpolation(
             x=self.longitude,
             y=self.latitude,
             x1=lonArray[lonIndex - 1],
@@ -233,7 +233,17 @@ class EnvironmentAnalysis:
             z22=z22,
         )
 
-        return value
+        return value_list_as_a_function_of_pressure_level
+
+    def __compute_height_above_sea_level(self, geopotential):
+        """Compute height above sea level from geopotential.
+
+        Source: https://en.wikipedia.org/wiki/Geopotential
+        """
+        R = 63781370  # Earth radius in m
+        g = 9.80665  # Gravity acceleration in m/s^2
+        geopotential_height = geopotential / g
+        return R * geopotential_height / (R - geopotential_height)
 
     def __check_coordinates_inside_grid(self, lonIndex, latIndex, lonArray, latArray):
         if (
@@ -246,6 +256,7 @@ class EnvironmentAnalysis:
                 f"Latitude and longitude pair {(self.latitude, self.longitude)} is outside the grid availabel in the given file, which is defined by {(latArray[0], lonArray[0])} and {(latArray[-1], lonArray[-1])}."
             )
 
+    # TODO: Needs tests
     def parsePressureLevelData(self):
         """
         Parse pressure level data from a weather file.
@@ -293,18 +304,17 @@ class EnvironmentAnalysis:
             }
         }
         """
-        # TODO: Implement funciton
-        # Inspiration: see Environment.processForecastReanalysis
+        # Setup dictionary used to read weather file
+        self.__init_pressure_level_dictionary()
 
+        # Read weather file
         pressureLevelData = netCDF4.Dataset(self.pressureLevelDataFile)
 
-        # Get time, latitude and longitude data from file
+        # Get time, pressure levels, latitude and longitude data from file
         timeNumArray = pressureLevelData.variables["time"]
+        pressureLevelArray = pressureLevelData.variables["level"]
         lonArray = pressureLevelData.variables["longitude"]
         latArray = pressureLevelData.variables["latitude"]
-
-        # FALTA FAZER TUDO QUE PRECISA ENVOLVENDO ISSO
-        levelArray = pressureLevelData.variables["level"]
 
         # Find index needed for latitude and longitude for specified location
         lonIndex = self.__getNearestIndex(lonArray, self.longitude)
@@ -331,16 +341,39 @@ class EnvironmentAnalysis:
                 self.pressureLevelDataDict[dateString][hourString] = {}
 
             # Extract data from weather file
-
             indices = (timeIndex, lonIndex, latIndex)
+
+            # Retrieve geopotential first and compute altitudes
+            geopotentialArray = self.__extractPressureLevelDataValue(
+                pressureLevelData,
+                self.pressureLevelFileDict["geopotential"],
+                indices,
+                lonArray,
+                latArray,
+            )
+            heightAboveSeaLevelArray = self.__compute_height_above_sea_level(
+                geopotentialArray
+            )
+
+            # Loop through wind components and temperature, get value and convert to Function
             for key, value in self.pressureLevelFileDict.items():
-                self.pressureLevelDataDict[dateString][hourString][
-                    key
-                ] = self.__extractPressureLevelDataValue(
+                valueArray = self.__extractPressureLevelDataValue(
                     pressureLevelData, value, indices, lonArray, latArray
                 )
+                variablePointsArray = np.array([heightAboveSeaLevelArray, valueArray]).T
+                variableFunction = Function(variablePointsArray)
+                self.pressureLevelDataDict[dateString][hourString][
+                    key
+                ] = variableFunction
 
-        # falta fazer as functions e conferir se ta dando certo
+            # Create function for pressure levels
+            pressurePointsArray = np.array(
+                [heightAboveSeaLevelArray, pressureLevelArray]
+            ).T
+            pressureFunction = Function(pressurePointsArray)
+            self.pressureLevelDataDict[dateString][hourString][
+                "pressure"
+            ] = pressureFunction
 
         return self.pressureLevelDataDict
 
