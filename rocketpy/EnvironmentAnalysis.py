@@ -118,14 +118,14 @@ class EnvironmentAnalysis:
         # Create dictionary of file variable names to process pressure level data
         self.pressureLevelFileDict = {
             "geopotential": "z",
-            "u_wind": "u",
-            "v-wind": "v",
+            "windVelocityX": "u",
+            "windVelocityY": "v",
             "temperature": "t",
         }
 
     def __getNearestIndex(self, array, value):
         """Find nearest index of the given value in the array.
-        Made for latitudes and logintudes, suporting arrays that range from
+        Made for latitudes and longitudes, suporting arrays that range from
         -180 to 180 or from 0 to 360.
 
         TODO: improve docs
@@ -248,12 +248,12 @@ class EnvironmentAnalysis:
     def __check_coordinates_inside_grid(self, lonIndex, latIndex, lonArray, latArray):
         if (
             lonIndex == 0
-            or lonIndex == len(lonArray) - 1
+            or lonIndex > len(lonArray) - 1
             or latIndex == 0
-            or latIndex == len(latArray) - 1
+            or latIndex > len(latArray) - 1
         ):
             raise ValueError(
-                f"Latitude and longitude pair {(self.latitude, self.longitude)} is outside the grid availabel in the given file, which is defined by {(latArray[0], lonArray[0])} and {(latArray[-1], lonArray[-1])}."
+                f"Latitude and longitude pair {(self.latitude, self.longitude)} is outside the grid available in the given file, which is defined by {(latArray[0], lonArray[0])} and {(latArray[-1], lonArray[-1])}."
             )
 
     # TODO: Needs tests
@@ -370,10 +370,61 @@ class EnvironmentAnalysis:
             pressurePointsArray = np.array(
                 [heightAboveSeaLevelArray, pressureLevelArray]
             ).T
-            pressureFunction = Function(pressurePointsArray)
+            pressureFunction = Function(pressurePointsArray,
+            inputs="Height Above Sea Level (m)", 
+            outputs="Pressure (Pa)")
             self.pressureLevelDataDict[dateString][hourString][
                 "pressure"
             ] = pressureFunction
+
+            # Create function for wind speed levels
+            windVelocityXArray = self.__extractPressureLevelDataValue(
+                pressureLevelData, 
+                self.pressureLevelFileDict["windVelocityX"],
+                indices, lonArray, latArray
+            )
+            windVelocityYArray = self.__extractPressureLevelDataValue(
+                pressureLevelData, 
+                self.pressureLevelFileDict["windVelocityY"],
+                indices, lonArray, latArray
+            )
+            windSpeedArray = np.sqrt(np.square(windVelocityXArray) + np.square(windVelocityYArray))
+
+            windSpeedPointsArray = np.array(
+                [heightAboveSeaLevelArray, windSpeedArray]
+            ).T
+            windSpeedFunction = Function(windSpeedPointsArray,
+            inputs="Height Above Sea Level (m)", 
+            outputs="Wind Speed (m/s)")
+            self.pressureLevelDataDict[dateString][hourString][
+                "windSpeed"
+            ] = windSpeedFunction
+
+            # Create function for wind heading levels
+            windHeadingArray = np.arctan2(windVelocityXArray, windVelocityYArray) * (180 / np.pi) % 360
+            
+            
+            windHeadingPointsArray = np.array(
+                [heightAboveSeaLevelArray, windHeadingArray]
+            ).T
+            windHeadingFunction = Function(windHeadingPointsArray,
+            inputs="Height Above Sea Level (m)", 
+            outputs="Wind Heading (Deg True)")
+            self.pressureLevelDataDict[dateString][hourString][
+                "windHeading"
+            ] = windHeadingFunction
+
+            # Create function for wind direction levels
+            windDirectionArray = (windHeadingArray - 180) % 360
+            windDirectionPointsArray = np.array(
+                [heightAboveSeaLevelArray, windDirectionArray]
+            ).T
+            windDirectionFunction = Function(windDirectionPointsArray,
+            inputs="Height Above Sea Level (m)", 
+            outputs="Wind Direction (Deg True)")
+            self.pressureLevelDataDict[dateString][hourString][
+                "windDirection"
+            ] = windDirectionFunction
 
         return self.pressureLevelDataDict
 
