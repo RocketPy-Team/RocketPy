@@ -370,46 +370,59 @@ class EnvironmentAnalysis:
             pressurePointsArray = np.array(
                 [heightAboveSeaLevelArray, pressureLevelArray]
             ).T
-            pressureFunction = Function(pressurePointsArray,
-            inputs="Height Above Sea Level (m)", 
-            outputs="Pressure (Pa)")
+            pressureFunction = Function(
+                pressurePointsArray,
+                inputs="Height Above Sea Level (m)",
+                outputs="Pressure (Pa)",
+            )
             self.pressureLevelDataDict[dateString][hourString][
                 "pressure"
             ] = pressureFunction
 
             # Create function for wind speed levels
             windVelocityXArray = self.__extractPressureLevelDataValue(
-                pressureLevelData, 
+                pressureLevelData,
                 self.pressureLevelFileDict["windVelocityX"],
-                indices, lonArray, latArray
+                indices,
+                lonArray,
+                latArray,
             )
             windVelocityYArray = self.__extractPressureLevelDataValue(
-                pressureLevelData, 
+                pressureLevelData,
                 self.pressureLevelFileDict["windVelocityY"],
-                indices, lonArray, latArray
+                indices,
+                lonArray,
+                latArray,
             )
-            windSpeedArray = np.sqrt(np.square(windVelocityXArray) + np.square(windVelocityYArray))
+            windSpeedArray = np.sqrt(
+                np.square(windVelocityXArray) + np.square(windVelocityYArray)
+            )
 
             windSpeedPointsArray = np.array(
                 [heightAboveSeaLevelArray, windSpeedArray]
             ).T
-            windSpeedFunction = Function(windSpeedPointsArray,
-            inputs="Height Above Sea Level (m)", 
-            outputs="Wind Speed (m/s)")
+            windSpeedFunction = Function(
+                windSpeedPointsArray,
+                inputs="Height Above Sea Level (m)",
+                outputs="Wind Speed (m/s)",
+            )
             self.pressureLevelDataDict[dateString][hourString][
                 "windSpeed"
             ] = windSpeedFunction
 
             # Create function for wind heading levels
-            windHeadingArray = np.arctan2(windVelocityXArray, windVelocityYArray) * (180 / np.pi) % 360
-            
-            
+            windHeadingArray = (
+                np.arctan2(windVelocityXArray, windVelocityYArray) * (180 / np.pi) % 360
+            )
+
             windHeadingPointsArray = np.array(
                 [heightAboveSeaLevelArray, windHeadingArray]
             ).T
-            windHeadingFunction = Function(windHeadingPointsArray,
-            inputs="Height Above Sea Level (m)", 
-            outputs="Wind Heading (Deg True)")
+            windHeadingFunction = Function(
+                windHeadingPointsArray,
+                inputs="Height Above Sea Level (m)",
+                outputs="Wind Heading (Deg True)",
+            )
             self.pressureLevelDataDict[dateString][hourString][
                 "windHeading"
             ] = windHeadingFunction
@@ -419,9 +432,11 @@ class EnvironmentAnalysis:
             windDirectionPointsArray = np.array(
                 [heightAboveSeaLevelArray, windDirectionArray]
             ).T
-            windDirectionFunction = Function(windDirectionPointsArray,
-            inputs="Height Above Sea Level (m)", 
-            outputs="Wind Direction (Deg True)")
+            windDirectionFunction = Function(
+                windDirectionPointsArray,
+                inputs="Height Above Sea Level (m)",
+                outputs="Wind Direction (Deg True)",
+            )
             self.pressureLevelDataDict[dateString][hourString][
                 "windDirection"
             ] = windDirectionFunction
