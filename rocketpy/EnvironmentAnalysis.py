@@ -3,9 +3,10 @@ import bisect
 from multiprocessing.sharedctypes import Value
 
 import numpy as np
+import scipy
 from matplotlib import pyplot as plt
 
-# from windrose import WindAxes, WindroseAxes
+from windrose import WindAxes, WindroseAxes
 import netCDF4
 from cftime import num2date
 
@@ -588,12 +589,46 @@ class EnvironmentAnalysis:
         self.max_wind_gust = np.max(self.wind_gust_list)
         return self.max_wind_gust
 
-    # TODO: Implement
+    # TODO: Create tests
     def calculate_wind_gust_distribution(self):
         """Get all values of wind gust speed (for every date and hour available)
-        and plot a single distribution. Expectedr result is a Weibull distribution.
+        and plot a single distribution. Expected result is a Weibull distribution.
         """
-        ...
+        self.wind_gust_list = [
+            dayDict[hour]["surfaceWindGust"]
+            for dayDict in self.surfaceDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        plt.figure()
+        # Plot histogram
+        plt.hist(
+            self.wind_gust_list,
+            bins=int(len(self.wind_gust_list) ** 0.5),
+            density=True,
+            histtype="stepfilled",
+            alpha=0.2,
+            label="Wind Gust Speed Distribution",
+        )
+
+        # Plot weibull distribution
+        c, loc, scale = scipy.stats.weibull_min.fit(self.wind_gust_list)
+        x = np.linspace(0, np.max(self.wind_gust_list), 100)
+        plt.plot(
+            x,
+            scipy.stats.weibull_min.pdf(x, c, loc, scale),
+            "r-",
+            linewidth=2,
+            label="Weibull Distribution",
+        )
+        
+        # Label plot
+        plt.ylabel("Probability")
+        plt.xlabel("Wind gust speed (m/s)")
+        plt.title("Wind Gust Speed Distribution")
+        plt.legend()
+        plt.show()
+
+        return self.wind_gust_list
 
     # TODO: Implement
     def calculate_average_temperature_along_day(self):
