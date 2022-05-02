@@ -4,6 +4,7 @@ __author__ = "Giovani Hidalgo Ceotto, João Lemes Gribel Soares"
 __copyright__ = "Copyright 20XX, Projeto Jupiter"
 __license__ = "MIT"
 
+from asyncore import dispatcher_with_send
 import re
 import math
 import bisect
@@ -634,6 +635,8 @@ class Flight:
         self.impactState = np.array([0])
         self.parachuteEvents = []
         self.postProcessed = False
+        self.latitude = 0  # Function(0)
+        self.longitude = 0  # Function(0)
         # Initialize solver monitors
         self.functionEvaluations = []
         self.functionEvaluationsPerTimeStep = []
@@ -2099,10 +2102,11 @@ class Flight:
 
         # Converts x and y positions to lat and lon
         ## We are currently considering the earth as a sphere.
-
         bearing = []
-        distance = [(TestFlight.x[i][1] ** 2 + TestFlight.y[i][1] ** 2) ** 0.5 for i in range(len(TestFlight.x))]
-
+        distance = [
+            (self.x[i][1] ** 2 + self.y[i][1] ** 2) ** 0.5 for i in range(len(self.x))
+        ]
+        for i in range(len(self.x)):
             # Check if the point is over the grid (i.e. if x*y == 0)
             if self.x[i][1] == 0:
                 if self.y[i][1] < 0:
@@ -2116,61 +2120,65 @@ class Flight:
                 elif self.x[i][1] > 0:
                     bearing.append(3.14159265359 / 2)
                 else:
-                    bearing.append(0)
+                    continue
                 continue
 
             # Calculate bearing as the azimuth considering dirrerent quadrants
             if self.x[i][1] * self.y[i][1] > 0 and self.x[i][1] > 0:
-                bearing.append(np.arctan(abs(self.x[i][1]) / abs(self.y[i][1])))
-                continue
+                bearing.append(math.atan(abs(self.x[i][1]) / abs(self.y[i][1])))
             elif self.x[i][1] * self.y[i][1] < 0 and self.x[i][1] > 0:
                 bearing.append(
-                    3.14159265359 / 2 + np.arctan(abs(self.y[i][1]) / abs(self.x[i][1]))
+                    3.14159265359 / 2 + math.atan(abs(self.y[i][1]) / abs(self.x[i][1]))
                 )
-                continue
             elif self.x[i][1] * self.y[i][1] > 0 and self.x[i][1] < 0:
                 bearing.append(
-                    3.14159265359 + np.arctan(abs(self.x[i][1]) / abs(self.y[i][1]))
+                    3.14159265359 + math.atan(abs(self.x[i][1]) / abs(self.y[i][1]))
                 )
-                continue
             elif self.x[i][1] * self.y[i][1] < 0 and self.x[i][1] < 0:
                 bearing.append(
                     3 * 3.14159265359 / 2
-                    + np.arctan(abs(self.y[i][1]) / abs(self.x[i][1]))
+                    + math.atan(abs(self.y[i][1]) / abs(self.x[i][1]))
                 )
-                continue
 
         # Store values of distance and bearing using approriate units
         # self.distance = distance      # Must be in meters
         # self.bearing = bearing        # Must be in radians
 
-        lat1 = np.pi * self.env.lat / 180  # Launch lat point converted to radians
-        lon1 = np.pi * self.env.lon / 180  # Launch long point converted to radians
+        lat1 = (
+            3.14159265359 * self.env.lat / 180
+        )  # Launch lat point converted to radians
+        lon1 = (
+            3.14159265359 * self.env.lon / 180
+        )  # Launch long point converted to radians
 
         R = self.env.earthRadius
         lat2 = []
         lon2 = []
         # Applies the haversine equation to find final lat/lon coordinates
-        for i in range(len(distance)):
+        for i in range(len(self.x)):
             # Please notice that for distances lower than 1 centimeter the difference on latitude or longitude too small
-            if abs(self.x[i][1]) < 1e-2:
-                lon2.append(self.env.lon)
-            else:
-                lon2.append(
-                    (180 / np.pi) * lon1
-                    + np.arctan2(
-                        np.sin(bearing[i]) * np.sin(distance[i] / R) * np.cos(lat1),
-                        np.cos(distance[i] / R) - np.sin(lat1) * np.sin(lat2[i]),
-                    )
-                )
             if abs(self.y[i][1]) < 1e-2:
                 lat2.append(self.env.lat)
             else:
                 lat2.append(
-                    (180 / np.pi)
-                    * np.arcsin(
-                        np.sin(lat1) * np.cos(distance[i] / R)
-                        + np.cos(lat1) * np.sin(distance[i] / R) * np.cos(bearing[i])
+                    (180 / 3.14159265359)
+                    * math.asin(
+                        math.sin(lat1) * math.cos(distance[i] / R)
+                        + math.cos(lat1)
+                        * math.sin(distance[i] / R)
+                        * math.cos(bearing[i])
+                    )
+                )
+            if abs(self.x[i][1]) < 1e-2:
+                lon2.append(self.env.lon)
+            else:
+                lon2.append(
+                    (180 / 3.14159265359) * lon1
+                    + math.atan2(
+                        math.sin(bearing[i])
+                        * math.sin(distance[i] / R)
+                        * math.cos(lat1),
+                        math.cos(distance[i] / R) - math.sin(lat1) * math.sin(lat2[i]),
                     )
                 )
 
@@ -2493,8 +2501,8 @@ class Flight:
         vF = self.outOfRailVelocity
 
         # Convert angle to radians
-        theta = self.inclination * np.pi / 180
-        stallAngle = stallAngle * np.pi / 180
+        theta = self.inclination * 3.14159265359 / 180
+        stallAngle = stallAngle * 3.14159265359 / 180
 
         c = (math.cos(stallAngle) ** 2 - math.cos(theta) ** 2) / math.sin(
             stallAngle
@@ -3496,7 +3504,7 @@ class Flight:
         variables : strings, optional
             Names of the data variables which shall be exported. Must be Flight
             classes attribute which are an instance of the Function class. Usage
-            example: TestFlight.exportData('test.csv', 'z', 'angleOfAttack', 'machNumber').
+            example: self.exportData('test.csv', 'z', 'angleOfAttack', 'machNumber').
         timeStep : float, optional
             Time step desired for the data. If None, all integration time steps
             will be exported. Otherwise, linear interpolation is carried out to
