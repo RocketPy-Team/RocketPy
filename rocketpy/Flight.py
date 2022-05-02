@@ -2153,22 +2153,9 @@ class Flight:
         # Applies the haversine equation to find final lat/lon coordinates
         for i in range(len(distance)):
             # Please notice that for distances lower than 1 centimeter the difference on latitude or longitude too small
-            if abs(self.x[i][1]) < 1e-2 and abs(self.y[i][1]) < 1e-2:
-                lat2.append(self.env.lat)
+            if abs(self.x[i][1]) < 1e-2:
                 lon2.append(self.env.lon)
-                continue
-            elif abs(self.x[i][1]) < 1e-2:
-                lat2.append(
-                    (180 / np.pi)
-                    * np.arcsin(
-                        np.sin(self.env.lat) * np.cos(distance[i] / R)
-                        + np.cos(lat1) * np.sin(distance[i] / R) * np.cos(bearing[i])
-                    )
-                )
-                lon2.append(self.env.lon)
-                continue
-            elif abs(self.y[i][1]) < 1e-2:
-                lat2.append(self.env.lat)
+            else:
                 lon2.append(
                     (180 / np.pi) * lon1
                     + np.arctan2(
@@ -2176,20 +2163,14 @@ class Flight:
                         np.cos(distance[i] / R) - np.sin(lat1) * np.sin(lat2[i]),
                     )
                 )
-                continue
+            if abs(self.y[i][1]) < 1e-2:
+                lat2.append(self.env.lat)
             else:
                 lat2.append(
                     (180 / np.pi)
                     * np.arcsin(
                         np.sin(lat1) * np.cos(distance[i] / R)
                         + np.cos(lat1) * np.sin(distance[i] / R) * np.cos(bearing[i])
-                    )
-                )
-                lon2.append(
-                    (180 / np.pi) * lon1
-                    + np.arctan2(
-                        np.sin(bearing[i]) * np.sin(distance[i] / R) * np.cos(lat1),
-                        np.cos(distance[i] / R) - np.sin(lat1) * np.sin(lat2[i]),
                     )
                 )
 
