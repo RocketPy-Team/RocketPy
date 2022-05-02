@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-__author__ = "Giovani Hidalgo Ceotto, João Lemes Gribel Soares"
-__copyright__ = "Copyright 20XX, Projeto Jupiter"
+__author__ = (
+    "Giovani Hidalgo Ceotto, Guilherme Fernandes Alves, João Lemes Gribel Soares"
+)
 __license__ = "MIT"
 
 from asyncore import dispatcher_with_send
@@ -3504,7 +3505,7 @@ class Flight:
         variables : strings, optional
             Names of the data variables which shall be exported. Must be Flight
             classes attribute which are an instance of the Function class. Usage
-            example: self.exportData('test.csv', 'z', 'angleOfAttack', 'machNumber').
+            example: TestFlight.exportData('test.csv', 'z', 'angleOfAttack', 'machNumber').
         timeStep : float, optional
             Time step desired for the data. If None, all integration time steps
             will be exported. Otherwise, linear interpolation is carried out to
