@@ -665,14 +665,8 @@ def test_latlon_convertions2(mock_show):
     test_flight = Flight(
         rocket=test_rocket, environment=test_env, inclination=85, heading=0
     )
-    test_flight2 = Flight(
-        rocket=test_rocket, environment=test_env, inclination=85, heading=90
-    )
 
     test_flight.postProcess()
-    test_flight2.postProcess()
 
     assert test_flight.longitude(test_flight.tFinal) == 0
     assert test_flight.latitude(test_flight.tFinal) > 0
-    assert test_flight2.latitude(test_flight2.tFinal) == 0
-    assert test_flight2.longitude(test_flight2.tFinal) > 0
