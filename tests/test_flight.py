@@ -437,7 +437,7 @@ def test_rolling_flight(mock_show):
 
     assert test_flight.allInfo() == None
 
-@patch("matplotlib.pyplot.show")
+
 def test_export_data():
     "Tests weather the method Flight.exportData is working as intended"
 
@@ -668,16 +668,9 @@ def test_latlon_convertions2(mock_show):
     assert test_flight.longitude(test_flight.tFinal) == 0
     assert test_flight.latitude(test_flight.tFinal) > 0
 
-    test_env = Environment(
-        railLength=5,
-        latitude=0,
-        longitude=0,
-        elevation=1400,
-    )
-
-    test_flight = Flight(
+    test_flight2 = Flight(
         rocket=test_rocket, environment=test_env, inclination=85, heading=90
     )
-    test_flight.postProcess()
-    assert test_flight.latitude(test_flight.tFinal) == 0
-    assert test_flight.longitude(test_flight.tFinal) > 0
+    test_flight2.postProcess()
+    assert test_flight2.latitude(test_flight2.tFinal) == 0
+    assert test_flight2.longitude(test_flight2.tFinal) > 0
