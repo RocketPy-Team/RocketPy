@@ -437,7 +437,7 @@ def test_rolling_flight(mock_show):
 
     assert test_flight.allInfo() == None
 
-    
+@patch("matplotlib.pyplot.show")
 def test_export_data():
     "Tests weather the method Flight.exportData is working as intended"
 
@@ -529,7 +529,7 @@ def test_export_data():
         == True
     )
     
-@patch("matplotlib.qapyplot.show")
+@patch("matplotlib.pyplot.show")
 def test_latlon_convertions(mock_show):
     test_env = Environment(
         railLength=5,
@@ -615,7 +615,7 @@ def test_latlon_convertions(mock_show):
     assert test_flight.latitude(test_flight.tFinal) > test_flight.env.lat
     assert test_flight.longitude(test_flight.tFinal) > test_flight.env.lon
 
-@patch("matplotlib.qapyplot.show")
+@patch("matplotlib.pyplot.show")
 def test_latlon_convertions2(mock_show):
     "additional tests to capture incorrect behaviours during lat/lon conversions"
     test_motor = SolidMotor(
