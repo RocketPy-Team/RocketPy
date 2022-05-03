@@ -3,6 +3,7 @@
 __author__ = (
     "Giovani Hidalgo Ceotto, Guilherme Fernandes Alves, João Lemes Gribel Soares"
 )
+__copyright__ = "Copyright 20XX, Projeto Jupiter"
 __license__ = "MIT"
 
 from asyncore import dispatcher_with_send
