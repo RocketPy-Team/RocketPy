@@ -529,7 +529,7 @@ def test_export_data():
         == True
     )
     
-@patch("matplotlib.pyplot.show")
+@patch("matplotlib.qapyplot.show")
 def test_latlon_convertions(mock_show):
     test_env = Environment(
         railLength=5,
@@ -538,23 +538,16 @@ def test_latlon_convertions(mock_show):
         elevation=1400,
         datum="WGS84",
     )
-    tomorrow = datetime.date.today() + datetime.timedelta(days=1)
-    test_env.setDate(
-        (tomorrow.year, tomorrow.month, tomorrow.day, 12)
-    )  # Hour given in UTC time
 
     test_motor = SolidMotor(
-        thrustSource="data/motors/Cesaroni_M1670.eng",
+        thrustSource=1545.218,
         burnOut=3.9,
         grainNumber=5,
         grainSeparation=5 / 1000,
         grainDensity=1815,
         grainOuterRadius=33 / 1000,
         grainInitialInnerRadius=15 / 1000,
-        grainInitialHeight=120 / 1000,
-        nozzleRadius=33 / 1000,
-        throatRadius=11 / 1000,
-        interpolationMethod="linear",
+        grainInitialHeight=120 / 1000
     )
 
     test_rocket = Rocket(
@@ -565,8 +558,8 @@ def test_latlon_convertions(mock_show):
         inertiaZ=0.0351,
         distanceRocketNozzle=-1.255,
         distanceRocketPropellant=-0.85704,
-        powerOffDrag="data/calisto/powerOffDragCurve.csv",
-        powerOnDrag="data/calisto/powerOnDragCurve.csv",
+        powerOffDrag=0.5,
+        powerOnDrag=0.5,
     )
 
     test_rocket.setRailButtons([0.2, -0.5])
@@ -616,10 +609,75 @@ def test_latlon_convertions(mock_show):
     )
 
     # Check for initial and final lat/lon coordinates based on launch pad coordinates
-    assert test_flight.postProcess() == None
+    test_flight.postProcess()
     assert abs(test_flight.latitude(0)) - abs(test_flight.env.lat) < 1e-6
     assert abs(test_flight.longitude(0)) - abs(test_flight.env.lon) < 1e-6
     assert test_flight.latitude(test_flight.tFinal) > test_flight.env.lat
-    assert test_flight.longitude(test_flight.tFinal) > test_flight.env.lon   
-    
-    
+    assert test_flight.longitude(test_flight.tFinal) > test_flight.env.lon
+
+@patch("matplotlib.qapyplot.show")
+def test_latlon_convertions2(mock_show):
+    "additional tests to capture incorrect behaviours during lat/lon conversions"
+    test_motor = SolidMotor(
+        thrustSource=1000,
+        burnOut=3,
+        grainNumber=5,
+        grainSeparation=5 / 1000,
+        grainDensity=1815,
+        grainOuterRadius=33 / 1000,
+        grainInitialInnerRadius=15 / 1000,
+        grainInitialHeight=120 / 1000
+    )
+
+    test_rocket = Rocket(
+        motor=test_motor,
+        radius=127 / 2000,
+        mass=19.197 - 2.956,
+        inertiaI=6.60,
+        inertiaZ=0.0351,
+        distanceRocketNozzle=-1.255,
+        distanceRocketPropellant=-0.85704,
+        powerOffDrag=0.5,
+        powerOnDrag=0.5,
+    )
+
+    test_rocket.setRailButtons([0.2, -0.5])
+
+    NoseCone = test_rocket.addNose(
+        length=0.55829, kind="vonKarman", distanceToCM=0.71971
+    )
+    FinSet = test_rocket.addFins(
+        4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
+    )
+    Tail = test_rocket.addTail(
+        topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656
+    )
+
+    test_env = Environment(
+        railLength=5,
+        latitude=0,
+        longitude=0,
+        elevation=1400,
+    )
+
+    test_flight = Flight(
+        rocket=test_rocket, environment=test_env, inclination=85, heading=0
+    )
+
+    test_flight.postProcess()
+    assert test_flight.longitude(test_flight.tFinal) == 0
+    assert test_flight.latitude(test_flight.tFinal) > 0
+
+    test_env = Environment(
+        railLength=5,
+        latitude=0,
+        longitude=0,
+        elevation=1400,
+    )
+
+    test_flight = Flight(
+        rocket=test_rocket, environment=test_env, inclination=85, heading=90
+    )
+    test_flight.postProcess()
+    assert test_flight.latitude(test_flight.tFinal) == 0
+    assert test_flight.longitude(test_flight.tFinal) > 0
