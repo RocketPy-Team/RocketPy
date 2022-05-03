@@ -528,7 +528,8 @@ def test_export_data():
         np.allclose(test_flight.angleOfAttack(timePoints), test_2[:, 5], atol=1e-5)
         == True
     )
-    
+
+
 @patch("matplotlib.pyplot.show")
 def test_latlon_convertions(mock_show):
     test_env = Environment(
@@ -547,7 +548,7 @@ def test_latlon_convertions(mock_show):
         grainDensity=1815,
         grainOuterRadius=33 / 1000,
         grainInitialInnerRadius=15 / 1000,
-        grainInitialHeight=120 / 1000
+        grainInitialHeight=120 / 1000,
     )
 
     test_rocket = Rocket(
@@ -615,6 +616,7 @@ def test_latlon_convertions(mock_show):
     assert test_flight.latitude(test_flight.tFinal) > test_flight.env.lat
     assert test_flight.longitude(test_flight.tFinal) > test_flight.env.lon
 
+
 @patch("matplotlib.pyplot.show")
 def test_latlon_convertions2(mock_show):
     "additional tests to capture incorrect behaviours during lat/lon conversions"
@@ -626,7 +628,7 @@ def test_latlon_convertions2(mock_show):
         grainDensity=1815,
         grainOuterRadius=33 / 1000,
         grainInitialInnerRadius=15 / 1000,
-        grainInitialHeight=120 / 1000
+        grainInitialHeight=120 / 1000,
     )
 
     test_rocket = Rocket(
@@ -663,14 +665,14 @@ def test_latlon_convertions2(mock_show):
     test_flight = Flight(
         rocket=test_rocket, environment=test_env, inclination=85, heading=0
     )
-
-    test_flight.postProcess()
-    assert test_flight.longitude(test_flight.tFinal) == 0
-    assert test_flight.latitude(test_flight.tFinal) > 0
-
     test_flight2 = Flight(
         rocket=test_rocket, environment=test_env, inclination=85, heading=90
     )
+
+    test_flight.postProcess()
     test_flight2.postProcess()
+
+    assert test_flight.longitude(test_flight.tFinal) == 0
+    assert test_flight.latitude(test_flight.tFinal) > 0
     assert test_flight2.latitude(test_flight2.tFinal) == 0
     assert test_flight2.longitude(test_flight2.tFinal) > 0
