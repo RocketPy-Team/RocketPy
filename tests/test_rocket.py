@@ -176,8 +176,9 @@ def test_evaluate_static_margin_assert_cp_equals_cm(kg, m, dimensionless_rocket)
     burnOutTime = rocket.motor.burnOutTime
 
     assert rocket.centerOfMass(0) / (2 * rocket.radius) == rocket.staticMargin(0)
-    assert pytest.approx(rocket.centerOfMass(burnOutTime) / (2 * rocket.radius), 1e-12) == \
-           pytest.approx(rocket.staticMargin(burnOutTime), 1e-12)
+    assert pytest.approx(
+        rocket.centerOfMass(burnOutTime) / (2 * rocket.radius), 1e-12
+    ) == pytest.approx(rocket.staticMargin(burnOutTime), 1e-12)
     assert rocket.totalLiftCoeffDer == 0
     assert rocket.cpPosition == 0
 
