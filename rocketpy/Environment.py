@@ -9,6 +9,7 @@ import math
 import bisect
 import warnings
 import time
+import pytz
 from datetime import datetime, timedelta
 from inspect import signature, getsourcelines
 from collections import namedtuple
@@ -25,12 +26,27 @@ import requests
 
 try:
     import netCDF4
-    from netCDF4 import Dataset
 except ImportError:
+    has_netCDF4 = False
     warnings.warn(
         "Unable to load netCDF4. NetCDF files and OPeNDAP will not be imported.",
         ImportWarning,
     )
+else:
+    has_netCDF4 = True
+
+
+def requires_netCDF4(func):
+    def wrapped_func(*args, **kwargs):
+        if has_netCDF4:
+            func(*args, **kwargs)
+        else:
+            raise ImportError(
+                "This feature requires netCDF4 to be installed. Install it with `pip install netCDF4`"
+            )
+
+    return wrapped_func
+
 
 from .Function import Function
 
@@ -80,7 +96,11 @@ class Environment:
         Environment.elevation : float
             Launch site elevation.
         Environment.date : datetime
-            Date time of launch.
+            Date time of launch in UTC.
+        Environment.localDate : datetime
+                    Date time of launch in the local time zone, defined by Environment.timeZone.
+        Environment.timeZone : string
+                    Local time zone specification. See pytz for time zone info.
 
         Topographic information:
         Environment.elevLonArray: array
@@ -290,6 +310,7 @@ class Environment:
         longitude=0,
         elevation=0,
         datum="SIRGAS2000",
+        timeZone="UTC",
     ):
         """Initialize Environment class, saving launch rail length,
         launch date, location coordinates and elevation. Note that
@@ -326,7 +347,13 @@ class Environment:
             'Open-Elevation' which uses the Open-Elevation API to
             find elevation data. For this option, latitude and
             longitude must also be specified. Default value is 0.
-        datum:
+        datum : string
+            The desired reference ellipsoide model, the following options are
+            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
+            is "SIRGAS2000", then this model will be used if the user make some
+            typing mistake.
+        timeZone : string, optional
+            Name of the time zone. To see all time zones, import pytz and run
 
         Returns
         -------
@@ -343,9 +370,11 @@ class Environment:
 
         # Save date
         if date != None:
-            self.setDate(date)
+            self.setDate(date, timeZone)
         else:
             self.date = None
+            self.localDate = None
+            self.timeZone = None
 
         # Initialize constants
         self.earthRadius = 6.3781 * (10**6)
@@ -378,21 +407,30 @@ class Environment:
 
         return None
 
-    def setDate(self, date):
+    def setDate(self, date, timeZone="UTC"):
         """Set date and time of launch and update weather conditions if
         date dependent atmospheric model is used.
 
         Parameters
         ----------
-        date : Date
-            Date object specifying launch date and time.
+        date : Datetime
+            Datetime object specifying launch date and time.
+        timeZone : string, optional
+            Name of the time zone. To see all time zones, import pytz and run
+        print(pytz.all_timezones). Default time zone is "UTC".
 
         Return
         ------
         None
         """
-        # Store date
-        self.date = datetime(*date)
+        # Store date and configure time zone
+        self.timeZone = timeZone
+        tz = pytz.timezone(self.timeZone)
+        localDate = datetime(*date)
+        if localDate.tzinfo == None:
+            localDate = tz.localize(localDate)
+        self.localDate = localDate
+        self.date = self.localDate.astimezone(pytz.UTC)
 
         # Update atmospheric conditions if atmosphere type is Forecast,
         # Reanalysis or Ensemble
@@ -478,7 +516,7 @@ class Environment:
                 response = requests.get(requestURL)
                 results = response.json()["results"]
                 self.elevation = results[0]["elevation"]
-                print("Elevation received: ", self.elevation)
+                print("Elevation received:", self.elevation)
             except:
                 raise RuntimeError("Unabel to reach Open-Elevation API servers.")
         else:
@@ -487,6 +525,7 @@ class Environment:
                 " Open-Elevation API. See Environment.setLocation."
             )
 
+    @requires_netCDF4
     def setTopographicProfile(self, type, file, dictionary="netCDF4", crs=None):
         """[UNDER CONSTRUCTION] Defines the Topographic profile, importing data
         from previous downloaded files. Mainly data from the Shuttle Radar
@@ -515,7 +554,7 @@ class Environment:
 
         if type == "NASADEM_HGT":
             if dictionary == "netCDF4":
-                rootgrp = Dataset(file, "r", format="NETCDF4")
+                rootgrp = netCDF4.Dataset(file, "r", format="NETCDF4")
                 self.elevLonArray = rootgrp.variables["lon"][:].tolist()
                 self.elevLatArray = rootgrp.variables["lat"][:].tolist()
                 self.elevArray = rootgrp.variables["NASADEM_HGT"][:].tolist()
@@ -1686,6 +1725,7 @@ class Environment:
         # Save maximum expected height
         self.maxExpectedHeight = pressure_array[-1, 0]
 
+    @requires_netCDF4
     def processForecastReanalysis(self, file, dictionary):
         """Import and process atmospheric data from weather forecasts
         and reanalysis given as netCDF or OPeNDAP files.
@@ -2079,6 +2119,7 @@ class Environment:
 
         return None
 
+    @requires_netCDF4
     def processEnsemble(self, file, dictionary):
         """Import and process atmospheric data from weather ensembles
         given as netCDF or OPeNDAP files.
@@ -2820,9 +2861,18 @@ class Environment:
         """
         # Print launch site details
         print("Launch Site Details")
-        print("\nLaunch Rail Length: ", self.rL, " m")
-        if self.date != None:
-            print("Launch Date: ", self.date, " UTC")
+        print("\nLaunch Rail Length:", self.rL, " m")
+        time_format = "%Y-%m-%d %H:%M:%S"
+        if self.date != None and "UTC" not in self.timeZone:
+            print(
+                "Launch Date:",
+                self.date.strftime(time_format),
+                "UTC |",
+                self.localDate.strftime(time_format),
+                self.timeZone,
+            )
+        elif self.date != None:
+            print("Launch Date:", self.date.strftime(time_format), "UTC")
         if self.lat != None and self.lon != None:
             print("Launch Site Latitude: {:.5f}°".format(self.lat))
             print("Launch Site Longitude: {:.5f}°".format(self.lon))
@@ -2839,7 +2889,7 @@ class Environment:
         # Print atmospheric model details
         print("\n\nAtmospheric Model Details")
         modelType = self.atmosphericModelType
-        print("\nAtmospheric Model Type: ", modelType)
+        print("\nAtmospheric Model Type:", modelType)
         print(
             modelType
             + " Maximum Height: {:.3f} km".format(self.maxExpectedHeight / 1000)
@@ -2850,7 +2900,7 @@ class Environment:
             endDate = self.atmosphericModelEndDate
             interval = self.atmosphericModelInterval
             print(modelType + " Time Period: From ", initDate, " to ", endDate, " UTC")
-            print(modelType + " Hour Interval: ", interval, " hrs")
+            print(modelType + " Hour Interval:", interval, " hrs")
             # Determine latitude and longitude range
             initLat = self.atmosphericModelInitLat
             endLat = self.atmosphericModelEndLat
@@ -2859,8 +2909,8 @@ class Environment:
             print(modelType + " Latitude Range: From ", initLat, "° To ", endLat, "°")
             print(modelType + " Longitude Range: From ", initLon, "° To ", endLon, "°")
         if modelType == "Ensemble":
-            print("Number of Ensemble Members: ", self.numEnsembleMembers)
-            print("Selected Ensemble Member: ", self.ensembleMember, " (Starts from 0)")
+            print("Number of Ensemble Members:", self.numEnsembleMembers)
+            print("Selected Ensemble Member:", self.ensembleMember, " (Starts from 0)")
 
         # Print atmospheric conditions
         print("\n\nSurface Atmospheric Conditions")
@@ -2947,9 +2997,18 @@ class Environment:
 
         # Print launch site details
         print("\n\nLaunch Site Details")
-        print("\nLaunch Rail Length: ", self.rL, " m")
-        if self.date != None:
-            print("Launch Date: ", self.date, " UTC")
+        print("\nLaunch Rail Length:", self.rL, " m")
+        time_format = "%Y-%m-%d %H:%M:%S"
+        if self.date != None and "UTC" not in self.timeZone:
+            print(
+                "Launch Date:",
+                self.date.strftime(time_format),
+                "UTC |",
+                self.localDate.strftime(time_format),
+                self.timeZone,
+            )
+        elif self.date != None:
+            print("Launch Date:", self.date.strftime(time_format), "UTC")
         if self.lat != None and self.lon != None:
             print("Launch Site Latitude: {:.5f}°".format(self.lat))
             print("Launch Site Longitude: {:.5f}°".format(self.lon))
@@ -2958,7 +3017,7 @@ class Environment:
         # Print atmospheric model details
         print("\n\nAtmospheric Model Details")
         modelType = self.atmosphericModelType
-        print("\nAtmospheric Model Type: ", modelType)
+        print("\nAtmospheric Model Type:", modelType)
         print(
             modelType
             + " Maximum Height: {:.3f} km".format(self.maxExpectedHeight / 1000)
@@ -2969,7 +3028,7 @@ class Environment:
             endDate = self.atmosphericModelEndDate
             interval = self.atmosphericModelInterval
             print(modelType + " Time Period: From ", initDate, " to ", endDate, " UTC")
-            print(modelType + " Hour Interval: ", interval, " hrs")
+            print(modelType + " Hour Interval:", interval, " hrs")
             # Determine latitude and longitude range
             initLat = self.atmosphericModelInitLat
             endLat = self.atmosphericModelEndLat
@@ -2978,8 +3037,8 @@ class Environment:
             print(modelType + " Latitude Range: From ", initLat, "° To ", endLat, "°")
             print(modelType + " Longitude Range: From ", initLon, "° To ", endLon, "°")
         if modelType == "Ensemble":
-            print("Number of Ensemble Members: ", self.numEnsembleMembers)
-            print("Selected Ensemble Member: ", self.ensembleMember, " (Starts from 0)")
+            print("Number of Ensemble Members:", self.numEnsembleMembers)
+            print("Selected Ensemble Member:", self.ensembleMember, " (Starts from 0)")
 
         # Print atmospheric conditions
         print("\n\nSurface Atmospheric Conditions")
@@ -3506,7 +3565,7 @@ class Environment:
         # print("Launch Site UTM coordinates: {:.2f} ".format(self.initialEast)
         #    + self.initialEW + "    {:.2f} ".format(self.initialNorth) + self.initialHemisphere
         # )
-        # print("Launch Site UTM zone number: ", self.initialUtmZone)
+        # print("Launch Site UTM zone number:", self.initialUtmZone)
         # print("Launch Site Surface Elevation: {:.1f} m".format(self.elevation))
         print("Earth Radius at Launch site: {:.1f} m".format(self.earthRadius))
         print("Gravity acceleration at launch site: Still not implemented :(")
