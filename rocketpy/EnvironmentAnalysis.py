@@ -5,11 +5,10 @@ from multiprocessing.sharedctypes import Value
 import numpy as np
 from matplotlib import pyplot as plt
 
-# from windrose import WindAxes, WindroseAxes
+from windrose import WindAxes, WindroseAxes
 import netCDF4
 from cftime import num2date
 
-from rocketpy.Environment import Environment
 from rocketpy.Function import Function
 
 
@@ -306,7 +305,6 @@ class EnvironmentAnalysis:
         """
         # Setup dictionary used to read weather file
         self.__init_pressure_level_dictionary()
-
         # Read weather file
         pressureLevelData = netCDF4.Dataset(self.pressureLevelDataFile)
 
@@ -605,10 +603,43 @@ class EnvironmentAnalysis:
         """average, 1, 2, 3 sigma wind profile from 0 35,000 ft AGL"""
         ...
 
-    # TODO: Implement
-    def calculate_average_day_wind_rose(self):
+    # TODO: Understand better the data of a wind rose
+    def animate_wind_rose(self):
         """average day wind rose"""
-        ...
+        days = list(self.surfaceDataDict.keys())
+        hours = self.surfaceDataDict[days[0]].keys()
+
+        #self.average_wind_direction = []
+        #self.average_wind_speed= []
+        windSpeed = {}
+        windDir = {}
+
+        # env.pressureLevelDataDict['2016.6.17']['2']['windDirection'](env.elevation)
+        for hour in hours:
+            windSpeed[hour] = []
+            windDir[hour] = []
+            #avg_value_x = 0
+            #avg_value_y = 0
+            for day in days:
+                #modulus = env.pressureLevelDataDict[day][hour]['windSpeed'](env.elevation)
+                #deg = np.deg2rad(env.pressureLevelDataDict[day][hour]['windDirection'](env.elevation))
+                windSpeed[hour].append(self.pressureLevelDataDict[day][hour]['windSpeed'](self.elevation))
+                windDir[hour].append(self.pressureLevelDataDict[day][hour]['windDirection'](self.elevation))
+
+                #avg_value_x += modulus * np.cos(deg)/len(days)
+                #avg_value_y += modulus * np.sin(deg) / len(days)
+            #avg_modulus = np.sqrt(avg_value_x ** 2 + avg_value_y ** 2)
+            #avg_direction = np.rad2deg(np.arccos(avg_value_x/avg_modulus))
+
+            #self.average_wind_speed.append(avg_modulus)
+            #self.average_wind_direction.append(avg_direction)
+
+        ax = WindroseAxes.from_ax()
+        for hour in hours:
+            ax.bar(windSpeed[hour], windDir[hour], normed=True, opening=0.8, edgecolor="white")
+            plt.pause(0.3)
+
+        plt.show()
 
     # Animations
     # TODO: Implement
@@ -621,27 +652,8 @@ class EnvironmentAnalysis:
         """Animation of how wind profile evolves throughout an average day."""
         ...
 
-    # TODO: Adapt to new data format
-    def animate_wind_rose(self):
-        """Animation of how average wind rose evolves throughout an average day."""
-
-        def get_data(i):
-            windDirection = []
-            windSpeed = []
-            for idx in range(i, len(self.environments), 8):
-                windDirection.extend(self.environments[idx].windDirection.source[:, 1])
-                windSpeed.extend(self.environments[idx].windSpeed.source[:, 1])
-            return windSpeed, windDirection
-
-        ax = WindroseAxes.from_ax()
-        for i in range(8):
-            windSpeed, windDir = get_data(i)
-            ax.bar(windSpeed, windDir, normed=True, opening=0.8, edgecolor="white")
-            plt.pause(0.3)
-
-        plt.show()
-
     # Others
+    # TODO: Addapt to new data format
     def wind_profile(self):
         windSpeed = []
         for idx in range(0, len(self.environments)):
