@@ -362,7 +362,11 @@ class EnvironmentAnalysis:
                     pressureLevelData, value, indices, lonArray, latArray
                 )
                 variablePointsArray = np.array([heightAboveSeaLevelArray, valueArray]).T
-                variableFunction = Function(variablePointsArray)
+                variableFunction = Function(
+                    variablePointsArray,
+                    inputs="Height Above Sea Level (m)",
+                    outputs=key,
+                )
                 self.pressureLevelDataDict[dateString][hourString][
                     key
                 ] = variableFunction
@@ -620,7 +624,7 @@ class EnvironmentAnalysis:
             linewidth=2,
             label="Weibull Distribution",
         )
-        
+
         # Label plot
         plt.ylabel("Probability")
         plt.xlabel("Wind gust speed (m/s)")
@@ -635,10 +639,53 @@ class EnvironmentAnalysis:
         """temperature progression throughout the day at some fine interval (ex: 2 hours) with 1, 2, 3, sigma contours"""
         ...
 
-    # TODO: Implement
-    def calculate_average_wind_profile(self):
-        """average, 1, 2, 3 sigma wind profile from 0 35,000 ft AGL"""
-        ...
+    # TODO: Create tessts
+    def calculate_average_wind_speed_profile(self):
+        """Average wind speed for all datetimes available."""
+        altitude_list = np.linspace(1495.155, 12000, 100)
+        wind_speed_profiles = [
+            dayDict[hour]["windSpeed"](altitude_list)
+            for dayDict in self.pressureLevelDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        self.average_wind_speed_profile = np.mean(wind_speed_profiles, axis=0)
+        # Plot
+        plt.figure()
+        plt.plot(self.average_wind_speed_profile, altitude_list, "r")
+        plt.plot(
+            np.percentile(wind_speed_profiles, 50 - 34.1, axis=0, method="weibull"),
+            altitude_list,
+            "b--",
+            alpha=1,
+        )
+        plt.plot(
+            np.percentile(wind_speed_profiles, 50 + 34.1, axis=0, method="weibull"),
+            altitude_list,
+            "b--",
+            alpha=1,
+        )
+        plt.plot(
+            np.percentile(wind_speed_profiles, 50 - 47.4, axis=0, method="weibull"),
+            altitude_list,
+            "b--",
+            alpha=0.5,
+        )
+        plt.plot(
+            np.percentile(wind_speed_profiles, 50 + 47.7, axis=0, method="weibull"),
+            altitude_list,
+            "b--",
+            alpha=0.5,
+        )
+        # plt.plot(np.percentile(wind_speed_profiles, 50-49.8, axis=0, method='weibull'), altitude_list, 'b--', alpha=0.25)
+        # plt.plot(np.percentile(wind_speed_profiles, 50+49.8, axis=0, method='weibull'), altitude_list, 'b--', alpha=0.25)
+        for wind_speed_profile in wind_speed_profiles:
+            plt.plot(wind_speed_profile, altitude_list, "gray", alpha=0.01)
+        plt.xlabel("Wind speed (m/s)")
+        plt.ylabel("Altitude (m)")
+        plt.title("Average Wind Speed Profile")
+        plt.show()
+
+        return self.average_wind_speed_profile
 
     # TODO: Implement
     def calculate_average_day_wind_rose(self):
