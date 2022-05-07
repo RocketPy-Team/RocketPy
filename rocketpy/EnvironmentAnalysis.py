@@ -5,6 +5,7 @@ from multiprocessing.sharedctypes import Value
 import numpy as np
 import scipy
 from matplotlib import pyplot as plt
+from matplotlib.animation import FuncAnimation
 
 from windrose import WindAxes, WindroseAxes
 import netCDF4
@@ -698,10 +699,64 @@ class EnvironmentAnalysis:
         """Animation of how the wind gust distribution varies throughout the day."""
         ...
 
-    # TODO: Implement
+    # TODO: Create tests
     def animate_wind_profile_over_average_day(self):
         """Animation of how wind profile evolves throughout an average day."""
-        ...
+        # Gather animation data
+        altitude_list = np.linspace(1495.155, 12000, 100)  # TODO: parametrize
+        average_wind_profile_at_given_hour = {}
+        for hour in list(self.pressureLevelDataDict.values())[0].keys():
+            wind_speed_values_for_this_hour = []
+            for dayDict in self.pressureLevelDataDict.values():
+                try:
+                    wind_speed_values_for_this_hour += [
+                        dayDict[hour]["windSpeed"](altitude_list)
+                    ]
+                except KeyError:
+                    # Some day does not have data for the desired hour (probably the last one)
+                    # No need to worry, just average over the other days
+                    pass
+            average_wind_profile_at_given_hour[hour] = np.mean(
+                wind_speed_values_for_this_hour, axis=0
+            )
+
+        # Create animation
+        fig, ax = plt.subplots()
+        xdata, ydata = [], []
+        # Initialize animation artists: curve and hour text
+        ln, = plt.plot([], [], "r-")
+        tx = plt.text(
+            x=0.95, y=0.95, s='',
+            verticalalignment='top', horizontalalignment='right',
+            transform=ax.transAxes, fontsize=24
+        )
+        # Define function to initialize animation
+        def init():
+            ax.set_xlim(0, 25)
+            ax.set_ylim(altitude_list[0], altitude_list[-1])
+            ax.set_xlabel('Wind Speed (m/s)')
+            ax.set_ylabel('Altitude (m)')
+            ax.set_title('Average Wind Profile')
+            ax.grid(True)
+            return ln, tx
+
+        # Define function which sets each animation frame
+        def update(frame):
+            xdata = frame[1]
+            ydata = altitude_list
+            ln.set_data(xdata, ydata)
+            tx.set_text(f'{float(frame[0]):05.2f}'.replace(".", ":"))
+            return ln, tx
+
+        animation = FuncAnimation(
+            fig,
+            update,
+            frames=average_wind_profile_at_given_hour.items(),
+            interval=1000,
+            init_func=init,
+            blit=True,
+        )
+        plt.show()
 
     # TODO: Adapt to new data format
     def animate_wind_rose(self):
