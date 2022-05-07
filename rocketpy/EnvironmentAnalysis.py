@@ -724,19 +724,23 @@ class EnvironmentAnalysis:
         fig, ax = plt.subplots()
         xdata, ydata = [], []
         # Initialize animation artists: curve and hour text
-        ln, = plt.plot([], [], "r-")
+        (ln,) = plt.plot([], [], "r-")
         tx = plt.text(
-            x=0.95, y=0.95, s='',
-            verticalalignment='top', horizontalalignment='right',
-            transform=ax.transAxes, fontsize=24
+            x=0.95,
+            y=0.95,
+            s="",
+            verticalalignment="top",
+            horizontalalignment="right",
+            transform=ax.transAxes,
+            fontsize=24,
         )
         # Define function to initialize animation
         def init():
             ax.set_xlim(0, 25)
             ax.set_ylim(altitude_list[0], altitude_list[-1])
-            ax.set_xlabel('Wind Speed (m/s)')
-            ax.set_ylabel('Altitude (m)')
-            ax.set_title('Average Wind Profile')
+            ax.set_xlabel("Wind Speed (m/s)")
+            ax.set_ylabel("Altitude (m)")
+            ax.set_title("Average Wind Profile")
             ax.grid(True)
             return ln, tx
 
@@ -745,7 +749,7 @@ class EnvironmentAnalysis:
             xdata = frame[1]
             ydata = altitude_list
             ln.set_data(xdata, ydata)
-            tx.set_text(f'{float(frame[0]):05.2f}'.replace(".", ":"))
+            tx.set_text(f"{float(frame[0]):05.2f}".replace(".", ":"))
             return ln, tx
 
         animation = FuncAnimation(
