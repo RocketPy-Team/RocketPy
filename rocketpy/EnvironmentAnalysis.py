@@ -3,7 +3,7 @@ import bisect
 from multiprocessing.sharedctypes import Value
 
 import numpy as np
-import scipy
+from scipy import stats
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 
@@ -616,11 +616,11 @@ class EnvironmentAnalysis:
         )
 
         # Plot weibull distribution
-        c, loc, scale = scipy.stats.weibull_min.fit(self.wind_gust_list)
+        c, loc, scale = stats.weibull_min.fit(self.wind_gust_list)
         x = np.linspace(0, np.max(self.wind_gust_list), 100)
         plt.plot(
             x,
-            scipy.stats.weibull_min.pdf(x, c, loc, scale),
+            stats.weibull_min.pdf(x, c, loc, scale),
             "r-",
             linewidth=2,
             label="Weibull Distribution",
