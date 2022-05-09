@@ -595,7 +595,7 @@ class EnvironmentAnalysis:
         return self.max_wind_gust
 
     # TODO: Create tests
-    def calculate_wind_gust_distribution(self):
+    def plot_wind_gust_distribution(self):
         """Get all values of wind gust speed (for every date and hour available)
         and plot a single distribution. Expected result is a Weibull distribution.
         """
