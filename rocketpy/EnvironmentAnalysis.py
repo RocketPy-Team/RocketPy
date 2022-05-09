@@ -44,14 +44,14 @@ class EnvironmentAnalysis:
     """
 
     def __init__(
-            self,
-            start_date,
-            end_date,
-            latitude,
-            longitude,
-            elevation,
-            surfaceDataFile=None,
-            pressureLevelDataFile=None,
+        self,
+        start_date,
+        end_date,
+        latitude,
+        longitude,
+        elevation,
+        surfaceDataFile=None,
+        pressureLevelDataFile=None,
     ):
         # Save inputs
         self.start_date = start_date
@@ -96,11 +96,11 @@ class EnvironmentAnalysis:
         Source: GitHub Copilot
         """
         return (
-                       z11 * (x2 - x) * (y2 - y)
-                       + z21 * (x - x1) * (y2 - y)
-                       + z12 * (x2 - x) * (y - y1)
-                       + z22 * (x - x1) * (y - y1)
-               ) / ((x2 - x1) * (y2 - y1))
+            z11 * (x2 - x) * (y2 - y)
+            + z21 * (x - x1) * (y2 - y)
+            + z12 * (x2 - x) * (y - y1)
+            + z22 * (x - x1) * (y - y1)
+        ) / ((x2 - x1) * (y2 - y1))
 
     def __init_surface_dictionary(self):
         # Create dictionary of file variable names to process surface data
@@ -176,7 +176,7 @@ class EnvironmentAnalysis:
         return dateString, hourString, dateTime
 
     def __extractSurfaceDataValue(
-            self, surfaceData, variable, indices, lonArray, latArray
+        self, surfaceData, variable, indices, lonArray, latArray
     ):
         """Extract value from surface data netCDF4 file. Performs bilinear
         interpolation along longitude and latitude."""
@@ -207,7 +207,7 @@ class EnvironmentAnalysis:
         return value
 
     def __extractPressureLevelDataValue(
-            self, pressureLevelData, variable, indices, lonArray, latArray
+        self, pressureLevelData, variable, indices, lonArray, latArray
     ):
         """Extract value from surface data netCDF4 file. Performs bilinear
         interpolation along longitude and latitude."""
@@ -249,10 +249,10 @@ class EnvironmentAnalysis:
 
     def __check_coordinates_inside_grid(self, lonIndex, latIndex, lonArray, latArray):
         if (
-                lonIndex == 0
-                or lonIndex > len(lonArray) - 1
-                or latIndex == 0
-                or latIndex > len(latArray) - 1
+            lonIndex == 0
+            or lonIndex > len(lonArray) - 1
+            or latIndex == 0
+            or latIndex > len(latArray) - 1
         ):
             raise ValueError(
                 f"Latitude and longitude pair {(self.latitude, self.longitude)} is outside the grid available in the given file, which is defined by {(latArray[0], lonArray[0])} and {(latArray[-1], lonArray[-1])}."
@@ -413,7 +413,7 @@ class EnvironmentAnalysis:
 
             # Create function for wind heading levels
             windHeadingArray = (
-                    np.arctan2(windVelocityXArray, windVelocityYArray) * (180 / np.pi) % 360
+                np.arctan2(windVelocityXArray, windVelocityYArray) * (180 / np.pi) % 360
             )
 
             windHeadingPointsArray = np.array(
@@ -631,10 +631,18 @@ class EnvironmentAnalysis:
             windSpeed[hour] = []
             windDir[hour] = []
             for day in days:
-                windSpeed[hour].append(self.pressureLevelDataDict[day][hour]['windSpeed'](self.elevation))
-                windDir[hour].append(self.pressureLevelDataDict[day][hour]['windDirection'](self.elevation))
+                windSpeed[hour].append(
+                    self.pressureLevelDataDict[day][hour]["windSpeed"](self.elevation)
+                )
+                windDir[hour].append(
+                    self.pressureLevelDataDict[day][hour]["windDirection"](
+                        self.elevation
+                    )
+                )
 
-        fig = plt.figure(facecolor="w", edgecolor="w", figsize=figsize)  # initialise la figure
+        fig = plt.figure(
+            facecolor="w", edgecolor="w", figsize=figsize
+        )  # initialise la figure
 
         filename = "wind_rose.gif"
         FFMpegWriter = matplotlib.animation.writers["ffmpeg"]
@@ -644,14 +652,23 @@ class EnvironmentAnalysis:
             comment="""Made with windrose
                 http://www.github.com/scls19fr/windrose""",
         )
-        writer = FFMpegWriter(fps=1,
-                              metadata=metadata)
+        writer = FFMpegWriter(fps=1, metadata=metadata)
 
         with writer.saving(fig, filename, 100):
             for hour in hours:
                 ax = WindroseAxes.from_ax(fig=fig)
-                ax.bar(windDir[hour], windSpeed[hour], normed=True, opening=0.8, edgecolor="white")
-                ax.set_title(f'Windrose of an average day. Hour {float(hour):05.2f}'.replace(".", ":"))
+                ax.bar(
+                    windDir[hour],
+                    windSpeed[hour],
+                    normed=True,
+                    opening=0.8,
+                    edgecolor="white",
+                )
+                ax.set_title(
+                    f"Windrose of an average day. Hour {float(hour):05.2f}".replace(
+                        ".", ":"
+                    )
+                )
 
                 writer.grab_frame()
                 plt.clf()
@@ -662,7 +679,7 @@ class EnvironmentAnalysis:
         fig_width, fig_height = plt.gcf().get_size_inches() * fig.dpi
         return widgets.Image(
             value=image,
-            format='gif',
+            format="gif",
             width=fig_width,
             height=fig_height,
         )
