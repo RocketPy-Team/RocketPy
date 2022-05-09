@@ -722,7 +722,6 @@ class EnvironmentAnalysis:
 
         # Create animation
         fig, ax = plt.subplots()
-        xdata, ydata = [], []
         # Initialize animation artists: curve and hour text
         (ln,) = plt.plot([], [], "r-")
         tx = plt.text(
