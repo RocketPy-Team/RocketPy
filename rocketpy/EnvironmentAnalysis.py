@@ -598,7 +598,30 @@ class EnvironmentAnalysis:
     # TODO: Implement
     def calculate_average_temperature_along_day(self):
         """temperature progression throughout the day at some fine interval (ex: 2 hours) with 1, 2, 3, sigma contours"""
-        ...
+
+        temperatureDayHour = []
+        # matrixTemperatureDayHour = [] I assume this is not needed
+        mean = []
+        standardDeviation = []
+        final = []
+        timeNumArray = self.surfaceData.variables["time"]
+
+        for date in self.surfaceDataDict:
+            counter = 0
+            temperatureDayHour.append([])
+            for hour in self.surfaceDataDict[date]:
+                temperatureDayHour[counter].append(self.surfaceDataDict[date][hour]['surfaceTemperature'])
+                counter += 1
+  
+        matrixTemperatureDayHour = np.array(temperatureDayHour)
+        for i in matrixTemperatureDayHour:
+            mean.append(np.mean(matrixTemperatureDayHour[i]))
+            standardDeviation.append(np.std(matrixTemperatureDayHour[i]))
+
+        for j in range(counter):
+            lista = [mean[j],standardDeviation[j], 2*standardDeviation[j], 3*standardDeviation[j]]
+            final.append(lista)
+
 
     # TODO: Implement
     def calculate_average_wind_profile(self):
