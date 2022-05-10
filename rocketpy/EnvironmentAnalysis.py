@@ -610,18 +610,24 @@ class EnvironmentAnalysis:
             counter = 0
             temperatureDayHour.append([])
             for hour in self.surfaceDataDict[date]:
-                temperatureDayHour[counter].append(self.surfaceDataDict[date][hour]['surfaceTemperature'])
+                temperatureDayHour[counter].append(
+                    self.surfaceDataDict[date][hour]["surfaceTemperature"]
+                )
                 counter += 1
-  
+
         matrixTemperatureDayHour = np.array(temperatureDayHour)
         for i in matrixTemperatureDayHour:
             mean.append(np.mean(matrixTemperatureDayHour[i]))
             standardDeviation.append(np.std(matrixTemperatureDayHour[i]))
 
         for j in range(counter):
-            lista = [mean[j],standardDeviation[j], 2*standardDeviation[j], 3*standardDeviation[j]]
+            lista = [
+                mean[j],
+                standardDeviation[j],
+                2 * standardDeviation[j],
+                3 * standardDeviation[j],
+            ]
             final.append(lista)
-
 
     # TODO: Implement
     def calculate_average_wind_profile(self):
