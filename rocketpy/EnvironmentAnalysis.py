@@ -333,7 +333,7 @@ class EnvironmentAnalysis:
             )
 
             # Check if date is within analysis range
-            if not (self.start_date <= dateTime <= self.end_date):
+            if not (self.start_date <= dateTime < self.end_date):
                 continue
 
             # Make sure keys exist
@@ -504,7 +504,7 @@ class EnvironmentAnalysis:
             )
 
             # Check if date is within analysis range
-            if not (self.start_date <= dateTime <= self.end_date):
+            if not (self.start_date <= dateTime < self.end_date):
                 continue
 
             # Make sure keys exist
