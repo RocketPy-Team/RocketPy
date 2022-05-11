@@ -3,9 +3,11 @@ import bisect
 from multiprocessing.sharedctypes import Value
 
 import numpy as np
+from scipy import stats
 from matplotlib import pyplot as plt
+from matplotlib.animation import FuncAnimation
 
-# from windrose import WindAxes, WindroseAxes
+from windrose import WindAxes, WindroseAxes
 import netCDF4
 from cftime import num2date
 
@@ -610,11 +612,86 @@ class EnvironmentAnalysis:
         """average day wind rose"""
         ...
 
+    def plot_wind_gust_distribution_over_average_day(self):
+        """Plots shown in the animation of how the wind gust distribution varies throughout the day."""
+        ...
+        # Gather animation data
+        average_wind_gust_at_given_hour = {}
+        for hour in list(self.surfaceDataDict.values())[0].keys():
+            wind_gust_values_for_this_hour = []
+            for dayDict in self.surfaceDataDict.values():
+                try:
+                    wind_gust_values_for_this_hour += [dayDict[hour]["surfaceWindGust"]]
+                except KeyError:
+                    # Some day does not have data for the desired hour (probably the last one)
+                    # No need to worry, just average over the other days
+                    pass
+            average_wind_gust_at_given_hour[hour] = wind_gust_values_for_this_hour
+
+        # Generate plots
+
+        num_of_plots = len(list(self.surfaceDataDict.values())[0].keys())
+
+        fig = plt.figure(figsize=(9, num_of_plots * 5))
+        # plt.subplots_adjust(wspace=0.2,hspace=0.3)
+
+        current_plot = 0
+        for hour in list(self.surfaceDataDict.values())[0].keys():
+            current_plot += 1
+            ax = plt.subplot(num_of_plots, 2, current_plot)
+            ax.hist(
+                average_wind_gust_at_given_hour[hour],
+                bins=int(len(average_wind_gust_at_given_hour[hour]) ** 0.5),
+                density=True,
+                histtype="stepfilled",
+                alpha=0.2,
+                label="Wind Gust Speed Distribution",
+            )
+
+            # Plot weibull distribution
+            c, loc, scale = stats.weibull_min.fit(average_wind_gust_at_given_hour[hour])
+            x = np.linspace(0, np.max(average_wind_gust_at_given_hour[hour]), 100)
+            ax.plot(
+                x,
+                stats.weibull_min.pdf(x, c, loc, scale),
+                "r-",
+                linewidth=2,
+                label="Weibull Distribution",
+            )
+
+            # Label plot
+            ax.set_ylim(0, 0.3)
+            if current_plot % 2 != 0:
+                ax.set_ylabel("Probability")
+            ax.set_xlabel("Wind gust speed (m/s)")
+            ax.set_title("Hour " + str(hour) + ":00")
+
+        # set legend and title
+        # TODO: fix legend and title position
+        handles, labels = ax.get_legend_handles_labels()
+        fig.legend(handles, labels, loc="upper right")
+        fig.suptitle("Wind Gust Speed Distribution", fontsize=16)
+
     # Animations
     # TODO: Implement
     def animate_wind_gust_distribution_over_average_day(self):
         """Animation of how the wind gust distribution varies throughout the day."""
         ...
+        # Gather animation data
+        average_wind_gust_at_given_hour = {}
+        for hour in list(self.surfaceDataDict.values())[0].keys():
+            wind_gust_values_for_this_hour = []
+            for dayDict in self.surfaceDataDict.values():
+                try:
+                    wind_gust_values_for_this_hour += [dayDict[hour]["surfaceWindGust"]]
+                except KeyError:
+                    # Some day does not have data for the desired hour (probably the last one)
+                    # No need to worry, just average over the other days
+                    pass
+            average_wind_gust_at_given_hour[hour] = wind_gust_values_for_this_hour
+
+        # Create animation
+        # -------------------#
 
     # TODO: Implement
     def animate_wind_profile_over_average_day(self):
