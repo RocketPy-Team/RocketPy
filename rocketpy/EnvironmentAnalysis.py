@@ -654,25 +654,25 @@ class EnvironmentAnalysis:
         plt.figure()
         plt.plot(self.average_wind_speed_profile, altitude_list, "r")
         plt.plot(
-            np.percentile(wind_speed_profiles, 50 - 34.1, axis=0, method="weibull"),
+            np.percentile(wind_speed_profiles, 50 - 34.1, axis=0),
             altitude_list,
             "b--",
             alpha=1,
         )
         plt.plot(
-            np.percentile(wind_speed_profiles, 50 + 34.1, axis=0, method="weibull"),
+            np.percentile(wind_speed_profiles, 50 + 34.1, axis=0),
             altitude_list,
             "b--",
             alpha=1,
         )
         plt.plot(
-            np.percentile(wind_speed_profiles, 50 - 47.4, axis=0, method="weibull"),
+            np.percentile(wind_speed_profiles, 50 - 47.4, axis=0),
             altitude_list,
             "b--",
             alpha=0.5,
         )
         plt.plot(
-            np.percentile(wind_speed_profiles, 50 + 47.7, axis=0, method="weibull"),
+            np.percentile(wind_speed_profiles, 50 + 47.7, axis=0),
             altitude_list,
             "b--",
             alpha=0.5,
