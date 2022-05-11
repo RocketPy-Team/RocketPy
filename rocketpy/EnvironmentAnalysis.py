@@ -641,7 +641,7 @@ class EnvironmentAnalysis:
         ...
 
     # TODO: Create tessts
-    def calculate_average_wind_speed_profile(self):
+    def plot_average_wind_speed_profile(self):
         """Average wind speed for all datetimes available."""
         altitude_list = np.linspace(1495.155, 12000, 100)
         wind_speed_profiles = [
