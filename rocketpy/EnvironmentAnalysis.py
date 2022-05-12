@@ -2,14 +2,16 @@ from datetime import datetime, timedelta
 import bisect
 from multiprocessing.sharedctypes import Value
 
+import ipywidgets as widgets
 import numpy as np
+import matplotlib
 from matplotlib import pyplot as plt
+from matplotlib.animation import FuncAnimation, PillowWriter as ImageWriter
 
-# from windrose import WindAxes, WindroseAxes
 import netCDF4
+from windrose import WindAxes, WindroseAxes
 from cftime import num2date
 
-from rocketpy.Environment import Environment
 from rocketpy.Function import Function
 
 
@@ -82,6 +84,11 @@ class EnvironmentAnalysis:
         self.average_wind_profile_1_sigma = Function(0)
         self.average_wind_profile_2_sigma = Function(0)
         self.average_wind_profile_13_sigma = Function(0)
+
+        self.max_wind_speed = None
+        self.min_wind_speed = None
+        self.wind_speed_per_hour = None
+        self.wind_direction_per_hour = None
 
         # Run calculations
         # self.process_data()
@@ -306,7 +313,6 @@ class EnvironmentAnalysis:
         """
         # Setup dictionary used to read weather file
         self.__init_pressure_level_dictionary()
-
         # Read weather file
         pressureLevelData = netCDF4.Dataset(self.pressureLevelDataFile)
 
@@ -605,12 +611,176 @@ class EnvironmentAnalysis:
         """average, 1, 2, 3 sigma wind profile from 0 35,000 ft AGL"""
         ...
 
-    # TODO: Implement
-    def calculate_average_day_wind_rose(self):
-        """average day wind rose"""
-        ...
+    def process_wind_speed_and_direction_data_for_average_day(self):
+        """Process the wind_speed and wind_direction data to generate lists of all the wind_speeds recorded
+        for a following hour of the day and also the wind direction. Also calculates the greater and the smallest
+        wind_speed recorded
 
-    # Animations
+        Returns
+        -------
+        None
+        """
+        max_wind_speed = float("-inf")
+        min_wind_speed = float("inf")
+
+        days = list(self.surfaceDataDict.keys())
+        hours = list(self.surfaceDataDict[days[0]].keys())
+
+        windSpeed = {}
+        windDir = {}
+
+        for hour in hours:
+            windSpeed[hour] = []
+            windDir[hour] = []
+            for day in days:
+                hour_wind_speed = self.pressureLevelDataDict[day][hour]["windSpeed"](
+                    self.elevation
+                )
+
+                max_wind_speed = (
+                    hour_wind_speed
+                    if hour_wind_speed > max_wind_speed
+                    else max_wind_speed
+                )
+                min_wind_speed = (
+                    hour_wind_speed
+                    if hour_wind_speed < min_wind_speed
+                    else min_wind_speed
+                )
+
+                windSpeed[hour].append(hour_wind_speed)
+                windDir[hour].append(
+                    self.pressureLevelDataDict[day][hour]["windDirection"](
+                        self.elevation
+                    )
+                )
+
+        self.max_wind_speed = max_wind_speed
+        self.min_wind_speed = min_wind_speed
+        self.wind_speed_per_hour = windSpeed
+        self.wind_direction_per_hour = windDir
+
+    @staticmethod
+    def plot_wind_rose(wind_direction, wind_speed, bins=None, title=None, fig=None):
+        """Plot a windrose given the data.
+
+        Parameters
+        ----------
+        wind_direction: list[float]
+        wind_speed: list[float]
+        bins: 1D array or integer, optional
+            number of bins, or a sequence of bins variable. If not set, bins=6,
+            then bins=linspace(min(var), max(var), 6)
+        title: str, optional
+            Title of the plot
+        fig: matplotlib.pyplot.figure, optional
+
+        Returns
+        -------
+        WindroseAxes
+        """
+        ax = WindroseAxes.from_ax(fig=fig)
+        ax.bar(
+            wind_direction,
+            wind_speed,
+            bins=bins,
+            normed=True,
+            opening=0.8,
+            edgecolor="white",
+        )
+        ax.set_title(title)
+
+        ax.set_yticks(np.arange(10, 50, step=10))
+        ax.set_yticklabels(np.arange(10, 50, step=10))
+
+        ax.set_legend()
+        return ax
+
+    def plot_average_day_wind_rose_specific_hour(self, hour, fig=None):
+        """Plot a specific hour of the average windrose
+
+        Parameters
+        ----------
+        hour: int
+        fig: matplotlib.pyplot.figure
+
+        Returns
+        -------
+        None
+        """
+        hour = str(hour)
+        self.plot_wind_rose(
+            self.wind_direction_per_hour[hour],
+            self.wind_speed_per_hour[hour],
+            bins=np.linspace(self.min_wind_speed, self.max_wind_speed, 6),
+            title=f"Windrose of an average day. Hour {float(hour):05.2f}".replace(
+                ".", ":"
+            ),
+            fig=fig,
+        )
+        plt.show()
+
+    def animate_average_wind_rose(self, figsize=(8, 8), filename="wind_rose.gif"):
+        """Animates the wind_rose of an average day. The inputs of a wind_rose are the location of the
+        place where we want to analyse, (x,y,z). The data is ensembled by hour, which means, the windrose
+        of a specific hour is generated by bringing together the data of all of the days available for that
+        specific hour. It's possible to change the size of the gif using the parameter figsize, which is the
+        height and width in inches.
+
+        Parameters
+        ----------
+        figsize : array
+
+        Returns
+        -------
+        Image : ipywidgets.widgets.widget_media.Image
+        """
+        days = list(self.surfaceDataDict.keys())
+        hours = list(self.surfaceDataDict[days[0]].keys())
+
+        if not all(
+            [
+                self.max_wind_speed,
+                self.min_wind_speed,
+                self.wind_speed_per_hour,
+                self.wind_direction_per_hour,
+            ]
+        ):
+            self.process_wind_speed_and_direction_data_for_average_day()
+
+        metadata = dict(
+            title="windrose",
+            artist="windrose",
+            comment="""Made with windrose
+                http://www.github.com/scls19fr/windrose""",
+        )
+        writer = ImageWriter(fps=1, metadata=metadata)
+        fig = plt.figure(facecolor="w", edgecolor="w", figsize=figsize)
+        with writer.saving(fig, filename, 100):
+            for hour in hours:
+                self.plot_wind_rose(
+                    self.wind_direction_per_hour[hour],
+                    self.wind_speed_per_hour[hour],
+                    bins=np.linspace(self.min_wind_speed, self.max_wind_speed, 6),
+                    title=f"Windrose of an average day. Hour {float(hour):05.2f}".replace(
+                        ".", ":"
+                    ),
+                    fig=fig,
+                )
+                writer.grab_frame()
+                plt.clf()
+
+        with open(filename, "rb") as file:
+            image = file.read()
+
+        fig_width, fig_height = plt.gcf().get_size_inches() * fig.dpi
+        return widgets.Image(
+            value=image,
+            format="gif",
+            width=fig_width,
+            height=fig_height,
+        )
+
     # TODO: Implement
     def animate_wind_gust_distribution_over_average_day(self):
         """Animation of how the wind gust distribution varies throughout the day."""
@@ -621,27 +791,8 @@ class EnvironmentAnalysis:
         """Animation of how wind profile evolves throughout an average day."""
         ...
 
-    # TODO: Adapt to new data format
-    def animate_wind_rose(self):
-        """Animation of how average wind rose evolves throughout an average day."""
-
-        def get_data(i):
-            windDirection = []
-            windSpeed = []
-            for idx in range(i, len(self.environments), 8):
-                windDirection.extend(self.environments[idx].windDirection.source[:, 1])
-                windSpeed.extend(self.environments[idx].windSpeed.source[:, 1])
-            return windSpeed, windDirection
-
-        ax = WindroseAxes.from_ax()
-        for i in range(8):
-            windSpeed, windDir = get_data(i)
-            ax.bar(windSpeed, windDir, normed=True, opening=0.8, edgecolor="white")
-            plt.pause(0.3)
-
-        plt.show()
-
     # Others
+    # TODO: Addapt to new data format
     def wind_profile(self):
         windSpeed = []
         for idx in range(0, len(self.environments)):
