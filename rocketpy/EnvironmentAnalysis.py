@@ -754,17 +754,19 @@ class EnvironmentAnalysis:
             comment="""Made with windrose
                 http://www.github.com/scls19fr/windrose""",
         )
-        writer = ImageWriter(fps=1,
-                             metadata=metadata)
-        fig = plt.figure(
-            facecolor="w", edgecolor="w", figsize=figsize
-        )
+        writer = ImageWriter(fps=1, metadata=metadata)
+        fig = plt.figure(facecolor="w", edgecolor="w", figsize=figsize)
         with writer.saving(fig, filename, 100):
             for hour in hours:
-                self.plot_wind_rose(self.wind_direction_per_hour[hour], self.wind_speed_per_hour[hour],
-                                    bins=np.linspace(self.min_wind_speed, self.max_wind_speed, 6),
-                                    title=f'Windrose of an average day. Hour {float(hour):05.2f}'.replace(".", ":"),
-                                    fig=fig)
+                self.plot_wind_rose(
+                    self.wind_direction_per_hour[hour],
+                    self.wind_speed_per_hour[hour],
+                    bins=np.linspace(self.min_wind_speed, self.max_wind_speed, 6),
+                    title=f"Windrose of an average day. Hour {float(hour):05.2f}".replace(
+                        ".", ":"
+                    ),
+                    fig=fig,
+                )
                 writer.grab_frame()
                 plt.clf()
 
