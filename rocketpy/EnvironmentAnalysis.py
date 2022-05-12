@@ -620,8 +620,8 @@ class EnvironmentAnalysis:
         -------
         None
         """
-        max_wind_speed = float('-inf')
-        min_wind_speed = float('inf')
+        max_wind_speed = float("-inf")
+        min_wind_speed = float("inf")
 
         days = list(self.surfaceDataDict.keys())
         hours = list(self.surfaceDataDict[days[0]].keys())
@@ -633,13 +633,27 @@ class EnvironmentAnalysis:
             windSpeed[hour] = []
             windDir[hour] = []
             for day in days:
-                hour_wind_speed = self.pressureLevelDataDict[day][hour]['windSpeed'](self.elevation)
+                hour_wind_speed = self.pressureLevelDataDict[day][hour]["windSpeed"](
+                    self.elevation
+                )
 
-                max_wind_speed = hour_wind_speed if hour_wind_speed > max_wind_speed else max_wind_speed
-                min_wind_speed = hour_wind_speed if hour_wind_speed < min_wind_speed else min_wind_speed
+                max_wind_speed = (
+                    hour_wind_speed
+                    if hour_wind_speed > max_wind_speed
+                    else max_wind_speed
+                )
+                min_wind_speed = (
+                    hour_wind_speed
+                    if hour_wind_speed < min_wind_speed
+                    else min_wind_speed
+                )
 
                 windSpeed[hour].append(hour_wind_speed)
-                windDir[hour].append(self.pressureLevelDataDict[day][hour]['windDirection'](self.elevation))
+                windDir[hour].append(
+                    self.pressureLevelDataDict[day][hour]["windDirection"](
+                        self.elevation
+                    )
+                )
 
         self.max_wind_speed = max_wind_speed
         self.min_wind_speed = min_wind_speed
@@ -666,7 +680,14 @@ class EnvironmentAnalysis:
         WindroseAxes
         """
         ax = WindroseAxes.from_ax(fig=fig)
-        ax.bar(wind_direction, wind_speed, bins=bins, normed=True, opening=0.8, edgecolor="white")
+        ax.bar(
+            wind_direction,
+            wind_speed,
+            bins=bins,
+            normed=True,
+            opening=0.8,
+            edgecolor="white",
+        )
         ax.set_title(title)
 
         ax.set_yticks(np.arange(10, 50, step=10))
@@ -688,10 +709,15 @@ class EnvironmentAnalysis:
         None
         """
         hour = str(hour)
-        self.plot_wind_rose(self.wind_direction_per_hour[hour], self.wind_speed_per_hour[hour],
-                            bins=np.linspace(self.min_wind_speed, self.max_wind_speed, 6),
-                            title=f'Windrose of an average day. Hour {float(hour):05.2f}'.replace(".", ":"),
-                            fig=fig)
+        self.plot_wind_rose(
+            self.wind_direction_per_hour[hour],
+            self.wind_speed_per_hour[hour],
+            bins=np.linspace(self.min_wind_speed, self.max_wind_speed, 6),
+            title=f"Windrose of an average day. Hour {float(hour):05.2f}".replace(
+                ".", ":"
+            ),
+            fig=fig,
+        )
         plt.show()
 
     def animate_average_wind_rose(self, figsize=(8, 8), filename="wind_rose.gif"):
@@ -712,7 +738,14 @@ class EnvironmentAnalysis:
         days = list(self.surfaceDataDict.keys())
         hours = list(self.surfaceDataDict[days[0]].keys())
 
-        if not all([self.max_wind_speed, self.min_wind_speed, self.wind_speed_per_hour, self.wind_direction_per_hour]):
+        if not all(
+            [
+                self.max_wind_speed,
+                self.min_wind_speed,
+                self.wind_speed_per_hour,
+                self.wind_direction_per_hour,
+            ]
+        ):
             self.process_wind_speed_and_direction_data_for_average_day()
 
         metadata = dict(
