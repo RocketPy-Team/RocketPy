@@ -715,26 +715,6 @@ class EnvironmentAnalysis:
         if not all([self.max_wind_speed, self.min_wind_speed, self.wind_speed_per_hour, self.wind_direction_per_hour]):
             self.process_wind_speed_and_direction_data_for_average_day()
 
-        windSpeed = {}
-        windDir = {}
-
-        for hour in hours:
-            windSpeed[hour] = []
-            windDir[hour] = []
-            for day in days:
-                windSpeed[hour].append(
-                    self.pressureLevelDataDict[day][hour]["windSpeed"](self.elevation)
-                )
-                windDir[hour].append(
-                    self.pressureLevelDataDict[day][hour]["windDirection"](
-                        self.elevation
-                    )
-                )
-
-        fig = plt.figure(
-            facecolor="w", edgecolor="w", figsize=figsize
-        )
-
         metadata = dict(
             title="windrose",
             artist="windrose",
@@ -743,31 +723,15 @@ class EnvironmentAnalysis:
         )
         writer = ImageWriter(fps=1,
                              metadata=metadata)
-
+        fig = plt.figure(
+            facecolor="w", edgecolor="w", figsize=figsize
+        )
         with writer.saving(fig, filename, 100):
             for hour in hours:
                 self.plot_wind_rose(self.wind_direction_per_hour[hour], self.wind_speed_per_hour[hour],
                                     bins=np.linspace(self.min_wind_speed, self.max_wind_speed, 6),
                                     title=f'Windrose of an average day. Hour {float(hour):05.2f}'.replace(".", ":"),
                                     fig=fig)
-        writer = FFMpegWriter(fps=1, metadata=metadata)
-
-        with writer.saving(fig, filename, 100):
-            for hour in hours:
-                ax = WindroseAxes.from_ax(fig=fig)
-                ax.bar(
-                    windDir[hour],
-                    windSpeed[hour],
-                    normed=True,
-                    opening=0.8,
-                    edgecolor="white",
-                )
-                ax.set_title(
-                    f"Windrose of an average day. Hour {float(hour):05.2f}".replace(
-                        ".", ":"
-                    )
-                )
-
                 writer.grab_frame()
                 plt.clf()
 
