@@ -281,8 +281,8 @@ class EnvironmentAnalysis:
         else:
             guess = int(number_sqrt)
             while True:
-                if number%guess == 0:
-                    return guess, number//guess
+                if number % guess == 0:
+                    return guess, number // guess
                 else:
                     guess -= 1
 
@@ -684,7 +684,9 @@ class EnvironmentAnalysis:
         self.wind_direction_per_hour = windDir
 
     @staticmethod
-    def plot_wind_rose(wind_direction, wind_speed, bins=None, title=None, fig=None, rect=None):
+    def plot_wind_rose(
+        wind_direction, wind_speed, bins=None, title=None, fig=None, rect=None
+    ):
         """Plot a windrose given the data.
 
         Parameters
@@ -764,26 +766,32 @@ class EnvironmentAnalysis:
         # Create figure
         nrows, ncols = self._find_two_closest_integer_factors(len(hours))
         fig = plt.figure()
-        windrose_side = 3 # inches
+        windrose_side = 3  # inches
         fig.set_size_inches(ncols * windrose_side, nrows * windrose_side)
         bins = np.linspace(self.min_wind_speed, self.max_wind_speed, 6)
-        width = 0.7 * 1/ncols
-        height = 0.7 * 1/nrows
+        width = 0.7 * 1 / ncols
+        height = 0.7 * 1 / nrows
         for k, hour in enumerate(hours):
-            i, j = len(hours)//nrows - k//ncols, k%ncols # Row count bottom up
-            left = j * 1/ncols + 0.15/ncols # 0.15 is (1-0.7)/2
-            bottom = (i-2) * 1/nrows
+            i, j = len(hours) // nrows - k // ncols, k % ncols  # Row count bottom up
+            left = j * 1 / ncols + 0.15 / ncols  # 0.15 is (1-0.7)/2
+            bottom = (i - 2) * 1 / nrows
             ax = self.plot_wind_rose(
                 self.wind_direction_per_hour[hour],
                 self.wind_speed_per_hour[hour],
                 bins=bins,
                 title=f"{float(hour):05.2f}".replace(".", ":"),
                 fig=fig,
-                rect=[left, bottom, width, height]
+                rect=[left, bottom, width, height],
             )
             if k == 0:
-                print(ncols/2)
-                ax.legend(loc='upper center', bbox_to_anchor=(ncols/2 + 0.65, 1.5), fancybox=True, shadow=True, ncol=6)
+                print(ncols / 2)
+                ax.legend(
+                    loc="upper center",
+                    bbox_to_anchor=(ncols / 2 + 0.65, 1.5),
+                    fancybox=True,
+                    shadow=True,
+                    ncol=6,
+                )
             else:
                 ax.legend().set_visible(False)
             fig.add_axes(ax)
