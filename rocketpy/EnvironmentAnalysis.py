@@ -642,7 +642,7 @@ class EnvironmentAnalysis:
         """temperature progression throughout the day at some fine interval (ex: 2 hours) with 1, 2, 3, sigma contours"""
         ...
 
-    # TODO: Create tessts
+    # TODO: Create tests
     def plot_average_wind_speed_profile(self, max_altitude=10000):
         """Average wind speed for all datetimes available."""
         min_altitude = self.elevation
@@ -655,12 +655,13 @@ class EnvironmentAnalysis:
         self.average_wind_speed_profile = np.mean(wind_speed_profiles, axis=0)
         # Plot
         plt.figure()
-        plt.plot(self.average_wind_speed_profile, altitude_list, "r")
+        plt.plot(self.average_wind_speed_profile, altitude_list, "r", label="$\\mu$")
         plt.plot(
             np.percentile(wind_speed_profiles, 50 - 34.1, axis=0),
             altitude_list,
             "b--",
             alpha=1,
+            label='$\\mu \\pm \\sigma$',
         )
         plt.plot(
             np.percentile(wind_speed_profiles, 50 + 34.1, axis=0),
@@ -673,6 +674,7 @@ class EnvironmentAnalysis:
             altitude_list,
             "b--",
             alpha=0.5,
+            label='$\\mu \\pm 2\\sigma$',
         )
         plt.plot(
             np.percentile(wind_speed_profiles, 50 + 47.7, axis=0),
@@ -684,12 +686,12 @@ class EnvironmentAnalysis:
         # plt.plot(np.percentile(wind_speed_profiles, 50+49.8, axis=0, method='weibull'), altitude_list, 'b--', alpha=0.25)
         for wind_speed_profile in wind_speed_profiles:
             plt.plot(wind_speed_profile, altitude_list, "gray", alpha=0.01)
+        plt.ylim(min_altitude, max_altitude)
         plt.xlabel("Wind speed (m/s)")
         plt.ylabel("Altitude (m)")
         plt.title("Average Wind Speed Profile")
+        plt.legend()
         plt.show()
-
-        return self.average_wind_speed_profile
 
     def process_wind_speed_and_direction_data_for_average_day(self):
         """Process the wind_speed and wind_direction data to generate lists of all the wind_speeds recorded
