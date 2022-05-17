@@ -635,7 +635,7 @@ class EnvironmentAnalysis:
         plt.legend()
         plt.show()
 
-        return self.wind_gust_list
+        return None
 
     # TODO: Implement
     def calculate_average_temperature_along_day(self):
