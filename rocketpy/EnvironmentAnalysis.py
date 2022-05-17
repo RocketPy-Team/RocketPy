@@ -684,7 +684,7 @@ class EnvironmentAnalysis:
         self.wind_direction_per_hour = windDir
 
     @staticmethod
-    def plot_wind_rose(wind_direction, wind_speed, bins=None, title=None, fig=None):
+    def plot_wind_rose(wind_direction, wind_speed, bins=None, title=None, fig=None, rect=None):
         """Plot a windrose given the data.
 
         Parameters
@@ -702,7 +702,7 @@ class EnvironmentAnalysis:
         -------
         WindroseAxes
         """
-        ax = WindroseAxes.from_ax(fig=fig)
+        ax = WindroseAxes.from_ax(fig=fig, rect=rect)
         ax.bar(
             wind_direction,
             wind_speed,
@@ -741,6 +741,53 @@ class EnvironmentAnalysis:
             ),
             fig=fig,
         )
+        plt.show()
+
+    # TODO: Create tests
+    def plot_average_wind_rose_all_hours(self):
+        """Plot windroses for all hours of a day, in a grid like plot."""
+        # Get days and hours
+        days = list(self.surfaceDataDict.keys())
+        hours = list(self.surfaceDataDict[days[0]].keys())
+
+        # Make sure necessary data has been calculated
+        if not all(
+            [
+                self.max_wind_speed,
+                self.min_wind_speed,
+                self.wind_speed_per_hour,
+                self.wind_direction_per_hour,
+            ]
+        ):
+            self.process_wind_speed_and_direction_data_for_average_day()
+
+        # Create figure
+        nrows, ncols = self._find_two_closest_integer_factors(len(hours))
+        fig = plt.figure()
+        windrose_side = 3 # inches
+        fig.set_size_inches(ncols * windrose_side, nrows * windrose_side)
+        bins = np.linspace(self.min_wind_speed, self.max_wind_speed, 6)
+        width = 0.7 * 1/ncols
+        height = 0.7 * 1/nrows
+        for k, hour in enumerate(hours):
+            i, j = len(hours)//nrows - k//ncols, k%ncols # Row count bottom up
+            left = j * 1/ncols + 0.15/ncols # 0.15 is (1-0.7)/2
+            bottom = (i-2) * 1/nrows
+            ax = self.plot_wind_rose(
+                self.wind_direction_per_hour[hour],
+                self.wind_speed_per_hour[hour],
+                bins=bins,
+                title=f"{float(hour):05.2f}".replace(".", ":"),
+                fig=fig,
+                rect=[left, bottom, width, height]
+            )
+            if k == 0:
+                print(ncols/2)
+                ax.legend(loc='upper center', bbox_to_anchor=(ncols/2 + 0.65, 1.5), fancybox=True, shadow=True, ncol=6)
+            else:
+                ax.legend().set_visible(False)
+            fig.add_axes(ax)
+        fig.suptitle("Wind Roses", fontsize=20, x=0.5, y=1.05)
         plt.show()
 
     def animate_average_wind_rose(self, figsize=(8, 8), filename="wind_rose.gif"):
