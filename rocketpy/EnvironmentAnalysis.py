@@ -661,7 +661,7 @@ class EnvironmentAnalysis:
             altitude_list,
             "b--",
             alpha=1,
-            label='$\\mu \\pm \\sigma$',
+            label="$\\mu \\pm \\sigma$",
         )
         plt.plot(
             np.percentile(wind_speed_profiles, 50 + 34.1, axis=0),
@@ -674,7 +674,7 @@ class EnvironmentAnalysis:
             altitude_list,
             "b--",
             alpha=0.5,
-            label='$\\mu \\pm 2\\sigma$',
+            label="$\\mu \\pm 2\\sigma$",
         )
         plt.plot(
             np.percentile(wind_speed_profiles, 50 + 47.7, axis=0),
