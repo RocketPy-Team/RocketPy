@@ -643,9 +643,10 @@ class EnvironmentAnalysis:
         ...
 
     # TODO: Create tessts
-    def plot_average_wind_speed_profile(self):
+    def plot_average_wind_speed_profile(self, max_altitude=10000):
         """Average wind speed for all datetimes available."""
-        altitude_list = np.linspace(1495.155, 12000, 100)
+        min_altitude = self.elevation
+        altitude_list = np.linspace(min_altitude, max_altitude, 100)
         wind_speed_profiles = [
             dayDict[hour]["windSpeed"](altitude_list)
             for dayDict in self.pressureLevelDataDict.values()
