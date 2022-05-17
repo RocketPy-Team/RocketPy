@@ -263,6 +263,29 @@ class EnvironmentAnalysis:
                 f"Latitude and longitude pair {(self.latitude, self.longitude)} is outside the grid available in the given file, which is defined by {(latArray[0], lonArray[0])} and {(latArray[-1], lonArray[-1])}."
             )
 
+    @staticmethod
+    def _find_two_closest_integer_factors(number):
+        """Find the two closest integer factors of a number.
+
+        Parameters
+        ----------
+        number: int
+
+        Returns
+        -------
+        list[int]
+        """
+        number_sqrt = number**0.5
+        if isinstance(number_sqrt, int):
+            return number_sqrt, number_sqrt
+        else:
+            guess = int(number_sqrt)
+            while True:
+                if number%guess == 0:
+                    return guess, number//guess
+                else:
+                    guess -= 1
+
     # TODO: Needs tests
     def parsePressureLevelData(self):
         """
