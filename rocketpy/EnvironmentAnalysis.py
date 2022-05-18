@@ -629,6 +629,28 @@ class EnvironmentAnalysis:
             ]
             final.append(lista)
 
+        for j in range(counter):
+            lista = [int(self.surfaceDataDict[0][j]), mean[j],standardDeviation[j], 2*standardDeviation[j], 3*standardDeviation[j]]
+            # mt feio?
+            finalList.append(lista)
+        
+        final=np.array(finalList)
+        plt.figure()
+        plt.plot(final[0], final[1], "r", label = "mean")
+        plt.plot(final[0], (final[1]+final[2]), "b--", alpha=1, label = "mean $\\pm \\sigma$")
+        plt.plot(final[0], (final[1]-final[2]), "b--", alpha=1)
+        plt.plot(final[0], (final[1]+final[3]), "b--", alpha=0.5, label = "mean $\\pm 2\\sigma$")
+        plt.plot(final[0], (final[1]-final[3]), "b--", alpha=0.5)
+        plt.plot(final[0], (final[1]+final[4]), "b--", alpha=0.25, label = "mean $\\pm \\sigma$")
+        plt.plot(final[0], (final[1]-final[4]), "b--", alpha=0.25)
+        plt.xlabel("Hour")
+        plt.ylabel("Degree (C)")
+        plt.title("Average Temperature Along The Day")
+        plt.legend()
+        plt.show()
+
+
+
     # TODO: Implement
     def calculate_average_wind_profile(self):
         """average, 1, 2, 3 sigma wind profile from 0 35,000 ft AGL"""
