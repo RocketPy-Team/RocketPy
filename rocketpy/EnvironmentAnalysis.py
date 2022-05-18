@@ -656,27 +656,32 @@ class EnvironmentAnalysis:
             windSpeed[hour] = []
             windDir[hour] = []
             for day in days:
-                hour_wind_speed = self.pressureLevelDataDict[day][hour]["windSpeed"](
-                    self.elevation
-                )
+                try:
+                    hour_wind_speed = self.pressureLevelDataDict[day][hour]["windSpeed"](
+                        self.elevation
+                    )
 
-                max_wind_speed = (
-                    hour_wind_speed
-                    if hour_wind_speed > max_wind_speed
-                    else max_wind_speed
-                )
-                min_wind_speed = (
-                    hour_wind_speed
-                    if hour_wind_speed < min_wind_speed
-                    else min_wind_speed
-                )
+                    max_wind_speed = (
+                        hour_wind_speed
+                        if hour_wind_speed > max_wind_speed
+                        else max_wind_speed
+                    )
+                    min_wind_speed = (
+                        hour_wind_speed
+                        if hour_wind_speed < min_wind_speed
+                        else min_wind_speed
+                    )
 
-                windSpeed[hour].append(hour_wind_speed)
-                windDir[hour].append(
+                    windSpeed[hour].append(hour_wind_speed)
+                    windDir[hour].append(
                     self.pressureLevelDataDict[day][hour]["windDirection"](
                         self.elevation
                     )
                 )
+                except KeyError:
+                    # Not all days have all hours stored, that is fine
+                    pass
+
 
         self.max_wind_speed = max_wind_speed
         self.min_wind_speed = min_wind_speed
@@ -746,7 +751,7 @@ class EnvironmentAnalysis:
         plt.show()
 
     # TODO: Create tests
-    def plot_average_wind_rose_all_hours(self):
+    def plot_average_day_wind_rose_all_hours(self):
         """Plot windroses for all hours of a day, in a grid like plot."""
         # Get days and hours
         days = list(self.surfaceDataDict.keys())
@@ -784,7 +789,6 @@ class EnvironmentAnalysis:
                 rect=[left, bottom, width, height],
             )
             if k == 0:
-                print(ncols / 2)
                 ax.legend(
                     loc="upper center",
                     bbox_to_anchor=(ncols / 2 + 0.65, 1.5),
