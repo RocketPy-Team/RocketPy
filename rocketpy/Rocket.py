@@ -521,7 +521,7 @@ class Rocket:
     def addFins(
         self,
         type,
-        dictionary,
+        finParameters,
         n,
         distanceToCM,
         radius=0,
@@ -536,10 +536,13 @@ class Rocket:
         Parameters
         ----------
         type: string
-            type of fin selected to the rocket. ("trapezoidal", "elliptical", and so on hehe)
-        dictionary: dictionary
-            trapezoidal = {"span": span, "rootChord": rootChord, "tipChord": tipChord}
-            elliptical = {"span": span, "rootChord": rootChord}
+            Type of fin selected to the rocket. Must be either "trapezoidal"
+            or "elliptical".
+        finParameters: dictionary
+            Dictionary containing geometric parameters about the fin selected.
+            For trapezoidal fins: must have "span", "rootChord" and "tipChord"
+            key words.
+            For elliptical fins: must have "span" and "rootChord" key words.
         n : int
             Number of fins, from 2 to infinity.
         distanceToCM : int, float
@@ -568,18 +571,18 @@ class Rocket:
             Object of the Rocket class.
         """
         # Checking the dictionary
-        if "rootChord" not in dictionary.keys():
-            raise Exception("rootChord dictionary key is missing")
-        if "span" not in dictionary.keys():
-            raise Exception("span dictionary key is missing")
+        if "rootChord" not in finParameters.keys():
+            raise Exception("rootChord dictionary key is missing from finParameters")
+        if "span" not in finParameters.keys():
+            raise Exception("span dictionary key is missing from finParameters")
 
         if type == "trapezoidal":
-            if "tipChord" not in dictionary.keys():
-                raise Exception("tipChord dictionary key is missing")
+            if "tipChord" not in finParameters.keys():
+                raise Exception("tipChord dictionary key is missing from finParameters")
 
         # Retrieves similar parameters
-        Cr = dictionary["rootChord"]
-        s = dictionary["span"]
+        Cr = finParameters["rootChord"]
+        s = finParameters["span"]
         radius = self.radius if radius == 0 else radius
         cantAngleRad = np.radians(cantAngle)
         d = 2 * radius
@@ -588,7 +591,7 @@ class Rocket:
         if type == "trapezoidal":
 
             # Retrieve parameters for calculations
-            Ct = dictionary["tipChord"]
+            Ct = finParameters["tipChord"]
             Yr = Cr + Ct
 
             Af = Yr * s / 2  # fin area
