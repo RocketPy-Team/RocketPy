@@ -567,6 +567,15 @@ class Rocket:
         self : Rocket
             Object of the Rocket class.
         """
+        # Checking the dictionary
+        if "rootChord" not in dictionary.keys():
+            raise Exception("rootChord dictionary key is missing")
+        if "span" not in dictionary.keys():
+            raise Exception("span dictionary key is missing")
+
+        if type == "trapezoidal":
+            if "tipChord" not in dictionary.keys():
+                raise Exception("tipChord dictionary key is missing")
 
         # Retrieves similar parameters
         Cr = dictionary["rootChord"]
@@ -627,7 +636,7 @@ class Rocket:
                 cpz = distanceToCM + (0.288 * Cr)
 
         else:
-            raise "Invalid finshape"
+            raise Exception("Invalid finshape")
 
         # Retrieves similar parameters
         Aref = np.pi * radius ** 2
@@ -783,7 +792,7 @@ class Rocket:
             * rollGeometricalConstant
             / (Aref * d ** 2)
         )
-        
+
         # Function of mach number
         rollParameters = (
             [clfDelta, cldOmega, cantAngleRad] if cantAngleRad != 0 else [0, 0, 0]
