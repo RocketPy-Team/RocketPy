@@ -770,22 +770,28 @@ class EnvironmentAnalysis:
 
         # Figure settings
         windrose_side = 3  # inches
-        vertical_padding_top = 1 # inches
-        plot_padding = 0.18 # percentage
+        vertical_padding_top = 1  # inches
+        plot_padding = 0.18  # percentage
         nrows, ncols = self._find_two_closest_integer_factors(len(hours))
-        vertical_plot_area_percentage = nrows * windrose_side / (nrows * windrose_side + vertical_padding_top)
+        vertical_plot_area_percentage = (
+            nrows * windrose_side / (nrows * windrose_side + vertical_padding_top)
+        )
 
         # Create figure
         fig = plt.figure()
-        fig.set_size_inches(ncols * windrose_side, nrows * windrose_side + vertical_padding_top)
+        fig.set_size_inches(
+            ncols * windrose_side, nrows * windrose_side + vertical_padding_top
+        )
         bins = np.linspace(self.min_wind_speed, self.max_wind_speed, 6)
-        width = (1-2*plot_padding) * 1 / ncols
-        height = vertical_plot_area_percentage * (1-2*plot_padding) * 1 / nrows
+        width = (1 - 2 * plot_padding) * 1 / ncols
+        height = vertical_plot_area_percentage * (1 - 2 * plot_padding) * 1 / nrows
 
         for k, hour in enumerate(hours):
             i, j = len(hours) // nrows - k // ncols, k % ncols  # Row count bottom up
             left = j * 1 / ncols + plot_padding / ncols
-            bottom = vertical_plot_area_percentage*((i - 2) / nrows + plot_padding / nrows)
+            bottom = vertical_plot_area_percentage * (
+                (i - 2) / nrows + plot_padding / nrows
+            )
 
             ax = self.plot_wind_rose(
                 self.wind_direction_per_hour[hour],
@@ -798,7 +804,7 @@ class EnvironmentAnalysis:
             if k == 0:
                 ax.legend(
                     loc="upper center",
-                    bbox_to_anchor=(ncols / 2 + 0.8, 1.5), # 0.8 i a magic number
+                    bbox_to_anchor=(ncols / 2 + 0.8, 1.5),  # 0.8 i a magic number
                     fancybox=True,
                     shadow=True,
                     ncol=6,
