@@ -720,8 +720,9 @@ class EnvironmentAnalysis:
         )
         ax.set_title(title)
 
-        ax.set_yticks(np.arange(10, 50, step=10))
-        ax.set_yticklabels(np.arange(10, 50, step=10))
+        # yticks = np.arange(10, 55, step=10) # in %
+        # ax.set_yticks(yticks)
+        # ax.set_yticklabels([f"{ytick}%" for ytick in yticks])
 
         ax.set_legend()
         return ax
@@ -768,18 +769,25 @@ class EnvironmentAnalysis:
         ):
             self.process_wind_speed_and_direction_data_for_average_day()
 
-        # Create figure
-        nrows, ncols = self._find_two_closest_integer_factors(len(hours))
-        fig = plt.figure()
+        # Figure settings
         windrose_side = 3  # inches
-        fig.set_size_inches(ncols * windrose_side, nrows * windrose_side)
+        vertical_padding_top = 1 # inches
+        plot_padding = 0.18 # percentage
+        nrows, ncols = self._find_two_closest_integer_factors(len(hours))
+        vertical_plot_area_percentage = nrows * windrose_side / (nrows * windrose_side + vertical_padding_top)
+
+        # Create figure
+        fig = plt.figure()
+        fig.set_size_inches(ncols * windrose_side, nrows * windrose_side + vertical_padding_top)
         bins = np.linspace(self.min_wind_speed, self.max_wind_speed, 6)
-        width = 0.7 * 1 / ncols
-        height = 0.7 * 1 / nrows
+        width = (1-2*plot_padding) * 1 / ncols
+        height = vertical_plot_area_percentage * (1-2*plot_padding) * 1 / nrows
+
         for k, hour in enumerate(hours):
             i, j = len(hours) // nrows - k // ncols, k % ncols  # Row count bottom up
-            left = j * 1 / ncols + 0.15 / ncols  # 0.15 is (1-0.7)/2
-            bottom = (i - 2) * 1 / nrows
+            left = j * 1 / ncols + plot_padding / ncols
+            bottom = vertical_plot_area_percentage*((i - 2) / nrows + plot_padding / nrows)
+
             ax = self.plot_wind_rose(
                 self.wind_direction_per_hour[hour],
                 self.wind_speed_per_hour[hour],
@@ -791,7 +799,7 @@ class EnvironmentAnalysis:
             if k == 0:
                 ax.legend(
                     loc="upper center",
-                    bbox_to_anchor=(ncols / 2 + 0.65, 1.5),
+                    bbox_to_anchor=(ncols / 2 + 0.8, 1.5), # 0.8 i a magic number
                     fancybox=True,
                     shadow=True,
                     ncol=6,
@@ -799,7 +807,8 @@ class EnvironmentAnalysis:
             else:
                 ax.legend().set_visible(False)
             fig.add_axes(ax)
-        fig.suptitle("Wind Roses", fontsize=20, x=0.5, y=1.05)
+
+        fig.suptitle("Wind Roses", fontsize=20, x=0.5, y=1)
         plt.show()
 
     def animate_average_wind_rose(self, figsize=(8, 8), filename="wind_rose.gif"):
