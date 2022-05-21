@@ -657,9 +657,9 @@ class EnvironmentAnalysis:
             windDir[hour] = []
             for day in days:
                 try:
-                    hour_wind_speed = self.pressureLevelDataDict[day][hour]["windSpeed"](
-                        self.elevation
-                    )
+                    hour_wind_speed = self.pressureLevelDataDict[day][hour][
+                        "windSpeed"
+                    ](self.elevation)
 
                     max_wind_speed = (
                         hour_wind_speed
@@ -674,14 +674,13 @@ class EnvironmentAnalysis:
 
                     windSpeed[hour].append(hour_wind_speed)
                     windDir[hour].append(
-                    self.pressureLevelDataDict[day][hour]["windDirection"](
-                        self.elevation
+                        self.pressureLevelDataDict[day][hour]["windDirection"](
+                            self.elevation
+                        )
                     )
-                )
                 except KeyError:
                     # Not all days have all hours stored, that is fine
                     pass
-
 
         self.max_wind_speed = max_wind_speed
         self.min_wind_speed = min_wind_speed
