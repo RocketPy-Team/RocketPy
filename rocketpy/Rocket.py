@@ -554,7 +554,7 @@ class Rocket:
         radius = self.radius if radius == 0 else radius
         cantAngleRad = np.radians(cantAngle)
         d = 2 * radius
-          
+
         # Type verification
         if type == "trapezoidal":
 
@@ -567,12 +567,12 @@ class Rocket:
             Ymac = (
                 (s / 3) * (Cr + 2 * Ct) / Yr
             )  # span wise position of fin's mean aerodynamic chord
-            Lf = np.sqrt((Cr / 2 - Ct / 2) ** 2 + s ** 2)  #
+            Lf = np.sqrt((Cr / 2 - Ct / 2) ** 2 + s**2)  #
 
             rollGeometricalConstant = (
-                (Cr + 3 * Ct) * s ** 3
-                + 4 * (Cr + 2 * Ct) * radius * s ** 2
-                + 6 * (Cr + Ct) * s * radius ** 2
+                (Cr + 3 * Ct) * s**3
+                + 4 * (Cr + 2 * Ct) * radius * s**2
+                + 6 * (Cr + Ct) * s * radius**2
             ) / 12
 
             # Calculate cp position relative to cm
@@ -592,11 +592,11 @@ class Rocket:
             # Retrieve parameters for calculations
             Af = (np.pi * Cr / 2 * s) / 2
             gamac = 0
-            Ymac = s / (3 * np.pi) * np.sqrt(9 * np.pi ** 2 - 64)
+            Ymac = s / (3 * np.pi) * np.sqrt(9 * np.pi**2 - 64)
             rollGeometricalConstant = (
                 Cr
                 * s
-                * (3 * np.pi * s ** 2 + 32 * radius * s + 12 * np.pi * radius ** 2)
+                * (3 * np.pi * s**2 + 32 * radius * s + 12 * np.pi * radius**2)
                 / 48
             )
 
@@ -610,8 +610,8 @@ class Rocket:
             raise Exception("Invalid finshape")
 
         # Retrieves similar parameters
-        Aref = np.pi * radius ** 2
-        AR = 2 * s ** 2 / Af
+        Aref = np.pi * radius**2
+        AR = 2 * s**2 / Af
         rollParameters = [0, 0, 0]
 
         # Fin–body interference correction parameters
@@ -623,42 +623,42 @@ class Rocket:
                 ((tau - λ) / (tau)) - ((1 - λ) / (tau - 1)) * np.log(tau)
             ) / (
                 ((tau + 1) * (tau - λ)) / (2)
-                - ((1 - λ) * (tau ** 3 - 1)) / (3 * (tau - 1))
+                - ((1 - λ) * (tau**3 - 1)) / (3 * (tau - 1))
             )
-        else: # type == "elliptical"
+        else:  # type == "elliptical"
             rollDampingInterferenceFactor = 1 + (
                 (
-                    np.sqrt(s ** 2 - radius ** 2)
+                    np.sqrt(s**2 - radius**2)
                     * (
                         2
                         * Cr
-                        * radius ** 2
+                        * radius**2
                         * np.log(
-                            (2 * s * np.sqrt(s ** 2 - radius ** 2) + 2 * s ** 2)
+                            (2 * s * np.sqrt(s**2 - radius**2) + 2 * s**2)
                             / (radius)
                         )
-                        - 2 * Cr * radius ** 2 * np.log(2 * s)
+                        - 2 * Cr * radius**2 * np.log(2 * s)
                     )
-                    + 2 * Cr * s ** 3
-                    - np.pi * Cr * radius * s ** 2
-                    - 2 * Cr * radius ** 2 * s
-                    + np.pi * Cr * radius ** 3
+                    + 2 * Cr * s**3
+                    - np.pi * Cr * radius * s**2
+                    - 2 * Cr * radius**2 * s
+                    + np.pi * Cr * radius**3
                 )
-                / ((2 * radius * s ** 3 - 2 * radius ** 3 * s))
-            ) / Cr * (s ** 2 / 3 + np.pi * radius * s / 4)
+                / ((2 * radius * s**3 - 2 * radius**3 * s))
+            ) / Cr * (s**2 / 3 + np.pi * radius * s / 4)
 
-        rollForcingInterferenceFactor = (1 / np.pi ** 2) * (
-            (np.pi ** 2 / 4) * ((tau + 1) ** 2 / tau ** 2)
-            + ((np.pi * (tau ** 2 + 1) ** 2) / (tau ** 2 * (tau - 1) ** 2))
-            * np.arcsin((tau ** 2 - 1) / (tau ** 2 + 1))
+        rollForcingInterferenceFactor = (1 / np.pi**2) * (
+            (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
+            + ((np.pi * (tau**2 + 1) ** 2) / (tau**2 * (tau - 1) ** 2))
+            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
             - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
-            + ((tau ** 2 + 1) ** 2)
-            / (tau ** 2 * (tau - 1) ** 2)
-            * (np.arcsin((tau ** 2 - 1) / (tau ** 2 + 1))) ** 2
+            + ((tau**2 + 1) ** 2)
+            / (tau**2 * (tau - 1) ** 2)
+            * (np.arcsin((tau**2 - 1) / (tau**2 + 1))) ** 2
             - (4 * (tau + 1))
             / (tau * (tau - 1))
-            * np.arcsin((tau ** 2 - 1) / (tau ** 2 + 1))
-            + (8 / (tau - 1) ** 2) * np.log((tau ** 2 + 1) / (2 * tau))
+            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
+            + (8 / (tau - 1) ** 2) * np.log((tau**2 + 1) / (2 * tau))
         )
 
         # Auxiliary functions
@@ -750,7 +750,6 @@ class Rocket:
             ["Alpha (rad)", "Mach"],
             "Cl",
         )
-
 
         # Parameters for Roll Moment.
         # Documented at: https://github.com/Projeto-Jupiter/RocketPy/blob/develop/docs/technical/aerodynamics/Roll_Equations.pdf
