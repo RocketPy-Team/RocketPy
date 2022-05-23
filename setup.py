@@ -4,13 +4,14 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="rocketpy", 
-    version="0.9.8",
-    install_requires = [
-        'numpy>=1.0',
-        'scipy>=1.0',
-        'matplotlib>=3.0',
-        'requests'
+    name="rocketpy",
+    version="0.10.0",
+    install_requires=[
+        "numpy>=1.0",
+        "scipy>=1.0",
+        "matplotlib>=3.0",
+        "requests",
+        "pytz",
     ],
     maintainer="RocketPy Developers",
     author="Giovani Hidalgo Ceotto",
@@ -25,5 +26,5 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6',
+    python_requires=">=3.6",
 )

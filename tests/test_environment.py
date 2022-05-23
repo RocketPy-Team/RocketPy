@@ -2,8 +2,8 @@ import datetime
 from unittest.mock import patch
 
 import pytest
-
-from rocketpy import Environment, SolidMotor, Rocket, Flight
+import pytz
+from rocketpy import Environment, Flight, Rocket, SolidMotor
 
 
 @pytest.fixture
@@ -32,8 +32,20 @@ def test_env_set_date(example_env):
     tomorrow = datetime.date.today() + datetime.timedelta(days=1)
     example_env.setDate((tomorrow.year, tomorrow.month, tomorrow.day, 12))
     assert example_env.date == datetime.datetime(
-        tomorrow.year, tomorrow.month, tomorrow.day, 12
+        tomorrow.year, tomorrow.month, tomorrow.day, 12, tzinfo=pytz.utc
     )
+
+
+def test_env_set_date_time_zone(example_env):
+    tomorrow = datetime.date.today() + datetime.timedelta(days=1)
+    example_env.setDate(
+        (tomorrow.year, tomorrow.month, tomorrow.day, 12), timeZone="America/New_York"
+    )
+    dateNaive = datetime.datetime(tomorrow.year, tomorrow.month, tomorrow.day, 12)
+    timezone = pytz.timezone("America/New_York")
+    dateAwareLocalDate = timezone.localize(dateNaive)
+    dateAwareUTC = dateAwareLocalDate.astimezone(pytz.UTC)
+    assert example_env.date == dateAwareUTC
 
 
 def test_env_set_location(example_env):
@@ -67,9 +79,9 @@ def test_standard_atmosphere(mock_show, example_env):
 
 
 @patch("matplotlib.pyplot.show")
-def test_costum_atmosphere(mock_show, example_env):
+def test_custom_atmosphere(mock_show, example_env):
     example_env.setAtmosphericModel(
-        type="CostumAtmosphere",
+        type="CustomAtmosphere",
         pressure=None,
         temperature=300,
         wind_u=[(0, 5), (1000, 10)],
