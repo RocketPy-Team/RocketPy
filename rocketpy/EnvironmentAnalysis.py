@@ -804,7 +804,9 @@ class EnvironmentAnalysis:
         ax.set_title(title)
         ax.set_legend()
         # Format the ticks (only integers, as percentage, at most 3 intervals)
-        ax.yaxis.set_major_locator(mtick.MaxNLocator(integer=True, nbins=3, prune='lower'))
+        ax.yaxis.set_major_locator(
+            mtick.MaxNLocator(integer=True, nbins=3, prune="lower")
+        )
         ax.yaxis.set_major_formatter(mtick.PercentFormatter(decimals=0))
         return ax
 
