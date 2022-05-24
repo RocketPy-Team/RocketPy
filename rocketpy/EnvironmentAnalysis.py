@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation, PillowWriter as ImageWriter
+import matplotlib.ticker as mtick
 
 import netCDF4
 from windrose import WindAxes, WindroseAxes
@@ -718,12 +719,10 @@ class EnvironmentAnalysis:
             edgecolor="white",
         )
         ax.set_title(title)
-
-        # yticks = np.arange(10, 55, step=10) # in %
-        # ax.set_yticks(yticks)
-        # ax.set_yticklabels([f"{ytick}%" for ytick in yticks])
-
         ax.set_legend()
+        # Format the ticks (only integers, as percentage, at most 3 intervals)
+        ax.yaxis.set_major_locator(mtick.MaxNLocator(integer=True, nbins=3, prune='lower'))
+        ax.yaxis.set_major_formatter(mtick.PercentFormatter(decimals=0))
         return ax
 
     def plot_average_day_wind_rose_specific_hour(self, hour, fig=None):
