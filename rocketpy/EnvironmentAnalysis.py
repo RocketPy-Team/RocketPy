@@ -1,16 +1,15 @@
 from datetime import datetime, timedelta
 import bisect
-from multiprocessing.sharedctypes import Value
 
 import ipywidgets as widgets
 import numpy as np
-import matplotlib
+from scipy import stats
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation, PillowWriter as ImageWriter
 import matplotlib.ticker as mtick
 
-import netCDF4
 from windrose import WindAxes, WindroseAxes
+import netCDF4
 from cftime import num2date
 
 from rocketpy.Function import Function
@@ -361,7 +360,7 @@ class EnvironmentAnalysis:
             )
 
             # Check if date is within analysis range
-            if not (self.start_date <= dateTime <= self.end_date):
+            if not (self.start_date <= dateTime < self.end_date):
                 continue
 
             # Make sure keys exist
@@ -391,7 +390,11 @@ class EnvironmentAnalysis:
                     pressureLevelData, value, indices, lonArray, latArray
                 )
                 variablePointsArray = np.array([heightAboveSeaLevelArray, valueArray]).T
-                variableFunction = Function(variablePointsArray)
+                variableFunction = Function(
+                    variablePointsArray,
+                    inputs="Height Above Sea Level (m)",
+                    outputs=key,
+                )
                 self.pressureLevelDataDict[dateString][hourString][
                     key
                 ] = variableFunction
@@ -528,7 +531,7 @@ class EnvironmentAnalysis:
             )
 
             # Check if date is within analysis range
-            if not (self.start_date <= dateTime <= self.end_date):
+            if not (self.start_date <= dateTime < self.end_date):
                 continue
 
             # Make sure keys exist
@@ -618,22 +621,102 @@ class EnvironmentAnalysis:
         self.max_wind_gust = np.max(self.wind_gust_list)
         return self.max_wind_gust
 
-    # TODO: Implement
-    def calculate_wind_gust_distribution(self):
+    # TODO: Create tests
+    def plot_wind_gust_distribution(self):
         """Get all values of wind gust speed (for every date and hour available)
-        and plot a single distribution. Expectedr result is a Weibull distribution.
+        and plot a single distribution. Expected result is a Weibull distribution.
         """
-        ...
+        self.wind_gust_list = [
+            dayDict[hour]["surfaceWindGust"]
+            for dayDict in self.surfaceDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        plt.figure()
+        # Plot histogram
+        plt.hist(
+            self.wind_gust_list,
+            bins=int(len(self.wind_gust_list) ** 0.5),
+            density=True,
+            histtype="stepfilled",
+            alpha=0.2,
+            label="Wind Gust Speed Distribution",
+        )
+
+        # Plot weibull distribution
+        c, loc, scale = stats.weibull_min.fit(self.wind_gust_list)
+        x = np.linspace(0, np.max(self.wind_gust_list), 100)
+        plt.plot(
+            x,
+            stats.weibull_min.pdf(x, c, loc, scale),
+            "r-",
+            linewidth=2,
+            label="Weibull Distribution",
+        )
+
+        # Label plot
+        plt.ylabel("Probability")
+        plt.xlabel("Wind gust speed (m/s)")
+        plt.title("Wind Gust Speed Distribution")
+        plt.legend()
+        plt.show()
+
+        return None
 
     # TODO: Implement
     def calculate_average_temperature_along_day(self):
         """temperature progression throughout the day at some fine interval (ex: 2 hours) with 1, 2, 3, sigma contours"""
         ...
 
-    # TODO: Implement
-    def calculate_average_wind_profile(self):
-        """average, 1, 2, 3 sigma wind profile from 0 35,000 ft AGL"""
-        ...
+    # TODO: Create tests
+    def plot_average_wind_speed_profile(self, max_altitude=10000):
+        """Average wind speed for all datetimes available."""
+        min_altitude = self.elevation
+        altitude_list = np.linspace(min_altitude, max_altitude, 100)
+        wind_speed_profiles = [
+            dayDict[hour]["windSpeed"](altitude_list)
+            for dayDict in self.pressureLevelDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        self.average_wind_speed_profile = np.mean(wind_speed_profiles, axis=0)
+        # Plot
+        plt.figure()
+        plt.plot(self.average_wind_speed_profile, altitude_list, "r", label="$\\mu$")
+        plt.plot(
+            np.percentile(wind_speed_profiles, 50 - 34.1, axis=0),
+            altitude_list,
+            "b--",
+            alpha=1,
+            label="$\\mu \\pm \\sigma$",
+        )
+        plt.plot(
+            np.percentile(wind_speed_profiles, 50 + 34.1, axis=0),
+            altitude_list,
+            "b--",
+            alpha=1,
+        )
+        plt.plot(
+            np.percentile(wind_speed_profiles, 50 - 47.4, axis=0),
+            altitude_list,
+            "b--",
+            alpha=0.5,
+            label="$\\mu \\pm 2\\sigma$",
+        )
+        plt.plot(
+            np.percentile(wind_speed_profiles, 50 + 47.7, axis=0),
+            altitude_list,
+            "b--",
+            alpha=0.5,
+        )
+        # plt.plot(np.percentile(wind_speed_profiles, 50-49.8, axis=0, method='weibull'), altitude_list, 'b--', alpha=0.25)
+        # plt.plot(np.percentile(wind_speed_profiles, 50+49.8, axis=0, method='weibull'), altitude_list, 'b--', alpha=0.25)
+        for wind_speed_profile in wind_speed_profiles:
+            plt.plot(wind_speed_profile, altitude_list, "gray", alpha=0.01)
+        plt.ylim(min_altitude, max_altitude)
+        plt.xlabel("Wind speed (m/s)")
+        plt.ylabel("Altitude (m)")
+        plt.title("Average Wind Speed Profile")
+        plt.legend()
+        plt.show()
 
     def process_wind_speed_and_direction_data_for_average_day(self):
         """Process the wind_speed and wind_direction data to generate lists of all the wind_speeds recorded
@@ -881,10 +964,67 @@ class EnvironmentAnalysis:
         """Animation of how the wind gust distribution varies throughout the day."""
         ...
 
-    # TODO: Implement
+    # TODO: Create tests
     def animate_wind_profile_over_average_day(self):
         """Animation of how wind profile evolves throughout an average day."""
-        ...
+        # Gather animation data
+        altitude_list = np.linspace(1495.155, 12000, 100)  # TODO: parametrize
+        average_wind_profile_at_given_hour = {}
+        for hour in list(self.pressureLevelDataDict.values())[0].keys():
+            wind_speed_values_for_this_hour = []
+            for dayDict in self.pressureLevelDataDict.values():
+                try:
+                    wind_speed_values_for_this_hour += [
+                        dayDict[hour]["windSpeed"](altitude_list)
+                    ]
+                except KeyError:
+                    # Some day does not have data for the desired hour (probably the last one)
+                    # No need to worry, just average over the other days
+                    pass
+            average_wind_profile_at_given_hour[hour] = np.mean(
+                wind_speed_values_for_this_hour, axis=0
+            )
+
+        # Create animation
+        fig, ax = plt.subplots()
+        # Initialize animation artists: curve and hour text
+        (ln,) = plt.plot([], [], "r-")
+        tx = plt.text(
+            x=0.95,
+            y=0.95,
+            s="",
+            verticalalignment="top",
+            horizontalalignment="right",
+            transform=ax.transAxes,
+            fontsize=24,
+        )
+        # Define function to initialize animation
+        def init():
+            ax.set_xlim(0, 25)
+            ax.set_ylim(altitude_list[0], altitude_list[-1])
+            ax.set_xlabel("Wind Speed (m/s)")
+            ax.set_ylabel("Altitude (m)")
+            ax.set_title("Average Wind Profile")
+            ax.grid(True)
+            return ln, tx
+
+        # Define function which sets each animation frame
+        def update(frame):
+            xdata = frame[1]
+            ydata = altitude_list
+            ln.set_data(xdata, ydata)
+            tx.set_text(f"{float(frame[0]):05.2f}".replace(".", ":"))
+            return ln, tx
+
+        animation = FuncAnimation(
+            fig,
+            update,
+            frames=average_wind_profile_at_given_hour.items(),
+            interval=1000,
+            init_func=init,
+            blit=True,
+        )
+        plt.show()
 
     # Others
     # TODO: Addapt to new data format
