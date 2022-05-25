@@ -7,10 +7,11 @@ from scipy import stats
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation, PillowWriter as ImageWriter
 import matplotlib.ticker as mtick
-
 from windrose import WindAxes, WindroseAxes
 import netCDF4
-from cftime import num2date
+from cftime import num2pydate
+import pytz
+from timezonefinder import TimezoneFinder
 
 from rocketpy.Function import Function
 
@@ -52,6 +53,7 @@ class EnvironmentAnalysis:
         elevation,
         surfaceDataFile=None,
         pressureLevelDataFile=None,
+        timezone=None,
     ):
         # Save inputs
         self.start_date = start_date
@@ -61,6 +63,11 @@ class EnvironmentAnalysis:
         self.elevation = elevation
         self.surfaceDataFile = surfaceDataFile
         self.pressureLevelDataFile = pressureLevelDataFile
+        self.prefered_timezone = timezone
+        
+        # Manage timezones
+        self.__find_prefered_timezone()
+        self.__localize_input_dates()
 
         # Parse data files
         self.pressureLevelDataDict = {}
@@ -170,12 +177,16 @@ class EnvironmentAnalysis:
 
         return index
 
-    def __timeNumToDateString(self, timeNum, units, calendar):
+    def __timeNumToDateString(self, timeNum, units, calendar="gregorian"):
         """Convert time number (usually hours before a certain date) into two
         strings: one for the date (example: 2022.04.31) and one for the hour
         (example: 14). See cftime.num2date for details on units and calendar.
+        Automatically converts time number from UTC to local timezone based on
+        lat,lon coordinates.
         """
-        dateTime = num2date(timeNum, units, calendar="gregorian")
+        dateTimeUTC = num2pydate(timeNum, units, calendar=calendar)
+        dateTimeUTC = dateTimeUTC.replace(tzinfo=pytz.UTC)
+        dateTime = dateTimeUTC.astimezone(self.prefered_timezone)
         dateString = f"{dateTime.year}.{dateTime.month}.{dateTime.day}"
         hourString = f"{dateTime.hour}"
         return dateString, hourString, dateTime
@@ -262,6 +273,22 @@ class EnvironmentAnalysis:
             raise ValueError(
                 f"Latitude and longitude pair {(self.latitude, self.longitude)} is outside the grid available in the given file, which is defined by {(latArray[0], lonArray[0])} and {(latArray[-1], lonArray[-1])}."
             )
+
+    def __localize_input_dates(self):
+        if self.start_date.tzinfo is None:
+            self.start_date = self.prefered_timezone.localize(self.start_date)
+        if self.end_date.tzinfo is None:
+            self.end_date = self.prefered_timezone.localize(self.end_date)
+
+    def __find_prefered_timezone(self):
+        if self.prefered_timezone is None:
+            # Use local timezone based on lat lon pair
+            tf = TimezoneFinder()
+            self.prefered_timezone =  pytz.timezone(
+                tf.timezone_at(lng=self.longitude, lat=self.latitude)
+            )
+        elif isinstance(self.prefered_timezone, str):
+            self.prefered_timezone = pytz.timezone(self.prefered_timezone)
 
     @staticmethod
     def _find_two_closest_integer_factors(number):
