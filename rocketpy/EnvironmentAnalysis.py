@@ -615,7 +615,7 @@ class EnvironmentAnalysis:
                 )
             counterDates += 1
 
-        matrixTemperatureDayHour = np.array(temperatureDayHour,dtype=object)
+        matrixTemperatureDayHour = np.array(temperatureDayHour, dtype=object)
 
         for row in range(0, len(matrixTemperatureDayHour)):
             mean.append(np.mean(matrixTemperatureDayHour[row]))
@@ -632,15 +632,19 @@ class EnvironmentAnalysis:
             ]
             # mt feio?
             finalList.append(lista)
-            counter+=1
-        finalMatrix = np.array(finalList,dtype=object)
+            counter += 1
+        finalMatrix = np.array(finalList, dtype=object)
         finalMatrixT = finalMatrix.T
         plt.figure()
         plt.plot(finalMatrixT[0], finalMatrixT[1], "r", label="mean")
         plt.plot(
-            finalMatrixT[0],finalMatrixT[1] + finalMatrixT[2], "b--", alpha=1, label="mean $\\pm \\sigma$"
+            finalMatrixT[0],
+            finalMatrixT[1] + finalMatrixT[2],
+            "b--",
+            alpha=1,
+            label="mean $\\pm \\sigma$",
         )
-        plt.plot(finalMatrixT[0], finalMatrixT[1]-finalMatrixT[2], "b--", alpha=1)
+        plt.plot(finalMatrixT[0], finalMatrixT[1] - finalMatrixT[2], "b--", alpha=1)
         plt.plot(
             finalMatrixT[0],
             np.add(finalMatrixT[1], finalMatrixT[3]),
@@ -648,7 +652,12 @@ class EnvironmentAnalysis:
             alpha=0.5,
             label="mean $\\pm 2\\sigma$",
         )
-        plt.plot(finalMatrixT[0], np.subtract(finalMatrixT[1], finalMatrixT[3]), "b--", alpha=0.5)
+        plt.plot(
+            finalMatrixT[0],
+            np.subtract(finalMatrixT[1], finalMatrixT[3]),
+            "b--",
+            alpha=0.5,
+        )
         plt.plot(
             finalMatrixT[0],
             np.add(finalMatrixT[1], finalMatrixT[4]),
@@ -656,7 +665,12 @@ class EnvironmentAnalysis:
             alpha=0.25,
             label="mean $\\pm 3\\sigma$",
         )
-        plt.plot(finalMatrixT[0], np.subtract(finalMatrixT[1], finalMatrixT[4]), "b--", alpha=0.25)
+        plt.plot(
+            finalMatrixT[0],
+            np.subtract(finalMatrixT[1], finalMatrixT[4]),
+            "b--",
+            alpha=0.25,
+        )
         plt.xlabel("Hour")
         plt.ylabel("Degree (K)")
         plt.title("Average Temperature Along The Day")
