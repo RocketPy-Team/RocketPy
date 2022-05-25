@@ -6,6 +6,8 @@ import numpy as np
 from scipy import stats
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation, PillowWriter as ImageWriter
+import matplotlib.ticker as mtick
+
 from windrose import WindAxes, WindroseAxes
 import netCDF4
 from cftime import num2date
@@ -260,6 +262,29 @@ class EnvironmentAnalysis:
             raise ValueError(
                 f"Latitude and longitude pair {(self.latitude, self.longitude)} is outside the grid available in the given file, which is defined by {(latArray[0], lonArray[0])} and {(latArray[-1], lonArray[-1])}."
             )
+
+    @staticmethod
+    def _find_two_closest_integer_factors(number):
+        """Find the two closest integer factors of a number.
+
+        Parameters
+        ----------
+        number: int
+
+        Returns
+        -------
+        list[int]
+        """
+        number_sqrt = number**0.5
+        if isinstance(number_sqrt, int):
+            return number_sqrt, number_sqrt
+        else:
+            guess = int(number_sqrt)
+            while True:
+                if number % guess == 0:
+                    return guess, number // guess
+                else:
+                    guess -= 1
 
     # TODO: Needs tests
     def parsePressureLevelData(self):
@@ -715,27 +740,31 @@ class EnvironmentAnalysis:
             windSpeed[hour] = []
             windDir[hour] = []
             for day in days:
-                hour_wind_speed = self.pressureLevelDataDict[day][hour]["windSpeed"](
-                    self.elevation
-                )
+                try:
+                    hour_wind_speed = self.pressureLevelDataDict[day][hour][
+                        "windSpeed"
+                    ](self.elevation)
 
-                max_wind_speed = (
-                    hour_wind_speed
-                    if hour_wind_speed > max_wind_speed
-                    else max_wind_speed
-                )
-                min_wind_speed = (
-                    hour_wind_speed
-                    if hour_wind_speed < min_wind_speed
-                    else min_wind_speed
-                )
-
-                windSpeed[hour].append(hour_wind_speed)
-                windDir[hour].append(
-                    self.pressureLevelDataDict[day][hour]["windDirection"](
-                        self.elevation
+                    max_wind_speed = (
+                        hour_wind_speed
+                        if hour_wind_speed > max_wind_speed
+                        else max_wind_speed
                     )
-                )
+                    min_wind_speed = (
+                        hour_wind_speed
+                        if hour_wind_speed < min_wind_speed
+                        else min_wind_speed
+                    )
+
+                    windSpeed[hour].append(hour_wind_speed)
+                    windDir[hour].append(
+                        self.pressureLevelDataDict[day][hour]["windDirection"](
+                            self.elevation
+                        )
+                    )
+                except KeyError:
+                    # Not all days have all hours stored, that is fine
+                    pass
 
         self.max_wind_speed = max_wind_speed
         self.min_wind_speed = min_wind_speed
@@ -743,7 +772,9 @@ class EnvironmentAnalysis:
         self.wind_direction_per_hour = windDir
 
     @staticmethod
-    def plot_wind_rose(wind_direction, wind_speed, bins=None, title=None, fig=None):
+    def plot_wind_rose(
+        wind_direction, wind_speed, bins=None, title=None, fig=None, rect=None
+    ):
         """Plot a windrose given the data.
 
         Parameters
@@ -761,7 +792,7 @@ class EnvironmentAnalysis:
         -------
         WindroseAxes
         """
-        ax = WindroseAxes.from_ax(fig=fig)
+        ax = WindroseAxes.from_ax(fig=fig, rect=rect)
         ax.bar(
             wind_direction,
             wind_speed,
@@ -771,11 +802,12 @@ class EnvironmentAnalysis:
             edgecolor="white",
         )
         ax.set_title(title)
-
-        ax.set_yticks(np.arange(10, 50, step=10))
-        ax.set_yticklabels(np.arange(10, 50, step=10))
-
         ax.set_legend()
+        # Format the ticks (only integers, as percentage, at most 3 intervals)
+        ax.yaxis.set_major_locator(
+            mtick.MaxNLocator(integer=True, nbins=3, prune="lower")
+        )
+        ax.yaxis.set_major_formatter(mtick.PercentFormatter(decimals=0))
         return ax
 
     def plot_average_day_wind_rose_specific_hour(self, hour, fig=None):
@@ -800,6 +832,72 @@ class EnvironmentAnalysis:
             ),
             fig=fig,
         )
+        plt.show()
+
+    # TODO: Create tests
+    def plot_average_day_wind_rose_all_hours(self):
+        """Plot windroses for all hours of a day, in a grid like plot."""
+        # Get days and hours
+        days = list(self.surfaceDataDict.keys())
+        hours = list(self.surfaceDataDict[days[0]].keys())
+
+        # Make sure necessary data has been calculated
+        if not all(
+            [
+                self.max_wind_speed,
+                self.min_wind_speed,
+                self.wind_speed_per_hour,
+                self.wind_direction_per_hour,
+            ]
+        ):
+            self.process_wind_speed_and_direction_data_for_average_day()
+
+        # Figure settings
+        windrose_side = 3  # inches
+        vertical_padding_top = 1  # inches
+        plot_padding = 0.18  # percentage
+        nrows, ncols = self._find_two_closest_integer_factors(len(hours))
+        vertical_plot_area_percentage = (
+            nrows * windrose_side / (nrows * windrose_side + vertical_padding_top)
+        )
+
+        # Create figure
+        fig = plt.figure()
+        fig.set_size_inches(
+            ncols * windrose_side, nrows * windrose_side + vertical_padding_top
+        )
+        bins = np.linspace(self.min_wind_speed, self.max_wind_speed, 6)
+        width = (1 - 2 * plot_padding) * 1 / ncols
+        height = vertical_plot_area_percentage * (1 - 2 * plot_padding) * 1 / nrows
+
+        for k, hour in enumerate(hours):
+            i, j = len(hours) // nrows - k // ncols, k % ncols  # Row count bottom up
+            left = j * 1 / ncols + plot_padding / ncols
+            bottom = vertical_plot_area_percentage * (
+                (i - 2) / nrows + plot_padding / nrows
+            )
+
+            ax = self.plot_wind_rose(
+                self.wind_direction_per_hour[hour],
+                self.wind_speed_per_hour[hour],
+                bins=bins,
+                title=f"{float(hour):05.2f}".replace(".", ":"),
+                fig=fig,
+                rect=[left, bottom, width, height],
+            )
+            if k == 0:
+                ax.legend(
+                    loc="upper center",
+                    bbox_to_anchor=(ncols / 2 + 0.8, 1.5),  # 0.8 i a magic number
+                    fancybox=True,
+                    shadow=True,
+                    ncol=6,
+                )
+            else:
+                ax.legend().set_visible(False)
+            fig.add_axes(ax)
+
+        fig.suptitle("Wind Roses", fontsize=20, x=0.5, y=1)
         plt.show()
 
     def animate_average_wind_rose(self, figsize=(8, 8), filename="wind_rose.gif"):
