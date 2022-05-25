@@ -966,7 +966,7 @@ class EnvironmentAnalysis:
     def animate_wind_gust_distribution_over_average_day(self):
         """Animation of how the wind gust distribution varies throughout the day."""
         ...
-    
+
     # TODO: Create test
     def process_wind_profile_over_average_day(self, max_altitude=10000):
         """Compute the average wind profile for each avaliable hour of a day, over all
@@ -987,7 +987,7 @@ class EnvironmentAnalysis:
                     pass
             average_wind_profile_at_given_hour[hour] = [
                 np.mean(wind_speed_values_for_this_hour, axis=0),
-                altitude_list
+                altitude_list,
             ]
         self.average_wind_profile_at_given_hour = average_wind_profile_at_given_hour
 
@@ -997,11 +997,11 @@ class EnvironmentAnalysis:
         # Check if needed data has already been computed
         if self.average_wind_profile_at_given_hour is None:
             self.process_wind_profile_over_average_day(max_altitude)
-        
+
         # Create grid of plots for each hour
         hours = list(list(self.pressureLevelDataDict.values())[0].keys())
         nrows, ncols = self._find_two_closest_integer_factors(len(hours))
-        fig = plt.figure(figsize=(ncols*2, nrows*2.2))
+        fig = plt.figure(figsize=(ncols * 2, nrows * 2.2))
         gs = fig.add_gridspec(nrows, ncols, hspace=0, wspace=0, left=0.12)
         axs = gs.subplots(sharex=True, sharey=True)
         for (i, j) in [(i, j) for i in range(nrows) for j in range(ncols)]:
@@ -1010,8 +1010,12 @@ class EnvironmentAnalysis:
             ax.plot(*self.average_wind_profile_at_given_hour[hour], "r-")
             ax.set_title(f"{float(hour):05.2f}".replace(".", ":"), y=0.8)
             ax.set_xlim(0, max(self.average_wind_profile_at_given_hour[hour][0]))
-            ax.xaxis.set_major_locator(mtick.MaxNLocator(integer=True, nbins=5, prune="lower"))
-            ax.yaxis.set_major_locator(mtick.MaxNLocator(integer=True, nbins=4, prune="lower"))
+            ax.xaxis.set_major_locator(
+                mtick.MaxNLocator(integer=True, nbins=5, prune="lower")
+            )
+            ax.yaxis.set_major_locator(
+                mtick.MaxNLocator(integer=True, nbins=4, prune="lower")
+            )
             ax.label_outer()
             ax.grid()
         fig.suptitle("Average Wind Profile")
