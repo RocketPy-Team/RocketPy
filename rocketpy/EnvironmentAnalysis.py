@@ -84,6 +84,7 @@ class EnvironmentAnalysis:
         self.average_wind_profile_1_sigma = Function(0)
         self.average_wind_profile_2_sigma = Function(0)
         self.average_wind_profile_13_sigma = Function(0)
+        self.average_wind_profile_at_given_hour = None
 
         self.max_wind_speed = None
         self.min_wind_speed = None
@@ -965,14 +966,15 @@ class EnvironmentAnalysis:
     def animate_wind_gust_distribution_over_average_day(self):
         """Animation of how the wind gust distribution varies throughout the day."""
         ...
-
-    # TODO: Create tests
-    def animate_wind_profile_over_average_day(self):
-        """Animation of how wind profile evolves throughout an average day."""
-        # Gather animation data
-        altitude_list = np.linspace(1495.155, 12000, 100)  # TODO: parametrize
+    
+    # TODO: Create test
+    def process_wind_profile_over_average_day(self, max_altitude=10000):
+        """Compute the average wind profile for each avaliable hour of a day, over all
+        days in the dataset."""
+        altitude_list = np.linspace(self.elevation, max_altitude, 100)
         average_wind_profile_at_given_hour = {}
-        for hour in list(self.pressureLevelDataDict.values())[0].keys():
+        hours = list(self.pressureLevelDataDict.values())[0].keys()
+        for hour in hours:
             wind_speed_values_for_this_hour = []
             for dayDict in self.pressureLevelDataDict.values():
                 try:
@@ -980,12 +982,49 @@ class EnvironmentAnalysis:
                         dayDict[hour]["windSpeed"](altitude_list)
                     ]
                 except KeyError:
-                    # Some day does not have data for the desired hour (probably the last one)
+                    # Some day does not have data for the desired hour
                     # No need to worry, just average over the other days
                     pass
-            average_wind_profile_at_given_hour[hour] = np.mean(
-                wind_speed_values_for_this_hour, axis=0
-            )
+            average_wind_profile_at_given_hour[hour] = [
+                np.mean(wind_speed_values_for_this_hour, axis=0),
+                altitude_list
+            ]
+        self.average_wind_profile_at_given_hour = average_wind_profile_at_given_hour
+
+    # TODO: Create test
+    def plot_wind_profile_over_average_day(self, max_altitude=10000):
+        """Creates a grid of plots with the wind profile over the average day."""
+        # Check if needed data has already been computed
+        if self.average_wind_profile_at_given_hour is None:
+            self.process_wind_profile_over_average_day(max_altitude)
+        
+        # Create grid of plots for each hour
+        hours = list(list(self.pressureLevelDataDict.values())[0].keys())
+        nrows, ncols = self._find_two_closest_integer_factors(len(hours))
+        fig = plt.figure(figsize=(ncols*2, nrows*2.2))
+        gs = fig.add_gridspec(nrows, ncols, hspace=0, wspace=0, left=0.12)
+        axs = gs.subplots(sharex=True, sharey=True)
+        for (i, j) in [(i, j) for i in range(nrows) for j in range(ncols)]:
+            hour = hours[i * ncols + j]
+            ax = axs[i, j]
+            ax.plot(*self.average_wind_profile_at_given_hour[hour], "r-")
+            ax.set_title(f"{float(hour):05.2f}".replace(".", ":"), y=0.8)
+            ax.set_xlim(0, max(self.average_wind_profile_at_given_hour[hour][0]))
+            ax.xaxis.set_major_locator(mtick.MaxNLocator(integer=True, nbins=5, prune="lower"))
+            ax.yaxis.set_major_locator(mtick.MaxNLocator(integer=True, nbins=4, prune="lower"))
+            ax.label_outer()
+            ax.grid()
+        fig.suptitle("Average Wind Profile")
+        fig.supxlabel("Wind speed (m/s)")
+        fig.supylabel("Altitude ASL (m)")
+        plt.show()
+
+    # TODO: Create tests
+    def animate_wind_profile_over_average_day(self, max_altitude=10000):
+        """Animation of how wind profile evolves throughout an average day."""
+        # Check if needed data has already been computed
+        if self.average_wind_profile_at_given_hour is None:
+            self.process_wind_profile_over_average_day(max_altitude)
 
         # Create animation
         fig, ax = plt.subplots()
@@ -1003,7 +1042,7 @@ class EnvironmentAnalysis:
         # Define function to initialize animation
         def init():
             ax.set_xlim(0, 25)
-            ax.set_ylim(altitude_list[0], altitude_list[-1])
+            ax.set_ylim(self.elevation, max_altitude)
             ax.set_xlabel("Wind Speed (m/s)")
             ax.set_ylabel("Altitude (m)")
             ax.set_title("Average Wind Profile")
@@ -1012,8 +1051,8 @@ class EnvironmentAnalysis:
 
         # Define function which sets each animation frame
         def update(frame):
-            xdata = frame[1]
-            ydata = altitude_list
+            xdata = frame[1][0]
+            ydata = frame[1][1]
             ln.set_data(xdata, ydata)
             tx.set_text(f"{float(frame[0]):05.2f}".replace(".", ":"))
             return ln, tx
@@ -1021,7 +1060,7 @@ class EnvironmentAnalysis:
         animation = FuncAnimation(
             fig,
             update,
-            frames=average_wind_profile_at_given_hour.items(),
+            frames=self.average_wind_profile_at_given_hour.items(),
             interval=1000,
             init_func=init,
             blit=True,
