@@ -64,7 +64,7 @@ class EnvironmentAnalysis:
         self.surfaceDataFile = surfaceDataFile
         self.pressureLevelDataFile = pressureLevelDataFile
         self.prefered_timezone = timezone
-        
+
         # Manage timezones
         self.__find_prefered_timezone()
         self.__localize_input_dates()
@@ -284,7 +284,7 @@ class EnvironmentAnalysis:
         if self.prefered_timezone is None:
             # Use local timezone based on lat lon pair
             tf = TimezoneFinder()
-            self.prefered_timezone =  pytz.timezone(
+            self.prefered_timezone = pytz.timezone(
                 tf.timezone_at(lng=self.longitude, lat=self.latitude)
             )
         elif isinstance(self.prefered_timezone, str):
