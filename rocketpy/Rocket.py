@@ -298,7 +298,8 @@ class Rocket:
     def evaluateStaticMargin(self):
         """Calculates and returns the rocket's static margin when
         loaded with propellant. The static margin is saved and returned
-        in units of rocket diameter or calibers.
+        in units of rocket diameter or calibers. This function also calculates
+        the rocket center of pressure and total lift coefficients.
 
         Parameters
         ----------
@@ -346,7 +347,6 @@ class Rocket:
         parameters are the axial position along the rocket and its
         derivative of the coefficient of lift in respect to angle of
         attack.
-
         Parameters
         ----------
         topRadius : int, float
@@ -363,7 +363,6 @@ class Rocket:
             cone. Consider the point belonging to the tail which is
             closest to the unloaded center of mass to calculate
             distance.
-
         Returns
         -------
         cl : Function
@@ -448,12 +447,8 @@ class Rocket:
             k = 1 - 0.437
         else:
             k = 0.5
-
         # Calculate cp position relative to cm
-        if distanceToCM > 0:
-            cpz = distanceToCM + k * length
-        else:
-            cpz = distanceToCM - k * length
+        cpz = distanceToCM + np.sign(distanceToCM) * k * length
 
         # Calculate clalpha
         clalpha = 2
@@ -488,7 +483,6 @@ class Rocket:
         aerodynamicSurfaces list. Its parameters are the axial position
         along the rocket and its derivative of the coefficient of lift
         in respect to angle of attack.
-
         Parameters
         ----------
         n : int
@@ -526,7 +520,6 @@ class Rocket:
             return the lift coefficient at that angle of attack.
             The tuple's second item is the unit of the angle of attack,
             accepting either "radians" or "degrees".
-
         Returns
         -------
         cl : Function
@@ -635,16 +628,10 @@ class Rocket:
                 return n / 2
 
         # Calculate cp position relative to cm
-        if distanceToCM < 0:
-            cpz = distanceToCM - (
-                ((Cr - Ct) / 3) * ((Cr + 2 * Ct) / (Cr + Ct))
-                + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
-            )
-        else:
-            cpz = distanceToCM + (
-                ((Cr - Ct) / 3) * ((Cr + 2 * Ct) / (Cr + Ct))
-                + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
-            )
+        cpz = distanceToCM + np.sign(distanceToCM) * (
+            ((Cr - Ct) / 3) * ((Cr + 2 * Ct) / (Cr + Ct))
+            + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
+        )
 
         if not airfoil:
             # Defines clalpha2D as 2*pi for planar fins
@@ -666,7 +653,6 @@ class Rocket:
 
             # Correcting for compressible flow
             clalpha2D = Function(lambda mach: clalpha2D_Mach0 / beta(mach))
-
         # Diederich's Planform Correlation Parameter
         FD = 2 * np.pi * AR / (clalpha2D * np.cos(gamac))
 
