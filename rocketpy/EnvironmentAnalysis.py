@@ -603,68 +603,62 @@ class EnvironmentAnalysis:
         # matrixTemperatureDayHour = [] I assume this is not needed
         mean = []
         standardDeviation = []
-        final = []
-        timeNumArray = self.surfaceData.variables["time"]
-
+        finalList = []
+        surfaceData = netCDF4.Dataset(self.surfaceDataFile)
+        timeNumArray = surfaceData.variables["time"]
+        counterDates = 0
         for date in self.surfaceDataDict:
-            counter = 0
             temperatureDayHour.append([])
             for hour in self.surfaceDataDict[date]:
-                temperatureDayHour[counter].append(
+                temperatureDayHour[counterDates].append(
                     self.surfaceDataDict[date][hour]["surfaceTemperature"]
                 )
-                counter += 1
+            counterDates += 1
 
-        matrixTemperatureDayHour = np.array(temperatureDayHour)
-        for i in matrixTemperatureDayHour:
-            mean.append(np.mean(matrixTemperatureDayHour[i]))
-            standardDeviation.append(np.std(matrixTemperatureDayHour[i]))
+        matrixTemperatureDayHour = np.array(temperatureDayHour,dtype=object)
 
-        for j in range(counter):
+        for row in range(0, len(matrixTemperatureDayHour)):
+            mean.append(np.mean(matrixTemperatureDayHour[row]))
+            standardDeviation.append(np.std(matrixTemperatureDayHour[row]))
+
+        counter = 0
+        for j in self.surfaceDataDict[list(self.surfaceDataDict.keys())[0]]:
             lista = [
-                mean[j],
-                standardDeviation[j],
-                2 * standardDeviation[j],
-                3 * standardDeviation[j],
-            ]
-            final.append(lista)
-
-        for j in range(counter):
-            lista = [
-                int(self.surfaceDataDict[0][j]),
-                mean[j],
-                standardDeviation[j],
-                2 * standardDeviation[j],
-                3 * standardDeviation[j],
+                int(j),
+                mean[counter],
+                standardDeviation[counter],
+                2 * standardDeviation[counter],
+                3 * standardDeviation[counter],
             ]
             # mt feio?
             finalList.append(lista)
-
-        final = np.array(finalList)
+            counter+=1
+        finalMatrix = np.array(finalList,dtype=object)
+        finalMatrixT = finalMatrix.T
         plt.figure()
-        plt.plot(final[0], final[1], "r", label="mean")
+        plt.plot(finalMatrixT[0], finalMatrixT[1], "r", label="mean")
         plt.plot(
-            final[0], (final[1] + final[2]), "b--", alpha=1, label="mean $\\pm \\sigma$"
+            finalMatrixT[0],finalMatrixT[1] + finalMatrixT[2], "b--", alpha=1, label="mean $\\pm \\sigma$"
         )
-        plt.plot(final[0], (final[1] - final[2]), "b--", alpha=1)
+        plt.plot(finalMatrixT[0], finalMatrixT[1]-finalMatrixT[2], "b--", alpha=1)
         plt.plot(
-            final[0],
-            (final[1] + final[3]),
+            finalMatrixT[0],
+            np.add(finalMatrixT[1], finalMatrixT[3]),
             "b--",
             alpha=0.5,
             label="mean $\\pm 2\\sigma$",
         )
-        plt.plot(final[0], (final[1] - final[3]), "b--", alpha=0.5)
+        plt.plot(finalMatrixT[0], np.subtract(finalMatrixT[1], finalMatrixT[3]), "b--", alpha=0.5)
         plt.plot(
-            final[0],
-            (final[1] + final[4]),
+            finalMatrixT[0],
+            np.add(finalMatrixT[1], finalMatrixT[4]),
             "b--",
             alpha=0.25,
-            label="mean $\\pm \\sigma$",
+            label="mean $\\pm 3\\sigma$",
         )
-        plt.plot(final[0], (final[1] - final[4]), "b--", alpha=0.25)
+        plt.plot(finalMatrixT[0], np.subtract(finalMatrixT[1], finalMatrixT[4]), "b--", alpha=0.25)
         plt.xlabel("Hour")
-        plt.ylabel("Degree (C)")
+        plt.ylabel("Degree (K)")
         plt.title("Average Temperature Along The Day")
         plt.legend()
         plt.show()
