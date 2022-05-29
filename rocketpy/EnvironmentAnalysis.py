@@ -1,15 +1,18 @@
 from datetime import datetime, timedelta
 import bisect
-from multiprocessing.sharedctypes import Value
 
+import ipywidgets as widgets
 import numpy as np
+from scipy import stats
 from matplotlib import pyplot as plt
-
-# from windrose import WindAxes, WindroseAxes
+from matplotlib.animation import FuncAnimation, PillowWriter as ImageWriter
+import matplotlib.ticker as mtick
+from windrose import WindAxes, WindroseAxes
 import netCDF4
-from cftime import num2date
+from cftime import num2pydate
+import pytz
+from timezonefinder import TimezoneFinder
 
-from rocketpy.Environment import Environment
 from rocketpy.Function import Function
 
 
@@ -50,6 +53,7 @@ class EnvironmentAnalysis:
         elevation,
         surfaceDataFile=None,
         pressureLevelDataFile=None,
+        timezone=None,
     ):
         # Save inputs
         self.start_date = start_date
@@ -59,6 +63,11 @@ class EnvironmentAnalysis:
         self.elevation = elevation
         self.surfaceDataFile = surfaceDataFile
         self.pressureLevelDataFile = pressureLevelDataFile
+        self.prefered_timezone = timezone
+
+        # Manage timezones
+        self.__find_prefered_timezone()
+        self.__localize_input_dates()
 
         # Parse data files
         self.pressureLevelDataDict = {}
@@ -82,6 +91,11 @@ class EnvironmentAnalysis:
         self.average_wind_profile_1_sigma = Function(0)
         self.average_wind_profile_2_sigma = Function(0)
         self.average_wind_profile_13_sigma = Function(0)
+
+        self.max_wind_speed = None
+        self.min_wind_speed = None
+        self.wind_speed_per_hour = None
+        self.wind_direction_per_hour = None
 
         # Run calculations
         # self.process_data()
@@ -163,12 +177,16 @@ class EnvironmentAnalysis:
 
         return index
 
-    def __timeNumToDateString(self, timeNum, units, calendar):
+    def __timeNumToDateString(self, timeNum, units, calendar="gregorian"):
         """Convert time number (usually hours before a certain date) into two
         strings: one for the date (example: 2022.04.31) and one for the hour
         (example: 14). See cftime.num2date for details on units and calendar.
+        Automatically converts time number from UTC to local timezone based on
+        lat,lon coordinates.
         """
-        dateTime = num2date(timeNum, units, calendar="gregorian")
+        dateTimeUTC = num2pydate(timeNum, units, calendar=calendar)
+        dateTimeUTC = dateTimeUTC.replace(tzinfo=pytz.UTC)
+        dateTime = dateTimeUTC.astimezone(self.prefered_timezone)
         dateString = f"{dateTime.year}.{dateTime.month}.{dateTime.day}"
         hourString = f"{dateTime.hour}"
         return dateString, hourString, dateTime
@@ -256,6 +274,45 @@ class EnvironmentAnalysis:
                 f"Latitude and longitude pair {(self.latitude, self.longitude)} is outside the grid available in the given file, which is defined by {(latArray[0], lonArray[0])} and {(latArray[-1], lonArray[-1])}."
             )
 
+    def __localize_input_dates(self):
+        if self.start_date.tzinfo is None:
+            self.start_date = self.prefered_timezone.localize(self.start_date)
+        if self.end_date.tzinfo is None:
+            self.end_date = self.prefered_timezone.localize(self.end_date)
+
+    def __find_prefered_timezone(self):
+        if self.prefered_timezone is None:
+            # Use local timezone based on lat lon pair
+            tf = TimezoneFinder()
+            self.prefered_timezone = pytz.timezone(
+                tf.timezone_at(lng=self.longitude, lat=self.latitude)
+            )
+        elif isinstance(self.prefered_timezone, str):
+            self.prefered_timezone = pytz.timezone(self.prefered_timezone)
+
+    @staticmethod
+    def _find_two_closest_integer_factors(number):
+        """Find the two closest integer factors of a number.
+
+        Parameters
+        ----------
+        number: int
+
+        Returns
+        -------
+        list[int]
+        """
+        number_sqrt = number**0.5
+        if isinstance(number_sqrt, int):
+            return number_sqrt, number_sqrt
+        else:
+            guess = int(number_sqrt)
+            while True:
+                if number % guess == 0:
+                    return guess, number // guess
+                else:
+                    guess -= 1
+
     # TODO: Needs tests
     def parsePressureLevelData(self):
         """
@@ -306,7 +363,6 @@ class EnvironmentAnalysis:
         """
         # Setup dictionary used to read weather file
         self.__init_pressure_level_dictionary()
-
         # Read weather file
         pressureLevelData = netCDF4.Dataset(self.pressureLevelDataFile)
 
@@ -331,7 +387,7 @@ class EnvironmentAnalysis:
             )
 
             # Check if date is within analysis range
-            if not (self.start_date <= dateTime <= self.end_date):
+            if not (self.start_date <= dateTime < self.end_date):
                 continue
 
             # Make sure keys exist
@@ -361,7 +417,11 @@ class EnvironmentAnalysis:
                     pressureLevelData, value, indices, lonArray, latArray
                 )
                 variablePointsArray = np.array([heightAboveSeaLevelArray, valueArray]).T
-                variableFunction = Function(variablePointsArray)
+                variableFunction = Function(
+                    variablePointsArray,
+                    inputs="Height Above Sea Level (m)",
+                    outputs=key,
+                )
                 self.pressureLevelDataDict[dateString][hourString][
                     key
                 ] = variableFunction
@@ -498,7 +558,7 @@ class EnvironmentAnalysis:
             )
 
             # Check if date is within analysis range
-            if not (self.start_date <= dateTime <= self.end_date):
+            if not (self.start_date <= dateTime < self.end_date):
                 continue
 
             # Make sure keys exist
@@ -588,60 +648,415 @@ class EnvironmentAnalysis:
         self.max_wind_gust = np.max(self.wind_gust_list)
         return self.max_wind_gust
 
-    # TODO: Implement
-    def calculate_wind_gust_distribution(self):
+    # TODO: Create tests
+    def plot_wind_gust_distribution(self):
         """Get all values of wind gust speed (for every date and hour available)
-        and plot a single distribution. Expectedr result is a Weibull distribution.
+        and plot a single distribution. Expected result is a Weibull distribution.
         """
-        ...
+        self.wind_gust_list = [
+            dayDict[hour]["surfaceWindGust"]
+            for dayDict in self.surfaceDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        plt.figure()
+        # Plot histogram
+        plt.hist(
+            self.wind_gust_list,
+            bins=int(len(self.wind_gust_list) ** 0.5),
+            density=True,
+            histtype="stepfilled",
+            alpha=0.2,
+            label="Wind Gust Speed Distribution",
+        )
+
+        # Plot weibull distribution
+        c, loc, scale = stats.weibull_min.fit(self.wind_gust_list)
+        x = np.linspace(0, np.max(self.wind_gust_list), 100)
+        plt.plot(
+            x,
+            stats.weibull_min.pdf(x, c, loc, scale),
+            "r-",
+            linewidth=2,
+            label="Weibull Distribution",
+        )
+
+        # Label plot
+        plt.ylabel("Probability")
+        plt.xlabel("Wind gust speed (m/s)")
+        plt.title("Wind Gust Speed Distribution")
+        plt.legend()
+        plt.show()
+
+        return None
 
     # TODO: Implement
     def calculate_average_temperature_along_day(self):
         """temperature progression throughout the day at some fine interval (ex: 2 hours) with 1, 2, 3, sigma contours"""
         ...
 
-    # TODO: Implement
-    def calculate_average_wind_profile(self):
-        """average, 1, 2, 3 sigma wind profile from 0 35,000 ft AGL"""
-        ...
+    # TODO: Create tests
+    def plot_average_wind_speed_profile(self, max_altitude=10000):
+        """Average wind speed for all datetimes available."""
+        min_altitude = self.elevation
+        altitude_list = np.linspace(min_altitude, max_altitude, 100)
+        wind_speed_profiles = [
+            dayDict[hour]["windSpeed"](altitude_list)
+            for dayDict in self.pressureLevelDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        self.average_wind_speed_profile = np.mean(wind_speed_profiles, axis=0)
+        # Plot
+        plt.figure()
+        plt.plot(self.average_wind_speed_profile, altitude_list, "r", label="$\\mu$")
+        plt.plot(
+            np.percentile(wind_speed_profiles, 50 - 34.1, axis=0),
+            altitude_list,
+            "b--",
+            alpha=1,
+            label="$\\mu \\pm \\sigma$",
+        )
+        plt.plot(
+            np.percentile(wind_speed_profiles, 50 + 34.1, axis=0),
+            altitude_list,
+            "b--",
+            alpha=1,
+        )
+        plt.plot(
+            np.percentile(wind_speed_profiles, 50 - 47.4, axis=0),
+            altitude_list,
+            "b--",
+            alpha=0.5,
+            label="$\\mu \\pm 2\\sigma$",
+        )
+        plt.plot(
+            np.percentile(wind_speed_profiles, 50 + 47.7, axis=0),
+            altitude_list,
+            "b--",
+            alpha=0.5,
+        )
+        # plt.plot(np.percentile(wind_speed_profiles, 50-49.8, axis=0, method='weibull'), altitude_list, 'b--', alpha=0.25)
+        # plt.plot(np.percentile(wind_speed_profiles, 50+49.8, axis=0, method='weibull'), altitude_list, 'b--', alpha=0.25)
+        for wind_speed_profile in wind_speed_profiles:
+            plt.plot(wind_speed_profile, altitude_list, "gray", alpha=0.01)
+        plt.ylim(min_altitude, max_altitude)
+        plt.xlabel("Wind speed (m/s)")
+        plt.ylabel("Altitude (m)")
+        plt.title("Average Wind Speed Profile")
+        plt.legend()
+        plt.show()
 
-    # TODO: Implement
-    def calculate_average_day_wind_rose(self):
-        """average day wind rose"""
-        ...
+    def process_wind_speed_and_direction_data_for_average_day(self):
+        """Process the wind_speed and wind_direction data to generate lists of all the wind_speeds recorded
+        for a following hour of the day and also the wind direction. Also calculates the greater and the smallest
+        wind_speed recorded
 
-    # Animations
+        Returns
+        -------
+        None
+        """
+        max_wind_speed = float("-inf")
+        min_wind_speed = float("inf")
+
+        days = list(self.surfaceDataDict.keys())
+        hours = list(self.surfaceDataDict[days[0]].keys())
+
+        windSpeed = {}
+        windDir = {}
+
+        for hour in hours:
+            windSpeed[hour] = []
+            windDir[hour] = []
+            for day in days:
+                try:
+                    hour_wind_speed = self.pressureLevelDataDict[day][hour][
+                        "windSpeed"
+                    ](self.elevation)
+
+                    max_wind_speed = (
+                        hour_wind_speed
+                        if hour_wind_speed > max_wind_speed
+                        else max_wind_speed
+                    )
+                    min_wind_speed = (
+                        hour_wind_speed
+                        if hour_wind_speed < min_wind_speed
+                        else min_wind_speed
+                    )
+
+                    windSpeed[hour].append(hour_wind_speed)
+                    windDir[hour].append(
+                        self.pressureLevelDataDict[day][hour]["windDirection"](
+                            self.elevation
+                        )
+                    )
+                except KeyError:
+                    # Not all days have all hours stored, that is fine
+                    pass
+
+        self.max_wind_speed = max_wind_speed
+        self.min_wind_speed = min_wind_speed
+        self.wind_speed_per_hour = windSpeed
+        self.wind_direction_per_hour = windDir
+
+    @staticmethod
+    def plot_wind_rose(
+        wind_direction, wind_speed, bins=None, title=None, fig=None, rect=None
+    ):
+        """Plot a windrose given the data.
+
+        Parameters
+        ----------
+        wind_direction: list[float]
+        wind_speed: list[float]
+        bins: 1D array or integer, optional
+            number of bins, or a sequence of bins variable. If not set, bins=6,
+            then bins=linspace(min(var), max(var), 6)
+        title: str, optional
+            Title of the plot
+        fig: matplotlib.pyplot.figure, optional
+
+        Returns
+        -------
+        WindroseAxes
+        """
+        ax = WindroseAxes.from_ax(fig=fig, rect=rect)
+        ax.bar(
+            wind_direction,
+            wind_speed,
+            bins=bins,
+            normed=True,
+            opening=0.8,
+            edgecolor="white",
+        )
+        ax.set_title(title)
+        ax.set_legend()
+        # Format the ticks (only integers, as percentage, at most 3 intervals)
+        ax.yaxis.set_major_locator(
+            mtick.MaxNLocator(integer=True, nbins=3, prune="lower")
+        )
+        ax.yaxis.set_major_formatter(mtick.PercentFormatter(decimals=0))
+        return ax
+
+    def plot_average_day_wind_rose_specific_hour(self, hour, fig=None):
+        """Plot a specific hour of the average windrose
+
+        Parameters
+        ----------
+        hour: int
+        fig: matplotlib.pyplot.figure
+
+        Returns
+        -------
+        None
+        """
+        hour = str(hour)
+        self.plot_wind_rose(
+            self.wind_direction_per_hour[hour],
+            self.wind_speed_per_hour[hour],
+            bins=np.linspace(self.min_wind_speed, self.max_wind_speed, 6),
+            title=f"Windrose of an average day. Hour {float(hour):05.2f}".replace(
+                ".", ":"
+            ),
+            fig=fig,
+        )
+        plt.show()
+
+    # TODO: Create tests
+    def plot_average_day_wind_rose_all_hours(self):
+        """Plot windroses for all hours of a day, in a grid like plot."""
+        # Get days and hours
+        days = list(self.surfaceDataDict.keys())
+        hours = list(self.surfaceDataDict[days[0]].keys())
+
+        # Make sure necessary data has been calculated
+        if not all(
+            [
+                self.max_wind_speed,
+                self.min_wind_speed,
+                self.wind_speed_per_hour,
+                self.wind_direction_per_hour,
+            ]
+        ):
+            self.process_wind_speed_and_direction_data_for_average_day()
+
+        # Figure settings
+        windrose_side = 3  # inches
+        vertical_padding_top = 1  # inches
+        plot_padding = 0.18  # percentage
+        nrows, ncols = self._find_two_closest_integer_factors(len(hours))
+        vertical_plot_area_percentage = (
+            nrows * windrose_side / (nrows * windrose_side + vertical_padding_top)
+        )
+
+        # Create figure
+        fig = plt.figure()
+        fig.set_size_inches(
+            ncols * windrose_side, nrows * windrose_side + vertical_padding_top
+        )
+        bins = np.linspace(self.min_wind_speed, self.max_wind_speed, 6)
+        width = (1 - 2 * plot_padding) * 1 / ncols
+        height = vertical_plot_area_percentage * (1 - 2 * plot_padding) * 1 / nrows
+
+        for k, hour in enumerate(hours):
+            i, j = len(hours) // nrows - k // ncols, k % ncols  # Row count bottom up
+            left = j * 1 / ncols + plot_padding / ncols
+            bottom = vertical_plot_area_percentage * (
+                (i - 2) / nrows + plot_padding / nrows
+            )
+
+            ax = self.plot_wind_rose(
+                self.wind_direction_per_hour[hour],
+                self.wind_speed_per_hour[hour],
+                bins=bins,
+                title=f"{float(hour):05.2f}".replace(".", ":"),
+                fig=fig,
+                rect=[left, bottom, width, height],
+            )
+            if k == 0:
+                ax.legend(
+                    loc="upper center",
+                    bbox_to_anchor=(ncols / 2 + 0.8, 1.5),  # 0.8 i a magic number
+                    fancybox=True,
+                    shadow=True,
+                    ncol=6,
+                )
+            else:
+                ax.legend().set_visible(False)
+            fig.add_axes(ax)
+
+        fig.suptitle("Wind Roses", fontsize=20, x=0.5, y=1)
+        plt.show()
+
+    def animate_average_wind_rose(self, figsize=(8, 8), filename="wind_rose.gif"):
+        """Animates the wind_rose of an average day. The inputs of a wind_rose are the location of the
+        place where we want to analyse, (x,y,z). The data is ensembled by hour, which means, the windrose
+        of a specific hour is generated by bringing together the data of all of the days available for that
+        specific hour. It's possible to change the size of the gif using the parameter figsize, which is the
+        height and width in inches.
+
+        Parameters
+        ----------
+        figsize : array
+
+        Returns
+        -------
+        Image : ipywidgets.widgets.widget_media.Image
+        """
+        days = list(self.surfaceDataDict.keys())
+        hours = list(self.surfaceDataDict[days[0]].keys())
+
+        if not all(
+            [
+                self.max_wind_speed,
+                self.min_wind_speed,
+                self.wind_speed_per_hour,
+                self.wind_direction_per_hour,
+            ]
+        ):
+            self.process_wind_speed_and_direction_data_for_average_day()
+
+        metadata = dict(
+            title="windrose",
+            artist="windrose",
+            comment="""Made with windrose
+                http://www.github.com/scls19fr/windrose""",
+        )
+        writer = ImageWriter(fps=1, metadata=metadata)
+        fig = plt.figure(facecolor="w", edgecolor="w", figsize=figsize)
+        with writer.saving(fig, filename, 100):
+            for hour in hours:
+                self.plot_wind_rose(
+                    self.wind_direction_per_hour[hour],
+                    self.wind_speed_per_hour[hour],
+                    bins=np.linspace(self.min_wind_speed, self.max_wind_speed, 6),
+                    title=f"Windrose of an average day. Hour {float(hour):05.2f}".replace(
+                        ".", ":"
+                    ),
+                    fig=fig,
+                )
+                writer.grab_frame()
+                plt.clf()
+
+        with open(filename, "rb") as file:
+            image = file.read()
+
+        fig_width, fig_height = plt.gcf().get_size_inches() * fig.dpi
+        return widgets.Image(
+            value=image,
+            format="gif",
+            width=fig_width,
+            height=fig_height,
+        )
+
     # TODO: Implement
     def animate_wind_gust_distribution_over_average_day(self):
         """Animation of how the wind gust distribution varies throughout the day."""
         ...
 
-    # TODO: Implement
+    # TODO: Create tests
     def animate_wind_profile_over_average_day(self):
         """Animation of how wind profile evolves throughout an average day."""
-        ...
+        # Gather animation data
+        altitude_list = np.linspace(1495.155, 12000, 100)  # TODO: parametrize
+        average_wind_profile_at_given_hour = {}
+        for hour in list(self.pressureLevelDataDict.values())[0].keys():
+            wind_speed_values_for_this_hour = []
+            for dayDict in self.pressureLevelDataDict.values():
+                try:
+                    wind_speed_values_for_this_hour += [
+                        dayDict[hour]["windSpeed"](altitude_list)
+                    ]
+                except KeyError:
+                    # Some day does not have data for the desired hour (probably the last one)
+                    # No need to worry, just average over the other days
+                    pass
+            average_wind_profile_at_given_hour[hour] = np.mean(
+                wind_speed_values_for_this_hour, axis=0
+            )
 
-    # TODO: Adapt to new data format
-    def animate_wind_rose(self):
-        """Animation of how average wind rose evolves throughout an average day."""
+        # Create animation
+        fig, ax = plt.subplots()
+        # Initialize animation artists: curve and hour text
+        (ln,) = plt.plot([], [], "r-")
+        tx = plt.text(
+            x=0.95,
+            y=0.95,
+            s="",
+            verticalalignment="top",
+            horizontalalignment="right",
+            transform=ax.transAxes,
+            fontsize=24,
+        )
+        # Define function to initialize animation
+        def init():
+            ax.set_xlim(0, 25)
+            ax.set_ylim(altitude_list[0], altitude_list[-1])
+            ax.set_xlabel("Wind Speed (m/s)")
+            ax.set_ylabel("Altitude (m)")
+            ax.set_title("Average Wind Profile")
+            ax.grid(True)
+            return ln, tx
 
-        def get_data(i):
-            windDirection = []
-            windSpeed = []
-            for idx in range(i, len(self.environments), 8):
-                windDirection.extend(self.environments[idx].windDirection.source[:, 1])
-                windSpeed.extend(self.environments[idx].windSpeed.source[:, 1])
-            return windSpeed, windDirection
+        # Define function which sets each animation frame
+        def update(frame):
+            xdata = frame[1]
+            ydata = altitude_list
+            ln.set_data(xdata, ydata)
+            tx.set_text(f"{float(frame[0]):05.2f}".replace(".", ":"))
+            return ln, tx
 
-        ax = WindroseAxes.from_ax()
-        for i in range(8):
-            windSpeed, windDir = get_data(i)
-            ax.bar(windSpeed, windDir, normed=True, opening=0.8, edgecolor="white")
-            plt.pause(0.3)
-
+        animation = FuncAnimation(
+            fig,
+            update,
+            frames=average_wind_profile_at_given_hour.items(),
+            interval=1000,
+            init_func=init,
+            blit=True,
+        )
         plt.show()
 
     # Others
+    # TODO: Addapt to new data format
     def wind_profile(self):
         windSpeed = []
         for idx in range(0, len(self.environments)):
