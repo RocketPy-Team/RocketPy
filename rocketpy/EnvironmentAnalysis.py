@@ -1004,20 +1004,29 @@ class EnvironmentAnalysis:
         fig = plt.figure(figsize=(ncols * 2, nrows * 2.2))
         gs = fig.add_gridspec(nrows, ncols, hspace=0, wspace=0, left=0.12)
         axs = gs.subplots(sharex=True, sharey=True)
+        x_min, x_max, y_min, y_max = 0, 0, self.elevation, 0
         for (i, j) in [(i, j) for i in range(nrows) for j in range(ncols)]:
             hour = hours[i * ncols + j]
             ax = axs[i, j]
             ax.plot(*self.average_wind_profile_at_given_hour[hour], "r-")
             ax.set_title(f"{float(hour):05.2f}".replace(".", ":"), y=0.8)
-            ax.set_xlim(0, max(self.average_wind_profile_at_given_hour[hour][0]))
-            ax.xaxis.set_major_locator(
-                mtick.MaxNLocator(integer=True, nbins=5, prune="lower")
-            )
-            ax.yaxis.set_major_locator(
-                mtick.MaxNLocator(integer=True, nbins=4, prune="lower")
-            )
+            ax.autoscale(enable=True, axis='y', tight=True)
+            current_x_max = ax.get_xlim()[1]
+            current_y_max = ax.get_ylim()[1]
+            x_max = current_x_max if current_x_max > x_max else x_max
+            y_max = current_y_max if current_y_max > y_max else y_max
             ax.label_outer()
             ax.grid()
+        # Set x and y limits for the last axis. Since axes are shared, set to all
+        ax.set_xlim(x_min, x_max)
+        ax.set_ylim(y_min, y_max)
+        ax.xaxis.set_major_locator(
+            mtick.MaxNLocator(integer=True, nbins=5, prune="lower")
+        )
+        ax.yaxis.set_major_locator(
+            mtick.MaxNLocator(integer=True, nbins=4, prune="lower")
+        )
+        # Set title and axis labels for entire figure
         fig.suptitle("Average Wind Profile")
         fig.supxlabel("Wind speed (m/s)")
         fig.supylabel("Altitude ASL (m)")
