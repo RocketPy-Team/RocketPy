@@ -1010,7 +1010,7 @@ class EnvironmentAnalysis:
             ax = axs[i, j]
             ax.plot(*self.average_wind_profile_at_given_hour[hour], "r-")
             ax.set_title(f"{float(hour):05.2f}".replace(".", ":"), y=0.8)
-            ax.autoscale(enable=True, axis='y', tight=True)
+            ax.autoscale(enable=True, axis="y", tight=True)
             current_x_max = ax.get_xlim()[1]
             current_y_max = ax.get_ylim()[1]
             x_max = current_x_max if current_x_max > x_max else x_max
