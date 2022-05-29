@@ -66,7 +66,7 @@ class EnvironmentAnalysis:
         self.pressureLevelDataFile = pressureLevelDataFile
         self.prefered_timezone = timezone
         self.unitSystem = unitSystem
-
+        
         # Manage timezones
         self.__find_prefered_timezone()
         self.__localize_input_dates()
