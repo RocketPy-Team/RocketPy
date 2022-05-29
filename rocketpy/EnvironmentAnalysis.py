@@ -54,6 +54,7 @@ class EnvironmentAnalysis:
         surfaceDataFile=None,
         pressureLevelDataFile=None,
         timezone=None,
+        unitSystem="metric",  # imperial
     ):
         # Save inputs
         self.start_date = start_date
@@ -64,7 +65,8 @@ class EnvironmentAnalysis:
         self.surfaceDataFile = surfaceDataFile
         self.pressureLevelDataFile = pressureLevelDataFile
         self.prefered_timezone = timezone
-
+        self.unitSystem = unitSystem
+        
         # Manage timezones
         self.__find_prefered_timezone()
         self.__localize_input_dates()
@@ -410,6 +412,9 @@ class EnvironmentAnalysis:
             heightAboveSeaLevelArray = self.__compute_height_above_sea_level(
                 geopotentialArray
             )
+            if self.unitSystem == "imperial":
+                # Convert meter to feet
+                heightAboveSeaLevelArray *= 3.28084
 
             # Loop through wind components and temperature, get value and convert to Function
             for key, value in self.pressureLevelFileDict.items():
@@ -430,11 +435,20 @@ class EnvironmentAnalysis:
             pressurePointsArray = np.array(
                 [heightAboveSeaLevelArray, pressureLevelArray]
             ).T
-            pressureFunction = Function(
-                pressurePointsArray,
-                inputs="Height Above Sea Level (m)",
-                outputs="Pressure (Pa)",
-            )
+
+            if self.unitSystem == "imperial":
+                pressureFunction = Function(
+                    pressurePointsArray,
+                    inputs="Height Above Sea Level (ft)",
+                    outputs="Pressure (Pa)",
+                )
+            else:
+                pressureFunction = Function(
+                    pressurePointsArray,
+                    inputs="Height Above Sea Level (m)",
+                    outputs="Pressure (Pa)",
+                )
+
             self.pressureLevelDataDict[dateString][hourString][
                 "pressure"
             ] = pressureFunction
@@ -454,6 +468,11 @@ class EnvironmentAnalysis:
                 lonArray,
                 latArray,
             )
+
+            if self.unitSystem == "imperial":
+                windVelocityXArray *= 3.28084
+                windVelocityYArray *= 3.28084
+
             windSpeedArray = np.sqrt(
                 np.square(windVelocityXArray) + np.square(windVelocityYArray)
             )
@@ -461,11 +480,20 @@ class EnvironmentAnalysis:
             windSpeedPointsArray = np.array(
                 [heightAboveSeaLevelArray, windSpeedArray]
             ).T
-            windSpeedFunction = Function(
-                windSpeedPointsArray,
-                inputs="Height Above Sea Level (m)",
-                outputs="Wind Speed (m/s)",
-            )
+
+            if self.unitSystem == "imperial":
+                windSpeedFunction = Function(
+                    windSpeedPointsArray,
+                    inputs="Height Above Sea Level (ft)",
+                    outputs="Wind Speed (ft/s)",
+                )
+            else:
+                windSpeedFunction = Function(
+                    windSpeedPointsArray,
+                    inputs="Height Above Sea Level (m)",
+                    outputs="Wind Speed (m/s)",
+                )
+
             self.pressureLevelDataDict[dateString][hourString][
                 "windSpeed"
             ] = windSpeedFunction
@@ -478,11 +506,20 @@ class EnvironmentAnalysis:
             windHeadingPointsArray = np.array(
                 [heightAboveSeaLevelArray, windHeadingArray]
             ).T
-            windHeadingFunction = Function(
-                windHeadingPointsArray,
-                inputs="Height Above Sea Level (m)",
-                outputs="Wind Heading (Deg True)",
-            )
+
+            if self.unitSystem == "imperial":
+                windHeadingFunction = Function(
+                    windHeadingPointsArray,
+                    inputs="Height Above Sea Level (ft)",
+                    outputs="Wind Heading (Deg True)",
+                )
+            else:
+                windHeadingFunction = Function(
+                    windHeadingPointsArray,
+                    inputs="Height Above Sea Level (m)",
+                    outputs="Wind Heading (Deg True)",
+                )
+
             self.pressureLevelDataDict[dateString][hourString][
                 "windHeading"
             ] = windHeadingFunction
@@ -492,11 +529,19 @@ class EnvironmentAnalysis:
             windDirectionPointsArray = np.array(
                 [heightAboveSeaLevelArray, windDirectionArray]
             ).T
-            windDirectionFunction = Function(
-                windDirectionPointsArray,
-                inputs="Height Above Sea Level (m)",
-                outputs="Wind Direction (Deg True)",
-            )
+
+            if self.unitSystem == "imperial":
+                windDirectionFunction = Function(
+                    windDirectionPointsArray,
+                    inputs="Height Above Sea Level (ft)",
+                    outputs="Wind Direction (Deg True)",
+                )
+            else:
+                windDirectionFunction = Function(
+                    windDirectionPointsArray,
+                    inputs="Height Above Sea Level (m)",
+                    outputs="Wind Direction (Deg True)",
+                )
             self.pressureLevelDataDict[dateString][hourString][
                 "windDirection"
             ] = windDirectionFunction
@@ -1067,9 +1112,9 @@ class EnvironmentAnalysis:
 
     def allInfo(self):
         print("Gust Information")
-        print(f"Global Maximum wind gust: {self.maximum_wind_gust} m/s")
-        print(f"Average maximum wind gust: {self.average_max_wind_gust} m/s")
-        print("Temeprature Information")
+        print(f"Global Maximum wind gust: {self.maximum_wind_gust} x/s")
+        print(f"Average maximum wind gust: {self.average_max_wind_gust} x/s")
+        print("Temperature Information")
         print(f"Global Maximum temperature: {self.record_max_temperature} ºC")
         print(f"Global Minimum temperature: {self.record_min_temperature} ºC")
         print(f"Average minimum temperture: {self.average_min_temperature} ºC")
