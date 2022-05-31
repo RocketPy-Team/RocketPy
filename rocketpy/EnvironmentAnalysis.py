@@ -5,8 +5,11 @@ import ipywidgets as widgets
 import numpy as np
 from scipy import stats
 from matplotlib import pyplot as plt
+
+
 from matplotlib.animation import FuncAnimation, PillowWriter as ImageWriter
 import matplotlib.ticker as mtick
+
 from windrose import WindAxes, WindroseAxes
 import netCDF4
 from cftime import num2pydate
@@ -1311,10 +1314,149 @@ class EnvironmentAnalysis:
             height=fig_height,
         )
 
+    def plot_wind_gust_distribution_over_average_day(self):
+        """Plots shown in the animation of how the wind gust distribution varies throughout the day."""
+        ...
+        # Gather animation data
+        average_wind_gust_at_given_hour = {}
+        for hour in list(self.surfaceDataDict.values())[0].keys():
+            wind_gust_values_for_this_hour = []
+            for dayDict in self.surfaceDataDict.values():
+                try:
+                    wind_gust_values_for_this_hour += [dayDict[hour]["surfaceWindGust"]]
+                except KeyError:
+                    # Some day does not have data for the desired hour (probably the last one)
+                    # No need to worry, just average over the other days
+                    pass
+            average_wind_gust_at_given_hour[hour] = wind_gust_values_for_this_hour
+
+        # Generate plots
+
+        num_of_plots = len(list(self.surfaceDataDict.values())[0].keys())
+
+        fig = plt.figure(figsize=(9, num_of_plots * 5))
+        # plt.subplots_adjust(wspace=0.2,hspace=0.3)
+
+        current_plot = 0
+        for hour in list(self.surfaceDataDict.values())[0].keys():
+            current_plot += 1
+            ax = plt.subplot(num_of_plots, 2, current_plot)
+            ax.hist(
+                average_wind_gust_at_given_hour[hour],
+                bins=int(len(average_wind_gust_at_given_hour[hour]) ** 0.5),
+                density=True,
+                histtype="stepfilled",
+                alpha=0.2,
+                label="Wind Gust Speed Distribution",
+            )
+
+            # Plot weibull distribution
+            c, loc, scale = stats.weibull_min.fit(average_wind_gust_at_given_hour[hour])
+            x = np.linspace(0, np.max(average_wind_gust_at_given_hour[hour]), 100)
+            ax.plot(
+                x,
+                stats.weibull_min.pdf(x, c, loc, scale),
+                "r-",
+                linewidth=2,
+                label="Weibull Distribution",
+            )
+
+            # Label plot
+            ax.set_ylim(0, 0.3)
+            if current_plot % 2 != 0:
+                ax.set_ylabel("Probability")
+            ax.set_xlabel("Wind gust speed (m/s)")
+            ax.set_title("Hour " + str(hour) + ":00")
+
+        # set legend and title
+        # TODO: fix legend and title position
+        handles, labels = ax.get_legend_handles_labels()
+        fig.legend(handles, labels, loc="upper right")
+        fig.suptitle("Wind Gust Speed Distribution", fontsize=16)
+
+    # Animations
+
     # TODO: Implement
     def animate_wind_gust_distribution_over_average_day(self):
         """Animation of how the wind gust distribution varies throughout the day."""
-        ...
+        # Gather animation data
+        wind_gusts_at_given_hour = {}
+        for hour in list(self.surfaceDataDict.values())[0].keys():
+            wind_gust_values_for_this_hour = []
+            for dayDict in self.surfaceDataDict.values():
+                try:
+                    wind_gust_values_for_this_hour += [dayDict[hour]["surfaceWindGust"]]
+                except KeyError:
+                    # Some day does not have data for the desired hour (probably the last one)
+                    # No need to worry, just average over the other days
+                    pass
+            wind_gusts_at_given_hour[hour] = wind_gust_values_for_this_hour
+
+        # Create animation
+        fig, ax = plt.subplots()
+        # Initialize animation artists: histogram and hour text
+        hist_bins = np.linspace(0, 24, 25)  # Fix bins edges TODO: parametrize
+        _, _, bar_container = plt.hist(
+            [],
+            bins=hist_bins,
+            alpha=0.2,
+            label="Wind Gust Speed Distribution",
+        )
+        (ln,) = plt.plot(
+            [],
+            [],
+            "r-",
+            linewidth=2,
+            label="Weibull Distribution",
+        )
+        tx = plt.text(
+            x=0.95,
+            y=0.95,
+            s="",
+            verticalalignment="top",
+            horizontalalignment="right",
+            transform=ax.transAxes,
+            fontsize=24,
+        )
+
+        # Define function to initialize animation
+        def init():
+            ax.set_xlim(0, 25)  # TODO: parametrize
+            ax.set_ylim(0, 0.3)  # TODO: parametrize
+            ax.set_xlabel("Wind Gust Speed (m/s)")
+            ax.set_ylabel("Probability")
+            ax.set_title("Wind Gust Distribution")
+            # ax.grid(True)
+            return ln, *bar_container.patches, tx
+
+        # Define function which sets each animation frame
+        def update(frame):
+            # Update histogram
+            data = frame[1]
+            hist, _ = np.histogram(data, hist_bins, density=True)
+            for count, rect in zip(hist, bar_container.patches):
+                rect.set_height(count)
+            # Update weibull distribution
+            c, loc, scale = stats.weibull_min.fit(data, method="MM")
+            xdata = np.linspace(0, 25, 100)  # TODO: parametrize
+            ydata = stats.weibull_min.pdf(xdata, c, loc, scale)
+            ln.set_data(xdata, ydata)
+            # Update hour text
+            tx.set_text(f"{float(frame[0]):05.2f}".replace(".", ":"))
+            return ln, *bar_container.patches, tx
+
+        for frame in wind_gusts_at_given_hour.items():
+            update(frame)
+
+        animation = FuncAnimation(
+            fig,
+            update,
+            frames=wind_gusts_at_given_hour.items(),
+            interval=1000,
+            init_func=init,
+            blit=True,
+        )
+        plt.show()
 
     # TODO: Create test
     def process_wind_profile_over_average_day(self, max_altitude=10000):
