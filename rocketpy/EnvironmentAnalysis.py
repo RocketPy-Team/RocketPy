@@ -54,7 +54,43 @@ class EnvironmentAnalysis:
         surfaceDataFile=None,
         pressureLevelDataFile=None,
         timezone=None,
+        unit_system="metric",
     ):
+        """Constructor for the EnvironmentAnalysis class.
+
+        Parameters
+        ----------
+        start_date : datetime.datetime
+            Start date and time of the analysis. When parsing the weather data
+            from the source file, only data after this date will be parsed.
+        end_date : datetime.datetime
+            End date and time of the analysis. When parsing the weather data
+            from the source file, only data before this date will be parsed.
+        latitude : float
+            Latitude coordinate of the location where the analysis will be
+            carried out.
+        longitude : float
+            Longitude coordinate of the location where the analysis will be
+            carried out.
+        elevation : float
+            Elevation of the location where the analysis will be carried out.
+        surfaceDataFile : str, optional
+            Path to the netCDF file containing the surface data.
+        pressureLevelDataFile : str, optional
+            Path to the netCDF file containing the pressure level data.
+        timezone : str, optional
+            Name of the timezone to be used when displaying results. To see all
+            available time zones, import pytz and run print(pytz.all_timezones).
+            Default time zone is the local time zone at the latitude and
+            longitude specified.
+        unit_system : str, optional
+            Unit system to be used when displaying results. Default is metric.
+            Options are: SI, metric, imperial. Default is metric.
+
+        Returns
+        -------
+        None
+        """
         # Save inputs
         self.start_date = start_date
         self.end_date = end_date
@@ -64,8 +100,11 @@ class EnvironmentAnalysis:
         self.surfaceDataFile = surfaceDataFile
         self.pressureLevelDataFile = pressureLevelDataFile
         self.prefered_timezone = timezone
+        self.unit_system_string = unit_system
 
-        # Manage timezones
+        # Manage units and timezones
+        self.__init_unit_system()
+        self.__init_data_parsing_units()
         self.__find_prefered_timezone()
         self.__localize_input_dates()
 
@@ -74,6 +113,10 @@ class EnvironmentAnalysis:
         self.surfaceDataDict = {}
         self.parsePressureLevelData()
         self.parseSurfaceData()
+
+        # Convert units
+        self.convertPressureLevelData()
+        self.convertSurfaceData()
 
         # Initialize result variables
         self.average_max_temperature = 0
@@ -290,6 +333,216 @@ class EnvironmentAnalysis:
             )
         elif isinstance(self.prefered_timezone, str):
             self.prefered_timezone = pytz.timezone(self.prefered_timezone)
+
+    def __init_data_parsing_units(self):
+        """Define units for pressure level and surface data parsing"""
+        self.current_units = {
+            "height_ASL": "m",
+            "pressure": "hPa",
+            "temperature": "K",
+            "windDirection": "deg",
+            "windHeading": "deg",
+            "windSpeed": "m/s",
+            "windVelocityX": "m/s",
+            "windVelocityY": "m/s",
+            "surface100mWindVelocityX": "m/s",
+            "surface100mWindVelocityY": "m/s",
+            "surface10mWindVelocityX": "m/s",
+            "surface10mWindVelocityY": "m/s",
+            "surfaceTemperature": "K",
+            "cloudBaseHeight": "m",
+            "surfaceWindGust": "m/s",
+            "surfacePressure": "Pa",
+            "totalPrecipitation": "m",
+        }
+
+    def __init_unit_system(self):
+        """Initialize prefered units for output (SI, metric or imperial)."""
+        if self.unit_system_string == "metric":
+            self.unit_system = {
+                "length": "km",
+                "velocity": "m/s",
+                "acceleration": "g",
+                "mass": "kg",
+                "time": "s",
+                "pressure": "hPa",
+                "temperature": "degC",
+                "angle": "deg",
+                "precipitation": "mm",
+                "wind_speed": "m/s",
+            }
+        elif self.unit_system_string == "imperial":
+            self.unit_system = {
+                "length": "ft",
+                "velocity": "mph",
+                "acceleration": "ft/s^2",
+                "mass": "lb",
+                "time": "s",
+                "pressure": "inHg",
+                "temperature": "degF",
+                "angle": "deg",
+                "precipitation": "in",
+                "wind_speed": "knot",
+            }
+        else:
+            # Default to SI
+            self.unit_system = {
+                "length": "m",
+                "velocity": "m/s",
+                "acceleration": "m/s^2",
+                "mass": "kg",
+                "time": "s",
+                "pressure": "Pa",
+                "temperature": "K",
+                "angle": "rad",
+                "precipitation": "m",
+                "wind_speed": "m/s",
+            }
+
+    def __conversion_factor(self, from_unit, to_unit):
+        """Returns the conversion factor from one unit to another."""
+        units_conversion_dict = {
+            # Units of length. Meter "m" is the base unit.
+            "mm": 1e3,
+            "cm": 1e2,
+            "dm": 1e1,
+            "m": 1,
+            "dam": 1e-1,
+            "hm": 1e-2,
+            "km": 1e-3,
+            "ft": 1 / 0.3048,
+            "in": 1 / 0.0254,
+            "mi": 1 / 1609.344,
+            "nmi": 1 / 1852,
+            "yd": 1 / 0.9144,
+            # Units of velocity. Meter per second "m/s" is the base unit.
+            "m/s": 1,
+            "km/h": 3.6,
+            "knot": 1.9438444924406047,
+            "mph": 2.2369362920544023,
+            # Units of acceleration. Meter per square second "m/s^2" is the base unit.
+            "m/s^2": 1,
+            "g": 1 / 9.80665,
+            "ft/s^2": 1 / 3.2808399,
+            # Units of pressure. Pascal "Pa" is the base unit.
+            "Pa": 1,
+            "hPa": 1e-2,
+            "kPa": 1e-3,
+            "MPa": 1e-6,
+            "bar": 1e-5,
+            "atm": 1.01325e-5,
+            "mmHg": 1 / 133.322,
+            "inHg": 1 / 3386.389,
+            # Units of time. Seconds "s" is the base unit.
+            "s": 1,
+            "min": 1 / 60,
+            "h": 1 / 3600,
+            "d": 1 / 86400,
+            # Units of mass. Kilogram "kg" is the base unit.
+            "mg": 1e-6,
+            "g": 1e-3,
+            "kg": 1,
+            "lb": 2.20462,
+            # Units of angle. Radian "rad" is the base unit.
+            "rad": 1,
+            "deg": 1 / 180 * np.pi,
+            "grad": 1 / 200 * np.pi,
+        }
+        try:
+            incoming_factor = units_conversion_dict[to_unit]
+        except KeyError:
+            raise ValueError(f"Unit {to_unit} is not supported.")
+        try:
+            outgoing_factor = units_conversion_dict[from_unit]
+        except KeyError:
+            raise ValueError(f"Unit {from_unit} is not supported.")
+
+        return incoming_factor / outgoing_factor
+
+    def __convert_units_Functions(self, variable, from_unit, to_unit, axis=1):
+        """See EnvironmentAnalysis.__convert_units() for documentation."""
+        # Perform conversion, take special care with temperatures
+        variable_source = variable.source
+        if from_unit in ["K", "degC", "degF"]:
+            variable_source[:, axis] = self.__convert_temperature(
+                variable_source[:, axis], from_unit, to_unit
+            )
+        else:
+            conversion_factor = self.__conversion_factor(from_unit, to_unit)
+            variable_source[:, axis] *= conversion_factor
+        # Rename axis labels
+        if axis == 0:
+            variable.__inputs__[0] = variable.__inputs__[0].replace(from_unit, to_unit)
+        elif axis == 1:
+            variable.__outputs__[0] = variable.__inputs__[0].replace(from_unit, to_unit)
+        # Create new Function instance with converted data
+        return Function(
+            source=variable_source,
+            inputs=variable.__inputs__,
+            outputs=variable.__outputs__,
+            interpolation=variable.__interpolation__,
+            extrapolation=variable.__extrapolation__,
+        )
+
+    def __convert_temperature(self, variable, from_unit, to_unit):
+        """See EnvironmentAnalysis.__convert_units() for documentation."""
+        if from_unit == to_unit:
+            return variable
+        if from_unit == "K" and to_unit == "degC":
+            return variable - 273.15
+        if from_unit == "K" and to_unit == "degF":
+            return (variable - 273.15) * 9 / 5 + 32
+        if from_unit == "degC" and to_unit == "K":
+            return variable + 273.15
+        if from_unit == "degC" and to_unit == "degF":
+            return variable * 9 / 5 + 32
+        if from_unit == "degF" and to_unit == "K":
+            return (variable - 32) * 5 / 9 + 273.15
+        if from_unit == "degF" and to_unit == "degC":
+            return (variable - 32) * 5 / 9
+        # Conversion not supported then...
+        raise ValueError(
+            f"Temperature conversion from {from_unit} to {to_unit} is not supported."
+        )
+
+    def __convert_units(self, variable, from_unit, to_unit, axis=1):
+        """Convert units of variable to preferred units.
+
+        Parameters
+        ----------
+        variable : int, float, numpy.array, Function
+            Variable to be converted. If Function, specify axis that should
+            be converted.
+        from_unit : string
+            Unit of incoming data.
+        to_unit : string
+            Unit of returned data.
+        axis : int, optional
+            Axis that should be converted. 0 for x axis, 1 for y axis.
+            Only applies if variable is an instance of the Function class.
+            Default is 1, for the y axis.
+
+        Returns
+        -------
+        variable : int, float, numpy.array, Function
+            Variable converted from "from_unit" to "to_unit".
+        """
+        if isinstance(variable, Function):
+            # Handle Function class
+            return self.__convert_units_Functions(variable, from_unit, to_unit, axis=1)
+        else:
+            # Handle ints, floats, np.arrays
+            if from_unit in ["K", "degC", "degF"]:
+                return self.__convert_temperature(variable, from_unit, to_unit)
+            else:
+                return variable * self.__conversion_factor(from_unit, to_unit)
+
+    # TODO: Needs tests
+    def set_unit_system(self, unit_system="metric"):
+        self.unit_system_string = unit_system
+        self.__init_unit_system()
+        self.convertPressureLevelData()
+        self.convertSurfaceData()
 
     @staticmethod
     def _find_two_closest_integer_factors(number):
@@ -579,6 +832,75 @@ class EnvironmentAnalysis:
 
         return self.surfaceDataDict
 
+    # TODO: Needs tests
+    def convertPressureLevelData(self):
+        """Convert pressure level data to desired unit system."""
+        # Create conversion dict (key: to_unit)
+        conversion_dict = {
+            "pressure": self.unit_system["pressure"],
+            "temperature": self.unit_system["temperature"],
+            "windDirection": self.unit_system["angle"],
+            "windHeading": self.unit_system["angle"],
+            "windSpeed": self.unit_system["wind_speed"],
+            "windVelocityX": self.unit_system["wind_speed"],
+            "windVelocityY": self.unit_system["wind_speed"],
+        }
+        # Loop through dates
+        for date in self.pressureLevelDataDict:
+            for hour in self.pressureLevelDataDict[date]:
+                for key, value in self.pressureLevelDataDict[date][hour].items():
+                    # Skip geopotential x asl
+                    if key not in conversion_dict:
+                        continue
+                    # Convert x axis
+                    variable = self.__convert_units(
+                        variable=value,
+                        from_unit=self.current_units["height_ASL"],
+                        to_unit=self.unit_system["length"],
+                        axis=0,
+                    )
+                    # Update current units
+                    self.current_units["height_ASL"] = self.unit_system["length"]
+                    # Convert y axis
+                    variable = self.__convert_units(
+                        variable=value,
+                        from_unit=self.current_units[key],
+                        to_unit=conversion_dict[key],
+                        axis=1,
+                    )
+                    # Update current units
+                    self.current_units[key] = conversion_dict[key]
+                    # Save converted Function
+                    self.pressureLevelDataDict[date][hour][key] = variable
+
+    # TODO: Needs tests
+    def convertSurfaceData(self):
+        """Convert surface data to desired unit system."""
+        # Create conversion dict (key: from_unit, to_unit)
+        conversion_dict = {
+            "surface100mWindVelocityX": self.unit_system["wind_speed"],
+            "surface100mWindVelocityY": self.unit_system["wind_speed"],
+            "surface10mWindVelocityX": self.unit_system["wind_speed"],
+            "surface10mWindVelocityY": self.unit_system["wind_speed"],
+            "surfaceTemperature": self.unit_system["temperature"],
+            "cloudBaseHeight": self.unit_system["length"],
+            "surfaceWindGust": self.unit_system["wind_speed"],
+            "surfacePressure": self.unit_system["pressure"],
+            "totalPrecipitation": self.unit_system["precipitation"],
+        }
+        # Loop through dates
+        for date in self.surfaceDataDict:
+            for hour in self.surfaceDataDict[date]:
+                for key, value in self.surfaceDataDict[date][hour].items():
+                    variable = self.__convert_units(
+                        variable=value,
+                        from_unit=self.current_units[key],
+                        to_unit=conversion_dict[key],
+                    )
+                    self.surfaceDataDict[date][hour][key] = variable
+                    # Update current units
+                    self.current_units[key] = conversion_dict[key]
+
     # Calculations
     def process_data(self):
         self.calculate_average_max_temperature()
@@ -683,7 +1005,7 @@ class EnvironmentAnalysis:
 
         # Label plot
         plt.ylabel("Probability")
-        plt.xlabel("Wind gust speed (m/s)")
+        plt.xlabel(f"Wind gust speed ({self.unit_system['wind_speed']})")
         plt.title("Wind Gust Speed Distribution")
         plt.legend()
         plt.show()
@@ -740,8 +1062,8 @@ class EnvironmentAnalysis:
         for wind_speed_profile in wind_speed_profiles:
             plt.plot(wind_speed_profile, altitude_list, "gray", alpha=0.01)
         plt.ylim(min_altitude, max_altitude)
-        plt.xlabel("Wind speed (m/s)")
-        plt.ylabel("Altitude (m)")
+        plt.xlabel(f"Wind speed ({self.unit_system['wind_speed']})")
+        plt.ylabel(f"Altitude ({self.unit_system['length']})")
         plt.title("Average Wind Speed Profile")
         plt.legend()
         plt.show()
@@ -1082,9 +1404,9 @@ class EnvironmentAnalysis:
         # Define function to initialize animation
         def init():
             ax.set_xlim(0, 25)
-            ax.set_ylim(self.elevation, max_altitude)
-            ax.set_xlabel("Wind Speed (m/s)")
-            ax.set_ylabel("Altitude (m)")
+            ax.set_ylim(altitude_list[0], altitude_list[-1])
+            ax.set_xlabel(f"Wind Speed ({self.unit_system['wind_speed']})")
+            ax.set_ylabel(f"Altitude ({self.unit_system['length']})")
             ax.set_title("Average Wind Profile")
             ax.grid(True)
             return ln, tx
@@ -1119,10 +1441,22 @@ class EnvironmentAnalysis:
 
     def allInfo(self):
         print("Gust Information")
-        print(f"Global Maximum wind gust: {self.maximum_wind_gust} m/s")
-        print(f"Average maximum wind gust: {self.average_max_wind_gust} m/s")
+        print(
+            f"Global Maximum wind gust: {self.maximum_wind_gust} {self.unit_system['wind_speed']}"
+        )
+        print(
+            f"Average maximum wind gust: {self.average_max_wind_gust} {self.unit_system['wind_speed']}"
+        )
         print("Temeprature Information")
-        print(f"Global Maximum temperature: {self.record_max_temperature} ºC")
-        print(f"Global Minimum temperature: {self.record_min_temperature} ºC")
-        print(f"Average minimum temperture: {self.average_min_temperature} ºC")
-        print(f"Average maximum temperature: {self.average_max_temperature} ºC")
+        print(
+            f"Global Maximum temperature: {self.record_max_temperature} {self.unit_system['temperature']}"
+        )
+        print(
+            f"Global Minimum temperature: {self.record_min_temperature} {self.unit_system['temperature']}"
+        )
+        print(
+            f"Average minimum temperture: {self.average_min_temperature} {self.unit_system['temperature']}"
+        )
+        print(
+            f"Average maximum temperature: {self.average_max_temperature} {self.unit_system['temperature']}"
+        )
