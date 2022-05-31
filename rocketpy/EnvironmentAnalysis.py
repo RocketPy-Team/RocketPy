@@ -7,7 +7,6 @@ from scipy import stats
 from matplotlib import pyplot as plt
 
 
-
 from matplotlib.animation import FuncAnimation, PillowWriter as ImageWriter
 import matplotlib.ticker as mtick
 
@@ -1314,7 +1313,6 @@ class EnvironmentAnalysis:
             width=fig_width,
             height=fig_height,
         )
-
 
     def plot_wind_gust_distribution_over_average_day(self):
         """Plots shown in the animation of how the wind gust distribution varies throughout the day."""
