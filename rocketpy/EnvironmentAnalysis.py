@@ -880,10 +880,12 @@ class EnvironmentAnalysis:
         ...
 
     # TODO: Create tests
-    def plot_average_wind_speed_profile(self, max_altitude=10000):
+    def plot_average_wind_speed_profile(self):
         """Average wind speed for all datetimes available."""
-        min_altitude = self.elevation
-        altitude_list = np.linspace(min_altitude, max_altitude, 100)
+        altitude_list = list(list(self.pressureLevelDataDict.values())[0].values())[0][
+            "windSpeed"
+        ].source[:, 0]
+
         wind_speed_profiles = [
             dayDict[hour]["windSpeed"](altitude_list)
             for dayDict in self.pressureLevelDataDict.values()
@@ -923,7 +925,7 @@ class EnvironmentAnalysis:
         # plt.plot(np.percentile(wind_speed_profiles, 50+49.8, axis=0, method='weibull'), altitude_list, 'b--', alpha=0.25)
         for wind_speed_profile in wind_speed_profiles:
             plt.plot(wind_speed_profile, altitude_list, "gray", alpha=0.01)
-        plt.ylim(min_altitude, max_altitude)
+        plt.ylim(altitude_list[0], altitude_list[-1])
         plt.xlabel(f"Wind speed ({self.unit_system['wind_speed']})")
         plt.ylabel(f"Altitude ({self.unit_system['length']})")
         plt.title("Average Wind Speed Profile")
