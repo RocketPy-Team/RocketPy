@@ -1015,83 +1015,114 @@ class EnvironmentAnalysis:
 
         return None
 
-    # TODO: Implement
     def calculate_average_temperature_along_day(self):
         """temperature progression throughout the day at some fine interval (ex: 2 hours) with 1, 2, 3, sigma contours"""
 
-        temperatureDayHour = []
-        # matrixTemperatureDayHour = [] I assume this is not needed
-        mean = []
-        standardDeviation = []
-        finalList = []
-        surfaceData = netCDF4.Dataset(self.surfaceDataFile)
-        timeNumArray = surfaceData.variables["time"]
-        for counterDates, date in enumerate(self.surfaceDataDict):
-            temperatureDayHour.append([])
-            for hour in self.surfaceDataDict[date]:
-                temperatureDayHour[counterDates].append(
-                    self.surfaceDataDict[date][hour]["surfaceTemperature"]
-                )
-
-        matrixTemperatureDayHour = np.array(temperatureDayHour, dtype=object)
-
-        for row in range(0, len(matrixTemperatureDayHour)):
-            mean.append(np.mean(matrixTemperatureDayHour[row]))
-            standardDeviation.append(np.std(matrixTemperatureDayHour[row]))
-
-        for counter, j in enumerate(
-            self.surfaceDataDict[list(self.surfaceDataDict.keys())[0]]
-        ):
-            finalList.append(
-                [
-                    int(j),
-                    mean[counter],
-                    standardDeviation[counter],
-                    2 * standardDeviation[counter],
-                    3 * standardDeviation[counter],
-                ]
+        # Generate and organize temperature data
+        temperatures_at_given_hour = {}
+        average_temperature_at_given_hour = np.array([])
+        sigmas_at_given_hour = np.array([])
+        for hour in list(self.surfaceDataDict.values())[0].keys():
+            temperature_values_for_this_hour = []
+            average_temperature_for_this_hour = 0
+            counter = 1
+            for dayDict in self.surfaceDataDict.values():
+                try:
+                    temperature_values_for_this_hour += [
+                        dayDict[hour]["surfaceTemperature"]
+                    ]
+                    average_temperature_for_this_hour += (
+                        dayDict[hour]["surfaceTemperature"]
+                        - average_temperature_for_this_hour
+                    ) / (counter)
+                    counter += 1
+                except KeyError:
+                    # Some day does not have data for the desired hour (probably the last one)
+                    # No need to worry, just average over the other days
+                    pass
+            temperatures_at_given_hour[int(hour)] = temperature_values_for_this_hour
+            average_temperature_at_given_hour = np.append(
+                average_temperature_at_given_hour, average_temperature_for_this_hour
             )
-        finalMatrix = np.array(finalList, dtype=object)
-        finalMatrixT = finalMatrix.T
+            sigmas_at_given_hour = np.append(
+                sigmas_at_given_hour, np.std(temperatures_at_given_hour[int(hour)])
+            )
+
+        temperature_over_each_day = [
+            [dayDict[hour]["surfaceTemperature"] for hour in dayDict.keys()]
+            for dayDict in self.surfaceDataDict.values()
+        ]
+
+        # List of hours in dataDict
+        hours = [int(hour) for hour in list(self.surfaceDataDict.values())[0].keys()]
+
+        # Calculate plot limits
+        min_temperature = min(
+            average_temperature_at_given_hour - 3 * sigmas_at_given_hour
+        )
+        max_temperature = max(
+            average_temperature_at_given_hour + 2 * sigmas_at_given_hour
+        )
+
+        # Plot
         plt.figure()
-        plt.plot(finalMatrixT[0], finalMatrixT[1], "r", label="mean")
         plt.plot(
-            finalMatrixT[0],
-            finalMatrixT[1] + finalMatrixT[2],
+            hours, average_temperature_at_given_hour, "r", zorder=1, label="$\\mu$"
+        )
+        plt.plot(
+            hours,
+            (average_temperature_at_given_hour - sigmas_at_given_hour),
             "b--",
             alpha=1,
-            label="mean $\\pm \\sigma$",
+            zorder=1,
+            label="$\\mu \\pm \\sigma $",
         )
-        plt.plot(finalMatrixT[0], finalMatrixT[1] - finalMatrixT[2], "b--", alpha=1)
         plt.plot(
-            finalMatrixT[0],
-            np.add(finalMatrixT[1], finalMatrixT[3]),
+            hours,
+            (average_temperature_at_given_hour + sigmas_at_given_hour),
+            "b--",
+            alpha=1,
+            zorder=1,
+        )
+        plt.plot(
+            hours,
+            (average_temperature_at_given_hour - 2 * sigmas_at_given_hour),
             "b--",
             alpha=0.5,
-            label="mean $\\pm 2\\sigma$",
+            zorder=1,
+            label="$\\mu \\pm 2\\sigma $",
         )
         plt.plot(
-            finalMatrixT[0],
-            np.subtract(finalMatrixT[1], finalMatrixT[3]),
+            hours,
+            (average_temperature_at_given_hour + 2 * sigmas_at_given_hour),
             "b--",
             alpha=0.5,
+            zorder=1,
         )
-        plt.plot(
-            finalMatrixT[0],
-            np.add(finalMatrixT[1], finalMatrixT[4]),
-            "b--",
-            alpha=0.25,
-            label="mean $\\pm 3\\sigma$",
-        )
-        plt.plot(
-            finalMatrixT[0],
-            np.subtract(finalMatrixT[1], finalMatrixT[4]),
-            "b--",
-            alpha=0.25,
-        )
-        plt.xlabel("Hour")
-        plt.ylabel("Degree (K)")
-        plt.title("Average Temperature Along The Day")
+        # plt.plot(
+        #     hours,
+        #     (average_temperature_at_given_hour-3*sigmas_at_given_hour),
+        #     "b--",
+        #     alpha=0.5,
+        #     label="$\\mu \\pm 3\\sigma $",
+        # )
+        # plt.plot(
+        #     hours,
+        #     (average_temperature_at_given_hour+3*sigmas_at_given_hour),
+        #     "b--",
+        #     alpha=0.5,
+        # )
+        for temperatures in temperature_over_each_day:
+            if len(temperatures) == len(
+                hours
+            ):  # avoid cases where some days do not have data for all the hours (probably the last one)
+                plt.plot(hours, temperatures, "gray", alpha=0.1, zorder=0)
+        plt.ylim(min_temperature, max_temperature)
+        plt.xlabel("Time (hour)")
+        plt.ylabel("Temperature (K)")
+        plt.xticks(np.linspace(0, 22, 12))
+        plt.title("Average Temperature Profile")
+        plt.grid(alpha=0.25)
         plt.legend()
         plt.show()
 
