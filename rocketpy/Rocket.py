@@ -39,11 +39,10 @@ class Rocket:
         Rocket.distanceRocketNozzle : float
             Distance between rocket's center of mass, without propellant,
             to the exit face of the nozzle, in meters. Always positive.
-        Rocket.distanceRocketMotorReference : float
+        Rocket.distanceRocketPropellant : float
             Distance between rocket's center of mass, without propellant,
-            to the motor reference point, for solid and hybrid motor 
-            the reference point is the center of mass of solid propellant, 
-            in meters. Always positive.
+            to the motor reference point, which for solid and hybrid motors 
+            is the center of mass of solid propellant, in meters. Always positive.
 
         Mass and Inertia attributes:
         Rocket.mass : float
@@ -166,7 +165,7 @@ class Rocket:
         inertiaZ,
         radius,
         distanceRocketNozzle,
-        distanceRocketMotorReference,
+        distanceRocketPropellant,
         powerOffDrag,
         powerOnDrag,
     ):
@@ -192,12 +191,12 @@ class Rocket:
             in meters. Generally negative, meaning a negative position in the
             z axis which has an origin in the rocket's center of mass (without
             propellant) and points towards the nose cone.
-        distanceRocketMotorReference : int, float
-            Distance from rocket's unloaded center of mass to the motor refencen 
-            point, for solid and hybrid motor the reference point is the center 
-            of mass of solid propellant, in meters. Generally negative, meaning a negative
-            position in the z axis which has an origin in the rocket's center
-            of mass (with out propellant) and points towards the nose cone.
+        distanceRocketPropellant : int, float
+            Distance from rocket's unloaded center of mass to the motor reference
+            point, which for solid and hybrid motor the is the center of mass of
+            solid propellant, in meters. Generally negative, meaning a negative
+            position in the z axis which has an origin in the rocket's center of
+            mass (with out propellant) and points towards the nose cone.
         powerOffDrag : int, float, callable, string, array
             Rocket's drag coefficient when the motor is off. Can be given as an
             entry to the Function class. See help(Function) for more
@@ -220,7 +219,7 @@ class Rocket:
         self.inertiaI = inertiaI
         self.inertiaZ = inertiaZ
         self.centerOfMass = (
-            (distanceRocketMotorReference - motor.yCM)
+            (distanceRocketPropellant - motor.yCM)
             * motor.mass
             / (mass + motor.mass)
         )
@@ -231,7 +230,7 @@ class Rocket:
 
         # Center of mass distance to points of interest
         self.distanceRocketNozzle = distanceRocketNozzle
-        self.distanceRocketMotorReference = distanceRocketMotorReference
+        self.distanceRocketPropellant = distanceRocketPropellant
 
         # Excentricity data initialization
         self.cpExcentricityX = 0
@@ -939,7 +938,7 @@ class Rocket:
         )
         print(
             "Rocket Center of Mass - Motor reference point: "
-            + str(self.distanceRocketMotorReference)
+            + str(self.distanceRocketPropellant)
             + " m"
         )
         print(
