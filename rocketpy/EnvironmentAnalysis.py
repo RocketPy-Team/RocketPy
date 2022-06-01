@@ -855,7 +855,7 @@ class EnvironmentAnalysis:
         )
 
         # Plot weibull distribution
-        c, loc, scale = stats.weibull_min.fit(self.wind_gust_list)
+        c, loc, scale = stats.weibull_min.fit(self.wind_gust_list, method="MM")
         x = np.linspace(0, np.max(self.wind_gust_list), 100)
         plt.plot(
             x,
