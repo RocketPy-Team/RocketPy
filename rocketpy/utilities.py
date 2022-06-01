@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from matplotlib import pyplot as plt
-from scipy.integrate import odeint
+from scipy.integrate import solve_ivp
 import numpy as np
 
 from .Function import Function
@@ -92,7 +92,7 @@ def calculateEquilibriumAltitude(
     else:
         environment = env
 
-    def du(u, z):
+    def du(z, u):
         return (
             u[1],
             g + environment.density(z) * ((u[1]) ** 2) * CdS / (2 * rocket_mass),
@@ -102,33 +102,32 @@ def calculateEquilibriumAltitude(
 
     ts = np.arange(0, 30, 0.05)
     # TODO: Improve the timesteps
-    us = odeint(du, u0, ts)
+    us = solve_ivp(du, (0,30), u0,vectorized=True,method = 'LSODA',max_step = 0.4)
     # TODO: Check if the odeint worked
-
-    constant_index = check_constant(us[:, 1], eps)
+    constant_index = check_constant(us.y[1], eps)
 
     if constant_index is not None:
         infos = {
-            "time": ts[constant_index],
-            "height": us[constant_index, 0],
-            "velocity": us[constant_index, 1],
+            "time": us.t[constant_index],
+            "height": us.y[0][constant_index],
+            "velocity": us.y[1][constant_index],
         }
     # TODO: Otherwise further simulations should be made with more time
 
     if seeGraphs:
         fig1 = plt.figure()
-        plt.plot(ts, us[:, 0])
+        plt.plot(us.t, us.y[0])
         plt.title("Height")
         if constant_index is not None:
-            plt.scatter(ts[constant_index], us[constant_index, 0], color="red")
+            plt.scatter(us.t[constant_index], us.y[0][constant_index], color="red")
 
         plt.show()
 
         fig2 = plt.figure()
-        plt.plot(ts, us[:, 1])
+        plt.plot(us.t, us.y[1])
         if constant_index is not None:
-            plt.scatter(ts[constant_index], us[constant_index, 1], color="red")
+            plt.scatter(us.t[constant_index], us.y[1][constant_index], color="red")
         plt.title("Velocity")
         plt.show()
-
+    print(infos)
     return infos
