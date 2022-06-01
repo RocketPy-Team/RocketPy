@@ -1208,11 +1208,9 @@ class EnvironmentAnalysis:
         self.average_wind_profile_at_given_hour = average_wind_profile_at_given_hour
 
     # TODO: Create test
-    def plot_wind_profile_over_average_day(self, max_altitude=10000):
+    def plot_wind_profile_over_average_day(self):
         """Creates a grid of plots with the wind profile over the average day."""
-        # Check if needed data has already been computed
-        if self.average_wind_profile_at_given_hour is None:
-            self.process_wind_profile_over_average_day(max_altitude)
+        self.process_wind_profile_over_average_day()
 
         # Create grid of plots for each hour
         hours = list(list(self.pressureLevelDataDict.values())[0].keys())
@@ -1220,7 +1218,7 @@ class EnvironmentAnalysis:
         fig = plt.figure(figsize=(ncols * 2, nrows * 2.2))
         gs = fig.add_gridspec(nrows, ncols, hspace=0, wspace=0, left=0.12)
         axs = gs.subplots(sharex=True, sharey=True)
-        x_min, x_max, y_min, y_max = 0, 0, self.elevation, 0
+        x_min, x_max, y_min, y_max = 0, 0, np.inf, 0
         for (i, j) in [(i, j) for i in range(nrows) for j in range(ncols)]:
             hour = hours[i * ncols + j]
             ax = axs[i, j]
@@ -1228,9 +1226,10 @@ class EnvironmentAnalysis:
             ax.set_title(f"{float(hour):05.2f}".replace(".", ":"), y=0.8)
             ax.autoscale(enable=True, axis="y", tight=True)
             current_x_max = ax.get_xlim()[1]
-            current_y_max = ax.get_ylim()[1]
+            current_y_min, current_y_max = ax.get_ylim()
             x_max = current_x_max if current_x_max > x_max else x_max
             y_max = current_y_max if current_y_max > y_max else y_max
+            y_min = current_y_min if current_y_min < y_min else y_min
             ax.label_outer()
             ax.grid()
         # Set x and y limits for the last axis. Since axes are shared, set to all
@@ -1244,16 +1243,14 @@ class EnvironmentAnalysis:
         )
         # Set title and axis labels for entire figure
         fig.suptitle("Average Wind Profile")
-        fig.supxlabel("Wind speed (m/s)")
-        fig.supylabel("Altitude ASL (m)")
+        fig.supxlabel(f"Wind speed ({self.unit_system['wind_speed']})")
+        fig.supylabel(f"Altitude ASL ({self.unit_system['length']})")
         plt.show()
 
     # TODO: Create tests
-    def animate_wind_profile_over_average_day(self, max_altitude=10000):
+    def animate_wind_profile_over_average_day(self):
         """Animation of how wind profile evolves throughout an average day."""
-        # Check if needed data has already been computed
-        if self.average_wind_profile_at_given_hour is None:
-            self.process_wind_profile_over_average_day(max_altitude)
+        self.process_wind_profile_over_average_day()
 
         # Create animation
         fig, ax = plt.subplots()
@@ -1312,21 +1309,21 @@ class EnvironmentAnalysis:
     def allInfo(self):
         print("Gust Information")
         print(
-            f"Global Maximum wind gust: {self.maximum_wind_gust} {self.unit_system['wind_speed']}"
+            f"Global Maximum wind gust: {self.max_wind_gust:.2f} {self.unit_system['wind_speed']}"
         )
         print(
-            f"Average maximum wind gust: {self.average_max_wind_gust} {self.unit_system['wind_speed']}"
+            f"Average maximum wind gust: {self.average_max_wind_gust:.2f} {self.unit_system['wind_speed']}"
         )
         print("Temeprature Information")
         print(
-            f"Global Maximum temperature: {self.record_max_temperature} {self.unit_system['temperature']}"
+            f"Global Maximum temperature: {self.record_max_temperature:.2f} {self.unit_system['temperature']}"
         )
         print(
-            f"Global Minimum temperature: {self.record_min_temperature} {self.unit_system['temperature']}"
+            f"Global Minimum temperature: {self.record_min_temperature:.2f} {self.unit_system['temperature']}"
         )
         print(
-            f"Average minimum temperture: {self.average_min_temperature} {self.unit_system['temperature']}"
+            f"Average minimum temperture: {self.average_min_temperature:.2f} {self.unit_system['temperature']}"
         )
         print(
-            f"Average maximum temperature: {self.average_max_temperature} {self.unit_system['temperature']}"
+            f"Average maximum temperature: {self.average_max_temperature:.2f} {self.unit_system['temperature']}"
         )
