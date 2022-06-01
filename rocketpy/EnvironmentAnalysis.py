@@ -14,6 +14,7 @@ import pytz
 from timezonefinder import TimezoneFinder
 
 from rocketpy.Function import Function
+from rocketpy.units import convert_units
 
 
 class EnvironmentAnalysis:
@@ -100,10 +101,8 @@ class EnvironmentAnalysis:
         self.surfaceDataFile = surfaceDataFile
         self.pressureLevelDataFile = pressureLevelDataFile
         self.prefered_timezone = timezone
-        self.unit_system_string = unit_system
 
         # Manage units and timezones
-        self.__init_unit_system()
         self.__init_data_parsing_units()
         self.__find_prefered_timezone()
         self.__localize_input_dates()
@@ -115,8 +114,7 @@ class EnvironmentAnalysis:
         self.parseSurfaceData()
 
         # Convert units
-        self.convertPressureLevelData()
-        self.convertSurfaceData()
+        self.set_unit_system(unit_system)
 
         # Initialize result variables
         self.average_max_temperature = 0
@@ -354,6 +352,8 @@ class EnvironmentAnalysis:
             "surfacePressure": "Pa",
             "totalPrecipitation": "m",
         }
+        # Create a variable to store updated units when units are being updated
+        self.updated_units = self.current_units.copy()
 
     def __init_unit_system(self):
         """Initialize prefered units for output (SI, metric or imperial)."""
@@ -398,150 +398,13 @@ class EnvironmentAnalysis:
                 "wind_speed": "m/s",
             }
 
-    def __conversion_factor(self, from_unit, to_unit):
-        """Returns the conversion factor from one unit to another."""
-        units_conversion_dict = {
-            # Units of length. Meter "m" is the base unit.
-            "mm": 1e3,
-            "cm": 1e2,
-            "dm": 1e1,
-            "m": 1,
-            "dam": 1e-1,
-            "hm": 1e-2,
-            "km": 1e-3,
-            "ft": 1 / 0.3048,
-            "in": 1 / 0.0254,
-            "mi": 1 / 1609.344,
-            "nmi": 1 / 1852,
-            "yd": 1 / 0.9144,
-            # Units of velocity. Meter per second "m/s" is the base unit.
-            "m/s": 1,
-            "km/h": 3.6,
-            "knot": 1.9438444924406047,
-            "mph": 2.2369362920544023,
-            # Units of acceleration. Meter per square second "m/s^2" is the base unit.
-            "m/s^2": 1,
-            "g": 1 / 9.80665,
-            "ft/s^2": 1 / 3.2808399,
-            # Units of pressure. Pascal "Pa" is the base unit.
-            "Pa": 1,
-            "hPa": 1e-2,
-            "kPa": 1e-3,
-            "MPa": 1e-6,
-            "bar": 1e-5,
-            "atm": 1.01325e-5,
-            "mmHg": 1 / 133.322,
-            "inHg": 1 / 3386.389,
-            # Units of time. Seconds "s" is the base unit.
-            "s": 1,
-            "min": 1 / 60,
-            "h": 1 / 3600,
-            "d": 1 / 86400,
-            # Units of mass. Kilogram "kg" is the base unit.
-            "mg": 1e-6,
-            "g": 1e-3,
-            "kg": 1,
-            "lb": 2.20462,
-            # Units of angle. Radian "rad" is the base unit.
-            "rad": 1,
-            "deg": 1 / 180 * np.pi,
-            "grad": 1 / 200 * np.pi,
-        }
-        try:
-            incoming_factor = units_conversion_dict[to_unit]
-        except KeyError:
-            raise ValueError(f"Unit {to_unit} is not supported.")
-        try:
-            outgoing_factor = units_conversion_dict[from_unit]
-        except KeyError:
-            raise ValueError(f"Unit {from_unit} is not supported.")
-
-        return incoming_factor / outgoing_factor
-
-    def __convert_units_Functions(self, variable, from_unit, to_unit, axis=1):
-        """See EnvironmentAnalysis.__convert_units() for documentation."""
-        # Perform conversion, take special care with temperatures
-        variable_source = variable.source
-        if from_unit in ["K", "degC", "degF"]:
-            variable_source[:, axis] = self.__convert_temperature(
-                variable_source[:, axis], from_unit, to_unit
-            )
-        else:
-            conversion_factor = self.__conversion_factor(from_unit, to_unit)
-            variable_source[:, axis] *= conversion_factor
-        # Rename axis labels
-        if axis == 0:
-            variable.__inputs__[0] = variable.__inputs__[0].replace(from_unit, to_unit)
-        elif axis == 1:
-            variable.__outputs__[0] = variable.__inputs__[0].replace(from_unit, to_unit)
-        # Create new Function instance with converted data
-        return Function(
-            source=variable_source,
-            inputs=variable.__inputs__,
-            outputs=variable.__outputs__,
-            interpolation=variable.__interpolation__,
-            extrapolation=variable.__extrapolation__,
-        )
-
-    def __convert_temperature(self, variable, from_unit, to_unit):
-        """See EnvironmentAnalysis.__convert_units() for documentation."""
-        if from_unit == to_unit:
-            return variable
-        if from_unit == "K" and to_unit == "degC":
-            return variable - 273.15
-        if from_unit == "K" and to_unit == "degF":
-            return (variable - 273.15) * 9 / 5 + 32
-        if from_unit == "degC" and to_unit == "K":
-            return variable + 273.15
-        if from_unit == "degC" and to_unit == "degF":
-            return variable * 9 / 5 + 32
-        if from_unit == "degF" and to_unit == "K":
-            return (variable - 32) * 5 / 9 + 273.15
-        if from_unit == "degF" and to_unit == "degC":
-            return (variable - 32) * 5 / 9
-        # Conversion not supported then...
-        raise ValueError(
-            f"Temperature conversion from {from_unit} to {to_unit} is not supported."
-        )
-
-    def __convert_units(self, variable, from_unit, to_unit, axis=1):
-        """Convert units of variable to preferred units.
-
-        Parameters
-        ----------
-        variable : int, float, numpy.array, Function
-            Variable to be converted. If Function, specify axis that should
-            be converted.
-        from_unit : string
-            Unit of incoming data.
-        to_unit : string
-            Unit of returned data.
-        axis : int, optional
-            Axis that should be converted. 0 for x axis, 1 for y axis.
-            Only applies if variable is an instance of the Function class.
-            Default is 1, for the y axis.
-
-        Returns
-        -------
-        variable : int, float, numpy.array, Function
-            Variable converted from "from_unit" to "to_unit".
-        """
-        if isinstance(variable, Function):
-            # Handle Function class
-            return self.__convert_units_Functions(variable, from_unit, to_unit, axis=1)
-        else:
-            # Handle ints, floats, np.arrays
-            if from_unit in ["K", "degC", "degF"]:
-                return self.__convert_temperature(variable, from_unit, to_unit)
-            else:
-                return variable * self.__conversion_factor(from_unit, to_unit)
-
     # TODO: Needs tests
     def set_unit_system(self, unit_system="metric"):
         self.unit_system_string = unit_system
         self.__init_unit_system()
         self.convertPressureLevelData()
         self.convertSurfaceData()
+        self.current_units = self.updated_units.copy()
 
     @staticmethod
     def _find_two_closest_integer_factors(number):
@@ -852,23 +715,23 @@ class EnvironmentAnalysis:
                     if key not in conversion_dict:
                         continue
                     # Convert x axis
-                    variable = self.__convert_units(
+                    variable = convert_units(
                         variable=value,
                         from_unit=self.current_units["height_ASL"],
                         to_unit=self.unit_system["length"],
                         axis=0,
                     )
                     # Update current units
-                    self.current_units["height_ASL"] = self.unit_system["length"]
+                    self.updated_units["height_ASL"] = self.unit_system["length"]
                     # Convert y axis
-                    variable = self.__convert_units(
+                    variable = convert_units(
                         variable=value,
                         from_unit=self.current_units[key],
                         to_unit=conversion_dict[key],
                         axis=1,
                     )
                     # Update current units
-                    self.current_units[key] = conversion_dict[key]
+                    self.updated_units[key] = conversion_dict[key]
                     # Save converted Function
                     self.pressureLevelDataDict[date][hour][key] = variable
 
@@ -891,14 +754,14 @@ class EnvironmentAnalysis:
         for date in self.surfaceDataDict:
             for hour in self.surfaceDataDict[date]:
                 for key, value in self.surfaceDataDict[date][hour].items():
-                    variable = self.__convert_units(
+                    variable = convert_units(
                         variable=value,
                         from_unit=self.current_units[key],
                         to_unit=conversion_dict[key],
                     )
                     self.surfaceDataDict[date][hour][key] = variable
                     # Update current units
-                    self.current_units[key] = conversion_dict[key]
+                    self.updated_units[key] = conversion_dict[key]
 
     # Calculations
     def process_data(self):
