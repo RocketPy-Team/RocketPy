@@ -42,7 +42,7 @@ class Rocket:
             to the exit face of the nozzle, in meters. Always positive.
         Rocket.distanceRocketPropellant : float
             Distance between rocket's center of mass, without propellant,
-            to the motor reference point, which for solid and hybrid motors 
+            to the motor reference point, which for solid and hybrid motors
             is the center of mass of solid propellant, in meters. Always positive.
 
         Mass and Inertia attributes:
@@ -167,9 +167,7 @@ class Rocket:
         self.inertiaI = inertiaI
         self.inertiaZ = inertiaZ
         self.centerOfMass = (
-            (distanceRocketPropellant - motor.yCM)
-            * motor.mass
-            / (mass + motor.mass)
+            (distanceRocketPropellant - motor.yCM) * motor.mass / (mass + motor.mass)
         )
 
         # Define rocket geometrical parameters in SI units
