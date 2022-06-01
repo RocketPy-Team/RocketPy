@@ -102,7 +102,7 @@ def calculateEquilibriumAltitude(
 
     ts = np.arange(0, 30, 0.05)
     # TODO: Improve the timesteps
-    us = solve_ivp(du, (0,30), u0,vectorized=True,method = 'LSODA',max_step = 0.4)
+    us = solve_ivp(du, (0, 30), u0, vectorized=True, method="LSODA", max_step=0.4)
     # TODO: Check if the odeint worked
     constant_index = check_constant(us.y[1], eps)
 
