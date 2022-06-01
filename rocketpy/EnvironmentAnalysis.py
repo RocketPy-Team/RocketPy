@@ -1182,10 +1182,12 @@ class EnvironmentAnalysis:
         ...
 
     # TODO: Create test
-    def process_wind_profile_over_average_day(self, max_altitude=10000):
+    def process_wind_profile_over_average_day(self):
         """Compute the average wind profile for each avaliable hour of a day, over all
         days in the dataset."""
-        altitude_list = np.linspace(self.elevation, max_altitude, 100)
+        altitude_list = list(list(self.pressureLevelDataDict.values())[0].values())[0][
+            "windSpeed"
+        ].source[:, 0]
         average_wind_profile_at_given_hour = {}
         hours = list(self.pressureLevelDataDict.values())[0].keys()
         for hour in hours:
@@ -1268,6 +1270,9 @@ class EnvironmentAnalysis:
         )
         # Define function to initialize animation
         def init():
+            altitude_list = list(list(self.pressureLevelDataDict.values())[0].values())[
+                0
+            ]["windSpeed"].source[:, 0]
             ax.set_xlim(0, 25)
             ax.set_ylim(altitude_list[0], altitude_list[-1])
             ax.set_xlabel(f"Wind Speed ({self.unit_system['wind_speed']})")
