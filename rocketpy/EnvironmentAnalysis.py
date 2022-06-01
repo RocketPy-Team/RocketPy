@@ -606,14 +606,12 @@ class EnvironmentAnalysis:
         finalList = []
         surfaceData = netCDF4.Dataset(self.surfaceDataFile)
         timeNumArray = surfaceData.variables["time"]
-        counterDates = 0
-        for date in self.surfaceDataDict:
+        for counterDates, date in enumerate(self.surfaceDataDict):
             temperatureDayHour.append([])
             for hour in self.surfaceDataDict[date]:
                 temperatureDayHour[counterDates].append(
                     self.surfaceDataDict[date][hour]["surfaceTemperature"]
                 )
-            counterDates += 1
 
         matrixTemperatureDayHour = np.array(temperatureDayHour, dtype=object)
 
@@ -621,18 +619,18 @@ class EnvironmentAnalysis:
             mean.append(np.mean(matrixTemperatureDayHour[row]))
             standardDeviation.append(np.std(matrixTemperatureDayHour[row]))
 
-        counter = 0
-        for j in self.surfaceDataDict[list(self.surfaceDataDict.keys())[0]]:
-            lista = [
-                int(j),
-                mean[counter],
-                standardDeviation[counter],
-                2 * standardDeviation[counter],
-                3 * standardDeviation[counter],
-            ]
-            # mt feio?
-            finalList.append(lista)
-            counter += 1
+        for counter, j in enumerate(
+            self.surfaceDataDict[list(self.surfaceDataDict.keys())[0]]
+        ):
+            finalList.append(
+                [
+                    int(j),
+                    mean[counter],
+                    standardDeviation[counter],
+                    2 * standardDeviation[counter],
+                    3 * standardDeviation[counter],
+                ]
+            )
         finalMatrix = np.array(finalList, dtype=object)
         finalMatrixT = finalMatrix.T
         plt.figure()
