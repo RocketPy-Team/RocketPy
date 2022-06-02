@@ -40,10 +40,11 @@ class Rocket:
         Rocket.distanceRocketNozzle : float
             Distance between rocket's center of mass, without propellant,
             to the exit face of the nozzle, in meters. Always positive.
-        Rocket.distanceRocketPropellant : float
+        Rocket.distanceRocketMotorReference : float
             Distance between rocket's center of mass, without propellant,
-            to the motor reference point, which for solid and hybrid motors
-            is the center of mass of solid propellant, in meters. Always positive.
+            to the motor reference point, for solid and hybrid motor
+            the reference point is the center of mass of solid propellant,
+            in meters. Always positive.
 
         Mass and Inertia attributes:
         Rocket.mass : float
@@ -113,7 +114,6 @@ class Rocket:
         inertiaZ,
         radius,
         distanceRocketNozzle,
-        distanceRocketPropellant,
         powerOffDrag,
         powerOnDrag,
     ):
@@ -125,12 +125,12 @@ class Rocket:
         motor : Motor
             Motor used in the rocket. See Motor class for more information.
         mass : int, float
-            Unloaded rocket total mass (without propelant) in kg.
+            Unloaded rocket total mass (without propellant) in kg.
         inertiaI : int, float
             Unloaded rocket lateral (perpendicular to axis of symmetry)
-            moment of inertia (without propelant) in kg m^2.
+            moment of inertia (without propellant) in kg m^2.
         inertiaZ : int, float
-            Unloaded rocket axial moment of inertia (without propelant)
+            Unloaded rocket axial moment of inertia (without propellant)
             in kg m^2.
         radius : int, float
             Rocket biggest outer radius in meters.
@@ -139,12 +139,12 @@ class Rocket:
             in meters. Generally negative, meaning a negative position in the
             z axis which has an origin in the rocket's center of mass (without
             propellant) and points towards the nose cone.
-        distanceRocketPropellant : int, float
+        distanceRocketMotorReference : int, float
             Distance from rocket's unloaded center of mass to the motor reference
-            point, which for solid and hybrid motor the is the center of mass of
-            solid propellant, in meters. Generally negative, meaning a negative
-            position in the z axis which has an origin in the rocket's center of
-            mass (with out propellant) and points towards the nose cone.
+            point, for solid and hybrid motor the reference point is the center
+            of mass of solid propellant, in meters. Generally negative, meaning a negative
+            position in the z axis which has an origin in the rocket's center
+            of mass (with out propellant) and points towards the nose cone.
         powerOffDrag : int, float, callable, string, array
             Rocket's drag coefficient when the motor is off. Can be given as an
             entry to the Function class. See help(Function) for more
@@ -162,21 +162,29 @@ class Rocket:
         -------
         None
         """
+        # Define motor to be used
+        self.motor = motor
+
+        # Center of mass distance to points of interest
+        self.distanceRocketNozzle = distanceRocketNozzle
+        self.distanceRocketMotorReference = (
+            self.distanceRocketNozzle + self.motor.distanceNozzlePropellant
+        )
+
         # Define rocket inertia attributes in SI units
         self.mass = mass
         self.inertiaI = inertiaI
         self.inertiaZ = inertiaZ
+
         self.centerOfMass = (
-            (distanceRocketPropellant - motor.yCM) * motor.mass / (mass + motor.mass)
+            (self.distanceRocketMotorReference - self.motor.yCM)
+            * motor.mass
+            / (mass + motor.mass)
         )
 
         # Define rocket geometrical parameters in SI units
         self.radius = radius
-        self.area = np.pi * self.radius**2
-
-        # Center of mass distance to points of interest
-        self.distanceRocketNozzle = distanceRocketNozzle
-        self.distanceRocketPropellant = distanceRocketPropellant
+        self.area = np.pi * self.radius ** 2
 
         # Eccentricity data initialization
         self.cpEccentricityX = 0
@@ -212,9 +220,6 @@ class Rocket:
             "spline",
             "constant",
         )
-
-        # Define motor to be used
-        self.motor = motor
 
         # Important dynamic inertial quantities
         self.reducedMass = None
@@ -387,9 +392,9 @@ class Rocket:
 
         # Calculate cp position relative to cm
         if distanceToCM < 0:
-            cpz = distanceToCM - (length / 3) * (1 + (1 - r) / (1 - r**2))
+            cpz = distanceToCM - (length / 3) * (1 + (1 - r) / (1 - r ** 2))
         else:
-            cpz = distanceToCM + (length / 3) * (1 + (1 - r) / (1 - r**2))
+            cpz = distanceToCM + (length / 3) * (1 + (1 - r) / (1 - r ** 2))
 
         # Calculate clalpha
         clalpha = -2 * (1 - r ** (-2)) * (topRadius / rref) ** 2
@@ -545,36 +550,36 @@ class Rocket:
             (s / 3) * (Cr + 2 * Ct) / Yr
         )  # span wise position of fin's mean aerodynamic chord
         gamac = np.arctan((Cr - Ct) / (2 * s))
-        Lf = np.sqrt((Cr / 2 - Ct / 2) ** 2 + s**2)
+        Lf = np.sqrt((Cr / 2 - Ct / 2) ** 2 + s ** 2)
         radius = self.radius if radius == 0 else radius
         d = 2 * radius
-        Aref = np.pi * radius**2
-        AR = 2 * s**2 / Af  # Barrowman's convention for fin's aspect ratio
+        Aref = np.pi * radius ** 2
+        AR = 2 * s ** 2 / Af  # Barrowman's convention for fin's aspect ratio
         cantAngleRad = np.radians(cantAngle)
         trapezoidalConstant = (
-            (Cr + 3 * Ct) * s**3
-            + 4 * (Cr + 2 * Ct) * radius * s**2
-            + 6 * (Cr + Ct) * s * radius**2
+            (Cr + 3 * Ct) * s ** 3
+            + 4 * (Cr + 2 * Ct) * radius * s ** 2
+            + 6 * (Cr + Ct) * s * radius ** 2
         ) / 12
 
         # Fin–body interference correction parameters
         τ = (s + radius) / radius
         λ = Ct / Cr
         liftInterferenceFactor = 1 + 1 / τ
-        rollForcingInterferenceFactor = (1 / np.pi**2) * (
-            (np.pi**2 / 4) * ((τ + 1) ** 2 / τ**2)
-            + ((np.pi * (τ**2 + 1) ** 2) / (τ**2 * (τ - 1) ** 2))
-            * np.arcsin((τ**2 - 1) / (τ**2 + 1))
+        rollForcingInterferenceFactor = (1 / np.pi ** 2) * (
+            (np.pi ** 2 / 4) * ((τ + 1) ** 2 / τ ** 2)
+            + ((np.pi * (τ ** 2 + 1) ** 2) / (τ ** 2 * (τ - 1) ** 2))
+            * np.arcsin((τ ** 2 - 1) / (τ ** 2 + 1))
             - (2 * np.pi * (τ + 1)) / (τ * (τ - 1))
-            + ((τ**2 + 1) ** 2)
-            / (τ**2 * (τ - 1) ** 2)
-            * (np.arcsin((τ**2 - 1) / (τ**2 + 1))) ** 2
-            - (4 * (τ + 1)) / (τ * (τ - 1)) * np.arcsin((τ**2 - 1) / (τ**2 + 1))
-            + (8 / (τ - 1) ** 2) * np.log((τ**2 + 1) / (2 * τ))
+            + ((τ ** 2 + 1) ** 2)
+            / (τ ** 2 * (τ - 1) ** 2)
+            * (np.arcsin((τ ** 2 - 1) / (τ ** 2 + 1))) ** 2
+            - (4 * (τ + 1)) / (τ * (τ - 1)) * np.arcsin((τ ** 2 - 1) / (τ ** 2 + 1))
+            + (8 / (τ - 1) ** 2) * np.log((τ ** 2 + 1) / (2 * τ))
         )
         rollDampingInterferenceFactor = 1 + (
             ((τ - λ) / (τ)) - ((1 - λ) / (τ - 1)) * np.log(τ)
-        ) / (((τ + 1) * (τ - λ)) / (2) - ((1 - λ) * (τ**3 - 1)) / (3 * (τ - 1)))
+        ) / (((τ + 1) * (τ - λ)) / (2) - ((1 - λ) * (τ ** 3 - 1)) / (3 * (τ - 1)))
 
         # Save geometric parameters for later Fin Flutter Analysis and Roll Moment Calculation
         self.rootChord = Cr
@@ -602,11 +607,11 @@ class Rocket:
             """
 
             if mach < 0.8:
-                return np.sqrt(1 - mach**2)
+                return np.sqrt(1 - mach ** 2)
             elif mach < 1.1:
-                return np.sqrt(1 - 0.8**2)
+                return np.sqrt(1 - 0.8 ** 2)
             else:
-                return np.sqrt(mach**2 - 1)
+                return np.sqrt(mach ** 2 - 1)
 
         # Defines number of fins correction
         def finNumCorrection(n):
@@ -690,7 +695,7 @@ class Rocket:
             * clalphaSingleFin
             * np.cos(cantAngleRad)
             * trapezoidalConstant
-            / (Aref * d**2)
+            / (Aref * d ** 2)
         )
         # Function of mach number
         rollParameters = [clfDelta, cldOmega, cantAngleRad]
@@ -963,7 +968,7 @@ class Rocket:
         )
         print(
             "Rocket Center of Mass - Motor reference point: "
-            + str(self.distanceRocketPropellant)
+            + str(self.distanceRocketMotorReference)
             + " m"
         )
         print(
