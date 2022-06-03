@@ -82,7 +82,7 @@ class EnvironmentAnalysis:
 
         # Convert units
         self.set_unit_system(unit_system)
-        
+
         # Initialize result variables
         self.average_max_temperature = 0
         self.average_min_temperature = 0
