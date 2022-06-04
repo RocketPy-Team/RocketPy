@@ -1015,8 +1015,10 @@ class EnvironmentAnalysis:
 
         return None
 
+    # TODO: Create tests
     def calculate_average_temperature_along_day(self):
-        """temperature progression throughout the day at some fine interval (ex: 2 hours) with 1, 2, 3, sigma contours"""
+        """Computes and plots average temperature progression throughout the
+        day, including sigma contours."""
 
         # Generate and organize temperature data
         temperatures_at_given_hour = {}
