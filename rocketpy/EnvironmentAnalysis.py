@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import bisect
+from collections import defaultdict
 
 import ipywidgets as widgets
 import numpy as np
@@ -693,10 +694,82 @@ class EnvironmentAnalysis:
 
         return None
 
-    # TODO: Implement
+    # TODO: Create tests
     def calculate_average_temperature_along_day(self):
-        """temperature progression throughout the day at some fine interval (ex: 2 hours) with 1, 2, 3, sigma contours"""
-        ...
+        """Computes average temperature progression throughout the
+        day, including sigma contours."""
+
+        # Flip dictionary to get hour as key instead of date
+        historical_temperatures_each_hour = defaultdict(dict)
+        for date, val in self.surfaceDataDict.items():
+            for hour, sub_val in val.items():
+                historical_temperatures_each_hour[hour][date] = sub_val[
+                    "surfaceTemperature"
+                ]
+
+        self.average_temperature_at_given_hour = {
+            hour: np.average(list(dates.values()))
+            for hour, dates in historical_temperatures_each_hour.items()
+        }
+
+        self.sigmas_at_given_hour = {
+            hour: np.std(list(dates.values()))
+            for hour, dates in historical_temperatures_each_hour.items()
+        }
+
+        return self.average_temperature_at_given_hour, self.sigmas_at_given_hour
+
+    # TODO: Create tests
+    def plot_average_temperature_along_day(self):
+        """Plots average temperature progression throughout the day, including
+        sigma contours."""
+
+        # Compute values
+        self.calculate_average_temperature_along_day()
+
+        # Get handy arrays
+        hours = np.fromiter(self.average_temperature_at_given_hour.keys(), np.float)
+        temperature_mean = self.average_temperature_at_given_hour.values()
+        temperature_mean = np.array(list(temperature_mean))
+        temperature_std = np.array(list(self.sigmas_at_given_hour.values()))
+        temperatures_p1sigma = temperature_mean + temperature_std
+        temperatures_m1sigma = temperature_mean - temperature_std
+        temperatures_p2sigma = temperature_mean + 2 * temperature_std
+        temperatures_m2sigma = temperature_mean - 2 * temperature_std
+
+        plt.figure()
+        # Plot temperature along day for each available date
+        for hour_entries in self.surfaceDataDict.values():
+            plt.plot(
+                [int(hour) for hour in hour_entries.keys()],
+                [val["surfaceTemperature"] for val in hour_entries.values()],
+                "gray",
+                alpha=0.1,
+            )
+
+        # Plot average temperature along day
+        plt.plot(hours, temperature_mean, "r", label="$\\mu$")
+
+        # Plot standard deviations temperature along day
+        plt.plot(hours, temperatures_m1sigma, "b--", label=r"$\mu \pm \sigma$")
+        plt.plot(hours, temperatures_p1sigma, "b--")
+        plt.plot(hours, temperatures_p2sigma, "b--", alpha=0.5)
+        plt.plot(
+            hours, temperatures_m2sigma, "b--", label=r"$\mu \pm 2\sigma $", alpha=0.5
+        )
+
+        # Format plot
+        plt.gca().xaxis.set_major_locator(plt.MaxNLocator(integer=True))
+        plt.gca().xaxis.set_major_formatter(
+            lambda x, pos: "{0:02.0f}:{1:02.0f}".format(*divmod(x * 60, 60))
+        )
+        plt.autoscale(enable=True, axis="x", tight=True)
+        plt.xlabel("Time (hours)")
+        plt.ylabel("Temperature (K)")
+        plt.title("Average Temperature Along Day")
+        plt.grid(alpha=0.25)
+        plt.legend()
+        plt.show()
 
     # TODO: Create tests
     def plot_average_wind_speed_profile(self, max_altitude=10000):
