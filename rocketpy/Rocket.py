@@ -120,7 +120,7 @@ class Rocket:
             Unloaded rocket axial moment of inertia (without propellant)
             in kg m^2.
         radius : int, float
-            Rocket biggest outer radius in meters.
+            Rocket largest outer radius in meters.
         distanceRocketNozzle : int, float
             Distance from rocket's unloaded center of mass to nozzle outlet,
             in meters. Generally negative, meaning a negative position in the
@@ -481,11 +481,11 @@ class Rocket:
         Parameters
         ----------
         type: string
-            Type of fin selected to the rocket. Must be either "trapezoidal"
+            Type of fin selected to the rocket. Must be either "trapezoid"
             or "elliptical".
         finParameters: dictionary
             Dictionary containing geometric parameters about the fin selected.
-            For trapezoidal fins: must have "span", "rootChord" and "tipChord"
+            For trapezoid fins: must have "span", "rootChord" and "tipChord"
             key words.
             For elliptical fins: must have "span" and "rootChord" key words.
         n : int
@@ -536,12 +536,12 @@ class Rocket:
             raise Exception(
                 "span dictionary key is missing from finParameters")
 
-        if type == "trapezoidal":
+        if type == "trapezoid":
             if "tipChord" not in finParameters.keys():
                 raise Exception(
                     "tipChord dictionary key is missing from finParameters")
 
-        # Retrieves similar parameters
+        # Retrieves abstract parameters
         Cr = finParameters["rootChord"]
         s = finParameters["span"]
         radius = self.radius if radius == 0 else radius
@@ -549,7 +549,7 @@ class Rocket:
         d = 2 * radius
 
         # Type verification
-        if type == "trapezoidal":
+        if type == "trapezoid":
 
             # Retrieve parameters for calculations
             Ct = finParameters["tipChord"]
@@ -602,7 +602,7 @@ class Rocket:
         else:
             raise Exception("Invalid fin shape")
 
-        # Retrieves similar parameters
+        # Retrieves abstract parameters
         Aref = np.pi * radius**2
         AR = 2 * s**2 / Af
         rollParameters = [0, 0, 0]
@@ -610,7 +610,7 @@ class Rocket:
         # Fin–body interference correction parameters
         tau = (s + radius) / radius
         liftInterferenceFactor = 1 + 1 / tau
-        if type == "trapezoidal":
+        if type == "trapezoid":
             λ = Ct / Cr
             rollDampingInterferenceFactor = 1 + (
                 ((tau - λ) / (tau)) - ((1 - λ) / (tau - 1)) * np.log(tau)
@@ -757,7 +757,7 @@ class Rocket:
             * n
             * clalphaSingleFin
             * np.cos(cantAngleRad)
-            * trapezoidalConstant
+            * trapezoidConstant
             / (Aref * d**2)
         )
         # Function of mach number
