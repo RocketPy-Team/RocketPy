@@ -692,8 +692,7 @@ class Flight:
 
         # Create known flight phases
         self.flightPhases = FlightPhases()
-        self.flightPhases.addPhase(
-            self.tInitial, self.initialDerivative, clear=False)
+        self.flightPhases.addPhase(self.tInitial, self.initialDerivative, clear=False)
         self.flightPhases.addPhase(self.maxTime)
 
         # Simulate flight
@@ -735,8 +734,7 @@ class Flight:
             phase.timeNodes.addNode(phase.t, [], [])
             # Add non-overshootable parachute time nodes
             if self.timeOvershoot is False:
-                phase.timeNodes.addParachutes(
-                    self.parachutes, phase.t, phase.timeBound)
+                phase.timeNodes.addParachutes(self.parachutes, phase.t, phase.timeBound)
             # Add lst time node to permanent list
             phase.timeNodes.addNode(phase.timeBound, [], [])
             # Sort time nodes
@@ -775,8 +773,7 @@ class Flight:
                     # Calculate and save noise
                     noise = parachute.noiseFunction()
                     parachute.noiseSignal.append([node.t, noise])
-                    parachute.noisyPressureSignal.append(
-                        [node.t, pressure + noise])
+                    parachute.noisyPressureSignal.append([node.t, pressure + noise])
                     if parachute.trigger(pressure + noise, self.y):
                         # print('\nEVENT DETECTED')
                         # print('Parachute Triggered')
@@ -824,8 +821,7 @@ class Flight:
                     self.y = phase.solver.y
                     if verbose:
                         print(
-                            "Current Simulation Time: {:3.4f} s".format(
-                                self.t),
+                            "Current Simulation Time: {:3.4f} s".format(self.t),
                             end="\r",
                         )
                     # print('\n\t\t\tCurrent Step Details')
@@ -879,10 +875,8 @@ class Flight:
                         D = float(phase.solver.step_size)
                         d = float(y0)
                         c = float(yp0)
-                        b = float(
-                            (3 * y1 - yp1 * D - 2 * c * D - 3 * d) / (D**2))
-                        a = float(-(2 * y1 - yp1 * D - c *
-                                  D - 2 * d) / (D**3)) + 1e-5
+                        b = float((3 * y1 - yp1 * D - 2 * c * D - 3 * d) / (D**2))
+                        a = float(-(2 * y1 - yp1 * D - c * D - 2 * d) / (D**3)) + 1e-5
                         # Find roots
                         d0 = b**2 - 3 * a * c
                         d1 = 2 * b**3 - 9 * a * b * c + 27 * d * a**2
@@ -976,8 +970,7 @@ class Flight:
                         D = float(phase.solver.step_size)
                         d = float(y0)
                         c = float(yp0)
-                        b = float(
-                            (3 * y1 - yp1 * D - 2 * c * D - 3 * d) / (D**2))
+                        b = float((3 * y1 - yp1 * D - 2 * c * D - 3 * d) / (D**2))
                         a = float(-(2 * y1 - yp1 * D - c * D - 2 * d) / (D**3))
                         # Find roots
                         d0 = b**2 - 3 * a * c
@@ -1047,8 +1040,7 @@ class Flight:
                                 # print('\n\t\t\t\tCurrent Overshootable Node')
                                 # print('\t\t\t\tIndex: ', overshootable_index, ' | Overshootable Node: ', overshootableNode)
                                 # Calculate state at node time
-                                overshootableNode.y = interpolator(
-                                    overshootableNode.t)
+                                overshootableNode.y = interpolator(overshootableNode.t)
                                 # Calculate and save pressure signal
                                 pressure = self.env.pressure.getValueOpt(
                                     overshootableNode.y[2]
@@ -1109,8 +1101,7 @@ class Flight:
                                         phase.timeNodes.addNode(self.t, [], [])
                                         phase.solver.status = "finished"
                                         # Save parachute event
-                                        self.parachuteEvents.append(
-                                            [self.t, parachute])
+                                        self.parachuteEvents.append([self.t, parachute])
 
         self.tFinal = self.t
         if verbose:
@@ -1418,12 +1409,10 @@ class Flight:
                 compStreamVzBn = compStreamVzB / compStreamSpeed
                 if -1 * compStreamVzBn < 1:
                     compAttackAngle = np.arccos(-compStreamVzBn)
-                    cLift = aerodynamicSurface["cl"](
-                        compAttackAngle, freestreamMach)
+                    cLift = aerodynamicSurface["cl"](compAttackAngle, freestreamMach)
                     # Component lift force magnitude
                     compLift = (
-                        0.5 * rho * (compStreamSpeed**2) *
-                        self.rocket.area * cLift
+                        0.5 * rho * (compStreamSpeed**2) * self.rocket.area * cLift
                     )
                     # Component lift force components
                     liftDirNorm = (compStreamVxB**2 + compStreamVyB**2) ** 0.5
@@ -1579,8 +1568,7 @@ class Flight:
         freestreamZ = vz
         # Determine drag force
         pseudoD = (
-            -0.5 * rho * CdS * freestreamSpeed -
-            ka * rho * 4 * np.pi * (R**2) * Rdot
+            -0.5 * rho * CdS * freestreamSpeed - ka * rho * 4 * np.pi * (R**2) * Rdot
         )
         Dx = pseudoD * freestreamX
         Dy = pseudoD * freestreamY
@@ -1634,16 +1622,13 @@ class Flight:
             sol[:, [0, 3]], "Time (s)", "Z (m)", interpolation, extrapolation
         )
         self.vx = Function(
-            sol[:, [0, 4]
-                ], "Time (s)", "Vx (m/s)", interpolation, extrapolation
+            sol[:, [0, 4]], "Time (s)", "Vx (m/s)", interpolation, extrapolation
         )
         self.vy = Function(
-            sol[:, [0, 5]
-                ], "Time (s)", "Vy (m/s)", interpolation, extrapolation
+            sol[:, [0, 5]], "Time (s)", "Vy (m/s)", interpolation, extrapolation
         )
         self.vz = Function(
-            sol[:, [0, 6]
-                ], "Time (s)", "Vz (m/s)", interpolation, extrapolation
+            sol[:, [0, 6]], "Time (s)", "Vz (m/s)", interpolation, extrapolation
         )
         self.e0 = Function(
             sol[:, [0, 7]], "Time (s)", "e0", interpolation, extrapolation
@@ -1658,16 +1643,13 @@ class Flight:
             sol[:, [0, 10]], "Time (s)", "e3", interpolation, extrapolation
         )
         self.w1 = Function(
-            sol[:, [0, 11]
-                ], "Time (s)", "ω1 (rad/s)", interpolation, extrapolation
+            sol[:, [0, 11]], "Time (s)", "ω1 (rad/s)", interpolation, extrapolation
         )
         self.w2 = Function(
-            sol[:, [0, 12]
-                ], "Time (s)", "ω2 (rad/s)", interpolation, extrapolation
+            sol[:, [0, 12]], "Time (s)", "ω2 (rad/s)", interpolation, extrapolation
         )
         self.w3 = Function(
-            sol[:, [0, 13]
-                ], "Time (s)", "ω3 (rad/s)", interpolation, extrapolation
+            sol[:, [0, 13]], "Time (s)", "ω3 (rad/s)", interpolation, extrapolation
         )
 
         # Process second type of outputs - accelerations
@@ -1702,12 +1684,9 @@ class Flight:
         self.ax = Function(self.ax, "Time (s)", "Ax (m/s2)", interpolation)
         self.ay = Function(self.ay, "Time (s)", "Ay (m/s2)", interpolation)
         self.az = Function(self.az, "Time (s)", "Az (m/s2)", interpolation)
-        self.alpha1 = Function(self.alpha1, "Time (s)",
-                               "α1 (rad/s2)", interpolation)
-        self.alpha2 = Function(self.alpha2, "Time (s)",
-                               "α2 (rad/s2)", interpolation)
-        self.alpha3 = Function(self.alpha3, "Time (s)",
-                               "α3 (rad/s2)", interpolation)
+        self.alpha1 = Function(self.alpha1, "Time (s)", "α1 (rad/s2)", interpolation)
+        self.alpha2 = Function(self.alpha2, "Time (s)", "α2 (rad/s2)", interpolation)
+        self.alpha3 = Function(self.alpha3, "Time (s)", "α3 (rad/s2)", interpolation)
 
         # Process third type of outputs - temporary values calculated during integration
         # Initialize force and atmospheric arrays
@@ -1732,8 +1711,7 @@ class Flight:
             for step in self.solution:  # Can be optimized
                 if initTime < step[0] <= finalTime or (initTime == 0 and step[0] == 0):
                     # Call derivatives in post processing mode
-                    uDot = currentDerivative(
-                        step[0], step[1:], postProcessing=True)
+                    uDot = currentDerivative(step[0], step[1:], postProcessing=True)
         # Convert forces and atmospheric arrays to functions
         self.R1 = Function(self.R1, "Time (s)", "R1 (N)", interpolation)
         self.R2 = Function(self.R2, "Time (s)", "R2 (N)", interpolation)
@@ -1789,10 +1767,8 @@ class Flight:
         pathAngle = np.column_stack([self.vz[:, 0], pathAngle])
         self.pathAngle = Function(pathAngle, "Time (s)", "Path Angle (°)")
         # Attitude Angle
-        self.attitudeVectorX = 2 * \
-            (self.e1 * self.e3 + self.e0 * self.e2)  # a13
-        self.attitudeVectorY = 2 * \
-            (self.e2 * self.e3 - self.e0 * self.e1)  # a23
+        self.attitudeVectorX = 2 * (self.e1 * self.e3 + self.e0 * self.e2)  # a13
+        self.attitudeVectorY = 2 * (self.e2 * self.e3 - self.e0 * self.e1)  # a23
         self.attitudeVectorZ = 1 - 2 * (self.e1**2 + self.e2**2)  # a33
         horizontalAttitudeProj = (
             self.attitudeVectorX**2 + self.attitudeVectorY**2
@@ -1800,10 +1776,8 @@ class Flight:
         attitudeAngle = (180 / np.pi) * np.arctan2(
             self.attitudeVectorZ[:, 1], horizontalAttitudeProj[:, 1]
         )
-        attitudeAngle = np.column_stack(
-            [self.attitudeVectorZ[:, 0], attitudeAngle])
-        self.attitudeAngle = Function(
-            attitudeAngle, "Time (s)", "Attitude Angle (°)")
+        attitudeAngle = np.column_stack([self.attitudeVectorZ[:, 0], attitudeAngle])
+        self.attitudeAngle = Function(attitudeAngle, "Time (s)", "Attitude Angle (°)")
         # Lateral Attitude Angle
         lateralVectorAngle = (np.pi / 180) * (self.heading - 90)
         lateralVectorX = np.sin(lateralVectorAngle)
@@ -1814,10 +1788,8 @@ class Flight:
         )
         attitudeLateralProjX = attitudeLateralProj * lateralVectorX
         attitudeLateralProjY = attitudeLateralProj * lateralVectorY
-        attitudeLateralPlaneProjX = self.attitudeVectorX[:,
-                                                         1] - attitudeLateralProjX
-        attitudeLateralPlaneProjY = self.attitudeVectorY[:,
-                                                         1] - attitudeLateralProjY
+        attitudeLateralPlaneProjX = self.attitudeVectorX[:, 1] - attitudeLateralProjX
+        attitudeLateralPlaneProjY = self.attitudeVectorY[:, 1] - attitudeLateralProjY
         attitudeLateralPlaneProjZ = self.attitudeVectorZ[:, 1]
         attitudeLateralPlaneProj = (
             attitudeLateralPlaneProjX**2
@@ -1887,17 +1859,13 @@ class Flight:
         # F21 = F21[:outOfRailTimeIndex + 1, :] # Limit force calculation to when rocket is in rail
         # F22 = F22[:outOfRailTimeIndex + 1, :] # Limit force calculation to when rocket is in rail
         self.railButton1NormalForce = F11 * np.cos(alpha) + F12 * np.sin(alpha)
-        self.railButton1NormalForce.setOutputs(
-            "Upper Rail Button Normal Force (N)")
+        self.railButton1NormalForce.setOutputs("Upper Rail Button Normal Force (N)")
         self.railButton1ShearForce = F11 * -np.sin(alpha) + F12 * np.cos(alpha)
-        self.railButton1ShearForce.setOutputs(
-            "Upper Rail Button Shear Force (N)")
+        self.railButton1ShearForce.setOutputs("Upper Rail Button Shear Force (N)")
         self.railButton2NormalForce = F21 * np.cos(alpha) + F22 * np.sin(alpha)
-        self.railButton2NormalForce.setOutputs(
-            "Lower Rail Button Normal Force (N)")
+        self.railButton2NormalForce.setOutputs("Lower Rail Button Normal Force (N)")
         self.railButton2ShearForce = F21 * -np.sin(alpha) + F22 * np.cos(alpha)
-        self.railButton2ShearForce.setOutputs(
-            "Lower Rail Button Shear Force (N)")
+        self.railButton2ShearForce.setOutputs("Lower Rail Button Shear Force (N)")
         # Rail Button Maximum Forces
         if outOfRailTimeIndex == 0:
             self.maxRailButton1NormalForce = 0
@@ -1923,8 +1891,7 @@ class Flight:
         self.aerodynamicDrag = -1 * self.R3
         self.aerodynamicDrag.setOutputs("Aerodynamic Drag Force (N)")
         self.aerodynamicBendingMoment = (self.M1**2 + self.M2**2) ** 0.5
-        self.aerodynamicBendingMoment.setOutputs(
-            "Aerodynamic Bending Moment (N m)")
+        self.aerodynamicBendingMoment.setOutputs("Aerodynamic Bending Moment (N m)")
         self.aerodynamicSpinMoment = self.M3
         self.aerodynamicSpinMoment.setOutputs("Aerodynamic Spin Moment (N m)")
         # Energy
@@ -1942,8 +1909,7 @@ class Flight:
         I2 = Function(np.column_stack([grid, I2(grid)]), "Time (s)")
         I3 = Function(np.column_stack([grid, I3(grid)]), "Time (s)")
         # Redefine total mass grid
-        totalMass = Function(np.column_stack(
-            [grid, totalMass(grid)]), "Time (s)")
+        totalMass = Function(np.column_stack([grid, totalMass(grid)]), "Time (s)")
         # Redefine thrust grid
         thrust = Function(
             np.column_stack([grid, self.rocket.motor.thrust(grid)]), "Time (s)"
@@ -2093,8 +2059,7 @@ class Flight:
         ]
         self.maxDynamicPressure = self.dynamicPressure[maxDynamicPressureTimeIndex, 1]
         # Total Pressure
-        self.totalPressure = self.pressure * \
-            (1 + 0.2 * self.MachNumber**2) ** (3.5)
+        self.totalPressure = self.pressure * (1 + 0.2 * self.MachNumber**2) ** (3.5)
         self.totalPressure.setOutputs("Total Pressure (Pa)")
         maxtotalPressureTimeIndex = np.argmax(self.totalPressure[:, 1])
         self.maxtotalPressureTime = self.totalPressure[maxtotalPressureTimeIndex, 0]
@@ -2152,17 +2117,14 @@ class Flight:
 
             # Calculate bearing as the azimuth considering dirrerent quadrants
             if self.x[i][1] * self.y[i][1] > 0 and self.x[i][1] > 0:
-                bearing.append(
-                    math.atan(abs(self.x[i][1]) / abs(self.y[i][1])))
+                bearing.append(math.atan(abs(self.x[i][1]) / abs(self.y[i][1])))
             elif self.x[i][1] * self.y[i][1] < 0 and self.x[i][1] > 0:
                 bearing.append(
-                    3.14159265359 / 2 +
-                    math.atan(abs(self.y[i][1]) / abs(self.x[i][1]))
+                    3.14159265359 / 2 + math.atan(abs(self.y[i][1]) / abs(self.x[i][1]))
                 )
             elif self.x[i][1] * self.y[i][1] > 0 and self.x[i][1] < 0:
                 bearing.append(
-                    3.14159265359 +
-                    math.atan(abs(self.x[i][1]) / abs(self.y[i][1]))
+                    3.14159265359 + math.atan(abs(self.x[i][1]) / abs(self.y[i][1]))
                 )
             elif self.x[i][1] * self.y[i][1] < 0 and self.x[i][1] < 0:
                 bearing.append(
@@ -2208,21 +2170,16 @@ class Flight:
                         math.sin(bearing[i])
                         * math.sin(distance[i] / R)
                         * math.cos(lat1),
-                        math.cos(distance[i] / R) -
-                        math.sin(lat1) * math.sin(lat2[i]),
+                        math.cos(distance[i] / R) - math.sin(lat1) * math.sin(lat2[i]),
                     )
                 )
 
-        latitude = [[self.solution[i][0], lat2[i]]
-                    for i in range(len(self.solution))]
-        longitude = [[self.solution[i][0], lon2[i]]
-                     for i in range(len(self.solution))]
+        latitude = [[self.solution[i][0], lat2[i]] for i in range(len(self.solution))]
+        longitude = [[self.solution[i][0], lon2[i]] for i in range(len(self.solution))]
 
         # Store final values of lat/lon as a function of time
-        self.latitude = Function(latitude, "Time (s)",
-                                 "Latitude (°)", "linear")
-        self.longitude = Function(
-            longitude, "Time (s)", "Longitude (°)", "linear")
+        self.latitude = Function(latitude, "Time (s)", "Latitude (°)", "linear")
+        self.longitude = Function(longitude, "Time (s)", "Longitude (°)", "linear")
 
         # Post process other quantities
 
@@ -2272,8 +2229,7 @@ class Flight:
 
         # Get index of time before parachute event
         if len(self.parachuteEvents) > 0:
-            eventTime = self.parachuteEvents[0][0] + \
-                self.parachuteEvents[0][1].lag
+            eventTime = self.parachuteEvents[0][0] + self.parachuteEvents[0][1].lag
             eventTimeIndex = np.nonzero(self.x[:, 0] == eventTime)[0][0]
         else:
             eventTime = self.tFinal
@@ -2281,16 +2237,13 @@ class Flight:
 
         # Print surface wind conditions
         print("Surface Wind Conditions\n")
-        print(
-            "Frontal Surface Wind Speed: {:.2f} m/s".format(self.frontalSurfaceWind))
-        print(
-            "Lateral Surface Wind Speed: {:.2f} m/s".format(self.lateralSurfaceWind))
+        print("Frontal Surface Wind Speed: {:.2f} m/s".format(self.frontalSurfaceWind))
+        print("Lateral Surface Wind Speed: {:.2f} m/s".format(self.lateralSurfaceWind))
 
         # Print out of rail conditions
         print("\n\n Rail Departure State\n")
         print("Rail Departure Time: {:.3f} s".format(self.outOfRailTime))
-        print(
-            "Rail Departure Velocity: {:.3f} m/s".format(self.outOfRailVelocity))
+        print("Rail Departure Velocity: {:.3f} m/s".format(self.outOfRailVelocity))
         print(
             "Rail Departure Static Margin: {:.3f} c".format(
                 self.staticMargin(self.outOfRailTime)
@@ -2354,8 +2307,7 @@ class Flight:
             )
         )
         print("Apogee Time: {:.3f} s".format(self.apogeeTime))
-        print(
-            "Apogee Freestream Speed: {:.3f} m/s".format(self.apogeeFreestreamSpeed))
+        print("Apogee Freestream Speed: {:.3f} m/s".format(self.apogeeFreestreamSpeed))
 
         # Print events registered
         print("\n\nEvents\n")
@@ -2368,8 +2320,7 @@ class Flight:
             velocity = self.freestreamSpeed(openTime)
             altitude = self.z(openTime)
             name = parachute.name.title()
-            print(
-                name + " Ejection Triggered at: {:.3f} s".format(triggerTime))
+            print(name + " Ejection Triggered at: {:.3f} s".format(triggerTime))
             print(name + " Parachute Inflated at: {:.3f} s".format(openTime))
             print(
                 name
@@ -2695,8 +2646,7 @@ class Flight:
         ax4.grid(True)
 
         ax4up = ax4.twinx()
-        ax4up.plot(self.acceleration[:, 0],
-                   self.acceleration[:, 1], color="#1f77b4")
+        ax4up.plot(self.acceleration[:, 0], self.acceleration[:, 1], color="#1f77b4")
         ax4up.set_ylabel("Acceleration (m/s²)", color="#1f77b4")
         ax4up.tick_params("y", colors="#1f77b4")
 
@@ -2721,8 +2671,7 @@ class Flight:
 
         # Get index of time before parachute event
         if len(self.parachuteEvents) > 0:
-            eventTime = self.parachuteEvents[0][0] + \
-                self.parachuteEvents[0][1].lag
+            eventTime = self.parachuteEvents[0][0] + self.parachuteEvents[0][1].lag
             eventTimeIndex = np.nonzero(self.x[:, 0] == eventTime)[0][0]
         else:
             eventTime = self.tFinal
@@ -2790,8 +2739,7 @@ class Flight:
 
         # Get index of time before parachute event
         if len(self.parachuteEvents) > 0:
-            eventTime = self.parachuteEvents[0][0] + \
-                self.parachuteEvents[0][1].lag
+            eventTime = self.parachuteEvents[0][0] + self.parachuteEvents[0][1].lag
             eventTimeIndex = np.nonzero(self.x[:, 0] == eventTime)[0][0]
         else:
             eventTime = self.tFinal
@@ -2802,8 +2750,7 @@ class Flight:
         fig5 = plt.figure(figsize=(9, 6))
 
         ax1 = plt.subplot(211)
-        ax1.plot(self.pathAngle[:, 0],
-                 self.pathAngle[:, 1], label="Flight Path Angle")
+        ax1.plot(self.pathAngle[:, 0], self.pathAngle[:, 1], label="Flight Path Angle")
         ax1.plot(
             self.attitudeAngle[:, 0],
             self.attitudeAngle[:, 1],
@@ -2817,8 +2764,7 @@ class Flight:
         ax1.set_title("Flight Path and Attitude Angle")
 
         ax2 = plt.subplot(212)
-        ax2.plot(self.lateralAttitudeAngle[:, 0],
-                 self.lateralAttitudeAngle[:, 1])
+        ax2.plot(self.lateralAttitudeAngle[:, 0], self.lateralAttitudeAngle[:, 1])
         ax2.set_xlim(0, eventTime)
         ax2.set_xlabel("Time (s)")
         ax2.set_ylabel("Lateral Attitude Angle (°)")
@@ -2848,8 +2794,7 @@ class Flight:
 
         # Get index of time before parachute event
         if len(self.parachuteEvents) > 0:
-            eventTime = self.parachuteEvents[0][0] + \
-                self.parachuteEvents[0][1].lag
+            eventTime = self.parachuteEvents[0][0] + self.parachuteEvents[0][1].lag
             eventTimeIndex = np.nonzero(self.x[:, 0] == eventTime)[0][0]
         else:
             eventTime = self.tFinal
@@ -2861,8 +2806,7 @@ class Flight:
         ax1.plot(self.w1[:, 0], self.w1[:, 1], color="#ff7f0e")
         ax1.set_xlim(0, eventTime)
         ax1.set_xlabel("Time (s)")
-        ax1.set_ylabel(
-            r"Angular Velocity - ${\omega_1}$ (rad/s)", color="#ff7f0e")
+        ax1.set_ylabel(r"Angular Velocity - ${\omega_1}$ (rad/s)", color="#ff7f0e")
         ax1.set_title(
             r"Angular Velocity ${\omega_1}$ | Angular Acceleration ${\alpha_1}$"
         )
@@ -2880,8 +2824,7 @@ class Flight:
         ax2.plot(self.w2[:, 0], self.w2[:, 1], color="#ff7f0e")
         ax2.set_xlim(0, eventTime)
         ax2.set_xlabel("Time (s)")
-        ax2.set_ylabel(
-            r"Angular Velocity - ${\omega_2}$ (rad/s)", color="#ff7f0e")
+        ax2.set_ylabel(r"Angular Velocity - ${\omega_2}$ (rad/s)", color="#ff7f0e")
         ax2.set_title(
             r"Angular Velocity ${\omega_2}$ | Angular Acceleration ${\alpha_2}$"
         )
@@ -2899,8 +2842,7 @@ class Flight:
         ax3.plot(self.w3[:, 0], self.w3[:, 1], color="#ff7f0e")
         ax3.set_xlim(0, eventTime)
         ax3.set_xlabel("Time (s)")
-        ax3.set_ylabel(
-            r"Angular Velocity - ${\omega_3}$ (rad/s)", color="#ff7f0e")
+        ax3.set_ylabel(r"Angular Velocity - ${\omega_3}$ (rad/s)", color="#ff7f0e")
         ax3.set_title(
             r"Angular Velocity ${\omega_3}$ | Angular Acceleration ${\alpha_3}$"
         )
@@ -2942,8 +2884,7 @@ class Flight:
 
         # Get index of time before parachute event
         if len(self.parachuteEvents) > 0:
-            eventTime = self.parachuteEvents[0][0] + \
-                self.parachuteEvents[0][1].lag
+            eventTime = self.parachuteEvents[0][0] + self.parachuteEvents[0][1].lag
             eventTimeIndex = np.nonzero(self.x[:, 0] == eventTime)[0][0]
         else:
             eventTime = self.tFinal
@@ -2963,8 +2904,7 @@ class Flight:
             self.railButton2NormalForce[:outOfRailTimeIndex, 1],
             label="Lower Rail Button",
         )
-        ax1.set_xlim(0, self.outOfRailTime if self.outOfRailTime >
-                     0 else self.tFinal)
+        ax1.set_xlim(0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal)
         ax1.legend()
         ax1.grid(True)
         ax1.set_xlabel("Time (s)")
@@ -2982,8 +2922,7 @@ class Flight:
             self.railButton2ShearForce[:outOfRailTimeIndex, 1],
             label="Lower Rail Button",
         )
-        ax2.set_xlim(0, self.outOfRailTime if self.outOfRailTime >
-                     0 else self.tFinal)
+        ax2.set_xlim(0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal)
         ax2.legend()
         ax2.grid(True)
         ax2.set_xlabel("Time (s)")
@@ -3002,10 +2941,8 @@ class Flight:
             self.aerodynamicLift[:eventTimeIndex, 1],
             label="Resultant",
         )
-        ax1.plot(self.R1[:eventTimeIndex, 0],
-                 self.R1[:eventTimeIndex, 1], label="R1")
-        ax1.plot(self.R2[:eventTimeIndex, 0],
-                 self.R2[:eventTimeIndex, 1], label="R2")
+        ax1.plot(self.R1[:eventTimeIndex, 0], self.R1[:eventTimeIndex, 1], label="R1")
+        ax1.plot(self.R2[:eventTimeIndex, 0], self.R2[:eventTimeIndex, 1], label="R2")
         ax1.set_xlim(0, eventTime)
         ax1.legend()
         ax1.set_xlabel("Time (s)")
@@ -3030,10 +2967,8 @@ class Flight:
             self.aerodynamicBendingMoment[:eventTimeIndex, 1],
             label="Resultant",
         )
-        ax3.plot(self.M1[:eventTimeIndex, 0],
-                 self.M1[:eventTimeIndex, 1], label="M1")
-        ax3.plot(self.M2[:eventTimeIndex, 0],
-                 self.M2[:eventTimeIndex, 1], label="M2")
+        ax3.plot(self.M1[:eventTimeIndex, 0], self.M1[:eventTimeIndex, 1], label="M1")
+        ax3.plot(self.M2[:eventTimeIndex, 0], self.M2[:eventTimeIndex, 1], label="M2")
         ax3.set_xlim(0, eventTime)
         ax3.legend()
         ax3.set_xlabel("Time (s)")
@@ -3076,8 +3011,7 @@ class Flight:
 
         # Get index of time before parachute event
         if len(self.parachuteEvents) > 0:
-            eventTime = self.parachuteEvents[0][0] + \
-                self.parachuteEvents[0][1].lag
+            eventTime = self.parachuteEvents[0][0] + self.parachuteEvents[0][1].lag
             eventTimeIndex = np.nonzero(self.x[:, 0] == eventTime)[0][0]
         else:
             eventTime = self.tFinal
@@ -3087,8 +3021,7 @@ class Flight:
 
         ax1 = plt.subplot(411)
         ax1.plot(
-            self.kineticEnergy[:, 0], self.kineticEnergy[:,
-                                                         1], label="Kinetic Energy"
+            self.kineticEnergy[:, 0], self.kineticEnergy[:, 1], label="Kinetic Energy"
         )
         ax1.plot(
             self.rotationalEnergy[:, 0],
@@ -3100,8 +3033,7 @@ class Flight:
             self.translationalEnergy[:, 1],
             label="Translational Energy",
         )
-        ax1.set_xlim(0, self.apogeeTime if self.apogeeTime !=
-                     0.0 else self.tFinal)
+        ax1.set_xlim(0, self.apogeeTime if self.apogeeTime != 0.0 else self.tFinal)
         ax1.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
         ax1.set_title("Kinetic Energy Components")
         ax1.set_xlabel("Time (s)")
@@ -3111,19 +3043,16 @@ class Flight:
         ax1.grid()
 
         ax2 = plt.subplot(412)
-        ax2.plot(self.totalEnergy[:, 0],
-                 self.totalEnergy[:, 1], label="Total Energy")
+        ax2.plot(self.totalEnergy[:, 0], self.totalEnergy[:, 1], label="Total Energy")
         ax2.plot(
-            self.kineticEnergy[:, 0], self.kineticEnergy[:,
-                                                         1], label="Kinetic Energy"
+            self.kineticEnergy[:, 0], self.kineticEnergy[:, 1], label="Kinetic Energy"
         )
         ax2.plot(
             self.potentialEnergy[:, 0],
             self.potentialEnergy[:, 1],
             label="Potential Energy",
         )
-        ax2.set_xlim(0, self.apogeeTime if self.apogeeTime !=
-                     0.0 else self.tFinal)
+        ax2.set_xlim(0, self.apogeeTime if self.apogeeTime != 0.0 else self.tFinal)
         ax2.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
         ax2.set_title("Total Mechanical Energy Components")
         ax2.set_xlabel("Time (s)")
@@ -3132,8 +3061,7 @@ class Flight:
         ax2.grid()
 
         ax3 = plt.subplot(413)
-        ax3.plot(self.thrustPower[:, 0],
-                 self.thrustPower[:, 1], label="|Thrust Power|")
+        ax3.plot(self.thrustPower[:, 0], self.thrustPower[:, 1], label="|Thrust Power|")
         ax3.set_xlim(0, self.rocket.motor.burnOutTime)
         ax3.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
         ax3.set_title("Thrust Absolute Power")
@@ -3143,10 +3071,8 @@ class Flight:
         ax3.grid()
 
         ax4 = plt.subplot(414)
-        ax4.plot(self.dragPower[:, 0], -
-                 self.dragPower[:, 1], label="|Drag Power|")
-        ax4.set_xlim(0, self.apogeeTime if self.apogeeTime !=
-                     0.0 else self.tFinal)
+        ax4.plot(self.dragPower[:, 0], -self.dragPower[:, 1], label="|Drag Power|")
+        ax4.set_xlim(0, self.apogeeTime if self.apogeeTime != 0.0 else self.tFinal)
         ax3.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
         ax4.set_title("Drag Absolute Power")
         ax4.set_xlabel("Time (s)")
@@ -3208,11 +3134,9 @@ class Flight:
             label="Dynamic Pressure",
         )
         ax3.plot(
-            self.totalPressure[:, 0], self.totalPressure[:,
-                                                         1], label="Total Pressure"
+            self.totalPressure[:, 0], self.totalPressure[:, 1], label="Total Pressure"
         )
-        ax3.plot(self.pressure[:, 0],
-                 self.pressure[:, 1], label="Static Pressure")
+        ax3.plot(self.pressure[:, 0], self.pressure[:, 1], label="Static Pressure")
         ax3.set_xlim(0, self.tFinal)
         ax3.legend()
         ax3.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
@@ -3268,8 +3192,7 @@ class Flight:
 
         # Calculate the Fin Flutter Mach Number
         self.flutterMachNumber = (
-            (shearModulus * 2 * (ar + 2) *
-             (finThickness / self.rocket.rootChord) ** 3)
+            (shearModulus * 2 * (ar + 2) * (finThickness / self.rocket.rootChord) ** 3)
             / (1.337 * (ar**3) * (la + 1) * self.pressure)
         ) ** 0.5
 
@@ -3285,8 +3208,7 @@ class Flight:
         minflutterMachNumber = self.flutterMachNumber[minflutterMachNumberTimeIndex, 1]
         minMFTime = self.flutterMachNumber[minflutterMachNumberTimeIndex, 0]
         minMFHeight = self.z(minMFTime) - self.env.elevation
-        minMFVelocity = minflutterMachNumber * \
-            self.env.speedOfSound(minMFHeight)
+        minMFVelocity = minflutterMachNumber * self.env.speedOfSound(minMFHeight)
 
         # Calculate minimum difference between Fin Flutter Mach Number and the Rocket Speed
         # Calculate the time and height of the difference ...
@@ -3321,8 +3243,7 @@ class Flight:
                 minMFVelocity, minMFTime
             )
         )
-        print("Minimum Fin Flutter Mach Number: {:.3f} ".format(
-            minflutterMachNumber))
+        print("Minimum Fin Flutter Mach Number: {:.3f} ".format(minflutterMachNumber))
         # print(
         #    "Altitude of minimum Fin Flutter Velocity: {:.3f} m (AGL)".format(
         #        minMFHeight
@@ -3368,8 +3289,7 @@ class Flight:
             self.MachNumber[:, 1],
             label="Rocket Freestream Speed",
         )
-        ax1.set_xlim(0, self.apogeeTime if self.apogeeTime !=
-                     0.0 else self.tFinal)
+        ax1.set_xlim(0, self.apogeeTime if self.apogeeTime != 0.0 else self.tFinal)
         ax1.set_title("Fin Flutter Mach Number x Time(s)")
         ax1.set_xlabel("Time (s)")
         ax1.set_ylabel("Mach")
@@ -3378,8 +3298,7 @@ class Flight:
 
         ax2 = plt.subplot(312)
         ax2.plot(self.difference[:, 0], self.difference[:, 1])
-        ax2.set_xlim(0, self.apogeeTime if self.apogeeTime !=
-                     0.0 else self.tFinal)
+        ax2.set_xlim(0, self.apogeeTime if self.apogeeTime != 0.0 else self.tFinal)
         ax2.set_title("Mach flutter - Freestream velocity")
         ax2.set_xlabel("Time (s)")
         ax2.set_ylabel("Mach")
@@ -3553,8 +3472,7 @@ class Flight:
                 for i in range(0, timePoints.size, 1):
                     pCl = parachute.cleanPressureSignalFunction(timePoints[i])
                     pNs = parachute.noisyPressureSignalFunction(timePoints[i])
-                    file.write("{:f}, {:.5f}, {:.5f}\n".format(
-                        timePoints[i], pCl, pNs))
+                    file.write("{:f}, {:.5f}, {:.5f}\n".format(timePoints[i], pCl, pNs))
                 # We need to save only 1 parachute data
                 pass
 
@@ -3657,7 +3575,9 @@ class Flight:
         return
 
     # TODO: Add unit tests
-    def exportKML(self, fileName, timeStep=None, template="docs\static\kml_template.xml"):
+    def exportKML(
+        self, fileName, timeStep=None, template="docs\static\kml_template.xml"
+    ):
         """Exports flight data to a .kml file, which is supported file for Google Earth
 
         Parameters
@@ -3693,9 +3613,10 @@ class Flight:
         kmlTemplate.close()
 
         # Iterate over timePoints to save all coordinates
-        for t in (timePoints):
+        for t in timePoints:
             kml.write(
-                f"          {self.longitude(t):.15}, {self.latitude(t):.15}, {self.z(t):.5}\n")
+                f"          {self.longitude(t):.15}, {self.latitude(t):.15}, {self.z(t):.5}\n"
+            )
 
         # Write final tags and close the file
         kml.write("        </coordinates>\n")
@@ -3922,7 +3843,7 @@ class Flight:
             self.add(self.FlightPhase(t, derivatives, callback, clear), index)
 
         def flushAfter(self, index):
-            del self.list[index + 1:]
+            del self.list[index + 1 :]
 
         class FlightPhase:
             def __init__(self, t, derivative=None, callbacks=[], clear=True):
@@ -3994,7 +3915,7 @@ class Flight:
             self.list = self.tmp_list
 
         def flushAfter(self, index):
-            del self.list[index + 1:]
+            del self.list[index + 1 :]
 
         class TimeNode:
             def __init__(self, t, parachutes, callbacks):
