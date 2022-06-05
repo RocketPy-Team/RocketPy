@@ -64,7 +64,7 @@ class EnvironmentAnalysis:
         surfaceDataFile=None,
         pressureLevelDataFile=None,
         timezone=None,
-        unit_system='metric',
+        unit_system="metric",
     ):
         """Constructor for the EnvironmentAnalysis class.
         Parameters
@@ -501,8 +501,7 @@ class EnvironmentAnalysis:
         latIndex = self.__getNearestIndex(latArray, self.latitude)
 
         # Can't handle lat and lon out of grid
-        self.__check_coordinates_inside_grid(
-            lonIndex, latIndex, lonArray, latArray)
+        self.__check_coordinates_inside_grid(lonIndex, latIndex, lonArray, latArray)
 
         # Loop through time and save all values
         for timeIndex, timeNum in enumerate(timeNumArray):
@@ -541,8 +540,7 @@ class EnvironmentAnalysis:
                 valueArray = self.__extractPressureLevelDataValue(
                     pressureLevelData, value, indices, lonArray, latArray
                 )
-                variablePointsArray = np.array(
-                    [heightAboveSeaLevelArray, valueArray]).T
+                variablePointsArray = np.array([heightAboveSeaLevelArray, valueArray]).T
                 variableFunction = Function(
                     variablePointsArray,
                     inputs="Height Above Sea Level (m)",
@@ -598,8 +596,7 @@ class EnvironmentAnalysis:
 
             # Create function for wind heading levels
             windHeadingArray = (
-                np.arctan2(windVelocityXArray, windVelocityYArray) *
-                (180 / np.pi) % 360
+                np.arctan2(windVelocityXArray, windVelocityYArray) * (180 / np.pi) % 360
             )
 
             windHeadingPointsArray = np.array(
@@ -675,8 +672,7 @@ class EnvironmentAnalysis:
         latIndex = self.__getNearestIndex(latArray, self.latitude)
 
         # Can't handle lat and lon out of grid
-        self.__check_coordinates_inside_grid(
-            lonIndex, latIndex, lonArray, latArray)
+        self.__check_coordinates_inside_grid(lonIndex, latIndex, lonArray, latArray)
 
         # Loop through time and save all values
         for timeIndex, timeNum in enumerate(timeNumArray):
@@ -788,8 +784,7 @@ class EnvironmentAnalysis:
     # TODO: Create tests
     def calculate_average_max_temperature(self):
         self.max_temperature_list = [
-            np.max([dayDict[hour]["surfaceTemperature"]
-                   for hour in dayDict.keys()])
+            np.max([dayDict[hour]["surfaceTemperature"] for hour in dayDict.keys()])
             for dayDict in self.surfaceDataDict.values()
         ]
         self.average_max_temperature = np.average(self.max_temperature_list)
@@ -798,8 +793,7 @@ class EnvironmentAnalysis:
     # TODO: Create tests
     def calculate_average_min_temperature(self):
         self.min_temperature_list = [
-            np.min([dayDict[hour]["surfaceTemperature"]
-                   for hour in dayDict.keys()])
+            np.min([dayDict[hour]["surfaceTemperature"] for hour in dayDict.keys()])
             for dayDict in self.surfaceDataDict.values()
         ]
         self.average_min_temperature = np.average(self.min_temperature_list)
@@ -828,8 +822,7 @@ class EnvironmentAnalysis:
     # TODO: Create tests
     def calculate_average_max_wind_gust(self):
         self.max_wind_gust_list = [
-            np.max([dayDict[hour]["surfaceWindGust"]
-                   for hour in dayDict.keys()])
+            np.max([dayDict[hour]["surfaceWindGust"] for hour in dayDict.keys()])
             for dayDict in self.surfaceDataDict.values()
         ]
         self.average_max_wind_gust = np.average(self.max_wind_gust_list)
@@ -920,8 +913,7 @@ class EnvironmentAnalysis:
         self.calculate_average_temperature_along_day()
 
         # Get handy arrays
-        hours = np.fromiter(
-            self.average_temperature_at_given_hour.keys(), np.float)
+        hours = np.fromiter(self.average_temperature_at_given_hour.keys(), np.float)
         temperature_mean = self.average_temperature_at_given_hour.values()
         temperature_mean = np.array(list(temperature_mean))
         temperature_std = np.array(list(self.sigmas_at_given_hour.values()))
@@ -979,8 +971,7 @@ class EnvironmentAnalysis:
         self.average_wind_speed_profile = np.mean(wind_speed_profiles, axis=0)
         # Plot
         plt.figure()
-        plt.plot(self.average_wind_speed_profile,
-                 altitude_list, "r", label="$\\mu$")
+        plt.plot(self.average_wind_speed_profile, altitude_list, "r", label="$\\mu$")
         plt.plot(
             np.percentile(wind_speed_profiles, 50 - 34.1, axis=0),
             altitude_list,
@@ -1158,8 +1149,7 @@ class EnvironmentAnalysis:
         plot_padding = 0.18  # percentage
         nrows, ncols = self._find_two_closest_integer_factors(len(hours))
         vertical_plot_area_percentage = (
-            nrows * windrose_side /
-            (nrows * windrose_side + vertical_padding_top)
+            nrows * windrose_side / (nrows * windrose_side + vertical_padding_top)
         )
 
         # Create figure
@@ -1169,12 +1159,10 @@ class EnvironmentAnalysis:
         )
         bins = np.linspace(self.min_wind_speed, self.max_wind_speed, 6)
         width = (1 - 2 * plot_padding) * 1 / ncols
-        height = vertical_plot_area_percentage * \
-            (1 - 2 * plot_padding) * 1 / nrows
+        height = vertical_plot_area_percentage * (1 - 2 * plot_padding) * 1 / nrows
 
         for k, hour in enumerate(hours):
-            i, j = len(hours) // nrows - \
-                k // ncols, k % ncols  # Row count bottom up
+            i, j = len(hours) // nrows - k // ncols, k % ncols  # Row count bottom up
             left = j * 1 / ncols + plot_padding / ncols
             bottom = vertical_plot_area_percentage * (
                 (i - 2) / nrows + plot_padding / nrows
@@ -1245,8 +1233,7 @@ class EnvironmentAnalysis:
                 self.plot_wind_rose(
                     self.wind_direction_per_hour[hour],
                     self.wind_speed_per_hour[hour],
-                    bins=np.linspace(self.min_wind_speed,
-                                     self.max_wind_speed, 6),
+                    bins=np.linspace(self.min_wind_speed, self.max_wind_speed, 6),
                     title=f"Windrose of an average day. Hour {float(hour):05.2f}".replace(
                         ".", ":"
                     ),
@@ -1275,8 +1262,7 @@ class EnvironmentAnalysis:
             wind_gust_values_for_this_hour = []
             for dayDict in self.surfaceDataDict.values():
                 try:
-                    wind_gust_values_for_this_hour += [
-                        dayDict[hour]["surfaceWindGust"]]
+                    wind_gust_values_for_this_hour += [dayDict[hour]["surfaceWindGust"]]
                 except KeyError:
                     # Some day does not have data for the desired hour (probably the last one)
                     # No need to worry, just average over the other days
@@ -1304,10 +1290,8 @@ class EnvironmentAnalysis:
             )
 
             # Plot weibull distribution
-            c, loc, scale = stats.weibull_min.fit(
-                average_wind_gust_at_given_hour[hour])
-            x = np.linspace(
-                0, np.max(average_wind_gust_at_given_hour[hour]), 100)
+            c, loc, scale = stats.weibull_min.fit(average_wind_gust_at_given_hour[hour])
+            x = np.linspace(0, np.max(average_wind_gust_at_given_hour[hour]), 100)
             ax.plot(
                 x,
                 stats.weibull_min.pdf(x, c, loc, scale),
@@ -1320,8 +1304,7 @@ class EnvironmentAnalysis:
             ax.set_ylim(0, 0.3)
             if current_plot % 2 != 0:
                 ax.set_ylabel("Probability")
-            ax.set_xlabel(
-                f"Wind Gust Speed ({self.unit_system['wind_speed']})")
+            ax.set_xlabel(f"Wind Gust Speed ({self.unit_system['wind_speed']})")
             ax.set_title("Hour " + str(hour) + ":00")
 
         # set legend and title
@@ -1341,8 +1324,7 @@ class EnvironmentAnalysis:
             wind_gust_values_for_this_hour = []
             for dayDict in self.surfaceDataDict.values():
                 try:
-                    wind_gust_values_for_this_hour += [
-                        dayDict[hour]["surfaceWindGust"]]
+                    wind_gust_values_for_this_hour += [dayDict[hour]["surfaceWindGust"]]
                 except KeyError:
                     # Some day does not have data for the desired hour (probably the last one)
                     # No need to worry, just average over the other days
@@ -1380,8 +1362,7 @@ class EnvironmentAnalysis:
         def init():
             ax.set_xlim(0, 25)  # TODO: parametrize
             ax.set_ylim(0, 0.3)  # TODO: parametrize
-            ax.set_xlabel(
-                f"Wind Gust Speed ({self.unit_system['wind_speed']})")
+            ax.set_xlabel(f"Wind Gust Speed ({self.unit_system['wind_speed']})")
             ax.set_ylabel("Probability")
             ax.set_title("Wind Gust Distribution")
             # ax.grid(True)
@@ -1507,7 +1488,9 @@ class EnvironmentAnalysis:
                 0
             ]["windSpeed"].source[:, 0]
             ax.set_xlim(0, 25)
-            ax.set_ylim(self.elevation,)  # TODO: check and parametrize
+            ax.set_ylim(
+                self.elevation,
+            )  # TODO: check and parametrize
             ax.set_xlabel(f"Wind Speed ({self.unit_system['wind_speed']})")
             ax.set_ylabel(f"Altitude ASL ({self.unit_system['length']})")
             ax.set_title("Average Wind Profile")
