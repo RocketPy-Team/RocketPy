@@ -1,25 +1,16 @@
 # -*- coding: utf-8 -*-
 
-__author__ = "Giovani Hidalgo Ceotto, Oscar Mauricio Prada Ramirez"
-__copyright__ = "Copyright 20XX, Projeto Jupiter"
+__author__ = (
+    "Giovani Hidalgo Ceotto, Oscar Mauricio Prada Ramirez, João Lemes Gribel Soares, Lucas Kierulff Balabram, Lucas Azevedo Pezente"
+)
+__copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 import re
-import math
-import bisect
-import warnings
-import time
 from abc import ABC, abstractmethod, abstractproperty
-from datetime import datetime, timedelta
-from inspect import signature, getsourcelines
-from collections import namedtuple
 
 import numpy as np
 from scipy import integrate
-from scipy import linalg
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import cm
 
 from .Function import Function
 
@@ -178,7 +169,7 @@ class Motor(ABC):
                 # mass = float(desc[4])
                 # nozzleRadius = diameter/4
                 # throatRadius = diameter/8
-                # grainNumber = grainnumber
+                # grainNumber = grainNumber
                 # grainVolume = height*np.pi*((diameter/2)**2 -(diameter/4)**2)
                 # grainDensity = mass/grainVolume
                 # grainOuterRadius = diameter/2
@@ -275,7 +266,8 @@ class Motor(ABC):
         # Reshape thrust - set total impulse
         if oldTotalImpulse is None:
             oldTotalImpulse = self.evaluateTotalImpulse()
-        self.thrust.source[:, 1] = (totalImpulse / oldTotalImpulse) * thrustArray
+        self.thrust.source[:, 1] = (
+            totalImpulse / oldTotalImpulse) * thrustArray
         self.thrust.setInterpolation(self.interpolate)
 
         # Store total impulse
@@ -364,7 +356,7 @@ class Motor(ABC):
         """Calculates and returns the total propellant mass curve by
         numerically integrating the MassDot curve, calculated in
         evaluateMassDot. Numerical integration is done with the
-        Trapezoidal Rule, given the same result as scipy.integrate.
+        Trapezoidal Rule, giving the same result as scipy.integrate.
         odeint but 100x faster. The result is a function of time,
         object of the class Function, which is stored in self.mass.
 
@@ -472,7 +464,8 @@ class Motor(ABC):
                         description = line.strip().split(" ")
                     else:
                         # Extract thrust curve data points
-                        time, thrust = re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", line)
+                        time, thrust = re.findall(
+                            r"[-+]?\d*\.\d+|[-+]?\d+", line)
                         dataPoints.append([float(time), float(thrust)])
 
         # Return all extract content
@@ -589,7 +582,8 @@ class Motor(ABC):
         print("Grain Outer Radius: " + str(self.grainOuterRadius) + " m")
         print("Grain Inner Radius: " + str(self.grainInitialInnerRadius) + " m")
         print("Grain Height: " + str(self.grainInitialHeight) + " m")
-        print("Grain Volume: " + "{:.3f}".format(self.grainInitialVolume) + " m3")
+        print("Grain Volume: " +
+              "{:.3f}".format(self.grainInitialVolume) + " m3")
         print("Grain Mass: " + "{:.3f}".format(self.grainInitialMass) + " kg")
 
         # Print motor details
@@ -805,7 +799,7 @@ class SolidMotor(Motor):
                 # mass = float(desc[4])
                 # nozzleRadius = diameter/4
                 # throatRadius = diameter/8
-                # grainNumber = grainnumber
+                # grainNumber = grainNumber
                 # grainVolume = height*np.pi*((diameter/2)**2 -(diameter/4)**2)
                 # grainDensity = mass/grainVolume
                 # grainOuterRadius = diameter/2
@@ -853,7 +847,7 @@ class SolidMotor(Motor):
         self.maxThrustTime = None
         self.averageThrust = None
 
-        # Compute uncalculated quantities
+        # Compute other quantities
         # Thrust information - maximum and average
         self.maxThrust = np.amax(self.thrust.source[:, 1])
         maxThrustIndex = np.argmax(self.thrust.source[:, 1])
@@ -973,9 +967,11 @@ class SolidMotor(Motor):
             grainMassDot = self.massDot(t) / self.grainNumber
             rI, h = y
             rIDot = (
-                -0.5 * grainMassDot / (density * np.pi * (rO**2 - rI**2 + rI * h))
+                -0.5 * grainMassDot /
+                    (density * np.pi * (rO**2 - rI**2 + rI * h))
             )
-            hDot = 1.0 * grainMassDot / (density * np.pi * (rO**2 - rI**2 + rI * h))
+            hDot = 1.0 * grainMassDot / \
+                (density * np.pi * (rO**2 - rI**2 + rI * h))
             return [rIDot, hDot]
 
         # Solve the system of differential equations
@@ -1045,7 +1041,8 @@ class SolidMotor(Motor):
         burnRate : Function
         Rate of progression of the inner radius during the combustion.
         """
-        self.burnRate = (-1) * self.massDot / (self.burnArea * self.grainDensity)
+        self.burnRate = (-1) * self.massDot / \
+            (self.burnArea * self.grainDensity)
         self.burnRate.setOutputs("Burn Rate (m/s)")
         return self.burnRate
 
@@ -1253,7 +1250,8 @@ class SolidMotor(Motor):
         print("Grain Outer Radius: " + str(self.grainOuterRadius) + " m")
         print("Grain Inner Radius: " + str(self.grainInitialInnerRadius) + " m")
         print("Grain Height: " + str(self.grainInitialHeight) + " m")
-        print("Grain Volume: " + "{:.3f}".format(self.grainInitialVolume) + " m3")
+        print("Grain Volume: " +
+              "{:.3f}".format(self.grainInitialVolume) + " m3")
         print("Grain Mass: " + "{:.3f}".format(self.grainInitialMass) + " kg")
 
         # Print motor details
@@ -1395,7 +1393,7 @@ class HybridMotor(Motor):
         grainInitialHeight,
         oxidizerTankRadius,
         oxidizerTankHeight,
-        oxidizerInitialPresure,
+        oxidizerInitialPressure,
         oxidizerDensity,
         oxidizerMolarMass,
         oxidizerInitialVolume,
@@ -1438,10 +1436,10 @@ class HybridMotor(Motor):
             Oxidizer Tank inner radius.
         oxidizerTankHeight :
             Oxidizer Tank Height.
-        oxidizerInitialPresure :
-            Initial presure of the oxidizer tank, could be equal to the pressure of the source cylinder in atm.
+        oxidizerInitialPressure :
+            Initial pressure of the oxidizer tank, could be equal to the pressure of the source cylinder in atm.
         oxidizerDensity :
-            Oxidizer theoretical density in liquit state, for N2O is equal to 1.98 (Kg/m^3).
+            Oxidizer theoretical density in liquid state, for N2O is equal to 1.98 (Kg/m^3).
         oxidizerMolarMass :
             Oxidizer molar mass, for the N2O is equal to 44.01 (g/mol).
         oxidizerInitialVolume :
@@ -1493,7 +1491,7 @@ class HybridMotor(Motor):
                 # mass = float(desc[4])
                 # nozzleRadius = diameter/4
                 # throatRadius = diameter/8
-                # grainNumber = grainnumber
+                # grainNumber = grainNumber
                 # grainVolume = height*np.pi*((diameter/2)**2 -(diameter/4)**2)
                 # grainDensity = mass/grainVolume
                 # grainOuterRadius = diameter/2
@@ -1527,7 +1525,7 @@ class HybridMotor(Motor):
         self.grainInitialHeight = grainInitialHeight
         self.oxidizerTankRadius = oxidizerTankRadius
         self.oxidizerTankHeight = oxidizerTankHeight
-        self.oxidizerInitialPresure = oxidizerInitialPresure
+        self.oxidizerInitialPressure = oxidizerInitialPressure
         self.oxidizerDensity = oxidizerDensity
         self.oxidizerMolarMass = oxidizerMolarMass
         self.oxidizerInitialVolume = oxidizerInitialVolume
@@ -1551,7 +1549,7 @@ class HybridMotor(Motor):
         self.maxThrustTime = None
         self.averageThrust = None
 
-        # Compute uncalculated quantities
+        # Compute other quantities
         # Thrust information - maximum and average
         self.maxThrust = np.amax(self.thrust.source[:, 1])
         maxThrustIndex = np.argmax(self.thrust.source[:, 1])
@@ -1675,9 +1673,11 @@ class HybridMotor(Motor):
             grainMassDot = self.massDot(t) / self.grainNumber
             rI, h = y
             rIDot = (
-                -0.5 * grainMassDot / (density * np.pi * (rO**2 - rI**2 + rI * h))
+                -0.5 * grainMassDot /
+                    (density * np.pi * (rO**2 - rI**2 + rI * h))
             )
-            hDot = 1.0 * grainMassDot / (density * np.pi * (rO**2 - rI**2 + rI * h))
+            hDot = 1.0 * grainMassDot / \
+                (density * np.pi * (rO**2 - rI**2 + rI * h))
             return [rIDot, hDot]
 
         # Solve the system of differential equations
@@ -1747,7 +1747,8 @@ class HybridMotor(Motor):
         burnRate : Function
         Rate of progression of the inner radius during the combustion.
         """
-        self.burnRate = (-1) * self.massDot / (self.burnArea * self.grainDensity)
+        self.burnRate = (-1) * self.massDot / \
+            (self.burnArea * self.grainDensity)
         self.burnRate.setOutputs("Burn Rate (m/s)")
         return self.burnRate
 
