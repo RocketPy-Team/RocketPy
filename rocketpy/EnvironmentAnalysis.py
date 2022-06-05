@@ -191,7 +191,7 @@ class EnvironmentAnalysis:
         Made for latitudes and longitudes, supporting arrays that range from
         -180 to 180 or from 0 to 360.
 
-        TODO: improve docs
+        TODO: improve docs by giving one example
 
         Parameters
         ----------
@@ -879,7 +879,7 @@ class EnvironmentAnalysis:
 
         # Label plot
         plt.ylabel("Probability")
-        plt.xlabel(f"Wind gust speed ({self.unit_system['windSpeed']})")
+        plt.xlabel(f"Wind gust speed ({self.unit_system['wind_speed']})")
         plt.title("Wind Gust Speed Distribution")
         plt.legend()
         plt.show()
@@ -1191,7 +1191,7 @@ class EnvironmentAnalysis:
             if k == 0:
                 ax.legend(
                     loc="upper center",
-                    # 0.8 i a magic number
+                    # 0.8 is a magic number
                     bbox_to_anchor=(ncols / 2 + 0.8, 1.5),
                     fancybox=True,
                     shadow=True,
