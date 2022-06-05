@@ -3656,6 +3656,58 @@ class Flight:
 
         return
 
+    # TODO: Add unit tests
+    def exportKML(self, fileName, timeStep=None, template="docs\static\kml_template.xml"):
+        """Exports flight data to a .kml file, which is supported file for Google Earth
+
+        Parameters
+        ----------
+        fileName : string
+            The file name or path of the exported file. Example: flight_data.csv.
+            Do not use forbidden characters, such as '/' in Linux/Unix and
+            '<, >, :, ", /, \\, | ?, *' in Windows.
+        timeStep : float, optional
+            Time step desired for the data. If None, all integration time steps
+            will be exported. Otherwise, linear interpolation is carried out to
+            calculate values at the desired time steps. Example: 0.001.
+        template : str, optional
+            template kml file containing header of final file, by default "docs\static\kml_template.xml"
+
+        Returns
+        -------
+        None
+        """
+        if self.postProcessed is False:
+            self.postProcess()
+        if timeStep is None:
+            # Get time from any Function, should all be the same
+            timePoints = self.z[:, 0]
+        else:
+            timePoints = np.arange(self.tInitial, self.tFinal, timeStep)
+
+        # Open the file and saving template for header
+        kml = open(fileName, "w")
+        kmlTemplate = open(template, "r")
+        for row in kmlTemplate:
+            kml.write(str(row))
+        kmlTemplate.close()
+
+        # Iterate over timePoints to save all coordinates
+        for t in (timePoints):
+            kml.write(
+                f"          {self.longitude(t):.15}, {self.latitude(t):.15}, {self.z(t):.5}\n")
+
+        # Write final tags and close the file
+        kml.write("        </coordinates>\n")
+        kml.write("      </LineString>\n")
+        kml.write("    </Placemark>\n")
+        kml.write("  </Document>\n")
+        kml.write("</kml>")
+        kml.close()
+        print("File ", fileName, " saved with success!")
+
+        return None
+
     def allInfo(self):
         """Prints out all data and graphs available about the Flight.
 
