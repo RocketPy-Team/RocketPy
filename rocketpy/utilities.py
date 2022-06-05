@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 from matplotlib import pyplot as plt
 from scipy.integrate import solve_ivp
+import numpy as np
 
 from .Environment import Environment
+from .Function import Function
 
 __author__ = "Franz Masatoshi Yuri, Lucas Kierulff Balabram, Guilherme Fernandes Alves"
 __copyright__ = "Copyright 20XX, RocketPy Team"
@@ -50,7 +52,7 @@ def calculateEquilibriumAltitude(
     g=9.80665,
     estimated_final_time=10,
 ):
-    """Returns a dictionary containing the time, height and velocity of the
+    """Returns a dictionary containing the time, altitude and velocity of the
     system rocket-parachute in which the terminal velocity is reached.
 
 
@@ -61,7 +63,7 @@ def calculateEquilibriumAltitude(
     CdS : float
         Number equal to drag coefficient times reference area for parachute.
     z0 : float
-        Initial height of the rocket in meters.
+        Initial altitude of the rocket in meters.
     v0 : float, optional
         Rocket's initial speed in m/s. Must be negative
     env : Environment, optional
@@ -71,7 +73,7 @@ def calculateEquilibriumAltitude(
     max_step: float, optional
         maximum allowed time step size to solve the integration
     seeGraphs : boolean, optional
-        True if you want to see time vs height and time vs speed graphs,
+        True if you want to see time vs altitude and time vs speed graphs,
         False otherwise.
     g : float, optional
         Gravitational acceleration experienced by the rocket and parachute during
@@ -81,8 +83,12 @@ def calculateEquilibriumAltitude(
 
     Returns
     -------
+    altitudeFunction: Function 
+        Altitude as a function of time. Always a Function object.
+    velocityFunction:
+        Vertical velocity as a function of time. Always a Function object.
     final_sol : dictionary
-        Dictionary containing the values for time, height and speed of
+        Dictionary containing the values for time, altitude and speed of
         the rocket when it reaches terminal velocity.
     """
     final_sol = {}
@@ -95,12 +101,17 @@ def calculateEquilibriumAltitude(
     def check_constant(f, eps):
         """_summary_
 
-        Args:
-            f (_type_): _description_
-            eps (_type_): _description_
+        Parameters
+        ----------
+        f : array, list
+            _description_
+        eps : float
+            _description_
 
-        Returns:
-            _type_: _description_
+        Returns
+        -------
+        int, None
+            _description_
         """
         for i in range(len(f) - 2):
             if abs(f[i + 2] - f[i + 1]) < eps and abs(f[i + 1] - f[i]) < eps:
@@ -122,16 +133,22 @@ def calculateEquilibriumAltitude(
     def du(z, u):
         """_summary_
 
-        Args:
-            z (_type_): _description_
-            u (_type_): _description_
+        Parameters
+        ----------
+        z : float
+            _description_
+        u : float
+            velocity, in m/s, at a given z altitude
 
-        Returns:
-            _type_: _description_
+        Returns
+        -------
+        float
+            _description_
         """
         return (
             u[1],
-            -g + environment.density(z) * ((u[1]) ** 2) * CdS / (2 * rocket_mass),
+            -g + environment.density(z) *
+            ((u[1]) ** 2) * CdS / (2 * rocket_mass),
         )
 
     u0 = [z0, v0]
@@ -151,44 +168,20 @@ def calculateEquilibriumAltitude(
     if constant_index is not None:
         final_sol = {
             "time": us.t[constant_index],
-            "height": us.y[0][constant_index],
+            "altitude": us.y[0][constant_index],
             "velocity": us.y[1][constant_index],
         }
 
-    # TODO: Convert result from solve_ivp to Function objects
+    altitudeFunction = Function(source=np.array(list(zip(us.t, us.y[0])), dtype=np.float64),
+                                inputs="Time (s)",
+                                outputs="Altitude (m)",
+                                interpolation="linear")
+
+    velocityFunction = Function(source=np.array(list(zip(us.t, us.y[1])), dtype=np.float64), inputs="Time (s)",
+                                outputs="Vertical Velocity (m/s)", interpolation="linear")
+
     if seeGraphs:
-        fig1 = plt.figure(figsize=(4, 3))
-        plt.plot(us.t, us.y[0], label="Height", color="blue")
-        plt.title("Height (m) x time (s)")
-        plt.xlim(0, max(us.t))
-        plt.ylim(min(us.y[0]), z0)
-        plt.xlabel("Time (s)")
-        plt.ylabel("Height (m)")
-        if constant_index is not None:
-            plt.scatter(
-                us.t[constant_index],
-                us.y[0][constant_index],
-                color="red",
-                label="Terminal Velocity is reached",
-            )
-        plt.legend()
-        plt.show()
+        altitudeFunction()
+        velocityFunction()
 
-        fig2 = plt.figure(figsize=(4, 3))
-        plt.plot(us.t, us.y[1], label="Velocity", color="blue")
-        if constant_index is not None:
-            plt.scatter(
-                us.t[constant_index],
-                us.y[1][constant_index],
-                color="red",
-                label="Terminal Velocity is reached",
-            )
-        plt.title("Vertical velocity x time (s)")
-        plt.xlim(0, max(us.t))
-        plt.ylim(min(us.y[1]) - 2, 0)
-        plt.xlabel("Time (s)")
-        plt.ylabel("Vertical velocity (m)")
-        plt.legend()
-        plt.show()
-
-    return final_sol
+    return altitudeFunction, velocityFunction, final_sol
