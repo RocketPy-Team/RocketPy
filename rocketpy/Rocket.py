@@ -112,12 +112,12 @@ class Rocket:
         motor : Motor
             Motor used in the rocket. See Motor class for more information.
         mass : int, float
-            Unloaded rocket total mass (without propelant) in kg.
+            Unloaded rocket total mass (without propellant) in kg.
         inertiaI : int, float
             Unloaded rocket lateral (perpendicular to axis of symmetry)
-            moment of inertia (without propelant) in kg m^2.
+            moment of inertia (without propellant) in kg m^2.
         inertiaZ : int, float
-            Unloaded rocket axial moment of inertia (without propelant)
+            Unloaded rocket axial moment of inertia (without propellant)
             in kg m^2.
         radius : int, float
             Rocket biggest outer radius in meters.
@@ -506,7 +506,7 @@ class Rocket:
         airfoil : tuple, optional
             Default is null, in which case fins will be treated as flat plates.
             Otherwise, if tuple, fins will be considered as airfoils. The
-            tuple's first item specefies the aifoil's lift coefficient
+            tuple's first item specifies the airfoil's lift coefficient
             by angle of attack and must be either a .csv, .txt, ndarray
             or callable. The .csv and .txt files must contain no headers
             and the first column must specify the angle of attack, while
@@ -600,7 +600,7 @@ class Rocket:
                 cpz = distanceToCM + (0.288 * Cr)
 
         else:
-            raise Exception("Invalid finshape")
+            raise Exception("Invalid fin shape")
 
         # Retrieves similar parameters
         Aref = np.pi * radius**2
@@ -856,7 +856,7 @@ class Rocket:
             its distance should be a negative value. The order does
             not matter. All values should be in meters.
         angularPosition : float
-            Angular postion of the rail buttons in degrees measured
+            Angular position of the rail buttons in degrees measured
             as the rotation around the symmetry axis of the rocket
             relative to one of the other principal axis.
             Default value is 45 degrees, generally used in rockets with
@@ -934,7 +934,7 @@ class Rocket:
 
     def addThrustEccentricity(self, x, y):
         """Moves line of action of thrust forces to simulate a
-        disalignment of the thrust vector and the center of mass.
+        misalignment of the thrust vector and the center of mass.
 
         Parameters
         ----------
@@ -1127,7 +1127,7 @@ class Rocket:
         "Hey! I will document this function later"
         self.aerodynamicSurfaces = []
         pi = np.pi
-        # Calculate angular postions if not given
+        # Calculate angular positions if not given
         if angularPositions is None:
             angularPositions = np.array(
                 range(numberOfFins)) * 2 * pi / numberOfFins
