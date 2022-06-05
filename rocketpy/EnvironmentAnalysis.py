@@ -1516,11 +1516,12 @@ class EnvironmentAnalysis:
     def allInfo(self):
         print("Gust Information")
         print(
-            f"Global Maximum wind gust: {self.max_wind_gust:.2f} {self.unit_system['wind_speed']}"
+            f"Global maximum wind gust: {self.max_wind_gust:.2f} {self.unit_system['wind_speed']}"
         )
         print(
             f"Average maximum wind gust: {self.average_max_wind_gust:.2f} {self.unit_system['wind_speed']}"
         )
+        print()
         print("Temperature Information")
         print(
             f"Global Maximum temperature: {self.record_max_temperature:.2f} {self.unit_system['temperature']}"
