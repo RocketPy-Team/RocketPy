@@ -110,8 +110,7 @@ class Function:
         -------
         self : Function
         """
-        self.__outputs__ = [outputs] if isinstance(
-            outputs, str) else list(outputs)
+        self.__outputs__ = [outputs] if isinstance(outputs, str) else list(outputs)
         self.__imgDim__ = len(self.__outputs__)
         return self
 
@@ -146,8 +145,7 @@ class Function:
                 firstLine = firstLine.split(" , ")
                 self.setInputs(firstLine[0])
                 self.setOutputs(firstLine[1:])
-                source = np.loadtxt(source, delimiter=",",
-                                    skiprows=1, dtype=float)
+                source = np.loadtxt(source, delimiter=",", skiprows=1, dtype=float)
             # if headers are not found
             else:
                 source = np.loadtxt(source, delimiter=",", dtype=float)
@@ -157,7 +155,10 @@ class Function:
         # Convert number source into vectorized lambda function
         if isinstance(source, (int, float)):
             temp = 1 * source
-            def source(x): return 0 * x + temp
+
+            def source(x):
+                return 0 * x + temp
+
         # Handle callable source or number source
         if callable(source):
             # Set source
@@ -177,8 +178,7 @@ class Function:
             # Check to see if dimensions match incoming data set
             newTotalDim = len(source[0, :])
             oldTotalDim = self.__domDim__ + self.__imgDim__
-            dV = self.__inputs__ == [
-                "Scalar"] and self.__outputs__ == ["Scalar"]
+            dV = self.__inputs__ == ["Scalar"] and self.__outputs__ == ["Scalar"]
             # If they don't, update default values or throw error
             if newTotalDim != oldTotalDim:
                 if dV:
@@ -322,8 +322,7 @@ class Function:
                     # Interpolate
                     dx = float(xData[xInterval] - xData[xInterval - 1])
                     dy = float(yData[xInterval] - yData[xInterval - 1])
-                    y = (x - xData[xInterval - 1]) * \
-                        (dy / dx) + yData[xInterval - 1]
+                    y = (x - xData[xInterval - 1]) * (dy / dx) + yData[xInterval - 1]
                 else:
                     # Extrapolate
                     if extrapolation == 0:  # Extrapolation == zero
@@ -350,7 +349,7 @@ class Function:
                 if xmin <= x <= xmax:
                     # Interpolate
                     xInterval = xInterval if xInterval != 0 else 1
-                    a = coeffs[4 * xInterval - 4: 4 * xInterval]
+                    a = coeffs[4 * xInterval - 4 : 4 * xInterval]
                     y = a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
                 else:
                     # Extrapolate
@@ -466,8 +465,7 @@ class Function:
         elif self.__domDim__ == 2:
             lower = 2 * [lower] if isinstance(lower, (int, float)) else lower
             upper = 2 * [upper] if isinstance(upper, (int, float)) else upper
-            sam = 2 * \
-                [samples] if isinstance(samples, (int, float)) else samples
+            sam = 2 * [samples] if isinstance(samples, (int, float)) else samples
             # Create nodes to evaluate function
             Xs = np.linspace(lower[0], upper[0], sam[0])
             Ys = np.linspace(lower[1], upper[1], sam[1])
@@ -602,13 +600,11 @@ class Function:
                     elif xmin < x[i] < xmax or (self.__extrapolation__ == "natural"):
                         if not xmin < x[i] < xmax:
                             a = coeffs[:, 0] if x[i] < xmin else coeffs[:, -1]
-                            x[i] = x[i] - \
-                                xData[0] if x[i] < xmin else x[i] - xData[-2]
+                            x[i] = x[i] - xData[0] if x[i] < xmin else x[i] - xData[-2]
                         else:
                             a = coeffs[:, xIntervals[i] - 1]
                             x[i] = x[i] - xData[xIntervals[i] - 1]
-                        x[i] = a[3] * x[i] ** 3 + a[2] * \
-                            x[i] ** 2 + a[1] * x[i] + a[0]
+                        x[i] = a[3] * x[i] ** 3 + a[2] * x[i] ** 2 + a[1] * x[i] + a[0]
                     else:
                         # Extrapolate
                         if self.__extrapolation__ == "zero":
@@ -623,8 +619,7 @@ class Function:
                         # Interpolate
                         dx = float(xData[inter] - xData[inter - 1])
                         dy = float(yData[inter] - yData[inter - 1])
-                        x[i] = (x[i] - xData[inter - 1]) * \
-                            (dy / dx) + yData[inter - 1]
+                        x[i] = (x[i] - xData[inter - 1]) * (dy / dx) + yData[inter - 1]
                     else:
                         # Extrapolate
                         if self.__extrapolation__ == "zero":  # Extrapolation == zero
@@ -649,10 +644,8 @@ class Function:
                         if not (xmin < x[i] < xmax):
                             a = coeffs[:4] if x[i] < xmin else coeffs[-4:]
                         else:
-                            a = coeffs[4 * xIntervals[i] -
-                                       4: 4 * xIntervals[i]]
-                        x[i] = a[3] * x[i] ** 3 + a[2] * \
-                            x[i] ** 2 + a[1] * x[i] + a[0]
+                            a = coeffs[4 * xIntervals[i] - 4 : 4 * xIntervals[i]]
+                        x[i] = a[3] * x[i] ** 3 + a[2] * x[i] ** 2 + a[1] * x[i] + a[0]
                     else:
                         # Extrapolate
                         if self.__extrapolation__ == "zero":
@@ -739,8 +732,7 @@ class Function:
                 # Interpolate
                 dx = float(xData[xInterval] - xData[xInterval - 1])
                 dy = float(yData[xInterval] - yData[xInterval - 1])
-                y = (x - xData[xInterval - 1]) * \
-                    (dy / dx) + yData[xInterval - 1]
+                y = (x - xData[xInterval - 1]) * (dy / dx) + yData[xInterval - 1]
             else:
                 # Extrapolate
                 if extrapolation == 0:  # Extrapolation == zero
@@ -749,8 +741,7 @@ class Function:
                     xInterval = 1 if x < xmin else -1
                     dx = float(xData[xInterval] - xData[xInterval - 1])
                     dy = float(yData[xInterval] - yData[xInterval - 1])
-                    y = (x - xData[xInterval - 1]) * \
-                        (dy / dx) + yData[xInterval - 1]
+                    y = (x - xData[xInterval - 1]) * (dy / dx) + yData[xInterval - 1]
                 else:  # Extrapolation is set to constant
                     y = yData[0] if x < xmin else yData[-1]
             return y
@@ -763,7 +754,7 @@ class Function:
             if xmin <= x <= xmax:
                 # Interpolate
                 xInterval = xInterval if xInterval != 0 else 1
-                a = coeffs[4 * xInterval - 4: 4 * xInterval]
+                a = coeffs[4 * xInterval - 4 : 4 * xInterval]
                 y = a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
             else:
                 # Extrapolate
@@ -883,8 +874,7 @@ class Function:
                 elif xmin < x < xmax or (self.__extrapolation__ == "natural"):
                     dx = float(xData[xInterval] - xData[xInterval - 1])
                     dy = float(yData[xInterval] - yData[xInterval - 1])
-                    x = (x - xData[xInterval - 1]) * \
-                        (dy / dx) + yData[xInterval - 1]
+                    x = (x - xData[xInterval - 1]) * (dy / dx) + yData[xInterval - 1]
                 elif self.__extrapolation__ == "natural":
                     y0 = yData[0] if x < xmin else yData[-1]
                     xInterval = 1 if x < xmin else -1
@@ -903,7 +893,7 @@ class Function:
                 if x == xmin or x == xmax:
                     x = yData[xInterval]
                 elif xmin < x < xmax:
-                    a = coeffs[4 * xInterval - 4: 4 * xInterval]
+                    a = coeffs[4 * xInterval - 4 : 4 * xInterval]
                     x = a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
                 elif self.__extrapolation__ == "natural":
                     a = coeffs[:4] if x < xmin else coeffs[-4:]
@@ -1071,9 +1061,8 @@ class Function:
             tooLow = True if xmin >= lower else False
             tooHigh = True if xmax <= upper else False
             loInd = 0 if tooLow else np.where(xData >= lower)[0][0]
-            upInd = len(xData) - \
-                1 if tooHigh else np.where(xData <= upper)[0][0]
-            points = self.source[loInd: (upInd + 1), :].T.tolist()
+            upInd = len(xData) - 1 if tooHigh else np.where(xData <= upper)[0][0]
+            points = self.source[loInd : (upInd + 1), :].T.tolist()
             if forceData:
                 plt.scatter(points[0], points[1], marker="o")
         # Calculate function at mesh nodes
@@ -1085,8 +1074,7 @@ class Function:
         plt.plot(x, y)
         # Turn on grid and set title and axis
         plt.grid(True)
-        plt.title(self.__outputs__[0].title() +
-                  " x " + self.__inputs__[0].title())
+        plt.title(self.__outputs__[0].title() + " x " + self.__inputs__[0].title())
         plt.xlabel(self.__inputs__[0].title())
         plt.ylabel(self.__outputs__[0].title())
         plt.show()
@@ -1324,10 +1312,9 @@ class Function:
                     tooHigh = True if xmax <= upper else False
                     loInd = 0 if tooLow else np.where(xData >= lower)[0][0]
                     upInd = (
-                        len(xData) -
-                        1 if tooHigh else np.where(xData <= upper)[0][0]
+                        len(xData) - 1 if tooHigh else np.where(xData <= upper)[0][0]
                     )
-                    points = plot[0].source[loInd: (upInd + 1), :].T.tolist()
+                    points = plot[0].source[loInd : (upInd + 1), :].T.tolist()
                     ax.scatter(points[0], points[1], marker="o")
 
         # Setup legend
@@ -1384,8 +1371,7 @@ class Function:
             Ab[2, i - 1] = h[i - 1]  # A[i, i - 1] = h[i - 1]
             Ab[1, i] = 2 * (h[i] + h[i - 1])  # A[i, i] = 2*(h[i] + h[i - 1])
             Ab[0, i + 1] = h[i]  # A[i, i + 1] = h[i]
-            B.append(3 * ((y[i + 1] - y[i]) / (h[i]) -
-                     (y[i] - y[i - 1]) / (h[i - 1])))
+            B.append(3 * ((y[i + 1] - y[i]) / (h[i]) - (y[i] - y[i - 1]) / (h[i - 1])))
         Ab[1, mdim - 1] = 1  # A[-1, -1] = 1
         B.append(0)
         # Solve the system for c coefficients
@@ -1427,7 +1413,7 @@ class Function:
                 ]
             )
             Y = np.array([yl, yr, dl, dr]).T
-            coeffs[4 * i: 4 * i + 4] = np.linalg.solve(A, Y)
+            coeffs[4 * i : 4 * i + 4] = np.linalg.solve(A, Y)
             """For some reason this doesn't always work!
             coeffs[4*i] = (dr*xl**2*xr*(-xl + xr) + dl*xl*xr**2*(-xl + xr) +
                            3*xl*xr**2*yl - xr**3*yl + xl**3*yr -

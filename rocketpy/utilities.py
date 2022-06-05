@@ -40,6 +40,7 @@ def compute_CdS_from_drop_test(
 
     return 2 * rocket_mass * g / ((terminal_velocity**2) * air_density)
 
+
 # TODO: Needs tests
 
 
@@ -86,7 +87,7 @@ def calculateEquilibriumAltitude(
 
     Returns
     -------
-    altitudeFunction: Function 
+    altitudeFunction: Function
         Altitude as a function of time. Always a Function object.
     velocityFunction:
         Vertical velocity as a function of time. Always a Function object.
@@ -150,8 +151,7 @@ def calculateEquilibriumAltitude(
         """
         return (
             u[1],
-            -g + environment.density(z) *
-            ((u[1]) ** 2) * CdS / (2 * rocket_mass),
+            -g + environment.density(z) * ((u[1]) ** 2) * CdS / (2 * rocket_mass),
         )
 
     u0 = [z0, v0]
@@ -175,13 +175,19 @@ def calculateEquilibriumAltitude(
             "velocity": us.y[1][constant_index],
         }
 
-    altitudeFunction = Function(source=np.array(list(zip(us.t, us.y[0])), dtype=np.float64),
-                                inputs="Time (s)",
-                                outputs="Altitude (m)",
-                                interpolation="linear")
+    altitudeFunction = Function(
+        source=np.array(list(zip(us.t, us.y[0])), dtype=np.float64),
+        inputs="Time (s)",
+        outputs="Altitude (m)",
+        interpolation="linear",
+    )
 
-    velocityFunction = Function(source=np.array(list(zip(us.t, us.y[1])), dtype=np.float64), inputs="Time (s)",
-                                outputs="Vertical Velocity (m/s)", interpolation="linear")
+    velocityFunction = Function(
+        source=np.array(list(zip(us.t, us.y[1])), dtype=np.float64),
+        inputs="Time (s)",
+        outputs="Vertical Velocity (m/s)",
+        interpolation="linear",
+    )
 
     if seeGraphs:
         altitudeFunction()
