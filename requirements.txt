@@ -5,3 +5,4 @@ netCDF4>=1.4
 windrose>=1.6.8
 requests
 pytz
+timezonefinder
