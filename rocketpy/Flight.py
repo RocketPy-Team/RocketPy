@@ -3610,12 +3610,13 @@ class Flight:
         kmlTemplate = open(template, "r")
         for row in kmlTemplate:
             kml.write(str(row))
+        kml.write("\n")
         kmlTemplate.close()
 
         # Iterate over timePoints to save all coordinates
         for t in timePoints:
             kml.write(
-                f"          {self.longitude(t):.15}, {self.latitude(t):.15}, {self.z(t):.5}\n"
+                f"          {self.longitude(t):.15},{self.latitude(t):.15},{self.z(t):.5}\n"
             )
 
         # Write final tags and close the file
