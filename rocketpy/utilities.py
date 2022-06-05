@@ -45,7 +45,8 @@ def calculateEquilibriumAltitude(
     rocket_mass, CdS, z0, v0=0, env=None, eps=1e-3, seeGraphs=True
 ):
     """Returns a dictionary containing the time, height and velocoty of the
-    system rocket-parachute in which the terminal velocoty is reached.
+    system rocket-parachute in which the terminal velocity is reached.
+
 
     Parameters
     ----------
