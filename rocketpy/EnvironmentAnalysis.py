@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+
+__author__ = "Patrick Sampaio, Giovani Hidalgo Ceotto, Guilherme Fernandes Alves, Franz Masatoshi Yuri, Mateus Stano Junqueira,"
+__copyright__ = "Copyright 20XX, RocketPy Team"
+__license__ = "MIT"
+
 from datetime import datetime, timedelta
 import bisect
 from collections import defaultdict
@@ -6,7 +12,6 @@ import ipywidgets as widgets
 import numpy as np
 from scipy import stats
 from matplotlib import pyplot as plt
-
 
 from matplotlib.animation import FuncAnimation, PillowWriter as ImageWriter
 import matplotlib.ticker as mtick
@@ -59,7 +64,41 @@ class EnvironmentAnalysis:
         surfaceDataFile=None,
         pressureLevelDataFile=None,
         timezone=None,
+        unit_system='metric',
     ):
+        """Constructor for the EnvironmentAnalysis class.
+        Parameters
+        ----------
+        start_date : datetime.datetime
+            Start date and time of the analysis. When parsing the weather data
+            from the source file, only data after this date will be parsed.
+        end_date : datetime.datetime
+            End date and time of the analysis. When parsing the weather data
+            from the source file, only data before this date will be parsed.
+        latitude : float
+            Latitude coordinate of the location where the analysis will be
+            carried out.
+        longitude : float
+            Longitude coordinate of the location where the analysis will be
+            carried out.
+        elevation : float
+            Elevation of the location where the analysis will be carried out.
+        surfaceDataFile : str, optional
+            Path to the netCDF file containing the surface data.
+        pressureLevelDataFile : str, optional
+            Path to the netCDF file containing the pressure level data.
+        timezone : str, optional
+            Name of the timezone to be used when displaying results. To see all
+            available time zones, import pytz and run print(pytz.all_timezones).
+            Default time zone is the local time zone at the latitude and
+            longitude specified.
+        unit_system : str, optional
+            Unit system to be used when displaying results.
+            Options are: SI, metric, imperial. Default is metric.
+        Returns
+        -------
+        None
+        """
         # Save inputs
         self.start_date = start_date
         self.end_date = end_date
@@ -68,11 +107,11 @@ class EnvironmentAnalysis:
         self.elevation = elevation
         self.surfaceDataFile = surfaceDataFile
         self.pressureLevelDataFile = pressureLevelDataFile
-        self.prefered_timezone = timezone
+        self.preferred_timezone = timezone
 
         # Manage units and timezones
         self.__init_data_parsing_units()
-        self.__find_prefered_timezone()
+        self.__find_preferred_timezone()
         self.__localize_input_dates()
 
         # Parse data files
@@ -108,9 +147,8 @@ class EnvironmentAnalysis:
         self.wind_direction_per_hour = None
 
         # Run calculations
-        # self.process_data()
+        self.process_data()
 
-    # TODO: Check implementation and use when parsing files
     def __bilinear_interpolation(self, x, y, x1, x2, y1, y2, z11, z12, z21, z22):
         """
         Bilinear interpolation.
@@ -127,7 +165,8 @@ class EnvironmentAnalysis:
     def __init_surface_dictionary(self):
         # Create dictionary of file variable names to process surface data
         self.surfaceFileDict = {
-            "surface100mWindVelocityX": "v100",  # TODO: fix this to u100 when you have a good file
+            # TODO: fix this to u100 when you have a good file
+            "surface100mWindVelocityX": "v100",
             "surface100mWindVelocityY": "v100",
             "surface10mWindVelocityX": "u10",
             "surface10mWindVelocityY": "v10",
@@ -149,7 +188,7 @@ class EnvironmentAnalysis:
 
     def __getNearestIndex(self, array, value):
         """Find nearest index of the given value in the array.
-        Made for latitudes and longitudes, suporting arrays that range from
+        Made for latitudes and longitudes, supporting arrays that range from
         -180 to 180 or from 0 to 360.
 
         TODO: improve docs
@@ -163,9 +202,9 @@ class EnvironmentAnalysis:
         -------
         index : int
         """
-        # Create value convetion
+        # Create value convention
         if np.min(array) < 0:
-            # File uses range from -180 to 180, make sure value follows convetion
+            # File uses range from -180 to 180, make sure value follows convention
             value = value if value < 180 else value % 180 - 180  # Example: 190 => -170
         else:
             # File probably uses range from 0 to 360, make sure value follows convention
@@ -196,7 +235,7 @@ class EnvironmentAnalysis:
         """
         dateTimeUTC = num2pydate(timeNum, units, calendar=calendar)
         dateTimeUTC = dateTimeUTC.replace(tzinfo=pytz.UTC)
-        dateTime = dateTimeUTC.astimezone(self.prefered_timezone)
+        dateTime = dateTimeUTC.astimezone(self.preferred_timezone)
         dateString = f"{dateTime.year}.{dateTime.month}.{dateTime.day}"
         hourString = f"{dateTime.hour}"
         return dateString, hourString, dateTime
@@ -286,19 +325,19 @@ class EnvironmentAnalysis:
 
     def __localize_input_dates(self):
         if self.start_date.tzinfo is None:
-            self.start_date = self.prefered_timezone.localize(self.start_date)
+            self.start_date = self.preferred_timezone.localize(self.start_date)
         if self.end_date.tzinfo is None:
-            self.end_date = self.prefered_timezone.localize(self.end_date)
+            self.end_date = self.preferred_timezone.localize(self.end_date)
 
-    def __find_prefered_timezone(self):
-        if self.prefered_timezone is None:
+    def __find_preferred_timezone(self):
+        if self.preferred_timezone is None:
             # Use local timezone based on lat lon pair
             tf = TimezoneFinder()
-            self.prefered_timezone = pytz.timezone(
+            self.preferred_timezone = pytz.timezone(
                 tf.timezone_at(lng=self.longitude, lat=self.latitude)
             )
-        elif isinstance(self.prefered_timezone, str):
-            self.prefered_timezone = pytz.timezone(self.prefered_timezone)
+        elif isinstance(self.preferred_timezone, str):
+            self.preferred_timezone = pytz.timezone(self.preferred_timezone)
 
     def __init_data_parsing_units(self):
         """Define units for pressure level and surface data parsing"""
@@ -325,7 +364,7 @@ class EnvironmentAnalysis:
         self.updated_units = self.current_units.copy()
 
     def __init_unit_system(self):
-        """Initialize prefered units for output (SI, metric or imperial)."""
+        """Initialize preferred units for output (SI, metric or imperial)."""
         if self.unit_system_string == "metric":
             self.unit_system = {
                 "length": "km",
@@ -462,7 +501,8 @@ class EnvironmentAnalysis:
         latIndex = self.__getNearestIndex(latArray, self.latitude)
 
         # Can't handle lat and lon out of grid
-        self.__check_coordinates_inside_grid(lonIndex, latIndex, lonArray, latArray)
+        self.__check_coordinates_inside_grid(
+            lonIndex, latIndex, lonArray, latArray)
 
         # Loop through time and save all values
         for timeIndex, timeNum in enumerate(timeNumArray):
@@ -501,7 +541,8 @@ class EnvironmentAnalysis:
                 valueArray = self.__extractPressureLevelDataValue(
                     pressureLevelData, value, indices, lonArray, latArray
                 )
-                variablePointsArray = np.array([heightAboveSeaLevelArray, valueArray]).T
+                variablePointsArray = np.array(
+                    [heightAboveSeaLevelArray, valueArray]).T
                 variableFunction = Function(
                     variablePointsArray,
                     inputs="Height Above Sea Level (m)",
@@ -557,7 +598,8 @@ class EnvironmentAnalysis:
 
             # Create function for wind heading levels
             windHeadingArray = (
-                np.arctan2(windVelocityXArray, windVelocityYArray) * (180 / np.pi) % 360
+                np.arctan2(windVelocityXArray, windVelocityYArray) *
+                (180 / np.pi) % 360
             )
 
             windHeadingPointsArray = np.array(
@@ -633,7 +675,8 @@ class EnvironmentAnalysis:
         latIndex = self.__getNearestIndex(latArray, self.latitude)
 
         # Can't handle lat and lon out of grid
-        self.__check_coordinates_inside_grid(lonIndex, latIndex, lonArray, latArray)
+        self.__check_coordinates_inside_grid(
+            lonIndex, latIndex, lonArray, latArray)
 
         # Loop through time and save all values
         for timeIndex, timeNum in enumerate(timeNumArray):
@@ -740,15 +783,13 @@ class EnvironmentAnalysis:
         self.calculate_record_min_temperature()
         self.calculate_average_max_wind_gust()
         self.calculate_maximum_wind_gust()
-        self.calculate_wind_gust_distribution()
         self.calculate_average_temperature_along_day()
-        self.calculate_average_wind_profile()
-        self.calculate_average_day_wind_rose()
 
     # TODO: Create tests
     def calculate_average_max_temperature(self):
         self.max_temperature_list = [
-            np.max([dayDict[hour]["surfaceTemperature"] for hour in dayDict.keys()])
+            np.max([dayDict[hour]["surfaceTemperature"]
+                   for hour in dayDict.keys()])
             for dayDict in self.surfaceDataDict.values()
         ]
         self.average_max_temperature = np.average(self.max_temperature_list)
@@ -757,7 +798,8 @@ class EnvironmentAnalysis:
     # TODO: Create tests
     def calculate_average_min_temperature(self):
         self.min_temperature_list = [
-            np.min([dayDict[hour]["surfaceTemperature"] for hour in dayDict.keys()])
+            np.min([dayDict[hour]["surfaceTemperature"]
+                   for hour in dayDict.keys()])
             for dayDict in self.surfaceDataDict.values()
         ]
         self.average_min_temperature = np.average(self.min_temperature_list)
@@ -786,7 +828,8 @@ class EnvironmentAnalysis:
     # TODO: Create tests
     def calculate_average_max_wind_gust(self):
         self.max_wind_gust_list = [
-            np.max([dayDict[hour]["surfaceWindGust"] for hour in dayDict.keys()])
+            np.max([dayDict[hour]["surfaceWindGust"]
+                   for hour in dayDict.keys()])
             for dayDict in self.surfaceDataDict.values()
         ]
         self.average_max_wind_gust = np.average(self.max_wind_gust_list)
@@ -836,7 +879,7 @@ class EnvironmentAnalysis:
 
         # Label plot
         plt.ylabel("Probability")
-        plt.xlabel("Wind gust speed (m/s)")
+        plt.xlabel(f"Wind gust speed ({self.unit_system['windSpeed']})")
         plt.title("Wind Gust Speed Distribution")
         plt.legend()
         plt.show()
@@ -877,7 +920,8 @@ class EnvironmentAnalysis:
         self.calculate_average_temperature_along_day()
 
         # Get handy arrays
-        hours = np.fromiter(self.average_temperature_at_given_hour.keys(), np.float)
+        hours = np.fromiter(
+            self.average_temperature_at_given_hour.keys(), np.float)
         temperature_mean = self.average_temperature_at_given_hour.values()
         temperature_mean = np.array(list(temperature_mean))
         temperature_std = np.array(list(self.sigmas_at_given_hour.values()))
@@ -914,7 +958,7 @@ class EnvironmentAnalysis:
         )
         plt.autoscale(enable=True, axis="x", tight=True)
         plt.xlabel("Time (hours)")
-        plt.ylabel("Temperature (K)")
+        plt.ylabel(f"Temperature ({self.unit_system['temperature']})")
         plt.title("Average Temperature Along Day")
         plt.grid(alpha=0.25)
         plt.legend()
@@ -935,7 +979,8 @@ class EnvironmentAnalysis:
         self.average_wind_speed_profile = np.mean(wind_speed_profiles, axis=0)
         # Plot
         plt.figure()
-        plt.plot(self.average_wind_speed_profile, altitude_list, "r", label="$\\mu$")
+        plt.plot(self.average_wind_speed_profile,
+                 altitude_list, "r", label="$\\mu$")
         plt.plot(
             np.percentile(wind_speed_profiles, 50 - 34.1, axis=0),
             altitude_list,
@@ -968,7 +1013,7 @@ class EnvironmentAnalysis:
             plt.plot(wind_speed_profile, altitude_list, "gray", alpha=0.01)
         plt.ylim(altitude_list[0], altitude_list[-1])
         plt.xlabel(f"Wind speed ({self.unit_system['wind_speed']})")
-        plt.ylabel(f"Altitude ({self.unit_system['length']})")
+        plt.ylabel(f"Altitude ASL ({self.unit_system['length']})")
         plt.title("Average Wind Speed Profile")
         plt.legend()
         plt.show()
@@ -1113,7 +1158,8 @@ class EnvironmentAnalysis:
         plot_padding = 0.18  # percentage
         nrows, ncols = self._find_two_closest_integer_factors(len(hours))
         vertical_plot_area_percentage = (
-            nrows * windrose_side / (nrows * windrose_side + vertical_padding_top)
+            nrows * windrose_side /
+            (nrows * windrose_side + vertical_padding_top)
         )
 
         # Create figure
@@ -1123,10 +1169,12 @@ class EnvironmentAnalysis:
         )
         bins = np.linspace(self.min_wind_speed, self.max_wind_speed, 6)
         width = (1 - 2 * plot_padding) * 1 / ncols
-        height = vertical_plot_area_percentage * (1 - 2 * plot_padding) * 1 / nrows
+        height = vertical_plot_area_percentage * \
+            (1 - 2 * plot_padding) * 1 / nrows
 
         for k, hour in enumerate(hours):
-            i, j = len(hours) // nrows - k // ncols, k % ncols  # Row count bottom up
+            i, j = len(hours) // nrows - \
+                k // ncols, k % ncols  # Row count bottom up
             left = j * 1 / ncols + plot_padding / ncols
             bottom = vertical_plot_area_percentage * (
                 (i - 2) / nrows + plot_padding / nrows
@@ -1143,7 +1191,8 @@ class EnvironmentAnalysis:
             if k == 0:
                 ax.legend(
                     loc="upper center",
-                    bbox_to_anchor=(ncols / 2 + 0.8, 1.5),  # 0.8 i a magic number
+                    # 0.8 i a magic number
+                    bbox_to_anchor=(ncols / 2 + 0.8, 1.5),
                     fancybox=True,
                     shadow=True,
                     ncol=6,
@@ -1157,7 +1206,7 @@ class EnvironmentAnalysis:
 
     def animate_average_wind_rose(self, figsize=(8, 8), filename="wind_rose.gif"):
         """Animates the wind_rose of an average day. The inputs of a wind_rose are the location of the
-        place where we want to analyse, (x,y,z). The data is ensembled by hour, which means, the windrose
+        place where we want to analyze, (x,y,z). The data is assembled by hour, which means, the windrose
         of a specific hour is generated by bringing together the data of all of the days available for that
         specific hour. It's possible to change the size of the gif using the parameter figsize, which is the
         height and width in inches.
@@ -1196,7 +1245,8 @@ class EnvironmentAnalysis:
                 self.plot_wind_rose(
                     self.wind_direction_per_hour[hour],
                     self.wind_speed_per_hour[hour],
-                    bins=np.linspace(self.min_wind_speed, self.max_wind_speed, 6),
+                    bins=np.linspace(self.min_wind_speed,
+                                     self.max_wind_speed, 6),
                     title=f"Windrose of an average day. Hour {float(hour):05.2f}".replace(
                         ".", ":"
                     ),
@@ -1225,7 +1275,8 @@ class EnvironmentAnalysis:
             wind_gust_values_for_this_hour = []
             for dayDict in self.surfaceDataDict.values():
                 try:
-                    wind_gust_values_for_this_hour += [dayDict[hour]["surfaceWindGust"]]
+                    wind_gust_values_for_this_hour += [
+                        dayDict[hour]["surfaceWindGust"]]
                 except KeyError:
                     # Some day does not have data for the desired hour (probably the last one)
                     # No need to worry, just average over the other days
@@ -1253,8 +1304,10 @@ class EnvironmentAnalysis:
             )
 
             # Plot weibull distribution
-            c, loc, scale = stats.weibull_min.fit(average_wind_gust_at_given_hour[hour])
-            x = np.linspace(0, np.max(average_wind_gust_at_given_hour[hour]), 100)
+            c, loc, scale = stats.weibull_min.fit(
+                average_wind_gust_at_given_hour[hour])
+            x = np.linspace(
+                0, np.max(average_wind_gust_at_given_hour[hour]), 100)
             ax.plot(
                 x,
                 stats.weibull_min.pdf(x, c, loc, scale),
@@ -1267,7 +1320,8 @@ class EnvironmentAnalysis:
             ax.set_ylim(0, 0.3)
             if current_plot % 2 != 0:
                 ax.set_ylabel("Probability")
-            ax.set_xlabel("Wind gust speed (m/s)")
+            ax.set_xlabel(
+                f"Wind Gust Speed ({self.unit_system['wind_speed']})")
             ax.set_title("Hour " + str(hour) + ":00")
 
         # set legend and title
@@ -1287,7 +1341,8 @@ class EnvironmentAnalysis:
             wind_gust_values_for_this_hour = []
             for dayDict in self.surfaceDataDict.values():
                 try:
-                    wind_gust_values_for_this_hour += [dayDict[hour]["surfaceWindGust"]]
+                    wind_gust_values_for_this_hour += [
+                        dayDict[hour]["surfaceWindGust"]]
                 except KeyError:
                     # Some day does not have data for the desired hour (probably the last one)
                     # No need to worry, just average over the other days
@@ -1325,7 +1380,8 @@ class EnvironmentAnalysis:
         def init():
             ax.set_xlim(0, 25)  # TODO: parametrize
             ax.set_ylim(0, 0.3)  # TODO: parametrize
-            ax.set_xlabel("Wind Gust Speed (m/s)")
+            ax.set_xlabel(
+                f"Wind Gust Speed ({self.unit_system['wind_speed']})")
             ax.set_ylabel("Probability")
             ax.set_title("Wind Gust Distribution")
             # ax.grid(True)
@@ -1445,14 +1501,15 @@ class EnvironmentAnalysis:
             fontsize=24,
         )
         # Define function to initialize animation
+
         def init():
             altitude_list = list(list(self.pressureLevelDataDict.values())[0].values())[
                 0
             ]["windSpeed"].source[:, 0]
             ax.set_xlim(0, 25)
-            ax.set_ylim(self.elevation, max_altitude)
-            ax.set_xlabel("Wind Speed (m/s)")
-            ax.set_ylabel("Altitude (m)")
+            ax.set_ylim(self.elevation,)  # TODO: check and parametrize
+            ax.set_xlabel(f"Wind Speed ({self.unit_system['wind_speed']})")
+            ax.set_ylabel(f"Altitude ASL ({self.unit_system['length']})")
             ax.set_title("Average Wind Profile")
             ax.grid(True)
             return ln, tx
@@ -1475,16 +1532,6 @@ class EnvironmentAnalysis:
         )
         plt.show()
 
-    # Others
-    # TODO: Addapt to new data format
-    def wind_profile(self):
-        windSpeed = []
-        for idx in range(0, len(self.environments)):
-            windSpeed.extend(self.environments[idx].windSpeed.source[:, 1])
-        ax = WindAxes.from_ax()
-        ax.pdf(windSpeed, Nbins=20)
-        plt.show()
-
     def allInfo(self):
         print("Gust Information")
         print(
@@ -1493,7 +1540,7 @@ class EnvironmentAnalysis:
         print(
             f"Average maximum wind gust: {self.average_max_wind_gust:.2f} {self.unit_system['wind_speed']}"
         )
-        print("Temeprature Information")
+        print("Temperature Information")
         print(
             f"Global Maximum temperature: {self.record_max_temperature:.2f} {self.unit_system['temperature']}"
         )
