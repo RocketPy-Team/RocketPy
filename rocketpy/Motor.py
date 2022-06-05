@@ -337,7 +337,7 @@ class Motor(ABC):
     @abstractmethod
     def evaluateCenterOfMass(self):
         """Calculates and returns the time derivative of motor center of mass.
-        The result is a function of time, object of the Function class, which is stored in self.yCM.
+        The result is a function of time, object of the Function class, which is stored in self.zCM.
 
         Parameters
         ----------
@@ -345,7 +345,7 @@ class Motor(ABC):
 
         Returns
         -------
-        yCM : Function
+        zCM : Function
             Position of the center of mass as a function
             of time.
         """
@@ -913,7 +913,7 @@ class SolidMotor(Motor):
 
     def evaluateCenterOfMass(self):
         """Calculates and returns the time derivative of motor center of mass.
-        The result is a function of time, object of the Function class, which is stored in self.yCM.
+        The result is a function of time, object of the Function class, which is stored in self.zCM.
 
         Parameters
         ----------
@@ -921,14 +921,14 @@ class SolidMotor(Motor):
 
         Returns
         -------
-        yCM : Function
+        zCM : Function
             Position of the center of mass as a function
             of time.
         """
 
-        self.yCM = 0
+        self.zCM = 0
 
-        return self.yCM
+        return self.zCM
 
     def evaluateGeometry(self):
         """Calculates grain inner radius and grain height as a
@@ -1533,7 +1533,7 @@ class HybridMotor(Motor):
         self.injectorArea = injectorArea
         # Other quantities that will be computed
         self.massDot = None
-        self.yCM = None
+        self.zCM = None
         self.oxidizerInitialMass = None
         self.mass = None
         self.grainInnerRadius = None
@@ -1619,7 +1619,7 @@ class HybridMotor(Motor):
     def evaluateCenterOfMass(self):
         """Calculates and returns the time derivative of motor center of mass.
         The formulas used are the Bernoulli equation, law of the ideal gases and Boyle's law.
-        The result is a function of time, object of the Function class, which is stored in self.yCM.
+        The result is a function of time, object of the Function class, which is stored in self.zCM.
 
         Parameters
         ----------
@@ -1627,14 +1627,14 @@ class HybridMotor(Motor):
 
         Returns
         -------
-        yCM : Function
+        zCM : Function
             Position of the center of mass as a function
             of time.
         """
 
-        self.yCM = 0
+        self.zCM = 0
 
-        return self.yCM
+        return self.zCM
 
     def evaluateGeometry(self):
         """Calculates grain inner radius and grain height as a
@@ -1930,7 +1930,7 @@ class HybridMotor(Motor):
         print("\nPlots")
         # self.thrust()
 
-        self.yCM
+        self.zCM
 
         return None
 
