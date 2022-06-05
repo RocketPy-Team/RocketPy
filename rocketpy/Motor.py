@@ -285,7 +285,8 @@ class Motor(ABC):
         # Reshape thrust - set total impulse
         if oldTotalImpulse is None:
             oldTotalImpulse = self.evaluateTotalImpulse()
-        self.thrust.source[:, 1] = (totalImpulse / oldTotalImpulse) * thrustArray
+        self.thrust.source[:, 1] = (
+            totalImpulse / oldTotalImpulse) * thrustArray
         self.thrust.setInterpolation(self.interpolate)
 
         # Store total impulse
@@ -482,7 +483,8 @@ class Motor(ABC):
                         description = line.strip().split(" ")
                     else:
                         # Extract thrust curve data points
-                        time, thrust = re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", line)
+                        time, thrust = re.findall(
+                            r"[-+]?\d*\.\d+|[-+]?\d+", line)
                         dataPoints.append([float(time), float(thrust)])
 
         # Return all extract content
@@ -599,7 +601,8 @@ class Motor(ABC):
         print("Grain Outer Radius: " + str(self.grainOuterRadius) + " m")
         print("Grain Inner Radius: " + str(self.grainInitialInnerRadius) + " m")
         print("Grain Height: " + str(self.grainInitialHeight) + " m")
-        print("Grain Volume: " + "{:.3f}".format(self.grainInitialVolume) + " m3")
+        print("Grain Volume: " +
+              "{:.3f}".format(self.grainInitialVolume) + " m3")
         print("Grain Mass: " + "{:.3f}".format(self.grainInitialMass) + " kg")
 
         # Print motor details
@@ -804,6 +807,9 @@ class SolidMotor(Motor):
         self.interpolate = interpolationMethod
         self.burnOutTime = burnOut
 
+        # Geometric parameters
+        self.distanceNozzlePropellant = distanceNozzlePropellant
+
         # Check if thrustSource is csv, eng, function or other
         if isinstance(thrustSource, str):
             # Determine if csv or eng
@@ -984,9 +990,11 @@ class SolidMotor(Motor):
             grainMassDot = self.massDot(t) / self.grainNumber
             rI, h = y
             rIDot = (
-                -0.5 * grainMassDot / (density * np.pi * (rO**2 - rI**2 + rI * h))
+                -0.5 * grainMassDot /
+                    (density * np.pi * (rO**2 - rI**2 + rI * h))
             )
-            hDot = 1.0 * grainMassDot / (density * np.pi * (rO**2 - rI**2 + rI * h))
+            hDot = 1.0 * grainMassDot / \
+                (density * np.pi * (rO**2 - rI**2 + rI * h))
             return [rIDot, hDot]
 
         # Solve the system of differential equations
@@ -1056,7 +1064,8 @@ class SolidMotor(Motor):
         burnRate : Function
         Rate of progression of the inner radius during the combustion.
         """
-        self.burnRate = (-1) * self.massDot / (self.burnArea * self.grainDensity)
+        self.burnRate = (-1) * self.massDot / \
+            (self.burnArea * self.grainDensity)
         self.burnRate.setOutputs("Burn Rate (m/s)")
         return self.burnRate
 
@@ -1264,7 +1273,8 @@ class SolidMotor(Motor):
         print("Grain Outer Radius: " + str(self.grainOuterRadius) + " m")
         print("Grain Inner Radius: " + str(self.grainInitialInnerRadius) + " m")
         print("Grain Height: " + str(self.grainInitialHeight) + " m")
-        print("Grain Volume: " + "{:.3f}".format(self.grainInitialVolume) + " m3")
+        print("Grain Volume: " +
+              "{:.3f}".format(self.grainInitialVolume) + " m3")
         print("Grain Mass: " + "{:.3f}".format(self.grainInitialMass) + " kg")
 
         # Print motor details
@@ -1493,6 +1503,9 @@ class HybridMotor(Motor):
         self.interpolate = interpolationMethod
         self.burnOutTime = burnOut
 
+        # Geometric parameters
+        self.distanceNozzlePropellant = distanceNozzlePropellant
+
         # Check if thrustSource is csv, eng, function or other
         if isinstance(thrustSource, str):
             # Determine if csv or eng
@@ -1688,9 +1701,11 @@ class HybridMotor(Motor):
             grainMassDot = self.massDot(t) / self.grainNumber
             rI, h = y
             rIDot = (
-                -0.5 * grainMassDot / (density * np.pi * (rO**2 - rI**2 + rI * h))
+                -0.5 * grainMassDot /
+                    (density * np.pi * (rO**2 - rI**2 + rI * h))
             )
-            hDot = 1.0 * grainMassDot / (density * np.pi * (rO**2 - rI**2 + rI * h))
+            hDot = 1.0 * grainMassDot / \
+                (density * np.pi * (rO**2 - rI**2 + rI * h))
             return [rIDot, hDot]
 
         # Solve the system of differential equations
@@ -1760,7 +1775,8 @@ class HybridMotor(Motor):
         burnRate : Function
         Rate of progression of the inner radius during the combustion.
         """
-        self.burnRate = (-1) * self.massDot / (self.burnArea * self.grainDensity)
+        self.burnRate = (-1) * self.massDot / \
+            (self.burnArea * self.grainDensity)
         self.burnRate.setOutputs("Burn Rate (m/s)")
         return self.burnRate
 
