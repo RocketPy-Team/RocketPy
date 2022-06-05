@@ -39,7 +39,16 @@ def compute_CdS_from_drop_test(
 
 
 def calculateEquilibriumAltitude(
-    rocket_mass, CdS, z0, v0=0, env=None, eps=1e-3, max_step=0.1, seeGraphs=True, g=9.80665, estimated_final_time=10
+    rocket_mass,
+    CdS,
+    z0,
+    v0=0,
+    env=None,
+    eps=1e-3,
+    max_step=0.1,
+    seeGraphs=True,
+    g=9.80665,
+    estimated_final_time=10,
 ):
     """Returns a dictionary containing the time, height and velocity of the
     system rocket-parachute in which the terminal velocity is reached.
@@ -122,19 +131,19 @@ def calculateEquilibriumAltitude(
         """
         return (
             u[1],
-            - g + environment.density(z) *
-            ((u[1]) ** 2) * CdS / (2 * rocket_mass),
+            -g + environment.density(z) * ((u[1]) ** 2) * CdS / (2 * rocket_mass),
         )
 
     u0 = [z0, v0]
 
-    us = solve_ivp(fun=du,
-                   t_span=(0, estimated_final_time),
-                   y0=u0,
-                   vectorized=True,
-                   method="LSODA",
-                   max_step=max_step
-                   )
+    us = solve_ivp(
+        fun=du,
+        t_span=(0, estimated_final_time),
+        y0=u0,
+        vectorized=True,
+        method="LSODA",
+        max_step=max_step,
+    )
 
     constant_index = check_constant(us.y[1], eps)
 
@@ -156,19 +165,27 @@ def calculateEquilibriumAltitude(
         plt.xlabel("Time (s)")
         plt.ylabel("Height (m)")
         if constant_index is not None:
-            plt.scatter(us.t[constant_index], us.y[0]
-                        [constant_index], color="red", label="Terminal Velocity is reached")
+            plt.scatter(
+                us.t[constant_index],
+                us.y[0][constant_index],
+                color="red",
+                label="Terminal Velocity is reached",
+            )
         plt.legend()
         plt.show()
 
         fig2 = plt.figure(figsize=(4, 3))
         plt.plot(us.t, us.y[1], label="Velocity", color="blue")
         if constant_index is not None:
-            plt.scatter(us.t[constant_index], us.y[1]
-                        [constant_index], color="red", label="Terminal Velocity is reached")
+            plt.scatter(
+                us.t[constant_index],
+                us.y[1][constant_index],
+                color="red",
+                label="Terminal Velocity is reached",
+            )
         plt.title("Vertical velocity x time (s)")
         plt.xlim(0, max(us.t))
-        plt.ylim(min(us.y[1])-2, 0)
+        plt.ylim(min(us.y[1]) - 2, 0)
         plt.xlabel("Time (s)")
         plt.ylabel("Vertical velocity (m)")
         plt.legend()
