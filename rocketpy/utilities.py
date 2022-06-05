@@ -11,6 +11,7 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 
+# TODO: Needs tests
 def compute_CdS_from_drop_test(
     terminal_velocity, rocket_mass, air_density=1.225, g=9.80665
 ):
@@ -38,6 +39,8 @@ def compute_CdS_from_drop_test(
     """
 
     return 2 * rocket_mass * g / ((terminal_velocity**2) * air_density)
+
+# TODO: Needs tests
 
 
 def calculateEquilibriumAltitude(
