@@ -1,14 +1,9 @@
 # -*- coding: utf-8 -*-
 
 __author__ = "Giovani Hidalgo Ceotto, Lucas Kierulff Balabram"
-__copyright__ = "Copyright 20XX, Projeto Jupiter"
+__copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
-import re
-import math
-import bisect
-import warnings
-import time
 from datetime import datetime, timedelta
 from inspect import signature, getsourcelines
 from collections import namedtuple
@@ -24,7 +19,7 @@ from matplotlib import cm
 class Function:
     """Class converts a python function or a data sequence into an object
     which can be handled more naturally, enabling easy interpolation,
-    extrapolation, ploting and algebra.
+    extrapolation, plotting and algebra.
     """
 
     def __init__(
