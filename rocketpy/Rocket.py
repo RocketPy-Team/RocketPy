@@ -557,7 +557,7 @@ class Rocket:
 
             Af = Yr * s / 2  # fin area
             gamac = np.arctan((Cr - Ct) / (2 * s))  # mid chord angle
-            Ymac = (
+            Yma = (
                 (s / 3) * (Cr + 2 * Ct) / Yr
             )  # span wise position of fin's mean aerodynamic chord
             Lf = np.sqrt((Cr / 2 - Ct / 2) ** 2 + s**2)  #
@@ -585,7 +585,7 @@ class Rocket:
             # Retrieve parameters for calculations
             Af = (np.pi * Cr / 2 * s) / 2
             gamac = 0
-            Ymac = s / (3 * np.pi) * np.sqrt(9 * np.pi**2 - 64)
+            Yma = s / (3 * np.pi) * np.sqrt(9 * np.pi**2 - 64)
             rollGeometricalConstant = (
                 Cr
                 * s
