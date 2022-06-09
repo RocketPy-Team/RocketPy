@@ -11,6 +11,8 @@ from rocketpy import Environment, Flight, Function, Rocket, SolidMotor
 plt.rcParams.update({"figure.max_open_warning": 0})
 
 # Helper functions
+
+
 def setup_rocket_with_given_static_margin(rocket, static_margin):
     """Takes any rocket, removes its aerodynamic surfaces and adds a set of
     nose, fins and tail specially designed to have a given static margin.
@@ -76,6 +78,7 @@ def test_flight(mock_show):
         burnOut=3.9,
         grainNumber=5,
         grainSeparation=5 / 1000,
+        distanceNozzleMotorReference=0.40396,
         grainDensity=1815,
         grainOuterRadius=33 / 1000,
         grainInitialInnerRadius=15 / 1000,
@@ -165,6 +168,7 @@ def test_initial_solution(mock_show):
         burnOut=3.9,
         grainNumber=5,
         grainSeparation=5 / 1000,
+        distanceNozzleMotorReference=0.40396,
         grainDensity=1815,
         grainOuterRadius=33 / 1000,
         grainInitialInnerRadius=15 / 1000,
@@ -271,7 +275,8 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
     Check if a restoring moment exists depending on static margins."""
 
     # Create an environment with ZERO gravity to keep the rocket's speed constant
-    Env = Environment(gravity=0, railLength=0, latitude=0, longitude=0, elevation=0)
+    Env = Environment(gravity=0, railLength=0, latitude=0,
+                      longitude=0, elevation=0)
     Env.setAtmosphericModel(
         type="CustomAtmosphere",
         wind_u=wind_u,
@@ -288,6 +293,7 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
         thrustSource=1e-300,
         burnOut=1e-10,
         grainNumber=5,
+        distanceNozzleMotorReference=0.40396,
         grainSeparation=5 / 1000,
         grainDensity=1e-300,
         grainOuterRadius=33 / 1000,
@@ -362,6 +368,7 @@ def test_rolling_flight(mock_show):
         thrustSource="data/motors/Cesaroni_M1670.eng",
         burnOut=3.9,
         grainNumber=5,
+        distanceNozzleMotorReference=0.40396,
         grainSeparation=5 / 1000,
         grainDensity=1815,
         grainOuterRadius=33 / 1000,
@@ -453,6 +460,7 @@ def test_export_data():
         thrustSource=1000,
         burnOut=3.9,
         grainNumber=5,
+        distanceNozzleMotorReference=0.40396,
         grainSeparation=5 / 1000,
         grainDensity=1815,
         grainOuterRadius=33 / 1000,
@@ -520,12 +528,17 @@ def test_export_data():
     # Check if custom exported content matches data
     timePoints = np.arange(test_flight.tInitial, test_flight.tFinal, 0.1)
     assert np.allclose(timePoints, test_2[:, 0], atol=1e-5) == True
-    assert np.allclose(test_flight.z(timePoints), test_2[:, 1], atol=1e-5) == True
-    assert np.allclose(test_flight.vz(timePoints), test_2[:, 2], atol=1e-5) == True
-    assert np.allclose(test_flight.e1(timePoints), test_2[:, 3], atol=1e-5) == True
-    assert np.allclose(test_flight.w3(timePoints), test_2[:, 4], atol=1e-5) == True
+    assert np.allclose(test_flight.z(timePoints),
+                       test_2[:, 1], atol=1e-5) == True
+    assert np.allclose(test_flight.vz(timePoints),
+                       test_2[:, 2], atol=1e-5) == True
+    assert np.allclose(test_flight.e1(timePoints),
+                       test_2[:, 3], atol=1e-5) == True
+    assert np.allclose(test_flight.w3(timePoints),
+                       test_2[:, 4], atol=1e-5) == True
     assert (
-        np.allclose(test_flight.angleOfAttack(timePoints), test_2[:, 5], atol=1e-5)
+        np.allclose(test_flight.angleOfAttack(
+            timePoints), test_2[:, 5], atol=1e-5)
         == True
     )
 
@@ -544,6 +557,7 @@ def test_latlon_convertions(mock_show):
         thrustSource=1545.218,
         burnOut=3.9,
         grainNumber=5,
+        distanceNozzleMotorReference=0.40396,
         grainSeparation=5 / 1000,
         grainDensity=1815,
         grainOuterRadius=33 / 1000,
@@ -619,11 +633,12 @@ def test_latlon_convertions(mock_show):
 
 @patch("matplotlib.pyplot.show")
 def test_latlon_convertions2(mock_show):
-    "additional tests to capture incorrect behaviours during lat/lon conversions"
+    "additional tests to capture incorrect behaviors during lat/lon conversions"
     test_motor = SolidMotor(
         thrustSource=1000,
         burnOut=3,
         grainNumber=5,
+        distanceNozzleMotorReference=0.40396,
         grainSeparation=5 / 1000,
         grainDensity=1815,
         grainOuterRadius=33 / 1000,
