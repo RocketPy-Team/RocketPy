@@ -48,8 +48,7 @@ def test_initialize_motor_asserts_dynamic_values(solid_motor):
     assert solid_motor.burnOutTime == burnOut
     assert solid_motor.totalImpulse == solid_motor.thrust.integral(0, burnOut)
     assert (
-        solid_motor.averageThrust == solid_motor.thrust.integral(
-            0, burnOut) / burnOut
+        solid_motor.averageThrust == solid_motor.thrust.integral(0, burnOut) / burnOut
     )
     assert solid_motor.grainInitialVolume == grain_vol
     assert solid_motor.grainInitialMass == grain_mass
@@ -61,8 +60,7 @@ def test_initialize_motor_asserts_dynamic_values(solid_motor):
 
 def test_grain_geometry_progession_asserts_extreme_values(solid_motor):
     assert np.allclose(
-        solid_motor.grainInnerRadius.getSource(
-        )[-1][-1], solid_motor.grainOuterRadius
+        solid_motor.grainInnerRadius.getSource()[-1][-1], solid_motor.grainOuterRadius
     )
     assert (
         solid_motor.grainInnerRadius.getSource()[0][-1]
@@ -81,8 +79,7 @@ def test_mass_curve_asserts_extreme_values(solid_motor):
     grain_mass = grain_vol * grainDensity
 
     assert np.allclose(solid_motor.mass.getSource()[-1][-1], 0)
-    assert np.allclose(solid_motor.mass.getSource()[
-                       0][-1], grainNumber * grain_mass)
+    assert np.allclose(solid_motor.mass.getSource()[0][-1], grainNumber * grain_mass)
 
 
 def test_burn_area_asserts_extreme_values(solid_motor):
@@ -106,10 +103,8 @@ def test_burn_area_asserts_extreme_values(solid_motor):
         * grainNumber
     )
 
-    assert np.allclose(solid_motor.burnArea.getSource()
-                       [0][-1], initial_burn_area)
-    assert np.allclose(solid_motor.burnArea.getSource()
-                       [-1][-1], final_burn_area)
+    assert np.allclose(solid_motor.burnArea.getSource()[0][-1], initial_burn_area)
+    assert np.allclose(solid_motor.burnArea.getSource()[-1][-1], final_burn_area)
 
 
 def test_evaluate_inertia_I_asserts_extreme_values(solid_motor):
@@ -127,8 +122,7 @@ def test_evaluate_inertia_I_asserts_extreme_values(solid_motor):
     d = np.linspace(-initialValue, initialValue, grainNumber)
     d = d * (grainInitialHeight + grainSeparation)
 
-    inertiaI_initial = grainNumber * \
-        grainInertiaI_initial + grain_mass * np.sum(d**2)
+    inertiaI_initial = grainNumber * grainInertiaI_initial + grain_mass * np.sum(d**2)
 
     assert np.allclose(
         solid_motor.inertiaI.getSource()[0][-1], inertiaI_initial, atol=0.01
@@ -143,13 +137,11 @@ def test_evaluate_inertia_Z_asserts_extreme_values(solid_motor):
     grain_mass = grain_vol * grainDensity
 
     grainInertiaZ_initial = (
-        grain_mass * (1 / 2.0) * (grainInitialInnerRadius **
-                                  2 + grainOuterRadius**2)
+        grain_mass * (1 / 2.0) * (grainInitialInnerRadius**2 + grainOuterRadius**2)
     )
 
     assert np.allclose(
-        solid_motor.inertiaZ.getSource(
-        )[0][-1], grainInertiaZ_initial, atol=0.01
+        solid_motor.inertiaZ.getSource()[0][-1], grainInertiaZ_initial, atol=0.01
     )
     assert np.allclose(solid_motor.inertiaZ.getSource()[-1][-1], 0, atol=1e-16)
 
@@ -160,8 +152,7 @@ def tests_import_eng_asserts_read_values_correctly(solid_motor):
     )
 
     assert comments == [";this motor is COTS", ";3.9 burnTime", ";"]
-    assert description == ["M1670-BS", "75",
-                           "757", "0", "3.101", "5.231", "CTI"]
+    assert description == ["M1670-BS", "75", "757", "0", "3.101", "5.231", "CTI"]
     assert dataPoints == [
         [0, 0],
         [0.055, 100.0],
@@ -186,10 +177,8 @@ def tests_export_eng_asserts_exported_values_correct(solid_motor):
     grain_vol = 0.12 * (np.pi * (0.033**2 - 0.015**2))
     grain_mass = grain_vol * 1815 * 5
 
-    solid_motor.exportEng(fileName="tests/solid_motor.eng",
-                          motorName="test_motor")
-    comments, description, dataPoints = solid_motor.importEng(
-        "tests/solid_motor.eng")
+    solid_motor.exportEng(fileName="tests/solid_motor.eng", motorName="test_motor")
+    comments, description, dataPoints = solid_motor.importEng("tests/solid_motor.eng")
     os.remove("tests/solid_motor.eng")
 
     assert comments == []

@@ -41,8 +41,7 @@ def test_env_set_date_time_zone(example_env):
     example_env.setDate(
         (tomorrow.year, tomorrow.month, tomorrow.day, 12), timeZone="America/New_York"
     )
-    dateNaive = datetime.datetime(
-        tomorrow.year, tomorrow.month, tomorrow.day, 12)
+    dateNaive = datetime.datetime(tomorrow.year, tomorrow.month, tomorrow.day, 12)
     timezone = pytz.timezone("America/New_York")
     dateAwareLocalDate = timezone.localize(dateNaive)
     dateAwareUTC = dateAwareLocalDate.astimezone(pytz.UTC)
@@ -67,8 +66,7 @@ def test_set_topographic_profile(example_env):
         dictionary="netCDF4",
     )
     assert (
-        example_env.getElevationFromTopograghicProfile(
-            example_env.lat, example_env.lon)
+        example_env.getElevationFromTopograghicProfile(example_env.lat, example_env.lon)
         == 1565
     )
 
@@ -196,8 +194,7 @@ def test_hiresw_ensemble_atmosphere(mock_show, example_env_robust):
         "v_wind": "vgrdprs",
     }
     today = datetime.date.today()
-    date_info = (today.year, today.month, today.day,
-                 12)  # Hour given in UTC time
+    date_info = (today.year, today.month, today.day, 12)  # Hour given in UTC time
     date_string = f"{date_info[0]}{date_info[1]:02}{date_info[2]:02}"
 
     example_env_robust.setDate(date_info)

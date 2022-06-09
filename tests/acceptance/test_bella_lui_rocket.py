@@ -18,7 +18,7 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         # Propulsion Details
         "impulse": (2157, 0.03 * 2157),
         "burnOut": (2.43, 0.1),
-        "distanceNozzleMotorReference": (1.1356-1, 0.001),
+        "distanceNozzleMotorReference": (1.1356 - 1, 0.001),
         "nozzleRadius": (44.45 / 1000, 0.001),
         "throatRadius": (21.4376 / 1000, 0.001),
         "grainSeparation": (3 / 1000, 1 / 1000),
@@ -76,8 +76,7 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         thrustSource="tests/fixtures/acceptance/EPFL_Bella_Lui/bella_lui_motor_AeroTech_K828FJ.eng",
         burnOut=parameters.get("burnOut")[0],
         grainNumber=3,
-        distanceNozzleMotorReference=parameters.get(
-            "distanceNozzleMotorReference")[0],
+        distanceNozzleMotorReference=parameters.get("distanceNozzleMotorReference")[0],
         grainSeparation=parameters.get("grainSeparation")[0],
         grainDensity=parameters.get("grainDensity")[0],
         grainOuterRadius=parameters.get("grainOuterRadius")[0],
@@ -219,8 +218,7 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         )
         acceleration_Kalt.append(acc)
 
-    acceleration_Kalt_filt = savgol_filter(
-        acceleration_Kalt, 51, 3)  # Filter our data
+    acceleration_Kalt_filt = savgol_filter(acceleration_Kalt, 51, 3)  # Filter our data
 
     apogee_time_measured = time_Kalt[np.argmax(altitude_Kalt)]
     apogee_time_simulated = TestFlight.apogeeTime
@@ -230,14 +228,12 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         / max(altitude_Kalt)
         < 0.015
     )
-    assert abs(max(velocity_rcp) - max(vertVel_Kalt)) / \
-        max(vertVel_Kalt) < 0.06
+    assert abs(max(velocity_rcp) - max(vertVel_Kalt)) / max(vertVel_Kalt) < 0.06
     assert (
         abs(max(acceleration_rcp) - max(acceleration_Kalt_filt))
         / max(acceleration_Kalt_filt)
         < 0.05
     )
     assert (
-        abs(apogee_time_measured - apogee_time_simulated) /
-        apogee_time_simulated < 0.02
+        abs(apogee_time_measured - apogee_time_simulated) / apogee_time_simulated < 0.02
     )
