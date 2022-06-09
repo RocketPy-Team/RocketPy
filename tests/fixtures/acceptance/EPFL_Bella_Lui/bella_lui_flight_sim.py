@@ -17,7 +17,7 @@ parameters = {
     "nozzleRadius": (44.45 / 1000, 0.001),
     "throatRadius": (21.4376 / 1000, 0.001),
     "grainSeparation": (3 / 1000, 1 / 1000),
-    "distanceNozzleMotorReference": (1.1356-1, 0.001),
+    "distanceNozzleMotorReference": (1.1356 - 1, 0.001),
     "grainDensity": (782.4, 30),
     "grainOuterRadius": (85.598 / 2000, 0.001),
     "grainInitialInnerRadius": (33.147 / 1000, 0.002),
@@ -72,8 +72,7 @@ K828FJ = SolidMotor(
     thrustSource="tests/fixtures/acceptance/EPFL_Bella_Lui/bella_lui_motor_AeroTech_K828FJ.eng",
     burnOut=parameters.get("burnOut")[0],
     grainNumber=3,
-    distanceNozzleMotorReference=parameters.get(
-        "distanceNozzleMotorReference")[0],
+    distanceNozzleMotorReference=parameters.get("distanceNozzleMotorReference")[0],
     grainSeparation=parameters.get("grainSeparation")[0],
     grainDensity=parameters.get("grainDensity")[0],
     grainOuterRadius=parameters.get("grainOuterRadius")[0],
@@ -212,17 +211,14 @@ acceleration_rcp.append(TestFlight.az(TestFlight.tFinal))
 # Calculate the acceleration as a velocity derivative
 acceleration_Kalt = [0]
 for i in range(1, len(vertVel_Kalt), 1):
-    acc = (vertVel_Kalt[i] - vertVel_Kalt[i - 1]) / \
-        (time_Kalt[i] - time_Kalt[i - 1])
+    acc = (vertVel_Kalt[i] - vertVel_Kalt[i - 1]) / (time_Kalt[i] - time_Kalt[i - 1])
     acceleration_Kalt.append(acc)
 
-acceleration_Kalt_filt = savgol_filter(
-    acceleration_Kalt, 51, 3)  # Filter our data
+acceleration_Kalt_filt = savgol_filter(acceleration_Kalt, 51, 3)  # Filter our data
 
 # Summary
 print("Apogee (AGL)")
-print("RocketPy: {:.2f} meters".format(
-    TestFlight.apogee - TestFlight.env.elevation))
+print("RocketPy: {:.2f} meters".format(TestFlight.apogee - TestFlight.env.elevation))
 print("Real data: {:.2f} meters".format(max(altitude_Kalt)))
 print(
     "RocketPy - Real data: {:.2f} meters".format(
@@ -233,13 +229,11 @@ print()
 print("Max Velocity")
 print("RocketPy:  {:.2f} m/s".format(max(velocity_rcp)))
 print("Real data: {:.2f} m/s".format(max(vertVel_Kalt)))
-print(
-    "RocketPy - Real data: {:.2f} m/s".format(max(velocity_rcp) - max(vertVel_Kalt)))
+print("RocketPy - Real data: {:.2f} m/s".format(max(velocity_rcp) - max(vertVel_Kalt)))
 print()
 print("Max Acceleration")
 print("RocketPy:  {:.2f} m/s²".format(max(acceleration_rcp)))
-print(
-    "Real data (derivative): {:.2f} m/s²".format(max(acceleration_Kalt_filt)))
+print("Real data (derivative): {:.2f} m/s²".format(max(acceleration_Kalt_filt)))
 print(
     "RocketPy - Real data: {:.2f} m/s^2".format(
         max(acceleration_rcp) - max(acceleration_Kalt_filt)

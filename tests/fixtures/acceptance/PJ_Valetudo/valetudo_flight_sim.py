@@ -79,7 +79,8 @@ Keron = SolidMotor(
     thrustSource="tests/fixtures/acceptance/PJ_Valetudo/valetudo_motor_Keron.csv",
     burnOut=5.274,
     distanceNozzleMotorReference=analysis_parameters.get(
-        "distanceNozzleMotorReference")[0],
+        "distanceNozzleMotorReference"
+    )[0],
     reshapeThrustCurve=(
         analysis_parameters.get("burnOut")[0],
         analysis_parameters.get("impulse")[0],
@@ -90,8 +91,7 @@ Keron = SolidMotor(
     grainSeparation=analysis_parameters.get("grainSeparation")[0],
     grainDensity=analysis_parameters.get("grainDensity")[0],
     grainOuterRadius=analysis_parameters.get("grainOuterRadius")[0],
-    grainInitialInnerRadius=analysis_parameters.get(
-        "grainInitialInnerRadius")[0],
+    grainInitialInnerRadius=analysis_parameters.get("grainInitialInnerRadius")[0],
     grainInitialHeight=analysis_parameters.get("grainInitialHeight")[0],
     interpolationMethod="linear",
 )

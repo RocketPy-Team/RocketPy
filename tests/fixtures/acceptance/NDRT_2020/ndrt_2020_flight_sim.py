@@ -81,8 +81,7 @@ L1395 = SolidMotor(
     thrustSource="tests/fixtures/acceptance/NDRT_2020/ndrt_2020_motor_Cesaroni_4895L1395-P.eng",
     burnOut=parameters.get("burnOut")[0],
     grainNumber=5,
-    distanceNozzleMotorReference=parameters.get(
-        "distanceNozzleMotorReference")[0],
+    distanceNozzleMotorReference=parameters.get("distanceNozzleMotorReference")[0],
     grainSeparation=parameters.get("grainSeparation")[0],
     grainDensity=parameters.get("grainDensity")[0],
     grainOuterRadius=parameters.get("grainOuterRadius")[0],
