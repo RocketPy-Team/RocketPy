@@ -88,7 +88,8 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
         thrustSource="tests/fixtures/acceptance/NDRT_2020/ndrt_2020_motor_Cesaroni_4895L1395-P.eng",
         burnOut=parameters.get("burnOut")[0],
         grainNumber=5,
-        distanceNozzleMotorReference=parameters.get("distanceNozzleMotorReference")[0],
+        distanceNozzleMotorReference=parameters.get(
+            "distanceNozzleMotorReference")[0],
         grainSeparation=parameters.get("grainSeparation")[0],
         grainDensity=parameters.get("grainDensity")[0],
         grainOuterRadius=parameters.get("grainOuterRadius")[0],
@@ -107,7 +108,7 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
         inertiaI=parameters.get("inertiaI")[0],
         inertiaZ=parameters.get("inertiaZ")[0],
         distanceRocketNozzle=parameters.get("distanceRocketNozzle")[0],
-        distanceRocketPropellant=parameters.get("distanceRocketPropellant")[0],
+        # distanceRocketPropellant=parameters.get("distanceRocketPropellant")[0],
         powerOffDrag=parameters.get("dragCoefficient")[0],
         powerOnDrag=parameters.get("dragCoefficient")[0],
     )
@@ -169,7 +170,8 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
         heading=parameters.get("heading")[0],
     )
     Flight23.postProcess()
-    df_ndrt_rocketpy = pd.DataFrame(Flight23.z[:, :], columns=["Time", "Altitude"])
+    df_ndrt_rocketpy = pd.DataFrame(
+        Flight23.z[:, :], columns=["Time", "Altitude"])
     df_ndrt_rocketpy["Vertical Velocity"] = Flight23.vz[:, 1]
     # df_ndrt_rocketpy["Vertical Acceleration"] = Flight23.az[:, 1]
     df_ndrt_rocketpy["Altitude"] -= Env23.elevation
@@ -206,7 +208,8 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     apogee_time_simulated = Flight23.apogeeTime
 
     assert (
-        abs(max(df_ndrt_raven[" Altitude (m-AGL)"]) - max(df_ndrt_rocketpy["Altitude"]))
+        abs(max(df_ndrt_raven[" Altitude (m-AGL)"]) -
+            max(df_ndrt_rocketpy["Altitude"]))
         / max(df_ndrt_raven[" Altitude (m-AGL)"])
         < 0.015
     )
@@ -214,5 +217,6 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
         velocity_raven_filt
     ) < 0.06
     assert (
-        abs(apogee_time_measured - apogee_time_simulated) / apogee_time_simulated < 0.02
+        abs(apogee_time_measured - apogee_time_simulated) /
+        apogee_time_simulated < 0.02
     )

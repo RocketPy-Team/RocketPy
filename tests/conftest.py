@@ -42,7 +42,7 @@ def rocket(solid_motor):
         inertiaI=6.60,
         inertiaZ=0.0351,
         distanceRocketNozzle=-1.255,
-        distanceRocketPropellant=-0.85704,
+        # distanceRocketPropellant=-0.85704,
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
@@ -65,6 +65,7 @@ def dimensionless_solid_motor(kg, m):
         thrustSource="data/motors/Cesaroni_M1670.eng",
         burnOut=3.9,
         grainNumber=5,
+        distanceNozzleMotorReference=0.40396,
         grainSeparation=5 / 1000 * m,
         grainDensity=1815 * (kg / m**3),
         grainOuterRadius=33 / 1000 * m,
@@ -86,7 +87,7 @@ def dimensionless_rocket(kg, m, dimensionless_solid_motor):
         inertiaI=6.60 * (kg * m**2),
         inertiaZ=0.0351 * (kg * m**2),
         distanceRocketNozzle=-1.255 * m,
-        distanceRocketPropellant=-0.85704 * m,
+        #distanceRocketPropellant=-0.85704 * m,
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )

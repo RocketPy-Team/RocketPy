@@ -24,6 +24,7 @@ analysis_parameters = {
     "nozzleRadius": (21.642 / 1000, 0.5 / 1000),
     "throatRadius": (8 / 1000, 0.5 / 1000),
     "grainSeparation": (6 / 1000, 1 / 1000),
+    "distanceNozzleMotorReference": (1.024 - 0.571, 1 / 1000),
     "grainDensity": (1707, 50),
     "grainOuterRadius": (21.4 / 1000, 0.375 / 1000),
     "grainInitialInnerRadius": (9.65 / 1000, 0.375 / 1000),
@@ -33,7 +34,7 @@ analysis_parameters = {
     "inertiaZ": (0.007, 0.00007),
     "radius": (40.45 / 1000, 0.001),
     "distanceRocketNozzle": (-1.024, 0.001),
-    "distanceRocketPropellant": (-0.571, 0.001),
+    # "distanceRocketPropellant": (-0.571, 0.001),
     "powerOffDrag": (0.9081 / 1.05, 0.033),
     "powerOnDrag": (0.9081 / 1.05, 0.033),
     "noseLength": (0.274, 0.001),
@@ -77,6 +78,8 @@ Env.railLength = analysis_parameters.get("railLength")[0]
 Keron = SolidMotor(
     thrustSource="tests/fixtures/acceptance/PJ_Valetudo/valetudo_motor_Keron.csv",
     burnOut=5.274,
+    distanceNozzleMotorReference=analysis_parameters.get(
+        "distanceNozzleMotorReference")[0],
     reshapeThrustCurve=(
         analysis_parameters.get("burnOut")[0],
         analysis_parameters.get("impulse")[0],
@@ -87,7 +90,8 @@ Keron = SolidMotor(
     grainSeparation=analysis_parameters.get("grainSeparation")[0],
     grainDensity=analysis_parameters.get("grainDensity")[0],
     grainOuterRadius=analysis_parameters.get("grainOuterRadius")[0],
-    grainInitialInnerRadius=analysis_parameters.get("grainInitialInnerRadius")[0],
+    grainInitialInnerRadius=analysis_parameters.get(
+        "grainInitialInnerRadius")[0],
     grainInitialHeight=analysis_parameters.get("grainInitialHeight")[0],
     interpolationMethod="linear",
 )
@@ -100,7 +104,7 @@ Valetudo = Rocket(
     inertiaI=analysis_parameters.get("inertiaI")[0],
     inertiaZ=analysis_parameters.get("inertiaZ")[0],
     distanceRocketNozzle=analysis_parameters.get("distanceRocketNozzle")[0],
-    distanceRocketPropellant=analysis_parameters.get("distanceRocketPropellant")[0],
+    # distanceRocketPropellant=analysis_parameters.get("distanceRocketPropellant")[0],
     powerOffDrag="tests/fixtures/acceptance/PJ_Valetudo/valetudo_drag_power_off.csv",
     powerOnDrag="tests/fixtures/acceptance/PJ_Valetudo/valetudo_drag_power_on.csv",
 )
