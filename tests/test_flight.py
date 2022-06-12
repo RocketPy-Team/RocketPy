@@ -273,7 +273,8 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
     Check if a restoring moment exists depending on static margins."""
 
     # Create an environment with ZERO gravity to keep the rocket's speed constant
-    Env = Environment(gravity=0, railLength=0, latitude=0, longitude=0, elevation=0)
+    Env = Environment(gravity=0, railLength=0, latitude=0,
+                      longitude=0, elevation=0)
     Env.setAtmosphericModel(
         type="CustomAtmosphere",
         wind_u=wind_u,
@@ -522,14 +523,96 @@ def test_export_data():
     # Check if custom exported content matches data
     timePoints = np.arange(test_flight.tInitial, test_flight.tFinal, 0.1)
     assert np.allclose(timePoints, test_2[:, 0], atol=1e-5) == True
-    assert np.allclose(test_flight.z(timePoints), test_2[:, 1], atol=1e-5) == True
-    assert np.allclose(test_flight.vz(timePoints), test_2[:, 2], atol=1e-5) == True
-    assert np.allclose(test_flight.e1(timePoints), test_2[:, 3], atol=1e-5) == True
-    assert np.allclose(test_flight.w3(timePoints), test_2[:, 4], atol=1e-5) == True
+    assert np.allclose(test_flight.z(timePoints),
+                       test_2[:, 1], atol=1e-5) == True
+    assert np.allclose(test_flight.vz(timePoints),
+                       test_2[:, 2], atol=1e-5) == True
+    assert np.allclose(test_flight.e1(timePoints),
+                       test_2[:, 3], atol=1e-5) == True
+    assert np.allclose(test_flight.w3(timePoints),
+                       test_2[:, 4], atol=1e-5) == True
     assert (
-        np.allclose(test_flight.angleOfAttack(timePoints), test_2[:, 5], atol=1e-5)
+        np.allclose(test_flight.angleOfAttack(
+            timePoints), test_2[:, 5], atol=1e-5)
         == True
     )
+
+
+def test_export_KML():
+    "Tests weather the method Flight.exportKML is working as intended"
+
+    test_env = Environment(
+        railLength=5,
+        latitude=32.990254,
+        longitude=-106.974998,
+        elevation=1400,
+        datum="WGS84",
+    )
+
+    test_motor = SolidMotor(
+        thrustSource=1000,
+        burnOut=1,
+        grainNumber=5,
+        grainSeparation=5 / 1000,
+        grainDensity=1815,
+        grainOuterRadius=33 / 1000,
+        grainInitialInnerRadius=15 / 1000,
+        grainInitialHeight=120 / 1000,
+        nozzleRadius=33 / 1000,
+        throatRadius=11 / 1000,
+        interpolationMethod="linear",
+    )
+
+    test_rocket = Rocket(
+        motor=test_motor,
+        radius=127 / 2000,
+        mass=19.197 - 2.956,
+        inertiaI=6.60,
+        inertiaZ=0.0351,
+        distanceRocketNozzle=-1.255,
+        distanceRocketPropellant=-0.85704,
+        powerOffDrag=0.5,
+        powerOnDrag=0.5,
+    )
+
+    test_rocket.setRailButtons([0.2, -0.5])
+
+    NoseCone = test_rocket.addNose(
+        length=0.55829, kind="vonKarman", distanceToCM=0.71971
+    )
+    FinSet = test_rocket.addFins(
+        4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
+    )
+
+    test_flight = Flight(
+        rocket=test_rocket, environment=test_env, inclination=85, heading=0
+    )
+
+    # Basic export
+    test_flight.exportKML("test_export_data_1.kml", timeStep=None,
+                          extrude=True, altitudeMode="absolute")
+
+    # Load exported files and fixtures and compare them
+    test_1 = open("test_export_data_1.kml", "r")
+    for row in test_1:
+        if row[:29] == "                <coordinates>":
+            r = row[29:-15]
+            r = r.split(",")
+            for i, j in enumerate(r):
+                r[i] = j.split(" ")
+    lon, lat, z, list = [], [], [], []
+    for i in r:
+        for j in i:
+            list.append(j)
+    for i in range(0, len(list), 3):
+        lon.append(float(list[i]))
+        lat.append(float(list[i+1]))
+        z.append(float(list[i+2]))
+
+    assert np.allclose(test_flight.latitude[:, 1], lat[:-1], atol=1e-3) == True
+    assert np.allclose(
+        test_flight.longitude[:, 1], lon[:-1], atol=1e-3) == True
+    assert np.allclose(test_flight.z[:, 1], z[:-1], atol=1e-3) == True
 
 
 @patch("matplotlib.pyplot.show")
