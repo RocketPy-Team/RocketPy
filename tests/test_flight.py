@@ -273,8 +273,7 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
     Check if a restoring moment exists depending on static margins."""
 
     # Create an environment with ZERO gravity to keep the rocket's speed constant
-    Env = Environment(gravity=0, railLength=0, latitude=0,
-                      longitude=0, elevation=0)
+    Env = Environment(gravity=0, railLength=0, latitude=0, longitude=0, elevation=0)
     Env.setAtmosphericModel(
         type="CustomAtmosphere",
         wind_u=wind_u,
@@ -523,17 +522,12 @@ def test_export_data():
     # Check if custom exported content matches data
     timePoints = np.arange(test_flight.tInitial, test_flight.tFinal, 0.1)
     assert np.allclose(timePoints, test_2[:, 0], atol=1e-5) == True
-    assert np.allclose(test_flight.z(timePoints),
-                       test_2[:, 1], atol=1e-5) == True
-    assert np.allclose(test_flight.vz(timePoints),
-                       test_2[:, 2], atol=1e-5) == True
-    assert np.allclose(test_flight.e1(timePoints),
-                       test_2[:, 3], atol=1e-5) == True
-    assert np.allclose(test_flight.w3(timePoints),
-                       test_2[:, 4], atol=1e-5) == True
+    assert np.allclose(test_flight.z(timePoints), test_2[:, 1], atol=1e-5) == True
+    assert np.allclose(test_flight.vz(timePoints), test_2[:, 2], atol=1e-5) == True
+    assert np.allclose(test_flight.e1(timePoints), test_2[:, 3], atol=1e-5) == True
+    assert np.allclose(test_flight.w3(timePoints), test_2[:, 4], atol=1e-5) == True
     assert (
-        np.allclose(test_flight.angleOfAttack(
-            timePoints), test_2[:, 5], atol=1e-5)
+        np.allclose(test_flight.angleOfAttack(timePoints), test_2[:, 5], atol=1e-5)
         == True
     )
 
@@ -589,8 +583,9 @@ def test_export_KML():
     )
 
     # Basic export
-    test_flight.exportKML("test_export_data_1.kml", timeStep=None,
-                          extrude=True, altitudeMode="absolute")
+    test_flight.exportKML(
+        "test_export_data_1.kml", timeStep=None, extrude=True, altitudeMode="absolute"
+    )
 
     # Load exported files and fixtures and compare them
     test_1 = open("test_export_data_1.kml", "r")
@@ -606,12 +601,11 @@ def test_export_KML():
             list.append(j)
     for i in range(0, len(list), 3):
         lon.append(float(list[i]))
-        lat.append(float(list[i+1]))
-        z.append(float(list[i+2]))
+        lat.append(float(list[i + 1]))
+        z.append(float(list[i + 2]))
 
     assert np.allclose(test_flight.latitude[:, 1], lat[:-1], atol=1e-3) == True
-    assert np.allclose(
-        test_flight.longitude[:, 1], lon[:-1], atol=1e-3) == True
+    assert np.allclose(test_flight.longitude[:, 1], lon[:-1], atol=1e-3) == True
     assert np.allclose(test_flight.z[:, 1], z[:-1], atol=1e-3) == True
 
 
