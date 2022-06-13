@@ -5,3 +5,4 @@ flake8-black
 pandas
 numericalunits==1.25
 simplekml
+vedo
