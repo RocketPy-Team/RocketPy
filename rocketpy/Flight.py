@@ -3820,7 +3820,6 @@ class Flight:
 
         return None
 
-    # TODO: add unit tests
     def animate_trajectory(self, Object3dFile, start=0, stop=None, timeStep=0.1):
         """6-DOF Animation of the flight trajectory.
 
@@ -3873,8 +3872,6 @@ class Flight:
                 break  # if ESC button is hit during the loop
 
         plt.interactive().close()
-        # TODO: Find a workaround to save animation
-        # plt.export("scene.npz")
 
         return None
 
