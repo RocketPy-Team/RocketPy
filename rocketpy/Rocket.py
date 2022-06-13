@@ -167,7 +167,7 @@ class Rocket:
         self.inertiaI = inertiaI
         self.inertiaZ = inertiaZ
         self.centerOfMass = (
-            (distanceRocketPropellant - motor.yCM) * motor.mass / (mass + motor.mass)
+            (distanceRocketPropellant - motor.zCM) * motor.mass / (mass + motor.mass)
         )
 
         # Define rocket geometrical parameters in SI units
