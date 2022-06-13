@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 __author__ = (
-    "Giovani Hidalgo Ceotto, Guilherme Fernandes Alves, João Lemes Gribel Soares"
+    "Giovani Hidalgo Ceotto, Guilherme Fernandes Alves, João Lemes Gribel Soares, Patrick Sampaio"
 )
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
@@ -3821,7 +3821,7 @@ class Flight:
         return None
 
     def animate_trajectory(self, model_path="rocket.stl", start=0, stop=None, timeStep=0.1):
-        """_summary_
+        """6-DOF Animation of the flight trajectory.
 
         Parameters
         ----------
