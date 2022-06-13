@@ -3847,12 +3847,11 @@ class Flight:
 
         settings.allowInteraction = True  # if ESC button is hit during the loop
 
-        world = Box([self.x(start), self.y(start), self.apogee], max(self.x[:, 1])*2,
+        world = Box([0, 0, self.apogee], max(self.x[:, 1])*2,
                     max(self.y[:, 1])*2, -self.apogee).wireframe()
 
         rocket = Mesh(Object3dFile).c("green")
-        rocket.pos(self.x(start), self.y(start),
-                   0).addTrail(n=len(self.x[:, 1]))
+        rocket.pos(0, 0, 0).addTrail(n=len(self.x[:, 1]))
 
         # Setup the scene
         plt = Plotter(axes=1, interactive=False)
@@ -3865,65 +3864,7 @@ class Flight:
         for t in np.arange(start, stop, timeStep):
             angle = np.arccos(2*self.e0(t)**2 - 1)
             k = np.sin(angle / 2)
-            rocket.pos(self.x(t), self.y(t), self.z(t)-self.env.elevation).rotateX(
-                self.e1(t) / k).rotateY(self.e2(t) / k).rotateZ(self.e3(t) / k)
-
-            plt.show(world, rocket)
-
-            if plt.escaped:
-                break  # if ESC button is hit during the loop
-
-        plt.interactive().close()
-        # TODO: Find a workaround to save animation
-        # plt.export("scene.npz")
-
-        return None
-
-    def animate_rotate(self, Object3dFile, start=0, stop=None, timeStep=0.1):
-        """Animation of rocket attitude during the flight.
-
-        Parameters
-        ----------
-         Object3dFile : str, optional
-            3D object file representing your rocket, usually in .stl format.
-            Refer to "../../data/calisto/rocket.stl" to get an example.
-        start : int or float, optional
-            Time for starting animation, in seconds, by default 0
-        stop : int or float, optional
-            Time for ending animation, in seconds. If None is set then it is
-            going to assume self.tFinal. Default is None.
-        timeStep : float, optional
-            Time step for data being plotted, by default 0.1
-
-        Returns
-        -------
-        None
-        """
-        # Post-process results
-        if self.postProcessed is False:
-            self.postProcess()
-
-        settings.allowInteraction = True  # if ESC button is hit during the loop
-
-        world = Box([self.x(start), self.y(start), self.apogee], max(self.x[:, 1])*2/10,
-                    max(self.y[:, 1])*2/10, -self.apogee/10).wireframe()
-
-        rocket = Mesh(Object3dFile).c("green")
-        rocket.pos(self.x(start), self.y(start),
-                   0).addTrail(n=len(self.x[:, 1]))
-
-        # Setup the scene
-        plt = Plotter(axes=1, interactive=False)
-        plt.show(world, rocket, __doc__, viewup="z")
-
-        if stop == None:
-            stop = self.tFinal
-
-        # TODO: Separate rocket flight phase from Parachute flight phase
-        for t in np.arange(start, stop, timeStep):
-            angle = np.arccos(2*self.e0(t)**2 - 1)
-            k = np.sin(angle / 2)
-            rocket.pos(self.x(start), self.y(start), 0).rotateX(
+            rocket.pos(self.x(t), self.x(t), self.z(t)-self.env.elevation).rotateX(
                 self.e1(t) / k).rotateY(self.e2(t) / k).rotateZ(self.e3(t) / k)
 
             plt.show(world, rocket)
