@@ -3820,25 +3820,24 @@ class Flight:
 
         return None
 
-    def animate_trajectory(self, Object3dFile, start=0, stop=None, timeStep=0.1):
+    def animate_trajectory(self, model_path="rocket.stl", start=0, stop=None, timeStep=0.1):
         """6-DOF Animation of the flight trajectory.
 
         Parameters
         ----------
-        Object3dFile : str, optional
-            3D object file representing your rocket, usually in .stl format.
-            Refer to "../../data/calisto/rocket.stl" to get an example.
-        start : int or float, optional
-            Time for starting animation, in seconds, by default 0
-        stop : int or float, optional
-            Time for ending animation, in seconds. If None is set then it is
-            going to assume self.tFinal. Default is None.
+        model_path : str, optional
+            _description_, by default "rocket.stl"
+        start : int, optional
+            _description_, by default 0
+        stop : _type_, optional
+            _description_, by default None
         timeStep : float, optional
-            Time step for data being plotted, by default 0.1
+            _description_, by default 0.1
 
         Returns
         -------
-        None
+        _type_
+            _description_
         """
         # Post-process results
         if self.postProcessed is False:
@@ -3849,7 +3848,7 @@ class Flight:
         world = Box([0, 0, self.apogee], max(self.x[:, 1])*2,
                     max(self.y[:, 1])*2, -self.apogee).wireframe()
 
-        rocket = Mesh(Object3dFile).c("green")
+        rocket = Mesh(model_path).c("green")
         rocket.pos(0, 0, 0).addTrail(n=len(self.x[:, 1]))
 
         # Setup the scene
