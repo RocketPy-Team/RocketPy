@@ -4,3 +4,4 @@ matplotlib>=3.0
 netCDF4>=1.4
 requests
 pytz
+vedo
