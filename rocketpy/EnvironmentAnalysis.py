@@ -1255,7 +1255,6 @@ class EnvironmentAnalysis:
 
     def plot_wind_gust_distribution_over_average_day(self):
         """Plots shown in the animation of how the wind gust distribution varies throughout the day."""
-        ...
         # Gather animation data
         average_wind_gust_at_given_hour = {}
         for hour in list(self.surfaceDataDict.values())[0].keys():
@@ -1269,17 +1268,17 @@ class EnvironmentAnalysis:
                     pass
             average_wind_gust_at_given_hour[hour] = wind_gust_values_for_this_hour
 
-        # Generate plots
-
-        num_of_plots = len(list(self.surfaceDataDict.values())[0].keys())
-
-        fig = plt.figure(figsize=(9, num_of_plots * 5))
-        # plt.subplots_adjust(wspace=0.2,hspace=0.3)
-
-        current_plot = 0
-        for hour in list(self.surfaceDataDict.values())[0].keys():
-            current_plot += 1
-            ax = plt.subplot(num_of_plots, 2, current_plot)
+        # Create grid of plots for each hour
+        hours = list(list(self.pressureLevelDataDict.values())[0].keys())
+        nrows, ncols = self._find_two_closest_integer_factors(len(hours))
+        fig = plt.figure(figsize=(ncols * 2, nrows * 2.2))
+        gs = fig.add_gridspec(nrows, ncols, hspace=0, wspace=0, left=0.12)
+        axs = gs.subplots(sharex=True, sharey=True)
+        x_min, x_max, y_min, y_max = 0, 0, 0, 0
+        for (i, j) in [(i, j) for i in range(nrows) for j in range(ncols)]:
+            hour = hours[i * ncols + j]
+            ax = axs[i, j]
+            ax.set_title(f"{float(hour):05.2f}".replace(".", ":"), y=0.8)
             ax.hist(
                 average_wind_gust_at_given_hour[hour],
                 bins=int(len(average_wind_gust_at_given_hour[hour]) ** 0.5),
@@ -1288,9 +1287,9 @@ class EnvironmentAnalysis:
                 alpha=0.2,
                 label="Wind Gust Speed Distribution",
             )
-
+            ax.autoscale(enable=True, axis="y", tight=True)
             # Plot weibull distribution
-            c, loc, scale = stats.weibull_min.fit(average_wind_gust_at_given_hour[hour])
+            c, loc, scale = stats.weibull_min.fit(average_wind_gust_at_given_hour[hour], loc=0, scale=1)
             x = np.linspace(0, np.max(average_wind_gust_at_given_hour[hour]), 100)
             ax.plot(
                 x,
@@ -1299,21 +1298,28 @@ class EnvironmentAnalysis:
                 linewidth=2,
                 label="Weibull Distribution",
             )
-
-            # Label plot
-            ax.set_ylim(0, 0.3)
-            if current_plot % 2 != 0:
-                ax.set_ylabel("Probability")
-            ax.set_xlabel(f"Wind Gust Speed ({self.unit_system['wind_speed']})")
-            ax.set_title("Hour " + str(hour) + ":00")
-
-        # set legend and title
-        # TODO: fix legend and title position
+            current_x_max = ax.get_xlim()[1]
+            current_y_max = ax.get_ylim()[1]
+            x_max = current_x_max if current_x_max > x_max else x_max
+            y_max = current_y_max if current_y_max > y_max else y_max
+            ax.label_outer()
+            ax.grid()
+        # Set x and y limits for the last axis. Since axes are shared, set to all
+        ax.set_xlim(x_min, x_max)
+        ax.set_ylim(y_min, y_max)
+        ax.xaxis.set_major_locator(
+            mtick.MaxNLocator(integer=True, nbins=5, prune="lower")
+        )
+        ax.yaxis.set_major_locator(
+            mtick.MaxNLocator(integer=True, nbins=4, prune="lower")
+        )
+        # Set title and axis labels for entire figure
         handles, labels = ax.get_legend_handles_labels()
         fig.legend(handles, labels, loc="upper right")
-        fig.suptitle("Wind Gust Speed Distribution", fontsize=16)
-
-    # Animations
+        fig.suptitle("Average Wind Profile")
+        fig.supxlabel(f"Wind Gust Speed ({self.unit_system['wind_speed']})")
+        fig.supylabel("Probability")
+        plt.show()
 
     # TODO: Implement
     def animate_wind_gust_distribution_over_average_day(self):
