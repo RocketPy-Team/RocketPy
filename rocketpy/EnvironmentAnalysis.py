@@ -797,50 +797,42 @@ class EnvironmentAnalysis:
         self.calculate_min_cloud_base_height()
         self.calculate_percentage_of_days_with_no_cloud_coverage()
 
-    # TODO: Needs tests
+    @property
+    def cloud_base_height(self):
+        cloud_base_height = [
+            dayDict[hour]["cloudBaseHeight"]
+            for dayDict in self.surfaceDataDict.values()
+            for hour in dayDict.keys()
+        ]
+
+        masked_elem = np.ma.core.MaskedConstant
+        unmasked_cloud_base_height = [
+            np.inf if isinstance(elem, masked_elem) else elem
+            for elem in cloud_base_height
+        ]
+        mask = [isinstance(elem, masked_elem) for elem in cloud_base_height]
+        return np.ma.array(unmasked_cloud_base_height, mask=mask)
+
     def calculate_average_cloud_base_height(self):
         """Calculate average cloud base height."""
-        self.cloud_base_height = [
-            dayDict[hour]["cloudBaseHeight"]
-            for dayDict in self.surfaceDataDict.values()
-            for hour in dayDict.keys()
-        ]
-
         self.mean_cloud_base_height = np.ma.mean(self.cloud_base_height)
-
         return self.mean_cloud_base_height
 
-    # TODO: Needs tests
     def calculate_min_cloud_base_height(self):
         """Calculate average cloud base height."""
-        self.cloud_base_height = [
-            dayDict[hour]["cloudBaseHeight"]
-            for dayDict in self.surfaceDataDict.values()
-            for hour in dayDict.keys()
-        ]
-
         self.min_cloud_base_height = np.ma.min(
             self.cloud_base_height, fill_value=np.inf
         )
-
         return self.min_cloud_base_height
 
-    # TODO: Needs tests
     def calculate_percentage_of_days_with_no_cloud_coverage(self):
         """Calculate percentage of days with cloud coverage."""
-        self.cloud_coverage = [
-            dayDict[hour]["cloudBaseHeight"]
-            for dayDict in self.surfaceDataDict.values()
-            for hour in dayDict.keys()
-        ]
-
         self.percentage_of_days_with_no_cloud_coverage = np.ma.count(
-            self.cloud_coverage
-        ) / len(self.cloud_coverage)
+            self.cloud_base_height
+        ) / len(self.cloud_base_height)
 
         return self.percentage_of_days_with_no_cloud_coverage
 
-    # TODO: Needs tests
     def calculate_percentage_of_days_with_precipitation(self):
         """Computes the ratio between days with precipitation (> 10 mm) and total days."""
         self.precipitation_per_day = [
