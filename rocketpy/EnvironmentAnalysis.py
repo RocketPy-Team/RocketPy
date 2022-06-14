@@ -1412,7 +1412,7 @@ class EnvironmentAnalysis:
                 http://www.github.com/scls19fr/windrose""",
         )
         writer = ImageWriter(fps=1, metadata=metadata)
-        fig = plt.figure(facecolor="w", edgecolor="w", figsize=figsize)
+        fig = plt.figure(1, facecolor="w", edgecolor="w", figsize=figsize)
         with writer.saving(fig, filename, 100):
             for hour in hours:
                 self.plot_wind_rose(
@@ -1431,6 +1431,7 @@ class EnvironmentAnalysis:
             image = file.read()
 
         fig_width, fig_height = plt.gcf().get_size_inches() * fig.dpi
+        plt.close(1)
         return widgets.Image(
             value=image,
             format="gif",
