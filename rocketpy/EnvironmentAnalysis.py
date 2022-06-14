@@ -544,6 +544,7 @@ class EnvironmentAnalysis:
                     variablePointsArray,
                     inputs="Height Above Sea Level (m)",
                     outputs=key,
+                    extrapolation="constant"
                 )
                 self.pressureLevelDataDict[dateString][hourString][
                     key
@@ -557,6 +558,7 @@ class EnvironmentAnalysis:
                 pressurePointsArray,
                 inputs="Height Above Sea Level (m)",
                 outputs="Pressure (Pa)",
+                extrapolation="constant"
             )
             self.pressureLevelDataDict[dateString][hourString][
                 "pressure"
@@ -588,6 +590,7 @@ class EnvironmentAnalysis:
                 windSpeedPointsArray,
                 inputs="Height Above Sea Level (m)",
                 outputs="Wind Speed (m/s)",
+                extrapolation="constant"
             )
             self.pressureLevelDataDict[dateString][hourString][
                 "windSpeed"
@@ -605,6 +608,7 @@ class EnvironmentAnalysis:
                 windHeadingPointsArray,
                 inputs="Height Above Sea Level (m)",
                 outputs="Wind Heading (Deg True)",
+                extrapolation="constant"
             )
             self.pressureLevelDataDict[dateString][hourString][
                 "windHeading"
@@ -619,6 +623,7 @@ class EnvironmentAnalysis:
                 windDirectionPointsArray,
                 inputs="Height Above Sea Level (m)",
                 outputs="Wind Direction (Deg True)",
+                extrapolation="constant"
             )
             self.pressureLevelDataDict[dateString][hourString][
                 "windDirection"
@@ -1070,7 +1075,7 @@ class EnvironmentAnalysis:
         )
 
         # Plot weibull distribution
-        c, loc, scale = stats.weibull_min.fit(self.wind_gust_list, method="MM")
+        c, loc, scale = stats.weibull_min.fit(self.wind_gust_list, loc=0, scale=1)
         x = np.linspace(0, np.max(self.wind_gust_list), 100)
         plt.plot(
             x,
@@ -1212,7 +1217,9 @@ class EnvironmentAnalysis:
         # plt.plot(np.percentile(wind_speed_profiles, 50+49.8, axis=0, method='weibull'), altitude_list, 'b--', alpha=0.25)
         for wind_speed_profile in wind_speed_profiles:
             plt.plot(wind_speed_profile, altitude_list, "gray", alpha=0.01)
-        plt.ylim(altitude_list[0], altitude_list[-1])
+        
+        plt.autoscale(enable=True, axis="x", tight=True)
+        plt.autoscale(enable=True, axis="y", tight=True)
         plt.xlabel(f"Wind speed ({self.unit_system['wind_speed']})")
         plt.ylabel(f"Altitude ASL ({self.unit_system['length']})")
         plt.title("Average Wind Speed Profile")
@@ -1594,7 +1601,7 @@ class EnvironmentAnalysis:
             for count, rect in zip(hist, bar_container.patches):
                 rect.set_height(count)
             # Update weibull distribution
-            c, loc, scale = stats.weibull_min.fit(data, method="MM")
+            c, loc, scale = stats.weibull_min.fit(data, loc=0, scale=1)
             xdata = np.linspace(0, 25, 100)  # TODO: parametrize
             ydata = stats.weibull_min.pdf(xdata, c, loc, scale)
             ln.set_data(xdata, ydata)
