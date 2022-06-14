@@ -3645,7 +3645,7 @@ class Environment:
         min: float
             The arc minutes. 1 arc-minute = (1/60)*degree
         sec: float
-            The arc Seconds. 1 arc-second = (1/360)*degree
+            The arc Seconds. 1 arc-second = (1/3600)*degree
         """
 
         if angle < 0:
