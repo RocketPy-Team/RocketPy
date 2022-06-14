@@ -165,8 +165,7 @@ class EnvironmentAnalysis:
     def __init_surface_dictionary(self):
         # Create dictionary of file variable names to process surface data
         self.surfaceFileDict = {
-            # TODO: fix this to u100 when you have a good file
-            "surface100mWindVelocityX": "v100",
+            "surface100mWindVelocityX": "u100",
             "surface100mWindVelocityY": "v100",
             "surface10mWindVelocityX": "u10",
             "surface10mWindVelocityY": "v10",
@@ -367,7 +366,7 @@ class EnvironmentAnalysis:
         """Initialize preferred units for output (SI, metric or imperial)."""
         if self.unit_system_string == "metric":
             self.unit_system = {
-                "length": "km",
+                "length": "m",
                 "velocity": "m/s",
                 "acceleration": "g",
                 "mass": "kg",
@@ -773,13 +772,88 @@ class EnvironmentAnalysis:
 
     # Calculations
     def process_data(self):
+        """Process data that is shown in the allInfo method."""
         self.calculate_average_max_temperature()
         self.calculate_average_min_temperature()
         self.calculate_record_max_temperature()
         self.calculate_record_min_temperature()
         self.calculate_average_max_wind_gust()
         self.calculate_maximum_wind_gust()
-        self.calculate_average_temperature_along_day()
+        self.calculate_average_max_surface_10m_wind_speed()
+        self.calculate_average_min_surface_10m_wind_speed()
+        self.calculate_record_max_surface_10m_wind_speed()
+        self.calculate_record_min_surface_10m_wind_speed()
+        self.calculate_average_max_surface_100m_wind_speed()
+        self.calculate_average_min_surface_100m_wind_speed()
+        self.calculate_record_max_surface_100m_wind_speed()
+        self.calculate_record_min_surface_100m_wind_speed()
+        self.calculate_percentage_of_days_with_precipitation()
+        self.calculate_average_cloud_base_height()
+        self.calculate_min_cloud_base_height()
+        self.calculate_percentage_of_days_with_no_cloud_coverage()
+
+    # TODO: Needs tests
+    def calculate_average_cloud_base_height(self):
+        """Calculate average cloud base height."""
+        self.cloud_base_height = [
+            dayDict[hour]["cloudBaseHeight"]
+            for dayDict in self.surfaceDataDict.values()
+            for hour in dayDict.keys()
+        ]
+
+        self.mean_cloud_base_height = np.ma.mean(self.cloud_base_height)
+
+        return self.mean_cloud_base_height
+
+    # TODO: Needs tests
+    def calculate_min_cloud_base_height(self):
+        """Calculate average cloud base height."""
+        self.cloud_base_height = [
+            dayDict[hour]["cloudBaseHeight"]
+            for dayDict in self.surfaceDataDict.values()
+            for hour in dayDict.keys()
+        ]
+
+        self.min_cloud_base_height = np.ma.min(
+            self.cloud_base_height, fill_value=np.inf
+        )
+
+        return self.min_cloud_base_height
+
+    # TODO: Needs tests
+    def calculate_percentage_of_days_with_no_cloud_coverage(self):
+        """Calculate percentage of days with cloud coverage."""
+        self.cloud_coverage = [
+            dayDict[hour]["cloudBaseHeight"]
+            for dayDict in self.surfaceDataDict.values()
+            for hour in dayDict.keys()
+        ]
+
+        self.percentage_of_days_with_no_cloud_coverage = np.ma.count(
+            self.cloud_coverage
+        ) / len(self.cloud_coverage)
+
+        return self.percentage_of_days_with_no_cloud_coverage
+
+    # TODO: Needs tests
+    def calculate_percentage_of_days_with_precipitation(self):
+        """Computes the ratio between days with precipitation (> 10 mm) and total days."""
+        self.precipitation_per_day = [
+            sum([dayDict[hour]["totalPrecipitation"] for hour in dayDict.keys()])
+            for dayDict in self.surfaceDataDict.values()
+        ]
+        days_with_precipitation_count = 0
+        for precipitation in self.precipitation_per_day:
+            if precipitation > convert_units(
+                10, "mm", self.unit_system["precipitation"]
+            ):
+                days_with_precipitation_count += 1
+
+        self.percentage_of_days_with_precipitation = (
+            days_with_precipitation_count / len(self.precipitation_per_day)
+        )
+
+        return self.percentage_of_days_with_precipitation
 
     # TODO: Create tests
     def calculate_average_max_temperature(self):
@@ -837,6 +911,142 @@ class EnvironmentAnalysis:
         ]
         self.max_wind_gust = np.max(self.wind_gust_list)
         return self.max_wind_gust
+
+    # TODO: Create tests
+    def calculate_average_max_surface_10m_wind_speed(self):
+        self.max_surface_10m_wind_speed_list = [
+            np.max(
+                [
+                    (
+                        dayDict[hour]["surface10mWindVelocityX"] ** 2
+                        + dayDict[hour]["surface10mWindVelocityY"] ** 2
+                    )
+                    ** 0.5
+                    for hour in dayDict.keys()
+                ]
+            )
+            for dayDict in self.surfaceDataDict.values()
+        ]
+        self.average_max_surface_10m_wind_speed = np.average(
+            self.max_surface_10m_wind_speed_list
+        )
+        return self.average_max_surface_10m_wind_speed
+
+    # TODO: Create tests
+    def calculate_average_min_surface_10m_wind_speed(self):
+        self.min_surface_10m_wind_speed_list = [
+            np.min(
+                [
+                    (
+                        dayDict[hour]["surface10mWindVelocityX"] ** 2
+                        + dayDict[hour]["surface10mWindVelocityY"] ** 2
+                    )
+                    ** 0.5
+                    for hour in dayDict.keys()
+                ]
+            )
+            for dayDict in self.surfaceDataDict.values()
+        ]
+        self.average_min_surface_10m_wind_speed = np.average(
+            self.min_surface_10m_wind_speed_list
+        )
+        return self.average_min_surface_10m_wind_speed
+
+    # TODO: Create tests
+    def calculate_record_max_surface_10m_wind_speed(self):
+        self.surface_10m_wind_speed = [
+            (
+                dayDict[hour]["surface10mWindVelocityX"] ** 2
+                + dayDict[hour]["surface10mWindVelocityY"] ** 2
+            )
+            ** 0.5
+            for dayDict in self.surfaceDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        self.record_max_surface_10m_wind_speed = np.max(self.surface_10m_wind_speed)
+        return self.record_max_surface_10m_wind_speed
+
+    # TODO: Create tests
+    def calculate_record_min_surface_10m_wind_speed(self):
+        self.surface_10m_wind_speed = [
+            (
+                dayDict[hour]["surface10mWindVelocityX"] ** 2
+                + dayDict[hour]["surface10mWindVelocityY"] ** 2
+            )
+            ** 0.5
+            for dayDict in self.surfaceDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        self.record_min_surface_10m_wind_speed = np.min(self.surface_10m_wind_speed)
+        return self.record_min_surface_10m_wind_speed
+
+    # TODO: Create tests
+    def calculate_average_max_surface_100m_wind_speed(self):
+        self.max_surface_100m_wind_speed_list = [
+            np.max(
+                [
+                    (
+                        dayDict[hour]["surface100mWindVelocityX"] ** 2
+                        + dayDict[hour]["surface100mWindVelocityY"] ** 2
+                    )
+                    ** 0.5
+                    for hour in dayDict.keys()
+                ]
+            )
+            for dayDict in self.surfaceDataDict.values()
+        ]
+        self.average_max_surface_100m_wind_speed = np.average(
+            self.max_surface_100m_wind_speed_list
+        )
+        return self.average_max_surface_100m_wind_speed
+
+    # TODO: Create tests
+    def calculate_average_min_surface_100m_wind_speed(self):
+        self.min_surface_100m_wind_speed_list = [
+            np.min(
+                [
+                    (
+                        dayDict[hour]["surface100mWindVelocityX"] ** 2
+                        + dayDict[hour]["surface100mWindVelocityY"] ** 2
+                    )
+                    ** 0.5
+                    for hour in dayDict.keys()
+                ]
+            )
+            for dayDict in self.surfaceDataDict.values()
+        ]
+        self.average_min_surface_100m_wind_speed = np.average(
+            self.min_surface_100m_wind_speed_list
+        )
+        return self.average_min_surface_100m_wind_speed
+
+    # TODO: Create tests
+    def calculate_record_max_surface_100m_wind_speed(self):
+        self.surface_100m_wind_speed = [
+            (
+                dayDict[hour]["surface100mWindVelocityX"] ** 2
+                + dayDict[hour]["surface100mWindVelocityY"] ** 2
+            )
+            ** 0.5
+            for dayDict in self.surfaceDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        self.record_max_surface_100m_wind_speed = np.max(self.surface_100m_wind_speed)
+        return self.record_max_surface_100m_wind_speed
+
+    # TODO: Create tests
+    def calculate_record_min_surface_100m_wind_speed(self):
+        self.surface_100m_wind_speed = [
+            (
+                dayDict[hour]["surface100mWindVelocityX"] ** 2
+                + dayDict[hour]["surface100mWindVelocityY"] ** 2
+            )
+            ** 0.5
+            for dayDict in self.surfaceDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        self.record_min_surface_100m_wind_speed = np.min(self.surface_100m_wind_speed)
+        return self.record_min_surface_100m_wind_speed
 
     # TODO: Create tests
     def plot_wind_gust_distribution(self):
@@ -1289,7 +1499,9 @@ class EnvironmentAnalysis:
             )
             ax.autoscale(enable=True, axis="y", tight=True)
             # Plot weibull distribution
-            c, loc, scale = stats.weibull_min.fit(average_wind_gust_at_given_hour[hour], loc=0, scale=1)
+            c, loc, scale = stats.weibull_min.fit(
+                average_wind_gust_at_given_hour[hour], loc=0, scale=1
+            )
             x = np.linspace(0, np.max(average_wind_gust_at_given_hour[hour]), 100)
             ax.plot(
                 x,
@@ -1520,24 +1732,83 @@ class EnvironmentAnalysis:
         plt.show()
 
     def allInfo(self):
-        print("Gust Information")
         print(
-            f"Global maximum wind gust: {self.max_wind_gust:.2f} {self.unit_system['wind_speed']}"
+            f"Surface Wind Speed Information ({convert_units(10, 'm', self.unit_system['length']):.0f} {self.unit_system['length']} above ground)"
         )
         print(
-            f"Average maximum wind gust: {self.average_max_wind_gust:.2f} {self.unit_system['wind_speed']}"
+            f"Historical Maximum Wind Speed: {self.record_max_surface_10m_wind_speed:.2f} {self.unit_system['wind_speed']}"
+        )
+        print(
+            f"Historical Minimum Wind Speed: {self.record_min_surface_10m_wind_speed:.2f} {self.unit_system['wind_speed']}"
+        )
+        print(
+            f"Average Daily Maximum Wind Speed: {self.average_max_surface_10m_wind_speed:.2f} {self.unit_system['wind_speed']}"
+        )
+        print(
+            f"Average Daily Minimum Wind Speed: {self.average_min_surface_10m_wind_speed:.2f} {self.unit_system['wind_speed']}"
         )
         print()
+
+        print(
+            f"Surface Wind Speed Information ({convert_units(100, 'm', self.unit_system['length']):.0f} {self.unit_system['length']} above ground)"
+        )
+        print(
+            f"Historical Maximum Wind Speed: {self.record_max_surface_100m_wind_speed:.2f} {self.unit_system['wind_speed']}"
+        )
+        print(
+            f"Historical Minimum Wind Speed: {self.record_min_surface_100m_wind_speed:.2f} {self.unit_system['wind_speed']}"
+        )
+        print(
+            f"Average Daily Maximum Wind Speed: {self.average_max_surface_100m_wind_speed:.2f} {self.unit_system['wind_speed']}"
+        )
+        print(
+            f"Average Daily Minimum Wind Speed: {self.average_min_surface_100m_wind_speed:.2f} {self.unit_system['wind_speed']}"
+        )
+        print()
+
+        print("Wind Gust Information")
+        print(
+            f"Historical Maximum Wind Gust: {self.max_wind_gust:.2f} {self.unit_system['wind_speed']}"
+        )
+        print(
+            f"Average Daily Maximum Wind Gust: {self.average_max_wind_gust:.2f} {self.unit_system['wind_speed']}"
+        )
+        print()
+
         print("Temperature Information")
         print(
-            f"Global Maximum temperature: {self.record_max_temperature:.2f} {self.unit_system['temperature']}"
+            f"Historical Maximum Temperature: {self.record_max_temperature:.2f} {self.unit_system['temperature']}"
         )
         print(
-            f"Global Minimum temperature: {self.record_min_temperature:.2f} {self.unit_system['temperature']}"
+            f"Historical Minimum Temperature: {self.record_min_temperature:.2f} {self.unit_system['temperature']}"
         )
         print(
-            f"Average minimum temperture: {self.average_min_temperature:.2f} {self.unit_system['temperature']}"
+            f"Average Daily Maximum Temperture: {self.average_max_temperature:.2f} {self.unit_system['temperature']}"
         )
         print(
-            f"Average maximum temperature: {self.average_max_temperature:.2f} {self.unit_system['temperature']}"
+            f"Average Daily Minimum Temperature: {self.average_min_temperature:.2f} {self.unit_system['temperature']}"
+        )
+        print()
+
+        print("Precipitation Information")
+        print(
+            f"Percentage of Days with Precipitation: {100*self.percentage_of_days_with_precipitation:.1f}%"
+        )
+        print(
+            f"Maximum Precipitation: {max(self.precipitation_per_day):.1f} {self.unit_system['precipitation']}"
+        )
+        print(
+            f"Average Precipitation: {np.mean(self.precipitation_per_day):.1f} {self.unit_system['precipitation']}"
+        )
+        print()
+
+        print("Cloud Base Height Information")
+        print(
+            f"Average Cloud Base Height: {self.mean_cloud_base_height:.2f} {self.unit_system['length']}"
+        )
+        print(
+            f"Minimum Cloud Base Height: {self.min_cloud_base_height:.2f} {self.unit_system['length']}"
+        )
+        print(
+            f"Percentage of Days Without Clouds: {100*self.percentage_of_days_with_no_cloud_coverage:.1f} %"
         )
