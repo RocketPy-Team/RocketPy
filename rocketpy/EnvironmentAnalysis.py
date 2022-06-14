@@ -9,6 +9,7 @@ import bisect
 from collections import defaultdict
 
 import ipywidgets as widgets
+from IPython.display import HTML
 import numpy as np
 from scipy import stats
 from matplotlib import pyplot as plt
@@ -542,7 +543,7 @@ class EnvironmentAnalysis:
                     variablePointsArray,
                     inputs="Height Above Sea Level (m)",
                     outputs=key,
-                    extrapolation="constant",
+                    interpolation="linear",
                 )
                 self.pressureLevelDataDict[dateString][hourString][
                     key
@@ -556,7 +557,7 @@ class EnvironmentAnalysis:
                 pressurePointsArray,
                 inputs="Height Above Sea Level (m)",
                 outputs="Pressure (Pa)",
-                extrapolation="constant",
+                interpolation="linear",
             )
             self.pressureLevelDataDict[dateString][hourString][
                 "pressure"
@@ -588,7 +589,7 @@ class EnvironmentAnalysis:
                 windSpeedPointsArray,
                 inputs="Height Above Sea Level (m)",
                 outputs="Wind Speed (m/s)",
-                extrapolation="constant",
+                interpolation="linear",
             )
             self.pressureLevelDataDict[dateString][hourString][
                 "windSpeed"
@@ -606,7 +607,7 @@ class EnvironmentAnalysis:
                 windHeadingPointsArray,
                 inputs="Height Above Sea Level (m)",
                 outputs="Wind Heading (Deg True)",
-                extrapolation="constant",
+                interpolation="linear",
             )
             self.pressureLevelDataDict[dateString][hourString][
                 "windHeading"
@@ -621,7 +622,7 @@ class EnvironmentAnalysis:
                 windDirectionPointsArray,
                 inputs="Height Above Sea Level (m)",
                 outputs="Wind Direction (Deg True)",
-                extrapolation="constant",
+                interpolation="linear",
             )
             self.pressureLevelDataDict[dateString][hourString][
                 "windDirection"
@@ -1143,10 +1144,7 @@ class EnvironmentAnalysis:
 
     def plot_average_wind_speed_profile(self):
         """Average wind speed for all datetimes available."""
-        altitude_list = list(list(self.pressureLevelDataDict.values())[0].values())[0][
-            "windSpeed"
-        ].source[:, 0]
-
+        altitude_list = np.linspace(*self.altitude_range, 100)
         wind_speed_profiles = [
             dayDict[hour]["windSpeed"](altitude_list)
             for dayDict in self.pressureLevelDataDict.values()
@@ -1218,9 +1216,11 @@ class EnvironmentAnalysis:
             windDir[hour] = []
             for day in days:
                 try:
-                    hour_wind_speed = self.pressureLevelDataDict[day][hour][
-                        "windSpeed"
-                    ](self.elevation)
+                    hour_wind_speed = (
+                        self.surfaceDataDict[day][hour]["surface10mWindVelocityX"] ** 2
+                        + self.surfaceDataDict[day][hour]["surface10mWindVelocityY"]
+                        ** 2
+                    ) ** 0.5
 
                     max_wind_speed = (
                         hour_wind_speed
@@ -1234,10 +1234,14 @@ class EnvironmentAnalysis:
                     )
 
                     windSpeed[hour].append(hour_wind_speed)
+                    # TODO: Check if this calculates direction or heading
                     windDir[hour].append(
-                        self.pressureLevelDataDict[day][hour]["windDirection"](
-                            self.elevation
+                        np.arctan2(
+                            self.surfaceDataDict[day][hour]["surface10mWindVelocityX"],
+                            self.surfaceDataDict[day][hour]["surface10mWindVelocityY"],
                         )
+                        * 180
+                        / np.pi
                     )
                 except KeyError:
                     # Not all days have all hours stored, that is fine
@@ -1329,10 +1333,10 @@ class EnvironmentAnalysis:
             self.process_wind_speed_and_direction_data_for_average_day()
 
         # Figure settings
-        windrose_side = 3  # inches
-        vertical_padding_top = 1  # inches
+        windrose_side = 2.5  # inches
+        vertical_padding_top = 1.5  # inches
         plot_padding = 0.18  # percentage
-        nrows, ncols = self._find_two_closest_integer_factors(len(hours))
+        ncols, nrows = self._find_two_closest_integer_factors(len(hours))
         vertical_plot_area_percentage = (
             nrows * windrose_side / (nrows * windrose_side + vertical_padding_top)
         )
@@ -1345,13 +1349,18 @@ class EnvironmentAnalysis:
         bins = np.linspace(self.min_wind_speed, self.max_wind_speed, 6)
         width = (1 - 2 * plot_padding) * 1 / ncols
         height = vertical_plot_area_percentage * (1 - 2 * plot_padding) * 1 / nrows
-
+        # print(ncols, nrows)
+        # print(ncols * windrose_side, nrows * windrose_side + vertical_padding_top)
+        # print(vertical_plot_area_percentage)
+        # print(width, height)
         for k, hour in enumerate(hours):
             i, j = len(hours) // nrows - k // ncols, k % ncols  # Row count bottom up
             left = j * 1 / ncols + plot_padding / ncols
-            bottom = vertical_plot_area_percentage * (
-                (i - 2) / nrows + plot_padding / nrows
+            bottom = (
+                vertical_plot_area_percentage * ((i - 2) / nrows + plot_padding / nrows)
+                + 0.5
             )
+            # print(left, bottom)
 
             ax = self.plot_wind_rose(
                 self.wind_direction_per_hour[hour],
@@ -1365,7 +1374,7 @@ class EnvironmentAnalysis:
                 ax.legend(
                     loc="upper center",
                     # 0.8 is a magic number
-                    bbox_to_anchor=(ncols / 2 + 0.8, 1.5),
+                    bbox_to_anchor=(ncols / 2 + 0.8, 1.55),
                     fancybox=True,
                     shadow=True,
                     ncol=6,
@@ -1412,7 +1421,7 @@ class EnvironmentAnalysis:
                 http://www.github.com/scls19fr/windrose""",
         )
         writer = ImageWriter(fps=1, metadata=metadata)
-        fig = plt.figure(1, facecolor="w", edgecolor="w", figsize=figsize)
+        fig = plt.figure(facecolor="w", edgecolor="w", figsize=figsize)
         with writer.saving(fig, filename, 100):
             for hour in hours:
                 self.plot_wind_rose(
@@ -1431,7 +1440,7 @@ class EnvironmentAnalysis:
             image = file.read()
 
         fig_width, fig_height = plt.gcf().get_size_inches() * fig.dpi
-        plt.close(1)
+        plt.close(fig)
         return widgets.Image(
             value=image,
             format="gif",
@@ -1456,7 +1465,7 @@ class EnvironmentAnalysis:
 
         # Create grid of plots for each hour
         hours = list(list(self.pressureLevelDataDict.values())[0].keys())
-        nrows, ncols = self._find_two_closest_integer_factors(len(hours))
+        ncols, nrows = self._find_two_closest_integer_factors(len(hours))
         fig = plt.figure(figsize=(ncols * 2, nrows * 2.2))
         gs = fig.add_gridspec(nrows, ncols, hspace=0, wspace=0, left=0.12)
         axs = gs.subplots(sharex=True, sharey=True)
@@ -1525,7 +1534,7 @@ class EnvironmentAnalysis:
             wind_gusts_at_given_hour[hour] = wind_gust_values_for_this_hour
 
         # Create animation
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(dpi=200)
         # Initialize animation artists: histogram and hour text
         hist_bins = np.linspace(0, 24, 25)  # Fix bins edges TODO: parametrize
         _, _, bar_container = plt.hist(
@@ -1584,18 +1593,29 @@ class EnvironmentAnalysis:
             fig,
             update,
             frames=wind_gusts_at_given_hour.items(),
-            interval=1000,
+            interval=750,
             init_func=init,
             blit=True,
         )
-        plt.show()
+        plt.close(fig)
+        return HTML(animation.to_jshtml())
+
+    @property
+    def altitude_range(self):
+        min_altitude = self.elevation
+        max_altitudes = [
+            np.max(dayDict[hour]["windSpeed"].source[-1, 0])
+            for dayDict in self.pressureLevelDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        max_altitude = np.min(max_altitudes)
+        return min_altitude, max_altitude
 
     def process_wind_profile_over_average_day(self):
         """Compute the average wind profile for each avaliable hour of a day, over all
         days in the dataset."""
-        altitude_list = list(list(self.pressureLevelDataDict.values())[0].values())[0][
-            "windSpeed"
-        ].source[:, 0]
+        altitude_list = np.linspace(*self.altitude_range, 100)
+
         average_wind_profile_at_given_hour = {}
         hours = list(self.pressureLevelDataDict.values())[0].keys()
         for hour in hours:
@@ -1621,7 +1641,7 @@ class EnvironmentAnalysis:
 
         # Create grid of plots for each hour
         hours = list(list(self.pressureLevelDataDict.values())[0].keys())
-        nrows, ncols = self._find_two_closest_integer_factors(len(hours))
+        ncols, nrows = self._find_two_closest_integer_factors(len(hours))
         fig = plt.figure(figsize=(ncols * 2, nrows * 2.2))
         gs = fig.add_gridspec(nrows, ncols, hspace=0, wspace=0, left=0.12)
         axs = gs.subplots(sharex=True, sharey=True)
@@ -1659,7 +1679,7 @@ class EnvironmentAnalysis:
         self.process_wind_profile_over_average_day()
 
         # Create animation
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(dpi=200)
         # Initialize animation artists: curve and hour text
         (ln,) = plt.plot([], [], "r-")
         tx = plt.text(
@@ -1674,9 +1694,7 @@ class EnvironmentAnalysis:
         # Define function to initialize animation
 
         def init():
-            altitude_list = list(list(self.pressureLevelDataDict.values())[0].values())[
-                0
-            ]["windSpeed"].source[:, 0]
+            altitude_list = np.linspace(*self.altitude_range, 100)
             ax.set_xlim(0, 25)
             ax.set_ylim(self.elevation, altitude_list[-1])
             ax.set_xlabel(f"Wind Speed ({self.unit_system['wind_speed']})")
@@ -1701,7 +1719,8 @@ class EnvironmentAnalysis:
             init_func=init,
             blit=True,
         )
-        plt.show()
+        plt.close(fig)
+        return HTML(animation.to_jshtml())
 
     def allInfo(self):
         print(
