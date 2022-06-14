@@ -544,7 +544,7 @@ class EnvironmentAnalysis:
                     variablePointsArray,
                     inputs="Height Above Sea Level (m)",
                     outputs=key,
-                    extrapolation="constant"
+                    extrapolation="constant",
                 )
                 self.pressureLevelDataDict[dateString][hourString][
                     key
@@ -558,7 +558,7 @@ class EnvironmentAnalysis:
                 pressurePointsArray,
                 inputs="Height Above Sea Level (m)",
                 outputs="Pressure (Pa)",
-                extrapolation="constant"
+                extrapolation="constant",
             )
             self.pressureLevelDataDict[dateString][hourString][
                 "pressure"
@@ -590,7 +590,7 @@ class EnvironmentAnalysis:
                 windSpeedPointsArray,
                 inputs="Height Above Sea Level (m)",
                 outputs="Wind Speed (m/s)",
-                extrapolation="constant"
+                extrapolation="constant",
             )
             self.pressureLevelDataDict[dateString][hourString][
                 "windSpeed"
@@ -608,7 +608,7 @@ class EnvironmentAnalysis:
                 windHeadingPointsArray,
                 inputs="Height Above Sea Level (m)",
                 outputs="Wind Heading (Deg True)",
-                extrapolation="constant"
+                extrapolation="constant",
             )
             self.pressureLevelDataDict[dateString][hourString][
                 "windHeading"
@@ -623,7 +623,7 @@ class EnvironmentAnalysis:
                 windDirectionPointsArray,
                 inputs="Height Above Sea Level (m)",
                 outputs="Wind Direction (Deg True)",
-                extrapolation="constant"
+                extrapolation="constant",
             )
             self.pressureLevelDataDict[dateString][hourString][
                 "windDirection"
@@ -1217,7 +1217,7 @@ class EnvironmentAnalysis:
         # plt.plot(np.percentile(wind_speed_profiles, 50+49.8, axis=0, method='weibull'), altitude_list, 'b--', alpha=0.25)
         for wind_speed_profile in wind_speed_profiles:
             plt.plot(wind_speed_profile, altitude_list, "gray", alpha=0.01)
-        
+
         plt.autoscale(enable=True, axis="x", tight=True)
         plt.autoscale(enable=True, axis="y", tight=True)
         plt.xlabel(f"Wind speed ({self.unit_system['wind_speed']})")
