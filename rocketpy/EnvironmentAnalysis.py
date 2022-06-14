@@ -405,7 +405,6 @@ class EnvironmentAnalysis:
                 "wind_speed": "m/s",
             }
 
-    # TODO: Needs tests
     def set_unit_system(self, unit_system="metric"):
         self.unit_system_string = unit_system
         self.__init_unit_system()
@@ -436,7 +435,6 @@ class EnvironmentAnalysis:
                 else:
                     guess -= 1
 
-    # TODO: Needs tests
     def parsePressureLevelData(self):
         """
         Parse pressure level data from a weather file.
@@ -631,7 +629,6 @@ class EnvironmentAnalysis:
 
         return self.pressureLevelDataDict
 
-    # TODO: Needs tests
     def parseSurfaceData(self):
         """
         Parse surface data from a weather file.
@@ -706,7 +703,6 @@ class EnvironmentAnalysis:
 
         return self.surfaceDataDict
 
-    # TODO: Needs tests
     def convertPressureLevelData(self):
         """Convert pressure level data to desired unit system."""
         # Create conversion dict (key: to_unit)
@@ -747,7 +743,6 @@ class EnvironmentAnalysis:
                     # Save converted Function
                     self.pressureLevelDataDict[date][hour][key] = variable
 
-    # TODO: Needs tests
     def convertSurfaceData(self):
         """Convert surface data to desired unit system."""
         # Create conversion dict (key: from_unit, to_unit)
@@ -852,7 +847,6 @@ class EnvironmentAnalysis:
 
         return self.percentage_of_days_with_precipitation
 
-    # TODO: Create tests
     def calculate_average_max_temperature(self):
         self.max_temperature_list = [
             np.max([dayDict[hour]["surfaceTemperature"] for hour in dayDict.keys()])
@@ -861,7 +855,6 @@ class EnvironmentAnalysis:
         self.average_max_temperature = np.average(self.max_temperature_list)
         return self.average_max_temperature
 
-    # TODO: Create tests
     def calculate_average_min_temperature(self):
         self.min_temperature_list = [
             np.min([dayDict[hour]["surfaceTemperature"] for hour in dayDict.keys()])
@@ -870,7 +863,6 @@ class EnvironmentAnalysis:
         self.average_min_temperature = np.average(self.min_temperature_list)
         return self.average_min_temperature
 
-    # TODO: Create tests
     def calculate_record_max_temperature(self):
         self.temperature_list = [
             dayDict[hour]["surfaceTemperature"]
@@ -880,7 +872,6 @@ class EnvironmentAnalysis:
         self.record_max_temperature = np.max(self.temperature_list)
         return self.record_max_temperature
 
-    # TODO: Create tests
     def calculate_record_min_temperature(self):
         self.temperature_list = [
             dayDict[hour]["surfaceTemperature"]
@@ -890,7 +881,6 @@ class EnvironmentAnalysis:
         self.record_min_temperature = np.min(self.temperature_list)
         return self.record_min_temperature
 
-    # TODO: Create tests
     def calculate_average_max_wind_gust(self):
         self.max_wind_gust_list = [
             np.max([dayDict[hour]["surfaceWindGust"] for hour in dayDict.keys()])
@@ -899,7 +889,6 @@ class EnvironmentAnalysis:
         self.average_max_wind_gust = np.average(self.max_wind_gust_list)
         return self.average_max_wind_gust
 
-    # TODO: Create tests
     def calculate_maximum_wind_gust(self):
         self.wind_gust_list = [
             dayDict[hour]["surfaceWindGust"]
@@ -909,7 +898,6 @@ class EnvironmentAnalysis:
         self.max_wind_gust = np.max(self.wind_gust_list)
         return self.max_wind_gust
 
-    # TODO: Create tests
     def calculate_average_max_surface_10m_wind_speed(self):
         self.max_surface_10m_wind_speed_list = [
             np.max(
@@ -929,7 +917,6 @@ class EnvironmentAnalysis:
         )
         return self.average_max_surface_10m_wind_speed
 
-    # TODO: Create tests
     def calculate_average_min_surface_10m_wind_speed(self):
         self.min_surface_10m_wind_speed_list = [
             np.min(
@@ -949,7 +936,6 @@ class EnvironmentAnalysis:
         )
         return self.average_min_surface_10m_wind_speed
 
-    # TODO: Create tests
     def calculate_record_max_surface_10m_wind_speed(self):
         self.surface_10m_wind_speed = [
             (
@@ -963,7 +949,6 @@ class EnvironmentAnalysis:
         self.record_max_surface_10m_wind_speed = np.max(self.surface_10m_wind_speed)
         return self.record_max_surface_10m_wind_speed
 
-    # TODO: Create tests
     def calculate_record_min_surface_10m_wind_speed(self):
         self.surface_10m_wind_speed = [
             (
@@ -977,7 +962,6 @@ class EnvironmentAnalysis:
         self.record_min_surface_10m_wind_speed = np.min(self.surface_10m_wind_speed)
         return self.record_min_surface_10m_wind_speed
 
-    # TODO: Create tests
     def calculate_average_max_surface_100m_wind_speed(self):
         self.max_surface_100m_wind_speed_list = [
             np.max(
@@ -997,7 +981,6 @@ class EnvironmentAnalysis:
         )
         return self.average_max_surface_100m_wind_speed
 
-    # TODO: Create tests
     def calculate_average_min_surface_100m_wind_speed(self):
         self.min_surface_100m_wind_speed_list = [
             np.min(
@@ -1017,7 +1000,6 @@ class EnvironmentAnalysis:
         )
         return self.average_min_surface_100m_wind_speed
 
-    # TODO: Create tests
     def calculate_record_max_surface_100m_wind_speed(self):
         self.surface_100m_wind_speed = [
             (
@@ -1031,7 +1013,6 @@ class EnvironmentAnalysis:
         self.record_max_surface_100m_wind_speed = np.max(self.surface_100m_wind_speed)
         return self.record_max_surface_100m_wind_speed
 
-    # TODO: Create tests
     def calculate_record_min_surface_100m_wind_speed(self):
         self.surface_100m_wind_speed = [
             (
@@ -1045,7 +1026,6 @@ class EnvironmentAnalysis:
         self.record_min_surface_100m_wind_speed = np.min(self.surface_100m_wind_speed)
         return self.record_min_surface_100m_wind_speed
 
-    # TODO: Create tests
     def plot_wind_gust_distribution(self):
         """Get all values of wind gust speed (for every date and hour available)
         and plot a single distribution. Expected result is a Weibull distribution.
@@ -1086,7 +1066,6 @@ class EnvironmentAnalysis:
 
         return None
 
-    # TODO: Create tests
     def calculate_average_temperature_along_day(self):
         """Computes average temperature progression throughout the
         day, including sigma contours."""
@@ -1111,7 +1090,6 @@ class EnvironmentAnalysis:
 
         return self.average_temperature_at_given_hour, self.sigmas_at_given_hour
 
-    # TODO: Create tests
     def plot_average_temperature_along_day(self):
         """Plots average temperature progression throughout the day, including
         sigma contours."""
@@ -1163,7 +1141,6 @@ class EnvironmentAnalysis:
         plt.legend()
         plt.show()
 
-    # TODO: Create tests
     def plot_average_wind_speed_profile(self):
         """Average wind speed for all datetimes available."""
         altitude_list = list(list(self.pressureLevelDataDict.values())[0].values())[0][
@@ -1334,7 +1311,6 @@ class EnvironmentAnalysis:
         )
         plt.show()
 
-    # TODO: Create tests
     def plot_average_day_wind_rose_all_hours(self):
         """Plot windroses for all hours of a day, in a grid like plot."""
         # Get days and hours
@@ -1532,7 +1508,6 @@ class EnvironmentAnalysis:
         fig.supylabel("Probability")
         plt.show()
 
-    # TODO: Implement
     def animate_wind_gust_distribution_over_average_day(self):
         """Animation of how the wind gust distribution varies throughout the day."""
         # Gather animation data
@@ -1614,7 +1589,6 @@ class EnvironmentAnalysis:
         )
         plt.show()
 
-    # TODO: Create test
     def process_wind_profile_over_average_day(self):
         """Compute the average wind profile for each avaliable hour of a day, over all
         days in the dataset."""
@@ -1640,7 +1614,6 @@ class EnvironmentAnalysis:
             ]
         self.average_wind_profile_at_given_hour = average_wind_profile_at_given_hour
 
-    # TODO: Create test
     def plot_wind_profile_over_average_day(self):
         """Creates a grid of plots with the wind profile over the average day."""
         self.process_wind_profile_over_average_day()
@@ -1680,7 +1653,6 @@ class EnvironmentAnalysis:
         fig.supylabel(f"Altitude ASL ({self.unit_system['length']})")
         plt.show()
 
-    # TODO: Create tests
     def animate_wind_profile_over_average_day(self):
         """Animation of how wind profile evolves throughout an average day."""
         self.process_wind_profile_over_average_day()
