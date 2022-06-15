@@ -65,7 +65,7 @@ def dimensionless_solid_motor(kg, m):
         thrustSource="data/motors/Cesaroni_M1670.eng",
         burnOut=3.9,
         grainNumber=5,
-        distanceNozzleMotorReference=0.40396,
+        distanceNozzleMotorReference=0.40396 * m,
         grainSeparation=5 / 1000 * m,
         grainDensity=1815 * (kg / m**3),
         grainOuterRadius=33 / 1000 * m,
