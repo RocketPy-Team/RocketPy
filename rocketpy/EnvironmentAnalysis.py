@@ -389,7 +389,7 @@ class EnvironmentAnalysis:
                 "temperature": "degF",
                 "angle": "deg",
                 "precipitation": "in",
-                "wind_speed": "knot",
+                "wind_speed": "mph",
             }
         else:
             # Default to SI
