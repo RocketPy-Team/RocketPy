@@ -1487,7 +1487,7 @@ class EnvironmentAnalysis:
             c, loc, scale = stats.weibull_min.fit(
                 average_wind_gust_at_given_hour[hour], loc=0, scale=1
             )
-            x = np.linspace(0, np.max(average_wind_gust_at_given_hour[hour]), 100)
+            x = np.linspace(0, np.ceil(self.max_wind_gust), 100)
             ax.plot(
                 x,
                 stats.weibull_min.pdf(x, c, loc, scale),
@@ -1536,7 +1536,7 @@ class EnvironmentAnalysis:
         # Create animation
         fig, ax = plt.subplots(dpi=200)
         # Initialize animation artists: histogram and hour text
-        hist_bins = np.linspace(0, 24, 25)  # Fix bins edges TODO: parametrize
+        hist_bins = np.linspace(0, np.ceil(self.max_wind_gust), 25)  # Fix bins edges
         _, _, bar_container = plt.hist(
             [],
             bins=hist_bins,
@@ -1562,7 +1562,7 @@ class EnvironmentAnalysis:
 
         # Define function to initialize animation
         def init():
-            ax.set_xlim(0, 25)  # TODO: parametrize
+            ax.set_xlim(0, np.ceil(self.max_wind_gust))
             ax.set_ylim(0, 0.3)  # TODO: parametrize
             ax.set_xlabel(f"Wind Gust Speed ({self.unit_system['wind_speed']})")
             ax.set_ylabel("Probability")
@@ -1579,7 +1579,7 @@ class EnvironmentAnalysis:
                 rect.set_height(count)
             # Update weibull distribution
             c, loc, scale = stats.weibull_min.fit(data, loc=0, scale=1)
-            xdata = np.linspace(0, 25, 100)  # TODO: parametrize
+            xdata = np.linspace(0, np.ceil(self.max_wind_gust), 100)
             ydata = stats.weibull_min.pdf(xdata, c, loc, scale)
             ln.set_data(xdata, ydata)
             # Update hour text
