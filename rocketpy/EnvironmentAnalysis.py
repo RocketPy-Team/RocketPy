@@ -1630,7 +1630,9 @@ class EnvironmentAnalysis:
                     # Some day does not have data for the desired hour
                     # No need to worry, just average over the other days
                     pass
-            mean_wind_speed_values_for_this_hour = np.mean(wind_speed_values_for_this_hour, axis=0)
+            mean_wind_speed_values_for_this_hour = np.mean(
+                wind_speed_values_for_this_hour, axis=0
+            )
             average_wind_profile_at_given_hour[hour] = [
                 mean_wind_speed_values_for_this_hour,
                 altitude_list,
@@ -1700,7 +1702,7 @@ class EnvironmentAnalysis:
 
         def init():
             altitude_list = np.linspace(*self.altitude_range, 100)
-            ax.set_xlim(0, self.max_average_wind_at_altitude+5)
+            ax.set_xlim(0, self.max_average_wind_at_altitude + 5)
             ax.set_ylim(self.elevation, altitude_list[-1])
             ax.set_xlabel(f"Wind Speed ({self.unit_system['wind_speed']})")
             ax.set_ylabel(f"Altitude ASL ({self.unit_system['length']})")
