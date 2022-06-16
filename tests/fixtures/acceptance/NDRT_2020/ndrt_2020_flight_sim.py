@@ -24,6 +24,7 @@ parameters = {
     "nozzleRadius": (49.5 / 2000, 0.001),
     "throatRadius": (21.5 / 2000, 0.001),
     "grainSeparation": (3 / 1000, 0.001),
+    "distanceNozzleMotorReference": (1.255 - 0.85704, 0.001),
     "grainDensity": (1519.708, 30),
     "grainOuterRadius": (33 / 1000, 0.001),
     "grainInitialInnerRadius": (15 / 1000, 0.002),
@@ -34,7 +35,7 @@ parameters = {
     "inertiaZ": (0.15982, 0.3 * 0.15982),
     "radius": (203 / 2000, 0.001),
     "distanceRocketNozzle": (-1.255, 0.100),
-    "distanceRocketPropellant": (-0.85704, 0.100),
+    # "distanceRocketPropellant": (-0.85704, 0.100),
     "powerOffDrag": (1, 0.033),
     "powerOnDrag": (1, 0.033),
     "noseLength": (0.610, 0.001),
@@ -80,6 +81,7 @@ L1395 = SolidMotor(
     thrustSource="tests/fixtures/acceptance/NDRT_2020/ndrt_2020_motor_Cesaroni_4895L1395-P.eng",
     burnOut=parameters.get("burnOut")[0],
     grainNumber=5,
+    distanceNozzleMotorReference=parameters.get("distanceNozzleMotorReference")[0],
     grainSeparation=parameters.get("grainSeparation")[0],
     grainDensity=parameters.get("grainDensity")[0],
     grainOuterRadius=parameters.get("grainOuterRadius")[0],
@@ -98,7 +100,6 @@ NDRT2020 = Rocket(
     inertiaI=parameters.get("inertiaI")[0],
     inertiaZ=parameters.get("inertiaZ")[0],
     distanceRocketNozzle=parameters.get("distanceRocketNozzle")[0],
-    distanceRocketPropellant=parameters.get("distanceRocketPropellant")[0],
     powerOffDrag=parameters.get("dragCoefficient")[0],
     powerOnDrag=parameters.get("dragCoefficient")[0],
 )
@@ -123,6 +124,8 @@ Transition = NDRT2020.addTail(
 )
 
 # Parachute set-up
+
+
 def drogueTrigger(p, y):
     # p = pressure
     # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]

@@ -28,6 +28,7 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
         # Propulsion Details
         "impulse": (4895.050, 0.033 * 4895.050),
         "burnOut": (3.51, 0.1),
+        "distanceNozzleMotorReference": (1.255 - 0.85704, 0.001),
         "nozzleRadius": (49.5 / 2000, 0.001),
         "throatRadius": (21.5 / 2000, 0.001),
         "grainSeparation": (3 / 1000, 0.001),
@@ -41,7 +42,7 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
         "inertiaZ": (0.15982, 0.3 * 0.15982),
         "radius": (203 / 2000, 0.001),
         "distanceRocketNozzle": (-1.255, 0.100),
-        "distanceRocketPropellant": (-0.85704, 0.100),
+        # "distanceRocketPropellant": (-0.85704, 0.100),
         "powerOffDrag": (1, 0.033),
         "powerOnDrag": (1, 0.033),
         "noseLength": (0.610, 0.001),
@@ -87,6 +88,7 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
         thrustSource="tests/fixtures/acceptance/NDRT_2020/ndrt_2020_motor_Cesaroni_4895L1395-P.eng",
         burnOut=parameters.get("burnOut")[0],
         grainNumber=5,
+        distanceNozzleMotorReference=parameters.get("distanceNozzleMotorReference")[0],
         grainSeparation=parameters.get("grainSeparation")[0],
         grainDensity=parameters.get("grainDensity")[0],
         grainOuterRadius=parameters.get("grainOuterRadius")[0],
@@ -105,7 +107,6 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
         inertiaI=parameters.get("inertiaI")[0],
         inertiaZ=parameters.get("inertiaZ")[0],
         distanceRocketNozzle=parameters.get("distanceRocketNozzle")[0],
-        distanceRocketPropellant=parameters.get("distanceRocketPropellant")[0],
         powerOffDrag=parameters.get("dragCoefficient")[0],
         powerOnDrag=parameters.get("dragCoefficient")[0],
     )

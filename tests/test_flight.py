@@ -11,6 +11,8 @@ from rocketpy import Environment, Flight, Function, Rocket, SolidMotor
 plt.rcParams.update({"figure.max_open_warning": 0})
 
 # Helper functions
+
+
 def setup_rocket_with_given_static_margin(rocket, static_margin):
     """Takes any rocket, removes its aerodynamic surfaces and adds a set of
     nose, fins and tail specially designed to have a given static margin.
@@ -76,6 +78,7 @@ def test_flight(mock_show):
         burnOut=3.9,
         grainNumber=5,
         grainSeparation=5 / 1000,
+        distanceNozzleMotorReference=0.39796,
         grainDensity=1815,
         grainOuterRadius=33 / 1000,
         grainInitialInnerRadius=15 / 1000,
@@ -92,7 +95,6 @@ def test_flight(mock_show):
         inertiaI=6.60,
         inertiaZ=0.0351,
         distanceRocketNozzle=-1.255,
-        distanceRocketPropellant=-0.85704,
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
@@ -165,6 +167,7 @@ def test_initial_solution(mock_show):
         burnOut=3.9,
         grainNumber=5,
         grainSeparation=5 / 1000,
+        distanceNozzleMotorReference=0.39796,
         grainDensity=1815,
         grainOuterRadius=33 / 1000,
         grainInitialInnerRadius=15 / 1000,
@@ -181,7 +184,6 @@ def test_initial_solution(mock_show):
         inertiaI=6.60,
         inertiaZ=0.0351,
         distanceRocketNozzle=-1.255,
-        distanceRocketPropellant=-0.85704,
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
@@ -288,6 +290,7 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
         thrustSource=1e-300,
         burnOut=1e-10,
         grainNumber=5,
+        distanceNozzleMotorReference=0.39796,
         grainSeparation=5 / 1000,
         grainDensity=1e-300,
         grainOuterRadius=33 / 1000,
@@ -305,7 +308,6 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
         inertiaI=1,
         inertiaZ=0.0351,
         distanceRocketNozzle=-1.255,
-        distanceRocketPropellant=-0.85704,
         powerOffDrag=0,
         powerOnDrag=0,
     )
@@ -362,6 +364,7 @@ def test_rolling_flight(mock_show):
         thrustSource="data/motors/Cesaroni_M1670.eng",
         burnOut=3.9,
         grainNumber=5,
+        distanceNozzleMotorReference=0.39796,
         grainSeparation=5 / 1000,
         grainDensity=1815,
         grainOuterRadius=33 / 1000,
@@ -379,7 +382,6 @@ def test_rolling_flight(mock_show):
         inertiaI=6.60,
         inertiaZ=0.0351,
         distanceRocketNozzle=-1.255,
-        distanceRocketPropellant=-0.85704,
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
@@ -453,6 +455,7 @@ def test_export_data():
         thrustSource=1000,
         burnOut=3.9,
         grainNumber=5,
+        distanceNozzleMotorReference=0.39796,
         grainSeparation=5 / 1000,
         grainDensity=1815,
         grainOuterRadius=33 / 1000,
@@ -470,7 +473,6 @@ def test_export_data():
         inertiaI=6.60,
         inertiaZ=0.0351,
         distanceRocketNozzle=-1.255,
-        distanceRocketPropellant=-0.85704,
         powerOffDrag=0.5,
         powerOnDrag=0.5,
     )
@@ -544,6 +546,7 @@ def test_latlon_convertions(mock_show):
         thrustSource=1545.218,
         burnOut=3.9,
         grainNumber=5,
+        distanceNozzleMotorReference=0.39796,
         grainSeparation=5 / 1000,
         grainDensity=1815,
         grainOuterRadius=33 / 1000,
@@ -558,7 +561,6 @@ def test_latlon_convertions(mock_show):
         inertiaI=6.60,
         inertiaZ=0.0351,
         distanceRocketNozzle=-1.255,
-        distanceRocketPropellant=-0.85704,
         powerOffDrag=0.5,
         powerOnDrag=0.5,
     )
@@ -619,11 +621,12 @@ def test_latlon_convertions(mock_show):
 
 @patch("matplotlib.pyplot.show")
 def test_latlon_convertions2(mock_show):
-    "additional tests to capture incorrect behaviours during lat/lon conversions"
+    "additional tests to capture incorrect behaviors during lat/lon conversions"
     test_motor = SolidMotor(
         thrustSource=1000,
         burnOut=3,
         grainNumber=5,
+        distanceNozzleMotorReference=0.39796,
         grainSeparation=5 / 1000,
         grainDensity=1815,
         grainOuterRadius=33 / 1000,
@@ -638,7 +641,6 @@ def test_latlon_convertions2(mock_show):
         inertiaI=6.60,
         inertiaZ=0.0351,
         distanceRocketNozzle=-1.255,
-        distanceRocketPropellant=-0.85704,
         powerOffDrag=0.5,
         powerOnDrag=0.5,
     )

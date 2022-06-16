@@ -115,6 +115,7 @@ class Motor(ABC):
         self,
         thrustSource,
         burnOut,
+        distanceNozzleMotorReference,
         nozzleRadius=0.0335,
         throatRadius=0.0114,
         reshapeThrustCurve=False,
@@ -137,6 +138,12 @@ class Motor(ABC):
             Function. See help(Function). Thrust units are Newtons.
         burnOut : int, float
             Motor burn out time in seconds.
+        distanceNozzleMotorReference : int, float
+            Distance from nozzle outlet to the motor reference point, which
+            for Solids and Hybrids is the center of mass of the solid propellant,
+            in meters. Generally positive, meaning a positive position in the
+            z axis which has an origin in the rocket's center of mass (without
+            propellant) and points towards the nose cone.
         nozzleRadius : int, float, optional
             Motor's nozzle outlet radius in meters. Used to calculate Kn curve.
             Optional if the Kn curve is not interesting. Its value does not impact
@@ -165,6 +172,9 @@ class Motor(ABC):
         # Thrust parameters
         self.interpolate = interpolationMethod
         self.burnOutTime = burnOut
+
+        # Geometric parameters
+        self.distanceNozzleMotorReference = distanceNozzleMotorReference
 
         # Check if thrustSource is csv, eng, function or other
         if isinstance(thrustSource, str):
@@ -545,6 +555,11 @@ class Motor(ABC):
             + " kg"
         )
         print(
+            "Distance Nozzle - Motor reference point: "
+            + str(self.distanceNozzleMotorReference)
+            + " m"
+        )
+        print(
             "Propellant Exhaust Velocity: "
             + "{:.3f}".format(self.exhaustVelocity)
             + " m/s"
@@ -580,6 +595,11 @@ class Motor(ABC):
         print("Nozzle Details")
         print("Nozzle Radius: " + str(self.nozzleRadius) + " m")
         print("Nozzle Throat Radius: " + str(self.throatRadius) + " m")
+        print(
+            "Distance Nozzle - Motor reference point: "
+            + str(self.distanceNozzleMotorReference)
+            + " m"
+        )
 
         # Print grain details
         print("\nGrain Details")
@@ -724,6 +744,7 @@ class SolidMotor(Motor):
         self,
         thrustSource,
         burnOut,
+        distanceNozzleMotorReference,
         grainNumber,
         grainDensity,
         grainOuterRadius,
@@ -792,6 +813,9 @@ class SolidMotor(Motor):
         # Thrust parameters
         self.interpolate = interpolationMethod
         self.burnOutTime = burnOut
+
+        # Geometric parameters
+        self.distanceNozzleMotorReference = distanceNozzleMotorReference
 
         # Check if thrustSource is csv, eng, function or other
         if isinstance(thrustSource, str):
@@ -1209,6 +1233,11 @@ class SolidMotor(Motor):
             + " kg"
         )
         print(
+            "Distance Nozzle - Motor reference point: "
+            + str(self.distanceNozzleMotorReference)
+            + " m"
+        )
+        print(
             "Propellant Exhaust Velocity: "
             + "{:.3f}".format(self.exhaustVelocity)
             + " m/s"
@@ -1244,6 +1273,11 @@ class SolidMotor(Motor):
         print("Nozzle Details")
         print("Nozzle Radius: " + str(self.nozzleRadius) + " m")
         print("Nozzle Throat Radius: " + str(self.throatRadius) + " m")
+        print(
+            "Distance Nozzle - Motor reference point: "
+            + str(self.distanceNozzleMotorReference)
+            + " m"
+        )
 
         # Print grain details
         print("\nGrain Details")
@@ -1388,6 +1422,7 @@ class HybridMotor(Motor):
         self,
         thrustSource,
         burnOut,
+        distanceNozzleMotorReference,
         grainNumber,
         grainDensity,
         grainOuterRadius,
@@ -1395,7 +1430,7 @@ class HybridMotor(Motor):
         grainInitialHeight,
         oxidizerTankRadius,
         oxidizerTankHeight,
-        oxidizerInitialPresure,
+        oxidizerInitialPressure,
         oxidizerDensity,
         oxidizerMolarMass,
         oxidizerInitialVolume,
@@ -1438,10 +1473,10 @@ class HybridMotor(Motor):
             Oxidizer Tank inner radius.
         oxidizerTankHeight :
             Oxidizer Tank Height.
-        oxidizerInitialPresure :
-            Initial presure of the oxidizer tank, could be equal to the pressure of the source cylinder in atm.
+        oxidizerInitialPressure :
+            Initial pressure of the oxidizer tank, could be equal to the pressure of the source cylinder in atm.
         oxidizerDensity :
-            Oxidizer theoretical density in liquit state, for N2O is equal to 1.98 (Kg/m^3).
+            Oxidizer theoretical density in liquid state, for N2O is equal to 1.98 (Kg/m^3).
         oxidizerMolarMass :
             Oxidizer molar mass, for the N2O is equal to 44.01 (g/mol).
         oxidizerInitialVolume :
@@ -1481,6 +1516,9 @@ class HybridMotor(Motor):
         self.interpolate = interpolationMethod
         self.burnOutTime = burnOut
 
+        # Geometric parameters
+        self.distanceNozzleMotorReference = distanceNozzleMotorReference
+
         # Check if thrustSource is csv, eng, function or other
         if isinstance(thrustSource, str):
             # Determine if csv or eng
@@ -1519,6 +1557,7 @@ class HybridMotor(Motor):
         # Grain and nozzle parameters
         self.nozzleRadius = nozzleRadius
         self.throatRadius = throatRadius
+        # Propellant parameters
         self.grainNumber = grainNumber
         self.grainSeparation = grainSeparation
         self.grainDensity = grainDensity
@@ -1527,7 +1566,7 @@ class HybridMotor(Motor):
         self.grainInitialHeight = grainInitialHeight
         self.oxidizerTankRadius = oxidizerTankRadius
         self.oxidizerTankHeight = oxidizerTankHeight
-        self.oxidizerInitialPresure = oxidizerInitialPresure
+        self.oxidizerInitialPressure = oxidizerInitialPressure
         self.oxidizerDensity = oxidizerDensity
         self.oxidizerMolarMass = oxidizerMolarMass
         self.oxidizerInitialVolume = oxidizerInitialVolume
@@ -1909,6 +1948,11 @@ class HybridMotor(Motor):
             "Total Propellant Mass: "
             + "{:.3f}".format(self.propellantInitialMass)
             + " kg"
+        )
+        print(
+            "Distance Nozzle - Motor reference point: "
+            + str(self.distanceNozzleMotorReference)
+            + " m"
         )
         print(
             "Propellant Exhaust Velocity: "

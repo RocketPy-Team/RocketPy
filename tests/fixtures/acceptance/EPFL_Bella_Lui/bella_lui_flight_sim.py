@@ -2,6 +2,7 @@
 # Permission to use flight data given by Antoine Scardigli, 2020
 
 # Importing libraries
+from scipy.signal import savgol_filter
 from rocketpy import Environment, SolidMotor, Rocket, Flight, Function
 import numpy as np
 import matplotlib.pyplot as plt
@@ -16,6 +17,7 @@ parameters = {
     "nozzleRadius": (44.45 / 1000, 0.001),
     "throatRadius": (21.4376 / 1000, 0.001),
     "grainSeparation": (3 / 1000, 1 / 1000),
+    "distanceNozzleMotorReference": (1.1356 - 1, 0.001),
     "grainDensity": (782.4, 30),
     "grainOuterRadius": (85.598 / 2000, 0.001),
     "grainInitialInnerRadius": (33.147 / 1000, 0.002),
@@ -25,7 +27,7 @@ parameters = {
     "inertiaZ": (0.064244, 0.03 * 0.064244),
     "radius": (156 / 2000, 0.001),
     "distanceRocketNozzle": (-1.1356, 0.100),
-    "distanceRocketPropellant": (-1, 0.100),
+    # "distanceRocketPropellant": (-1, 0.100),
     "powerOffDrag": (1, 0.05),
     "powerOnDrag": (1, 0.05),
     "noseLength": (0.242, 0.001),
@@ -70,6 +72,7 @@ K828FJ = SolidMotor(
     thrustSource="tests/fixtures/acceptance/EPFL_Bella_Lui/bella_lui_motor_AeroTech_K828FJ.eng",
     burnOut=parameters.get("burnOut")[0],
     grainNumber=3,
+    distanceNozzleMotorReference=parameters.get("distanceNozzleMotorReference")[0],
     grainSeparation=parameters.get("grainSeparation")[0],
     grainDensity=parameters.get("grainDensity")[0],
     grainOuterRadius=parameters.get("grainOuterRadius")[0],
@@ -88,7 +91,6 @@ BellaLui = Rocket(
     inertiaI=parameters.get("inertiaI")[0],
     inertiaZ=parameters.get("inertiaZ")[0],
     distanceRocketNozzle=parameters.get("distanceRocketNozzle")[0],
-    distanceRocketPropellant=parameters.get("distanceRocketPropellant")[0],
     powerOffDrag=0.43,
     powerOnDrag=0.43,
 )
@@ -113,6 +115,8 @@ Tail = BellaLui.addTail(
 )
 
 # Parachute set-up
+
+
 def drogueTrigger(p, y):
     # p = pressure
     # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
@@ -202,7 +206,6 @@ velocity_rcp.append(TestFlight.vz(TestFlight.tFinal))
 acceleration_rcp.append(TestFlight.az(TestFlight.tFinal))
 
 # Acceleration comparison (will not be used in our publication)
-from scipy.signal import savgol_filter
 
 # Calculate the acceleration as a velocity derivative
 acceleration_Kalt = [0]

@@ -3,7 +3,7 @@ from unittest.mock import patch
 import pytest
 import numpy as np
 
-from rocketpy import Environment, SolidMotor, Rocket, Flight, Parachute
+from rocketpy import SolidMotor, Rocket
 
 
 @patch("matplotlib.pyplot.show")
@@ -12,6 +12,7 @@ def test_rocket(mock_show):
         thrustSource="data/motors/Cesaroni_M1670.eng",
         burnOut=3.9,
         grainNumber=5,
+        distanceNozzleMotorReference=0.39796,
         grainSeparation=5 / 1000,
         grainDensity=1815,
         grainOuterRadius=33 / 1000,
@@ -29,7 +30,6 @@ def test_rocket(mock_show):
         inertiaI=6.60,
         inertiaZ=0.0351,
         distanceRocketNozzle=-1.255,
-        distanceRocketPropellant=-0.85704,
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
@@ -87,6 +87,7 @@ def test_airfoil(mock_show):
         thrustSource="data/motors/Cesaroni_M1670.eng",
         burnOut=3.9,
         grainNumber=5,
+        distanceNozzleMotorReference=0.39796,
         grainSeparation=5 / 1000,
         grainDensity=1815,
         grainOuterRadius=33 / 1000,
@@ -104,7 +105,6 @@ def test_airfoil(mock_show):
         inertiaI=6.60,
         inertiaZ=0.0351,
         distanceRocketNozzle=-1.255,
-        distanceRocketPropellant=-0.85704,
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )

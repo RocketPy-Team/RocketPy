@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 import pytz
-from rocketpy import Environment, Flight, Rocket, SolidMotor
+from rocketpy import Environment
 
 
 @pytest.fixture

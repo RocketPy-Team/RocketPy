@@ -18,6 +18,7 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         # Propulsion Details
         "impulse": (2157, 0.03 * 2157),
         "burnOut": (2.43, 0.1),
+        "distanceNozzleMotorReference": (0.1356, 0.100),
         "nozzleRadius": (44.45 / 1000, 0.001),
         "throatRadius": (21.4376 / 1000, 0.001),
         "grainSeparation": (3 / 1000, 1 / 1000),
@@ -30,7 +31,6 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         "inertiaZ": (0.064244, 0.03 * 0.064244),
         "radius": (156 / 2000, 0.001),
         "distanceRocketNozzle": (-1.1356, 0.100),
-        "distanceRocketPropellant": (-1, 0.100),
         "powerOffDrag": (1, 0.05),
         "powerOnDrag": (1, 0.05),
         "noseLength": (0.242, 0.001),
@@ -75,6 +75,7 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         thrustSource="tests/fixtures/acceptance/EPFL_Bella_Lui/bella_lui_motor_AeroTech_K828FJ.eng",
         burnOut=parameters.get("burnOut")[0],
         grainNumber=3,
+        distanceNozzleMotorReference=parameters.get("distanceNozzleMotorReference")[0],
         grainSeparation=parameters.get("grainSeparation")[0],
         grainDensity=parameters.get("grainDensity")[0],
         grainOuterRadius=parameters.get("grainOuterRadius")[0],
@@ -93,7 +94,6 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         inertiaI=parameters.get("inertiaI")[0],
         inertiaZ=parameters.get("inertiaZ")[0],
         distanceRocketNozzle=parameters.get("distanceRocketNozzle")[0],
-        distanceRocketPropellant=parameters.get("distanceRocketPropellant")[0],
         powerOffDrag=0.43,
         powerOnDrag=0.43,
     )
@@ -176,7 +176,7 @@ def test_bella_lui_rocket_data_asserts_acceptance():
     )
     TestFlight.postProcess()
 
-    # Comparision with Real Data
+    # Comparison with Real Data
     flightData = np.loadtxt(
         "tests/fixtures/acceptance/EPFL_Bella_Lui/bella_lui_flight_data_filtered.csv",
         skiprows=1,
