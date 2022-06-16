@@ -91,7 +91,6 @@ BellaLui = Rocket(
     inertiaI=parameters.get("inertiaI")[0],
     inertiaZ=parameters.get("inertiaZ")[0],
     distanceRocketNozzle=parameters.get("distanceRocketNozzle")[0],
-    # distanceRocketPropellant=parameters.get("distanceRocketPropellant")[0],
     powerOffDrag=0.43,
     powerOnDrag=0.43,
 )

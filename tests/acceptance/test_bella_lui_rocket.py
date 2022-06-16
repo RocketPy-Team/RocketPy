@@ -18,7 +18,7 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         # Propulsion Details
         "impulse": (2157, 0.03 * 2157),
         "burnOut": (2.43, 0.1),
-        "distanceNozzleMotorReference": (1.1356 - 1, 0.001),
+        "distanceNozzleMotorReference": (0.1356, 0.100),
         "nozzleRadius": (44.45 / 1000, 0.001),
         "throatRadius": (21.4376 / 1000, 0.001),
         "grainSeparation": (3 / 1000, 1 / 1000),
@@ -31,7 +31,6 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         "inertiaZ": (0.064244, 0.03 * 0.064244),
         "radius": (156 / 2000, 0.001),
         "distanceRocketNozzle": (-1.1356, 0.100),
-        # "distanceRocketPropellant": (-1, 0.100),
         "powerOffDrag": (1, 0.05),
         "powerOnDrag": (1, 0.05),
         "noseLength": (0.242, 0.001),
@@ -95,7 +94,6 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         inertiaI=parameters.get("inertiaI")[0],
         inertiaZ=parameters.get("inertiaZ")[0],
         distanceRocketNozzle=parameters.get("distanceRocketNozzle")[0],
-        # distanceRocketPropellant=parameters.get("distanceRocketPropellant")[0],
         powerOffDrag=0.43,
         powerOnDrag=0.43,
     )

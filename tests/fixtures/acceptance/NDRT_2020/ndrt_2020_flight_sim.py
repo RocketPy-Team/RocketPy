@@ -100,7 +100,6 @@ NDRT2020 = Rocket(
     inertiaI=parameters.get("inertiaI")[0],
     inertiaZ=parameters.get("inertiaZ")[0],
     distanceRocketNozzle=parameters.get("distanceRocketNozzle")[0],
-    # distanceRocketPropellant=parameters.get("distanceRocketPropellant")[0],
     powerOffDrag=parameters.get("dragCoefficient")[0],
     powerOnDrag=parameters.get("dragCoefficient")[0],
 )

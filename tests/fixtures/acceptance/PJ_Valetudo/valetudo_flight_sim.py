@@ -104,7 +104,6 @@ Valetudo = Rocket(
     inertiaI=analysis_parameters.get("inertiaI")[0],
     inertiaZ=analysis_parameters.get("inertiaZ")[0],
     distanceRocketNozzle=analysis_parameters.get("distanceRocketNozzle")[0],
-    # distanceRocketPropellant=analysis_parameters.get("distanceRocketPropellant")[0],
     powerOffDrag="tests/fixtures/acceptance/PJ_Valetudo/valetudo_drag_power_off.csv",
     powerOnDrag="tests/fixtures/acceptance/PJ_Valetudo/valetudo_drag_power_on.csv",
 )
