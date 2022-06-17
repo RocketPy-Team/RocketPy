@@ -595,7 +595,7 @@ def test_export_KML():
             r = r.split(",")
             for i, j in enumerate(r):
                 r[i] = j.split(" ")
-    lon, lat, z, coords= [], [], [], []
+    lon, lat, z, coords = [], [], [], []
     for i in r:
         for j in i:
             coords.append(j)
