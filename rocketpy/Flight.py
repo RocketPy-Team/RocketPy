@@ -3625,7 +3625,7 @@ class Flight:
             timePoints = np.arange(self.tInitial, self.tFinal, timeStep)
         # Open kml file with simplekml library
         kml = simplekml.Kml(open=1)
-        trajectory = kml.newlinestring(name="Rocket Trajectory")
+        trajectory = kml.newlinestring(name="Rocket Trajectory - Powered by RocketPy")
         coords = []
         if altitudeMode == "relativetoground":
             # In this mode the elevation data will be the Above Ground Level
