@@ -309,8 +309,7 @@ class EnvironmentAnalysis:
         return R * geopotential_height / (R - geopotential_height)
 
     def __compute_height_above_ground_level(self, geopotential, elevation):
-        """Compute height above ground level from geopotential and elevation.
-        """
+        """Compute height above ground level from geopotential and elevation."""
         return self.__compute_height_above_sea_level(geopotential) - elevation
 
     def __check_coordinates_inside_grid(self, lonIndex, latIndex, lonArray, latArray):
@@ -706,9 +705,11 @@ class EnvironmentAnalysis:
 
         # Get elevation, time index does not matter, use last one
         self.surface_geopotential = self.__extractSurfaceDataValue(
-            surfaceData, 'z', indices, lonArray, latArray
+            surfaceData, "z", indices, lonArray, latArray
         )
-        self.elevation = self.__compute_height_above_sea_level(self.surface_geopotential)
+        self.elevation = self.__compute_height_above_sea_level(
+            self.surface_geopotential
+        )
 
         return self.surfaceDataDict
 
@@ -780,7 +781,9 @@ class EnvironmentAnalysis:
                     self.updated_units[key] = conversion_dict[key]
 
         # Convert surface elevation
-        self.elevation = convert_units(self.elevation, self.current_units["height_ASL"], self.unit_system["length"])
+        self.elevation = convert_units(
+            self.elevation, self.current_units["height_ASL"], self.unit_system["length"]
+        )
         self.updated_units["height_ASL"] = self.unit_system["length"]
 
     # Calculations
