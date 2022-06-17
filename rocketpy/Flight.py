@@ -3584,7 +3584,7 @@ class Flight:
         timeStep=None,
         extrude=True,
         color="641400F0",
-        altitudeMode="relativetoground",
+        altitudeMode="absolute",
     ):
         """Exports flight data to a .kml file, which can be opened with Google Earth to display the rocket's trajectory.
 
