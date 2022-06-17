@@ -604,9 +604,9 @@ def test_export_KML():
         lat.append(float(coords[i + 1]))
         z.append(float(coords[i + 2]))
 
-    assert np.allclose(test_flight.latitude[:, 1], lat[:-1], atol=1e-3) == True
-    assert np.allclose(test_flight.longitude[:, 1], lon[:-1], atol=1e-3) == True
-    assert np.allclose(test_flight.z[:, 1], z[:-1], atol=1e-3) == True
+    assert np.allclose(test_flight.latitude[:, 1], lat, atol=1e-3) == True
+    assert np.allclose(test_flight.longitude[:, 1], lon, atol=1e-3) == True
+    assert np.allclose(test_flight.z[:, 1], z, atol=1e-3) == True
 
 
 @patch("matplotlib.pyplot.show")
