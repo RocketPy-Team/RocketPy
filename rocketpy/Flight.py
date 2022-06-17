@@ -3610,7 +3610,7 @@ class Flight:
             Select elevation values format to be used on the kml file. Use
             'relativetoground' if you want use Above Ground Level elevation, or
             'absolute' if you want parse elevation using Above Sea Level.
-            Default is 'relativetoground'.
+            Default is 'relativetoground'. Only works properly if the ground level is flat.
             Change to 'absolute' if the terrain is to irregular or contains mountains.
         Returns
         -------
