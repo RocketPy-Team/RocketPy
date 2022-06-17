@@ -3648,13 +3648,6 @@ class Flight:
             # the trajectory path can be offset from ground
             for t in timePoints:
                 coords.append((self.longitude(t), self.latitude(t), self.z(t)))
-            coords.append(
-                (
-                    self.longitude(self.tFinal),
-                    self.latitude(self.tFinal),
-                    self.z(self.tFinal),
-                )
-            )
             trajectory.coords = coords
             trajectory.altitudemode = simplekml.AltitudeMode.absolute
         # Modify style of trajectory linestring
