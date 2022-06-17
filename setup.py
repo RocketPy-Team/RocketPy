@@ -12,6 +12,8 @@ setuptools.setup(
         "matplotlib>=3.0",
         "requests",
         "pytz",
+        "netCDF4>=1.4",
+        "simplekml",
     ],
     maintainer="RocketPy Developers",
     author="Giovani Hidalgo Ceotto",
