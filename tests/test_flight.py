@@ -595,14 +595,14 @@ def test_export_KML():
             r = r.split(",")
             for i, j in enumerate(r):
                 r[i] = j.split(" ")
-    lon, lat, z, list = [], [], [], []
+    lon, lat, z, coords= [], [], [], []
     for i in r:
         for j in i:
-            list.append(j)
-    for i in range(0, len(list), 3):
-        lon.append(float(list[i]))
-        lat.append(float(list[i + 1]))
-        z.append(float(list[i + 2]))
+            coords.append(j)
+    for i in range(0, len(coords), 3):
+        lon.append(float(coords[i]))
+        lat.append(float(coords[i + 1]))
+        z.append(float(coords[i + 2]))
 
     assert np.allclose(test_flight.latitude[:, 1], lat[:-1], atol=1e-3) == True
     assert np.allclose(test_flight.longitude[:, 1], lon[:-1], atol=1e-3) == True
