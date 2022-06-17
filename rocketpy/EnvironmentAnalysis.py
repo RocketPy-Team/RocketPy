@@ -113,11 +113,11 @@ class EnvironmentAnalysis:
         self.__find_preferred_timezone()
         self.__localize_input_dates()
 
-        # Parse data files
-        self.pressureLevelDataDict = {}
+        # Parse data files, surface goes first to calculate elevation
         self.surfaceDataDict = {}
-        self.parsePressureLevelData()
         self.parseSurfaceData()
+        self.pressureLevelDataDict = {}
+        self.parsePressureLevelData()
 
         # Convert units
         self.set_unit_system(unit_system)
@@ -309,6 +309,11 @@ class EnvironmentAnalysis:
         g = 9.80665  # Gravity acceleration in m/s^2
         geopotential_height = geopotential / g
         return R * geopotential_height / (R - geopotential_height)
+
+    def __compute_height_above_ground_level(self, geopotential, elevation):
+        """Compute height above ground level from geopotential and elevation.
+        """
+        return self.__compute_height_above_sea_level(geopotential) - elevation
 
     def __check_coordinates_inside_grid(self, lonIndex, latIndex, lonArray, latArray):
         if (
@@ -527,8 +532,8 @@ class EnvironmentAnalysis:
                 lonArray,
                 latArray,
             )
-            heightAboveSeaLevelArray = self.__compute_height_above_sea_level(
-                geopotentialArray
+            heightAboveSeaLevelArray = self.__compute_height_above_ground_level(
+                geopotentialArray, self.elevation
             )
 
             # Loop through wind components and temperature, get value and convert to Function
@@ -539,7 +544,7 @@ class EnvironmentAnalysis:
                 variablePointsArray = np.array([heightAboveSeaLevelArray, valueArray]).T
                 variableFunction = Function(
                     variablePointsArray,
-                    inputs="Height Above Sea Level (m)",
+                    inputs="Height Above Ground Level (m)",
                     outputs=key,
                     interpolation="linear",
                 )
