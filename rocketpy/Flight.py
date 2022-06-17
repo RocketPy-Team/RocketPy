@@ -3616,11 +3616,6 @@ class Flight:
         -------
         None
         """
-        try:
-            import simplekml
-        except:
-            print("There was an error when trying to import simplekml module")
-            print("Please use `pip install simplekml` on terminal")
         # Define time points vector
         if self.postProcessed is False:
             self.postProcess()
