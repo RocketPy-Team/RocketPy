@@ -3578,7 +3578,6 @@ class Flight:
 
         return
 
-    # TODO: Add unit tests
     def exportKML(
         self,
         fileName="trajectory.kml",
