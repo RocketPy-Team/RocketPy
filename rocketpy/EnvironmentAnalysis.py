@@ -61,7 +61,6 @@ class EnvironmentAnalysis:
         end_date,
         latitude,
         longitude,
-        elevation,
         surfaceDataFile=None,
         pressureLevelDataFile=None,
         timezone=None,
@@ -82,8 +81,6 @@ class EnvironmentAnalysis:
         longitude : float
             Longitude coordinate of the location where the analysis will be
             carried out.
-        elevation : float
-            Elevation of the location where the analysis will be carried out.
         surfaceDataFile : str, optional
             Path to the netCDF file containing the surface data.
         pressureLevelDataFile : str, optional
@@ -105,7 +102,6 @@ class EnvironmentAnalysis:
         self.end_date = end_date
         self.latitude = latitude
         self.longitude = longitude
-        self.elevation = elevation
         self.surfaceDataFile = surfaceDataFile
         self.pressureLevelDataFile = pressureLevelDataFile
         self.preferred_timezone = timezone
@@ -115,11 +111,11 @@ class EnvironmentAnalysis:
         self.__find_preferred_timezone()
         self.__localize_input_dates()
 
-        # Parse data files
-        self.pressureLevelDataDict = {}
+        # Parse data files, surface goes first to calculate elevation
         self.surfaceDataDict = {}
-        self.parsePressureLevelData()
         self.parseSurfaceData()
+        self.pressureLevelDataDict = {}
+        self.parsePressureLevelData()
 
         # Convert units
         self.set_unit_system(unit_system)
@@ -311,6 +307,10 @@ class EnvironmentAnalysis:
         g = 9.80665  # Gravity acceleration in m/s^2
         geopotential_height = geopotential / g
         return R * geopotential_height / (R - geopotential_height)
+
+    def __compute_height_above_ground_level(self, geopotential, elevation):
+        """Compute height above ground level from geopotential and elevation."""
+        return self.__compute_height_above_sea_level(geopotential) - elevation
 
     def __check_coordinates_inside_grid(self, lonIndex, latIndex, lonArray, latArray):
         if (
@@ -529,8 +529,8 @@ class EnvironmentAnalysis:
                 lonArray,
                 latArray,
             )
-            heightAboveSeaLevelArray = self.__compute_height_above_sea_level(
-                geopotentialArray
+            heightAboveSeaLevelArray = self.__compute_height_above_ground_level(
+                geopotentialArray, self.elevation
             )
 
             # Loop through wind components and temperature, get value and convert to Function
@@ -541,7 +541,7 @@ class EnvironmentAnalysis:
                 variablePointsArray = np.array([heightAboveSeaLevelArray, valueArray]).T
                 variableFunction = Function(
                     variablePointsArray,
-                    inputs="Height Above Sea Level (m)",
+                    inputs="Height Above Ground Level (m)",
                     outputs=key,
                     interpolation="linear",
                 )
@@ -636,6 +636,7 @@ class EnvironmentAnalysis:
         Currently only supports files from ECMWF.
 
         Must get the following variables:
+        - surface elevation: self.elevation = float
         - 2m temperature: surfaceTemperature = float
         - Surface pressure: surfacePressure = float
         - 10m u-component of wind: surface10mWindVelocityX = float
@@ -701,6 +702,14 @@ class EnvironmentAnalysis:
                 ] = self.__extractSurfaceDataValue(
                     surfaceData, value, indices, lonArray, latArray
                 )
+
+        # Get elevation, time index does not matter, use last one
+        self.surface_geopotential = self.__extractSurfaceDataValue(
+            surfaceData, "z", indices, lonArray, latArray
+        )
+        self.elevation = self.__compute_height_above_sea_level(
+            self.surface_geopotential
+        )
 
         return self.surfaceDataDict
 
@@ -770,6 +779,12 @@ class EnvironmentAnalysis:
                     self.surfaceDataDict[date][hour][key] = variable
                     # Update current units
                     self.updated_units[key] = conversion_dict[key]
+
+        # Convert surface elevation
+        self.elevation = convert_units(
+            self.elevation, self.current_units["height_ASL"], self.unit_system["length"]
+        )
+        self.updated_units["height_ASL"] = self.unit_system["length"]
 
     # Calculations
     def process_data(self):
@@ -1144,7 +1159,7 @@ class EnvironmentAnalysis:
 
     def plot_average_wind_speed_profile(self):
         """Average wind speed for all datetimes available."""
-        altitude_list = np.linspace(*self.altitude_range, 100)
+        altitude_list = np.linspace(*self.altitude_AGL_range, 100)
         wind_speed_profiles = [
             dayDict[hour]["windSpeed"](altitude_list)
             for dayDict in self.pressureLevelDataDict.values()
@@ -1188,7 +1203,7 @@ class EnvironmentAnalysis:
         plt.autoscale(enable=True, axis="x", tight=True)
         plt.autoscale(enable=True, axis="y", tight=True)
         plt.xlabel(f"Wind speed ({self.unit_system['wind_speed']})")
-        plt.ylabel(f"Altitude ASL ({self.unit_system['length']})")
+        plt.ylabel(f"Altitude AGL ({self.unit_system['length']})")
         plt.title("Average Wind Speed Profile")
         plt.legend()
         plt.show()
@@ -1601,8 +1616,8 @@ class EnvironmentAnalysis:
         return HTML(animation.to_jshtml())
 
     @property
-    def altitude_range(self):
-        min_altitude = self.elevation
+    def altitude_AGL_range(self):
+        min_altitude = 0
         max_altitudes = [
             np.max(dayDict[hour]["windSpeed"].source[-1, 0])
             for dayDict in self.pressureLevelDataDict.values()
@@ -1614,7 +1629,7 @@ class EnvironmentAnalysis:
     def process_wind_profile_over_average_day(self):
         """Compute the average wind profile for each avaliable hour of a day, over all
         days in the dataset."""
-        altitude_list = np.linspace(*self.altitude_range, 100)
+        altitude_list = np.linspace(*self.altitude_AGL_range, 100)
 
         average_wind_profile_at_given_hour = {}
         self.max_average_wind_at_altitude = 0
@@ -1678,7 +1693,7 @@ class EnvironmentAnalysis:
         # Set title and axis labels for entire figure
         fig.suptitle("Average Wind Profile")
         fig.supxlabel(f"Wind speed ({self.unit_system['wind_speed']})")
-        fig.supylabel(f"Altitude ASL ({self.unit_system['length']})")
+        fig.supylabel(f"Altitude AGL ({self.unit_system['length']})")
         plt.show()
 
     def animate_wind_profile_over_average_day(self):
@@ -1701,11 +1716,11 @@ class EnvironmentAnalysis:
         # Define function to initialize animation
 
         def init():
-            altitude_list = np.linspace(*self.altitude_range, 100)
+            altitude_list = np.linspace(*self.altitude_AGL_range, 100)
             ax.set_xlim(0, self.max_average_wind_at_altitude + 5)
-            ax.set_ylim(self.elevation, altitude_list[-1])
+            ax.set_ylim(*self.altitude_AGL_range)
             ax.set_xlabel(f"Wind Speed ({self.unit_system['wind_speed']})")
-            ax.set_ylabel(f"Altitude ASL ({self.unit_system['length']})")
+            ax.set_ylabel(f"Altitude AGL ({self.unit_system['length']})")
             ax.set_title("Average Wind Profile")
             ax.grid(True)
             return ln, tx
