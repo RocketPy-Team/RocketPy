@@ -3622,7 +3622,7 @@ class Flight:
             # Get time from any Function, should all be the same
             timePoints = self.z[:, 0]
         else:
-            timePoints = np.arange(self.tInitial, self.tFinal+timeStep, timeStep)
+            timePoints = np.arange(self.tInitial, self.tFinal + timeStep, timeStep)
         # Open kml file with simplekml library
         kml = simplekml.Kml(open=1)
         trajectory = kml.newlinestring(name="Rocket Trajectory - Powered by RocketPy")
