@@ -81,8 +81,6 @@ class EnvironmentAnalysis:
         longitude : float
             Longitude coordinate of the location where the analysis will be
             carried out.
-        elevation : float
-            Elevation of the location where the analysis will be carried out.
         surfaceDataFile : str, optional
             Path to the netCDF file containing the surface data.
         pressureLevelDataFile : str, optional
@@ -118,7 +116,7 @@ class EnvironmentAnalysis:
         self.parseSurfaceData()
         self.pressureLevelDataDict = {}
         self.parsePressureLevelData()
-        
+
         # Convert units
         self.set_unit_system(unit_system)
 
