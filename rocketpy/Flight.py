@@ -3639,7 +3639,6 @@ class Flight:
                         self.z(t) - self.env.elevation,
                     )
                 )
-            )
             trajectory.coords = coords
             trajectory.altitudemode = simplekml.AltitudeMode.relativetoground
         else:  # altitudeMode == 'absolute'
