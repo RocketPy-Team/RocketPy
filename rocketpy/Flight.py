@@ -3608,7 +3608,7 @@ class Flight:
             Refer to http://www.zonums.com/gmaps/kml_color/ for more info.
         altitudeMode: str
             Select elevation values format to be used on the kml file. Use
-            'relativetoground' if you want use Above GRound Level elevation, or
+            'relativetoground' if you want use Above Ground Level elevation, or
             'absolute' if you want parse elevation using Above Sea Level.
             Default is 'relativetoground'.
             Change to 'absolute' if the terrain is to irregular or contains mountains.
