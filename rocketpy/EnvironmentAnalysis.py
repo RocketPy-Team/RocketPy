@@ -61,7 +61,6 @@ class EnvironmentAnalysis:
         end_date,
         latitude,
         longitude,
-        elevation,
         surfaceDataFile=None,
         pressureLevelDataFile=None,
         timezone=None,
@@ -105,7 +104,6 @@ class EnvironmentAnalysis:
         self.end_date = end_date
         self.latitude = latitude
         self.longitude = longitude
-        self.elevation = elevation
         self.surfaceDataFile = surfaceDataFile
         self.pressureLevelDataFile = pressureLevelDataFile
         self.preferred_timezone = timezone
@@ -636,6 +634,7 @@ class EnvironmentAnalysis:
         Currently only supports files from ECMWF.
 
         Must get the following variables:
+        - surface elevation: self.elevation = float
         - 2m temperature: surfaceTemperature = float
         - Surface pressure: surfacePressure = float
         - 10m u-component of wind: surface10mWindVelocityX = float
@@ -701,6 +700,12 @@ class EnvironmentAnalysis:
                 ] = self.__extractSurfaceDataValue(
                     surfaceData, value, indices, lonArray, latArray
                 )
+
+        # Get elevation, time index does not matter, use last one
+        self.surface_geopotential = self.__extractSurfaceDataValue(
+            surfaceData, 'z', indices, lonArray, latArray
+        )
+        self.elevation = self.__compute_height_above_sea_level(self.surface_geopotential)
 
         return self.surfaceDataDict
 
@@ -770,6 +775,10 @@ class EnvironmentAnalysis:
                     self.surfaceDataDict[date][hour][key] = variable
                     # Update current units
                     self.updated_units[key] = conversion_dict[key]
+
+        # Convert surface elevation
+        self.elevation = convert_units(self.elevation, self.current_units["height_ASL"], self.unit_system["length"])
+        self.updated_units["height_ASL"] = self.unit_system["length"]
 
     # Calculations
     def process_data(self):
