@@ -3587,7 +3587,7 @@ class Flight:
         color="641400F0",
         altitudeMode="relativetoground",
     ):
-        """Exports flight data to a .kml file, which is supported file for Google Earth
+        """Exports flight data to a .kml file, which can be opened with Google Earth to display the rocket's trajectory.
 
         Parameters
         ----------
