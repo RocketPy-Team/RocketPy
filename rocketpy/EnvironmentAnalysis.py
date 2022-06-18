@@ -453,9 +453,15 @@ class EnvironmentAnalysis:
         -------
         list[float]
         """
-        beaufort_wind_scale_knots = np.array([0, 1, 3, 6, 10, 16, 21, 27,33, 40, 47, 55, 63, 71])
-        beaufort_wind_scale = beaufort_wind_scale_knots * convert_units(1, "knot", units)
-        beaufort_wind_scale_truncated = beaufort_wind_scale[np.where(beaufort_wind_scale <= max_wind_speed)]
+        beaufort_wind_scale_knots = np.array(
+            [0, 1, 3, 6, 10, 16, 21, 27, 33, 40, 47, 55, 63, 71]
+        )
+        beaufort_wind_scale = beaufort_wind_scale_knots * convert_units(
+            1, "knot", units
+        )
+        beaufort_wind_scale_truncated = beaufort_wind_scale[
+            np.where(beaufort_wind_scale <= max_wind_speed)
+        ]
         if beaufort_wind_scale[1] < 1:
             return np.round(beaufort_wind_scale_truncated, 1)
         else:
@@ -1329,7 +1335,9 @@ class EnvironmentAnalysis:
         self.plot_wind_rose(
             self.wind_direction_per_hour[hour],
             self.wind_speed_per_hour[hour],
-            bins=self._beaufort_wind_scale(self.unit_system["wind_speed"], max_wind_speed=self.max_wind_speed),
+            bins=self._beaufort_wind_scale(
+                self.unit_system["wind_speed"], max_wind_speed=self.max_wind_speed
+            ),
             title=f"Wind Rose of an Average Day ({self.unit_system['wind_speed']}) - Hour {float(hour):05.2f}".replace(
                 ".", ":"
             ),
@@ -1368,7 +1376,9 @@ class EnvironmentAnalysis:
         fig.set_size_inches(
             ncols * windrose_side, nrows * windrose_side + vertical_padding_top
         )
-        bins = self._beaufort_wind_scale(self.unit_system["wind_speed"], max_wind_speed=self.max_wind_speed)
+        bins = self._beaufort_wind_scale(
+            self.unit_system["wind_speed"], max_wind_speed=self.max_wind_speed
+        )
         width = (1 - 2 * plot_padding) * 1 / ncols
         height = vertical_plot_area_percentage * (1 - 2 * plot_padding) * 1 / nrows
         # print(ncols, nrows)
@@ -1405,7 +1415,9 @@ class EnvironmentAnalysis:
                 ax.legend().set_visible(False)
             fig.add_axes(ax)
 
-        fig.suptitle(f"Wind Roses ({self.unit_system['wind_speed']})", fontsize=20, x=0.5, y=1)
+        fig.suptitle(
+            f"Wind Roses ({self.unit_system['wind_speed']})", fontsize=20, x=0.5, y=1
+        )
         plt.show()
 
     def animate_average_wind_rose(self, figsize=(8, 8), filename="wind_rose.gif"):
@@ -1449,7 +1461,10 @@ class EnvironmentAnalysis:
                 self.plot_wind_rose(
                     self.wind_direction_per_hour[hour],
                     self.wind_speed_per_hour[hour],
-                    bins=self._beaufort_wind_scale(self.unit_system["wind_speed"], max_wind_speed=self.max_wind_speed),
+                    bins=self._beaufort_wind_scale(
+                        self.unit_system["wind_speed"],
+                        max_wind_speed=self.max_wind_speed,
+                    ),
                     title=f"Wind Rose of an Average Day ({self.unit_system['wind_speed']}). Hour {float(hour):05.2f}".replace(
                         ".", ":"
                     ),
