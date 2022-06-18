@@ -23,6 +23,7 @@ def conversion_factor(from_unit, to_unit):
         "km/h": 3.6,
         "knot": 1.9438444924406047,
         "mph": 2.2369362920544023,
+        "ft/s": 1 / 0.3048,
         # Units of acceleration. Meter per square second "m/s^2" is the base unit.
         "m/s^2": 1,
         "g": 1 / 9.80665,
