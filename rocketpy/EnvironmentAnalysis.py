@@ -1253,7 +1253,7 @@ class EnvironmentAnalysis:
                 0,
                 23,
                 "g",
-                (0,(15,5,2,5)),
+                (0, (15, 5, 2, 5)),
                 label="SAcup wind speed constraints",
             )  # Plot SAcup wind speed constraints
         plt.xlabel("Time (hours)")
