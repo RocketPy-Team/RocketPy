@@ -23,6 +23,12 @@ class Motor(ABC):
         Geometrical attributes:
         Motor.nozzleRadius : float
             Radius of motor nozzle outlet in meters.
+        Motor.nozzlePosition : float
+            Motor's nozzle outlet position in meters. More specifically, the coordinate
+            of the nozzle outlet specified in a user defined reference frame which
+            follows the motor's axis of symmetry, being positive upwards from the
+            nozzle. The origin of such reference system maybe chosen by the user as
+            desired.
         Motor.throatRadius : float
             Radius of motor nozzle throat in meters.
         Motor.grainNumber : int
@@ -106,6 +112,7 @@ class Motor(ABC):
         burnOut,
         nozzleRadius=0.0335,
         throatRadius=0.0114,
+        nozzlePosition=0,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
     ):
@@ -130,6 +137,14 @@ class Motor(ABC):
             Motor's nozzle outlet radius in meters. Used to calculate Kn curve.
             Optional if the Kn curve is not interesting. Its value does not impact
             trajectory simulation.
+        nozzlePosition : int, float, optional
+            Motor's nozzle outlet position in meters. More specifically, the coordinate
+            of the nozzle outlet specified in a user defined reference frame which
+            follows the motor's axis of symmetry, being positive upwards from the
+            nozzle. The origin of such reference system maybe chosen by the user as
+            desired.
+            Default is 0, in which case the origin of the motor's reference system
+            is placed at the motor's nozzle outlet.
         throatRadius : int, float, optional
             Motor's nozzle throat radius in meters. Its value has very low
             impact in trajectory simulation, only useful to analyze
@@ -192,6 +207,7 @@ class Motor(ABC):
         # Define motor attributes
         # Grain and nozzle parameters
         self.nozzleRadius = nozzleRadius
+        self.nozzlePosition = nozzlePosition
         self.throatRadius = throatRadius
 
         # Other quantities that will be computed
@@ -626,10 +642,23 @@ class SolidMotor(Motor):
         Geometrical attributes:
         Motor.nozzleRadius : float
             Radius of motor nozzle outlet in meters.
+        Motor.nozzlePosition : float
+            Motor's nozzle outlet position in meters. More specifically, the coordinate
+            of the nozzle outlet specified in a user defined reference frame which
+            follows the motor's axis of symmetry, being positive upwards from the
+            nozzle. The origin of such reference system maybe chosen by the user as
+            desired.
         Motor.throatRadius : float
             Radius of motor nozzle throat in meters.
         Motor.grainNumber : int
             Number of solid grains.
+        Motor.grainsCenterOfMassPosition : float
+            Position of the center of mass of the grains in meters. More specifically,
+            the coordinate of the center of mass specified in a user defined reference
+            frame which follows the motor's axis of symmetry, being positive upwards
+            from the nozzle. The origin of such reference system maybe chosen by the
+            user as desired, but needs to be consistent with the Motor.nozzlePosition
+            attribute.
         Motor.grainSeparation : float
             Distance between two grains in meters.
         Motor.grainDensity : float
@@ -648,6 +677,11 @@ class SolidMotor(Motor):
             Height of each grain in meters as a function of time.
 
         Mass and moment of inertia attributes:
+        Motor.centerOfMass : Function
+            Position of the center of mass in meters as a function of time. Constant for
+            solid motors, as the grains are assumed to be fixed. For information
+            regarding the reference frame, see Motor.nozzlePosition or
+            Motor.grainsCenterOfMassPosition.
         Motor.grainInitialMass : float
             Initial mass of each grain in kg.
         Motor.propellantInitialMass : float
@@ -707,6 +741,7 @@ class SolidMotor(Motor):
         self,
         thrustSource,
         burnOut,
+        grainsCenterOfMassPosition,
         grainNumber,
         grainDensity,
         grainOuterRadius,
@@ -714,6 +749,7 @@ class SolidMotor(Motor):
         grainInitialHeight,
         grainSeparation=0,
         nozzleRadius=0.0335,
+        nozzlePosition=0,
         throatRadius=0.0114,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
@@ -735,6 +771,13 @@ class SolidMotor(Motor):
             Function. See help(Function). Thrust units are Newtons.
         burnOut : int, float
             Motor burn out time in seconds.
+        grainsCenterOfMassPosition : float
+            Position of grains center of mass in meters. More specifically, the
+            coordinate of the grains center of mass specified in a user defined
+            reference frame which follows the motor's axis of symmetry, being
+            positive upwards from the nozzle. The origin of such reference system
+            maybe chosen by the user as desired, but must be consistent with the
+            nozzlePosition argument.            
         grainNumber : int
             Number of solid grains
         grainDensity : int, float
@@ -751,6 +794,14 @@ class SolidMotor(Motor):
             Motor's nozzle outlet radius in meters. Used to calculate Kn curve.
             Optional if the Kn curve is not interesting. Its value does not impact
             trajectory simulation.
+        nozzlePosition : int, float, optional
+            Motor's nozzle outlet position in meters. More specifically, the coordinate
+            of the nozzle outlet specified in a user defined reference frame which
+            follows the motor's axis of symmetry, being positive upwards from the
+            nozzle. The origin of such reference system maybe chosen by the user as
+            desired.
+            Default is 0, in which case the origin of the motor's reference system
+            is placed at the motor's nozzle outlet.
         throatRadius : int, float, optional
             Motor's nozzle throat radius in meters. Its value has very low
             impact in trajectory simulation, only useful to analyze
@@ -776,12 +827,14 @@ class SolidMotor(Motor):
             thrustSource,
             burnOut,
             nozzleRadius,
+            nozzlePosition,
             throatRadius,
             reshapeThrustCurve,
             interpolationMethod,
         )
         # Define motor attributes
         # Grain parameters
+        self.grainsCenterOfMassPosition = grainsCenterOfMassPosition
         self.grainNumber = grainNumber
         self.grainSeparation = grainSeparation
         self.grainDensity = grainDensity
@@ -865,14 +918,18 @@ class SolidMotor(Motor):
 
         Returns
         -------
-        zCM : Function
-            Position of the center of mass as a function
-            of time.
+        self.centerOfMass : Function
+            Position of the center of mass as a function of time. Constant for solid
+            motors, as the grains are assumed to be fixed.
         """
 
-        self.zCM = 0
+        self.centerOfMass = Function(
+            self.grainsCenterOfMassPosition,
+            'Time (s)',
+            'Center of Mass (m)'
+        )	
 
-        return self.zCM
+        return self.centerOfMass
 
     def evaluateGeometry(self):
         """Calculates grain inner radius and grain height as a
@@ -1158,6 +1215,12 @@ class HybridMotor(Motor):
         Geometrical attributes:
         Motor.nozzleRadius : float
             Radius of motor nozzle outlet in meters.
+        nozzlePosition : float
+            Motor's nozzle outlet position in meters. More specifically, the coordinate
+            of the nozzle outlet specified in a user defined reference frame which
+            follows the motor's axis of symmetry, being positive upwards from the
+            nozzle. The origin of such reference system maybe chosen by the user as
+            desired.
         Motor.throatRadius : float
             Radius of motor nozzle throat in meters.
         Motor.grainNumber : int
@@ -1254,6 +1317,7 @@ class HybridMotor(Motor):
         injectorArea,
         grainSeparation=0,
         nozzleRadius=0.0335,
+        nozzlePosition=0,
         throatRadius=0.0114,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
@@ -1307,6 +1371,14 @@ class HybridMotor(Motor):
             Motor's nozzle outlet radius in meters. Used to calculate Kn curve.
             Optional if the Kn curve is not interesting. Its value does not impact
             trajectory simulation.
+        nozzlePosition : int, float, optional
+            Motor's nozzle outlet position in meters. More specifically, the coordinate
+            of the nozzle outlet specified in a user defined reference frame which
+            follows the motor's axis of symmetry, being positive upwards from the
+            nozzle. The origin of such reference system maybe chosen by the user as
+            desired.
+            Default is 0, in which case the origin of the motor's reference system
+            is placed at the motor's nozzle outlet.
         throatRadius : int, float, optional
             Motor's nozzle throat radius in meters. Its value has very low
             impact in trajectory simulation, only useful to analyze
@@ -1332,6 +1404,7 @@ class HybridMotor(Motor):
             thrustSource,
             burnOut,
             nozzleRadius,
+            nozzlePosition,
             throatRadius,
             reshapeThrustCurve,
             interpolationMethod,
