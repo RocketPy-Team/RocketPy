@@ -143,7 +143,7 @@ class Motor(ABC):
             for Solids and Hybrids is the center of mass of the solid propellant,
             in meters. Always positive, meaning a positive position in the
             z axis which has an origin in the rocket's center of mass (without
-            propellant) and points towards the nose cone. TODO: Check docs and fix others
+            propellant) and points towards the nose cone.
         nozzleRadius : int, float, optional
             Motor's nozzle outlet radius in meters. Used to calculate Kn curve.
             Optional if the Kn curve is not interesting. Its value does not impact

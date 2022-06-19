@@ -38,19 +38,18 @@ class Rocket:
             Rocket's circular cross section largest frontal area in squared
             meters.
         Rocket.positionNozzle : float
-            TODO: Add description.
+            Rocket's nozzle position, in meters. Can be in relation to any
+            coordinate system that is aligned with the rocket's axis.
         Rocket.positionCenterOfDryMass : float
-            TODO: Add description.
-        Rocket.distanceRocketNozzle : int, float
-            Distance from rocket's unloaded center of mass to nozzle outlet,
-            in meters. Always negative, meaning a negative position in the
-            z axis which has an origin in the rocket's center of mass (without
-            propellant) and points towards the nose cone.
-        Rocket.distanceRocketMotorReference : float
-            Distance between rocket's center of mass, without propellant,
-            to the motor reference point. For solid and hybrid motor the
-            reference point is the center of mass of solid propellant,
-            in meters. Always positive.
+            Rocket's center of dry mass position, in meters. Can be in relation
+            to any coordinate system that is aligned with the rocket's axis.
+        Rocket.centerOfDryMassPosition_Nozzle : float
+            Position of the rocket's center of dry mass in relation to the
+            rocket's nozzle, in meters, considering positive direction from
+            nozzle to nose cone. Always positive.
+        Rocket.motorReferencePosition_CM : float
+            Position of the rocket's motor's reference point in relation to
+            the rocket's center of mass, in meters.
 
         Mass and Inertia attributes:
         Rocket.mass : float
@@ -142,9 +141,11 @@ class Rocket:
         radius : int, float
             Rocket biggest outer radius in meters.
         positionNozzle : int, float
-            TODO: Add description.
+            Nozzle position relative to considered coordinate system. The chosen
+            coordinate system must be aligned with the rocket's axis.
         positionCenterOfDryMass : int, float
-            TODO: Add description.
+            Center of dry mass position relative to considered coordinate system. The chosen
+            coordinate system must be aligned with the rocket's axis.
         powerOffDrag : int, float, callable, string, array
             Rocket's drag coefficient when the motor is off. Can be given as an
             entry to the Function class. See help(Function) for more
@@ -375,12 +376,10 @@ class Rocket:
             from center of mass to nose cone.
         length : int, float
             Tail length or height in meters. Must be a positive value.
-        distanceToCM : int, float
-            Tail position relative to rocket unloaded center of mass,
-            considering positive direction from center of mass to nose
-            cone. Consider the point belonging to the tail which is
-            closest to the unloaded center of mass to calculate
-            distance.
+        positionTail : int, float
+            Tail position relative to considered coordinate system.
+            Consider a point belonging to the tail's top radius to
+            calculate position.
         Returns
         -------
         cl : Function
@@ -446,11 +445,10 @@ class Rocket:
         kind : string
             Nose cone type. Von Karman, conical, ogive, and lvhaack are
             supported.
-        distanceToCM : int, float
-            Nose cone position relative to rocket unloaded center of
-            mass, considering positive direction from center of mass to
-            nose cone. Consider the center point belonging to the nose
-            cone base to calculate distance.
+        positionNose : int, float
+            Nose cone position relative to considered coordinate system.
+            Consider a point belonging to the nose cones's tip to calculate
+            position.
 
         Returns
         -------
@@ -526,11 +524,10 @@ class Rocket:
             Fin root chord in meters.
         tipChord : int, float
             Fin tip chord in meters.
-        distanceToCM : int, float
-            Fin set position relative to rocket unloaded center of
-            mass, considering positive direction from center of mass to
-            nose cone. Consider the center point belonging to the top
-            of the fins to calculate distance.
+        positionFins : int, float
+            Fins position relative to considered coordinate system.
+            Consider the center point belonging to the top of the
+            fins to calculate position.
         radius : int, float, optional
             Reference radius to calculate lift coefficient. If 0, which
             is default, use rocket radius. Otherwise, enter the radius
@@ -814,14 +811,11 @@ class Rocket:
 
         Parameters
         ----------
-        distanceToCM : tuple, list, array
+        positionRailButtons : tuple, list, array
             Two values organized in a tuple, list or array which
-            represent the distance of each of the two rail buttons
-            to the center of mass of the rocket without propellant.
-            If the rail button is positioned above the center of mass,
-            its distance should be a positive value. If it is below,
-            its distance should be a negative value. The order does
-            not matter. All values should be in meters.
+            represent the position of each of the two rail buttons
+            relative to the considered coordinate system. The order
+            does not matter. All values should be in meters.
         angularPosition : float
             Angular postion of the rail buttons in degrees measured
             as the rotation around the symmetry axis of the rocket
@@ -999,7 +993,7 @@ class Rocket:
         print("\nRocket Distances")
         print(
             "Rocket Center of Mass - Nozzle Exit Distance: "
-            + str(self.centerOfDryMassPosition_Nozzle)
+            + str(-self.centerOfDryMassPosition_Nozzle)
             + " m"
         )
         print(
