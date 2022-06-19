@@ -475,7 +475,7 @@ class Rocket:
             k = 0.5
 
         # Calculate nosecone position relative to nozzle
-        nosePosition_Nozzle = abs((positionNose - length) - self.positionNozzle)
+        nosePosition_Nozzle = abs((positionNose + length) - self.positionNozzle)
 
         # Calculate nosecone position relative to cm
         nosePosition_CM = nosePosition_Nozzle - self.centerOfDryMassPosition_Nozzle
