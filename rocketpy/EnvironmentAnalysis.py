@@ -60,6 +60,8 @@ class EnvironmentAnalysis:
         end_date,
         latitude,
         longitude,
+        start_hour=0,
+        end_hour=24,
         surfaceDataFile=None,
         pressureLevelDataFile=None,
         timezone=None,
@@ -80,6 +82,12 @@ class EnvironmentAnalysis:
         longitude : float
             Longitude coordinate of the location where the analysis will be
             carried out.
+        start_hour : int, optional
+            Starting hour of the analysis. When parsing the weather data
+            from the source file, only data after this hour will be parsed.
+        end_hour : int, optional
+            End hour of the analysis. When parsing the weather data
+            from the source file, only data before this hour will be parsed.
         surfaceDataFile : str, optional
             Path to the netCDF file containing the surface data.
         pressureLevelDataFile : str, optional
@@ -99,6 +107,8 @@ class EnvironmentAnalysis:
         # Save inputs
         self.start_date = start_date
         self.end_date = end_date
+        self.start_hour = start_hour
+        self.end_hour = end_hour
         self.latitude = latitude
         self.longitude = longitude
         self.surfaceDataFile = surfaceDataFile
@@ -510,7 +520,8 @@ class EnvironmentAnalysis:
             # Check if date is within analysis range
             if not (self.start_date <= dateTime < self.end_date):
                 continue
-
+            if not (self.start_hour <= dateTime.hour < self.end_hour):
+                continue
             # Make sure keys exist
             if dateString not in self.pressureLevelDataDict:
                 self.pressureLevelDataDict[dateString] = {}
@@ -685,6 +696,8 @@ class EnvironmentAnalysis:
 
             # Check if date is within analysis range
             if not (self.start_date <= dateTime < self.end_date):
+                continue
+            if not (self.start_hour <= dateTime.hour < self.end_hour):
                 continue
 
             # Make sure keys exist
