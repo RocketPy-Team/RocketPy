@@ -616,7 +616,7 @@ class Flight:
         # Modifying Rail Length for a better out of rail condition
         upperRButton = max(self.rocket.railButtons[0])
         lowerRButton = min(self.rocket.railButtons[0])
-        nozzle = self.rocket.distanceRocketNozzle
+        nozzle = -self.rocket.centerOfDryMassPosition_Nozzle
         self.effective1RL = self.env.rL - abs(nozzle - upperRButton)
         self.effective2RL = self.env.rL - abs(nozzle - lowerRButton)
 
@@ -1347,8 +1347,8 @@ class Flight:
         M = Mt + Mr
         mu = (Mt * Mr) / (Mt + Mr)
         # Geometry
-        b = -self.rocket.distanceRocketMotorReference
-        c = -self.rocket.distanceRocketNozzle
+        b = -self.rocket.motorReferencePosition_CM
+        c = -self.rocket.centerOfDryMassPosition_Nozzle
         a = b * Mt / M
         rN = self.rocket.motor.nozzleRadius
         # Prepare transformation matrix
@@ -1905,7 +1905,7 @@ class Flight:
         self.aerodynamicSpinMoment = self.M3
         self.aerodynamicSpinMoment.setOutputs("Aerodynamic Spin Moment (N m)")
         # Energy
-        b = -self.rocket.distanceRocketMotorReference
+        b = -self.rocket.motorReferencePosition_CM
         totalMass = self.rocket.totalMass
         mu = self.rocket.reducedMass
         Rz = self.rocket.inertiaZ
