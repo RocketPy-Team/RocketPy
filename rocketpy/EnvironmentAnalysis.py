@@ -83,6 +83,12 @@ class EnvironmentAnalysis:
         longitude : float
             Longitude coordinate of the location where the analysis will be
             carried out.
+        start_hour : int, optional
+            Starting hour of the analysis. When parsing the weather data
+            from the source file, only data after this hour will be parsed.
+        end_hour : int, optional
+            End hour of the analysis. When parsing the weather data
+            from the source file, only data before this hour will be parsed.
         surfaceDataFile : str, optional
             Path to the netCDF file containing the surface data.
         pressureLevelDataFile : str, optional
