@@ -141,9 +141,9 @@ class Motor(ABC):
         distanceNozzleMotorReference : int, float
             Distance from nozzle outlet to the motor reference point, which
             for Solids and Hybrids is the center of mass of the solid propellant,
-            in meters. Generally positive, meaning a positive position in the
+            in meters. Always positive, meaning a positive position in the
             z axis which has an origin in the rocket's center of mass (without
-            propellant) and points towards the nose cone.
+            propellant) and points towards the nose cone. TODO: Check docs and fix others
         nozzleRadius : int, float, optional
             Motor's nozzle outlet radius in meters. Used to calculate Kn curve.
             Optional if the Kn curve is not interesting. Its value does not impact
@@ -174,7 +174,8 @@ class Motor(ABC):
         self.burnOutTime = burnOut
 
         # Geometric parameters
-        self.distanceNozzleMotorReference = distanceNozzleMotorReference
+        # position of motor reference point in relation to nozzle
+        self.positionMotorReference_Nozzle = distanceNozzleMotorReference
 
         # Check if thrustSource is csv, eng, function or other
         if isinstance(thrustSource, str):
@@ -556,7 +557,7 @@ class Motor(ABC):
         )
         print(
             "Distance Nozzle - Motor reference point: "
-            + str(self.distanceNozzleMotorReference)
+            + str(self.positionMotorReference_Nozzle)
             + " m"
         )
         print(
@@ -597,7 +598,7 @@ class Motor(ABC):
         print("Nozzle Throat Radius: " + str(self.throatRadius) + " m")
         print(
             "Distance Nozzle - Motor reference point: "
-            + str(self.distanceNozzleMotorReference)
+            + str(self.positionMotorReference_Nozzle)
             + " m"
         )
 
@@ -815,7 +816,7 @@ class SolidMotor(Motor):
         self.burnOutTime = burnOut
 
         # Geometric parameters
-        self.distanceNozzleMotorReference = distanceNozzleMotorReference
+        self.positionMotorReference_Nozzle = distanceNozzleMotorReference
 
         # Check if thrustSource is csv, eng, function or other
         if isinstance(thrustSource, str):
@@ -1234,7 +1235,7 @@ class SolidMotor(Motor):
         )
         print(
             "Distance Nozzle - Motor reference point: "
-            + str(self.distanceNozzleMotorReference)
+            + str(self.positionMotorReference_Nozzle)
             + " m"
         )
         print(
@@ -1275,7 +1276,7 @@ class SolidMotor(Motor):
         print("Nozzle Throat Radius: " + str(self.throatRadius) + " m")
         print(
             "Distance Nozzle - Motor reference point: "
-            + str(self.distanceNozzleMotorReference)
+            + str(self.positionMotorReference_Nozzle)
             + " m"
         )
 
@@ -1517,7 +1518,7 @@ class HybridMotor(Motor):
         self.burnOutTime = burnOut
 
         # Geometric parameters
-        self.distanceNozzleMotorReference = distanceNozzleMotorReference
+        self.positionMotorReference_Nozzle = distanceNozzleMotorReference
 
         # Check if thrustSource is csv, eng, function or other
         if isinstance(thrustSource, str):

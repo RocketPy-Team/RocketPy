@@ -37,13 +37,19 @@ class Rocket:
         Rocket.area : float
             Rocket's circular cross section largest frontal area in squared
             meters.
-        Rocket.distanceRocketNozzle : float
-            Distance between rocket's center of mass, without propellant,
-            to the exit face of the nozzle, in meters. Always positive.
+        Rocket.positionNozzle : float
+            TODO: Add description.
+        Rocket.positionCenterOfDryMass : float
+            TODO: Add description.
+        Rocket.distanceRocketNozzle : int, float
+            Distance from rocket's unloaded center of mass to nozzle outlet,
+            in meters. Always negative, meaning a negative position in the
+            z axis which has an origin in the rocket's center of mass (without
+            propellant) and points towards the nose cone.
         Rocket.distanceRocketMotorReference : float
             Distance between rocket's center of mass, without propellant,
-            to the motor reference point, for solid and hybrid motor
-            the reference point is the center of mass of solid propellant,
+            to the motor reference point. For solid and hybrid motor the
+            reference point is the center of mass of solid propellant,
             in meters. Always positive.
 
         Mass and Inertia attributes:
@@ -113,7 +119,8 @@ class Rocket:
         inertiaI,
         inertiaZ,
         radius,
-        distanceRocketNozzle,
+        positionNozzle,
+        positionCenterOfDryMass,
         powerOffDrag,
         powerOnDrag,
     ):
@@ -134,17 +141,10 @@ class Rocket:
             in kg m^2.
         radius : int, float
             Rocket biggest outer radius in meters.
-        distanceRocketNozzle : int, float
-            Distance from rocket's unloaded center of mass to nozzle outlet,
-            in meters. Generally negative, meaning a negative position in the
-            z axis which has an origin in the rocket's center of mass (without
-            propellant) and points towards the nose cone.
-        distanceRocketMotorReference : int, float
-            Distance from rocket's unloaded center of mass to the motor reference
-            point, for solid and hybrid motor the reference point is the center
-            of mass of solid propellant, in meters. Generally negative, meaning a negative
-            position in the z axis which has an origin in the rocket's center
-            of mass (with out propellant) and points towards the nose cone.
+        positionNozzle : int, float
+            TODO: Add description.
+        positionCenterOfDryMass : int, float
+            TODO: Add description.
         powerOffDrag : int, float, callable, string, array
             Rocket's drag coefficient when the motor is off. Can be given as an
             entry to the Function class. See help(Function) for more
@@ -165,10 +165,19 @@ class Rocket:
         # Define motor to be used
         self.motor = motor
 
-        # Center of mass distance to points of interest
-        self.distanceRocketNozzle = distanceRocketNozzle
-        self.distanceRocketMotorReference = (
-            self.distanceRocketNozzle + self.motor.distanceNozzleMotorReference
+        # Define center of mass and points of interest in relation to inputted reference axis
+        self.positionNozzle = positionNozzle
+        self.positionCenterOfDryMass = positionCenterOfDryMass
+
+        # Define positions in relation to nozzle
+        self.centerOfDryMassPosition_Nozzle = abs(
+            positionCenterOfDryMass - positionNozzle
+        )
+
+        # Define positions in relation to center of dry mass
+        self.motorReferencePosition_CM = (
+            self.motor.positionMotorReference_Nozzle
+            - self.centerOfDryMassPosition_Nozzle
         )
 
         # Define rocket inertia attributes in SI units
@@ -177,7 +186,7 @@ class Rocket:
         self.inertiaZ = inertiaZ
 
         self.centerOfMass = (
-            (self.distanceRocketMotorReference - self.motor.yCM)
+            (self.motorReferencePosition_CM - self.motor.yCM)
             * motor.mass
             / (mass + motor.mass)
         )
@@ -350,7 +359,7 @@ class Rocket:
         # Return self
         return self
 
-    def addTail(self, topRadius, bottomRadius, length, distanceToCM):
+    def addTail(self, topRadius, bottomRadius, length, positionTail):
         """Create a new tail or rocket diameter change, storing its
         parameters as part of the aerodynamicSurfaces list. Its
         parameters are the axial position along the rocket and its
@@ -390,11 +399,19 @@ class Rocket:
         # Retrieve reference radius
         rref = self.radius
 
+        # Calculate tail position relative to nozzle
+        tailPosition_Nozzle = abs(positionTail - self.positionNozzle)
+
+        # Calculate tail position relative to cm
+        tailPosition_CM = (
+            tailPosition_Nozzle - self.centerOfDryMassPosition_Nozzle
+        )  # posicao inicio da cauda
+
         # Calculate cp position relative to cm
-        if distanceToCM < 0:
-            cpz = distanceToCM - (length / 3) * (1 + (1 - r) / (1 - r**2))
+        if tailPosition_CM < 0:
+            cpz = tailPosition_CM - (length / 3) * (1 + (1 - r) / (1 - r**2))
         else:
-            cpz = distanceToCM + (length / 3) * (1 + (1 - r) / (1 - r**2))
+            cpz = tailPosition_CM + (length / 3) * (1 + (1 - r) / (1 - r**2))
 
         # Calculate clalpha
         clalpha = -2 * (1 - r ** (-2)) * (topRadius / rref) ** 2
@@ -414,7 +431,7 @@ class Rocket:
         # Return self
         return self.aerodynamicSurfaces[-1]
 
-    def addNose(self, length, kind, distanceToCM):
+    def addNose(self, length, kind, positionNose):
         """Creates a nose cone, storing its parameters as part of the
         aerodynamicSurfaces list. Its parameters are the axial position
         along the rocket and its derivative of the coefficient of lift
@@ -456,8 +473,15 @@ class Rocket:
             k = 1 - 0.437
         else:
             k = 0.5
+
+        # Calculate nosecone position relative to nozzle
+        nosePosition_Nozzle = abs(positionNose - self.positionNozzle)
+
+        # Calculate nosecone position relative to cm
+        nosePosition_CM = nosePosition_Nozzle - self.centerOfDryMassPosition_Nozzle
+
         # Calculate cp position relative to cm
-        cpz = distanceToCM + np.sign(distanceToCM) * k * length
+        cpz = nosePosition_CM + np.sign(nosePosition_CM) * k * length
 
         # Calculate clalpha
         clalpha = 2
@@ -483,7 +507,7 @@ class Rocket:
         span,
         rootChord,
         tipChord,
-        distanceToCM,
+        positionFins,
         radius=0,
         cantAngle=0,
         airfoil=None,
@@ -585,7 +609,7 @@ class Rocket:
         self.rootChord = Cr
         self.tipChord = Ct
         self.span = s
-        self.distanceRocketFins = distanceToCM
+        # self.distanceRocketFins = distanceToCM
 
         # Auxiliary functions
 
@@ -636,8 +660,14 @@ class Rocket:
             else:
                 return n / 2
 
+        # Calculate fins position relative to nozzle
+        finsPosition_Nozzle = abs(positionFins - self.positionNozzle)
+
+        # Calculate fins position relative to cm
+        finsPosition_CM = finsPosition_Nozzle - self.centerOfDryMassPosition_Nozzle
+
         # Calculate cp position relative to cm
-        cpz = distanceToCM + np.sign(distanceToCM) * (
+        cpz = finsPosition_CM + np.sign(finsPosition_CM) * (
             ((Cr - Ct) / 3) * ((Cr + 2 * Ct) / (Cr + Ct))
             + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
         )
@@ -774,7 +804,7 @@ class Rocket:
         # Return self
         return self.parachutes[-1]
 
-    def setRailButtons(self, distanceToCM, angularPosition=45):
+    def setRailButtons(self, positionRailButtons, angularPosition=45):
         """Adds rail buttons to the rocket, allowing for the
         calculation of forces exerted by them when the rocket is
         sliding in the launch rail. Furthermore, rail buttons are
@@ -803,11 +833,17 @@ class Rocket:
         -------
         None
         """
+        # Calculate rail buttons position relative to cm
+        railButtonsPosition_CM = [
+            positionRailButton - self.positionCenterOfDryMass
+            for positionRailButton in positionRailButtons
+        ]
+
         # Order distance to CM
-        if distanceToCM[0] < distanceToCM[1]:
-            distanceToCM.reverse()
+        if railButtonsPosition_CM[0] < railButtonsPosition_CM[1]:
+            railButtonsPosition_CM.reverse()
         # Save
-        self.railButtons = self.railButtonPair(distanceToCM, angularPosition)
+        self.railButtons = self.railButtonPair(railButtonsPosition_CM, angularPosition)
 
         return None
 
@@ -963,12 +999,12 @@ class Rocket:
         print("\nRocket Distances")
         print(
             "Rocket Center of Mass - Nozzle Exit Distance: "
-            + str(self.distanceRocketNozzle)
+            + str(self.centerOfDryMassPosition_Nozzle)
             + " m"
         )
         print(
             "Rocket Center of Mass - Motor reference point: "
-            + str(self.distanceRocketMotorReference)
+            + str(self.motorReferencePosition_CM)
             + " m"
         )
         print(
