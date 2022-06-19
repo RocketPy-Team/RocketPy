@@ -4,7 +4,6 @@ __author__ = "Patrick Sampaio, Giovani Hidalgo Ceotto, Guilherme Fernandes Alves
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
-from datetime import datetime, timedelta
 import bisect
 from collections import defaultdict
 
@@ -17,7 +16,7 @@ from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation, PillowWriter as ImageWriter
 import matplotlib.ticker as mtick
 
-from windrose import WindAxes, WindroseAxes
+from windrose import WindroseAxes
 import netCDF4
 from cftime import num2pydate
 import pytz
@@ -135,7 +134,7 @@ class EnvironmentAnalysis:
         self.average_wind_profile = Function(0)
         self.average_wind_profile_1_sigma = Function(0)
         self.average_wind_profile_2_sigma = Function(0)
-        self.average_wind_profile_13_sigma = Function(0)
+        self.average_wind_profile_3_sigma = Function(0)
         self.average_wind_profile_at_given_hour = None
 
         self.max_wind_speed = None
@@ -245,7 +244,7 @@ class EnvironmentAnalysis:
         timeIndex, lonIndex, latIndex = indices
         variableData = surfaceData[variable]
 
-        # Get values for variable on the four nearest poins
+        # Get values for variable on the four nearest points
         z11 = variableData[timeIndex, lonIndex - 1, latIndex - 1]
         z12 = variableData[timeIndex, lonIndex - 1, latIndex]
         z21 = variableData[timeIndex, lonIndex, latIndex - 1]
@@ -276,7 +275,7 @@ class EnvironmentAnalysis:
         timeIndex, lonIndex, latIndex = indices
         variableData = pressureLevelData[variable]
 
-        # Get values for variable on the four nearest poins
+        # Get values for variable on the four nearest points
         z11 = variableData[timeIndex, :, lonIndex - 1, latIndex - 1]
         z12 = variableData[timeIndex, :, lonIndex - 1, latIndex]
         z21 = variableData[timeIndex, :, lonIndex, latIndex - 1]
@@ -795,6 +794,7 @@ class EnvironmentAnalysis:
         self.calculate_record_min_temperature()
         self.calculate_average_max_wind_gust()
         self.calculate_maximum_wind_gust()
+        self.calculate_maximum_surface_10m_wind_speed()
         self.calculate_average_max_surface_10m_wind_speed()
         self.calculate_average_min_surface_10m_wind_speed()
         self.calculate_record_max_surface_10m_wind_speed()
@@ -913,6 +913,19 @@ class EnvironmentAnalysis:
         ]
         self.max_wind_gust = np.max(self.wind_gust_list)
         return self.max_wind_gust
+
+    def calculate_maximum_surface_10m_wind_speed(self):
+        self.surface_10m_wind_speed_list = [
+            (
+                dayDict[hour]["surface10mWindVelocityX"] ** 2
+                + dayDict[hour]["surface10mWindVelocityY"] ** 2
+            )
+            ** 0.5
+            for dayDict in self.surfaceDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        self.max_surface_10m_wind_speed = np.max(self.surface_10m_wind_speed_list)
+        return self.max_surface_10m_wind_speed
 
     def calculate_average_max_surface_10m_wind_speed(self):
         self.max_surface_10m_wind_speed_list = [
@@ -1082,6 +1095,60 @@ class EnvironmentAnalysis:
 
         return None
 
+    def plot_surface10m_wind_speed_distribution(self, SAcup_wind_constraints=False):
+        """Get all values of sustained surface wind speed (for every date and hour available)
+        and plot a single distribution. Expected result is a Weibull distribution.
+        """
+        self.wind_speed_list = [
+            (
+                dayDict[hour]["surface10mWindVelocityX"] ** 2
+                + dayDict[hour]["surface10mWindVelocityY"] ** 2
+            )
+            ** 0.5
+            for dayDict in self.surfaceDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        plt.figure()
+        # Plot histogram
+        plt.hist(
+            self.wind_speed_list,
+            bins=int(len(self.wind_speed_list) ** 0.5),
+            density=True,
+            histtype="stepfilled",
+            alpha=0.2,
+            label="Wind Gust Speed Distribution",
+        )
+
+        # Plot weibull distribution
+        c, loc, scale = stats.weibull_min.fit(self.wind_speed_list, loc=0, scale=1)
+        x = np.linspace(0, np.max(self.wind_speed_list), 100)
+        plt.plot(
+            x,
+            stats.weibull_min.pdf(x, c, loc, scale),
+            "r-",
+            linewidth=2,
+            label="Weibull Distribution",
+        )
+
+        if SAcup_wind_constraints:
+            plt.vlines(
+                convert_units(20, "mph", self.unit_system["wind_speed"]),
+                0,
+                0.3,
+                "g",
+                (0, (15, 5, 2, 5)),
+                label="SAcup wind speed constraints",
+            )  # Plot SAcup wind speed constraints
+
+        # Label plot
+        plt.ylabel("Probability")
+        plt.xlabel(f"Sustained surface wind speed ({self.unit_system['wind_speed']})")
+        plt.title("Sustained Surface Wind Speed Distribution")
+        plt.legend()
+        plt.show()
+
+        return None
+
     def calculate_average_temperature_along_day(self):
         """Computes average temperature progression throughout the
         day, including sigma contours."""
@@ -1099,12 +1166,15 @@ class EnvironmentAnalysis:
             for hour, dates in historical_temperatures_each_hour.items()
         }
 
-        self.sigmas_at_given_hour = {
+        self.average_temperature_sigmas_at_given_hour = {
             hour: np.std(list(dates.values()))
             for hour, dates in historical_temperatures_each_hour.items()
         }
 
-        return self.average_temperature_at_given_hour, self.sigmas_at_given_hour
+        return (
+            self.average_temperature_at_given_hour,
+            self.average_temperature_sigmas_at_given_hour,
+        )
 
     def plot_average_temperature_along_day(self):
         """Plots average temperature progression throughout the day, including
@@ -1117,7 +1187,9 @@ class EnvironmentAnalysis:
         hours = np.fromiter(self.average_temperature_at_given_hour.keys(), np.float)
         temperature_mean = self.average_temperature_at_given_hour.values()
         temperature_mean = np.array(list(temperature_mean))
-        temperature_std = np.array(list(self.sigmas_at_given_hour.values()))
+        temperature_std = np.array(
+            list(self.average_temperature_sigmas_at_given_hour.values())
+        )
         temperatures_p1sigma = temperature_mean + temperature_std
         temperatures_m1sigma = temperature_mean - temperature_std
         temperatures_p2sigma = temperature_mean + 2 * temperature_std
@@ -1157,7 +1229,198 @@ class EnvironmentAnalysis:
         plt.legend()
         plt.show()
 
-    def plot_average_wind_speed_profile(self):
+    def calculate_average_sustained_surface10m_wind_along_day(self):
+        """Computes average sustained wind speed progression throughout the
+        day, including sigma contours."""
+
+        # Flip dictionary to get hour as key instead of date
+        historical_surface10m_wind_speeds_each_hour = defaultdict(dict)
+        for date, val in self.surfaceDataDict.items():
+            for hour, sub_val in val.items():
+                historical_surface10m_wind_speeds_each_hour[hour][date] = (
+                    sub_val["surface10mWindVelocityX"] ** 2
+                    + sub_val["surface10mWindVelocityY"] ** 2
+                ) ** 0.5
+
+        self.average_surface10m_wind_speed_at_given_hour = {
+            hour: np.average(list(dates.values()))
+            for hour, dates in historical_surface10m_wind_speeds_each_hour.items()
+        }
+
+        self.average_surface10m_wind_speed_sigmas_at_given_hour = {
+            hour: np.std(list(dates.values()))
+            for hour, dates in historical_surface10m_wind_speeds_each_hour.items()
+        }
+
+        return (
+            self.average_surface10m_wind_speed_at_given_hour,
+            self.average_surface10m_wind_speed_sigmas_at_given_hour,
+        )
+
+    def plot_average_surface10m_wind_speed_along_day(
+        self, SAcup_wind_constraints=False
+    ):
+        """Plots average surface wind speed progression throughout the day, including
+        sigma contours."""
+
+        # Compute values
+        self.calculate_average_sustained_surface10m_wind_along_day()
+
+        # Get handy arrays
+        hours = np.fromiter(
+            self.average_surface10m_wind_speed_at_given_hour.keys(), np.float
+        )
+        wind_speed_mean = self.average_surface10m_wind_speed_at_given_hour.values()
+        wind_speed_mean = np.array(list(wind_speed_mean))
+        wind_speed_std = np.array(
+            list(self.average_surface10m_wind_speed_sigmas_at_given_hour.values())
+        )
+        wind_speeds_p1sigma = wind_speed_mean + wind_speed_std
+        wind_speeds_m1sigma = wind_speed_mean - wind_speed_std
+        wind_speeds_p2sigma = wind_speed_mean + 2 * wind_speed_std
+        wind_speeds_m2sigma = wind_speed_mean - 2 * wind_speed_std
+
+        plt.figure()
+        # Plot temperature along day for each available date
+        for hour_entries in self.surfaceDataDict.values():
+            plt.plot(
+                [int(hour) for hour in hour_entries.keys()],
+                [
+                    (
+                        val["surface10mWindVelocityX"] ** 2
+                        + val["surface10mWindVelocityY"] ** 2
+                    )
+                    ** 0.5
+                    for val in hour_entries.values()
+                ],
+                "gray",
+                alpha=0.1,
+            )
+
+        # Plot average temperature along day
+        plt.plot(hours, wind_speed_mean, "r", label="$\\mu$")
+
+        # Plot standard deviations temperature along day
+        plt.plot(hours, wind_speeds_m1sigma, "b--", label=r"$\mu \pm \sigma$")
+        plt.plot(hours, wind_speeds_p1sigma, "b--")
+        plt.plot(hours, wind_speeds_p2sigma, "b--", alpha=0.5)
+        plt.plot(
+            hours, wind_speeds_m2sigma, "b--", label=r"$\mu \pm 2\sigma $", alpha=0.5
+        )
+
+        # Format plot
+        plt.gca().xaxis.set_major_locator(plt.MaxNLocator(integer=True))
+        plt.gca().xaxis.set_major_formatter(
+            lambda x, pos: "{0:02.0f}:{1:02.0f}".format(*divmod(x * 60, 60))
+        )
+        plt.autoscale(enable=True, axis="x", tight=True)
+        if SAcup_wind_constraints:
+            plt.hlines(
+                convert_units(20, "mph", self.unit_system["wind_speed"]),
+                0,
+                23,
+                "g",
+                (0, (15, 5, 2, 5)),
+                label="SAcup wind speed constraints",
+            )  # Plot SAcup wind speed constraints
+        plt.xlabel("Time (hours)")
+        plt.ylabel(f"Surface Wind Speed ({self.unit_system['wind_speed']})")
+        plt.title("Average Sustained Surface Wind Speed Along Day")
+        plt.grid(alpha=0.25)
+        plt.legend()
+        plt.show()
+
+    def calculate_average_sustained_suraface100m_wind_along_day(self):
+        """Computes average sustained wind speed progression throughout the
+        day, including sigma contours."""
+
+        # Flip dictionary to get hour as key instead of date
+        historical_surface100m_wind_speeds_each_hour = defaultdict(dict)
+        for date, val in self.surfaceDataDict.items():
+            for hour, sub_val in val.items():
+                historical_surface100m_wind_speeds_each_hour[hour][date] = (
+                    sub_val["surface100mWindVelocityX"] ** 2
+                    + sub_val["surface100mWindVelocityY"] ** 2
+                ) ** 0.5
+
+        self.average_surface100m_wind_speed_at_given_hour = {
+            hour: np.average(list(dates.values()))
+            for hour, dates in historical_surface100m_wind_speeds_each_hour.items()
+        }
+
+        self.average_surface100m_wind_speed_sigmas_at_given_hour = {
+            hour: np.std(list(dates.values()))
+            for hour, dates in historical_surface100m_wind_speeds_each_hour.items()
+        }
+
+        return (
+            self.average_surface100m_wind_speed_at_given_hour,
+            self.average_surface100m_wind_speed_sigmas_at_given_hour,
+        )
+
+    def plot_average_sustained_surface100m_wind_speed_along_day(self):
+        """Plots average surface wind speed progression throughout the day, including
+        sigma contours."""
+
+        # Compute values
+        self.calculate_average_sustained_suraface100m_wind_along_day()
+
+        # Get handy arrays
+        hours = np.fromiter(
+            self.average_surface100m_wind_speed_at_given_hour.keys(), np.float
+        )
+        wind_speed_mean = self.average_surface100m_wind_speed_at_given_hour.values()
+        wind_speed_mean = np.array(list(wind_speed_mean))
+        wind_speed_std = np.array(
+            list(self.average_surface100m_wind_speed_sigmas_at_given_hour.values())
+        )
+        wind_speeds_p1sigma = wind_speed_mean + wind_speed_std
+        wind_speeds_m1sigma = wind_speed_mean - wind_speed_std
+        wind_speeds_p2sigma = wind_speed_mean + 2 * wind_speed_std
+        wind_speeds_m2sigma = wind_speed_mean - 2 * wind_speed_std
+
+        plt.figure()
+        # Plot temperature along day for each available date
+        for hour_entries in self.surfaceDataDict.values():
+            plt.plot(
+                [int(hour) for hour in hour_entries.keys()],
+                [
+                    (
+                        val["surface100mWindVelocityX"] ** 2
+                        + val["surface100mWindVelocityY"] ** 2
+                    )
+                    ** 0.5
+                    for val in hour_entries.values()
+                ],
+                "gray",
+                alpha=0.1,
+            )
+
+        # Plot average temperature along day
+        plt.plot(hours, wind_speed_mean, "r", label="$\\mu$")
+
+        # Plot standard deviations temperature along day
+        plt.plot(hours, wind_speeds_m1sigma, "b--", label=r"$\mu \pm \sigma$")
+        plt.plot(hours, wind_speeds_p1sigma, "b--")
+        plt.plot(hours, wind_speeds_p2sigma, "b--", alpha=0.5)
+        plt.plot(
+            hours, wind_speeds_m2sigma, "b--", label=r"$\mu \pm 2\sigma $", alpha=0.5
+        )
+
+        # Format plot
+        plt.gca().xaxis.set_major_locator(plt.MaxNLocator(integer=True))
+        plt.gca().xaxis.set_major_formatter(
+            lambda x, pos: "{0:02.0f}:{1:02.0f}".format(*divmod(x * 60, 60))
+        )
+        plt.autoscale(enable=True, axis="x", tight=True)
+        plt.xlabel("Time (hours)")
+        plt.ylabel(f"100m Wind Speed ({self.unit_system['wind_speed']})")
+        plt.title("Average 100m Wind Speed Along Day")
+        plt.grid(alpha=0.25)
+        plt.legend()
+        plt.show()
+
+    def plot_average_wind_speed_profile(self, SAcup_altitude_constraints=False):
         """Average wind speed for all datetimes available."""
         altitude_list = np.linspace(*self.altitude_AGL_range, 100)
         wind_speed_profiles = [
@@ -1202,6 +1465,28 @@ class EnvironmentAnalysis:
 
         plt.autoscale(enable=True, axis="x", tight=True)
         plt.autoscale(enable=True, axis="y", tight=True)
+
+        if SAcup_altitude_constraints:
+            # SA Cup altitude constraints region
+            print(plt)
+            xmin, xmax, ymin, ymax = plt.axis()
+            plt.fill_between(
+                [xmin, xmax],
+                0.7 * convert_units(10000, "ft", self.unit_system["length"]),
+                1.3 * convert_units(10000, "ft", self.unit_system["length"]),
+                color="g",
+                alpha=0.2,
+                label=f"10,000 {self.unit_system['length']} ± 30%",
+            )
+            plt.fill_between(
+                [xmin, xmax],
+                0.7 * convert_units(30000, "ft", self.unit_system["length"]),
+                1.3 * convert_units(30000, "ft", self.unit_system["length"]),
+                color="g",
+                alpha=0.2,
+                label=f"30,000 {self.unit_system['length']} ± 30%",
+            )
+
         plt.xlabel(f"Wind speed ({self.unit_system['wind_speed']})")
         plt.ylabel(f"Altitude AGL ({self.unit_system['length']})")
         plt.title("Average Wind Speed Profile")
@@ -1615,6 +1900,196 @@ class EnvironmentAnalysis:
         plt.close(fig)
         return HTML(animation.to_jshtml())
 
+    def plot_sustained_surface_wind_speed_distribution_over_average_day(
+        self, SAcup_wind_constraints=False
+    ):
+        """Plots shown in the animation of how the sustained surface wind speed distribution varies throughout the day."""
+        # Gather animation data
+        average_wind_speed_at_given_hour = {}
+        for hour in list(self.surfaceDataDict.values())[0].keys():
+            wind_speed_values_for_this_hour = []
+            for dayDict in self.surfaceDataDict.values():
+                try:
+                    wind_speed_values_for_this_hour += [
+                        (
+                            dayDict[hour]["surface10mWindVelocityX"] ** 2
+                            + dayDict[hour]["surface10mWindVelocityY"] ** 2
+                        )
+                        ** 0.5
+                    ]
+                except KeyError:
+                    # Some day does not have data for the desired hour (probably the last one)
+                    # No need to worry, just average over the other days
+                    pass
+            average_wind_speed_at_given_hour[hour] = wind_speed_values_for_this_hour
+
+        # Create grid of plots for each hour
+        hours = list(list(self.pressureLevelDataDict.values())[0].keys())
+        ncols, nrows = self._find_two_closest_integer_factors(len(hours))
+        fig = plt.figure(figsize=(ncols * 2, nrows * 2.2))
+        gs = fig.add_gridspec(nrows, ncols, hspace=0, wspace=0, left=0.12)
+        axs = gs.subplots(sharex=True, sharey=True)
+        x_min, x_max, y_min, y_max = 0, 0, 0, 0
+        for (i, j) in [(i, j) for i in range(nrows) for j in range(ncols)]:
+            hour = hours[i * ncols + j]
+            ax = axs[i, j]
+            ax.set_title(f"{float(hour):05.2f}".replace(".", ":"), y=0.8)
+            ax.hist(
+                average_wind_speed_at_given_hour[hour],
+                bins=int(len(average_wind_speed_at_given_hour[hour]) ** 0.5),
+                density=True,
+                histtype="stepfilled",
+                alpha=0.2,
+                label="Wind speed Speed Distribution",
+            )
+            ax.autoscale(enable=True, axis="y", tight=True)
+            # Plot weibull distribution
+            c, loc, scale = stats.weibull_min.fit(
+                average_wind_speed_at_given_hour[hour], loc=0, scale=1
+            )
+            x = np.linspace(
+                0, np.ceil(self.calculate_maximum_surface_10m_wind_speed()), 100
+            )
+            ax.plot(
+                x,
+                stats.weibull_min.pdf(x, c, loc, scale),
+                "r-",
+                linewidth=2,
+                label="Weibull Distribution",
+            )
+            current_x_max = ax.get_xlim()[1]
+            current_y_max = ax.get_ylim()[1]
+            x_max = current_x_max if current_x_max > x_max else x_max
+            y_max = current_y_max if current_y_max > y_max else y_max
+            ax.label_outer()
+            ax.grid()
+        # Set x and y limits for the last axis. Since axes are shared, set to all
+        ax.set_xlim(x_min, x_max)
+        ax.set_ylim(y_min, y_max)
+        ax.xaxis.set_major_locator(
+            mtick.MaxNLocator(integer=True, nbins=5, prune="lower")
+        )
+        ax.yaxis.set_major_locator(
+            mtick.MaxNLocator(integer=True, nbins=4, prune="lower")
+        )
+
+        if SAcup_wind_constraints:
+            for (i, j) in [(i, j) for i in range(nrows) for j in range(ncols)]:
+                # SA Cup altitude constraints region
+                ax = axs[i, j]
+                ax.vlines(
+                    convert_units(20, "mph", self.unit_system["wind_speed"]),
+                    0,
+                    ax.get_ylim()[1],
+                    "g",
+                    (0, (15, 5, 2, 5)),
+                    label="SA Cup Wind Constraints",
+                )
+
+        # Set title and axis labels for entire figure
+        handles, labels = ax.get_legend_handles_labels()
+        fig.legend(handles, labels, loc="upper right")
+        fig.suptitle("Average Wind Profile")
+        fig.supxlabel(
+            f"Sustained Surface Wind Speed ({self.unit_system['wind_speed']})"
+        )
+        fig.supylabel("Probability")
+        plt.show()
+
+    def animate_wind_gust_distribution_over_average_day(
+        self,
+    ):  # TODO: getting weird results
+        """Animation of how the wind gust distribution varies throughout the day."""
+        # Gather animation data
+        surface_wind_speeds_at_given_hour = {}
+        for hour in list(self.surfaceDataDict.values())[0].keys():
+            surface_wind_speed_values_for_this_hour = []
+            for dayDict in self.surfaceDataDict.values():
+                try:
+                    surface_wind_speed_values_for_this_hour += [
+                        dayDict[hour]["surfaceWindGust"]
+                    ]
+                except KeyError:
+                    # Some day does not have data for the desired hour (probably the last one)
+                    # No need to worry, just average over the other days
+                    pass
+            surface_wind_speeds_at_given_hour[
+                hour
+            ] = surface_wind_speed_values_for_this_hour
+
+        # Create animation
+        fig, ax = plt.subplots(dpi=200)
+        # Initialize animation artists: histogram and hour text
+        hist_bins = np.linspace(
+            0, np.ceil(self.calculate_maximum_surface_10m_wind_speed()), 25
+        )  # Fix bins edges
+        _, _, bar_container = plt.hist(
+            [],
+            bins=hist_bins,
+            alpha=0.2,
+            label="Sustained Surface Wind Speed Distribution",
+        )
+        (ln,) = plt.plot(
+            [],
+            [],
+            "r-",
+            linewidth=2,
+            label="Weibull Distribution",
+        )
+        tx = plt.text(
+            x=0.95,
+            y=0.95,
+            s="",
+            verticalalignment="top",
+            horizontalalignment="right",
+            transform=ax.transAxes,
+            fontsize=24,
+        )
+
+        # Define function to initialize animation
+        def init():
+            ax.set_xlim(0, np.ceil(self.calculate_maximum_surface_10m_wind_speed()))
+            ax.set_ylim(0, 0.3)  # TODO: parametrize
+            ax.set_xlabel(
+                f"Sustained Surface Wind Speed ({self.unit_system['wind_speed']})"
+            )
+            ax.set_ylabel("Probability")
+            ax.set_title("Sustained Surface Wind Distribution")
+            # ax.grid(True)
+            return ln, *bar_container.patches, tx
+
+        # Define function which sets each animation frame
+        def update(frame):
+            # Update histogram
+            data = frame[1]
+            hist, _ = np.histogram(data, hist_bins, density=True)
+            for count, rect in zip(hist, bar_container.patches):
+                rect.set_height(count)
+            # Update weibull distribution
+            c, loc, scale = stats.weibull_min.fit(data, loc=0, scale=1)
+            xdata = np.linspace(
+                0, np.ceil(self.calculate_maximum_surface_10m_wind_speed()), 100
+            )
+            ydata = stats.weibull_min.pdf(xdata, c, loc, scale)
+            ln.set_data(xdata, ydata)
+            # Update hour text
+            tx.set_text(f"{float(frame[0]):05.2f}".replace(".", ":"))
+            return ln, *bar_container.patches, tx
+
+        for frame in surface_wind_speeds_at_given_hour.items():
+            update(frame)
+
+        animation = FuncAnimation(
+            fig,
+            update,
+            frames=surface_wind_speeds_at_given_hour.items(),
+            interval=750,
+            init_func=init,
+            blit=True,
+        )
+        plt.close(fig)
+        return HTML(animation.to_jshtml())
+
     @property
     def altitude_AGL_range(self):
         min_altitude = 0
@@ -1627,7 +2102,7 @@ class EnvironmentAnalysis:
         return min_altitude, max_altitude
 
     def process_wind_profile_over_average_day(self):
-        """Compute the average wind profile for each avaliable hour of a day, over all
+        """Compute the average wind profile for each available hour of a day, over all
         days in the dataset."""
         altitude_list = np.linspace(*self.altitude_AGL_range, 100)
 
@@ -1657,7 +2132,7 @@ class EnvironmentAnalysis:
                 self.max_average_wind_at_altitude = max_wind
         self.average_wind_profile_at_given_hour = average_wind_profile_at_given_hour
 
-    def plot_wind_profile_over_average_day(self):
+    def plot_wind_profile_over_average_day(self, SAcup_altitude_constraints=False):
         """Creates a grid of plots with the wind profile over the average day."""
         self.process_wind_profile_over_average_day()
 
@@ -1690,13 +2165,35 @@ class EnvironmentAnalysis:
         ax.yaxis.set_major_locator(
             mtick.MaxNLocator(integer=True, nbins=4, prune="lower")
         )
+
+        if SAcup_altitude_constraints:
+            for (i, j) in [(i, j) for i in range(nrows) for j in range(ncols)]:
+                # SA Cup altitude constraints region
+                ax = axs[i, j]
+                ax.fill_between(
+                    [x_min, x_max],
+                    0.7 * convert_units(10000, "ft", self.unit_system["length"]),
+                    1.3 * convert_units(10000, "ft", self.unit_system["length"]),
+                    color="g",
+                    alpha=0.2,
+                    label=f"10,000 {self.unit_system['length']} ± 30%",
+                )
+                ax.fill_between(
+                    [x_min, x_max],
+                    0.7 * convert_units(30000, "ft", self.unit_system["length"]),
+                    1.3 * convert_units(30000, "ft", self.unit_system["length"]),
+                    color="g",
+                    alpha=0.2,
+                    label=f"30,000 {self.unit_system['length']} ± 30%",
+                )
+
         # Set title and axis labels for entire figure
         fig.suptitle("Average Wind Profile")
         fig.supxlabel(f"Wind speed ({self.unit_system['wind_speed']})")
         fig.supylabel(f"Altitude AGL ({self.unit_system['length']})")
         plt.show()
 
-    def animate_wind_profile_over_average_day(self):
+    def animate_wind_profile_over_average_day(self, SAcup_altitude_constraints=False):
         """Animation of how wind profile evolves throughout an average day."""
         self.process_wind_profile_over_average_day()
 
@@ -1741,6 +2238,27 @@ class EnvironmentAnalysis:
             init_func=init,
             blit=True,
         )
+
+        if SAcup_altitude_constraints:
+            # SA Cup altitude constraints region
+            ax.fill_between(
+                [0, self.max_average_wind_at_altitude + 5],
+                0.7 * convert_units(10000, "ft", self.unit_system["length"]),
+                1.3 * convert_units(10000, "ft", self.unit_system["length"]),
+                color="g",
+                alpha=0.2,
+                label=f"10,000 {self.unit_system['length']} ± 30%",
+            )
+            ax.fill_between(
+                [0, self.max_average_wind_at_altitude + 5],
+                0.7 * convert_units(30000, "ft", self.unit_system["length"]),
+                1.3 * convert_units(30000, "ft", self.unit_system["length"]),
+                color="g",
+                alpha=0.2,
+                label=f"30,000 {self.unit_system['length']} ± 30%",
+            )
+            fig.legend(loc="upper right")
+
         plt.close(fig)
         return HTML(animation.to_jshtml())
 
@@ -1796,7 +2314,7 @@ class EnvironmentAnalysis:
             f"Historical Minimum Temperature: {self.record_min_temperature:.2f} {self.unit_system['temperature']}"
         )
         print(
-            f"Average Daily Maximum Temperture: {self.average_max_temperature:.2f} {self.unit_system['temperature']}"
+            f"Average Daily Maximum Temperature: {self.average_max_temperature:.2f} {self.unit_system['temperature']}"
         )
         print(
             f"Average Daily Minimum Temperature: {self.average_min_temperature:.2f} {self.unit_system['temperature']}"
