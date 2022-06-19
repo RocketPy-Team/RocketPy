@@ -1348,7 +1348,7 @@ class Flight:
         mu = (Mt * Mr) / (Mt + Mr)
         # Geometry
         b = -self.rocket.motorReferencePosition_CM
-        c = -self.rocket.centerOfDryMassPosition_Nozzle
+        c = -(-self.rocket.centerOfDryMassPosition_Nozzle)
         a = b * Mt / M
         rN = self.rocket.motor.nozzleRadius
         # Prepare transformation matrix
