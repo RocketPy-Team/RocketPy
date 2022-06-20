@@ -2009,10 +2009,10 @@ class EnvironmentAnalysis:
         fig.supylabel("Probability")
         plt.show()
 
-    def animate_wind_gust_distribution_over_average_day(
-        self,
+    def animate_sustained_surface_wind_speed_distribution_over_average_day(
+        self, SAcup_wind_constraints=False
     ):  # TODO: getting weird results
-        """Animation of how the wind gust distribution varies throughout the day."""
+        """Animation of how the sustained surface wind speed distribution varies throughout the day."""
         # Gather animation data
         surface_wind_speeds_at_given_hour = {}
         for hour in list(self.surfaceDataDict.values())[0].keys():
@@ -2020,7 +2020,11 @@ class EnvironmentAnalysis:
             for dayDict in self.surfaceDataDict.values():
                 try:
                     surface_wind_speed_values_for_this_hour += [
-                        dayDict[hour]["surfaceWindGust"]
+                        (
+                            dayDict[hour]["surface10mWindVelocityX"] ** 2
+                            + dayDict[hour]["surface10mWindVelocityY"] ** 2
+                        )
+                        ** 0.5
                     ]
                 except KeyError:
                     # Some day does not have data for the desired hour (probably the last one)
@@ -2067,8 +2071,19 @@ class EnvironmentAnalysis:
                 f"Sustained Surface Wind Speed ({self.unit_system['wind_speed']})"
             )
             ax.set_ylabel("Probability")
-            ax.set_title("Sustained Surface Wind Distribution")
+            ax.set_title("Sstained Surface Wind Distribution")
             # ax.grid(True)
+
+            if SAcup_wind_constraints:
+                ax.vlines(
+                    convert_units(20, "mph", self.unit_system["wind_speed"]),
+                    0,
+                    0.3,  # TODO: parametrize
+                    "g",
+                    (0, (15, 5, 2, 5)),
+                    label="SAcup wind speed constraints",
+                )  # Plot SAcup wind speed constraints
+
             return ln, *bar_container.patches, tx
 
         # Define function which sets each animation frame
