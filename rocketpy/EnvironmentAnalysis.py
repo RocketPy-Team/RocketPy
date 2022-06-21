@@ -445,6 +445,37 @@ class EnvironmentAnalysis:
                 else:
                     guess -= 1
 
+    def _beaufort_wind_scale(self, units, max_wind_speed=None):
+        """Returns a list of bins equivalent to the Beaufort wind scale in the
+        desired unit system.
+
+        Parameters
+        ----------
+        units: str
+            Desired units for wind speed.
+            Options are: "knot", "mph", "m/s", "ft/s: and "km/h".
+        max_wind_speed: float
+            Maximum wind speed to be included in the scale. Should be expressed
+            in the same unit as the units parameter.
+
+        Returns
+        -------
+        list[float]
+        """
+        beaufort_wind_scale_knots = np.array(
+            [0, 1, 3, 6, 10, 16, 21, 27, 33, 40, 47, 55, 63, 71]
+        )
+        beaufort_wind_scale = beaufort_wind_scale_knots * convert_units(
+            1, "knot", units
+        )
+        beaufort_wind_scale_truncated = beaufort_wind_scale[
+            np.where(beaufort_wind_scale <= max_wind_speed)
+        ]
+        if beaufort_wind_scale[1] < 1:
+            return np.round(beaufort_wind_scale_truncated, 1)
+        else:
+            return np.round(beaufort_wind_scale_truncated, 0)
+
     def parsePressureLevelData(self):
         """
         Parse pressure level data from a weather file.
@@ -1547,14 +1578,11 @@ class EnvironmentAnalysis:
                     )
 
                     windSpeed[hour].append(hour_wind_speed)
-                    # TODO: Check if this calculates direction or heading
+                    # Wind direction means where the wind is blowing from, 180 deg opposite from wind heading
+                    vx = self.surfaceDataDict[day][hour]["surface10mWindVelocityX"]
+                    vy = self.surfaceDataDict[day][hour]["surface10mWindVelocityY"]
                     windDir[hour].append(
-                        np.arctan2(
-                            self.surfaceDataDict[day][hour]["surface10mWindVelocityX"],
-                            self.surfaceDataDict[day][hour]["surface10mWindVelocityY"],
-                        )
-                        * 180
-                        / np.pi
+                        (180 + (np.arctan2(vy, vx) * 180 / np.pi)) % 360
                     )
                 except KeyError:
                     # Not all days have all hours stored, that is fine
@@ -1620,8 +1648,10 @@ class EnvironmentAnalysis:
         self.plot_wind_rose(
             self.wind_direction_per_hour[hour],
             self.wind_speed_per_hour[hour],
-            bins=np.linspace(self.min_wind_speed, self.max_wind_speed, 6),
-            title=f"Windrose of an average day. Hour {float(hour):05.2f}".replace(
+            bins=self._beaufort_wind_scale(
+                self.unit_system["wind_speed"], max_wind_speed=self.max_wind_speed
+            ),
+            title=f"Wind Rose of an Average Day ({self.unit_system['wind_speed']}) - Hour {float(hour):05.2f}".replace(
                 ".", ":"
             ),
             fig=fig,
@@ -1659,7 +1689,9 @@ class EnvironmentAnalysis:
         fig.set_size_inches(
             ncols * windrose_side, nrows * windrose_side + vertical_padding_top
         )
-        bins = np.linspace(self.min_wind_speed, self.max_wind_speed, 6)
+        bins = self._beaufort_wind_scale(
+            self.unit_system["wind_speed"], max_wind_speed=self.max_wind_speed
+        )
         width = (1 - 2 * plot_padding) * 1 / ncols
         height = vertical_plot_area_percentage * (1 - 2 * plot_padding) * 1 / nrows
         # print(ncols, nrows)
@@ -1696,7 +1728,9 @@ class EnvironmentAnalysis:
                 ax.legend().set_visible(False)
             fig.add_axes(ax)
 
-        fig.suptitle("Wind Roses", fontsize=20, x=0.5, y=1)
+        fig.suptitle(
+            f"Wind Roses ({self.unit_system['wind_speed']})", fontsize=20, x=0.5, y=1
+        )
         plt.show()
 
     def animate_average_wind_rose(self, figsize=(8, 8), filename="wind_rose.gif"):
@@ -1740,8 +1774,11 @@ class EnvironmentAnalysis:
                 self.plot_wind_rose(
                     self.wind_direction_per_hour[hour],
                     self.wind_speed_per_hour[hour],
-                    bins=np.linspace(self.min_wind_speed, self.max_wind_speed, 6),
-                    title=f"Windrose of an average day. Hour {float(hour):05.2f}".replace(
+                    bins=self._beaufort_wind_scale(
+                        self.unit_system["wind_speed"],
+                        max_wind_speed=self.max_wind_speed,
+                    ),
+                    title=f"Wind Rose of an Average Day ({self.unit_system['wind_speed']}). Hour {float(hour):05.2f}".replace(
                         ".", ":"
                     ),
                     fig=fig,
