@@ -882,7 +882,9 @@ class EnvironmentAnalysis:
 
         # Pressure at 1000 feet
         self.pressure_at_1000ft_list = [
-            dayDict[hour]["pressure"](convert_units(1000, "ft", self.current_units["height_ASL"]))
+            dayDict[hour]["pressure"](
+                convert_units(1000, "ft", self.current_units["height_ASL"])
+            )
             for dayDict in self.pressureLevelDataDict.values()
             for hour in dayDict.keys()
         ]
@@ -891,7 +893,9 @@ class EnvironmentAnalysis:
 
         # Pressure at 10000 feet
         self.pressure_at_10000ft_list = [
-            dayDict[hour]["pressure"](convert_units(10000, "ft", self.current_units["height_ASL"]))
+            dayDict[hour]["pressure"](
+                convert_units(10000, "ft", self.current_units["height_ASL"])
+            )
             for dayDict in self.pressureLevelDataDict.values()
             for hour in dayDict.keys()
         ]
@@ -900,7 +904,9 @@ class EnvironmentAnalysis:
 
         # Pressure at 30000 feet
         self.pressure_at_30000ft_list = [
-            dayDict[hour]["pressure"](convert_units(30000, "ft", self.current_units["height_ASL"]))
+            dayDict[hour]["pressure"](
+                convert_units(30000, "ft", self.current_units["height_ASL"])
+            )
             for dayDict in self.pressureLevelDataDict.values()
             for hour in dayDict.keys()
         ]
@@ -908,7 +914,7 @@ class EnvironmentAnalysis:
         self.std_pressure_at_30000ft = np.std(self.pressure_at_30000ft_list)
 
         return self.average_surface_pressure, self.std_surface_pressure
-        
+
     def calculate_average_cloud_base_height(self):
         """Calculate average cloud base height."""
         self.mean_cloud_base_height = np.ma.mean(self.cloud_base_height)
@@ -2443,10 +2449,18 @@ class EnvironmentAnalysis:
 
     def allInfo(self):
         print("Pressure Information")
-        print(f"Average Surface Pressure: {self.average_surface_pressure:.2f} ± {self.std_surface_pressure:.2f} {self.unit_system['pressure']}")
-        print(f"Average Pressure at {convert_units(1000, 'ft', self.current_units['height_ASL']):.0f} {self.current_units['height_ASL']}: {self.average_pressure_at_1000ft:.2f} ± {self.std_pressure_at_1000ft:.2f} {self.unit_system['pressure']}")
-        print(f"Average Pressure at {convert_units(10000, 'ft', self.current_units['height_ASL']):.0f} {self.current_units['height_ASL']}: {self.average_pressure_at_10000ft:.2f} ± {self.std_pressure_at_1000ft:.2f} {self.unit_system['pressure']}")
-        print(f"Average Pressure at {convert_units(30000, 'ft', self.current_units['height_ASL']):.0f} {self.current_units['height_ASL']}: {self.average_pressure_at_30000ft:.2f} ± {self.std_pressure_at_1000ft:.2f} {self.unit_system['pressure']}")
+        print(
+            f"Average Surface Pressure: {self.average_surface_pressure:.2f} ± {self.std_surface_pressure:.2f} {self.unit_system['pressure']}"
+        )
+        print(
+            f"Average Pressure at {convert_units(1000, 'ft', self.current_units['height_ASL']):.0f} {self.current_units['height_ASL']}: {self.average_pressure_at_1000ft:.2f} ± {self.std_pressure_at_1000ft:.2f} {self.unit_system['pressure']}"
+        )
+        print(
+            f"Average Pressure at {convert_units(10000, 'ft', self.current_units['height_ASL']):.0f} {self.current_units['height_ASL']}: {self.average_pressure_at_10000ft:.2f} ± {self.std_pressure_at_1000ft:.2f} {self.unit_system['pressure']}"
+        )
+        print(
+            f"Average Pressure at {convert_units(30000, 'ft', self.current_units['height_ASL']):.0f} {self.current_units['height_ASL']}: {self.average_pressure_at_30000ft:.2f} ± {self.std_pressure_at_1000ft:.2f} {self.unit_system['pressure']}"
+        )
         print()
 
         print(
