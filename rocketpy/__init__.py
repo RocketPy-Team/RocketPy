@@ -15,7 +15,7 @@ __author__ = "Giovani Hidalgo Ceotto"
 __copyright__ = "Copyright 20XX, Projeto Jupiter"
 __credits__ = ["Matheus Marques Araujo", "Rodrigo Schmitt", "Guilherme Tavares"]
 __license__ = "MIT"
-__version__ = "0.9.9"
+__version__ = "0.10.0"
 __maintainer__ = "Giovani Hidalgo Ceotto"
 __email__ = "ghceotto@gmail.com"
 __status__ = "Production"
@@ -38,7 +38,7 @@ from matplotlib import cm
 
 from .Function import Function
 from .Environment import Environment
-from .SolidMotor import SolidMotor
+from .Motor import SolidMotor, HybridMotor
 from .Rocket import Rocket
 from .Flight import Flight
 from .utilities import *

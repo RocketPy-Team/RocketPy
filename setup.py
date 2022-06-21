@@ -5,13 +5,15 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="rocketpy",
-    version="0.9.9",
+    version="0.10.0",
     install_requires=[
         "numpy>=1.0",
         "scipy>=1.0",
         "matplotlib>=3.0",
         "requests",
         "pytz",
+        "netCDF4>=1.4",
+        "simplekml",
     ],
     maintainer="RocketPy Developers",
     author="Giovani Hidalgo Ceotto",
