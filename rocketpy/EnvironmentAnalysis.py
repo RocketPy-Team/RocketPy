@@ -2340,7 +2340,7 @@ class EnvironmentAnalysis:
                 f"Sustained Surface Wind Speed ({self.unit_system['wind_speed']})"
             )
             ax.set_ylabel("Probability")
-            ax.set_title("Sstained Surface Wind Distribution")
+            ax.set_title("Sustained Surface Wind Distribution")
             # ax.grid(True)
 
             if SAcup_wind_constraints:
