@@ -1402,8 +1402,8 @@ class EnvironmentAnalysis:
         if SAcup_wind_constraints:
             plt.hlines(
                 convert_units(20, "mph", self.unit_system["wind_speed"]),
-                0,
-                23,
+                min(hours),
+                max(hours),
                 "g",
                 (0, (15, 5, 2, 5)),
                 label="SAcup wind speed constraints",
