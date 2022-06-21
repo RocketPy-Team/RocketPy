@@ -560,7 +560,6 @@ class Rocket:
             Yma = (
                 (s / 3) * (Cr + 2 * Ct) / Yr
             )  # span wise position of fin's mean aerodynamic chord
-            Lf = np.sqrt((Cr / 2 - Ct / 2) ** 2 + s**2)
 
             rollGeometricalConstant = (
                 (Cr + 3 * Ct) * s**3
@@ -585,7 +584,7 @@ class Rocket:
             # Retrieve parameters for calculations
             Af = (np.pi * Cr / 2 * s) / 2
             gamac = 0
-            Yma = s / (3 * np.pi) * np.sqrt(9 * np.pi**2 - 64)
+            Yma = s / (3 * np.pi) * np.sqrt(9 * np.pi**2 - 16)
             rollGeometricalConstant = (
                 Cr
                 * s
