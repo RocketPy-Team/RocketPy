@@ -832,6 +832,7 @@ class EnvironmentAnalysis:
     # Calculations
     def process_data(self):
         """Process data that is shown in the allInfo method."""
+        self.calculate_pressure_stats()
         self.calculate_average_max_temperature()
         self.calculate_average_min_temperature()
         self.calculate_record_max_temperature()
@@ -868,6 +869,46 @@ class EnvironmentAnalysis:
         mask = [isinstance(elem, masked_elem) for elem in cloud_base_height]
         return np.ma.array(unmasked_cloud_base_height, mask=mask)
 
+    def calculate_pressure_stats(self):
+        """Calculate pressure level statistics."""
+        # Surface pressure
+        self.surface_pressure_list = [
+            dayDict[hour]["surfacePressure"]
+            for dayDict in self.surfaceDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        self.average_surface_pressure = np.average(self.surface_pressure_list)
+        self.std_surface_pressure = np.std(self.surface_pressure_list)
+
+        # Pressure at 1000 feet
+        self.pressure_at_1000ft_list = [
+            dayDict[hour]["pressure"](convert_units(1000, "ft", self.current_units["height_ASL"]))
+            for dayDict in self.pressureLevelDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        self.average_pressure_at_1000ft = np.average(self.pressure_at_1000ft_list)
+        self.std_pressure_at_1000ft = np.std(self.pressure_at_1000ft_list)
+
+        # Pressure at 10000 feet
+        self.pressure_at_10000ft_list = [
+            dayDict[hour]["pressure"](convert_units(10000, "ft", self.current_units["height_ASL"]))
+            for dayDict in self.pressureLevelDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        self.average_pressure_at_10000ft = np.average(self.pressure_at_10000ft_list)
+        self.std_pressure_at_10000ft = np.std(self.pressure_at_10000ft_list)
+
+        # Pressure at 30000 feet
+        self.pressure_at_30000ft_list = [
+            dayDict[hour]["pressure"](convert_units(30000, "ft", self.current_units["height_ASL"]))
+            for dayDict in self.pressureLevelDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        self.average_pressure_at_30000ft = np.average(self.pressure_at_30000ft_list)
+        self.std_pressure_at_30000ft = np.std(self.pressure_at_30000ft_list)
+
+        return self.average_surface_pressure, self.std_surface_pressure
+        
     def calculate_average_cloud_base_height(self):
         """Calculate average cloud base height."""
         self.mean_cloud_base_height = np.ma.mean(self.cloud_base_height)
@@ -2328,8 +2369,15 @@ class EnvironmentAnalysis:
         return HTML(animation.to_jshtml())
 
     def allInfo(self):
+        print("Pressure Information")
+        print(f"Average Surface Pressure: {self.average_surface_pressure:.2f} ± {self.std_surface_pressure:.2f} {self.unit_system['pressure']}")
+        print(f"Average Pressure at {convert_units(1000, 'ft', self.current_units['height_ASL']):.0f} {self.current_units['height_ASL']}: {self.average_pressure_at_1000ft:.2f} ± {self.std_pressure_at_1000ft:.2f} {self.unit_system['pressure']}")
+        print(f"Average Pressure at {convert_units(10000, 'ft', self.current_units['height_ASL']):.0f} {self.current_units['height_ASL']}: {self.average_pressure_at_10000ft:.2f} ± {self.std_pressure_at_1000ft:.2f} {self.unit_system['pressure']}")
+        print(f"Average Pressure at {convert_units(30000, 'ft', self.current_units['height_ASL']):.0f} {self.current_units['height_ASL']}: {self.average_pressure_at_30000ft:.2f} ± {self.std_pressure_at_1000ft:.2f} {self.unit_system['pressure']}")
+        print()
+
         print(
-            f"Surface Wind Speed Information ({convert_units(10, 'm', self.unit_system['length']):.0f} {self.unit_system['length']} above ground)"
+            f"Sustained Surface Wind Speed Information ({convert_units(10, 'm', self.unit_system['length']):.0f} {self.unit_system['length']} above ground)"
         )
         print(
             f"Historical Maximum Wind Speed: {self.record_max_surface_10m_wind_speed:.2f} {self.unit_system['wind_speed']}"
@@ -2346,7 +2394,7 @@ class EnvironmentAnalysis:
         print()
 
         print(
-            f"Surface Wind Speed Information ({convert_units(100, 'm', self.unit_system['length']):.0f} {self.unit_system['length']} above ground)"
+            f"Elevated Wind Speed Information ({convert_units(100, 'm', self.unit_system['length']):.0f} {self.unit_system['length']} above ground)"
         )
         print(
             f"Historical Maximum Wind Speed: {self.record_max_surface_100m_wind_speed:.2f} {self.unit_system['wind_speed']}"
