@@ -114,6 +114,7 @@ class EnvironmentAnalysis:
         self.surfaceDataFile = surfaceDataFile
         self.pressureLevelDataFile = pressureLevelDataFile
         self.preferred_timezone = timezone
+        self.unit_system = unit_system
 
         # Manage units and timezones
         self.__init_data_parsing_units()
@@ -138,18 +139,9 @@ class EnvironmentAnalysis:
         self.maximum_wind_gust = 0
         self.wind_gust_distribution = None
         self.average_temperature_along_day = Function(0)
-        self.average_temperature_along_day_1_sigma = Function(0)
-        self.average_temperature_along_day_2_sigma = Function(0)
-        self.average_temperature_along_day_3_sigma = Function(0)
         self.average_wind_profile = Function(0)
-        self.average_wind_profile_1_sigma = Function(0)
-        self.average_wind_profile_2_sigma = Function(0)
-        self.average_wind_profile_3_sigma = Function(0)
         self.average_wind_profile_at_given_hour = None
         self.average_wind_heading_profile = Function(0)
-        self.average_wind_heading_profile_1_sigma = Function(0)
-        self.average_wind_heading_profile_2_sigma = Function(0)
-        self.average_wind_heading_profile_3_sigma = Function(0)
         self.average_wind_heading_profile_at_given_hour = Function(0)
 
         self.max_wind_speed = None
