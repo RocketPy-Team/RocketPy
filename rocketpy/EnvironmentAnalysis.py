@@ -1634,6 +1634,79 @@ class EnvironmentAnalysis:
         self.wind_speed_per_hour = windSpeed
         self.wind_direction_per_hour = windDir
 
+    def plot_average_pressure_profile(self, SAcup_altitude_constraints=False):
+        """Average wind speed for all datetimes available."""
+        altitude_list = np.linspace(*self.altitude_AGL_range, 100)
+        pressure_profiles = [
+            dayDict[hour]["pressure"](altitude_list)
+            for dayDict in self.pressureLevelDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        self.average_pressure_profile = np.mean(pressure_profiles, axis=0)
+        # Plot
+        plt.figure()
+        plt.plot(self.average_pressure_profile, altitude_list, "r", label="$\\mu$")
+        plt.plot(
+            np.percentile(pressure_profiles, 50 - 34.1, axis=0),
+            altitude_list,
+            "b--",
+            alpha=1,
+            label="$\\mu \\pm \\sigma$",
+        )
+        plt.plot(
+            np.percentile(pressure_profiles, 50 + 34.1, axis=0),
+            altitude_list,
+            "b--",
+            alpha=1,
+        )
+        plt.plot(
+            np.percentile(pressure_profiles, 50 - 47.4, axis=0),
+            altitude_list,
+            "b--",
+            alpha=0.5,
+            label="$\\mu \\pm 2\\sigma$",
+        )
+        plt.plot(
+            np.percentile(pressure_profiles, 50 + 47.7, axis=0),
+            altitude_list,
+            "b--",
+            alpha=0.5,
+        )
+        # plt.plot(np.percentile(pressure_profiles, 50-49.8, axis=0, method='weibull'), altitude_list, 'b--', alpha=0.25)
+        # plt.plot(np.percentile(pressure_profiles, 50+49.8, axis=0, method='weibull'), altitude_list, 'b--', alpha=0.25)
+        for pressure_profile in pressure_profiles:
+            plt.plot(pressure_profile, altitude_list, "gray", alpha=0.01)
+
+        plt.autoscale(enable=True, axis="x", tight=True)
+        plt.autoscale(enable=True, axis="y", tight=True)
+
+        if SAcup_altitude_constraints:
+            # SA Cup altitude constraints region
+            print(plt)
+            xmin, xmax, ymin, ymax = plt.axis()
+            plt.fill_between(
+                [xmin, xmax],
+                0.7 * convert_units(10000, "ft", self.unit_system["length"]),
+                1.3 * convert_units(10000, "ft", self.unit_system["length"]),
+                color="g",
+                alpha=0.2,
+                label=f"10,000 {self.unit_system['length']} ± 30%",
+            )
+            plt.fill_between(
+                [xmin, xmax],
+                0.7 * convert_units(30000, "ft", self.unit_system["length"]),
+                1.3 * convert_units(30000, "ft", self.unit_system["length"]),
+                color="g",
+                alpha=0.2,
+                label=f"30,000 {self.unit_system['length']} ± 30%",
+            )
+
+        plt.xlabel(f"Pressure ({self.unit_system['pressure']})")
+        plt.ylabel(f"Altitude AGL ({self.unit_system['length']})")
+        plt.title("Average Pressure Profile")
+        plt.legend()
+        plt.show()
+
     @staticmethod
     def plot_wind_rose(
         wind_direction, wind_speed, bins=None, title=None, fig=None, rect=None
