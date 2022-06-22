@@ -177,14 +177,14 @@ class Rocket:
         self.inertiaZ = inertiaZ
 
         self.centerOfMass = (
-            (self.distanceRocketMotorReference - self.motor.yCM)
+            (self.distanceRocketMotorReference - self.motor.zCM)
             * motor.mass
             / (mass + motor.mass)
         )
 
         # Define rocket geometrical parameters in SI units
         self.radius = radius
-        self.area = np.pi * self.radius**2
+        self.area = np.pi * self.radius ** 2
 
         # Eccentricity data initialization
         self.cpEccentricityX = 0
@@ -392,9 +392,9 @@ class Rocket:
 
         # Calculate cp position relative to cm
         if distanceToCM < 0:
-            cpz = distanceToCM - (length / 3) * (1 + (1 - r) / (1 - r**2))
+            cpz = distanceToCM - (length / 3) * (1 + (1 - r) / (1 - r ** 2))
         else:
-            cpz = distanceToCM + (length / 3) * (1 + (1 - r) / (1 - r**2))
+            cpz = distanceToCM + (length / 3) * (1 + (1 - r) / (1 - r ** 2))
 
         # Calculate clalpha
         clalpha = -2 * (1 - r ** (-2)) * (topRadius / rref) ** 2
@@ -550,36 +550,36 @@ class Rocket:
             (s / 3) * (Cr + 2 * Ct) / Yr
         )  # span wise position of fin's mean aerodynamic chord
         gamac = np.arctan((Cr - Ct) / (2 * s))
-        Lf = np.sqrt((Cr / 2 - Ct / 2) ** 2 + s**2)
+        Lf = np.sqrt((Cr / 2 - Ct / 2) ** 2 + s ** 2)
         radius = self.radius if radius == 0 else radius
         d = 2 * radius
-        Aref = np.pi * radius**2
-        AR = 2 * s**2 / Af  # Barrowman's convention for fin's aspect ratio
+        Aref = np.pi * radius ** 2
+        AR = 2 * s ** 2 / Af  # Barrowman's convention for fin's aspect ratio
         cantAngleRad = np.radians(cantAngle)
         trapezoidalConstant = (
-            (Cr + 3 * Ct) * s**3
-            + 4 * (Cr + 2 * Ct) * radius * s**2
-            + 6 * (Cr + Ct) * s * radius**2
+            (Cr + 3 * Ct) * s ** 3
+            + 4 * (Cr + 2 * Ct) * radius * s ** 2
+            + 6 * (Cr + Ct) * s * radius ** 2
         ) / 12
 
         # Fin–body interference correction parameters
         τ = (s + radius) / radius
         λ = Ct / Cr
         liftInterferenceFactor = 1 + 1 / τ
-        rollForcingInterferenceFactor = (1 / np.pi**2) * (
-            (np.pi**2 / 4) * ((τ + 1) ** 2 / τ**2)
-            + ((np.pi * (τ**2 + 1) ** 2) / (τ**2 * (τ - 1) ** 2))
-            * np.arcsin((τ**2 - 1) / (τ**2 + 1))
+        rollForcingInterferenceFactor = (1 / np.pi ** 2) * (
+            (np.pi ** 2 / 4) * ((τ + 1) ** 2 / τ ** 2)
+            + ((np.pi * (τ ** 2 + 1) ** 2) / (τ ** 2 * (τ - 1) ** 2))
+            * np.arcsin((τ ** 2 - 1) / (τ ** 2 + 1))
             - (2 * np.pi * (τ + 1)) / (τ * (τ - 1))
-            + ((τ**2 + 1) ** 2)
-            / (τ**2 * (τ - 1) ** 2)
-            * (np.arcsin((τ**2 - 1) / (τ**2 + 1))) ** 2
-            - (4 * (τ + 1)) / (τ * (τ - 1)) * np.arcsin((τ**2 - 1) / (τ**2 + 1))
-            + (8 / (τ - 1) ** 2) * np.log((τ**2 + 1) / (2 * τ))
+            + ((τ ** 2 + 1) ** 2)
+            / (τ ** 2 * (τ - 1) ** 2)
+            * (np.arcsin((τ ** 2 - 1) / (τ ** 2 + 1))) ** 2
+            - (4 * (τ + 1)) / (τ * (τ - 1)) * np.arcsin((τ ** 2 - 1) / (τ ** 2 + 1))
+            + (8 / (τ - 1) ** 2) * np.log((τ ** 2 + 1) / (2 * τ))
         )
         rollDampingInterferenceFactor = 1 + (
             ((τ - λ) / (τ)) - ((1 - λ) / (τ - 1)) * np.log(τ)
-        ) / (((τ + 1) * (τ - λ)) / (2) - ((1 - λ) * (τ**3 - 1)) / (3 * (τ - 1)))
+        ) / (((τ + 1) * (τ - λ)) / (2) - ((1 - λ) * (τ ** 3 - 1)) / (3 * (τ - 1)))
 
         # Save geometric parameters for later Fin Flutter Analysis and Roll Moment Calculation
         self.rootChord = Cr
@@ -607,11 +607,11 @@ class Rocket:
             """
 
             if mach < 0.8:
-                return np.sqrt(1 - mach**2)
+                return np.sqrt(1 - mach ** 2)
             elif mach < 1.1:
-                return np.sqrt(1 - 0.8**2)
+                return np.sqrt(1 - 0.8 ** 2)
             else:
-                return np.sqrt(mach**2 - 1)
+                return np.sqrt(mach ** 2 - 1)
 
         # Defines number of fins correction
         def finNumCorrection(n):
@@ -695,7 +695,7 @@ class Rocket:
             * clalphaSingleFin
             * np.cos(cantAngleRad)
             * trapezoidalConstant
-            / (Aref * d**2)
+            / (Aref * d ** 2)
         )
         # Function of mach number
         rollParameters = [clfDelta, cldOmega, cantAngleRad]
