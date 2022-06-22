@@ -152,12 +152,11 @@ class Rocket:
         self.mass = mass
         self.inertiaI = inertiaI
         self.inertiaZ = inertiaZ
-        self.centerOfMass = distanceRocketPropellant * \
-            motor.mass / (mass + motor.mass)
+        self.centerOfMass = distanceRocketPropellant * motor.mass / (mass + motor.mass)
 
         # Define rocket geometrical parameters in SI units
         self.radius = radius
-        self.area = np.pi * self.radius**2
+        self.area = np.pi * self.radius ** 2
 
         # Center of mass distance to points of interest
         self.distanceRocketNozzle = distanceRocketNozzle
@@ -319,8 +318,7 @@ class Rocket:
             self.cpPosition /= self.totalLiftCoeffDer
 
         # Calculate static margin
-        self.staticMargin = (self.centerOfMass -
-                             self.cpPosition) / (2 * self.radius)
+        self.staticMargin = (self.centerOfMass - self.cpPosition) / (2 * self.radius)
         self.staticMargin.setInputs("Time (s)")
         self.staticMargin.setOutputs("Static Margin (c)")
         self.staticMargin.setDiscrete(
@@ -374,9 +372,9 @@ class Rocket:
 
         # Calculate cp position relative to cm
         if distanceToCM < 0:
-            cpz = distanceToCM - (length / 3) * (1 + (1 - r) / (1 - r**2))
+            cpz = distanceToCM - (length / 3) * (1 + (1 - r) / (1 - r ** 2))
         else:
-            cpz = distanceToCM + (length / 3) * (1 + (1 - r) / (1 - r**2))
+            cpz = distanceToCM + (length / 3) * (1 + (1 - r) / (1 - r ** 2))
 
         # Calculate clalpha
         clalpha = -2 * (1 - r ** (-2)) * (topRadius / rref) ** 2
@@ -530,16 +528,13 @@ class Rocket:
         """
         # Checking the dictionary
         if "rootChord" not in finParameters.keys():
-            raise Exception(
-                "rootChord dictionary key is missing from finParameters")
+            raise Exception("rootChord dictionary key is missing from finParameters")
         if "span" not in finParameters.keys():
-            raise Exception(
-                "span dictionary key is missing from finParameters")
+            raise Exception("span dictionary key is missing from finParameters")
 
         if type == "trapezoid":
             if "tipChord" not in finParameters.keys():
-                raise Exception(
-                    "tipChord dictionary key is missing from finParameters")
+                raise Exception("tipChord dictionary key is missing from finParameters")
 
         # Retrieves abstract parameters
         Cr = finParameters["rootChord"]
@@ -562,9 +557,9 @@ class Rocket:
             )  # span wise position of fin's mean aerodynamic chord
 
             rollGeometricalConstant = (
-                (Cr + 3 * Ct) * s**3
-                + 4 * (Cr + 2 * Ct) * radius * s**2
-                + 6 * (Cr + Ct) * s * radius**2
+                (Cr + 3 * Ct) * s ** 3
+                + 4 * (Cr + 2 * Ct) * radius * s ** 2
+                + 6 * (Cr + Ct) * s * radius ** 2
             ) / 12
 
             # Calculate cp position relative to cm
@@ -584,11 +579,11 @@ class Rocket:
             # Retrieve parameters for calculations
             Af = (np.pi * Cr / 2 * s) / 2
             gamac = 0
-            Yma = s / (3 * np.pi) * np.sqrt(9 * np.pi**2 - 16)
+            Yma = s / (3 * np.pi) * np.sqrt(9 * np.pi ** 2 - 16)
             rollGeometricalConstant = (
                 Cr
                 * s
-                * (3 * np.pi * s**2 + 32 * radius * s + 12 * np.pi * radius**2)
+                * (3 * np.pi * s ** 2 + 32 * radius * s + 12 * np.pi * radius ** 2)
                 / 48
             )
 
@@ -602,8 +597,8 @@ class Rocket:
             raise Exception("Invalid fin shape")
 
         # Retrieves abstract parameters
-        Aref = np.pi * radius**2
-        AR = 2 * s**2 / Af
+        Aref = np.pi * radius ** 2
+        AR = 2 * s ** 2 / Af
         rollParameters = [0, 0, 0]
 
         # Fin–body interference correction parameters
@@ -615,42 +610,38 @@ class Rocket:
                 ((tau - λ) / (tau)) - ((1 - λ) / (tau - 1)) * np.log(tau)
             ) / (
                 ((tau + 1) * (tau - λ)) / (2)
-                - ((1 - λ) * (tau**3 - 1)) / (3 * (tau - 1))
+                - ((1 - λ) * (tau ** 3 - 1)) / (3 * (tau - 1))
             )
         else:  # type == "elliptical"
             rollDampingInterferenceFactor = 1 + (
-                (
-                    np.sqrt(s**2 - radius**2)
-                    * (
-                        2
-                        * Cr
-                        * radius**2
-                        * np.log(
-                            (2 * s * np.sqrt(s**2 - radius**2) + 2 * s**2)
-                            / (radius)
-                        )
-                        - 2 * Cr * radius**2 * np.log(2 * s)
+                (radius ** 2)
+                * (
+                    2
+                    * (radius ** 2)
+                    * np.sqrt(s ** 2 - radius ** 2)
+                    * np.log(
+                        (2 * s * np.sqrt(s ** 2 - radius ** 2) + 2 * s ** 2) / radius
                     )
-                    + 2 * Cr * s**3
-                    - np.pi * Cr * radius * s**2
-                    - 2 * Cr * radius**2 * s
-                    + np.pi * Cr * radius**3
+                    - 2 * (radius ** 2) * np.sqrt(s ** 2 - radius ** 2) * np.log(2 * s)
+                    + 2 * s ** 3
+                    - np.pi * radius * s ** 2
+                    - 2 * (radius ** 2) * s
+                    + np.pi * radius ** 3
                 )
-                / ((2 * radius * s**3 - 2 * radius**3 * s))
-            ) / Cr * (s**2 / 3 + np.pi * radius * s / 4)
+            ) / (2 * (s ** 2) * (s / 3 + np.pi * radius / 4) * (s ** 2 - radius ** 2))
 
-        rollForcingInterferenceFactor = (1 / np.pi**2) * (
-            (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
-            + ((np.pi * (tau**2 + 1) ** 2) / (tau**2 * (tau - 1) ** 2))
-            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
+        rollForcingInterferenceFactor = (1 / np.pi ** 2) * (
+            (np.pi ** 2 / 4) * ((tau + 1) ** 2 / tau ** 2)
+            + ((np.pi * (tau ** 2 + 1) ** 2) / (tau ** 2 * (tau - 1) ** 2))
+            * np.arcsin((tau ** 2 - 1) / (tau ** 2 + 1))
             - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
-            + ((tau**2 + 1) ** 2)
-            / (tau**2 * (tau - 1) ** 2)
-            * (np.arcsin((tau**2 - 1) / (tau**2 + 1))) ** 2
+            + ((tau ** 2 + 1) ** 2)
+            / (tau ** 2 * (tau - 1) ** 2)
+            * (np.arcsin((tau ** 2 - 1) / (tau ** 2 + 1))) ** 2
             - (4 * (tau + 1))
             / (tau * (tau - 1))
-            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
-            + (8 / (tau - 1) ** 2) * np.log((tau**2 + 1) / (2 * tau))
+            * np.arcsin((tau ** 2 - 1) / (tau ** 2 + 1))
+            + (8 / (tau - 1) ** 2) * np.log((tau ** 2 + 1) / (2 * tau))
         )
 
         # Auxiliary functions
@@ -672,11 +663,11 @@ class Rocket:
             """
 
             if mach < 0.8:
-                return np.sqrt(1 - mach**2)
+                return np.sqrt(1 - mach ** 2)
             elif mach < 1.1:
-                return np.sqrt(1 - 0.8**2)
+                return np.sqrt(1 - 0.8 ** 2)
             else:
-                return np.sqrt(mach**2 - 1)
+                return np.sqrt(mach ** 2 - 1)
 
         # Defines number of fins correction
         def finNumCorrection(n):
@@ -727,8 +718,7 @@ class Rocket:
 
         # Lift coefficient derivative for a single fin
         clalphaSingleFin = Function(
-            lambda mach: (clalpha2D(mach) * FD(mach) *
-                          (Af / Aref) * np.cos(gamac))
+            lambda mach: (clalpha2D(mach) * FD(mach) * (Af / Aref) * np.cos(gamac))
             / (2 + FD(mach) * np.sqrt(1 + (2 / FD(mach)) ** 2))
         )
 
@@ -747,8 +737,7 @@ class Rocket:
         # Parameters for Roll Moment.
         # Documented at: https://github.com/Projeto-Jupiter/RocketPy/blob/develop/docs/technical/aerodynamics/Roll_Equations.pdf
         clfDelta = (
-            rollForcingInterferenceFactor * n *
-            (Yma + radius) * clalphaSingleFin / d
+            rollForcingInterferenceFactor * n * (Yma + radius) * clalphaSingleFin / d
         )  # Function of mach number
         cldOmega = (
             2
@@ -757,7 +746,7 @@ class Rocket:
             * clalphaSingleFin
             * np.cos(cantAngleRad)
             * rollGeometricalConstant
-            / (Aref * d**2)
+            / (Aref * d ** 2)
         )
         # Function of mach number
         rollParameters = [clfDelta, cldOmega, cantAngleRad]
@@ -973,8 +962,7 @@ class Rocket:
         # Print inertia details
         print("Inertia Details")
         print("Rocket Dry Mass: " + str(self.mass) + " kg (No Propellant)")
-        print("Rocket Total Mass: " +
-              str(self.totalMass(0)) + " kg (With Propellant)")
+        print("Rocket Total Mass: " + str(self.totalMass(0)) + " kg (With Propellant)")
 
         # Print rocket geometrical parameters
         print("\nGeometrical Parameters")
@@ -982,8 +970,7 @@ class Rocket:
 
         # Print rocket aerodynamics quantities
         print("\nAerodynamics Stability")
-        print("Initial Static Margin: " +
-              "{:.3f}".format(self.staticMargin(0)) + " c")
+        print("Initial Static Margin: " + "{:.3f}".format(self.staticMargin(0)) + " c")
         print(
             "Final Static Margin: "
             + "{:.3f}".format(self.staticMargin(self.motor.burnOutTime))
@@ -1016,8 +1003,7 @@ class Rocket:
         # Print inertia details
         print("Inertia Details")
         print("Rocket Mass: {:.3f} kg (No Propellant)".format(self.mass))
-        print("Rocket Mass: {:.3f} kg (With Propellant)".format(
-            self.totalMass(0)))
+        print("Rocket Mass: {:.3f} kg (With Propellant)".format(self.totalMass(0)))
         print("Rocket Inertia I: {:.3f} kg*m2".format(self.inertiaI))
         print("Rocket Inertia Z: {:.3f} kg*m2".format(self.inertiaZ))
 
@@ -1052,23 +1038,20 @@ class Rocket:
                 lambda alpha: aerodynamicSurface["cl"](alpha, 0),
             ).differentiate(x=1e-2, dx=1e-3)
             print(
-                name +
-                " Lift Coefficient Derivative: {:.3f}".format(clalpha) + "/rad"
+                name + " Lift Coefficient Derivative: {:.3f}".format(clalpha) + "/rad"
             )
 
         print("\nAerodynamics Center of Pressure")
         for aerodynamicSurface in self.aerodynamicSurfaces:
             name = aerodynamicSurface["name"]
             cpz = aerodynamicSurface["cp"][2]
-            print(
-                name + " Center of Pressure to CM: {:.3f}".format(cpz) + " m")
+            print(name + " Center of Pressure to CM: {:.3f}".format(cpz) + " m")
         print(
             "Distance - Center of Pressure to CM: "
             + "{:.3f}".format(self.cpPosition)
             + " m"
         )
-        print("Initial Static Margin: " +
-              "{:.3f}".format(self.staticMargin(0)) + " c")
+        print("Initial Static Margin: " + "{:.3f}".format(self.staticMargin(0)) + " c")
         print(
             "Final Static Margin: "
             + "{:.3f}".format(self.staticMargin(self.motor.burnOutTime))
@@ -1087,8 +1070,7 @@ class Rocket:
                 )
             else:
                 print("Ejection signal trigger: " + chute.trigger.__name__)
-            print("Ejection system refresh rate: " +
-                  str(chute.samplingRate) + " Hz.")
+            print("Ejection system refresh rate: " + str(chute.samplingRate) + " Hz.")
             print(
                 "Time between ejection signal is triggered and the "
                 "parachute is fully opened: " + str(chute.lag) + " s"
@@ -1128,8 +1110,7 @@ class Rocket:
         pi = np.pi
         # Calculate angular positions if not given
         if angularPositions is None:
-            angularPositions = np.array(
-                range(numberOfFins)) * 2 * pi / numberOfFins
+            angularPositions = np.array(range(numberOfFins)) * 2 * pi / numberOfFins
         else:
             angularPositions = np.array(angularPositions) * pi / 180
         # Convert gammas to degree
@@ -1154,5 +1135,4 @@ class Rocket:
         return None
 
     # Variables
-    railButtonPair = namedtuple(
-        "railButtonPair", "distanceToCM angularPosition")
+    railButtonPair = namedtuple("railButtonPair", "distanceToCM angularPosition")

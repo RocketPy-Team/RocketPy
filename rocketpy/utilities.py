@@ -31,5 +31,5 @@ def compute_CdS_from_drop_test(
 
     """
 
-    CdS = 2 * rocket_mass * gravity / ((terminal_velocity**2) * air_density)
+    CdS = 2 * rocket_mass * gravity / ((terminal_velocity ** 2) * air_density)
     return CdS
