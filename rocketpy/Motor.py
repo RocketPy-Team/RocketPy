@@ -1582,7 +1582,7 @@ class HybridMotor(Motor):
         # Other quantities that will be computed
         self.massDot = None
         self.zCM = None
-        self.oxidizerInitialMass = None
+        self.liquidInitialMass = None
         self.mass = None
         self.grainInnerRadius = None
         self.grainHeight = None
