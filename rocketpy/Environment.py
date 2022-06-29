@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 __author__ = "Giovani Hidalgo Ceotto, Guilherme Fernandes Alves, Lucas Azevedo Pezente, Oscar Mauricio Prada Ramirez, Lucas Kierulff Balabram"
-__copyright__ = "Copyright 20XX, Projeto Jupiter"
+__copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 import re
