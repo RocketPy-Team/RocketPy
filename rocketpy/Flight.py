@@ -1,24 +1,18 @@
 # -*- coding: utf-8 -*-
 
-__author__ = "Giovani Hidalgo Ceotto, João Lemes Gribel Soares"
-__copyright__ = "Copyright 20XX, Projeto Jupiter"
+__author__ = (
+    "Giovani Hidalgo Ceotto, Guilherme Fernandes Alves, João Lemes Gribel Soares"
+)
+__copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
-import re
 import math
-import bisect
-import warnings
 import time
-from datetime import datetime, timedelta
-from inspect import signature, getsourcelines
-from collections import namedtuple
 
 import numpy as np
 from scipy import integrate
-from scipy import linalg
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import cm
+import simplekml
 
 from .Function import Function
 
@@ -123,6 +117,12 @@ class Flight:
             Rocket's angular velocity Omega 3 as a function of time.
             Direction 3 is in the rocket's body axis and points in the
             direction of cylindrical symmetry.
+        Flight.latitude: Function
+            Rocket's latitude coordinates (positive North) as a function of time.
+            The Equator has a latitude equal to 0, by convention.
+        Flight.longitude: Function
+            Rocket's longitude coordinates (positive East) as a function of time.
+            Greenwich meridian has a longitude equal to 0, by convention.
 
         Solution attributes:
         Flight.inclination : int, float
@@ -628,6 +628,8 @@ class Flight:
         self.impactState = np.array([0])
         self.parachuteEvents = []
         self.postProcessed = False
+        self.latitude = 0  # Function(0)
+        self.longitude = 0  # Function(0)
         # Initialize solver monitors
         self.functionEvaluations = []
         self.functionEvaluationsPerTimeStep = []
@@ -2091,6 +2093,99 @@ class Flight:
             angleOfAttack, "Time (s)", "Angle Of Attack (°)", "linear"
         )
 
+        # Converts x and y positions to lat and lon
+        # We are currently considering the earth as a sphere.
+        bearing = []
+        distance = [
+            (self.x[i][1] ** 2 + self.y[i][1] ** 2) ** 0.5 for i in range(len(self.x))
+        ]
+        for i in range(len(self.x)):
+            # Check if the point is over the grid (i.e. if x*y == 0)
+            if self.x[i][1] == 0:
+                if self.y[i][1] < 0:
+                    bearing.append(3.14159265359)
+                else:
+                    bearing.append(0)
+                continue
+            if self.y[i][1] == 0:
+                if self.x[i][1] < 0:
+                    bearing.append(3 * 3.14159265359 / 2)
+                elif self.x[i][1] > 0:
+                    bearing.append(3.14159265359 / 2)
+                else:
+                    continue
+                continue
+
+            # Calculate bearing as the azimuth considering different quadrants
+            if self.x[i][1] * self.y[i][1] > 0 and self.x[i][1] > 0:
+                bearing.append(math.atan(abs(self.x[i][1]) / abs(self.y[i][1])))
+            elif self.x[i][1] * self.y[i][1] < 0 and self.x[i][1] > 0:
+                bearing.append(
+                    3.14159265359 / 2 + math.atan(abs(self.y[i][1]) / abs(self.x[i][1]))
+                )
+            elif self.x[i][1] * self.y[i][1] > 0 and self.x[i][1] < 0:
+                bearing.append(
+                    3.14159265359 + math.atan(abs(self.x[i][1]) / abs(self.y[i][1]))
+                )
+            elif self.x[i][1] * self.y[i][1] < 0 and self.x[i][1] < 0:
+                bearing.append(
+                    3 * 3.14159265359 / 2
+                    + math.atan(abs(self.y[i][1]) / abs(self.x[i][1]))
+                )
+
+        # Store values of distance and bearing using appropriate units
+        # self.distance = distance      # Must be in meters
+        # self.bearing = bearing        # Must be in radians
+
+        lat1 = (
+            3.14159265359 * self.env.lat / 180
+        )  # Launch lat point converted to radians
+        lon1 = (
+            3.14159265359 * self.env.lon / 180
+        )  # Launch long point converted to radians
+
+        R = self.env.earthRadius
+        lat2 = []
+        lon2 = []
+        # Applies the haversine equation to find final lat/lon coordinates
+        for i in range(len(self.x)):
+            # Please notice that for distances lower than 1 centimeter the difference on latitude or longitude too small
+            if abs(self.y[i][1]) < 1e-2:
+                lat2.append(self.env.lat)
+            else:
+                lat2.append(
+                    (180 / 3.14159265359)
+                    * math.asin(
+                        math.sin(lat1) * math.cos(distance[i] / R)
+                        + math.cos(lat1)
+                        * math.sin(distance[i] / R)
+                        * math.cos(bearing[i])
+                    )
+                )
+            if abs(self.x[i][1]) < 1e-2:
+                lon2.append(self.env.lon)
+            else:
+                lon2.append(
+                    (180 / 3.14159265359)
+                    * (
+                        lon1
+                        + math.atan2(
+                            math.sin(bearing[i])
+                            * math.sin(distance[i] / R)
+                            * math.cos(lat1),
+                            math.cos(distance[i] / R)
+                            - math.sin(lat1) * math.sin(lat2[i]),
+                        )
+                    )
+                )
+
+        latitude = [[self.solution[i][0], lat2[i]] for i in range(len(self.solution))]
+        longitude = [[self.solution[i][0], lon2[i]] for i in range(len(self.solution))]
+
+        # Store final values of lat/lon as a function of time
+        self.latitude = Function(latitude, "Time (s)", "Latitude (°)", "linear")
+        self.longitude = Function(longitude, "Time (s)", "Longitude (°)", "linear")
+
         # Post process other quantities
 
         # Transform parachute sensor feed into functions
@@ -2403,8 +2498,8 @@ class Flight:
         vF = self.outOfRailVelocity
 
         # Convert angle to radians
-        theta = self.inclination * np.pi / 180
-        stallAngle = stallAngle * np.pi / 180
+        theta = self.inclination * 3.14159265359 / 180
+        stallAngle = stallAngle * 3.14159265359 / 180
 
         c = (math.cos(stallAngle) ** 2 - math.cos(theta) ** 2) / math.sin(
             stallAngle
@@ -3112,8 +3207,8 @@ class Flight:
         # Calculate a safety factor for flutter
         self.safetyFactor = self.flutterMachNumber / self.MachNumber
 
-        # Calculate the minimun Fin Flutter Mach Number and Velocity
-        # Calculate the time and height of minimun Fin Flutter Mach Number
+        # Calculate the minimum Fin Flutter Mach Number and Velocity
+        # Calculate the time and height of minimum Fin Flutter Mach Number
         minflutterMachNumberTimeIndex = np.argmin(self.flutterMachNumber[:, 1])
         minflutterMachNumber = self.flutterMachNumber[minflutterMachNumberTimeIndex, 1]
         minMFTime = self.flutterMachNumber[minflutterMachNumberTimeIndex, 0]
@@ -3128,8 +3223,8 @@ class Flight:
         minDifHeight = self.z(minDifTime) - self.env.elevation
         minDifVelocity = minDif * self.env.speedOfSound(minDifHeight)
 
-        # Calculate the minimun Fin Flutter Safety factor
-        # Calculate the time and height of minimun Fin Flutter Safety factor
+        # Calculate the minimum Fin Flutter Safety factor
+        # Calculate the time and height of minimum Fin Flutter Safety factor
         minSFTimeIndex = np.argmin(self.safetyFactor[:, 1])
         minSF = self.safetyFactor[minSFTimeIndex, 1]
         minSFTime = self.safetyFactor[minSFTimeIndex, 0]
@@ -3350,8 +3445,8 @@ class Flight:
         clean pressure in Pascals and noisy pressure in Pascals. For flights without
         parachutes, the third column will be discarded
 
-        This function was created especially for the Projeto Jupiter Electronics
-        Subsystems team and aims to help in configuring microcontrollers.
+        This function was created especially for the 'Projeto Jupiter' Electronics
+        Subsystems team and aims to help in configuring micro-controllers.
 
         Parameters
         ----------
@@ -3483,6 +3578,88 @@ class Flight:
         )
 
         return
+
+    def exportKML(
+        self,
+        fileName="trajectory.kml",
+        timeStep=None,
+        extrude=True,
+        color="641400F0",
+        altitudeMode="absolute",
+    ):
+        """Exports flight data to a .kml file, which can be opened with Google Earth to display the rocket's trajectory.
+
+        Parameters
+        ----------
+        fileName : string
+            The file name or path of the exported file. Example: flight_data.csv.
+            Do not use forbidden characters, such as '/' in Linux/Unix and
+            '<, >, :, ", /, \\, | ?, *' in Windows.
+        timeStep : float, optional
+            Time step desired for the data. If None, all integration time steps
+            will be exported. Otherwise, linear interpolation is carried out to
+            calculate values at the desired time steps. Example: 0.001.
+        extrude: bool, optional
+            To be used if you want to project the path over ground by using an
+            extruded polygon. In case False only the linestring containing the
+            flight path will be created. Default is True.
+        color : str, optional
+            Color of your trajectory path, need to be used in specific kml format.
+            Refer to http://www.zonums.com/gmaps/kml_color/ for more info.
+        altitudeMode: str
+            Select elevation values format to be used on the kml file. Use
+            'relativetoground' if you want use Above Ground Level elevation, or
+            'absolute' if you want to parse elevation using Above Sea Level.
+            Default is 'relativetoground'. Only works properly if the ground level is flat.
+            Change to 'absolute' if the terrain is to irregular or contains mountains.
+        Returns
+        -------
+        None
+        """
+        # Define time points vector
+        if self.postProcessed is False:
+            self.postProcess()
+        if timeStep is None:
+            # Get time from any Function, should all be the same
+            timePoints = self.z[:, 0]
+        else:
+            timePoints = np.arange(self.tInitial, self.tFinal + timeStep, timeStep)
+        # Open kml file with simplekml library
+        kml = simplekml.Kml(open=1)
+        trajectory = kml.newlinestring(name="Rocket Trajectory - Powered by RocketPy")
+        coords = []
+        if altitudeMode == "relativetoground":
+            # In this mode the elevation data will be the Above Ground Level
+            # elevation. Only works properly if the ground level is similar to
+            # a plane, i.e. it might not work well if the terrain has mountains
+            for t in timePoints:
+                coords.append(
+                    (
+                        self.longitude(t),
+                        self.latitude(t),
+                        self.z(t) - self.env.elevation,
+                    )
+                )
+            trajectory.coords = coords
+            trajectory.altitudemode = simplekml.AltitudeMode.relativetoground
+        else:  # altitudeMode == 'absolute'
+            # In this case the elevation data will be the Above Sea Level elevation
+            # Ensure you use the correct value on self.env.elevation, otherwise
+            # the trajectory path can be offset from ground
+            for t in timePoints:
+                coords.append((self.longitude(t), self.latitude(t), self.z(t)))
+            trajectory.coords = coords
+            trajectory.altitudemode = simplekml.AltitudeMode.absolute
+        # Modify style of trajectory linestring
+        trajectory.style.linestyle.color = color
+        trajectory.style.polystyle.color = color
+        if extrude:
+            trajectory.extrude = 1
+        # Save the KML
+        kml.save(fileName)
+        print("File ", fileName, " saved with success!")
+
+        return None
 
     def allInfo(self):
         """Prints out all data and graphs available about the Flight.
@@ -3678,7 +3855,7 @@ class Flight:
                     self.add(flightPhase, index)
                 elif flightPhase.t == nextPhase.t:
                     print(
-                        "WARNING: Trying to add a flight phase starting together with the one proceding it."
+                        "WARNING: Trying to add a flight phase starting together with the one proceeding it."
                     )
                     print(
                         "This may be caused by more than when parachute being triggered simultaneously."
@@ -3687,7 +3864,7 @@ class Flight:
                     self.add(flightPhase, index + 1)
                 elif flightPhase.t > nextPhase.t:
                     print(
-                        "WARNING: Trying to add a flight phase starting after the one proceding it."
+                        "WARNING: Trying to add a flight phase starting after the one proceeding it."
                     )
                     print(
                         "This may be caused by more than when parachute being triggered simultaneously."

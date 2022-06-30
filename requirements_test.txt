@@ -3,3 +3,4 @@ pytest-coverage
 black
 flake8-black
 pandas
+numericalunits==1.25
