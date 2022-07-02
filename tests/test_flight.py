@@ -31,21 +31,21 @@ def setup_rocket_with_given_static_margin(rocket, static_margin):
         Rocket with the given static margin.
     """
 
-    def compute_static_margin_error_given_distance(distanceToCM, static_margin, rocket):
+    def compute_static_margin_error_given_distance(positionFins, static_margin, rocket):
         rocket.aerodynamicSurfaces = []
-        rocket.addNose(length=0.5, kind="vonKarman", distanceToCM=1.0)
+        rocket.addNose(length=0.5, kind="vonKarman", positionNose=1.5)
         rocket.addFins(
             4,
             span=0.100,
             rootChord=0.100,
             tipChord=0.100,
-            distanceToCM=distanceToCM,
+            positionFins=positionFins,
         )
         rocket.addTail(
             topRadius=0.0635,
             bottomRadius=0.0435,
             length=0.060,
-            distanceToCM=-1.194656,
+            positionTail=-1.194656,
         )
         return rocket.staticMargin(0) - static_margin
 
@@ -94,21 +94,20 @@ def test_flight(mock_show):
         mass=19.197 - 2.956,
         inertiaI=6.60,
         inertiaZ=0.0351,
-        distanceRocketNozzle=-1.255,
+        positionNozzle=-1.255,
+        positionCenterOfDryMass=0,
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
 
     test_rocket.setRailButtons([0.2, -0.5])
 
-    NoseCone = test_rocket.addNose(
-        length=0.55829, kind="vonKarman", distanceToCM=0.71971
-    )
+    NoseCone = test_rocket.addNose(length=0.55829, kind="vonKarman", positionNose=1.278)
     FinSet = test_rocket.addFins(
-        4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
+        4, span=0.100, rootChord=0.120, tipChord=0.040, positionFins=-1.04956
     )
     Tail = test_rocket.addTail(
-        topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656
+        topRadius=0.0635, bottomRadius=0.0435, length=0.060, positionTail=-1.194656
     )
 
     def drogueTrigger(p, y):
@@ -183,21 +182,20 @@ def test_initial_solution(mock_show):
         mass=19.197 - 2.956,
         inertiaI=6.60,
         inertiaZ=0.0351,
-        distanceRocketNozzle=-1.255,
+        positionNozzle=-1.255,
+        positionCenterOfDryMass=0,
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
 
     test_rocket.setRailButtons([0.2, -0.5])
 
-    NoseCone = test_rocket.addNose(
-        length=0.55829, kind="vonKarman", distanceToCM=0.71971
-    )
+    NoseCone = test_rocket.addNose(length=0.55829, kind="vonKarman", positionNose=1.278)
     FinSet = test_rocket.addFins(
-        4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
+        4, span=0.100, rootChord=0.120, tipChord=0.040, positionFins=-1.04956
     )
     Tail = test_rocket.addTail(
-        topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656
+        topRadius=0.0635, bottomRadius=0.0435, length=0.060, positionTail=-1.194656
     )
 
     def drogueTrigger(p, y):
@@ -307,7 +305,8 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
         mass=1e16,
         inertiaI=1,
         inertiaZ=0.0351,
-        distanceRocketNozzle=-1.255,
+        positionNozzle=-1.255,
+        positionCenterOfDryMass=0,
         powerOffDrag=0,
         powerOnDrag=0,
     )
@@ -381,26 +380,25 @@ def test_rolling_flight(mock_show):
         mass=19.197 - 2.956,
         inertiaI=6.60,
         inertiaZ=0.0351,
-        distanceRocketNozzle=-1.255,
+        positionNozzle=-1.255,
+        positionCenterOfDryMass=0,
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
 
     test_rocket.setRailButtons([0.2, -0.5])
 
-    NoseCone = test_rocket.addNose(
-        length=0.55829, kind="vonKarman", distanceToCM=0.71971
-    )
+    NoseCone = test_rocket.addNose(length=0.55829, kind="vonKarman", positionNose=1.278)
     FinSet = test_rocket.addFins(
         4,
         span=0.100,
         rootChord=0.120,
         tipChord=0.040,
-        distanceToCM=-1.04956,
+        positionFins=-1.04956,
         cantAngle=0.5,
     )
     Tail = test_rocket.addTail(
-        topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656
+        topRadius=0.0635, bottomRadius=0.0435, length=0.060, positionTail=-1.194656
     )
 
     def drogueTrigger(p, y):
@@ -472,18 +470,17 @@ def test_export_data():
         mass=19.197 - 2.956,
         inertiaI=6.60,
         inertiaZ=0.0351,
-        distanceRocketNozzle=-1.255,
+        positionNozzle=-1.255,
+        positionCenterOfDryMass=0,
         powerOffDrag=0.5,
         powerOnDrag=0.5,
     )
 
     test_rocket.setRailButtons([0.2, -0.5])
 
-    NoseCone = test_rocket.addNose(
-        length=0.55829, kind="vonKarman", distanceToCM=0.71971
-    )
+    NoseCone = test_rocket.addNose(length=0.55829, kind="vonKarman", positionNose=1.278)
     FinSet = test_rocket.addFins(
-        4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
+        4, span=0.100, rootChord=0.120, tipChord=0.040, positionFins=-1.04956
     )
 
     test_flight = Flight(
@@ -560,21 +557,20 @@ def test_latlon_convertions(mock_show):
         mass=19.197 - 2.956,
         inertiaI=6.60,
         inertiaZ=0.0351,
-        distanceRocketNozzle=-1.255,
+        positionNozzle=-1.255,
+        positionCenterOfDryMass=0,
         powerOffDrag=0.5,
         powerOnDrag=0.5,
     )
 
     test_rocket.setRailButtons([0.2, -0.5])
 
-    NoseCone = test_rocket.addNose(
-        length=0.55829, kind="vonKarman", distanceToCM=0.71971
-    )
+    NoseCone = test_rocket.addNose(length=0.55829, kind="vonKarman", positionNose=1.278)
     FinSet = test_rocket.addFins(
-        4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
+        4, span=0.100, rootChord=0.120, tipChord=0.040, positionFins=-1.04956
     )
     Tail = test_rocket.addTail(
-        topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656
+        topRadius=0.0635, bottomRadius=0.0435, length=0.060, positionTail=-1.194656
     )
 
     def drogueTrigger(p, y):
@@ -640,21 +636,20 @@ def test_latlon_convertions2(mock_show):
         mass=19.197 - 2.956,
         inertiaI=6.60,
         inertiaZ=0.0351,
-        distanceRocketNozzle=-1.255,
+        positionNozzle=-1.255,
+        positionCenterOfDryMass=0,
         powerOffDrag=0.5,
         powerOnDrag=0.5,
     )
 
     test_rocket.setRailButtons([0.2, -0.5])
 
-    NoseCone = test_rocket.addNose(
-        length=0.55829, kind="vonKarman", distanceToCM=0.71971
-    )
+    NoseCone = test_rocket.addNose(length=0.55829, kind="vonKarman", positionNose=1.278)
     FinSet = test_rocket.addFins(
-        4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
+        4, span=0.100, rootChord=0.120, tipChord=0.040, positionFins=-1.04956
     )
     Tail = test_rocket.addTail(
-        topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656
+        topRadius=0.0635, bottomRadius=0.0435, length=0.060, positionTail=-1.194656
     )
 
     test_env = Environment(

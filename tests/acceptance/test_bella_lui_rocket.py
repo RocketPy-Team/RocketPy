@@ -93,7 +93,8 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         mass=parameters.get("rocketMass")[0],
         inertiaI=parameters.get("inertiaI")[0],
         inertiaZ=parameters.get("inertiaZ")[0],
-        distanceRocketNozzle=parameters.get("distanceRocketNozzle")[0],
+        positionNozzle=parameters.get("distanceRocketNozzle")[0],
+        positionCenterOfDryMass=0,
         powerOffDrag=0.43,
         powerOnDrag=0.43,
     )
@@ -101,20 +102,21 @@ def test_bella_lui_rocket_data_asserts_acceptance():
     NoseCone = BellaLui.addNose(
         length=parameters.get("noseLength")[0],
         kind="tangent",
-        distanceToCM=parameters.get("noseDistanceToCM")[0],
+        positionNose=parameters.get("noseDistanceToCM")[0]
+        + parameters.get("noseLength")[0],
     )
     FinSet = BellaLui.addFins(
         3,
         span=parameters.get("finSpan")[0],
         rootChord=parameters.get("finRootChord")[0],
         tipChord=parameters.get("finTipChord")[0],
-        distanceToCM=parameters.get("finDistanceToCM")[0],
+        positionFins=parameters.get("finDistanceToCM")[0],
     )
     Tail = BellaLui.addTail(
         topRadius=parameters.get("tailTopRadius")[0],
         bottomRadius=parameters.get("tailBottomRadius")[0],
         length=parameters.get("tailLength")[0],
-        distanceToCM=parameters.get("tailDistanceToCM")[0],
+        positionTail=parameters.get("tailDistanceToCM")[0],
     )
 
     # Parachute set-up

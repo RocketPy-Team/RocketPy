@@ -668,7 +668,6 @@ class Rocket:
 
         # Calculate fins position relative to Nozzle
         # Must check if the fins are set before or after the Nozzle
-
         finsPosition_Nozzle = self.evaluatePositionSurface_Nozzle("Fins", positionFins)
 
         # Calculate fins position relative to cm
