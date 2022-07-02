@@ -144,8 +144,8 @@ class Rocket:
             Nozzle position relative to considered coordinate system. The chosen
             coordinate system must be aligned with the rocket's axis.
         positionCenterOfDryMass : int, float
-            Center of dry mass position relative to considered coordinate system. The chosen
-            coordinate system must be aligned with the rocket's axis.
+            Center of dry mass position relative to considered coordinate system.
+            The chosen coordinate system must be aligned with the rocket's axis.
         powerOffDrag : int, float, callable, string, array
             Rocket's drag coefficient when the motor is off. Can be given as an
             entry to the Function class. See help(Function) for more
@@ -399,7 +399,8 @@ class Rocket:
         rref = self.radius
 
         # Calculate tail position relative to nozzle
-        tailPosition_Nozzle = abs(positionTail - self.positionNozzle)
+        # Must check if the tail is set before or after the Nozzle
+        tailPosition_Nozzle = self.evaluatePositionSurface_Nozzle("Tail", positionTail)
 
         # Calculate tail position relative to cm
         tailPosition_CM = (
@@ -472,14 +473,22 @@ class Rocket:
         else:
             k = 0.5
 
-        # Calculate nosecone position relative to nozzle
-        nosePosition_Nozzle = abs((positionNose + length) - self.positionNozzle)
+        # Calculate nosecone tip position relative to nozzle
+        # Must check if the nosecone is set before or after the Nozzle
+        nosePosition_Nozzle = self.evaluatePositionSurface_Nozzle(
+            "Nosecone", positionNose
+        )
 
-        # Calculate nosecone position relative to cm
-        nosePosition_CM = nosePosition_Nozzle - self.centerOfDryMassPosition_Nozzle
+        # Calculate nosecone base position relative to cm
+        nosePosition_CM = (
+            nosePosition_Nozzle - length
+        ) - self.centerOfDryMassPosition_Nozzle
 
         # Calculate cp position relative to cm
-        cpz = nosePosition_CM + np.sign(nosePosition_CM) * k * length
+        if nosePosition_CM > 0:
+            cpz = nosePosition_CM + k * length
+        else:
+            cpz = nosePosition_CM - k * length
 
         # Calculate clalpha
         clalpha = 2
@@ -657,17 +666,25 @@ class Rocket:
             else:
                 return n / 2
 
-        # Calculate fins position relative to nozzle
-        finsPosition_Nozzle = abs(positionFins - self.positionNozzle)
+        # Calculate fins position relative to Nozzle
+        # Must check if the fins are set before or after the Nozzle
+
+        finsPosition_Nozzle = self.evaluatePositionSurface_Nozzle("Fins", positionFins)
 
         # Calculate fins position relative to cm
         finsPosition_CM = finsPosition_Nozzle - self.centerOfDryMassPosition_Nozzle
 
         # Calculate cp position relative to cm
-        cpz = finsPosition_CM + np.sign(finsPosition_CM) * (
-            ((Cr - Ct) / 3) * ((Cr + 2 * Ct) / (Cr + Ct))
-            + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
-        )
+        if finsPosition_CM < 0:
+            cpz = finsPosition_CM - (
+                ((Cr - Ct) / 3) * ((Cr + 2 * Ct) / (Cr + Ct))
+                + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
+            )
+        else:
+            cpz = finsPosition_CM + (
+                ((Cr - Ct) / 3) * ((Cr + 2 * Ct) / (Cr + Ct))
+                + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
+            )
 
         if not airfoil:
             # Defines clalpha2D as 2*pi for planar fins
@@ -837,7 +854,9 @@ class Rocket:
         if railButtonsPosition_CM[0] < railButtonsPosition_CM[1]:
             railButtonsPosition_CM.reverse()
         # Save
-        self.railButtons = self.railButtonPair(railButtonsPosition_CM, angularPosition)
+        self.railButtons = self.railButtonPair(
+            railButtonsPosition_CM, positionRailButtons, angularPosition
+        )
 
         return None
 
@@ -1114,4 +1133,156 @@ class Rocket:
         return None
 
     # Variables
-    railButtonPair = namedtuple("railButtonPair", "distanceToCM angularPosition")
+    railButtonPair = namedtuple(
+        "railButtonPair", "distanceToCM distanceToReference angularPosition"
+    )
+
+    # Helper functions
+    def evaluatePositionSurface_Nozzle(self, surfaceName, positionSurface):
+        """Calculates and returns the position of an aerodynamic surface in
+        relation to the nozzle exit. The relative position to the Nozzle
+        considers the direction towards the rocket tip to be positve.
+        The calculations take into account the possibility of the surface
+        to be set behind the nozzle, meaning its relative position must
+        be negative.
+
+        Parameters
+        ----------
+        surfaceName : string
+            Name of the aerodynamic surface.
+        positionSurface : float
+            Position of the aerodynamic surface relative to the coordinate
+            system considered for the inputs.
+
+        Returns
+        -------
+        surfacePosition_Nozzle : float
+            The relative position of the aerodynamic surface relative to the nozzle
+        """
+        if self.positionNozzle == self.positionCenterOfDryMass:
+            # Nozzle and Center of Mass are at the same position
+            # Impossible to know if Surface is in front or behind the Nozzle
+            # Unless Surface is also at the same position
+            # Surface is then assumed to be in front of the Nozzle and a warning is raised
+            if positionSurface != self.positionNozzle:
+                print(
+                    "WARNING: Can not determine if ",
+                    surfaceName,
+                    " are in front or behind the nozzle.\n",
+                    "Calculations will assume they are in front.\n",
+                    "This happens when the reference point is at the ",
+                    surfaceName,
+                    " Surface position ",
+                    "and when the center of dry mass is at the same position as the nozzle.",
+                )
+            return abs(positionSurface - self.positionNozzle)
+
+        elif positionSurface == 0:
+            # Surface is at the coordinate system origin
+
+            if np.sign(self.positionCenterOfDryMass * self.positionNozzle) == 1:
+                # Nozzle and Center of Mass at the same side of the Surface
+                # Meaning Surface is either behind the Nozzle but closer to CM
+                # Or behind the Nozzle and further away from CM
+
+                if abs(self.positionCenterOfDryMass) < abs(self.positionNozzle):
+                    # Surface is closer to Center of dry mass, therefore in front of the Nozzle
+                    return abs(
+                        positionSurface - self.positionNozzle
+                    )  # positive value since Surface is before the Nozzle
+
+                elif abs(self.positionCenterOfDryMass) > abs(self.positionNozzle):
+                    # Surface is closer to Nozzle, therefore behind the Nozzle
+                    return -abs(
+                        positionSurface - self.positionNozzle
+                    )  # negative value since Surface is after the Nozzle
+
+            elif np.sign(self.positionCenterOfDryMass * self.positionNozzle) == -1:
+                # Surface is in beetween the Center of dry mass and the Nozzle
+                # Meaning Surface is in front of the Nozzle
+                return abs(positionSurface - self.positionNozzle)
+            else:
+                # Nozzle or Center of Mass are at the coordinate system origin
+                # Meaning Surface is either at the Center of Mass or at the Nozzle
+                return abs(positionSurface - self.positionNozzle)
+
+        elif np.sign(positionSurface * self.positionNozzle) == 1:
+            # Surface and Nozzle are at the same side of the coordinate system origin
+
+            if np.sign(positionSurface * self.positionCenterOfDryMass) == 1:
+                # Surface and Center of Mass at the same side of the coordinate system origin
+                # Therefore Center of Mass is at the same side of the Nozzle and Surface
+
+                if abs(self.positionCenterOfDryMass) < abs(self.positionNozzle):
+                    # Center of Mass is closer to coordinate system then the Nozzle
+                    # Meaning coordinate system is set behind the Nozzle
+
+                    if abs(positionSurface) <= abs(self.positionNozzle):
+                        # Surface is set before or at the Nozzle
+                        return abs(positionSurface - self.positionNozzle)
+
+                    else:  # Surface is set after the Nozzle
+                        return -abs(positionSurface - self.positionNozzle)
+
+                elif abs(self.positionCenterOfDryMass) > abs(self.positionNozzle):
+                    # Center of Mass is further from coordinate system then the Nozzle
+                    # Meaning coordinate system is set after the Nozzle
+
+                    if abs(positionSurface) >= abs(self.positionNozzle):
+                        # Surface is set before or at the Nozzle
+                        return abs(positionSurface - self.positionNozzle)
+
+                    else:  # Surface is set after the Nozzle
+                        return -abs(positionSurface - self.positionNozzle)
+
+            elif np.sign(positionSurface * self.positionCenterOfDryMass) == -1:
+                # Surface and Center of Mass at different sides of the coordinate system
+                # origin (therefore Center of Mass is at a different side of the Nozzle).
+                # Meaning the coordinate system is before the Nozzle
+
+                if abs(positionSurface) <= abs(self.positionNozzle):
+                    # Surface is set before or at the Nozzle
+                    return abs(positionSurface - self.positionNozzle)
+
+                else:  # Surface is set after the Nozzle
+                    return -abs(positionSurface - self.positionNozzle)
+
+            else:  # Center of mass is set at the coordinate system origin
+                if abs(positionSurface) <= abs(self.positionNozzle):
+                    # Surface is set before or at the Nozzle
+                    return abs(positionSurface - self.positionNozzle)
+                else:  # Surface is set after the Nozzle
+                    return -abs(positionSurface - self.positionNozzle)
+
+        elif np.sign(positionSurface * self.positionNozzle) == -1:
+            # Surface and Nozzle at different sides of the coordinate system origin
+
+            if np.sign(positionSurface * self.positionCenterOfDryMass) == -1:
+                # Surface and Center of Mass at different sides (Center of Mass at the same side of Nozzle)
+
+                if abs(self.positionCenterOfDryMass) < abs(self.positionNozzle):
+                    # Center of Mass closer to the origin (and therefore the Surface) than the Nozzle
+                    # Meaning Surface must be set before the Nozzle
+                    return abs(positionSurface - self.positionNozzle)
+
+                elif abs(self.positionCenterOfDryMass) > abs(self.positionNozzle):
+                    # Center of Mass closer to the origin (and therefore the Surface) than the Nozzle
+                    # Meaning Surface must be set after the Nozzle
+                    return -abs(positionSurface - self.positionNozzle)
+
+            else:
+                # Surface and Center of Mass at the same side of the coordinate system origin
+                # Meaning Surface must be set before the Nozzle
+                return abs(positionSurface - self.positionNozzle)
+
+        else:  # Nozzle is at the coordinate system origin
+
+            if np.sign(positionSurface * self.positionCenterOfDryMass) == 1:
+                # Surface and Center of Mass at the same side of the coordinate system origin
+                # Meaning Surface is set before the Nozzle
+                return abs(positionSurface - self.positionNozzle)
+
+            elif np.sign(positionSurface * self.positionCenterOfDryMass) == -1:
+                # Surface and Center of Mass are at different sides of the coordinate system origin
+                # Meaning Surface is set after the Nozzle
+                return -abs(positionSurface - self.positionNozzle)
