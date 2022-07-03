@@ -1443,7 +1443,7 @@ class EnvironmentAnalysis:
         plt.legend()
         plt.show()
 
-    def calculate_average_sustained_suraface100m_wind_along_day(self):
+    def calculate_average_sustained_surface100m_wind_along_day(self):
         """Computes average sustained wind speed progression throughout the
         day, including sigma contours."""
 
@@ -1476,7 +1476,7 @@ class EnvironmentAnalysis:
         sigma contours."""
 
         # Compute values
-        self.calculate_average_sustained_suraface100m_wind_along_day()
+        self.calculate_average_sustained_surface100m_wind_along_day()
 
         # Get handy arrays
         hours = np.fromiter(
@@ -2262,7 +2262,7 @@ class EnvironmentAnalysis:
                 f"Sustained Surface Wind Speed ({self.unit_system['wind_speed']})"
             )
             ax.set_ylabel("Probability")
-            ax.set_title("Sstained Surface Wind Distribution")
+            ax.set_title("Sustained Surface Wind Distribution")
             # ax.grid(True)
 
             if SAcup_wind_constraints:
