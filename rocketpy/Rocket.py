@@ -4,22 +4,21 @@ __author__ = "Giovani Hidalgo Ceotto, Franz Masatoshi Yuri"
 __copyright__ = "Copyright 20XX, Projeto Jupiter"
 __license__ = "MIT"
 
-import re
-import math
 import bisect
-import warnings
+import math
+import re
 import time
-from datetime import datetime, timedelta
-from inspect import signature, getsourcelines
+import warnings
 from collections import namedtuple
+from datetime import datetime, timedelta
+from inspect import getsourcelines, signature
 
-import numpy as np
-from scipy import integrate
-from scipy import linalg
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
 from matplotlib import cm
+from mpl_toolkits.mplot3d import Axes3D
 from numpy import genfromtxt
+from scipy import integrate, linalg
 
 from .Function import Function
 from .Parachute import Parachute
@@ -1164,8 +1163,8 @@ class Rocket:
             # Unless Surface is also at the same position
             # Surface is then assumed to be in front of the Nozzle and a warning is raised
             if positionSurface != self.positionNozzle:
-                print(
-                    "WARNING: Can not determine if ",
+                warnings.warn(
+                    "Can not determine if ",
                     surfaceName,
                     " are in front or behind the nozzle.\n",
                     "Calculations will assume they are in front.\n",
