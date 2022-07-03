@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath("../"))
 # -- Project information -----------------------------------------------------
 
 project = "RocketPy"
-copyright = "2020, Projeto Jupiter"
+copyright = "2020, RocketPy Team"
 
 author = "Giovani Hidalgo Ceotto"
 
