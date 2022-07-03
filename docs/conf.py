@@ -24,7 +24,7 @@ copyright = "2020, Projeto Jupiter"
 author = "Giovani Hidalgo Ceotto"
 
 # The full version, including alpha/beta/rc tags
-release = "0.10.0"
+release = "0.11.0"
 
 
 # -- General configuration ---------------------------------------------------
@@ -83,7 +83,8 @@ html_theme_options = {
 html_sidebars = {
     "**": ["search-field.html", "sidebar-nav-bs.html", "sidebar-ethical-ads.html"]
 }
-html_theme_options = {"navbar_end": ["navbar-icon-links.html", "search-field.html"]}
+html_theme_options = {"navbar_end": [
+    "navbar-icon-links.html", "search-field.html"]}
 
 html_use_modindex = True
 html_copy_source = False
