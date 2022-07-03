@@ -426,7 +426,10 @@ class Environment:
         # Store date and configure time zone
         self.timeZone = timeZone
         tz = pytz.timezone(self.timeZone)
-        localDate = datetime(*date)
+        if type(date) != datetime:
+            localDate = datetime(*date)
+        else:
+            localDate = date
         if localDate.tzinfo == None:
             localDate = tz.localize(localDate)
         self.localDate = localDate
@@ -2012,7 +2015,6 @@ class Environment:
             warnings.warn(
                 "Some values were missing from this weather dataset, therefore, certain pressure levels were removed."
             )
-
         # Save atmospheric data
         self.pressure = Function(
             data_array[:, (1, 0)],
