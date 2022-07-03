@@ -83,8 +83,7 @@ html_theme_options = {
 html_sidebars = {
     "**": ["search-field.html", "sidebar-nav-bs.html", "sidebar-ethical-ads.html"]
 }
-html_theme_options = {"navbar_end": [
-    "navbar-icon-links.html", "search-field.html"]}
+html_theme_options = {"navbar_end": ["navbar-icon-links.html", "search-field.html"]}
 
 html_use_modindex = True
 html_copy_source = False
