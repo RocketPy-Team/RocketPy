@@ -15,7 +15,7 @@ setuptools.setup(
         "requests",
         "pytz",
         "timezonefinder",
-        "simplekml"
+        "simplekml",
     ],
     maintainer="RocketPy Developers",
     author="Giovani Hidalgo Ceotto",

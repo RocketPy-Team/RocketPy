@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from .Function import Function
+
 __author__ = "Giovani Hidalgo Ceotto, Guilherme Fernandes Alves, Lucas Azevedo Pezente, Oscar Mauricio Prada Ramirez, Lucas Kierulff Balabram"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
@@ -391,8 +392,7 @@ class Environment:
         self.setElevation(elevation)
 
         # Recalculate Earth Radius
-        self.earthRadius = self.calculateEarthRadius(
-            self.lat, self.datum)  # in m
+        self.earthRadius = self.calculateEarthRadius(self.lat, self.datum)  # in m
 
         return None
 
@@ -510,8 +510,7 @@ class Environment:
                 self.elevation = results[0]["elevation"]
                 print("Elevation received:", self.elevation)
             except:
-                raise RuntimeError(
-                    "Unabel to reach Open-Elevation API servers.")
+                raise RuntimeError("Unabel to reach Open-Elevation API servers.")
         else:
             raise ValueError(
                 "Latitude and longitude must be set to use"
@@ -1353,8 +1352,7 @@ class Environment:
             )
             # Check maximum height of custom pressure input
             if not callable(self.pressure.source):
-                maxExpectedHeight = max(
-                    self.pressure[-1, 0], maxExpectedHeight)
+                maxExpectedHeight = max(self.pressure[-1, 0], maxExpectedHeight)
 
         # Save temperature profile
         if temperature is None:
@@ -1369,8 +1367,7 @@ class Environment:
             )
             # Check maximum height of custom temperature input
             if not callable(self.temperature.source):
-                maxExpectedHeight = max(
-                    self.temperature[-1, 0], maxExpectedHeight)
+                maxExpectedHeight = max(self.temperature[-1, 0], maxExpectedHeight)
 
         # Save wind profile
         self.windVelocityX = Function(
@@ -1387,11 +1384,9 @@ class Environment:
         )
         # Check maximum height of custom wind input
         if not callable(self.windVelocityX.source):
-            maxExpectedHeight = max(
-                self.windVelocityX[-1, 0], maxExpectedHeight)
+            maxExpectedHeight = max(self.windVelocityX[-1, 0], maxExpectedHeight)
         if not callable(self.windVelocityY.source):
-            maxExpectedHeight = max(
-                self.windVelocityY[-1, 0], maxExpectedHeight)
+            maxExpectedHeight = max(self.windVelocityY[-1, 0], maxExpectedHeight)
 
         # Compute wind profile direction and heading
         windHeading = (
@@ -1406,7 +1401,9 @@ class Environment:
             interpolation="linear",
         )
 
-        def windDirection(h): return (windHeading(h) - 180) % 360
+        def windDirection(h):
+            return (windHeading(h) - 180) % 360
+
         self.windDirection = Function(
             windDirection,
             inputs="Height Above Sea Level (m)",
@@ -1414,9 +1411,9 @@ class Environment:
             interpolation="linear",
         )
 
-        def windSpeed(h): return np.sqrt(
-            self.windVelocityX(h) ** 2 + self.windVelocityY(h) ** 2
-        )
+        def windSpeed(h):
+            return np.sqrt(self.windVelocityX(h) ** 2 + self.windVelocityY(h) ** 2)
+
         self.windSpeed = Function(
             windSpeed,
             inputs="Height Above Sea Level (m)",
@@ -1498,15 +1495,12 @@ class Environment:
         )
 
         # Retrieve wind-u and wind-v from data array
-        data_array[:, 7] = data_array[:, 7] * \
-            1.852 / 3.6  # Converts Knots to m/s
+        data_array[:, 7] = data_array[:, 7] * 1.852 / 3.6  # Converts Knots to m/s
         data_array[:, 5] = (
             data_array[:, 6] + 180
         ) % 360  # Convert wind direction to wind heading
-        data_array[:, 3] = data_array[:, 7] * \
-            np.sin(data_array[:, 5] * np.pi / 180)
-        data_array[:, 4] = data_array[:, 7] * \
-            np.cos(data_array[:, 5] * np.pi / 180)
+        data_array[:, 3] = data_array[:, 7] * np.sin(data_array[:, 5] * np.pi / 180)
+        data_array[:, 4] = data_array[:, 7] * np.cos(data_array[:, 5] * np.pi / 180)
 
         # Convert geopotential height to geometric height
         R = self.earthRadius
@@ -1952,48 +1946,36 @@ class Environment:
         f_x1_y2 = geopotentials[:, 0, 1]
         f_x2_y1 = geopotentials[:, 1, 0]
         f_x2_y2 = geopotentials[:, 1, 1]
-        f_x_y1 = ((x2 - x) / (x2 - x1)) * f_x1_y1 + \
-            ((x - x1) / (x2 - x1)) * f_x2_y1
-        f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + \
-            ((x - x1) / (x2 - x1)) * f_x2_y2
-        height = ((y2 - y) / (y2 - y1)) * f_x_y1 + \
-            ((y - y1) / (y2 - y1)) * f_x_y2
+        f_x_y1 = ((x2 - x) / (x2 - x1)) * f_x1_y1 + ((x - x1) / (x2 - x1)) * f_x2_y1
+        f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + ((x - x1) / (x2 - x1)) * f_x2_y2
+        height = ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
 
         # Determine temperature in lat, lon
         f_x1_y1 = temperatures[:, 0, 0]
         f_x1_y2 = temperatures[:, 0, 1]
         f_x2_y1 = temperatures[:, 1, 0]
         f_x2_y2 = temperatures[:, 1, 1]
-        f_x_y1 = ((x2 - x) / (x2 - x1)) * f_x1_y1 + \
-            ((x - x1) / (x2 - x1)) * f_x2_y1
-        f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + \
-            ((x - x1) / (x2 - x1)) * f_x2_y2
-        temperature = ((y2 - y) / (y2 - y1)) * f_x_y1 + \
-            ((y - y1) / (y2 - y1)) * f_x_y2
+        f_x_y1 = ((x2 - x) / (x2 - x1)) * f_x1_y1 + ((x - x1) / (x2 - x1)) * f_x2_y1
+        f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + ((x - x1) / (x2 - x1)) * f_x2_y2
+        temperature = ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
 
         # Determine wind u in lat, lon
         f_x1_y1 = windUs[:, 0, 0]
         f_x1_y2 = windUs[:, 0, 1]
         f_x2_y1 = windUs[:, 1, 0]
         f_x2_y2 = windUs[:, 1, 1]
-        f_x_y1 = ((x2 - x) / (x2 - x1)) * f_x1_y1 + \
-            ((x - x1) / (x2 - x1)) * f_x2_y1
-        f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + \
-            ((x - x1) / (x2 - x1)) * f_x2_y2
-        windU = ((y2 - y) / (y2 - y1)) * f_x_y1 + \
-            ((y - y1) / (y2 - y1)) * f_x_y2
+        f_x_y1 = ((x2 - x) / (x2 - x1)) * f_x1_y1 + ((x - x1) / (x2 - x1)) * f_x2_y1
+        f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + ((x - x1) / (x2 - x1)) * f_x2_y2
+        windU = ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
 
         # Determine wind v in lat, lon
         f_x1_y1 = windVs[:, 0, 0]
         f_x1_y2 = windVs[:, 0, 1]
         f_x2_y1 = windVs[:, 1, 0]
         f_x2_y2 = windVs[:, 1, 1]
-        f_x_y1 = ((x2 - x) / (x2 - x1)) * f_x1_y1 + \
-            ((x - x1) / (x2 - x1)) * f_x2_y1
-        f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + \
-            ((x - x1) / (x2 - x1)) * f_x2_y2
-        windV = ((y2 - y) / (y2 - y1)) * f_x_y1 + \
-            ((y - y1) / (y2 - y1)) * f_x_y2
+        f_x_y1 = ((x2 - x) / (x2 - x1)) * f_x1_y1 + ((x - x1) / (x2 - x1)) * f_x2_y1
+        f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + ((x - x1) / (x2 - x1)) * f_x2_y2
+        windV = ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
 
         # Determine wind speed, heading and direction
         windSpeed = np.sqrt(windU**2 + windV**2)
@@ -2336,12 +2318,10 @@ class Environment:
                     dictionary["geopotential"]
                 ].dimensions[:]
                 params = tuple(
-                    [paramDictionary[inverseDictionary[dim]]
-                        for dim in dimensions]
+                    [paramDictionary[inverseDictionary[dim]] for dim in dimensions]
                 )
                 geopotentials = (
-                    weatherData.variables[dictionary["geopotential"]
-                                          ][params] / self.g
+                    weatherData.variables[dictionary["geopotential"]][params] / self.g
                 )
             except:
                 raise ValueError(
@@ -2383,48 +2363,36 @@ class Environment:
         f_x1_y2 = geopotentials[:, :, 0, 1]
         f_x2_y1 = geopotentials[:, :, 1, 0]
         f_x2_y2 = geopotentials[:, :, 1, 1]
-        f_x_y1 = ((x2 - x) / (x2 - x1)) * f_x1_y1 + \
-            ((x - x1) / (x2 - x1)) * f_x2_y1
-        f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + \
-            ((x - x1) / (x2 - x1)) * f_x2_y2
-        height = ((y2 - y) / (y2 - y1)) * f_x_y1 + \
-            ((y - y1) / (y2 - y1)) * f_x_y2
+        f_x_y1 = ((x2 - x) / (x2 - x1)) * f_x1_y1 + ((x - x1) / (x2 - x1)) * f_x2_y1
+        f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + ((x - x1) / (x2 - x1)) * f_x2_y2
+        height = ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
 
         # Determine temperature in lat, lon
         f_x1_y1 = temperatures[:, :, 0, 0]
         f_x1_y2 = temperatures[:, :, 0, 1]
         f_x2_y1 = temperatures[:, :, 1, 0]
         f_x2_y2 = temperatures[:, :, 1, 1]
-        f_x_y1 = ((x2 - x) / (x2 - x1)) * f_x1_y1 + \
-            ((x - x1) / (x2 - x1)) * f_x2_y1
-        f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + \
-            ((x - x1) / (x2 - x1)) * f_x2_y2
-        temperature = ((y2 - y) / (y2 - y1)) * f_x_y1 + \
-            ((y - y1) / (y2 - y1)) * f_x_y2
+        f_x_y1 = ((x2 - x) / (x2 - x1)) * f_x1_y1 + ((x - x1) / (x2 - x1)) * f_x2_y1
+        f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + ((x - x1) / (x2 - x1)) * f_x2_y2
+        temperature = ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
 
         # Determine wind u in lat, lon
         f_x1_y1 = windUs[:, :, 0, 0]
         f_x1_y2 = windUs[:, :, 0, 1]
         f_x2_y1 = windUs[:, :, 1, 0]
         f_x2_y2 = windUs[:, :, 1, 1]
-        f_x_y1 = ((x2 - x) / (x2 - x1)) * f_x1_y1 + \
-            ((x - x1) / (x2 - x1)) * f_x2_y1
-        f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + \
-            ((x - x1) / (x2 - x1)) * f_x2_y2
-        windU = ((y2 - y) / (y2 - y1)) * f_x_y1 + \
-            ((y - y1) / (y2 - y1)) * f_x_y2
+        f_x_y1 = ((x2 - x) / (x2 - x1)) * f_x1_y1 + ((x - x1) / (x2 - x1)) * f_x2_y1
+        f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + ((x - x1) / (x2 - x1)) * f_x2_y2
+        windU = ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
 
         # Determine wind v in lat, lon
         f_x1_y1 = windVs[:, :, 0, 0]
         f_x1_y2 = windVs[:, :, 0, 1]
         f_x2_y1 = windVs[:, :, 1, 0]
         f_x2_y2 = windVs[:, :, 1, 1]
-        f_x_y1 = ((x2 - x) / (x2 - x1)) * f_x1_y1 + \
-            ((x - x1) / (x2 - x1)) * f_x2_y1
-        f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + \
-            ((x - x1) / (x2 - x1)) * f_x2_y2
-        windV = ((y2 - y) / (y2 - y1)) * f_x_y1 + \
-            ((y - y1) / (y2 - y1)) * f_x_y2
+        f_x_y1 = ((x2 - x) / (x2 - x1)) * f_x1_y1 + ((x - x1) / (x2 - x1)) * f_x2_y1
+        f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + ((x - x1) / (x2 - x1)) * f_x2_y2
+        windV = ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
 
         # Determine wind speed, heading and direction
         windSpeed = np.sqrt(windU**2 + windV**2)
@@ -2864,8 +2832,7 @@ class Environment:
             extrapolation="constant",
         )
         self.windSpeed = Function(
-            lambda h: (self.windVelocityX(h) ** 2 +
-                       self.windVelocityY(h) ** 2) ** 0.5,
+            lambda h: (self.windVelocityX(h) ** 2 + self.windVelocityY(h) ** 2) ** 0.5,
             "Height (m)",
             "Wind Speed (m/s)",
             extrapolation="constant",
@@ -2909,8 +2876,7 @@ class Environment:
             + "    {:.2f} ".format(self.initialNorth)
             + self.initialHemisphere
         )
-        print("Launch Site UTM zone:", str(
-            self.initialUtmZone) + self.initialUtmLetter)
+        print("Launch Site UTM zone:", str(self.initialUtmZone) + self.initialUtmLetter)
         print("Launch Site Surface Elevation: {:.1f} m".format(self.elevation))
 
         # Print atmospheric model details
@@ -2926,41 +2892,31 @@ class Environment:
             initDate = self.atmosphericModelInitDate
             endDate = self.atmosphericModelEndDate
             interval = self.atmosphericModelInterval
-            print(modelType + " Time Period: From ",
-                  initDate, " to ", endDate, " UTC")
+            print(modelType + " Time Period: From ", initDate, " to ", endDate, " UTC")
             print(modelType + " Hour Interval:", interval, " hrs")
             # Determine latitude and longitude range
             initLat = self.atmosphericModelInitLat
             endLat = self.atmosphericModelEndLat
             initLon = self.atmosphericModelInitLon
             endLon = self.atmosphericModelEndLon
-            print(modelType + " Latitude Range: From ",
-                  initLat, "° To ", endLat, "°")
-            print(modelType + " Longitude Range: From ",
-                  initLon, "° To ", endLon, "°")
+            print(modelType + " Latitude Range: From ", initLat, "° To ", endLat, "°")
+            print(modelType + " Longitude Range: From ", initLon, "° To ", endLon, "°")
         if modelType == "Ensemble":
             print("Number of Ensemble Members:", self.numEnsembleMembers)
-            print("Selected Ensemble Member:",
-                  self.ensembleMember, " (Starts from 0)")
+            print("Selected Ensemble Member:", self.ensembleMember, " (Starts from 0)")
 
         # Print atmospheric conditions
         print("\n\nSurface Atmospheric Conditions")
+        print("\nSurface Wind Speed: {:.2f} m/s".format(self.windSpeed(self.elevation)))
         print(
-            "\nSurface Wind Speed: {:.2f} m/s".format(self.windSpeed(self.elevation)))
-        print(
-            "Surface Wind Direction: {:.2f}°".format(
-                self.windDirection(self.elevation))
+            "Surface Wind Direction: {:.2f}°".format(self.windDirection(self.elevation))
         )
-        print("Surface Wind Heading: {:.2f}°".format(
-            self.windHeading(self.elevation)))
+        print("Surface Wind Heading: {:.2f}°".format(self.windHeading(self.elevation)))
         print(
-            "Surface Pressure: {:.2f} hPa".format(
-                self.pressure(self.elevation) / 100)
+            "Surface Pressure: {:.2f} hPa".format(self.pressure(self.elevation) / 100)
         )
-        print("Surface Temperature: {:.2f} K".format(
-            self.temperature(self.elevation)))
-        print(
-            "Surface Air Density: {:.3f} kg/m³".format(self.density(self.elevation)))
+        print("Surface Temperature: {:.2f} K".format(self.temperature(self.elevation)))
+        print("Surface Air Density: {:.3f} kg/m³".format(self.density(self.elevation)))
         print(
             "Surface Speed of Sound: {:.2f} m/s".format(
                 self.speedOfSound(self.elevation)
@@ -3064,41 +3020,31 @@ class Environment:
             initDate = self.atmosphericModelInitDate
             endDate = self.atmosphericModelEndDate
             interval = self.atmosphericModelInterval
-            print(modelType + " Time Period: From ",
-                  initDate, " to ", endDate, " UTC")
+            print(modelType + " Time Period: From ", initDate, " to ", endDate, " UTC")
             print(modelType + " Hour Interval:", interval, " hrs")
             # Determine latitude and longitude range
             initLat = self.atmosphericModelInitLat
             endLat = self.atmosphericModelEndLat
             initLon = self.atmosphericModelInitLon
             endLon = self.atmosphericModelEndLon
-            print(modelType + " Latitude Range: From ",
-                  initLat, "° To ", endLat, "°")
-            print(modelType + " Longitude Range: From ",
-                  initLon, "° To ", endLon, "°")
+            print(modelType + " Latitude Range: From ", initLat, "° To ", endLat, "°")
+            print(modelType + " Longitude Range: From ", initLon, "° To ", endLon, "°")
         if modelType == "Ensemble":
             print("Number of Ensemble Members:", self.numEnsembleMembers)
-            print("Selected Ensemble Member:",
-                  self.ensembleMember, " (Starts from 0)")
+            print("Selected Ensemble Member:", self.ensembleMember, " (Starts from 0)")
 
         # Print atmospheric conditions
         print("\n\nSurface Atmospheric Conditions")
+        print("\nSurface Wind Speed: {:.2f} m/s".format(self.windSpeed(self.elevation)))
         print(
-            "\nSurface Wind Speed: {:.2f} m/s".format(self.windSpeed(self.elevation)))
-        print(
-            "Surface Wind Direction: {:.2f}°".format(
-                self.windDirection(self.elevation))
+            "Surface Wind Direction: {:.2f}°".format(self.windDirection(self.elevation))
         )
-        print("Surface Wind Heading: {:.2f}°".format(
-            self.windHeading(self.elevation)))
+        print("Surface Wind Heading: {:.2f}°".format(self.windHeading(self.elevation)))
         print(
-            "Surface Pressure: {:.2f} hPa".format(
-                self.pressure(self.elevation) / 100)
+            "Surface Pressure: {:.2f} hPa".format(self.pressure(self.elevation) / 100)
         )
-        print("Surface Temperature: {:.2f} K".format(
-            self.temperature(self.elevation)))
-        print(
-            "Surface Air Density: {:.3f} kg/m³".format(self.density(self.elevation)))
+        print("Surface Temperature: {:.2f} K".format(self.temperature(self.elevation)))
+        print("Surface Air Density: {:.3f} kg/m³".format(self.density(self.elevation)))
         print(
             "Surface Speed of Sound: {:.2f} m/s".format(
                 self.speedOfSound(self.elevation)
@@ -3311,8 +3257,7 @@ class Environment:
         plotInfo["ensembleWindSpeed"] = []
         for i in range(self.numEnsembleMembers):
             self.selectEnsembleMember(i)
-            plotInfo["ensembleWindSpeed"].append(
-                [self.windSpeed(i) for i in grid])
+            plotInfo["ensembleWindSpeed"].append([self.windSpeed(i) for i in grid])
         plotInfo["ensembleWindDirection"] = []
         for i in range(self.numEnsembleMembers):
             self.selectEnsembleMember(i)
@@ -3322,13 +3267,11 @@ class Environment:
         plotInfo["ensemblePressure"] = []
         for i in range(self.numEnsembleMembers):
             self.selectEnsembleMember(i)
-            plotInfo["ensemblePressure"].append(
-                [self.pressure(i) for i in grid])
+            plotInfo["ensemblePressure"].append([self.pressure(i) for i in grid])
         plotInfo["ensembleTemperature"] = []
         for i in range(self.numEnsembleMembers):
             self.selectEnsembleMember(i)
-            plotInfo["ensembleTemperature"].append(
-                [self.temperature(i) for i in grid])
+            plotInfo["ensembleTemperature"].append([self.temperature(i) for i in grid])
 
         # Clean up
         self.selectEnsembleMember(currentMember)
@@ -3371,8 +3314,7 @@ class Environment:
             info["initDate"] = self.atmosphericModelInitDate.strftime(
                 "%Y-%d-%m %H:%M:%S"
             )
-            info["endDate"] = self.atmosphericModelEndDate.strftime(
-                "%Y-%d-%m %H:%M:%S")
+            info["endDate"] = self.atmosphericModelEndDate.strftime("%Y-%d-%m %H:%M:%S")
             info["interval"] = self.atmosphericModelInterval
             info["initLat"] = self.atmosphericModelInitLat
             info["endLat"] = self.atmosphericModelEndLat
@@ -3596,8 +3538,7 @@ class Environment:
         d = (x - 500000) / (n1 * K0)
 
         # Calculate other auxiliary values
-        I = (5 + 3 * t1 + 10 * c1 - 4 * c1 *
-             c1 - 9 * e2lin) * d * d * d * d / 24
+        I = (5 + 3 * t1 + 10 * c1 - 4 * c1 * c1 - 9 * e2lin) * d * d * d * d / 24
         J = (
             (61 + 90 * t1 + 298 * c1 + 45 * t1 * t1 - 252 * e2lin - 3 * c1 * c1)
             * (d**6)
