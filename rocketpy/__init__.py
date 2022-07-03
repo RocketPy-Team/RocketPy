@@ -21,25 +21,9 @@ __maintainer__ = "Giovani Hidalgo Ceotto"
 __email__ = "ghceotto@gmail.com"
 __status__ = "Production"
 
-import re
-import math
-import bisect
-import warnings
-import time
-from datetime import datetime, timedelta
-from inspect import signature, getsourcelines
-from collections import namedtuple
-
-import numpy as np
-from scipy import integrate
-from scipy import linalg
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import cm
-
-from .Function import Function
 from .Environment import Environment
-from .Motor import SolidMotor, HybridMotor
-from .Rocket import Rocket
 from .Flight import Flight
+from .Function import Function
+from .Motor import HybridMotor, SolidMotor
+from .Rocket import Rocket
 from .utilities import *
