@@ -4,6 +4,8 @@ __author__ = "Giovani Hidalgo Ceotto, Lucas Kierulff Balabram"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
+from inspect import signature
+
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import integrate, linalg
