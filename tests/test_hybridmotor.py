@@ -27,5 +27,4 @@ def test_Initial_Center_Of_Mass_Position_correct():
         injectorArea=3e-05,
     )
 
-    example_motor.zCM()
     assert abs(example_motor.zCM(0)) - abs(0.005121644685784456) < 1e-6
