@@ -1,30 +1,20 @@
 # -*- coding: utf-8 -*-
 
 __author__ = "Giovani Hidalgo Ceotto, Lucas Kierulff Balabram"
-__copyright__ = "Copyright 20XX, Projeto Jupiter"
+__copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
-import re
-import math
-import bisect
-import warnings
-import time
-from datetime import datetime, timedelta
-from inspect import signature, getsourcelines
-from collections import namedtuple
+from inspect import signature
 
-import numpy as np
-from scipy import integrate
-from scipy import linalg
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import cm
+import numpy as np
+from scipy import integrate, linalg
 
 
 class Function:
     """Class converts a python function or a data sequence into an object
     which can be handled more naturally, enabling easy interpolation,
-    extrapolation, ploting and algebra.
+    extrapolation, plotting and algebra.
     """
 
     def __init__(
@@ -60,7 +50,7 @@ class Function:
         interpolation : string, optional
             Interpolation method to be used if source type is ndarray.
             For 1-D functions, linear, polynomial, akima and spline are
-            supported. For N-D functions, only shepard is suporrted.
+            supported. For N-D functions, only shepard is supported.
             Default for 1-D functions is spline.
         extrapolation : string, optional
             Extrapolation method to be used if source type is ndarray.
@@ -160,7 +150,10 @@ class Function:
         # Convert number source into vectorized lambda function
         if isinstance(source, (int, float)):
             temp = 1 * source
-            source = lambda x: 0 * x + temp
+
+            def source(x):
+                return 0 * x + temp
+
         # Handle callable source or number source
         if callable(source):
             # Set source
@@ -222,7 +215,7 @@ class Function:
         method : string, optional
             Interpolation method to be used if source type is ndarray.
             For 1-D functions, linear, polynomial, akima and spline is
-            supported. For N-D functions, only shepard is suporrted.
+            supported. For N-D functions, only shepard is supported.
             Default is 'spline'.
 
         Returns
@@ -441,8 +434,8 @@ class Function:
             Number of samples to be taken from inside range. Default is 200.
         interpolation : string
             Interpolation method to be used if source type is ndarray.
-            For 1-D functions, linear, polynomail, akima and spline is
-            supported. For N-D functions, only shepard is suporrted.
+            For 1-D functions, linear, polynomial, akima and spline is
+            supported. For N-D functions, only shepard is supported.
             Default is 'spline'.
         extrapolation : string, optional
             Extrapolation method to be used if source type is ndarray.
@@ -768,7 +761,7 @@ class Function:
                 else:  # Extrapolation is set to constant
                     y = yData[0] if x < xmin else yData[-1]
             return y
-        # Polynominal
+        # Polynomial
         elif self.__interpolation__ == "polynomial":
             x = args[0]
             coeffs = self.__polynomialCoefficients__
@@ -1021,12 +1014,12 @@ class Function:
         ----------
         lower : scalar, optional
             The lower limit of the interval in which the function is to be
-            ploted. The default value for function type Functions is 0. By
+            plotted. The default value for function type Functions is 0. By
             contrast, if the Function is given by a dataset, the default
             value is the start of the dataset.
         upper : scalar, optional
             The upper limit of the interval in which the function is to be
-            ploted. The default value for function type Functions is 10. By
+            plotted. The default value for function type Functions is 10. By
             contrast, if the Function is given by a dataset, the default
             value is the end of the dataset.
         samples : int, optional
@@ -1100,14 +1093,14 @@ class Function:
         ----------
         lower : scalar, array of int or float, optional
             The lower limits of the interval in which the function is to be
-            ploted, which can be an int or float, which is repeated for both
+            plotted, which can be an int or float, which is repeated for both
             axis, or an array specifying the limit for each axis. The default
             value for function type Functions is 0. By contrast, if the
             Function is given by a dataset, the default value is the start of
             the dataset for each axis.
         upper : scalar, array of int or float, optional
             The upper limits of the interval in which the function is to be
-            ploted, which can be an int or float, which is repeated for both
+            plotted, which can be an int or float, which is repeated for both
             axis, or an array specifying the limit for each axis. The default
             value for function type Functions is 0. By contrast, if the
             Function is given by a dataset, the default value is the end of
@@ -1222,12 +1215,12 @@ class Function:
             legend.
         lower : scalar, optional
             The lower limit of the interval in which the Functions are to be
-            ploted. The default value for function type Functions is 0. By
+            plotted. The default value for function type Functions is 0. By
             contrast, if the Functions given are defined by a dataset, the
             default value is the lowest value of the datasets.
         upper : scalar, optional
             The upper limit of the interval in which the Functions are to be
-            ploted. The default value for function type Functions is 10. By
+            plotted. The default value for function type Functions is 10. By
             contrast, if the Functions given are defined by a dataset, the
             default value is the highest value of the datasets.
         samples : int, optional

@@ -1,28 +1,20 @@
 # -*- coding: utf-8 -*-
 
+from .Function import Function
+
 __author__ = "Giovani Hidalgo Ceotto, Guilherme Fernandes Alves, Lucas Azevedo Pezente, Oscar Mauricio Prada Ramirez, Lucas Kierulff Balabram"
-__copyright__ = "Copyright 20XX, Projeto Jupiter"
+__copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
-import re
-import math
 import bisect
+import re
 import warnings
-import time
-import pytz
 from datetime import datetime, timedelta
-from inspect import signature, getsourcelines
-from collections import namedtuple
 
-import numpy as np
-from scipy import integrate
-from scipy import linalg
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import cm
+import numpy as np
+import pytz
 import requests
-
-# import ee
 
 try:
     import netCDF4
@@ -46,9 +38,6 @@ def requires_netCDF4(func):
             )
 
     return wrapped_func
-
-
-from .Function import Function
 
 
 class Environment:
@@ -426,7 +415,10 @@ class Environment:
         # Store date and configure time zone
         self.timeZone = timeZone
         tz = pytz.timezone(self.timeZone)
-        localDate = datetime(*date)
+        if type(date) != datetime:
+            localDate = datetime(*date)
+        else:
+            localDate = date
         if localDate.tzinfo == None:
             localDate = tz.localize(localDate)
         self.localDate = localDate
@@ -1409,7 +1401,9 @@ class Environment:
             interpolation="linear",
         )
 
-        windDirection = lambda h: (windHeading(h) - 180) % 360
+        def windDirection(h):
+            return (windHeading(h) - 180) % 360
+
         self.windDirection = Function(
             windDirection,
             inputs="Height Above Sea Level (m)",
@@ -1417,9 +1411,9 @@ class Environment:
             interpolation="linear",
         )
 
-        windSpeed = lambda h: np.sqrt(
-            self.windVelocityX(h) ** 2 + self.windVelocityY(h) ** 2
-        )
+        def windSpeed(h):
+            return np.sqrt(self.windVelocityX(h) ** 2 + self.windVelocityY(h) ** 2)
+
         self.windSpeed = Function(
             windSpeed,
             inputs="Height Above Sea Level (m)",
@@ -1549,7 +1543,7 @@ class Environment:
 
         # Convert station elevation text into float value
         self.elevation = float(
-            re.findall("[0-9]+\.[0-9]+|[0-9]+", station_elevation_text)[0]
+            re.findall(r"[0-9]+\.[0-9]+|[0-9]+", station_elevation_text)[0]
         )
 
         # Save maximum expected height
@@ -2012,7 +2006,6 @@ class Environment:
             warnings.warn(
                 "Some values were missing from this weather dataset, therefore, certain pressure levels were removed."
             )
-
         # Save atmospheric data
         self.pressure = Function(
             data_array[:, (1, 0)],
@@ -3221,6 +3214,117 @@ class Environment:
 
         return None
 
+    def allPlotInfoReturned(self):
+        """Returns a dictionary with all plot information available about the Environment.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        ------
+        plotInfo : Dict
+            Dict of data relevant to plot externally
+        """
+        grid = np.linspace(self.elevation, self.maxExpectedHeight)
+        plotInfo = dict(
+            grid=[i for i in grid],
+            windSpeed=[self.windSpeed(i) for i in grid],
+            windDirection=[self.windDirection(i) for i in grid],
+            speedOfSound=[self.speedOfSound(i) for i in grid],
+            density=[self.density(i) for i in grid],
+            windVelX=[self.windVelocityX(i) for i in grid],
+            windVelY=[self.windVelocityY(i) for i in grid],
+            pressure=[self.pressure(i) / 100 for i in grid],
+            temperature=[self.temperature(i) for i in grid],
+        )
+        if self.atmosphericModelType != "Ensemble":
+            return plotInfo
+        currentMember = self.ensembleMember
+        # List for each ensemble
+        plotInfo["ensembleWindVelocityX"] = []
+        for i in range(self.numEnsembleMembers):
+            self.selectEnsembleMember(i)
+            plotInfo["ensembleWindVelocityX"].append(
+                [self.windVelocityX(i) for i in grid]
+            )
+        plotInfo["ensembleWindVelocityY"] = []
+        for i in range(self.numEnsembleMembers):
+            self.selectEnsembleMember(i)
+            plotInfo["ensembleWindVelocityY"].append(
+                [self.windVelocityY(i) for i in grid]
+            )
+        plotInfo["ensembleWindSpeed"] = []
+        for i in range(self.numEnsembleMembers):
+            self.selectEnsembleMember(i)
+            plotInfo["ensembleWindSpeed"].append([self.windSpeed(i) for i in grid])
+        plotInfo["ensembleWindDirection"] = []
+        for i in range(self.numEnsembleMembers):
+            self.selectEnsembleMember(i)
+            plotInfo["ensembleWindDirection"].append(
+                [self.windDirection(i) for i in grid]
+            )
+        plotInfo["ensemblePressure"] = []
+        for i in range(self.numEnsembleMembers):
+            self.selectEnsembleMember(i)
+            plotInfo["ensemblePressure"].append([self.pressure(i) for i in grid])
+        plotInfo["ensembleTemperature"] = []
+        for i in range(self.numEnsembleMembers):
+            self.selectEnsembleMember(i)
+            plotInfo["ensembleTemperature"].append([self.temperature(i) for i in grid])
+
+        # Clean up
+        self.selectEnsembleMember(currentMember)
+        return plotInfo
+
+    def allInfoReturned(self):
+        """Returns as dicts all data available about the Environment.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        ------
+        info: Dict
+            Information relevant about the Environment class.
+        """
+
+        # Dictionary creation, if not commented follows the SI
+        info = dict(
+            grav=self.g,
+            launch_rail_length=self.rL,
+            elevation=self.elevation,
+            modelType=self.atmosphericModelType,
+            modelTypeMaxExpectedHeight=self.maxExpectedHeight,
+            windSpeed=self.windSpeed(self.elevation),
+            windDirection=self.windDirection(self.elevation),
+            windHeading=self.windHeading(self.elevation),
+            surfacePressure=self.pressure(self.elevation) / 100,  # in hPa
+            surfaceTemperature=self.temperature(self.elevation),
+            surfaceAirDensity=self.density(self.elevation),
+            surfaceSpeedOfSound=self.speedOfSound(self.elevation),
+        )
+        if self.date != None:
+            info["launch_date"] = self.date.strftime("%Y-%d-%m %H:%M:%S")
+        if self.lat != None and self.lon != None:
+            info["lat"] = self.lat
+            info["lon"] = self.lon
+        if info["modelType"] in ["Forecast", "Reanalysis", "Ensemble"]:
+            info["initDate"] = self.atmosphericModelInitDate.strftime(
+                "%Y-%d-%m %H:%M:%S"
+            )
+            info["endDate"] = self.atmosphericModelEndDate.strftime("%Y-%d-%m %H:%M:%S")
+            info["interval"] = self.atmosphericModelInterval
+            info["initLat"] = self.atmosphericModelInitLat
+            info["endLat"] = self.atmosphericModelEndLat
+            info["initLon"] = self.atmosphericModelInitLon
+            info["endLon"] = self.atmosphericModelEndLon
+        if info["modelType"] == "Ensemble":
+            info["numEnsembleMembers"] = self.numEnsembleMembers
+            info["selectedEnsembleMember"] = self.ensembleMember
+        return info
+
     # Auxiliary functions - Geodesic Coordinates
     def geodesicToUtm(self, lat, lon, datum):
         """Function which converts geodetic coordinates, i.e. lat/lon, to UTM
@@ -3534,7 +3638,7 @@ class Environment:
         min: float
             The arc minutes. 1 arc-minute = (1/60)*degree
         sec: float
-            The arc Seconds. 1 arc-second = (1/360)*degree
+            The arc Seconds. 1 arc-second = (1/3600)*degree
         """
 
         if angle < 0:

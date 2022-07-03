@@ -1,25 +1,14 @@
 # -*- coding: utf-8 -*-
 
 __author__ = "Giovani Hidalgo Ceotto, Franz Masatoshi Yuri"
-__copyright__ = "Copyright 20XX, Projeto Jupiter"
+__copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
-import re
-import math
-import bisect
-import warnings
-import time
-from datetime import datetime, timedelta
-from inspect import signature, getsourcelines
+
 from collections import namedtuple
+from inspect import getsourcelines
 
 import numpy as np
-from scipy import integrate
-from scipy import linalg
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import cm
-from numpy import genfromtxt
 
 from .Function import Function
 from .Parachute import Parachute
@@ -42,7 +31,8 @@ class Rocket:
             to the exit face of the nozzle, in meters. Always positive.
         Rocket.distanceRocketPropellant : float
             Distance between rocket's center of mass, without propellant,
-            to the center of mass of propellant, in meters. Always positive.
+            to the motor reference point, which for solid and hybrid motors
+            is the center of mass of solid propellant, in meters. Always positive.
 
         Mass and Inertia attributes:
         Rocket.mass : float
@@ -139,10 +129,11 @@ class Rocket:
             z axis which has an origin in the rocket's center of mass (without
             propellant) and points towards the nose cone.
         distanceRocketPropellant : int, float
-            Distance from rocket's unloaded center of mass to propellant
-            center of mass, in meters. Generally negative, meaning a negative
-            position in the z axis which has an origin in the rocket's center
-            of mass (with out propellant) and points towards the nose cone.
+            Distance from rocket's unloaded center of mass to the motor reference
+            point, which for solid and hybrid motor the is the center of mass of
+            solid propellant, in meters. Generally negative, meaning a negative
+            position in the z axis which has an origin in the rocket's center of
+            mass (with out propellant) and points towards the nose cone.
         powerOffDrag : int, float, callable, string, array
             Rocket's drag coefficient when the motor is off. Can be given as an
             entry to the Function class. See help(Function) for more
@@ -164,7 +155,9 @@ class Rocket:
         self.mass = mass
         self.inertiaI = inertiaI
         self.inertiaZ = inertiaZ
-        self.centerOfMass = distanceRocketPropellant * motor.mass / (mass + motor.mass)
+        self.centerOfMass = (
+            (distanceRocketPropellant - motor.zCM) * motor.mass / (mass + motor.mass)
+        )
 
         # Define rocket geometrical parameters in SI units
         self.radius = radius
@@ -298,7 +291,8 @@ class Rocket:
     def evaluateStaticMargin(self):
         """Calculates and returns the rocket's static margin when
         loaded with propellant. The static margin is saved and returned
-        in units of rocket diameter or calibers.
+        in units of rocket diameter or calibers. This function also calculates
+        the rocket center of pressure and total lift coefficients.
 
         Parameters
         ----------
@@ -346,7 +340,6 @@ class Rocket:
         parameters are the axial position along the rocket and its
         derivative of the coefficient of lift in respect to angle of
         attack.
-
         Parameters
         ----------
         topRadius : int, float
@@ -363,7 +356,6 @@ class Rocket:
             cone. Consider the point belonging to the tail which is
             closest to the unloaded center of mass to calculate
             distance.
-
         Returns
         -------
         cl : Function
@@ -448,12 +440,8 @@ class Rocket:
             k = 1 - 0.437
         else:
             k = 0.5
-
         # Calculate cp position relative to cm
-        if distanceToCM > 0:
-            cpz = distanceToCM + k * length
-        else:
-            cpz = distanceToCM - k * length
+        cpz = distanceToCM + np.sign(distanceToCM) * k * length
 
         # Calculate clalpha
         clalpha = 2
@@ -488,7 +476,6 @@ class Rocket:
         aerodynamicSurfaces list. Its parameters are the axial position
         along the rocket and its derivative of the coefficient of lift
         in respect to angle of attack.
-
         Parameters
         ----------
         n : int
@@ -526,7 +513,6 @@ class Rocket:
             return the lift coefficient at that angle of attack.
             The tuple's second item is the unit of the angle of attack,
             accepting either "radians" or "degrees".
-
         Returns
         -------
         cl : Function
@@ -635,16 +621,10 @@ class Rocket:
                 return n / 2
 
         # Calculate cp position relative to cm
-        if distanceToCM < 0:
-            cpz = distanceToCM - (
-                ((Cr - Ct) / 3) * ((Cr + 2 * Ct) / (Cr + Ct))
-                + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
-            )
-        else:
-            cpz = distanceToCM + (
-                ((Cr - Ct) / 3) * ((Cr + 2 * Ct) / (Cr + Ct))
-                + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
-            )
+        cpz = distanceToCM + np.sign(distanceToCM) * (
+            ((Cr - Ct) / 3) * ((Cr + 2 * Ct) / (Cr + Ct))
+            + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
+        )
 
         if not airfoil:
             # Defines clalpha2D as 2*pi for planar fins
@@ -666,7 +646,6 @@ class Rocket:
 
             # Correcting for compressible flow
             clalpha2D = Function(lambda mach: clalpha2D_Mach0 / beta(mach))
-
         # Diederich's Planform Correlation Parameter
         FD = 2 * np.pi * AR / (clalpha2D * np.cos(gamac))
 
@@ -972,7 +951,7 @@ class Rocket:
             + " m"
         )
         print(
-            "Rocket Center of Mass - Propellant Center of Mass Distance: "
+            "Rocket Center of Mass - Motor reference point: "
             + str(self.distanceRocketPropellant)
             + " m"
         )
