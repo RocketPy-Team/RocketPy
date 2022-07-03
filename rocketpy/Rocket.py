@@ -155,16 +155,16 @@ class Rocket:
         # Define motor to be used
         self.motor = motor
 
-        # Define center of mass and points of interest in relation to inputted reference axis
+        # Define center of mass and points of interest relative to the inputted reference axis
         self.positionNozzle = positionNozzle
         self.positionCenterOfDryMass = positionCenterOfDryMass
 
-        # Define positions in relation to nozzle
+        # Define positions relative to nozzle
         self.positionCenterOfDryMassToNozzle = abs(
             positionCenterOfDryMass - positionNozzle
         )
 
-        # Define positions in relation to center of dry mass
+        # Define positions relative to the rocket's center of dry mass
         self.positionMotorReferencePositionToCenterOfDryMass = (
             self.motor.distanceMotorReferenceToNozzle
             - self.positionCenterOfDryMassToNozzle
@@ -1127,8 +1127,8 @@ class Rocket:
 
     # Helper functions
     def evaluatePositionSurface_Nozzle(self, surfaceName, positionSurface):
-        """Calculates and returns the position of an aerodynamic surface in
-        relation to the nozzle exit. The relative position to the Nozzle
+        """Calculates and returns the position of an aerodynamic surface
+        relative to the nozzle exit. The relative position to the Nozzle
         considers the direction towards the rocket tip to be positive.
         The calculations take into account the possibility of the surface
         to be set behind the nozzle, meaning its relative position must

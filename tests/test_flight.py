@@ -530,7 +530,7 @@ def test_export_data():
 
 
 @patch("matplotlib.pyplot.show")
-def test_latlon_convertions(mock_show):
+def test_latlon_conversions(mock_show):
     test_env = Environment(
         railLength=5,
         latitude=32.990254,
@@ -616,7 +616,7 @@ def test_latlon_convertions(mock_show):
 
 
 @patch("matplotlib.pyplot.show")
-def test_latlon_convertions2(mock_show):
+def test_latlon_conversions2(mock_show):
     "additional tests to capture incorrect behaviors during lat/lon conversions"
     test_motor = SolidMotor(
         thrustSource=1000,

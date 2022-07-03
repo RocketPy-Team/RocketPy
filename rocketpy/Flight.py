@@ -1835,7 +1835,7 @@ class Flight:
             * 2
             * np.arcsin(-((self.e1[:, 1] ** 2 + self.e2[:, 1] ** 2) ** 0.5))
         )  # Nutation angle
-        theta = np.column_stack([self.e1[:, 0], theta])  # Nutation angle
+        theta = np.column_stack([self.e2[:, 0], theta])  # Nutation angle
         self.theta = Function(theta, "Time (s)", "Nutation Angle - θ (°)")
 
         # Dynamics functions and variables
