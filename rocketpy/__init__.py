@@ -12,6 +12,7 @@ design and trajectory optimization and dispersion analysis.
 """
 
 __author__ = "Giovani Hidalgo Ceotto"
+__copyright__ = "Copyright 20XX, RocketPy Team"
 __copyright__ = "Copyright 20XX, Projeto Jupiter"
 __credits__ = ["Matheus Marques Araujo", "Rodrigo Schmitt", "Guilherme Tavares"]
 __license__ = "MIT"
