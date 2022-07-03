@@ -4,16 +4,9 @@ __author__ = "Giovani Hidalgo Ceotto, Lucas Kierulff Balabram"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
-from datetime import datetime, timedelta
-from inspect import signature, getsourcelines
-from collections import namedtuple
-
-import numpy as np
-from scipy import integrate
-from scipy import linalg
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import cm
+import numpy as np
+from scipy import integrate, linalg
 
 
 class Function:

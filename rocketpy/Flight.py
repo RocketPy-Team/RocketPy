@@ -9,10 +9,10 @@ __license__ = "MIT"
 import math
 import time
 
-import numpy as np
-from scipy import integrate
 import matplotlib.pyplot as plt
+import numpy as np
 import simplekml
+from scipy import integrate
 
 from .Function import Function
 

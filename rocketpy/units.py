@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+__author__ = "Giovani Hidalgo Ceotto"
+__copyright__ = "Copyright 20XX, RocketPy Team"
+__license__ = "MIT"
+
+
 import numpy as np
 from rocketpy.Function import Function
 
@@ -76,9 +82,11 @@ def convert_units_Functions(variable, from_unit, to_unit, axis=1):
         variable_source[:, axis] *= conversion_factor(from_unit, to_unit)
     # Rename axis labels
     if axis == 0:
-        variable.__inputs__[0] = variable.__inputs__[0].replace(from_unit, to_unit)
+        variable.__inputs__[0] = variable.__inputs__[
+            0].replace(from_unit, to_unit)
     elif axis == 1:
-        variable.__outputs__[0] = variable.__outputs__[0].replace(from_unit, to_unit)
+        variable.__outputs__[0] = variable.__outputs__[
+            0].replace(from_unit, to_unit)
     # Create new Function instance with converted data
     return Function(
         source=variable_source,

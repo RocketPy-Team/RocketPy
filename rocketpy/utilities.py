@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
-from matplotlib import pyplot as plt
-from scipy.integrate import solve_ivp
-import numpy as np
-
-from .Environment import Environment
-from .Function import Function
-
 __author__ = "Franz Masatoshi Yuri, Lucas Kierulff Balabram, Guilherme Fernandes Alves"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
+
+import numpy as np
+from scipy.integrate import solve_ivp
+
+from .Environment import Environment
+from .Function import Function
 
 
 # TODO: Needs tests
@@ -155,7 +154,8 @@ def calculateEquilibriumAltitude(
         """
         return (
             u[1],
-            -g + environment.density(z) * ((u[1]) ** 2) * CdS / (2 * rocket_mass),
+            -g + environment.density(z) *
+            ((u[1]) ** 2) * CdS / (2 * rocket_mass),
         )
 
     u0 = [z0, v0]
