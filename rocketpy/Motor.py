@@ -5,21 +5,10 @@ __copyright__ = "Copyright 20XX, Projeto Jupiter"
 __license__ = "MIT"
 
 import re
-import math
-import bisect
-import warnings
-import time
 from abc import ABC, abstractmethod, abstractproperty
-from datetime import datetime, timedelta
-from inspect import signature, getsourcelines
-from collections import namedtuple
 
 import numpy as np
 from scipy import integrate
-from scipy import linalg
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import cm
 
 from .Function import Function
 
@@ -174,8 +163,8 @@ class Motor(ABC):
         self.burnOutTime = burnOut
 
         # Geometric parameters
-        # position of motor reference point in relation to nozzle
-        self.positionMotorReference_Nozzle = distanceNozzleMotorReference
+        # Position of motor reference point relative to the nozzle exit
+        self.distanceMotorReferenceToNozzle = distanceNozzleMotorReference
 
         # Check if thrustSource is csv, eng, function or other
         if isinstance(thrustSource, str):
@@ -557,7 +546,7 @@ class Motor(ABC):
         )
         print(
             "Distance Nozzle - Motor reference point: "
-            + str(self.positionMotorReference_Nozzle)
+            + str(self.distanceMotorReferenceToNozzle)
             + " m"
         )
         print(
@@ -598,7 +587,7 @@ class Motor(ABC):
         print("Nozzle Throat Radius: " + str(self.throatRadius) + " m")
         print(
             "Distance Nozzle - Motor reference point: "
-            + str(self.positionMotorReference_Nozzle)
+            + str(self.distanceMotorReferenceToNozzle)
             + " m"
         )
 
@@ -816,7 +805,7 @@ class SolidMotor(Motor):
         self.burnOutTime = burnOut
 
         # Geometric parameters
-        self.positionMotorReference_Nozzle = distanceNozzleMotorReference
+        self.distanceMotorReferenceToNozzle = distanceNozzleMotorReference
 
         # Check if thrustSource is csv, eng, function or other
         if isinstance(thrustSource, str):
@@ -1235,7 +1224,7 @@ class SolidMotor(Motor):
         )
         print(
             "Distance Nozzle - Motor reference point: "
-            + str(self.positionMotorReference_Nozzle)
+            + str(self.distanceMotorReferenceToNozzle)
             + " m"
         )
         print(
@@ -1276,7 +1265,7 @@ class SolidMotor(Motor):
         print("Nozzle Throat Radius: " + str(self.throatRadius) + " m")
         print(
             "Distance Nozzle - Motor reference point: "
-            + str(self.positionMotorReference_Nozzle)
+            + str(self.distanceMotorReferenceToNozzle)
             + " m"
         )
 
@@ -1518,7 +1507,7 @@ class HybridMotor(Motor):
         self.burnOutTime = burnOut
 
         # Geometric parameters
-        self.positionMotorReference_Nozzle = distanceNozzleMotorReference
+        self.distanceMotorReferenceToNozzle = distanceNozzleMotorReference
 
         # Check if thrustSource is csv, eng, function or other
         if isinstance(thrustSource, str):

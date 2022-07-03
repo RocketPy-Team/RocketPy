@@ -4,21 +4,11 @@ __author__ = "Giovani Hidalgo Ceotto, Franz Masatoshi Yuri"
 __copyright__ = "Copyright 20XX, Projeto Jupiter"
 __license__ = "MIT"
 
-import bisect
-import math
-import re
-import time
 import warnings
 from collections import namedtuple
-from datetime import datetime, timedelta
-from inspect import getsourcelines, signature
+from inspect import getsourcelines
 
-import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import cm
-from mpl_toolkits.mplot3d import Axes3D
-from numpy import genfromtxt
-from scipy import integrate, linalg
 
 from .Function import Function
 from .Parachute import Parachute
@@ -37,17 +27,17 @@ class Rocket:
             Rocket's circular cross section largest frontal area in squared
             meters.
         Rocket.positionNozzle : float
-            Rocket's nozzle position, in meters. Can be in relation to any
+            Rocket's nozzle position, in meters. Can be relative to any
             coordinate system that is aligned with the rocket's axis.
         Rocket.positionCenterOfDryMass : float
-            Rocket's center of dry mass position, in meters. Can be in relation
+            Rocket's center of dry mass position, in meters. Can be relative
             to any coordinate system that is aligned with the rocket's axis.
-        Rocket.centerOfDryMassPosition_Nozzle : float
-            Position of the rocket's center of dry mass in relation to the
+        Rocket.positionCenterOfDryMassToNozzle : float
+            Position of the rocket's center of dry mass relative to the
             rocket's nozzle, in meters, considering positive direction from
             nozzle to nose cone. Always positive.
-        Rocket.motorReferencePosition_CM : float
-            Position of the rocket's motor's reference point in relation to
+        Rocket.positionMotorReferencePositionToCenterOfDryMass : float
+            Position of the rocket's motor's reference point relative to
             the rocket's center of mass, in meters.
 
         Mass and Inertia attributes:
@@ -170,14 +160,14 @@ class Rocket:
         self.positionCenterOfDryMass = positionCenterOfDryMass
 
         # Define positions in relation to nozzle
-        self.centerOfDryMassPosition_Nozzle = abs(
+        self.positionCenterOfDryMassToNozzle = abs(
             positionCenterOfDryMass - positionNozzle
         )
 
         # Define positions in relation to center of dry mass
-        self.motorReferencePosition_CM = (
-            self.motor.positionMotorReference_Nozzle
-            - self.centerOfDryMassPosition_Nozzle
+        self.positionMotorReferencePositionToCenterOfDryMass = (
+            self.motor.distanceMotorReferenceToNozzle
+            - self.positionCenterOfDryMassToNozzle
         )
 
         # Define rocket inertia attributes in SI units
@@ -186,7 +176,7 @@ class Rocket:
         self.inertiaZ = inertiaZ
 
         self.centerOfMass = (
-            (self.motorReferencePosition_CM - self.motor.yCM)
+            (self.positionMotorReferencePositionToCenterOfDryMass - self.motor.yCM)
             * motor.mass
             / (mass + motor.mass)
         )
@@ -403,8 +393,8 @@ class Rocket:
 
         # Calculate tail position relative to cm
         tailPosition_CM = (
-            tailPosition_Nozzle - self.centerOfDryMassPosition_Nozzle
-        )  # posicao inicio da cauda
+            tailPosition_Nozzle - self.positionCenterOfDryMassToNozzle
+        )  # tail initial position
 
         # Calculate cp position relative to cm
         if tailPosition_CM < 0:
@@ -481,7 +471,7 @@ class Rocket:
         # Calculate nosecone base position relative to cm
         nosePosition_CM = (
             nosePosition_Nozzle - length
-        ) - self.centerOfDryMassPosition_Nozzle
+        ) - self.positionCenterOfDryMassToNozzle
 
         # Calculate cp position relative to cm
         if nosePosition_CM > 0:
@@ -547,7 +537,7 @@ class Rocket:
         airfoil : tuple, optional
             Default is null, in which case fins will be treated as flat plates.
             Otherwise, if tuple, fins will be considered as airfoils. The
-            tuple's first item specefies the aifoil's lift coefficient
+            tuple's first item specifies the airfoil's lift coefficient
             by angle of attack and must be either a .csv, .txt, ndarray
             or callable. The .csv and .txt files must contain no headers
             and the first column must specify the angle of attack, while
@@ -670,7 +660,7 @@ class Rocket:
         finsPosition_Nozzle = self.evaluatePositionSurface_Nozzle("Fins", positionFins)
 
         # Calculate fins position relative to cm
-        finsPosition_CM = finsPosition_Nozzle - self.centerOfDryMassPosition_Nozzle
+        finsPosition_CM = finsPosition_Nozzle - self.positionCenterOfDryMassToNozzle
 
         # Calculate cp position relative to cm
         if finsPosition_CM < 0:
@@ -832,7 +822,7 @@ class Rocket:
             relative to the considered coordinate system. The order
             does not matter. All values should be in meters.
         angularPosition : float
-            Angular postion of the rail buttons in degrees measured
+            Angular position of the rail buttons in degrees measured
             as the rotation around the symmetry axis of the rocket
             relative to one of the other principal axis.
             Default value is 45 degrees, generally used in rockets with
@@ -918,7 +908,7 @@ class Rocket:
 
     def addThrustEccentricity(self, x, y):
         """Moves line of action of thrust forces to simulate a
-        disalignment of the thrust vector and the center of mass.
+        misalignment of the thrust vector and the center of mass.
 
         Parameters
         ----------
@@ -1010,12 +1000,12 @@ class Rocket:
         print("\nRocket Distances")
         print(
             "Rocket Center of Mass - Nozzle Exit Distance: "
-            + str(-self.centerOfDryMassPosition_Nozzle)
+            + str(-self.positionCenterOfDryMassToNozzle)
             + " m"
         )
         print(
             "Rocket Center of Mass - Motor reference point: "
-            + str(self.motorReferencePosition_CM)
+            + str(self.positionMotorReferencePositionToCenterOfDryMass)
             + " m"
         )
         print(
@@ -1104,7 +1094,7 @@ class Rocket:
         "Hey! I will document this function later"
         self.aerodynamicSurfaces = []
         pi = np.pi
-        # Calculate angular postions if not given
+        # Calculate angular positions if not given
         if angularPositions is None:
             angularPositions = np.array(range(numberOfFins)) * 2 * pi / numberOfFins
         else:
@@ -1139,7 +1129,7 @@ class Rocket:
     def evaluatePositionSurface_Nozzle(self, surfaceName, positionSurface):
         """Calculates and returns the position of an aerodynamic surface in
         relation to the nozzle exit. The relative position to the Nozzle
-        considers the direction towards the rocket tip to be positve.
+        considers the direction towards the rocket tip to be positive.
         The calculations take into account the possibility of the surface
         to be set behind the nozzle, meaning its relative position must
         be negative.
@@ -1196,7 +1186,7 @@ class Rocket:
                     )  # negative value since Surface is after the Nozzle
 
             elif np.sign(self.positionCenterOfDryMass * self.positionNozzle) == -1:
-                # Surface is in beetween the Center of dry mass and the Nozzle
+                # Surface is in between the Center of dry mass and the Nozzle
                 # Meaning Surface is in front of the Nozzle
                 return abs(positionSurface - self.positionNozzle)
             else:
