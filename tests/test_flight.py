@@ -532,10 +532,7 @@ def test_export_data():
 @patch("matplotlib.pyplot.show")
 def test_latlon_conversions(mock_show):
     test_env = Environment(
-        railLength=5,
-        latitude=32.990254,
-        longitude=-106.974998,
-        elevation=1400
+        railLength=5, latitude=32.990254, longitude=-106.974998, elevation=1400
     )
 
     test_motor = SolidMotor(
