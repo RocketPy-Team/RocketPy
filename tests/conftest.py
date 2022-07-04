@@ -41,7 +41,8 @@ def rocket(solid_motor):
         mass=19.197 - 2.956,
         inertiaI=6.60,
         inertiaZ=0.0351,
-        distanceRocketNozzle=-1.255,
+        positionNozzle=-1.255,
+        positionCenterOfDryMass=0,
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
@@ -85,7 +86,8 @@ def dimensionless_rocket(kg, m, dimensionless_solid_motor):
         mass=(19.197 - 2.956) * kg,
         inertiaI=6.60 * (kg * m**2),
         inertiaZ=0.0351 * (kg * m**2),
-        distanceRocketNozzle=-1.255 * m,
+        positionNozzle=-1.255 * m,
+        positionCenterOfDryMass=0 * m,
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )

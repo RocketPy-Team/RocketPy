@@ -616,7 +616,7 @@ class Flight:
         # Modifying Rail Length for a better out of rail condition
         upperRButton = max(self.rocket.railButtons[0])
         lowerRButton = min(self.rocket.railButtons[0])
-        nozzle = self.rocket.distanceRocketNozzle
+        nozzle = -self.rocket.positionCenterOfDryMassToNozzle
         self.effective1RL = self.env.rL - abs(nozzle - upperRButton)
         self.effective2RL = self.env.rL - abs(nozzle - lowerRButton)
 
@@ -1347,8 +1347,8 @@ class Flight:
         M = Mt + Mr
         mu = (Mt * Mr) / (Mt + Mr)
         # Geometry
-        b = -self.rocket.distanceRocketMotorReference
-        c = -self.rocket.distanceRocketNozzle
+        b = -self.rocket.positionMotorReferencePositionToCenterOfDryMass
+        c = -(-self.rocket.positionCenterOfDryMassToNozzle)
         a = b * Mt / M
         rN = self.rocket.motor.nozzleRadius
         # Prepare transformation matrix
@@ -1835,7 +1835,7 @@ class Flight:
             * 2
             * np.arcsin(-((self.e1[:, 1] ** 2 + self.e2[:, 1] ** 2) ** 0.5))
         )  # Nutation angle
-        theta = np.column_stack([self.e1[:, 0], theta])  # Nutation angle
+        theta = np.column_stack([self.e2[:, 0], theta])  # Nutation angle
         self.theta = Function(theta, "Time (s)", "Nutation Angle - θ (°)")
 
         # Dynamics functions and variables
@@ -1905,7 +1905,7 @@ class Flight:
         self.aerodynamicSpinMoment = self.M3
         self.aerodynamicSpinMoment.setOutputs("Aerodynamic Spin Moment (N m)")
         # Energy
-        b = -self.rocket.distanceRocketMotorReference
+        b = -self.rocket.positionMotorReferencePositionToCenterOfDryMass
         totalMass = self.rocket.totalMass
         mu = self.rocket.reducedMass
         Rz = self.rocket.inertiaZ
@@ -2142,7 +2142,7 @@ class Flight:
                     + math.atan(abs(self.y[i][1]) / abs(self.x[i][1]))
                 )
 
-        # Store values of distance and bearing using approriate units
+        # Store values of distance and bearing using appropriate units
         # self.distance = distance      # Must be in meters
         # self.bearing = bearing        # Must be in radians
 
@@ -3228,8 +3228,8 @@ class Flight:
         minDifHeight = self.z(minDifTime) - self.env.elevation
         minDifVelocity = minDif * self.env.speedOfSound(minDifHeight)
 
-        # Calculate the minimun Fin Flutter Safety factor
-        # Calculate the time and height of minimun Fin Flutter Safety factor
+        # Calculate the minimum Fin Flutter Safety factor
+        # Calculate the time and height of minimum Fin Flutter Safety factor
         minSFTimeIndex = np.argmin(self.safetyFactor[:, 1])
         minSF = self.safetyFactor[minSFTimeIndex, 1]
         minSFTime = self.safetyFactor[minSFTimeIndex, 0]
