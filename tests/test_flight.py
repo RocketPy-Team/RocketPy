@@ -535,8 +535,7 @@ def test_latlon_conversions(mock_show):
         railLength=5,
         latitude=32.990254,
         longitude=-106.974998,
-        elevation=1400,
-        datum="WGS84",
+        elevation=1400
     )
 
     test_motor = SolidMotor(
@@ -618,6 +617,13 @@ def test_latlon_conversions(mock_show):
 @patch("matplotlib.pyplot.show")
 def test_latlon_conversions2(mock_show):
     "additional tests to capture incorrect behaviors during lat/lon conversions"
+    test_env = Environment(
+        railLength=5,
+        latitude=0,
+        longitude=0,
+        elevation=1400,
+    )
+
     test_motor = SolidMotor(
         thrustSource=1000,
         burnOut=3,
@@ -644,26 +650,10 @@ def test_latlon_conversions2(mock_show):
 
     test_rocket.setRailButtons([0.2, -0.5])
 
-    NoseCone = test_rocket.addNose(length=0.55829, kind="vonKarman", positionNose=1.278)
-    FinSet = test_rocket.addFins(
-        4, span=0.100, rootChord=0.120, tipChord=0.040, positionFins=-1.04956
-    )
-    Tail = test_rocket.addTail(
-        topRadius=0.0635, bottomRadius=0.0435, length=0.060, positionTail=-1.194656
-    )
-
-    test_env = Environment(
-        railLength=5,
-        latitude=0,
-        longitude=0,
-        elevation=1400,
-    )
-
     test_flight = Flight(
         rocket=test_rocket, environment=test_env, inclination=85, heading=0
     )
 
     test_flight.postProcess()
-
     assert test_flight.longitude(test_flight.tFinal) == 0
     assert test_flight.latitude(test_flight.tFinal) > 0
