@@ -176,7 +176,7 @@ class Rocket:
         self.inertiaZ = inertiaZ
 
         self.centerOfMass = (
-            (self.positionMotorReferencePositionToCenterOfDryMass - self.motor.yCM)
+            (self.positionMotorReferencePositionToCenterOfDryMass - self.motor.zCM)
             * motor.mass
             / (mass + motor.mass)
         )

@@ -178,7 +178,7 @@ class Motor(ABC):
                 # mass = float(desc[4])
                 # nozzleRadius = diameter/4
                 # throatRadius = diameter/8
-                # grainNumber = grainnumber
+                # grainNumber = grainNumber
                 # grainVolume = height*np.pi*((diameter/2)**2 -(diameter/4)**2)
                 # grainDensity = mass/grainVolume
                 # grainOuterRadius = diameter/2
@@ -345,7 +345,7 @@ class Motor(ABC):
     @abstractmethod
     def evaluateCenterOfMass(self):
         """Calculates and returns the time derivative of motor center of mass.
-        The result is a function of time, object of the Function class, which is stored in self.yCM.
+        The result is a function of time, object of the Function class, which is stored in self.zCM.
 
         Parameters
         ----------
@@ -353,7 +353,7 @@ class Motor(ABC):
 
         Returns
         -------
-        yCM : Function
+        zCM : Function
             Position of the center of mass as a function
             of time.
         """
@@ -819,7 +819,7 @@ class SolidMotor(Motor):
                 # mass = float(desc[4])
                 # nozzleRadius = diameter/4
                 # throatRadius = diameter/8
-                # grainNumber = grainnumber
+                # grainNumber = grainNumber
                 # grainVolume = height*np.pi*((diameter/2)**2 -(diameter/4)**2)
                 # grainDensity = mass/grainVolume
                 # grainOuterRadius = diameter/2
@@ -933,7 +933,7 @@ class SolidMotor(Motor):
 
     def evaluateCenterOfMass(self):
         """Calculates and returns the time derivative of motor center of mass.
-        The result is a function of time, object of the Function class, which is stored in self.yCM.
+        The result is a function of time, object of the Function class, which is stored in self.zCM.
 
         Parameters
         ----------
@@ -941,14 +941,14 @@ class SolidMotor(Motor):
 
         Returns
         -------
-        yCM : Function
+        zCM : Function
             Position of the center of mass as a function
             of time.
         """
 
-        self.yCM = 0
+        self.zCM = 0
 
-        return self.yCM
+        return self.zCM
 
     def evaluateGeometry(self):
         """Calculates grain inner radius and grain height as a
@@ -1521,7 +1521,7 @@ class HybridMotor(Motor):
                 # mass = float(desc[4])
                 # nozzleRadius = diameter/4
                 # throatRadius = diameter/8
-                # grainNumber = grainnumber
+                # grainNumber = grainNumber
                 # grainVolume = height*np.pi*((diameter/2)**2 -(diameter/4)**2)
                 # grainDensity = mass/grainVolume
                 # grainOuterRadius = diameter/2
@@ -1564,8 +1564,8 @@ class HybridMotor(Motor):
         self.injectorArea = injectorArea
         # Other quantities that will be computed
         self.massDot = None
-        self.yCM = None
-        self.oxidizerInitialMass = None
+        self.zCM = None
+        self.liquidInitialMass = None
         self.mass = None
         self.grainInnerRadius = None
         self.grainHeight = None
@@ -1649,8 +1649,9 @@ class HybridMotor(Motor):
 
     def evaluateCenterOfMass(self):
         """Calculates and returns the time derivative of motor center of mass.
-        The formulas used are the Bernoulli equation, law of the ideal gases and Boyle's law.
-        The result is a function of time, object of the Function class, which is stored in self.yCM.
+        The final mass of the propellant is assumed to be zero,
+        so a linear extrapolation is used to calculate the position of the center of mass.
+        The result is a function of time, object of the Function class, which is stored in self.zCM.
 
         Parameters
         ----------
@@ -1658,14 +1659,32 @@ class HybridMotor(Motor):
 
         Returns
         -------
-        yCM : Function
+        zCM : Function
             Position of the center of mass as a function
             of time.
         """
+        self.solidInitialMass = self.grainInitialMass * self.grainNumber
+        self.liquidInitialMass = self.oxidizerInitialVolume * self.oxidizerDensity
 
-        self.yCM = 0
+        self.solidPropellantInitialCM = 0
 
-        return self.yCM
+        self.liquidPropellantInitialCM = (
+            self.oxidizerInitialVolume / (np.pi * (self.oxidizerTankRadius**2))
+        ) / 2 + self.distanceGrainToTank
+
+        zCM0 = (
+            self.solidInitialMass * self.solidPropellantInitialCM
+            + self.liquidInitialMass * self.liquidPropellantInitialCM
+        ) / (self.solidInitialMass + self.liquidInitialMass)
+
+        self.zCM = Function(
+            [(0, zCM0), (self.burnOutTime, 0)],
+            interpolation="linear",
+            inputs="Time (s)",
+            outputs="Propellant center of mass position (m)",
+        )
+
+        return self.zCM
 
     def evaluateGeometry(self):
         """Calculates grain inner radius and grain height as a
@@ -1961,11 +1980,96 @@ class HybridMotor(Motor):
 
         # Show plots
         print("\nPlots")
-        # self.thrust()
-
-        self.yCM
+        self.thrust()
+        self.zCM()
 
         return None
 
     def allInfo(self):
-        pass
+        """Prints out all data and graphs available about the Motor.
+
+        Parameters
+        ----------
+        None
+
+        Return
+        ------
+        None
+        """
+        # Print nozzle details
+        print("Nozzle Details")
+        print("Nozzle Radius: " + str(self.nozzleRadius) + " m")
+        print("Nozzle Throat Radius: " + str(self.throatRadius) + " m")
+        print(
+            "Distance Nozzle - Motor reference point: "
+            + str(self.distanceNozzleMotorReference)
+            + " m"
+        )
+
+        # Print grain details
+        print("\nGrain Details")
+        print("Number of Grains: " + str(self.grainNumber))
+        print("Grain Spacing: " + str(self.grainSeparation) + " m")
+        print("Grain Density: " + str(self.grainDensity) + " kg/m3")
+        print("Grain Outer Radius: " + str(self.grainOuterRadius) + " m")
+        print("Grain Inner Radius: " + str(self.grainInitialInnerRadius) + " m")
+        print("Grain Height: " + str(self.grainInitialHeight) + " m")
+        print("Grain Volume: " + "{:.3f}".format(self.grainInitialVolume) + " m3")
+        print("Grain Mass: " + "{:.3f}".format(self.grainInitialMass) + " kg")
+
+        # Print oxidizer details
+        print("\nOxidizer Details")
+        print("Oxidizer Tank Radius: " + str(self.oxidizerTankRadius) + " m")
+        print("Oxidizer Tank Height: " + str(self.oxidizerTankHeight) + " m")
+        print(
+            "Oxidizer Initial Pressure: " + str(self.oxidizerInitialPressure) + " atm"
+        )
+        print("Oxidizer Initial Mass: " + str(self.liquidInitialMass) + " kg")
+        print("Oxidizer Density: " + str(self.oxidizerDensity) + " kg/m3")
+        print("Oxidizer Molar Mass: " + str(self.oxidizerMolarMass) + " g/mol")
+        print(
+            "Oxidizer Initial Volume: "
+            + "{:.3f}".format(self.oxidizerInitialVolume)
+            + " m3"
+        )
+
+        # Print motor details
+        print("\nMotor Details")
+        print("Total Burning Time: " + str(self.burnOutTime) + " s")
+        print(
+            "Total Propellant Mass: "
+            + "{:.3f}".format(self.propellantInitialMass)
+            + " kg"
+        )
+        print(
+            "Propellant Exhaust Velocity: "
+            + "{:.3f}".format(self.exhaustVelocity)
+            + " m/s"
+        )
+        print("Average Thrust: " + "{:.3f}".format(self.averageThrust) + " N")
+        print(
+            "Maximum Thrust: "
+            + str(self.maxThrust)
+            + " N at "
+            + str(self.maxThrustTime)
+            + " s after ignition."
+        )
+        print("Total Impulse: " + "{:.3f}".format(self.totalImpulse) + " Ns")
+
+        # Show plots
+        print("\nPlots")
+        self.thrust()
+        self.mass()
+        self.massDot()
+        self.zCM()
+        self.grainInnerRadius()
+        self.grainHeight()
+        self.burnRate()
+        self.burnArea()
+        self.Kn()
+        self.inertiaI()
+        self.inertiaIDot()
+        self.inertiaZ()
+        self.inertiaZDot()
+
+        return None
