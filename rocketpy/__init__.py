@@ -22,6 +22,7 @@ __email__ = "ghceotto@gmail.com"
 __status__ = "Production"
 
 from .Environment import Environment
+from .EnvironmentAnalysis import EnvironmentAnalysis
 from .Flight import Flight
 from .Function import Function
 from .Motor import HybridMotor, SolidMotor
