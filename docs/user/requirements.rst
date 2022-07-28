@@ -21,6 +21,13 @@ The following packages are needed in order to run RocketPy:
 - Scipy >= 1.0
 - Matplotlib >= 3.0
 - netCDF4 >= 1.4 (optional, requires Cython)
+- windrose >= 1.6.8
+- requests
+- pytz
+- timezonefinder
+- simplekml
+- ipywidgets >= 7.6.3
+
  
 All of these packages, with the exception of netCDF4, should be automatically installed when RocketPy is installed using either ``pip`` or ``conda``.
 However, in case the user wants to install these packages manually, they can do so by following the instructions bellow.
@@ -36,7 +43,12 @@ The packages needed can be installed via ``pip`` by running the following lines 
     pip install "scipy>=1.0"
     pip install "matplotlib>=3.0"
     pip install "netCDF4>=1.4"
+    pip install "windrose >= 1.6.8"
+    pip install "ipywidgets>=7.6.3"
     pip install requests
+    pip install pytz
+    pip install timezonefinder
+    pip install simplekml
 
 Installing Required Packages Using ``conda``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
