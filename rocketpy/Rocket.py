@@ -461,7 +461,7 @@ class Rocket:
         # Return self
         return self.aerodynamicSurfaces[-1]
 
-    def addFins(self,*args, **kwargs):
+    def addFins(self, *args, **kwargs):
         """See Rocket.addTrapezoidalFins for documentation.
         This method is set to be deprecated in version 1.0.0 and fully removed
         by version 2.0.0. Use Rocket.addTrapezoidalFins instead. It keeps the
@@ -469,7 +469,7 @@ class Rocket:
         warnings.warn(
             "This method is set to be deprecated in version 1.0.0 and fully "
             "removed by version 2.0.0. Use Rocket.addTrapezoidalFins instead",
-            PendingDeprecationWarning
+            PendingDeprecationWarning,
         )
         self.addTrapezoidalFins(*args, **kwargs)
 
@@ -482,7 +482,7 @@ class Rocket:
         distanceToCM,
         radius=None,
         cantAngle=0,
-        airfoil=None
+        airfoil=None,
     ):
         """Create a trapezoidal fin set, storing its parameters as part of the
         aerodynamicSurfaces list. Its parameters are the axial position
@@ -545,10 +545,10 @@ class Rocket:
         d = 2 * radius
         Aref = np.pi * radius**2
         Yr = Cr + Ct
-        Af = Yr * s / 2 # Fin area
-        AR = 2 * s**2 / Af # Fin aspect ratio
+        Af = Yr * s / 2  # Fin area
+        AR = 2 * s**2 / Af  # Fin aspect ratio
         gamac = np.arctan((Cr - Ct) / (2 * s))  # Mid chord angle
-        Yma = (s / 3) * (Cr + 2 * Ct) / Yr # Span wise coord of mean aero chord
+        Yma = (s / 3) * (Cr + 2 * Ct) / Yr  # Span wise coord of mean aero chord
         rollGeometricalConstant = (
             (Cr + 3 * Ct) * s**3
             + 4 * (Cr + 2 * Ct) * radius * s**2
@@ -633,7 +633,7 @@ class Rocket:
 
             # Correcting for compressible flow
             clalpha2D = Function(lambda mach: clalpha2D_Mach0 / beta(mach))
-    
+
         # Diederich's Planform Correlation Parameter
         FD = 2 * np.pi * AR / (clalpha2D * np.cos(gamac))
 
@@ -660,8 +660,7 @@ class Rocket:
         rollDampingInterferenceFactor = 1 + (
             ((tau - λ) / (tau)) - ((1 - λ) / (tau - 1)) * np.log(tau)
         ) / (
-            ((tau + 1) * (tau - λ)) / (2)
-            - ((1 - λ) * (tau**3 - 1)) / (3 * (tau - 1))
+            ((tau + 1) * (tau - λ)) / (2) - ((1 - λ) * (tau**3 - 1)) / (3 * (tau - 1))
         )
         rollForcingInterferenceFactor = (1 / np.pi**2) * (
             (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
@@ -687,7 +686,7 @@ class Rocket:
             * np.cos(cantAngleRad)
             * rollGeometricalConstant
             / (Aref * d**2)
-        ) # Function of mach number
+        )  # Function of mach number
         rollParameters = [clfDelta, cldOmega, cantAngleRad]
 
         # Store values
@@ -704,7 +703,7 @@ class Rocket:
 
         # Return the created aerodynamic surface
         return self.aerodynamicSurfaces[-1]
-    
+
     def addEllipticalFins(
         self,
         n,
@@ -775,10 +774,12 @@ class Rocket:
 
         # Compute auxiliary geometrical parameters
         d = 2 * radius
-        Aref = np.pi * radius**2 # Reference area for coefficients
-        Af = (np.pi * Cr / 2 * s) / 2 # Fin area
-        AR = 2 * s**2 / Af # Fin aspect ratio
-        Yma = s / (3 * np.pi) * np.sqrt(9 * np.pi**2 - 16) # Span wise coord of mean aero chord
+        Aref = np.pi * radius**2  # Reference area for coefficients
+        Af = (np.pi * Cr / 2 * s) / 2  # Fin area
+        AR = 2 * s**2 / Af  # Fin aspect ratio
+        Yma = (
+            s / (3 * np.pi) * np.sqrt(9 * np.pi**2 - 16)
+        )  # Span wise coord of mean aero chord
         rollGeometricalConstant = (
             Cr
             * s
@@ -798,9 +799,7 @@ class Rocket:
                 2
                 * (radius**2)
                 * np.sqrt(s**2 - radius**2)
-                * np.log(
-                    (2 * s * np.sqrt(s**2 - radius**2) + 2 * s**2) / radius
-                )
+                * np.log((2 * s * np.sqrt(s**2 - radius**2) + 2 * s**2) / radius)
                 - 2 * (radius**2) * np.sqrt(s**2 - radius**2) * np.log(2 * s)
                 + 2 * s**3
                 - np.pi * radius * s**2
