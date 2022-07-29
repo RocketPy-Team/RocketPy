@@ -467,7 +467,7 @@ class Rocket:
         by version 2.0.0. Use Rocket.addTrapezoidalFins instead. It keeps the
         same arguments and signature."""
         warnings.warn(
-            "This method is set to be deprecated in version 1.0.0 and fully"
+            "This method is set to be deprecated in version 1.0.0 and fully "
             "removed by version 2.0.0. Use Rocket.addTrapezoidalFins instead",
             PendingDeprecationWarning
         )
