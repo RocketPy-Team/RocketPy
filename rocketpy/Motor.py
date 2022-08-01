@@ -168,6 +168,7 @@ class Motor(ABC):
         self.distanceMotorReferenceToNozzle = distanceNozzleMotorReference
 
         # Check if thrustSource is csv, eng, function or other
+        self.zCM = None
         if isinstance(thrustSource, str):
             # Determine if csv or eng
             if thrustSource[-3:] == "eng":
@@ -187,7 +188,6 @@ class Motor(ABC):
                 # grainInitialHeight = height
                 thrustSource = points
                 self.burnOutTime = points[-1][0]
-                self.zCM = None
             elif thrustSource[-3:] == "rse":
                 # Import content
                 comments, desc, data = self.importRse(thrustSource)
@@ -204,11 +204,6 @@ class Motor(ABC):
                     self.zCM -= self.distanceNozzlePropellant
                     self.zCM.setInputs("Time (s)")
                     self.zCM.setOutputs("Propellant center of mass position (m)")
-
-                else:
-                    self.zCM = None
-        else:
-            self.zCM = None
 
         # Create thrust function
         self.thrust = Function(
@@ -1923,7 +1918,7 @@ class HybridMotor(Motor):
         )
         print(
             "Distance Nozzle - Motor reference point: "
-            + str(self.distanceNozzleMotorReference)
+            + str(self.distanceMotorReferenceToNozzle)
             + " m"
         )
         print(
@@ -1965,7 +1960,7 @@ class HybridMotor(Motor):
         print("Nozzle Throat Radius: " + str(self.throatRadius) + " m")
         print(
             "Distance Nozzle - Motor reference point: "
-            + str(self.distanceNozzleMotorReference)
+            + str(self.distanceMotorReferenceToNozzle)
             + " m"
         )
 
