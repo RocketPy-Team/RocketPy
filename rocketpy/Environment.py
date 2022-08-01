@@ -1,20 +1,28 @@
 # -*- coding: utf-8 -*-
 
-from .Function import Function
-
 __author__ = "Giovani Hidalgo Ceotto, Guilherme Fernandes Alves, Lucas Azevedo Pezente, Oscar Mauricio Prada Ramirez, Lucas Kierulff Balabram"
-__copyright__ = "Copyright 20XX, RocketPy Team"
+__copyright__ = "Copyright 20XX, Projeto Jupiter"
 __license__ = "MIT"
 
-import bisect
 import re
+import math
+import bisect
 import warnings
-from datetime import datetime, timedelta
-
-import matplotlib.pyplot as plt
-import numpy as np
+import time
 import pytz
+from datetime import datetime, timedelta
+from inspect import signature, getsourcelines
+from collections import namedtuple
+
+import numpy as np
+from scipy import integrate
+from scipy import linalg
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
 import requests
+
+# import ee
 
 try:
     import netCDF4
@@ -38,6 +46,9 @@ def requires_netCDF4(func):
             )
 
     return wrapped_func
+
+
+from .Function import Function
 
 
 class Environment:
@@ -415,10 +426,7 @@ class Environment:
         # Store date and configure time zone
         self.timeZone = timeZone
         tz = pytz.timezone(self.timeZone)
-        if type(date) != datetime:
-            localDate = datetime(*date)
-        else:
-            localDate = date
+        localDate = datetime(*date)
         if localDate.tzinfo == None:
             localDate = tz.localize(localDate)
         self.localDate = localDate
@@ -1401,9 +1409,7 @@ class Environment:
             interpolation="linear",
         )
 
-        def windDirection(h):
-            return (windHeading(h) - 180) % 360
-
+        windDirection = lambda h: (windHeading(h) - 180) % 360
         self.windDirection = Function(
             windDirection,
             inputs="Height Above Sea Level (m)",
@@ -1411,9 +1417,9 @@ class Environment:
             interpolation="linear",
         )
 
-        def windSpeed(h):
-            return np.sqrt(self.windVelocityX(h) ** 2 + self.windVelocityY(h) ** 2)
-
+        windSpeed = lambda h: np.sqrt(
+            self.windVelocityX(h) ** 2 + self.windVelocityY(h) ** 2
+        )
         self.windSpeed = Function(
             windSpeed,
             inputs="Height Above Sea Level (m)",
@@ -2006,6 +2012,7 @@ class Environment:
             warnings.warn(
                 "Some values were missing from this weather dataset, therefore, certain pressure levels were removed."
             )
+
         # Save atmospheric data
         self.pressure = Function(
             data_array[:, (1, 0)],
@@ -3638,7 +3645,7 @@ class Environment:
         min: float
             The arc minutes. 1 arc-minute = (1/60)*degree
         sec: float
-            The arc Seconds. 1 arc-second = (1/3600)*degree
+            The arc Seconds. 1 arc-second = (1/360)*degree
         """
 
         if angle < 0:

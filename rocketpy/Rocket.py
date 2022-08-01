@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 __author__ = "Giovani Hidalgo Ceotto, Franz Masatoshi Yuri"
-__copyright__ = "Copyright 20XX, RocketPy Team"
+__copyright__ = "Copyright 20XX, Projeto Jupiter"
 __license__ = "MIT"
 
 import warnings
@@ -176,13 +176,9 @@ class Rocket:
         self.inertiaZ = inertiaZ
 
         self.centerOfMass = (
-<<<<<<< HEAD
             (self.positionMotorReferencePositionToCenterOfDryMass - self.motor.zCM)
             * motor.mass
             / (mass + motor.mass)
-=======
-            (distanceRocketPropellant - motor.zCM) * motor.mass / (mass + motor.mass)
->>>>>>> abf3269a247fe6707af53c4a7ed261a7bbe62c66
         )
 
         # Define rocket geometrical parameters in SI units
