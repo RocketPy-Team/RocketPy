@@ -5,6 +5,7 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 import re
+import xml.etree.ElementTree as xml
 from abc import ABC, abstractmethod, abstractproperty
 
 import numpy as np
@@ -117,10 +118,10 @@ class Motor(ABC):
         ----------
         thrustSource : int, float, callable, string, array
             Motor's thrust curve. Can be given as an int or float, in which
-            case the thrust will be considered constant in time. It can
-            also be given as a callable function, whose argument is time in
-            seconds and returns the thrust supplied by the motor in the
-            instant. If a string is given, it must point to a .csv or .eng file.
+            case the thrust will be considered constant in time. It can also
+            be given as a callable function, whose argument is time in seconds
+            and returns the thrust supplied by the motor in the instant. If a
+            string is given, it must point to a .csv, .eng or .rse file.
             The .csv file shall contain no headers and the first column must
             specify time in seconds, while the second column specifies thrust.
             Arrays may also be specified, following rules set by the class
@@ -186,6 +187,28 @@ class Motor(ABC):
                 # grainInitialHeight = height
                 thrustSource = points
                 self.burnOutTime = points[-1][0]
+                self.zCM = None
+            elif thrustSource[-3:] == "rse":
+                # Import content
+                comments, desc, data = self.importRse(thrustSource)
+                thrustSource = np.column_stack([data["time"], data["thrust"]])
+                self.burnOutTime = thrustSource[-1][0]
+
+                # Process cg info
+                if int(desc["auto-calc-cg"]):
+                    self.zCM = Function(
+                        np.column_stack([data["time"], data["center_of_mass"]]),
+                        interpolation="linear",
+                    )
+                    # correct for different reference frame
+                    self.zCM -= self.distanceNozzlePropellant
+                    self.zCM.setInputs("Time (s)")
+                    self.zCM.setOutputs("Propellant center of mass position (m)")
+
+                else:
+                    self.zCM = None
+        else:
+            self.zCM = None
 
         # Create thrust function
         self.thrust = Function(
@@ -201,7 +224,7 @@ class Motor(ABC):
             self.evaluateTotalImpulse()
 
         # Define motor attributes
-        # Grain and nozzle parameters
+        # Nozzle parameters
         self.nozzleRadius = nozzleRadius
         self.throatRadius = throatRadius
 
@@ -222,8 +245,6 @@ class Motor(ABC):
         maxThrustIndex = np.argmax(self.thrust.source[:, 1])
         self.maxThrustTime = self.thrust.source[maxThrustIndex, 0]
         self.averageThrust = self.totalImpulse / self.burnOutTime
-
-        self.propellantInitialMass = None
 
     def reshapeThrustCurve(
         self, burnTime, totalImpulse, oldTotalImpulse=None, startAtZero=True
@@ -518,6 +539,47 @@ class Motor(ABC):
 
         return None
 
+    def importRse(self, fileName):
+        """Read content from .rse file (RockSim XML Format)
+        and process it, in order to return the comments,
+        description and data points.
+        Parameters
+        ----------
+        fileName : string
+            Name of the .rse file. E.g. 'test.rse'.
+        Returns
+        -------
+        comments : list
+            All comments in the .rse file, separated by line in a list. Each
+            line is an entry of the list.
+        description: dict
+            Description of the motor. Each <engine> element attribute is
+            stored as a string with a key of the same name as its tag.
+        dataPoints: dict
+            Stores all relevant data points. Each element is a list containing
+            all entries for a property and with a key of same name as <eng-data>
+            attributes (cg, f, m, t). Data points are converted to floats.
+        """
+
+        # Open and parse xml
+        tree = xml.parse(fileName)
+        root = tree.getroot()
+
+        # Extract comments -> to-do
+        comments = []
+        # Extract description
+        description = root[0][0].attrib
+        # Extract engine data
+        dataPoints = {"time": [], "thrust": [], "mass": [], "center_of_mass": []}
+        for child in root.iter("eng-data"):
+            dataPoints["center_of_mass"].append(float(child.attrib["cg"]) / 1000)
+            dataPoints["thrust"].append(float(child.attrib["f"]))
+            dataPoints["mass"].append(float(child.attrib["m"]))
+            dataPoints["time"].append(float(child.attrib["t"]))
+
+        # Return all extracted content
+        return comments, description, dataPoints
+
     def info(self):
         """Prints out a summary of the data and graphs available about
         the Motor.
@@ -747,10 +809,10 @@ class SolidMotor(Motor):
         ----------
         thrustSource : int, float, callable, string, array
             Motor's thrust curve. Can be given as an int or float, in which
-            case the thrust will be considered constant in time. It can
-            also be given as a callable function, whose argument is time in
-            seconds and returns the thrust supplied by the motor in the
-            instant. If a string is given, it must point to a .csv or .eng file.
+            case the thrust will be considered constant in time. It can also
+            be given as a callable function, whose argument is time in seconds
+            and returns the thrust supplied by the motor in the instant. If a
+            string is given, it must point to a .csv, .eng or .rse file.
             The .csv file shall contain no headers and the first column must
             specify time in seconds, while the second column specifies thrust.
             Arrays may also be specified, following rules set by the class
@@ -794,33 +856,15 @@ class SolidMotor(Motor):
         -------
         None
         """
-        # Thrust parameters
-        self.interpolate = interpolationMethod
-        self.burnOutTime = burnOut
-
-        # Geometric parameters
-        self.distanceMotorReferenceToNozzle = distanceNozzleMotorReference
-
-        # Check if thrustSource is csv, eng, function or other
-        if isinstance(thrustSource, str):
-            # Determine if csv or eng
-            if thrustSource[-3:] == "eng":
-                # Import content
-                comments, desc, points = self.importEng(thrustSource)
-                # Process description and points
-                # diameter = float(desc[1])/1000
-                # height = float(desc[2])/1000
-                # mass = float(desc[4])
-                # nozzleRadius = diameter/4
-                # throatRadius = diameter/8
-                # grainNumber = grainNumber
-                # grainVolume = height*np.pi*((diameter/2)**2 -(diameter/4)**2)
-                # grainDensity = mass/grainVolume
-                # grainOuterRadius = diameter/2
-                # grainInitialInnerRadius = diameter/4
-                # grainInitialHeight = height
-                thrustSource = points
-                self.burnOutTime = points[-1][0]
+        super().__init__(
+            thrustSource,
+            burnOut,
+            distanceNozzleMotorReference,
+            nozzleRadius,
+            throatRadius,
+            reshapeThrustCurve,
+            interpolationMethod,
+        )
 
         # Define motor attributes
         # Grain parameters
@@ -846,12 +890,14 @@ class SolidMotor(Motor):
         )
         self.grainInitialMass = self.grainDensity * self.grainInitialVolume
         self.propellantInitialMass = self.grainNumber * self.grainInitialMass
+
         # Dynamic quantities
         self.evaluateMassDot()
         self.evaluateMass()
         self.evaluateGeometry()
         self.evaluateInertia()
-        self.evaluateCenterOfMass()
+        if self.zCM is None:
+            self.evaluateCenterOfMass()
 
     @property
     def exhaustVelocity(self):
@@ -1404,10 +1450,10 @@ class HybridMotor(Motor):
         ----------
         thrustSource : int, float, callable, string, array
             Motor's thrust curve. Can be given as an int or float, in which
-            case the thrust will be considered constant in time. It can
-            also be given as a callable function, whose argument is time in
-            seconds and returns the thrust supplied by the motor in the
-            instant. If a string is given, it must point to a .csv or .eng file.
+            case the thrust will be considered constant in time. It can also
+            be given as a callable function, whose argument is time in seconds
+            and returns the thrust supplied by the motor in the instant. If a
+            string is given, it must point to a .csv, .eng or .rse file.
             The .csv file shall contain no headers and the first column must
             specify time in seconds, while the second column specifies thrust.
             Arrays may also be specified, following rules set by the class
@@ -1467,43 +1513,16 @@ class HybridMotor(Motor):
         -------
         None
         """
-        # Thrust parameters
-        self.interpolate = interpolationMethod
-        self.burnOutTime = burnOut
-
-        # Geometric parameters
-        self.distanceMotorReferenceToNozzle = distanceNozzleMotorReference
-
-        # Check if thrustSource is csv, eng, function or other
-        if isinstance(thrustSource, str):
-            # Determine if csv or eng
-            if thrustSource[-3:] == "eng":
-                # Import content
-                comments, desc, points = self.importEng(thrustSource)
-                # Process description and points
-                # diameter = float(desc[1])/1000
-                # height = float(desc[2])/1000
-                # mass = float(desc[4])
-                # nozzleRadius = diameter/4
-                # throatRadius = diameter/8
-                # grainNumber = grainNumber
-                # grainVolume = height*np.pi*((diameter/2)**2 -(diameter/4)**2)
-                # grainDensity = mass/grainVolume
-                # grainOuterRadius = diameter/2
-                # grainInitialInnerRadius = diameter/4
-                # grainInitialHeight = height
-                thrustSource = points
-                self.burnOutTime = points[-1][0]
-
-        # Create thrust function
-        self.thrust = Function(
-            thrustSource, "Time (s)", "Thrust (N)", self.interpolate, "zero"
+        super().__init__(
+            thrustSource,
+            burnOut,
+            distanceNozzleMotorReference,
+            nozzleRadius,
+            throatRadius,
+            reshapeThrustCurve,
+            interpolationMethod,
         )
 
-        # Define motor attributes
-        # Grain and nozzle parameters
-        self.nozzleRadius = nozzleRadius
-        self.throatRadius = throatRadius
         # Propellant parameters
         self.grainNumber = grainNumber
         self.grainSeparation = grainSeparation
@@ -1521,10 +1540,7 @@ class HybridMotor(Motor):
         self.injectorArea = injectorArea
 
         # Other quantities that will be computed
-        self.massDot = None
-        self.zCM = None
         self.liquidInitialMass = None
-        self.mass = None
         self.grainInnerRadius = None
         self.grainHeight = None
         self.burnArea = None
@@ -1548,7 +1564,8 @@ class HybridMotor(Motor):
         self.evaluateMass()
         self.evaluateGeometry()
         self.evaluateInertia()
-        self.evaluateCenterOfMass()
+        if self.zCM is None:
+            self.evaluateCenterOfMass()
 
     @property
     def exhaustVelocity(self):

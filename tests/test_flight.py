@@ -544,6 +544,7 @@ def test_export_KML():
         thrustSource=1000,
         burnOut=1,
         grainNumber=5,
+        distanceNozzleMotorReference=0.39796,
         grainSeparation=5 / 1000,
         grainDensity=1815,
         grainOuterRadius=33 / 1000,
@@ -560,19 +561,17 @@ def test_export_KML():
         mass=19.197 - 2.956,
         inertiaI=6.60,
         inertiaZ=0.0351,
-        distanceRocketNozzle=-1.255,
-        distanceRocketPropellant=-0.85704,
+        positionNozzle=-1.255,
+        positionCenterOfDryMass=0,
         powerOffDrag=0.5,
         powerOnDrag=0.5,
     )
 
     test_rocket.setRailButtons([0.2, -0.5])
 
-    NoseCone = test_rocket.addNose(
-        length=0.55829, kind="vonKarman", distanceToCM=0.71971
-    )
+    NoseCone = test_rocket.addNose(length=0.55829, kind="vonKarman", positionNose=1.278)
     FinSet = test_rocket.addFins(
-        4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
+        4, span=0.100, rootChord=0.120, tipChord=0.040, positionFins=-1.04956
     )
 
     test_flight = Flight(
