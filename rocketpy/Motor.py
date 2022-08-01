@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-__author__ = "Giovani Hidalgo Ceotto, Oscar Mauricio Prada Ramirez"
-__copyright__ = "Copyright 20XX, Projeto Jupiter"
+__author__ = "Giovani Hidalgo Ceotto, Oscar Mauricio Prada Ramirez, João Lemes Gribel Soares, Lucas Kierulff Balabram, Lucas Azevedo Pezente"
+__copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 import re
@@ -224,12 +224,6 @@ class Motor(ABC):
         self.averageThrust = self.totalImpulse / self.burnOutTime
 
         self.propellantInitialMass = None
-        # Dynamic quantities
-        self.evaluateMassDot()
-        self.evaluateMass()
-        self.evaluateGeometry()
-        self.evaluateInertia()
-        self.evaluateCenterOfMass()
 
     def reshapeThrustCurve(
         self, burnTime, totalImpulse, oldTotalImpulse=None, startAtZero=True
@@ -364,7 +358,7 @@ class Motor(ABC):
         """Calculates and returns the total propellant mass curve by
         numerically integrating the MassDot curve, calculated in
         evaluateMassDot. Numerical integration is done with the
-        Trapezoidal Rule, given the same result as scipy.integrate.
+        Trapezoidal Rule, giving the same result as scipy.integrate.
         odeint but 100x faster. The result is a function of time,
         object of the class Function, which is stored in self.mass.
 
@@ -828,51 +822,22 @@ class SolidMotor(Motor):
                 thrustSource = points
                 self.burnOutTime = points[-1][0]
 
-        # Create thrust function
-        self.thrust = Function(
-            thrustSource, "Time (s)", "Thrust (N)", self.interpolate, "zero"
-        )
-        if callable(thrustSource) or isinstance(thrustSource, (int, float)):
-            self.thrust.setDiscrete(0, burnOut, 50, self.interpolate, "zero")
-
-        # Reshape curve and calculate impulse
-        if reshapeThrustCurve:
-            self.reshapeThrustCurve(*reshapeThrustCurve)
-        else:
-            self.evaluateTotalImpulse()
-
         # Define motor attributes
-        # Grain and nozzle parameters
-        self.nozzleRadius = nozzleRadius
-        self.throatRadius = throatRadius
+        # Grain parameters
         self.grainNumber = grainNumber
         self.grainSeparation = grainSeparation
         self.grainDensity = grainDensity
         self.grainOuterRadius = grainOuterRadius
         self.grainInitialInnerRadius = grainInitialInnerRadius
         self.grainInitialHeight = grainInitialHeight
+
         # Other quantities that will be computed
-        self.massDot = None
-        self.mass = None
         self.grainInnerRadius = None
         self.grainHeight = None
         self.burnArea = None
-        self.Kn = None
         self.burnRate = None
-        self.inertiaI = None
-        self.inertiaIDot = None
-        self.inertiaZ = None
-        self.inertiaZDot = None
-        self.maxThrust = None
-        self.maxThrustTime = None
-        self.averageThrust = None
+        self.Kn = None
 
-        # Compute uncalculated quantities
-        # Thrust information - maximum and average
-        self.maxThrust = np.amax(self.thrust.source[:, 1])
-        maxThrustIndex = np.argmax(self.thrust.source[:, 1])
-        self.maxThrustTime = self.thrust.source[maxThrustIndex, 0]
-        self.averageThrust = self.totalImpulse / self.burnOutTime
         # Grains initial geometrical parameters
         self.grainInitialVolume = (
             self.grainInitialHeight
@@ -1534,14 +1499,6 @@ class HybridMotor(Motor):
         self.thrust = Function(
             thrustSource, "Time (s)", "Thrust (N)", self.interpolate, "zero"
         )
-        if callable(thrustSource) or isinstance(thrustSource, (int, float)):
-            self.thrust.setDiscrete(0, burnOut, 50, self.interpolate, "zero")
-
-        # Reshape curve and calculate impulse
-        if reshapeThrustCurve:
-            self.reshapeThrustCurve(*reshapeThrustCurve)
-        else:
-            self.evaluateTotalImpulse()
 
         # Define motor attributes
         # Grain and nozzle parameters
@@ -1562,6 +1519,7 @@ class HybridMotor(Motor):
         self.oxidizerInitialVolume = oxidizerInitialVolume
         self.distanceGrainToTank = distanceGrainToTank
         self.injectorArea = injectorArea
+
         # Other quantities that will be computed
         self.massDot = None
         self.zCM = None
@@ -1570,22 +1528,10 @@ class HybridMotor(Motor):
         self.grainInnerRadius = None
         self.grainHeight = None
         self.burnArea = None
-        self.Kn = None
         self.burnRate = None
-        self.inertiaI = None
-        self.inertiaIDot = None
-        self.inertiaZ = None
-        self.inertiaZDot = None
-        self.maxThrust = None
-        self.maxThrustTime = None
-        self.averageThrust = None
+        self.Kn = None
 
         # Compute uncalculated quantities
-        # Thrust information - maximum and average
-        self.maxThrust = np.amax(self.thrust.source[:, 1])
-        maxThrustIndex = np.argmax(self.thrust.source[:, 1])
-        self.maxThrustTime = self.thrust.source[maxThrustIndex, 0]
-        self.averageThrust = self.totalImpulse / self.burnOutTime
         # Grains initial geometrical parameters
         self.grainInitialVolume = (
             self.grainInitialHeight

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 __author__ = "Giovani Hidalgo Ceotto, Franz Masatoshi Yuri"
-__copyright__ = "Copyright 20XX, Projeto Jupiter"
+__copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 import warnings
@@ -36,7 +36,7 @@ class Rocket:
             Position of the rocket's center of dry mass relative to the
             rocket's nozzle, in meters, considering positive direction from
             nozzle to nose cone. Always positive.
-        Rocket.positionMotorReferencePositionToCenterOfDryMass : float
+        Rocket.positionMotorReferenceToCenterOfDryMass : float
             Position of the rocket's motor's reference point relative to
             the rocket's center of mass, in meters.
 
@@ -165,7 +165,7 @@ class Rocket:
         )
 
         # Define positions relative to the rocket's center of dry mass
-        self.positionMotorReferencePositionToCenterOfDryMass = (
+        self.positionMotorReferenceToCenterOfDryMass = (
             self.motor.distanceMotorReferenceToNozzle
             - self.positionCenterOfDryMassToNozzle
         )
@@ -176,7 +176,7 @@ class Rocket:
         self.inertiaZ = inertiaZ
 
         self.centerOfMass = (
-            (self.positionMotorReferencePositionToCenterOfDryMass - self.motor.zCM)
+            (self.positionMotorReferenceToCenterOfDryMass - self.motor.zCM)
             * motor.mass
             / (mass + motor.mass)
         )
@@ -1005,7 +1005,7 @@ class Rocket:
         )
         print(
             "Rocket Center of Mass - Motor reference point: "
-            + str(self.positionMotorReferencePositionToCenterOfDryMass)
+            + str(self.positionMotorReferenceToCenterOfDryMass)
             + " m"
         )
         print(
