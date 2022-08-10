@@ -126,3 +126,8 @@ fetchCuritibaRioSaoPauloEnsemble.py
 # Tests
 naboI/
 
+# xml files
+*.xml
+
+# iml files
+*.iml
