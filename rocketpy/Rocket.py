@@ -480,8 +480,8 @@ class Rocket:
         tipChord,
         span,
         distanceToCM,
-        radius=None,
         cantAngle=0,
+        radius=None,
         airfoil=None,
     ):
         """Create a trapezoidal fin set, storing its parameters as part of the
@@ -503,14 +503,14 @@ class Rocket:
             mass, considering positive direction from center of mass to
             nose cone. Consider the center point belonging to the top
             of the fins to calculate distance.
-        radius : int, float, optional
-            Reference radius to calculate lift coefficient. If 0, which
-            is default, use rocket radius. Otherwise, enter the radius
-            of the rocket in the section of the fins, as this impacts
-            its lift coefficient.
         cantAngle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
+        radius : int, float, optional
+            Reference radius to calculate lift coefficient. If None, which
+            is default, use rocket radius. Otherwise, enter the radius
+            of the rocket in the section of the fins, as this impacts
+            its lift coefficient.
         airfoil : tuple, optional
             Default is null, in which case fins will be treated as flat plates.
             Otherwise, if tuple, fins will be considered as airfoils. The
@@ -710,8 +710,8 @@ class Rocket:
         rootChord,
         span,
         distanceToCM,
-        radius=0,
         cantAngle=0,
+        radius=None,
         airfoil=None,
     ):
         """Create an elliptical fin set, storing its parameters as part of the
@@ -734,14 +734,14 @@ class Rocket:
             mass, considering positive direction from center of mass to
             nose cone. Consider the center point belonging to the top
             of the fins to calculate distance.
-        radius : int, float, optional
-            Reference radius to calculate lift coefficient. If 0, which
-            is default, use rocket radius. Otherwise, enter the radius
-            of the rocket in the section of the fins, as this impacts
-            its lift coefficient.
         cantAngle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
+        radius : int, float, optional
+            Reference radius to calculate lift coefficient. If None, which
+            is default, use rocket radius. Otherwise, enter the radius
+            of the rocket in the section of the fins, as this impacts
+            its lift coefficient.
         airfoil : tuple, optional
             Default is null, in which case fins will be treated as flat plates.
             Otherwise, if tuple, fins will be considered as airfoils. The
@@ -769,7 +769,7 @@ class Rocket:
         # Retrieves and convert basic geometrical parameters
         Cr = rootChord
         s = span
-        radius = self.radius if radius == 0 else radius
+        radius = self.radius if radius is None else radius
         cantAngleRad = np.radians(cantAngle)
 
         # Compute auxiliary geometrical parameters
