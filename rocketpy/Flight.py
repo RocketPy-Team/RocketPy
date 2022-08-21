@@ -593,6 +593,7 @@ class Flight:
         self.env = environment
         self.rocket = rocket
         self.parachutes = self.rocket.parachutes[:]
+        self.controllers = self.rocket.controllers[:]
         self.inclination = inclination
         self.heading = heading
         self.maxTime = maxTime
@@ -736,6 +737,9 @@ class Flight:
             # Add non-overshootable parachute time nodes
             if self.timeOvershoot is False:
                 phase.timeNodes.addParachutes(self.parachutes, phase.t, phase.timeBound)
+                phase.timeNodes.addControllers(
+                    self.controllers, phase.t, phase.timeBound
+                )
             # Add lst time node to permanent list
             phase.timeNodes.addNode(phase.timeBound, [], [])
             # Sort time nodes
@@ -3927,6 +3931,20 @@ class Flight:
                 ]
                 self.list += parachute_node_list
 
+        def addControllers(self, controllers, t_init, t_end):
+            # Iterate over parachutes
+            for controller in controllers:
+                # Calculate start of sampling time nodes
+                controllerTimeStep = 1 / controller.samplingRate
+                controller_node_list = [
+                    self.TimeNode(i * controllerTimeStep, [], [controller])
+                    for i in range(
+                        math.ceil(t_init / controllerTimeStep),
+                        math.floor(t_end / controllerTimeStep) + 1,
+                    )
+                ]
+                self.list += controller_node_list
+
         def sort(self):
             self.list.sort(key=(lambda node: node.t))
 
@@ -3950,10 +3968,12 @@ class Flight:
             del self.list[index + 1 :]
 
         class TimeNode:
-            def __init__(self, t, parachutes, callbacks):
+            def __init__(self, t, parachutes, controllers):
                 self.t = t
                 self.parachutes = parachutes
-                self.callbacks = callbacks
+                self.callbacks = [
+                    controller.controllerFunction for controller in controllers
+                ]
 
             def __repr__(self):
                 return (
