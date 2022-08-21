@@ -12,6 +12,7 @@ import numpy as np
 
 from .Function import Function
 from .Parachute import Parachute
+from .Controller import Controller
 
 
 class Rocket:
@@ -175,6 +176,9 @@ class Rocket:
 
         # Parachute data initialization
         self.parachutes = []
+
+        # Controller data initialization
+        self.controllers = []
 
         # Rail button data initialization
         self.railButtons = None
@@ -689,6 +693,16 @@ class Rocket:
             "cp": (0, 0, cpz),
             "cl": cl,
             "roll parameters": rollParameters,
+            "metadata": {
+                "n": n,
+                "span": span,
+                "rootChord": rootChord,
+                "tipChord": tipChord,
+                "distanceToCM": distanceToCM,
+                "radius": radius,
+                "cantAngle": cantAngle,
+                "airfoil": airfoil,
+            },
             "name": "Fins",
         }
         self.aerodynamicSurfaces.append(fin)
@@ -698,6 +712,34 @@ class Rocket:
 
         # Return self
         return self.aerodynamicSurfaces[-1]
+
+    def changeCantAngle(self, newCantAngle, finGroup, maximumCantAngleChange=None):
+        """Changes the cant angle of a fin group. Useful for canard control
+
+        Parameters
+        ----------
+        newCantAngle : float
+            New cant angle in radians.
+        finGroup : dict
+            Dictionary with the fin group meta data."""
+
+        if maximumCantAngleChange:
+            if newCantAngle > finGroup["metadata"]["cantAngle"]:
+                newCantAngle = (
+                    finGroup["metadata"]["cantAngle"] + maximumCantAngleChange
+                )
+            elif newCantAngle < finGroup["metadata"]["cantAngle"]:
+                newCantAngle = (
+                    finGroup["metadata"]["cantAngle"] - maximumCantAngleChange
+                )
+
+        finGroup["metadata"]["cantAngle"] = newCantAngle  # in radians
+
+        newFinGroup = self.addFins(**finGroup["metadata"])
+
+        self.aerodynamicSurfaces.remove(finGroup)
+
+        return newFinGroup
 
     def addParachute(
         self, name, CdS, trigger, samplingRate=100, lag=0, noise=(0, 0, 0)
@@ -757,6 +799,57 @@ class Rocket:
 
         # Return self
         return self.parachutes[-1]
+
+    def addController(
+        self,
+        name,
+        controllerFunction,
+        samplingRate=100,
+        lag=0,
+    ):
+        """Creates a new parachute, storing its parameters such as
+        opening delay, drag coefficients and trigger function.
+
+        Parameters
+        ----------
+        name : string
+            Parachute name, such as drogue and main. Has no impact in
+            simulation, as it is only used to display data in a more
+            organized matter.
+        trigger : function
+            Function which defines if the parachute ejection system is
+            to be triggered. It must take as input the freestream
+            pressure in pascal and the state vector of the simulation,
+            which is defined by [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz].
+            It will be called according to the sampling rate given next.
+            It should return True if the parachute ejection system is
+            to be triggered and False otherwise.
+        samplingRate : float, optional
+            Sampling rate in which the trigger function works. It is used to
+            simulate the refresh rate of onboard sensors such as barometers.
+            Default value is 100. Value must be given in hertz.
+        lag : float, optional
+            Time between the parachute ejection system is triggered and the
+            parachute is fully opened. During this time, the simulation will
+            consider the rocket as flying without a parachute. Default value
+            is 0. Must be given in seconds.
+
+        Returns
+        -------
+        parachute : Parachute
+            Parachute  containing trigger, samplingRate, lag, CdS, noise
+            and name. Furthermore, it stores cleanPressureSignal,
+            noiseSignal and noisyPressureSignal which are filled in during
+            Flight simulation.
+        """
+        # Create a controller
+        controller = Controller(name, controllerFunction, samplingRate, lag)
+
+        # Add parachute to list of parachutes
+        self.controllers.append(controller)
+
+        # Return self
+        return self.controllers[-1]
 
     def setRailButtons(self, distanceToCM, angularPosition=45):
         """Adds rail buttons to the rocket, allowing for the
@@ -915,6 +1008,12 @@ class Rocket:
             print("\n" + chute.name.title() + " Parachute")
             print("CdS Coefficient: " + str(chute.CdS) + " m2")
 
+        # Print controller data
+        for controller in self.controllers:
+            print("\n" + controller.name.title() + " Controller")
+            print("Sampling Rate: " + str(controller.samplingRate) + " Hz")
+            print("Lag: " + str(controller.lag) + " s")
+
         # Show plots
         print("\nAerodynamics Plots")
         self.powerOnDrag()
@@ -1008,6 +1107,12 @@ class Rocket:
                 "Time between ejection signal is triggered and the "
                 "parachute is fully opened: " + str(chute.lag) + " s"
             )
+
+        # Print controller data
+        for controller in self.controllers:
+            print("\n" + controller.name.title() + " Controller")
+            print("Sampling Rate: " + str(controller.samplingRate) + " Hz")
+            print("Lag: " + str(controller.lag) + " s")
 
         # Show plots
         print("\nMass Plots")
