@@ -7,6 +7,7 @@ __license__ = "MIT"
 import warnings
 from inspect import getsourcelines
 from collections import namedtuple
+from inspect import getsourcelines
 
 import numpy as np
 

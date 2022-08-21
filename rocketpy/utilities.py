@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
-from matplotlib import pyplot as plt
-from scipy.integrate import solve_ivp
-import numpy as np
-
-from .Environment import Environment
-from .Function import Function
-
 __author__ = "Franz Masatoshi Yuri, Lucas Kierulff Balabram, Guilherme Fernandes Alves"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
+
+import numpy as np
+from scipy.integrate import solve_ivp
+
+from .Environment import Environment
+from .Function import Function
 
 
 # TODO: Needs tests
@@ -83,7 +82,11 @@ def calculateEquilibriumAltitude(
         Gravitational acceleration experienced by the rocket and parachute during
         descent in m/s^2. Default value is the standard gravity, 9.80665.
     estimated_final_time: float, optional
-        Estimative of how much time (in seconds) will spend until vertical terminal velocity is reached. Must be positive. Default is 10. It can affect the final result if the value is not high enough. Increase the estimative in case the final solution is not founded.
+        Estimative of how much time (in seconds) will spend until vertical terminal
+        velocity is reached. Must be positive. Default is 10. It can affect the final
+        result if the value is not high enough. Increase the estimative in case the
+        final solution is not founded.
+
 
     Returns
     -------
