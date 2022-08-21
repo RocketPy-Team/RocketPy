@@ -111,7 +111,7 @@ NoseCone = Valetudo.addNose(
     kind="vonKarman",
     distanceToCM=analysis_parameters.get("noseDistanceToCM")[0],
 )
-FinSet = Valetudo.addFins(
+FinSet = Valetudo.addTrapezoidalFins(
     n=3,
     rootChord=analysis_parameters.get("finRootChord")[0],
     tipChord=analysis_parameters.get("finTipChord")[0],
