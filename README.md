@@ -240,7 +240,7 @@ Calisto.setRailButtons([0.2, -0.5])
 
 NoseCone = Calisto.addNose(length=0.55829, kind="vonKarman", distanceToCM=0.71971)
 
-FinSet = Calisto.addFins(4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956)
+FinSet = Calisto.addTrapezoildalFins(4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956)
 
 Tail = Calisto.addTail(topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656)
 ```
@@ -287,7 +287,7 @@ Once the TestFlight object is created, your simulation is done! Use the followin
 TestFlight.info()
 ```
 
-To seel all available results, use:
+To see all available results, use:
 
 ```python
 TestFlight.allInfo()

@@ -103,7 +103,7 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         kind="tangent",
         distanceToCM=parameters.get("noseDistanceToCM")[0],
     )
-    FinSet = BellaLui.addFins(
+    FinSet = BellaLui.addTrapezoidalFins(
         3,
         span=parameters.get("finSpan")[0],
         rootChord=parameters.get("finRootChord")[0],
