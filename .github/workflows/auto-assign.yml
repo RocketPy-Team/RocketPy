@@ -1,4 +1,4 @@
-name: Auto Assign
+name: Auto Assign Issues and PRs once opened
 on:
   issues:
     types: [opened]
