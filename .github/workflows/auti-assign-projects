@@ -20,4 +20,4 @@ jobs:
       if: github.event.action == 'opened'
       with:
         project: 'https://github.com/orgs/RocketPy-Team/projects/1'
-        column_name: 'New'
+        column_name: '🆕 New'
