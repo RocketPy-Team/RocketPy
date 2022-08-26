@@ -252,5 +252,5 @@ For example, to access Flight class parameters, you can use:
 
     help(Flight)
 
-More documentation materials can be found at [read the docs](https://docs.rocketpy.org/en/latest/?badge=latest).
+More documentation materials can be found at `read the docs <https://docs.rocketpy.org/en/latest/?badge=latest>`_.
 It can also be found on RocketPy's GitHub page on the badge "docs".
