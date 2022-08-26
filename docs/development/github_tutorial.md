@@ -28,7 +28,7 @@ First and foremost, the participant must open a terminal session and change the 
 
 ```sh
 cd <your_desired_path>
-git clone https://github.com/Projeto-Jupiter/RocketPy-Hackathon-2022.git
+git clone https://github.com/RocketPy-Team/RocketPy-Hackathon-2022.git
 ```
 
 ### Basic Workflow
