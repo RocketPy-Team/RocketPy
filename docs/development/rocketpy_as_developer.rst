@@ -31,7 +31,7 @@ Preparing directory for code editing
 ====================================
 
 You may create a testing file in any directory, but you must remember that they should not be included in the commits and pull requests unless they are part of the proposed solution.
-With that in mind, it is suggested the creation of a folder with all the testing files, so they can be added in the .gitignore file, which contains the name of all the files and folders that will not be added to the commits. To create the folder, type on the terminal:
+With that in mind, we suggest you to create a folder with all testing files, so they can be added in the .gitignore file, which contains the name of all the files and folders that will not be added to the commits. To create the folder, type on the terminal:
 
 .. code-block:: console
 
@@ -124,7 +124,7 @@ The motor class contains information about the thrust curve and uses some geomet
 .. code-block:: python
 
     Pro75M1670 = SolidMotor(
-        thrustSource="../data/motors/Cesaroni_M1670.eng",
+        thrustSource="../data/motors/Cesaroni_M1670.eng", #copy here the path to the thrust source file
         burnOut=3.9,
         grainNumber=5,
         grainSeparation=5 / 1000,
@@ -158,8 +158,8 @@ The first step is to initialize the class with the vital data:
         inertiaZ=0.0351,
         distanceRocketNozzle=-1.255,
         distanceRocketPropellant=-0.85704,
-        powerOffDrag="../../data/calisto/powerOffDragCurve.csv",
-        powerOnDrag="../../data/calisto/powerOnDragCurve.csv",
+        powerOffDrag="../../data/calisto/powerOffDragCurve.csv", #copy here the path to the drag curve file
+        powerOnDrag="../../data/calisto/powerOnDragCurve.csv", #copy here the path to the drag curve file
     )
 
 Then the rail buttons must be set:
@@ -252,5 +252,5 @@ For example, to access Flight class parameters, you can use:
 
     help(Flight)
 
-More documentation materials can be found at [read the docs](https://docs.rocketpy.org/en/latest/?badge=latest).
+More documentation materials can be found at `read the docs <https://docs.rocketpy.org/en/latest/?badge=latest>`_.
 It can also be found on RocketPy's GitHub page on the badge "docs".

@@ -28,7 +28,7 @@ First and foremost, the participant must open a terminal session and change the 
 
 ```sh
 cd <your_desired_path>
-git clone https://github.com/Projeto-Jupiter/RocketPy-Hackathon-2022.git
+git clone https://github.com/RocketPy-Team/RocketPy-Hackathon-2022.git
 ```
 
 ### Basic Workflow
@@ -59,7 +59,7 @@ A new Pull Request can be made by specifying which changes should be merged into
 
 ### Forks
 
-A Fork is a copy of a GitHub repository that allows the user to make changes to a repository while keeping the original unchanged, the changes are updated to the original repository through pull requests. The participant will solve the Challenges and make contributions to a local Fork of the Hackathon GitHub repository, so that it is possible to keep the solutions organized and avoid conflicts that arise from multiple groups editing the same code. It is recommended to use GitHub environment to create a Fork, the participant has to click on the top right corner of the Hackathon GitHub page:
+A Fork is a copy of a GitHub repository that allows the user to make changes to a repository while keeping the original unchanged, with changes being updated to the original repository through pull requests. The participant will solve the Challenges and make contributions to a local Fork of the Hackathon GitHub repository, so that it is possible to keep the solutions organized and avoid conflicts that arise from multiple groups editing the same code. It is recommended to use GitHub environment to create a Fork, the participant has to click on the top right corner of the Hackathon GitHub page:
 
 ![fork_button](https://docs.github.com/assets/cb-23088/images/help/repository/fork_button.png)
 
