@@ -1,0 +1,25 @@
+# Set to true to add reviewers to PRs
+addReviewers: true
+
+# Set to 'author' to add PR's author as a assignee
+addAssignees: author
+
+# A list of reviewers to be added to PRs (GitHub user  name)
+reviewers:
+  - Gui-FernandesBR
+  - giovaniceotto
+  - MateusStano
+  - FranzYuri
+  - brunosorban
+  - luimot
+  - MrGribel
+  - ompro07
+  - phmbressan
+
+# A number of reviewers added to the PR
+# Set 0 to add all the reviewers (default: 0)
+numberOfReviewers: 2
+
+# A list of keywords to be skipped the process if PR's title include it
+skipKeywords:
+  - wip
