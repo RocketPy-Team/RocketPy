@@ -201,7 +201,7 @@ class Motor(ABC):
                         interpolation="linear",
                     )
                     # correct for different reference frame
-                    self.zCM -= self.distanceNozzlePropellant
+                    self.zCM -= self.distanceMotorReferenceToNozzle
                     self.zCM.setInputs("Time (s)")
                     self.zCM.setOutputs("Propellant center of mass position (m)")
 
