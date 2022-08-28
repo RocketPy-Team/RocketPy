@@ -1,0 +1,14 @@
+- RocketPy could automatically support different types of inputs on the dispersion errors. 
+For Example, inserting an error value directly or just a percentage.
+
+- RocketPy could be implemented on Julia. This language naturally supports Metaprogramming
+
+- The Fin optimization could consider the number of fins as a variable and find the best compromise between size, mass, 
+drag, quantity and lift of the fins, considering that less fins will generate less Drag, but they also need to be bigger 
+to generate the same lift as a higher fin quantity.
+
+- RocketPy could simulate different rocket profiles, eg. hexagonal, squared etc.. since these non circular profiles 
+will generate lift.
+
+- RocketPy could have an optimization in which given data such as trajectory and apogee, 
+it returns adjustable parameters of the rocket and launchpad ex.: mass, center of mass, rail angle etc.
