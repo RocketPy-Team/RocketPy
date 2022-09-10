@@ -605,6 +605,7 @@ class Flight:
         self.terminateOnApogee = terminateOnApogee
 
         # Modifying Rail Length for a better out of rail condition
+        # TODO: Makes this more general, not only for the case of having rail buttons
         upperRButton = max(self.rocket.railButtons[0])
         lowerRButton = min(self.rocket.railButtons[0])
         nozzle = self.rocket.distanceRocketNozzle
