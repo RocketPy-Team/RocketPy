@@ -237,7 +237,7 @@ solution_matrix = double(py.numpy.array(TestFlight.solution))
 %% 
 % Support for accessing secondary values calculated during post processing, 
 % such as energy, mach number, and angle of attack, is also available for all 
-% versions of RocketPy greater than or equal to version 0.11.0.
+% versions of RocketPy greater than or equal to version 0.12.0.
 % 
 % To showcase this, let's get the angle of attack of the rocket and plot it 
 % using MATLAB®:
