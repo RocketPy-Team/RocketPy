@@ -192,14 +192,14 @@ class Rocket:
             powerOffDrag,
             "Mach Number",
             "Drag Coefficient with Power Off",
-            "spline",
+            "linear",
             "constant",
         )
         self.powerOnDrag = Function(
             powerOnDrag,
             "Mach Number",
             "Drag Coefficient with Power On",
-            "spline",
+            "linear",
             "constant",
         )
 

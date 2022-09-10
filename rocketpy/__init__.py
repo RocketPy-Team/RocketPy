@@ -16,12 +16,13 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __copyright__ = "Copyright 20XX, Projeto Jupiter"
 __credits__ = ["Matheus Marques Araujo", "Rodrigo Schmitt", "Guilherme Tavares"]
 __license__ = "MIT"
-__version__ = "0.11.0"
+__version__ = "0.11.1"
 __maintainer__ = "Giovani Hidalgo Ceotto"
 __email__ = "ghceotto@gmail.com"
 __status__ = "Production"
 
 from .Environment import Environment
+from .EnvironmentAnalysis import EnvironmentAnalysis
 from .Flight import Flight
 from .Function import Function
 from .Motor import HybridMotor, SolidMotor

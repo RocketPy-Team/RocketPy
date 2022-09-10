@@ -24,6 +24,7 @@ For details about each class, see below.
 
    classes/Function
    classes/Environment
+   classes/EnvironmentAnalysis
    classes/SolidMotor
    classes/Rocket
    classes/Flight
