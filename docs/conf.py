@@ -75,7 +75,7 @@ html_logo = "static/RocketPy_Logo_Black.svg"
 html_favicon = "static/favicon.ico"
 html_theme_options = {
     "logo_link": "index",
-    "github_url": "https://github.com/Projeto-Jupiter/RocketPy",
+    "github_url": "https://github.com/RocketPy-Team/RocketPy",
     "collapse_navigation": True,
     "show_toc_level": 3,
 }

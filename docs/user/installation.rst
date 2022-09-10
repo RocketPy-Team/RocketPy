@@ -38,7 +38,7 @@ Optional Installation Method: from source
 
 If you wish to downloaded RocketPy from source, you may do so either by:
 
-- Downloading it from `RocketPy's GitHub <https://github.com/Projeto-Jupiter/RocketPy>`_ page and unzipping the downloaded folder.
+- Downloading it from `RocketPy's GitHub <https://github.com/RocketPy-Team/RocketPy>`_ page and unzipping the downloaded folder.
 - Or cloning it to a desired directory using git:
 
 .. code-block:: shell
@@ -66,7 +66,7 @@ Just open up your terminal and run:
 
 .. code-block:: shell
 
-    pip install git+https://github.com/Projeto-Jupiter/RocketPy.git@develop
+    pip install git+https://github.com/RocketPy-Team/RocketPy.git@develop
 
 
 Cloning RocketPy's Repo

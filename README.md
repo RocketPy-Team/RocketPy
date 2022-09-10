@@ -1,12 +1,12 @@
-![RocketPy Logo](https://raw.githubusercontent.com/Projeto-Jupiter/RocketPy/master/docs/static/RocketPy_Logo_Black.svg)
+![RocketPy Logo](https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/RocketPy_Logo_Black.svg)
 
 <br>
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/giovaniceotto/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb)
 [![PyPI](https://img.shields.io/pypi/v/rocketpy?color=g)](https://pypi.org/project/rocketpy/)
 [![Documentation Status](https://readthedocs.org/projects/rocketpyalpha/badge/?version=latest)](https://docs.rocketpy.org/en/latest/?badge=latest)
-[![Build Status](https://app.travis-ci.com/Projeto-Jupiter/RocketPy.svg?branch=master)](https://app.travis-ci.com/Projeto-Jupiter/RocketPy)
-[![Contributors](https://img.shields.io/github/contributors/Projeto-Jupiter/rocketpy)](https://github.com/Projeto-Jupiter/RocketPy/graphs/contributors)
+[![Build Status](https://app.travis-ci.com/RocketPy-Team/RocketPy.svg?branch=master)](https://app.travis-ci.com/RocketPy-Team/RocketPy)
+[![Contributors](https://img.shields.io/github/contributors/RocketPy-Team/rocketpy)](https://github.com/RocketPy-Team/RocketPy/graphs/contributors)
 [![Chat on Discord](https://img.shields.io/discord/765037887016140840?logo=discord)](https://discord.gg/b6xYnNh)
 [![Sponsor RocketPy](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/RocketPy-Team)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/company/rocketpy)
@@ -164,7 +164,7 @@ Otherwise, you may want to create your own script or your own notebook using Roc
 
 The following image shows how the four main classes interact with each other:
 
-![Diagram](https://raw.githubusercontent.com/Projeto-Jupiter/RocketPy/master/docs/static/Fluxogram-Page-2.svg)
+![Diagram](https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/Fluxogram-Page-2.svg)
 
 A typical workflow starts with importing these classes from RocketPy:
 
@@ -302,33 +302,33 @@ Here is just a quick taste of what RocketPy is able to calculate. There are hund
 
 # Authors and Contributors
 
-This package was originally created by [Giovani Ceotto](https://github.com/giovaniceotto/) as part of his work at [Projeto Jupiter](https://github.com/Projeto-Jupiter/). [Rodrigo Schmitt](https://github.com/rodrigo-schmitt/) was one of the first contributors.
+This package was originally created by [Giovani Ceotto](https://github.com/giovaniceotto/) as part of his work at [Projeto Jupiter](https://github.com/RocketPy-Team/). [Rodrigo Schmitt](https://github.com/rodrigo-schmitt/) was one of the first contributors.
 
 Later, [Guilherme Fernandes](https://github.com/Gui-FernandesBR/) and [Lucas Azevedo](https://github.com/lucasfourier/) joined the team to work on the expansion and sustainability of this project.
 
-Since then, the [RocketPy Team](https://github.com/orgs/Projeto-Jupiter/teams/rocketpy-team) has been growing fast and our contributors are what makes us special!
+Since then, the [RocketPy Team](https://github.com/orgs/RocketPy-Team/teams/rocketpy-team) has been growing fast and our contributors are what makes us special!
 
-[![GitHub Contributors Image](https://contrib.rocks/image?repo=Projeto-Jupiter/RocketPy)](https://github.com/Projeto-Jupiter/RocketPy/contributors)
+[![GitHub Contributors Image](https://contrib.rocks/image?repo=RocketPy-Team/RocketPy)](https://github.com/RocketPy-Team/RocketPy/contributors)
 
-See a [detailed list of contributors](https://github.com/Projeto-Jupiter/RocketPy/contributors) who are actively working on RocketPy.
+See a [detailed list of contributors](https://github.com/RocketPy-Team/RocketPy/contributors) who are actively working on RocketPy.
 
 ## Supporting RocketPy and Contributing
 
-The easiest way to help RocketPy is to demonstrate your support by starring our repository! ![GitHub Repo stars](https://img.shields.io/github/stars/Projeto-Jupiter/RocketPy?style=social)
+The easiest way to help RocketPy is to demonstrate your support by starring our repository! ![GitHub Repo stars](https://img.shields.io/github/stars/RocketPy-Team/RocketPy?style=social)
 
 <br>
 
 If you are actively using RocketPy in one of your projects, reaching out to our core team via [Discord](https://discord.gg/b6xYnNh) and providing feedback can help improve RocketPy a lot!
 
-And if you are interested in going one step further, please read [CONTRIBUTING.md](https://github.com/Projeto-Jupiter/RocketPy/blob/master/CONTRIBUTING.md) for details on our code of conduct and learn more on how you can contribute with the development of this next-gen trajectory simulation solution for rocketry.
+And if you are interested in going one step further, please read [CONTRIBUTING.md](https://github.com/RocketPy-Team/RocketPy/blob/master/CONTRIBUTING.md) for details on our code of conduct and learn more on how you can contribute with the development of this next-gen trajectory simulation solution for rocketry.
 
 <br>
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/Projeto-Jupiter/RocketPy/blob/master/LICENSE) file for details
+This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/RocketPy-Team/RocketPy/blob/master/LICENSE) file for details
 
 <br>
 
 ## Release Notes
-Want to know which bugs have been fixed and new features of each version? Check out the [release notes](https://github.com/Projeto-Jupiter/RocketPy/releases).
+Want to know which bugs have been fixed and new features of each version? Check out the [release notes](https://github.com/RocketPy-Team/RocketPy/releases).
