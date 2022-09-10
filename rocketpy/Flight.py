@@ -1368,7 +1368,7 @@ class Flight:
 
         # Determine aerodynamics forces
         # Determine Drag Force
-        if t > self.rocket.motor.burnOutTime:
+        if t < self.rocket.motor.burnOutTime:
             dragCoeff = self.rocket.powerOnDrag.getValueOpt(freestreamMach)
         else:
             dragCoeff = self.rocket.powerOffDrag.getValueOpt(freestreamMach)
