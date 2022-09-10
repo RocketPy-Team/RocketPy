@@ -23,7 +23,7 @@ setuptools.setup(
     description="Advanced 6-DOF trajectory simulation for High-Power Rocketry.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/giovaniceotto/RocketPy",
+    url="https://github.com/RocketPy-Team/RocketPy",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",

@@ -43,7 +43,7 @@ If you wish to downloaded RocketPy from source, you may do so either by:
 
 .. code-block:: shell
 
-    git clone https://github.com/giovaniceotto/RocketPy.git
+    git clone https://github.com/RocketPy-Team/RocketPy.git
 
 Once you are done downloading/cloning RocketPy's repository, you can install it by opening up a terminal inside the repository's folder on your computer and running:
 

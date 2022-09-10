@@ -2,7 +2,7 @@
 
 <br>
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/giovaniceotto/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/RocketPy-Team/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb)
 [![PyPI](https://img.shields.io/pypi/v/rocketpy?color=g)](https://pypi.org/project/rocketpy/)
 [![Documentation Status](https://readthedocs.org/projects/rocketpyalpha/badge/?version=latest)](https://docs.rocketpy.org/en/latest/?badge=latest)
 [![Build Status](https://app.travis-ci.com/RocketPy-Team/RocketPy.svg?branch=master)](https://app.travis-ci.com/RocketPy-Team/RocketPy)
@@ -15,11 +15,13 @@
 <img src="https://static.scarf.sh/a.png?x-pxid=6f4094ab-00fa-4a8d-9247-b7ed27e7164d" />
 
 # RocketPy
+
 RocketPy is the next-generation trajectory simulation solution for High-Power Rocketry. The code is written as a [Python](http://www.python.org) library and allows for a complete 6 degrees of freedom simulation of a rocket's flight trajectory, including high fidelity variable mass effects as well as descent under parachutes. Weather conditions, such as wind profile, can be imported from sophisticated datasets, allowing for realistic scenarios. Furthermore, the implementation facilitates complex simulations, such as multi-stage rockets, design and trajectory optimization and dispersion analysis.
 
 <br>
 
 ## Main features
+
 <details>
 <summary>Nonlinear 6 degrees of freedom simulations</summary>
 <ul>
@@ -100,14 +102,14 @@ RocketPy's features have been validated in our latest [research article publishe
 The table below shows a comparison between experimental data and the output from RocketPy.
 Flight data and rocket parameters used in this comparison were kindly provided by [EPFL Rocket Team](https://github.com/EPFLRocketTeam) and [Notre Dame Rocket Team](https://ndrocketry.weebly.com/).
 
-|         Mission         |    Result Parameter    | RocketPy  | Measured  | Relative Error |
-|:-----------------------:|:-----------------------|:---------:|:---------:|:--------------:|
-|   Bella Lui Kaltbrumn   | Apogee altitude (m)    |   461.03  |   458.97  |   **0.45 %**   |
-|   Bella Lui Kaltbrumn   | Apogee time (s)        |    10.61  |    10.56  |   **0.47 %**   |
-|   Bella Lui Kaltbrumn   | Maximum velocity (m/s) |    86.18  |    90.00  |   **-4.24 %**   |
-|   NDRT launch vehicle   | Apogee altitude (m)    | 1,310.44  | 1,320.37  |   **-0.75 %**  |
-|   NDRT launch vehicle   | Apogee time (s)        |    16.77  |    17.10  |   **-1.90 %**  |
-|   NDRT launch vehicle   | Maximum velocity (m/s) |   172.86  |   168.95  |   **2.31 %**   |
+|       Mission       | Result Parameter       | RocketPy | Measured |  Relative Error  |
+| :-----------------: | :--------------------- | :------: | :------: | :---------------: |
+| Bella Lui Kaltbrumn | Apogee altitude (m)    |  461.03  |  458.97  | **0.45 %** |
+| Bella Lui Kaltbrumn | Apogee time (s)        |  10.61  |  10.56  | **0.47 %** |
+| Bella Lui Kaltbrumn | Maximum velocity (m/s) |  86.18  |  90.00  | **-4.24 %** |
+| NDRT launch vehicle | Apogee altitude (m)    | 1,310.44 | 1,320.37 | **-0.75 %** |
+| NDRT launch vehicle | Apogee time (s)        |  16.77  |  17.10  | **-1.90 %** |
+| NDRT launch vehicle | Maximum velocity (m/s) |  172.86  |  168.95  | **2.31 %** |
 
 <br>
 
@@ -115,13 +117,14 @@ Flight data and rocket parameters used in this comparison were kindly provided b
 
 Check out documentation details using the links below:
 
-  - [User Guide](https://docs.rocketpy.org/en/latest/user/index.html)
-  - [Code Documentation](https://docs.rocketpy.org/en/latest/reference/index.html)
-  - [Development Guide](https://docs.rocketpy.org/en/latest/development/index.html)
+- [User Guide](https://docs.rocketpy.org/en/latest/user/index.html)
+- [Code Documentation](https://docs.rocketpy.org/en/latest/reference/index.html)
+- [Development Guide](https://docs.rocketpy.org/en/latest/development/index.html)
 
 <br>
 
 # Join Our Community!
+
 RocketPy is growing fast! Many university groups and rocket hobbyist have already started using it. The number of stars and forks for this repository is skyrocketing. And this is all thanks to a great community of users, engineers, developers, marketing specialists, and everyone interested in helping.
 
 If you want to be a part of this and make RocketPy your own, join our [Discord](https://discord.gg/b6xYnNh) server today!
@@ -130,7 +133,7 @@ If you want to be a part of this and make RocketPy your own, join our [Discord](
 
 # Previewing
 
-You can preview RocketPy's main functionalities by browsing through a sample notebook in [Google Colab](https://colab.research.google.com/github/giovaniceotto/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb).  No installation required!
+You can preview RocketPy's main functionalities by browsing through a sample notebook in [Google Colab](https://colab.research.google.com/github/RocketPy-Team/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb).  No installation required!
 
 When you are ready to run RocketPy locally, you can read the *Getting Started* section!
 
@@ -302,7 +305,7 @@ Here is just a quick taste of what RocketPy is able to calculate. There are hund
 
 # Authors and Contributors
 
-This package was originally created by [Giovani Ceotto](https://github.com/giovaniceotto/) as part of his work at [Projeto Jupiter](https://github.com/RocketPy-Team/). [Rodrigo Schmitt](https://github.com/rodrigo-schmitt/) was one of the first contributors.
+This package was originally created by [Giovani Ceotto](https://github.com/RocketPy-Team/) as part of his work at [Projeto Jupiter](https://github.com/RocketPy-Team/). [Rodrigo Schmitt](https://github.com/rodrigo-schmitt/) was one of the first contributors.
 
 Later, [Guilherme Fernandes](https://github.com/Gui-FernandesBR/) and [Lucas Azevedo](https://github.com/lucasfourier/) joined the team to work on the expansion and sustainability of this project.
 
@@ -331,4 +334,5 @@ This project is licensed under the MIT License - see the [LICENSE.md](https://gi
 <br>
 
 ## Release Notes
+
 Want to know which bugs have been fixed and new features of each version? Check out the [release notes](https://github.com/RocketPy-Team/RocketPy/releases).
