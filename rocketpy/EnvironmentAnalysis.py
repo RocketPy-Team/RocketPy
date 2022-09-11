@@ -2545,3 +2545,51 @@ class EnvironmentAnalysis:
         print(
             f"Percentage of Days Without Clouds: {100*self.percentage_of_days_with_no_cloud_coverage:.1f} %"
         )
+
+    def exportMeanProfiles(self, filename):
+        """
+        Exports the mean profiles of the weather data to a file in order to it be used as inputs on Environment Class by using the CustomAtmosphere model.
+
+        """
+
+        # Take header information
+
+        # Use EnvAnal init info
+    #         def __init__(
+    #     self,
+    #     start_date,
+    #     end_date,
+    #     latitude,
+    #     longitude,
+    #     start_hour=0,
+    #     end_hour=24,
+    #     surfaceDataFile=None,
+    #     pressureLevelDataFile=None,
+    #     timezone=None,
+    #     unit_system="metric",
+    # ):
+
+        # Call important profiles
+        self.exportEnvAnalDictionary = {
+            "railLength": 0,
+            "gravity": 0,
+            "date": 0,
+            "latitude": 0,
+            "longitude": 0,
+            "elevation": 0,
+            "datum": 0,
+            "timeZone": 0,
+            "maxExpectedHeight": 0,
+            "atmosphericModelType": 0,
+            "atmosphericModelFile": 0,
+            "atmosphericModelDict": 0,
+            "atmosphericModelPressureProfile": 0,
+            "atmosphericModelTemperatureProfile": 0,
+            "atmosphericModelWindVelocityXProfile": 0,
+            "atmosphericModelWindVelocityYProfile": 0
+        }
+        # Create a dictionary with all the information
+        # Convert to json
+        # Save to file
+
+        return None
