@@ -7,12 +7,14 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 import bisect
+import json
 import re
 import warnings
 from datetime import datetime, timedelta
 
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.ma as ma
 import pytz
 import requests
 
@@ -3324,6 +3326,57 @@ class Environment:
             info["numEnsembleMembers"] = self.numEnsembleMembers
             info["selectedEnsembleMember"] = self.ensembleMember
         return info
+
+    def exportEnvironment(self, filename="environment"):
+        """Export important attributes of Environment class so it can be used
+        again in further siulations by using the customAtmosphere atmospheric 
+        model.
+        Parameters
+        ----------
+        filename
+
+        Return
+        ------
+        None
+        """
+        
+        # TODO: in the future, allow the user to select which format will be used (json, csv, etc.). Default must be JSON.
+        # TODO: add self.exportEnvDictionary to the documentation
+        # TODO: find a way to documennt the workaround I've used on ma.getdata(self... 
+        self.exportEnvDictionary = {
+            "railLength": self.rL,
+            "gravity": self.g,
+            "date": [self.date.year, self.date.month, self.date.day, self.date.hour],
+            "latitude": self.lat,
+            "longitude": self.lon,
+            "elevation": self.elevation,
+            "datum": self.datum,
+            "timeZone": self.timeZone,
+            "maxExpectedHeight": float(self.maxExpectedHeight),
+            "atmosphericModelType": self.atmosphericModelType,
+            "atmosphericModelFile": self.atmosphericModelFile,
+            "atmosphericModelDict": self.atmosphericModelDict,
+            "atmosphericModelPressureProfile": ma.getdata(self.pressure.getSource())[:,1].tolist(),
+            "atmosphericModelTemperatureProfile": ma.getdata(self.temperature.getSource())[:,1].tolist(),
+            "atmosphericModelWindVelocityXProfile": ma.getdata(self.windVelocityX.getSource())[:,1].tolist(),
+            "atmosphericModelWindVelocityYProfile": ma.getdata(self.windVelocityY.getSource())[:,1].tolist()
+        }
+        # for data in self.exportEnvDictionary:
+        #     print(data, "  ", type(self.exportEnvDictionary[data]))
+
+        # print(" ")
+
+        # open file for writing, "w" 
+        f = open(filename+".json","w")
+
+        # write json object to file
+        f.write(json.dumps(self.exportEnvDictionary))
+                
+        # close file
+        f.close()
+        print("Your file was saved, chekc it out: " + filename + ".json")
+
+        return None
 
     # Auxiliary functions - Geodesic Coordinates
     def geodesicToUtm(self, lat, lon, datum):
