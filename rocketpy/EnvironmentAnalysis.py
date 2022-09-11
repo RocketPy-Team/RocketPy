@@ -152,13 +152,6 @@ class EnvironmentAnalysis:
 
             self.surfaceDataDict = self.loaded_data["surfaceDataDict"]
             self.pressureLevelDataDict = self.loaded_data["pressureLevelDataDict"]
-<<<<<<< HEAD
-            # TODO: In the future, allow the user to convert the units of the loaded data.
-
-            print("Information of the data loaded from previous Environment Analysis.\n")
-            print("Available dates: ", self.loaded_data["start_date"], " to ", self.loaded_data["end_date"])
-            print("Available hours: ", self.loaded_data["start_hour"], " to ", self.loaded_data["end_hour"])
-=======
             print(
                 "Information of the data loaded from previous Environment Analysis.\n"
             )
@@ -174,20 +167,14 @@ class EnvironmentAnalysis:
                 " to ",
                 self.loaded_data["end_hour"],
             )
->>>>>>> e8967cb95d04966c30af5ed49387ca717ecd2adb
             print("Latitude", self.loaded_data["latitude"])
             print("Longitude", self.loaded_data["longitude"])
             print("Elevation:", self.loaded_data["elevation"])
             print("Surface data file: ", self.loaded_data["surfaceDataFile"])
-<<<<<<< HEAD
-            print("Pressure level data file: ", self.loaded_data["pressureLevelDataFile"])
-            print("User timezone: ", self.loaded_data["timeZone"])
-=======
             print(
                 "Pressure level data file: ", self.loaded_data["pressureLevelDataFile"]
             )
             print("User timezone: ", self.loaded_data["preferred_timezone"])
->>>>>>> e8967cb95d04966c30af5ed49387ca717ecd2adb
             print("User unit system: ", self.loaded_data["unit_system"])
 
         # Initialize result variables
