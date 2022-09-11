@@ -67,6 +67,7 @@ class EnvironmentAnalysis:
         pressureLevelDataFile=None,
         timezone=None,
         unit_system="metric",
+        load_previous_data=None,
     ):
         """Constructor for the EnvironmentAnalysis class.
         Parameters
@@ -101,11 +102,15 @@ class EnvironmentAnalysis:
         unit_system : str, optional
             Unit system to be used when displaying results.
             Options are: SI, metric, imperial. Default is metric.
+        load_previous_data : str, optional
+            If True, the class will try to load the data from a previous ran Environment Analysis.
+            Use .json file resulted from ... as input.
+            Default is None. 
         Returns
         -------
         None
         """
-        warnings.warn("Please notice this class is still under development")
+        warnings.warn("Please notice this class is still under development, and some features may not work as expected as they were not exhaustively tested yet.")
 
         # Save inputs
         self.start_date = start_date
@@ -117,6 +122,7 @@ class EnvironmentAnalysis:
         self.surfaceDataFile = surfaceDataFile
         self.pressureLevelDataFile = pressureLevelDataFile
         self.preferred_timezone = timezone
+        self.load_previous_data = load_previous_data
 
         # Manage units and timezones
         self.__init_data_parsing_units()
@@ -124,10 +130,31 @@ class EnvironmentAnalysis:
         self.__localize_input_dates()
 
         # Parse data files, surface goes first to calculate elevation
-        self.surfaceDataDict = {}
-        self.parseSurfaceData()
-        self.pressureLevelDataDict = {}
-        self.parsePressureLevelData()
+        if load_previous_data is None:
+            self.surfaceDataDict = {}
+            self.parseSurfaceData()
+            self.pressureLevelDataDict = {}
+            self.parsePressureLevelData()
+        else:
+            # Opening JSON file
+            try:
+                with open(self.load_previous_data) as json_file:
+                    self.loaded_data = json.load(json_file)
+            except:
+                raise RuntimeError("Unable to read json file from previous ran Environment Analysis. Please try again.")
+                
+            self.surfaceDataDict = self.loaded_data["surfaceDataDict"]
+            self.pressureLevelDataDict = self.loaded_data["pressureLevelDataDict"]
+            print("Information of the data loaded from previous Environment Analysis.\n")
+            print("Available dates: ", self.loaded_data["start_date"], " to ", self.loaded_data["end_date"])
+            print("Available hours: ", self.loaded_data["start_hour"], " to ", self.loaded_data["end_hour"])
+            print("Latitude", self.loaded_data["latitude"])
+            print("Longitude", self.loaded_data["longitude"])
+            print("Elevation:", self.loaded_data["elevation"])
+            print("Surface data file: ", self.loaded_data["surfaceDataFile"])
+            print("Pressure level data file: ", self.loaded_data["pressureLevelDataFile"])
+            print("User timezone: ", self.loaded_data["preferred_timezone"])
+            print("User unit system: ", self.loaded_data["unit_system"])
 
         # Convert units
         self.set_unit_system(unit_system)
@@ -2734,6 +2761,48 @@ class EnvironmentAnalysis:
         # write json object to file
         f.write(json.dumps(
             self.exportEnvAnalDict, 
+            sort_keys=False,
+            indent=4,
+            default=str)
+            )
+                
+        # close file
+        f.close()
+        print("Your Environment Analysis file was saved, check it out: " + filename + ".json")
+        print("You can use it in the future by using the customAtmosphere atmospheric model.")
+
+        return None
+
+    def saveEnvAnalysisDict(self, filename="EnvAnalysisDict"):
+        """
+        Saves the Environment Analysis dictionary to a file in order to it
+        be load again in the future.
+        TODO: Improve docs
+        """
+
+        self.EnvAnalysisDict = {
+            "start_date": self.start_date,
+            "end_date": self.end_date,
+            "start_hour": self.start_hour,
+            "end_hour": self.end_hour,
+            "latitude": self.latitude,
+            "longitude": self.longitude,
+            "elevation": self.elevation,
+            "timeZone": self.preferred_timezone,
+            "unit_system": self.unit_system,
+            # "maxExpectedHeight": 80000, # TODO: Implement this parameter at EnvAnalysis Class
+            "surfaceDataFile": self.surfaceDataFile,
+            "pressureLevelDataFile": self.pressureLevelDataFile,
+            "surfaceDataDict": self.surfaceDataDict,
+            "pressureLevelDataDict": self.pressureLevelDataDict,
+        }
+
+        # Convert to json
+        f = open(filename+".json","w")
+
+        # write json object to file
+        f.write(json.dumps(
+            self.EnvAnalysisDict, 
             sort_keys=False,
             indent=4,
             default=str)
