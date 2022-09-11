@@ -3356,25 +3356,25 @@ class Environment:
             "atmosphericModelType": self.atmosphericModelType,
             "atmosphericModelFile": self.atmosphericModelFile,
             "atmosphericModelDict": self.atmosphericModelDict,
-            "atmosphericModelPressureProfile": ma.getdata(self.pressure.getSource())[:,1].tolist(),
-            "atmosphericModelTemperatureProfile": ma.getdata(self.temperature.getSource())[:,1].tolist(),
-            "atmosphericModelWindVelocityXProfile": ma.getdata(self.windVelocityX.getSource())[:,1].tolist(),
-            "atmosphericModelWindVelocityYProfile": ma.getdata(self.windVelocityY.getSource())[:,1].tolist()
+            "atmosphericModelPressureProfile": ma.getdata(self.pressure.getSource()).tolist(),
+            "atmosphericModelTemperatureProfile": ma.getdata(self.temperature.getSource()).tolist(),
+            "atmosphericModelWindVelocityXProfile": ma.getdata(self.windVelocityX.getSource()).tolist(),
+            "atmosphericModelWindVelocityYProfile": ma.getdata(self.windVelocityY.getSource()).tolist()
         }
-        # for data in self.exportEnvDictionary:
-        #     print(data, "  ", type(self.exportEnvDictionary[data]))
 
-        # print(" ")
-
-        # open file for writing, "w" 
         f = open(filename+".json","w")
 
         # write json object to file
-        f.write(json.dumps(self.exportEnvDictionary))
+        f.write(json.dumps(
+            self.exportEnvDictionary, 
+            sort_keys=False,
+            indent=4)
+            )
                 
         # close file
         f.close()
-        print("Your file was saved, chekc it out: " + filename + ".json")
+        print("Your Environment file was saved, check it out: " + filename + ".json")
+        print("You can use it in the future by using the customAtmosphere atmospheric model.")
 
         return None
 
