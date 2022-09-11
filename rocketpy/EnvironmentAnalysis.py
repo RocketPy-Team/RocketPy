@@ -135,6 +135,9 @@ class EnvironmentAnalysis:
             self.parseSurfaceData()
             self.pressureLevelDataDict = {}
             self.parsePressureLevelData()
+
+            # Convert units
+            self.set_unit_system(unit_system)
         else:
             # Opening JSON file
             try:
@@ -145,6 +148,8 @@ class EnvironmentAnalysis:
                 
             self.surfaceDataDict = self.loaded_data["surfaceDataDict"]
             self.pressureLevelDataDict = self.loaded_data["pressureLevelDataDict"]
+            # TODO: In the future, allow the user to convert the units of the loaded data.
+
             print("Information of the data loaded from previous Environment Analysis.\n")
             print("Available dates: ", self.loaded_data["start_date"], " to ", self.loaded_data["end_date"])
             print("Available hours: ", self.loaded_data["start_hour"], " to ", self.loaded_data["end_hour"])
@@ -153,11 +158,8 @@ class EnvironmentAnalysis:
             print("Elevation:", self.loaded_data["elevation"])
             print("Surface data file: ", self.loaded_data["surfaceDataFile"])
             print("Pressure level data file: ", self.loaded_data["pressureLevelDataFile"])
-            print("User timezone: ", self.loaded_data["preferred_timezone"])
+            print("User timezone: ", self.loaded_data["timeZone"])
             print("User unit system: ", self.loaded_data["unit_system"])
-
-        # Convert units
-        self.set_unit_system(unit_system)
 
         # Initialize result variables
         self.average_max_temperature = 0
@@ -511,6 +513,7 @@ class EnvironmentAnalysis:
         Parse pressure level data from a weather file.
 
         Sources of information:
+        TODO: Fix website that is guiding to single levels data
         - https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels-preliminary-back-extension?tab=overview
         -
 
@@ -2781,14 +2784,14 @@ class EnvironmentAnalysis:
         """
 
         self.EnvAnalysisDict = {
-            "start_date": self.start_date,
-            "end_date": self.end_date,
+            "start_date": self.start_date.strftime("%Y-%m-%d"),
+            "end_date": self.end_date.strftime("%Y-%m-%d"),
             "start_hour": self.start_hour,
             "end_hour": self.end_hour,
             "latitude": self.latitude,
             "longitude": self.longitude,
             "elevation": self.elevation,
-            "timeZone": self.preferred_timezone,
+            "timeZone": str(self.preferred_timezone),
             "unit_system": self.unit_system,
             # "maxExpectedHeight": 80000, # TODO: Implement this parameter at EnvAnalysis Class
             "surfaceDataFile": self.surfaceDataFile,
