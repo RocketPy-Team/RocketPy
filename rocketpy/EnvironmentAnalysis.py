@@ -105,12 +105,14 @@ class EnvironmentAnalysis:
         load_previous_data : str, optional
             If True, the class will try to load the data from a previous ran Environment Analysis.
             Use .json file resulted from ... as input.
-            Default is None. 
+            Default is None.
         Returns
         -------
         None
         """
-        warnings.warn("Please notice this class is still under development, and some features may not work as expected as they were not exhaustively tested yet.")
+        warnings.warn(
+            "Please notice this class is still under development, and some features may not work as expected as they were not exhaustively tested yet."
+        )
 
         # Save inputs
         self.start_date = start_date
@@ -144,21 +146,48 @@ class EnvironmentAnalysis:
                 with open(self.load_previous_data) as json_file:
                     self.loaded_data = json.load(json_file)
             except:
-                raise RuntimeError("Unable to read json file from previous ran Environment Analysis. Please try again.")
-                
+                raise RuntimeError(
+                    "Unable to read json file from previous ran Environment Analysis. Please try again."
+                )
+
             self.surfaceDataDict = self.loaded_data["surfaceDataDict"]
             self.pressureLevelDataDict = self.loaded_data["pressureLevelDataDict"]
+<<<<<<< HEAD
             # TODO: In the future, allow the user to convert the units of the loaded data.
 
             print("Information of the data loaded from previous Environment Analysis.\n")
             print("Available dates: ", self.loaded_data["start_date"], " to ", self.loaded_data["end_date"])
             print("Available hours: ", self.loaded_data["start_hour"], " to ", self.loaded_data["end_hour"])
+=======
+            print(
+                "Information of the data loaded from previous Environment Analysis.\n"
+            )
+            print(
+                "Available dates: ",
+                self.loaded_data["start_date"],
+                " to ",
+                self.loaded_data["end_date"],
+            )
+            print(
+                "Available hours: ",
+                self.loaded_data["start_hour"],
+                " to ",
+                self.loaded_data["end_hour"],
+            )
+>>>>>>> e8967cb95d04966c30af5ed49387ca717ecd2adb
             print("Latitude", self.loaded_data["latitude"])
             print("Longitude", self.loaded_data["longitude"])
             print("Elevation:", self.loaded_data["elevation"])
             print("Surface data file: ", self.loaded_data["surfaceDataFile"])
+<<<<<<< HEAD
             print("Pressure level data file: ", self.loaded_data["pressureLevelDataFile"])
             print("User timezone: ", self.loaded_data["timeZone"])
+=======
+            print(
+                "Pressure level data file: ", self.loaded_data["pressureLevelDataFile"]
+            )
+            print("User timezone: ", self.loaded_data["preferred_timezone"])
+>>>>>>> e8967cb95d04966c30af5ed49387ca717ecd2adb
             print("User unit system: ", self.loaded_data["unit_system"])
 
         # Initialize result variables
@@ -2348,7 +2377,9 @@ class EnvironmentAnalysis:
             max_temperature = np.max(mean_temperature_values_for_this_hour)
             if max_temperature >= self.max_average_temperature_at_altitude:
                 self.max_average_temperature_at_altitude = max_temperature
-        self.average_temperature_profile_at_given_hour = average_temperature_profile_at_given_hour
+        self.average_temperature_profile_at_given_hour = (
+            average_temperature_profile_at_given_hour
+        )
 
     def process_pressure_profile_over_average_day(self):
         """Compute the average pressure profile for each available hour of a day, over all
@@ -2379,7 +2410,9 @@ class EnvironmentAnalysis:
             max_pressure = np.max(mean_pressure_values_for_this_hour)
             if max_pressure >= self.max_average_pressure_at_altitude:
                 self.max_average_pressure_at_altitude = max_pressure
-        self.average_pressure_profile_at_given_hour = average_pressure_profile_at_given_hour
+        self.average_pressure_profile_at_given_hour = (
+            average_pressure_profile_at_given_hour
+        )
 
     def process_wind_speed_profile_over_average_day(self):
         """Compute the average wind profile for each available hour of a day, over all
@@ -2441,9 +2474,11 @@ class EnvironmentAnalysis:
             max_windVelocityX = np.max(mean_windVelocityX_values_for_this_hour)
             if max_windVelocityX >= self.max_average_windVelocityX_at_altitude:
                 self.max_average_windVelocityX_at_altitude = max_windVelocityX
-        self.average_windVelocityX_profile_at_given_hour = average_windVelocityX_profile_at_given_hour
+        self.average_windVelocityX_profile_at_given_hour = (
+            average_windVelocityX_profile_at_given_hour
+        )
 
-    def process_wind_velocity_y_profile_over_average_day(self):    
+    def process_wind_velocity_y_profile_over_average_day(self):
         """Compute the average windVelocityY profile for each available hour of a day, over all
         days in the dataset."""
         altitude_list = np.linspace(*self.altitude_AGL_range, 100)
@@ -2472,7 +2507,9 @@ class EnvironmentAnalysis:
             max_windVelocityY = np.max(mean_windVelocityY_values_for_this_hour)
             if max_windVelocityY >= self.max_average_windVelocityY_at_altitude:
                 self.max_average_windVelocityY_at_altitude = max_windVelocityY
-        self.average_windVelocityY_profile_at_given_hour = average_windVelocityY_profile_at_given_hour
+        self.average_windVelocityY_profile_at_given_hour = (
+            average_windVelocityY_profile_at_given_hour
+        )
 
     def plot_wind_profile_over_average_day(self, SAcup_altitude_constraints=False):
         """Creates a grid of plots with the wind profile over the average day."""
@@ -2721,21 +2758,29 @@ class EnvironmentAnalysis:
 
         for hour in self.average_temperature_profile_at_given_hour.keys():
             organized_temperature_dict[hour] = np.column_stack(
-                (self.average_temperature_profile_at_given_hour[hour][1],
-                self.average_temperature_profile_at_given_hour[hour][0])
-                ).tolist()
+                (
+                    self.average_temperature_profile_at_given_hour[hour][1],
+                    self.average_temperature_profile_at_given_hour[hour][0],
+                )
+            ).tolist()
             organized_pressure_dict[hour] = np.column_stack(
-                (self.average_pressure_profile_at_given_hour[hour][1],
-                self.average_pressure_profile_at_given_hour[hour][0])
-                ).tolist()
+                (
+                    self.average_pressure_profile_at_given_hour[hour][1],
+                    self.average_pressure_profile_at_given_hour[hour][0],
+                )
+            ).tolist()
             organized_windX_dict[hour] = np.column_stack(
-                (self.average_windVelocityX_profile_at_given_hour[hour][1],
-                self.average_windVelocityX_profile_at_given_hour[hour][0])
-                ).tolist()
+                (
+                    self.average_windVelocityX_profile_at_given_hour[hour][1],
+                    self.average_windVelocityX_profile_at_given_hour[hour][0],
+                )
+            ).tolist()
             organized_windY_dict[hour] = np.column_stack(
-                (self.average_windVelocityY_profile_at_given_hour[hour][1],
-                self.average_windVelocityY_profile_at_given_hour[hour][0])
-                ).tolist()
+                (
+                    self.average_windVelocityY_profile_at_given_hour[hour][1],
+                    self.average_windVelocityY_profile_at_given_hour[hour][0],
+                )
+            ).tolist()
 
         self.exportEnvAnalDict = {
             "start_date": self.start_date,
@@ -2755,24 +2800,27 @@ class EnvironmentAnalysis:
             "atmosphericModelPressureProfile": organized_pressure_dict,
             "atmosphericModelTemperatureProfile": organized_temperature_dict,
             "atmosphericModelWindVelocityXProfile": organized_windX_dict,
-            "atmosphericModelWindVelocityYProfile": organized_windY_dict
+            "atmosphericModelWindVelocityYProfile": organized_windY_dict,
         }
 
         # Convert to json
-        f = open(filename+".json","w")
+        f = open(filename + ".json", "w")
 
         # write json object to file
-        f.write(json.dumps(
-            self.exportEnvAnalDict, 
-            sort_keys=False,
-            indent=4,
-            default=str)
-            )
-                
+        f.write(
+            json.dumps(self.exportEnvAnalDict, sort_keys=False, indent=4, default=str)
+        )
+
         # close file
         f.close()
-        print("Your Environment Analysis file was saved, check it out: " + filename + ".json")
-        print("You can use it in the future by using the customAtmosphere atmospheric model.")
+        print(
+            "Your Environment Analysis file was saved, check it out: "
+            + filename
+            + ".json"
+        )
+        print(
+            "You can use it in the future by using the customAtmosphere atmospheric model."
+        )
 
         return None
 
@@ -2801,19 +2849,22 @@ class EnvironmentAnalysis:
         }
 
         # Convert to json
-        f = open(filename+".json","w")
+        f = open(filename + ".json", "w")
 
         # write json object to file
-        f.write(json.dumps(
-            self.EnvAnalysisDict, 
-            sort_keys=False,
-            indent=4,
-            default=str)
-            )
-                
+        f.write(
+            json.dumps(self.EnvAnalysisDict, sort_keys=False, indent=4, default=str)
+        )
+
         # close file
         f.close()
-        print("Your Environment Analysis file was saved, check it out: " + filename + ".json")
-        print("You can use it in the future by using the customAtmosphere atmospheric model.")
+        print(
+            "Your Environment Analysis file was saved, check it out: "
+            + filename
+            + ".json"
+        )
+        print(
+            "You can use it in the future by using the customAtmosphere atmospheric model."
+        )
 
         return None
