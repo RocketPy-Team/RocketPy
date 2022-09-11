@@ -3368,7 +3368,8 @@ class Environment:
         f.write(json.dumps(
             self.exportEnvDictionary, 
             sort_keys=False,
-            indent=4)
+            indent=4,
+            default=str)
             )
                 
         # close file
