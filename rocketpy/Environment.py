@@ -3329,7 +3329,7 @@ class Environment:
 
     def exportEnvironment(self, filename="environment"):
         """Export important attributes of Environment class so it can be used
-        again in further siulations by using the customAtmosphere atmospheric 
+        again in further siulations by using the customAtmosphere atmospheric
         model.
         Parameters
         ----------
@@ -3339,10 +3339,10 @@ class Environment:
         ------
         None
         """
-        
+
         # TODO: in the future, allow the user to select which format will be used (json, csv, etc.). Default must be JSON.
         # TODO: add self.exportEnvDictionary to the documentation
-        # TODO: find a way to documennt the workaround I've used on ma.getdata(self... 
+        # TODO: find a way to documennt the workaround I've used on ma.getdata(self...
         self.exportEnvDictionary = {
             "railLength": self.rL,
             "gravity": self.g,
@@ -3356,26 +3356,33 @@ class Environment:
             "atmosphericModelType": self.atmosphericModelType,
             "atmosphericModelFile": self.atmosphericModelFile,
             "atmosphericModelDict": self.atmosphericModelDict,
-            "atmosphericModelPressureProfile": ma.getdata(self.pressure.getSource()).tolist(),
-            "atmosphericModelTemperatureProfile": ma.getdata(self.temperature.getSource()).tolist(),
-            "atmosphericModelWindVelocityXProfile": ma.getdata(self.windVelocityX.getSource()).tolist(),
-            "atmosphericModelWindVelocityYProfile": ma.getdata(self.windVelocityY.getSource()).tolist()
+            "atmosphericModelPressureProfile": ma.getdata(
+                self.pressure.getSource()
+            ).tolist(),
+            "atmosphericModelTemperatureProfile": ma.getdata(
+                self.temperature.getSource()
+            ).tolist(),
+            "atmosphericModelWindVelocityXProfile": ma.getdata(
+                self.windVelocityX.getSource()
+            ).tolist(),
+            "atmosphericModelWindVelocityYProfile": ma.getdata(
+                self.windVelocityY.getSource()
+            ).tolist(),
         }
 
-        f = open(filename+".json","w")
+        f = open(filename + ".json", "w")
 
         # write json object to file
-        f.write(json.dumps(
-            self.exportEnvDictionary, 
-            sort_keys=False,
-            indent=4,
-            default=str)
-            )
-                
+        f.write(
+            json.dumps(self.exportEnvDictionary, sort_keys=False, indent=4, default=str)
+        )
+
         # close file
         f.close()
         print("Your Environment file was saved, check it out: " + filename + ".json")
-        print("You can use it in the future by using the customAtmosphere atmospheric model.")
+        print(
+            "You can use it in the future by using the customAtmosphere atmospheric model."
+        )
 
         return None
 
