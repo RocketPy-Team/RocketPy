@@ -5,6 +5,7 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 import bisect
+import json
 import warnings
 from collections import defaultdict
 
@@ -2288,7 +2289,69 @@ class EnvironmentAnalysis:
         max_altitude = np.min(max_altitudes)
         return min_altitude, max_altitude
 
-    def process_wind_profile_over_average_day(self):
+    def process_temperature_profile_over_average_day(self):
+        """Compute the average temperature profile for each available hour of a day, over all
+        days in the dataset."""
+        altitude_list = np.linspace(*self.altitude_AGL_range, 100)
+
+        average_temperature_profile_at_given_hour = {}
+        self.max_average_temperature_at_altitude = 0
+        hours = list(self.pressureLevelDataDict.values())[0].keys()
+        for hour in hours:
+            temperature_values_for_this_hour = []
+            for dayDict in self.pressureLevelDataDict.values():
+                try:
+                    temperature_values_for_this_hour += [
+                        dayDict[hour]["temperature"](altitude_list)
+                    ]
+                except KeyError:
+                    # Some day does not have data for the desired hour
+                    # No need to worry, just average over the other days
+                    pass
+            mean_temperature_values_for_this_hour = np.mean(
+                temperature_values_for_this_hour, axis=0
+            )
+            average_temperature_profile_at_given_hour[hour] = [
+                mean_temperature_values_for_this_hour,
+                altitude_list,
+            ]
+            max_temperature = np.max(mean_temperature_values_for_this_hour)
+            if max_temperature >= self.max_average_temperature_at_altitude:
+                self.max_average_temperature_at_altitude = max_temperature
+        self.average_temperature_profile_at_given_hour = average_temperature_profile_at_given_hour
+
+    def process_pressure_profile_over_average_day(self):
+        """Compute the average pressure profile for each available hour of a day, over all
+        days in the dataset."""
+        altitude_list = np.linspace(*self.altitude_AGL_range, 100)
+
+        average_pressure_profile_at_given_hour = {}
+        self.max_average_pressure_at_altitude = 0
+        hours = list(self.pressureLevelDataDict.values())[0].keys()
+        for hour in hours:
+            pressure_values_for_this_hour = []
+            for dayDict in self.pressureLevelDataDict.values():
+                try:
+                    pressure_values_for_this_hour += [
+                        dayDict[hour]["pressure"](altitude_list)
+                    ]
+                except KeyError:
+                    # Some day does not have data for the desired hour
+                    # No need to worry, just average over the other days
+                    pass
+            mean_pressure_values_for_this_hour = np.mean(
+                pressure_values_for_this_hour, axis=0
+            )
+            average_pressure_profile_at_given_hour[hour] = [
+                mean_pressure_values_for_this_hour,
+                altitude_list,
+            ]
+            max_pressure = np.max(mean_pressure_values_for_this_hour)
+            if max_pressure >= self.max_average_pressure_at_altitude:
+                self.max_average_pressure_at_altitude = max_pressure
+        self.average_pressure_profile_at_given_hour = average_pressure_profile_at_given_hour
+
+    def process_wind_speed_profile_over_average_day(self):
         """Compute the average wind profile for each available hour of a day, over all
         days in the dataset."""
         altitude_list = np.linspace(*self.altitude_AGL_range, 100)
@@ -2319,9 +2382,71 @@ class EnvironmentAnalysis:
                 self.max_average_wind_at_altitude = max_wind
         self.average_wind_profile_at_given_hour = average_wind_profile_at_given_hour
 
+    def process_wind_velocity_x_profile_over_average_day(self):
+        """Compute the average windVelocityX profile for each available hour of a day, over all
+        days in the dataset."""
+        altitude_list = np.linspace(*self.altitude_AGL_range, 100)
+
+        average_windVelocityX_profile_at_given_hour = {}
+        self.max_average_windVelocityX_at_altitude = 0
+        hours = list(self.pressureLevelDataDict.values())[0].keys()
+        for hour in hours:
+            windVelocityX_values_for_this_hour = []
+            for dayDict in self.pressureLevelDataDict.values():
+                try:
+                    windVelocityX_values_for_this_hour += [
+                        dayDict[hour]["windVelocityX"](altitude_list)
+                    ]
+                except KeyError:
+                    # Some day does not have data for the desired hour
+                    # No need to worry, just average over the other days
+                    pass
+            mean_windVelocityX_values_for_this_hour = np.mean(
+                windVelocityX_values_for_this_hour, axis=0
+            )
+            average_windVelocityX_profile_at_given_hour[hour] = [
+                mean_windVelocityX_values_for_this_hour,
+                altitude_list,
+            ]
+            max_windVelocityX = np.max(mean_windVelocityX_values_for_this_hour)
+            if max_windVelocityX >= self.max_average_windVelocityX_at_altitude:
+                self.max_average_windVelocityX_at_altitude = max_windVelocityX
+        self.average_windVelocityX_profile_at_given_hour = average_windVelocityX_profile_at_given_hour
+
+    def process_wind_velocity_y_profile_over_average_day(self):    
+        """Compute the average windVelocityY profile for each available hour of a day, over all
+        days in the dataset."""
+        altitude_list = np.linspace(*self.altitude_AGL_range, 100)
+
+        average_windVelocityY_profile_at_given_hour = {}
+        self.max_average_windVelocityY_at_altitude = 0
+        hours = list(self.pressureLevelDataDict.values())[0].keys()
+        for hour in hours:
+            windVelocityY_values_for_this_hour = []
+            for dayDict in self.pressureLevelDataDict.values():
+                try:
+                    windVelocityY_values_for_this_hour += [
+                        dayDict[hour]["windVelocityY"](altitude_list)
+                    ]
+                except KeyError:
+                    # Some day does not have data for the desired hour
+                    # No need to worry, just average over the other days
+                    pass
+            mean_windVelocityY_values_for_this_hour = np.mean(
+                windVelocityY_values_for_this_hour, axis=0
+            )
+            average_windVelocityY_profile_at_given_hour[hour] = [
+                mean_windVelocityY_values_for_this_hour,
+                altitude_list,
+            ]
+            max_windVelocityY = np.max(mean_windVelocityY_values_for_this_hour)
+            if max_windVelocityY >= self.max_average_windVelocityY_at_altitude:
+                self.max_average_windVelocityY_at_altitude = max_windVelocityY
+        self.average_windVelocityY_profile_at_given_hour = average_windVelocityY_profile_at_given_hour
+
     def plot_wind_profile_over_average_day(self, SAcup_altitude_constraints=False):
         """Creates a grid of plots with the wind profile over the average day."""
-        self.process_wind_profile_over_average_day()
+        self.process_wind_speed_profile_over_average_day()
 
         # Create grid of plots for each hour
         hours = list(list(self.pressureLevelDataDict.values())[0].keys())
@@ -2382,7 +2507,7 @@ class EnvironmentAnalysis:
 
     def animate_wind_profile_over_average_day(self, SAcup_altitude_constraints=False):
         """Animation of how wind profile evolves throughout an average day."""
-        self.process_wind_profile_over_average_day()
+        self.process_wind_speed_profile_over_average_day()
 
         # Create animation
         fig, ax = plt.subplots(dpi=200)
@@ -2546,50 +2671,77 @@ class EnvironmentAnalysis:
             f"Percentage of Days Without Clouds: {100*self.percentage_of_days_with_no_cloud_coverage:.1f} %"
         )
 
-    def exportMeanProfiles(self, filename):
+    def exportMeanProfiles(self, filename="export_env_analysis"):
         """
-        Exports the mean profiles of the weather data to a file in order to it be used as inputs on Environment Class by using the CustomAtmosphere model.
-
+        Exports the mean profiles of the weather data to a file in order to it
+        be used as inputs on Environment Class by using the CustomAtmosphere
+        model.
+        TODO: Improve docs
         """
 
-        # Take header information
+        self.process_temperature_profile_over_average_day()
+        self.process_pressure_profile_over_average_day()
+        self.process_wind_velocity_x_profile_over_average_day()
+        self.process_wind_velocity_y_profile_over_average_day()
 
-        # Use EnvAnal init info
-    #         def __init__(
-    #     self,
-    #     start_date,
-    #     end_date,
-    #     latitude,
-    #     longitude,
-    #     start_hour=0,
-    #     end_hour=24,
-    #     surfaceDataFile=None,
-    #     pressureLevelDataFile=None,
-    #     timezone=None,
-    #     unit_system="metric",
-    # ):
+        organized_temperature_dict = {}
+        organized_pressure_dict = {}
+        organized_windX_dict = {}
+        organized_windY_dict = {}
 
-        # Call important profiles
-        self.exportEnvAnalDictionary = {
-            "railLength": 0,
-            "gravity": 0,
-            "date": 0,
-            "latitude": 0,
-            "longitude": 0,
-            "elevation": 0,
-            "datum": 0,
-            "timeZone": 0,
-            "maxExpectedHeight": 0,
-            "atmosphericModelType": 0,
-            "atmosphericModelFile": 0,
-            "atmosphericModelDict": 0,
-            "atmosphericModelPressureProfile": 0,
-            "atmosphericModelTemperatureProfile": 0,
-            "atmosphericModelWindVelocityXProfile": 0,
-            "atmosphericModelWindVelocityYProfile": 0
+        for hour in self.average_temperature_profile_at_given_hour.keys():
+            organized_temperature_dict[hour] = np.column_stack(
+                (self.average_temperature_profile_at_given_hour[hour][1],
+                self.average_temperature_profile_at_given_hour[hour][0])
+                ).tolist()
+            organized_pressure_dict[hour] = np.column_stack(
+                (self.average_pressure_profile_at_given_hour[hour][1],
+                self.average_pressure_profile_at_given_hour[hour][0])
+                ).tolist()
+            organized_windX_dict[hour] = np.column_stack(
+                (self.average_windVelocityX_profile_at_given_hour[hour][1],
+                self.average_windVelocityX_profile_at_given_hour[hour][0])
+                ).tolist()
+            organized_windY_dict[hour] = np.column_stack(
+                (self.average_windVelocityY_profile_at_given_hour[hour][1],
+                self.average_windVelocityY_profile_at_given_hour[hour][0])
+                ).tolist()
+
+        self.exportEnvAnalDict = {
+            "start_date": self.start_date,
+            "end_date": self.end_date,
+            "start_hour": self.start_hour,
+            "end_hour": self.end_hour,
+            "latitude": self.latitude,
+            "longitude": self.longitude,
+            "elevation": self.elevation,
+            "timeZone": self.preferred_timezone,
+            "unit_system": self.unit_system,
+            # "maxExpectedHeight": 80000, # TODO: Implement this parameter at EnvAnalysis Class
+            "surfaceDataFile": self.surfaceDataFile,
+            "pressureLevelDataFile": self.pressureLevelDataFile,
+            # "surfaceDataDict": self.surfaceDataDict, # TODO: Too large, make it optional
+            # "pressureLevelDataDict": self.pressureLevelDataDict, # TODO: Too large, make it optional
+            "atmosphericModelPressureProfile": organized_pressure_dict,
+            "atmosphericModelTemperatureProfile": organized_temperature_dict,
+            "atmosphericModelWindVelocityXProfile": organized_windX_dict,
+            "atmosphericModelWindVelocityYProfile": organized_windY_dict
         }
-        # Create a dictionary with all the information
+
         # Convert to json
-        # Save to file
+        f = open(filename+".json","w")
+
+        # write json object to file
+        f.write(json.dumps(
+            self.exportEnvAnalDict, 
+            sort_keys=False,
+            indent=4,
+            default=str)
+            )
+                
+        # close file
+        f.close()
+        print("Your Environment Analysis file was saved, check it out: " + filename + ".json")
+        print("You can use it in the future by using the customAtmosphere atmospheric model.")
 
         return None
