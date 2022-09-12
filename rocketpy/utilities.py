@@ -45,6 +45,7 @@ def compute_CdS_from_drop_test(
 
 # TODO: Needs tests
 
+
 def calculateEquilibriumAltitude(
     rocket_mass,
     CdS,
@@ -200,7 +201,9 @@ def calculateEquilibriumAltitude(
 
     return altitudeFunction, velocityFunction, final_sol
 
+
 # TODO: Needs tests
+
 
 def combineTrajectories(traj1, traj2=None, traj3=None, traj4=None, traj5=None):
     """Returns a trajectory that is the combination of the trajectories passed
@@ -216,7 +219,7 @@ def combineTrajectories(traj1, traj2=None, traj3=None, traj4=None, traj5=None):
 
     """
     # TODO: Add a check to make sure that the components (x, y, z) of trajectories are the same length
-    # TODO: Allow the user to catch different planes (xy, yz, xz) from the main plot 
+    # TODO: Allow the user to catch different planes (xy, yz, xz) from the main plot
     # TODO: Allow the user to input a name
     # TODO: Allow the user to set the colors
     # TODO: Make the legend optional
@@ -230,7 +233,7 @@ def combineTrajectories(traj1, traj2=None, traj3=None, traj4=None, traj5=None):
     x3, y3, z3 = traj3 if traj3 else (0, 0, 0)
     x4, y4, z4 = traj4 if traj4 else (0, 0, 0)
     x5, y5, z5 = traj5 if traj5 else (0, 0, 0)
-    
+
     # Find max/min values for each component
     maxZ = max(*z1, *z2, *z3, *z4, *z5)
     maxX = max(*x1, *x2, *x3, *x4, *x5)
@@ -239,15 +242,15 @@ def combineTrajectories(traj1, traj2=None, traj3=None, traj4=None, traj5=None):
     maxY = max(*y1, *y2, *y3, *y4, *y5)
     maxXY = max(maxX, maxY)
     minXY = min(minX, minY)
-    
+
     # Create the figure
     fig1 = plt.figure(figsize=(9, 9))
     ax1 = plt.subplot(111, projection="3d")
-    ax1.plot(x1, y1, z1, linewidth='2', label="Trajectory 1")
-    ax1.plot(x2, y2, z2, linewidth='2', label="Trajectory 2") if traj2 else None
-    ax1.plot(x3, y3, z3, linewidth='2', label="Trajectory 3") if traj3 else None
-    ax1.plot(x4, y4, z4, linewidth='2', label="Trajectory 4") if traj4 else None
-    ax1.plot(x5, y5, z5, linewidth='2', label="Trajectory 5") if traj5 else None
+    ax1.plot(x1, y1, z1, linewidth="2", label="Trajectory 1")
+    ax1.plot(x2, y2, z2, linewidth="2", label="Trajectory 2") if traj2 else None
+    ax1.plot(x3, y3, z3, linewidth="2", label="Trajectory 3") if traj3 else None
+    ax1.plot(x4, y4, z4, linewidth="2", label="Trajectory 4") if traj4 else None
+    ax1.plot(x5, y5, z5, linewidth="2", label="Trajectory 5") if traj5 else None
     ax1.scatter(0, 0, 0)
     ax1.set_xlabel("X - East (m)")
     ax1.set_ylabel("Y - North (m)")
