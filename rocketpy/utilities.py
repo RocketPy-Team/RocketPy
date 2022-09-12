@@ -4,11 +4,14 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 import numpy as np
+import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 
 from .Environment import Environment
 from .Function import Function
 
+
+# Parachutes related functions
 
 # TODO: Needs tests
 def compute_CdS_from_drop_test(
@@ -41,7 +44,6 @@ def compute_CdS_from_drop_test(
 
 
 # TODO: Needs tests
-
 
 def calculateEquilibriumAltitude(
     rocket_mass,
@@ -197,3 +199,61 @@ def calculateEquilibriumAltitude(
         velocityFunction()
 
     return altitudeFunction, velocityFunction, final_sol
+
+
+
+def combineTrajectories(traj1, traj2=None, traj3=None, traj4=None, traj5=None):
+    """Returns a trajectory that is the combination of the trajectories passed
+    All components of the trajectory (x, y, z) must be at the same length.
+    Minimum of 1 trajectory is required.
+    Current a maximum of 5 trajectories can be combined.
+    This function was created based two source-codes:
+    -
+    -
+
+    """
+    # TODO: Add a check to make sure that the components (x, y, z) of trajectories are the same length
+    # TODO: Allow the user to catch different planes (xy, yz, xz) from the main plot 
+    # TODO: Allow the user to input a name
+    # TODO: Allow the user to set the colors
+    # TODO: Make the legend optional
+    # TODO: Allow the user to set the line style
+    # TODO: Make it more general, so that it can be used for any number of trajectories
+
+    # Decompose the trajectories into x, y, z components
+    x1, y1, z1 = traj1
+    x2, y2, z2 = traj2 if traj2 else (0, 0, 0)
+    x3, y3, z3 = traj3 if traj3 else (0, 0, 0)
+    x4, y4, z4 = traj4 if traj4 else (0, 0, 0)
+    x5, y5, z5 = traj5 if traj5 else (0, 0, 0)
+    
+    # Find max/min values for each component
+    maxZ = max(*z1, *z2, *z3, *z4, *z5)
+    maxX = max(*x1, *x2, *x3, *x4, *x5)
+    minX = min(*x1, *x2, *x3, *x4, *x5)
+    minY = min(*y1, *y2, *y3, *y4, *y5)
+    maxY = max(*y1, *y2, *y3, *y4, *y5)
+    maxXY = max(maxX, maxY)
+    minXY = min(minX, minY)
+    
+    # Create the figure
+    fig1 = plt.figure(figsize=(9, 9))
+    ax1 = plt.subplot(111, projection="3d")
+    ax1.plot(x1, y1, z1, linewidth='2', label="Trajectory 1")
+    ax1.plot(x2, y2, z2, linewidth='2', label="Trajectory 2") if traj2 else None
+    ax1.plot(x3, y3, z3, linewidth='2', label="Trajectory 3") if traj3 else None
+    ax1.plot(x4, y4, z4, linewidth='2', label="Trajectory 4") if traj4 else None
+    ax1.plot(x5, y5, z5, linewidth='2', label="Trajectory 5") if traj5 else None
+    ax1.scatter(0, 0, 0)
+    ax1.set_xlabel("X - East (m)")
+    ax1.set_ylabel("Y - North (m)")
+    ax1.set_zlabel("Z - Altitude Above Ground Level (m)")
+    ax1.set_title("Flight Trajectory")
+    ax1.set_zlim3d([0, maxZ])
+    ax1.set_ylim3d([minXY, maxXY])
+    ax1.set_xlim3d([minXY, maxXY])
+    ax1.view_init(15, 45)
+    plt.legend()
+    plt.show()
+
+    return None
