@@ -200,16 +200,19 @@ def calculateEquilibriumAltitude(
 
     return altitudeFunction, velocityFunction, final_sol
 
-
+# TODO: Needs tests
 
 def combineTrajectories(traj1, traj2=None, traj3=None, traj4=None, traj5=None):
     """Returns a trajectory that is the combination of the trajectories passed
     All components of the trajectory (x, y, z) must be at the same length.
     Minimum of 1 trajectory is required.
     Current a maximum of 5 trajectories can be combined.
+    The trajectories must be in the same reference frame.
+    The z coordinate must be referenced to the ground or to the sea level, but
+    it is important that all trajectories are passed in the same reference.
     This function was created based two source-codes:
-    -
-    -
+    - Mateus Stano: https://github.com/RocketPy-Team/Hackathon_2020/pull/123/files#diff-8f0a881d1355d1748074d56ed43129d46db5b755acaa753e3c49143a1c800386
+    - Dyllon Preston: https://github.com/Dyllon-P/MBS-Template/blob/main/MBS.py
 
     """
     # TODO: Add a check to make sure that the components (x, y, z) of trajectories are the same length
@@ -219,6 +222,7 @@ def combineTrajectories(traj1, traj2=None, traj3=None, traj4=None, traj5=None):
     # TODO: Make the legend optional
     # TODO: Allow the user to set the line style
     # TODO: Make it more general, so that it can be used for any number of trajectories
+    # TODO: Improve docs
 
     # Decompose the trajectories into x, y, z components
     x1, y1, z1 = traj1
@@ -247,7 +251,7 @@ def combineTrajectories(traj1, traj2=None, traj3=None, traj4=None, traj5=None):
     ax1.scatter(0, 0, 0)
     ax1.set_xlabel("X - East (m)")
     ax1.set_ylabel("Y - North (m)")
-    ax1.set_zlabel("Z - Altitude Above Ground Level (m)")
+    ax1.set_zlabel("Z - Altitude (m)")
     ax1.set_title("Flight Trajectory")
     ax1.set_zlim3d([0, maxZ])
     ax1.set_ylim3d([minXY, maxXY])
