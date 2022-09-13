@@ -38,7 +38,7 @@ def compute_CdS_from_drop_test(
 
     """
 
-    return 2 * rocket_mass * g / ((terminal_velocity**2) * air_density)
+    return 2 * rocket_mass * g / ((terminal_velocity ** 2) * air_density)
 
 
 # TODO: Needs tests
@@ -199,9 +199,21 @@ def calculateEquilibriumAltitude(
 
     return altitudeFunction, velocityFunction, final_sol
 
-def create_dispersion_dictionary(dic):
-    dataframe = pd.read_csv(dic,sep = ';', skiprows=[0,1], header = None)
 
+def create_dispersion_dictionary(dic):
+    """creates a dictinary with the rocket data in a excel .csv file.
+
+    Parameters
+    ----------
+    dic : string
+        String with the path to the .csv file.
+
+    Returns
+    -------
+    dictionary
+        Dictionary with all rocket data used in dispersion analysis.
+    """
+    dataframe = pd.read_csv(dic, sep=";", skiprows=[0, 1], header=None)
 
     rocketKeys = list(dataframe[1].dropna())
     rocketValues = list(dataframe[2].dropna())
@@ -214,48 +226,43 @@ def create_dispersion_dictionary(dic):
     launchKeys = list(dataframe[13].dropna())
     launchValues = list(dataframe[14].dropna())
     launchSD = list(dataframe[15])
-    
+
     parachuteKeys = list(dataframe[19].dropna())
     parachuteValues = list(dataframe[20].dropna())
     parachuteSD = list(dataframe[21])
-    
 
     allValues = []
     # crating the dictionary
 
-    for i in range(0,len(rocketKeys)):
+    for i in range(0, len(rocketKeys)):
 
         if pd.isnull(rocketSD[i]):
             allValues.append(rocketValues[i])
         else:
-            allValues.append(((rocketValues[i]), (rocketSD[i]))) 
+            allValues.append(((rocketValues[i]), (rocketSD[i])))
 
-    for j in range(0,len(motorKeys)):
+    for j in range(0, len(motorKeys)):
 
         if pd.isnull(motorSD[j]):
             allValues.append(motorValues[j])
         else:
-            allValues.append(((motorValues[j]), (motorSD[j]))) 
+            allValues.append(((motorValues[j]), (motorSD[j])))
 
-    for k in range(0,len(parachuteKeys)):
+    for k in range(0, len(parachuteKeys)):
 
         if pd.isnull(parachuteSD[k]):
             allValues.append(parachuteValues[k])
         else:
-            allValues.append(((parachuteValues[k]), (parachuteSD[k]))) 
+            allValues.append(((parachuteValues[k]), (parachuteSD[k])))
 
-    for l in range(0,len(launchKeys)):
+    for l in range(0, len(launchKeys)):
 
         if pd.isnull(launchSD[l]):
             allValues.append(launchValues[l])
         else:
-            allValues.append(((launchValues[l]), (launchSD[l]))) 
-
+            allValues.append(((launchValues[l]), (launchSD[l])))
 
     allKeys = rocketKeys + motorKeys + parachuteKeys + launchKeys
 
-    analysis_parameters = dict(zip(allKeys,allValues))
+    analysis_parameters = dict(zip(allKeys, allValues))
     return analysis_parameters
-
-    
-
