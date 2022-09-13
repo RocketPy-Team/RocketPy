@@ -327,7 +327,7 @@ def compareFlightTrajectories(
         z = flight.z[:, 1] - flight.env.elevation
         trajectory_list.append([x, y, z])
 
-    # Call compareTrajectories function to do the hard work    
+    # Call compareTrajectories function to do the hard work
     compareTrajectories(trajectory_list, names, legend)
 
     return None
