@@ -1,27 +1,18 @@
 # -*- coding: utf-8 -*-
 
-__author__ = "Giovani Hidalgo Ceotto, Franz Masatoshi Yuri"
-__copyright__ = "Copyright 20XX, Projeto Jupiter"
+__author__ = "Giovani Hidalgo Ceotto, Franz Masatoshi Yuri, Mateus Stano Junqueira, Kaleb Ramos Wanderley, Calebe Gomes Teles, Matheus Doretto"
+__copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
-import re
-import math
-import bisect
 import warnings
-import time
-from datetime import datetime, timedelta
-from inspect import signature, getsourcelines
+from inspect import getsourcelines
 from collections import namedtuple
+from inspect import getsourcelines
 
 import numpy as np
-from scipy import integrate
-from scipy import linalg
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import cm
-from numpy import genfromtxt
 
 from .Function import Function
+from .Parachute import Parachute
 
 
 class Rocket:
@@ -41,7 +32,8 @@ class Rocket:
             to the exit face of the nozzle, in meters. Always positive.
         Rocket.distanceRocketPropellant : float
             Distance between rocket's center of mass, without propellant,
-            to the center of mass of propellant, in meters. Always positive.
+            to the motor reference point, which for solid and hybrid motors
+            is the center of mass of solid propellant, in meters. Always positive.
 
         Mass and Inertia attributes:
         Rocket.mass : float
@@ -84,59 +76,6 @@ class Rocket:
             Thrust vector position relative to center of mass in the x
             axis, perpendicular to axis of cylindrical symmetry, in meters.
 
-        Parachute attributes:
-        Rocket.parachutes : list
-            List of parachutes of the rocket.
-            Each parachute has the following attributes:
-            name : string
-                Parachute name, such as drogue and main. Has no impact in
-                simulation, as it is only used to display data in a more
-                organized matter.
-            CdS : float
-                Drag coefficient times reference area for parachute. It is
-                used to compute the drag force exerted on the parachute by
-                the equation F = ((1/2)*rho*V^2)*CdS, that is, the drag
-                force is the dynamic pressure computed on the parachute
-                times its CdS coefficient. Has units of area and must be
-                given in squared meters.
-            trigger : function
-                Function which defines if the parachute ejection system is
-                to be triggered. It must take as input the freestream
-                pressure in pascal and the state vector of the simulation,
-                which is defined by [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz].
-                It will be called according to the sampling rate given next.
-                It should return True if the parachute ejection system is
-                to be triggered and False otherwise.
-            samplingRate : float, optional
-                Sampling rate in which the trigger function works. It is used to
-                simulate the refresh rate of onboard sensors such as barometers.
-                Default value is 100. Value must be given in hertz.
-            lag : float, optional
-                Time between the parachute ejection system is triggered and the
-                parachute is fully opened. During this time, the simulation will
-                consider the rocket as flying without a parachute. Default value
-                is 0. Must be given in seconds.
-            noise : tuple, list, optional
-                List in the format (mean, standard deviation, time-correlation).
-                The values are used to add noise to the pressure signal which is
-                passed to the trigger function. Default value is (0, 0, 0). Units
-                are in pascal.
-            noiseSignal : list
-                List of (t, noise signal) corresponding to signal passed to
-                trigger function. Completed after running a simulation.
-            noisyPressureSignal : list
-                List of (t, noisy pressure signal) that is passed to the
-                trigger function. Completed after running a simulation.
-            cleanPressureSignal : list
-                List of (t, clean pressure signal) corresponding to signal passed to
-                trigger function. Completed after running a simulation.
-            noiseSignalFunction : Function
-                Function of noiseSignal.
-            noisyPressureSignalFunction : Function
-                Function of noisyPressureSignal.
-            cleanPressureSignalFunction : Function
-                Function of cleanPressureSignal.
-
         Aerodynamic attributes
         Rocket.aerodynamicSurfaces : list
             List of aerodynamic surfaces of the rocket.
@@ -176,25 +115,26 @@ class Rocket:
         motor : Motor
             Motor used in the rocket. See Motor class for more information.
         mass : int, float
-            Unloaded rocket total mass (without propelant) in kg.
+            Unloaded rocket total mass (without propellant) in kg.
         inertiaI : int, float
             Unloaded rocket lateral (perpendicular to axis of symmetry)
-            moment of inertia (without propelant) in kg m^2.
+            moment of inertia (without propellant) in kg m^2.
         inertiaZ : int, float
-            Unloaded rocket axial moment of inertia (without propelant)
+            Unloaded rocket axial moment of inertia (without propellant)
             in kg m^2.
         radius : int, float
-            Rocket biggest outer radius in meters.
+            Rocket largest outer radius in meters.
         distanceRocketNozzle : int, float
             Distance from rocket's unloaded center of mass to nozzle outlet,
             in meters. Generally negative, meaning a negative position in the
             z axis which has an origin in the rocket's center of mass (without
             propellant) and points towards the nose cone.
         distanceRocketPropellant : int, float
-            Distance from rocket's unloaded center of mass to propellant
-            center of mass, in meters. Generally negative, meaning a negative
-            position in the z axis which has an origin in the rocket's center
-            of mass (with out propellant) and points towards the nose cone.
+            Distance from rocket's unloaded center of mass to the motor reference
+            point, which for solid and hybrid motor the is the center of mass of
+            solid propellant, in meters. Generally negative, meaning a negative
+            position in the z axis which has an origin in the rocket's center of
+            mass (with out propellant) and points towards the nose cone.
         powerOffDrag : int, float, callable, string, array
             Rocket's drag coefficient when the motor is off. Can be given as an
             entry to the Function class. See help(Function) for more
@@ -216,7 +156,9 @@ class Rocket:
         self.mass = mass
         self.inertiaI = inertiaI
         self.inertiaZ = inertiaZ
-        self.centerOfMass = distanceRocketPropellant * motor.mass / (mass + motor.mass)
+        self.centerOfMass = (
+            (distanceRocketPropellant - motor.zCM) * motor.mass / (mass + motor.mass)
+        )
 
         # Define rocket geometrical parameters in SI units
         self.radius = radius
@@ -250,14 +192,14 @@ class Rocket:
             powerOffDrag,
             "Mach Number",
             "Drag Coefficient with Power Off",
-            "spline",
+            "linear",
             "constant",
         )
         self.powerOnDrag = Function(
             powerOnDrag,
             "Mach Number",
             "Drag Coefficient with Power On",
-            "spline",
+            "linear",
             "constant",
         )
 
@@ -350,7 +292,8 @@ class Rocket:
     def evaluateStaticMargin(self):
         """Calculates and returns the rocket's static margin when
         loaded with propellant. The static margin is saved and returned
-        in units of rocket diameter or calibers.
+        in units of rocket diameter or calibers. This function also calculates
+        the rocket center of pressure and total lift coefficients.
 
         Parameters
         ----------
@@ -398,7 +341,6 @@ class Rocket:
         parameters are the axial position along the rocket and its
         derivative of the coefficient of lift in respect to angle of
         attack.
-
         Parameters
         ----------
         topRadius : int, float
@@ -415,7 +357,6 @@ class Rocket:
             cone. Consider the point belonging to the tail which is
             closest to the unloaded center of mass to calculate
             distance.
-
         Returns
         -------
         cl : Function
@@ -500,12 +441,8 @@ class Rocket:
             k = 1 - 0.437
         else:
             k = 0.5
-
         # Calculate cp position relative to cm
-        if distanceToCM > 0:
-            cpz = distanceToCM + k * length
-        else:
-            cpz = distanceToCM - k * length
+        cpz = distanceToCM + np.sign(distanceToCM) * k * length
 
         # Calculate clalpha
         clalpha = 2
@@ -525,22 +462,33 @@ class Rocket:
         # Return self
         return self.aerodynamicSurfaces[-1]
 
-    def addFins(
+    def addFins(self, *args, **kwargs):
+        """See Rocket.addTrapezoidalFins for documentation.
+        This method is set to be deprecated in version 1.0.0 and fully removed
+        by version 2.0.0. Use Rocket.addTrapezoidalFins instead. It keeps the
+        same arguments and signature."""
+        warnings.warn(
+            "This method is set to be deprecated in version 1.0.0 and fully "
+            "removed by version 2.0.0. Use Rocket.addTrapezoidalFins instead",
+            PendingDeprecationWarning,
+        )
+        self.addTrapezoidalFins(*args, **kwargs)
+
+    def addTrapezoidalFins(
         self,
         n,
-        span,
         rootChord,
         tipChord,
+        span,
         distanceToCM,
-        radius=0,
         cantAngle=0,
+        radius=None,
         airfoil=None,
     ):
-        """Create a fin set, storing its parameters as part of the
+        """Create a trapezoidal fin set, storing its parameters as part of the
         aerodynamicSurfaces list. Its parameters are the axial position
         along the rocket and its derivative of the coefficient of lift
         in respect to angle of attack.
-
         Parameters
         ----------
         n : int
@@ -556,20 +504,28 @@ class Rocket:
             mass, considering positive direction from center of mass to
             nose cone. Consider the center point belonging to the top
             of the fins to calculate distance.
-        radius : int, float, optional
-            Reference radius to calculate lift coefficient. If 0, which
-            is default, use rocket radius. Otherwise, enter the radius
-            of the rocket in the section of the fins, as this impacts
-            its lift coefficient.
         cantAngle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
-        airfoil : string
-            Fin's lift curve. It must be a .csv file. The .csv file shall
-            contain no headers and the first column must specify time in
-            seconds, while the second column specifies lift coefficient. Lift
-            coefficient is dimensionaless.
-
+        radius : int, float, optional
+            Reference radius to calculate lift coefficient. If None, which
+            is default, use rocket radius. Otherwise, enter the radius
+            of the rocket in the section of the fins, as this impacts
+            its lift coefficient.
+        airfoil : tuple, optional
+            Default is null, in which case fins will be treated as flat plates.
+            Otherwise, if tuple, fins will be considered as airfoils. The
+            tuple's first item specifies the airfoil's lift coefficient
+            by angle of attack and must be either a .csv, .txt, ndarray
+            or callable. The .csv and .txt files must contain no headers
+            and the first column must specify the angle of attack, while
+            the second column must specify the lift coefficient. The
+            ndarray should be as [(x0, y0), (x1, y1), (x2, y2), ...]
+            where x0 is the angle of attack and y0 is the lift coefficient.
+            If callable, it should take an angle of attack as input and
+            return the lift coefficient at that angle of attack.
+            The tuple's second item is the unit of the angle of attack,
+            accepting either "radians" or "degrees".
         Returns
         -------
         cl : Function
@@ -580,56 +536,293 @@ class Rocket:
         self : Rocket
             Object of the Rocket class.
         """
-
-        # Retrieve parameters for calculations
-        Cr = rootChord
-        Ct = tipChord
-        Yr = rootChord + tipChord
+        # Retrieves and convert basic geometrical parameters
+        Cr, Ct = rootChord, tipChord
         s = span
-        Af = Yr * s / 2  # fin area
-        Yma = (
-            (s / 3) * (Cr + 2 * Ct) / Yr
-        )  # span wise position of fin's mean aerodynamic chord
-        gamac = np.arctan((Cr - Ct) / (2 * span))
-        Lf = np.sqrt((rootChord / 2 - tipChord / 2) ** 2 + span**2)
-        radius = self.radius if radius == 0 else radius
+        radius = self.radius if radius is None else radius
+        cantAngleRad = np.radians(cantAngle)
+
+        # Compute auxiliary geometrical parameters
         d = 2 * radius
         Aref = np.pi * radius**2
-        AR = 2 * s**2 / Af  # Barrowman's convention for fin's aspect ratio
-        cantAngleRad = np.radians(cantAngle)
-        trapezoidalConstant = (
+        Yr = Cr + Ct
+        Af = Yr * s / 2  # Fin area
+        AR = 2 * s**2 / Af  # Fin aspect ratio
+        gamac = np.arctan((Cr - Ct) / (2 * s))  # Mid chord angle
+        Yma = (s / 3) * (Cr + 2 * Ct) / Yr  # Span wise coord of mean aero chord
+        rollGeometricalConstant = (
             (Cr + 3 * Ct) * s**3
             + 4 * (Cr + 2 * Ct) * radius * s**2
             + 6 * (Cr + Ct) * s * radius**2
         ) / 12
 
-        # Fin–body interference correction parameters
-        τ = (s + radius) / radius
-        λ = Ct / Cr
-        liftInterferenceFactor = 1 + 1 / τ
-        rollForcingInterferenceFactor = (1 / np.pi**2) * (
-            (np.pi**2 / 4) * ((τ + 1) ** 2 / τ**2)
-            + ((np.pi * (τ**2 + 1) ** 2) / (τ**2 * (τ - 1) ** 2))
-            * np.arcsin((τ**2 - 1) / (τ**2 + 1))
-            - (2 * np.pi * (τ + 1)) / (τ * (τ - 1))
-            + ((τ**2 + 1) ** 2)
-            / (τ**2 * (τ - 1) ** 2)
-            * (np.arcsin((τ**2 - 1) / (τ**2 + 1))) ** 2
-            - (4 * (τ + 1)) / (τ * (τ - 1)) * np.arcsin((τ**2 - 1) / (τ**2 + 1))
-            + (8 / (τ - 1) ** 2) * np.log((τ**2 + 1) / (2 * τ))
+        # Center of pressure position relative to CDM (center of dry mass)
+        cpz = distanceToCM + np.sign(distanceToCM) * (
+            ((Cr - Ct) / 3) * ((Cr + 2 * Ct) / (Cr + Ct))
+            + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
         )
-        rollDampingInterferenceFactor = 1 + (
-            ((τ - λ) / (τ)) - ((1 - λ) / (τ - 1)) * np.log(τ)
-        ) / (((τ + 1) * (τ - λ)) / (2) - ((1 - λ) * (τ**3 - 1)) / (3 * (τ - 1)))
 
-        # Save geometric parameters for later Fin Flutter Analysis and Roll Moment Calculation
-        self.rootChord = Cr
-        self.tipChord = Ct
-        self.span = s
-        self.distanceRocketFins = distanceToCM
+        # Fin–body interference correction parameters
+        tau = (s + radius) / radius
+        liftInterferenceFactor = 1 + 1 / tau
+        λ = Ct / Cr
+
+        # Defines beta parameter
+        def beta(mach):
+            """Defines a parameter that is commonly used in aerodynamic
+            equations. It is commonly used in the Prandtl factor which
+            corrects subsonic force coefficients for compressible flow.
+
+            Parameters
+            ----------
+            mach : int, float
+                Number of mach.
+
+            Returns
+            -------
+            beta : int, float
+                Value that characterizes flow speed based on the mach number.
+            """
+
+            if mach < 0.8:
+                return np.sqrt(1 - mach**2)
+            elif mach < 1.1:
+                return np.sqrt(1 - 0.8**2)
+            else:
+                return np.sqrt(mach**2 - 1)
+
+        # Defines number of fins  factor
+        def finNumCorrection(n):
+            """Calculates a correction factor for the lift coefficient of multiple fins.
+            The specifics  values are documented at:
+            Niskanen, S. (2013). “OpenRocket technical documentation”. In: Development
+            of an Open Source model rocket simulation software.
+
+            Parameters
+            ----------
+            n : int
+                Number of fins.
+
+            Returns
+            -------
+            Corrector factor : int
+                Factor that accounts for the number of fins.
+            """
+            correctorFactor = [2.37, 2.74, 2.99, 3.24]
+            if n >= 5 and n <= 8:
+                return correctorFactor[n - 5]
+            else:
+                return n / 2
+
+        if not airfoil:
+            # Defines clalpha2D as 2*pi for planar fins
+            clalpha2D = Function(lambda mach: 2 * np.pi / beta(mach))
+        else:
+            # Defines clalpha2D as the derivative of the
+            # lift coefficient curve for a specific airfoil
+            airfoilCl = Function(
+                airfoil[0],
+                interpolation="linear",
+            )
+
+            # Differentiating at x = 0 to get cl_alpha
+            clalpha2D_Mach0 = airfoilCl.differentiate(x=1e-3, dx=1e-3)
+
+            # Convert to radians if needed
+            if airfoil[1] == "degrees":
+                clalpha2D_Mach0 *= 180 / np.pi
+
+            # Correcting for compressible flow
+            clalpha2D = Function(lambda mach: clalpha2D_Mach0 / beta(mach))
+
+        # Diederich's Planform Correlation Parameter
+        FD = 2 * np.pi * AR / (clalpha2D * np.cos(gamac))
+
+        # Lift coefficient derivative for a single fin
+        clalphaSingleFin = Function(
+            lambda mach: (clalpha2D(mach) * FD(mach) * (Af / Aref) * np.cos(gamac))
+            / (2 + FD(mach) * np.sqrt(1 + (2 / FD(mach)) ** 2))
+        )
+
+        # Lift coefficient derivative for a number of n fins corrected for Fin-Body interference
+        clalphaMultipleFins = (
+            liftInterferenceFactor * finNumCorrection(n) * clalphaSingleFin
+        )  # Function of mach number
+
+        # Calculates clalpha * alpha
+        cl = Function(
+            lambda alpha, mach: alpha * clalphaMultipleFins(mach),
+            ["Alpha (rad)", "Mach"],
+            "Cl",
+        )
+
+        # Parameters for Roll Moment.
+        # Documented at: https://github.com/Projeto-Jupiter/RocketPy/blob/master/docs/technical/aerodynamics/Roll_Equations.pdf
+        rollDampingInterferenceFactor = 1 + (
+            ((tau - λ) / (tau)) - ((1 - λ) / (tau - 1)) * np.log(tau)
+        ) / (
+            ((tau + 1) * (tau - λ)) / (2) - ((1 - λ) * (tau**3 - 1)) / (3 * (tau - 1))
+        )
+        rollForcingInterferenceFactor = (1 / np.pi**2) * (
+            (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
+            + ((np.pi * (tau**2 + 1) ** 2) / (tau**2 * (tau - 1) ** 2))
+            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
+            - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
+            + ((tau**2 + 1) ** 2)
+            / (tau**2 * (tau - 1) ** 2)
+            * (np.arcsin((tau**2 - 1) / (tau**2 + 1))) ** 2
+            - (4 * (tau + 1))
+            / (tau * (tau - 1))
+            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
+            + (8 / (tau - 1) ** 2) * np.log((tau**2 + 1) / (2 * tau))
+        )
+        clfDelta = (
+            rollForcingInterferenceFactor * n * (Yma + radius) * clalphaSingleFin / d
+        )  # Function of mach number
+        cldOmega = (
+            2
+            * rollDampingInterferenceFactor
+            * n
+            * clalphaSingleFin
+            * np.cos(cantAngleRad)
+            * rollGeometricalConstant
+            / (Aref * d**2)
+        )  # Function of mach number
+        rollParameters = [clfDelta, cldOmega, cantAngleRad]
+
+        # Store values
+        fin = {
+            "cp": (0, 0, cpz),
+            "cl": cl,
+            "roll parameters": rollParameters,
+            "name": "Fins",
+        }
+        self.aerodynamicSurfaces.append(fin)
+
+        # Refresh static margin calculation
+        self.evaluateStaticMargin()
+
+        # Return the created aerodynamic surface
+        return self.aerodynamicSurfaces[-1]
+
+    def addEllipticalFins(
+        self,
+        n,
+        rootChord,
+        span,
+        distanceToCM,
+        cantAngle=0,
+        radius=None,
+        airfoil=None,
+    ):
+        """Create an elliptical fin set, storing its parameters as part of the
+        aerodynamicSurfaces list. Its parameters are the axial position
+        along the rocket and its derivative of the coefficient of lift
+        in respect to angle of attack.
+        Parameters
+        ----------
+        type: string
+            Type of fin selected to the rocket. Must be either "trapezoid"
+            or "elliptical".
+        span : int, float
+            Fin span in meters.
+        rootChord : int, float
+            Fin root chord in meters.
+        n : int
+            Number of fins, from 2 to infinity.
+        distanceToCM : int, float
+            Fin set position relative to rocket unloaded center of
+            mass, considering positive direction from center of mass to
+            nose cone. Consider the center point belonging to the top
+            of the fins to calculate distance.
+        cantAngle : int, float, optional
+            Fins cant angle with respect to the rocket centerline. Must
+            be given in degrees.
+        radius : int, float, optional
+            Reference radius to calculate lift coefficient. If None, which
+            is default, use rocket radius. Otherwise, enter the radius
+            of the rocket in the section of the fins, as this impacts
+            its lift coefficient.
+        airfoil : tuple, optional
+            Default is null, in which case fins will be treated as flat plates.
+            Otherwise, if tuple, fins will be considered as airfoils. The
+            tuple's first item specifies the airfoil's lift coefficient
+            by angle of attack and must be either a .csv, .txt, ndarray
+            or callable. The .csv and .txt files must contain no headers
+            and the first column must specify the angle of attack, while
+            the second column must specify the lift coefficient. The
+            ndarray should be as [(x0, y0), (x1, y1), (x2, y2), ...]
+            where x0 is the angle of attack and y0 is the lift coefficient.
+            If callable, it should take an angle of attack as input and
+            return the lift coefficient at that angle of attack.
+            The tuple's second item is the unit of the angle of attack,
+            accepting either "radians" or "degrees".
+        Returns
+        -------
+        cl : Function
+            Function of the angle of attack (Alpha) and the mach number
+            (Mach) expressing the fin's lift coefficient. The inputs
+            are the angle of attack (in radians) and the mach number.
+            The output is the fin's lift coefficient.
+        self : Rocket
+            Object of the Rocket class.
+        """
+        # Retrieves and convert basic geometrical parameters
+        Cr = rootChord
+        s = span
+        radius = self.radius if radius is None else radius
+        cantAngleRad = np.radians(cantAngle)
+
+        # Compute auxiliary geometrical parameters
+        d = 2 * radius
+        Aref = np.pi * radius**2  # Reference area for coefficients
+        Af = (np.pi * Cr / 2 * s) / 2  # Fin area
+        AR = 2 * s**2 / Af  # Fin aspect ratio
+        Yma = (
+            s / (3 * np.pi) * np.sqrt(9 * np.pi**2 - 16)
+        )  # Span wise coord of mean aero chord
+        rollGeometricalConstant = (
+            Cr
+            * s
+            * (3 * np.pi * s**2 + 32 * radius * s + 12 * np.pi * radius**2)
+            / 48
+        )
+
+        # Center of pressure position relative to CDM (center of dry mass)
+        cpz = distanceToCM + np.sign(distanceToCM) * (0.288 * Cr)
+
+        # Fin–body interference correction parameters
+        tau = (s + radius) / radius
+        liftInterferenceFactor = 1 + 1 / tau
+        rollDampingInterferenceFactor = 1 + (
+            (radius**2)
+            * (
+                2
+                * (radius**2)
+                * np.sqrt(s**2 - radius**2)
+                * np.log((2 * s * np.sqrt(s**2 - radius**2) + 2 * s**2) / radius)
+                - 2 * (radius**2) * np.sqrt(s**2 - radius**2) * np.log(2 * s)
+                + 2 * s**3
+                - np.pi * radius * s**2
+                - 2 * (radius**2) * s
+                + np.pi * radius**3
+            )
+        ) / (2 * (s**2) * (s / 3 + np.pi * radius / 4) * (s**2 - radius**2))
+        rollForcingInterferenceFactor = (1 / np.pi**2) * (
+            (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
+            + ((np.pi * (tau**2 + 1) ** 2) / (tau**2 * (tau - 1) ** 2))
+            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
+            - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
+            + ((tau**2 + 1) ** 2)
+            / (tau**2 * (tau - 1) ** 2)
+            * (np.arcsin((tau**2 - 1) / (tau**2 + 1))) ** 2
+            - (4 * (tau + 1))
+            / (tau * (tau - 1))
+            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
+            + (8 / (tau - 1) ** 2) * np.log((tau**2 + 1) / (2 * tau))
+        )
 
         # Auxiliary functions
-
         # Defines beta parameter
         def beta(mach):
             """Defines a parameter that is commonly used in aerodynamic
@@ -677,86 +870,46 @@ class Rocket:
             else:
                 return n / 2
 
-        # Calculate cp position relative to cm
-        if distanceToCM < 0:
-            cpz = distanceToCM - (
-                ((Cr - Ct) / 3) * ((Cr + 2 * Ct) / (Cr + Ct))
-                + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
-            )
-        else:
-            cpz = distanceToCM + (
-                ((Cr - Ct) / 3) * ((Cr + 2 * Ct) / (Cr + Ct))
-                + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
-            )
-
-        # Calculate lift parameters for planar fins
         if not airfoil:
-
-            clalphaSingleFin = Function(
-                lambda mach: 2
-                * np.pi
-                * AR
-                * (Af / Aref)
-                / (2 + np.sqrt(4 + ((beta(mach) * AR) / (np.cos(gamac))) ** 2)),
-            )
-
-            clalphaMultipleFins = (
-                liftInterferenceFactor * finNumCorrection(n) * clalphaSingleFin
-            )  # Function of mach number
-
-            # Calculates clalpha * alpha
-            cl = Function(
-                lambda alpha, mach: alpha * clalphaMultipleFins(mach),
-                ["Alpha (rad)", "Mach"],
-                "Cl",
-            )
-
+            # Defines clalpha2D as 2*pi for planar fins
+            clalpha2D = Function(lambda mach: 2 * np.pi / beta(mach))
         else:
-
-            def cnalfa1(cn):
-                """Calculates the normal force coefficient derivative of a 3D
-                airfoil for a given Cnalfa0
-                Parameters
-                ----------
-                cn : int
-                    Normal force coefficient derivative of a 2D airfoil.
-                Returns
-                -------
-                Cnalfa1 : int
-                    Normal force coefficient derivative of a 3D airfoil.
-                """
-
-                # Retrieve parameters for calculations
-                Af = (Cr + Ct) * span / 2
-                # fin area
-                AR = 2 * (span**2) / Af  # Aspect ratio
-                gamac = np.arctan((Cr - Ct) / (2 * span))
-                # mid chord angle
-                FD = 2 * np.pi * AR / (cn * np.cos(gamac))
-                Cnalfa1 = (
-                    cn
-                    * FD
-                    * (Af / self.area)
-                    * np.cos(gamac)
-                    / (2 + FD * (1 + (4 / FD**2)) ** 0.5)
-                )
-                return Cnalfa1
-
-            # Import the lift curve as a function of lift values by attack angle
-            read = genfromtxt(airfoil, delimiter=",")
-
-            # Applies number of fins to lift coefficient data
-            data = [[cl[0], (n / 2) * cnalfa1(cl[1])] for cl in read]
-            cl = Function(
-                data,
-                "Alpha (rad)",
-                "Cl",
+            # Defines clalpha2D as the derivative of the
+            # lift coefficient curve for a specific airfoil
+            airfoilCl = Function(
+                airfoil[0],
                 interpolation="linear",
-                extrapolation="natural",
             )
 
-            # Takes an approximation to an angular coefficient
-            clalpha = cl.differentiate(x=0, dx=1e-2)
+            # Differentiating at x = 0 to get cl_alpha
+            clalpha2D_Mach0 = airfoilCl.differentiate(x=1e-3, dx=1e-3)
+
+            # Convert to radians if needed
+            if airfoil[1] == "degrees":
+                clalpha2D_Mach0 *= 180 / np.pi
+
+            # Correcting for compressible flow
+            clalpha2D = Function(lambda mach: clalpha2D_Mach0 / beta(mach))
+        # Diederich's Planform Correlation Parameter
+        FD = 2 * np.pi * AR / (clalpha2D)
+
+        # Lift coefficient derivative for a single fin
+        clalphaSingleFin = Function(
+            lambda mach: (clalpha2D(mach) * FD(mach) * (Af / Aref))
+            / (2 + FD(mach) * np.sqrt(1 + (2 / FD(mach)) ** 2))
+        )
+
+        # Lift coefficient derivative for a number of n fins corrected for Fin-Body interference
+        clalphaMultipleFins = (
+            liftInterferenceFactor * finNumCorrection(n) * clalphaSingleFin
+        )  # Function of mach number
+
+        # Calculates clalpha * alpha
+        cl = Function(
+            lambda alpha, mach: alpha * clalphaMultipleFins(mach),
+            ["Alpha (rad)", "Mach"],
+            "Cl",
+        )
 
         # Parameters for Roll Moment.
         # Documented at: https://github.com/Projeto-Jupiter/RocketPy/blob/develop/docs/technical/aerodynamics/Roll_Equations.pdf
@@ -769,7 +922,7 @@ class Rocket:
             * n
             * clalphaSingleFin
             * np.cos(cantAngleRad)
-            * trapezoidalConstant
+            * rollGeometricalConstant
             / (Aref * d**2)
         )
         # Function of mach number
@@ -834,31 +987,14 @@ class Rocket:
 
         Returns
         -------
-        parachute : Parachute Object
-            Parachute object containing trigger, samplingRate, lag, CdS, noise
-            and name as attributes. Furthermore, it stores cleanPressureSignal,
+        parachute : Parachute
+            Parachute  containing trigger, samplingRate, lag, CdS, noise
+            and name. Furthermore, it stores cleanPressureSignal,
             noiseSignal and noisyPressureSignal which are filled in during
             Flight simulation.
         """
-        # Create an object to serve as the parachute
-        parachute = type("", (), {})()
-
-        # Store Cds coefficient, lag, name and trigger function
-        parachute.trigger = trigger
-        parachute.samplingRate = samplingRate
-        parachute.lag = lag
-        parachute.CdS = CdS
-        parachute.name = name
-        parachute.noiseBias = noise[0]
-        parachute.noiseDeviation = noise[1]
-        parachute.noiseCorr = (noise[2], (1 - noise[2] ** 2) ** 0.5)
-        alpha, beta = parachute.noiseCorr
-        parachute.noiseSignal = [[-1e-6, np.random.normal(noise[0], noise[1])]]
-        parachute.noiseFunction = lambda: alpha * parachute.noiseSignal[-1][
-            1
-        ] + beta * np.random.normal(noise[0], noise[1])
-        parachute.cleanPressureSignal = []
-        parachute.noisyPressureSignal = []
+        # Create a parachute
+        parachute = Parachute(name, CdS, trigger, samplingRate, lag, noise)
 
         # Add parachute to list of parachutes
         self.parachutes.append(parachute)
@@ -885,7 +1021,7 @@ class Rocket:
             its distance should be a negative value. The order does
             not matter. All values should be in meters.
         angularPosition : float
-            Angular postion of the rail buttons in degrees measured
+            Angular position of the rail buttons in degrees measured
             as the rotation around the symmetry axis of the rocket
             relative to one of the other principal axis.
             Default value is 45 degrees, generally used in rockets with
@@ -963,7 +1099,7 @@ class Rocket:
 
     def addThrustEccentricity(self, x, y):
         """Moves line of action of thrust forces to simulate a
-        disalignment of the thrust vector and the center of mass.
+        misalignment of the thrust vector and the center of mass.
 
         Parameters
         ----------
@@ -1059,7 +1195,7 @@ class Rocket:
             + " m"
         )
         print(
-            "Rocket Center of Mass - Propellant Center of Mass Distance: "
+            "Rocket Center of Mass - Motor reference point: "
             + str(self.distanceRocketPropellant)
             + " m"
         )
@@ -1149,7 +1285,7 @@ class Rocket:
         "Hey! I will document this function later"
         self.aerodynamicSurfaces = []
         pi = np.pi
-        # Calculate angular postions if not given
+        # Calculate angular positions if not given
         if angularPositions is None:
             angularPositions = np.array(range(numberOfFins)) * 2 * pi / numberOfFins
         else:

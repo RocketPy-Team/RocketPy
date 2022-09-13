@@ -11,7 +11,7 @@
    Code Reference <reference/index>
    Development <development/index>
 
-.. _`Projeto Jupiter`: https://www.facebook.com/ProjetoJupiter/
+.. _`RocketPy`: https://www.linkedin.com/company/75016723
 
 .. mdinclude:: ../README.md
 

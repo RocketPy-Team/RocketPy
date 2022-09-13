@@ -8,6 +8,7 @@
 [![Build Status](https://app.travis-ci.com/Projeto-Jupiter/RocketPy.svg?branch=master)](https://app.travis-ci.com/Projeto-Jupiter/RocketPy)
 [![Contributors](https://img.shields.io/github/contributors/Projeto-Jupiter/rocketpy)](https://github.com/Projeto-Jupiter/RocketPy/graphs/contributors)
 [![Chat on Discord](https://img.shields.io/discord/765037887016140840?logo=discord)](https://discord.gg/b6xYnNh)
+[![Sponsor RocketPy](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/RocketPy-Team)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/company/rocketpy)
 [![DOI](https://img.shields.io/badge/DOI-10.1061%2F%28ASCE%29AS.1943--5525.0001331-blue.svg)](http://dx.doi.org/10.1061/%28ASCE%29AS.1943-5525.0001331)
 
@@ -82,6 +83,14 @@ RocketPy is the next-generation trajectory simulation solution for High-Power Ro
 </ul>
 </details>
 
+<details>
+<summary>Integration with MATLAB®</summary>
+<ul>
+  <li>Straightforward way to run RocketPy from MATLAB®</li>
+  <li>Convert RocketPy results to MATLAB® variables so that they can be processed by MATLAB®</li>
+</ul>
+</details>
+
 <br>
 
 ## Validation
@@ -91,11 +100,11 @@ RocketPy's features have been validated in our latest [research article publishe
 The table below shows a comparison between experimental data and the output from RocketPy.
 Flight data and rocket parameters used in this comparison were kindly provided by [EPFL Rocket Team](https://github.com/EPFLRocketTeam) and [Notre Dame Rocket Team](https://ndrocketry.weebly.com/).
 
-|         Mission         |    Result Paramater    | RocketPy  | Measured  | Relative Error |
+|         Mission         |    Result Parameter    | RocketPy  | Measured  | Relative Error |
 |:-----------------------:|:-----------------------|:---------:|:---------:|:--------------:|
 |   Bella Lui Kaltbrumn   | Apogee altitude (m)    |   461.03  |   458.97  |   **0.45 %**   |
 |   Bella Lui Kaltbrumn   | Apogee time (s)        |    10.61  |    10.56  |   **0.47 %**   |
-|   Bella Lui Kaltbrumn   | Maximum velocity (m/s) |    86.18  |    90.00  |   **4.24 %**   |
+|   Bella Lui Kaltbrumn   | Maximum velocity (m/s) |    86.18  |    90.00  |   **-4.24 %**   |
 |   NDRT launch vehicle   | Apogee altitude (m)    | 1,310.44  | 1,320.37  |   **-0.75 %**  |
 |   NDRT launch vehicle   | Apogee time (s)        |    16.77  |    17.10  |   **-1.90 %**  |
 |   NDRT launch vehicle   | Maximum velocity (m/s) |   172.86  |   168.95  |   **2.31 %**   |
@@ -232,7 +241,7 @@ Calisto.setRailButtons([0.2, -0.5])
 
 NoseCone = Calisto.addNose(length=0.55829, kind="vonKarman", distanceToCM=0.71971)
 
-FinSet = Calisto.addFins(4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956)
+FinSet = Calisto.addTrapezoildalFins(4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956)
 
 Tail = Calisto.addTail(topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656)
 ```
@@ -279,7 +288,7 @@ Once the TestFlight object is created, your simulation is done! Use the followin
 TestFlight.info()
 ```
 
-To seel all available results, use:
+To see all available results, use:
 
 ```python
 TestFlight.allInfo()

@@ -1,12 +1,18 @@
 import datetime
 from unittest.mock import patch
 
+import matplotlib as plt
 import numpy as np
 import pytest
-from rocketpy import Environment, Flight, Rocket, SolidMotor, Function
 from scipy import optimize
 
+from rocketpy import Environment, Flight, Function, Rocket, SolidMotor
+
+plt.rcParams.update({"figure.max_open_warning": 0})
+
 # Helper functions
+
+
 def setup_rocket_with_given_static_margin(rocket, static_margin):
     """Takes any rocket, removes its aerodynamic surfaces and adds a set of
     nose, fins and tail specially designed to have a given static margin.
@@ -28,7 +34,7 @@ def setup_rocket_with_given_static_margin(rocket, static_margin):
     def compute_static_margin_error_given_distance(distanceToCM, static_margin, rocket):
         rocket.aerodynamicSurfaces = []
         rocket.addNose(length=0.5, kind="vonKarman", distanceToCM=1.0)
-        rocket.addFins(
+        rocket.addTrapezoidalFins(
             4,
             span=0.100,
             rootChord=0.100,
@@ -98,7 +104,7 @@ def test_flight(mock_show):
     NoseCone = test_rocket.addNose(
         length=0.55829, kind="vonKarman", distanceToCM=0.71971
     )
-    FinSet = test_rocket.addFins(
+    FinSet = test_rocket.addTrapezoidalFins(
         4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
     )
     Tail = test_rocket.addTail(
@@ -187,7 +193,7 @@ def test_initial_solution(mock_show):
     NoseCone = test_rocket.addNose(
         length=0.55829, kind="vonKarman", distanceToCM=0.71971
     )
-    FinSet = test_rocket.addFins(
+    FinSet = test_rocket.addTrapezoidalFins(
         4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
     )
     Tail = test_rocket.addTail(
@@ -385,7 +391,7 @@ def test_rolling_flight(mock_show):
     NoseCone = test_rocket.addNose(
         length=0.55829, kind="vonKarman", distanceToCM=0.71971
     )
-    FinSet = test_rocket.addFins(
+    FinSet = test_rocket.addTrapezoidalFins(
         4,
         span=0.100,
         rootChord=0.120,
@@ -432,3 +438,314 @@ def test_rolling_flight(mock_show):
     )
 
     assert test_flight.allInfo() == None
+
+
+def test_export_data():
+    "Tests weather the method Flight.exportData is working as intended"
+
+    test_env = Environment(
+        railLength=5,
+        latitude=32.990254,
+        longitude=-106.974998,
+        elevation=1400,
+        datum="WGS84",
+    )
+
+    test_motor = SolidMotor(
+        thrustSource=1000,
+        burnOut=3.9,
+        grainNumber=5,
+        grainSeparation=5 / 1000,
+        grainDensity=1815,
+        grainOuterRadius=33 / 1000,
+        grainInitialInnerRadius=15 / 1000,
+        grainInitialHeight=120 / 1000,
+        nozzleRadius=33 / 1000,
+        throatRadius=11 / 1000,
+        interpolationMethod="linear",
+    )
+
+    test_rocket = Rocket(
+        motor=test_motor,
+        radius=127 / 2000,
+        mass=19.197 - 2.956,
+        inertiaI=6.60,
+        inertiaZ=0.0351,
+        distanceRocketNozzle=-1.255,
+        distanceRocketPropellant=-0.85704,
+        powerOffDrag=0.5,
+        powerOnDrag=0.5,
+    )
+
+    test_rocket.setRailButtons([0.2, -0.5])
+
+    NoseCone = test_rocket.addNose(
+        length=0.55829, kind="vonKarman", distanceToCM=0.71971
+    )
+    FinSet = test_rocket.addTrapezoidalFins(
+        4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
+    )
+
+    test_flight = Flight(
+        rocket=test_rocket, environment=test_env, inclination=85, heading=0
+    )
+
+    # Basic export
+    test_flight.exportData("test_export_data_1.csv")
+
+    # Custom export
+    test_flight.exportData(
+        "test_export_data_2.csv", "z", "vz", "e1", "w3", "angleOfAttack", timeStep=0.1
+    )
+
+    # Load exported files and fixtures and compare them
+
+    test_1 = np.loadtxt("test_export_data_1.csv", delimiter=",")
+    test_2 = np.loadtxt("test_export_data_2.csv", delimiter=",")
+
+    # Check if basic exported content matches data
+    assert np.allclose(test_flight.x[:, 0], test_1[:, 0], atol=1e-5) == True
+    assert np.allclose(test_flight.x[:, 1], test_1[:, 1], atol=1e-5) == True
+    assert np.allclose(test_flight.y[:, 1], test_1[:, 2], atol=1e-5) == True
+    assert np.allclose(test_flight.z[:, 1], test_1[:, 3], atol=1e-5) == True
+    assert np.allclose(test_flight.vx[:, 1], test_1[:, 4], atol=1e-5) == True
+    assert np.allclose(test_flight.vy[:, 1], test_1[:, 5], atol=1e-5) == True
+    assert np.allclose(test_flight.vz[:, 1], test_1[:, 6], atol=1e-5) == True
+    assert np.allclose(test_flight.e0[:, 1], test_1[:, 7], atol=1e-5) == True
+    assert np.allclose(test_flight.e1[:, 1], test_1[:, 8], atol=1e-5) == True
+    assert np.allclose(test_flight.e2[:, 1], test_1[:, 9], atol=1e-5) == True
+    assert np.allclose(test_flight.e3[:, 1], test_1[:, 10], atol=1e-5) == True
+    assert np.allclose(test_flight.w1[:, 1], test_1[:, 11], atol=1e-5) == True
+    assert np.allclose(test_flight.w2[:, 1], test_1[:, 12], atol=1e-5) == True
+    assert np.allclose(test_flight.w3[:, 1], test_1[:, 13], atol=1e-5) == True
+
+    # Check if custom exported content matches data
+    timePoints = np.arange(test_flight.tInitial, test_flight.tFinal, 0.1)
+    assert np.allclose(timePoints, test_2[:, 0], atol=1e-5) == True
+    assert np.allclose(test_flight.z(timePoints), test_2[:, 1], atol=1e-5) == True
+    assert np.allclose(test_flight.vz(timePoints), test_2[:, 2], atol=1e-5) == True
+    assert np.allclose(test_flight.e1(timePoints), test_2[:, 3], atol=1e-5) == True
+    assert np.allclose(test_flight.w3(timePoints), test_2[:, 4], atol=1e-5) == True
+    assert (
+        np.allclose(test_flight.angleOfAttack(timePoints), test_2[:, 5], atol=1e-5)
+        == True
+    )
+
+
+def test_export_KML():
+    "Tests weather the method Flight.exportKML is working as intended"
+
+    test_env = Environment(
+        railLength=5,
+        latitude=32.990254,
+        longitude=-106.974998,
+        elevation=1400,
+        datum="WGS84",
+    )
+
+    test_motor = SolidMotor(
+        thrustSource=1000,
+        burnOut=1,
+        grainNumber=5,
+        grainSeparation=5 / 1000,
+        grainDensity=1815,
+        grainOuterRadius=33 / 1000,
+        grainInitialInnerRadius=15 / 1000,
+        grainInitialHeight=120 / 1000,
+        nozzleRadius=33 / 1000,
+        throatRadius=11 / 1000,
+        interpolationMethod="linear",
+    )
+
+    test_rocket = Rocket(
+        motor=test_motor,
+        radius=127 / 2000,
+        mass=19.197 - 2.956,
+        inertiaI=6.60,
+        inertiaZ=0.0351,
+        distanceRocketNozzle=-1.255,
+        distanceRocketPropellant=-0.85704,
+        powerOffDrag=0.5,
+        powerOnDrag=0.5,
+    )
+
+    test_rocket.setRailButtons([0.2, -0.5])
+
+    NoseCone = test_rocket.addNose(
+        length=0.55829, kind="vonKarman", distanceToCM=0.71971
+    )
+    FinSet = test_rocket.addTrapezoidalFins(
+        4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
+    )
+
+    test_flight = Flight(
+        rocket=test_rocket, environment=test_env, inclination=85, heading=0
+    )
+
+    # Basic export
+    test_flight.exportKML(
+        "test_export_data_1.kml", timeStep=None, extrude=True, altitudeMode="absolute"
+    )
+
+    # Load exported files and fixtures and compare them
+    test_1 = open("test_export_data_1.kml", "r")
+    for row in test_1:
+        if row[:29] == "                <coordinates>":
+            r = row[29:-15]
+            r = r.split(",")
+            for i, j in enumerate(r):
+                r[i] = j.split(" ")
+    lon, lat, z, coords = [], [], [], []
+    for i in r:
+        for j in i:
+            coords.append(j)
+    for i in range(0, len(coords), 3):
+        lon.append(float(coords[i]))
+        lat.append(float(coords[i + 1]))
+        z.append(float(coords[i + 2]))
+
+    assert np.allclose(test_flight.latitude[:, 1], lat, atol=1e-3) == True
+    assert np.allclose(test_flight.longitude[:, 1], lon, atol=1e-3) == True
+    assert np.allclose(test_flight.z[:, 1], z, atol=1e-3) == True
+
+
+@patch("matplotlib.pyplot.show")
+def test_latlon_conversions(mock_show):
+    test_env = Environment(
+        railLength=5,
+        latitude=32.990254,
+        longitude=-106.974998,
+        elevation=1400,
+        datum="WGS84",
+    )
+
+    test_motor = SolidMotor(
+        thrustSource=1545.218,
+        burnOut=3.9,
+        grainNumber=5,
+        grainSeparation=5 / 1000,
+        grainDensity=1815,
+        grainOuterRadius=33 / 1000,
+        grainInitialInnerRadius=15 / 1000,
+        grainInitialHeight=120 / 1000,
+    )
+
+    test_rocket = Rocket(
+        motor=test_motor,
+        radius=127 / 2000,
+        mass=19.197 - 2.956,
+        inertiaI=6.60,
+        inertiaZ=0.0351,
+        distanceRocketNozzle=-1.255,
+        distanceRocketPropellant=-0.85704,
+        powerOffDrag=0.5,
+        powerOnDrag=0.5,
+    )
+
+    test_rocket.setRailButtons([0.2, -0.5])
+
+    NoseCone = test_rocket.addNose(
+        length=0.55829, kind="vonKarman", distanceToCM=0.71971
+    )
+    FinSet = test_rocket.addTrapezoidalFins(
+        4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
+    )
+    Tail = test_rocket.addTail(
+        topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656
+    )
+
+    def drogueTrigger(p, y):
+        # p = pressure
+        # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
+        # activate drogue when vz < 0 m/s.
+        return True if y[5] < 0 else False
+
+    def mainTrigger(p, y):
+        # p = pressure
+        # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
+        # activate main when vz < 0 m/s and z < 800 m.
+        return True if y[5] < 0 and y[2] < 800 else False
+
+    Main = test_rocket.addParachute(
+        "Main",
+        CdS=10.0,
+        trigger=mainTrigger,
+        samplingRate=105,
+        lag=1.5,
+        noise=(0, 8.3, 0.5),
+    )
+
+    Drogue = test_rocket.addParachute(
+        "Drogue",
+        CdS=1.0,
+        trigger=drogueTrigger,
+        samplingRate=105,
+        lag=1.5,
+        noise=(0, 8.3, 0.5),
+    )
+
+    test_flight = Flight(
+        rocket=test_rocket, environment=test_env, inclination=85, heading=45
+    )
+
+    # Check for initial and final lat/lon coordinates based on launch pad coordinates
+    test_flight.postProcess()
+    assert abs(test_flight.latitude(0)) - abs(test_flight.env.lat) < 1e-6
+    assert abs(test_flight.longitude(0)) - abs(test_flight.env.lon) < 1e-6
+    assert test_flight.latitude(test_flight.tFinal) > test_flight.env.lat
+    assert test_flight.longitude(test_flight.tFinal) > test_flight.env.lon
+
+
+@patch("matplotlib.pyplot.show")
+def test_latlon_conversions2(mock_show):
+    "additional tests to capture incorrect behaviors during lat/lon conversions"
+    test_motor = SolidMotor(
+        thrustSource=1000,
+        burnOut=3,
+        grainNumber=5,
+        grainSeparation=5 / 1000,
+        grainDensity=1815,
+        grainOuterRadius=33 / 1000,
+        grainInitialInnerRadius=15 / 1000,
+        grainInitialHeight=120 / 1000,
+    )
+
+    test_rocket = Rocket(
+        motor=test_motor,
+        radius=127 / 2000,
+        mass=19.197 - 2.956,
+        inertiaI=6.60,
+        inertiaZ=0.0351,
+        distanceRocketNozzle=-1.255,
+        distanceRocketPropellant=-0.85704,
+        powerOffDrag=0.5,
+        powerOnDrag=0.5,
+    )
+
+    test_rocket.setRailButtons([0.2, -0.5])
+
+    NoseCone = test_rocket.addNose(
+        length=0.55829, kind="vonKarman", distanceToCM=0.71971
+    )
+    FinSet = test_rocket.addTrapezoidalFins(
+        4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
+    )
+    Tail = test_rocket.addTail(
+        topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656
+    )
+
+    test_env = Environment(
+        railLength=5,
+        latitude=0,
+        longitude=0,
+        elevation=1400,
+    )
+
+    test_flight = Flight(
+        rocket=test_rocket, environment=test_env, inclination=85, heading=0
+    )
+
+    test_flight.postProcess()
+
+    assert test_flight.longitude(test_flight.tFinal) == 0
+    assert test_flight.latitude(test_flight.tFinal) > 0

@@ -1,8 +1,3 @@
-nbsphinx
+nbsphinx>=0.8.0
 pydata-sphinx-theme==0.6.3
-m2r2
-numpy>=1.0
-scipy>=1.0
-matplotlib>=3.0
-netCDF4>=1.4
-requests
+m2r2>=0.2.1
