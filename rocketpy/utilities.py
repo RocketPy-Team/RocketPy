@@ -262,7 +262,7 @@ def compareTrajectories(
         maxZ = max(z) if max(z) > maxZ else maxZ
         minX = min(x) if min(x) > minX else minX
         minY = min(x) if min(x) > minX else minX
-        minY = min(z) if min(z) > minZ else minZ
+        minZ = min(z) if min(z) > minZ else minZ
         maxXY = max(maxX, maxY) if max(maxX, maxY) > maxXY else maxXY
         minXY = min(minX, minY) if min(minX, minY) > minXY else minXY
 
