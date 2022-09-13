@@ -3,12 +3,14 @@ __author__ = "Franz Masatoshi Yuri, Lucas Kierulff Balabram, Guilherme Fernandes
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import solve_ivp
 
 from .Environment import Environment
 from .Function import Function
 
+# Parachutes related functions
 
 # TODO: Needs tests
 def compute_CdS_from_drop_test(
@@ -197,3 +199,135 @@ def calculateEquilibriumAltitude(
         velocityFunction()
 
     return altitudeFunction, velocityFunction, final_sol
+
+
+# TODO: Needs tests
+
+
+def compareTrajectories(
+    trajectory_list,
+    names=None,
+    legend=True,
+):
+    """Creates a trajectory plot combining the trajectories listed.
+    This function was created based two source-codes:
+    - Mateus Stano: https://github.com/RocketPy-Team/Hackathon_2020/pull/123
+    - Dyllon Preston: https://github.com/Dyllon-P/MBS-Template/blob/main/MBS.py
+
+    Parameters
+    ----------
+    trajectory_list : list, array
+        List of trajectories. Must be in the form of [trajectory_1, trajectory_2, ..., trajectory_n]
+        where each element is a list with the arrays regarding positions in x, y and z [x, y, z].
+        The trajectories must be in the same reference frame. The z coordinate must be referenced
+        to the ground or to the sea level, but it is important that all trajectories are passed
+        in the same reference.
+    names : list, optional
+        List of strings with the name of each trajectory inputted. The names must be in
+        the same order as the trajectories in trajectory_list. If no names are passed, the
+        trajectories will be named as "Trajectory 1", "Trajectory 2", ..., "Trajectory n".
+    legend : boolean, optional
+        Whether legend will or will not be plotted. Default is True
+
+    Returns
+    -------
+    None
+
+    """
+    # TODO: Allow the user to catch different planes (xy, yz, xz) from the main plot (this can be done in a separate function)
+    # TODO: Allow the user to set the colors or color style
+    # TODO: Allow the user to set the line style
+
+    # Initialize variables
+    maxX, maxY, maxZ, minX, minY, minZ, maxXY, minXY = 0, 0, 0, 0, 0, 0, 0, 0
+
+    names = (
+        [("Trajectory " + str(i + 1)) for i in range(len(trajectory_list))]
+        if names == None
+        else names
+    )
+
+    # Create the figure
+    fig1 = plt.figure(figsize=(9, 9))
+    ax1 = plt.subplot(111, projection="3d")
+
+    # Iterate through trajectories
+    for i, trajectory in enumerate(trajectory_list):
+
+        x, y, z = trajectory
+
+        # Find max/min values for each component
+        maxX = max(x) if max(x) > maxX else maxX
+        maxY = max(y) if max(y) > maxY else maxY
+        maxZ = max(z) if max(z) > maxZ else maxZ
+        minX = min(x) if min(x) > minX else minX
+        minY = min(x) if min(x) > minX else minX
+        minZ = min(z) if min(z) > minZ else minZ
+        maxXY = max(maxX, maxY) if max(maxX, maxY) > maxXY else maxXY
+        minXY = min(minX, minY) if min(minX, minY) > minXY else minXY
+
+        # Add Trajectory as a plot in main figure
+        ax1.plot(x, y, z, linewidth="2", label=names[i])
+
+    # Plot settings
+    ax1.scatter(0, 0, 0)
+    ax1.set_xlabel("X - East (m)")
+    ax1.set_ylabel("Y - North (m)")
+    ax1.set_zlabel("Z - Altitude (m)")
+    ax1.set_title("Flight Trajectories Combined")
+    ax1.set_zlim3d([minZ, maxZ])
+    ax1.set_ylim3d([minXY, maxXY])
+    ax1.set_xlim3d([minXY, maxXY])
+    ax1.view_init(15, 45)
+    if legend:
+        plt.legend()
+    plt.show()
+
+    return None
+
+
+def compareFlightTrajectories(
+    flight_list,
+    names=None,
+    legend=True,
+):
+    """Creates a trajectory plot that is the combination of the trajectories of
+    the Flight objects passed via a Python list.
+
+    Parameters
+    ----------
+    flight_list : list, array
+        List of FLight objects. The flights must be in the same reference frame.
+    names : list, optional
+        List of strings with the name of each trajectory inputted. The names must be in
+        the same order as the trajectories in flight_list
+    legend : boolean, optional
+        Whether legend will or will not be included. Default is True
+
+    Returns
+    -------
+    None
+
+    """
+    # TODO: Allow the user to catch different planes (xy, yz, xz) from the main plot
+    # TODO: Allow the user to set the colors or color style
+    # TODO: Allow the user to set the line style
+
+    # Iterate through Flight objects and create a list of trajectories
+    trajectory_list = []
+    for flight in flight_list:
+
+        # Check post process
+        if flight.postProcessed is False:
+            flight.postProcess()
+
+        # Get trajectories
+        x = flight.x[:, 1]
+        y = flight.y[:, 1]
+        z = flight.z[:, 1] - flight.env.elevation
+        trajectory_list.append([x, y, z])
+
+    # Call compareTrajectories function to do the hard work
+    compareTrajectories(trajectory_list, names, legend)
+
+    return None
