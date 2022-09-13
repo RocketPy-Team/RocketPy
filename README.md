@@ -305,7 +305,7 @@ Here is just a quick taste of what RocketPy is able to calculate. There are hund
 
 # Authors and Contributors
 
-This package was originally created by [Giovani Ceotto](https://github.com/RocketPy-Team/) as part of his work at [Projeto Jupiter](https://github.com/RocketPy-Team/). [Rodrigo Schmitt](https://github.com/rodrigo-schmitt/) was one of the first contributors.
+This package was originally created by [Giovani Ceotto](https://github.com/giovaniceotto/) as part of his work at [Projeto Jupiter](https://github.com/Projeto-Jupiter/). [Rodrigo Schmitt](https://github.com/rodrigo-schmitt/) was one of the first contributors.
 
 Later, [Guilherme Fernandes](https://github.com/Gui-FernandesBR/) and [Lucas Azevedo](https://github.com/lucasfourier/) joined the team to work on the expansion and sustainability of this project.
 
