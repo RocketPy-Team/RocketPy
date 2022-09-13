@@ -205,52 +205,78 @@ def calculateEquilibriumAltitude(
 # TODO: Needs tests
 
 
-def combineTrajectories(traj1, traj2=None, traj3=None, traj4=None, traj5=None):
-    """Returns a trajectory that is the combination of the trajectories passed
-    All components of the trajectory (x, y, z) must be at the same length.
-    Minimum of 1 trajectory is required.
-    Current a maximum of 5 trajectories can be combined.
-    The trajectories must be in the same reference frame.
-    The z coordinate must be referenced to the ground or to the sea level, but
-    it is important that all trajectories are passed in the same reference.
+def compareTrajectories(
+    trajectory_list,
+    names=None,
+    legend=True,
+):
+    """Creates a trajectory plot that is the combination of the trajectories passed.
     This function was created based two source-codes:
     - Mateus Stano: https://github.com/RocketPy-Team/Hackathon_2020/pull/123/files#diff-8f0a881d1355d1748074d56ed43129d46db5b755acaa753e3c49143a1c800386
     - Dyllon Preston: https://github.com/Dyllon-P/MBS-Template/blob/main/MBS.py
 
+    Parameters
+    ----------
+    trajectory_list : list, array
+        List of trajectories. Must be in the form of [trajectory_1,trajectory_2,...,trajectory_n]
+        where trajectory_n is a list with the arrays regarding positions in x, y and z [x, y, z].
+        The trajectories must be in the same reference frame. The z coordinate must be referenced
+        to the ground or to the sea level, but it is important that all trajectories are passed
+        in the same reference.
+    names : list, optional
+        List of strings with the name of each trajectory inputed. The names must be in
+        the same order as the trajectories in trajectory_list
+    legend : boolean, optional
+        Whether legend will or will not be included. Default is True
+
+    Returns
+    -------
+    None
+
     """
-    # TODO: Add a check to make sure that the components (x, y, z) of trajectories are the same length
     # TODO: Allow the user to catch different planes (xy, yz, xz) from the main plot
-    # TODO: Allow the user to input a name
     # TODO: Allow the user to set the colors
-    # TODO: Make the legend optional
     # TODO: Allow the user to set the line style
-    # TODO: Make it more general, so that it can be used for any number of trajectories
     # TODO: Improve docs
 
-    # Decompose the trajectories into x, y, z components
-    x1, y1, z1 = traj1
-    x2, y2, z2 = traj2 if traj2 else (0, 0, 0)
-    x3, y3, z3 = traj3 if traj3 else (0, 0, 0)
-    x4, y4, z4 = traj4 if traj4 else (0, 0, 0)
-    x5, y5, z5 = traj5 if traj5 else (0, 0, 0)
-
-    # Find max/min values for each component
-    maxZ = max(*z1, *z2, *z3, *z4, *z5)
-    maxX = max(*x1, *x2, *x3, *x4, *x5)
-    minX = min(*x1, *x2, *x3, *x4, *x5)
-    minY = min(*y1, *y2, *y3, *y4, *y5)
-    maxY = max(*y1, *y2, *y3, *y4, *y5)
-    maxXY = max(maxX, maxY)
-    minXY = min(minX, minY)
+    # Initialize variables
+    maxZ = 0
+    maxX = 0
+    minX = 0
+    minY = 0
+    maxY = 0
+    maxXY = 0
+    minXY = 0
+    counter = 0
+    name = (
+        [("Trajectory " + str(i + 1)) for i in range(len(trajectory_list))]
+        if name == None
+        else name
+    )
 
     # Create the figure
     fig1 = plt.figure(figsize=(9, 9))
     ax1 = plt.subplot(111, projection="3d")
-    ax1.plot(x1, y1, z1, linewidth="2", label="Trajectory 1")
-    ax1.plot(x2, y2, z2, linewidth="2", label="Trajectory 2") if traj2 else None
-    ax1.plot(x3, y3, z3, linewidth="2", label="Trajectory 3") if traj3 else None
-    ax1.plot(x4, y4, z4, linewidth="2", label="Trajectory 4") if traj4 else None
-    ax1.plot(x5, y5, z5, linewidth="2", label="Trajectory 5") if traj5 else None
+
+    # Iterate through trajectories
+    for trajectory in trajectory_list:
+
+        x, y, z = trajectory
+
+        # Find max/min values for each component
+        maxZ = max(z) if max(z) > maxZ else maxZ
+        maxX = max(x) if max(x) > maxX else maxX
+        minX = min(x) if min(x) > minX else minX
+        minY = min(x) if min(x) > minX else minX
+        maxY = max(y) if max(y) > maxY else maxY
+        maxXY = max(maxX, maxY) if max(maxX, maxY) > maxXY else maxXY
+        minXY = min(minX, minY) if min(minX, minY) > minXY else minXY
+
+        # Plot Trajectory
+        ax1.plot(x, y, z, linewidth="2", label=name[counter])
+        counter += 1
+
+    # Plot settings
     ax1.scatter(0, 0, 0)
     ax1.set_xlabel("X - East (m)")
     ax1.set_ylabel("Y - North (m)")
@@ -260,7 +286,98 @@ def combineTrajectories(traj1, traj2=None, traj3=None, traj4=None, traj5=None):
     ax1.set_ylim3d([minXY, maxXY])
     ax1.set_xlim3d([minXY, maxXY])
     ax1.view_init(15, 45)
-    plt.legend()
+    if legend:
+        plt.legend()
+    plt.show()
+
+    return None
+
+
+def compareFlightTrajectories(
+    flight_list,
+    name=None,
+    legend=True,
+):
+    """Creates a trajectory plot that is the combination of the trajectories of the Flight
+    objects passed.
+
+    Parameters
+    ----------
+    flight_list : list, array
+        List of FLight objects. The flights must be in the same reference frame.
+    names : list, optional
+        List of strings with the name of each trajectory inputed. The names must be in
+        the same order as the trajectories in flight_list
+    legend : boolean, optional
+        Whether legend will or will not be included. Default is True
+
+    Returns
+    -------
+    None
+
+    """
+    # TODO: Allow the user to catch different planes (xy, yz, xz) from the main plot
+    # TODO: Allow the user to set the colors
+    # TODO: Make the legend optional
+    # TODO: Allow the user to set the line style
+    # TODO: Improve docs
+
+    # Initialize variables
+    maxZ = 0
+    maxX = 0
+    minX = 0
+    minY = 0
+    maxY = 0
+    maxXY = 0
+    minXY = 0
+    counter = 0
+    name = (
+        [("Trajectory " + str(i + 1)) for i in range(len(flight_list))]
+        if name == None
+        else name
+    )
+
+    # Initialize Figure
+    fig1 = plt.figure(figsize=(9, 9))
+    ax1 = plt.subplot(111, projection="3d")
+
+    # Iterate through Flight objects
+    for flight in flight_list:
+
+        # Check post process
+        if flight.postProcessed is False:
+            flight.postProcess()
+
+        # Get trajectories
+        x = flight.x[:, 1]
+        y = flight.y[:, 1]
+        z = flight.z[:, 1] - flight.env.elevation
+
+        # Find max/min values for each component
+        maxZ = max(z) if max(z) > maxZ else maxZ
+        maxX = max(x) if max(x) > maxX else maxX
+        minX = min(x) if min(x) > minX else minX
+        minY = min(x) if min(x) > minX else minX
+        maxY = max(y) if max(y) > maxY else maxY
+        maxXY = max(maxX, maxY) if max(maxX, maxY) > maxXY else maxXY
+        minXY = min(minX, minY) if min(minX, minY) > minXY else minXY
+
+        # Plot Trajectory
+        ax1.plot(x, y, z, linewidth="2", label=name[counter])
+        counter += 1
+
+    # Plot settings
+    ax1.scatter(0, 0, 0)
+    ax1.set_xlabel("X - East (m)")
+    ax1.set_ylabel("Y - North (m)")
+    ax1.set_zlabel("Z - Altitude (m)")
+    ax1.set_title("Flight Trajectory")
+    ax1.set_zlim3d([0, maxZ])
+    ax1.set_ylim3d([minXY, maxXY])
+    ax1.set_xlim3d([minXY, maxXY])
+    ax1.view_init(15, 45)
+    if legend:
+        plt.legend()
     plt.show()
 
     return None
