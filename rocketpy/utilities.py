@@ -4,6 +4,7 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 import numpy as np
+import pandas as pd
 from scipy.integrate import solve_ivp
 
 from .Environment import Environment
@@ -197,3 +198,64 @@ def calculateEquilibriumAltitude(
         velocityFunction()
 
     return altitudeFunction, velocityFunction, final_sol
+
+def create_dispersion_dictionary(dic):
+    dataframe = pd.read_csv(dic,sep = ';', skiprows=[0,1], header = None)
+
+
+    rocketKeys = list(dataframe[1].dropna())
+    rocketValues = list(dataframe[2].dropna())
+    rocketSD = list(dataframe[3])
+
+    motorKeys = list(dataframe[7].dropna())
+    motorValues = list(dataframe[8].dropna())
+    motorSD = list(dataframe[9])
+
+    launchKeys = list(dataframe[13].dropna())
+    launchValues = list(dataframe[14].dropna())
+    launchSD = list(dataframe[15])
+    
+    parachuteKeys = list(dataframe[19].dropna())
+    parachuteValues = list(dataframe[20].dropna())
+    parachuteSD = list(dataframe[21])
+    
+
+    allValues = []
+    # crating the dictionary
+
+    for i in range(0,len(rocketKeys)):
+
+        if pd.isnull(rocketSD[i]):
+            allValues.append(rocketValues[i])
+        else:
+            allValues.append(((rocketValues[i]), (rocketSD[i]))) 
+
+    for j in range(0,len(motorKeys)):
+
+        if pd.isnull(motorSD[j]):
+            allValues.append(motorValues[j])
+        else:
+            allValues.append(((motorValues[j]), (motorSD[j]))) 
+
+    for k in range(0,len(parachuteKeys)):
+
+        if pd.isnull(parachuteSD[k]):
+            allValues.append(parachuteValues[k])
+        else:
+            allValues.append(((parachuteValues[k]), (parachuteSD[k]))) 
+
+    for l in range(0,len(launchKeys)):
+
+        if pd.isnull(launchSD[l]):
+            allValues.append(launchValues[l])
+        else:
+            allValues.append(((launchValues[l]), (launchSD[l]))) 
+
+
+    allKeys = rocketKeys + motorKeys + parachuteKeys + launchKeys
+
+    analysis_parameters = dict(zip(allKeys,allValues))
+    return analysis_parameters
+
+    
+

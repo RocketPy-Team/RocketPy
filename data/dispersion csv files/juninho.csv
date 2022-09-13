@@ -1,0 +1,23 @@
+﻿;;value;standard deviation;;;;;value;standard deviation;;;;;value;standard deviation;;;;;value;standard deviation
+Rocket Parameters:;;;;;;Motor Parameters:;;;;;;Launch and Environment;;;;;;Recuperation and eletronics;;;
+;rocketMass;12.96;0.648;;;;impulse;3053.198;305.3198;;;;inclination;86;1.18;;;;CdSDrogue;0.37;0.037
+;inertiaI;7.73;0.3867;;;;burnOut;4.488;0.8976;;;;heading;0;1.18;;;;CdSMain;1.06;0.106
+;inertiaZ;0.0279;0.001395;;;;nozzleRadius;0.02222;0.002222;;;;railLength;4.2;0.042;;;;lag_rec;1;0.5
+;radius;0.0529;0.000529;;;;throatRadius;0.00875;0.000875;;;;radiusRailPosition;0;2.5;;;;lag_se;0;0
+;distanceRocketNozzle;-0.91591;-0.0457955;;;;grainSeparation;0.006;0.0006;;;;ensambleMember;[0,1,2,3,4,5];;;;;;;
+;distanceRocketProppelant;-0.571773;-0.02858865;;;;grainDensity;1641.5;164.15;;;;windU;[3,4,5,6];;;;;;;
+;powerOffDrag;1;0.2;;;;grainOuterRadius;0.03596;0.003596;;;;windV;[3,4,5,6];;;;;;;
+;powerOnDrag;1;0.2;;;;grainInitialInnerRadius;0.01596;0.001596;;;;time;[6,12,18];;;;;;;
+nose;noseLength;0.41533;0.0041533;;;;grainInitialHeight;0.124;0.0124;;;;day;[23,24,25,26,27,28,29,30,31];;;;;;;
+;noseDistanceToCM;1.19467;0.0597335;;;;;;;;;;thetaRailPosition;[0,1,2,3,4,5,6,7,8,9,10];;;;;;;
+fins;finSpan;0.13;0.00065;;;;;;;;;;;;;;;;;;
+;finRootChord;0.12;0.0006;;;;;;;;;;;;;;;;;;
+;finDistanceToCM;-0.72911;0.00364555;;;;;;;;;;;;;;;;;;
+tail;tailDistanceToCM;-0.869;0.04345;;;;;;;;;;;;;;;;;;
+;tailTopRadius;0.0529;0.000529;;;;;;;;;;;;;;;;;;
+;tailbottomRadius;0.043296;0.00043296;;;;;;;;;;;;;;;;;;
+;tailLength;0.057;0.00057;;;;;;;;;;;;;;;;;;
+canard;canardSpan;0.062;0.00031;;;;;;;;;;;;;;;;;;
+;canardRootChord;0.062;0.00031;;;;;;;;;;;;;;;;;;
+;canardTipChord;0.062;0.00031;;;;;;;;;;;;;;;;;;
+;canardDistanceToCM;0.431771;0.02158855;;;;;;;;;;;;;;;;;;
