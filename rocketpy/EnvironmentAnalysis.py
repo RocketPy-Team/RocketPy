@@ -586,7 +586,7 @@ class EnvironmentAnalysis:
                     variablePointsArray,
                     inputs="Height Above Ground Level (m)",
                     outputs=key,
-                    extrapolation="constant"
+                    extrapolation="constant",
                 )
                 self.pressureLevelDataDict[dateString][hourString][
                     key
@@ -600,7 +600,7 @@ class EnvironmentAnalysis:
                 pressurePointsArray,
                 inputs="Height Above Sea Level (m)",
                 outputs="Pressure (Pa)",
-                extrapolation="constant"
+                extrapolation="constant",
             )
             self.pressureLevelDataDict[dateString][hourString][
                 "pressure"
@@ -632,7 +632,7 @@ class EnvironmentAnalysis:
                 windSpeedPointsArray,
                 inputs="Height Above Sea Level (m)",
                 outputs="Wind Speed (m/s)",
-                extrapolation="constant"
+                extrapolation="constant",
             )
             self.pressureLevelDataDict[dateString][hourString][
                 "windSpeed"
@@ -650,7 +650,7 @@ class EnvironmentAnalysis:
                 windHeadingPointsArray,
                 inputs="Height Above Sea Level (m)",
                 outputs="Wind Heading (Deg True)",
-                extrapolation="constant"
+                extrapolation="constant",
             )
             self.pressureLevelDataDict[dateString][hourString][
                 "windHeading"
@@ -665,7 +665,7 @@ class EnvironmentAnalysis:
                 windDirectionPointsArray,
                 inputs="Height Above Sea Level (m)",
                 outputs="Wind Direction (Deg True)",
-                extrapolation="constant"
+                extrapolation="constant",
             )
             self.pressureLevelDataDict[dateString][hourString][
                 "windDirection"
