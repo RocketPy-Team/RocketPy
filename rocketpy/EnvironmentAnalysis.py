@@ -834,12 +834,14 @@ class EnvironmentAnalysis:
     # Calculations
     def process_data(self):
         """Process data that is shown in the allInfo method."""
+        self.calculate_pressure_stats()
         self.calculate_average_max_temperature()
         self.calculate_average_min_temperature()
         self.calculate_record_max_temperature()
         self.calculate_record_min_temperature()
         self.calculate_average_max_wind_gust()
         self.calculate_maximum_wind_gust()
+        self.calculate_maximum_surface_10m_wind_speed()
         self.calculate_average_max_surface_10m_wind_speed()
         self.calculate_average_min_surface_10m_wind_speed()
         self.calculate_record_max_surface_10m_wind_speed()
@@ -853,50 +855,88 @@ class EnvironmentAnalysis:
         self.calculate_min_cloud_base_height()
         self.calculate_percentage_of_days_with_no_cloud_coverage()
 
-    # TODO: Needs tests
+    @property
+    def cloud_base_height(self):
+        cloud_base_height = [
+            dayDict[hour]["cloudBaseHeight"]
+            for dayDict in self.surfaceDataDict.values()
+            for hour in dayDict.keys()
+        ]
+
+        masked_elem = np.ma.core.MaskedConstant
+        unmasked_cloud_base_height = [
+            np.inf if isinstance(elem, masked_elem) else elem
+            for elem in cloud_base_height
+        ]
+        mask = [isinstance(elem, masked_elem) for elem in cloud_base_height]
+        return np.ma.array(unmasked_cloud_base_height, mask=mask)
+
+    def calculate_pressure_stats(self):
+        """Calculate pressure level statistics."""
+        # Surface pressure
+        self.surface_pressure_list = [
+            dayDict[hour]["surfacePressure"]
+            for dayDict in self.surfaceDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        self.average_surface_pressure = np.average(self.surface_pressure_list)
+        self.std_surface_pressure = np.std(self.surface_pressure_list)
+
+        # Pressure at 1000 feet
+        self.pressure_at_1000ft_list = [
+            dayDict[hour]["pressure"](
+                convert_units(1000, "ft", self.current_units["height_ASL"])
+            )
+            for dayDict in self.pressureLevelDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        self.average_pressure_at_1000ft = np.average(self.pressure_at_1000ft_list)
+        self.std_pressure_at_1000ft = np.std(self.pressure_at_1000ft_list)
+
+        # Pressure at 10000 feet
+        self.pressure_at_10000ft_list = [
+            dayDict[hour]["pressure"](
+                convert_units(10000, "ft", self.current_units["height_ASL"])
+            )
+            for dayDict in self.pressureLevelDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        self.average_pressure_at_10000ft = np.average(self.pressure_at_10000ft_list)
+        self.std_pressure_at_10000ft = np.std(self.pressure_at_10000ft_list)
+
+        # Pressure at 30000 feet
+        self.pressure_at_30000ft_list = [
+            dayDict[hour]["pressure"](
+                convert_units(30000, "ft", self.current_units["height_ASL"])
+            )
+            for dayDict in self.pressureLevelDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        self.average_pressure_at_30000ft = np.average(self.pressure_at_30000ft_list)
+        self.std_pressure_at_30000ft = np.std(self.pressure_at_30000ft_list)
+
+        return self.average_surface_pressure, self.std_surface_pressure
+
     def calculate_average_cloud_base_height(self):
         """Calculate average cloud base height."""
-        self.cloud_base_height = [
-            dayDict[hour]["cloudBaseHeight"]
-            for dayDict in self.surfaceDataDict.values()
-            for hour in dayDict.keys()
-        ]
-
         self.mean_cloud_base_height = np.ma.mean(self.cloud_base_height)
-
         return self.mean_cloud_base_height
 
-    # TODO: Needs tests
     def calculate_min_cloud_base_height(self):
         """Calculate average cloud base height."""
-        self.cloud_base_height = [
-            dayDict[hour]["cloudBaseHeight"]
-            for dayDict in self.surfaceDataDict.values()
-            for hour in dayDict.keys()
-        ]
-
         self.min_cloud_base_height = np.ma.min(
             self.cloud_base_height, fill_value=np.inf
         )
-
         return self.min_cloud_base_height
 
-    # TODO: Needs tests
     def calculate_percentage_of_days_with_no_cloud_coverage(self):
         """Calculate percentage of days with cloud coverage."""
-        self.cloud_coverage = [
-            dayDict[hour]["cloudBaseHeight"]
-            for dayDict in self.surfaceDataDict.values()
-            for hour in dayDict.keys()
-        ]
-
         self.percentage_of_days_with_no_cloud_coverage = np.ma.count(
-            self.cloud_coverage
-        ) / len(self.cloud_coverage)
+            self.cloud_base_height
+        ) / len(self.cloud_base_height)
 
         return self.percentage_of_days_with_no_cloud_coverage
 
-    # TODO: Needs tests
     def calculate_percentage_of_days_with_precipitation(self):
         """Computes the ratio between days with precipitation (> 10 mm) and total days."""
         self.precipitation_per_day = [
@@ -967,7 +1007,19 @@ class EnvironmentAnalysis:
         self.max_wind_gust = np.max(self.wind_gust_list)
         return self.max_wind_gust
 
-    # TODO: Create tests
+    def calculate_maximum_surface_10m_wind_speed(self):
+        self.surface_10m_wind_speed_list = [
+            (
+                dayDict[hour]["surface10mWindVelocityX"] ** 2
+                + dayDict[hour]["surface10mWindVelocityY"] ** 2
+            )
+            ** 0.5
+            for dayDict in self.surfaceDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        self.max_surface_10m_wind_speed = np.max(self.surface_10m_wind_speed_list)
+        return self.max_surface_10m_wind_speed
+
     def calculate_average_max_surface_10m_wind_speed(self):
         self.max_surface_10m_wind_speed_list = [
             np.max(
@@ -987,7 +1039,6 @@ class EnvironmentAnalysis:
         )
         return self.average_max_surface_10m_wind_speed
 
-    # TODO: Create tests
     def calculate_average_min_surface_10m_wind_speed(self):
         self.min_surface_10m_wind_speed_list = [
             np.min(
@@ -1007,7 +1058,6 @@ class EnvironmentAnalysis:
         )
         return self.average_min_surface_10m_wind_speed
 
-    # TODO: Create tests
     def calculate_record_max_surface_10m_wind_speed(self):
         self.surface_10m_wind_speed = [
             (
@@ -1021,7 +1071,6 @@ class EnvironmentAnalysis:
         self.record_max_surface_10m_wind_speed = np.max(self.surface_10m_wind_speed)
         return self.record_max_surface_10m_wind_speed
 
-    # TODO: Create tests
     def calculate_record_min_surface_10m_wind_speed(self):
         self.surface_10m_wind_speed = [
             (
@@ -1035,7 +1084,6 @@ class EnvironmentAnalysis:
         self.record_min_surface_10m_wind_speed = np.min(self.surface_10m_wind_speed)
         return self.record_min_surface_10m_wind_speed
 
-    # TODO: Create tests
     def calculate_average_max_surface_100m_wind_speed(self):
         self.max_surface_100m_wind_speed_list = [
             np.max(
@@ -1055,7 +1103,6 @@ class EnvironmentAnalysis:
         )
         return self.average_max_surface_100m_wind_speed
 
-    # TODO: Create tests
     def calculate_average_min_surface_100m_wind_speed(self):
         self.min_surface_100m_wind_speed_list = [
             np.min(
@@ -1075,7 +1122,6 @@ class EnvironmentAnalysis:
         )
         return self.average_min_surface_100m_wind_speed
 
-    # TODO: Create tests
     def calculate_record_max_surface_100m_wind_speed(self):
         self.surface_100m_wind_speed = [
             (
@@ -1089,7 +1135,6 @@ class EnvironmentAnalysis:
         self.record_max_surface_100m_wind_speed = np.max(self.surface_100m_wind_speed)
         return self.record_max_surface_100m_wind_speed
 
-    # TODO: Create tests
     def calculate_record_min_surface_100m_wind_speed(self):
         self.surface_100m_wind_speed = [
             (
@@ -1103,7 +1148,6 @@ class EnvironmentAnalysis:
         self.record_min_surface_100m_wind_speed = np.min(self.surface_100m_wind_speed)
         return self.record_min_surface_100m_wind_speed
 
-    # TODO: Create tests
     def plot_wind_gust_distribution(self):
         """Get all values of wind gust speed (for every date and hour available)
         and plot a single distribution. Expected result is a Weibull distribution.
@@ -1511,9 +1555,31 @@ class EnvironmentAnalysis:
         # plt.plot(np.percentile(wind_speed_profiles, 50+49.8, axis=0, method='weibull'), altitude_list, 'b--', alpha=0.25)
         for wind_speed_profile in wind_speed_profiles:
             plt.plot(wind_speed_profile, altitude_list, "gray", alpha=0.01)
-        
+
         plt.autoscale(enable=True, axis="x", tight=True)
         plt.autoscale(enable=True, axis="y", tight=True)
+
+        if SAcup_altitude_constraints:
+            # SA Cup altitude constraints region
+            print(plt)
+            xmin, xmax, ymin, ymax = plt.axis()
+            plt.fill_between(
+                [xmin, xmax],
+                0.7 * convert_units(10000, "ft", self.unit_system["length"]),
+                1.3 * convert_units(10000, "ft", self.unit_system["length"]),
+                color="g",
+                alpha=0.2,
+                label=f"10,000 {self.unit_system['length']} ± 30%",
+            )
+            plt.fill_between(
+                [xmin, xmax],
+                0.7 * convert_units(30000, "ft", self.unit_system["length"]),
+                1.3 * convert_units(30000, "ft", self.unit_system["length"]),
+                color="g",
+                alpha=0.2,
+                label=f"30,000 {self.unit_system['length']} ± 30%",
+            )
+
         plt.xlabel(f"Wind speed ({self.unit_system['wind_speed']})")
         plt.ylabel(f"Altitude AGL ({self.unit_system['length']})")
         plt.title("Average Wind Speed Profile")
@@ -1893,7 +1959,7 @@ class EnvironmentAnalysis:
             c, loc, scale = stats.weibull_min.fit(
                 average_wind_gust_at_given_hour[hour], loc=0, scale=1
             )
-            x = np.linspace(0, np.max(average_wind_gust_at_given_hour[hour]), 100)
+            x = np.linspace(0, np.ceil(self.max_wind_gust), 100)
             ax.plot(
                 x,
                 stats.weibull_min.pdf(x, c, loc, scale),
@@ -1985,7 +2051,7 @@ class EnvironmentAnalysis:
                 rect.set_height(count)
             # Update weibull distribution
             c, loc, scale = stats.weibull_min.fit(data, loc=0, scale=1)
-            xdata = np.linspace(0, 25, 100)  # TODO: parametrize
+            xdata = np.linspace(0, np.ceil(self.max_wind_gust), 100)
             ydata = stats.weibull_min.pdf(xdata, c, loc, scale)
             ln.set_data(xdata, ydata)
             # Update hour text
@@ -2384,8 +2450,23 @@ class EnvironmentAnalysis:
         return HTML(animation.to_jshtml())
 
     def allInfo(self):
+        print("Pressure Information")
         print(
-            f"Surface Wind Speed Information ({convert_units(10, 'm', self.unit_system['length']):.0f} {self.unit_system['length']} above ground)"
+            f"Average Surface Pressure: {self.average_surface_pressure:.2f} ± {self.std_surface_pressure:.2f} {self.unit_system['pressure']}"
+        )
+        print(
+            f"Average Pressure at {convert_units(1000, 'ft', self.current_units['height_ASL']):.0f} {self.current_units['height_ASL']}: {self.average_pressure_at_1000ft:.2f} ± {self.std_pressure_at_1000ft:.2f} {self.unit_system['pressure']}"
+        )
+        print(
+            f"Average Pressure at {convert_units(10000, 'ft', self.current_units['height_ASL']):.0f} {self.current_units['height_ASL']}: {self.average_pressure_at_10000ft:.2f} ± {self.std_pressure_at_1000ft:.2f} {self.unit_system['pressure']}"
+        )
+        print(
+            f"Average Pressure at {convert_units(30000, 'ft', self.current_units['height_ASL']):.0f} {self.current_units['height_ASL']}: {self.average_pressure_at_30000ft:.2f} ± {self.std_pressure_at_1000ft:.2f} {self.unit_system['pressure']}"
+        )
+        print()
+
+        print(
+            f"Sustained Surface Wind Speed Information ({convert_units(10, 'm', self.unit_system['length']):.0f} {self.unit_system['length']} above ground)"
         )
         print(
             f"Historical Maximum Wind Speed: {self.record_max_surface_10m_wind_speed:.2f} {self.unit_system['wind_speed']}"
@@ -2402,7 +2483,7 @@ class EnvironmentAnalysis:
         print()
 
         print(
-            f"Surface Wind Speed Information ({convert_units(100, 'm', self.unit_system['length']):.0f} {self.unit_system['length']} above ground)"
+            f"Elevated Wind Speed Information ({convert_units(100, 'm', self.unit_system['length']):.0f} {self.unit_system['length']} above ground)"
         )
         print(
             f"Historical Maximum Wind Speed: {self.record_max_surface_100m_wind_speed:.2f} {self.unit_system['wind_speed']}"
