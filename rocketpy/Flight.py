@@ -616,29 +616,7 @@ class Flight:
 
         # Flight initialization
         self.__init_post_process_variables()
-        # Initialize solution monitors
-        self.outOfRailTime = 0
-        self.outOfRailState = np.array([0])
-        self.outOfRailVelocity = 0
-        self.apogeeState = np.array([0])
-        self.apogeeTime = 0
-        self.apogeeX = 0
-        self.apogeeY = 0
-        self.apogee = 0
-        self.xImpact = 0
-        self.yImpact = 0
-        self.impactVelocity = 0
-        self.impactState = np.array([0])
-        self.parachuteEvents = []
-        self.postProcessed = False
-        self.latitude = 0  # Function(0)
-        self.longitude = 0  # Function(0)
-        # Initialize solver monitors
-        self.functionEvaluations = []
-        self.functionEvaluationsPerTimeStep = []
-        self.timeSteps = []
-        # Initialize solution state
-        self.solution = []
+        self.__init_solution_monitors()
         self.__init_flight_state()
         
         self.tInitial = self.initialSolution[0]
@@ -1156,6 +1134,32 @@ class Flight:
         self.flutterMachNumber = Function(0)
         self.difference = Function(0)
         self.safetyFactor = Function(0)
+
+    def __init_solution_monitors(self):
+        """Initialize all variables related to solution monitoring."""
+        # Initialize trajectory monitors
+        self.outOfRailTime = 0
+        self.outOfRailState = np.array([0])
+        self.outOfRailVelocity = 0
+        self.apogeeState = np.array([0])
+        self.apogeeTime = 0
+        self.apogeeX = 0
+        self.apogeeY = 0
+        self.apogee = 0
+        self.xImpact = 0
+        self.yImpact = 0
+        self.impactVelocity = 0
+        self.impactState = np.array([0])
+        self.parachuteEvents = []
+        self.postProcessed = False
+        self.latitude = 0  # Function(0)
+        self.longitude = 0  # Function(0)
+        # Initialize solver monitors
+        self.functionEvaluations = []
+        self.functionEvaluationsPerTimeStep = []
+        self.timeSteps = []
+        # Initialize solution state
+        self.solution = []
 
     def __init_flight_state(self):
         """Initialize flight state."""
