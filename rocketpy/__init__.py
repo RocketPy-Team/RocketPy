@@ -23,6 +23,7 @@ __status__ = "Production"
 
 from .Environment import Environment
 from .EnvironmentAnalysis import EnvironmentAnalysis
+from .Dispersion import Dispersion
 from .Flight import Flight
 from .Function import Function
 from .Motor import HybridMotor, SolidMotor
