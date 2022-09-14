@@ -755,50 +755,50 @@ class Dispersion:
 
         return None
 
-    def plotParachuteTriggerTime(self, dispersion_results):
+    def plotDrogueTriggerTime(self, dispersion_results):
         print(
-            f'Parachute Trigger Time -         Mean Value: {np.mean(dispersion_results["parachuteTriggerTime"]):0.3f} s'
+            f'Drogue Trigger Time -         Mean Value: {np.mean(dispersion_results["drogueTriggerTime"]):0.3f} s'
         )
         print(
-            f'Parachute Trigger Time - Standard Deviation: {np.std(dispersion_results["parachuteTriggerTime"]):0.3f} s'
+            f'Drogue Trigger Time - Standard Deviation: {np.std(dispersion_results["drogueTriggerTime"]):0.3f} s'
         )
 
         plt.figure()
-        plt.hist(dispersion_results["parachuteTriggerTime"], bins=int(self.N**0.5))
-        plt.title("Parachute Trigger Time")
+        plt.hist(dispersion_results["drogueTriggerTime"], bins=int(self.N**0.5))
+        plt.title("Drogue Trigger Time")
         plt.xlabel("Time (s)")
         plt.ylabel("Number of Occurences")
         plt.show()
 
         return None
 
-    def plotParachuteFullyInflatedTime(self, dispersion_results):
+    def plotDrogueFullyInflatedTime(self, dispersion_results):
         print(
-            f'Parachute Fully Inflated Time -         Mean Value: {np.mean(dispersion_results["parachuteInflatedTime"]):0.3f} s'
+            f'Drogue Fully Inflated Time -         Mean Value: {np.mean(dispersion_results["drogueInflatedTime"]):0.3f} s'
         )
         print(
-            f'Parachute Fully Inflated Time - Standard Deviation: {np.std(dispersion_results["parachuteInflatedTime"]):0.3f} s'
+            f'Drogue Fully Inflated Time - Standard Deviation: {np.std(dispersion_results["drogueInflatedTime"]):0.3f} s'
         )
 
         plt.figure()
-        plt.hist(dispersion_results["parachuteInflatedTime"], bins=int(self.N**0.5))
-        plt.title("Parachute Fully Inflated Time")
+        plt.hist(dispersion_results["drogueInflatedTime"], bins=int(self.N**0.5))
+        plt.title("Drogue Fully Inflated Time")
         plt.xlabel("Time (s)")
         plt.ylabel("Number of Occurences")
         plt.show()
 
         return None
 
-    def plotParachuteFullyVelocity(self, dispersion_results):
+    def plotDrogueFullyVelocity(self, dispersion_results):
         print(
-            f'Drogue Parachute Fully Inflated Velocity -         Mean Value: {np.mean(dispersion_results["parachuteInflatedVelocity"]):0.3f} m/s'
+            f'Drogue Parachute Fully Inflated Velocity -         Mean Value: {np.mean(dispersion_results["drogueInflatedVelocity"]):0.3f} m/s'
         )
         print(
-            f'Drogue Parachute Fully Inflated Velocity - Standard Deviation: {np.std(dispersion_results["parachuteInflatedVelocity"]):0.3f} m/s'
+            f'Drogue Parachute Fully Inflated Velocity - Standard Deviation: {np.std(dispersion_results["drogueInflatedVelocity"]):0.3f} m/s'
         )
 
         plt.figure()
-        plt.hist(dispersion_results["parachuteInflatedVelocity"], bins=int(self.N**0.5))
+        plt.hist(dispersion_results["drogueInflatedVelocity"], bins=int(self.N**0.5))
         plt.title("Drogue Parachute Fully Inflated Velocity")
         plt.xlabel("Velocity m/s)")
         plt.ylabel("Number of Occurences")
@@ -972,8 +972,8 @@ class Dispersion:
 
         self.plotNumberOfParachuteEvents(dispersion_results)
 
-        self.plotParachuteFullyInflatedTime(dispersion_results)
+        self.plotDrogueFullyInflatedTime(dispersion_results)
 
-        self.plotParachuteFullyVelocity(dispersion_results)
+        self.plotDrogueFullyVelocity(dispersion_results)
 
-        self.plotParachuteTriggerTime(dispersion_results)
+        self.plotDrogueTriggerTime(dispersion_results)
