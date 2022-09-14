@@ -544,15 +544,18 @@ class Flight:
         heading : int, float, optional
             Heading angle relative to north given in degrees.
             Default is 90, which points in the x direction.
-        initialSolution : array, optional
+        initialSolution : array, Flight, optional
             Initial solution array to be used. Format is
-            initialSolution = [self.tInitial,
-                                xInit, yInit, zInit,
-                                vxInit, vyInit, vzInit,
-                                e0Init, e1Init, e2Init, e3Init,
-                                w1Init, w2Init, w3Init].
-            If None, the initial solution will start with all null values,
-            except for the euler parameters which will be calculated based
+            initialSolution = []
+                self.tInitial,
+                xInit, yInit, zInit,
+                vxInit, vyInit, vzInit,
+                e0Init, e1Init, e2Init, e3Init,
+                w1Init, w2Init, w3Init
+            ].
+            If a Flight object is used, the last state vector will be used as
+            initial solution. If None, the initial solution will start with
+            all null values, except for the euler parameters which will be calculated based
             on given values of inclination and heading. Default is None.
         terminateOnApogee : boolean, optional
             Whether to terminate simulation when rocket reaches apogee.
@@ -1087,6 +1090,15 @@ class Flight:
             ]
             # Set initial derivative for rail phase
             self.initialDerivative = self.uDotRail1
+        elif isinstance(self.initialSolution, Flight):
+            # Initialize time and state variables based on last solution of
+            # previous flight
+            self.initialSolution = self.initialSolution.solution[-1]
+            # Set unused monitors
+            self.outOfRailState = self.initialSolution[1:]
+            self.outOfRailTime = self.initialSolution[0]
+            # Set initial derivative for 6-DOF flight phase
+            self.initialDerivative = self.uDot
         else:
             # Initial solution given, ignore rail phase
             # TODO: Check if rocket is actually out of rail. Otherwise, start at rail
