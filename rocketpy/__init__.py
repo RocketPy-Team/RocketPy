@@ -40,4 +40,5 @@ from .Function import Function
 from .Environment import Environment
 from .SolidMotor import SolidMotor
 from .Rocket import Rocket
+from .Dispersion import Dispersion
 from .Flight import Flight
