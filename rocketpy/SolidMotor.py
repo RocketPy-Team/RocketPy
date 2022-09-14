@@ -179,6 +179,15 @@ class SolidMotor:
         -------
         None
         """
+        
+        #Save parameters 
+        self.thrustSource = thrustSource
+        self.burnOut = burnOut
+        self.nozzleRadius = nozzleRadius
+        self.throatRadius = throatRadius
+        self.reshapeThrustCurve = reshapeThrustCurve
+        self.interpolationMethod = interpolationMethod
+        
         # Thrust parameters
         self.interpolate = interpolationMethod
         self.burnOutTime = burnOut

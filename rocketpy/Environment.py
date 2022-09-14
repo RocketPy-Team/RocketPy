@@ -342,6 +342,7 @@ class Environment:
         self.datum = datum
 
         # Save date
+        self.date = date
         if date != None:
             self.setDate(date)
         else:
@@ -355,6 +356,8 @@ class Environment:
         self.setAtmosphericModel("StandardAtmosphere")
 
         # Save latitude and longitude
+        self.lat = latitude
+        self.lon = longitude
         if latitude != None and longitude != None:
             self.setLocation(latitude, longitude)
         else:
@@ -371,6 +374,7 @@ class Environment:
             self.initialEW = convert[5]
 
         # Save elevation
+        self.elevation = elevation
         self.setElevation(elevation)
 
         # Recalculate Earth Radius

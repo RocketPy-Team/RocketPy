@@ -421,6 +421,13 @@ class Rocket:
         self : Rocket
             Object of the Rocket class.
         """
+        
+        # Save parameters for Dispersion
+        self.tailTopRadius = topRadius
+        self.tailBottomRadius = bottomRadius
+        self.tailLength = length
+        self.tailDistanceToCM = distanceToCM
+        
         # Calculate ratio between top and bottom radius
         r = topRadius / bottomRadius
 
@@ -477,6 +484,13 @@ class Rocket:
         self : Rocket
             Object of the Rocket class.
         """
+
+        # Save parameters for Dispersion
+        self.noseLength = length
+        self.noseKind = kind
+        self.noseDistanceToCM = distanceToCM
+
+
         # Analyze type
         if kind == "conical":
             k = 1 - 1 / 3
@@ -554,6 +568,11 @@ class Rocket:
         self : Rocket
             Object of the Rocket class.
         """
+
+        # Save parameters for Dispersion
+        self.numberOfFins = n
+        self.finRadius = radius
+        self.finAirfoil = airfoil
 
         # Retrieve parameters for calculations
         Cr = rootChord
@@ -712,6 +731,16 @@ class Rocket:
             noiseSignal and noisyPressureSignal which are filled in during
             Flight simulation.
         """
+
+        # Save parameters for Dispersion
+        self.parachuteName = name
+        self.parachuteCdS = CdS 
+        self.parachuteTrigger = trigger
+        self.parachuteSamplingRate = samplingRate
+        self.parachuteLag = lag
+        self.parachuteNoise = noise
+
+
         # Create an object to serve as the parachute
         parachute = type("", (), {})()
 
@@ -772,7 +801,9 @@ class Rocket:
             distanceToCM.reverse()
         # Save
         self.railButtons = self.railButtonPair(distanceToCM, angularPosition)
-
+        self.RBdistanceToCM = distanceToCM
+        self.angularPosition = angularPosition
+        
         return None
 
     def addCMExcentricity(self, x, y):
