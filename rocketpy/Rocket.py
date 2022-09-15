@@ -368,13 +368,11 @@ class Rocket:
         self : Rocket
             Object of the Rocket class.
         """
-
         # Save parameters for Dispersion
         self.tailTopRadius = topRadius
         self.tailBottomRadius = bottomRadius
         self.tailLength = length
         self.tailDistanceToCM = distanceToCM
-
         # Calculate ratio between top and bottom radius
         r = topRadius / bottomRadius
 
@@ -812,7 +810,6 @@ class Rocket:
         self.railButtons = self.railButtonPair(distanceToCM, angularPosition)
         self.RBdistanceToCM = distanceToCM
         self.angularPosition = angularPosition
-
         return None
 
     def addCMEccentricity(self, x, y):
