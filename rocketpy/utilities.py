@@ -213,7 +213,7 @@ def create_dispersion_dictionary(dic):
     dictionary
         Dictionary with all rocket data used in dispersion analysis.
     """
-    dataframe = pd.read_csv(dic, sep=";", skiprows=[0, 1], header=None)
+    dataframe = pd.read_csv(dic, skiprows=[0, 1], header=None)
 
     rocketKeys = list(dataframe[1].dropna())
     rocketValues = list(dataframe[2].dropna())
