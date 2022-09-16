@@ -3,6 +3,7 @@ __author__ = "Franz Masatoshi Yuri, Lucas Kierulff Balabram, Guilherme Fernandes
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
+import os
 import numpy as np
 import pandas as pd
 from scipy.integrate import solve_ivp
@@ -213,7 +214,13 @@ def create_dispersion_dictionary(dic):
     dictionary
         Dictionary with all rocket data used in dispersion analysis.
     """
-    dataframe = pd.read_csv(dic, sep=";", skiprows=[0, 1], header=None)
+
+    file = os.path.splitext(dic)
+    if file[-1] == ".csv":
+        dataframe = pd.read_csv(dic, skiprows=[0, 1], header=None)
+    elif file[-1] == ".xlsx":
+        dataframe = pd.read_excel(dic, skiprows=[0, 1], header=None)
+
 
     rocketKeys = list(dataframe[1].dropna())
     rocketValues = list(dataframe[2].dropna())
