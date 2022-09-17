@@ -2516,7 +2516,7 @@ class EnvironmentAnalysis:
             f"Historical Minimum Temperature: {self.record_min_temperature:.2f} {self.unit_system['temperature']}"
         )
         print(
-            f"Average Daily Maximum Temperture: {self.average_max_temperature:.2f} {self.unit_system['temperature']}"
+            f"Average Daily Maximum Temperature: {self.average_max_temperature:.2f} {self.unit_system['temperature']}"
         )
         print(
             f"Average Daily Minimum Temperature: {self.average_min_temperature:.2f} {self.unit_system['temperature']}"
