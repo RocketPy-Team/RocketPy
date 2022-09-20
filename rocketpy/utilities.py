@@ -3,9 +3,7 @@ __author__ = "Franz Masatoshi Yuri, Lucas Kierulff Balabram, Guilherme Fernandes
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
-import os
 import numpy as np
-import pandas as pd
 from scipy.integrate import solve_ivp
 
 from .Environment import Environment
@@ -40,7 +38,6 @@ def compute_CdS_from_drop_test(
     """
 
     return 2 * rocket_mass * g / ((terminal_velocity ** 2) * air_density)
-
 
 # TODO: Needs tests
 
@@ -214,62 +211,15 @@ def create_dispersion_dictionary(dic):
     dictionary
         Dictionary with all rocket data used in dispersion analysis.
     """
-
-    file = os.path.splitext(dic)
-    if file[-1] == ".csv":
-        dataframe = pd.read_csv(dic, skiprows=[0, 1], header=None)
-    elif file[-1] == ".xlsx":
-        dataframe = pd.read_excel(dic, skiprows=[0, 1], header=None)
-
-
-    rocketKeys = list(dataframe[1].dropna())
-    rocketValues = list(dataframe[2].dropna())
-    rocketSD = list(dataframe[3])
-
-    motorKeys = list(dataframe[7].dropna())
-    motorValues = list(dataframe[8].dropna())
-    motorSD = list(dataframe[9])
-
-    launchKeys = list(dataframe[13].dropna())
-    launchValues = list(dataframe[14].dropna())
-    launchSD = list(dataframe[15])
-
-    parachuteKeys = list(dataframe[19].dropna())
-    parachuteValues = list(dataframe[20].dropna())
-    parachuteSD = list(dataframe[21])
-
-    allValues = []
-    # crating the dictionary
-
-    for i in range(0, len(rocketKeys)):
-
-        if pd.isnull(rocketSD[i]):
-            allValues.append(rocketValues[i])
-        else:
-            allValues.append(((rocketValues[i]), (rocketSD[i])))
-
-    for j in range(0, len(motorKeys)):
-
-        if pd.isnull(motorSD[j]):
-            allValues.append(motorValues[j])
-        else:
-            allValues.append(((motorValues[j]), (motorSD[j])))
-
-    for k in range(0, len(parachuteKeys)):
-
-        if pd.isnull(parachuteSD[k]):
-            allValues.append(parachuteValues[k])
-        else:
-            allValues.append(((parachuteValues[k]), (parachuteSD[k])))
-
-    for l in range(0, len(launchKeys)):
-
-        if pd.isnull(launchSD[l]):
-            allValues.append(launchValues[l])
-        else:
-            allValues.append(((launchValues[l]), (launchSD[l])))
-
-    allKeys = rocketKeys + motorKeys + parachuteKeys + launchKeys
-
-    analysis_parameters = dict(zip(allKeys, allValues))
+    try:
+        file = np.genfromtxt(dic,usecols = (1,2,3),delimiter = ',',dtype = str)
+    except:
+        file = np.genfromtxt(dic,usecols = (1,2,3),delimiter = ';',dtype = str)
+    analysis_parameters = dict()
+    for list in file:
+        if list[0] !="":
+            if list[2] =="":
+                analysis_parameters[list[0]] = float(list[1])
+            else:
+                analysis_parameters[list[0]] = (float(list[1]),float(list[2]))
     return analysis_parameters
