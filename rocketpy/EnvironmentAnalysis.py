@@ -156,6 +156,14 @@ class EnvironmentAnalysis:
             self.surfaceDataDict = self.loaded_data["surfaceDataDict"]
             self.pressureLevelDataDict = self.loaded_data["pressureLevelDataDict"]
 
+            # Fix old masked values on surface data
+            for days in self.surfaceDataDict.keys():
+                for hours in self.surfaceDataDict[days].keys():
+                    for variables in self.surfaceDataDict[days][hours].keys():
+                        if self.surfaceDataDict[days][hours][variables] == "--":
+                            # TODO: is there any other value that we can use to prevent "NaN"?
+                            self.surfaceDataDict[days][hours][variables] = float("NaN")
+
             # Initialize variables again, to accomplish to the data available at the loaded file
             self.elevation = self.loaded_data["elevation"]
             self.latitude = self.loaded_data["latitude"]
@@ -979,8 +987,8 @@ class EnvironmentAnalysis:
         self.calculate_record_max_surface_100m_wind_speed()
         self.calculate_record_min_surface_100m_wind_speed()
         self.calculate_percentage_of_days_with_precipitation()
-        self.calculate_average_cloud_base_height()
-        self.calculate_min_cloud_base_height()
+        self.calculate_average_cloud_base_height()  # Having problems with masks!
+        self.calculate_min_cloud_base_height()  # Having problems with masks!
         self.calculate_percentage_of_days_with_no_cloud_coverage()
 
     @property
