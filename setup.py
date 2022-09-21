@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="rocketpy",
-    version="0.11.1",
+    version="0.12.0",
     install_requires=[
         "numpy>=1.0",
         "scipy>=1.0",
@@ -24,7 +24,7 @@ setuptools.setup(
     description="Advanced 6-DOF trajectory simulation for High-Power Rocketry.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/giovaniceotto/RocketPy",
+    url="https://github.com/RocketPy-Team/RocketPy",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
