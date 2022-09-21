@@ -142,7 +142,7 @@ class EnvironmentAnalysis:
 
             # Convert units
             self.set_unit_system(unit_system)
-        else: # In case of loading previous data, still need to test if all the other functions will work!
+        else:  # In case of loading previous data, still need to test if all the other functions will work!
             # Opening JSON file
             try:
                 with open(self.load_previous_data) as json_file:
@@ -155,7 +155,7 @@ class EnvironmentAnalysis:
             # Load dictionary
             self.surfaceDataDict = self.loaded_data["surfaceDataDict"]
             self.pressureLevelDataDict = self.loaded_data["pressureLevelDataDict"]
-            
+
             # Initialize variables again, to accomplish to the data available at the loaded file
             self.elevation = self.loaded_data["elevation"]
             self.latitude = self.loaded_data["latitude"]
@@ -164,13 +164,46 @@ class EnvironmentAnalysis:
             # Convert back to Function objects, then we will be able to process set_unit_system
             ## Use the units on the files, and then convert to the final/selected units
             decodeDict = {
-                "pressure": ["Height Above Sea Level (m)", "Pressure ({})".format(self.loaded_data["unit_system"]['pressure'])],
-                "temperature": ["Height Above Sea Level (m)", "Temperature ({})".format(self.loaded_data["unit_system"]['temperature'])],
-                "windDirection": ["Height Above Sea Level (m)", "Wind Direction ({})".format(self.loaded_data["unit_system"]['angle'])],
-                "windHeading": ["Height Above Sea Level (m)", "Wind Heading ({})".format(self.loaded_data["unit_system"]['angle'])],
-                "windSpeed": ["Height Above Sea Level (m)", "Wind Speed ({})".format(self.loaded_data["unit_system"]['wind_speed'])],
-                "windVelocityX": ["Height Above Sea Level (m)", "Wind Velocity X ({})".format(self.loaded_data["unit_system"]['velocity'])],
-                "windVelocityY": ["Height Above Sea Level (m)", "Wind Velocity Y ({})".format(self.loaded_data["unit_system"]['velocity'])],
+                "pressure": [
+                    "Height Above Sea Level (m)",
+                    "Pressure ({})".format(self.loaded_data["unit_system"]["pressure"]),
+                ],
+                "temperature": [
+                    "Height Above Sea Level (m)",
+                    "Temperature ({})".format(
+                        self.loaded_data["unit_system"]["temperature"]
+                    ),
+                ],
+                "windDirection": [
+                    "Height Above Sea Level (m)",
+                    "Wind Direction ({})".format(
+                        self.loaded_data["unit_system"]["angle"]
+                    ),
+                ],
+                "windHeading": [
+                    "Height Above Sea Level (m)",
+                    "Wind Heading ({})".format(
+                        self.loaded_data["unit_system"]["angle"]
+                    ),
+                ],
+                "windSpeed": [
+                    "Height Above Sea Level (m)",
+                    "Wind Speed ({})".format(
+                        self.loaded_data["unit_system"]["wind_speed"]
+                    ),
+                ],
+                "windVelocityX": [
+                    "Height Above Sea Level (m)",
+                    "Wind Velocity X ({})".format(
+                        self.loaded_data["unit_system"]["velocity"]
+                    ),
+                ],
+                "windVelocityY": [
+                    "Height Above Sea Level (m)",
+                    "Wind Velocity Y ({})".format(
+                        self.loaded_data["unit_system"]["velocity"]
+                    ),
+                ],
             }
 
             # TODO: document this
@@ -179,11 +212,14 @@ class EnvironmentAnalysis:
                     for variable in decodeDict.keys():
                         lst = self.pressureLevelDataDict[days][hours][variable]
                         self.pressureLevelDataDict[days][hours][variable] = Function(
-                            source= np.column_stack(([item[0] for item in lst], [item[1] for item in lst])),
+                            source=np.column_stack(
+                                ([item[0] for item in lst], [item[1] for item in lst])
+                            ),
                             inputs=[decodeDict[variable][0]],
-                            outputs=[decodeDict[variable][1]], 
-                            interpolation='linear',
-                            extrapolation='constant')
+                            outputs=[decodeDict[variable][1]],
+                            interpolation="linear",
+                            extrapolation="constant",
+                        )
 
             print(
                 "Information of the data loaded from previous Environment Analysis.\n"
@@ -218,8 +254,9 @@ class EnvironmentAnalysis:
                 self.set_unit_system(unit_system)
                 print(self.unit_system)
                 print()
-            print("Alright, the previous data file were completely loaded, all set to go!")
-
+            print(
+                "Alright, the previous data file were completely loaded, all set to go!"
+            )
 
         # Initialize result variables
         self.average_max_temperature = 0
@@ -675,7 +712,7 @@ class EnvironmentAnalysis:
                 variablePointsArray = np.array([heightAboveSeaLevelArray, valueArray]).T
                 variableFunction = Function(
                     variablePointsArray,
-                    inputs="Height Above Ground Level (m)", # TODO: Check if it is really AGL or ASL here
+                    inputs="Height Above Ground Level (m)",  # TODO: Check if it is really AGL or ASL here
                     outputs=key,
                     extrapolation="constant",
                 )
@@ -925,7 +962,7 @@ class EnvironmentAnalysis:
     # Calculations
     def process_data(self):
         """Process data that is shown in the allInfo method."""
-        # TODO: self.calculate_pressure_stats()
+        self.calculate_pressure_stats()
         self.calculate_average_max_temperature()
         self.calculate_average_min_temperature()
         self.calculate_record_max_temperature()
@@ -941,9 +978,9 @@ class EnvironmentAnalysis:
         self.calculate_average_min_surface_100m_wind_speed()
         self.calculate_record_max_surface_100m_wind_speed()
         self.calculate_record_min_surface_100m_wind_speed()
-        # TODO: self.calculate_percentage_of_days_with_precipitation()
-        # TODO: self.calculate_average_cloud_base_height()
-        # TODO: self.calculate_min_cloud_base_height()
+        self.calculate_percentage_of_days_with_precipitation()
+        self.calculate_average_cloud_base_height()
+        self.calculate_min_cloud_base_height()
         self.calculate_percentage_of_days_with_no_cloud_coverage()
 
     @property
@@ -2868,8 +2905,16 @@ class EnvironmentAnalysis:
         for days in pressureLevelDataDictCopy.keys():
             for hours in pressureLevelDataDictCopy[days].keys():
                 for variable in pressureLevelDataDictCopy[days][hours].keys():
-                    pressureLevelDataDictCopy[days][hours][variable] = np.column_stack( (pressureLevelDataDictCopy[days][hours][variable].getSource()[:,0], pressureLevelDataDictCopy[days][hours][variable].getSource()[:,1])).tolist()
-
+                    pressureLevelDataDictCopy[days][hours][variable] = np.column_stack(
+                        (
+                            pressureLevelDataDictCopy[days][hours][
+                                variable
+                            ].getSource()[:, 0],
+                            pressureLevelDataDictCopy[days][hours][
+                                variable
+                            ].getSource()[:, 1],
+                        )
+                    ).tolist()
 
         self.EnvAnalysisDict = {
             "start_date": self.start_date.strftime("%Y-%m-%d"),
