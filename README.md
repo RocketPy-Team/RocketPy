@@ -1,24 +1,27 @@
-![RocketPy Logo](https://raw.githubusercontent.com/Projeto-Jupiter/RocketPy/master/docs/static/RocketPy_Logo_Black.svg)
+![RocketPy Logo](https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/RocketPy_Logo_Black.svg)
 
 <br>
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/giovaniceotto/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/RocketPy-Team/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb)
 [![PyPI](https://img.shields.io/pypi/v/rocketpy?color=g)](https://pypi.org/project/rocketpy/)
 [![Documentation Status](https://readthedocs.org/projects/rocketpyalpha/badge/?version=latest)](https://docs.rocketpy.org/en/latest/?badge=latest)
-[![Build Status](https://app.travis-ci.com/Projeto-Jupiter/RocketPy.svg?branch=master)](https://app.travis-ci.com/Projeto-Jupiter/RocketPy)
-[![Contributors](https://img.shields.io/github/contributors/Projeto-Jupiter/rocketpy)](https://github.com/Projeto-Jupiter/RocketPy/graphs/contributors)
+[![Build Status](https://app.travis-ci.com/RocketPy-Team/RocketPy.svg?branch=master)](https://app.travis-ci.com/RocketPy-Team/RocketPy)
+[![Contributors](https://img.shields.io/github/contributors/RocketPy-Team/rocketpy)](https://github.com/RocketPy-Team/RocketPy/graphs/contributors)
 [![Chat on Discord](https://img.shields.io/discord/765037887016140840?logo=discord)](https://discord.gg/b6xYnNh)
+[![Sponsor RocketPy](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/RocketPy-Team)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/company/rocketpy)
 [![DOI](https://img.shields.io/badge/DOI-10.1061%2F%28ASCE%29AS.1943--5525.0001331-blue.svg)](http://dx.doi.org/10.1061/%28ASCE%29AS.1943-5525.0001331)
 
 <img src="https://static.scarf.sh/a.png?x-pxid=6f4094ab-00fa-4a8d-9247-b7ed27e7164d" />
 
 # RocketPy
+
 RocketPy is the next-generation trajectory simulation solution for High-Power Rocketry. The code is written as a [Python](http://www.python.org) library and allows for a complete 6 degrees of freedom simulation of a rocket's flight trajectory, including high fidelity variable mass effects as well as descent under parachutes. Weather conditions, such as wind profile, can be imported from sophisticated datasets, allowing for realistic scenarios. Furthermore, the implementation facilitates complex simulations, such as multi-stage rockets, design and trajectory optimization and dispersion analysis.
 
 <br>
 
 ## Main features
+
 <details>
 <summary>Nonlinear 6 degrees of freedom simulations</summary>
 <ul>
@@ -99,14 +102,14 @@ RocketPy's features have been validated in our latest [research article publishe
 The table below shows a comparison between experimental data and the output from RocketPy.
 Flight data and rocket parameters used in this comparison were kindly provided by [EPFL Rocket Team](https://github.com/EPFLRocketTeam) and [Notre Dame Rocket Team](https://ndrocketry.weebly.com/).
 
-|         Mission         |    Result Parameter    | RocketPy  | Measured  | Relative Error |
-|:-----------------------:|:-----------------------|:---------:|:---------:|:--------------:|
-|   Bella Lui Kaltbrumn   | Apogee altitude (m)    |   461.03  |   458.97  |   **0.45 %**   |
-|   Bella Lui Kaltbrumn   | Apogee time (s)        |    10.61  |    10.56  |   **0.47 %**   |
+|         Mission         |    Result Parameter    | RocketPy  | Measured  | Relative Error  |
+|:-----------------------:|:-----------------------|:---------:|:---------:|:---------------:|
+|   Bella Lui Kaltbrumn   | Apogee altitude (m)    |   461.03  |   458.97  |   **0.45 %**    |
+|   Bella Lui Kaltbrumn   | Apogee time (s)        |    10.61  |    10.56  |   **0.47 %**    |
 |   Bella Lui Kaltbrumn   | Maximum velocity (m/s) |    86.18  |    90.00  |   **-4.24 %**   |
-|   NDRT launch vehicle   | Apogee altitude (m)    | 1,310.44  | 1,320.37  |   **-0.75 %**  |
-|   NDRT launch vehicle   | Apogee time (s)        |    16.77  |    17.10  |   **-1.90 %**  |
-|   NDRT launch vehicle   | Maximum velocity (m/s) |   172.86  |   168.95  |   **2.31 %**   |
+|   NDRT launch vehicle   | Apogee altitude (m)    | 1,310.44  | 1,320.37  |   **-0.75 %**   |
+|   NDRT launch vehicle   | Apogee time (s)        |    16.77  |    17.10  |   **-1.90 %**   |
+|   NDRT launch vehicle   | Maximum velocity (m/s) |   172.86  |   168.95  |   **2.31 %**    |
 
 <br>
 
@@ -114,13 +117,14 @@ Flight data and rocket parameters used in this comparison were kindly provided b
 
 Check out documentation details using the links below:
 
-  - [User Guide](https://docs.rocketpy.org/en/latest/user/index.html)
-  - [Code Documentation](https://docs.rocketpy.org/en/latest/reference/index.html)
-  - [Development Guide](https://docs.rocketpy.org/en/latest/development/index.html)
+- [User Guide](https://docs.rocketpy.org/en/latest/user/index.html)
+- [Code Documentation](https://docs.rocketpy.org/en/latest/reference/index.html)
+- [Development Guide](https://docs.rocketpy.org/en/latest/development/index.html)
 
 <br>
 
 # Join Our Community!
+
 RocketPy is growing fast! Many university groups and rocket hobbyist have already started using it. The number of stars and forks for this repository is skyrocketing. And this is all thanks to a great community of users, engineers, developers, marketing specialists, and everyone interested in helping.
 
 If you want to be a part of this and make RocketPy your own, join our [Discord](https://discord.gg/b6xYnNh) server today!
@@ -129,7 +133,7 @@ If you want to be a part of this and make RocketPy your own, join our [Discord](
 
 # Previewing
 
-You can preview RocketPy's main functionalities by browsing through a sample notebook in [Google Colab](https://colab.research.google.com/github/giovaniceotto/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb).  No installation required!
+You can preview RocketPy's main functionalities by browsing through a sample notebook in [Google Colab](https://colab.research.google.com/github/RocketPy-Team/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb).  No installation required!
 
 When you are ready to run RocketPy locally, you can read the *Getting Started* section!
 
@@ -163,7 +167,7 @@ Otherwise, you may want to create your own script or your own notebook using Roc
 
 The following image shows how the four main classes interact with each other:
 
-![Diagram](https://raw.githubusercontent.com/Projeto-Jupiter/RocketPy/master/docs/static/Fluxogram-Page-2.svg)
+![Diagram](https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/Fluxogram-Page-2.svg)
 
 A typical workflow starts with importing these classes from RocketPy:
 
@@ -203,6 +207,7 @@ A sample Motor object can be created by the following code:
 Pro75M1670 = SolidMotor(
     thrustSource="../data/motors/Cesaroni_M1670.eng",
     burnOut=3.9,
+    distanceNozzleMotorReference=0.39796,
     grainNumber=5,
     grainSeparation=5/1000,
     grainDensity=1815,
@@ -230,19 +235,23 @@ Calisto = Rocket(
     mass=19.197-2.956,
     inertiaI=6.60,
     inertiaZ=0.0351,
-    distanceRocketNozzle=-1.255,
-    distanceRocketPropellant=-0.85704,
+    positionNozzle=-1.255,
+    positionCenterOfDryMass=0,
     powerOffDrag='../data/calisto/powerOffDragCurve.csv',
     powerOnDrag='../data/calisto/powerOnDragCurve.csv'
 )
 
 Calisto.setRailButtons([0.2, -0.5])
 
-NoseCone = Calisto.addNose(length=0.55829, kind="vonKarman", distanceToCM=0.71971)
+NoseCone = Calisto.addNose(length=0.55829, kind="vonKarman", positionNose=1.278)
 
-FinSet = Calisto.addFins(4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956)
+FinSet = Calisto.addTrapezoidalFins(
+    4, span=0.100, rootChord=0.120, tipChord=0.040, positionFins=-1.04956
+)
 
-Tail = Calisto.addTail(topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656)
+Tail = Calisto.addTail(
+    topRadius=0.0635, bottomRadius=0.0435, length=0.060, positionTail=-1.194656
+)
 ```
 
 You may want to add parachutes to your rocket as well:
@@ -287,7 +296,7 @@ Once the TestFlight object is created, your simulation is done! Use the followin
 TestFlight.info()
 ```
 
-To seel all available results, use:
+To see all available results, use:
 
 ```python
 TestFlight.allInfo()
@@ -305,29 +314,30 @@ This package was originally created by [Giovani Ceotto](https://github.com/giova
 
 Later, [Guilherme Fernandes](https://github.com/Gui-FernandesBR/) and [Lucas Azevedo](https://github.com/lucasfourier/) joined the team to work on the expansion and sustainability of this project.
 
-Since then, the [RocketPy Team](https://github.com/orgs/Projeto-Jupiter/teams/rocketpy-team) has been growing fast and our contributors are what makes us special!
+Since then, the [RocketPy Team](https://github.com/orgs/RocketPy-Team/teams/rocketpy-team) has been growing fast and our contributors are what makes us special!
 
-[![GitHub Contributors Image](https://contrib.rocks/image?repo=Projeto-Jupiter/RocketPy)](https://github.com/Projeto-Jupiter/RocketPy/contributors)
+[![GitHub Contributors Image](https://contrib.rocks/image?repo=RocketPy-Team/RocketPy)](https://github.com/RocketPy-Team/RocketPy/contributors)
 
-See a [detailed list of contributors](https://github.com/Projeto-Jupiter/RocketPy/contributors) who are actively working on RocketPy.
+See a [detailed list of contributors](https://github.com/RocketPy-Team/RocketPy/contributors) who are actively working on RocketPy.
 
 ## Supporting RocketPy and Contributing
 
-The easiest way to help RocketPy is to demonstrate your support by starring our repository! ![GitHub Repo stars](https://img.shields.io/github/stars/Projeto-Jupiter/RocketPy?style=social)
+The easiest way to help RocketPy is to demonstrate your support by starring our repository! ![GitHub Repo stars](https://img.shields.io/github/stars/RocketPy-Team/RocketPy?style=social)
 
 <br>
 
 If you are actively using RocketPy in one of your projects, reaching out to our core team via [Discord](https://discord.gg/b6xYnNh) and providing feedback can help improve RocketPy a lot!
 
-And if you are interested in going one step further, please read [CONTRIBUTING.md](https://github.com/Projeto-Jupiter/RocketPy/blob/master/CONTRIBUTING.md) for details on our code of conduct and learn more on how you can contribute with the development of this next-gen trajectory simulation solution for rocketry.
+And if you are interested in going one step further, please read [CONTRIBUTING.md](https://github.com/RocketPy-Team/RocketPy/blob/master/CONTRIBUTING.md) for details on our code of conduct and learn more on how you can contribute with the development of this next-gen trajectory simulation solution for rocketry.
 
 <br>
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/Projeto-Jupiter/RocketPy/blob/master/LICENSE) file for details
+This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/RocketPy-Team/RocketPy/blob/master/LICENSE) file for details
 
 <br>
 
 ## Release Notes
-Want to know which bugs have been fixed and new features of each version? Check out the [release notes](https://github.com/Projeto-Jupiter/RocketPy/releases).
+
+Want to know which bugs have been fixed and new features of each version? Check out the [release notes](https://github.com/RocketPy-Team/RocketPy/releases).

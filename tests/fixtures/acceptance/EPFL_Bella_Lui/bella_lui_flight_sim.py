@@ -100,7 +100,7 @@ NoseCone = BellaLui.addNose(
     kind="tangent",
     distanceToCM=parameters.get("noseDistanceToCM")[0],
 )
-FinSet = BellaLui.addFins(
+FinSet = BellaLui.addTrapezoidalFins(
     3,
     span=parameters.get("finSpan")[0],
     rootChord=parameters.get("finRootChord")[0],

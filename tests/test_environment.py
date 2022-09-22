@@ -103,6 +103,7 @@ def test_wyoming_sounding_atmosphere(mock_show, example_env):
     assert example_env.temperature(100) == 291.75
 
 
+@pytest.mark.skip(reason="legacy tests")
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_noaa_ruc_sounding_atmosphere(mock_show, example_env):

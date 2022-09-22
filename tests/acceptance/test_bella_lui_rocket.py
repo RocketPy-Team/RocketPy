@@ -105,7 +105,7 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         positionNose=parameters.get("noseDistanceToCM")[0]
         + parameters.get("noseLength")[0],
     )
-    FinSet = BellaLui.addFins(
+    FinSet = BellaLui.addTrapezoidalFins(
         3,
         span=parameters.get("finSpan")[0],
         rootChord=parameters.get("finRootChord")[0],
