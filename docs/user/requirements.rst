@@ -49,6 +49,7 @@ The packages needed can be installed via ``pip`` by running the following lines 
     pip install pytz
     pip install timezonefinder
     pip install simplekml
+    pip install jsonpickle
 
 Installing Required Packages Using ``conda``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
