@@ -6,6 +6,7 @@ __license__ = "MIT"
 
 import bisect
 import warnings
+import json
 from collections import defaultdict
 
 import ipywidgets as widgets
@@ -2687,7 +2688,15 @@ class EnvironmentAnalysis:
         Exports the mean profiles of the weather data to a file in order to it
         be used as inputs on Environment Class by using the CustomAtmosphere
         model.
-        TODO: Improve docs
+
+        Parameters
+        ----------
+        filename : str, optional
+            Name of the file where to be saved, by default "EnvAnalysisDict"
+
+        Returns
+        -------
+        None
         """
 
         self.process_temperature_profile_over_average_day()
