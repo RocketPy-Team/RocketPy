@@ -5,6 +5,7 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 import bisect
+import datetime
 import json
 import warnings
 from collections import defaultdict
@@ -22,6 +23,7 @@ from matplotlib.animation import PillowWriter as ImageWriter
 from scipy import stats
 from timezonefinder import TimezoneFinder
 from windrose import WindroseAxes
+from rocketpy.Environment import Environment
 
 from rocketpy.Function import Function
 from rocketpy.units import convert_units
@@ -68,6 +70,8 @@ class EnvironmentAnalysis:
         timezone=None,
         unit_system="metric",
         load_previous_data=None,
+        forecast_comparaison=False,
+        forecast_date=None,
     ):
         """Constructor for the EnvironmentAnalysis class.
         Parameters
@@ -202,6 +206,28 @@ class EnvironmentAnalysis:
 
         # Run calculations
         self.process_data()
+
+        # Processing forecast
+        self.forecast = None
+        if forecast_comparaison:
+            self.forecast = {}
+            hours = list(self.pressureLevelDataDict.values())[0].keys()
+            for hour in hours:
+                hour_datetime = datetime.datetime(
+                    year=forecast_date.year, month=forecast_date.month, day=forecast_date.day, 
+                    hour=int(hour))
+
+                Env = Environment(
+                    railLength=5,
+                    date=hour_datetime,
+                    latitude=self.latitude,
+                    longitude=self.longitude,
+                    elevation=self.elevation,
+                )
+                Env.setAtmosphericModel(type="Ensemble", file="GEFS")
+                Env.selectEnsembleMember(1)
+                self.forecast[hour] = Env
+
 
     def __bilinear_interpolation(self, x, y, x1, x2, y1, y2, z11, z12, z21, z22):
         """
@@ -2520,6 +2546,13 @@ class EnvironmentAnalysis:
             x_max = current_x_max if current_x_max > x_max else x_max
             y_max = current_y_max if current_y_max > y_max else y_max
             y_min = current_y_min if current_y_min < y_min else y_min
+
+            if self.forecast:
+                forecast = self.forecast
+                x = self.average_wind_profile_at_given_hour[hour][0]
+                y = forecast[hour].windSpeed.getValue(x)
+                ax.plot(x, y, "b--")
+
             ax.label_outer()
             ax.grid()
         # Set x and y limits for the last axis. Since axes are shared, set to all
