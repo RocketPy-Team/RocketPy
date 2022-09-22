@@ -5,8 +5,8 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 import bisect
-import warnings
 import json
+import warnings
 from collections import defaultdict
 
 import ipywidgets as widgets
@@ -127,6 +127,7 @@ class EnvironmentAnalysis:
         self.__find_preferred_timezone()
         self.__localize_input_dates()
 
+        # Parse data files, surface goes first to calculate elevation
         self.surfaceDataDict = {}
         self.parseSurfaceData()
         self.pressureLevelDataDict = {}
@@ -589,7 +590,7 @@ class EnvironmentAnalysis:
                 variablePointsArray = np.array([heightAboveSeaLevelArray, valueArray]).T
                 variableFunction = Function(
                     variablePointsArray,
-                    inputs="Height Above Ground Level (m)",  # TODO: Check if it is really AGL or ASL here
+                    inputs="Height Above Ground Level (m)",  # TODO: Check if it is really AGL or ASL here, see 3 lines above
                     outputs=key,
                     extrapolation="constant",
                 )
@@ -856,8 +857,8 @@ class EnvironmentAnalysis:
         self.calculate_record_max_surface_100m_wind_speed()
         self.calculate_record_min_surface_100m_wind_speed()
         self.calculate_percentage_of_days_with_precipitation()
-        self.calculate_average_cloud_base_height()  # Having problems with masks!
-        self.calculate_min_cloud_base_height()  # Having problems with masks!
+        self.calculate_average_cloud_base_height()
+        self.calculate_min_cloud_base_height()
         self.calculate_percentage_of_days_with_no_cloud_coverage()
 
     @property
@@ -2748,8 +2749,6 @@ class EnvironmentAnalysis:
             # "maxExpectedHeight": 80000, # TODO: Implement this parameter at EnvAnalysis Class
             "surfaceDataFile": self.surfaceDataFile,
             "pressureLevelDataFile": self.pressureLevelDataFile,
-            # "surfaceDataDict": self.surfaceDataDict, # TODO: Too large, make it optional
-            # "pressureLevelDataDict": self.pressureLevelDataDict, # TODO: Too large, make it optional
             "atmosphericModelPressureProfile": organized_pressure_dict,
             "atmosphericModelTemperatureProfile": organized_temperature_dict,
             "atmosphericModelWindVelocityXProfile": organized_windX_dict,
