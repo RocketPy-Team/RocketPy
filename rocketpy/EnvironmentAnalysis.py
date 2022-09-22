@@ -11,6 +11,7 @@ import warnings
 from collections import defaultdict
 
 import ipywidgets as widgets
+import jsonpickle
 import matplotlib.ticker as mtick
 import netCDF4
 import numpy as np
@@ -2900,64 +2901,15 @@ class EnvironmentAnalysis:
 
         return None
 
-    def saveEnvAnalysisDict(self, filename="EnvAnalysisDict"):
-        """
-        Saves the Environment Analysis dictionary to a file in order to it
-        be load again in the future.
-        TODO: Improve docs
-        """
+    @classmethod
+    def load(self, filename="EnvAnalysisDict"):
+        encoded_class = open(filename).read()
+        return jsonpickle.decode(encoded_class)
 
-        # Refactor Function Objects in the pressureLevelDict so it can be converted to .json file as lists
-        pressureLevelDataDictCopy = copy.deepcopy(self.pressureLevelDataDict)
-
-        for days in pressureLevelDataDictCopy.keys():
-            for hours in pressureLevelDataDictCopy[days].keys():
-                for variable in pressureLevelDataDictCopy[days][hours].keys():
-                    pressureLevelDataDictCopy[days][hours][variable] = np.column_stack(
-                        (
-                            pressureLevelDataDictCopy[days][hours][
-                                variable
-                            ].getSource()[:, 0],
-                            pressureLevelDataDictCopy[days][hours][
-                                variable
-                            ].getSource()[:, 1],
-                        )
-                    ).tolist()
-
-        self.EnvAnalysisDict = {
-            "start_date": self.start_date.strftime("%Y-%m-%d"),
-            "end_date": self.end_date.strftime("%Y-%m-%d"),
-            "start_hour": self.start_hour,
-            "end_hour": self.end_hour,
-            "latitude": self.latitude,
-            "longitude": self.longitude,
-            "elevation": self.elevation,
-            "timeZone": str(self.preferred_timezone),
-            "unit_system": self.unit_system,
-            # "maxExpectedHeight": 80000, # TODO: Implement this parameter at EnvAnalysis Class
-            "surfaceDataFile": self.surfaceDataFile,
-            "pressureLevelDataFile": self.pressureLevelDataFile,
-            "surfaceDataDict": self.surfaceDataDict,
-            "pressureLevelDataDict": pressureLevelDataDictCopy,
-        }
-
-        # Convert to json
-        f = open(filename + ".json", "w")
-
-        # write json object to file
-        f.write(
-            json.dumps(self.EnvAnalysisDict, sort_keys=False, indent=4, default=str)
-        )
-
-        # close file
-        f.close()
-        print(
-            "Your Environment Analysis file was saved, check it out: "
-            + filename
-            + ".json"
-        )
-        print(
-            "You can use it in the future by using the load_previous_data of EnvironmentAnalysis Class."
-        )
+    def save(self, filename="EnvAnalysisDict"):
+        encoded_class = jsonpickle.encode(self)
+        file = open(filename, "w")
+        file.write(encoded_class)
+        file.close()
 
         return None
