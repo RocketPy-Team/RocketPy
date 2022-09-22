@@ -5,8 +5,6 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 import bisect
-import copy
-import json
 import warnings
 from collections import defaultdict
 
@@ -69,7 +67,6 @@ class EnvironmentAnalysis:
         pressureLevelDataFile=None,
         timezone=None,
         unit_system="metric",
-        load_previous_data=None,
     ):
         """Constructor for the EnvironmentAnalysis class.
         Parameters
@@ -104,10 +101,6 @@ class EnvironmentAnalysis:
         unit_system : str, optional
             Unit system to be used when displaying results.
             Options are: SI, metric, imperial. Default is metric.
-        load_previous_data : str, optional
-            If True, the class will try to load the data from a previous ran Environment Analysis.
-            Use .json file resulted from ... as input.
-            Default is None.
         Returns
         -------
         None
@@ -126,7 +119,6 @@ class EnvironmentAnalysis:
         self.surfaceDataFile = surfaceDataFile
         self.pressureLevelDataFile = pressureLevelDataFile
         self.preferred_timezone = timezone
-        self.load_previous_data = load_previous_data
         self.unit_system = unit_system
 
         # Manage units and timezones
@@ -134,138 +126,13 @@ class EnvironmentAnalysis:
         self.__find_preferred_timezone()
         self.__localize_input_dates()
 
-        # Parse data files, surface goes first to calculate elevation
-        if load_previous_data is None:
-            self.surfaceDataDict = {}
-            self.parseSurfaceData()
-            self.pressureLevelDataDict = {}
-            self.parsePressureLevelData()
+        self.surfaceDataDict = {}
+        self.parseSurfaceData()
+        self.pressureLevelDataDict = {}
+        self.parsePressureLevelData()
 
-            # Convert units
-            self.set_unit_system(unit_system)
-        else:  # In case of loading previous data, still need to test if all the other functions will work!
-            # Opening JSON file
-            try:
-                with open(self.load_previous_data) as json_file:
-                    self.loaded_data = json.load(json_file)
-            except:
-                raise RuntimeError(
-                    "Unable to read json file from previous ran Environment Analysis. Please try again."
-                )
-
-            # Load dictionary
-            self.surfaceDataDict = self.loaded_data["surfaceDataDict"]
-            self.pressureLevelDataDict = self.loaded_data["pressureLevelDataDict"]
-
-            # Fix old masked values on surface data
-            for days in self.surfaceDataDict.keys():
-                for hours in self.surfaceDataDict[days].keys():
-                    for variables in self.surfaceDataDict[days][hours].keys():
-                        if self.surfaceDataDict[days][hours][variables] == "--":
-                            # TODO: is there any other value that we can use to prevent "NaN"?
-                            self.surfaceDataDict[days][hours][variables] = float("NaN")
-
-            # Initialize variables again, to accomplish to the data available at the loaded file
-            self.elevation = self.loaded_data["elevation"]
-            self.latitude = self.loaded_data["latitude"]
-            self.longitude = self.loaded_data["longitude"]
-
-            # Convert back to Function objects, then we will be able to process set_unit_system
-            ## Use the units on the files, and then convert to the final/selected units
-            decodeDict = {
-                "pressure": [
-                    "Height Above Sea Level (m)",
-                    "Pressure ({})".format(self.loaded_data["unit_system"]["pressure"]),
-                ],
-                "temperature": [
-                    "Height Above Sea Level (m)",
-                    "Temperature ({})".format(
-                        self.loaded_data["unit_system"]["temperature"]
-                    ),
-                ],
-                "windDirection": [
-                    "Height Above Sea Level (m)",
-                    "Wind Direction ({})".format(
-                        self.loaded_data["unit_system"]["angle"]
-                    ),
-                ],
-                "windHeading": [
-                    "Height Above Sea Level (m)",
-                    "Wind Heading ({})".format(
-                        self.loaded_data["unit_system"]["angle"]
-                    ),
-                ],
-                "windSpeed": [
-                    "Height Above Sea Level (m)",
-                    "Wind Speed ({})".format(
-                        self.loaded_data["unit_system"]["wind_speed"]
-                    ),
-                ],
-                "windVelocityX": [
-                    "Height Above Sea Level (m)",
-                    "Wind Velocity X ({})".format(
-                        self.loaded_data["unit_system"]["velocity"]
-                    ),
-                ],
-                "windVelocityY": [
-                    "Height Above Sea Level (m)",
-                    "Wind Velocity Y ({})".format(
-                        self.loaded_data["unit_system"]["velocity"]
-                    ),
-                ],
-            }
-
-            # TODO: document this
-            for days in self.pressureLevelDataDict.keys():
-                for hours in self.pressureLevelDataDict[days].keys():
-                    for variable in decodeDict.keys():
-                        lst = self.pressureLevelDataDict[days][hours][variable]
-                        self.pressureLevelDataDict[days][hours][variable] = Function(
-                            source=np.column_stack(
-                                ([item[0] for item in lst], [item[1] for item in lst])
-                            ),
-                            inputs=[decodeDict[variable][0]],
-                            outputs=[decodeDict[variable][1]],
-                            interpolation="linear",
-                            extrapolation="constant",
-                        )
-
-            print(
-                "Information of the data loaded from previous Environment Analysis.\n"
-            )
-            print(
-                "Available dates: ",
-                self.loaded_data["start_date"],
-                " to ",
-                self.loaded_data["end_date"],
-            )
-            print(
-                "Available hours: ",
-                self.loaded_data["start_hour"],
-                " to ",
-                self.loaded_data["end_hour"],
-            )
-            print("Latitude", self.loaded_data["latitude"])
-            print("Longitude", self.loaded_data["longitude"])
-            print("Elevation:", self.loaded_data["elevation"])
-            print("Surface data file: ", self.loaded_data["surfaceDataFile"])
-            print(
-                "Pressure level data file: ", self.loaded_data["pressureLevelDataFile"]
-            )
-            print("File timezone: ", self.loaded_data["timeZone"])
-            print("File unit system: ", self.loaded_data["unit_system"])
-            print()
-            if self.loaded_data["unit_system"] != self.unit_system:
-                print(
-                    "The unit system of the loaded data is different from the selected unit system. Therefore all the values will be converted to the following unit system: "
-                )
-                # Convert units
-                self.set_unit_system(unit_system)
-                print(self.unit_system)
-                print()
-            print(
-                "Alright, the previous data file were completely loaded, all set to go!"
-            )
+        # Convert units
+        self.set_unit_system(unit_system)
 
         # Initialize result variables
         self.average_max_temperature = 0
@@ -2903,13 +2770,38 @@ class EnvironmentAnalysis:
 
     @classmethod
     def load(self, filename="EnvAnalysisDict"):
+        """Load a previously saved Environment Analysis file.
+        Example: EnvA = EnvironmentAnalysis.load("filename").
+
+        Parameters
+        ----------
+        filename : str, optional
+            Name of the previous saved file, by default "EnvAnalysisDict"
+
+        Returns
+        -------
+        EnvironmentAnalysis object
+
+        """
         encoded_class = open(filename).read()
         return jsonpickle.decode(encoded_class)
 
     def save(self, filename="EnvAnalysisDict"):
+        """Save the Environment Analysis object to a file so it can be used later.
+
+        Parameters
+        ----------
+        filename : str, optional
+            Name of the file where to be saved, by default "EnvAnalysisDict"
+
+        Returns
+        -------
+        None
+        """
         encoded_class = jsonpickle.encode(self)
         file = open(filename, "w")
         file.write(encoded_class)
         file.close()
+        print("Your Environment Analysis file was saved, check it out: " + filename)
 
         return None
