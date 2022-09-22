@@ -19,12 +19,12 @@ sys.path.insert(0, os.path.abspath("../"))
 # -- Project information -----------------------------------------------------
 
 project = "RocketPy"
-copyright = "2020, Projeto Jupiter"
+copyright = "2020, RocketPy Team"
 
 author = "Giovani Hidalgo Ceotto"
 
 # The full version, including alpha/beta/rc tags
-release = "0.10.0"
+release = "0.12.0"
 
 
 # -- General configuration ---------------------------------------------------
@@ -75,7 +75,7 @@ html_logo = "static/RocketPy_Logo_Black.svg"
 html_favicon = "static/favicon.ico"
 html_theme_options = {
     "logo_link": "index",
-    "github_url": "https://github.com/Projeto-Jupiter/RocketPy",
+    "github_url": "https://github.com/RocketPy-Team/RocketPy",
     "collapse_navigation": True,
     "show_toc_level": 3,
 }

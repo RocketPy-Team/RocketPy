@@ -5,22 +5,22 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 import bisect
+import warnings
 from collections import defaultdict
 
 import ipywidgets as widgets
-from IPython.display import HTML
-import numpy as np
-from scipy import stats
-from matplotlib import pyplot as plt
-
-from matplotlib.animation import FuncAnimation, PillowWriter as ImageWriter
 import matplotlib.ticker as mtick
-
-from windrose import WindroseAxes
 import netCDF4
-from cftime import num2pydate
+import numpy as np
 import pytz
+from cftime import num2pydate
+from IPython.display import HTML
+from matplotlib import pyplot as plt
+from matplotlib.animation import FuncAnimation
+from matplotlib.animation import PillowWriter as ImageWriter
+from scipy import stats
 from timezonefinder import TimezoneFinder
+from windrose import WindroseAxes
 
 from rocketpy.Function import Function
 from rocketpy.units import convert_units
@@ -104,6 +104,8 @@ class EnvironmentAnalysis:
         -------
         None
         """
+        warnings.warn("Please notice this class is still under development")
+
         # Save inputs
         self.start_date = start_date
         self.end_date = end_date
@@ -581,7 +583,7 @@ class EnvironmentAnalysis:
                     variablePointsArray,
                     inputs="Height Above Ground Level (m)",
                     outputs=key,
-                    interpolation="linear",
+                    extrapolation="constant",
                 )
                 self.pressureLevelDataDict[dateString][hourString][
                     key
@@ -595,7 +597,7 @@ class EnvironmentAnalysis:
                 pressurePointsArray,
                 inputs="Height Above Sea Level (m)",
                 outputs="Pressure (Pa)",
-                interpolation="linear",
+                extrapolation="constant",
             )
             self.pressureLevelDataDict[dateString][hourString][
                 "pressure"
@@ -627,7 +629,7 @@ class EnvironmentAnalysis:
                 windSpeedPointsArray,
                 inputs="Height Above Sea Level (m)",
                 outputs="Wind Speed (m/s)",
-                interpolation="linear",
+                extrapolation="constant",
             )
             self.pressureLevelDataDict[dateString][hourString][
                 "windSpeed"
@@ -645,7 +647,7 @@ class EnvironmentAnalysis:
                 windHeadingPointsArray,
                 inputs="Height Above Sea Level (m)",
                 outputs="Wind Heading (Deg True)",
-                interpolation="linear",
+                extrapolation="constant",
             )
             self.pressureLevelDataDict[dateString][hourString][
                 "windHeading"
@@ -660,7 +662,7 @@ class EnvironmentAnalysis:
                 windDirectionPointsArray,
                 inputs="Height Above Sea Level (m)",
                 outputs="Wind Direction (Deg True)",
-                interpolation="linear",
+                extrapolation="constant",
             )
             self.pressureLevelDataDict[dateString][hourString][
                 "windDirection"
@@ -2005,7 +2007,7 @@ class EnvironmentAnalysis:
 
         # Create grid of plots for each hour
         hours = list(list(self.pressureLevelDataDict.values())[0].keys())
-        ncols, nrows = self._find_two_closest_integer_factors(len(hours))
+        nrows, ncols = self._find_two_closest_integer_factors(len(hours))
         fig = plt.figure(figsize=(ncols * 2, nrows * 2.2))
         gs = fig.add_gridspec(nrows, ncols, hspace=0, wspace=0, left=0.12)
         axs = gs.subplots(sharex=True, sharey=True)

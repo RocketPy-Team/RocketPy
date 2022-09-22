@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+__author__ = "Giovani Hidalgo Ceotto"
+__copyright__ = "Copyright 20XX, RocketPy Team"
+__license__ = "MIT"
+
+
 import numpy as np
 from rocketpy.Function import Function
 

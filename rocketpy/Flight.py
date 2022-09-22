@@ -9,10 +9,10 @@ __license__ = "MIT"
 import math
 import time
 
-import numpy as np
-from scipy import integrate
 import matplotlib.pyplot as plt
+import numpy as np
 import simplekml
+from scipy import integrate
 
 from .Function import Function
 
@@ -1368,7 +1368,7 @@ class Flight:
 
         # Determine aerodynamics forces
         # Determine Drag Force
-        if t > self.rocket.motor.burnOutTime:
+        if t < self.rocket.motor.burnOutTime:
             dragCoeff = self.rocket.powerOnDrag.getValueOpt(freestreamMach)
         else:
             dragCoeff = self.rocket.powerOffDrag.getValueOpt(freestreamMach)
