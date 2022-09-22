@@ -10,6 +10,7 @@ import warnings
 from collections import defaultdict
 
 import ipywidgets as widgets
+import jsonpickle
 import matplotlib.ticker as mtick
 import netCDF4
 import numpy as np
@@ -67,7 +68,6 @@ class EnvironmentAnalysis:
         pressureLevelDataFile=None,
         timezone=None,
         unit_system="metric",
-        load_previous_data=None,
     ):
         """Constructor for the EnvironmentAnalysis class.
         Parameters
@@ -102,10 +102,6 @@ class EnvironmentAnalysis:
         unit_system : str, optional
             Unit system to be used when displaying results.
             Options are: SI, metric, imperial. Default is metric.
-        load_previous_data : str, optional
-            If True, the class will try to load the data from a previous ran Environment Analysis.
-            Use .json file resulted from ... as input.
-            Default is None.
         Returns
         -------
         None
@@ -124,7 +120,7 @@ class EnvironmentAnalysis:
         self.surfaceDataFile = surfaceDataFile
         self.pressureLevelDataFile = pressureLevelDataFile
         self.preferred_timezone = timezone
-        self.load_previous_data = load_previous_data
+        self.unit_system = unit_system
 
         # Manage units and timezones
         self.__init_data_parsing_units()
@@ -132,50 +128,13 @@ class EnvironmentAnalysis:
         self.__localize_input_dates()
 
         # Parse data files, surface goes first to calculate elevation
-        if load_previous_data is None:
-            self.surfaceDataDict = {}
-            self.parseSurfaceData()
-            self.pressureLevelDataDict = {}
-            self.parsePressureLevelData()
+        self.surfaceDataDict = {}
+        self.parseSurfaceData()
+        self.pressureLevelDataDict = {}
+        self.parsePressureLevelData()
 
-            # Convert units
-            self.set_unit_system(unit_system)
-        else:
-            # Opening JSON file
-            try:
-                with open(self.load_previous_data) as json_file:
-                    self.loaded_data = json.load(json_file)
-            except:
-                raise RuntimeError(
-                    "Unable to read json file from previous ran Environment Analysis. Please try again."
-                )
-
-            self.surfaceDataDict = self.loaded_data["surfaceDataDict"]
-            self.pressureLevelDataDict = self.loaded_data["pressureLevelDataDict"]
-            print(
-                "Information of the data loaded from previous Environment Analysis.\n"
-            )
-            print(
-                "Available dates: ",
-                self.loaded_data["start_date"],
-                " to ",
-                self.loaded_data["end_date"],
-            )
-            print(
-                "Available hours: ",
-                self.loaded_data["start_hour"],
-                " to ",
-                self.loaded_data["end_hour"],
-            )
-            print("Latitude", self.loaded_data["latitude"])
-            print("Longitude", self.loaded_data["longitude"])
-            print("Elevation:", self.loaded_data["elevation"])
-            print("Surface data file: ", self.loaded_data["surfaceDataFile"])
-            print(
-                "Pressure level data file: ", self.loaded_data["pressureLevelDataFile"]
-            )
-            print("User timezone: ", self.loaded_data["preferred_timezone"])
-            print("User unit system: ", self.loaded_data["unit_system"])
+        # Convert units
+        self.set_unit_system(unit_system)
 
         # Initialize result variables
         self.average_max_temperature = 0
@@ -631,7 +590,7 @@ class EnvironmentAnalysis:
                 variablePointsArray = np.array([heightAboveSeaLevelArray, valueArray]).T
                 variableFunction = Function(
                     variablePointsArray,
-                    inputs="Height Above Ground Level (m)",
+                    inputs="Height Above Ground Level (m)",  # TODO: Check if it is really AGL or ASL here, see 3 lines above
                     outputs=key,
                     extrapolation="constant",
                 )
@@ -2730,7 +2689,15 @@ class EnvironmentAnalysis:
         Exports the mean profiles of the weather data to a file in order to it
         be used as inputs on Environment Class by using the CustomAtmosphere
         model.
-        TODO: Improve docs
+
+        Parameters
+        ----------
+        filename : str, optional
+            Name of the file where to be saved, by default "EnvAnalysisDict"
+
+        Returns
+        -------
+        None
         """
 
         self.process_temperature_profile_over_average_day()
@@ -2782,8 +2749,6 @@ class EnvironmentAnalysis:
             # "maxExpectedHeight": 80000, # TODO: Implement this parameter at EnvAnalysis Class
             "surfaceDataFile": self.surfaceDataFile,
             "pressureLevelDataFile": self.pressureLevelDataFile,
-            # "surfaceDataDict": self.surfaceDataDict, # TODO: Too large, make it optional
-            # "pressureLevelDataDict": self.pressureLevelDataDict, # TODO: Too large, make it optional
             "atmosphericModelPressureProfile": organized_pressure_dict,
             "atmosphericModelTemperatureProfile": organized_temperature_dict,
             "atmosphericModelWindVelocityXProfile": organized_windX_dict,
@@ -2811,47 +2776,40 @@ class EnvironmentAnalysis:
 
         return None
 
-    def saveEnvAnalysisDict(self, filename="EnvAnalysisDict"):
+    @classmethod
+    def load(self, filename="EnvAnalysisDict"):
+        """Load a previously saved Environment Analysis file.
+        Example: EnvA = EnvironmentAnalysis.load("filename").
+
+        Parameters
+        ----------
+        filename : str, optional
+            Name of the previous saved file, by default "EnvAnalysisDict"
+
+        Returns
+        -------
+        EnvironmentAnalysis object
+
         """
-        Saves the Environment Analysis dictionary to a file in order to it
-        be load again in the future.
-        TODO: Improve docs
+        encoded_class = open(filename).read()
+        return jsonpickle.decode(encoded_class)
+
+    def save(self, filename="EnvAnalysisDict"):
+        """Save the Environment Analysis object to a file so it can be used later.
+
+        Parameters
+        ----------
+        filename : str, optional
+            Name of the file where to be saved, by default "EnvAnalysisDict"
+
+        Returns
+        -------
+        None
         """
-
-        self.EnvAnalysisDict = {
-            "start_date": self.start_date.strftime("%Y-%m-%d"),
-            "end_date": self.end_date.strftime("%Y-%m-%d"),
-            "start_hour": self.start_hour,
-            "end_hour": self.end_hour,
-            "latitude": self.latitude,
-            "longitude": self.longitude,
-            "elevation": self.elevation,
-            "timeZone": str(self.preferred_timezone),
-            "unit_system": self.unit_system,
-            # "maxExpectedHeight": 80000, # TODO: Implement this parameter at EnvAnalysis Class
-            "surfaceDataFile": self.surfaceDataFile,
-            "pressureLevelDataFile": self.pressureLevelDataFile,
-            "surfaceDataDict": self.surfaceDataDict,
-            "pressureLevelDataDict": self.pressureLevelDataDict,
-        }
-
-        # Convert to json
-        f = open(filename + ".json", "w")
-
-        # write json object to file
-        f.write(
-            json.dumps(self.EnvAnalysisDict, sort_keys=False, indent=4, default=str)
-        )
-
-        # close file
-        f.close()
-        print(
-            "Your Environment Analysis file was saved, check it out: "
-            + filename
-            + ".json"
-        )
-        print(
-            "You can use it in the future by using the customAtmosphere atmospheric model."
-        )
+        encoded_class = jsonpickle.encode(self)
+        file = open(filename, "w")
+        file.write(encoded_class)
+        file.close()
+        print("Your Environment Analysis file was saved, check it out: " + filename)
 
         return None
