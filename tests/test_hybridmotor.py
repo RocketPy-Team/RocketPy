@@ -29,8 +29,9 @@ def test_Initial_Center_Of_Mass_Position_correct():
 
     assert abs(example_motor.zCM(0)) - abs(0.005121644685784456) < 1e-6
 
+
 def hybrid_rse_input():
-    nozzle_reference = 609.6/1000
+    nozzle_reference = 609.6 / 1000
     rse_motor = HybridMotor(
         thrustSource="tests/fixtures/motor/Contrail_K234-BG.rse",
         burnOut=7.05,
@@ -45,10 +46,9 @@ def hybrid_rse_input():
         oxidizerInitialPressure=51.03,
         oxidizerDensity=1.98,
         oxidizerMolarMass=44.01,
-        oxidizerInitialVolume= np.pi * (62.5 / 1000) ** 2  * 600 / 1000,
+        oxidizerInitialVolume=np.pi * (62.5 / 1000) ** 2 * 600 / 1000,
         distanceGrainToTank=200 / 1000,
         injectorArea=3e-05,
     )
 
     assert rse_motor.zCM(rse_motor.burnOutTime) == nozzle_reference
-    
