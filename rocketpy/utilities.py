@@ -5,6 +5,7 @@ __license__ = "MIT"
 
 import numpy as np
 from scipy.integrate import solve_ivp
+import matplotlib.pyplot as plt
 
 from .Environment import Environment
 from .Function import Function
@@ -272,7 +273,7 @@ def compareTrajectories(
     ax1.set_xlabel("X - East (m)")
     ax1.set_ylabel("Y - North (m)")
     ax1.set_zlabel("Z - Altitude (m)")
-    ax1.set_title("Flight Trajectories Combined")
+    ax1.set_title("Flight Trajectories Comparison")
     ax1.set_zlim3d([minZ, maxZ])
     ax1.set_ylim3d([minXY, maxXY])
     ax1.set_xlim3d([minXY, maxXY])
@@ -316,8 +317,8 @@ def compareFlightTrajectories(
     for flight in flight_list:
 
         # Check post process
-        if flight.postProcessed is False:
-            flight.postProcess()
+        # if flight.postProcessed is False:
+        #     flight.postProcess()
 
         # Get trajectories
         x = flight.x[:, 1]
