@@ -39,6 +39,7 @@ def compute_CdS_from_drop_test(
 
     return 2 * rocket_mass * g / ((terminal_velocity ** 2) * air_density)
 
+
 # TODO: Needs tests
 
 
@@ -212,14 +213,14 @@ def create_dispersion_dictionary(dic):
         Dictionary with all rocket data used in dispersion analysis.
     """
     try:
-        file = np.genfromtxt(dic,usecols = (1,2,3),delimiter = ',',dtype = str)
+        file = np.genfromtxt(dic, usecols=(1, 2, 3), delimiter=",", dtype=str)
     except:
-        file = np.genfromtxt(dic,usecols = (1,2,3),delimiter = ';',dtype = str)
+        file = np.genfromtxt(dic, usecols=(1, 2, 3), delimiter=";", dtype=str)
     analysis_parameters = dict()
     for list in file:
-        if list[0] !="":
-            if list[2] =="":
+        if list[0] != "":
+            if list[2] == "":
                 analysis_parameters[list[0]] = float(list[1])
             else:
-                analysis_parameters[list[0]] = (float(list[1]),float(list[2]))
+                analysis_parameters[list[0]] = (float(list[1]), float(list[2]))
     return analysis_parameters
