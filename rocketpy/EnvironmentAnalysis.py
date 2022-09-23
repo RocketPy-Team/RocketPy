@@ -54,6 +54,9 @@ class EnvironmentAnalysis:
     - The class then parses the weather data from the start date to the end date.
     - The class then calculates the average max/min temperature, average max wind gust, and average day wind rose.
     - The class then plots the average max/min temperature, average max wind gust, and average day wind rose.
+
+    TODOs:
+    - Add maxExpectedHeight to the class.
     """
 
     def __init__(
@@ -488,9 +491,7 @@ class EnvironmentAnalysis:
         Parse pressure level data from a weather file.
 
         Sources of information:
-        TODO: Fix website that is guiding to single levels data
-        - https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels-preliminary-back-extension?tab=overview
-        -
+        - https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-pressure-levels?tab=form
 
         Must get the following variables from a ERA5 file:
         - Geopotential
@@ -683,9 +684,10 @@ class EnvironmentAnalysis:
         """
         Parse surface data from a weather file.
         Currently only supports files from ECMWF.
+        You can download a file from the following website: https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels?tab=form
 
         Must get the following variables:
-        - surface elevation: self.elevation = float
+        - surface elevation: self.elevation = float  # Select 'Geopotential'
         - 2m temperature: surfaceTemperature = float
         - Surface pressure: surfacePressure = float
         - 10m u-component of wind: surface10mWindVelocityX = float
@@ -2746,7 +2748,6 @@ class EnvironmentAnalysis:
             "elevation": self.elevation,
             "timeZone": self.preferred_timezone,
             "unit_system": self.unit_system,
-            # "maxExpectedHeight": 80000, # TODO: Implement this parameter at EnvAnalysis Class
             "surfaceDataFile": self.surfaceDataFile,
             "pressureLevelDataFile": self.pressureLevelDataFile,
             "atmosphericModelPressureProfile": organized_pressure_dict,
