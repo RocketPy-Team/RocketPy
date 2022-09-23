@@ -227,4 +227,3 @@ def create_dispersion_dictionary(dic):
             else:
                 analysis_parameters[list[0]] = (float(list[1]), float(list[2]))
     return analysis_parameters
-
