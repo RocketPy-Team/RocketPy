@@ -912,7 +912,7 @@ class Rocket:
         )
 
         # Parameters for Roll Moment.
-        # Documented at: https://github.com/Projeto-Jupiter/RocketPy/blob/develop/docs/technical/aerodynamics/Roll_Equations.pdf
+        # Documented at: https://github.com/RocketPy-Team/RocketPy/blob/develop/docs/technical/aerodynamics/Roll_Equations.pdf
         clfDelta = (
             rollForcingInterferenceFactor * n * (Yma + radius) * clalphaSingleFin / d
         )  # Function of mach number
