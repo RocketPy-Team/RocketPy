@@ -11,6 +11,7 @@ from scipy import integrate
 
 from rocketpy.Function import Function
 from rocketpy.motors import Motor
+from rocketpy.supplement import Disk, Cylinder, Hemisphere
 
 # @Stano
 class LiquidMotor(Motor):
@@ -42,7 +43,19 @@ class LiquidMotor(Motor):
 
 
 class Tank(ABC):
-    def __init__(self, name, diameter, height, endcap, gas, liquid=0):
+    def __init__(self, name, diameter, height, gas, liquid=0, endcap="flat"):
+        self.name = name
+        self.diameter = diameter
+        self.height = height
+        self.gas = gas
+        self.liquid = liquid
+
+        self.capMap = {
+            "flat": Disk(diameter / 2),
+            "spherical": Hemisphere(diameter / 2),
+        }
+        self.cylinder = Cylinder(diameter / 2, height)
+        self.cap = self.capMap.get(endcap)
         pass
 
     @abstractmethod
@@ -81,6 +94,22 @@ class Tank(ABC):
         pass
 
     @abstractmethod
+    def liquidVolume(self, t):
+        """Returns the volume of liquid inside the tank as a function
+        of time.
+
+        Parameters
+        ----------
+        time : float
+            Time in seconds.
+
+        Returns
+        -------
+        Function
+            Tank's liquid volume as a function of time.
+        """
+        pass
+
     def centerOfMass(self, t):
         """Returns the center of mass of the tank's fluids as a function of
         time.
@@ -95,10 +124,20 @@ class Tank(ABC):
         Function
             Center of mass of the tank's fluids as a function of time.
         """
-        pass
+        liquid_volume = self.liquidVolume(t)
+        if liquid_volume < self.cap.volume:
+            self.cap.filled_volume = liquid_volume
+            return self.cap.filled_centroid
+        else:
+            self.cylinder.filled_volume = liquid_volume - self.cap.volume
 
-    @property
-    @abstractmethod
+            cylinder_mass = self.cylinder.filled_volume * self.liquid.density
+            cap_mass = self.cap.volume * self.liquid.density
+
+            return (
+                self.cap.centroid * cap_mass + self.cylinder.centroid * cylinder_mass
+            ) / (cap_mass + cylinder_mass)
+
     def inertiaTensor(self, t):
         """Returns the inertia tensor of the tank's fluids as a function of
         time.
@@ -113,7 +152,7 @@ class Tank(ABC):
         Function
             Inertia tensor of the tank's fluids as a function of time.
         """
-        pass
+        ...
 
 
 # @MrGribel
