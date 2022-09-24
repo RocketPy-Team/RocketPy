@@ -1639,7 +1639,7 @@ class EnvironmentAnalysis:
         plt.xlim(0, max(np.percentile(wind_speed_profiles, 50 + 49.85, axis=0)))
         plt.show()
 
-    def plot_average_wind_heading_profile(self, SACup_altitude_constraints=False):
+    def plot_average_wind_heading_profile(self, clear_range_limits=False):
         """Average wind heading for all datetimes available."""
         altitude_list = np.linspace(*self.altitude_AGL_range, 100)
 
@@ -1671,40 +1671,40 @@ class EnvironmentAnalysis:
         # Plot
         plt.figure()
         plt.plot(self.average_wind_heading_profile, altitude_list, "r", label="$\\mu$")
-        plt.plot(
-            np.percentile(wind_heading_profiles, 50 - 34.1, axis=0),
-            altitude_list,
-            "b--",
-            alpha=1,
-            label="$\\mu \\pm \\sigma$",
-        )
-        plt.plot(
-            np.percentile(wind_heading_profiles, 50 + 34.1, axis=0),
-            altitude_list,
-            "b--",
-            alpha=1,
-        )
-        plt.plot(
-            np.percentile(wind_heading_profiles, 50 - 47.4, axis=0),
-            altitude_list,
-            "b--",
-            alpha=0.5,
-            label="$\\mu \\pm 2\\sigma$",
-        )
-        plt.plot(
-            np.percentile(wind_heading_profiles, 50 + 47.7, axis=0),
-            altitude_list,
-            "b--",
-            alpha=0.5,
-        )
+        # plt.plot(
+        #     np.percentile(wind_heading_profiles, 50 - 34.1, axis=0),
+        #     altitude_list,
+        #     "b--",
+        #     alpha=1,
+        #     label="$\\mu \\pm \\sigma$",
+        # )
+        # plt.plot(
+        #     np.percentile(wind_heading_profiles, 50 + 34.1, axis=0),
+        #     altitude_list,
+        #     "b--",
+        #     alpha=1,
+        # )
+        # plt.plot(
+        #     np.percentile(wind_heading_profiles, 50 - 47.4, axis=0),
+        #     altitude_list,
+        #     "b--",
+        #     alpha=0.5,
+        #     label="$\\mu \\pm 2\\sigma$",
+        # )
+        # plt.plot(
+        #     np.percentile(wind_heading_profiles, 50 + 47.7, axis=0),
+        #     altitude_list,
+        #     "b--",
+        #     alpha=0.5,
+        # )
         for wind_heading_profile in wind_heading_profiles:
             plt.plot(wind_heading_profile, altitude_list, "gray", alpha=0.01)
 
         plt.autoscale(enable=True, axis="x", tight=True)
         plt.autoscale(enable=True, axis="y", tight=True)
 
-        if SACup_altitude_constraints:
-            # SA Cup altitude constraints region
+        if clear_range_limits:
+            # Clear Sky Range Altitude Limits
             print(plt)
             xmin, xmax, ymin, ymax = plt.axis()
             plt.fill_between(
@@ -2731,9 +2731,7 @@ class EnvironmentAnalysis:
             average_wind_heading_profile_at_given_hour
         )
 
-    def plot_wind_heading_profile_over_average_day(
-        self, SACup_altitude_constraints=False
-    ):
+    def plot_wind_heading_profile_over_average_day(self, clear_range_limits=False):
         """Creates a grid of plots with the wind heading profile over the average day."""
         self.process_wind_heading_profile_over_average_day()
 
@@ -2768,9 +2766,9 @@ class EnvironmentAnalysis:
             mtick.MaxNLocator(integer=True, nbins=4, prune="lower")
         )
 
-        if SACup_altitude_constraints:
+        if clear_range_limits:
             for (i, j) in [(i, j) for i in range(nrows) for j in range(ncols)]:
-                # SA Cup altitude constraints region
+                # Clear Sky range limits
                 ax = axs[i, j]
                 ax.fill_between(
                     [x_min, x_max],
@@ -2795,7 +2793,7 @@ class EnvironmentAnalysis:
         fig.supylabel(f"Altitude AGL ({self.unit_system['length']})")
         plt.show()
 
-    def animate_wind_profile_over_average_day(self, SACup_altitude_constraints=False):
+    def animate_wind_profile_over_average_day(self, clear_range_limits=False):
         """Animation of how wind profile evolves throughout an average day."""
         self.process_wind_speed_profile_over_average_day()
 
@@ -2841,8 +2839,8 @@ class EnvironmentAnalysis:
             blit=True,
         )
 
-        if SACup_altitude_constraints:
-            # SA Cup altitude constraints region
+        if clear_range_limits:
+            # Clear sky range limits
             ax.fill_between(
                 [0, self.max_average_wind_at_altitude + 5],
                 0.7 * convert_units(10000, "ft", self.unit_system["length"]),
@@ -2864,9 +2862,7 @@ class EnvironmentAnalysis:
         plt.close(fig)
         return HTML(animation.to_jshtml())
 
-    def animate_wind_heading_profile_over_average_day(
-        self, SACup_altitude_constraints=False
-    ):
+    def animate_wind_heading_profile_over_average_day(self, clear_range_limits=False):
         """Animation of how wind heading profile evolves throughout an average day."""
         self.process_wind_heading_profile_over_average_day()
 
@@ -2912,8 +2908,8 @@ class EnvironmentAnalysis:
             blit=True,
         )
 
-        if SACup_altitude_constraints:
-            # SA Cup altitude constraints region
+        if clear_range_limits:
+            # Clear sjy range limits
             ax.fill_between(
                 [0, self.max_average_wind_at_altitude + 5],
                 0.7 * convert_units(10000, "ft", self.unit_system["length"]),
