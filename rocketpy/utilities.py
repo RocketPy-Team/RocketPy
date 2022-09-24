@@ -197,7 +197,6 @@ def calculateEquilibriumAltitude(
     return altitudeFunction, velocityFunction, final_sol
 
 
-# TODO: Needs tests
 def create_dispersion_dictionary(filename):
     """Creates a dictionary with the rocket data provided by a .csv file.
     File should be organized in four columns: attribute_class, parameter_name,
