@@ -541,7 +541,7 @@ class Flight:
             Default is 90, which points in the x direction.
         initialSolution : array, Flight, optional
             Initial solution array to be used. Format is
-            initialSolution = []
+            initialSolution = [
                 self.tInitial,
                 xInit, yInit, zInit,
                 vxInit, vyInit, vzInit,
