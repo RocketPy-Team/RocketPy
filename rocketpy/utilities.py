@@ -230,12 +230,12 @@ def create_dispersion_dictionary(filename):
         if row[0] != "":
             if row[2] == "":
                 try:
-                    analysis_parameters[row[0]] = float(row[1])
+                    analysis_parameters[row[0].strip()] = float(row[1])
                 except:
-                    analysis_parameters[row[0]] = eval(row[1])
+                    analysis_parameters[row[0].strip()] = eval(row[1])
             else:
                 try:
-                    analysis_parameters[row[0]] = (float(row[1]), float(row[2]))
+                    analysis_parameters[row[0].strip()] = (float(row[1]), float(row[2]))
                 except:
-                    analysis_parameters[row[0]] = ""
+                    analysis_parameters[row[0].strip()] = ""
     return analysis_parameters

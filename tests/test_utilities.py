@@ -16,15 +16,27 @@ def test_create__dispersion_dictionary():
     """
 
     returned_dict = utilities.create_dispersion_dictionary(
-        "fixtures/dispersion/Valetudo_inputs.csv"
+        "tests/fixtures/dispersion/Valetudo_inputs.csv"
     )
 
-    test_dict = np.genfromtxt(
-        "fixtures/dispersion/Valetudo_inputs.csv",
+    test_array = np.genfromtxt(
+        "tests/fixtures/dispersion/Valetudo_inputs.csv",
         usecols=(1, 2, 3),
         skip_header=1,
         delimiter=";",
         dtype=str,
     )
-
+    test_dict = dict()
+    for row in test_array:
+        if row[0] != "":
+            if row[2] == "":
+                try:
+                    test_dict[row[0].strip()] = float(row[1])
+                except:
+                    test_dict[row[0].strip()] = eval(row[1])
+            else:
+                try:
+                    test_dict[row[0].strip()] = (float(row[1]), float(row[2]))
+                except:
+                    test_dict[row[0].strip()] = ""
     assert returned_dict == test_dict
