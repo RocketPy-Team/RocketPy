@@ -108,7 +108,8 @@ def calculateEquilibriumAltitude(
 
         Parameters
         ----------
-        f : array, row
+        f : array, list
+
             _description_
         eps : float
             _description_
