@@ -182,13 +182,38 @@ class UllageBasedTank(Tank):
         name,
         diameter,
         height,
-        endcap,
         liquid,
         gas,
         ullage,
+        endcap="flat",
     ):
-        super().__init__(name, diameter, height, endcap, gas, liquid)
-        pass
+        super().__init__(name, diameter, height, gas, liquid, endcap)
+
+        self.ullage = Function(
+            ullage,
+            "Time (s)",
+            "Volume (m³)",
+            "spline",
+        )
+        self.massFunction = Function(self.mass, "Time (s)", "Mass (kg)", "spline")
+
+    def gasVolume(self, t):
+        return self.ullage.getValue(t)
+
+    def liquidVolume(self, t):
+        return self.totalVolume - self.gasVolume(t)
+
+    def gasMass(self, t):
+        return self.gasVolume(t) * self.gas.density
+
+    def liquidMass(self, t):
+        return self.liquidVolume(t) * self.liquid.density
+
+    def mass(self, t):
+        return self.gasMass(t) + self.liquidMass(t)
+
+    def netMassFlowRate(self, t):
+        return self.massFunction.differentiate(t)
 
 
 # @ompro07
