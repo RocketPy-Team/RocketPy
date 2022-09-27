@@ -2937,7 +2937,9 @@ class Flight:
                 self.railButton2NormalForce[:outOfRailTimeIndex, 1],
                 label="Lower Rail Button",
             )
-            ax1.set_xlim(0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal)
+            ax1.set_xlim(
+                0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal
+            )
             ax1.legend()
             ax1.grid(True)
             ax1.set_xlabel("Time (s)")
@@ -2955,7 +2957,9 @@ class Flight:
                 self.railButton2ShearForce[:outOfRailTimeIndex, 1],
                 label="Lower Rail Button",
             )
-            ax2.set_xlim(0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal)
+            ax2.set_xlim(
+                0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal
+            )
             ax2.legend()
             ax2.grid(True)
             ax2.set_xlabel("Time (s)")
