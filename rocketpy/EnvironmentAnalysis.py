@@ -107,8 +107,7 @@ class EnvironmentAnalysis:
         pressureLevelDataFile=None,
         timezone=None,
         unit_system="metric",
-        load_previous_data=None,
-        forecast_comparaison=False,
+        forecast_comparison=False,
         forecast_date=None,
         maxExpectedAltitude=None,
     ):
@@ -213,7 +212,7 @@ class EnvironmentAnalysis:
 
         # Processing forecast
         self.forecast = None
-        if forecast_comparaison:
+        if forecast_comparison:
             self.forecast = {}
             hours = list(self.pressureLevelDataDict.values())[0].keys()
             for hour in hours:
