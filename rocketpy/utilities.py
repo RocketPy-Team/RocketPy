@@ -314,9 +314,10 @@ def compareFlightTrajectories(
     trajectory_list = []
     for flight in flight_list:
 
-        # Check post process
-        if flight.postProcessed is False:
-            flight.postProcess()
+        # TODO: Debug this part, postProcess is not working when using initial solution method
+        # # Check post process
+        # if flight.postProcessed is False:
+        #     flight.postProcess()
 
         # Get trajectories
         x = flight.x[:, 1]
