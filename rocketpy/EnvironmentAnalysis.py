@@ -1631,10 +1631,10 @@ class EnvironmentAnalysis:
                 label=f"30,000 {self.unit_system['length']} ± 30%",
             )
 
-        plt.xlabel(f"Wind heading ({self.unit_system['angle']})")
+        plt.xlabel(f"Wind speed ({self.unit_system['wind_speed']})")
         plt.ylabel(f"Altitude AGL ({self.unit_system['length']})")
         plt.xlim(0, 360)
-        plt.title("Average Wind heading Profile")
+        plt.title("Average Wind speed Profile")
         plt.legend()
         plt.xlim(0, max(np.percentile(wind_speed_profiles, 50 + 49.85, axis=0)))
         plt.show()
@@ -1697,8 +1697,8 @@ class EnvironmentAnalysis:
         #     "b--",
         #     alpha=0.5,
         # )
-        for wind_heading_profile in wind_heading_profiles:
-            plt.plot(wind_heading_profile, altitude_list, "gray", alpha=0.01)
+        # for wind_heading_profile in wind_heading_profiles:
+        #     plt.plot(wind_heading_profile, altitude_list, "gray", alpha=0.01)
 
         plt.autoscale(enable=True, axis="x", tight=True)
         plt.autoscale(enable=True, axis="y", tight=True)
