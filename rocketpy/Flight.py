@@ -539,15 +539,18 @@ class Flight:
         heading : int, float, optional
             Heading angle relative to north given in degrees.
             Default is 90, which points in the x direction.
-        initialSolution : array, optional
+        initialSolution : array, Flight, optional
             Initial solution array to be used. Format is
-            initialSolution = [self.tInitial,
-                                xInit, yInit, zInit,
-                                vxInit, vyInit, vzInit,
-                                e0Init, e1Init, e2Init, e3Init,
-                                w1Init, w2Init, w3Init].
-            If None, the initial solution will start with all null values,
-            except for the euler parameters which will be calculated based
+            initialSolution = [
+                self.tInitial,
+                xInit, yInit, zInit,
+                vxInit, vyInit, vzInit,
+                e0Init, e1Init, e2Init, e3Init,
+                w1Init, w2Init, w3Init
+            ].
+            If a Flight object is used, the last state vector will be used as
+            initial solution. If None, the initial solution will start with
+            all null values, except for the euler parameters which will be calculated based
             on given values of inclination and heading. Default is None.
         terminateOnApogee : boolean, optional
             Whether to terminate simulation when rocket reaches apogee.
@@ -605,76 +608,19 @@ class Flight:
         self.terminateOnApogee = terminateOnApogee
 
         # Modifying Rail Length for a better out of rail condition
-        # TODO: Makes this more general, not only for the case of having rail buttons
-        upperRButton = max(self.rocket.railButtons[0])
-        lowerRButton = min(self.rocket.railButtons[0])
-        nozzle = self.rocket.distanceRocketNozzle
-        self.effective1RL = self.env.rL - abs(nozzle - upperRButton)
-        self.effective2RL = self.env.rL - abs(nozzle - lowerRButton)
+
+        if self.rocket.railButtons is not None:
+            upperRButton = max(self.rocket.railButtons[0])
+            lowerRButton = min(self.rocket.railButtons[0])
+            nozzle = self.rocket.distanceRocketNozzle
+            self.effective1RL = self.env.rL - abs(nozzle - upperRButton)
+            self.effective2RL = self.env.rL - abs(nozzle - lowerRButton)
+        self.effective1RL = self.effective2RL = self.env.rL
 
         # Flight initialization
         self.__init_post_process_variables()
-        # Initialize solution monitors
-        self.outOfRailTime = 0
-        self.outOfRailState = np.array([0])
-        self.outOfRailVelocity = 0
-        self.apogeeState = np.array([0])
-        self.apogeeTime = 0
-        self.apogeeX = 0
-        self.apogeeY = 0
-        self.apogee = 0
-        self.xImpact = 0
-        self.yImpact = 0
-        self.impactVelocity = 0
-        self.impactState = np.array([0])
-        self.parachuteEvents = []
-        self.postProcessed = False
-        self.latitude = 0  # Function(0)
-        self.longitude = 0  # Function(0)
-        # Initialize solver monitors
-        self.functionEvaluations = []
-        self.functionEvaluationsPerTimeStep = []
-        self.timeSteps = []
-        # Initialize solution state
-        self.solution = []
-        if self.initialSolution is None:
-            # Initialize time and state variables
-            self.tInitial = 0
-            xInit, yInit, zInit = 0, 0, self.env.elevation
-            vxInit, vyInit, vzInit = 0, 0, 0
-            w1Init, w2Init, w3Init = 0, 0, 0
-            # Initialize attitude
-            psiInit = -heading * (np.pi / 180)  # Precession / Heading Angle
-            thetaInit = (inclination - 90) * (np.pi / 180)  # Nutation Angle
-            e0Init = np.cos(psiInit / 2) * np.cos(thetaInit / 2)
-            e1Init = np.cos(psiInit / 2) * np.sin(thetaInit / 2)
-            e2Init = np.sin(psiInit / 2) * np.sin(thetaInit / 2)
-            e3Init = np.sin(psiInit / 2) * np.cos(thetaInit / 2)
-            # Store initial conditions
-            self.initialSolution = [
-                self.tInitial,
-                xInit,
-                yInit,
-                zInit,
-                vxInit,
-                vyInit,
-                vzInit,
-                e0Init,
-                e1Init,
-                e2Init,
-                e3Init,
-                w1Init,
-                w2Init,
-                w3Init,
-            ]
-            # Set initial derivative for rail phase
-            self.initialDerivative = self.uDotRail1
-        else:
-            # Initial solution given, ignore rail phase
-            # TODO: Check if rocket is actually out of rail. Otherwise, start at rail
-            self.outOfRailState = self.initialSolution[1:]
-            self.outOfRailTime = self.initialSolution[0]
-            self.initialDerivative = self.uDot
+        self.__init_solution_monitors()
+        self.__init_flight_state()
 
         self.tInitial = self.initialSolution[0]
         self.solution.append(self.initialSolution)
@@ -1192,6 +1138,85 @@ class Flight:
         self.difference = Function(0)
         self.safetyFactor = Function(0)
 
+    def __init_solution_monitors(self):
+        """Initialize all variables related to solution monitoring."""
+        # Initialize trajectory monitors
+        self.outOfRailTime = 0
+        self.outOfRailState = np.array([0])
+        self.outOfRailVelocity = 0
+        self.apogeeState = np.array([0])
+        self.apogeeTime = 0
+        self.apogeeX = 0
+        self.apogeeY = 0
+        self.apogee = 0
+        self.xImpact = 0
+        self.yImpact = 0
+        self.impactVelocity = 0
+        self.impactState = np.array([0])
+        self.parachuteEvents = []
+        self.postProcessed = False
+        self.latitude = 0  # Function(0)
+        self.longitude = 0  # Function(0)
+        # Initialize solver monitors
+        self.functionEvaluations = []
+        self.functionEvaluationsPerTimeStep = []
+        self.timeSteps = []
+        # Initialize solution state
+        self.solution = []
+
+    # TODO: Need unit tests
+    def __init_flight_state(self):
+        """Initialize flight state."""
+        if self.initialSolution is None:
+            # Initialize time and state variables based on heading and inclination
+            self.tInitial = 0
+            xInit, yInit, zInit = 0, 0, self.env.elevation
+            vxInit, vyInit, vzInit = 0, 0, 0
+            w1Init, w2Init, w3Init = 0, 0, 0
+            # Initialize attitude
+            psiInit = -self.heading * (np.pi / 180)  # Precession / self. Angle
+            thetaInit = (self.inclination - 90) * (np.pi / 180)  # Nutation Angle
+            e0Init = np.cos(psiInit / 2) * np.cos(thetaInit / 2)
+            e1Init = np.cos(psiInit / 2) * np.sin(thetaInit / 2)
+            e2Init = np.sin(psiInit / 2) * np.sin(thetaInit / 2)
+            e3Init = np.sin(psiInit / 2) * np.cos(thetaInit / 2)
+            # Store initial conditions
+            self.initialSolution = [
+                self.tInitial,
+                xInit,
+                yInit,
+                zInit,
+                vxInit,
+                vyInit,
+                vzInit,
+                e0Init,
+                e1Init,
+                e2Init,
+                e3Init,
+                w1Init,
+                w2Init,
+                w3Init,
+            ]
+            # Set initial derivative for rail phase
+            self.initialDerivative = self.uDotRail1
+        # TODO: Need unit tests
+        elif isinstance(self.initialSolution, Flight):
+            # TODO: Add optional argument to specify wether to merge/concatenate flight or not
+            # Initialize time and state variables based on last solution of
+            # previous flight
+            self.initialSolution = self.initialSolution.solution[-1]
+            # Set unused monitors
+            self.outOfRailState = self.initialSolution[1:]
+            self.outOfRailTime = self.initialSolution[0]
+            # Set initial derivative for 6-DOF flight phase
+            self.initialDerivative = self.uDot
+        else:
+            # Initial solution given, ignore rail phase
+            # TODO: Check if rocket is actually out of rail. Otherwise, start at rail
+            self.outOfRailState = self.initialSolution[1:]
+            self.outOfRailTime = self.initialSolution[0]
+            self.initialDerivative = self.uDot
+
     def uDotRail1(self, t, u, postProcessing=False):
         """Calculates derivative of u state vector with respect to time
         when rocket is flying in 1 DOF motion in the rail.
@@ -1369,7 +1394,7 @@ class Flight:
 
         # Determine aerodynamics forces
         # Determine Drag Force
-        if t > self.rocket.motor.burnOutTime:
+        if t < self.rocket.motor.burnOutTime:
             dragCoeff = self.rocket.powerOnDrag.getValueOpt(freestreamMach)
         else:
             dragCoeff = self.rocket.powerOffDrag.getValueOpt(freestreamMach)
@@ -1831,62 +1856,63 @@ class Flight:
         self.theta = Function(theta, "Time (s)", "Nutation Angle - θ (°)")
 
         # Dynamics functions and variables
-        # Rail Button Forces
-        alpha = self.rocket.railButtons.angularPosition * (
-            np.pi / 180
-        )  # Rail buttons angular position
-        D1 = self.rocket.railButtons.distanceToCM[
-            0
-        ]  # Distance from Rail Button 1 (upper) to CM
-        D2 = self.rocket.railButtons.distanceToCM[
-            1
-        ]  # Distance from Rail Button 2 (lower) to CM
-        F11 = (self.R1 * D2 - self.M2) / (
-            D1 + D2
-        )  # Rail Button 1 force in the 1 direction
-        F12 = (self.R2 * D2 + self.M1) / (
-            D1 + D2
-        )  # Rail Button 1 force in the 2 direction
-        F21 = (self.R1 * D1 + self.M2) / (
-            D1 + D2
-        )  # Rail Button 2 force in the 1 direction
-        F22 = (self.R2 * D1 - self.M1) / (
-            D1 + D2
-        )  # Rail Button 2 force in the 2 direction
-        outOfRailTimeIndex = np.searchsorted(
-            F11[:, 0], self.outOfRailTime
-        )  # Find out of rail time index
-        # F11 = F11[:outOfRailTimeIndex + 1, :] # Limit force calculation to when rocket is in rail
-        # F12 = F12[:outOfRailTimeIndex + 1, :] # Limit force calculation to when rocket is in rail
-        # F21 = F21[:outOfRailTimeIndex + 1, :] # Limit force calculation to when rocket is in rail
-        # F22 = F22[:outOfRailTimeIndex + 1, :] # Limit force calculation to when rocket is in rail
-        self.railButton1NormalForce = F11 * np.cos(alpha) + F12 * np.sin(alpha)
-        self.railButton1NormalForce.setOutputs("Upper Rail Button Normal Force (N)")
-        self.railButton1ShearForce = F11 * -np.sin(alpha) + F12 * np.cos(alpha)
-        self.railButton1ShearForce.setOutputs("Upper Rail Button Shear Force (N)")
-        self.railButton2NormalForce = F21 * np.cos(alpha) + F22 * np.sin(alpha)
-        self.railButton2NormalForce.setOutputs("Lower Rail Button Normal Force (N)")
-        self.railButton2ShearForce = F21 * -np.sin(alpha) + F22 * np.cos(alpha)
-        self.railButton2ShearForce.setOutputs("Lower Rail Button Shear Force (N)")
-        # Rail Button Maximum Forces
-        if outOfRailTimeIndex == 0:
-            self.maxRailButton1NormalForce = 0
-            self.maxRailButton1ShearForce = 0
-            self.maxRailButton2NormalForce = 0
-            self.maxRailButton2ShearForce = 0
-        else:
-            self.maxRailButton1NormalForce = np.amax(
-                self.railButton1NormalForce[:outOfRailTimeIndex]
-            )
-            self.maxRailButton1ShearForce = np.amax(
-                self.railButton1ShearForce[:outOfRailTimeIndex]
-            )
-            self.maxRailButton2NormalForce = np.amax(
-                self.railButton2NormalForce[:outOfRailTimeIndex]
-            )
-            self.maxRailButton2ShearForce = np.amax(
-                self.railButton2ShearForce[:outOfRailTimeIndex]
-            )
+        if self.rocket.railButtons is not None:
+            # Rail Button Forces
+            alpha = self.rocket.railButtons.angularPosition * (
+                np.pi / 180
+            )  # Rail buttons angular position
+            D1 = self.rocket.railButtons.distanceToCM[
+                0
+            ]  # Distance from Rail Button 1 (upper) to CM
+            D2 = self.rocket.railButtons.distanceToCM[
+                1
+            ]  # Distance from Rail Button 2 (lower) to CM
+            F11 = (self.R1 * D2 - self.M2) / (
+                D1 + D2
+            )  # Rail Button 1 force in the 1 direction
+            F12 = (self.R2 * D2 + self.M1) / (
+                D1 + D2
+            )  # Rail Button 1 force in the 2 direction
+            F21 = (self.R1 * D1 + self.M2) / (
+                D1 + D2
+            )  # Rail Button 2 force in the 1 direction
+            F22 = (self.R2 * D1 - self.M1) / (
+                D1 + D2
+            )  # Rail Button 2 force in the 2 direction
+            outOfRailTimeIndex = np.searchsorted(
+                F11[:, 0], self.outOfRailTime
+            )  # Find out of rail time index
+            # F11 = F11[:outOfRailTimeIndex + 1, :] # Limit force calculation to when rocket is in rail
+            # F12 = F12[:outOfRailTimeIndex + 1, :] # Limit force calculation to when rocket is in rail
+            # F21 = F21[:outOfRailTimeIndex + 1, :] # Limit force calculation to when rocket is in rail
+            # F22 = F22[:outOfRailTimeIndex + 1, :] # Limit force calculation to when rocket is in rail
+            self.railButton1NormalForce = F11 * np.cos(alpha) + F12 * np.sin(alpha)
+            self.railButton1NormalForce.setOutputs("Upper Rail Button Normal Force (N)")
+            self.railButton1ShearForce = F11 * -np.sin(alpha) + F12 * np.cos(alpha)
+            self.railButton1ShearForce.setOutputs("Upper Rail Button Shear Force (N)")
+            self.railButton2NormalForce = F21 * np.cos(alpha) + F22 * np.sin(alpha)
+            self.railButton2NormalForce.setOutputs("Lower Rail Button Normal Force (N)")
+            self.railButton2ShearForce = F21 * -np.sin(alpha) + F22 * np.cos(alpha)
+            self.railButton2ShearForce.setOutputs("Lower Rail Button Shear Force (N)")
+            # Rail Button Maximum Forces
+            if outOfRailTimeIndex == 0:
+                self.maxRailButton1NormalForce = 0
+                self.maxRailButton1ShearForce = 0
+                self.maxRailButton2NormalForce = 0
+                self.maxRailButton2ShearForce = 0
+            else:
+                self.maxRailButton1NormalForce = np.amax(
+                    self.railButton1NormalForce[:outOfRailTimeIndex]
+                )
+                self.maxRailButton1ShearForce = np.amax(
+                    self.railButton1ShearForce[:outOfRailTimeIndex]
+                )
+                self.maxRailButton2NormalForce = np.amax(
+                    self.railButton2NormalForce[:outOfRailTimeIndex]
+                )
+                self.maxRailButton2ShearForce = np.amax(
+                    self.railButton2ShearForce[:outOfRailTimeIndex]
+                )
         # Aerodynamic Lift and Drag
         self.aerodynamicLift = (self.R1**2 + self.R2**2) ** 0.5
         self.aerodynamicLift.setOutputs("Aerodynamic Lift Force (N)")
@@ -2897,46 +2923,47 @@ class Flight:
             eventTimeIndex = -1
 
         # Rail Button Forces
-        fig6 = plt.figure(figsize=(9, 6))
+        if self.rocket.railButtons is not None:
+            fig6 = plt.figure(figsize=(9, 6))
 
-        ax1 = plt.subplot(211)
-        ax1.plot(
-            self.railButton1NormalForce[:outOfRailTimeIndex, 0],
-            self.railButton1NormalForce[:outOfRailTimeIndex, 1],
-            label="Upper Rail Button",
-        )
-        ax1.plot(
-            self.railButton2NormalForce[:outOfRailTimeIndex, 0],
-            self.railButton2NormalForce[:outOfRailTimeIndex, 1],
-            label="Lower Rail Button",
-        )
-        ax1.set_xlim(0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal)
-        ax1.legend()
-        ax1.grid(True)
-        ax1.set_xlabel("Time (s)")
-        ax1.set_ylabel("Normal Force (N)")
-        ax1.set_title("Rail Buttons Normal Force")
+            ax1 = plt.subplot(211)
+            ax1.plot(
+                self.railButton1NormalForce[:outOfRailTimeIndex, 0],
+                self.railButton1NormalForce[:outOfRailTimeIndex, 1],
+                label="Upper Rail Button",
+            )
+            ax1.plot(
+                self.railButton2NormalForce[:outOfRailTimeIndex, 0],
+                self.railButton2NormalForce[:outOfRailTimeIndex, 1],
+                label="Lower Rail Button",
+            )
+            ax1.set_xlim(0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal)
+            ax1.legend()
+            ax1.grid(True)
+            ax1.set_xlabel("Time (s)")
+            ax1.set_ylabel("Normal Force (N)")
+            ax1.set_title("Rail Buttons Normal Force")
 
-        ax2 = plt.subplot(212)
-        ax2.plot(
-            self.railButton1ShearForce[:outOfRailTimeIndex, 0],
-            self.railButton1ShearForce[:outOfRailTimeIndex, 1],
-            label="Upper Rail Button",
-        )
-        ax2.plot(
-            self.railButton2ShearForce[:outOfRailTimeIndex, 0],
-            self.railButton2ShearForce[:outOfRailTimeIndex, 1],
-            label="Lower Rail Button",
-        )
-        ax2.set_xlim(0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal)
-        ax2.legend()
-        ax2.grid(True)
-        ax2.set_xlabel("Time (s)")
-        ax2.set_ylabel("Shear Force (N)")
-        ax2.set_title("Rail Buttons Shear Force")
+            ax2 = plt.subplot(212)
+            ax2.plot(
+                self.railButton1ShearForce[:outOfRailTimeIndex, 0],
+                self.railButton1ShearForce[:outOfRailTimeIndex, 1],
+                label="Upper Rail Button",
+            )
+            ax2.plot(
+                self.railButton2ShearForce[:outOfRailTimeIndex, 0],
+                self.railButton2ShearForce[:outOfRailTimeIndex, 1],
+                label="Lower Rail Button",
+            )
+            ax2.set_xlim(0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal)
+            ax2.legend()
+            ax2.grid(True)
+            ax2.set_xlabel("Time (s)")
+            ax2.set_ylabel("Shear Force (N)")
+            ax2.set_title("Rail Buttons Shear Force")
 
-        plt.subplots_adjust(hspace=0.5)
-        plt.show()
+            plt.subplots_adjust(hspace=0.5)
+            plt.show()
 
         # Aerodynamic force and moment plots
         fig7 = plt.figure(figsize=(9, 12))

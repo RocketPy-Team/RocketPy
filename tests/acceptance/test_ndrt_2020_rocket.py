@@ -115,7 +115,7 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
         kind="tangent",
         distanceToCM=parameters.get("noseDistanceToCM")[0],
     )
-    FinSet = NDRT2020.addFins(
+    FinSet = NDRT2020.addTrapezoidalFins(
         3,
         span=parameters.get("finSpan")[0],
         rootChord=parameters.get("finRootChord")[0],
