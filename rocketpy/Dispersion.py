@@ -1,65 +1,26 @@
 # -*- coding: utf-8 -*-
 
-__author__ = ""
+__author__ = "Mateus Stano Junqueira, Sofia Lopes Suesdek Rocha"
 __copyright__ = "Copyright 20XX, Projeto Jupiter"
 __license__ = "MIT"
 
 
-from rocketpy import *
-import netCDF4
-
-from rocketpy import SolidMotor
-from datetime import datetime
-from os import _Environ
-from time import process_time, perf_counter, time
-import glob
 import traceback
+from time import process_time, time
+import warnings
 
-
-import numpy as np
-from numpy.random import (
-    normal,
-    uniform,
-    choice,
-    beta,
-    binomial,
-    chisquare,
-    dirichlet,
-    exponential,
-    f,
-    gamma,
-    geometric,
-    gumbel,
-    hypergeometric,
-    laplace,
-    logistic,
-    lognormal,
-    logseries,
-    multinomial,
-    multivariate_normal,
-    negative_binomial,
-    noncentral_chisquare,
-    noncentral_f,
-    pareto,
-    poisson,
-    power,
-    rayleigh,
-    standard_cauchy,
-    standard_exponential,
-    standard_gamma,
-    standard_normal,
-    standard_t,
-    triangular,
-    vonmises,
-    wald,
-    weibull,
-    zipf,
-)
-from IPython.display import display
-from rocketpy.Environment import Environment
 import matplotlib.pyplot as plt
+import numpy as np
 from imageio import imread
+from IPython.display import display
 from matplotlib.patches import Ellipse
+from numpy.random import *
+
+from .Environment import Environment
+from .Flight import Flight
+from .Function import Function
+from .Motor import HybridMotor, SolidMotor
+from .Rocket import Rocket
 
 
 class Dispersion:
@@ -94,9 +55,9 @@ class Dispersion:
             Attribute needed to run a new simulation, when Dispersion.flight remains unchanged.
     """
 
-    def __init__(  
+    def __init__(
         self,
-        filename,  
+        filename,
     ):
 
         """
@@ -160,9 +121,123 @@ class Dispersion:
         self.distributionType = "normal"
         self.image = None
         self.realLandingPoint = None
+        self.parachuteTriggers = []
 
-    def yield_flight_setting(self, distributionType, analysis_parameters, number_of_simulations):
-        
+    def setDistributionFunc(self, distributionType):
+        if distributionType == "normal" or distributionType == None:
+            return normal
+        elif distributionType == "beta":
+            return beta
+        elif distributionType == "binomial":
+            return binomial
+        elif distributionType == "chisquare":
+            return chisquare
+        elif distributionType == "dirichlet":
+            return dirichlet
+        elif distributionType == "exponential":
+            return exponential
+        elif distributionType == "f":
+            return f
+        elif distributionType == "gamma":
+            return gamma
+        elif distributionType == "geometric":
+            return geometric
+        if distributionType == "gumbel":
+            return gumbel
+        if distributionType == "hypergeometric":
+            return hypergeometric
+        if distributionType == "laplace":
+            return laplace
+        if distributionType == "logistic":
+            return logistic
+        if distributionType == "lognormal":
+            return lognormal
+        if distributionType == "logseries":
+            return logseries
+        if distributionType == "multinomial":
+            return multinomial
+        if distributionType == "multivariate_normal":
+            return multivariate_normal
+        if distributionType == "negative_binomial":
+            return negative_binomial
+        if distributionType == "noncentral_chisquare":
+            return noncentral_chisquare
+        if distributionType == "noncentral_f":
+            return noncentral_f
+        if distributionType == "pareto":
+            return pareto
+        if distributionType == "poisson":
+            return poisson
+        if distributionType == "power":
+            return power
+        if distributionType == "rayleigh":
+            return rayleigh
+        if distributionType == "standard_cauchy":
+            return standard_cauchy
+        if distributionType == "standard_exponential":
+            return standard_exponential
+        if distributionType == "standard_gamma":
+            return standard_gamma
+        if distributionType == "standard_normal":
+            return standard_normal
+        if distributionType == "standard_t":
+            return standard_t
+        if distributionType == "triangular":
+            return triangular
+        if distributionType == "uniform":
+            return uniform
+        if distributionType == "vonmises":
+            return vonmises
+        if distributionType == "wald":
+            return wald
+        if distributionType == "weibull":
+            return weibull
+        if distributionType == "zipf":
+            return zipf
+        else:
+            warnings.warn("Distribution type not supported")
+
+    def processDispersionDict(self, dispersionDict):
+        # Get parachutes names
+        analysis_parameters = {}
+        if "parachuteNames" in dispersionDict:
+            for i, name in enumerate(dispersionDict["parachuteNames"]):
+                if "CdS" in dispersionDict:
+                    analysis_parameters["parachute_" + name + "_CdS"] = dispersionDict[
+                        "CdS"
+                    ][i]
+                if "trigger" in dispersionDict:
+                    analysis_parameters[
+                        "parachute_" + name + "_trigger"
+                    ] = dispersionDict["trigger"][i]
+                if "samplingRate" in dispersionDict:
+                    analysis_parameters[
+                        "parachute_" + name + "_samplingRate"
+                    ] = dispersionDict["samplingRate"][i]
+                if "lag" in dispersionDict:
+                    analysis_parameters["parachute_" + name + "_lag"] = dispersionDict[
+                        "lag"
+                    ][i]
+                if "noise" in dispersionDict:
+                    analysis_parameters[
+                        "parachute_" + name + "_noise"
+                    ] = dispersionDict["noise"][i]
+            dispersionDict.pop("CdS", None)
+            dispersionDict.pop("trigger", None)
+            dispersionDict.pop("samplingRate", None)
+            dispersionDict.pop("lag", None)
+            dispersionDict.pop("noise", None)
+            self.parachute_names = dispersionDict.pop("parachuteNames", None)
+
+        for key, value in dispersionDict.items():
+            analysis_parameters[key] = value
+
+        return analysis_parameters
+
+    def yield_flight_setting(
+        self, distributionFunc, analysis_parameters, number_of_simulations
+    ):
+
         """Yields a flight setting for the simulation"""
 
         i = 0
@@ -171,95 +246,41 @@ class Dispersion:
             flight_setting = {}
             for parameter_key, parameter_value in analysis_parameters.items():
                 if type(parameter_value) is tuple:
-                    if distributionType == "normal" or distributionType == None:
-                        flight_setting[parameter_key] = normal(*parameter_value)
-                    if distributionType == "beta":
-                        flight_setting[parameter_key] = beta(*parameter_value)
-                    if distributionType == "binomial":
-                        flight_setting[parameter_key] = binomial(*parameter_value)
-                    if distributionType == "chisquare":
-                        flight_setting[parameter_key] = chisquare(*parameter_value)
-                    if distributionType == "dirichlet":
-                        flight_setting[parameter_key] = dirichlet(*parameter_value)
-                    if distributionType == "exponential":
-                        flight_setting[parameter_key] = exponential(*parameter_value)
-                    if distributionType == "f":
-                        flight_setting[parameter_key] = f(*parameter_value)
-                    if distributionType == "gamma":
-                        flight_setting[parameter_key] = gamma(*parameter_value)
-                    if distributionType == "geometric":
-                        flight_setting[parameter_key] = geometric(*parameter_value)
-                    if distributionType == "gumbel":
-                        flight_setting[parameter_key] = gumbel(*parameter_value)
-                    if distributionType == "hypergeometric":
-                        flight_setting[parameter_key] = hypergeometric(*parameter_value)
-                    if distributionType == "laplace":
-                        flight_setting[parameter_key] = laplace(*parameter_value)
-                    if distributionType == "logistic":
-                        flight_setting[parameter_key] = logistic(*parameter_value)
-                    if distributionType == "lognormal":
-                        flight_setting[parameter_key] = lognormal(*parameter_value)
-                    if distributionType == "logseries":
-                        flight_setting[parameter_key] = logseries(*parameter_value)
-                    if distributionType == "multinomial":
-                        flight_setting[parameter_key] = multinomial(*parameter_value)
-                    if distributionType == "multivariate_normal":
-                        flight_setting[parameter_key] = multivariate_normal(*parameter_value)
-                    if distributionType == "negative_binomial":
-                        flight_setting[parameter_key] = negative_binomial(*parameter_value)
-                    if distributionType == "noncentral_chisquare":
-                        flight_setting[parameter_key] = noncentral_chisquare(*parameter_value)
-                    if distributionType == "noncentral_f":
-                        flight_setting[parameter_key] = noncentral_f(*parameter_value)
-                    if distributionType == "pareto":
-                        flight_setting[parameter_key] = pareto(*parameter_value)
-                    if distributionType == "poisson":
-                        flight_setting[parameter_key] = poisson(*parameter_value)
-                    if distributionType == "power":
-                        flight_setting[parameter_key] = power(*parameter_value)
-                    if distributionType == "rayleigh":
-                        flight_setting[parameter_key] = rayleigh(*parameter_value)
-                    if distributionType == "standard_cauchy":
-                        flight_setting[parameter_key] = standard_cauchy(*parameter_value)
-                    if distributionType == "standard_exponential":
-                        flight_setting[parameter_key] = standard_exponential(*parameter_value)
-                    if distributionType == "standard_gamma":
-                        flight_setting[parameter_key] = standard_gamma(*parameter_value)
-                    if distributionType == "standard_normal":
-                        flight_setting[parameter_key] = standard_normal(*parameter_value)
-                    if distributionType == "standard_t":
-                        flight_setting[parameter_key] = standard_t(*parameter_value)
-                    if distributionType == "triangular":
-                        flight_setting[parameter_key] = triangular(*parameter_value)
-                    if distributionType == "uniform":
-                        flight_setting[parameter_key] = uniform(*parameter_value)
-                    if distributionType == "vonmises":
-                        flight_setting[parameter_key] = vonmises(*parameter_value)
-                    if distributionType == "wald":
-                        flight_setting[parameter_key] = wald(*parameter_value)
-                    if distributionType == "weibull":
-                        flight_setting[parameter_key] = weibull(*parameter_value)
-                    if distributionType == "zipf":
-                        flight_setting[parameter_key] = zipf(*parameter_value)
-                else:
+                    flight_setting[parameter_key] = distributionFunc(*parameter_value)
+                elif type(parameter_value) is list:
                     flight_setting[parameter_key] = choice(parameter_value)
+                else:  # if parameter_value is only the standard deviation
+                    if "parachute" in parameter_key:
+                        _, parachute_name, parameter = parameter_key.split("_")
+                        flight_setting[parameter_key] = distributionFunc(
+                            getattr(
+                                self.rocket.parachutes[
+                                    self.parachute_names.index(parachute_name)
+                                ],
+                                parameter,
+                            ),
+                            parameter_value,
+                        )
+                    else:
+                        flight_setting[parameter_key] = distributionFunc(
+                            getattr(self.rocket, parameter_key), parameter_value
+                        )
 
-            # Skip if certain values are negative, which happens due to the normal curve but isnt realistic
-            if (
-                "lag_rec" in analysis_parameters
-                and flight_setting["lag_rec"] < 0
-            ):  # TODO: change "rec" to be more specifci
-                continue
-            if (
-                "lag_se" in analysis_parameters and flight_setting["lag_se"] < 0
-            ):  # TODO: change "se" to be more specifci
-                continue
             # Update counter
             i += 1
             # Yield a flight setting
             yield flight_setting
 
-    def export_flight_data(self, flight_setting, flight_data, exec_time, dispersion_input_file, dispersion_output_file):
+    # TODO: Rework post process Flight method making it possible (and optmized) to
+    # chose what is going to be exported
+    def export_flight_data(
+        self,
+        flight_setting,
+        flight_data,
+        exec_time,
+        dispersion_input_file,
+        dispersion_output_file,
+    ):
 
         """Saves flight results in a .txt"""
 
@@ -321,22 +342,16 @@ class Dispersion:
         flight_result["maxVelocity"] = flight_data.maxVel
 
         # Take care of parachute results
-        if len(flight_data.parachuteEvents) > 0:
-            flight_result["drogueTriggerTime"] = flight_data.parachuteEvents[0][
-                0
-            ]
-            flight_result["drogueInflatedTime"] = (
-                flight_data.parachuteEvents[0][0]
-                + flight_data.parachuteEvents[0][1].lag
+        for trigger_time, parachute in flight_data.parachuteEvents:
+            flight_result[parachute.name + "_triggerTime"] = trigger_time
+            flight_result[parachute.name + "_inflatedTime"] = (
+                trigger_time + parachute.lag
             )
-            flight_result["drogueInflatedVelocity"] = flight_data.v(
-                flight_data.parachuteEvents[0][0]
-                + flight_data.parachuteEvents[0][1].lag
+            flight_result[parachute.name + "_inflatedVelocity"] = flight_data.v(
+                trigger_time + parachute.lag
             )
         else:
-            flight_result["drogueTriggerTime"] = 0
-            flight_result["drogueInflatedTime"] = 0
-            flight_result["drogueInflatedVelocity"] = 0
+            flight_result["parachuteInfo"] = "No Parachute Events"
 
         # Write flight setting and results to file
         dispersion_input_file.write(str(flight_setting) + "\n")
@@ -354,7 +369,7 @@ class Dispersion:
 
     def runDispersion(
         self,
-        number_of_simulations,  
+        number_of_simulations,
         dispersionDict,
         flight=None,
         environment=None,
@@ -362,8 +377,9 @@ class Dispersion:
         rocket=None,
         distributionType="normal",
         image=None,
-        realLandingPoint=None):
-        
+        realLandingPoint=None,
+    ):
+
         """Runs the given number of simulations and saves the data"""
 
         self.number_of_simulations = number_of_simulations
@@ -375,15 +391,37 @@ class Dispersion:
         self.distributionType = distributionType
         self.image = image
         self.realLandingPoint = realLandingPoint
-        
-        analysis_parameters = {i: j for i, j in self.dispersionDict.items()}
 
+        # Creates copy of dispersionDict that will be altered
+        modified_dispersion_dict = {i: j for i, j in dispersionDict.items()}
+        analysis_parameters = self.processDispersionDict(modified_dispersion_dict)
+
+        self.distribuitionFunc = self.setDistributionFunc(distributionType)
         # Basic analysis info
 
         # Create data files for inputs, outputs and error logging
         dispersion_error_file = open(str(self.filename) + ".disp_errors.txt", "w")
         dispersion_input_file = open(str(self.filename) + ".disp_inputs.txt", "w")
         dispersion_output_file = open(str(self.filename) + ".disp_outputs.txt", "w")
+
+        # Initialize Environment
+        customAtmosphere = False
+        if not self.environment:
+            envDispersion = Environment(
+                railLength=0,
+            )
+            if "envAtmosphericType" in dispersionDict:
+                if dispersionDict["envAtmosphericType"] == "CustomAtmosphere":
+                    customAtmosphere = True
+                envDispersion.setAtmosphericModel(
+                    type=dispersionDict["envAtmosphericType"],
+                    file=dispersionDict["envAtmosphericFile"]
+                    if "envAtmosphericFile" in dispersionDict
+                    else None,
+                    dictionary=dispersionDict["envAtmosphericDictionary"]
+                    if "envAtmosphericDictionary" in dispersionDict
+                    else None,
+                )
 
         # Initialize counter and timer
         i = 0
@@ -393,18 +431,18 @@ class Dispersion:
 
         # Iterate over flight settings
         out = display("Starting", display_id=True)
-        for setting in self.yield_flight_setting(self.distributionType, analysis_parameters, self.number_of_simulations):
+        for setting in self.yield_flight_setting(
+            self.distribuitionFunc, analysis_parameters, self.number_of_simulations
+        ):
             start_time = process_time()
             i += 1
 
-            # Creates copy of environment
+            # Creates an of environment
             envDispersion = self.environment
 
             # Apply environment parameters variations on each iteration if possible
             envDispersion.railLength = (
-                setting["railLength"]
-                if "railLength" in setting
-                else envDispersion.rL
+                setting["railLength"] if "railLength" in setting else envDispersion.rL
             )
             envDispersion.gravity = (
                 setting["gravity"] if "gravity" in setting else envDispersion.g
@@ -416,9 +454,7 @@ class Dispersion:
                 setting["latitude"] if "latitude" in setting else envDispersion.lat
             )
             envDispersion.longitude = (
-                setting["longitude"]
-                if "longitude" in setting
-                else envDispersion.lon
+                setting["longitude"] if "longitude" in setting else envDispersion.lon
             )
             envDispersion.elevation = (
                 setting["elevation"]
@@ -428,17 +464,38 @@ class Dispersion:
             envDispersion.datum = (
                 setting["datum"] if "datum" in setting else envDispersion.datum
             )
+            envDispersion.timeZone = (
+                dispersionDict["timeZone"] if "timeZone" in dispersionDict else "UTC"
+            )
             if "ensembleMember" in setting:
                 envDispersion.selectEnsembleMember(setting["ensembleMember"])
+
+            if customAtmosphere:
+                envDispersion.setAtmosphericModel(
+                    "CustomAtmosphere",
+                    pressure=dispersionDict["pressure"]
+                    if "pressure" in dispersionDict
+                    else None,
+                    temperature=dispersionDict["temperature"]
+                    if "temperature" in dispersionDict
+                    else None,
+                    wind_u=dispersionDict["wind_u"]
+                    if "wind_u" in dispersionDict
+                    else 0,
+                    wind_v=dispersionDict["wind_v"]
+                    if "wind_v" in dispersionDict
+                    else 0,
+                )
 
             # Creates copy of motor
             motorDispersion = self.motor
 
             # Apply motor parameters variations on each iteration if possible
+            # TODO: add hybrid motor option
             motorDispersion = SolidMotor(
                 thrustSource=setting["thrustSource"]
                 if "thrustSource" in setting
-                else motorDispersion.thrustSource,
+                else motorDispersion.thrust,
                 burnOut=setting["burnOut"]
                 if "burnOut" in setting
                 else motorDispersion.burnOut,
@@ -471,7 +528,7 @@ class Dispersion:
                 else motorDispersion.reshapeThrustCurve,
                 interpolationMethod=setting["interpolationMethod"]
                 if "interpolationMethod" in setting
-                else motorDispersion.interpolationMethod,
+                else motorDispersion.interpolate,
             )
 
             # Creates copy of rocket
@@ -489,9 +546,7 @@ class Dispersion:
                 inertiaZ=setting["inertiaZ"]
                 if "inertiaZ" in setting
                 else self.rocket.inertiaZ,
-                radius=setting["radius"]
-                if "radius" in setting
-                else self.rocket.radius,
+                radius=setting["radius"] if "radius" in setting else self.rocket.radius,
                 distanceRocketNozzle=setting["distanceRocketNozzle"]
                 if "distanceRocketNozzle" in setting
                 else self.rocket.distanceRocketNozzle,
@@ -552,29 +607,26 @@ class Dispersion:
                 else self.rocket.tailDistanceToCM,
             )
 
-            # Add parachute
-            rocketDispersion.addParachute(
-                name=setting["name"]
-                if "name" in setting
-                else self.rocket.parachuteName,
-                CdS=setting["CdS"]
-                if "CdS" in setting
-                else self.rocket.parachuteCdS,
-                trigger=setting["trigger"]
-                if "trigger" in setting
-                else self.rocket.parachuteTrigger,
-                samplingRate=setting["samplingRate"]
-                if "samplingRate" in setting
-                else self.rocket.parachuteSamplingRate,
-                lag=setting["lag_rec"]
-                if "lag_rec" in setting
-                else self.rocket.lag_rec + setting["lag_se"]
-                if "lag_se" in setting
-                else self.rocket.parachuteLag,
-                noise=setting["noise"]
-                if "noise" in setting
-                else self.rocket.parachuteNoise,
-            )
+            # Add parachutes
+            for num, name in enumerate(self.parachute_names):
+                rocketDispersion.addParachute(
+                    name=name,
+                    CdS=setting["parachute_" + name + "_CdS"]
+                    if "parachute_" + name + "_CdS" in setting
+                    else self.rocket.parachutes[num].CdS,
+                    trigger=setting["parachute_" + name + "_trigger"]
+                    if "parachute_" + name + "_trigger" in setting
+                    else self.rocket.parachutes[num].trigger,
+                    samplingRate=setting["parachute_" + name + "_samplingRate"]
+                    if "parachute_" + name + "_samplingRate" in setting
+                    else self.rocket.parachutes[num].samplingRate,
+                    lag=setting["parachute_" + name + "_lag"]
+                    if "parachute_" + name + "_lag" in setting
+                    else self.rocket.parachutes[num].lag,
+                    noise=setting["parachute_" + name + "_noise"]
+                    if "parachute_" + name + "_noise" in setting
+                    else self.rocket.parachutes[num].noise,
+                )
 
             rocketDispersion.setRailButtons(
                 distanceToCM=setting["RBdistanceToCM"]
@@ -614,10 +666,18 @@ class Dispersion:
                     timeOvershoot=setting["timeOvershoot"]
                     if "timeOvershoot" in setting
                     else self.flight.timeOvershoot,
-                    verbose=False,
+                    verbose=setting["verbose"]
+                    if "verbose" in setting
+                    else self.flight.verbose,
                 )
 
-                self.export_flight_data(setting, TestFlight, process_time() - start_time, dispersion_input_file, dispersion_output_file)
+                self.export_flight_data(
+                    setting,
+                    TestFlight,
+                    process_time() - start_time,
+                    dispersion_input_file,
+                    dispersion_output_file,
+                )
             except Exception as E:
                 print(E)
                 print(traceback.format_exc())
@@ -643,10 +703,10 @@ class Dispersion:
         dispersion_error_file.close()
 
         return None
-        
+
     def importResults(self, dispersion_output_file):
 
-        '''Import dispersion results from .txt file'''
+        """Import dispersion results from .txt file"""
 
         # Initialize variable to store all results
         dispersion_general_results = []
@@ -707,11 +767,10 @@ class Dispersion:
             f'Out of Rail Time - Standard Deviation: {np.std(dispersion_results["outOfRailTime"]):0.3f} s'
         )
 
-
         return None
 
     def plotOutOfRailTime(self, dispersion_results):
-        
+
         self.meanOutOfRailTime(dispersion_results)
 
         plt.figure()
@@ -734,7 +793,7 @@ class Dispersion:
         return None
 
     def plotOutOfRailVelocity(self, dispersion_results):
-        
+
         self.meanOutOfRailVelocity(dispersion_results)
 
         plt.figure()
@@ -754,11 +813,10 @@ class Dispersion:
             f'Impact Time - Standard Deviation: {np.std(dispersion_results["impactTime"]):0.3f} s'
         )
 
-
         return None
 
     def plotApogeeTime(self, dispersion_results):
-        
+
         self.meanApogeeTime(dispersion_results)
 
         plt.figure()
@@ -778,12 +836,10 @@ class Dispersion:
             f'Apogee Altitude - Standard Deviation: {np.std(dispersion_results["apogeeAltitude"]):0.3f} m'
         )
 
-
-
         return None
 
     def plotApogeeAltitude(self, dispersion_results):
-        
+
         self.meanApogeeAltitude(dispersion_results)
 
         plt.figure()
@@ -806,7 +862,7 @@ class Dispersion:
         return None
 
     def plotApogeeXPosition(self, dispersion_results):
-        
+
         self.meanApogeeAltitude(dispersion_results)
 
         plt.figure()
@@ -826,11 +882,10 @@ class Dispersion:
             f'Apogee Y Position - Standard Deviation: {np.std(dispersion_results["apogeeY"]):0.3f} m'
         )
 
-
         return None
 
     def plotApogeeYPosition(self, dispersion_results):
-        
+
         self.meanApogeeAltitude(dispersion_results)
 
         plt.figure()
@@ -850,11 +905,10 @@ class Dispersion:
             f'Impact Time - Standard Deviation: {np.std(dispersion_results["impactTime"]):0.3f} s'
         )
 
-
         return None
 
     def plotImpactTime(self, dispersion_results):
-        
+
         self.meanImpactTime(dispersion_results)
 
         plt.figure()
@@ -874,11 +928,10 @@ class Dispersion:
             f'Impact X Position - Standard Deviation: {np.std(dispersion_results["impactX"]):0.3f} m'
         )
 
-
         return None
 
     def plotImpactXPosition(self, dispersion_results):
-        
+
         self.meanImpactXPosition(dispersion_results)
 
         plt.figure()
@@ -898,11 +951,10 @@ class Dispersion:
             f'Impact Y Position - Standard Deviation: {np.std(dispersion_results["impactY"]):0.3f} m'
         )
 
-
         return None
 
     def plotImpactYPosition(self, dispersion_results):
-        
+
         self.meanImpactYPosition(dispersion_results)
 
         plt.figure()
@@ -922,11 +974,10 @@ class Dispersion:
             f'Impact Velocity - Standard Deviation: {np.std(dispersion_results["impactVelocity"]):0.3f} m/s'
         )
 
-
         return None
 
     def plotImpactVelocity(self, dispersion_results):
-        
+
         self.meanImpactVelocity(dispersion_results)
 
         plt.figure()
@@ -961,12 +1012,10 @@ class Dispersion:
             f'Final Static Margin -       Standard Deviation: {np.std(dispersion_results["finalStaticMargin"]):0.3f} c'
         )
 
-        
-
         return None
 
     def plotStaticMargin(self, dispersion_results):
-        
+
         self.meanStaticMargin(dispersion_results)
 
         plt.figure()
@@ -1001,11 +1050,10 @@ class Dispersion:
             f'Maximum Velocity - Standard Deviation: {np.std(dispersion_results["maxVelocity"]):0.3f} m/s'
         )
 
-
         return None
 
     def plotMaximumVelocity(self, dispersion_results):
-        
+
         self.meanMaximumVelocity(dispersion_results)
 
         plt.figure()
@@ -1048,11 +1096,10 @@ class Dispersion:
             f'Drogue Trigger Time - Standard Deviation: {np.std(dispersion_results["drogueTriggerTime"]):0.3f} s'
         )
 
-
         return None
 
     def plotDrogueTriggerTime(self, dispersion_results):
-        
+
         self.meanDrogueTriggerTime(dispersion_results)
 
         plt.figure()
@@ -1072,11 +1119,10 @@ class Dispersion:
             f'Drogue Fully Inflated Time - Standard Deviation: {np.std(dispersion_results["drogueInflatedTime"]):0.3f} s'
         )
 
-
         return None
 
     def plotDrogueFullyInflatedTime(self, dispersion_results):
-        
+
         self.meanDrogueFullyInflatedTime(dispersion_results)
 
         plt.figure()
@@ -1096,11 +1142,10 @@ class Dispersion:
             f'Drogue Parachute Fully Inflated Velocity - Standard Deviation: {np.std(dispersion_results["drogueInflatedVelocity"]):0.3f} m/s'
         )
 
-
         return None
 
     def plotDrogueFullyVelocity(self, dispersion_results):
-        
+
         self.meanDrogueFullyVelocity(dispersion_results)
 
         plt.figure()
@@ -1230,7 +1275,7 @@ class Dispersion:
         )
 
     def plotLateralWindSpeed(self, dispersion_results):
-        
+
         self.meanLateralWindSpeed(dispersion_results)
 
         plt.figure()
@@ -1249,7 +1294,7 @@ class Dispersion:
         )
 
     def plotFrontalWindSpeed(self, dispersion_results):
-        
+
         self.meanFrontalWindSpeed(dispersion_results)
 
         plt.figure()
