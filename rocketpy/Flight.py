@@ -15,6 +15,7 @@ import simplekml
 from scipy import integrate
 
 from .Function import Function
+from .utilities import *
 
 
 class Flight:
@@ -2149,35 +2150,11 @@ class Flight:
         lon2 = []
         # Applies the haversine equation to find final lat/lon coordinates
         for i in range(len(self.x)):
-            # Please notice that for distances lower than 1 centimeter the difference on latitude or longitude too small
-            if abs(self.y[i][1]) < 1e-2:
-                lat2.append(self.env.lat)
-            else:
-                lat2.append(
-                    (180 / 3.14159265359)
-                    * math.asin(
-                        math.sin(lat1) * math.cos(distance[i] / R)
-                        + math.cos(lat1)
-                        * math.sin(distance[i] / R)
-                        * math.cos(bearing[i])
-                    )
-                )
-            if abs(self.x[i][1]) < 1e-2:
-                lon2.append(self.env.lon)
-            else:
-                lon2.append(
-                    (180 / 3.14159265359)
-                    * (
-                        lon1
-                        + math.atan2(
-                            math.sin(bearing[i])
-                            * math.sin(distance[i] / R)
-                            * math.cos(lat1),
-                            math.cos(distance[i] / R)
-                            - math.sin(lat1) * math.sin(lat2[i]),
-                        )
-                    )
-                )
+            # Please notice that for distances lower than 1 centimeter the difference on latitude or longitude is too small
+            newCoordinates = haversine(self.env.lat, self.env.lon, distance[i], bearing[i])
+            lat2.append(newCoordinates[0])
+            lon2.append(newCoordinates[1])
+
 
         latitude = [[self.solution[i][0], lat2[i]] for i in range(len(self.solution))]
         longitude = [[self.solution[i][0], lon2[i]] for i in range(len(self.solution))]

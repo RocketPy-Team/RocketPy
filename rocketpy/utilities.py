@@ -2,12 +2,19 @@
 __author__ = "Franz Masatoshi Yuri, Lucas Kierulff Balabram, Guilherme Fernandes Alves"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
+import math
+import simplekml
+import matplotlib.pyplot as plt
+from imageio import imread
+from matplotlib.patches import Ellipse
 
 import numpy as np
 from scipy.integrate import solve_ivp
 
 from .Environment import Environment
 from .Function import Function
+
+
 
 
 # TODO: Needs tests
@@ -197,3 +204,119 @@ def calculateEquilibriumAltitude(
         velocityFunction()
 
     return altitudeFunction, velocityFunction, final_sol
+
+
+def haversine(lat0, lon0, distance, bearing, R = 6.3781 * (10**6)):
+    """ returns a tuple with new latitude and longitude
+    considering 1 cm or less to be indifferent
+    
+    Parameters
+    ----------
+    lat0 : float
+        Rocket's latitude of launch in degrees.
+    lon0 : float
+        Rocket's longitude of launch in degrees.
+    distance : float
+        New distance from launching point in meters.
+    bearing : float
+        Azimuth from launching point in degrees.
+    R : float, optional
+        Earth radius. Default value is 6.3781e10.
+
+    Returns
+    -------
+    coordinates : tuple
+        New coordinates expressed by a tuple in 
+    format(new latitude, new lungitude), in degrees.
+
+    """
+
+    lat1 = (3.14159265359 * lat0 / 180)
+    lon1 = (3.14159265359 * lon0 / 180)
+
+    if abs(distance*math.sin(bearing)) < 1e-2:
+        lat2 = lat1
+    else:
+        lat2=(
+        (180 / 3.14159265359)
+            * math.asin(
+                math.sin(lat1) * math.cos(distance / R)
+                + math.cos(lat1)
+                * math.sin(distance / R)
+                * math.cos(bearing)
+            ))
+    if abs(distance*math.cos(bearing)) < 1e-2:
+        lon2 = lon1
+    else:
+        lon2 = (
+            (180 / 3.14159265359)
+            * (
+                lon1
+                + math.atan2(
+                    math.sin(bearing)
+                    * math.sin(distance / R)
+                    * math.cos(lat1),
+                    math.cos(distance / R)
+                    - math.sin(lat1) * math.sin(lat2),
+                )
+            )
+        )
+    coordinates = (lat2,lon2)
+    return coordinates
+
+
+def exportElipsesToKML(self, impact_ellipses, filename, origin_lat, origin_lon):
+    """Generates a KML file with the ellipses on the impact point.
+    Parameters
+    ----------
+    impact_ellipses : matplolib.patches.Ellipse
+        Contains ellipse details for the plot. 
+    filename : String
+        Name to the KML exported file.
+    origin_lat : float
+        Latitute degrees of the Ellipse center.
+    origin_lon : float
+        Longitudeorigin_lat : float
+        Latitute degrees of the Ellipse center. degrees of the Ellipse center.
+    """
+
+
+    outputs = []
+
+    for impactEll in impact_ellipses:
+        # Get ellipse path points
+        points = impactEll.get_verts()
+        plt.figure()
+        plt.plot(points[:, 0], points[:, 1])
+
+        # Convert path points to latlon
+        ## Define constants
+        R = 6371e3 # Earth radius in m
+        lat_lon_points = []
+        for point in points:
+
+            # SÓ HEMISFÉRIO SUL???
+            x = point[0]
+            y = point[1]
+            # Convert to distance and bearing
+            d = -(x**2 + y**2)**0.5
+            brng  = math.atan2(x, y)
+            # Convert to lat lon
+            lat_lon_points.append(haversine(point[0],point[1],d,brng))
+
+        # Export string
+        outputs.append(lat_lon_points)
+
+
+    plt.show()
+
+    kml = simplekml.Kml()
+    ellipse = kml.newpolygon(name='Ellipse')
+
+    ellipse.tessellate = 1
+    ellipse.visibility = 1
+    ellipse.innerboundaryis = outputs
+    ellipse.style.linestyle.color = simplekml.Color.black
+    ellipse.style.linestyle.width = 5
+    ellipse.style.polystyle.color = simplekml.Color.changealphaint(100, simplekml.Color.blue)
+    kml.save(filename)
