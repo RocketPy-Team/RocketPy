@@ -609,13 +609,6 @@ class Flight:
         self.timeOvershoot = timeOvershoot
         self.terminateOnApogee = terminateOnApogee
 
-        # Modifying Rail Length for a better out of rail condition
-        upperRButton = max(self.rocket.railButtons[0])
-        lowerRButton = min(self.rocket.railButtons[0])
-        nozzle = self.rocket.distanceRocketNozzle
-        self.effective1RL = self.env.rL - abs(nozzle - upperRButton)
-        self.effective2RL = self.env.rL - abs(nozzle - lowerRButton)
-
         # Flight initialization
         self.__init_post_process_variables()
         # Initialize solution monitors
@@ -1125,6 +1118,29 @@ class Flight:
         self.flutterMachNumber = Function(0)
         self.difference = Function(0)
         self.safetyFactor = Function(0)
+
+    @cached_property
+    def effective1RL(self):
+        # Modifying Rail Length for a better out of rail condition
+        nozzle = self.rocket.distanceRocketNozzle  # Kinda works for single nozzle
+        try:
+            upperRButton = max(self.rocket.railButtons[0])
+        except AttributeError:  # If there is no rail button
+            upperRButton = nozzle
+        effective1RL = self.env.rL - abs(nozzle - upperRButton)
+
+        return effective1RL
+
+    @cached_property
+    def effective2RL(self):
+        # Modifying Rail Length for a better out of rail condition
+        nozzle = self.rocket.distanceRocketNozzle
+        try:
+            lowerRButton = min(self.rocket.railButtons[0])
+        except AttributeError:
+            lowerRButton = nozzle
+        effective2RL = self.env.rL - abs(nozzle - lowerRButton)
+        return effective2RL
 
     def uDotRail1(self, t, u, postProcessing=False):
         """Calculates derivative of u state vector with respect to time
@@ -3173,7 +3189,8 @@ class Flight:
             eventTimeIndex = -1
 
         # Rail Button Forces
-        fig6 = plt.figure(figsize=(9, 6))
+        if self.rocket.railButtons is not None:
+            fig6 = plt.figure(figsize=(9, 6))
 
         ax1 = plt.subplot(211)
         ax1.plot(
