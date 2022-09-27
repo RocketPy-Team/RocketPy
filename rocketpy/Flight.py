@@ -605,11 +605,13 @@ class Flight:
         self.terminateOnApogee = terminateOnApogee
 
         # Modifying Rail Length for a better out of rail condition
-        upperRButton = max(self.rocket.railButtons[0])
-        lowerRButton = min(self.rocket.railButtons[0])
-        nozzle = self.rocket.distanceRocketNozzle
-        self.effective1RL = self.env.rL - abs(nozzle - upperRButton)
-        self.effective2RL = self.env.rL - abs(nozzle - lowerRButton)
+        if self.rocket.railButtons is not None:
+            upperRButton = max(self.rocket.railButtons[0])
+            lowerRButton = min(self.rocket.railButtons[0])
+            nozzle = self.rocket.distanceRocketNozzle
+            self.effective1RL = self.env.rL - abs(nozzle - upperRButton)
+            self.effective2RL = self.env.rL - abs(nozzle - lowerRButton)
+        self.effective1RL = self.effective2RL = self.env.rL
 
         # Flight initialization
         self.__init_post_process_variables()
@@ -1830,62 +1832,63 @@ class Flight:
         self.theta = Function(theta, "Time (s)", "Nutation Angle - θ (°)")
 
         # Dynamics functions and variables
-        # Rail Button Forces
-        alpha = self.rocket.railButtons.angularPosition * (
-            np.pi / 180
-        )  # Rail buttons angular position
-        D1 = self.rocket.railButtons.distanceToCM[
-            0
-        ]  # Distance from Rail Button 1 (upper) to CM
-        D2 = self.rocket.railButtons.distanceToCM[
-            1
-        ]  # Distance from Rail Button 2 (lower) to CM
-        F11 = (self.R1 * D2 - self.M2) / (
-            D1 + D2
-        )  # Rail Button 1 force in the 1 direction
-        F12 = (self.R2 * D2 + self.M1) / (
-            D1 + D2
-        )  # Rail Button 1 force in the 2 direction
-        F21 = (self.R1 * D1 + self.M2) / (
-            D1 + D2
-        )  # Rail Button 2 force in the 1 direction
-        F22 = (self.R2 * D1 - self.M1) / (
-            D1 + D2
-        )  # Rail Button 2 force in the 2 direction
-        outOfRailTimeIndex = np.searchsorted(
-            F11[:, 0], self.outOfRailTime
-        )  # Find out of rail time index
-        # F11 = F11[:outOfRailTimeIndex + 1, :] # Limit force calculation to when rocket is in rail
-        # F12 = F12[:outOfRailTimeIndex + 1, :] # Limit force calculation to when rocket is in rail
-        # F21 = F21[:outOfRailTimeIndex + 1, :] # Limit force calculation to when rocket is in rail
-        # F22 = F22[:outOfRailTimeIndex + 1, :] # Limit force calculation to when rocket is in rail
-        self.railButton1NormalForce = F11 * np.cos(alpha) + F12 * np.sin(alpha)
-        self.railButton1NormalForce.setOutputs("Upper Rail Button Normal Force (N)")
-        self.railButton1ShearForce = F11 * -np.sin(alpha) + F12 * np.cos(alpha)
-        self.railButton1ShearForce.setOutputs("Upper Rail Button Shear Force (N)")
-        self.railButton2NormalForce = F21 * np.cos(alpha) + F22 * np.sin(alpha)
-        self.railButton2NormalForce.setOutputs("Lower Rail Button Normal Force (N)")
-        self.railButton2ShearForce = F21 * -np.sin(alpha) + F22 * np.cos(alpha)
-        self.railButton2ShearForce.setOutputs("Lower Rail Button Shear Force (N)")
-        # Rail Button Maximum Forces
-        if outOfRailTimeIndex == 0:
-            self.maxRailButton1NormalForce = 0
-            self.maxRailButton1ShearForce = 0
-            self.maxRailButton2NormalForce = 0
-            self.maxRailButton2ShearForce = 0
-        else:
-            self.maxRailButton1NormalForce = np.amax(
-                self.railButton1NormalForce[:outOfRailTimeIndex]
-            )
-            self.maxRailButton1ShearForce = np.amax(
-                self.railButton1ShearForce[:outOfRailTimeIndex]
-            )
-            self.maxRailButton2NormalForce = np.amax(
-                self.railButton2NormalForce[:outOfRailTimeIndex]
-            )
-            self.maxRailButton2ShearForce = np.amax(
-                self.railButton2ShearForce[:outOfRailTimeIndex]
-            )
+        if self.rocket.railButtons is not None:
+            # Rail Button Forces
+            alpha = self.rocket.railButtons.angularPosition * (
+                np.pi / 180
+            )  # Rail buttons angular position
+            D1 = self.rocket.railButtons.distanceToCM[
+                0
+            ]  # Distance from Rail Button 1 (upper) to CM
+            D2 = self.rocket.railButtons.distanceToCM[
+                1
+            ]  # Distance from Rail Button 2 (lower) to CM
+            F11 = (self.R1 * D2 - self.M2) / (
+                D1 + D2
+            )  # Rail Button 1 force in the 1 direction
+            F12 = (self.R2 * D2 + self.M1) / (
+                D1 + D2
+            )  # Rail Button 1 force in the 2 direction
+            F21 = (self.R1 * D1 + self.M2) / (
+                D1 + D2
+            )  # Rail Button 2 force in the 1 direction
+            F22 = (self.R2 * D1 - self.M1) / (
+                D1 + D2
+            )  # Rail Button 2 force in the 2 direction
+            outOfRailTimeIndex = np.searchsorted(
+                F11[:, 0], self.outOfRailTime
+            )  # Find out of rail time index
+            # F11 = F11[:outOfRailTimeIndex + 1, :] # Limit force calculation to when rocket is in rail
+            # F12 = F12[:outOfRailTimeIndex + 1, :] # Limit force calculation to when rocket is in rail
+            # F21 = F21[:outOfRailTimeIndex + 1, :] # Limit force calculation to when rocket is in rail
+            # F22 = F22[:outOfRailTimeIndex + 1, :] # Limit force calculation to when rocket is in rail
+            self.railButton1NormalForce = F11 * np.cos(alpha) + F12 * np.sin(alpha)
+            self.railButton1NormalForce.setOutputs("Upper Rail Button Normal Force (N)")
+            self.railButton1ShearForce = F11 * -np.sin(alpha) + F12 * np.cos(alpha)
+            self.railButton1ShearForce.setOutputs("Upper Rail Button Shear Force (N)")
+            self.railButton2NormalForce = F21 * np.cos(alpha) + F22 * np.sin(alpha)
+            self.railButton2NormalForce.setOutputs("Lower Rail Button Normal Force (N)")
+            self.railButton2ShearForce = F21 * -np.sin(alpha) + F22 * np.cos(alpha)
+            self.railButton2ShearForce.setOutputs("Lower Rail Button Shear Force (N)")
+            # Rail Button Maximum Forces
+            if outOfRailTimeIndex == 0:
+                self.maxRailButton1NormalForce = 0
+                self.maxRailButton1ShearForce = 0
+                self.maxRailButton2NormalForce = 0
+                self.maxRailButton2ShearForce = 0
+            else:
+                self.maxRailButton1NormalForce = np.amax(
+                    self.railButton1NormalForce[:outOfRailTimeIndex]
+                )
+                self.maxRailButton1ShearForce = np.amax(
+                    self.railButton1ShearForce[:outOfRailTimeIndex]
+                )
+                self.maxRailButton2NormalForce = np.amax(
+                    self.railButton2NormalForce[:outOfRailTimeIndex]
+                )
+                self.maxRailButton2ShearForce = np.amax(
+                    self.railButton2ShearForce[:outOfRailTimeIndex]
+                )
         # Aerodynamic Lift and Drag
         self.aerodynamicLift = (self.R1**2 + self.R2**2) ** 0.5
         self.aerodynamicLift.setOutputs("Aerodynamic Lift Force (N)")
@@ -2896,46 +2899,47 @@ class Flight:
             eventTimeIndex = -1
 
         # Rail Button Forces
-        fig6 = plt.figure(figsize=(9, 6))
+        if self.rocket.railButtons is not None:
+            fig6 = plt.figure(figsize=(9, 6))
 
-        ax1 = plt.subplot(211)
-        ax1.plot(
-            self.railButton1NormalForce[:outOfRailTimeIndex, 0],
-            self.railButton1NormalForce[:outOfRailTimeIndex, 1],
-            label="Upper Rail Button",
-        )
-        ax1.plot(
-            self.railButton2NormalForce[:outOfRailTimeIndex, 0],
-            self.railButton2NormalForce[:outOfRailTimeIndex, 1],
-            label="Lower Rail Button",
-        )
-        ax1.set_xlim(0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal)
-        ax1.legend()
-        ax1.grid(True)
-        ax1.set_xlabel("Time (s)")
-        ax1.set_ylabel("Normal Force (N)")
-        ax1.set_title("Rail Buttons Normal Force")
+            ax1 = plt.subplot(211)
+            ax1.plot(
+                self.railButton1NormalForce[:outOfRailTimeIndex, 0],
+                self.railButton1NormalForce[:outOfRailTimeIndex, 1],
+                label="Upper Rail Button",
+            )
+            ax1.plot(
+                self.railButton2NormalForce[:outOfRailTimeIndex, 0],
+                self.railButton2NormalForce[:outOfRailTimeIndex, 1],
+                label="Lower Rail Button",
+            )
+            ax1.set_xlim(0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal)
+            ax1.legend()
+            ax1.grid(True)
+            ax1.set_xlabel("Time (s)")
+            ax1.set_ylabel("Normal Force (N)")
+            ax1.set_title("Rail Buttons Normal Force")
 
-        ax2 = plt.subplot(212)
-        ax2.plot(
-            self.railButton1ShearForce[:outOfRailTimeIndex, 0],
-            self.railButton1ShearForce[:outOfRailTimeIndex, 1],
-            label="Upper Rail Button",
-        )
-        ax2.plot(
-            self.railButton2ShearForce[:outOfRailTimeIndex, 0],
-            self.railButton2ShearForce[:outOfRailTimeIndex, 1],
-            label="Lower Rail Button",
-        )
-        ax2.set_xlim(0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal)
-        ax2.legend()
-        ax2.grid(True)
-        ax2.set_xlabel("Time (s)")
-        ax2.set_ylabel("Shear Force (N)")
-        ax2.set_title("Rail Buttons Shear Force")
+            ax2 = plt.subplot(212)
+            ax2.plot(
+                self.railButton1ShearForce[:outOfRailTimeIndex, 0],
+                self.railButton1ShearForce[:outOfRailTimeIndex, 1],
+                label="Upper Rail Button",
+            )
+            ax2.plot(
+                self.railButton2ShearForce[:outOfRailTimeIndex, 0],
+                self.railButton2ShearForce[:outOfRailTimeIndex, 1],
+                label="Lower Rail Button",
+            )
+            ax2.set_xlim(0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal)
+            ax2.legend()
+            ax2.grid(True)
+            ax2.set_xlabel("Time (s)")
+            ax2.set_ylabel("Shear Force (N)")
+            ax2.set_title("Rail Buttons Shear Force")
 
-        plt.subplots_adjust(hspace=0.5)
-        plt.show()
+            plt.subplots_adjust(hspace=0.5)
+            plt.show()
 
         # Aerodynamic force and moment plots
         fig7 = plt.figure(figsize=(9, 12))
