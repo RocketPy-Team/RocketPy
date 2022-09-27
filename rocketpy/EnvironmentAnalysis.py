@@ -11,6 +11,7 @@ import warnings
 from collections import defaultdict
 
 import ipywidgets as widgets
+import jsonpickle
 import matplotlib.ticker as mtick
 import netCDF4
 import numpy as np
@@ -32,18 +33,51 @@ from rocketpy.units import convert_units
 class EnvironmentAnalysis:
     """Class for analyzing the environment.
 
-    List of ideas suggested by Logan:
-        - average max/min temperature
-        - record max/min temperature
-        - average max wind gust
-        - record max wind gust
-        - plot of wind gust distribution (should be Weibull)
-        - animation of who wind gust distribution evolves over average day
-        - temperature progression throughout the day at some fine interval (ex: 10 min) with 1, 2, 3, sigma contours (sketch below)
-        - average, 1, 2, 3 sigma wind profile from 0 - 35,000 ft AGL
+    List of properties currently implemented:
+        - average max/min temperature at surface level
+        - record max/min temperature at surface level
+        - temperature progression throughout the day
+        - temperature profile over an average day
+        - average max wind gust at surface level
+        - record max wind gust at surface level
+        - average, 1, 2, 3 sigma wind profile
         - average day wind rose
         - animation of how average wind rose evolves throughout an average day
         - animation of how wind profile evolves throughout an average day
+        - pressure profile over an average day
+        - wind velocity x profile over average day
+        - wind velocity y profile over average day
+        - wind speed profile over an average day
+        - average max surface 100m wind speed
+        - average max surface 10m wind speed
+        - average min surface 100m wind speed
+        - average min surface 10m wind speed
+        - average sustained surface100m wind along day
+        - average sustained surface10m wind along day
+        - maximum surface 10m wind speed
+        - average cloud base height
+        - percentage of days with no cloud coverage
+        - percentage of days with precipitation
+
+    You can also visualize all those attributes by exploring some of the methods:
+        - plot of wind gust distribution (should be Weibull)
+        - plot wind profile over average day
+        - plot sustained surface wind speed distribution over average day
+        - plot wind gust distribution over average day
+        - plot average day wind rose all hours
+        - plot average day wind rose specific hour
+        - plot average pressure profile
+        - plot average surface10m wind speed along day
+        - plot average sustained surface100m wind speed along day
+        - plot average temperature along day
+        - plot average wind speed profile
+        - plot surface10m wind speed distribution
+        - animate wind profile over average day
+        - animate sustained surface wind speed distribution over average day
+        - animate wind gust distribution over average day
+        - animate average wind rose
+        - animation of who wind gust distribution evolves over average day
+        - allInfo
 
     All items listed are relevant to either
         1. participant safety
@@ -51,10 +85,14 @@ class EnvironmentAnalysis:
         3. rocket performance
 
     How does this class work?
-    - The class is initialized with a start date and end date.
+    - The class is initialized with a start_date, end_date, start_hour and end_hour.
     - The class then parses the weather data from the start date to the end date.
+    Always parsing the data from start_hour to end_hour.
     - The class then calculates the average max/min temperature, average max wind gust, and average day wind rose.
-    - The class then plots the average max/min temperature, average max wind gust, and average day wind rose.
+    - The class then allows for plotting the average max/min temperature, average max wind gust, and average day wind rose.
+
+    Remaining TODOs:
+    - Make 'windSpeedLimit' a dynamic/flexible variable
     """
 
     def __init__(
@@ -72,6 +110,7 @@ class EnvironmentAnalysis:
         load_previous_data=None,
         forecast_comparaison=False,
         forecast_date=None,
+        maxExpectedAltitude=None,
     ):
         """Constructor for the EnvironmentAnalysis class.
         Parameters
@@ -106,16 +145,17 @@ class EnvironmentAnalysis:
         unit_system : str, optional
             Unit system to be used when displaying results.
             Options are: SI, metric, imperial. Default is metric.
-        load_previous_data : str, optional
-            If True, the class will try to load the data from a previous ran Environment Analysis.
-            Use .json file resulted from ... as input.
+        maxExpectedAltitude : float, optional
+            Maximum expected altitude for your analysis. This is used to calculate
+            plot limits from pressure level data profiles. If None is set, the
+            maximum altitude will be calculated from the pressure level data.
             Default is None.
         Returns
         -------
         None
         """
         warnings.warn(
-            "Please notice this class is still under development, and some features may not work as expected as they were not exhaustively tested yet."
+            "Please notice this class is still under development, and some features may not work as expected as they were not exhaustively tested yet. In case of having any trouble, please raise an issue at https://github.com/RocketPy-Team/RocketPy/issues"
         )
 
         # Save inputs
@@ -128,7 +168,8 @@ class EnvironmentAnalysis:
         self.surfaceDataFile = surfaceDataFile
         self.pressureLevelDataFile = pressureLevelDataFile
         self.preferred_timezone = timezone
-        self.load_previous_data = load_previous_data
+        self.unit_system = unit_system
+        self.maxExpectedAltitude = maxExpectedAltitude
 
         # Manage units and timezones
         self.__init_data_parsing_units()
@@ -136,50 +177,13 @@ class EnvironmentAnalysis:
         self.__localize_input_dates()
 
         # Parse data files, surface goes first to calculate elevation
-        if load_previous_data is None:
-            self.surfaceDataDict = {}
-            self.parseSurfaceData()
-            self.pressureLevelDataDict = {}
-            self.parsePressureLevelData()
+        self.surfaceDataDict = {}
+        self.parseSurfaceData()
+        self.pressureLevelDataDict = {}
+        self.parsePressureLevelData()
 
-            # Convert units
-            self.set_unit_system(unit_system)
-        else:
-            # Opening JSON file
-            try:
-                with open(self.load_previous_data) as json_file:
-                    self.loaded_data = json.load(json_file)
-            except:
-                raise RuntimeError(
-                    "Unable to read json file from previous ran Environment Analysis. Please try again."
-                )
-
-            self.surfaceDataDict = self.loaded_data["surfaceDataDict"]
-            self.pressureLevelDataDict = self.loaded_data["pressureLevelDataDict"]
-            print(
-                "Information of the data loaded from previous Environment Analysis.\n"
-            )
-            print(
-                "Available dates: ",
-                self.loaded_data["start_date"],
-                " to ",
-                self.loaded_data["end_date"],
-            )
-            print(
-                "Available hours: ",
-                self.loaded_data["start_hour"],
-                " to ",
-                self.loaded_data["end_hour"],
-            )
-            print("Latitude", self.loaded_data["latitude"])
-            print("Longitude", self.loaded_data["longitude"])
-            print("Elevation:", self.loaded_data["elevation"])
-            print("Surface data file: ", self.loaded_data["surfaceDataFile"])
-            print(
-                "Pressure level data file: ", self.loaded_data["pressureLevelDataFile"]
-            )
-            print("User timezone: ", self.loaded_data["preferred_timezone"])
-            print("User unit system: ", self.loaded_data["unit_system"])
+        # Convert units
+        self.set_unit_system(unit_system)
 
         # Initialize result variables
         self.average_max_temperature = 0
@@ -214,8 +218,11 @@ class EnvironmentAnalysis:
             hours = list(self.pressureLevelDataDict.values())[0].keys()
             for hour in hours:
                 hour_datetime = datetime.datetime(
-                    year=forecast_date.year, month=forecast_date.month, day=forecast_date.day, 
-                    hour=int(hour))
+                    year=forecast_date.year,
+                    month=forecast_date.month,
+                    day=forecast_date.day,
+                    hour=int(hour),
+                )
 
                 Env = Environment(
                     railLength=5,
@@ -227,7 +234,6 @@ class EnvironmentAnalysis:
                 Env.setAtmosphericModel(type="Ensemble", file="GEFS")
                 Env.selectEnsembleMember(1)
                 self.forecast[hour] = Env
-
 
     def __bilinear_interpolation(self, x, y, x1, x2, y1, y2, z11, z12, z21, z22):
         """
@@ -555,9 +561,7 @@ class EnvironmentAnalysis:
         Parse pressure level data from a weather file.
 
         Sources of information:
-        TODO: Fix website that is guiding to single levels data
-        - https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels-preliminary-back-extension?tab=overview
-        -
+        - https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-pressure-levels?tab=form
 
         Must get the following variables from a ERA5 file:
         - Geopotential
@@ -608,6 +612,11 @@ class EnvironmentAnalysis:
         pressureLevelArray = pressureLevelData.variables["level"]
         lonArray = pressureLevelData.variables["longitude"]
         latArray = pressureLevelData.variables["latitude"]
+        # Determine latitude and longitude range for pressure level file
+        self.pressureLevelInitLat = latArray[0]
+        self.pressureLevelEndLat = latArray[-1]
+        self.pressureLevelInitLon = lonArray[0]
+        self.pressureLevelEndLon = lonArray[-1]
 
         # Find index needed for latitude and longitude for specified location
         lonIndex = self.__getNearestIndex(lonArray, self.longitude)
@@ -657,7 +666,7 @@ class EnvironmentAnalysis:
                 variablePointsArray = np.array([heightAboveSeaLevelArray, valueArray]).T
                 variableFunction = Function(
                     variablePointsArray,
-                    inputs="Height Above Ground Level (m)",
+                    inputs="Height Above Ground Level (m)",  # TODO: Check if it is really AGL or ASL here, see 3 lines above
                     outputs=key,
                     extrapolation="constant",
                 )
@@ -750,9 +759,10 @@ class EnvironmentAnalysis:
         """
         Parse surface data from a weather file.
         Currently only supports files from ECMWF.
+        You can download a file from the following website: https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels?tab=form
 
         Must get the following variables:
-        - surface elevation: self.elevation = float
+        - surface elevation: self.elevation = float  # Select 'Geopotential'
         - 2m temperature: surfaceTemperature = float
         - Surface pressure: surfacePressure = float
         - 10m u-component of wind: surface10mWindVelocityX = float
@@ -785,6 +795,11 @@ class EnvironmentAnalysis:
         timeNumArray = surfaceData.variables["time"]
         lonArray = surfaceData.variables["longitude"]
         latArray = surfaceData.variables["latitude"]
+        # Determine latitude and longitude range for surface level file
+        self.singleLevelInitLat = latArray[0]
+        self.singleLevelEndLat = latArray[-1]
+        self.singleLevelInitLon = lonArray[0]
+        self.singleLevelEndLon = lonArray[-1]
 
         # Find index needed for latitude and longitude for specified location
         lonIndex = self.__getNearestIndex(lonArray, self.longitude)
@@ -1261,7 +1276,7 @@ class EnvironmentAnalysis:
 
         return None
 
-    def plot_surface10m_wind_speed_distribution(self, SAcup_wind_constraints=False):
+    def plot_surface10m_wind_speed_distribution(self, windSpeedLimit=False):
         """Get all values of sustained surface wind speed (for every date and hour available)
         and plot a single distribution. Expected result is a Weibull distribution.
         """
@@ -1296,15 +1311,15 @@ class EnvironmentAnalysis:
             label="Weibull Distribution",
         )
 
-        if SAcup_wind_constraints:
+        if windSpeedLimit:
             plt.vlines(
                 convert_units(20, "mph", self.unit_system["wind_speed"]),
                 0,
                 0.3,
                 "g",
                 (0, (15, 5, 2, 5)),
-                label="SAcup wind speed constraints",
-            )  # Plot SAcup wind speed constraints
+                label="Wind Speed Limit",
+            )  # Plot Wind Speed Limit
 
         # Label plot
         plt.ylabel("Probability")
@@ -1423,9 +1438,7 @@ class EnvironmentAnalysis:
             self.average_surface10m_wind_speed_sigmas_at_given_hour,
         )
 
-    def plot_average_surface10m_wind_speed_along_day(
-        self, SAcup_wind_constraints=False
-    ):
+    def plot_average_surface10m_wind_speed_along_day(self, windSpeedLimit=False):
         """Plots average surface wind speed progression throughout the day, including
         sigma contours."""
 
@@ -1480,15 +1493,15 @@ class EnvironmentAnalysis:
             lambda x, pos: "{0:02.0f}:{1:02.0f}".format(*divmod(x * 60, 60))
         )
         plt.autoscale(enable=True, axis="x", tight=True)
-        if SAcup_wind_constraints:
+        if windSpeedLimit:
             plt.hlines(
                 convert_units(20, "mph", self.unit_system["wind_speed"]),
                 min(hours),
                 max(hours),
                 "g",
                 (0, (15, 5, 2, 5)),
-                label="SAcup wind speed constraints",
-            )  # Plot SAcup wind speed constraints
+                label="Wind Speed Limit",
+            )  # Plot Wind Speed Limit
         plt.xlabel("Time (hours)")
         plt.ylabel(f"Surface Wind Speed ({self.unit_system['wind_speed']})")
         plt.title("Average Sustained Surface Wind Speed Along Day")
@@ -1586,7 +1599,7 @@ class EnvironmentAnalysis:
         plt.legend()
         plt.show()
 
-    def plot_average_wind_speed_profile(self, SAcup_altitude_constraints=False):
+    def plot_average_wind_speed_profile(self, clear_range_limits=False):
         """Average wind speed for all datetimes available."""
         altitude_list = np.linspace(*self.altitude_AGL_range, 100)
         wind_speed_profiles = [
@@ -1624,16 +1637,14 @@ class EnvironmentAnalysis:
             "b--",
             alpha=0.5,
         )
-        # plt.plot(np.percentile(wind_speed_profiles, 50-49.8, axis=0, method='weibull'), altitude_list, 'b--', alpha=0.25)
-        # plt.plot(np.percentile(wind_speed_profiles, 50+49.8, axis=0, method='weibull'), altitude_list, 'b--', alpha=0.25)
         for wind_speed_profile in wind_speed_profiles:
             plt.plot(wind_speed_profile, altitude_list, "gray", alpha=0.01)
 
         plt.autoscale(enable=True, axis="x", tight=True)
         plt.autoscale(enable=True, axis="y", tight=True)
 
-        if SAcup_altitude_constraints:
-            # SA Cup altitude constraints region
+        if clear_range_limits:
+            # Clear Sky Range Altitude Limits
             print(plt)
             xmin, xmax, ymin, ymax = plt.axis()
             plt.fill_between(
@@ -1657,6 +1668,7 @@ class EnvironmentAnalysis:
         plt.ylabel(f"Altitude AGL ({self.unit_system['length']})")
         plt.title("Average Wind Speed Profile")
         plt.legend()
+        plt.xlim(0, max(np.percentile(wind_speed_profiles, 50 + 49.85, axis=0)))
         plt.show()
 
     def process_wind_speed_and_direction_data_for_average_day(self):
@@ -1715,7 +1727,7 @@ class EnvironmentAnalysis:
         self.wind_speed_per_hour = windSpeed
         self.wind_direction_per_hour = windDir
 
-    def plot_average_pressure_profile(self, SAcup_altitude_constraints=False):
+    def plot_average_pressure_profile(self, clear_range_limits=False):
         """Average wind speed for all datetimes available."""
         altitude_list = np.linspace(*self.altitude_AGL_range, 100)
         pressure_profiles = [
@@ -1753,16 +1765,14 @@ class EnvironmentAnalysis:
             "b--",
             alpha=0.5,
         )
-        # plt.plot(np.percentile(pressure_profiles, 50-49.8, axis=0, method='weibull'), altitude_list, 'b--', alpha=0.25)
-        # plt.plot(np.percentile(pressure_profiles, 50+49.8, axis=0, method='weibull'), altitude_list, 'b--', alpha=0.25)
         for pressure_profile in pressure_profiles:
             plt.plot(pressure_profile, altitude_list, "gray", alpha=0.01)
 
         plt.autoscale(enable=True, axis="x", tight=True)
         plt.autoscale(enable=True, axis="y", tight=True)
 
-        if SAcup_altitude_constraints:
-            # SA Cup altitude constraints region
+        if clear_range_limits:
+            # Clear Sky Range Altitude Limits
             print(plt)
             xmin, xmax, ymin, ymax = plt.axis()
             plt.fill_between(
@@ -1786,6 +1796,7 @@ class EnvironmentAnalysis:
         plt.ylabel(f"Altitude AGL ({self.unit_system['length']})")
         plt.title("Average Pressure Profile")
         plt.legend()
+        plt.xlim(0, max(np.percentile(pressure_profiles, 50 + 49.85, axis=0)))
         plt.show()
 
     @staticmethod
@@ -1929,11 +1940,12 @@ class EnvironmentAnalysis:
         plt.show()
 
     def animate_average_wind_rose(self, figsize=(8, 8), filename="wind_rose.gif"):
-        """Animates the wind_rose of an average day. The inputs of a wind_rose are the location of the
-        place where we want to analyze, (x,y,z). The data is assembled by hour, which means, the windrose
-        of a specific hour is generated by bringing together the data of all of the days available for that
-        specific hour. It's possible to change the size of the gif using the parameter figsize, which is the
-        height and width in inches.
+        """Animates the wind_rose of an average day. The inputs of a wind_rose
+        are the location of the place where we want to analyze, (x,y,z). The data
+        is assembled by hour, which means, the windrose of a specific hour is
+        generated by bringing together the data of all of the days available for
+        that specific hour. It's possible to change the size of the gif using the
+        parameter figsize, which is the height and width in inches.
 
         Parameters
         ----------
@@ -2146,7 +2158,7 @@ class EnvironmentAnalysis:
         return HTML(animation.to_jshtml())
 
     def plot_sustained_surface_wind_speed_distribution_over_average_day(
-        self, SAcup_wind_constraints=False
+        self, windSpeedLimit=False
     ):
         """Plots shown in the animation of how the sustained surface wind speed distribution varies throughout the day."""
         # Gather animation data
@@ -2218,9 +2230,9 @@ class EnvironmentAnalysis:
             mtick.MaxNLocator(integer=True, nbins=4, prune="lower")
         )
 
-        if SAcup_wind_constraints:
+        if windSpeedLimit:
             for (i, j) in [(i, j) for i in range(nrows) for j in range(ncols)]:
-                # SA Cup altitude constraints region
+                # Clear Sky Range Altitude Limits j]
                 ax = axs[i, j]
                 ax.vlines(
                     convert_units(20, "mph", self.unit_system["wind_speed"]),
@@ -2228,7 +2240,7 @@ class EnvironmentAnalysis:
                     ax.get_ylim()[1],
                     "g",
                     (0, (15, 5, 2, 5)),
-                    label="SA Cup Wind Constraints",
+                    label="Wind Speed Limits",
                 )
 
         # Set title and axis labels for entire figure
@@ -2242,8 +2254,8 @@ class EnvironmentAnalysis:
         plt.show()
 
     def animate_sustained_surface_wind_speed_distribution_over_average_day(
-        self, SAcup_wind_constraints=False
-    ):  # TODO: getting weird results
+        self, windSpeedLimit=False
+    ):  # TODO: getting weird results since the 0.3 on y axis is not parametrized
         """Animation of how the sustained surface wind speed distribution varies throughout the day."""
         # Gather animation data
         surface_wind_speeds_at_given_hour = {}
@@ -2306,15 +2318,15 @@ class EnvironmentAnalysis:
             ax.set_title("Sustained Surface Wind Distribution")
             # ax.grid(True)
 
-            if SAcup_wind_constraints:
+            if windSpeedLimit:
                 ax.vlines(
                     convert_units(20, "mph", self.unit_system["wind_speed"]),
                     0,
                     0.3,  # TODO: parametrize
                     "g",
                     (0, (15, 5, 2, 5)),
-                    label="SAcup wind speed constraints",
-                )  # Plot SAcup wind speed constraints
+                    label="Wind Speed Limit",
+                )  # Plot Wind Speed Limit
 
             return ln, *bar_container.patches, tx
 
@@ -2353,12 +2365,15 @@ class EnvironmentAnalysis:
     @property
     def altitude_AGL_range(self):
         min_altitude = 0
-        max_altitudes = [
-            np.max(dayDict[hour]["windSpeed"].source[-1, 0])
-            for dayDict in self.pressureLevelDataDict.values()
-            for hour in dayDict.keys()
-        ]
-        max_altitude = np.min(max_altitudes)
+        if self.maxExpectedAltitude == None:
+            max_altitudes = [
+                np.max(dayDict[hour]["windSpeed"].source[-1, 0])
+                for dayDict in self.pressureLevelDataDict.values()
+                for hour in dayDict.keys()
+            ]
+            max_altitude = np.min(max_altitudes)
+        else:
+            max_altitude = self.maxExpectedAltitude
         return min_altitude, max_altitude
 
     def process_temperature_profile_over_average_day(self):
@@ -2524,7 +2539,7 @@ class EnvironmentAnalysis:
             average_windVelocityY_profile_at_given_hour
         )
 
-    def plot_wind_profile_over_average_day(self, SAcup_altitude_constraints=False):
+    def plot_wind_profile_over_average_day(self, clear_range_limits=False):
         """Creates a grid of plots with the wind profile over the average day."""
         self.process_wind_speed_profile_over_average_day()
 
@@ -2565,9 +2580,9 @@ class EnvironmentAnalysis:
             mtick.MaxNLocator(integer=True, nbins=4, prune="lower")
         )
 
-        if SAcup_altitude_constraints:
+        if clear_range_limits:
             for (i, j) in [(i, j) for i in range(nrows) for j in range(ncols)]:
-                # SA Cup altitude constraints region
+                # Clear Sky Range Altitude Limits
                 ax = axs[i, j]
                 ax.fill_between(
                     [x_min, x_max],
@@ -2592,7 +2607,7 @@ class EnvironmentAnalysis:
         fig.supylabel(f"Altitude AGL ({self.unit_system['length']})")
         plt.show()
 
-    def animate_wind_profile_over_average_day(self, SAcup_altitude_constraints=False):
+    def animate_wind_profile_over_average_day(self, clear_range_limits=False):
         """Animation of how wind profile evolves throughout an average day."""
         self.process_wind_speed_profile_over_average_day()
 
@@ -2638,8 +2653,8 @@ class EnvironmentAnalysis:
             blit=True,
         )
 
-        if SAcup_altitude_constraints:
-            # SA Cup altitude constraints region
+        if clear_range_limits:
+            # Clear Sky Range Altitude Limits
             ax.fill_between(
                 [0, self.max_average_wind_at_altitude + 5],
                 0.7 * convert_units(10000, "ft", self.unit_system["length"]),
@@ -2662,7 +2677,58 @@ class EnvironmentAnalysis:
         return HTML(animation.to_jshtml())
 
     def allInfo(self):
-        print("Pressure Information")
+        print("Dataset Information: ")
+        print(
+            "Time Period: From ", self.start_date, " to ", self.end_date
+        )  # TODO: Improve Timezone
+        print(
+            "Available hours: From ", self.start_hour, " to ", self.end_hour
+        )  # TODO: Improve Timezone
+        print("Surface Data File Path: ", self.surfaceDataFile)
+        print(
+            "Latitude Range: From ",
+            self.singleLevelInitLat,
+            "° To ",
+            self.singleLevelEndLat,
+            "°",
+        )
+        print(
+            "Longitude Range: From ",
+            self.singleLevelInitLon,
+            "° To ",
+            self.singleLevelEndLon,
+            "°",
+        )
+        print("Pressure Data File Path: ", self.pressureLevelDataFile)
+        print(
+            "Latitude Range: From ",
+            self.pressureLevelInitLat,
+            "° To ",
+            self.pressureLevelEndLat,
+            "°",
+        )
+        print(
+            "Longitude Range: From ",
+            self.pressureLevelInitLon,
+            "° To ",
+            self.pressureLevelEndLon,
+            "°",
+        )
+
+        # Print launch site details
+        print("\nLaunch Site Details")
+        print("Launch Site Latitude: {:.5f}°".format(self.latitude))
+        print("Launch Site Longitude: {:.5f}°".format(self.longitude))
+        print(
+            "Surface Elevation (from surface data file): ", self.elevation
+        )  # TODO: Improve units
+        print(
+            "Max Expected Altitude: ",
+            self.maxExpectedAltitude,
+            " ",
+            self.unit_system["length"],
+        )
+        print("\nPressure Information")
         print(
             f"Average Surface Pressure: {self.average_surface_pressure:.2f} ± {self.std_surface_pressure:.2f} {self.unit_system['pressure']}"
         )
@@ -2675,10 +2741,8 @@ class EnvironmentAnalysis:
         print(
             f"Average Pressure at {convert_units(30000, 'ft', self.current_units['height_ASL']):.0f} {self.current_units['height_ASL']}: {self.average_pressure_at_30000ft:.2f} ± {self.std_pressure_at_1000ft:.2f} {self.unit_system['pressure']}"
         )
-        print()
-
         print(
-            f"Sustained Surface Wind Speed Information ({convert_units(10, 'm', self.unit_system['length']):.0f} {self.unit_system['length']} above ground)"
+            f"\nSustained Surface Wind Speed Information ({convert_units(10, 'm', self.unit_system['length']):.0f} {self.unit_system['length']} above ground)"
         )
         print(
             f"Historical Maximum Wind Speed: {self.record_max_surface_10m_wind_speed:.2f} {self.unit_system['wind_speed']}"
@@ -2692,10 +2756,8 @@ class EnvironmentAnalysis:
         print(
             f"Average Daily Minimum Wind Speed: {self.average_min_surface_10m_wind_speed:.2f} {self.unit_system['wind_speed']}"
         )
-        print()
-
         print(
-            f"Elevated Wind Speed Information ({convert_units(100, 'm', self.unit_system['length']):.0f} {self.unit_system['length']} above ground)"
+            f"\nElevated Wind Speed Information ({convert_units(100, 'm', self.unit_system['length']):.0f} {self.unit_system['length']} above ground)"
         )
         print(
             f"Historical Maximum Wind Speed: {self.record_max_surface_100m_wind_speed:.2f} {self.unit_system['wind_speed']}"
@@ -2709,18 +2771,14 @@ class EnvironmentAnalysis:
         print(
             f"Average Daily Minimum Wind Speed: {self.average_min_surface_100m_wind_speed:.2f} {self.unit_system['wind_speed']}"
         )
-        print()
-
-        print("Wind Gust Information")
+        print("\nWind Gust Information")
         print(
             f"Historical Maximum Wind Gust: {self.max_wind_gust:.2f} {self.unit_system['wind_speed']}"
         )
         print(
             f"Average Daily Maximum Wind Gust: {self.average_max_wind_gust:.2f} {self.unit_system['wind_speed']}"
         )
-        print()
-
-        print("Temperature Information")
+        print("\nTemperature Information")
         print(
             f"Historical Maximum Temperature: {self.record_max_temperature:.2f} {self.unit_system['temperature']}"
         )
@@ -2733,9 +2791,7 @@ class EnvironmentAnalysis:
         print(
             f"Average Daily Minimum Temperature: {self.average_min_temperature:.2f} {self.unit_system['temperature']}"
         )
-        print()
-
-        print("Precipitation Information")
+        print("\nPrecipitation Information")
         print(
             f"Percentage of Days with Precipitation: {100*self.percentage_of_days_with_precipitation:.1f}%"
         )
@@ -2745,9 +2801,7 @@ class EnvironmentAnalysis:
         print(
             f"Average Precipitation: {np.mean(self.precipitation_per_day):.1f} {self.unit_system['precipitation']}"
         )
-        print()
-
-        print("Cloud Base Height Information")
+        print("\nCloud Base Height Information")
         print(
             f"Average Cloud Base Height: {self.mean_cloud_base_height:.2f} {self.unit_system['length']}"
         )
@@ -2763,7 +2817,15 @@ class EnvironmentAnalysis:
         Exports the mean profiles of the weather data to a file in order to it
         be used as inputs on Environment Class by using the CustomAtmosphere
         model.
-        TODO: Improve docs
+
+        Parameters
+        ----------
+        filename : str, optional
+            Name of the file where to be saved, by default "EnvAnalysisDict"
+
+        Returns
+        -------
+        None
         """
 
         self.process_temperature_profile_over_average_day()
@@ -2812,11 +2874,8 @@ class EnvironmentAnalysis:
             "elevation": self.elevation,
             "timeZone": self.preferred_timezone,
             "unit_system": self.unit_system,
-            # "maxExpectedHeight": 80000, # TODO: Implement this parameter at EnvAnalysis Class
             "surfaceDataFile": self.surfaceDataFile,
             "pressureLevelDataFile": self.pressureLevelDataFile,
-            # "surfaceDataDict": self.surfaceDataDict, # TODO: Too large, make it optional
-            # "pressureLevelDataDict": self.pressureLevelDataDict, # TODO: Too large, make it optional
             "atmosphericModelPressureProfile": organized_pressure_dict,
             "atmosphericModelTemperatureProfile": organized_temperature_dict,
             "atmosphericModelWindVelocityXProfile": organized_windX_dict,
@@ -2844,47 +2903,40 @@ class EnvironmentAnalysis:
 
         return None
 
-    def saveEnvAnalysisDict(self, filename="EnvAnalysisDict"):
+    @classmethod
+    def load(self, filename="EnvAnalysisDict"):
+        """Load a previously saved Environment Analysis file.
+        Example: EnvA = EnvironmentAnalysis.load("filename").
+
+        Parameters
+        ----------
+        filename : str, optional
+            Name of the previous saved file, by default "EnvAnalysisDict"
+
+        Returns
+        -------
+        EnvironmentAnalysis object
+
         """
-        Saves the Environment Analysis dictionary to a file in order to it
-        be load again in the future.
-        TODO: Improve docs
+        encoded_class = open(filename).read()
+        return jsonpickle.decode(encoded_class)
+
+    def save(self, filename="EnvAnalysisDict"):
+        """Save the Environment Analysis object to a file so it can be used later.
+
+        Parameters
+        ----------
+        filename : str, optional
+            Name of the file where to be saved, by default "EnvAnalysisDict"
+
+        Returns
+        -------
+        None
         """
-
-        self.EnvAnalysisDict = {
-            "start_date": self.start_date.strftime("%Y-%m-%d"),
-            "end_date": self.end_date.strftime("%Y-%m-%d"),
-            "start_hour": self.start_hour,
-            "end_hour": self.end_hour,
-            "latitude": self.latitude,
-            "longitude": self.longitude,
-            "elevation": self.elevation,
-            "timeZone": str(self.preferred_timezone),
-            "unit_system": self.unit_system,
-            # "maxExpectedHeight": 80000, # TODO: Implement this parameter at EnvAnalysis Class
-            "surfaceDataFile": self.surfaceDataFile,
-            "pressureLevelDataFile": self.pressureLevelDataFile,
-            "surfaceDataDict": self.surfaceDataDict,
-            "pressureLevelDataDict": self.pressureLevelDataDict,
-        }
-
-        # Convert to json
-        f = open(filename + ".json", "w")
-
-        # write json object to file
-        f.write(
-            json.dumps(self.EnvAnalysisDict, sort_keys=False, indent=4, default=str)
-        )
-
-        # close file
-        f.close()
-        print(
-            "Your Environment Analysis file was saved, check it out: "
-            + filename
-            + ".json"
-        )
-        print(
-            "You can use it in the future by using the customAtmosphere atmospheric model."
-        )
+        encoded_class = jsonpickle.encode(self)
+        file = open(filename, "w")
+        file.write(encoded_class)
+        file.close()
+        print("Your Environment Analysis file was saved, check it out: " + filename)
 
         return None
