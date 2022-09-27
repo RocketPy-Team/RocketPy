@@ -1161,6 +1161,7 @@ class Flight:
         # Initialize solution state
         self.solution = []
 
+    # TODO: Need unit tests
     def __init_flight_state(self):
         """Initialize flight state."""
         if self.initialSolution is None:
@@ -1195,7 +1196,9 @@ class Flight:
             ]
             # Set initial derivative for rail phase
             self.initialDerivative = self.uDotRail1
+        # TODO: Need unit tests
         elif isinstance(self.initialSolution, Flight):
+            # TODO: Add optional argument to specify wether to merge/concatenate flight or not
             # Initialize time and state variables based on last solution of
             # previous flight
             self.initialSolution = self.initialSolution.solution[-1]
