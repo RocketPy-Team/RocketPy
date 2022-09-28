@@ -1217,6 +1217,31 @@ class Flight:
             self.outOfRailTime = self.initialSolution[0]
             self.initialDerivative = self.uDot
 
+    def __init_atmospheric_arrays(self):
+        """Initialize force and atmospheric arrays
+        Important to ensure postProcess works when using initialSolution
+
+        Returns
+        -------
+        None
+        """
+        self.windVelocityX = [
+            [self.z[0][0], self.env.windVelocityX.getValueOpt(self.z[0][1])]
+        ]
+        self.windVelocityY = [
+            [self.z[0][0], self.env.windVelocityY.getValueOpt(self.z[0][1])]
+        ]
+        self.density = [[self.z[0][0], self.env.density.getValueOpt(self.z[0][1])]]
+        self.dynamicViscosity = [
+            [self.z[0][0], self.env.dynamicViscosity.getValueOpt(self.z[0][1])]
+        ]
+        self.pressure = [[self.z[0][0], self.env.pressure.getValueOpt(self.z[0][1])]]
+        self.speedOfSound = [
+            [self.z[0][0], self.env.speedOfSound.getValueOpt(self.z[0][1])]
+        ]
+
+        return None
+
     def uDotRail1(self, t, u, postProcessing=False):
         """Calculates derivative of u state vector with respect to time
         when rocket is flying in 1 DOF motion in the rail.
@@ -1528,7 +1553,7 @@ class Flight:
             alpha3,
         ]
 
-        if postProcessing:
+        if postProcessing:  # valores estão começando em t= apogeeTime
             # Dynamics variables
             self.R1.append([t, R1])
             self.R2.append([t, R2])
@@ -1716,17 +1741,12 @@ class Flight:
         self.alpha3 = Function(self.alpha3, "Time (s)", "α3 (rad/s2)", interpolation)
 
         # Process third type of outputs - temporary values calculated during integration
-        # Initialize force and atmospheric arrays
+
         self.R1, self.R2, self.R3, self.M1, self.M2, self.M3 = [], [], [], [], [], []
-        self.pressure, self.density, self.dynamicViscosity, self.speedOfSound = (
-            [],
-            [],
-            [],
-            [],
-        )
-        self.windVelocityX, self.windVelocityY = [], []
+
         # Go through each time step and calculate forces and atmospheric values
         # Get flight phases
+        self.__init_atmospheric_arrays()
         for phase_index, phase in self.timeIterator(self.flightPhases):
             initTime = phase.t
             finalTime = self.flightPhases[phase_index + 1].t
@@ -1746,6 +1766,7 @@ class Flight:
         self.M1 = Function(self.M1, "Time (s)", "M1 (Nm)", interpolation)
         self.M2 = Function(self.M2, "Time (s)", "M2 (Nm)", interpolation)
         self.M3 = Function(self.M3, "Time (s)", "M3 (Nm)", interpolation)
+        # Obs.: Está dando problemas com maks
         self.windVelocityX = Function(
             self.windVelocityX,
             "Time (s)",
@@ -1913,6 +1934,7 @@ class Flight:
                 self.maxRailButton2ShearForce = np.amax(
                     self.railButton2ShearForce[:outOfRailTimeIndex]
                 )
+
         # Aerodynamic Lift and Drag
         self.aerodynamicLift = (self.R1**2 + self.R2**2) ** 0.5
         self.aerodynamicLift.setOutputs("Aerodynamic Lift Force (N)")
@@ -2049,8 +2071,8 @@ class Flight:
         self.staticMargin = self.rocket.staticMargin
 
         # Fluid Mechanics variables
-        # Freestream Velocity
         self.streamVelocityX = self.windVelocityX - self.vx
+        self.streamVelocityX.setInputs("Time (s)")
         self.streamVelocityX.setOutputs("Freestream Velocity X (m/s)")
         self.streamVelocityY = self.windVelocityY - self.vy
         self.streamVelocityY.setOutputs("Freestream Velocity Y (m/s)")
@@ -2062,11 +2084,15 @@ class Flight:
             + self.streamVelocityZ**2
         ) ** 0.5
         self.freestreamSpeed.setOutputs("Freestream Speed (m/s)")
+        self.freestreamSpeed.setInputs("Time (s)")
+
         # Apogee Freestream speed
         self.apogeeFreestreamSpeed = self.freestreamSpeed(self.apogeeTime)
+
         # Mach Number
         self.MachNumber = self.freestreamSpeed / self.speedOfSound
         self.MachNumber.setOutputs("Mach Number")
+        self.MachNumber.setInputs("Time (s)")
         maxMachNumberTimeIndex = np.argmax(self.MachNumber[:, 1])
         self.maxMachNumberTime = self.MachNumber[maxMachNumberTimeIndex, 0]
         self.maxMachNumber = self.MachNumber[maxMachNumberTimeIndex, 1]
