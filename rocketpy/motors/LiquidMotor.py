@@ -152,7 +152,7 @@ class Tank(ABC):
         Function
             Inertia tensor of the tank's fluids as a function of time.
         """
-        ...
+        pass
 
 
 # @MrGribel
@@ -204,5 +204,71 @@ class MassBasedTank(Tank):
         liquid,
         gas,
     ):
-        super().__init__(name, diameter, height, endcap, gas, liquid)
-        pass
+        super().__init__(
+            name, diameter, height, endcap, gas, liquid, interpolationMethod="linear"
+        )
+
+        self.interpolate = interpolationMethod
+        self.diameter = diameter
+        self.liquid_mass = liquid_mass
+        self.gas_mass = gas_mass
+
+    @property
+    def mass(self, t):
+        """Returns the total mass of liquid and gases inside the tank as a
+        function of time.
+
+        Parameters
+        ----------
+        time : float
+            Time in seconds.
+
+        Returns
+        -------
+        Function
+            Mass of the tank as a function of time. Units in kg.
+        """
+        liquid_mass = Function(
+            self.liquid_mass, "Time (s)", "mass (Kg)", self.interpolate, "zero"
+        )
+
+        gas_mass = Function(
+            self.gas_mass, "Time (s)", "mass (Kg)", self.interpolate, "zero"
+        )
+
+        mass = liquid_mass + gas_mass
+
+        return mass
+
+    def netMassFlowRate(self, t):
+        """Returns the net mass flow rate of the tank as a function of time.
+        Net mass flow rate is the mass flow rate exiting the tank minus the
+        mass flow rate entering the tank, including liquids and gases.
+
+        Parameters
+        ----------
+        time : float
+            Time in seconds.
+
+        Returns
+        -------
+        Function
+            Net mass flow rate of the tank as a function of time.
+        """
+        # Get x and y values for all supplied points
+        x = self.mass.source[:, 0]
+        y = self.mass.source[:, 1]
+        # Estimate derivatives at each point
+        d = [0] * len(x)
+        d[0] = (y[1] - y[0]) / (x[1] - x[0])
+        d[-1] = (y[-1] - y[-2]) / (x[-1] - x[-2])
+        for i in range(1, len(x) - 1):
+            w1, w2 = (x[i] - x[i - 1]), (x[i + 1] - x[i])
+            d1, d2 = ((y[i] - y[i - 1]) / w1), ((y[i + 1] - y[i]) / w2)
+            d[i] = (w1 * d2 + w2 * d1) / (w1 + w2)
+
+        netMassFlowRate = Function(
+            d, "Time (s)", "net mass flow rate (Kg/s)", self.interpolate, "zero"
+        )
+
+        return netMassFlowRate
