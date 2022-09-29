@@ -72,6 +72,7 @@ class EnvironmentAnalysis:
         load_previous_data=None,
         forecast_comparaison=False,
         forecast_date=None,
+        forecast_args=None
     ):
         """Constructor for the EnvironmentAnalysis class.
         Parameters
@@ -224,8 +225,8 @@ class EnvironmentAnalysis:
                     longitude=self.longitude,
                     elevation=self.elevation,
                 )
-                Env.setAtmosphericModel(type="Ensemble", file="GEFS")
-                Env.selectEnsembleMember(1)
+                forecast_args = forecast_args or {'type': 'Forecast', 'file': 'GFS'}
+                Env.setAtmosphericModel(**forecast_args)
                 self.forecast[hour] = Env
 
 
@@ -2549,8 +2550,8 @@ class EnvironmentAnalysis:
 
             if self.forecast:
                 forecast = self.forecast
-                x = self.average_wind_profile_at_given_hour[hour][0]
-                y = forecast[hour].windSpeed.getValue(x)
+                y = self.average_wind_profile_at_given_hour[hour][1]
+                x = forecast[hour].windSpeed.getValue(y) * convert_units(1, "m/s", self.unit_system['wind_speed'])
                 ax.plot(x, y, "b--")
 
             ax.label_outer()
