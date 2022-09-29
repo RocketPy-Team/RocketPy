@@ -208,7 +208,6 @@ class MassBasedTank(Tank):
             name, diameter, height, endcap, gas, liquid, interpolationMethod="linear"
         )
 
-        self.interpolate = interpolationMethod
         self.diameter = diameter
         self.liquid_mass = liquid_mass
         self.gas_mass = gas_mass
