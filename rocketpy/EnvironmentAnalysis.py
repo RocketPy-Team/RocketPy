@@ -231,7 +231,7 @@ class EnvironmentAnalysis:
                     longitude=self.longitude,
                     elevation=self.elevation,
                 )
-                forecast_args = forecast_args or {'type': 'Forecast', 'file': 'GFS'}
+                forecast_args = forecast_args or {"type": "Forecast", "file": "GFS"}
                 Env.setAtmosphericModel(**forecast_args)
                 self.forecast[hour] = Env
 
@@ -2565,7 +2565,9 @@ class EnvironmentAnalysis:
             if self.forecast:
                 forecast = self.forecast
                 y = self.average_wind_profile_at_given_hour[hour][1]
-                x = forecast[hour].windSpeed.getValue(y) * convert_units(1, "m/s", self.unit_system['wind_speed'])
+                x = forecast[hour].windSpeed.getValue(y) * convert_units(
+                    1, "m/s", self.unit_system["wind_speed"]
+                )
                 ax.plot(x, y, "b--")
 
             ax.label_outer()
