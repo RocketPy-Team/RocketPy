@@ -1,6 +1,6 @@
 import numpy as np
 from abc import ABC, abstractmethod
-from scipy import fsolve
+from scipy.optimize import fsolve
 
 
 class Geometry(ABC):
@@ -62,7 +62,7 @@ class Geometry3D(Geometry):
     def filled_centroid(self):
         pass
 
-    @Geometry.filled_volume.setter
+    @filled_volume.setter
     def filled_volume(self, volume):
         if volume:
             self._filled_volume = volume
@@ -92,6 +92,10 @@ class Cylinder(Geometry3D):
     def volume(self):
         return self.sectional_area * self.height
 
+    @Geometry3D.filled_height.getter
+    def filled_height(self):
+        return self._filled_height
+
     @Geometry3D.filled_volume.getter
     def filled_volume(self):
         return self.sectional_area * self.filled_height
@@ -117,11 +121,13 @@ class Hemisphere(Geometry3D):
     def volume(self):
         return 2 / 3 * np.pi * self.radius**3
 
+    @Geometry3D.filled_height.getter
+    def filled_height(self):
+        return self._filled_height
+
     @Geometry3D.filled_volume.getter
     def filled_volume(self):
-        return (
-            np.pi * self.filled_height**2 * (3 * self.radius - self.filled_height) / 3
-        )
+        return self._filled_volume
 
     @Geometry.centroid.getter
     def centroid(self):
@@ -141,7 +147,9 @@ class Hemisphere(Geometry3D):
         return centroid - (self.radius - self.filled_height)
 
     def volume_to_height(self, volume):
-        height = lambda height: volume - Geometry.spherical_cap_volume(
-            self.radius, height
+        height = (
+            lambda height: volume - np.pi * height**2 * (3 * self.radius - height) / 3
         )
+
         return fsolve(height, np.array([self.radius / 2]))[0]
+
