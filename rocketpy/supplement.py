@@ -152,4 +152,3 @@ class Hemisphere(Geometry3D):
         )
 
         return fsolve(height, np.array([self.radius / 2]))[0]
-
