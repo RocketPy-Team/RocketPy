@@ -15,6 +15,7 @@ from imageio import imread
 from IPython.display import display
 from matplotlib.patches import Ellipse
 from numpy.random import *
+from datetime import datetime
 
 from .Environment import Environment
 from .Flight import Flight
@@ -123,6 +124,10 @@ class Dispersion:
         self.realLandingPoint = None
         self.parachuteTriggers = []
 
+    def classCheck(self):
+        rocketAttributes = []
+        rocketInputs = []
+
     def setDistributionFunc(self, distributionType):
         if distributionType == "normal" or distributionType == None:
             return normal
@@ -200,7 +205,7 @@ class Dispersion:
     def processDispersionDict(self, dispersionDict):
         # Get parachutes names
         analysis_parameters = {}
-        if "parachuteNames" in dispersionDict:
+        if "parachuteNames" in dispersionDict:  # TODO: use only dispersionDict
             for i, name in enumerate(dispersionDict["parachuteNames"]):
                 if "CdS" in dispersionDict:
                     analysis_parameters["parachute_" + name + "_CdS"] = dispersionDict[
@@ -264,7 +269,9 @@ class Dispersion:
                     else:
                         flight_setting[parameter_key] = distributionFunc(
                             getattr(self.rocket, parameter_key), parameter_value
-                        )
+                        )  # TODO: BUG: accept more then just rocket class
+                        # create a list with the strings of possible inputs and
+                        # check in that string to find to which class it belongs
 
             # Update counter
             i += 1
@@ -371,8 +378,8 @@ class Dispersion:
         self,
         number_of_simulations,
         dispersionDict,
+        environment,
         flight=None,
-        environment=None,
         motor=None,
         rocket=None,
         distributionType="normal",
@@ -384,10 +391,13 @@ class Dispersion:
 
         self.number_of_simulations = number_of_simulations
         self.dispersionDict = dispersionDict
+        self.environment = environment
         self.flight = flight
-        self.environment = flight.env if not environment else environment
-        self.motor = flight.rocket.motor if not motor else motor
-        self.rocket = flight.rocket if not rocket else rocket
+        if flight:
+            self.motor = flight.rocket.motor if not motor else motor
+            self.rocket = flight.rocket if not rocket else rocket
+        self.motor = motor if motor else self.motor
+        self.rocket = rocket if rocket else self.rocket
         self.distributionType = distributionType
         self.image = image
         self.realLandingPoint = realLandingPoint
@@ -404,24 +414,25 @@ class Dispersion:
         dispersion_input_file = open(str(self.filename) + ".disp_inputs.txt", "w")
         dispersion_output_file = open(str(self.filename) + ".disp_outputs.txt", "w")
 
-        # Initialize Environment
-        customAtmosphere = False
-        if not self.environment:
-            envDispersion = Environment(
-                railLength=0,
-            )
-            if "envAtmosphericType" in dispersionDict:
-                if dispersionDict["envAtmosphericType"] == "CustomAtmosphere":
-                    customAtmosphere = True
-                envDispersion.setAtmosphericModel(
-                    type=dispersionDict["envAtmosphericType"],
-                    file=dispersionDict["envAtmosphericFile"]
-                    if "envAtmosphericFile" in dispersionDict
-                    else None,
-                    dictionary=dispersionDict["envAtmosphericDictionary"]
-                    if "envAtmosphericDictionary" in dispersionDict
-                    else None,
-                )
+        # # Initialize Environment
+        # customAtmosphere = False
+        # if not self.environment:
+        #     self.environment = Environment(
+        #         railLength=0,
+        #     )
+        #     if "envAtmosphericType" in dispersionDict:
+        #         if dispersionDict["envAtmosphericType"] == "CustomAtmosphere":
+        #             customAtmosphere = True
+        #         self.environment.setDate(datetime(*dispersionDict["date"][0]))
+        #         self.environment.setAtmosphericModel(
+        #             type=dispersionDict["envAtmosphericType"],
+        #             file=dispersionDict["envAtmosphericFile"]
+        #             if "envAtmosphericFile" in dispersionDict
+        #             else None,
+        #             dictionary=dispersionDict["envAtmosphericDictionary"]
+        #             if "envAtmosphericDictionary" in dispersionDict
+        #             else None,
+        #         )
 
         # Initialize counter and timer
         i = 0
@@ -470,23 +481,6 @@ class Dispersion:
             if "ensembleMember" in setting:
                 envDispersion.selectEnsembleMember(setting["ensembleMember"])
 
-            if customAtmosphere:
-                envDispersion.setAtmosphericModel(
-                    "CustomAtmosphere",
-                    pressure=dispersionDict["pressure"]
-                    if "pressure" in dispersionDict
-                    else None,
-                    temperature=dispersionDict["temperature"]
-                    if "temperature" in dispersionDict
-                    else None,
-                    wind_u=dispersionDict["wind_u"]
-                    if "wind_u" in dispersionDict
-                    else 0,
-                    wind_v=dispersionDict["wind_v"]
-                    if "wind_v" in dispersionDict
-                    else 0,
-                )
-
             # Creates copy of motor
             motorDispersion = self.motor
 
@@ -495,40 +489,40 @@ class Dispersion:
             motorDispersion = SolidMotor(
                 thrustSource=setting["thrustSource"]
                 if "thrustSource" in setting
-                else motorDispersion.thrust,
+                else self.motor.thrust,
                 burnOut=setting["burnOut"]
                 if "burnOut" in setting
-                else motorDispersion.burnOut,
+                else self.motor.burnOutTime,
                 grainNumber=setting["grainNumber"]
                 if "grainNumber" in setting
-                else motorDispersion.grainNumber,
+                else self.motor.grainNumber,
                 grainDensity=setting["grainDensity"]
                 if "grainDensity" in setting
-                else motorDispersion.grainDensity,
+                else self.motor.grainDensity,
                 grainOuterRadius=setting["grainOuterRadius"]
                 if "grainOuterRadius" in setting
-                else motorDispersion.grainOuterRadius,
+                else self.motor.grainOuterRadius,
                 grainInitialInnerRadius=setting["grainInitialInnerRadius"]
                 if "grainInitialInnerRadius" in setting
-                else motorDispersion.grainInitialInnerRadius,
+                else self.motor.grainInitialInnerRadius,
                 grainInitialHeight=setting["grainInitialHeight"]
                 if "grainInitialHeight" in setting
-                else motorDispersion.grainInitialHeight,
+                else self.motor.grainInitialHeight,
                 grainSeparation=setting["grainSeparation"]
                 if "grainSeparation" in setting
-                else motorDispersion.grainSeparation,
+                else self.motor.grainSeparation,
                 nozzleRadius=setting["nozzleRadius"]
                 if "nozzleRadius" in setting
-                else motorDispersion.nozzleRadius,
+                else self.motor.nozzleRadius,
                 throatRadius=setting["throatRadius"]
                 if "throatRadius" in setting
-                else motorDispersion.throatRadius,
-                reshapeThrustCurve=setting["reshapeThrustCurve"]
-                if "reshapeThrustCurve" in setting
-                else motorDispersion.reshapeThrustCurve,
+                else self.motor.throatRadius,
+                reshapeThrustCurve=(setting["burnOut"], setting["impulse"])
+                if "burnOut" and "impulse" in setting
+                else False,
                 interpolationMethod=setting["interpolationMethod"]
                 if "interpolationMethod" in setting
-                else motorDispersion.interpolate,
+                else self.motor.interpolate,
             )
 
             # Creates copy of rocket
