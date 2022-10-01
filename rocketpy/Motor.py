@@ -187,7 +187,6 @@ class Motor(ABC):
         if reshapeThrustCurve:
             self.reshapeThrustCurve(*reshapeThrustCurve)
         else:
-            self.reshapeThrustCurve = reshapeThrustCurve
             self.evaluateTotalImpulse()
 
         # Define motor attributes
