@@ -5,6 +5,7 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 from abc import ABC, abstractmethod
+import functools
 
 import numpy as np
 from scipy import integrate
@@ -188,32 +189,31 @@ class UllageBasedTank(Tank):
         endcap="flat",
     ):
         super().__init__(name, diameter, height, gas, liquid, endcap)
+        self.ullage = ullage
 
-        self.ullage = Function(
-            ullage,
-            "Time (s)",
-            "Volume (m³)",
-            "spline",
-        )
-        self.massFunction = Function(self.mass, "Time (s)", "Mass (kg)", "spline")
+    @functools.cached_property
+    def gasVolume(self):
+        return Function(self.ullage, "Time (s)", "Volume (m³)")
 
-    def gasVolume(self, t):
-        return self.ullage.getValue(t)
+    @functools.cached_property
+    def liquidVolume(self):
+        return self.totalVolume - self.gasVolume
 
-    def liquidVolume(self, t):
-        return self.totalVolume - self.gasVolume(t)
+    @functools.cached_property
+    def gasMass(self):
+        return self.gasVolume * self.gas.density
 
-    def gasMass(self, t):
-        return self.gasVolume(t) * self.gas.density
+    @functools.cached_property
+    def liquidMass(self):
+        return self.liquidVolume * self.liquid.density
 
-    def liquidMass(self, t):
-        return self.liquidVolume(t) * self.liquid.density
+    @functools.cached_property
+    def mass(self):
+        return self.gasMass + self.liquidMass
 
-    def mass(self, t):
-        return self.gasMass(t) + self.liquidMass(t)
-
-    def netMassFlowRate(self, t):
-        return self.massFunction.differentiate(t)
+    @functools.cached_property
+    def netMassFlowRate(self):
+        return self.massFunction.differentiate
 
 
 # @ompro07
