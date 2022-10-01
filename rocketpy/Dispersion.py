@@ -147,57 +147,57 @@ class Dispersion:
             return gamma
         elif distributionType == "geometric":
             return geometric
-        if distributionType == "gumbel":
+        elif distributionType == "gumbel":
             return gumbel
-        if distributionType == "hypergeometric":
+        elif distributionType == "hypergeometric":
             return hypergeometric
-        if distributionType == "laplace":
+        elif distributionType == "laplace":
             return laplace
-        if distributionType == "logistic":
+        elif distributionType == "logistic":
             return logistic
-        if distributionType == "lognormal":
+        elif distributionType == "lognormal":
             return lognormal
-        if distributionType == "logseries":
+        elif distributionType == "logseries":
             return logseries
-        if distributionType == "multinomial":
+        elif distributionType == "multinomial":
             return multinomial
-        if distributionType == "multivariate_normal":
+        elif distributionType == "multivariate_normal":
             return multivariate_normal
-        if distributionType == "negative_binomial":
+        elif distributionType == "negative_binomial":
             return negative_binomial
-        if distributionType == "noncentral_chisquare":
+        elif distributionType == "noncentral_chisquare":
             return noncentral_chisquare
-        if distributionType == "noncentral_f":
+        elif distributionType == "noncentral_f":
             return noncentral_f
-        if distributionType == "pareto":
+        elif distributionType == "pareto":
             return pareto
-        if distributionType == "poisson":
+        elif distributionType == "poisson":
             return poisson
-        if distributionType == "power":
+        elif distributionType == "power":
             return power
-        if distributionType == "rayleigh":
+        elif distributionType == "rayleigh":
             return rayleigh
-        if distributionType == "standard_cauchy":
+        elif distributionType == "standard_cauchy":
             return standard_cauchy
-        if distributionType == "standard_exponential":
+        elif distributionType == "standard_exponential":
             return standard_exponential
-        if distributionType == "standard_gamma":
+        elif distributionType == "standard_gamma":
             return standard_gamma
-        if distributionType == "standard_normal":
+        elif distributionType == "standard_normal":
             return standard_normal
-        if distributionType == "standard_t":
+        elif distributionType == "standard_t":
             return standard_t
-        if distributionType == "triangular":
+        elif distributionType == "triangular":
             return triangular
-        if distributionType == "uniform":
+        elif distributionType == "uneliform":
             return uniform
-        if distributionType == "vonmises":
+        elif distributionType == "vonmises":
             return vonmises
-        if distributionType == "wald":
+        elif distributionType == "wald":
             return wald
-        if distributionType == "weibull":
+        elif distributionType == "weibull":
             return weibull
-        if distributionType == "zipf":
+        elif distributionType == "zipf":
             return zipf
         else:
             warnings.warn("Distribution type not supported")
@@ -223,15 +223,25 @@ class Dispersion:
                     analysis_parameters["parachute_" + name + "_lag"] = dispersionDict[
                         "lag"
                     ][i]
-                if "noise" in dispersionDict:
+                if "noise_mean" in dispersionDict:
                     analysis_parameters[
-                        "parachute_" + name + "_noise"
-                    ] = dispersionDict["noise"][i]
+                        "parachute_" + name + "_noise_mean"
+                    ] = dispersionDict["noise_mean"][i]
+                if "noise_sd" in dispersionDict:
+                    analysis_parameters[
+                        "parachute_" + name + "_noise_std"
+                    ] = dispersionDict["noise_sd"][i]
+                if "noise_corr" in dispersionDict:
+                    analysis_parameters[
+                        "parachute_" + name + "_noise_corr"
+                    ] = dispersionDict["noise_corr"][i]
             dispersionDict.pop("CdS", None)
             dispersionDict.pop("trigger", None)
             dispersionDict.pop("samplingRate", None)
             dispersionDict.pop("lag", None)
-            dispersionDict.pop("noise", None)
+            dispersionDict.pop("noise_mean", None)
+            dispersionDict.pop("noise_sd", None)
+            dispersionDict.pop("noise_corr", None)
             self.parachute_names = dispersionDict.pop("parachuteNames", None)
 
         for key, value in dispersionDict.items():
@@ -568,7 +578,9 @@ class Dispersion:
                 else self.rocket.noseDistanceToCM,
             )
             rocketDispersion.addFins(
-                n=setting["n"] if "n" in setting else self.rocket.numberOfFins,
+                n=setting["numberOfFins"]
+                if "numberOfFins" in setting
+                else self.rocket.numberOfFins,
                 rootChord=setting["rootChord"]
                 if "rootChord" in setting
                 else self.rocket.rootChord,
@@ -576,8 +588,8 @@ class Dispersion:
                 if "tipChord" in setting
                 else self.rocket.tipChord,
                 span=setting["span"] if "span" in setting else self.rocket.span,
-                distanceToCM=setting["finDistanceToCM"]
-                if "finDistanceToCM" in setting
+                distanceToCM=setting["distanceToCM"]
+                if "distanceToCM" in setting
                 else self.rocket.distanceRocketFins,
                 radius=setting["radius"]
                 if "radius" in setting
@@ -586,20 +598,21 @@ class Dispersion:
                 if "airfoil" in setting
                 else self.rocket.finAirfoil,
             )
-            rocketDispersion.addTail(
-                topRadius=setting["topRadius"]
-                if "topRadius" in setting
-                else self.rocket.tailTopRadius,
-                bottomRadius=setting["bottomRadius"]
-                if "bottomRadius" in setting
-                else self.rocket.tailBottomRadius,
-                length=setting["length"]
-                if "length" in setting
-                else self.rocket.tailLength,
-                distanceToCM=setting["distanceToCM"]
-                if "distanceToCM" in setting
-                else self.rocket.tailDistanceToCM,
-            )
+            if not "noTail" in setting:
+                rocketDispersion.addTail(
+                    topRadius=setting["topRadius"]
+                    if "topRadius" in setting
+                    else self.rocket.tailTopRadius,
+                    bottomRadius=setting["bottomRadius"]
+                    if "bottomRadius" in setting
+                    else self.rocket.tailBottomRadius,
+                    length=setting["length"]
+                    if "length" in setting
+                    else self.rocket.tailLength,
+                    distanceToCM=setting["distanceToCM"]
+                    if "distanceToCM" in setting
+                    else self.rocket.tailDistanceToCM,
+                )
 
             # Add parachutes
             for num, name in enumerate(self.parachute_names):
@@ -617,17 +630,28 @@ class Dispersion:
                     lag=setting["parachute_" + name + "_lag"]
                     if "parachute_" + name + "_lag" in setting
                     else self.rocket.parachutes[num].lag,
-                    noise=setting["parachute_" + name + "_noise"]
-                    if "parachute_" + name + "_noise" in setting
-                    else self.rocket.parachutes[num].noise,
+                    noise=(
+                        setting["parachute_" + name + "_noise_mean"]
+                        if "parachute_" + name + "_noise_mean" in setting
+                        else self.rocket.parachutes[num].noise[0],
+                        setting["parachute_" + name + "_noise_std"]
+                        if "parachute_" + name + "_noise_std" in setting
+                        else self.rocket.parachutes[num].noise[1],
+                        setting["parachute_" + name + "_noise_corr"]
+                        if "parachute_" + name + "_noise_corr" in setting
+                        else self.rocket.parachutes[num].noise[2],
+                    ),
                 )
 
             rocketDispersion.setRailButtons(
-                distanceToCM=setting["RBdistanceToCM"]
-                if "RBdistanceToCM" in setting
+                distanceToCM=[
+                    setting["positionFirstRailButton"],
+                    setting["positionSecondRailButton"],
+                ]
+                if "positionFirstRailButton" or "positionSecondRailButton" in setting
                 else self.rocket.RBdistanceToCM,
-                angularPosition=setting["angularPosition"]
-                if "angularPosition" in setting
+                angularPosition=setting["railButtonAngularPosition"]
+                if "railButtonAngularPosition" in setting
                 else self.rocket.angularPosition,
             )
 
@@ -645,24 +669,22 @@ class Dispersion:
                     # initialSolution=setting["initialSolution"] if "initialSolution" in setting else self.flight.initialSolution,
                     terminateOnApogee=setting["terminateOnApogee"]
                     if "terminateOnApogee" in setting
-                    else self.flight.terminateOnApogee,
-                    maxTime=setting["maxTime"]
-                    if "maxTime" in setting
-                    else self.flight.maxTime,
+                    else False,
+                    maxTime=setting["maxTime"] if "maxTime" in setting else 600,
                     maxTimeStep=setting["maxTimeStep"]
                     if "maxTimeStep" in setting
-                    else self.flight.maxTimeStep,
+                    else np.inf,
                     minTimeStep=setting["minTimeStep"]
                     if "minTimeStep" in setting
-                    else self.flight.minTimeStep,
-                    rtol=setting["rtol"] if "rtol" in setting else self.flight.rtol,
-                    atol=setting["atol"] if "atol" in setting else self.flight.atol,
+                    else 0,
+                    rtol=setting["rtol"] if "rtol" in setting else 1e-6,
+                    atol=setting["atol"]
+                    if "atol" in setting
+                    else 6 * [1e-3] + 4 * [1e-6] + 3 * [1e-3],
                     timeOvershoot=setting["timeOvershoot"]
                     if "timeOvershoot" in setting
-                    else self.flight.timeOvershoot,
-                    verbose=setting["verbose"]
-                    if "verbose" in setting
-                    else self.flight.verbose,
+                    else True,
+                    verbose=setting["verbose"] if "verbose" in setting else False,
                 )
 
                 self.export_flight_data(
