@@ -517,6 +517,7 @@ class Dispersion:
             flight_result["parachuteInfo"] = "No Parachute Events"
 
         # Write flight setting and results to file
+        flight_setting.pop("thrust", None)
         dispersion_input_file.write(str(flight_setting) + "\n")
         dispersion_output_file.write(str(flight_result) + "\n")
 
