@@ -1219,26 +1219,17 @@ class Flight:
 
     def __init_atmospheric_arrays(self):
         """Initialize force and atmospheric arrays
-        Important to ensure postProcess works when using initialSolution
 
         Returns
         -------
         None
         """
-        self.windVelocityX = [
-            [self.z[0][0], self.env.windVelocityX.getValueOpt(self.z[0][1])]
-        ]
-        self.windVelocityY = [
-            [self.z[0][0], self.env.windVelocityY.getValueOpt(self.z[0][1])]
-        ]
-        self.density = [[self.z[0][0], self.env.density.getValueOpt(self.z[0][1])]]
-        self.dynamicViscosity = [
-            [self.z[0][0], self.env.dynamicViscosity.getValueOpt(self.z[0][1])]
-        ]
-        self.pressure = [[self.z[0][0], self.env.pressure.getValueOpt(self.z[0][1])]]
-        self.speedOfSound = [
-            [self.z[0][0], self.env.speedOfSound.getValueOpt(self.z[0][1])]
-        ]
+        self.windVelocityX = []
+        self.windVelocityY = []
+        self.density = []
+        self.dynamicViscosity = []
+        self.pressure = []
+        self.speedOfSound = []
 
         return None
 
@@ -1553,7 +1544,7 @@ class Flight:
             alpha3,
         ]
 
-        if postProcessing:  # valores estão começando em t= apogeeTime
+        if postProcessing:
             # Dynamics variables
             self.R1.append([t, R1])
             self.R2.append([t, R2])
@@ -1766,7 +1757,6 @@ class Flight:
         self.M1 = Function(self.M1, "Time (s)", "M1 (Nm)", interpolation)
         self.M2 = Function(self.M2, "Time (s)", "M2 (Nm)", interpolation)
         self.M3 = Function(self.M3, "Time (s)", "M3 (Nm)", interpolation)
-        # Obs.: Está dando problemas com maks
         self.windVelocityX = Function(
             self.windVelocityX,
             "Time (s)",
@@ -1790,6 +1780,28 @@ class Flight:
         )
         self.speedOfSound = Function(
             self.speedOfSound, "Time (s)", "Speed of Sound (m/s)", interpolation
+        )
+
+        # Redefine grids for the atmospheric functions
+        # Important to ensure the code works properly when using initialSolution
+        grid = self.vx[:, 0]
+        self.windVelocityX = Function(
+            np.column_stack([grid, self.windVelocityX(grid)]), "Time (s)"
+        )
+        self.windVelocityY = Function(
+            np.column_stack([grid, self.windVelocityY(grid)]), "Time (s)"
+        )
+        self.density = Function(
+            np.column_stack([grid, self.density(grid)]), "Time (s)"
+        )
+        self.pressure = Function(
+            np.column_stack([grid, self.pressure(grid)]), "Time (s)"
+        )
+        self.dynamicViscosity = Function(
+            np.column_stack([grid, self.dynamicViscosity(grid)]), "Time (s)"
+        )
+        self.speedOfSound = Function(
+            np.column_stack([grid, self.speedOfSound(grid)]), "Time (s)"
         )
 
         # Process fourth type of output - values calculated from previous outputs
