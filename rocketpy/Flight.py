@@ -1791,9 +1791,7 @@ class Flight:
         self.windVelocityY = Function(
             np.column_stack([grid, self.windVelocityY(grid)]), "Time (s)"
         )
-        self.density = Function(
-            np.column_stack([grid, self.density(grid)]), "Time (s)"
-        )
+        self.density = Function(np.column_stack([grid, self.density(grid)]), "Time (s)")
         self.pressure = Function(
             np.column_stack([grid, self.pressure(grid)]), "Time (s)"
         )
