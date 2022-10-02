@@ -204,35 +204,34 @@ class Dispersion:
 
     def processDispersionDict(self, dispersionDict):
         # Get parachutes names
-        analysis_parameters = {}
         if "parachuteNames" in dispersionDict:  # TODO: use only dispersionDict
             for i, name in enumerate(dispersionDict["parachuteNames"]):
                 if "CdS" in dispersionDict:
-                    analysis_parameters["parachute_" + name + "_CdS"] = dispersionDict[
+                    dispersionDict["parachute_" + name + "_CdS"] = dispersionDict[
                         "CdS"
                     ][i]
                 if "trigger" in dispersionDict:
-                    analysis_parameters[
-                        "parachute_" + name + "_trigger"
-                    ] = dispersionDict["trigger"][i]
+                    dispersionDict["parachute_" + name + "_trigger"] = dispersionDict[
+                        "trigger"
+                    ][i]
                 if "samplingRate" in dispersionDict:
-                    analysis_parameters[
+                    dispersionDict[
                         "parachute_" + name + "_samplingRate"
                     ] = dispersionDict["samplingRate"][i]
                 if "lag" in dispersionDict:
-                    analysis_parameters["parachute_" + name + "_lag"] = dispersionDict[
+                    dispersionDict["parachute_" + name + "_lag"] = dispersionDict[
                         "lag"
                     ][i]
                 if "noise_mean" in dispersionDict:
-                    analysis_parameters[
+                    dispersionDict[
                         "parachute_" + name + "_noise_mean"
                     ] = dispersionDict["noise_mean"][i]
                 if "noise_sd" in dispersionDict:
-                    analysis_parameters[
-                        "parachute_" + name + "_noise_std"
-                    ] = dispersionDict["noise_sd"][i]
+                    dispersionDict["parachute_" + name + "_noise_std"] = dispersionDict[
+                        "noise_sd"
+                    ][i]
                 if "noise_corr" in dispersionDict:
-                    analysis_parameters[
+                    dispersionDict[
                         "parachute_" + name + "_noise_corr"
                     ] = dispersionDict["noise_corr"][i]
             dispersionDict.pop("CdS", None)
@@ -244,10 +243,173 @@ class Dispersion:
             dispersionDict.pop("noise_corr", None)
             self.parachute_names = dispersionDict.pop("parachuteNames", None)
 
-        for key, value in dispersionDict.items():
-            analysis_parameters[key] = value
+        for parameter_key, parameter_value in dispersionDict.items():
+            if isinstance(parameter_value, (tuple, list)):
+                continue
+            else:  # if parameter_value is only the standard deviation
+                if "parachute" in parameter_key:
+                    _, parachute_name, parameter = parameter_key.split("_")
+                    dispersionDict[parameter_key] = (
+                        getattr(
+                            self.rocket.parachutes[
+                                self.parachute_names.index(parachute_name)
+                            ],
+                            parameter,
+                        ),
+                        parameter_value,
+                    )
+                else:
+                    if parameter_key in self.environment_inputs.keys():
+                        try:
+                            dispersionDict[parameter_key] = (
+                                getattr(self.environment, parameter_key),
+                                parameter_value,
+                            )
+                        except Exception as E:
+                            print("Error:")
+                            print(
+                                "Check if parameter was inputed correctly in dispersioDict."
+                                + " Dictionary values must be either tuple or lists."
+                                + " If single value, the correponding Class must "
+                                + "must be inputed in Dispersion.runDispersion method.\n"
+                            )
+                            print(traceback.format_exc())
+                    elif parameter_key in self.solidmotor_inputs.keys():
+                        try:
+                            dispersionDict[parameter_key] = (
+                                getattr(self.motor, parameter_key),
+                                parameter_value,
+                            )
+                        except Exception as E:
+                            print("Error:")
+                            print(
+                                "Check if parameter was inputed correctly in dispersioDict."
+                                + " Dictionary values must be either tuple or lists."
+                                + " If single value, the correponding Class must "
+                                + "must be inputed in Dispersion.runDispersion method.\n"
+                            )
+                            print(traceback.format_exc())
+                    elif parameter_key in self.rocket_inputs.keys():
+                        try:
+                            dispersionDict[parameter_key] = (
+                                getattr(self.rocket, parameter_key),
+                                parameter_value,
+                            )
+                        except Exception as E:
+                            print("Error:")
+                            print(
+                                "Check if parameter was inputed correctly in dispersioDict."
+                                + " Dictionary values must be either tuple or lists."
+                                + " If single value, the correponding Class must "
+                                + "must be inputed in Dispersion.runDispersion method.\n"
+                            )
+                            print(traceback.format_exc())
+                    elif parameter_key in self.flight_inputs.keys():
+                        try:
+                            dispersionDict[parameter_key] = (
+                                getattr(self.flight, parameter_key),
+                                parameter_value,
+                            )
+                        except Exception as E:
+                            print("Error:")
+                            print(
+                                "Check if parameter was inputed correctly in dispersioDict."
+                                + " Dictionary values must be either tuple or lists."
+                                + " If single value, the correponding Class must "
+                                + "must be inputed in Dispersion.runDispersion method.\n"
+                            )
+                            print(traceback.format_exc())
 
-        return analysis_parameters
+        # Check remaining class inputs
+
+        if not all(
+            environment_input in dispersionDict
+            for environment_input in self.environment_inputs.keys()
+        ):
+            # Iterate through missing inputs
+            for missing_input in (
+                set(self.environment_inputs.keys()) - dispersionDict.keys()
+            ):
+                missing_input = str(missing_input)
+                # Add to the dict
+                try:
+                    dispersionDict[missing_input] = [
+                        getattr(self.environment, missing_input)
+                    ]
+                except:
+                    # class was not inputed
+                    # checks if missing parameter is required
+                    if self.environment_inputs[missing_input] == "required":
+                        warnings.warn(f'Missing "{missing_input}" in dispersionDict')
+                    else:  # if not uses default value
+                        dispersionDict[missing_input] = [
+                            self.environment_inputs[missing_input]
+                        ]
+        if not all(
+            motor_input in dispersionDict
+            for motor_input in self.solidmotor_inputs.keys()
+        ):
+            # Iterate through missing inputs
+            for missing_input in (
+                set(self.solidmotor_inputs.keys()) - dispersionDict.keys()
+            ):
+                missing_input = str(missing_input)
+                # Add to the dict
+                try:
+                    dispersionDict[missing_input] = [getattr(self.motor, missing_input)]
+                except:
+                    # class was not inputed
+                    # checks if missing parameter is required
+                    if self.solidmotor_inputs[missing_input] == "required":
+                        warnings.warn(f'Missing "{missing_input}" in dispersionDict')
+                    else:  # if not uses default value
+                        dispersionDict[missing_input] = [
+                            self.solidmotor_inputs[missing_input]
+                        ]
+
+        if not all(
+            rocket_input in dispersionDict for rocket_input in self.rocket_inputs.keys()
+        ):
+            # Iterate through missing inputs
+            for missing_input in set(self.rocket_inputs.keys()) - dispersionDict.keys():
+                missing_input = str(missing_input)
+                # Add to the dict
+                try:
+                    dispersionDict[missing_input] = [
+                        getattr(self.rocket, missing_input)
+                    ]
+                except:
+                    # class was not inputed
+                    # checks if missing parameter is required
+                    if self.rocket_inputs[missing_input] == "required":
+                        warnings.warn(f'Missing "{missing_input}" in dispersionDict')
+                    else:  # if not uses default value
+                        dispersionDict[missing_input] = [
+                            self.rocket_inputs[missing_input]
+                        ]
+
+        if not all(
+            flight_input in dispersionDict for flight_input in self.flight_inputs.keys()
+        ):
+            # Iterate through missing inputs
+            for missing_input in set(self.flight_inputs.keys()) - dispersionDict.keys():
+                missing_input = str(missing_input)
+                # Add to the dict
+                try:
+                    dispersionDict[missing_input] = [
+                        getattr(self.flight, missing_input)
+                    ]
+                except:
+                    # class was not inputed
+                    # checks if missing parameter is required
+                    if self.flight_inputs[missing_input] == "required":
+                        warnings.warn(f'Missing "{missing_input}" in dispersionDict')
+                    else:  # if not uses default value
+                        dispersionDict[missing_input] = [
+                            self.flight_inputs[missing_input]
+                        ]
+
+        return dispersionDict
 
     def yield_flight_setting(
         self, distributionFunc, analysis_parameters, number_of_simulations
@@ -262,26 +424,10 @@ class Dispersion:
             for parameter_key, parameter_value in analysis_parameters.items():
                 if type(parameter_value) is tuple:
                     flight_setting[parameter_key] = distributionFunc(*parameter_value)
-                elif type(parameter_value) is list:
-                    flight_setting[parameter_key] = choice(parameter_value)
-                else:  # if parameter_value is only the standard deviation
-                    if "parachute" in parameter_key:
-                        _, parachute_name, parameter = parameter_key.split("_")
-                        flight_setting[parameter_key] = distributionFunc(
-                            getattr(
-                                self.rocket.parachutes[
-                                    self.parachute_names.index(parachute_name)
-                                ],
-                                parameter,
-                            ),
-                            parameter_value,
-                        )
-                    else:
-                        flight_setting[parameter_key] = distributionFunc(
-                            getattr(self.rocket, parameter_key), parameter_value
-                        )  # TODO: BUG: accept more then just rocket class
-                        # create a list with the strings of possible inputs and
-                        # check in that string to find to which class it belongs
+                else:
+                    # shuffles list and gets first item
+                    shuffle(parameter_value)
+                    flight_setting[parameter_key] = parameter_value[0]
 
             # Update counter
             i += 1
@@ -414,6 +560,7 @@ class Dispersion:
 
         # Creates copy of dispersionDict that will be altered
         modified_dispersion_dict = {i: j for i, j in dispersionDict.items()}
+
         analysis_parameters = self.processDispersionDict(modified_dispersion_dict)
 
         self.distribuitionFunc = self.setDistributionFunc(distributionType)
@@ -462,34 +609,13 @@ class Dispersion:
             envDispersion = self.environment
 
             # Apply environment parameters variations on each iteration if possible
-            envDispersion.railLength = (
-                setting["railLength"] if "railLength" in setting else envDispersion.rL
-            )
-            envDispersion.gravity = (
-                setting["gravity"] if "gravity" in setting else envDispersion.g
-            )
-            envDispersion.date = (
-                setting["date"] if "date" in setting else envDispersion.date
-            )
-            envDispersion.latitude = (
-                setting["latitude"] if "latitude" in setting else envDispersion.lat
-            )
-            envDispersion.longitude = (
-                setting["longitude"] if "longitude" in setting else envDispersion.lon
-            )
-            envDispersion.elevation = (
-                setting["elevation"]
-                if "elevation" in setting
-                else envDispersion.elevation
-            )
-            envDispersion.datum = (
-                setting["datum"] if "datum" in setting else envDispersion.datum
-            )
-            envDispersion.timeZone = (
-                dispersionDict["timeZone"] if "timeZone" in dispersionDict else "UTC"
-            )
-            if "ensembleMember" in setting:
-                envDispersion.selectEnsembleMember(setting["ensembleMember"])
+            envDispersion.railLength = setting["railLength"]
+            envDispersion.gravity = setting["gravity"]
+            envDispersion.date = setting["date"]
+            envDispersion.latitude = setting["latitude"]
+            envDispersion.longitude = setting["longitude"]
+            envDispersion.elevation = setting["elevation"]
+            envDispersion.selectEnsembleMember(setting["ensembleMember"])
 
             # Creates copy of motor
             motorDispersion = self.motor
@@ -497,42 +623,17 @@ class Dispersion:
             # Apply motor parameters variations on each iteration if possible
             # TODO: add hybrid motor option
             motorDispersion = SolidMotor(
-                thrustSource=setting["thrustSource"]
-                if "thrustSource" in setting
-                else self.motor.thrust,
-                burnOut=setting["burnOut"]
-                if "burnOut" in setting
-                else self.motor.burnOutTime,
-                grainNumber=setting["grainNumber"]
-                if "grainNumber" in setting
-                else self.motor.grainNumber,
-                grainDensity=setting["grainDensity"]
-                if "grainDensity" in setting
-                else self.motor.grainDensity,
-                grainOuterRadius=setting["grainOuterRadius"]
-                if "grainOuterRadius" in setting
-                else self.motor.grainOuterRadius,
-                grainInitialInnerRadius=setting["grainInitialInnerRadius"]
-                if "grainInitialInnerRadius" in setting
-                else self.motor.grainInitialInnerRadius,
-                grainInitialHeight=setting["grainInitialHeight"]
-                if "grainInitialHeight" in setting
-                else self.motor.grainInitialHeight,
-                grainSeparation=setting["grainSeparation"]
-                if "grainSeparation" in setting
-                else self.motor.grainSeparation,
-                nozzleRadius=setting["nozzleRadius"]
-                if "nozzleRadius" in setting
-                else self.motor.nozzleRadius,
-                throatRadius=setting["throatRadius"]
-                if "throatRadius" in setting
-                else self.motor.throatRadius,
-                reshapeThrustCurve=(setting["burnOut"], setting["impulse"])
-                if "burnOut" and "impulse" in setting
-                else False,
-                interpolationMethod=setting["interpolationMethod"]
-                if "interpolationMethod" in setting
-                else self.motor.interpolate,
+                thrustSource=setting["thrust"],
+                burnOut=setting["burnOutTime"],
+                grainNumber=setting["grainNumber"],
+                grainDensity=setting["grainDensity"],
+                grainOuterRadius=setting["grainOuterRadius"],
+                grainInitialInnerRadius=setting["grainInitialInnerRadius"],
+                grainInitialHeight=setting["grainInitialHeight"],
+                grainSeparation=setting["grainSeparation"],
+                nozzleRadius=setting["nozzleRadius"],
+                throatRadius=setting["throatRadius"],
+                reshapeThrustCurve=(setting["burnOutTime"], setting["totalImpulse"]),
             )
 
             # Creates copy of rocket
@@ -541,105 +642,51 @@ class Dispersion:
             # Apply rocket parameters variations on each iteration if possible
             rocketDispersion = Rocket(
                 motor=motorDispersion,
-                mass=setting["rocketMass"]
-                if "rocketMass" in setting
-                else self.rocket.mass,
-                inertiaI=setting["inertiaI"]
-                if "inertiaI" in setting
-                else self.rocket.inertiaI,
-                inertiaZ=setting["inertiaZ"]
-                if "inertiaZ" in setting
-                else self.rocket.inertiaZ,
-                radius=setting["radius"] if "radius" in setting else self.rocket.radius,
-                distanceRocketNozzle=setting["distanceRocketNozzle"]
-                if "distanceRocketNozzle" in setting
-                else self.rocket.distanceRocketNozzle,
-                distanceRocketPropellant=setting["distanceRocketPropellant"]
-                if "distanceRocketPropellant" in setting
-                else self.rocket.distanceRocketPropellant,
-                powerOffDrag=setting["powerOffDrag"]
-                if "powerOffDrag" in setting
-                else self.rocket.powerOffDrag,
-                powerOnDrag=setting["powerOnDrag"]
-                if "powerOnDrag" in setting
-                else self.rocket.powerOnDrag,
+                mass=setting["mass"],
+                inertiaI=setting["inertiaI"],
+                inertiaZ=setting["inertiaZ"],
+                radius=setting["radius"],
+                distanceRocketNozzle=setting["distanceRocketNozzle"],
+                distanceRocketPropellant=setting["distanceRocketPropellant"],
+                powerOffDrag=setting["powerOffDrag"],
+                powerOnDrag=setting["powerOnDrag"],
             )
 
             # Add rocket nose, fins and tail
             rocketDispersion.addNose(
-                length=setting["noseLength"]
-                if "noseLength" in setting
-                else self.rocket.noseLength,
-                kind=setting["noseKind"]
-                if "noseKind" in setting
-                else self.rocket.noseKind,
-                distanceToCM=setting["noseDistanceToCM"]
-                if "noseDistanceToCM" in setting
-                else self.rocket.noseDistanceToCM,
+                length=setting["noseLength"],
+                kind=setting["noseKind"],
+                distanceToCM=setting["noseDistanceToCM"],
             )
             rocketDispersion.addFins(
-                n=setting["numberOfFins"]
-                if "numberOfFins" in setting
-                else self.rocket.numberOfFins,
-                rootChord=setting["rootChord"]
-                if "rootChord" in setting
-                else self.rocket.rootChord,
-                tipChord=setting["tipChord"]
-                if "tipChord" in setting
-                else self.rocket.tipChord,
-                span=setting["span"] if "span" in setting else self.rocket.span,
-                distanceToCM=setting["distanceToCM"]
-                if "distanceToCM" in setting
-                else self.rocket.distanceRocketFins,
-                radius=setting["radius"]
-                if "radius" in setting
-                else self.rocket.finRadius,
-                airfoil=setting["airfoil"]
-                if "airfoil" in setting
-                else self.rocket.finAirfoil,
+                n=setting["numberOfFins"],
+                rootChord=setting["rootChord"],
+                tipChord=setting["tipChord"],
+                span=setting["span"],
+                distanceToCM=setting["distanceToCM"],
+                radius=setting["radius"],
+                airfoil=setting["airfoil"],
             )
             if not "noTail" in setting:
                 rocketDispersion.addTail(
-                    topRadius=setting["topRadius"]
-                    if "topRadius" in setting
-                    else self.rocket.tailTopRadius,
-                    bottomRadius=setting["bottomRadius"]
-                    if "bottomRadius" in setting
-                    else self.rocket.tailBottomRadius,
-                    length=setting["length"]
-                    if "length" in setting
-                    else self.rocket.tailLength,
-                    distanceToCM=setting["distanceToCM"]
-                    if "distanceToCM" in setting
-                    else self.rocket.tailDistanceToCM,
+                    topRadius=setting["topRadius"],
+                    bottomRadius=setting["bottomRadius"],
+                    length=setting["length"],
+                    distanceToCM=setting["distanceToCM"],
                 )
 
             # Add parachutes
             for num, name in enumerate(self.parachute_names):
                 rocketDispersion.addParachute(
                     name=name,
-                    CdS=setting["parachute_" + name + "_CdS"]
-                    if "parachute_" + name + "_CdS" in setting
-                    else self.rocket.parachutes[num].CdS,
-                    trigger=setting["parachute_" + name + "_trigger"]
-                    if "parachute_" + name + "_trigger" in setting
-                    else self.rocket.parachutes[num].trigger,
-                    samplingRate=setting["parachute_" + name + "_samplingRate"]
-                    if "parachute_" + name + "_samplingRate" in setting
-                    else self.rocket.parachutes[num].samplingRate,
-                    lag=setting["parachute_" + name + "_lag"]
-                    if "parachute_" + name + "_lag" in setting
-                    else self.rocket.parachutes[num].lag,
+                    CdS=setting["parachute_" + name + "_CdS"],
+                    trigger=setting["parachute_" + name + "_trigger"],
+                    samplingRate=setting["parachute_" + name + "_samplingRate"],
+                    lag=setting["parachute_" + name + "_lag"],
                     noise=(
-                        setting["parachute_" + name + "_noise_mean"]
-                        if "parachute_" + name + "_noise_mean" in setting
-                        else self.rocket.parachutes[num].noise[0],
-                        setting["parachute_" + name + "_noise_std"]
-                        if "parachute_" + name + "_noise_std" in setting
-                        else self.rocket.parachutes[num].noise[1],
-                        setting["parachute_" + name + "_noise_corr"]
-                        if "parachute_" + name + "_noise_corr" in setting
-                        else self.rocket.parachutes[num].noise[2],
+                        setting["parachute_" + name + "_noise_mean"],
+                        setting["parachute_" + name + "_noise_std"],
+                        setting["parachute_" + name + "_noise_corr"],
                     ),
                 )
 
@@ -647,12 +694,8 @@ class Dispersion:
                 distanceToCM=[
                     setting["positionFirstRailButton"],
                     setting["positionSecondRailButton"],
-                ]
-                if "positionFirstRailButton" or "positionSecondRailButton" in setting
-                else self.rocket.RBdistanceToCM,
-                angularPosition=setting["railButtonAngularPosition"]
-                if "railButtonAngularPosition" in setting
-                else self.rocket.angularPosition,
+                ],
+                angularPosition=setting["railButtonAngularPosition"],
             )
 
             # Run trajectory simulation
@@ -660,31 +703,17 @@ class Dispersion:
                 TestFlight = Flight(
                     rocket=rocketDispersion,
                     environment=envDispersion,
-                    inclination=setting["inclination"]
-                    if "inclination" in setting
-                    else self.flight.inclination,
-                    heading=setting["heading"]
-                    if "heading" in setting
-                    else self.flight.heading,
+                    inclination=setting["inclination"],
+                    heading=setting["heading"],
                     # initialSolution=setting["initialSolution"] if "initialSolution" in setting else self.flight.initialSolution,
-                    terminateOnApogee=setting["terminateOnApogee"]
-                    if "terminateOnApogee" in setting
-                    else False,
-                    maxTime=setting["maxTime"] if "maxTime" in setting else 600,
-                    maxTimeStep=setting["maxTimeStep"]
-                    if "maxTimeStep" in setting
-                    else np.inf,
-                    minTimeStep=setting["minTimeStep"]
-                    if "minTimeStep" in setting
-                    else 0,
-                    rtol=setting["rtol"] if "rtol" in setting else 1e-6,
-                    atol=setting["atol"]
-                    if "atol" in setting
-                    else 6 * [1e-3] + 4 * [1e-6] + 3 * [1e-3],
-                    timeOvershoot=setting["timeOvershoot"]
-                    if "timeOvershoot" in setting
-                    else True,
-                    verbose=setting["verbose"] if "verbose" in setting else False,
+                    terminateOnApogee=setting["terminateOnApogee"],
+                    maxTime=setting["maxTime"],
+                    maxTimeStep=setting["maxTimeStep"],
+                    minTimeStep=setting["minTimeStep"],
+                    rtol=setting["rtol"],
+                    atol=setting["atol"],
+                    timeOvershoot=setting["timeOvershoot"],
+                    verbose=setting["verbose"],
                 )
 
                 self.export_flight_data(
@@ -1400,3 +1429,55 @@ class Dispersion:
         self.plotDrogueFullyVelocity(dispersion_results)
 
         self.plotDrogueTriggerTime(dispersion_results)
+
+    # Variables
+
+    environment_inputs = {
+        "railLength": "required",
+        "gravity": 9.80665,
+        "date": None,
+        "latitude": 0,
+        "longitude": 0,
+        "elevation": 0,
+        "datum": "SIRGAS2000",
+        "timeZone": "UTC",
+    }
+
+    solidmotor_inputs = {
+        "thrust": "required",
+        "burnOutTime": "required",
+        "totalImpulse": 0,
+        "grainNumber": "required",
+        "grainDensity": "required",
+        "grainOuterRadius": "required",
+        "grainInitialInnerRadius": "required",
+        "grainInitialHeight": "required",
+        "grainSeparation": 0,
+        "nozzleRadius": 0.0335,
+        "throatRadius": 0.0114,
+    }
+
+    rocket_inputs = {
+        "mass": "required",
+        "inertiaI": "required",
+        "inertiaZ": "required",
+        "radius": "required",
+        "distanceRocketNozzle": "required",
+        "distanceRocketPropellant": "required",
+        "powerOffDrag": "required",
+        "powerOnDrag": "required",
+    }
+
+    flight_inputs = {
+        "inclination": 80,
+        "heading": 90,
+        "initialSolution": None,
+        "terminateOnApogee": False,
+        "maxTime": 600,
+        "maxTimeStep": np.inf,
+        "minTimeStep": 0,
+        "rtol": 1e-6,
+        "atol": 6 * [1e-3] + 4 * [1e-6] + 3 * [1e-3],
+        "timeOvershoot": True,
+        "verbose": False,
+    }
