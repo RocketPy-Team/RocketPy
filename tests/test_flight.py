@@ -34,7 +34,7 @@ def setup_rocket_with_given_static_margin(rocket, static_margin):
     def compute_static_margin_error_given_distance(distanceToCM, static_margin, rocket):
         rocket.aerodynamicSurfaces = []
         rocket.addNose(length=0.5, kind="vonKarman", distanceToCM=1.0)
-        rocket.addFins(
+        rocket.addTrapezoidalFins(
             4,
             span=0.100,
             rootChord=0.100,
@@ -104,7 +104,7 @@ def test_flight(mock_show):
     NoseCone = test_rocket.addNose(
         length=0.55829, kind="vonKarman", distanceToCM=0.71971
     )
-    FinSet = test_rocket.addFins(
+    FinSet = test_rocket.addTrapezoidalFins(
         4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
     )
     Tail = test_rocket.addTail(
@@ -193,7 +193,7 @@ def test_initial_solution(mock_show):
     NoseCone = test_rocket.addNose(
         length=0.55829, kind="vonKarman", distanceToCM=0.71971
     )
-    FinSet = test_rocket.addFins(
+    FinSet = test_rocket.addTrapezoidalFins(
         4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
     )
     Tail = test_rocket.addTail(
@@ -391,7 +391,7 @@ def test_rolling_flight(mock_show):
     NoseCone = test_rocket.addNose(
         length=0.55829, kind="vonKarman", distanceToCM=0.71971
     )
-    FinSet = test_rocket.addFins(
+    FinSet = test_rocket.addTrapezoidalFins(
         4,
         span=0.100,
         rootChord=0.120,
@@ -482,7 +482,7 @@ def test_export_data():
     NoseCone = test_rocket.addNose(
         length=0.55829, kind="vonKarman", distanceToCM=0.71971
     )
-    FinSet = test_rocket.addFins(
+    FinSet = test_rocket.addTrapezoidalFins(
         4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
     )
 
@@ -574,7 +574,7 @@ def test_export_KML():
     NoseCone = test_rocket.addNose(
         length=0.55829, kind="vonKarman", distanceToCM=0.71971
     )
-    FinSet = test_rocket.addFins(
+    FinSet = test_rocket.addTrapezoidalFins(
         4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
     )
 
@@ -647,7 +647,7 @@ def test_latlon_conversions(mock_show):
     NoseCone = test_rocket.addNose(
         length=0.55829, kind="vonKarman", distanceToCM=0.71971
     )
-    FinSet = test_rocket.addFins(
+    FinSet = test_rocket.addTrapezoidalFins(
         4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
     )
     Tail = test_rocket.addTail(
@@ -727,7 +727,7 @@ def test_latlon_conversions2(mock_show):
     NoseCone = test_rocket.addNose(
         length=0.55829, kind="vonKarman", distanceToCM=0.71971
     )
-    FinSet = test_rocket.addFins(
+    FinSet = test_rocket.addTrapezoidalFins(
         4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
     )
     Tail = test_rocket.addTail(
