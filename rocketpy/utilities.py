@@ -302,7 +302,7 @@ def exportElipsesToKML(self, impact_ellipses, filename, origin_lat, origin_lon):
             d = -(x**2 + y**2)**0.5
             brng  = math.atan2(x, y)
             # Convert to lat lon
-            lat_lon_points.append(haversine(point[0],point[1],d,brng))
+            lat_lon_points.append(haversine(point[1],point[0],d,brng))
 
         # Export string
         outputs.append(lat_lon_points)
