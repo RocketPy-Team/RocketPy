@@ -15,8 +15,6 @@ from .Environment import Environment
 from .Function import Function
 
 
-
-
 # TODO: Needs tests
 def compute_CdS_from_drop_test(
     terminal_velocity, rocket_mass, air_density=1.225, g=9.80665
@@ -44,7 +42,7 @@ def compute_CdS_from_drop_test(
 
     """
 
-    return 2 * rocket_mass * g / ((terminal_velocity**2) * air_density)
+    return 2 * rocket_mass * g / ((terminal_velocity ** 2) * air_density)
 
 
 # TODO: Needs tests
@@ -206,7 +204,7 @@ def calculateEquilibriumAltitude(
     return altitudeFunction, velocityFunction, final_sol
 
 
-def haversine(lat0, lon0, distance, bearing, R = 6.3781 * (10**6)):
+def haversine(lat0, lon0, distance, bearing, R=6.3781 * (10 ** 6)):
     """ returns a tuple with new latitude and longitude
     considering 1 cm or less to be indifferent
     
@@ -231,41 +229,35 @@ def haversine(lat0, lon0, distance, bearing, R = 6.3781 * (10**6)):
 
     """
 
-    lat1 = (3.14159265359 * lat0 / 180)
-    lon1 = (3.14159265359 * lon0 / 180)
+    lat1 = np.deg2rad(lat0)
+    lon1 = np.deg2rad(lon0)
 
-    if abs(distance*math.sin(bearing)) < 1e-2:
+    if abs(distance * math.sin(bearing)) < 1e-2:
         lat2 = lat1
     else:
-        lat2=(
-        (180 / 3.14159265359)
-            * math.asin(
+        lat2 = np.rad2deg(
+            math.asin(
                 math.sin(lat1) * math.cos(distance / R)
-                + math.cos(lat1)
-                * math.sin(distance / R)
-                * math.cos(bearing)
-            ))
-    if abs(distance*math.cos(bearing)) < 1e-2:
+                + math.cos(lat1) * math.sin(distance / R) * math.cos(bearing)
+            )
+        )
+    if abs(distance * math.cos(bearing)) < 1e-2:
         lon2 = lon1
     else:
-        lon2 = (
-            (180 / 3.14159265359)
-            * (
+        lon2 = np.rad2deg(
+            (
                 lon1
                 + math.atan2(
-                    math.sin(bearing)
-                    * math.sin(distance / R)
-                    * math.cos(lat1),
-                    math.cos(distance / R)
-                    - math.sin(lat1) * math.sin(lat2),
+                    math.sin(bearing) * math.sin(distance / R) * math.cos(lat1),
+                    math.cos(distance / R) - math.sin(lat1) * math.sin(lat2),
                 )
             )
         )
-    coordinates = (lat2,lon2)
+    coordinates = (lat2, lon2)
     return coordinates
 
 
-def exportElipsesToKML(self, impact_ellipses, filename, origin_lat, origin_lon):
+def exportElipsesToKML(impact_ellipses, filename, origin_lat, origin_lon):
     """Generates a KML file with the ellipses on the impact point.
     Parameters
     ----------
@@ -280,43 +272,44 @@ def exportElipsesToKML(self, impact_ellipses, filename, origin_lat, origin_lon):
         Latitute degrees of the Ellipse center. degrees of the Ellipse center.
     """
 
-
     outputs = []
 
     for impactEll in impact_ellipses:
         # Get ellipse path points
         points = impactEll.get_verts()
-        plt.figure()
-        plt.plot(points[:, 0], points[:, 1])
 
         # Convert path points to latlon
-        ## Define constants
-        R = 6371e3 # Earth radius in m
         lat_lon_points = []
         for point in points:
-
-            # SÓ HEMISFÉRIO SUL???
             x = point[0]
             y = point[1]
+
             # Convert to distance and bearing
-            d = -(x**2 + y**2)**0.5
-            brng  = math.atan2(x, y)
+            d = math.sqrt((x ** 2 + y ** 2))
+            brng = math.atan2(x, y)
             # Convert to lat lon
-            lat_lon_points.append(haversine(point[1],point[0],d,brng))
+            lat_lon_points.append(haversine(origin_lat, origin_lon, d, brng))
 
         # Export string
         outputs.append(lat_lon_points)
 
+    # Prepare data to KML file
+    kml_data = []
+    for i in range(len(outputs[0])):
+        kml_data.append((outputs[0][i][1], outputs[0][i][0]))  # log, lat
 
-    plt.show()
-
+    # Export to KML
     kml = simplekml.Kml()
-    ellipse = kml.newpolygon(name='Ellipse')
+    ellipse = kml.newpolygon(name="Ellipse")
 
+    # Setting ellipse style
     ellipse.tessellate = 1
     ellipse.visibility = 1
-    ellipse.innerboundaryis = outputs
+    ellipse.innerboundaryis = kml_data
+    ellipse.outerboundaryis = kml_data
     ellipse.style.linestyle.color = simplekml.Color.black
     ellipse.style.linestyle.width = 5
-    ellipse.style.polystyle.color = simplekml.Color.changealphaint(100, simplekml.Color.blue)
+    ellipse.style.polystyle.color = simplekml.Color.changealphaint(
+        100, simplekml.Color.blue
+    )
     kml.save(filename)
