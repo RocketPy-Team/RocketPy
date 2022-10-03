@@ -608,7 +608,6 @@ class Flight:
         self.terminateOnApogee = terminateOnApogee
 
         # Modifying Rail Length for a better out of rail condition
-
         if self.rocket.railButtons is not None:
             upperRButton = max(self.rocket.railButtons[0])
             lowerRButton = min(self.rocket.railButtons[0])
@@ -1059,8 +1058,18 @@ class Flight:
         """Initialize post-process variables."""
         # Initialize all variables created during Flight.postProcess()
         # Important to do so that MATLAB® can access them
-        self.windVelocityX = Function(0)
-        self.windVelocityY = Function(0)
+        self.windVelocityX = Function(
+            0,
+            inputs="Time (s)",
+            outputs="Wind Velocity X (m/s)",
+            interpolation="linear",
+        )
+        self.windVelocityY = Function(
+            0,
+            inputs="Time (s)",
+            outputs="Wind Velocity Y (m/s)",
+            interpolation="linear",
+        )
         self.density = Function(0)
         self.pressure = Function(0)
         self.dynamicViscosity = Function(0)
@@ -1216,22 +1225,6 @@ class Flight:
             self.outOfRailState = self.initialSolution[1:]
             self.outOfRailTime = self.initialSolution[0]
             self.initialDerivative = self.uDot
-
-    def __init_atmospheric_arrays(self):
-        """Initialize force and atmospheric arrays
-
-        Returns
-        -------
-        None
-        """
-        self.windVelocityX = []
-        self.windVelocityY = []
-        self.density = []
-        self.dynamicViscosity = []
-        self.pressure = []
-        self.speedOfSound = []
-
-        return None
 
     def uDotRail1(self, t, u, postProcessing=False):
         """Calculates derivative of u state vector with respect to time
@@ -1732,12 +1725,17 @@ class Flight:
         self.alpha3 = Function(self.alpha3, "Time (s)", "α3 (rad/s2)", interpolation)
 
         # Process third type of outputs - temporary values calculated during integration
-
+        # Initialize force and atmospheric arrays
         self.R1, self.R2, self.R3, self.M1, self.M2, self.M3 = [], [], [], [], [], []
-
+        self.pressure, self.density, self.dynamicViscosity, self.speedOfSound = (
+            [],
+            [],
+            [],
+            [],
+        )
+        self.windVelocityX, self.windVelocityY = [], []
         # Go through each time step and calculate forces and atmospheric values
         # Get flight phases
-        self.__init_atmospheric_arrays()
         for phase_index, phase in self.timeIterator(self.flightPhases):
             initTime = phase.t
             finalTime = self.flightPhases[phase_index + 1].t
@@ -1786,20 +1784,40 @@ class Flight:
         # Important to ensure the code works properly when using initialSolution
         grid = self.vx[:, 0]
         self.windVelocityX = Function(
-            np.column_stack([grid, self.windVelocityX(grid)]), "Time (s)"
+            np.column_stack([grid, self.windVelocityX(grid)]),
+            "Time (s)",
+            "Wind Velocity X (East) (m/s)",
+            interpolation,
         )
         self.windVelocityY = Function(
-            np.column_stack([grid, self.windVelocityY(grid)]), "Time (s)"
+            np.column_stack([grid, self.windVelocityY(grid)]),
+            "Time (s)",
+            "Wind Velocity Y (North) (m/s)",
+            interpolation,
         )
-        self.density = Function(np.column_stack([grid, self.density(grid)]), "Time (s)")
+        self.density = Function(
+            np.column_stack([grid, self.density(grid)]),
+            "Time (s)",
+            "Density (kg/m³)",
+            interpolation,
+        )
         self.pressure = Function(
-            np.column_stack([grid, self.pressure(grid)]), "Time (s)"
+            np.column_stack([grid, self.pressure(grid)]),
+            "Time (s)",
+            "Pressure (Pa)",
+            interpolation,
         )
         self.dynamicViscosity = Function(
-            np.column_stack([grid, self.dynamicViscosity(grid)]), "Time (s)"
+            np.column_stack([grid, self.dynamicViscosity(grid)]),
+            "Time (s)",
+            "Dynamic Viscosity (Pa s)",
+            interpolation,
         )
         self.speedOfSound = Function(
-            np.column_stack([grid, self.speedOfSound(grid)]), "Time (s)"
+            np.column_stack([grid, self.speedOfSound(grid)]),
+            "Time (s)",
+            "Speed of Sound (m/s)",
+            interpolation,
         )
 
         # Process fourth type of output - values calculated from previous outputs
@@ -1823,7 +1841,9 @@ class Flight:
             self.vz[:, 1], self.horizontalSpeed[:, 1]
         )
         pathAngle = np.column_stack([self.vz[:, 0], pathAngle])
-        self.pathAngle = Function(pathAngle, "Time (s)", "Path Angle (°)")
+        self.pathAngle = Function(
+            pathAngle, "Time (s)", "Path Angle (°)", interpolation
+        )
         # Attitude Angle
         self.attitudeVectorX = 2 * (self.e1 * self.e3 + self.e0 * self.e2)  # a13
         self.attitudeVectorY = 2 * (self.e2 * self.e3 - self.e0 * self.e1)  # a23
@@ -1835,7 +1855,9 @@ class Flight:
             self.attitudeVectorZ[:, 1], horizontalAttitudeProj[:, 1]
         )
         attitudeAngle = np.column_stack([self.attitudeVectorZ[:, 0], attitudeAngle])
-        self.attitudeAngle = Function(attitudeAngle, "Time (s)", "Attitude Angle (°)")
+        self.attitudeAngle = Function(
+            attitudeAngle, "Time (s)", "Attitude Angle (°)", interpolation
+        )
         # Lateral Attitude Angle
         lateralVectorAngle = (np.pi / 180) * (self.heading - 90)
         lateralVectorX = np.sin(lateralVectorAngle)
@@ -1861,7 +1883,10 @@ class Flight:
             [self.attitudeVectorZ[:, 0], lateralAttitudeAngle]
         )
         self.lateralAttitudeAngle = Function(
-            lateralAttitudeAngle, "Time (s)", "Lateral Attitude Angle (°)"
+            lateralAttitudeAngle,
+            "Time (s)",
+            "Lateral Attitude Angle (°)",
+            interpolation,
         )
         # Euler Angles
         psi = (180 / np.pi) * (
@@ -1869,14 +1894,14 @@ class Flight:
             + np.arctan2(-self.e2[:, 1], -self.e1[:, 1])
         )  # Precession angle
         psi = np.column_stack([self.e1[:, 0], psi])  # Precession angle
-        self.psi = Function(psi, "Time (s)", "Precession Angle - ψ (°)")
+        self.psi = Function(psi, "Time (s)", "Precession Angle - ψ (°)", interpolation)
 
         phi = (180 / np.pi) * (
             np.arctan2(self.e3[:, 1], self.e0[:, 1])
             - np.arctan2(-self.e2[:, 1], -self.e1[:, 1])
         )  # Spin angle
         phi = np.column_stack([self.e1[:, 0], phi])  # Spin angle
-        self.phi = Function(phi, "Time (s)", "Spin Angle - φ (°)")
+        self.phi = Function(phi, "Time (s)", "Spin Angle - φ (°)", interpolation)
 
         theta = (
             (180 / np.pi)
@@ -1884,7 +1909,9 @@ class Flight:
             * np.arcsin(-((self.e1[:, 1] ** 2 + self.e2[:, 1] ** 2) ** 0.5))
         )  # Nutation angle
         theta = np.column_stack([self.e1[:, 0], theta])  # Nutation angle
-        self.theta = Function(theta, "Time (s)", "Nutation Angle - θ (°)")
+        self.theta = Function(
+            theta, "Time (s)", "Nutation Angle - θ (°)", interpolation
+        )
 
         # Dynamics functions and variables
         if self.rocket.railButtons is not None:
@@ -1944,7 +1971,6 @@ class Flight:
                 self.maxRailButton2ShearForce = np.amax(
                     self.railButton2ShearForce[:outOfRailTimeIndex]
                 )
-
         # Aerodynamic Lift and Drag
         self.aerodynamicLift = (self.R1**2 + self.R2**2) ** 0.5
         self.aerodynamicLift.setOutputs("Aerodynamic Lift Force (N)")
@@ -1965,14 +1991,19 @@ class Flight:
         I1, I2, I3 = (Ri + Ti + mu * b**2), (Ri + Ti + mu * b**2), (Rz + Tz)
         # Redefine I1, I2 and I3 grid
         grid = self.vx[:, 0]
-        I1 = Function(np.column_stack([grid, I1(grid)]), "Time (s)")
-        I2 = Function(np.column_stack([grid, I2(grid)]), "Time (s)")
-        I3 = Function(np.column_stack([grid, I3(grid)]), "Time (s)")
+        I1 = Function(np.column_stack([grid, I1(grid)]), "Time (s)", interpolation)
+        I2 = Function(np.column_stack([grid, I2(grid)]), "Time (s)", interpolation)
+        I3 = Function(np.column_stack([grid, I3(grid)]), "Time (s)", interpolation)
         # Redefine total mass grid
-        totalMass = Function(np.column_stack([grid, totalMass(grid)]), "Time (s)")
+        totalMass = (
+            Function(np.column_stack([grid, totalMass(grid)]), "Time (s)"),
+            interpolation,
+        )
         # Redefine thrust grid
         thrust = Function(
-            np.column_stack([grid, self.rocket.motor.thrust(grid)]), "Time (s)"
+            np.column_stack([grid, self.rocket.motor.thrust(grid)]),
+            "Time (s)",
+            interpolation,
         )
         # Get some nicknames
         vx, vy, vz = self.vx, self.vy, self.vz
@@ -2016,7 +2047,10 @@ class Flight:
         Y = Y[range(n // 2)]
         omega1FrequencyResponse = np.column_stack([frq, abs(Y)])
         self.omega1FrequencyResponse = Function(
-            omega1FrequencyResponse, "Frequency (Hz)", "Omega 1 Angle Fourier Amplitude"
+            omega1FrequencyResponse,
+            "Frequency (Hz)",
+            "Omega 1 Angle Fourier Amplitude",
+            interpolation,
         )
         # Omega 2 - w2
         Fs = 100.0
@@ -2035,7 +2069,10 @@ class Flight:
         Y = Y[range(n // 2)]
         omega2FrequencyResponse = np.column_stack([frq, abs(Y)])
         self.omega2FrequencyResponse = Function(
-            omega2FrequencyResponse, "Frequency (Hz)", "Omega 2 Angle Fourier Amplitude"
+            omega2FrequencyResponse,
+            "Frequency (Hz)",
+            "Omega 2 Angle Fourier Amplitude",
+            interpolation,
         )
         # Omega 3 - w3
         Fs = 100.0
@@ -2054,7 +2091,10 @@ class Flight:
         Y = Y[range(n // 2)]
         omega3FrequencyResponse = np.column_stack([frq, abs(Y)])
         self.omega3FrequencyResponse = Function(
-            omega3FrequencyResponse, "Frequency (Hz)", "Omega 3 Angle Fourier Amplitude"
+            omega3FrequencyResponse,
+            "Frequency (Hz)",
+            "Omega 3 Angle Fourier Amplitude",
+            interpolation,
         )
         # Attitude Frequency Response
         Fs = 100.0
@@ -2076,15 +2116,18 @@ class Flight:
             attitudeFrequencyResponse,
             "Frequency (Hz)",
             "Attitude Angle Fourier Amplitude",
+            interpolation,
         )
         # Static Margin
         self.staticMargin = self.rocket.staticMargin
 
         # Fluid Mechanics variables
+        # Freestream Velocity
         self.streamVelocityX = self.windVelocityX - self.vx
         self.streamVelocityX.setInputs("Time (s)")
         self.streamVelocityX.setOutputs("Freestream Velocity X (m/s)")
         self.streamVelocityY = self.windVelocityY - self.vy
+        self.streamVelocityY.setInputs("Time (s)")
         self.streamVelocityY.setOutputs("Freestream Velocity Y (m/s)")
         self.streamVelocityZ = -1 * self.vz
         self.streamVelocityZ.setOutputs("Freestream Velocity Z (m/s)")
@@ -2095,10 +2138,8 @@ class Flight:
         ) ** 0.5
         self.freestreamSpeed.setOutputs("Freestream Speed (m/s)")
         self.freestreamSpeed.setInputs("Time (s)")
-
         # Apogee Freestream speed
         self.apogeeFreestreamSpeed = self.freestreamSpeed(self.apogeeTime)
-
         # Mach Number
         self.MachNumber = self.freestreamSpeed / self.speedOfSound
         self.MachNumber.setOutputs("Mach Number")
