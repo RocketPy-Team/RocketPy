@@ -276,7 +276,23 @@ def exportElipsesToKML(impact_ellipses, filename, origin_lat, origin_lon):
 
     for impactEll in impact_ellipses:
         # Get ellipse path points
-        points = impactEll.get_verts()
+        center = impactEll.get_center()
+        width = impactEll.get_width()
+        height = impactEll.get_height()
+        angle = np.deg2rad(impactEll.get_angle())
+        print("angle", np.rad2deg(angle))
+        points = []
+
+        resolution = 1000
+        for i in range(resolution):
+            x = width / 2 * math.cos(2 * np.pi * i / resolution)
+            y = height / 2 * math.sin(2 * np.pi * i / resolution)
+            x_rot = center[0] + x * math.cos(angle) - y * math.sin(angle)
+            y_rot = center[1] + x * math.sin(angle) + y * math.cos(angle)
+            points.append((x_rot, y_rot))
+        # points = impactEll.get_verts()
+        points = np.array(points)
+        plt.plot(points[:, 0], points[:, 1], "r-")
 
         # Convert path points to latlon
         lat_lon_points = []
@@ -292,24 +308,38 @@ def exportElipsesToKML(impact_ellipses, filename, origin_lat, origin_lon):
 
         # Export string
         outputs.append(lat_lon_points)
+    plt.show()
 
     # Prepare data to KML file
     kml_data = []
-    for i in range(len(outputs[0])):
-        kml_data.append((outputs[0][i][1], outputs[0][i][0]))  # log, lat
+    for i in range(len(outputs)):
+        temp = []
+        for j in range(len(outputs[i])):
+            temp.append((outputs[i][j][1], outputs[i][j][0]))  # log, lat
+        kml_data.append(temp)
 
     # Export to KML
     kml = simplekml.Kml()
-    ellipse = kml.newpolygon(name="Ellipse")
 
-    # Setting ellipse style
-    ellipse.tessellate = 1
-    ellipse.visibility = 1
-    ellipse.innerboundaryis = kml_data
-    ellipse.outerboundaryis = kml_data
-    ellipse.style.linestyle.color = simplekml.Color.black
-    ellipse.style.linestyle.width = 5
-    ellipse.style.polystyle.color = simplekml.Color.changealphaint(
-        100, simplekml.Color.blue
-    )
+    for i in range(len(outputs)):
+        mult_ell = kml.newmultigeometry(name="σ" + str(i + 1))
+        mult_ell.newpolygon(
+            outerboundaryis=kml_data[i],
+            innerboundaryis=kml_data[i],
+            name="Ellipse " + str(i),
+        )
+        # Setting ellipse style
+        mult_ell.tessellate = 1
+        mult_ell.visibility = 1
+        # mult_ell.innerboundaryis = kml_data
+        # mult_ell.outerboundaryis = kml_data
+        mult_ell.style.linestyle.color = simplekml.Color.black
+        mult_ell.style.linestyle.width = 3
+        mult_ell.style.polystyle.color = simplekml.Color.changealphaint(
+            100, simplekml.Color.blue
+        )
+
     kml.save(filename)
+
+    # ellipse = kml.newpolygon(name="Ellipse")
+    # kml.save(filename)
