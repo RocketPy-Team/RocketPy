@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-__author__ = "Franz Masatoshi Yuri, Lucas Kierulff Balabram, Guilherme Fernandes Alves"
+__author__ = "Franz Masatoshi Yuri, Lucas Kierulff Balabram, Guilherme Fernandes Alves, Bruno Abdulklech Sorban"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
+import csv
 import numpy as np
 from scipy.integrate import solve_ivp
 
@@ -37,7 +38,7 @@ def compute_CdS_from_drop_test(
 
     """
 
-    return 2 * rocket_mass * g / ((terminal_velocity**2) * air_density)
+    return 2 * rocket_mass * g / ((terminal_velocity ** 2) * air_density)
 
 
 # TODO: Needs tests
@@ -197,3 +198,27 @@ def calculateEquilibriumAltitude(
         velocityFunction()
 
     return altitudeFunction, velocityFunction, final_sol
+
+
+def export_mean_dispersion_to_csv(dispersion_results, filename):
+    """Exports the mean dispersion of the rocket to a CSV file.
+
+    Parameters
+    ----------
+    dispersion_results : dictionary
+        List containing the dispersion results of each iteration.
+    filename : str
+        Name of the file to be exported.
+
+    """
+
+    for axis in dispersion_results:
+        dispersion_results[axis] = np.mean(dispersion_results[axis])
+
+    names = list(dispersion_results.keys())
+    values = list(dispersion_results.values())
+
+    with open(filename, "w", newline="") as csvfile:
+        writer = csv.writer(csvfile, delimiter=",")
+        writer.writerow(names)
+        writer.writerow(values)
