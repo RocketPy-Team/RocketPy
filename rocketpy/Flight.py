@@ -604,6 +604,7 @@ class Flight:
         self.initialSolution = initialSolution
         self.timeOvershoot = timeOvershoot
         self.terminateOnApogee = terminateOnApogee
+        self.verbose = verbose
 
         # Modifying Rail Length for a better out of rail condition
         upperRButton = max(self.rocket.railButtons[0])
@@ -1241,7 +1242,9 @@ class Flight:
         R3 = -0.5 * rho * (freestreamSpeed**2) * self.rocket.area * (dragCoeff)
 
         # Calculate Linear acceleration
-        a3 = (R3 + Thrust) / M - (e0**2 - e1**2 - e2**2 + e3**2) * self.env.g
+        a3 = (R3 + Thrust) / M - (
+            e0**2 - e1**2 - e2**2 + e3**2
+        ) * self.env.gravity
         if a3 > 0:
             ax = 2 * (e1 * e3 + e0 * e2) * a3
             ay = 2 * (e2 * e3 - e0 * e1) * a3
@@ -1484,7 +1487,7 @@ class Flight:
             (R3 - b * Mt * (alpha2 - omega1 * omega3) + Thrust) / M,
         ]
         ax, ay, az = np.dot(K, L)
-        az -= self.env.g  # Include gravity
+        az -= self.env.gravity  # Include gravity
 
         # Create uDot
         uDot = [
@@ -1927,7 +1930,7 @@ class Flight:
         self.kineticEnergy = self.rotationalEnergy + self.translationalEnergy
         self.kineticEnergy.setOutputs("Kinetic Energy (J)")
         # Potential Energy
-        self.potentialEnergy = totalMass * self.env.g * self.z
+        self.potentialEnergy = totalMass * self.env.gravity * self.z
         self.potentialEnergy.setInputs("Time (s)")
         # Total Mechanical Energy
         self.totalEnergy = self.kineticEnergy + self.potentialEnergy
@@ -2139,10 +2142,10 @@ class Flight:
         # self.bearing = bearing        # Must be in radians
 
         lat1 = (
-            3.14159265359 * self.env.lat / 180
+            3.14159265359 * self.env.latitude / 180
         )  # Launch lat point converted to radians
         lon1 = (
-            3.14159265359 * self.env.lon / 180
+            3.14159265359 * self.env.longitude / 180
         )  # Launch long point converted to radians
 
         R = self.env.earthRadius
@@ -2150,12 +2153,36 @@ class Flight:
         lon2 = []
         # Applies the haversine equation to find final lat/lon coordinates
         for i in range(len(self.x)):
-            # Please notice that for distances lower than 1 centimeter the difference on latitude or longitude is too small
-            newCoordinates = haversine(self.env.lat, self.env.lon, distance[i], bearing[i])
-            lat2.append(newCoordinates[0])
-            lon2.append(newCoordinates[1])
-
-
+            # Please notice that for distances lower than 1 centimeter the difference on latitude or longitude too small
+            if abs(self.y[i][1]) < 1e-2:
+                lat2.append(self.env.latitude)
+            else:
+                lat2.append(
+                    (180 / 3.14159265359)
+                    * math.asin(
+                        math.sin(lat1) * math.cos(distance[i] / R)
+                        + math.cos(lat1)
+                        * math.sin(distance[i] / R)
+                        * math.cos(bearing[i])
+                    )
+                )
+            if abs(self.x[i][1]) < 1e-2:
+                lon2.append(self.env.longitude)
+            else:
+                lon2.append(
+                    (180 / 3.14159265359)
+                    * (
+                        lon1
+                        + math.atan2(
+                            math.sin(bearing[i])
+                            * math.sin(distance[i] / R)
+                            * math.cos(lat1),
+                            math.cos(distance[i] / R)
+                            - math.sin(lat1) * math.sin(lat2[i]),
+                        )
+                    )
+                )
+                
         latitude = [[self.solution[i][0], lat2[i]] for i in range(len(self.solution))]
         longitude = [[self.solution[i][0], lon2[i]] for i in range(len(self.solution))]
 
@@ -2358,7 +2385,7 @@ class Flight:
         )
         print(
             "Maximum Gs: {:.3f} g at {:.2f} s".format(
-                self.maxAcceleration / self.env.g, self.maxAccelerationTime
+                self.maxAcceleration / self.env.gravity, self.maxAccelerationTime
             )
         )
         print(

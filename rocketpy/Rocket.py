@@ -369,6 +369,11 @@ class Rocket:
         self : Rocket
             Object of the Rocket class.
         """
+        # Save parameters for Dispersion
+        self.tailTopRadius = topRadius
+        self.tailBottomRadius = bottomRadius
+        self.tailLength = length
+        self.tailDistanceToCM = distanceToCM
         # Calculate ratio between top and bottom radius
         r = topRadius / bottomRadius
 
@@ -432,6 +437,12 @@ class Rocket:
         self : Rocket
             Object of the Rocket class.
         """
+
+        # Save parameters for Dispersion
+        self.noseLength = length
+        self.noseKind = kind
+        self.noseDistanceToCM = distanceToCM
+
         # Analyze type
         if kind == "conical":
             k = 1 - 1 / 3
@@ -536,6 +547,12 @@ class Rocket:
         self : Rocket
             Object of the Rocket class.
         """
+
+        # Save parameters for Dispersion
+        self.numberOfFins = n
+        self.finRadius = radius
+        self.finAirfoil = airfoil
+
         # Retrieves and convert basic geometrical parameters
         Cr, Ct = rootChord, tipChord
         s = span
@@ -1036,7 +1053,8 @@ class Rocket:
             distanceToCM.reverse()
         # Save
         self.railButtons = self.railButtonPair(distanceToCM, angularPosition)
-
+        self.RBdistanceToCM = distanceToCM
+        self.angularPosition = angularPosition
         return None
 
     def addCMEccentricity(self, x, y):
