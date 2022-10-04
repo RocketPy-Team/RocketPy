@@ -1631,6 +1631,65 @@ class Flight:
 
         return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
 
+    def _initialize_quaternion_functions(self, interpolation, extrapolation):
+        """# Check when e0, e1, e2, e3, is outside the valid (-1, 1)
+        # Created to deal with numerical error problems, which implied in
+        # breaking errors when defining self.theta and others.
+        To be used inside postProcess method.
+
+        Parameters
+        ----------
+        interpolation: string
+            Interpolation method to be used in the Function objects.
+        extrapolation: string
+            Extrapolation method to be used in the Function objects.
+
+        Return
+        -------
+        None
+        """
+
+        grid = self.x[:, 0]
+        e0 = np.fmin(np.array(self.solution)[:, 7], np.ones(len(grid)))
+        e0 = np.fmax(e0, -1 * np.ones(len(e0)))
+        e1 = np.fmin(np.array(self.solution)[:, 8], np.ones(len(grid)))
+        e1 = np.fmax(e1, -1 * np.ones(len(e1)))
+        e2 = np.fmin(np.array(self.solution)[:, 9], np.ones(len(grid)))
+        e2 = np.fmax(e2, -1 * np.ones(len(e2)))
+        e3 = np.fmin(np.array(self.solution)[:, 10], np.ones(len(grid)))
+        e3 = np.fmax(e3, -1 * np.ones(len(e3)))
+
+        self.e0 = Function(
+            np.column_stack((grid, e0)),
+            "Time (s)",
+            "e0",
+            interpolation,
+            extrapolation,
+        )
+        self.e1 = Function(
+            np.column_stack((grid, e1)),
+            "Time (s)",
+            "e1",
+            interpolation,
+            extrapolation,
+        )
+        self.e2 = Function(
+            np.column_stack((grid, e2)),
+            "Time (s)",
+            "e2",
+            interpolation,
+            extrapolation,
+        )
+        self.e3 = Function(
+            np.column_stack((grid, e3)),
+            "Time (s)",
+            "e3",
+            interpolation,
+            extrapolation,
+        )
+
+        return None
+
     def postProcess(self, interpolation="spline", extrapolation="natural"):
         """Post-process all Flight information produced during
         simulation. Includes the calculation of maximum values,
@@ -1639,8 +1698,10 @@ class Flight:
 
         Parameters
         ----------
-        None
-
+        interpolation: string
+            Interpolation method to be used in the Function objects.
+        extrapolation: string
+            Extrapolation method to be used in the Function objects.
         Return
         ------
         None
@@ -1666,18 +1727,7 @@ class Flight:
         self.vz = Function(
             sol[:, [0, 6]], "Time (s)", "Vz (m/s)", interpolation, extrapolation
         )
-        self.e0 = Function(
-            sol[:, [0, 7]], "Time (s)", "e0", interpolation, extrapolation
-        )
-        self.e1 = Function(
-            sol[:, [0, 8]], "Time (s)", "e1", interpolation, extrapolation
-        )
-        self.e2 = Function(
-            sol[:, [0, 9]], "Time (s)", "e2", interpolation, extrapolation
-        )
-        self.e3 = Function(
-            sol[:, [0, 10]], "Time (s)", "e3", interpolation, extrapolation
-        )
+        self._initialize_quaternion_functions(interpolation, extrapolation)
         self.w1 = Function(
             sol[:, [0, 11]], "Time (s)", "ω1 (rad/s)", interpolation, extrapolation
         )
@@ -1991,19 +2041,37 @@ class Flight:
         I1, I2, I3 = (Ri + Ti + mu * b**2), (Ri + Ti + mu * b**2), (Rz + Tz)
         # Redefine I1, I2 and I3 grid
         grid = self.vx[:, 0]
-        I1 = Function(np.column_stack([grid, I1(grid)]), "Time (s)", interpolation)
-        I2 = Function(np.column_stack([grid, I2(grid)]), "Time (s)", interpolation)
-        I3 = Function(np.column_stack([grid, I3(grid)]), "Time (s)", interpolation)
+        I1 = Function(
+            source=np.column_stack([grid, I1(grid)]),
+            inputs="Time (s)",
+            outputs="Moment of Inertia (kg*m^2)",
+            interpolation=interpolation,
+        )
+        I2 = Function(
+            source=np.column_stack([grid, I2(grid)]),
+            inputs="Time (s)",
+            outputs="Moment of Inertia (kg*m^2)",
+            interpolation=interpolation,
+        )
+        I3 = Function(
+            source=np.column_stack([grid, I3(grid)]),
+            inputs="Time (s)",
+            outputs="Moment of Inertia (kg*m^2)",
+            interpolation=interpolation,
+        )
         # Redefine total mass grid
-        totalMass = (
-            Function(np.column_stack([grid, totalMass(grid)]), "Time (s)"),
-            interpolation,
+        totalMass = Function(
+            source=np.column_stack([grid, totalMass(grid)]),
+            inputs="Time (s)",
+            outputs="Mass (kg)",
+            interpolation=interpolation,
         )
         # Redefine thrust grid
         thrust = Function(
-            np.column_stack([grid, self.rocket.motor.thrust(grid)]),
-            "Time (s)",
-            interpolation,
+            source=np.column_stack([grid, self.rocket.motor.thrust(grid)]),
+            inputs="Time (s)",
+            outputs="Thrust (N)",
+            interpolation=interpolation,
         )
         # Get some nicknames
         vx, vy, vz = self.vx, self.vy, self.vz
