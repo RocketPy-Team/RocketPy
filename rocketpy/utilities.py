@@ -42,7 +42,7 @@ def compute_CdS_from_drop_test(
 
     """
 
-    return 2 * rocket_mass * g / ((terminal_velocity ** 2) * air_density)
+    return 2 * rocket_mass * g / ((terminal_velocity**2) * air_density)
 
 
 # TODO: Needs tests
@@ -204,10 +204,10 @@ def calculateEquilibriumAltitude(
     return altitudeFunction, velocityFunction, final_sol
 
 
-def haversine(lat0, lon0, distance, bearing, R=6.3781 * (10 ** 6)):
-    """ returns a tuple with new latitude and longitude
+def haversine(lat0, lon0, distance, bearing, R=6.3781 * (10**6)):
+    """returns a tuple with new latitude and longitude
     considering 1 cm or less to be indifferent
-    
+
     Parameters
     ----------
     lat0 : float
@@ -224,7 +224,7 @@ def haversine(lat0, lon0, distance, bearing, R=6.3781 * (10 ** 6)):
     Returns
     -------
     coordinates : tuple
-        New coordinates expressed by a tuple in 
+        New coordinates expressed by a tuple in
     format(new latitude, new lungitude), in degrees.
 
     """
@@ -262,7 +262,7 @@ def exportElipsesToKML(impact_ellipses, filename, origin_lat, origin_lon):
     Parameters
     ----------
     impact_ellipses : matplolib.patches.Ellipse
-        Contains ellipse details for the plot. 
+        Contains ellipse details for the plot.
     filename : String
         Name to the KML exported file.
     origin_lat : float
@@ -301,7 +301,7 @@ def exportElipsesToKML(impact_ellipses, filename, origin_lat, origin_lon):
             y = point[1]
 
             # Convert to distance and bearing
-            d = math.sqrt((x ** 2 + y ** 2))
+            d = math.sqrt((x**2 + y**2))
             brng = math.atan2(x, y)
             # Convert to lat lon
             lat_lon_points.append(haversine(origin_lat, origin_lon, d, brng))

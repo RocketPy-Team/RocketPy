@@ -2182,7 +2182,7 @@ class Flight:
                         )
                     )
                 )
-                
+
         latitude = [[self.solution[i][0], lat2[i]] for i in range(len(self.solution))]
         longitude = [[self.solution[i][0], lon2[i]] for i in range(len(self.solution))]
 
