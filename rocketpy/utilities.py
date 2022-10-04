@@ -6,6 +6,7 @@ __license__ = "MIT"
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import solve_ivp
+import matplotlib.pyplot as plt
 
 from .Environment import Environment
 from .Function import Function
@@ -256,9 +257,9 @@ def compareTrajectories(
         maxX = max(x) if max(x) > maxX else maxX
         maxY = max(y) if max(y) > maxY else maxY
         maxZ = max(z) if max(z) > maxZ else maxZ
-        minX = min(x) if min(x) > minX else minX
-        minY = min(x) if min(x) > minX else minX
-        minZ = min(z) if min(z) > minZ else minZ
+        minX = min(x) if min(x) < minX else minX
+        minY = min(x) if min(x) < minX else minX
+        minZ = min(z) if min(z) < minZ else minZ
         maxXY = max(maxX, maxY) if max(maxX, maxY) > maxXY else maxXY
         minXY = min(minX, minY) if min(minX, minY) > minXY else minXY
 
@@ -270,7 +271,7 @@ def compareTrajectories(
     ax1.set_xlabel("X - East (m)")
     ax1.set_ylabel("Y - North (m)")
     ax1.set_zlabel("Z - Altitude (m)")
-    ax1.set_title("Flight Trajectories Combined")
+    ax1.set_title("Flight Trajectories Comparison")
     ax1.set_zlim3d([minZ, maxZ])
     ax1.set_ylim3d([minXY, maxXY])
     ax1.set_xlim3d([minXY, maxXY])
@@ -326,6 +327,26 @@ def compareFlightTrajectories(
     # Call compareTrajectories function to do the hard work
     compareTrajectories(trajectory_list, names, legend)
 
+    return None
+
+
+def compareAllInfo(flight_list, names=None):
+    """Creates a plot with the altitude, velocity and acceleration of the
+    Flight objects passed via a Python list.
+
+    Parameters
+    ----------
+    flight_list : list, array
+        List of FLight objects. The flights must be in the same reference frame.
+    names : list, optional
+        List of strings with the name of each trajectory inputted. The names must be in
+        the same order as the trajectories in flight_list
+
+    Returns
+    -------
+    None
+
+    """
     return None
 
 

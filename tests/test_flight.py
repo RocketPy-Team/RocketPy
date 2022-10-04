@@ -533,7 +533,7 @@ def test_export_data():
 
 
 def test_export_KML():
-    "Tests weather the method Flight.exportKML is working as intended"
+    "Tests wether the method Flight.exportKML is working as intended"
 
     test_env = Environment(
         railLength=5,
