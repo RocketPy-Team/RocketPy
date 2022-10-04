@@ -5,23 +5,26 @@ __copyright__ = "Copyright 20XX, Projeto Jupiter"
 __license__ = "MIT"
 
 
+import math
 import traceback
-from time import process_time, time
 import warnings
+from datetime import datetime
+from time import process_time, time
 
 import matplotlib.pyplot as plt
 import numpy as np
+import simplekml
 from imageio import imread
 from IPython.display import display
 from matplotlib.patches import Ellipse
 from numpy.random import *
-from datetime import datetime
 
 from .Environment import Environment
 from .Flight import Flight
 from .Function import Function
 from .Motor import HybridMotor, SolidMotor
 from .Rocket import Rocket
+from .utilities import haversine
 
 
 class Dispersion:
@@ -1311,6 +1314,96 @@ class Dispersion:
         plt.savefig(str(self.filename) + ".pdf", bbox_inches="tight", pad_inches=0)
         plt.savefig(str(self.filename) + ".svg", bbox_inches="tight", pad_inches=0)
         plt.show()
+
+    # TODO: Convert from a @staticmethod to a regular class method (i.e. using self)
+    @staticmethod
+    def exportEllipsesToKML(impact_ellipses, filename, origin_lat, origin_lon):
+        """Generates a KML file with the ellipses on the impact point.
+        Parameters
+        ----------
+        impact_ellipses : matplolib.patches.Ellipse
+            Contains ellipse details for the plot.
+        filename : String
+            Name to the KML exported file.
+        origin_lat : float
+            Latitude coordinate of Ellipses' geometric center, in degrees.
+        origin_lon : float
+            Latitude coordinate of Ellipses' geometric center, in degrees.
+        """
+
+        outputs = []
+
+        for impactEll in impact_ellipses:
+            # Get ellipse path points
+            center = impactEll.get_center()
+            width = impactEll.get_width()
+            height = impactEll.get_height()
+            angle = np.deg2rad(impactEll.get_angle())
+            print("angle", np.rad2deg(angle))
+            points = []
+
+            resolution = 1000
+            for i in range(resolution):
+                x = width / 2 * math.cos(2 * np.pi * i / resolution)
+                y = height / 2 * math.sin(2 * np.pi * i / resolution)
+                x_rot = center[0] + x * math.cos(angle) - y * math.sin(angle)
+                y_rot = center[1] + x * math.sin(angle) + y * math.cos(angle)
+                points.append((x_rot, y_rot))
+            # points = impactEll.get_verts()
+            points = np.array(points)
+            plt.plot(points[:, 0], points[:, 1], "r-")
+
+            # Convert path points to lat/lon
+            lat_lon_points = []
+            for point in points:
+                x = point[0]
+                y = point[1]
+
+                # Convert to distance and bearing
+                d = math.sqrt((x**2 + y**2))
+                brng = math.atan2(x, y)
+                # Convert to lat lon
+                lat_lon_points.append(haversine(origin_lat, origin_lon, d, brng))
+
+            # Export string
+            outputs.append(lat_lon_points)
+        plt.show()
+
+        # Prepare data to KML file
+        kml_data = []
+        for i in range(len(outputs)):
+            temp = []
+            for j in range(len(outputs[i])):
+                temp.append((outputs[i][j][1], outputs[i][j][0]))  # log, lat
+            kml_data.append(temp)
+
+        # Export to KML
+        kml = simplekml.Kml()
+
+        for i in range(len(outputs)):
+            mult_ell = kml.newmultigeometry(name="σ" + str(i + 1))
+            mult_ell.newpolygon(
+                outerboundaryis=kml_data[i],
+                innerboundaryis=kml_data[i],
+                name="Ellipse " + str(i),
+            )
+            # Setting ellipse style
+            mult_ell.tessellate = 1
+            mult_ell.visibility = 1
+            # mult_ell.innerboundaryis = kml_data
+            # mult_ell.outerboundaryis = kml_data
+            mult_ell.style.linestyle.color = simplekml.Color.black
+            mult_ell.style.linestyle.width = 3
+            mult_ell.style.polystyle.color = simplekml.Color.changealphaint(
+                100, simplekml.Color.blue
+            )
+
+        kml.save(filename)
+
+        # ellipse = kml.newpolygon(name="Ellipse")
+        # kml.save(filename)
+
+        return None
 
     def meanLateralWindSpeed(self, dispersion_results):
         print(
