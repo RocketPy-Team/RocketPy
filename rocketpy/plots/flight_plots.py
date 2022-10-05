@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from cProfile import label
 import time
 import warnings
 
@@ -1262,14 +1263,202 @@ class flight_plots:
     # Start definition of 'compare' plots methods
 
     def comparePositions(self):
+        """_summary_
+
+        Returns
+        -------
+        None
+        """
+        fig = plt.figure(figsize=(7, 10))  # width, height
+        fig.suptitle("Rocket Position Comparison", fontsize=16, y=1.02, x=0.5)
+
+        ax1 = plt.subplot(312)
+        max_time = 0
+        for index, flight in enumerate(self.trajectory_list):
+            if flight.postProcessed is False:
+                flight.postProcess()
+            ax1.plot(
+                flight.x[:, 0],
+                flight.x[:, 1],
+                # color=self.colors_scale[index],
+            )
+            max_time = flight.tFinal if flight.tFinal > max_time else max_time
+        ax1.set_xlim(0, max_time)
+        ax1.set_title("X (m) x Time (s)")
+        ax1.set_xlabel("Time (s)")
+        ax1.set_ylabel("X (m)")
+        ax1.grid(True)
+
+        ax2 = plt.subplot(313)
+        for index, flight in enumerate(self.trajectory_list):
+            ax2.plot(
+                flight.y[:, 0],
+                flight.y[:, 1],
+                # color=self.colors_scale[index],
+            )
+        ax2.set_xlim(0, max_time)
+        ax2.set_title("Y (m) x Time (s)")
+        ax2.set_xlabel("Time (s)")
+        ax2.set_ylabel("Y (m)")
+        ax2.grid(True)
+
+        ax3 = plt.subplot(311)
+        for index, flight in enumerate(self.trajectory_list):
+            ax3.plot(
+                flight.z[:, 0],
+                flight.z[:, 1],
+                label=self.names_list[index],
+                # color=self.colors_scale[index],
+            )
+        ax3.set_xlim(0, max_time)
+        ax3.set_title("Z (m) x Time (s)")
+        ax3.set_xlabel("Time (s)")
+        ax3.set_ylabel("Z (m)")
+        ax3.grid(True)
+
+        fig.legend(
+            loc="upper center",
+            ncol=len(self.names_list),
+            fancybox=True,
+            shadow=True,
+            fontsize=10,
+            bbox_to_anchor=(0.5, 0.995),
+        )
+        fig.tight_layout()
 
         return None
 
     def compareVelocities(self):
+        """_summary_
+
+        Returns
+        -------
+        None
+        """
+
+        fig = plt.figure(figsize=(7, 10))  # width, height
+        fig.suptitle("Rocket Velocity Comparison", fontsize=16, y=1.02, x=0.5)
+
+        ax1 = plt.subplot(312)
+        max_time = 0
+        for index, flight in enumerate(self.trajectory_list):
+            if flight.postProcessed is False:
+                flight.postProcess()
+            ax1.plot(
+                flight.vx[:, 0],
+                flight.vx[:, 1],
+                # color=self.colors_scale[index],
+            )
+            max_time = flight.tFinal if flight.tFinal > max_time else max_time
+        ax1.set_xlim(0, max_time)
+        ax1.set_title("Velocity X (m/s) x Time (s)")
+        ax1.set_xlabel(flight.vy.getInputs()[0])
+        ax1.set_ylabel(flight.vx.getOutputs()[0])
+        ax1.grid(True)
+
+        ax2 = plt.subplot(313)
+        for index, flight in enumerate(self.trajectory_list):
+            ax2.plot(
+                flight.vy[:, 0],
+                flight.vy[:, 1],
+                # color=self.colors_scale[index],
+            )
+        ax2.set_xlim(0, max_time)
+        ax2.set_title("Velocity Y (m/s) x Time (s)")
+        ax2.set_xlabel(flight.vy.getInputs()[0])
+        ax2.set_ylabel(flight.vy.getOutputs()[0])
+        ax2.grid(True)
+
+        ax3 = plt.subplot(311)
+        for index, flight in enumerate(self.trajectory_list):
+            ax3.plot(
+                flight.vz[:, 0],
+                flight.vz[:, 1],
+                label=self.names_list[index],
+                # color=self.colors_scale[index],
+            )
+        ax3.set_xlim(0, max_time)
+        ax3.set_title("Velocity Z (m/s) x Time (s)")
+        ax3.set_xlabel(flight.vz.getInputs()[0])
+        ax3.set_ylabel(flight.vz.getOutputs()[0])
+        ax3.grid(True)
+
+        fig.legend(
+            loc="upper center",
+            ncol=len(self.names_list), # TODO: Need to be more flexible here, changing the number of rows as well
+            fancybox=True,
+            shadow=True,
+            fontsize=10,
+            bbox_to_anchor=(0.5, 0.995),
+        )
+        fig.tight_layout()
 
         return None
 
     def compareAccelerations(self):
+        """_summary_
+
+        Returns
+        -------
+        None
+        """
+
+        fig = plt.figure(figsize=(7, 10))  # width, height
+        fig.suptitle("Rocket Acceleration Comparison", fontsize=16, y=1.02, x=0.5)
+
+        ax1 = plt.subplot(312)
+        max_time = 0
+        for index, flight in enumerate(self.trajectory_list):
+            if flight.postProcessed is False:
+                flight.postProcess()
+            ax1.plot(
+                flight.ax[:, 0],
+                flight.ax[:, 1],
+                # color=self.colors_scale[index],
+            )
+            max_time = flight.tFinal if flight.tFinal > max_time else max_time
+        ax1.set_xlim(0, max_time)
+        ax1.set_title("Acceleration X (m/s²) x Time (s)")
+        ax1.set_xlabel(flight.ax.getInputs()[0])
+        ax1.set_ylabel(flight.ax.getOutputs()[0])
+        ax1.grid(True)
+
+        ax2 = plt.subplot(313)
+        for index, flight in enumerate(self.trajectory_list):
+            ax2.plot(
+                flight.vy[:, 0],
+                flight.vy[:, 1],
+                # color=self.colors_scale[index],
+            )
+        ax2.set_xlim(0, max_time)
+        ax2.set_title("Acceleration Y (m/s²) x Time (s)")
+        ax2.set_xlabel(flight.ay.getInputs()[0])
+        ax2.set_ylabel(flight.ay.getOutputs()[0])
+        ax2.grid(True)
+
+        ax3 = plt.subplot(311)
+        for index, flight in enumerate(self.trajectory_list):
+            ax3.plot(
+                flight.vz[:, 0],
+                flight.vz[:, 1],
+                label=self.names_list[index],
+                # color=self.colors_scale[index],
+            )
+        ax3.set_xlim(0, max_time)
+        ax3.set_title("Acceleration Z (m/s²) x Time (s)")
+        ax3.set_xlabel(flight.vz.getInputs()[0])
+        ax3.set_ylabel(flight.vz.getOutputs()[0])
+        ax3.grid(True)
+
+        fig.legend(
+            loc="upper center",
+            ncol=len(self.names_list), # TODO: Need to be more flexible here, changing the number of rows as well
+            fancybox=True,
+            shadow=True,
+            fontsize=10,
+            bbox_to_anchor=(0.5, 0.995),
+        )
+        fig.tight_layout()
 
         return None
 
