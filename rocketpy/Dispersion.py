@@ -1255,7 +1255,7 @@ class Dispersion:
             apogee_ellipses.append(apogeeEll)
         return impact_ellipses, apogee_ellipses
 
-    def plotEllipses(self, dispersion_results, image, realLandingPoint=None):
+    def plotEllipses(self, dispersion_results, image, realLandingPoint=None, perimeterSize=3000, xlim=(-3000, 3000), ylim=(-3000, 3000)):
         """A function to plot the error ellipses for the apogee and impact 
         points of the rocket. The function also plots the real landing point, if
         given
@@ -1328,11 +1328,11 @@ class Dispersion:
         # You can translate the basemap by changing dx and dy (in meters)
         dx = 0
         dy = 0
-        plt.imshow(img, zorder=0, extent=[-3000 - dx, 3000 - dx, -3000 - dy, 3000 - dy])
+        plt.imshow(img, zorder=0, extent=[-perimeterSize - dx, perimeterSize - dx, -perimeterSize - dy, perimeterSize - dy])
         plt.axhline(0, color="black", linewidth=0.5)
         plt.axvline(0, color="black", linewidth=0.5)
-        plt.xlim(-3000, 3000)
-        plt.ylim(-3000, 3000)
+        plt.xlim(*xlim)
+        plt.ylim(*ylim)
 
         # Save plot and show result
         plt.savefig(str(self.filename) + ".pdf", bbox_inches="tight", pad_inches=0)
