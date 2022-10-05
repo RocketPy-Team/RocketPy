@@ -755,6 +755,10 @@ class Flight:
                 while phase.solver.status == "running":
                     # Step
                     phase.solver.step()
+                    # Normalize quaternions
+                    phase.solver.y[6:10] = phase.solver.y[6:10] / sum(
+                        phase.solver.y[6:10] ** 2
+                    )
                     # Save step result
                     self.solution += [[phase.solver.t, *phase.solver.y]]
                     # Step step metrics
@@ -1058,18 +1062,8 @@ class Flight:
         """Initialize post-process variables."""
         # Initialize all variables created during Flight.postProcess()
         # Important to do so that MATLAB® can access them
-        self.windVelocityX = Function(
-            0,
-            inputs="Time (s)",
-            outputs="Wind Velocity X (m/s)",
-            interpolation="linear",
-        )
-        self.windVelocityY = Function(
-            0,
-            inputs="Time (s)",
-            outputs="Wind Velocity Y (m/s)",
-            interpolation="linear",
-        )
+        self.windVelocityX = Function(0)
+        self.windVelocityY = Function(0)
         self.density = Function(0)
         self.pressure = Function(0)
         self.dynamicViscosity = Function(0)
@@ -1631,65 +1625,6 @@ class Flight:
 
         return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
 
-    def _initialize_quaternion_functions(self, interpolation, extrapolation):
-        """# Check when e0, e1, e2, e3, is outside the valid (-1, 1)
-        # Created to deal with numerical error problems, which implied in
-        # breaking errors when defining self.theta and others.
-        To be used inside postProcess method.
-
-        Parameters
-        ----------
-        interpolation: string
-            Interpolation method to be used in the Function objects.
-        extrapolation: string
-            Extrapolation method to be used in the Function objects.
-
-        Return
-        -------
-        None
-        """
-
-        grid = self.x[:, 0]
-        e0 = np.fmin(np.array(self.solution)[:, 7], np.ones(len(grid)))
-        e0 = np.fmax(e0, -1 * np.ones(len(e0)))
-        e1 = np.fmin(np.array(self.solution)[:, 8], np.ones(len(grid)))
-        e1 = np.fmax(e1, -1 * np.ones(len(e1)))
-        e2 = np.fmin(np.array(self.solution)[:, 9], np.ones(len(grid)))
-        e2 = np.fmax(e2, -1 * np.ones(len(e2)))
-        e3 = np.fmin(np.array(self.solution)[:, 10], np.ones(len(grid)))
-        e3 = np.fmax(e3, -1 * np.ones(len(e3)))
-
-        self.e0 = Function(
-            np.column_stack((grid, e0)),
-            "Time (s)",
-            "e0",
-            interpolation,
-            extrapolation,
-        )
-        self.e1 = Function(
-            np.column_stack((grid, e1)),
-            "Time (s)",
-            "e1",
-            interpolation,
-            extrapolation,
-        )
-        self.e2 = Function(
-            np.column_stack((grid, e2)),
-            "Time (s)",
-            "e2",
-            interpolation,
-            extrapolation,
-        )
-        self.e3 = Function(
-            np.column_stack((grid, e3)),
-            "Time (s)",
-            "e3",
-            interpolation,
-            extrapolation,
-        )
-
-        return None
-
     def postProcess(self, interpolation="spline", extrapolation="natural"):
         """Post-process all Flight information produced during
         simulation. Includes the calculation of maximum values,
@@ -1702,6 +1637,7 @@ class Flight:
             Interpolation method to be used in the Function objects.
         extrapolation: string
             Extrapolation method to be used in the Function objects.
+
         Return
         ------
         None
@@ -1727,7 +1663,18 @@ class Flight:
         self.vz = Function(
             sol[:, [0, 6]], "Time (s)", "Vz (m/s)", interpolation, extrapolation
         )
-        self._initialize_quaternion_functions(interpolation, extrapolation)
+        self.e0 = Function(
+            sol[:, [0, 7]], "Time (s)", "e0", interpolation, extrapolation
+        )
+        self.e1 = Function(
+            sol[:, [0, 8]], "Time (s)", "e1", interpolation, extrapolation
+        )
+        self.e2 = Function(
+            sol[:, [0, 9]], "Time (s)", "e2", interpolation, extrapolation
+        )
+        self.e3 = Function(
+            sol[:, [0, 10]], "Time (s)", "e3", interpolation, extrapolation
+        )
         self.w1 = Function(
             sol[:, [0, 11]], "Time (s)", "ω1 (rad/s)", interpolation, extrapolation
         )
@@ -1753,7 +1700,9 @@ class Flight:
                 callback(self)
             # Loop through time steps in flight phase
             for step in self.solution:  # Can be optimized
-                if initTime < step[0] <= finalTime:
+                if initTime < step[0] <= finalTime or (
+                    initTime == self.tInitial and step[0] == self.tInitial
+                ):
                     # Get derivatives
                     uDot = currentDerivative(step[0], step[1:])
                     # Get accelerations
@@ -1795,7 +1744,9 @@ class Flight:
                 callback(self)
             # Loop through time steps in flight phase
             for step in self.solution:  # Can be optimized
-                if initTime < step[0] <= finalTime or (initTime == 0 and step[0] == 0):
+                if initTime < step[0] <= finalTime or (
+                    initTime == self.tInitial and step[0] == self.tInitial
+                ):
                     # Call derivatives in post processing mode
                     uDot = currentDerivative(step[0], step[1:], postProcessing=True)
         # Convert forces and atmospheric arrays to functions
@@ -1828,46 +1779,6 @@ class Flight:
         )
         self.speedOfSound = Function(
             self.speedOfSound, "Time (s)", "Speed of Sound (m/s)", interpolation
-        )
-
-        # Redefine grids for the atmospheric functions
-        # Important to ensure the code works properly when using initialSolution
-        grid = self.vx[:, 0]
-        self.windVelocityX = Function(
-            np.column_stack([grid, self.windVelocityX(grid)]),
-            "Time (s)",
-            "Wind Velocity X (East) (m/s)",
-            interpolation,
-        )
-        self.windVelocityY = Function(
-            np.column_stack([grid, self.windVelocityY(grid)]),
-            "Time (s)",
-            "Wind Velocity Y (North) (m/s)",
-            interpolation,
-        )
-        self.density = Function(
-            np.column_stack([grid, self.density(grid)]),
-            "Time (s)",
-            "Density (kg/m³)",
-            interpolation,
-        )
-        self.pressure = Function(
-            np.column_stack([grid, self.pressure(grid)]),
-            "Time (s)",
-            "Pressure (Pa)",
-            interpolation,
-        )
-        self.dynamicViscosity = Function(
-            np.column_stack([grid, self.dynamicViscosity(grid)]),
-            "Time (s)",
-            "Dynamic Viscosity (Pa s)",
-            interpolation,
-        )
-        self.speedOfSound = Function(
-            np.column_stack([grid, self.speedOfSound(grid)]),
-            "Time (s)",
-            "Speed of Sound (m/s)",
-            interpolation,
         )
 
         # Process fourth type of output - values calculated from previous outputs
@@ -1956,7 +1867,9 @@ class Flight:
         theta = (
             (180 / np.pi)
             * 2
-            * np.arcsin(-((self.e1[:, 1] ** 2 + self.e2[:, 1] ** 2) ** 0.5))
+            * np.arcsin(
+                np.clip(-((self.e1[:, 1] ** 2 + self.e2[:, 1] ** 2) ** 0.5), -1, 1)
+            )
         )  # Nutation angle
         theta = np.column_stack([self.e1[:, 0], theta])  # Nutation angle
         self.theta = Function(
@@ -2192,10 +2105,8 @@ class Flight:
         # Fluid Mechanics variables
         # Freestream Velocity
         self.streamVelocityX = self.windVelocityX - self.vx
-        self.streamVelocityX.setInputs("Time (s)")
         self.streamVelocityX.setOutputs("Freestream Velocity X (m/s)")
         self.streamVelocityY = self.windVelocityY - self.vy
-        self.streamVelocityY.setInputs("Time (s)")
         self.streamVelocityY.setOutputs("Freestream Velocity Y (m/s)")
         self.streamVelocityZ = -1 * self.vz
         self.streamVelocityZ.setOutputs("Freestream Velocity Z (m/s)")
@@ -2205,13 +2116,11 @@ class Flight:
             + self.streamVelocityZ**2
         ) ** 0.5
         self.freestreamSpeed.setOutputs("Freestream Speed (m/s)")
-        self.freestreamSpeed.setInputs("Time (s)")
         # Apogee Freestream speed
         self.apogeeFreestreamSpeed = self.freestreamSpeed(self.apogeeTime)
         # Mach Number
         self.MachNumber = self.freestreamSpeed / self.speedOfSound
         self.MachNumber.setOutputs("Mach Number")
-        self.MachNumber.setInputs("Time (s)")
         maxMachNumberTimeIndex = np.argmax(self.MachNumber[:, 1])
         self.maxMachNumberTime = self.MachNumber[maxMachNumberTimeIndex, 0]
         self.maxMachNumber = self.MachNumber[maxMachNumberTimeIndex, 1]
