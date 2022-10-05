@@ -10,13 +10,10 @@ __author__ = "Guilherme Fernandes Alves"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
-# TODO: Usage must be documented and examples must be added
-# TODO: Ok, hard challenge part is to include the possibility of plotting multiple flights in the same plot, but without loosing the ability to plot a single flight as well
-# TODO: Allow user to choose the units of the plots
-# TODO: Allow user to choose the color pallet of the plots
-# TODO: Add masses plots since it can vary significantly for multi-stage rockets
-
-# TODO: Add unit tests to verify if the code is working properly
+## Future improvements:
+# Allow user to choose the units of the plots
+# Allow user to choose the color pallet of the plots
+# Add masses plots since it can vary significantly for multi-stage rockets
 
 
 class flight_plots:
@@ -126,7 +123,9 @@ class flight_plots:
         None
         """
         for index, flight in enumerate(self.trajectory_list):
-            print("\nNumerical Integration Settings of Flight: ", self.names_list[index])
+            print(
+                "\nNumerical Integration Settings of Flight: ", self.names_list[index]
+            )
             print("Maximum Allowed Flight Time: {:f} s".format(flight.maxTime))
             print("Maximum Allowed Time Step: {:f} s".format(flight.maxTimeStep))
             print("Minimum Allowed Time Step: {:e} s".format(flight.minTimeStep))
@@ -450,8 +449,6 @@ class flight_plots:
 
     def plotLinearKinematicsData(self):
         """Prints out all Kinematics graphs available about the Flight
-
-        # TODO: Separate into velocity and acceleration plots for various flights
 
         Parameters
         ----------
@@ -1614,9 +1611,7 @@ class flight_plots:
 
         fig.legend(
             loc="upper center",
-            ncol=len(
-                self.names_list
-            ),  # TODO: Need to be more flexible here, changing the number of rows as well
+            ncol=len(self.names_list),
             fancybox=True,
             shadow=True,
             fontsize=10,
@@ -2391,7 +2386,7 @@ class flight_plots:
                 flight.railButton1ShearForce[:, 1],
                 # color=self.colors_scale[index],
             )
-        
+
             ax3.set_title(
                 "{} x {}".format(
                     flight.railButton1ShearForce.getOutputs()[0],
@@ -2412,7 +2407,7 @@ class flight_plots:
                 flight.railButton2ShearForce[:, 1],
                 # color=self.colors_scale[index],
             )
-        
+
             ax4.set_title(
                 "{} x {}".format(
                     flight.railButton2ShearForce.getOutputs()[0],
@@ -3038,9 +3033,6 @@ class flight_plots:
             self.plotStabilityAndControlData()
 
         elif mode == "compare":
-            print("Compare mode not yet implemented")
-
-            # TODO: Add more comparison functions here
 
             self.info()
 
