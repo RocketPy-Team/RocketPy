@@ -756,7 +756,9 @@ class Flight:
                     # Step
                     phase.solver.step()
                     # Normalize quaternions
-                    phase.solver.y[6:10] = phase.solver.y[6:10] / sum(phase.solver.y[6:10]**2)
+                    phase.solver.y[6:10] = phase.solver.y[6:10] / sum(
+                        phase.solver.y[6:10] ** 2
+                    )
                     # Save step result
                     self.solution += [[phase.solver.t, *phase.solver.y]]
                     # Step step metrics
@@ -1635,7 +1637,7 @@ class Flight:
             Interpolation method to be used in the Function objects.
         extrapolation: string
             Extrapolation method to be used in the Function objects.
-        
+
         Return
         ------
         None
@@ -1698,7 +1700,9 @@ class Flight:
                 callback(self)
             # Loop through time steps in flight phase
             for step in self.solution:  # Can be optimized
-                if initTime < step[0] <= finalTime or (initTime == self.tInitial and step[0] == self.tInitial):
+                if initTime < step[0] <= finalTime or (
+                    initTime == self.tInitial and step[0] == self.tInitial
+                ):
                     # Get derivatives
                     uDot = currentDerivative(step[0], step[1:])
                     # Get accelerations
@@ -1740,7 +1744,9 @@ class Flight:
                 callback(self)
             # Loop through time steps in flight phase
             for step in self.solution:  # Can be optimized
-                if initTime < step[0] <= finalTime or (initTime == self.tInitial and step[0] == self.tInitial):
+                if initTime < step[0] <= finalTime or (
+                    initTime == self.tInitial and step[0] == self.tInitial
+                ):
                     # Call derivatives in post processing mode
                     uDot = currentDerivative(step[0], step[1:], postProcessing=True)
         # Convert forces and atmospheric arrays to functions
@@ -2983,7 +2989,9 @@ class Flight:
                 self.railButton2NormalForce[:outOfRailTimeIndex, 1],
                 label="Lower Rail Button",
             )
-            ax1.set_xlim(0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal)
+            ax1.set_xlim(
+                0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal
+            )
             ax1.legend()
             ax1.grid(True)
             ax1.set_xlabel("Time (s)")
@@ -3001,7 +3009,9 @@ class Flight:
                 self.railButton2ShearForce[:outOfRailTimeIndex, 1],
                 label="Lower Rail Button",
             )
-            ax2.set_xlim(0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal)
+            ax2.set_xlim(
+                0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal
+            )
             ax2.legend()
             ax2.grid(True)
             ax2.set_xlabel("Time (s)")
