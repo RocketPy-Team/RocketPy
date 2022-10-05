@@ -1060,18 +1060,8 @@ class Flight:
         """Initialize post-process variables."""
         # Initialize all variables created during Flight.postProcess()
         # Important to do so that MATLAB® can access them
-        self.windVelocityX = Function(
-            0,
-            inputs="Time (s)",
-            outputs="Wind Velocity X (m/s)",
-            interpolation="linear",
-        )
-        self.windVelocityY = Function(
-            0,
-            inputs="Time (s)",
-            outputs="Wind Velocity Y (m/s)",
-            interpolation="linear",
-        )
+        self.windVelocityX = Function(0)
+        self.windVelocityY = Function(0)
         self.density = Function(0)
         self.pressure = Function(0)
         self.dynamicViscosity = Function(0)
@@ -1645,6 +1635,7 @@ class Flight:
             Interpolation method to be used in the Function objects.
         extrapolation: string
             Extrapolation method to be used in the Function objects.
+        
         Return
         ------
         None
@@ -2106,10 +2097,8 @@ class Flight:
         # Fluid Mechanics variables
         # Freestream Velocity
         self.streamVelocityX = self.windVelocityX - self.vx
-        self.streamVelocityX.setInputs("Time (s)")
         self.streamVelocityX.setOutputs("Freestream Velocity X (m/s)")
         self.streamVelocityY = self.windVelocityY - self.vy
-        self.streamVelocityY.setInputs("Time (s)")
         self.streamVelocityY.setOutputs("Freestream Velocity Y (m/s)")
         self.streamVelocityZ = -1 * self.vz
         self.streamVelocityZ.setOutputs("Freestream Velocity Z (m/s)")
@@ -2119,13 +2108,11 @@ class Flight:
             + self.streamVelocityZ**2
         ) ** 0.5
         self.freestreamSpeed.setOutputs("Freestream Speed (m/s)")
-        self.freestreamSpeed.setInputs("Time (s)")
         # Apogee Freestream speed
         self.apogeeFreestreamSpeed = self.freestreamSpeed(self.apogeeTime)
         # Mach Number
         self.MachNumber = self.freestreamSpeed / self.speedOfSound
         self.MachNumber.setOutputs("Mach Number")
-        self.MachNumber.setInputs("Time (s)")
         maxMachNumberTimeIndex = np.argmax(self.MachNumber[:, 1])
         self.maxMachNumberTime = self.MachNumber[maxMachNumberTimeIndex, 0]
         self.maxMachNumber = self.MachNumber[maxMachNumberTimeIndex, 1]
@@ -2996,9 +2983,7 @@ class Flight:
                 self.railButton2NormalForce[:outOfRailTimeIndex, 1],
                 label="Lower Rail Button",
             )
-            ax1.set_xlim(
-                0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal
-            )
+            ax1.set_xlim(0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal)
             ax1.legend()
             ax1.grid(True)
             ax1.set_xlabel("Time (s)")
@@ -3016,9 +3001,7 @@ class Flight:
                 self.railButton2ShearForce[:outOfRailTimeIndex, 1],
                 label="Lower Rail Button",
             )
-            ax2.set_xlim(
-                0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal
-            )
+            ax2.set_xlim(0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal)
             ax2.legend()
             ax2.grid(True)
             ax2.set_xlabel("Time (s)")
