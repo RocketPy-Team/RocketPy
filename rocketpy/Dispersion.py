@@ -1195,6 +1195,15 @@ class Dispersion:
         return None
 
     def createEllipses(self, dispersion_results):
+        """A function to create apogee and impact ellipses from the dispersion 
+        results.
+        
+        Parameters
+        ----------
+        dispersion_results : dict
+            A dictionary containing the results of the dispersion analysis.
+        """
+
         # Retrieve dispersion data por apogee and impact XY position
         apogeeX = np.array(dispersion_results["apogeeX"])
         apogeeY = np.array(dispersion_results["apogeeY"])
@@ -1213,10 +1222,6 @@ class Dispersion:
         impactTheta = np.degrees(np.arctan2(*impactVecs[:, 0][::-1]))
         impactW, impactH = 2 * np.sqrt(impactVals)
 
-        # Create plot figure
-        plt.figure(num=None, figsize=(8, 6), dpi=150, facecolor="w", edgecolor="k")
-        ax = plt.subplot(111)
-
         # Draw error ellipses for impact
         impact_ellipses = []
         for j in [1, 2, 3]:
@@ -1229,7 +1234,6 @@ class Dispersion:
             )
             impactEll.set_facecolor((0, 0, 1, 0.2))
             impact_ellipses.append(impactEll)
-            ax.add_artist(impactEll)
 
         # Calculate error ellipses for apogee
         apogeeCov = np.cov(apogeeX, apogeeY)
@@ -1249,10 +1253,22 @@ class Dispersion:
             )
             apogeeEll.set_facecolor((0, 1, 0, 0.2))
             apogee_ellipses.append(apogeeEll)
-            ax.add_artist(apogeeEll)
-        return ax, impact_ellipses, apogee_ellipses
+        return impact_ellipses, apogee_ellipses
 
-    def plotEllipses(self, dispersion_results, image, realLandingPoint):
+    def plotEllipses(self, dispersion_results, image, realLandingPoint=None):
+        """A function to plot the error ellipses for the apogee and impact 
+        points of the rocket. The function also plots the real landing point, if
+        given
+
+        Parameters
+        ----------
+        dispersion_results : dict
+            A dictionary containing the results of the dispersion analysis
+        image : str
+            The path to the image to be used as the background
+        realLandingPoint : tuple, optional
+            A tuple containing the real landing point of the rocket, by default None
+        """
         # Import background map
         img = imread(image)
 
@@ -1262,8 +1278,17 @@ class Dispersion:
         impactX = np.array(dispersion_results["impactX"])
         impactY = np.array(dispersion_results["impactY"])
 
+        impact_ellipses, apogee_ellipses = self.createEllipses(dispersion_results)
+        
+        # Create plot figure
         plt.figure(num=None, figsize=(8, 6), dpi=150, facecolor="w", edgecolor="k")
-        ax, impact_ellipses = self.createEllipses(dispersion_results)
+        ax = plt.subplot(111)
+        
+        for ell in impact_ellipses:
+            ax.add_artist(ell)
+        for ell in apogee_ellipses:
+            ax.add_artist(ell)
+        
         # Draw launch point
         plt.scatter(0, 0, s=30, marker="*", color="black", label="Launch Point")
         # Draw apogee points
@@ -1316,6 +1341,20 @@ class Dispersion:
         return None
 
     def prepareEllipses(self, ellipses, origin_lat, origin_lon, resolution=100):
+        """Generate a list of latitude and longitude points for each ellipse in 
+        ellipses.
+
+        Parameters
+        ----------
+        ellipses : list
+            List of matplotlib.patches.Ellipse objects.
+        origin_lat : float
+            Latitude of the origin of the coordinate system.
+        origin_lon : float
+            Longitude of the origin of the coordinate system.
+        resolution : int, optional
+            Number of points to generate for each ellipse, by default 100
+        """
         outputs = []
 
         for ell in ellipses:
@@ -1358,10 +1397,6 @@ class Dispersion:
             outputs.append(lat_lon_points)
         return outputs
 
-    # TODO: Convert from a @staticmethod to a regular class method (i.e. using self)
-    ## The dispersion_results object contains a lot of useful information to be used here
-    ## Also, we can use the self.plotEllipses to capture the dispersion ellipses.
-    ## Maybe separating the self.plotEllipses into two methods, one for generating the ellipses and another for plotting them
     def exportEllipsesToKML(
         self,
         dispersion_results,
@@ -1370,21 +1405,30 @@ class Dispersion:
         origin_lon,
         type="all",
         resolution=100,
+        color="ff0000ff",
     ):
         """Generates a KML file with the ellipses on the impact point.
         Parameters
         ----------
-        impact_ellipses : matplolib.patches.Ellipse
-            Contains ellipse details for the plot.
+        dispersion_results : dict
+            Contains dispersion results from the Monte Carlo simulation.
         filename : String
             Name to the KML exported file.
         origin_lat : float
             Latitude coordinate of Ellipses' geometric center, in degrees.
         origin_lon : float
             Latitude coordinate of Ellipses' geometric center, in degrees.
+        type : String
+            Type of ellipses to be exported. Options are: 'all', 'impact' and 
+            'apogee'. Default is 'all', it exports both apogee and impact 
+            ellipses.
+        resolution : int
+            Number of points to be used to draw the ellipse. Default is 100.
+        color : String
+            Color of the ellipse. Default is 'ff0000ff', which is red.
         """
 
-        _, impact_ellipses, apogee_ellipses = self.createEllipses(dispersion_results)
+        impact_ellipses, apogee_ellipses = self.createEllipses(dispersion_results)
         outputs = []
 
         if type == "all" or type == "impact":
@@ -1427,17 +1471,13 @@ class Dispersion:
             mult_ell.visibility = 1
             # mult_ell.innerboundaryis = kml_data
             # mult_ell.outerboundaryis = kml_data
-            mult_ell.style.linestyle.color = simplekml.Color.black
+            mult_ell.style.linestyle.color = color
             mult_ell.style.linestyle.width = 3
             mult_ell.style.polystyle.color = simplekml.Color.changealphaint(
                 100, simplekml.Color.blue
             )
 
         kml.save(filename)
-
-        # ellipse = kml.newpolygon(name="Ellipse")
-        # kml.save(filename)
-
         return None
 
     def meanLateralWindSpeed(self, dispersion_results):
