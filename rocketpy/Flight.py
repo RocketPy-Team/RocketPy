@@ -261,7 +261,7 @@ class Flight:
             Rocket's velocity magnitude in the horizontal (North-East)
             plane in m/s as a function of time. Can be called or
             accessed as array.
-        Flight.Acceleration : Function
+        Flight.acceleration : Function
             Rocket acceleration magnitude in m/s² relative to ground as a
             function of time. Can be called or accessed as array.
         Flight.maxAcceleration : float
@@ -2000,6 +2000,7 @@ class Flight:
         # Potential Energy
         self.potentialEnergy = totalMass * self.env.g * self.z
         self.potentialEnergy.setInputs("Time (s)")
+        self.potentialEnergy.setOutputs("Potential Energy (J)")
         # Total Mechanical Energy
         self.totalEnergy = self.kineticEnergy + self.potentialEnergy
         self.totalEnergy.setOutputs("Total Mechanical Energy (J)")
