@@ -18,8 +18,6 @@ __license__ = "MIT"
 
 # TODO: Add unit tests to verify if the code is working properly
 
-# Major obs.: MAYBE I should call Function to do comparison plots, and improving colors functionality directly inside Function.py
-
 
 class flight_plots:
     """class to plot flight data
@@ -82,7 +80,7 @@ class flight_plots:
 
         for index, flight in enumerate(self.trajectory_list):
 
-            print("Initial Conditions for Flight: ", self.names_list[index])
+            print("\nInitial Conditions for Flight: ", self.names_list[index])
 
             # Post-process results
             if flight.postProcessed is False:
@@ -108,7 +106,7 @@ class flight_plots:
                 )
             )
             print(
-                "Angular Velocity - ω1: {:.2f} rad/s | ω2: {:.2f} rad/s| ω3: {:.2f} rad/s \n".format(
+                "Angular Velocity - ω1: {:.2f} rad/s | ω2: {:.2f} rad/s| ω3: {:.2f} rad/s".format(
                     flight.w1(0), flight.w2(0), flight.w3(0)
                 )
             )
@@ -128,7 +126,7 @@ class flight_plots:
         None
         """
         for index, flight in enumerate(self.trajectory_list):
-            print("Numerical Integration Settings of Flight: ", self.names_list[index])
+            print("\nNumerical Integration Settings of Flight: ", self.names_list[index])
             print("Maximum Allowed Flight Time: {:f} s".format(flight.maxTime))
             print("Maximum Allowed Time Step: {:f} s".format(flight.maxTimeStep))
             print("Minimum Allowed Time Step: {:e} s".format(flight.minTimeStep))
@@ -160,7 +158,7 @@ class flight_plots:
         for index, flight in enumerate(self.trajectory_list):
             if flight.postProcessed is False:
                 flight.postProcess()
-            print("Surface Wind Conditions of Flight: ", self.names_list[index])
+            print("\nSurface Wind Conditions of Flight: ", self.names_list[index])
             print(
                 "Frontal Surface Wind Speed: {:.2f} m/s".format(
                     flight.frontalSurfaceWind
@@ -188,9 +186,9 @@ class flight_plots:
         """
 
         for index, flight in enumerate(self.trajectory_list):
-            print("Launch Rail Orientation of Flight: ", self.names_list[index])
+            print("\nLaunch Rail Orientation of Flight: ", self.names_list[index])
             print("Launch Rail Inclination: {:.2f}°".format(flight.inclination))
-            print("Launch Rail Heading: {:.2f}°\n\n".format(flight.heading))
+            print("Launch Rail Heading: {:.2f}°".format(flight.heading))
         return None
 
     def printOutOfRailConditions(self):
@@ -204,7 +202,7 @@ class flight_plots:
         for index, flight in enumerate(self.trajectory_list):
             if flight.postProcessed is False:
                 flight.postProcess()
-            print("Rail Departure State of Flight: ", self.names_list[index])
+            print("\nRail Departure State of Flight: ", self.names_list[index])
             print("Rail Departure Time: {:.3f} s".format(flight.outOfRailTime))
             print(
                 "Rail Departure Velocity: {:.3f} m/s".format(flight.outOfRailVelocity)
@@ -243,7 +241,7 @@ class flight_plots:
         for index, flight in enumerate(self.trajectory_list):
             if flight.postProcessed is False:
                 flight.postProcess()
-            print("BurnOut State of Flight: ", self.names_list[index])
+            print("\nBurnOut State of Flight: ", self.names_list[index])
             print("BurnOut time: {:.3f} s".format(flight.rocket.motor.burnOutTime))
             print(
                 "Altitude at burnOut: {:.3f} m (AGL)".format(
@@ -289,7 +287,7 @@ class flight_plots:
         for index, flight in enumerate(self.trajectory_list):
             if flight.postProcessed is False:
                 flight.postProcess()
-            print("Apogee State of Flight: ", self.names_list[index])
+            print("\nApogee State of Flight: ", self.names_list[index])
             print(
                 "Apogee Altitude: {:.3f} m (ASL) | {:.3f} m (AGL)".format(
                     flight.apogee, flight.apogee - flight.env.elevation
@@ -315,7 +313,7 @@ class flight_plots:
         for index, flight in enumerate(self.trajectory_list):
             if flight.postProcessed is False:
                 flight.postProcess()
-            print("Parachute Events of Flight: ", self.names_list[index])
+            print("\nParachute Events of Flight: ", self.names_list[index])
             if len(flight.parachuteEvents) == 0:
                 print("No Parachute Events Were Triggered.")
             for event in flight.parachuteEvents:
@@ -353,7 +351,7 @@ class flight_plots:
             if flight.postProcessed is False:
                 flight.postProcess()
             if len(flight.impactState) != 0:
-                print("Impact Conditions of Flight: ", self.names_list[index])
+                print("\nImpact Conditions of Flight: ", self.names_list[index])
                 print("X Impact: {:.3f} m".format(flight.xImpact))
                 print("Y Impact: {:.3f} m".format(flight.yImpact))
                 print("Time of Impact: {:.3f} s".format(flight.tFinal))
@@ -374,7 +372,7 @@ class flight_plots:
         None
         """
         for index, flight in enumerate(self.trajectory_list):
-            print("Maximum Values of Flight: ", self.names_list[index])
+            print("\nMaximum Values of Flight: ", self.names_list[index])
             print(
                 "Maximum Speed: {:.3f} m/s at {:.2f} s".format(
                     flight.maxSpeed, flight.maxSpeedTime
@@ -2018,7 +2016,7 @@ class flight_plots:
 
         return None
 
-    def compareForces(self):
+    def compareAerodynamicForces(self):
         """_summary_
 
         Returns
@@ -2082,7 +2080,7 @@ class flight_plots:
 
         return None
 
-    def compareMoments(self):
+    def compareAerodynamicMoments(self):
         """_summary_
 
         Returns
@@ -2341,6 +2339,8 @@ class flight_plots:
         ax1 = plt.subplot(221)
         max_time = 0
         for index, flight in enumerate(self.trajectory_list):
+            if flight.rocket.railButtons is None:
+                continue
             if flight.postProcessed is False:
                 flight.postProcess()
             ax1.plot(
@@ -2350,69 +2350,78 @@ class flight_plots:
                 # color=self.colors_scale[index],
             )
             max_time = flight.tFinal if flight.tFinal > max_time else max_time
-        ax1.set_xlim(0, max_time)
-        ax1.set_title(
-            "{} x {}".format(
-                flight.railButton1NormalForce.getOutputs()[0],
-                flight.railButton1NormalForce.getInputs()[0],
+
+            ax1.set_title(
+                "{} x {}".format(
+                    flight.railButton1NormalForce.getOutputs()[0],
+                    flight.railButton1NormalForce.getInputs()[0],
+                )
             )
-        )
-        ax1.set_xlabel(flight.railButton1NormalForce.getInputs()[0])
-        ax1.set_ylabel(flight.railButton1NormalForce.getOutputs()[0])
+            ax1.set_xlabel(flight.railButton1NormalForce.getInputs()[0])
+            ax1.set_ylabel(flight.railButton1NormalForce.getOutputs()[0])
+        ax1.set_xlim(0, max_time)
         ax1.grid(True)
 
         ax2 = plt.subplot(223)
         for index, flight in enumerate(self.trajectory_list):
+            if flight.rocket.railButtons is None:
+                continue
             ax2.plot(
                 flight.railButton2NormalForce[:, 0],
                 flight.railButton2NormalForce[:, 1],
                 # color=self.colors_scale[index],
             )
-        ax2.set_xlim(0, max_time)
-        ax2.set_title(
-            "{} x {}".format(
-                flight.railButton2NormalForce.getOutputs()[0],
-                flight.railButton2NormalForce.getInputs()[0],
+            ax2.set_title(
+                "{} x {}".format(
+                    flight.railButton2NormalForce.getOutputs()[0],
+                    flight.railButton2NormalForce.getInputs()[0],
+                )
             )
-        )
-        ax2.set_xlabel(flight.railButton2NormalForce.getInputs()[0])
-        ax2.set_ylabel(flight.railButton2NormalForce.getOutputs()[0])
+            ax2.set_xlabel(flight.railButton2NormalForce.getInputs()[0])
+            ax2.set_ylabel(flight.railButton2NormalForce.getOutputs()[0])
+        ax2.set_xlim(0, max_time)
         ax2.grid(True)
 
         ax3 = plt.subplot(222)
         for index, flight in enumerate(self.trajectory_list):
+            if flight.rocket.railButtons is None:
+                continue
             ax3.plot(
                 flight.railButton1ShearForce[:, 0],
                 flight.railButton1ShearForce[:, 1],
                 # color=self.colors_scale[index],
             )
-        ax3.set_xlim(0, max_time)
-        ax3.set_title(
-            "{} x {}".format(
-                flight.railButton1ShearForce.getOutputs()[0],
-                flight.railButton1ShearForce.getInputs()[0],
+        
+            ax3.set_title(
+                "{} x {}".format(
+                    flight.railButton1ShearForce.getOutputs()[0],
+                    flight.railButton1ShearForce.getInputs()[0],
+                )
             )
-        )
-        ax3.set_xlabel(flight.railButton1ShearForce.getInputs()[0])
-        ax3.set_ylabel(flight.railButton1ShearForce.getOutputs()[0])
+            ax3.set_xlabel(flight.railButton1ShearForce.getInputs()[0])
+            ax3.set_ylabel(flight.railButton1ShearForce.getOutputs()[0])
+        ax3.set_xlim(0, max_time)
         ax3.grid(True)
 
         ax4 = plt.subplot(224)
         for index, flight in enumerate(self.trajectory_list):
+            if flight.rocket.railButtons is None:
+                continue
             ax4.plot(
                 flight.railButton2ShearForce[:, 0],
                 flight.railButton2ShearForce[:, 1],
                 # color=self.colors_scale[index],
             )
-        ax4.set_xlim(0, max_time)
-        ax4.set_title(
-            "{} x {}".format(
-                flight.railButton2ShearForce.getOutputs()[0],
-                flight.railButton2ShearForce.getInputs()[0],
+        
+            ax4.set_title(
+                "{} x {}".format(
+                    flight.railButton2ShearForce.getOutputs()[0],
+                    flight.railButton2ShearForce.getInputs()[0],
+                )
             )
-        )
-        ax4.set_xlabel(flight.railButton2ShearForce.getInputs()[0])
-        ax4.set_ylabel(flight.railButton2ShearForce.getOutputs()[0])
+            ax4.set_xlabel(flight.railButton2ShearForce.getInputs()[0])
+            ax4.set_ylabel(flight.railButton2ShearForce.getOutputs()[0])
+        ax4.set_xlim(0, max_time)
         ax4.grid(True)
 
         fig.legend(
@@ -2718,8 +2727,7 @@ class flight_plots:
         return None
 
     def comparePressureSignals(self):
-        """_summary_
-        """
+        """_summary_"""
         print("Still not implemented")
         pass
 
@@ -2767,7 +2775,10 @@ class flight_plots:
         # Create the figure
         fig1 = plt.figure(figsize=(7, 7))
         fig1.suptitle("Flight Trajectories Comparison", fontsize=16, y=0.95, x=0.5)
-        ax1 = plt.subplot(111, projection="3d", )
+        ax1 = plt.subplot(
+            111,
+            projection="3d",
+        )
 
         # Iterate through trajectories
         for index, flight in enumerate(trajectory_list):
@@ -3039,13 +3050,29 @@ class flight_plots:
 
             self.compareVelocities()
 
+            self.compareStreamVelocities()
+
             self.compareAccelerations()
+
+            self.compareAngularVelocities()
 
             self.compareAngularAccelerations()
 
-            self.compareForces()
+            self.compareEulerAngles()
 
-            self.compareMoments()
+            self.compareQuaternions()
+
+            self.compareAttitudeAngles()
+
+            self.compareAnglesOfAttack()
+
+            self.compareStaticMargins()
+
+            self.compareAerodynamicForces()
+
+            self.compareAerodynamicMoments()
+
+            self.compareRailButtonsForces()
 
             self.compareEnergies()
 
@@ -3055,9 +3082,9 @@ class flight_plots:
 
             # self.comparePressureSignals()
 
-            self.compareStabilityAndControlData()
+            # self.compareFinFlutterAnalysis()
 
-
+            self.compareAttitudeFrequencyResponses()
 
         else:
             raise ValueError("Mode must be 'basic' or 'compare'")
