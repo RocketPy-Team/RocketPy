@@ -5,6 +5,7 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 import bisect
+import datetime
 import json
 import warnings
 from collections import defaultdict
@@ -23,6 +24,7 @@ from matplotlib.animation import PillowWriter as ImageWriter
 from scipy import stats
 from timezonefinder import TimezoneFinder
 from windrose import WindroseAxes
+from rocketpy.Environment import Environment
 
 from rocketpy.Function import Function
 from rocketpy.units import convert_units
@@ -105,6 +107,8 @@ class EnvironmentAnalysis:
         pressureLevelDataFile=None,
         timezone=None,
         unit_system="metric",
+        forecast_date=None,
+        forecast_args=None,
         maxExpectedAltitude=None,
     ):
         """Constructor for the EnvironmentAnalysis class.
@@ -140,6 +144,12 @@ class EnvironmentAnalysis:
         unit_system : str, optional
             Unit system to be used when displaying results.
             Options are: SI, metric, imperial. Default is metric.
+        forecast_date : datetime.date, optional
+            Date for the forecast models. It will be requested the environment forecast
+            for multiple hours within that specified date.
+        forecast_args : dictionary, optional
+            Arguments for setting the forecast on the Environment class. With this argument
+            it is possible to change the forecast model being used.
         maxExpectedAltitude : float, optional
             Maximum expected altitude for your analysis. This is used to calculate
             plot limits from pressure level data profiles. If None is set, the
@@ -205,6 +215,30 @@ class EnvironmentAnalysis:
 
         # Run calculations
         self.process_data()
+
+        # Processing forecast
+        self.forecast = None
+        if forecast_date:
+            self.forecast = {}
+            hours = list(self.pressureLevelDataDict.values())[0].keys()
+            for hour in hours:
+                hour_datetime = datetime.datetime(
+                    year=forecast_date.year,
+                    month=forecast_date.month,
+                    day=forecast_date.day,
+                    hour=int(hour),
+                )
+
+                Env = Environment(
+                    railLength=5,
+                    date=hour_datetime,
+                    latitude=self.latitude,
+                    longitude=self.longitude,
+                    elevation=self.elevation,
+                )
+                forecast_args = forecast_args or {"type": "Forecast", "file": "GFS"}
+                Env.setAtmosphericModel(**forecast_args)
+                self.forecast[hour] = Env
 
     def __bilinear_interpolation(self, x, y, x1, x2, y1, y2, z11, z12, z21, z22):
         """
@@ -2532,6 +2566,15 @@ class EnvironmentAnalysis:
             x_max = current_x_max if current_x_max > x_max else x_max
             y_max = current_y_max if current_y_max > y_max else y_max
             y_min = current_y_min if current_y_min < y_min else y_min
+
+            if self.forecast:
+                forecast = self.forecast
+                y = self.average_wind_profile_at_given_hour[hour][1]
+                x = forecast[hour].windSpeed.getValue(y) * convert_units(
+                    1, "m/s", self.unit_system["wind_speed"]
+                )
+                ax.plot(x, y, "b--")
+
             ax.label_outer()
             ax.grid()
         # Set x and y limits for the last axis. Since axes are shared, set to all
