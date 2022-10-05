@@ -107,7 +107,6 @@ class EnvironmentAnalysis:
         pressureLevelDataFile=None,
         timezone=None,
         unit_system="metric",
-        forecast_comparison=False,
         forecast_date=None,
         forecast_args=None,
         maxExpectedAltitude=None,
@@ -145,6 +144,12 @@ class EnvironmentAnalysis:
         unit_system : str, optional
             Unit system to be used when displaying results.
             Options are: SI, metric, imperial. Default is metric.
+        forecast_date : datetime.date, optional
+            Date for the forecast models. It will be requested the environment forecast
+            for multiple hours within that specified date.
+        forecast_args : dictionary, optional
+            Arguments for setting the forecast on the Environment class. With this argument
+            it is possible to change the forecast model being used.
         maxExpectedAltitude : float, optional
             Maximum expected altitude for your analysis. This is used to calculate
             plot limits from pressure level data profiles. If None is set, the
@@ -213,7 +218,7 @@ class EnvironmentAnalysis:
 
         # Processing forecast
         self.forecast = None
-        if forecast_comparison:
+        if forecast_date:
             self.forecast = {}
             hours = list(self.pressureLevelDataDict.values())[0].keys()
             for hour in hours:

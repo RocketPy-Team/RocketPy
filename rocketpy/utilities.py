@@ -3,7 +3,6 @@ __author__ = "Franz Masatoshi Yuri, Lucas Kierulff Balabram, Guilherme Fernandes
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
-import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import solve_ivp
 
