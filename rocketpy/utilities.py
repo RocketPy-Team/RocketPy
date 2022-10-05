@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__author__ = "Franz Masatoshi Yuri, Lucas Kierulff Balabram, Guilherme Fernandes Alves"
+__author__ = "Franz Masatoshi Yuri, Lucas Kierulff Balabram, Guilherme Fernandes Alves, Bruno Abdulklech Sorban"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 import math

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__author__ = "Mateus Stano Junqueira, Sofia Lopes Suesdek Rocha"
+__author__ = "Mateus Stano Junqueira, Sofia Lopes Suesdek Rocha, Abdulklech Sorban"
 __copyright__ = "Copyright 20XX, Projeto Jupiter"
 __license__ = "MIT"
 
@@ -8,13 +8,11 @@ __license__ = "MIT"
 import math
 import traceback
 import warnings
-from datetime import datetime
 from time import process_time, time
 
 import matplotlib.pyplot as plt
 import numpy as np
 import simplekml
-
 from imageio import imread
 from IPython.display import display
 from matplotlib.patches import Ellipse
