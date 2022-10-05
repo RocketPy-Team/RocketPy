@@ -249,9 +249,9 @@ def test_initial_solution(mock_show):
             10,
             0.0,
             0.0,
-            0.0,
-            0.0,
-            0.0,
+            0.9990482215818579,
+            -0.043619387365336,
+            -0.0,
             0.0,
             0.0,
             0.0,
@@ -533,7 +533,7 @@ def test_export_data():
 
 
 def test_export_KML():
-    "Tests weather the method Flight.exportKML is working as intended"
+    "Tests wether the method Flight.exportKML is working as intended"
 
     test_env = Environment(
         railLength=5,

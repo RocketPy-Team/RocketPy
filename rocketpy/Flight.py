@@ -755,6 +755,10 @@ class Flight:
                 while phase.solver.status == "running":
                     # Step
                     phase.solver.step()
+                    # Normalize quaternions
+                    phase.solver.y[6:10] = phase.solver.y[6:10] / sum(
+                        phase.solver.y[6:10] ** 2
+                    )
                     # Save step result
                     self.solution += [[phase.solver.t, *phase.solver.y]]
                     # Step step metrics
@@ -1629,7 +1633,10 @@ class Flight:
 
         Parameters
         ----------
-        None
+        interpolation: string
+            Interpolation method to be used in the Function objects.
+        extrapolation: string
+            Extrapolation method to be used in the Function objects.
 
         Return
         ------
@@ -1693,7 +1700,9 @@ class Flight:
                 callback(self)
             # Loop through time steps in flight phase
             for step in self.solution:  # Can be optimized
-                if initTime < step[0] <= finalTime:
+                if initTime < step[0] <= finalTime or (
+                    initTime == self.tInitial and step[0] == self.tInitial
+                ):
                     # Get derivatives
                     uDot = currentDerivative(step[0], step[1:])
                     # Get accelerations
@@ -1735,7 +1744,9 @@ class Flight:
                 callback(self)
             # Loop through time steps in flight phase
             for step in self.solution:  # Can be optimized
-                if initTime < step[0] <= finalTime or (initTime == 0 and step[0] == 0):
+                if initTime < step[0] <= finalTime or (
+                    initTime == self.tInitial and step[0] == self.tInitial
+                ):
                     # Call derivatives in post processing mode
                     uDot = currentDerivative(step[0], step[1:], postProcessing=True)
         # Convert forces and atmospheric arrays to functions
@@ -1791,7 +1802,9 @@ class Flight:
             self.vz[:, 1], self.horizontalSpeed[:, 1]
         )
         pathAngle = np.column_stack([self.vz[:, 0], pathAngle])
-        self.pathAngle = Function(pathAngle, "Time (s)", "Path Angle (°)")
+        self.pathAngle = Function(
+            pathAngle, "Time (s)", "Path Angle (°)", interpolation
+        )
         # Attitude Angle
         self.attitudeVectorX = 2 * (self.e1 * self.e3 + self.e0 * self.e2)  # a13
         self.attitudeVectorY = 2 * (self.e2 * self.e3 - self.e0 * self.e1)  # a23
@@ -1803,7 +1816,9 @@ class Flight:
             self.attitudeVectorZ[:, 1], horizontalAttitudeProj[:, 1]
         )
         attitudeAngle = np.column_stack([self.attitudeVectorZ[:, 0], attitudeAngle])
-        self.attitudeAngle = Function(attitudeAngle, "Time (s)", "Attitude Angle (°)")
+        self.attitudeAngle = Function(
+            attitudeAngle, "Time (s)", "Attitude Angle (°)", interpolation
+        )
         # Lateral Attitude Angle
         lateralVectorAngle = (np.pi / 180) * (self.heading - 90)
         lateralVectorX = np.sin(lateralVectorAngle)
@@ -1829,7 +1844,10 @@ class Flight:
             [self.attitudeVectorZ[:, 0], lateralAttitudeAngle]
         )
         self.lateralAttitudeAngle = Function(
-            lateralAttitudeAngle, "Time (s)", "Lateral Attitude Angle (°)"
+            lateralAttitudeAngle,
+            "Time (s)",
+            "Lateral Attitude Angle (°)",
+            interpolation,
         )
         # Euler Angles
         psi = (180 / np.pi) * (
@@ -1837,22 +1855,26 @@ class Flight:
             + np.arctan2(-self.e2[:, 1], -self.e1[:, 1])
         )  # Precession angle
         psi = np.column_stack([self.e1[:, 0], psi])  # Precession angle
-        self.psi = Function(psi, "Time (s)", "Precession Angle - ψ (°)")
+        self.psi = Function(psi, "Time (s)", "Precession Angle - ψ (°)", interpolation)
 
         phi = (180 / np.pi) * (
             np.arctan2(self.e3[:, 1], self.e0[:, 1])
             - np.arctan2(-self.e2[:, 1], -self.e1[:, 1])
         )  # Spin angle
         phi = np.column_stack([self.e1[:, 0], phi])  # Spin angle
-        self.phi = Function(phi, "Time (s)", "Spin Angle - φ (°)")
+        self.phi = Function(phi, "Time (s)", "Spin Angle - φ (°)", interpolation)
 
         theta = (
             (180 / np.pi)
             * 2
-            * np.arcsin(-((self.e1[:, 1] ** 2 + self.e2[:, 1] ** 2) ** 0.5))
+            * np.arcsin(
+                np.clip(-((self.e1[:, 1] ** 2 + self.e2[:, 1] ** 2) ** 0.5), -1, 1)
+            )
         )  # Nutation angle
         theta = np.column_stack([self.e1[:, 0], theta])  # Nutation angle
-        self.theta = Function(theta, "Time (s)", "Nutation Angle - θ (°)")
+        self.theta = Function(
+            theta, "Time (s)", "Nutation Angle - θ (°)", interpolation
+        )
 
         # Dynamics functions and variables
         if self.rocket.railButtons is not None:
@@ -1932,14 +1954,37 @@ class Flight:
         I1, I2, I3 = (Ri + Ti + mu * b**2), (Ri + Ti + mu * b**2), (Rz + Tz)
         # Redefine I1, I2 and I3 grid
         grid = self.vx[:, 0]
-        I1 = Function(np.column_stack([grid, I1(grid)]), "Time (s)")
-        I2 = Function(np.column_stack([grid, I2(grid)]), "Time (s)")
-        I3 = Function(np.column_stack([grid, I3(grid)]), "Time (s)")
+        I1 = Function(
+            source=np.column_stack([grid, I1(grid)]),
+            inputs="Time (s)",
+            outputs="Moment of Inertia (kg*m^2)",
+            interpolation=interpolation,
+        )
+        I2 = Function(
+            source=np.column_stack([grid, I2(grid)]),
+            inputs="Time (s)",
+            outputs="Moment of Inertia (kg*m^2)",
+            interpolation=interpolation,
+        )
+        I3 = Function(
+            source=np.column_stack([grid, I3(grid)]),
+            inputs="Time (s)",
+            outputs="Moment of Inertia (kg*m^2)",
+            interpolation=interpolation,
+        )
         # Redefine total mass grid
-        totalMass = Function(np.column_stack([grid, totalMass(grid)]), "Time (s)")
+        totalMass = Function(
+            source=np.column_stack([grid, totalMass(grid)]),
+            inputs="Time (s)",
+            outputs="Mass (kg)",
+            interpolation=interpolation,
+        )
         # Redefine thrust grid
         thrust = Function(
-            np.column_stack([grid, self.rocket.motor.thrust(grid)]), "Time (s)"
+            source=np.column_stack([grid, self.rocket.motor.thrust(grid)]),
+            inputs="Time (s)",
+            outputs="Thrust (N)",
+            interpolation=interpolation,
         )
         # Get some nicknames
         vx, vy, vz = self.vx, self.vy, self.vz
@@ -1983,7 +2028,10 @@ class Flight:
         Y = Y[range(n // 2)]
         omega1FrequencyResponse = np.column_stack([frq, abs(Y)])
         self.omega1FrequencyResponse = Function(
-            omega1FrequencyResponse, "Frequency (Hz)", "Omega 1 Angle Fourier Amplitude"
+            omega1FrequencyResponse,
+            "Frequency (Hz)",
+            "Omega 1 Angle Fourier Amplitude",
+            interpolation,
         )
         # Omega 2 - w2
         Fs = 100.0
@@ -2002,7 +2050,10 @@ class Flight:
         Y = Y[range(n // 2)]
         omega2FrequencyResponse = np.column_stack([frq, abs(Y)])
         self.omega2FrequencyResponse = Function(
-            omega2FrequencyResponse, "Frequency (Hz)", "Omega 2 Angle Fourier Amplitude"
+            omega2FrequencyResponse,
+            "Frequency (Hz)",
+            "Omega 2 Angle Fourier Amplitude",
+            interpolation,
         )
         # Omega 3 - w3
         Fs = 100.0
@@ -2021,7 +2072,10 @@ class Flight:
         Y = Y[range(n // 2)]
         omega3FrequencyResponse = np.column_stack([frq, abs(Y)])
         self.omega3FrequencyResponse = Function(
-            omega3FrequencyResponse, "Frequency (Hz)", "Omega 3 Angle Fourier Amplitude"
+            omega3FrequencyResponse,
+            "Frequency (Hz)",
+            "Omega 3 Angle Fourier Amplitude",
+            interpolation,
         )
         # Attitude Frequency Response
         Fs = 100.0
@@ -2043,6 +2097,7 @@ class Flight:
             attitudeFrequencyResponse,
             "Frequency (Hz)",
             "Attitude Angle Fourier Amplitude",
+            interpolation,
         )
         # Static Margin
         self.staticMargin = self.rocket.staticMargin
