@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from cProfile import label
 import time
 import warnings
 
@@ -17,7 +16,7 @@ __license__ = "MIT"
 # TODO: Allow user to choose the color pallet of the plots
 # TODO: Add masses plots since it can vary significantly for multi-stage rockets
 
-# TODO: Add unit tests
+# TODO: Add unit tests to verify if the code is working properly
 
 # Major obs.: MAYBE I should call Function to do comparison plots, and improving colors functionality directly inside Function.py
 
@@ -2271,7 +2270,7 @@ class flight_plots:
         -------
         _type_
             _description_
-        """        
+        """
         fig = plt.figure(figsize=(7, 20 / 3))  # width, height
         fig.suptitle("Powers Comparison", fontsize=16, y=1.06, x=0.5)
 
@@ -2435,7 +2434,7 @@ class flight_plots:
         -------
         _type_
             _description_
-        """        
+        """
         fig = plt.figure(figsize=(7, 10 / 3))  # width, height
         fig.suptitle("Angles of Attack Comparison", fontsize=16, y=1.06, x=0.5)
 
@@ -2483,7 +2482,7 @@ class flight_plots:
         -------
         _type_
             _description_
-        """        
+        """
         fig = plt.figure(figsize=(7, 10 / 3))  # width, height
         fig.suptitle("Static Margins Comparison", fontsize=16, y=1.06, x=0.5)
 
@@ -2523,38 +2522,211 @@ class flight_plots:
         return None
 
     def compareFluidMechanics(self):
+        """_summary_
+
+        Returns
+        -------
+        None
+        """
+        fig = plt.figure(figsize=(10, 20 / 3))  # width, height
+        fig.suptitle("Fluid Mechanics Comparison", fontsize=16, y=1.06, x=0.5)
+
+        ax1 = plt.subplot(221)
+        max_time = 0
+        for index, flight in enumerate(self.trajectory_list):
+            if flight.postProcessed is False:
+                flight.postProcess()
+            ax1.plot(
+                flight.MachNumber[:, 0],
+                flight.MachNumber[:, 1],
+                label=self.names_list[index],
+                # color=self.colors_scale[index],
+            )
+            max_time = flight.tFinal if flight.tFinal > max_time else max_time
+        ax1.set_xlim(0, max_time)
+        ax1.set_title(
+            "{} x {}".format(
+                flight.MachNumber.getOutputs()[0], flight.MachNumber.getInputs()[0]
+            )
+        )
+        ax1.set_xlabel(flight.MachNumber.getInputs()[0])
+        ax1.set_ylabel(flight.MachNumber.getOutputs()[0])
+        ax1.grid(True)
+
+        ax2 = plt.subplot(222)
+        for index, flight in enumerate(self.trajectory_list):
+            ax2.plot(
+                flight.ReynoldsNumber[:, 0],
+                flight.ReynoldsNumber[:, 1],
+                # color=self.colors_scale[index],
+            )
+        ax2.set_xlim(0, max_time)
+        ax2.set_title(
+            "{} x {}".format(
+                flight.ReynoldsNumber.getOutputs()[0],
+                flight.ReynoldsNumber.getInputs()[0],
+            )
+        )
+        ax2.set_xlabel(flight.ReynoldsNumber.getInputs()[0])
+        ax2.set_ylabel(flight.ReynoldsNumber.getOutputs()[0])
+        ax2.grid(True)
+
+        ax3 = plt.subplot(223)
+        for index, flight in enumerate(self.trajectory_list):
+            ax3.plot(
+                flight.dynamicPressure[:, 0],
+                flight.dynamicPressure[:, 1],
+                # color=self.colors_scale[index],
+            )
+        ax3.set_xlim(0, max_time)
+        ax3.set_title(
+            "{} x {}".format(
+                flight.dynamicPressure.getOutputs()[0],
+                flight.dynamicPressure.getInputs()[0],
+            )
+        )
+        ax3.set_xlabel(flight.dynamicPressure.getInputs()[0])
+        ax3.set_ylabel(flight.dynamicPressure.getOutputs()[0])
+        ax3.grid(True)
+
+        ax4 = plt.subplot(224)
+        for index, flight in enumerate(self.trajectory_list):
+            ax4.plot(
+                flight.totalPressure[:, 0],
+                flight.totalPressure[:, 1],
+                # color=self.colors_scale[index],
+            )
+        ax4.set_xlim(0, max_time)
+        ax4.set_title(
+            "{} x {}".format(
+                flight.totalPressure.getOutputs()[0],
+                flight.totalPressure.getInputs()[0],
+            )
+        )
+        ax4.set_xlabel(flight.totalPressure.getInputs()[0])
+        ax4.set_ylabel(flight.totalPressure.getOutputs()[0])
+        ax4.grid(True)
+
+        fig.legend(
+            loc="upper center",
+            ncol=len(self.names_list),
+            fancybox=True,
+            shadow=True,
+            fontsize=10,
+            bbox_to_anchor=(0.5, 1),
+        )
+        fig.tight_layout()
 
         return None
-
-    # Flight.MachNumber : Function
-
-    # Flight.ReynoldsNumber : Function
-
-    # Flight.dynamicPressure : Function
-
-    # Flight.totalPressure : Function
 
     def compareAttitudeFrequencyResponses(self):
+        """_summary_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
+        fig = plt.figure(figsize=(10, 20 / 3))  # width, height
+        fig.suptitle(
+            "Attitude Frequency Responses Comparison", fontsize=16, y=1.06, x=0.5
+        )
+
+        ax1 = plt.subplot(221)
+        for index, flight in enumerate(self.trajectory_list):
+            if flight.postProcessed is False:
+                flight.postProcess()
+            ax1.plot(
+                flight.attitudeFrequencyResponse[:, 0],
+                flight.attitudeFrequencyResponse[:, 1],
+                label=self.names_list[index],
+                # color=self.colors_scale[index],
+            )
+        ax1.set_title(
+            "{} x {}".format(
+                flight.attitudeFrequencyResponse.getOutputs()[0],
+                flight.attitudeFrequencyResponse.getInputs()[0],
+            )
+        )
+        ax1.set_xlabel(flight.attitudeFrequencyResponse.getInputs()[0])
+        ax1.set_ylabel(flight.attitudeFrequencyResponse.getOutputs()[0])
+        ax1.grid(True)
+
+        ax2 = plt.subplot(222)
+        for index, flight in enumerate(self.trajectory_list):
+            ax2.plot(
+                flight.omega1FrequencyResponse[:, 0],
+                flight.omega1FrequencyResponse[:, 1],
+                # color=self.colors_scale[index],
+            )
+        ax2.set_title(
+            "{} x {}".format(
+                flight.omega1FrequencyResponse.getOutputs()[0],
+                flight.omega1FrequencyResponse.getInputs()[0],
+            )
+        )
+        ax2.set_xlabel(flight.omega1FrequencyResponse.getInputs()[0])
+        ax2.set_ylabel(flight.omega1FrequencyResponse.getOutputs()[0])
+        ax2.grid(True)
+
+        ax3 = plt.subplot(223)
+        for index, flight in enumerate(self.trajectory_list):
+            ax3.plot(
+                flight.omega2FrequencyResponse[:, 0],
+                flight.omega2FrequencyResponse[:, 1],
+                # color=self.colors_scale[index],
+            )
+        ax3.set_title(
+            "{} x {}".format(
+                flight.omega2FrequencyResponse.getOutputs()[0],
+                flight.omega2FrequencyResponse.getInputs()[0],
+            )
+        )
+        ax3.set_xlabel(flight.omega2FrequencyResponse.getInputs()[0])
+        ax3.set_ylabel(flight.omega2FrequencyResponse.getOutputs()[0])
+        ax3.grid(True)
+
+        ax4 = plt.subplot(224)
+        for index, flight in enumerate(self.trajectory_list):
+            ax4.plot(
+                flight.omega3FrequencyResponse[:, 0],
+                flight.omega3FrequencyResponse[:, 1],
+                # color=self.colors_scale[index],
+            )
+
+        ax4.set_title(
+            "{} x {}".format(
+                flight.omega3FrequencyResponse.getOutputs()[0],
+                flight.omega3FrequencyResponse.getInputs()[0],
+            )
+        )
+        ax4.set_xlabel(flight.omega3FrequencyResponse.getInputs()[0])
+        ax4.set_ylabel(flight.omega3FrequencyResponse.getOutputs()[0])
+        ax4.grid(True)
+
+        fig.legend(
+            loc="upper center",
+            ncol=len(self.names_list),
+            fancybox=True,
+            shadow=True,
+            fontsize=10,
+            bbox_to_anchor=(0.5, 1),
+        )
+
+        fig.tight_layout()
 
         return None
 
-    # Stability and Control:
-    # Flight.attitudeFrequencyResponse : Function
-
-    # Flight.omega1FrequencyResponse : Function
-
-    # Flight.omega2FrequencyResponse : Function
-
-    # Flight.omega3FrequencyResponse : Function
+    def comparePressureSignals(self):
+        """_summary_
+        """
+        print("Still not implemented")
+        pass
 
     def compareFinFlutterAnalysis(self):
         # Should only work if the fin flutter analysis was ran before. # TODO: Add boolean!
+        print("Still not implemented yet!")
         return None
-
-    # Fin Flutter Analysis:
-    # Flight.flutterMachNumber: Function
-    # Flight.difference: Function
-    # Flight.safetyFactor: Function
 
     @staticmethod
     def compareTrajectories3D(trajectory_list, names_list, legend=None):
@@ -2593,8 +2765,9 @@ class flight_plots:
         maxX, maxY, maxZ, minX, minY, minZ, maxXY, minXY = 0, 0, 0, 0, 0, 0, 0, 0
 
         # Create the figure
-        fig1 = plt.figure(figsize=(9, 9))
-        ax1 = plt.subplot(111, projection="3d")
+        fig1 = plt.figure(figsize=(7, 7))
+        fig1.suptitle("Flight Trajectories Comparison", fontsize=16, y=0.95, x=0.5)
+        ax1 = plt.subplot(111, projection="3d", )
 
         # Iterate through trajectories
         for index, flight in enumerate(trajectory_list):
@@ -2615,18 +2788,21 @@ class flight_plots:
             ax1.plot(x, y, z, linewidth="2", label=names_list[index])
 
         # Plot settings
-        ax1.scatter(0, 0, 0)
+        # TODO: Don't know why, but tha z_label is not working properly
+        ax1.scatter(0, 0, 0, color="black", s=10, marker="o")
         ax1.set_xlabel("X - East (m)")
         ax1.set_ylabel("Y - North (m)")
         ax1.set_zlabel("Z - Altitude (m)")
-        ax1.set_title("Flight Trajectories Comparison")
         ax1.set_zlim3d([minZ, maxZ])
         ax1.set_ylim3d([minXY, maxXY])
         ax1.set_xlim3d([minXY, maxXY])
         ax1.view_init(15, 45)
+
+        # Add legend
         if legend:
-            plt.legend()
-        plt.show()
+            fig1.legend()
+
+        fig1.tight_layout()
 
         return None
 
@@ -2673,6 +2849,7 @@ class flight_plots:
         - XZ projection plot
         - YZ projection plot
         """
+        print("Still not implemented yet!")
         pass
 
     @staticmethod
@@ -2682,6 +2859,7 @@ class flight_plots:
         Still not implemented yet.
         Should also allow comparison between RocketPy and actual flight data.
         """
+        print("Still not implemented yet!")
         pass
 
     # Start definition of animations methods
@@ -2851,6 +3029,8 @@ class flight_plots:
         elif mode == "compare":
             print("Compare mode not yet implemented")
 
+            # TODO: Add more comparison functions here
+
             self.info()
 
             self.compareFlightTrajectories3D()
@@ -2860,6 +3040,24 @@ class flight_plots:
             self.compareVelocities()
 
             self.compareAccelerations()
+
+            self.compareAngularAccelerations()
+
+            self.compareForces()
+
+            self.compareMoments()
+
+            self.compareEnergies()
+
+            self.comparePowers()
+
+            self.compareFluidMechanics()
+
+            # self.comparePressureSignals()
+
+            self.compareStabilityAndControlData()
+
+
 
         else:
             raise ValueError("Mode must be 'basic' or 'compare'")
