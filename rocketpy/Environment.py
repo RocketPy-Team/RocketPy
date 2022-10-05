@@ -10,7 +10,6 @@ import bisect
 import re
 import warnings
 from datetime import datetime, timedelta
-from .utilities import geodesicToUtm, calculateEarthRadius
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -3355,3 +3354,5 @@ class Environment:
         print("Gravity acceleration at launch site: Still not implemented :(")
 
         return None
+
+from .utilities import calculateEarthRadius, geodesicToUtm

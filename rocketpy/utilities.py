@@ -3,10 +3,10 @@ __author__ = "Franz Masatoshi Yuri, Lucas Kierulff Balabram, Guilherme Fernandes
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 import math
-import matplotlib.pyplot as plt
-from matplotlib.patches import Ellipse
 
+import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.patches import Ellipse
 from scipy.integrate import solve_ivp
 
 from .Environment import Environment
@@ -199,6 +199,47 @@ def calculateEquilibriumAltitude(
         velocityFunction()
 
     return altitudeFunction, velocityFunction, final_sol
+
+
+def create_dispersion_dictionary(filename):
+    """Creates a dictionary with the rocket data provided by a .csv file.
+    File should be organized in four columns: attribute_class, parameter_name,
+    mean_value, standard_deviation. The first row should be the header.
+    It is advised to use ";" as separator, but "," should work on most of cases.
+    Parameters
+    ----------
+    filename : string
+        String with the path to the .csv file.
+    Returns
+    -------
+    dictionary
+        Dictionary with all rocket data to be used in dispersion analysis.
+    """
+    try:
+        file = np.genfromtxt(
+            filename, usecols=(1, 2, 3), skip_header=1, delimiter=";", dtype=str
+        )
+    except:
+        print(
+            "Error: The delimiter should be ';'. Using ',' instead, be aware that some resources might not work as expected. Please consider changing the delimiter to ';'."
+        )
+        file = np.genfromtxt(
+            filename, usecols=(1, 2, 3), skip_header=1, delimiter=",", dtype=str
+        )
+    analysis_parameters = dict()
+    for row in file:
+        if row[0] != "":
+            if row[2] == "":
+                try:
+                    analysis_parameters[row[0].strip()] = float(row[1])
+                except:
+                    analysis_parameters[row[0].strip()] = eval(row[1])
+            else:
+                try:
+                    analysis_parameters[row[0].strip()] = (float(row[1]), float(row[2]))
+                except:
+                    analysis_parameters[row[0].strip()] = ""
+    return analysis_parameters
 
 
 # Geodesic calculations functions
