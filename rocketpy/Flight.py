@@ -2309,7 +2309,9 @@ class Flight:
                 callback(self)
             # Loop through time steps in flight phase
             for step in self.solution:  # Can be optimized
-                if initTime < step[0] <= finalTime:
+                if initTime < step[0] <= finalTime or (
+                    initTime == self.tInitial and step[0] == self.tInitial
+                ):
                     # Get derivatives
                     uDot = currentDerivative(step[0], step[1:])
                     # Get accelerations
@@ -2397,7 +2399,7 @@ class Flight:
                 callback(self)
             # Loop through time steps in flight phase
             for step in self.solution:  # Can be optimized
-                if initTime < step[0] <= finalTime or (initTime == 0 and step[0] == 0):
+                if initTime < step[0] <= finalTime or (initTime == self.tInitial and step[0] == self.tInitial):
                     # Call derivatives in post processing mode
                     uDot = currentDerivative(step[0], step[1:], postProcessing=True)
 
