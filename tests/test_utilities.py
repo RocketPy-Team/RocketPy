@@ -1,4 +1,5 @@
 from rocketpy import utilities
+import numpy as np
 
 
 def test_compute_CdS_from_drop_test():
