@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import simplekml
 
-# from imageio import imread
+from imageio import imread
 from IPython.display import display
 from matplotlib.patches import Ellipse
 from numpy.random import *
@@ -61,8 +61,7 @@ class Dispersion:
     """
 
     def __init__(
-        self,
-        filename,
+        self, filename,
     ):
 
         """
@@ -482,28 +481,16 @@ class Dispersion:
         # Calculate maximum reached velocity
         sol = np.array(flight_data.solution)
         flight_data.vx = Function(
-            sol[:, [0, 4]],
-            "Time (s)",
-            "Vx (m/s)",
-            "linear",
-            extrapolation="natural",
+            sol[:, [0, 4]], "Time (s)", "Vx (m/s)", "linear", extrapolation="natural",
         )
         flight_data.vy = Function(
-            sol[:, [0, 5]],
-            "Time (s)",
-            "Vy (m/s)",
-            "linear",
-            extrapolation="natural",
+            sol[:, [0, 5]], "Time (s)", "Vy (m/s)", "linear", extrapolation="natural",
         )
         flight_data.vz = Function(
-            sol[:, [0, 6]],
-            "Time (s)",
-            "Vz (m/s)",
-            "linear",
-            extrapolation="natural",
+            sol[:, [0, 6]], "Time (s)", "Vz (m/s)", "linear", extrapolation="natural",
         )
         flight_data.v = (
-            flight_data.vx**2 + flight_data.vy**2 + flight_data.vz**2
+            flight_data.vx ** 2 + flight_data.vy ** 2 + flight_data.vz ** 2
         ) ** 0.5
         flight_data.maxVel = np.amax(flight_data.v.source[:, 1])
         flight_result["maxVelocity"] = flight_data.maxVel
@@ -824,7 +811,7 @@ class Dispersion:
         self.meanOutOfRailTime(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["outOfRailTime"], bins=int(self.N**0.5))
+        plt.hist(dispersion_results["outOfRailTime"], bins=int(self.N ** 0.5))
         plt.title("Out of Rail Time")
         plt.xlabel("Time (s)")
         plt.ylabel("Number of Occurences")
@@ -847,7 +834,7 @@ class Dispersion:
         self.meanOutOfRailVelocity(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["outOfRailVelocity"], bins=int(self.N**0.5))
+        plt.hist(dispersion_results["outOfRailVelocity"], bins=int(self.N ** 0.5))
         plt.title("Out of Rail Velocity")
         plt.xlabel("Velocity (m/s)")
         plt.ylabel("Number of Occurences")
@@ -870,7 +857,7 @@ class Dispersion:
         self.meanApogeeTime(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["impactTime"], bins=int(self.N**0.5))
+        plt.hist(dispersion_results["impactTime"], bins=int(self.N ** 0.5))
         plt.title("Impact Time")
         plt.xlabel("Time (s)")
         plt.ylabel("Number of Occurences")
@@ -893,7 +880,7 @@ class Dispersion:
         self.meanApogeeAltitude(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["apogeeAltitude"], bins=int(self.N**0.5))
+        plt.hist(dispersion_results["apogeeAltitude"], bins=int(self.N ** 0.5))
         plt.title("Apogee Altitude")
         plt.xlabel("Altitude (m)")
         plt.ylabel("Number of Occurences")
@@ -916,7 +903,7 @@ class Dispersion:
         self.meanApogeeAltitude(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["apogeeX"], bins=int(self.N**0.5))
+        plt.hist(dispersion_results["apogeeX"], bins=int(self.N ** 0.5))
         plt.title("Apogee X Position")
         plt.xlabel("Apogee X Position (m)")
         plt.ylabel("Number of Occurences")
@@ -939,7 +926,7 @@ class Dispersion:
         self.meanApogeeAltitude(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["apogeeY"], bins=int(self.N**0.5))
+        plt.hist(dispersion_results["apogeeY"], bins=int(self.N ** 0.5))
         plt.title("Apogee Y Position")
         plt.xlabel("Apogee Y Position (m)")
         plt.ylabel("Number of Occurences")
@@ -962,7 +949,7 @@ class Dispersion:
         self.meanImpactTime(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["impactTime"], bins=int(self.N**0.5))
+        plt.hist(dispersion_results["impactTime"], bins=int(self.N ** 0.5))
         plt.title("Impact Time")
         plt.xlabel("Time (s)")
         plt.ylabel("Number of Occurences")
@@ -985,7 +972,7 @@ class Dispersion:
         self.meanImpactXPosition(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["impactX"], bins=int(self.N**0.5))
+        plt.hist(dispersion_results["impactX"], bins=int(self.N ** 0.5))
         plt.title("Impact X Position")
         plt.xlabel("Impact X Position (m)")
         plt.ylabel("Number of Occurences")
@@ -1008,7 +995,7 @@ class Dispersion:
         self.meanImpactYPosition(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["impactY"], bins=int(self.N**0.5))
+        plt.hist(dispersion_results["impactY"], bins=int(self.N ** 0.5))
         plt.title("Impact Y Position")
         plt.xlabel("Impact Y Position (m)")
         plt.ylabel("Number of Occurences")
@@ -1031,7 +1018,7 @@ class Dispersion:
         self.meanImpactVelocity(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["impactVelocity"], bins=int(self.N**0.5))
+        plt.hist(dispersion_results["impactVelocity"], bins=int(self.N ** 0.5))
         plt.title("Impact Velocity")
         plt.xlim(-35, 0)
         plt.xlabel("Velocity (m/s)")
@@ -1072,17 +1059,17 @@ class Dispersion:
         plt.hist(
             dispersion_results["initialStaticMargin"],
             label="Initial",
-            bins=int(self.N**0.5),
+            bins=int(self.N ** 0.5),
         )
         plt.hist(
             dispersion_results["outOfRailStaticMargin"],
             label="Out of Rail",
-            bins=int(self.N**0.5),
+            bins=int(self.N ** 0.5),
         )
         plt.hist(
             dispersion_results["finalStaticMargin"],
             label="Final",
-            bins=int(self.N**0.5),
+            bins=int(self.N ** 0.5),
         )
         plt.legend()
         plt.title("Static Margin")
@@ -1107,7 +1094,7 @@ class Dispersion:
         self.meanMaximumVelocity(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["maxVelocity"], bins=int(self.N**0.5))
+        plt.hist(dispersion_results["maxVelocity"], bins=int(self.N ** 0.5))
         plt.title("Maximum Velocity")
         plt.xlabel("Velocity (m/s)")
         plt.ylabel("Number of Occurences")
@@ -1153,7 +1140,7 @@ class Dispersion:
         self.meanDrogueTriggerTime(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["drogueTriggerTime"], bins=int(self.N**0.5))
+        plt.hist(dispersion_results["drogueTriggerTime"], bins=int(self.N ** 0.5))
         plt.title("Drogue Trigger Time")
         plt.xlabel("Time (s)")
         plt.ylabel("Number of Occurences")
@@ -1176,7 +1163,7 @@ class Dispersion:
         self.meanDrogueFullyInflatedTime(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["drogueInflatedTime"], bins=int(self.N**0.5))
+        plt.hist(dispersion_results["drogueInflatedTime"], bins=int(self.N ** 0.5))
         plt.title("Drogue Fully Inflated Time")
         plt.xlabel("Time (s)")
         plt.ylabel("Number of Occurences")
@@ -1199,7 +1186,7 @@ class Dispersion:
         self.meanDrogueFullyVelocity(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["drogueInflatedVelocity"], bins=int(self.N**0.5))
+        plt.hist(dispersion_results["drogueInflatedVelocity"], bins=int(self.N ** 0.5))
         plt.title("Drogue Parachute Fully Inflated Velocity")
         plt.xlabel("Velocity m/s)")
         plt.ylabel("Number of Occurences")
@@ -1207,11 +1194,7 @@ class Dispersion:
 
         return None
 
-    def plotEllipses(self, dispersion_results, image, realLandingPoint):
-
-        # Import background map
-        img = imread(image)
-
+    def createEllipses(self, dispersion_results):
         # Retrieve dispersion data por apogee and impact XY position
         apogeeX = np.array(dispersion_results["apogeeX"])
         apogeeY = np.array(dispersion_results["apogeeY"])
@@ -1224,15 +1207,15 @@ class Dispersion:
             order = vals.argsort()[::-1]
             return vals[order], vecs[:, order]
 
-        # Create plot figure
-        plt.figure(num=None, figsize=(8, 6), dpi=150, facecolor="w", edgecolor="k")
-        ax = plt.subplot(111)
-
         # Calculate error ellipses for impact
         impactCov = np.cov(impactX, impactY)
         impactVals, impactVecs = eigsorted(impactCov)
         impactTheta = np.degrees(np.arctan2(*impactVecs[:, 0][::-1]))
         impactW, impactH = 2 * np.sqrt(impactVals)
+
+        # Create plot figure
+        plt.figure(num=None, figsize=(8, 6), dpi=150, facecolor="w", edgecolor="k")
+        ax = plt.subplot(111)
 
         # Draw error ellipses for impact
         impact_ellipses = []
@@ -1254,6 +1237,7 @@ class Dispersion:
         apogeeTheta = np.degrees(np.arctan2(*apogeeVecs[:, 0][::-1]))
         apogeeW, apogeeH = 2 * np.sqrt(apogeeVals)
 
+        apogee_ellipses = []
         # Draw error ellipses for apogee
         for j in [1, 2, 3]:
             apogeeEll = Ellipse(
@@ -1264,8 +1248,22 @@ class Dispersion:
                 color="black",
             )
             apogeeEll.set_facecolor((0, 1, 0, 0.2))
+            apogee_ellipses.append(apogeeEll)
             ax.add_artist(apogeeEll)
+        return ax, impact_ellipses, apogee_ellipses
 
+    def plotEllipses(self, dispersion_results, image, realLandingPoint):
+        # Import background map
+        img = imread(image)
+
+        # Retrieve dispersion data por apogee and impact XY position
+        apogeeX = np.array(dispersion_results["apogeeX"])
+        apogeeY = np.array(dispersion_results["apogeeY"])
+        impactX = np.array(dispersion_results["impactX"])
+        impactY = np.array(dispersion_results["impactY"])
+
+        plt.figure(num=None, figsize=(8, 6), dpi=150, facecolor="w", edgecolor="k")
+        ax, impact_ellipses = self.createEllipses(dispersion_results)
         # Draw launch point
         plt.scatter(0, 0, s=30, marker="*", color="black", label="Launch Point")
         # Draw apogee points
@@ -1315,48 +1313,26 @@ class Dispersion:
         plt.savefig(str(self.filename) + ".pdf", bbox_inches="tight", pad_inches=0)
         plt.savefig(str(self.filename) + ".svg", bbox_inches="tight", pad_inches=0)
         plt.show()
+        return None
 
-    # TODO: Convert from a @staticmethod to a regular class method (i.e. using self)
-    ## The dispersion_results object contains a lot of useful information to be used here
-    ## Also, we can use the self.plotEllipses to capture the dispersion ellipses.
-    ## Maybe separating the self.plotEllipses into two methods, one for generating the ellipses and another for plotting them
-    @staticmethod
-    def exportEllipsesToKML(impact_ellipses, filename, origin_lat, origin_lon):
-        """Generates a KML file with the ellipses on the impact point.
-        Parameters
-        ----------
-        impact_ellipses : matplolib.patches.Ellipse
-            Contains ellipse details for the plot.
-        filename : String
-            Name to the KML exported file.
-        origin_lat : float
-            Latitude coordinate of Ellipses' geometric center, in degrees.
-        origin_lon : float
-            Latitude coordinate of Ellipses' geometric center, in degrees.
-        """
-
+    def prepareEllipses(self, ellipses, origin_lat, origin_lon, resolution=100):
         outputs = []
 
-        for impactEll in impact_ellipses:
+        for ell in ellipses:
             # Get ellipse path points
-            center = impactEll.get_center()
-            width = impactEll.get_width()
-            height = impactEll.get_height()
-            angle = np.deg2rad(impactEll.get_angle())
-            print("angle", np.rad2deg(angle))
+            center = ell.get_center()
+            width = ell.get_width()
+            height = ell.get_height()
+            angle = np.deg2rad(ell.get_angle())
             points = []
 
-            resolution = 1000  # Number of points to generate the ellipse.
-            # TODO: Flexible resolution parameter, let the user choose!
             for i in range(resolution):
                 x = width / 2 * math.cos(2 * np.pi * i / resolution)
                 y = height / 2 * math.sin(2 * np.pi * i / resolution)
                 x_rot = center[0] + x * math.cos(angle) - y * math.sin(angle)
                 y_rot = center[1] + x * math.sin(angle) + y * math.cos(angle)
                 points.append((x_rot, y_rot))
-            # points = impactEll.get_verts()
             points = np.array(points)
-            plt.plot(points[:, 0], points[:, 1], "r-")
 
             # Convert path points to lat/lon
             lat_lon_points = []
@@ -1365,7 +1341,7 @@ class Dispersion:
                 y = point[1]
 
                 # Convert to distance and bearing
-                d = math.sqrt((x**2 + y**2))
+                d = math.sqrt((x ** 2 + y ** 2))
                 bearing = math.atan2(
                     x, y
                 )  # TODO: Ok, this is not correct as this only works for the first quadrant
@@ -1380,7 +1356,46 @@ class Dispersion:
 
             # Export string
             outputs.append(lat_lon_points)
-        plt.show()
+        return outputs
+
+    # TODO: Convert from a @staticmethod to a regular class method (i.e. using self)
+    ## The dispersion_results object contains a lot of useful information to be used here
+    ## Also, we can use the self.plotEllipses to capture the dispersion ellipses.
+    ## Maybe separating the self.plotEllipses into two methods, one for generating the ellipses and another for plotting them
+    def exportEllipsesToKML(
+        self,
+        dispersion_results,
+        filename,
+        origin_lat,
+        origin_lon,
+        type="all",
+        resolution=100,
+    ):
+        """Generates a KML file with the ellipses on the impact point.
+        Parameters
+        ----------
+        impact_ellipses : matplolib.patches.Ellipse
+            Contains ellipse details for the plot.
+        filename : String
+            Name to the KML exported file.
+        origin_lat : float
+            Latitude coordinate of Ellipses' geometric center, in degrees.
+        origin_lon : float
+            Latitude coordinate of Ellipses' geometric center, in degrees.
+        """
+
+        _, impact_ellipses, apogee_ellipses = self.createEllipses(dispersion_results)
+        outputs = []
+
+        if type == "all" or type == "impact":
+            outputs = outputs + self.prepareEllipses(
+                impact_ellipses, origin_lat, origin_lon, resolution=resolution
+            )
+
+        if type == "all" or type == "apogee":
+            outputs = outputs + self.prepareEllipses(
+                apogee_ellipses, origin_lat, origin_lon, resolution=resolution
+            )
 
         # Prepare data to KML file
         kml_data = []
@@ -1394,7 +1409,14 @@ class Dispersion:
         kml = simplekml.Kml()
 
         for i in range(len(outputs)):
-            mult_ell = kml.newmultigeometry(name="σ" + str(i + 1))
+            if (type == "all" and i < 3) or (type == "impact"):
+                ellName = "Impact σ" + str(i + 1)
+            elif type == "all" and i >= 3:
+                ellName = "Apogee σ" + str(i - 2)
+            else:
+                ellName = "Apogee σ" + str(i + 1)
+
+            mult_ell = kml.newmultigeometry(name=ellName)
             mult_ell.newpolygon(
                 outerboundaryis=kml_data[i],
                 innerboundaryis=kml_data[i],
@@ -1431,7 +1453,7 @@ class Dispersion:
         self.meanLateralWindSpeed(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["lateralWind"], bins=int(self.N**0.5))
+        plt.hist(dispersion_results["lateralWind"], bins=int(self.N ** 0.5))
         plt.title("Lateral Surface Wind Speed")
         plt.xlabel("Velocity (m/s)")
         plt.ylabel("Number of Occurences")
@@ -1450,7 +1472,7 @@ class Dispersion:
         self.meanFrontalWindSpeed(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["frontalWind"], bins=int(self.N**0.5))
+        plt.hist(dispersion_results["frontalWind"], bins=int(self.N ** 0.5))
         plt.title("Frontal Surface Wind Speed")
         plt.xlabel("Velocity (m/s)")
         plt.ylabel("Number of Occurences")
