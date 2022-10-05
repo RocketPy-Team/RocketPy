@@ -1255,7 +1255,15 @@ class Dispersion:
             apogee_ellipses.append(apogeeEll)
         return impact_ellipses, apogee_ellipses
 
-    def plotEllipses(self, dispersion_results, image, realLandingPoint=None, perimeterSize=3000, xlim=(-3000, 3000), ylim=(-3000, 3000)):
+    def plotEllipses(
+        self,
+        dispersion_results,
+        image,
+        realLandingPoint=None,
+        perimeterSize=3000,
+        xlim=(-3000, 3000),
+        ylim=(-3000, 3000),
+    ):
         """A function to plot the error ellipses for the apogee and impact 
         points of the rocket. The function also plots the real landing point, if
         given
@@ -1279,16 +1287,16 @@ class Dispersion:
         impactY = np.array(dispersion_results["impactY"])
 
         impact_ellipses, apogee_ellipses = self.createEllipses(dispersion_results)
-        
+
         # Create plot figure
         plt.figure(num=None, figsize=(8, 6), dpi=150, facecolor="w", edgecolor="k")
         ax = plt.subplot(111)
-        
+
         for ell in impact_ellipses:
             ax.add_artist(ell)
         for ell in apogee_ellipses:
             ax.add_artist(ell)
-        
+
         # Draw launch point
         plt.scatter(0, 0, s=30, marker="*", color="black", label="Launch Point")
         # Draw apogee points
@@ -1328,7 +1336,16 @@ class Dispersion:
         # You can translate the basemap by changing dx and dy (in meters)
         dx = 0
         dy = 0
-        plt.imshow(img, zorder=0, extent=[-perimeterSize - dx, perimeterSize - dx, -perimeterSize - dy, perimeterSize - dy])
+        plt.imshow(
+            img,
+            zorder=0,
+            extent=[
+                -perimeterSize - dx,
+                perimeterSize - dx,
+                -perimeterSize - dy,
+                perimeterSize - dy,
+            ],
+        )
         plt.axhline(0, color="black", linewidth=0.5)
         plt.axvline(0, color="black", linewidth=0.5)
         plt.xlim(*xlim)
@@ -1383,10 +1400,8 @@ class Dispersion:
                 d = math.sqrt((x ** 2 + y ** 2))
                 bearing = math.atan2(
                     x, y
-                )  # TODO: Ok, this is not correct as this only works for the first quadrant
-                # Comment: We need a new function that catches two points (4 coordinates) and returns the bearing. It really sucks, but the formula is different for each of the 4 quadrants
-                # See following code for reference: https://github.com/RocketPy-Team/RocketPy/blob/master/rocketpy/Flight.py#L2119
-                # Convert to lat lon
+                )  # math.atan2 returns the angle in the range [-pi, pi]
+
                 lat_lon_points.append(
                     invertedHaversine(
                         origin_lat, origin_lon, d, bearing, eRadius=6.3781e6
