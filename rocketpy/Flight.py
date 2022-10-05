@@ -1707,7 +1707,7 @@ class Flight:
                 callback(self)
             # Loop through time steps in flight phase
             for step in self.solution:  # Can be optimized
-                if initTime < step[0] <= finalTime:
+                if initTime < step[0] <= finalTime or (initTime == self.tInitial and step[0] == self.tInitial):
                     # Get derivatives
                     uDot = currentDerivative(step[0], step[1:])
                     # Get accelerations
@@ -1749,7 +1749,7 @@ class Flight:
                 callback(self)
             # Loop through time steps in flight phase
             for step in self.solution:  # Can be optimized
-                if initTime < step[0] <= finalTime or (initTime == 0 and step[0] == 0):
+                if initTime < step[0] <= finalTime or (initTime == self.tInitial and step[0] == self.tInitial):
                     # Call derivatives in post processing mode
                     uDot = currentDerivative(step[0], step[1:], postProcessing=True)
         # Convert forces and atmospheric arrays to functions
@@ -1782,46 +1782,6 @@ class Flight:
         )
         self.speedOfSound = Function(
             self.speedOfSound, "Time (s)", "Speed of Sound (m/s)", interpolation
-        )
-
-        # Redefine grids for the atmospheric functions
-        # Important to ensure the code works properly when using initialSolution
-        grid = self.vx[:, 0]
-        self.windVelocityX = Function(
-            np.column_stack([grid, self.windVelocityX(grid)]),
-            "Time (s)",
-            "Wind Velocity X (East) (m/s)",
-            interpolation,
-        )
-        self.windVelocityY = Function(
-            np.column_stack([grid, self.windVelocityY(grid)]),
-            "Time (s)",
-            "Wind Velocity Y (North) (m/s)",
-            interpolation,
-        )
-        self.density = Function(
-            np.column_stack([grid, self.density(grid)]),
-            "Time (s)",
-            "Density (kg/m³)",
-            interpolation,
-        )
-        self.pressure = Function(
-            np.column_stack([grid, self.pressure(grid)]),
-            "Time (s)",
-            "Pressure (Pa)",
-            interpolation,
-        )
-        self.dynamicViscosity = Function(
-            np.column_stack([grid, self.dynamicViscosity(grid)]),
-            "Time (s)",
-            "Dynamic Viscosity (Pa s)",
-            interpolation,
-        )
-        self.speedOfSound = Function(
-            np.column_stack([grid, self.speedOfSound(grid)]),
-            "Time (s)",
-            "Speed of Sound (m/s)",
-            interpolation,
         )
 
         # Process fourth type of output - values calculated from previous outputs
