@@ -14,7 +14,8 @@ from time import process_time, time
 import matplotlib.pyplot as plt
 import numpy as np
 import simplekml
-from imageio import imread
+
+# from imageio import imread
 from IPython.display import display
 from matplotlib.patches import Ellipse
 from numpy.random import *
@@ -24,7 +25,7 @@ from .Flight import Flight
 from .Function import Function
 from .Motor import HybridMotor, SolidMotor
 from .Rocket import Rocket
-from .utilities import haversine
+from .utilities import invertedHaversine
 
 
 class Dispersion:
@@ -1316,6 +1317,9 @@ class Dispersion:
         plt.show()
 
     # TODO: Convert from a @staticmethod to a regular class method (i.e. using self)
+    ## The dispersion_results object contains a lot of useful information to be used here
+    ## Also, we can use the self.plotEllipses to capture the dispersion ellipses.
+    ## Maybe separating the self.plotEllipses into two methods, one for generating the ellipses and another for plotting them
     @staticmethod
     def exportEllipsesToKML(impact_ellipses, filename, origin_lat, origin_lon):
         """Generates a KML file with the ellipses on the impact point.
@@ -1342,7 +1346,8 @@ class Dispersion:
             print("angle", np.rad2deg(angle))
             points = []
 
-            resolution = 1000
+            resolution = 1000  # Number of points to generate the ellipse.
+            # TODO: Flexible resolution parameter, let the user choose!
             for i in range(resolution):
                 x = width / 2 * math.cos(2 * np.pi * i / resolution)
                 y = height / 2 * math.sin(2 * np.pi * i / resolution)
@@ -1361,9 +1366,17 @@ class Dispersion:
 
                 # Convert to distance and bearing
                 d = math.sqrt((x**2 + y**2))
-                brng = math.atan2(x, y)
+                bearing = math.atan2(
+                    x, y
+                )  # TODO: Ok, this is not correct as this only works for the first quadrant
+                # Comment: We need a new function that catches two points (4 coordinates) and returns the bearing. It really sucks, but the formula is different for each of the 4 quadrants
+                # See following code for reference: https://github.com/RocketPy-Team/RocketPy/blob/master/rocketpy/Flight.py#L2119
                 # Convert to lat lon
-                lat_lon_points.append(haversine(origin_lat, origin_lon, d, brng))
+                lat_lon_points.append(
+                    invertedHaversine(
+                        origin_lat, origin_lon, d, bearing, eRadius=6.3781e6
+                    )
+                )
 
             # Export string
             outputs.append(lat_lon_points)
