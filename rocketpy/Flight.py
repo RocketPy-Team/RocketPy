@@ -1867,7 +1867,9 @@ class Flight:
         theta = (
             (180 / np.pi)
             * 2
-            * np.arcsin(np.clip(-((self.e1[:, 1] ** 2 + self.e2[:, 1] ** 2) ** 0.5), -1, 1))
+            * np.arcsin(
+                np.clip(-((self.e1[:, 1] ** 2 + self.e2[:, 1] ** 2) ** 0.5), -1, 1)
+            )
         )  # Nutation angle
         theta = np.column_stack([self.e1[:, 0], theta])  # Nutation angle
         self.theta = Function(
