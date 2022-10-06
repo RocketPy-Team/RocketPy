@@ -15,6 +15,7 @@ import simplekml
 from scipy import integrate
 
 from .Function import Function
+from .utilities import *
 
 
 class Flight:
@@ -2147,6 +2148,7 @@ class Flight:
             3.14159265359 * self.env.longitude / 180
         )  # Launch long point converted to radians
 
+        # TODO: Start using the invertedHaversine function from utilities.py
         R = self.env.earthRadius
         lat2 = []
         lon2 = []
