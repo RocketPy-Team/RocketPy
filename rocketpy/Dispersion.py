@@ -53,7 +53,7 @@ class Dispersion:
             part of the export filenames (e.g. 'filename.disp_outputs.txt').
             When analyzing the results of a previous simulation, this attribute
             shall be the filename containing the outputs of a dispersion calculation.
-        Dispersion.actualLandingPoint: tuple
+        Dispersion.actual_landing_point: tuple
             Rocket's experimental landing point relative to launch point.
         Dispersion.N: integer
             Number of simulations in an output file.
@@ -92,12 +92,12 @@ class Dispersion:
         # Save  and initialize parameters
         self.filename = filename
 
-    def setDistributionFunc(self, distributionType):
+    def __set_distribution_function(self, distribution_type):
         """_summary_
 
         Parameters
         ----------
-        distributionType : _type_
+        distribution_type : _type_
             _description_
 
         Returns
@@ -105,85 +105,85 @@ class Dispersion:
         _type_
             _description_
         """
-        if distributionType == "normal" or distributionType == None:
+        if distribution_type == "normal" or distribution_type == None:
             return normal
-        elif distributionType == "beta":
+        elif distribution_type == "beta":
             return beta
-        elif distributionType == "binomial":
+        elif distribution_type == "binomial":
             return binomial
-        elif distributionType == "chisquare":
+        elif distribution_type == "chisquare":
             return chisquare
-        elif distributionType == "dirichlet":
+        elif distribution_type == "dirichlet":
             return dirichlet
-        elif distributionType == "exponential":
+        elif distribution_type == "exponential":
             return exponential
-        elif distributionType == "f":
+        elif distribution_type == "f":
             return f
-        elif distributionType == "gamma":
+        elif distribution_type == "gamma":
             return gamma
-        elif distributionType == "geometric":
+        elif distribution_type == "geometric":
             return geometric
-        elif distributionType == "gumbel":
+        elif distribution_type == "gumbel":
             return gumbel
-        elif distributionType == "hypergeometric":
+        elif distribution_type == "hypergeometric":
             return hypergeometric
-        elif distributionType == "laplace":
+        elif distribution_type == "laplace":
             return laplace
-        elif distributionType == "logistic":
+        elif distribution_type == "logistic":
             return logistic
-        elif distributionType == "lognormal":
+        elif distribution_type == "lognormal":
             return lognormal
-        elif distributionType == "logseries":
+        elif distribution_type == "logseries":
             return logseries
-        elif distributionType == "multinomial":
+        elif distribution_type == "multinomial":
             return multinomial
-        elif distributionType == "multivariate_normal":
+        elif distribution_type == "multivariate_normal":
             return multivariate_normal
-        elif distributionType == "negative_binomial":
+        elif distribution_type == "negative_binomial":
             return negative_binomial
-        elif distributionType == "noncentral_chisquare":
+        elif distribution_type == "noncentral_chisquare":
             return noncentral_chisquare
-        elif distributionType == "noncentral_f":
+        elif distribution_type == "noncentral_f":
             return noncentral_f
-        elif distributionType == "pareto":
+        elif distribution_type == "pareto":
             return pareto
-        elif distributionType == "poisson":
+        elif distribution_type == "poisson":
             return poisson
-        elif distributionType == "power":
+        elif distribution_type == "power":
             return power
-        elif distributionType == "rayleigh":
+        elif distribution_type == "rayleigh":
             return rayleigh
-        elif distributionType == "standard_cauchy":
+        elif distribution_type == "standard_cauchy":
             return standard_cauchy
-        elif distributionType == "standard_exponential":
+        elif distribution_type == "standard_exponential":
             return standard_exponential
-        elif distributionType == "standard_gamma":
+        elif distribution_type == "standard_gamma":
             return standard_gamma
-        elif distributionType == "standard_normal":
+        elif distribution_type == "standard_normal":
             return standard_normal
-        elif distributionType == "standard_t":
+        elif distribution_type == "standard_t":
             return standard_t
-        elif distributionType == "triangular":
+        elif distribution_type == "triangular":
             return triangular
-        elif distributionType == "uneliform":
+        elif distribution_type == "uneliform":
             return uniform
-        elif distributionType == "vonmises":
+        elif distribution_type == "vonmises":
             return vonmises
-        elif distributionType == "wald":
+        elif distribution_type == "wald":
             return wald
-        elif distributionType == "weibull":
+        elif distribution_type == "weibull":
             return weibull
-        elif distributionType == "zipf":
+        elif distribution_type == "zipf":
             return zipf
         else:
             warnings.warn("Distribution type not supported")
 
-    def processDispersionDict(self, d):
+    def __process_dispersion_dict(self, dictionary):
         """_summary_
 
         Parameters
         ----------
-        d : _type_
+        dictionary : dict
             _description_
 
         Returns
@@ -192,38 +192,48 @@ class Dispersion:
             _description_
         """
         # Get parachutes names
-        if "parachuteNames" in d:  # TODO: use only d
-            for i, name in enumerate(d["parachuteNames"]):
-                if "CdS" in d:
-                    d["parachute_" + name + "_CdS"] = d["CdS"][i]
-                if "trigger" in d:
-                    d["parachute_" + name + "_trigger"] = d["trigger"][i]
-                if "samplingRate" in d:
-                    d["parachute_" + name + "_samplingRate"] = d["samplingRate"][i]
-                if "lag" in d:
-                    d["parachute_" + name + "_lag"] = d["lag"][i]
-                if "noise_mean" in d:
-                    d["parachute_" + name + "_noise_mean"] = d["noise_mean"][i]
-                if "noise_sd" in d:
-                    d["parachute_" + name + "_noise_std"] = d["noise_sd"][i]
-                if "noise_corr" in d:
-                    d["parachute_" + name + "_noise_corr"] = d["noise_corr"][i]
-            d.pop("CdS", None)
-            d.pop("trigger", None)
-            d.pop("samplingRate", None)
-            d.pop("lag", None)
-            d.pop("noise_mean", None)
-            d.pop("noise_sd", None)
-            d.pop("noise_corr", None)
-            self.parachute_names = d.pop("parachuteNames", None)
+        if "parachuteNames" in dictionary:  # TODO: use only dictionary
+            for i, name in enumerate(dictionary["parachuteNames"]):
+                if "CdS" in dictionary:
+                    dictionary["parachute_" + name + "_CdS"] = dictionary["CdS"][i]
+                if "trigger" in dictionary:
+                    dictionary["parachute_" + name + "_trigger"] = dictionary[
+                        "trigger"
+                    ][i]
+                if "samplingRate" in dictionary:
+                    dictionary["parachute_" + name + "_samplingRate"] = dictionary[
+                        "samplingRate"
+                    ][i]
+                if "lag" in dictionary:
+                    dictionary["parachute_" + name + "_lag"] = dictionary["lag"][i]
+                if "noise_mean" in dictionary:
+                    dictionary["parachute_" + name + "_noise_mean"] = dictionary[
+                        "noise_mean"
+                    ][i]
+                if "noise_sd" in dictionary:
+                    dictionary["parachute_" + name + "_noise_std"] = dictionary[
+                        "noise_sd"
+                    ][i]
+                if "noise_corr" in dictionary:
+                    dictionary["parachute_" + name + "_noise_corr"] = dictionary[
+                        "noise_corr"
+                    ][i]
+            dictionary.pop("CdS", None)
+            dictionary.pop("trigger", None)
+            dictionary.pop("samplingRate", None)
+            dictionary.pop("lag", None)
+            dictionary.pop("noise_mean", None)
+            dictionary.pop("noise_sd", None)
+            dictionary.pop("noise_corr", None)
+            self.parachute_names = dictionary.pop("parachuteNames", None)
 
-        for parameter_key, parameter_value in d.items():
+        for parameter_key, parameter_value in dictionary.items():
             if isinstance(parameter_value, (tuple, list)):
                 continue
             else:  # if parameter_value is only the standard deviation
                 if "parachute" in parameter_key:
                     _, parachute_name, parameter = parameter_key.split("_")
-                    d[parameter_key] = (
+                    dictionary[parameter_key] = (
                         getattr(
                             self.rocket.parachutes[
                                 self.parachute_names.index(parachute_name)
@@ -235,87 +245,95 @@ class Dispersion:
                 else:
                     if parameter_key in self.environment_inputs.keys():
                         try:
-                            d[parameter_key] = (
+                            dictionary[parameter_key] = (
                                 getattr(self.environment, parameter_key),
                                 parameter_value,
                             )
                         except Exception as E:
                             print("Error:")
                             print(
-                                "Check if parameter was inputted correctly in dispersionDict."
+                                "Check if parameter was inputted correctly in dispersion_dictionary."
                                 + " Dictionary values must be either tuple or lists."
                                 + " If single value, the corresponding Class must "
-                                + "must be inputted in Dispersion.runDispersion method.\n"
+                                + "must be inputted in Dispersion.run_dispersion method.\n"
                             )
                             print(traceback.format_exc())
                     elif parameter_key in self.solidmotor_inputs.keys():
                         try:
-                            d[parameter_key] = (
+                            dictionary[parameter_key] = (
                                 getattr(self.motor, parameter_key),
                                 parameter_value,
                             )
                         except Exception as E:
                             print("Error:")
                             print(
-                                "Check if parameter was inputted correctly in dispersionDict."
+                                "Check if parameter was inputted correctly in dispersion_dictionary."
                                 + " Dictionary values must be either tuple or lists."
                                 + " If single value, the corresponding Class must "
-                                + "must be inputted in Dispersion.runDispersion method.\n"
+                                + "must be inputted in Dispersion.run_dispersion method.\n"
                             )
                             print(traceback.format_exc())
                     elif parameter_key in self.rocket_inputs.keys():
                         try:
-                            d[parameter_key] = (
+                            dictionary[parameter_key] = (
                                 getattr(self.rocket, parameter_key),
                                 parameter_value,
                             )
                         except Exception as E:
                             print("Error:")
                             print(
-                                "Check if parameter was inputed correctly in dispersionDict."
+                                "Check if parameter was inputted correctly in dispersion_dictionary."
                                 + " Dictionary values must be either tuple or lists."
                                 + " If single value, the corresponding Class must "
-                                + "must be inputed in Dispersion.runDispersion method.\n"
+                                + "must be inputted in Dispersion.run_dispersion method.\n"
                             )
                             print(traceback.format_exc())
                     elif parameter_key in self.flight_inputs.keys():
                         try:
-                            d[parameter_key] = (
+                            dictionary[parameter_key] = (
                                 getattr(self.flight, parameter_key),
                                 parameter_value,
                             )
                         except Exception as E:
                             print("Error:")
                             print(
-                                "Check if parameter was inputed correctly in dispersionDict."
+                                "Check if parameter was inputted correctly in dispersion_dictionary."
                                 + " Dictionary values must be either tuple or lists."
                                 + " If single value, the corresponding Class must "
-                                + "must be inputed in Dispersion.runDispersion method.\n"
+                                + "must be inputted in Dispersion.run_dispersion method.\n"
                             )
                             print(traceback.format_exc())
 
         # Check remaining class inputs
 
         if not all(
-            environment_input in d
+            environment_input in dictionary
             for environment_input in self.environment_inputs.keys()
         ):
             # Iterate through missing inputs
-            for missing_input in set(self.environment_inputs.keys()) - d.keys():
+            for missing_input in (
+                set(self.environment_inputs.keys()) - dictionary.keys()
+            ):
                 missing_input = str(missing_input)
                 # Add to the dict
                 try:
-                    d[missing_input] = [getattr(self.environment, missing_input)]
+                    dictionary[missing_input] = [
+                        getattr(self.environment, missing_input)
+                    ]
                 except:
-                    # class was not inputed
+                    # class was not inputted
                     # checks if missing parameter is required
                     if self.environment_inputs[missing_input] == "required":
-                        warnings.warn(f'Missing "{missing_input}" in d')
+                        warnings.warn(f'Missing "{missing_input}" in dictionary')
                     else:  # if not uses default value
-                        d[missing_input] = [self.environment_inputs[missing_input]]
-        if not all(motor_input in d for motor_input in self.solidmotor_inputs.keys()):
+                        dictionary[missing_input] = [
+                            self.environment_inputs[missing_input]
+                        ]
+        if not all(
+            motor_input in dictionary for motor_input in self.solidmotor_inputs.keys()
+        ):
             # Iterate through missing inputs
-            for missing_input in set(self.solidmotor_inputs.keys()) - d.keys():
+            for missing_input in set(self.solidmotor_inputs.keys()) - dictionary.keys():
                 missing_input = str(missing_input)
                 # Add to the dict
                 try:
@@ -326,48 +344,54 @@ class Dispersion:
                     if self.solidmotor_inputs[missing_input] == "required":
                         warnings.warn(f'Missing "{missing_input}" in d')
                     else:  # if not uses default value
-                        d[missing_input] = [self.solidmotor_inputs[missing_input]]
+                        dictionary[missing_input] = [
+                            self.solidmotor_inputs[missing_input]
+                        ]
 
-        if not all(rocket_input in d for rocket_input in self.rocket_inputs.keys()):
+        if not all(
+            rocket_input in dictionary for rocket_input in self.rocket_inputs.keys()
+        ):
             # Iterate through missing inputs
-            for missing_input in set(self.rocket_inputs.keys()) - d.keys():
+            for missing_input in set(self.rocket_inputs.keys()) - dictionary.keys():
                 missing_input = str(missing_input)
                 # Add to the dict
                 try:
-                    d[missing_input] = [getattr(self.rocket, missing_input)]
+                    dictionary[missing_input] = [getattr(self.rocket, missing_input)]
                 except:
-                    # class was not inputed
+                    # class was not inputted
                     # checks if missing parameter is required
                     if self.rocket_inputs[missing_input] == "required":
-                        warnings.warn(f'Missing "{missing_input}" in d')
+                        warnings.warn(f'Missing "{missing_input}" in dictionary')
                     else:  # if not uses default value
-                        d[missing_input] = [self.rocket_inputs[missing_input]]
+                        dictionary[missing_input] = [self.rocket_inputs[missing_input]]
 
-        if not all(flight_input in d for flight_input in self.flight_inputs.keys()):
+        if not all(
+            flight_input in dictionary for flight_input in self.flight_inputs.keys()
+        ):
             # Iterate through missing inputs
-            for missing_input in set(self.flight_inputs.keys()) - d.keys():
+            for missing_input in set(self.flight_inputs.keys()) - dictionary.keys():
                 missing_input = str(missing_input)
                 # Add to the dict
                 try:
-                    d[missing_input] = [getattr(self.flight, missing_input)]
+                    dictionary[missing_input] = [getattr(self.flight, missing_input)]
                 except:
-                    # class was not inputed
+                    # class was not inputted
                     # checks if missing parameter is required
                     if self.flight_inputs[missing_input] == "required":
-                        warnings.warn(f'Missing "{missing_input}" in d')
+                        warnings.warn(f'Missing "{missing_input}" in dictionary')
                     else:  # if not uses default value
-                        d[missing_input] = [self.flight_inputs[missing_input]]
+                        dictionary[missing_input] = [self.flight_inputs[missing_input]]
 
-        return d
+        return dictionary
 
-    def yield_flight_setting(
-        self, distributionFunc, analysis_parameters, number_of_simulations
+    def __yield_flight_setting(
+        self, distribution_func, analysis_parameters, number_of_simulations
     ):
         """Yields a flight setting for the simulation
 
         Parameters
         ----------
-        distributionFunc : _type_
+        distribution_func : _type_
             _description_
         analysis_parameters : _type_
             _description_
@@ -387,7 +411,7 @@ class Dispersion:
             flight_setting = {}
             for parameter_key, parameter_value in analysis_parameters.items():
                 if type(parameter_value) is tuple:
-                    flight_setting[parameter_key] = distributionFunc(*parameter_value)
+                    flight_setting[parameter_key] = distribution_func(*parameter_value)
                 else:
                     # shuffles list and gets first item
                     shuffle(parameter_value)
@@ -513,17 +537,17 @@ class Dispersion:
 
         return None
 
-    def runDispersion(
+    def run_dispersion(
         self,
         number_of_simulations,
-        dispersionDict,
+        dispersion_dictionary,
         environment,
         flight=None,
         motor=None,
         rocket=None,
-        distributionType="normal",
+        distribution_type="normal",
         image=None,
-        actualLandingPoint=None,
+        actual_landing_point=None,
     ):
         """Runs the given number of simulations and saves the data
 
@@ -544,11 +568,11 @@ class Dispersion:
             _description_, by default None
         rocket : _type_, optional
             _description_, by default None
-        distributionType : str, optional
+        distribution_type : str, optional
             _description_, by default "normal"
         image : str, optional
             The path to the image to be used as the background
-        actualLandingPoint : tuple, optional
+        actual_landing_point : tuple, optional
             A tuple containing the actual landing point of the rocket, if known.
             Useful when comparing the dispersion results with the actual landing.
             Must be given in tuple format, such as (lat, lon). By default None. # TODO: Check the order
@@ -560,7 +584,7 @@ class Dispersion:
         """
 
         self.number_of_simulations = number_of_simulations
-        self.dispersionDict = dispersionDict
+        self.dispersion_dictionary = dispersion_dictionary
         self.environment = environment
         self.flight = flight
         if flight:
@@ -568,16 +592,16 @@ class Dispersion:
             self.rocket = flight.rocket if not rocket else rocket
         self.motor = motor if motor else self.motor
         self.rocket = rocket if rocket else self.rocket
-        self.distributionType = distributionType
+        self.distribution_type = distribution_type
         self.image = image
-        self.actualLandingPoint = actualLandingPoint
+        self.actual_landing_point = actual_landing_point
 
-        # Creates copy of dispersionDict that will be altered
-        modified_dispersion_dict = {i: j for i, j in dispersionDict.items()}
+        # Creates copy of dispersion_dictionary that will be altered
+        modified_dispersion_dict = {i: j for i, j in dispersion_dictionary.items()}
 
-        analysis_parameters = self.processDispersionDict(modified_dispersion_dict)
+        analysis_parameters = self.__process_dispersion_dict(modified_dispersion_dict)
 
-        self.distribuitionFunc = self.setDistributionFunc(distributionType)
+        self.distributionFunc = self.__set_distribution_function(distribution_type)
         # Basic analysis info
 
         # Create data files for inputs, outputs and error logging
@@ -591,17 +615,17 @@ class Dispersion:
         #     self.environment = Environment(
         #         railLength=0,
         #     )
-        #     if "envAtmosphericType" in dispersionDict:
-        #         if dispersionDict["envAtmosphericType"] == "CustomAtmosphere":
+        #     if "envAtmosphericType" in dispersion_dictionary:
+        #         if dispersion_dictionary["envAtmosphericType"] == "CustomAtmosphere":
         #             customAtmosphere = True
-        #         self.environment.setDate(datetime(*dispersionDict["date"][0]))
+        #         self.environment.setDate(datetime(*dispersion_dictionary["date"][0]))
         #         self.environment.setAtmosphericModel(
-        #             type=dispersionDict["envAtmosphericType"],
-        #             file=dispersionDict["envAtmosphericFile"]
-        #             if "envAtmosphericFile" in dispersionDict
+        #             type=dispersion_dictionary["envAtmosphericType"],
+        #             file=dispersion_dictionary["envAtmosphericFile"]
+        #             if "envAtmosphericFile" in dispersion_dictionary
         #             else None,
-        #             dictionary=dispersionDict["envAtmosphericDictionary"]
-        #             if "envAtmosphericDictionary" in dispersionDict
+        #             dictionary=dispersion_dictionary["envAtmosphericDictionary"]
+        #             if "envAtmosphericDictionary" in dispersion_dictionary
         #             else None,
         #         )
 
@@ -613,8 +637,8 @@ class Dispersion:
 
         # Iterate over flight settings
         out = display("Starting", display_id=True)
-        for setting in self.yield_flight_setting(
-            self.distribuitionFunc, analysis_parameters, self.number_of_simulations
+        for setting in self.__yield_flight_setting(
+            self.distributionFunc, analysis_parameters, self.number_of_simulations
         ):
             start_time = process_time()
             i += 1
@@ -744,7 +768,7 @@ class Dispersion:
 
             # Register time
             out.update(
-                f"Curent iteration: {i:06d} | Average Time per Iteration: {(process_time() - initial_cpu_time)/i:2.6f} s | Estimated time left: {int((number_of_simulations - i)*((process_time() - initial_cpu_time)/i))} s"
+                f"Current iteration: {i:06d} | Average Time per Iteration: {(process_time() - initial_cpu_time)/i:2.6f} s | Estimated time left: {int((number_of_simulations - i)*((process_time() - initial_cpu_time)/i))} s"
             )
 
         # Done
@@ -763,7 +787,7 @@ class Dispersion:
 
         return None
 
-    def importResults(self, dispersion_output_file):
+    def import_results(self, dispersion_output_file):
         """Import dispersion results from .txt file
 
         Parameters
@@ -1670,7 +1694,7 @@ class Dispersion:
         self,
         dispersion_results,
         image=None,
-        actualLandingPoint=None,
+        actual_landing_point=None,
         perimeterSize=3000,
         xlim=(-3000, 3000),
         ylim=(-3000, 3000),
@@ -1685,7 +1709,7 @@ class Dispersion:
             A dictionary containing the results of the dispersion analysis
         image : str, optional
             The path to the image to be used as the background
-        actualLandingPoint : tuple, optional
+        actual_landing_point : tuple, optional
             A tuple containing the actual landing point of the rocket, if known.
             Useful when comparing the dispersion results with the actual landing.
             Must be given in tuple format, such as (lat, lon). By default None. # TODO: Check the order
@@ -1727,10 +1751,10 @@ class Dispersion:
             label="Simulated Landing Point",
         )
         # Draw real landing point
-        if actualLandingPoint != None:
+        if actual_landing_point != None:
             plt.scatter(
-                actualLandingPoint[0],
-                actualLandingPoint[1],
+                actual_landing_point[0],
+                actual_landing_point[1],
                 s=20,
                 marker="X",
                 color="red",
@@ -1982,7 +2006,7 @@ class Dispersion:
             _description_
         """
 
-        dispersion_results = self.importResults(self.filename)
+        dispersion_results = self.import_results(self.filename)
 
         self.meanApogeeAltitude(dispersion_results)
 
@@ -2023,9 +2047,9 @@ class Dispersion:
         return None
 
     def allInfo(self):
-        dispersion_results = self.importResults(self.filename)
+        dispersion_results = self.import_results(self.filename)
 
-        self.plotEllipses(dispersion_results, self.image, self.actualLandingPoint)
+        self.plotEllipses(dispersion_results, self.image, self.actual_landing_point)
 
         self.plotApogeeAltitude(dispersion_results)
 
