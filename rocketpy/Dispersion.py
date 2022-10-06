@@ -53,10 +53,7 @@ class Dispersion:
             part of the export filenames (e.g. 'filename.disp_outputs.txt').
             When analyzing the results of a previous simulation, this attribute
             shall be the filename containing the outputs of a dispersion calculation.
-        Dispersion.image: string
-            Launch site PNG file to be plotted along with the dispersion ellipses.
-            Attribute needed to run a new simulation.
-        Dispersion.realLandingPoint: tuple
+        Dispersion.actualLandingPoint: tuple
             Rocket's experimental landing point relative to launch point.
         Dispersion.N: integer
             Number of simulations in an output file.
@@ -84,44 +81,9 @@ class Dispersion:
             When running a new simulation, this parameter represents the initial
             part of the export filenames (e.g. 'filename.disp_outputs.txt').
             When analyzing the results of a previous simulation, this parameter
-            shall be the .txt filename containing the outputs of a dispersion calculation.
-        number_of_simulations: integer, needed when running a new simulation
-            Number of simulations desired, must be greater than zero.
-            Default is zero.
-        flight: Flight
-            Original rocket's flight with nominal values.
-            Parameter needed to run a new simulation, when environment,
-            motor and rocket remain unchanged.
-            Default is None.
-        image: string, needed when running a new simulation
-            Launch site PNG file to be plotted along with the dispersion ellipses.
-        dispersionDict: dictionary, optional
-            Contains the information of which environment, motor, rocket and flight variables
-            will vary according to its standard deviation.
-            Format {'parameter0': (nominal value, standard deviation), 'parameter1':
-            (nominal value, standard deviation), ...}
-            (e.g. {'rocketMass':(20, 0.2),
-            'burnOut': (3.9, 0.3), 'railLength': (5.2, 0.05)})
-            Default is {}.
-        environment: Environment
-            Launch environment.
-            Parameter needed to run a new simulation, when Dispersion.flight remains unchanged.
-            Default is None.
-        motor: Motor, optional
-            Rocket's motor.
-            Parameter needed to run a new simulation, when Dispersion.flight remains unchanged.
-            Default is None.
-        rocket: Rocket, optional
-            Rocket with nominal values.
-            Parameter needed to run a new simulation, when Dispersion.flight remains unchanged.
-            Default is None.
-        distributionType: string, optional
-            Determines which type of distribution will be applied to variable parameters and
-            its respective standard deviation.
-            Default is 'normal'
-        realLandingPoint: tuple, optional
-            Rocket's experimental landing point relative to launch point.
-            Format (horizontal distance, vertical distance)
+            shall be the .txt filename containing the outputs of a previous ran
+            dispersion analysis.
+
         Returns
         -------
         None
@@ -129,18 +91,20 @@ class Dispersion:
 
         # Save  and initialize parameters
         self.filename = filename
-        self.number_of_simulations = 0
-        self.flight = None
-        self.dispersionDict = {}
-        self.environment = None
-        self.motor = None
-        self.rocket = None
-        self.distributionType = "normal"
-        self.image = None
-        self.realLandingPoint = None
-        self.parachuteTriggers = []
 
     def setDistributionFunc(self, distributionType):
+        """_summary_
+
+        Parameters
+        ----------
+        distributionType : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         if distributionType == "normal" or distributionType == None:
             return normal
         elif distributionType == "beta":
@@ -214,12 +178,12 @@ class Dispersion:
         else:
             warnings.warn("Distribution type not supported")
 
-    def processDispersionDict(self, dispersionDict):
+    def processDispersionDict(self, d):
         """_summary_
 
         Parameters
         ----------
-        dispersionDict : _type_
+        d : _type_
             _description_
 
         Returns
@@ -228,52 +192,38 @@ class Dispersion:
             _description_
         """
         # Get parachutes names
-        if "parachuteNames" in dispersionDict:  # TODO: use only dispersionDict
-            for i, name in enumerate(dispersionDict["parachuteNames"]):
-                if "CdS" in dispersionDict:
-                    dispersionDict["parachute_" + name + "_CdS"] = dispersionDict[
-                        "CdS"
-                    ][i]
-                if "trigger" in dispersionDict:
-                    dispersionDict["parachute_" + name + "_trigger"] = dispersionDict[
-                        "trigger"
-                    ][i]
-                if "samplingRate" in dispersionDict:
-                    dispersionDict[
-                        "parachute_" + name + "_samplingRate"
-                    ] = dispersionDict["samplingRate"][i]
-                if "lag" in dispersionDict:
-                    dispersionDict["parachute_" + name + "_lag"] = dispersionDict[
-                        "lag"
-                    ][i]
-                if "noise_mean" in dispersionDict:
-                    dispersionDict[
-                        "parachute_" + name + "_noise_mean"
-                    ] = dispersionDict["noise_mean"][i]
-                if "noise_sd" in dispersionDict:
-                    dispersionDict["parachute_" + name + "_noise_std"] = dispersionDict[
-                        "noise_sd"
-                    ][i]
-                if "noise_corr" in dispersionDict:
-                    dispersionDict[
-                        "parachute_" + name + "_noise_corr"
-                    ] = dispersionDict["noise_corr"][i]
-            dispersionDict.pop("CdS", None)
-            dispersionDict.pop("trigger", None)
-            dispersionDict.pop("samplingRate", None)
-            dispersionDict.pop("lag", None)
-            dispersionDict.pop("noise_mean", None)
-            dispersionDict.pop("noise_sd", None)
-            dispersionDict.pop("noise_corr", None)
-            self.parachute_names = dispersionDict.pop("parachuteNames", None)
+        if "parachuteNames" in d:  # TODO: use only d
+            for i, name in enumerate(d["parachuteNames"]):
+                if "CdS" in d:
+                    d["parachute_" + name + "_CdS"] = d["CdS"][i]
+                if "trigger" in d:
+                    d["parachute_" + name + "_trigger"] = d["trigger"][i]
+                if "samplingRate" in d:
+                    d["parachute_" + name + "_samplingRate"] = d["samplingRate"][i]
+                if "lag" in d:
+                    d["parachute_" + name + "_lag"] = d["lag"][i]
+                if "noise_mean" in d:
+                    d["parachute_" + name + "_noise_mean"] = d["noise_mean"][i]
+                if "noise_sd" in d:
+                    d["parachute_" + name + "_noise_std"] = d["noise_sd"][i]
+                if "noise_corr" in d:
+                    d["parachute_" + name + "_noise_corr"] = d["noise_corr"][i]
+            d.pop("CdS", None)
+            d.pop("trigger", None)
+            d.pop("samplingRate", None)
+            d.pop("lag", None)
+            d.pop("noise_mean", None)
+            d.pop("noise_sd", None)
+            d.pop("noise_corr", None)
+            self.parachute_names = d.pop("parachuteNames", None)
 
-        for parameter_key, parameter_value in dispersionDict.items():
+        for parameter_key, parameter_value in d.items():
             if isinstance(parameter_value, (tuple, list)):
                 continue
             else:  # if parameter_value is only the standard deviation
                 if "parachute" in parameter_key:
                     _, parachute_name, parameter = parameter_key.split("_")
-                    dispersionDict[parameter_key] = (
+                    d[parameter_key] = (
                         getattr(
                             self.rocket.parachutes[
                                 self.parachute_names.index(parachute_name)
@@ -285,61 +235,61 @@ class Dispersion:
                 else:
                     if parameter_key in self.environment_inputs.keys():
                         try:
-                            dispersionDict[parameter_key] = (
+                            d[parameter_key] = (
                                 getattr(self.environment, parameter_key),
                                 parameter_value,
                             )
                         except Exception as E:
                             print("Error:")
                             print(
-                                "Check if parameter was inputed correctly in dispersioDict."
+                                "Check if parameter was inputted correctly in dispersionDict."
                                 + " Dictionary values must be either tuple or lists."
-                                + " If single value, the correponding Class must "
-                                + "must be inputed in Dispersion.runDispersion method.\n"
+                                + " If single value, the corresponding Class must "
+                                + "must be inputted in Dispersion.runDispersion method.\n"
                             )
                             print(traceback.format_exc())
                     elif parameter_key in self.solidmotor_inputs.keys():
                         try:
-                            dispersionDict[parameter_key] = (
+                            d[parameter_key] = (
                                 getattr(self.motor, parameter_key),
                                 parameter_value,
                             )
                         except Exception as E:
                             print("Error:")
                             print(
-                                "Check if parameter was inputed correctly in dispersioDict."
+                                "Check if parameter was inputted correctly in dispersionDict."
                                 + " Dictionary values must be either tuple or lists."
-                                + " If single value, the correponding Class must "
-                                + "must be inputed in Dispersion.runDispersion method.\n"
+                                + " If single value, the corresponding Class must "
+                                + "must be inputted in Dispersion.runDispersion method.\n"
                             )
                             print(traceback.format_exc())
                     elif parameter_key in self.rocket_inputs.keys():
                         try:
-                            dispersionDict[parameter_key] = (
+                            d[parameter_key] = (
                                 getattr(self.rocket, parameter_key),
                                 parameter_value,
                             )
                         except Exception as E:
                             print("Error:")
                             print(
-                                "Check if parameter was inputed correctly in dispersioDict."
+                                "Check if parameter was inputed correctly in dispersionDict."
                                 + " Dictionary values must be either tuple or lists."
-                                + " If single value, the correponding Class must "
+                                + " If single value, the corresponding Class must "
                                 + "must be inputed in Dispersion.runDispersion method.\n"
                             )
                             print(traceback.format_exc())
                     elif parameter_key in self.flight_inputs.keys():
                         try:
-                            dispersionDict[parameter_key] = (
+                            d[parameter_key] = (
                                 getattr(self.flight, parameter_key),
                                 parameter_value,
                             )
                         except Exception as E:
                             print("Error:")
                             print(
-                                "Check if parameter was inputed correctly in dispersioDict."
+                                "Check if parameter was inputed correctly in dispersionDict."
                                 + " Dictionary values must be either tuple or lists."
-                                + " If single value, the correponding Class must "
+                                + " If single value, the corresponding Class must "
                                 + "must be inputed in Dispersion.runDispersion method.\n"
                             )
                             print(traceback.format_exc())
@@ -347,93 +297,68 @@ class Dispersion:
         # Check remaining class inputs
 
         if not all(
-            environment_input in dispersionDict
+            environment_input in d
             for environment_input in self.environment_inputs.keys()
         ):
             # Iterate through missing inputs
-            for missing_input in (
-                set(self.environment_inputs.keys()) - dispersionDict.keys()
-            ):
+            for missing_input in set(self.environment_inputs.keys()) - d.keys():
                 missing_input = str(missing_input)
                 # Add to the dict
                 try:
-                    dispersionDict[missing_input] = [
-                        getattr(self.environment, missing_input)
-                    ]
+                    d[missing_input] = [getattr(self.environment, missing_input)]
                 except:
                     # class was not inputed
                     # checks if missing parameter is required
                     if self.environment_inputs[missing_input] == "required":
-                        warnings.warn(f'Missing "{missing_input}" in dispersionDict')
+                        warnings.warn(f'Missing "{missing_input}" in d')
                     else:  # if not uses default value
-                        dispersionDict[missing_input] = [
-                            self.environment_inputs[missing_input]
-                        ]
-        if not all(
-            motor_input in dispersionDict
-            for motor_input in self.solidmotor_inputs.keys()
-        ):
+                        d[missing_input] = [self.environment_inputs[missing_input]]
+        if not all(motor_input in d for motor_input in self.solidmotor_inputs.keys()):
             # Iterate through missing inputs
-            for missing_input in (
-                set(self.solidmotor_inputs.keys()) - dispersionDict.keys()
-            ):
+            for missing_input in set(self.solidmotor_inputs.keys()) - d.keys():
                 missing_input = str(missing_input)
                 # Add to the dict
                 try:
-                    dispersionDict[missing_input] = [getattr(self.motor, missing_input)]
+                    d[missing_input] = [getattr(self.motor, missing_input)]
                 except:
                     # class was not inputed
                     # checks if missing parameter is required
                     if self.solidmotor_inputs[missing_input] == "required":
-                        warnings.warn(f'Missing "{missing_input}" in dispersionDict')
+                        warnings.warn(f'Missing "{missing_input}" in d')
                     else:  # if not uses default value
-                        dispersionDict[missing_input] = [
-                            self.solidmotor_inputs[missing_input]
-                        ]
+                        d[missing_input] = [self.solidmotor_inputs[missing_input]]
 
-        if not all(
-            rocket_input in dispersionDict for rocket_input in self.rocket_inputs.keys()
-        ):
+        if not all(rocket_input in d for rocket_input in self.rocket_inputs.keys()):
             # Iterate through missing inputs
-            for missing_input in set(self.rocket_inputs.keys()) - dispersionDict.keys():
+            for missing_input in set(self.rocket_inputs.keys()) - d.keys():
                 missing_input = str(missing_input)
                 # Add to the dict
                 try:
-                    dispersionDict[missing_input] = [
-                        getattr(self.rocket, missing_input)
-                    ]
+                    d[missing_input] = [getattr(self.rocket, missing_input)]
                 except:
                     # class was not inputed
                     # checks if missing parameter is required
                     if self.rocket_inputs[missing_input] == "required":
-                        warnings.warn(f'Missing "{missing_input}" in dispersionDict')
+                        warnings.warn(f'Missing "{missing_input}" in d')
                     else:  # if not uses default value
-                        dispersionDict[missing_input] = [
-                            self.rocket_inputs[missing_input]
-                        ]
+                        d[missing_input] = [self.rocket_inputs[missing_input]]
 
-        if not all(
-            flight_input in dispersionDict for flight_input in self.flight_inputs.keys()
-        ):
+        if not all(flight_input in d for flight_input in self.flight_inputs.keys()):
             # Iterate through missing inputs
-            for missing_input in set(self.flight_inputs.keys()) - dispersionDict.keys():
+            for missing_input in set(self.flight_inputs.keys()) - d.keys():
                 missing_input = str(missing_input)
                 # Add to the dict
                 try:
-                    dispersionDict[missing_input] = [
-                        getattr(self.flight, missing_input)
-                    ]
+                    d[missing_input] = [getattr(self.flight, missing_input)]
                 except:
                     # class was not inputed
                     # checks if missing parameter is required
                     if self.flight_inputs[missing_input] == "required":
-                        warnings.warn(f'Missing "{missing_input}" in dispersionDict')
+                        warnings.warn(f'Missing "{missing_input}" in d')
                     else:  # if not uses default value
-                        dispersionDict[missing_input] = [
-                            self.flight_inputs[missing_input]
-                        ]
+                        d[missing_input] = [self.flight_inputs[missing_input]]
 
-        return dispersionDict
+        return d
 
     def yield_flight_setting(
         self, distributionFunc, analysis_parameters, number_of_simulations
@@ -446,8 +371,9 @@ class Dispersion:
             _description_
         analysis_parameters : _type_
             _description_
-        number_of_simulations : _type_
-            _description_
+        number_of_simulations : int
+            Number of simulations desired, must be non negative.
+            This is needed when running a new simulation. Default is zero.
 
         Yields
         ------
@@ -597,30 +523,35 @@ class Dispersion:
         rocket=None,
         distributionType="normal",
         image=None,
-        realLandingPoint=None,
+        actualLandingPoint=None,
     ):
         """Runs the given number of simulations and saves the data
 
         Parameters
         ----------
-        number_of_simulations : _type_
-            _description_
-        dispersionDict : _type_
+        number_of_simulations : int
+            Number of simulations desired, must be non negative.
+            This is needed when running a new simulation. Default is zero.
+        d : _type_
             _description_
         environment : _type_
             _description_
-        flight : _type_, optional
-            _description_, by default None
+        flight : Flight, optional
+            Original rocket's flight with nominal values. Parameter needed to run
+            a new flight simulation when environment, motor and rocket remain
+            unchanged. By default None.
         motor : _type_, optional
             _description_, by default None
         rocket : _type_, optional
             _description_, by default None
         distributionType : str, optional
             _description_, by default "normal"
-        image : _type_, optional
-            _description_, by default None
-        realLandingPoint : _type_, optional
-            _description_, by default None
+        image : str, optional
+            The path to the image to be used as the background
+        actualLandingPoint : tuple, optional
+            A tuple containing the actual landing point of the rocket, if known.
+            Useful when comparing the dispersion results with the actual landing.
+            Must be given in tuple format, such as (lat, lon). By default None. # TODO: Check the order
 
         Returns
         -------
@@ -639,7 +570,7 @@ class Dispersion:
         self.rocket = rocket if rocket else self.rocket
         self.distributionType = distributionType
         self.image = image
-        self.realLandingPoint = realLandingPoint
+        self.actualLandingPoint = actualLandingPoint
 
         # Creates copy of dispersionDict that will be altered
         modified_dispersion_dict = {i: j for i, j in dispersionDict.items()}
@@ -1739,7 +1670,7 @@ class Dispersion:
         self,
         dispersion_results,
         image=None,
-        realLandingPoint=None,
+        actualLandingPoint=None,
         perimeterSize=3000,
         xlim=(-3000, 3000),
         ylim=(-3000, 3000),
@@ -1752,10 +1683,12 @@ class Dispersion:
         ----------
         dispersion_results : dict
             A dictionary containing the results of the dispersion analysis
-        image : str
+        image : str, optional
             The path to the image to be used as the background
-        realLandingPoint : tuple, optional
-            A tuple containing the real landing point of the rocket, by default None
+        actualLandingPoint : tuple, optional
+            A tuple containing the actual landing point of the rocket, if known.
+            Useful when comparing the dispersion results with the actual landing.
+            Must be given in tuple format, such as (lat, lon). By default None. # TODO: Check the order
         """
         # Import background map
         if image is not None:
@@ -1794,10 +1727,10 @@ class Dispersion:
             label="Simulated Landing Point",
         )
         # Draw real landing point
-        if realLandingPoint != None:
+        if actualLandingPoint != None:
             plt.scatter(
-                realLandingPoint[0],
-                realLandingPoint[1],
+                actualLandingPoint[0],
+                actualLandingPoint[1],
                 s=20,
                 marker="X",
                 color="red",
@@ -2092,7 +2025,7 @@ class Dispersion:
     def allInfo(self):
         dispersion_results = self.importResults(self.filename)
 
-        self.plotEllipses(dispersion_results, self.image, self.realLandingPoint)
+        self.plotEllipses(dispersion_results, self.image, self.actualLandingPoint)
 
         self.plotApogeeAltitude(dispersion_results)
 
