@@ -1269,7 +1269,7 @@ class Dispersion:
     def plotEllipses(
         self,
         dispersion_results,
-        image,
+        image=None,
         realLandingPoint=None,
         perimeterSize=3000,
         xlim=(-3000, 3000),
@@ -1289,7 +1289,8 @@ class Dispersion:
             A tuple containing the real landing point of the rocket, by default None
         """
         # Import background map
-        img = imread(image)
+        if image is not None:
+            img = imread(image)
 
         # Retrieve dispersion data por apogee and impact XY position
         apogeeX = np.array(dispersion_results["apogeeX"])
@@ -1347,16 +1348,17 @@ class Dispersion:
         # You can translate the basemap by changing dx and dy (in meters)
         dx = 0
         dy = 0
-        plt.imshow(
-            img,
-            zorder=0,
-            extent=[
-                -perimeterSize - dx,
-                perimeterSize - dx,
-                -perimeterSize - dy,
-                perimeterSize - dy,
-            ],
-        )
+        if image is not None:
+            plt.imshow(
+                img,
+                zorder=0,
+                extent=[
+                    -perimeterSize - dx,
+                    perimeterSize - dx,
+                    -perimeterSize - dy,
+                    perimeterSize - dy,
+                ],
+            )
         plt.axhline(0, color="black", linewidth=0.5)
         plt.axvline(0, color="black", linewidth=0.5)
         plt.xlim(*xlim)
