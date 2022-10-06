@@ -25,6 +25,16 @@ from .Motor import HybridMotor, SolidMotor
 from .Rocket import Rocket
 from .utilities import invertedHaversine
 
+## Tasks from the first review:
+# TODO: Move some functions from utilities to supplement.py
+# TODO: Document all methods
+# TODO: Create a way to choose what attributes are being saved
+# TODO: Allow each parameter to be varied following an specific probability distribution
+# TODO: Make it more flexible so we can work with more than 1 fin set, also with different aerodynamic surfaces as well.
+# TODO: Test simulations under different scenarios (with both parachutes, with only main chute, etc)
+# TODO: Add unit tests
+# TODO: Adjust the notebook to the new version of the code
+
 
 class Dispersion:
 
@@ -125,10 +135,6 @@ class Dispersion:
         self.image = None
         self.realLandingPoint = None
         self.parachuteTriggers = []
-
-    def classCheck(self):
-        rocketAttributes = []
-        rocketInputs = []
 
     def setDistributionFunc(self, distributionType):
         if distributionType == "normal" or distributionType == None:
