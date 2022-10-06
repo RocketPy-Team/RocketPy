@@ -27,6 +27,7 @@ from .utilities import invertedHaversine
 
 ## Tasks from the first review:
 # TODO: Move some functions from utilities to supplement.py
+# TODO: Save instances of the class instead of just plotting
 # TODO: Document all methods
 # TODO: Create a way to choose what attributes are being saved
 # TODO: Allow each parameter to be varied following an specific probability distribution
@@ -34,6 +35,9 @@ from .utilities import invertedHaversine
 # TODO: Test simulations under different scenarios (with both parachutes, with only main chute, etc)
 # TODO: Add unit tests
 # TODO: Adjust the notebook to the new version of the code
+
+# TODO: Implement MRS
+# TODO: Implement functions from compareDispersions
 
 
 class Dispersion:
@@ -211,6 +215,18 @@ class Dispersion:
             warnings.warn("Distribution type not supported")
 
     def processDispersionDict(self, dispersionDict):
+        """_summary_
+
+        Parameters
+        ----------
+        dispersionDict : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         # Get parachutes names
         if "parachuteNames" in dispersionDict:  # TODO: use only dispersionDict
             for i, name in enumerate(dispersionDict["parachuteNames"]):
@@ -422,8 +438,22 @@ class Dispersion:
     def yield_flight_setting(
         self, distributionFunc, analysis_parameters, number_of_simulations
     ):
+        """Yields a flight setting for the simulation
 
-        """Yields a flight setting for the simulation"""
+        Parameters
+        ----------
+        distributionFunc : _type_
+            _description_
+        analysis_parameters : _type_
+            _description_
+        number_of_simulations : _type_
+            _description_
+
+        Yields
+        ------
+        _type_
+            _description_
+        """
 
         i = 0
         while i < number_of_simulations:
@@ -442,7 +472,7 @@ class Dispersion:
             # Yield a flight setting
             yield flight_setting
 
-    # TODO: Rework post process Flight method making it possible (and optmized) to
+    # TODO: Rework post process Flight method making it possible (and optimized) to
     # chose what is going to be exported
     def export_flight_data(
         self,
@@ -452,8 +482,26 @@ class Dispersion:
         dispersion_input_file,
         dispersion_output_file,
     ):
+        """Saves flight results in a .txt
 
-        """Saves flight results in a .txt"""
+        Parameters
+        ----------
+        flight_setting : _type_
+            _description_
+        flight_data : _type_
+            _description_
+        exec_time : _type_
+            _description_
+        dispersion_input_file : _type_
+            _description_
+        dispersion_output_file : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
 
         # Generate flight results
         flight_result = {
@@ -551,8 +599,34 @@ class Dispersion:
         image=None,
         realLandingPoint=None,
     ):
+        """Runs the given number of simulations and saves the data
 
-        """Runs the given number of simulations and saves the data"""
+        Parameters
+        ----------
+        number_of_simulations : _type_
+            _description_
+        dispersionDict : _type_
+            _description_
+        environment : _type_
+            _description_
+        flight : _type_, optional
+            _description_, by default None
+        motor : _type_, optional
+            _description_, by default None
+        rocket : _type_, optional
+            _description_, by default None
+        distributionType : str, optional
+            _description_, by default "normal"
+        image : _type_, optional
+            _description_, by default None
+        realLandingPoint : _type_, optional
+            _description_, by default None
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
 
         self.number_of_simulations = number_of_simulations
         self.dispersionDict = dispersionDict
@@ -759,8 +833,18 @@ class Dispersion:
         return None
 
     def importResults(self, dispersion_output_file):
+        """Import dispersion results from .txt file
 
-        """Import dispersion results from .txt file"""
+        Parameters
+        ----------
+        dispersion_output_file : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
 
         # Initialize variable to store all results
         dispersion_general_results = []
@@ -814,6 +898,17 @@ class Dispersion:
         return dispersion_results
 
     def meanOutOfRailTime(self, dispersion_results):
+        """_summary_
+
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        None
+        """
         print(
             f'Out of Rail Time -         Mean Value: {np.mean(dispersion_results["outOfRailTime"]):0.3f} s'
         )
@@ -824,7 +919,18 @@ class Dispersion:
         return None
 
     def plotOutOfRailTime(self, dispersion_results):
+        """_summary_
 
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         self.meanOutOfRailTime(dispersion_results)
 
         plt.figure()
@@ -837,6 +943,18 @@ class Dispersion:
         return None
 
     def meanOutOfRailVelocity(self, dispersion_results):
+        """_summary_
+
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         print(
             f'Out of Rail Velocity -         Mean Value: {np.mean(dispersion_results["outOfRailVelocity"]):0.3f} m/s'
         )
@@ -847,7 +965,18 @@ class Dispersion:
         return None
 
     def plotOutOfRailVelocity(self, dispersion_results):
+        """_summary_
 
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         self.meanOutOfRailVelocity(dispersion_results)
 
         plt.figure()
@@ -860,6 +989,18 @@ class Dispersion:
         return None
 
     def meanApogeeTime(self, dispersion_results):
+        """_summary_
+
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         print(
             f'Impact Time -         Mean Value: {np.mean(dispersion_results["impactTime"]):0.3f} s'
         )
@@ -870,7 +1011,18 @@ class Dispersion:
         return None
 
     def plotApogeeTime(self, dispersion_results):
+        """_summary_
 
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         self.meanApogeeTime(dispersion_results)
 
         plt.figure()
@@ -883,6 +1035,18 @@ class Dispersion:
         return None
 
     def meanApogeeAltitude(self, dispersion_results):
+        """_summary_
+
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         print(
             f'Apogee Altitude -         Mean Value: {np.mean(dispersion_results["apogeeAltitude"]):0.3f} m'
         )
@@ -893,7 +1057,18 @@ class Dispersion:
         return None
 
     def plotApogeeAltitude(self, dispersion_results):
+        """_summary_
 
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         self.meanApogeeAltitude(dispersion_results)
 
         plt.figure()
@@ -906,6 +1081,18 @@ class Dispersion:
         return None
 
     def meanApogeeXPosition(self, dispersion_results):
+        """_summary_
+
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         print(
             f'Apogee X Position -         Mean Value: {np.mean(dispersion_results["apogeeX"]):0.3f} m'
         )
@@ -916,7 +1103,18 @@ class Dispersion:
         return None
 
     def plotApogeeXPosition(self, dispersion_results):
+        """_summary_
 
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         self.meanApogeeAltitude(dispersion_results)
 
         plt.figure()
@@ -929,6 +1127,18 @@ class Dispersion:
         return None
 
     def meanApogeeYPosition(self, dispersion_results):
+        """_summary_
+
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         print(
             f'Apogee Y Position -         Mean Value: {np.mean(dispersion_results["apogeeY"]):0.3f} m'
         )
@@ -939,7 +1149,18 @@ class Dispersion:
         return None
 
     def plotApogeeYPosition(self, dispersion_results):
+        """_summary_
 
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         self.meanApogeeAltitude(dispersion_results)
 
         plt.figure()
@@ -952,6 +1173,18 @@ class Dispersion:
         return None
 
     def meanImpactTime(self, dispersion_results):
+        """_summary_
+
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         print(
             f'Impact Time -         Mean Value: {np.mean(dispersion_results["impactTime"]):0.3f} s'
         )
@@ -962,7 +1195,18 @@ class Dispersion:
         return None
 
     def plotImpactTime(self, dispersion_results):
+        """_summary_
 
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         self.meanImpactTime(dispersion_results)
 
         plt.figure()
@@ -975,6 +1219,18 @@ class Dispersion:
         return None
 
     def meanImpactXPosition(self, dispersion_results):
+        """_summary_
+
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         print(
             f'Impact X Position -         Mean Value: {np.mean(dispersion_results["impactX"]):0.3f} m'
         )
@@ -985,7 +1241,18 @@ class Dispersion:
         return None
 
     def plotImpactXPosition(self, dispersion_results):
+        """_summary_
 
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         self.meanImpactXPosition(dispersion_results)
 
         plt.figure()
@@ -998,6 +1265,18 @@ class Dispersion:
         return None
 
     def meanImpactYPosition(self, dispersion_results):
+        """_summary_
+
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         print(
             f'Impact Y Position -         Mean Value: {np.mean(dispersion_results["impactY"]):0.3f} m'
         )
@@ -1008,7 +1287,18 @@ class Dispersion:
         return None
 
     def plotImpactYPosition(self, dispersion_results):
+        """_summary_
 
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         self.meanImpactYPosition(dispersion_results)
 
         plt.figure()
@@ -1021,6 +1311,18 @@ class Dispersion:
         return None
 
     def meanImpactVelocity(self, dispersion_results):
+        """_summary_
+
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         print(
             f'Impact Velocity -         Mean Value: {np.mean(dispersion_results["impactVelocity"]):0.3f} m/s'
         )
@@ -1031,7 +1333,18 @@ class Dispersion:
         return None
 
     def plotImpactVelocity(self, dispersion_results):
+        """_summary_
 
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         self.meanImpactVelocity(dispersion_results)
 
         plt.figure()
@@ -1045,6 +1358,18 @@ class Dispersion:
         return None
 
     def meanStaticMargin(self, dispersion_results):
+        """_summary_
+
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         print(
             f'Initial Static Margin -             Mean Value: {np.mean(dispersion_results["initialStaticMargin"]):0.3f} c'
         )
@@ -1069,7 +1394,18 @@ class Dispersion:
         return None
 
     def plotStaticMargin(self, dispersion_results):
+        """_summary_
 
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         self.meanStaticMargin(dispersion_results)
 
         plt.figure()
@@ -1097,6 +1433,18 @@ class Dispersion:
         return None
 
     def meanMaximumVelocity(self, dispersion_results):
+        """_summary_
+
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         print(
             f'Maximum Velocity -         Mean Value: {np.mean(dispersion_results["maxVelocity"]):0.3f} m/s'
         )
@@ -1107,7 +1455,18 @@ class Dispersion:
         return None
 
     def plotMaximumVelocity(self, dispersion_results):
+        """_summary_
 
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         self.meanMaximumVelocity(dispersion_results)
 
         plt.figure()
@@ -1120,6 +1479,18 @@ class Dispersion:
         return None
 
     def meanNumberOfParachuteEvents(self, dispersion_results):
+        """_summary_
+
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         print(
             f'Number of Parachute Events -         Mean Value: {np.mean(dispersion_results["numberOfEvents"]):0.3f} s'
         )
@@ -1130,7 +1501,18 @@ class Dispersion:
         return None
 
     def plotNumberOfParachuteEvents(self, dispersion_results):
+        """_summary_
 
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         self.meanNumberOfParachuteEvents(dispersion_results)
 
         plt.figure()
@@ -1143,6 +1525,18 @@ class Dispersion:
         return None
 
     def meanDrogueTriggerTime(self, dispersion_results):
+        """_summary_
+
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         print(
             f'Drogue Trigger Time -         Mean Value: {np.mean(dispersion_results["drogueTriggerTime"]):0.3f} s'
         )
@@ -1153,7 +1547,18 @@ class Dispersion:
         return None
 
     def plotDrogueTriggerTime(self, dispersion_results):
+        """_summary_
 
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         self.meanDrogueTriggerTime(dispersion_results)
 
         plt.figure()
@@ -1166,6 +1571,18 @@ class Dispersion:
         return None
 
     def meanDrogueFullyInflatedTime(self, dispersion_results):
+        """_summary_
+
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         print(
             f'Drogue Fully Inflated Time -         Mean Value: {np.mean(dispersion_results["drogueInflatedTime"]):0.3f} s'
         )
@@ -1176,7 +1593,18 @@ class Dispersion:
         return None
 
     def plotDrogueFullyInflatedTime(self, dispersion_results):
+        """_summary_
 
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         self.meanDrogueFullyInflatedTime(dispersion_results)
 
         plt.figure()
@@ -1189,6 +1617,18 @@ class Dispersion:
         return None
 
     def meanDrogueFullyVelocity(self, dispersion_results):
+        """_summary_
+
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         print(
             f'Drogue Parachute Fully Inflated Velocity -         Mean Value: {np.mean(dispersion_results["drogueInflatedVelocity"]):0.3f} m/s'
         )
@@ -1199,7 +1639,18 @@ class Dispersion:
         return None
 
     def plotDrogueFullyVelocity(self, dispersion_results):
+        """_summary_
 
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         self.meanDrogueFullyVelocity(dispersion_results)
 
         plt.figure()
@@ -1212,6 +1663,18 @@ class Dispersion:
         return None
 
     def createEllipses(self, dispersion_results):
+        """_summary_
+
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         """A function to create apogee and impact ellipses from the dispersion
         results.
 
@@ -1514,6 +1977,13 @@ class Dispersion:
         return None
 
     def meanLateralWindSpeed(self, dispersion_results):
+        """_summary_
+
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+        """
         print(
             f'Lateral Surface Wind Speed -         Mean Value: {np.mean(dispersion_results["lateralWind"]):0.3f} m/s'
         )
@@ -1522,7 +1992,13 @@ class Dispersion:
         )
 
     def plotLateralWindSpeed(self, dispersion_results):
+        """_summary_
 
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+        """
         self.meanLateralWindSpeed(dispersion_results)
 
         plt.figure()
@@ -1533,6 +2009,13 @@ class Dispersion:
         plt.show()
 
     def meanFrontalWindSpeed(self, dispersion_results):
+        """_summary_
+
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+        """
         print(
             f'Frontal Surface Wind Speed -         Mean Value: {np.mean(dispersion_results["frontalWind"]):0.3f} m/s'
         )
@@ -1541,7 +2024,13 @@ class Dispersion:
         )
 
     def plotFrontalWindSpeed(self, dispersion_results):
+        """_summary_
 
+        Parameters
+        ----------
+        dispersion_results : _type_
+            _description_
+        """
         self.meanFrontalWindSpeed(dispersion_results)
 
         plt.figure()
@@ -1552,6 +2041,13 @@ class Dispersion:
         plt.show()
 
     def info(self):
+        """_summary_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
 
         dispersion_results = self.importResults(self.filename)
 
@@ -1590,6 +2086,8 @@ class Dispersion:
         self.meanDrogueFullyVelocity(dispersion_results)
 
         self.meanDrogueTriggerTime(dispersion_results)
+
+        return None
 
     def allInfo(self):
         dispersion_results = self.importResults(self.filename)
@@ -1631,6 +2129,8 @@ class Dispersion:
         self.plotDrogueFullyVelocity(dispersion_results)
 
         self.plotDrogueTriggerTime(dispersion_results)
+
+        return None
 
     # Variables
 
