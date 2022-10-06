@@ -1489,7 +1489,6 @@ class Dispersion:
             mult_ell = kml.newmultigeometry(name=ellName)
             mult_ell.newpolygon(
                 outerboundaryis=kml_data[i],
-                innerboundaryis=kml_data[i],
                 name="Ellipse " + str(i),
             )
             # Setting ellipse style
