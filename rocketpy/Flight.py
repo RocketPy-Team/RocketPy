@@ -145,8 +145,6 @@ class Flight:
             Current integration state vector u.
         Flight.postProcessed : bool
             Defines if solution data has been post processed.
-        Flight.retrievedAcceleration: bool
-            Defines if acceleration data has been retrieved from the integration scheme.
         Flight.retrievedTemporaryValues: bool
             Defines if temporary values have been retrieved from the integration scheme.
         Flight.calculatedRailButtonForces: bool
@@ -639,7 +637,6 @@ class Flight:
         self.impactState = np.array([0])
         self.parachuteEvents = []
         self.postProcessed = False
-        self.retrievedAcceleration = False
         self.retrievedTemporaryValues = False
         self.calculatedRailButtonForces = False
         self.calculatedGeodesicCoordinates = False
@@ -1128,18 +1125,18 @@ class Flight:
         """Initialize post-process variables."""
         # Initialize all variables created during Flight.postProcess()
         # Important to do so that MATLAB® can access them
-        self.windVelocityX = Function(0)
-        self.windVelocityY = Function(0)
-        self.density = Function(0)
-        self.pressure = Function(0)
-        self.dynamicViscosity = Function(0)
-        self.speedOfSound = Function(0)
-        self.ax = Function(0)
-        self.ay = Function(0)
-        self.az = Function(0)
-        self.alpha1 = Function(0)
-        self.alpha2 = Function(0)
-        self.alpha3 = Function(0)
+        self._windVelocityX = Function(0)
+        self._windVelocityY = Function(0)
+        self._density = Function(0)
+        self._pressure = Function(0)
+        self._dynamicViscosity = Function(0)
+        self._speedOfSound = Function(0)
+        self._ax = Function(0)
+        self._ay = Function(0)
+        self._az = Function(0)
+        self._alpha1 = Function(0)
+        self._alpha2 = Function(0)
+        self._alpha3 = Function(0)
         self._speed = Function(0)
         self._maxSpeed = 0
         self._maxSpeedTime = 0
@@ -1156,12 +1153,12 @@ class Flight:
         self._phi = Function(0)
         self._theta = Function(0)
         self._psi = Function(0)
-        self.R1 = Function(0)
-        self.R2 = Function(0)
-        self.R3 = Function(0)
-        self.M1 = Function(0)
-        self.M2 = Function(0)
-        self.M3 = Function(0)
+        self._R1 = Function(0)
+        self._R2 = Function(0)
+        self._R3 = Function(0)
+        self._M1 = Function(0)
+        self._M2 = Function(0)
+        self._M3 = Function(0)
         self._aerodynamicLift = Function(0)
         self._aerodynamicDrag = Function(0)
         self._aerodynamicBendingMoment = Function(0)
@@ -1744,6 +1741,49 @@ class Flight:
             extrapolation="natural",
         )
 
+    # Process second type of outputs - accelerations components
+    @cached_property
+    def ax(self):
+        ax, ay, az, alpha1, alpha2, alpha3 = self.__retrieved_acceleration_arrays()
+        # Convert accelerations to functions
+        ax = Function(ax, "Time (s)", "Ax (m/s2)")
+        return ax
+
+    @cached_property
+    def ay(self):
+        ax, ay, az, alpha1, alpha2, alpha3 = self.__retrieved_acceleration_arrays()
+        # Convert accelerations to functions
+        ay = Function(ay, "Time (s)", "Ay (m/s2)")
+        return ay
+
+    @cached_property
+    def az(self):
+        ax, ay, az, alpha1, alpha2, alpha3 = self.__retrieved_acceleration_arrays()
+        # Convert accelerations to functions
+        az = Function(az, "Time (s)", "Az (m/s2)")
+        return az
+
+    @cached_property
+    def alpha1(self):
+        ax, ay, az, alpha1, alpha2, alpha3 = self.__retrieved_acceleration_arrays()
+        # Convert accelerations to functions
+        alpha1 = Function(alpha1, "Time (s)", "α1 (rad/s2)")
+        return alpha1
+
+    @cached_property
+    def alpha2(self):
+        ax, ay, az, alpha1, alpha2, alpha3 = self.__retrieved_acceleration_arrays()
+        # Convert accelerations to functions
+        alpha2 = Function(alpha2, "Time (s)", "α2 (rad/s2)")
+        return alpha2
+
+    @cached_property
+    def alpha3(self):
+        ax, ay, az, alpha1, alpha2, alpha3 = self.__retrieved_acceleration_arrays()
+        # Convert accelerations to functions
+        alpha3 = Function(alpha3, "Time (s)", "α3 (rad/s2)")
+        return alpha3
+
     # Process fourth type of output - values calculated from previous outputs
 
     # Kinematics functions and values
@@ -1766,8 +1806,6 @@ class Flight:
     # Accelerations
     @cached_property
     def acceleration(self):
-        if self.retrievedAcceleration is not True:
-            self.__retrieve_acceleration_array
         acceleration = (self.ax**2 + self.ay**2 + self.az**2) ** 0.5
         acceleration.setOutputs("Acceleration Magnitude (m/s²)")
         return acceleration
@@ -2230,27 +2268,33 @@ class Flight:
     def staticMargin(self):
         return self.rocket.staticMargin
 
-        # Define initialization functions for post process variables
+    # Define initialization functions for post process variables
 
-    def __retrieve_acceleration_array(
-        self, interpolation="spline", extrapolation="natural"
-    ):
-        """Retrieve acceleration array from the integration scheme
+    @cached_property
+    def __retrieved_acceleration_arrays(self):
+        """Retrieve acceleration arrays from the integration scheme
 
         Parameters
         ----------
-        interpolation : str, optional
-            Selected model for interpolation, by default "spline"
-        extrapolation : str, optional
-            Selected model for extrapolation, by default "natural"
 
         Returns
         -------
-        None
+        ax: list
+            acceleration in x direction
+        ay: list
+            acceleration in y direction
+        az: list
+            acceleration in z direction
+        alpha1: list
+            angular acceleration in x direction
+        alpha2: list
+            angular acceleration in y direction
+        alpha3: list
+            angular acceleration in z direction
         """
         # Initialize acceleration arrays
-        self.ax, self.ay, self.az = [], [], []
-        self.alpha1, self.alpha2, self.alpha3 = [], [], []
+        ax, ay, az = [], [], []
+        alpha1, alpha2, alpha3 = [], [], []
         # Go through each time step and calculate accelerations
         # Get flight phases
         for phase_index, phase in self.timeIterator(self.flightPhases):
@@ -2266,27 +2310,17 @@ class Flight:
                     # Get derivatives
                     uDot = currentDerivative(step[0], step[1:])
                     # Get accelerations
-                    ax, ay, az = uDot[3:6]
-                    alpha1, alpha2, alpha3 = uDot[10:]
+                    ax_value, ay_value, az_value = uDot[3:6]
+                    alpha1_value, alpha2_value, alpha3_value = uDot[10:]
                     # Save accelerations
-                    self.ax.append([step[0], ax])
-                    self.ay.append([step[0], ay])
-                    self.az.append([step[0], az])
-                    self.alpha1.append([step[0], alpha1])
-                    self.alpha2.append([step[0], alpha2])
-                    self.alpha3.append([step[0], alpha3])
+                    ax.append([step[0], ax_value])
+                    ay.append([step[0], ay_value])
+                    az.append([step[0], az_value])
+                    alpha1.append([step[0], alpha1_value])
+                    alpha2.append([step[0], alpha2_value])
+                    alpha3.append([step[0], alpha3_value])
 
-        # Convert accelerations to functions
-        self.ax = Function(self.ax, "Time (s)", "Ax (m/s2)", interpolation)
-        self.ay = Function(self.ay, "Time (s)", "Ay (m/s2)", interpolation)
-        self.az = Function(self.az, "Time (s)", "Az (m/s2)", interpolation)
-        self.alpha1 = Function(self.alpha1, "Time (s)", "α1 (rad/s2)", interpolation)
-        self.alpha2 = Function(self.alpha2, "Time (s)", "α2 (rad/s2)", interpolation)
-        self.alpha3 = Function(self.alpha3, "Time (s)", "α3 (rad/s2)", interpolation)
-
-        self.retrievedAcceleration = True
-
-        return None
+        return ax, ay, az, alpha1, alpha2, alpha3
 
     def __retrieve_temporary_values_arrays(
         self, interpolation="spline", extrapolation="natural"
@@ -2606,10 +2640,6 @@ class Flight:
         ------
         None
         """
-
-        # Process second type of outputs - accelerations
-        if self.retrievedAcceleration is not True:
-            self.__retrieve_acceleration_array()
 
         # Process third type of outputs - temporary values calculated during integration
         if self.retrievedTemporaryValues is not True:
