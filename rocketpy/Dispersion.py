@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
-__author__ = "Mateus Stano Junqueira, Sofia Lopes Suesdek Rocha, Abdulklech Sorban"
+__author__ = "Mateus Stano Junqueira, Sofia Lopes Suesdek Rocha, Guilherme Fernandes Alves, Bruno Abdulklech Sorban"
 __copyright__ = "Copyright 20XX, Projeto Jupiter"
 __license__ = "MIT"
 
 
+from functools import cached_property
 import math
 import traceback
 import warnings
@@ -35,6 +36,7 @@ from .utilities import invertedHaversine
 # TODO: Test simulations under different scenarios (with both parachutes, with only main chute, etc)
 # TODO: Add unit tests
 # TODO: Adjust the notebook to the new version of the code
+# TODO: Optional return of matplotlib plots or abstract function to histogram plot based on stdev and mean
 
 # TODO: Implement MRS
 # TODO: Implement functions from compareDispersions
@@ -47,6 +49,7 @@ class Dispersion:
 
     Attributes
     ----------
+    # TODO: Update at the end!
         Parameters:
         Dispersion.filename: string
             When running a new simulation, this attribute represents the initial
@@ -258,7 +261,7 @@ class Dispersion:
                                 + "must be inputted in Dispersion.run_dispersion method.\n"
                             )
                             print(traceback.format_exc())
-                    elif parameter_key in self.solidmotor_inputs.keys():
+                    elif parameter_key in self.solid_motor_inputs.keys():
                         try:
                             dictionary[parameter_key] = (
                                 getattr(self.motor, parameter_key),
@@ -330,22 +333,24 @@ class Dispersion:
                             self.environment_inputs[missing_input]
                         ]
         if not all(
-            motor_input in dictionary for motor_input in self.solidmotor_inputs.keys()
+            motor_input in dictionary for motor_input in self.solid_motor_inputs.keys()
         ):
             # Iterate through missing inputs
-            for missing_input in set(self.solidmotor_inputs.keys()) - dictionary.keys():
+            for missing_input in (
+                set(self.solid_motor_inputs.keys()) - dictionary.keys()
+            ):
                 missing_input = str(missing_input)
                 # Add to the dict
                 try:
-                    d[missing_input] = [getattr(self.motor, missing_input)]
+                    dictionary[missing_input] = [getattr(self.motor, missing_input)]
                 except:
-                    # class was not inputed
+                    # class was not inputted
                     # checks if missing parameter is required
-                    if self.solidmotor_inputs[missing_input] == "required":
+                    if self.solid_motor_inputs[missing_input] == "required":
                         warnings.warn(f'Missing "{missing_input}" in d')
                     else:  # if not uses default value
                         dictionary[missing_input] = [
-                            self.solidmotor_inputs[missing_input]
+                            self.solid_motor_inputs[missing_input]
                         ]
 
         if not all(
@@ -393,7 +398,7 @@ class Dispersion:
         ----------
         distribution_func : _type_
             _description_
-        analysis_parameters : _type_
+        analysis_parameters : dict
             _description_
         number_of_simulations : int
             Number of simulations desired, must be non negative.
@@ -427,7 +432,7 @@ class Dispersion:
     def export_flight_data(
         self,
         flight_setting,
-        flight_data,
+        flight,
         exec_time,
         dispersion_input_file,
         dispersion_output_file,
@@ -438,7 +443,7 @@ class Dispersion:
         ----------
         flight_setting : _type_
             _description_
-        flight_data : _type_
+        flight : Flight
             _description_
         exec_time : _type_
             _description_
@@ -455,68 +460,64 @@ class Dispersion:
 
         # Generate flight results
         flight_result = {
-            "outOfRailTime": flight_data.outOfRailTime,
-            "outOfRailVelocity": flight_data.outOfRailVelocity,
-            "apogeeTime": flight_data.apogeeTime,
-            "apogeeAltitude": flight_data.apogee - flight_data.env.elevation,
-            "apogeeX": flight_data.apogeeX,
-            "apogeeY": flight_data.apogeeY,
-            "impactTime": flight_data.tFinal,
-            "impactX": flight_data.xImpact,
-            "impactY": flight_data.yImpact,
-            "impactVelocity": flight_data.impactVelocity,
-            "initialStaticMargin": flight_data.rocket.staticMargin(0),
-            "outOfRailStaticMargin": flight_data.rocket.staticMargin(
-                flight_data.outOfRailTime
+            "outOfRailTime": flight.outOfRailTime,
+            "outOfRailVelocity": flight.outOfRailVelocity,
+            "apogeeTime": flight.apogeeTime,
+            "apogeeAltitude": flight.apogee - flight.env.elevation,
+            "apogeeX": flight.apogeeX,
+            "apogeeY": flight.apogeeY,
+            "impactTime": flight.tFinal,
+            "impactX": flight.xImpact,
+            "impactY": flight.yImpact,
+            "impactVelocity": flight.impactVelocity,
+            "initialStaticMargin": flight.rocket.staticMargin(0),
+            "outOfRailStaticMargin": flight.rocket.staticMargin(flight.outOfRailTime),
+            "finalStaticMargin": flight.rocket.staticMargin(
+                flight.rocket.motor.burnOutTime
             ),
-            "finalStaticMargin": flight_data.rocket.staticMargin(
-                flight_data.rocket.motor.burnOutTime
-            ),
-            "numberOfEvents": len(flight_data.parachuteEvents),
+            "numberOfEvents": len(flight.parachuteEvents),
             "drogueTriggerTime": [],
             "drogueInflatedTime": [],
             "drogueInflatedVelocity": [],
             "executionTime": exec_time,
-            "lateralWind": flight_data.lateralSurfaceWind,
-            "frontalWind": flight_data.frontalSurfaceWind,
+            "lateralWind": flight.lateralSurfaceWind,
+            "frontalWind": flight.frontalSurfaceWind,
         }
 
         # Calculate maximum reached velocity
-        sol = np.array(flight_data.solution)
-        flight_data.vx = Function(
+        sol = np.array(flight.solution)
+        flight.vx = Function(
             sol[:, [0, 4]],
             "Time (s)",
             "Vx (m/s)",
             "linear",
             extrapolation="natural",
         )
-        flight_data.vy = Function(
+        flight.vy = Function(
             sol[:, [0, 5]],
             "Time (s)",
             "Vy (m/s)",
             "linear",
             extrapolation="natural",
         )
-        flight_data.vz = Function(
+        flight.vz = Function(
             sol[:, [0, 6]],
             "Time (s)",
             "Vz (m/s)",
             "linear",
             extrapolation="natural",
         )
-        flight_data.v = (
-            flight_data.vx**2 + flight_data.vy**2 + flight_data.vz**2
-        ) ** 0.5
-        flight_data.maxVel = np.amax(flight_data.v.source[:, 1])
-        flight_result["maxVelocity"] = flight_data.maxVel
+        flight.speed = (flight.vx**2 + flight.vy**2 + flight.vz**2) ** 0.5
+        flight.maxVel = np.amax(flight.speed.source[:, 1])
+        flight_result["maxVelocity"] = flight.maxVel
 
         # Take care of parachute results
-        for trigger_time, parachute in flight_data.parachuteEvents:
+        for trigger_time, parachute in flight.parachuteEvents:
             flight_result[parachute.name + "_triggerTime"] = trigger_time
             flight_result[parachute.name + "_inflatedTime"] = (
                 trigger_time + parachute.lag
             )
-            flight_result[parachute.name + "_inflatedVelocity"] = flight_data.v(
+            flight_result[parachute.name + "_inflatedVelocity"] = flight.speed(
                 trigger_time + parachute.lag
             )
         else:
@@ -587,6 +588,7 @@ class Dispersion:
         self.dispersion_dictionary = dispersion_dictionary
         self.environment = environment
         self.flight = flight
+        # TODO: What must be prioritized, the flight or the rocket and motor?
         if flight:
             self.motor = flight.rocket.motor if not motor else motor
             self.rocket = flight.rocket if not rocket else rocket
@@ -635,32 +637,32 @@ class Dispersion:
         initial_wall_time = time()
         initial_cpu_time = process_time()
 
-        # Iterate over flight settings
+        # Iterate over flight settings, start the flight simulations
         out = display("Starting", display_id=True)
         for setting in self.__yield_flight_setting(
             self.distributionFunc, analysis_parameters, self.number_of_simulations
         ):
-            start_time = process_time()
+            self.start_time = process_time()
             i += 1
 
             # Creates an of environment
-            envDispersion = self.environment
+            env_dispersion = self.environment
 
             # Apply environment parameters variations on each iteration if possible
-            envDispersion.railLength = setting["railLength"]
-            envDispersion.gravity = setting["gravity"]
-            envDispersion.date = setting["date"]
-            envDispersion.latitude = setting["latitude"]
-            envDispersion.longitude = setting["longitude"]
-            envDispersion.elevation = setting["elevation"]
-            envDispersion.selectEnsembleMember(setting["ensembleMember"])
+            env_dispersion.railLength = setting["railLength"]
+            env_dispersion.gravity = setting["gravity"]
+            env_dispersion.date = setting["date"]
+            env_dispersion.latitude = setting["latitude"]
+            env_dispersion.longitude = setting["longitude"]
+            env_dispersion.elevation = setting["elevation"]
+            env_dispersion.selectEnsembleMember(setting["ensembleMember"])
 
             # Creates copy of motor
-            motorDispersion = self.motor
+            motor_dispersion = self.motor
 
             # Apply motor parameters variations on each iteration if possible
             # TODO: add hybrid motor option
-            motorDispersion = SolidMotor(
+            motor_dispersion = SolidMotor(
                 thrustSource=setting["thrust"],
                 burnOut=setting["burnOutTime"],
                 grainNumber=setting["grainNumber"],
@@ -675,11 +677,11 @@ class Dispersion:
             )
 
             # Creates copy of rocket
-            rocketDispersion = self.rocket
+            rocket_dispersion = self.rocket
 
             # Apply rocket parameters variations on each iteration if possible
-            rocketDispersion = Rocket(
-                motor=motorDispersion,
+            rocket_dispersion = Rocket(
+                motor=motor_dispersion,
                 mass=setting["mass"],
                 inertiaI=setting["inertiaI"],
                 inertiaZ=setting["inertiaZ"],
@@ -691,12 +693,12 @@ class Dispersion:
             )
 
             # Add rocket nose, fins and tail
-            rocketDispersion.addNose(
+            rocket_dispersion.addNose(
                 length=setting["noseLength"],
                 kind=setting["noseKind"],
                 distanceToCM=setting["noseDistanceToCM"],
             )
-            rocketDispersion.addFins(
+            rocket_dispersion.addFins(
                 n=setting["numberOfFins"],
                 rootChord=setting["rootChord"],
                 tipChord=setting["tipChord"],
@@ -706,7 +708,7 @@ class Dispersion:
                 airfoil=setting["airfoil"],
             )
             if not "noTail" in setting:
-                rocketDispersion.addTail(
+                rocket_dispersion.addTail(
                     topRadius=setting["topRadius"],
                     bottomRadius=setting["bottomRadius"],
                     length=setting["length"],
@@ -715,7 +717,7 @@ class Dispersion:
 
             # Add parachutes
             for num, name in enumerate(self.parachute_names):
-                rocketDispersion.addParachute(
+                rocket_dispersion.addParachute(
                     name=name,
                     CdS=setting["parachute_" + name + "_CdS"],
                     trigger=setting["parachute_" + name + "_trigger"],
@@ -728,7 +730,7 @@ class Dispersion:
                     ),
                 )
 
-            rocketDispersion.setRailButtons(
+            rocket_dispersion.setRailButtons(
                 distanceToCM=[
                     setting["positionFirstRailButton"],
                     setting["positionSecondRailButton"],
@@ -739,8 +741,8 @@ class Dispersion:
             # Run trajectory simulation
             try:
                 TestFlight = Flight(
-                    rocket=rocketDispersion,
-                    environment=envDispersion,
+                    rocket=rocket_dispersion,
+                    environment=env_dispersion,
                     inclination=setting["inclination"],
                     heading=setting["heading"],
                     # initialSolution=setting["initialSolution"] if "initialSolution" in setting else self.flight.initialSolution,
@@ -755,11 +757,11 @@ class Dispersion:
                 )
 
                 self.export_flight_data(
-                    setting,
-                    TestFlight,
-                    process_time() - start_time,
-                    dispersion_input_file,
-                    dispersion_output_file,
+                    flight_setting=setting,
+                    flight_data=TestFlight,
+                    exec_time=process_time() - self.start_time,
+                    dispersion_input_file=dispersion_input_file,
+                    dispersion_output_file=dispersion_output_file,
                 )
             except Exception as E:
                 print(E)
@@ -797,7 +799,7 @@ class Dispersion:
 
         Returns
         -------
-        _type_
+        dispersion_results: dict
             _description_
         """
 
@@ -848,11 +850,21 @@ class Dispersion:
         dispersion_output_file.close()
 
         # Number of flights simulated
-        self.N = len(dispersion_general_results)
+        self.number_of_loaded_simulations = len(dispersion_general_results)
 
         return dispersion_results
 
-    def meanOutOfRailTime(self, dispersion_results):
+    # Start the processing analysis
+
+    @cached_property
+    def mean_out_of_rail_time(dispersion_results):
+        return np.mean(dispersion_results["outOfRailTime"])
+
+    @cached_property
+    def std_out_of_rail_time(dispersion_results):
+        return np.std(dispersion_results["outOfRailTime"])
+
+    def printMeanOutOfRailTime(self, dispersion_results):
         """_summary_
 
         Parameters
@@ -865,10 +877,10 @@ class Dispersion:
         None
         """
         print(
-            f'Out of Rail Time -         Mean Value: {np.mean(dispersion_results["outOfRailTime"]):0.3f} s'
+            f"Out of Rail Time -         Mean Value: {self.mean_out_of_rail_time(dispersion_results):0.3f} s"
         )
         print(
-            f'Out of Rail Time - Standard Deviation: {np.std(dispersion_results["outOfRailTime"]):0.3f} s'
+            f"Out of Rail Time - Standard Deviation: {self.std_out_of_rail_time(dispersion_results):0.3f} s"
         )
 
         return None
@@ -889,10 +901,13 @@ class Dispersion:
         self.meanOutOfRailTime(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["outOfRailTime"], bins=int(self.N**0.5))
+        plt.hist(
+            dispersion_results["outOfRailTime"],
+            bins=int(self.number_of_loaded_simulations**0.5),
+        )
         plt.title("Out of Rail Time")
         plt.xlabel("Time (s)")
-        plt.ylabel("Number of Occurences")
+        plt.ylabel("Number of Occurrences")
         plt.show()
 
         return None
@@ -935,10 +950,13 @@ class Dispersion:
         self.meanOutOfRailVelocity(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["outOfRailVelocity"], bins=int(self.N**0.5))
+        plt.hist(
+            dispersion_results["outOfRailVelocity"],
+            bins=int(self.number_of_loaded_simulations**0.5),
+        )
         plt.title("Out of Rail Velocity")
         plt.xlabel("Velocity (m/s)")
-        plt.ylabel("Number of Occurences")
+        plt.ylabel("Number of Occurrences")
         plt.show()
 
         return None
@@ -981,10 +999,13 @@ class Dispersion:
         self.meanApogeeTime(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["impactTime"], bins=int(self.N**0.5))
+        plt.hist(
+            dispersion_results["impactTime"],
+            bins=int(self.number_of_loaded_simulations**0.5),
+        )
         plt.title("Impact Time")
         plt.xlabel("Time (s)")
-        plt.ylabel("Number of Occurences")
+        plt.ylabel("Number of Occurrences")
         plt.show()
 
         return None
@@ -1027,10 +1048,13 @@ class Dispersion:
         self.meanApogeeAltitude(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["apogeeAltitude"], bins=int(self.N**0.5))
+        plt.hist(
+            dispersion_results["apogeeAltitude"],
+            bins=int(self.number_of_loaded_simulations**0.5),
+        )
         plt.title("Apogee Altitude")
         plt.xlabel("Altitude (m)")
-        plt.ylabel("Number of Occurences")
+        plt.ylabel("Number of Occurrences")
         plt.show()
 
         return None
@@ -1073,10 +1097,13 @@ class Dispersion:
         self.meanApogeeAltitude(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["apogeeX"], bins=int(self.N**0.5))
+        plt.hist(
+            dispersion_results["apogeeX"],
+            bins=int(self.number_of_loaded_simulations**0.5),
+        )
         plt.title("Apogee X Position")
         plt.xlabel("Apogee X Position (m)")
-        plt.ylabel("Number of Occurences")
+        plt.ylabel("Number of Occurrences")
         plt.show()
 
         return None
@@ -1119,10 +1146,13 @@ class Dispersion:
         self.meanApogeeAltitude(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["apogeeY"], bins=int(self.N**0.5))
+        plt.hist(
+            dispersion_results["apogeeY"],
+            bins=int(self.number_of_loaded_simulations**0.5),
+        )
         plt.title("Apogee Y Position")
         plt.xlabel("Apogee Y Position (m)")
-        plt.ylabel("Number of Occurences")
+        plt.ylabel("Number of Occurrences")
         plt.show()
 
         return None
@@ -1165,10 +1195,13 @@ class Dispersion:
         self.meanImpactTime(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["impactTime"], bins=int(self.N**0.5))
+        plt.hist(
+            dispersion_results["impactTime"],
+            bins=int(self.number_of_loaded_simulations**0.5),
+        )
         plt.title("Impact Time")
         plt.xlabel("Time (s)")
-        plt.ylabel("Number of Occurences")
+        plt.ylabel("Number of Occurrences")
         plt.show()
 
         return None
@@ -1211,10 +1244,13 @@ class Dispersion:
         self.meanImpactXPosition(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["impactX"], bins=int(self.N**0.5))
+        plt.hist(
+            dispersion_results["impactX"],
+            bins=int(self.number_of_loaded_simulations**0.5),
+        )
         plt.title("Impact X Position")
         plt.xlabel("Impact X Position (m)")
-        plt.ylabel("Number of Occurences")
+        plt.ylabel("Number of Occurrences")
         plt.show()
 
         return None
@@ -1257,10 +1293,13 @@ class Dispersion:
         self.meanImpactYPosition(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["impactY"], bins=int(self.N**0.5))
+        plt.hist(
+            dispersion_results["impactY"],
+            bins=int(self.number_of_loaded_simulations**0.5),
+        )
         plt.title("Impact Y Position")
         plt.xlabel("Impact Y Position (m)")
-        plt.ylabel("Number of Occurences")
+        plt.ylabel("Number of Occurrences")
         plt.show()
 
         return None
@@ -1303,11 +1342,14 @@ class Dispersion:
         self.meanImpactVelocity(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["impactVelocity"], bins=int(self.N**0.5))
+        plt.hist(
+            dispersion_results["impactVelocity"],
+            bins=int(self.number_of_loaded_simulations**0.5),
+        )
         plt.title("Impact Velocity")
         plt.xlim(-35, 0)
         plt.xlabel("Velocity (m/s)")
-        plt.ylabel("Number of Occurences")
+        plt.ylabel("Number of Occurrences")
         plt.show()
 
         return None
@@ -1367,22 +1409,22 @@ class Dispersion:
         plt.hist(
             dispersion_results["initialStaticMargin"],
             label="Initial",
-            bins=int(self.N**0.5),
+            bins=int(self.number_of_loaded_simulations**0.5),
         )
         plt.hist(
             dispersion_results["outOfRailStaticMargin"],
             label="Out of Rail",
-            bins=int(self.N**0.5),
+            bins=int(self.number_of_loaded_simulations**0.5),
         )
         plt.hist(
             dispersion_results["finalStaticMargin"],
             label="Final",
-            bins=int(self.N**0.5),
+            bins=int(self.number_of_loaded_simulations**0.5),
         )
         plt.legend()
         plt.title("Static Margin")
         plt.xlabel("Static Margin (c)")
-        plt.ylabel("Number of Occurences")
+        plt.ylabel("Number of Occurrences")
         plt.show()
 
         return None
@@ -1425,10 +1467,13 @@ class Dispersion:
         self.meanMaximumVelocity(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["maxVelocity"], bins=int(self.N**0.5))
+        plt.hist(
+            dispersion_results["maxVelocity"],
+            bins=int(self.number_of_loaded_simulations**0.5),
+        )
         plt.title("Maximum Velocity")
         plt.xlabel("Velocity (m/s)")
-        plt.ylabel("Number of Occurences")
+        plt.ylabel("Number of Occurrences")
         plt.show()
 
         return None
@@ -1474,7 +1519,7 @@ class Dispersion:
         plt.hist(dispersion_results["numberOfEvents"])
         plt.title("Parachute Events")
         plt.xlabel("Number of Parachute Events")
-        plt.ylabel("Number of Occurences")
+        plt.ylabel("Number of Occurrences")
         plt.show()
 
         return None
@@ -1517,10 +1562,13 @@ class Dispersion:
         self.meanDrogueTriggerTime(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["drogueTriggerTime"], bins=int(self.N**0.5))
+        plt.hist(
+            dispersion_results["drogueTriggerTime"],
+            bins=int(self.number_of_loaded_simulations**0.5),
+        )
         plt.title("Drogue Trigger Time")
         plt.xlabel("Time (s)")
-        plt.ylabel("Number of Occurences")
+        plt.ylabel("Number of Occurrences")
         plt.show()
 
         return None
@@ -1563,10 +1611,13 @@ class Dispersion:
         self.meanDrogueFullyInflatedTime(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["drogueInflatedTime"], bins=int(self.N**0.5))
+        plt.hist(
+            dispersion_results["drogueInflatedTime"],
+            bins=int(self.number_of_loaded_simulations**0.5),
+        )
         plt.title("Drogue Fully Inflated Time")
         plt.xlabel("Time (s)")
-        plt.ylabel("Number of Occurences")
+        plt.ylabel("Number of Occurrences")
         plt.show()
 
         return None
@@ -1609,10 +1660,13 @@ class Dispersion:
         self.meanDrogueFullyVelocity(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["drogueInflatedVelocity"], bins=int(self.N**0.5))
+        plt.hist(
+            dispersion_results["drogueInflatedVelocity"],
+            bins=int(self.number_of_loaded_simulations**0.5),
+        )
         plt.title("Drogue Parachute Fully Inflated Velocity")
         plt.xlabel("Velocity m/s)")
-        plt.ylabel("Number of Occurences")
+        plt.ylabel("Number of Occurrences")
         plt.show()
 
         return None
@@ -1959,10 +2013,13 @@ class Dispersion:
         self.meanLateralWindSpeed(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["lateralWind"], bins=int(self.N**0.5))
+        plt.hist(
+            dispersion_results["lateralWind"],
+            bins=int(self.number_of_loaded_simulations**0.5),
+        )
         plt.title("Lateral Surface Wind Speed")
         plt.xlabel("Velocity (m/s)")
-        plt.ylabel("Number of Occurences")
+        plt.ylabel("Number of Occurrences")
         plt.show()
 
     def meanFrontalWindSpeed(self, dispersion_results):
@@ -1991,10 +2048,13 @@ class Dispersion:
         self.meanFrontalWindSpeed(dispersion_results)
 
         plt.figure()
-        plt.hist(dispersion_results["frontalWind"], bins=int(self.N**0.5))
+        plt.hist(
+            dispersion_results["frontalWind"],
+            bins=int(self.number_of_loaded_simulations**0.5),
+        )
         plt.title("Frontal Surface Wind Speed")
         plt.xlabel("Velocity (m/s)")
-        plt.ylabel("Number of Occurences")
+        plt.ylabel("Number of Occurrences")
         plt.show()
 
     def info(self):
@@ -2002,8 +2062,7 @@ class Dispersion:
 
         Returns
         -------
-        _type_
-            _description_
+        None
         """
 
         dispersion_results = self.import_results(self.filename)
@@ -2018,7 +2077,7 @@ class Dispersion:
 
         self.meanFrontalWindSpeed(dispersion_results)
 
-        self.meanOutOfRailTime(dispersion_results)
+        self.printMeanOutOfRailTime(dispersion_results)
 
         self.meanApogeeTime(dispersion_results)
 
@@ -2102,7 +2161,7 @@ class Dispersion:
         "timeZone": "UTC",
     }
 
-    solidmotor_inputs = {
+    solid_motor_inputs = {
         "thrust": "required",
         "burnOutTime": "required",
         "totalImpulse": 0,
