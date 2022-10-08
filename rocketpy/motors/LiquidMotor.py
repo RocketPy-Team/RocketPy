@@ -177,6 +177,8 @@ class MassFlowRateBasedTank(Tank):
         name,
         diameter,
         height,
+        gas,
+        liquid,
         endcap,
         initial_liquid_mass,
         initial_gas_mass,
@@ -184,10 +186,8 @@ class MassFlowRateBasedTank(Tank):
         gas_mass_flow_rate_in,
         liquid_mass_flow_rate_out,
         gas_mass_flow_rate_out,
-        liquid,
-        gas,
     ):
-        super().__init__(name, diameter, height, endcap, gas, liquid)
+        super().__init__(name, diameter, height, gas, liquid, endcap)
 
         self.initial_liquid_mass = initial_liquid_mass
         self.initial_gas_mass = initial_gas_mass
@@ -242,16 +242,26 @@ class MassFlowRateBasedTank(Tank):
         """
 
         self.liquid_net_mass_flow_rate = (
-            self.liquid_mass_flow_rate_in - self.liquid_mass_flow_rate_out
+            self.liquid_mass_flow_rate_in + (-1) * self.liquid_mass_flow_rate_out
+        )
+
+        self.liquid_net_mass_flow_rate.setOutputs(
+            "Net Liquid Propellant Mass Flow Rate (kg/s)"
         )
 
         self.gas_net_mass_flow_rate = (
-            self.gas_mass_flow_rate_in - self.gas_mass_flow_rate_out
+            self.gas_mass_flow_rate_in + (-1) * self.gas_mass_flow_rate_out
+        )
+
+        self.gas_net_mass_flow_rate.setOutputs(
+            "Net Gas Propellant Mass Flow Rate (kg/s)"
         )
 
         self.net_mass_flow_rate = (
             self.liquid_net_mass_flow_rate + self.gas_net_mass_flow_rate
         )
+
+        self.net_mass_flow_rate.setOutputs("Net Propellant Mass Flow Rate (kg/s)")
 
         return self.net_mass_flow_rate
 
@@ -300,8 +310,28 @@ class MassFlowRateBasedTank(Tank):
         )
 
         self.mass = self.liquid_mass + self.gas_mass
+        self.mass.setOutputs("Total Propellant Mass In Tank (kg)")
 
         return self.mass
+
+    @functools.cached_property
+    def liquidVolume(self):
+        """Returns the volume of liquid inside the tank as a function of time.
+
+        Parameters
+        ----------
+        time : float
+            Time in seconds.
+
+        Returns
+        -------
+        Function
+            Volume of liquid inside the tank as a function of time. Units in m^3.
+        """
+        self.liquid_volume = self.liquid_mass / self.liquid.density
+        self.liquid_volume.setOutputs("Liquid Propellant Volume In Tank (m^3)")
+
+        return self.liquid_volume
 
 
 # @phmbressan
