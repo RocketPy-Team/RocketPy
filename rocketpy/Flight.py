@@ -145,8 +145,6 @@ class Flight:
             Current integration state vector u.
         Flight.postProcessed : bool
             Defines if solution data has been post processed.
-        Flight.retrievedTemporaryValues: bool
-            Defines if temporary values have been retrieved from the integration scheme.
         Flight.calculatedRailButtonForces: bool
             Defines if rail button forces have been calculated.
         Flight.calculatedGeodesicCoordinates: bool
@@ -637,7 +635,6 @@ class Flight:
         self.impactState = np.array([0])
         self.parachuteEvents = []
         self.postProcessed = False
-        self.retrievedTemporaryValues = False
         self.calculatedRailButtonForces = False
         self.calculatedGeodesicCoordinates = False
         self.calculatedPressureSignals = False
@@ -1517,19 +1514,19 @@ class Flight:
 
         if postProcessing:
             # Dynamics variables
-            self.R1.append([t, R1])
-            self.R2.append([t, R2])
-            self.R3.append([t, R3])
-            self.M1.append([t, M1])
-            self.M2.append([t, M2])
-            self.M3.append([t, M3])
+            self._R1.append([t, R1])
+            self._R2.append([t, R2])
+            self._R3.append([t, R3])
+            self._M1.append([t, M1])
+            self._M2.append([t, M2])
+            self._M3.append([t, M3])
             # Atmospheric Conditions
-            self.windVelocityX.append([t, self.env.windVelocityX(z)])
-            self.windVelocityY.append([t, self.env.windVelocityY(z)])
-            self.density.append([t, self.env.density(z)])
-            self.dynamicViscosity.append([t, self.env.dynamicViscosity(z)])
-            self.pressure.append([t, self.env.pressure(z)])
-            self.speedOfSound.append([t, self.env.speedOfSound(z)])
+            self._windVelocityX.append([t, self.env.windVelocityX(z)])
+            self._windVelocityY.append([t, self.env.windVelocityY(z)])
+            self._density.append([t, self.env.density(z)])
+            self._dynamicViscosity.append([t, self.env.dynamicViscosity(z)])
+            self._pressure.append([t, self.env.pressure(z)])
+            self._speedOfSound.append([t, self.env.speedOfSound(z)])
 
         return uDot
 
@@ -1744,45 +1741,382 @@ class Flight:
     # Process second type of outputs - accelerations components
     @cached_property
     def ax(self):
-        ax, ay, az, alpha1, alpha2, alpha3 = self.__retrieved_acceleration_arrays()
+        ax = self.__retrieved_acceleration_arrays()[0]
         # Convert accelerations to functions
         ax = Function(ax, "Time (s)", "Ax (m/s2)")
         return ax
 
     @cached_property
     def ay(self):
-        ax, ay, az, alpha1, alpha2, alpha3 = self.__retrieved_acceleration_arrays()
+        ay = self.__retrieved_acceleration_arrays()[1]
         # Convert accelerations to functions
         ay = Function(ay, "Time (s)", "Ay (m/s2)")
         return ay
 
     @cached_property
     def az(self):
-        ax, ay, az, alpha1, alpha2, alpha3 = self.__retrieved_acceleration_arrays()
+        az = self.__retrieved_acceleration_arrays()[2]
         # Convert accelerations to functions
         az = Function(az, "Time (s)", "Az (m/s2)")
         return az
 
     @cached_property
     def alpha1(self):
-        ax, ay, az, alpha1, alpha2, alpha3 = self.__retrieved_acceleration_arrays()
+        alpha1 = self.__retrieved_acceleration_arrays()[3]
         # Convert accelerations to functions
         alpha1 = Function(alpha1, "Time (s)", "α1 (rad/s2)")
         return alpha1
 
     @cached_property
     def alpha2(self):
-        ax, ay, az, alpha1, alpha2, alpha3 = self.__retrieved_acceleration_arrays()
+        alpha2 = self.__retrieved_acceleration_arrays()[4]
         # Convert accelerations to functions
         alpha2 = Function(alpha2, "Time (s)", "α2 (rad/s2)")
         return alpha2
 
     @cached_property
     def alpha3(self):
-        ax, ay, az, alpha1, alpha2, alpha3 = self.__retrieved_acceleration_arrays()
+        alpha3 = self.__retrieved_acceleration_arrays()[5]
         # Convert accelerations to functions
         alpha3 = Function(alpha3, "Time (s)", "α3 (rad/s2)")
         return alpha3
+
+    # Process third type of outputs - Temporary values
+    @cached_property
+    def R1(self, extrapolation="spline", interpolation="natural"):
+        """Aerodynamic force along the first axis that is perpendicular to the
+        rocket's axis of symmetry.
+
+        Parameters
+        ----------
+        extrapolation : str, optional
+            Function extrapolation mode. Options are 'linear', 'polynomial',
+            'akima' and 'spline'. Default is 'spline'.
+        interpolation : str, optional
+            Function extrapolation mode. Options are 'natural', which keeps interpolation, 'constant',
+            which returns the value of the function at the edge of the interval,
+            and 'zero', which returns zero for all points outside of source
+            range. Default is 'natural'.
+
+        Returns
+        -------
+        R1: Function
+            Aero force along the first axis that is perpendicular to the
+            rocket's axis of symmetry.
+        """
+        R1 = self.__retrieved_temporary_values_arrays[0]
+        R1 = Function(R1, "Time (s)", "R1 (m)", interpolation, extrapolation)
+
+        return R1
+
+    @cached_property
+    def R2(self, extrapolation="spline", interpolation="natural"):
+        """Aerodynamic force along the second axis that is perpendicular to the
+        rocket's axis of symmetry.
+
+        Parameters
+        ----------
+        extrapolation : str, optional
+            Function extrapolation mode. Options are 'linear', 'polynomial',
+            'akima' and 'spline'. Default is 'spline'.
+        interpolation : str, optional
+            Function extrapolation mode. Options are 'natural', which keeps interpolation, 'constant',
+            which returns the value of the function at the edge of the interval,
+            and 'zero', which returns zero for all points outside of source
+            range. Default is 'natural'.
+
+        Returns
+        -------
+        R2: Function
+            Aero force along the second axis that is perpendicular to the
+            rocket's axis of symmetry.
+        """
+        R2 = self.__retrieved_temporary_values_arrays[1]
+        R2 = Function(R2, "Time (s)", "R2 (m)", interpolation, extrapolation)
+
+        return R2
+
+    @cached_property
+    def R3(self, extrapolation="spline", interpolation="natural"):
+        """Aerodynamic force along the rocket's axis of symmetry.
+
+        Parameters
+        ----------
+        extrapolation : str, optional
+            Function extrapolation mode. Options are 'linear', 'polynomial',
+            'akima' and 'spline'. Default is 'spline'.
+        interpolation : str, optional
+            Function extrapolation mode. Options are 'natural', which keeps interpolation, 'constant',
+            which returns the value of the function at the edge of the interval,
+            and 'zero', which returns zero for all points outside of source
+            range. Default is 'natural'.
+
+        Returns
+        -------
+        R3: Function
+            Aerodynamic force along the rocket's axis of symmetry.
+        """
+        R3 = self.__retrieved_temporary_values_arrays[2]
+        R3 = Function(R3, "Time (s)", "R3 (m)", interpolation, extrapolation)
+
+        return R3
+
+    @cached_property
+    def M1(self, extrapolation="spline", interpolation="natural"):
+        """Aerodynamic bending moment in the same direction as the axis that is
+        perpendicular to the rocket's axis of symmetry.
+
+        Parameters
+        ----------
+        extrapolation : str, optional
+            Function extrapolation mode. Options are 'linear', 'polynomial',
+            'akima' and 'spline'. Default is 'spline'.
+        interpolation : str, optional
+            Function extrapolation mode. Options are 'natural', which keeps interpolation, 'constant',
+            which returns the value of the function at the edge of the interval,
+            and 'zero', which returns zero for all points outside of source
+            range. Default is 'natural'.
+
+        Returns
+        -------
+        M1: Function
+            Aero moment along the first axis that is perpendicular to the
+            rocket's axis of symmetry.
+        """
+        M1 = self.__retrieved_temporary_values_arrays[3]
+        M1 = Function(M1, "Time (s)", "M1 (Nm)", interpolation, extrapolation)
+
+        return M1
+
+    @cached_property
+    def M2(self, extrapolation="spline", interpolation="natural"):
+        """Aerodynamic moment in the same direction as the second axis that is
+        perpendicular to the rocket's axis of symmetry.
+
+        Parameters
+        ----------
+        extrapolation : str, optional
+            Function extrapolation mode. Options are 'linear', 'polynomial',
+            'akima' and 'spline'. Default is 'spline'.
+        interpolation : str, optional
+            Function extrapolation mode. Options are 'natural', which keeps interpolation, 'constant',
+            which returns the value of the function at the edge of the interval,
+            and 'zero', which returns zero for all points outside of source
+            range. Default is 'natural'.
+
+        Returns
+        -------
+        M2: Function
+            Aero moment along the second axis that is perpendicular to the
+            rocket's axis of symmetry.
+        """
+        M2 = self.__retrieved_temporary_values_arrays[4]
+        M2 = Function(M2, "Time (s)", "M2 (Nm)", interpolation, extrapolation)
+
+        return M2
+
+    @cached_property
+    def M3(self, extrapolation="spline", interpolation="natural"):
+        """Aerodynamic bending in the rocket's axis of symmetry direction.
+
+        Parameters
+        ----------
+        extrapolation : str, optional
+            Function extrapolation mode. Options are 'linear', 'polynomial',
+            'akima' and 'spline'. Default is 'spline'.
+        interpolation : str, optional
+            Function extrapolation mode. Options are 'natural', which keeps interpolation, 'constant',
+            which returns the value of the function at the edge of the interval,
+            and 'zero', which returns zero for all points outside of source
+            range. Default is 'natural'.
+
+        Returns
+        -------
+        M3: Function
+            Aero moment in the same direction as the rocket's axis of symmetry.
+        """
+        M3 = self.__retrieved_temporary_values_arrays[5]
+        M3 = Function(M3, "Time (s)", "M3 (Nm)", interpolation, extrapolation)
+
+        return M3
+
+    @cached_property
+    def pressure(self, extrapolation="spline", interpolation="natural"):
+        """Air pressure at each time step.
+
+        Parameters
+        ----------
+        extrapolation : str, optional
+            Function extrapolation mode. Options are 'linear', 'polynomial',
+            'akima' and 'spline'. Default is 'spline'.
+        interpolation : str, optional
+            Function extrapolation mode. Options are 'natural', which keeps interpolation, 'constant',
+            which returns the value of the function at the edge of the interval,
+            and 'zero', which returns zero for all points outside of source
+            range. Default is 'natural'.
+
+        Returns
+        -------
+        pressure: Function
+            Air pressure at each time step.
+        """
+        pressure = self.__retrieved_temporary_values_arrays[6]
+        pressure = Function(
+            pressure, "Time (s)", "Pressure (Pa)", interpolation, extrapolation
+        )
+
+        return pressure
+
+    @cached_property
+    def density(self, extrapolation="spline", interpolation="natural"):
+        """Air density at each time step.
+
+        Parameters
+        ----------
+        extrapolation : str, optional
+            Function extrapolation mode. Options are 'linear', 'polynomial',
+            'akima' and 'spline'. Default is 'spline'.
+        interpolation : str, optional
+            Function extrapolation mode. Options are 'natural', which keeps interpolation, 'constant',
+            which returns the value of the function at the edge of the interval,
+            and 'zero', which returns zero for all points outside of source
+            range. Default is 'natural'.
+
+        Returns
+        -------
+        density: Function
+            Air density at each time step.
+        """
+        density = self.__retrieved_temporary_values_arrays[7]
+        density = Function(
+            density, "Time (s)", "Density (kg/m³)", interpolation, extrapolation
+        )
+
+        return density
+
+    @cached_property
+    def dynamicViscosity(self, extrapolation="spline", interpolation="natural"):
+        """Air dynamic viscosity at each time step.
+
+        Parameters
+        ----------
+        extrapolation : str, optional
+            Function extrapolation mode. Options are 'linear', 'polynomial',
+            'akima' and 'spline'. Default is 'spline'.
+        interpolation : str, optional
+            Function extrapolation mode. Options are 'natural', which keeps interpolation, 'constant',
+            which returns the value of the function at the edge of the interval,
+            and 'zero', which returns zero for all points outside of source
+            range. Default is 'natural'.
+
+        Returns
+        -------
+        dynamicViscosity: Function
+            Air dynamic viscosity at each time step.
+        """
+        dynamicViscosity = self.__retrieved_temporary_values_arrays[8]
+        dynamicViscosity = Function(
+            dynamicViscosity,
+            "Time (s)",
+            "Dynamic Viscosity (Pa s)",
+            interpolation,
+            extrapolation,
+        )
+
+        return dynamicViscosity
+
+    @cached_property
+    def speedOfSound(self, extrapolation="spline", interpolation="natural"):
+        """Speed of sound at each time step.
+
+        Parameters
+        ----------
+        extrapolation : str, optional
+            Function extrapolation mode. Options are 'linear', 'polynomial',
+            'akima' and 'spline'. Default is 'spline'.
+        interpolation : str, optional
+            Function extrapolation mode. Options are 'natural', which keeps interpolation, 'constant',
+            which returns the value of the function at the edge of the interval,
+            and 'zero', which returns zero for all points outside of source
+            range. Default is 'natural'.
+
+        Returns
+        -------
+        speedOfSound: Function
+            Speed of sound at each time step.
+        """
+        speedOfSound = self.__retrieved_temporary_values_arrays[9]
+        speedOfSound = Function(
+            speedOfSound,
+            "Time (s)",
+            "Speed of Sound (m/s)",
+            interpolation,
+            extrapolation,
+        )
+
+        return speedOfSound
+
+    @cached_property
+    def windVelocityX(self, extrapolation="spline", interpolation="natural"):
+        """Wind velocity in the X direction at each time step.
+
+        Parameters
+        ----------
+        extrapolation : str, optional
+            Function extrapolation mode. Options are 'linear', 'polynomial',
+            'akima' and 'spline'. Default is 'spline'.
+        interpolation : str, optional
+            Function extrapolation mode. Options are 'natural', which keeps interpolation, 'constant',
+            which returns the value of the function at the edge of the interval,
+            and 'zero', which returns zero for all points outside of source
+            range. Default is 'natural'.
+
+        Returns
+        -------
+        windVelocityX: Function
+            Wind velocity in the X direction at each time step.
+        """
+        windVelocityX = self.__retrieved_temporary_values_arrays[10]
+        windVelocityX = Function(
+            windVelocityX,
+            "Time (s)",
+            "Wind Velocity X (m/s)",
+            interpolation,
+            extrapolation,
+        )
+
+        return windVelocityX
+
+    @cached_property
+    def windVelocityY(self, extrapolation="spline", interpolation="natural"):
+        """Wind velocity in the Y direction at each time step.
+
+        Parameters
+        ----------
+        extrapolation : str, optional
+            Function extrapolation mode. Options are 'linear', 'polynomial',
+            'akima' and 'spline'. Default is 'spline'.
+        interpolation : str, optional
+            Function extrapolation mode. Options are 'natural', which keeps interpolation, 'constant',
+            which returns the value of the function at the edge of the interval,
+            and 'zero', which returns zero for all points outside of source
+            range. Default is 'natural'.
+
+        Returns
+        -------
+        windVelocityY: Function
+            Wind velocity in the Y direction at each time step.
+        """
+        windVelocityY = self.__retrieved_temporary_values_arrays[10]
+        windVelocityY = Function(
+            windVelocityY,
+            "Time (s)",
+            "Wind Velocity Y (m/s)",
+            interpolation,
+            extrapolation,
+        )
+
+        return windVelocityY
 
     # Process fourth type of output - values calculated from previous outputs
 
@@ -1918,16 +2252,12 @@ class Flight:
     # Freestream Velocity
     @cached_property
     def streamVelocityX(self):
-        if self.retrievedTemporaryValues is not True:
-            self.__retrieve_temporary_values_arrays()
         streamVelocityX = self.windVelocityX - self.vx
         streamVelocityX.setOutputs("Freestream Velocity X (m/s)")
         return streamVelocityX
 
     @cached_property
     def streamVelocityY(self):
-        if self.retrievedTemporaryValues is not True:
-            self.__retrieve_temporary_values_arrays()
         streamVelocityY = self.windVelocityY - self.vy
         streamVelocityY.setOutputs("Freestream Velocity Y (m/s)")
         return streamVelocityY
@@ -1956,8 +2286,6 @@ class Flight:
     # Mach Number
     @cached_property
     def MachNumber(self):
-        if self.retrievedTemporaryValues is not True:
-            self.__retrieve_temporary_values_arrays()
         MachNumber = self.freestreamSpeed / self.speedOfSound
         MachNumber.setOutputs("Mach Number")
         return MachNumber
@@ -1974,8 +2302,6 @@ class Flight:
     # Reynolds Number
     @cached_property
     def ReynoldsNumber(self):
-        if self.retrievedTemporaryValues is not True:
-            self.__retrieve_temporary_values_arrays()
         ReynoldsNumber = (
             self.density * self.freestreamSpeed / self.dynamicViscosity
         ) * (2 * self.rocket.radius)
@@ -1994,8 +2320,6 @@ class Flight:
     # Dynamic Pressure
     @cached_property
     def dynamicPressure(self):
-        if self.retrievedTemporaryValues is not True:
-            self.__retrieve_temporary_values_arrays()
         dynamicPressure = 0.5 * self.density * self.freestreamSpeed**2
         dynamicPressure.setOutputs("Dynamic Pressure (Pa)")
         return dynamicPressure
@@ -2012,8 +2336,6 @@ class Flight:
     # Total Pressure
     @cached_property
     def totalPressure(self):
-        if self.retrievedTemporaryValues is not True:
-            self.__retrieve_temporary_values_arrays()
         totalPressure = self.pressure * (1 + 0.2 * self.MachNumber**2) ** (3.5)
         totalPressure.setOutputs("Total Pressure (Pa)")
         return totalPressure
@@ -2032,32 +2354,25 @@ class Flight:
     #  Aerodynamic Lift and Drag
     @cached_property
     def aerodynamicLift(self):
-        if self.retrievedTemporaryValues is not True:
-            self.__retrieve_temporary_values_arrays()
         aerodynamicLift = (self.R1**2 + self.R2**2) ** 0.5
         aerodynamicLift.setOutputs("Aerodynamic Lift Force (N)")
         return aerodynamicLift
 
     @cached_property
     def aerodynamicDrag(self):
-        if self.retrievedTemporaryValues is not True:
-            self.__retrieve_temporary_values_arrays()
         aerodynamicDrag = -1 * self.R3
         aerodynamicDrag.setOutputs("Aerodynamic Drag Force (N)")
         return aerodynamicDrag
 
     @cached_property
     def aerodynamicBendingMoment(self):
-        if self.retrievedTemporaryValues is not True:
-            self.__retrieve_temporary_values_arrays()
+
         aerodynamicBendingMoment = (self.M1**2 + self.M2**2) ** 0.5
         aerodynamicBendingMoment.setOutputs("Aerodynamic Bending Moment (N m)")
         return aerodynamicBendingMoment
 
     @cached_property
     def aerodynamicSpinMoment(self):
-        if self.retrievedTemporaryValues is not True:
-            self.__retrieve_temporary_values_arrays()
         aerodynamicSpinMoment = self.M3
         aerodynamicSpinMoment.setOutputs("Aerodynamic Spin Moment (N m)")
         return aerodynamicSpinMoment
@@ -2135,8 +2450,6 @@ class Flight:
     # Drag Power
     @cached_property
     def dragPower(self):
-        if self.retrievedTemporaryValues is not True:
-            self.__retrieve_temporary_values_arrays()
         dragPower = self.R3 * self.speed
         dragPower.setOutputs("Drag Power (W)")
         return dragPower
@@ -2145,8 +2458,6 @@ class Flight:
     @cached_property
     def angleOfAttack(self):
         angleOfAttack = []
-        if self.retrievedTemporaryValues is not True:
-            self.__retrieve_temporary_values_arrays()
         for i in range(len(self.attitudeVectorX[:, 1])):
             dotProduct = -(
                 self.attitudeVectorX[i, 1] * self.streamVelocityX[i, 1]
@@ -2322,9 +2633,8 @@ class Flight:
 
         return ax, ay, az, alpha1, alpha2, alpha3
 
-    def __retrieve_temporary_values_arrays(
-        self, interpolation="spline", extrapolation="natural"
-    ):
+    @cached_property
+    def __retrieved_temporary_values_arrays(self):
         """Retrieve temporary values arrays from the integration scheme.
         Currently, the following temporary values are retrieved:
             - R1
@@ -2347,19 +2657,49 @@ class Flight:
 
         Returns
         -------
-        None
+        self._R1: list
+            R1 values
+        self._R2: list
+            R2 values
+        self._R3: list
+            R3 values are the aerodynamic force values in the rocket's axis direction
+        self._M1: list
+            M1 values
+        self._M2: list
+            Aerodynamic bending moment in ? direction at each time step
+        self._M3: list
+            Aerodynamic bending moment in ? direction at each time step
+        self._pressure: list
+            Air pressure at each time step
+        self._density: list
+            Air density at each time step
+        self._dynamicViscosity: list
+            Dynamic viscosity at each time step
+        self._speedOfSound: list
+            Speed of sound at each time step
+        self._windVelocityX: list
+            Wind velocity in x direction at each time step
+        self._windVelocityY: list
+            Wind velocity in y direction at each time step
         """
 
         # Initialize force and atmospheric arrays
-        self.R1, self.R2, self.R3, self.M1, self.M2, self.M3 = [], [], [], [], [], []
-
-        self.pressure, self.density, self.dynamicViscosity, self.speedOfSound = (
+        self._R1, self._R2, self._R3, self._M1, self._M2, self._M3 = (
+            [],
+            [],
             [],
             [],
             [],
             [],
         )
-        self.windVelocityX, self.windVelocityY = [], []
+
+        self._pressure, self._density, self._dynamicViscosity, self._speedOfSound = (
+            [],
+            [],
+            [],
+            [],
+        )
+        self._windVelocityX, self._windVelocityY = [], []
         # Go through each time step and calculate forces and atmospheric values
         # Get flight phases
         for phase_index, phase in self.timeIterator(self.flightPhases):
@@ -2374,57 +2714,21 @@ class Flight:
                 if initTime < step[0] <= finalTime or (initTime == 0 and step[0] == 0):
                     # Call derivatives in post processing mode
                     uDot = currentDerivative(step[0], step[1:], postProcessing=True)
-        # Convert forces and atmospheric arrays to functions
-        self.R1 = Function(self.R1, "Time (s)", "R1", interpolation, extrapolation)
-        self.R2 = Function(self.R2, "Time (s)", "R2", interpolation, extrapolation)
-        self.R3 = Function(self.R3, "Time (s)", "R3 (N)", interpolation, extrapolation)
-        self.M1 = Function(
-            self.M1, "Time (s)", "M1 (N.m)", interpolation, extrapolation
-        )
-        self.M2 = Function(
-            self.M2, "Time (s)", "M2 (N.m)", interpolation, extrapolation
-        )
-        self.M3 = Function(
-            self.M3, "Time (s)", "M3 (N.m)", interpolation, extrapolation
-        )
-        self.windVelocityX = Function(
-            self.windVelocityX,
-            "Time (s)",
-            "Wind Velocity X (East) (m/s)",
-            interpolation,
-            extrapolation,
-        )
-        self.windVelocityY = Function(
-            self.windVelocityY,
-            "Time (s)",
-            "Wind Velocity Y (North) (m/s)",
-            interpolation,
-            extrapolation,
-        )
-        self.density = Function(
-            self.density, "Time (s)", "Density (kg/m³)", interpolation, extrapolation
-        )
-        self.pressure = Function(
-            self.pressure, "Time (s)", "Pressure (Pa)", interpolation, extrapolation
-        )
-        self.dynamicViscosity = Function(
-            self.dynamicViscosity,
-            "Time (s)",
-            "Dynamic Viscosity (Pa s)",
-            interpolation,
-            extrapolation,
-        )
-        self.speedOfSound = Function(
-            self.speedOfSound,
-            "Time (s)",
-            "Speed of Sound (m/s)",
-            interpolation,
-            extrapolation,
-        )
 
-        self.retrievedTemporaryValues = True
-
-        return None
+        return (
+            self._R1,
+            self._R2,
+            self._R3,
+            self._M1,
+            self._M2,
+            self._M3,
+            self._pressure,
+            self._density,
+            self._dynamicViscosity,
+            self._speedOfSound,
+            self._windVelocityX,
+            self._windVelocityY,
+        )
 
     # Rail Button Forces
     def __calculate_rail_button_forces(self):
@@ -2444,8 +2748,6 @@ class Flight:
         D2 = self.rocket.railButtons.distanceToCM[
             1
         ]  # Distance from Rail Button 2 (lower) to CM
-        if self.retrievedTemporaryValues is not True:
-            self.__retrieve_temporary_values_arrays()
         F11 = (self.R1 * D2 - self.M2) / (
             D1 + D2
         )  # Rail Button 1 force in the 1 direction
@@ -2640,10 +2942,6 @@ class Flight:
         ------
         None
         """
-
-        # Process third type of outputs - temporary values calculated during integration
-        if self.retrievedTemporaryValues is not True:
-            self.__retrieve_temporary_values_arrays()
 
         # Deal with the rail buttons forces calculation
         if self.calculatedRailButtonForces is not True:
