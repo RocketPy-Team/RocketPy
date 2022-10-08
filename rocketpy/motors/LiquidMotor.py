@@ -41,11 +41,11 @@ class LiquidMotor(Motor):
         totalMass = 0
         massBalance = 0
 
-        for tank in self.tanks:
-            tankMass = tank.get("tank").mass
-            tankPosition = tank.get("position")
-            totalMass += tankMass
-            massBalance += tankMass * tankPosition
+        for tankElement in self.tanks:
+            tank = tankElement.get("tank")
+            tankPosition = tankElement.get("position")
+            totalMass += tank.mass
+            massBalance += tank.mass * (tankPosition - tank.centerOfMass)
 
         return massBalance / totalMass
 
