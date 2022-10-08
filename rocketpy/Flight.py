@@ -6,6 +6,7 @@ __author__ = (
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
+from logging import warning
 import math
 import time
 from functools import cached_property
@@ -16,6 +17,7 @@ import simplekml
 from scipy import integrate
 
 from .Function import Function
+import warnings
 
 
 class Flight:
@@ -2731,17 +2733,156 @@ class Flight:
         )
 
     # Rail Button Forces
-    def __calculate_rail_button_forces(self):
-        """Calculate the forces applied to the rail buttons while rocket is still
-        on the launch rail.
+    @cached_property
+    def railButton1NormalForce(self):
+        """Upper rail button normal force as a function of time
 
         Returns
         -------
-        None
+        railButton1NormalForce: Function
+            Upper rail button normal force as a function of time
         """
+        F11, F12 = self.__calculate_rail_button_forces()[0:1]
+        alpha = self.rocket.railButtons.angularPosition * (np.pi / 180)
+        railButton1NormalForce = F11 * np.cos(alpha) + F12 * np.sin(alpha)
+        railButton1NormalForce.setOutputs("Upper Rail Button Normal Force (N)")
+
+        return railButton1NormalForce
+
+    @cached_property
+    def railButton1ShearForce(self):
+        """Upper rail button shear force as a function of time
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
+        F11, F12 = self.__calculate_rail_button_forces()[0:1]
         alpha = self.rocket.railButtons.angularPosition * (
             np.pi / 180
         )  # Rail buttons angular position
+        railButton1ShearForce = F11 * -np.sin(alpha) + F12 * np.cos(alpha)
+        railButton1ShearForce.setOutputs("Upper Rail Button Shear Force (N)")
+
+        return railButton1ShearForce
+
+    @cached_property
+    def railButton2NormalForce(self):
+        """Lower rail button normal force as a function of time
+
+        Returns
+        -------
+        railButton2NormalForce: Function
+            Lower rail button normal force as a function of time
+        """
+        F21, F22 = self.__calculate_rail_button_forces()[2:3]
+        alpha = self.rocket.railButtons.angularPosition * (np.pi / 180)
+        railButton2NormalForce = F21 * np.cos(alpha) + F22 * np.sin(alpha)
+        railButton2NormalForce.setOutputs("Lower Rail Button Normal Force (N)")
+
+        return railButton2NormalForce
+
+    @cached_property
+    def railButton2ShearForce(self):
+        """Lower rail button shear force as a function of time
+
+        Returns
+        -------
+        railButton2ShearForce: Function
+            Lower rail button shear force as a function of time
+        """
+
+        F21, F22 = self.__calculate_rail_button_forces()[2:3]
+        alpha = self.rocket.railButtons.angularPosition * (np.pi / 180)
+        railButton2ShearForce = F21 * -np.sin(alpha) + F22 * np.cos(alpha)
+        railButton2ShearForce.setOutputs("Lower Rail Button Shear Force (N)")
+
+        return railButton2ShearForce
+
+    @cached_property
+    def maxRailButton1NormalForce(self):
+        """Maximum upper rail button normal force, in Newtons
+
+        Returns
+        -------
+        maxRailButton1NormalForce: float
+            Maximum upper rail button normal force, in Newtons
+        """
+        outOfRailTimeIndex = np.searchsorted(self.F11[:, 0], self.outOfRailTime)
+        if outOfRailTimeIndex == 0:
+            return 0
+        else:
+            return np.max(self.railButton1NormalForce[:outOfRailTimeIndex])
+
+    @cached_property
+    def maxRailButton1ShearForce(self):
+        """Maximum upper rail button shear force, in Newtons
+
+        Returns
+        -------
+        maxRailButton1ShearForce: float
+            Maximum upper rail button shear force, in Newtons
+        """
+        outOfRailTimeIndex = np.searchsorted(self.F11[:, 0], self.outOfRailTime)
+        if outOfRailTimeIndex == 0:
+            return 0
+        else:
+            return np.max(self.railButton1ShearForce[:outOfRailTimeIndex])
+
+    @cached_property
+    def maxRailButton2NormalForce(self):
+        """Maximum lower rail button normal force, in Newtons
+
+        Returns
+        -------
+        maxRailButton2NormalForce: float
+            Maximum lower rail button normal force, in Newtons
+        """
+        outOfRailTimeIndex = np.searchsorted(self.F11[:, 0], self.outOfRailTime)
+        if outOfRailTimeIndex == 0:
+            return 0
+        else:
+            return np.max(self.railButton2NormalForce[:outOfRailTimeIndex])
+
+    @cached_property
+    def maxRailButton2ShearForce(self):
+        """Maximum lower rail button shear force, in Newtons
+
+        Returns
+        -------
+        maxRailButton2ShearForce: float
+            Maximum lower rail button shear force, in Newtons
+        """
+        outOfRailTimeIndex = np.searchsorted(self.F11[:, 0], self.outOfRailTime)
+        if outOfRailTimeIndex == 0:
+            return 0
+        else:
+            return np.max(self.railButton2ShearForce[:outOfRailTimeIndex])
+
+    @cached_property
+    def __calculate_rail_button_forces(self):
+        """Calculate the forces applied to the rail buttons while rocket is still
+        on the launch rail. It will return 0 if none rail buttons are defined.
+
+        Returns
+        -------
+        F11: Function
+            Rail Button 1 force in the 1 direction
+        F12:
+            Rail Button 1 force in the 2 direction
+        F21:
+            Rail Button 2 force in the 1 direction
+        F22:
+            Rail Button 2 force in the 2 direction
+        """
+
+        if self.rocket.railButtons is None:
+            warnings.warn(
+                "Trying to calculate rail button forces without rail buttons defined."
+            )
+            return 0, 0, 0, 0
+
         D1 = self.rocket.railButtons.distanceToCM[
             0
         ]  # Distance from Rail Button 1 (upper) to CM
@@ -2760,43 +2901,13 @@ class Flight:
         F22 = (self.R2 * D1 - self.M1) / (
             D1 + D2
         )  # Rail Button 2 force in the 2 direction
-        outOfRailTimeIndex = np.searchsorted(
-            F11[:, 0], self.outOfRailTime
-        )  # Find out of rail time index
+
         # F11 = F11[:outOfRailTimeIndex + 1, :] # Limit force calculation to when rocket is in rail
         # F12 = F12[:outOfRailTimeIndex + 1, :] # Limit force calculation to when rocket is in rail
         # F21 = F21[:outOfRailTimeIndex + 1, :] # Limit force calculation to when rocket is in rail
         # F22 = F22[:outOfRailTimeIndex + 1, :] # Limit force calculation to when rocket is in rail
-        self.railButton1NormalForce = F11 * np.cos(alpha) + F12 * np.sin(alpha)
-        self.railButton1NormalForce.setOutputs("Upper Rail Button Normal Force (N)")
-        self.railButton1ShearForce = F11 * -np.sin(alpha) + F12 * np.cos(alpha)
-        self.railButton1ShearForce.setOutputs("Upper Rail Button Shear Force (N)")
-        self.railButton2NormalForce = F21 * np.cos(alpha) + F22 * np.sin(alpha)
-        self.railButton2NormalForce.setOutputs("Lower Rail Button Normal Force (N)")
-        self.railButton2ShearForce = F21 * -np.sin(alpha) + F22 * np.cos(alpha)
-        self.railButton2ShearForce.setOutputs("Lower Rail Button Shear Force (N)")
-        # Rail Button Maximum Forces
-        if outOfRailTimeIndex == 0:
-            self.maxRailButton1NormalForce = 0
-            self.maxRailButton1ShearForce = 0
-            self.maxRailButton2NormalForce = 0
-            self.maxRailButton2ShearForce = 0
-        else:
-            self.maxRailButton1NormalForce = np.amax(
-                self.railButton1NormalForce[:outOfRailTimeIndex]
-            )
-            self.maxRailButton1ShearForce = np.amax(
-                self.railButton1ShearForce[:outOfRailTimeIndex]
-            )
-            self.maxRailButton2NormalForce = np.amax(
-                self.railButton2NormalForce[:outOfRailTimeIndex]
-            )
-            self.maxRailButton2ShearForce = np.amax(
-                self.railButton2ShearForce[:outOfRailTimeIndex]
-            )
 
-        self.calculatedRailButtonForces = True
-        return None
+        return F11, F12, F21, F22
 
     def __calculate_geodesic_coordinates(self):
         """Calculate the geodesic coordinates (i.e. latitude and longitude) of
@@ -2942,10 +3053,6 @@ class Flight:
         ------
         None
         """
-
-        # Deal with the rail buttons forces calculation
-        if self.calculatedRailButtonForces is not True:
-            self.__calculate_rail_button_forces()
 
         # Post process other quantities # TODO: Implement boolean to check if already done
         if self.calculatedGeodesicCoordinates is not True:
