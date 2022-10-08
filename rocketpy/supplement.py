@@ -23,7 +23,7 @@ class Geometry(ABC):
 
 
 class Geometry2D(Geometry):
-    def __init__(self):
+    def __init__(self, **kwargs):
         pass
 
     @property
@@ -44,13 +44,13 @@ class Geometry2D(Geometry):
 
 
 class Geometry3D(Geometry):
-    def __init__(self, filled_volume=None):
+    def __init__(self, filled_volume=None, fill_direction="upwards"):
         self.filled_volume = filled_volume
+        self.fill_direction = fill_direction
 
     @property
-    @abstractmethod
     def filled_height(self):
-        pass
+        return self._filled_height
 
     @property
     @abstractmethod
@@ -82,23 +82,19 @@ class Disk(Geometry2D):
 
 
 class Cylinder(Geometry3D):
-    def __init__(self, radius, height, filled_volume=None):
+    def __init__(self, radius, height, filled_volume=None, fill_direction="upwards"):
         self.radius = radius
         self.height = height
         self.sectional_area = Disk(radius).area
-        super().__init__(filled_volume)
+        super().__init__(filled_volume, fill_direction)
 
     @Geometry.volume.getter
     def volume(self):
         return self.sectional_area * self.height
 
-    @Geometry3D.filled_height.getter
-    def filled_height(self):
-        return self._filled_height
-
     @Geometry3D.filled_volume.getter
     def filled_volume(self):
-        return self.sectional_area * self.filled_height
+        return self._filled_volume
 
     @Geometry.centroid.getter
     def centroid(self):
@@ -113,17 +109,14 @@ class Cylinder(Geometry3D):
 
 
 class Hemisphere(Geometry3D):
-    def __init__(self, radius, filled_volume=None):
+    def __init__(self, radius, filled_volume=None, fill_direction="upwards"):
         self.radius = radius
-        super().__init__(filled_volume)
+        self.fill_direction = fill_direction
+        super().__init__(filled_volume, fill_direction)
 
     @Geometry.volume.getter
     def volume(self):
         return 2 / 3 * np.pi * self.radius**3
-
-    @Geometry3D.filled_height.getter
-    def filled_height(self):
-        return self._filled_height
 
     @Geometry3D.filled_volume.getter
     def filled_volume(self):
@@ -135,20 +128,35 @@ class Hemisphere(Geometry3D):
 
     @Geometry3D.filled_centroid.getter
     def filled_centroid(self):
-        # height from cap top pole
-        # distance from center of sphere
-        centroid = (
-            3
-            / 4
-            * (2 * self.radius - self.filled_height) ** 2
-            / (3 * self.radius - self.filled_height)
-        )
-        # distance from cap base
-        return centroid - (self.radius - self.filled_height)
+        if self.fill_direction == "upwards":
+            centroid = self.radius - (
+                0.75
+                * (2 * self.radius - self.filled_height) ** 2
+                / (3 * self.radius - self.filled_height)
+            )
+        elif self.fill_direction == "downwards":
+            centroid = (
+                0.75
+                * (self.filled_height**3 - 2 * self.filled_height * self.radius**2)
+                / (self.filled_height**2 - 3 * self.radius**2)
+            )
+        else:
+            raise AttributeError("Input a valid fill_direction")
+
+        return centroid
 
     def volume_to_height(self, volume):
-        height = (
-            lambda height: volume - np.pi * height**2 * (3 * self.radius - height) / 3
-        )
+        if self.fill_direction == "upwards":
+            height = (
+                lambda height: volume
+                - np.pi * height**2 * (3 * self.radius - height) / 3
+            )
+        elif self.fill_direction == "downwards":
+            height = (
+                lambda height: volume
+                - np.pi * height * (3 * self.radius**2 - height**2) / 3
+            )
+        else:
+            raise AttributeError("Input a valid fill_direction")
 
         return fsolve(height, np.array([self.radius / 2]))[0]
