@@ -136,7 +136,7 @@ class Tank(ABC):
             cap_mass = self.cap.volume * self.liquid.density
 
             return (
-                self.cap.centroid * cap_mass + self.cylinder.centroid * cylinder_mass
+                self.cap.centroid * cap_mass + self.cylinder.filled_centroid * cylinder_mass
             ) / (cap_mass + cylinder_mass)
 
     def inertiaTensor(self, t):
