@@ -112,7 +112,7 @@ class Hemisphere(Geometry3D):
     def __init__(self, radius, filled_volume=None, fill_direction="upwards"):
         self.radius = radius
         self.fill_direction = fill_direction
-        super().__init__(filled_volume)
+        super().__init__(filled_volume, fill_direction)
 
     @Geometry.volume.getter
     def volume(self):
