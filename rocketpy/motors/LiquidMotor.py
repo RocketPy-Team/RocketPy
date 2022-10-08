@@ -5,6 +5,7 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 from abc import ABC, abstractmethod
+import functools
 
 import numpy as np
 from scipy import integrate
@@ -223,6 +224,7 @@ class MassFlowRateBasedTank(Tank):
             "constant",
         )
 
+    @functools.cached_property
     def netMassFlowRate(self):
         """Returns the net mass flow rate of the tank as a function of time.
         Net mass flow rate is the mass flow rate exiting the tank minus the
@@ -253,6 +255,7 @@ class MassFlowRateBasedTank(Tank):
 
         return self.net_mass_flow_rate
 
+    @functools.cached_property
     def mass(self):
         """Returns the total mass of liquid and gases inside the tank as a
         function of time.
@@ -272,7 +275,7 @@ class MassFlowRateBasedTank(Tank):
             self.liquid_net_mass_flow_rate.source[:, 0][-1],
             self.gas_net_mass_flow_rate.source[:, 0][-1],
         )
-        
+
         # solve ODE's for liquid and gas masses
         sol = integrate.solve_ivp(
             lambda t, y: (
