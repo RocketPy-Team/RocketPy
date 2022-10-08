@@ -159,7 +159,9 @@ class Tank(ABC):
         cylinder_mass = self.cylinder.filled_volume * self.liquid.density
 
         # for a solid cylinder, ixx = iyy = mr²/4 + ml²/12
-        self.inertiaI = cylinder_mass * (self.diameter**2 + self.cylinder.filled_height**2 / 12)
+        self.inertiaI = cylinder_mass * (
+            self.diameter**2 + self.cylinder.filled_height**2 / 12
+        )
 
         # fluids considered inviscid so no shear resistance from torques in z axis
         self.inertiaZ = 0
@@ -266,13 +268,18 @@ class MassFlowRateBasedTank(Tank):
             Mass of the tank as a function of time. Units in kg.
         """
 
+        burnOut = max(
+            self.liquid_net_mass_flow_rate.source[:, 0][-1],
+            self.gas_net_mass_flow_rate.source[:, 0][-1],
+        )
+        
         # solve ODE's for liquid and gas masses
         sol = integrate.solve_ivp(
             lambda t, y: (
                 self.liquid_net_mass_flow_rate(t),
                 self.gas_net_mass_flow_rate(t),
             ),
-            (0, self.net_mass_flow_rate.source[:, 0][-1]),
+            (0, burnOut),
             (self.initial_liquid_mass, self.initial_gas_mass),
             vectorized=True,
         )
