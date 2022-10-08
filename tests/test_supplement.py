@@ -118,5 +118,5 @@ def test_hemisphere_filling():
     )
 
     assert np.isclose(
-        Hemisphere1.filled_centroid, 0.698077340960644, atol=1e-10, rtol=1e-12
+        Hemisphere1.filled_centroid, 1.260033593037774, atol=1e-10, rtol=1e-12
     )
