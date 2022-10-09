@@ -89,16 +89,17 @@ class Tank(ABC):
     def setTankFilling(self, t):
         liquidVolume = self.liquidVolume.getValueOpt(t)
 
-        if liquidVolume < self.bottomCap.volume:
+        if 0 <= liquidVolume < self.bottomCap.volume:
             self.bottomCap.filled_volume = liquidVolume
             self.cylinder.filled_volume = 0
             self.upperCap.filled_volume = 0
-        elif liquidVolume <= self.bottomCap.volume + self.cylinder.volume:
+        elif 0 < liquidVolume <= self.bottomCap.volume + self.cylinder.volume:
             self.bottomCap.filled_volume = self.bottomCap.volume
             self.cylinder.filled_volume = liquidVolume - self.bottomCap.volume
             self.upperCap.filled_volume = 0
         elif (
-            liquidVolume
+            0
+            < liquidVolume
             <= self.bottomCap.volume + self.cylinder.volume + self.upperCap.volume
         ):
             self.bottomCap.filled_volume = self.bottomCap.volume
@@ -108,7 +109,8 @@ class Tank(ABC):
             )
         else:
             raise ValueError(
-                "Tank is overfilled. Check input data to make sure it is correct."
+                f"{self.name} tank liquid volume is either negative or greater than "
+                "total tank volume. Check input data to make sure it is correct."
             )
 
     @functools.cached_property
@@ -241,8 +243,6 @@ class MassFlowRateBasedTank(Tank):
         name,
         diameter,
         height,
-        bottomCap,
-        upperCap,
         gas,
         liquid,
         initial_liquid_mass,
@@ -252,6 +252,8 @@ class MassFlowRateBasedTank(Tank):
         liquid_mass_flow_rate_out,
         gas_mass_flow_rate_out,
         burn_out_time=300,
+        bottomCap="flat",
+        upperCap="flat",
     ):
         """A motor tank defined based on liquid and gas mass flow rates.
 
@@ -263,10 +265,6 @@ class MassFlowRateBasedTank(Tank):
             Diameter of the tank in meters.
         height : float
             Height of the tank in meters.
-        bottomCap : str
-            Type of bottom cap. Options are "flat" and "spherical".
-        upperCap : str
-            Type of upper cap. Options are "flat" and "spherical".
         gas : Gas
             motor.Gas object.
         liquid : Liquid
@@ -298,6 +296,10 @@ class MassFlowRateBasedTank(Tank):
         burn_out_time : float, optional
             Time in seconds greater than motor burn out time to use for
             numerical integration stopping criteria. Default is 300.
+        bottomCap : str
+            Type of bottom cap. Options are "flat" and "spherical". Default is "flat".
+        upperCap : str
+            Type of upper cap. Options are "flat" and "spherical". Default is "flat".
         """
         super().__init__(name, diameter, height, gas, liquid, bottomCap, upperCap)
 
@@ -381,6 +383,7 @@ class MassFlowRateBasedTank(Tank):
             "Net Propellant Mass Flow Rate Entering Tank (kg/s)"
         )
         self.net_mass_flow_rate.setExtrapolation("zero")
+        self.net_mass_flow_rate.setInputs(["Time (s)"])
 
         return self.net_mass_flow_rate
 
@@ -469,11 +472,11 @@ class UllageBasedTank(Tank):
         name,
         diameter,
         height,
-        bottomCap,
-        upperCap,
         gas,
         liquid,
         ullage,
+        bottomCap="flat",
+        upperCap="flat",
     ):
         """A motor tank defined based on its ullage volume, i.e., the volume
         of gas inside the tank.
@@ -486,10 +489,6 @@ class UllageBasedTank(Tank):
             Diameter of the tank in meters.
         height : float
             Height of the tank in meters.
-        bottomCap : str
-            Type of bottom cap. Options are "flat" and "spherical".
-        upperCap : str
-            Type of upper cap. Options are "flat" and "spherical".
         gas : Gas
             motor.Gas object.
         liquid : Liquid
@@ -498,6 +497,12 @@ class UllageBasedTank(Tank):
             Ullage volume of the tank as a function of time. Units in m^3.
             If string is given, it should be the filepath of a csv file
             containing the data. For more information, see Function.
+        bottomCap : str
+            Type of bottom cap. Options are "flat" and "spherical".
+            Default is "flat".
+        upperCap : str
+            Type of upper cap. Options are "flat" and "spherical".
+            Default is "flat".
         """
         super().__init__(name, diameter, height, gas, liquid, bottomCap, upperCap)
         self.ullage = ullage
