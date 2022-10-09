@@ -1613,176 +1613,291 @@ class Flight:
     # Process first type of outputs - state vector
     # Transform solution array into Functions
     @cached_property
-    def x(self):
+    def x(self, interpolation="spline", extrapolation="natural"):
+        """Rocket x position as a function of time.
+
+        Parameters
+        ----------
+        extrapolation : str, optional
+            Function extrapolation mode. Options are 'linear', 'polynomial',
+            'akima' and 'spline'. Default is 'spline'.
+        interpolation : str, optional
+            Function extrapolation mode. Options are 'natural', which keeps
+            interpolation, 'constant', which returns the value of the function
+            at the edge of the interval, and 'zero', which returns zero for all
+            points outside of source range. Default is 'natural'.
+
+        Returns
+        -------
+        x: Function
+            Rocket x position as a function of time.
+        """
         return Function(
             np.array(self.solution)[:, [0, 1]],
             "Time (s)",
             "X (m)",
-            interpolation="spline",
-            extrapolation="natural",
+            interpolation,
+            extrapolation,
         )
 
     @cached_property
-    def y(self):
+    def y(self, interpolation="spline", extrapolation="natural"):
+        """ocket y position as a function of time.
+
+        Parameters
+        ----------
+        extrapolation : str, optional
+            Function extrapolation mode. Options are 'linear', 'polynomial',
+            'akima' and 'spline'. Default is 'spline'.
+        interpolation : str, optional
+            Function extrapolation mode. Options are 'natural', which keeps
+            interpolation, 'constant', which returns the value of the function
+            at the edge of the interval, and 'zero', which returns zero for all
+            points outside of source range. Default is 'natural'.
+
+        Returns
+        -------
+        y: Function
+            Rocket y position as a function of time.
+        """
         return Function(
             np.array(self.solution)[:, [0, 2]],
             "Time (s)",
             "Y (m)",
-            interpolation="spline",
-            extrapolation="natural",
+            interpolation,
+            extrapolation,
         )
 
     @cached_property
-    def z(self):
+    def z(self, interpolation="spline", extrapolation="natural"):
+        """Rocket z position as a function of time.
+
+        Parameters
+        ----------
+        extrapolation : str, optional
+            Function extrapolation mode. Options are 'linear', 'polynomial',
+            'akima' and 'spline'. Default is 'spline'.
+        interpolation : str, optional
+            Function extrapolation mode. Options are 'natural', which keeps
+            interpolation, 'constant', which returns the value of the function
+            at the edge of the interval, and 'zero', which returns zero for all
+            points outside of source range. Default is 'natural'.
+
+        Returns
+        -------
+        z: Function
+            Rocket z position as a function of time.
+        """
         return Function(
             np.array(self.solution)[:, [0, 3]],
             "Time (s)",
             "Z (m)",
-            interpolation="spline",
-            extrapolation="natural",
+            interpolation,
+            extrapolation,
         )
 
     @cached_property
-    def vx(self):
+    def vx(self, interpolation="spline", extrapolation="natural"):
+        """Rocket x velocity as a function of time.
+
+        Parameters
+        ----------
+        extrapolation : str, optional
+            Function extrapolation mode. Options are 'linear', 'polynomial',
+            'akima' and 'spline'. Default is 'spline'.
+        interpolation : str, optional
+            Function extrapolation mode. Options are 'natural', which keeps
+            interpolation, 'constant', which returns the value of the function
+            at the edge of the interval, and 'zero', which returns zero for all
+            points outside of source range. Default is 'natural'.
+
+        Returns
+        -------
+        vx: Function
+            Rocket x velocity as a function of time.
+        """
+
         return Function(
             np.array(self.solution)[:, [0, 4]],
             "Time (s)",
             "Vx (m/s)",
-            interpolation="spline",
-            extrapolation="natural",
+            interpolation,
+            extrapolation,
         )
 
     @cached_property
-    def vy(self):
+    def vy(self, interpolation="spline", extrapolation="natural"):
+        """Rocket y velocity as a function of time.
+
+        Parameters
+        ----------
+        extrapolation : str, optional
+            Function extrapolation mode. Options are 'linear', 'polynomial',
+            'akima' and 'spline'. Default is 'spline'.
+        interpolation : str, optional
+            Function extrapolation mode. Options are 'natural', which keeps
+            interpolation, 'constant', which returns the value of the function
+            at the edge of the interval, and 'zero', which returns zero for all
+            points outside of source range. Default is 'natural'.
+
+        Returns
+        -------
+        vy: Function
+            Rocket y velocity as a function of time.
+        """
         return Function(
             np.array(self.solution)[:, [0, 5]],
             "Time (s)",
             "Vy (m/s)",
-            interpolation="spline",
-            extrapolation="natural",
+            interpolation,
+            extrapolation,
         )
 
     @cached_property
-    def vz(self):
+    def vz(self, interpolation="spline", extrapolation="natural"):
+        """Rocket z velocity as a function of time.
+
+        Parameters
+        ----------
+        extrapolation : str, optional
+            Function extrapolation mode. Options are 'linear', 'polynomial',
+            'akima' and 'spline'. Default is 'spline'.
+        interpolation : str, optional
+            Function extrapolation mode. Options are 'natural', which keeps
+            interpolation, 'constant', which returns the value of the function
+            at the edge of the interval, and 'zero', which returns zero for all
+            points outside of source range. Default is 'natural'.
+
+        Returns
+        -------
+        vz: Function
+            Rocket z velocity as a function of time.
+        """
         return Function(
             np.array(self.solution)[:, [0, 6]],
             "Time (s)",
             "Vz (m/s)",
-            interpolation="spline",
-            extrapolation="natural",
+            interpolation,
+            extrapolation,
         )
 
     @cached_property
-    def e0(self):
+    def e0(self, interpolation="spline", extrapolation="natural"):
         return Function(
             np.array(self.solution)[:, [0, 7]],
             "Time (s)",
             "e0",
-            interpolation="spline",
-            extrapolation="natural",
+            interpolation,
+            extrapolation,
         )
 
     @cached_property
-    def e1(self):
+    def e1(self, interpolation="spline", extrapolation="natural"):
         return Function(
             np.array(self.solution)[:, [0, 8]],
             "Time (s)",
             "e1",
-            interpolation="spline",
-            extrapolation="natural",
+            interpolation,
+            extrapolation,
         )
 
     @cached_property
-    def e2(self):
+    def e2(self, interpolation="spline", extrapolation="natural"):
         return Function(
             np.array(self.solution)[:, [0, 9]],
             "Time (s)",
             "e2",
-            interpolation="spline",
-            extrapolation="natural",
+            interpolation,
+            extrapolation,
         )
 
     @cached_property
-    def e3(self):
+    def e3(self, interpolation="spline", extrapolation="natural"):
         return Function(
             np.array(self.solution)[:, [0, 10]],
             "Time (s)",
             "e3",
-            interpolation="spline",
-            extrapolation="natural",
+            interpolation,
+            extrapolation,
         )
 
     @cached_property
-    def w1(self):
+    def w1(self, interpolation="spline", extrapolation="natural"):
         return Function(
             np.array(self.solution)[:, [0, 11]],
             "Time (s)",
             "ω1 (rad/s)",
-            interpolation="spline",
-            extrapolation="natural",
+            interpolation,
+            extrapolation,
         )
 
     @cached_property
-    def w2(self):
+    def w2(self, interpolation="spline", extrapolation="natural"):
         return Function(
             np.array(self.solution)[:, [0, 12]],
             "Time (s)",
             "ω2 (rad/s)",
-            interpolation="spline",
-            extrapolation="natural",
+            interpolation,
+            extrapolation,
         )
 
     @cached_property
-    def w3(self):
+    def w3(self, interpolation="spline", extrapolation="natural"):
         return Function(
             np.array(self.solution)[:, [0, 13]],
             "Time (s)",
             "ω3 (rad/s)",
-            interpolation="spline",
-            extrapolation="natural",
+            interpolation,
+            extrapolation,
         )
 
     # Process second type of outputs - accelerations components
     @cached_property
-    def ax(self):
+    def ax(self, interpolation="spline", extrapolation="natural"):
         ax = self.__retrieved_acceleration_arrays()[0]
         # Convert accelerations to functions
-        ax = Function(ax, "Time (s)", "Ax (m/s2)")
+        ax = Function(ax, "Time (s)", "Ax (m/s2)", interpolation, extrapolation)
         return ax
 
     @cached_property
-    def ay(self):
+    def ay(self, interpolation="spline", extrapolation="natural"):
         ay = self.__retrieved_acceleration_arrays()[1]
         # Convert accelerations to functions
-        ay = Function(ay, "Time (s)", "Ay (m/s2)")
+        ay = Function(ay, "Time (s)", "Ay (m/s2)", interpolation, extrapolation)
         return ay
 
     @cached_property
-    def az(self):
+    def az(self, interpolation="spline", extrapolation="natural"):
         az = self.__retrieved_acceleration_arrays()[2]
         # Convert accelerations to functions
-        az = Function(az, "Time (s)", "Az (m/s2)")
+        az = Function(az, "Time (s)", "Az (m/s2)", interpolation, extrapolation)
         return az
 
     @cached_property
-    def alpha1(self):
+    def alpha1(self, interpolation="spline", extrapolation="natural"):
         alpha1 = self.__retrieved_acceleration_arrays()[3]
         # Convert accelerations to functions
-        alpha1 = Function(alpha1, "Time (s)", "α1 (rad/s2)")
+        alpha1 = Function(
+            alpha1, "Time (s)", "α1 (rad/s2)", interpolation, extrapolation
+        )
         return alpha1
 
     @cached_property
-    def alpha2(self):
+    def alpha2(self, interpolation="spline", extrapolation="natural"):
         alpha2 = self.__retrieved_acceleration_arrays()[4]
         # Convert accelerations to functions
-        alpha2 = Function(alpha2, "Time (s)", "α2 (rad/s2)")
+        alpha2 = Function(
+            alpha2, "Time (s)", "α2 (rad/s2)", interpolation, extrapolation
+        )
         return alpha2
 
     @cached_property
-    def alpha3(self):
+    def alpha3(self, interpolation="spline", extrapolation="natural"):
         alpha3 = self.__retrieved_acceleration_arrays()[5]
         # Convert accelerations to functions
-        alpha3 = Function(alpha3, "Time (s)", "α3 (rad/s2)")
+        alpha3 = Function(
+            alpha3, "Time (s)", "α3 (rad/s2)", interpolation, extrapolation
+        )
         return alpha3
 
     # Process third type of outputs - Temporary values
@@ -2654,10 +2769,7 @@ class Flight:
 
         Parameters
         ----------
-        interpolation : str, optional
-            Selected model for interpolation, by default "spline"
-        extrapolation : str, optional
-            Selected model for extrapolation, by default "natural"
+        None
 
         Returns
         -------
