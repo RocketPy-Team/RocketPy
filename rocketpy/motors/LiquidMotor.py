@@ -31,10 +31,24 @@ class LiquidMotor(Motor):
         pass
 
     def evaluateMassFlowRate(self):
-        pass
+        massFlowRate = 0
+
+        for tank in self.tanks:
+            massFlowRate += tank.get("tank").netMassFlowRate
+
+        return massFlowRate
 
     def evaluateCenterOfMass(self):
-        pass
+        totalMass = 0
+        massBalance = 0
+
+        for tankElement in self.tanks:
+            tank = tankElement.get("tank")
+            tankPosition = tankElement.get("position")
+            totalMass += tank.mass
+            massBalance += tank.mass * (tankPosition + tank.centerOfMass)
+
+        return massBalance / totalMass
 
     def evaluateInertiaTensor(self):
         pass
@@ -176,7 +190,7 @@ class Tank(ABC):
             + self.cylinder.filled_centroid * cylinderMass
             + self.upperCap.filled_centroid * upperCapMass
         ) / (bottomCapMass + cylinderMass + upperCapMass)
-
+        
         return centerOfMass
 
     def inertiaTensor(self, t):
@@ -205,7 +219,7 @@ class Tank(ABC):
 
         # fluids considered inviscid so no shear resistance from torques in z axis
         self.inertiaZ = 0
-
+        
         return self.inertiaI, self.inertiaZ
 
 
