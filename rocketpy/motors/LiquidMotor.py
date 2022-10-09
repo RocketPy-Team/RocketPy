@@ -244,33 +244,84 @@ class UllageBasedTank(Tank):
         liquid,
         gas,
         ullage,
-        endcap="flat",
+        bottomCap="flat",
+        upperCap="flat",
     ):
-        super().__init__(name, diameter, height, gas, liquid, endcap)
+        super().__init__(name, diameter, height, gas, liquid, bottomCap, upperCap)
         self.ullage = ullage
 
     @functools.cached_property
     def gasVolume(self):
+        """
+        Returns the volume of gas inside the tank.
+
+        Returns
+        -------
+        Function
+            Tank's gas volume as a function of time.
+        """
         return Function(self.ullage, "Time (s)", "Volume (m³)")
 
     @functools.cached_property
     def liquidVolume(self):
+        """Returns the volume of liquid inside the tank as a function
+        of time.
+
+        Returns
+        -------
+        Function
+            Tank's liquid volume as a function of time.
+        """
         return self.totalVolume - self.gasVolume
 
     @functools.cached_property
     def gasMass(self):
+        """
+        Returns the total gas mass inside the tank.
+
+        Returns
+        -------
+        Function
+            Tank's gas mass as a function of time.
+        """
         return self.gasVolume * self.gas.density
 
     @functools.cached_property
     def liquidMass(self):
+        """
+        Returns the total liquid mass inside the tank.
+
+        Returns
+        -------
+        Function
+            Tank's liquid mass as a function of time.
+        """
         return self.liquidVolume * self.liquid.density
 
     @functools.cached_property
     def mass(self):
+        """Returns the total mass of liquid and gases inside the tank as a
+        function of time.
+
+        Returns
+        -------
+        Function
+            Mass of the tank as a function of time. Units in kg.
+        """
         return self.gasMass + self.liquidMass
 
     @functools.cached_property
+    @Function
     def netMassFlowRate(self):
+        """Returns the net mass flow rate of the tank as a function of time.
+        Net mass flow rate is the mass flow rate exiting the tank minus the
+        mass flow rate entering the tank, including liquids and gases.
+
+        Returns
+        -------
+        Function
+            Net mass flow rate of the tank as a function of time.
+        """
         return self.massFunction.differentiate
 
 
