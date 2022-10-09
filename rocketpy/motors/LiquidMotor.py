@@ -317,11 +317,15 @@ class MassFlowRateBasedTank(Tank):
         Function
             Mass of the tank as a function of time. Units in kg.
         """
+        # Create an event function for solve_ivp
 
-        burnOut = max(
-            self.liquid_net_mass_flow_rate.source[:, 0][-1],
-            self.gas_net_mass_flow_rate.source[:, 0][-1],
-        )
+        def stopping_criteria(t, y):
+            if y[0] / self.initial_liquid_mass > 0.95:
+                return -1
+            else:
+                return self.netMassFlowRate(t)
+
+        stopping_criteria.terminal = True
 
         # solve ODE's for liquid and gas masses
         sol = integrate.solve_ivp(
@@ -329,9 +333,12 @@ class MassFlowRateBasedTank(Tank):
                 self.liquid_net_mass_flow_rate(t),
                 self.gas_net_mass_flow_rate(t),
             ),
-            (0, burnOut),
+            (0, self.burn_out_time),
             (self.initial_liquid_mass, self.initial_gas_mass),
+            first_step=1e-3,
             vectorized=True,
+            events=stopping_criteria,
+            method="LSODA",
         )
 
         self.liquid_mass = Function(
@@ -348,6 +355,7 @@ class MassFlowRateBasedTank(Tank):
 
         self.mass = self.liquid_mass + self.gas_mass
         self.mass.setOutputs("Total Propellant Mass In Tank (kg)")
+        self.mass.setExtrapolation("constant")
 
         return self.mass
 
