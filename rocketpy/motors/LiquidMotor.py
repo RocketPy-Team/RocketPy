@@ -111,6 +111,17 @@ class Tank(ABC):
                 "Tank is overfilled. Check input data to make sure it is correct."
             )
 
+    @functools.cached_property
+    def volume(self):
+        """Returns the total volume of the tank structure.
+
+        Returns
+        -------
+        float
+            Tank's total volume.
+        """
+        return self.bottomCap.volume + self.cylinder.volume + self.upperCap.volume
+
     @abstractmethod
     def mass(self):
         """Returns the total mass of liquid and gases inside the tank as a
@@ -466,7 +477,7 @@ class UllageBasedTank(Tank):
     ):
         """A motor tank defined based on its ullage volume, i.e., the volume
         of gas inside the tank.
-        
+
         Parameters
         ----------
         name : str
@@ -501,7 +512,11 @@ class UllageBasedTank(Tank):
         Function
             Tank's gas volume as a function of time.
         """
-        return Function(self.ullage, "Time (s)", "Volume (m³)")
+        gasVolume = Function(
+            self.ullage, "Time (s)", "Volume (m³)", extrapolation="constant"
+        )
+        gasVolume.setOutputs("Gas Propellant Volume In Tank (m³)")
+        return gasVolume
 
     @functools.cached_property
     def liquidVolume(self):
@@ -513,7 +528,10 @@ class UllageBasedTank(Tank):
         Function
             Tank's liquid volume as a function of time.
         """
-        return self.cylinder.volume - self.gasVolume
+        liquidVolume = self.volume - self.gasVolume
+        liquidVolume.setInputs("Time (s)")
+        liquidVolume.setOutputs("Liquid Propellant Volume In Tank (m³)")
+        return liquidVolume
 
     @functools.cached_property
     def gasMass(self):
@@ -525,7 +543,10 @@ class UllageBasedTank(Tank):
         Function
             Tank's gas mass as a function of time.
         """
-        return self.gasVolume * self.gas.density
+        gasMass = self.gasVolume * self.gas.density
+        gasMass.setInputs("Time (s)")
+        gasMass.setOutputs("Gas Propellant Mass In Tank (kg)")
+        return gasMass
 
     @functools.cached_property
     def liquidMass(self):
@@ -537,7 +558,10 @@ class UllageBasedTank(Tank):
         Function
             Tank's liquid mass as a function of time.
         """
-        return self.liquidVolume * self.liquid.density
+        liquidMass = self.liquidVolume * self.liquid.density
+        liquidMass.setInputs("Time (s)")
+        liquidMass.setOutputs("Liquid Propellant Mass In Tank (kg)")
+        return liquidMass
 
     @functools.cached_property
     def mass(self):
@@ -549,7 +573,10 @@ class UllageBasedTank(Tank):
         Function
             Mass of the tank as a function of time. Units in kg.
         """
-        return self.gasMass + self.liquidMass
+        mass = self.gasMass + self.liquidMass
+        mass.setInputs("Time (s)")
+        mass.setOutputs("Total Propellant Mass In Tank (kg)")
+        return mass
 
     @functools.cached_property
     def netMassFlowRate(self):
@@ -562,7 +589,14 @@ class UllageBasedTank(Tank):
         Function
             Net mass flow rate of the tank as a function of time.
         """
-        return Function(self.mass.differentiate)
+        netMassFlowRate = Function(
+            lambda t: self.mass.differentiate(t, dx=1e-6),
+            "Time (s)",
+            "Mass Flow Rate (kg/s)",
+            extrapolation="zero",
+        )
+        netMassFlowRate.setOutputs("Net Tank Mass Flow Rate (kg/s)")
+        return netMassFlowRate
 
 
 # @ompro07
