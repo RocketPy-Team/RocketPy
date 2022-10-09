@@ -45,7 +45,7 @@ class LiquidMotor(Motor):
             tank = tankElement.get("tank")
             tankPosition = tankElement.get("position")
             totalMass += tank.mass
-            massBalance += tank.mass * (tankPosition - tank.centerOfMass)
+            massBalance += tank.mass * (tankPosition + tank.centerOfMass)
 
         return massBalance / totalMass
 
