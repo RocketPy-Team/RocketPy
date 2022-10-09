@@ -640,8 +640,10 @@ class Flight:
         self.calculatedRailButtonForces = False
         self.calculatedGeodesicCoordinates = False
         self.calculatedPressureSignals = False
-        self.latitude = Function(0)
-        self.longitude = Function(0)
+        self._drift = Function(0)
+        self.bearing = Function(0)
+        self._latitude = Function(0)
+        self._longitude = Function(0)
         # Initialize solver monitors
         self.functionEvaluations = []
         self.functionEvaluationsPerTimeStep = []
@@ -2861,6 +2863,81 @@ class Flight:
             return np.max(self.railButton2ShearForce[:outOfRailTimeIndex])
 
     @cached_property
+    def drift(self):
+        """Rocket horizontal distance to tha launch point, in meters, at each
+        time step.
+
+        Returns
+        -------
+        drift: Function
+            Rocket horizontal distance to tha launch point, in meters, at each
+            time step.
+        """
+        return (self.x**2 + self.y**2) ** 0.5
+
+    @cached_property
+    def bearing(self):
+        """Rocket bearing compass, in degrees, at each time step.
+
+        Returns
+        -------
+        bearing: Function
+            Rocket bearing, in degrees, at each time step.
+        """
+        return np.arctan2(self.y, self.x) * 180 / np.pi
+
+    @cached_property
+    def latitude(self):
+        """Rocket latitude coordinate, in degrees, at each time step.
+
+        Returns
+        -------
+        latitude: Function
+            Rocket latitude coordinate, in degrees, at each time step.
+        """
+        lat1 = np.deg2rad(self.env.lat)  # Launch lat point converted to radians
+
+        # Applies the haversine equation to find final lat/lon coordinates
+        latitude = np.rad2deg(
+            math.asin(
+                math.sin(lat1) * math.cos(self.drift / self.env.earthRadius)
+                + math.cos(lat1)
+                * math.sin(self.drift / self.env.earthRadius)
+                * math.cos(self.bearing)
+            )
+        )
+        latitude = Function(latitude, "Time (s)", "Latitude (°)", "linear")
+
+        return latitude
+
+    @cached_property
+    def longitude(self):
+        """Rocket longitude coordinate, in degrees, at each time step.
+
+        Returns
+        -------
+        longitude: Function
+            Rocket longitude coordinate, in degrees, at each time step.
+        """
+        lat1 = np.deg2rad(self.env.lat)  # Launch lat point converted to radians
+        lon1 = np.deg2rad(self.env.lon)  # Launch lon point converted to radians
+
+        # Applies the haversine equation to find final lat/lon coordinates
+        longitude = np.rad2deg(
+            lon1
+            + math.atan2(
+                math.sin(self.bearing)
+                * math.sin(self.drift / self.env.earthRadius)
+                * math.cos(lat1),
+                math.cos(self.drift / self.env.earthRadius)
+                - math.sin(lat1) * math.sin(self.latitude),
+            )
+        )
+        longitude = Function(longitude, "Time (s)", "Longitude (°)", "linear")
+
+        return longitude
+
+    @cached_property
     def __calculate_rail_button_forces(self):
         """Calculate the forces applied to the rail buttons while rocket is still
         on the launch rail. It will return 0 if none rail buttons are defined.
@@ -2909,113 +2986,6 @@ class Flight:
 
         return F11, F12, F21, F22
 
-    def __calculate_geodesic_coordinates(self):
-        """Calculate the geodesic coordinates (i.e. latitude and longitude) of
-        the rocket during the whole flight.
-        Applies the Haversine equation considering a WGS84 ellipsoid.
-
-        Returns
-        -------
-        None
-        """
-        # Converts x and y positions to lat and lon
-        # We are currently considering the earth as a sphere.
-        bearing = []
-        distance = [
-            (self.x[i][1] ** 2 + self.y[i][1] ** 2) ** 0.5 for i in range(len(self.x))
-        ]
-        for i in range(len(self.x)):
-            # Check if the point is over the grid (i.e. if x*y == 0)
-            if self.x[i][1] == 0:
-                if self.y[i][1] < 0:
-                    bearing.append(3.14159265359)
-                else:
-                    bearing.append(0)
-                continue
-            if self.y[i][1] == 0:
-                if self.x[i][1] < 0:
-                    bearing.append(3 * 3.14159265359 / 2)
-                elif self.x[i][1] > 0:
-                    bearing.append(3.14159265359 / 2)
-                else:
-                    continue
-                continue
-
-            # Calculate bearing as the azimuth considering different quadrants
-            if self.x[i][1] * self.y[i][1] > 0 and self.x[i][1] > 0:
-                bearing.append(math.atan(abs(self.x[i][1]) / abs(self.y[i][1])))
-            elif self.x[i][1] * self.y[i][1] < 0 and self.x[i][1] > 0:
-                bearing.append(
-                    3.14159265359 / 2 + math.atan(abs(self.y[i][1]) / abs(self.x[i][1]))
-                )
-            elif self.x[i][1] * self.y[i][1] > 0 and self.x[i][1] < 0:
-                bearing.append(
-                    3.14159265359 + math.atan(abs(self.x[i][1]) / abs(self.y[i][1]))
-                )
-            elif self.x[i][1] * self.y[i][1] < 0 and self.x[i][1] < 0:
-                bearing.append(
-                    3 * 3.14159265359 / 2
-                    + math.atan(abs(self.y[i][1]) / abs(self.x[i][1]))
-                )
-
-        # Store values of distance and bearing using appropriate units
-        # self.distance = distance      # Must be in meters
-        # self.bearing = bearing        # Must be in radians
-
-        lat1 = (
-            3.14159265359 * self.env.lat / 180
-        )  # Launch lat point converted to radians
-        lon1 = (
-            3.14159265359 * self.env.lon / 180
-        )  # Launch long point converted to radians
-
-        R = self.env.earthRadius
-        lat2 = []
-        lon2 = []
-        # Applies the haversine equation to find final lat/lon coordinates
-        for i in range(len(self.x)):
-            # Please notice that for distances lower than 1 centimeter the difference on latitude or longitude too small
-            if abs(self.y[i][1]) < 1e-2:
-                lat2.append(self.env.lat)
-            else:
-                lat2.append(
-                    (180 / 3.14159265359)
-                    * math.asin(
-                        math.sin(lat1) * math.cos(distance[i] / R)
-                        + math.cos(lat1)
-                        * math.sin(distance[i] / R)
-                        * math.cos(bearing[i])
-                    )
-                )
-            if abs(self.x[i][1]) < 1e-2:
-                lon2.append(self.env.lon)
-            else:
-                lon2.append(
-                    (180 / 3.14159265359)
-                    * (
-                        lon1
-                        + math.atan2(
-                            math.sin(bearing[i])
-                            * math.sin(distance[i] / R)
-                            * math.cos(lat1),
-                            math.cos(distance[i] / R)
-                            - math.sin(lat1) * math.sin(lat2[i]),
-                        )
-                    )
-                )
-
-        latitude = [[self.solution[i][0], lat2[i]] for i in range(len(self.solution))]
-        longitude = [[self.solution[i][0], lon2[i]] for i in range(len(self.solution))]
-
-        # Store final values of lat/lon as a function of time
-        # TODO: Must be converted to properties
-        self.latitude = Function(latitude, "Time (s)", "Latitude (°)", "linear")
-        self.longitude = Function(longitude, "Time (s)", "Longitude (°)", "linear")
-
-        self.calculatedGeodesicCoordinates = True
-
-        return None
-
     def __calculate_pressure_signal(self):
         # Transform parachute sensor feed into functions
         for parachute in self.rocket.parachutes:
@@ -3053,10 +3023,6 @@ class Flight:
         ------
         None
         """
-
-        # Post process other quantities # TODO: Implement boolean to check if already done
-        if self.calculatedGeodesicCoordinates is not True:
-            self.__calculate_geodesic_coordinates()
 
         if self.calculatedPressureSignals is not True:
             self.__calculate_pressure_signal()
