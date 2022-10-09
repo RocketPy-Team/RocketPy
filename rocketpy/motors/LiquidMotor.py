@@ -34,7 +34,7 @@ class LiquidMotor(Motor):
         pass
 
     def evaluateCenterOfMass(self):
-       pass
+        pass
 
     def evaluateInertiaTensor(self):
         pass
@@ -98,7 +98,7 @@ class Tank(ABC):
             )
 
     @abstractmethod
-    def mass(self, t):
+    def mass(self):
         """Returns the total mass of liquid and gases inside the tank as a
         function of time.
 
@@ -115,10 +115,11 @@ class Tank(ABC):
         pass
 
     @abstractmethod
-    def netMassFlowRate(self, t):
+    def netMassFlowRate(self):
         """Returns the net mass flow rate of the tank as a function of time.
-        Net mass flow rate is the mass flow rate exiting the tank minus the
-        mass flow rate entering the tank, including liquids and gases.
+        Net mass flow rate is the mass flow rate entering the tank minus the
+        mass flow rate exiting the tank, including liquids and gases. Positive
+        is defined as a net mass flow rate entering the tank.
 
         Parameters
         ----------
@@ -129,11 +130,12 @@ class Tank(ABC):
         -------
         Function
             Net mass flow rate of the tank as a function of time.
+            Positive is defined as a net mass flow rate entering the tank.
         """
         pass
 
     @abstractmethod
-    def liquidVolume(self, t):
+    def liquidVolume(self):
         """Returns the volume of liquid inside the tank as a function
         of time.
 
@@ -173,7 +175,7 @@ class Tank(ABC):
             self.bottomCap.filled_centroid * bottomCapMass
             + self.cylinder.filled_centroid * cylinderMass
             + self.upperCap.filled_centroid * upperCapMass
-        ) / self.mass(t)
+        ) / (bottomCapMass + cylinderMass + upperCapMass)
 
         return centerOfMass
 
@@ -191,11 +193,12 @@ class Tank(ABC):
         Function
             Inertia tensor of the tank's fluids as a function of time.
         """
+        # TODO: compute inertia for non flat caps
         self.setTankFilling(t)
 
         cylinder_mass = self.cylinder.filled_volume * self.liquid.density
 
-        # for a solid cylinder, ixx = iyy = mr²/4 + ml²/12
+        # For a solid cylinder, ixx = iyy = mr²/4 + mh²/12
         self.inertiaI = cylinder_mass * (
             self.diameter**2 + self.cylinder.filled_height**2 / 12
         )
@@ -203,7 +206,7 @@ class Tank(ABC):
         # fluids considered inviscid so no shear resistance from torques in z axis
         self.inertiaZ = 0
 
-        return [self.inertiaI, self.inertiaZ]
+        return self.inertiaI, self.inertiaZ
 
 
 # @MrGribel
@@ -223,18 +226,66 @@ class MassFlowRateBasedTank(Tank):
         gas_mass_flow_rate_in,
         liquid_mass_flow_rate_out,
         gas_mass_flow_rate_out,
+        burn_out_time=300,
     ):
+        """A motor tank defined based on liquid and gas mass flow rates.
+
+        Parameters
+        ----------
+        name : str
+            Name of the tank.
+        diameter : float
+            Diameter of the tank in meters.
+        height : float
+            Height of the tank in meters.
+        bottomCap : str
+            Type of bottom cap. Options are "flat" and "spherical".
+        upperCap : str
+            Type of upper cap. Options are "flat" and "spherical".
+        gas : Gas
+            motor.Gas object.
+        liquid : Liquid
+            motor.Liquid object.
+        initial_liquid_mass : float
+            Initial mass of liquid in the tank in kg.
+        initial_gas_mass : float
+            Initial mass of gas in the tank in kg.
+        liquid_mass_flow_rate_in : str, float, array_like or callable
+            Liquid mass flow rate entering the tank as a function of time.
+            All values should be positive.
+            If string is given, it should be the filepath of a csv file
+            containing the data. For more information, see Function.
+        gas_mass_flow_rate_in : str, float, array_like or callable
+            Gas mass flow rate entering the tank as a function of time.
+            All values should be positive.
+            If string is given, it should be the filepath of a csv file
+            containing the data. For more information, see Function.
+        liquid_mass_flow_rate_out : str, float, array_like or callable
+            Liquid mass flow rate exiting the tank as a function of time.
+            All values should be positive.
+            If string is given, it should be the filepath of a csv file
+            containing the data. For more information, see Function.
+        gas_mass_flow_rate_out : str, float, array_like or callable
+            Gas mass flow rate exiting the tank as a function of time.
+            All values should be positive.
+            If string is given, it should be the filepath of a csv file
+            containing the data. For more information, see Function.
+        burn_out_time : float, optional
+            Time in seconds greater than motor burn out time to use for
+            numerical integration stopping criteria. Default is 300.
+        """
         super().__init__(name, diameter, height, gas, liquid, bottomCap, upperCap)
 
         self.initial_liquid_mass = initial_liquid_mass
         self.initial_gas_mass = initial_gas_mass
+        self.burn_out_time = burn_out_time
 
         self.gas_mass_flow_rate_in = Function(
             gas_mass_flow_rate_in,
             "Time (s)",
             "Inlet Gas Propellant Mass Flow Rate (kg/s)",
             "linear",
-            "constant",
+            "zero",
         )
 
         self.gas_mass_flow_rate_out = Function(
@@ -242,7 +293,7 @@ class MassFlowRateBasedTank(Tank):
             "Time (s)",
             "Outlet Gas Propellant Mass Flow Rate (kg/s)",
             "linear",
-            "constant",
+            "zero",
         )
 
         self.liquid_mass_flow_rate_in = Function(
@@ -250,7 +301,7 @@ class MassFlowRateBasedTank(Tank):
             "Time (s)",
             "Inlet Liquid Propellant Mass Flow Rate (kg/s)",
             "linear",
-            "constant",
+            "zero",
         )
 
         self.liquid_mass_flow_rate_out = Function(
@@ -258,14 +309,15 @@ class MassFlowRateBasedTank(Tank):
             "Time (s)",
             "Outlet Liquid Propellant Mass Flow Rate (kg/s)",
             "linear",
-            "constant",
+            "zero",
         )
 
     @functools.cached_property
     def netMassFlowRate(self):
         """Returns the net mass flow rate of the tank as a function of time.
-        Net mass flow rate is the mass flow rate exiting the tank minus the
-        mass flow rate entering the tank, including liquids and gases.
+        Net mass flow rate is the mass flow rate entering the tank minus the
+        mass flow rate exiting the tank, including liquids and gases. Positive
+        is defined as a net mass flow rate entering the tank.
 
         Parameters
         ----------
@@ -276,29 +328,34 @@ class MassFlowRateBasedTank(Tank):
         -------
         Function
             Net mass flow rate of the tank as a function of time.
+            Positive is defined as a net mass flow rate entering the tank.
         """
-
         self.liquid_net_mass_flow_rate = (
-            self.liquid_mass_flow_rate_in + (-1) * self.liquid_mass_flow_rate_out
+            self.liquid_mass_flow_rate_in - self.liquid_mass_flow_rate_out
         )
 
         self.liquid_net_mass_flow_rate.setOutputs(
             "Net Liquid Propellant Mass Flow Rate (kg/s)"
         )
+        self.liquid_net_mass_flow_rate.setExtrapolation("zero")
 
         self.gas_net_mass_flow_rate = (
-            self.gas_mass_flow_rate_in + (-1) * self.gas_mass_flow_rate_out
+            self.gas_mass_flow_rate_in - self.gas_mass_flow_rate_out
         )
 
         self.gas_net_mass_flow_rate.setOutputs(
             "Net Gas Propellant Mass Flow Rate (kg/s)"
         )
+        self.gas_net_mass_flow_rate.setExtrapolation("zero")
 
         self.net_mass_flow_rate = (
             self.liquid_net_mass_flow_rate + self.gas_net_mass_flow_rate
         )
 
-        self.net_mass_flow_rate.setOutputs("Net Propellant Mass Flow Rate (kg/s)")
+        self.net_mass_flow_rate.setOutputs(
+            "Net Propellant Mass Flow Rate Entering Tank (kg/s)"
+        )
+        self.net_mass_flow_rate.setExtrapolation("zero")
 
         return self.net_mass_flow_rate
 
@@ -375,6 +432,7 @@ class MassFlowRateBasedTank(Tank):
         """
         self.liquid_volume = self.liquid_mass / self.liquid.density
         self.liquid_volume.setOutputs("Liquid Propellant Volume In Tank (m^3)")
+        self.liquid_volume.setExtrapolation("constant")
 
         return self.liquid_volume
 
