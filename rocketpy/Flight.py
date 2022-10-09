@@ -1513,12 +1513,14 @@ class Flight:
             self.M2_list.append([t, M2])
             self.M3_list.append([t, M3])
             # Atmospheric Conditions
-            self.windVelocityX_list.append([t, self.env.windVelocityX(z)])
-            self.windVelocityY_list.append([t, self.env.windVelocityY(z)])
-            self.density_list.append([t, self.env.density(z)])
-            self.dynamicViscosity_list.append([t, self.env.dynamicViscosity(z)])
-            self.pressure_list.append([t, self.env.pressure(z)])
-            self.speedOfSound_list.append([t, self.env.speedOfSound(z)])
+            self.windVelocityX_list.append([t, self.env.windVelocityX.getValueOpt(z)])
+            self.windVelocityY_list.append([t, self.env.windVelocityY.getValueOpt(z)])
+            self.density_list.append([t, self.env.density.getValueOpt(z)])
+            self.dynamicViscosity_list.append(
+                [t, self.env.dynamicViscosity.getValueOpt(z)]
+            )
+            self.pressure_list.append([t, self.env.pressure.getValueOpt(z)])
+            self.speedOfSound_list.append([t, self.env.speedOfSound.getValueOpt(z)])
 
         return uDot
 
@@ -1842,28 +1844,28 @@ class Flight:
     # Process second type of outputs - accelerations components
     @cached_property
     def ax(self, interpolation="spline", extrapolation="natural"):
-        ax = self.__retrieved_acceleration_arrays[0]
+        ax = self.retrieve_acceleration_arrays[0]
         # Convert accelerations to functions
         ax = Function(ax, "Time (s)", "Ax (m/s2)", interpolation, extrapolation)
         return ax
 
     @cached_property
     def ay(self, interpolation="spline", extrapolation="natural"):
-        ay = self.__retrieved_acceleration_arrays[1]
+        ay = self.retrieve_acceleration_arrays[1]
         # Convert accelerations to functions
         ay = Function(ay, "Time (s)", "Ay (m/s2)", interpolation, extrapolation)
         return ay
 
     @cached_property
     def az(self, interpolation="spline", extrapolation="natural"):
-        az = self.__retrieved_acceleration_arrays[2]
+        az = self.retrieve_acceleration_arrays[2]
         # Convert accelerations to functions
         az = Function(az, "Time (s)", "Az (m/s2)", interpolation, extrapolation)
         return az
 
     @cached_property
     def alpha1(self, interpolation="spline", extrapolation="natural"):
-        alpha1 = self.__retrieved_acceleration_arrays[3]
+        alpha1 = self.retrieve_acceleration_arrays[3]
         # Convert accelerations to functions
         alpha1 = Function(
             alpha1, "Time (s)", "α1 (rad/s2)", interpolation, extrapolation
@@ -1872,7 +1874,7 @@ class Flight:
 
     @cached_property
     def alpha2(self, interpolation="spline", extrapolation="natural"):
-        alpha2 = self.__retrieved_acceleration_arrays[4]
+        alpha2 = self.retrieve_acceleration_arrays[4]
         # Convert accelerations to functions
         alpha2 = Function(
             alpha2, "Time (s)", "α2 (rad/s2)", interpolation, extrapolation
@@ -1881,7 +1883,7 @@ class Flight:
 
     @cached_property
     def alpha3(self, interpolation="spline", extrapolation="natural"):
-        alpha3 = self.__retrieved_acceleration_arrays[5]
+        alpha3 = self.retrieve_acceleration_arrays[5]
         # Convert accelerations to functions
         alpha3 = Function(
             alpha3, "Time (s)", "α3 (rad/s2)", interpolation, extrapolation
@@ -1890,7 +1892,7 @@ class Flight:
 
     # Process third type of outputs - Temporary values
     @cached_property
-    def R1(self, extrapolation="spline", interpolation="natural"):
+    def R1(self, interpolation="spline", extrapolation="natural"):
         """Aerodynamic force along the first axis that is perpendicular to the
         rocket's axis of symmetry.
 
@@ -1911,13 +1913,13 @@ class Flight:
             Aero force along the first axis that is perpendicular to the
             rocket's axis of symmetry.
         """
-        R1 = self.__retrieved_temporary_values_arrays[0]
+        R1 = self.retrieve_temporary_values_arrays[0]
         R1 = Function(R1, "Time (s)", "R1 (m)", interpolation, extrapolation)
 
         return R1
 
     @cached_property
-    def R2(self, extrapolation="spline", interpolation="natural"):
+    def R2(self, interpolation="spline", extrapolation="natural"):
         """Aerodynamic force along the second axis that is perpendicular to the
         rocket's axis of symmetry.
 
@@ -1938,13 +1940,13 @@ class Flight:
             Aero force along the second axis that is perpendicular to the
             rocket's axis of symmetry.
         """
-        R2 = self.__retrieved_temporary_values_arrays[1]
+        R2 = self.retrieve_temporary_values_arrays[1]
         R2 = Function(R2, "Time (s)", "R2 (m)", interpolation, extrapolation)
 
         return R2
 
     @cached_property
-    def R3(self, extrapolation="spline", interpolation="natural"):
+    def R3(self, interpolation="spline", extrapolation="natural"):
         """Aerodynamic force along the rocket's axis of symmetry.
 
         Parameters
@@ -1963,13 +1965,13 @@ class Flight:
         R3: Function
             Aerodynamic force along the rocket's axis of symmetry.
         """
-        R3 = self.__retrieved_temporary_values_arrays[2]
+        R3 = self.retrieve_temporary_values_arrays[2]
         R3 = Function(R3, "Time (s)", "R3 (m)", interpolation, extrapolation)
 
         return R3
 
     @cached_property
-    def M1(self, extrapolation="spline", interpolation="natural"):
+    def M1(self, interpolation="spline", extrapolation="natural"):
         """Aerodynamic bending moment in the same direction as the axis that is
         perpendicular to the rocket's axis of symmetry.
 
@@ -1990,13 +1992,13 @@ class Flight:
             Aero moment along the first axis that is perpendicular to the
             rocket's axis of symmetry.
         """
-        M1 = self.__retrieved_temporary_values_arrays[3]
+        M1 = self.retrieve_temporary_values_arrays[3]
         M1 = Function(M1, "Time (s)", "M1 (Nm)", interpolation, extrapolation)
 
         return M1
 
     @cached_property
-    def M2(self, extrapolation="spline", interpolation="natural"):
+    def M2(self, interpolation="spline", extrapolation="natural"):
         """Aerodynamic moment in the same direction as the second axis that is
         perpendicular to the rocket's axis of symmetry.
 
@@ -2017,13 +2019,13 @@ class Flight:
             Aero moment along the second axis that is perpendicular to the
             rocket's axis of symmetry.
         """
-        M2 = self.__retrieved_temporary_values_arrays[4]
+        M2 = self.retrieve_temporary_values_arrays[4]
         M2 = Function(M2, "Time (s)", "M2 (Nm)", interpolation, extrapolation)
 
         return M2
 
     @cached_property
-    def M3(self, extrapolation="spline", interpolation="natural"):
+    def M3(self, interpolation="spline", extrapolation="natural"):
         """Aerodynamic bending in the rocket's axis of symmetry direction.
 
         Parameters
@@ -2042,13 +2044,13 @@ class Flight:
         M3: Function
             Aero moment in the same direction as the rocket's axis of symmetry.
         """
-        M3 = self.__retrieved_temporary_values_arrays[5]
+        M3 = self.retrieve_temporary_values_arrays[5]
         M3 = Function(M3, "Time (s)", "M3 (Nm)", interpolation, extrapolation)
 
         return M3
 
     @cached_property
-    def pressure(self, extrapolation="spline", interpolation="natural"):
+    def pressure(self, interpolation="spline", extrapolation="natural"):
         """Air pressure at each time step.
 
         Parameters
@@ -2067,7 +2069,7 @@ class Flight:
         pressure: Function
             Air pressure at each time step.
         """
-        pressure = self.__retrieved_temporary_values_arrays[6]
+        pressure = self.retrieve_temporary_values_arrays[6]
         pressure = Function(
             pressure, "Time (s)", "Pressure (Pa)", interpolation, extrapolation
         )
@@ -2075,7 +2077,7 @@ class Flight:
         return pressure
 
     @cached_property
-    def density(self, extrapolation="spline", interpolation="natural"):
+    def density(self, interpolation="spline", extrapolation="natural"):
         """Air density at each time step.
 
         Parameters
@@ -2094,7 +2096,7 @@ class Flight:
         density: Function
             Air density at each time step.
         """
-        density = self.__retrieved_temporary_values_arrays[7]
+        density = self.retrieve_temporary_values_arrays[7]
         density = Function(
             density, "Time (s)", "Density (kg/m³)", interpolation, extrapolation
         )
@@ -2102,7 +2104,7 @@ class Flight:
         return density
 
     @cached_property
-    def dynamicViscosity(self, extrapolation="spline", interpolation="natural"):
+    def dynamicViscosity(self, interpolation="spline", extrapolation="natural"):
         """Air dynamic viscosity at each time step.
 
         Parameters
@@ -2121,7 +2123,7 @@ class Flight:
         dynamicViscosity: Function
             Air dynamic viscosity at each time step.
         """
-        dynamicViscosity = self.__retrieved_temporary_values_arrays[8]
+        dynamicViscosity = self.retrieve_temporary_values_arrays[8]
         dynamicViscosity = Function(
             dynamicViscosity,
             "Time (s)",
@@ -2133,7 +2135,7 @@ class Flight:
         return dynamicViscosity
 
     @cached_property
-    def speedOfSound(self, extrapolation="spline", interpolation="natural"):
+    def speedOfSound(self, interpolation="spline", extrapolation="natural"):
         """Speed of sound at each time step.
 
         Parameters
@@ -2152,7 +2154,7 @@ class Flight:
         speedOfSound: Function
             Speed of sound at each time step.
         """
-        speedOfSound = self.__retrieved_temporary_values_arrays[9]
+        speedOfSound = self.retrieve_temporary_values_arrays[9]
         speedOfSound = Function(
             speedOfSound,
             "Time (s)",
@@ -2164,7 +2166,7 @@ class Flight:
         return speedOfSound
 
     @cached_property
-    def windVelocityX(self, extrapolation="spline", interpolation="natural"):
+    def windVelocityX(self, interpolation="spline", extrapolation="natural"):
         """Wind velocity in the X direction at each time step.
 
         Parameters
@@ -2183,11 +2185,11 @@ class Flight:
         windVelocityX: Function
             Wind velocity in the X direction at each time step.
         """
-        windVelocityX = self.__retrieved_temporary_values_arrays[10]
+        windVelocityX = self.retrieve_temporary_values_arrays[10]
         windVelocityX = Function(
             windVelocityX,
             "Time (s)",
-            "Wind Velocity X (m/s)",
+            "Wind Velocity X (East) (m/s)",
             interpolation,
             extrapolation,
         )
@@ -2195,7 +2197,7 @@ class Flight:
         return windVelocityX
 
     @cached_property
-    def windVelocityY(self, extrapolation="spline", interpolation="natural"):
+    def windVelocityY(self, interpolation="spline", extrapolation="natural"):
         """Wind velocity in the Y direction at each time step.
 
         Parameters
@@ -2214,11 +2216,11 @@ class Flight:
         windVelocityY: Function
             Wind velocity in the Y direction at each time step.
         """
-        windVelocityY = self.__retrieved_temporary_values_arrays[10]
+        windVelocityY = self.retrieve_temporary_values_arrays[10]
         windVelocityY = Function(
             windVelocityY,
             "Time (s)",
-            "Wind Velocity Y (m/s)",
+            "Wind Velocity Y (North) (m/s)",
             interpolation,
             extrapolation,
         )
@@ -2358,21 +2360,43 @@ class Flight:
     # Fluid Mechanics variables
     # Freestream Velocity
     @cached_property
-    def streamVelocityX(self):
-        streamVelocityX = self.windVelocityX - self.vx
-        streamVelocityX.setOutputs("Freestream Velocity X (m/s)")
+    def streamVelocityX(self, interpolation="spline", extrapolation="natural"):
+        streamVelocityX = np.column_stack(
+            (self.vx[:, 0], self.windVelocityX[:, 1] - self.vx[:, 1])
+        )
+        streamVelocityX = Function(
+            streamVelocityX,
+            "Time (s)",
+            "Freestream Velocity X (m/s)",
+            interpolation,
+            extrapolation,
+        )
         return streamVelocityX
 
     @cached_property
-    def streamVelocityY(self):
-        streamVelocityY = self.windVelocityY - self.vy
-        streamVelocityY.setOutputs("Freestream Velocity Y (m/s)")
+    def streamVelocityY(self, interpolation="spline", extrapolation="natural"):
+        streamVelocityY = np.column_stack(
+            (self.vy[:, 0], self.windVelocityY[:, 1] - self.vy[:, 1])
+        )
+        streamVelocityY = Function(
+            streamVelocityY,
+            "Time (s)",
+            "Freestream Velocity Y (m/s)",
+            interpolation,
+            extrapolation,
+        )
         return streamVelocityY
 
     @cached_property
-    def streamVelocityZ(self):
-        streamVelocityZ = -1 * self.vz
-        streamVelocityZ.setOutputs("Freestream Velocity Z (m/s)")
+    def streamVelocityZ(self, interpolation="spline", extrapolation="natural"):
+        streamVelocityZ = np.column_stack((self.vz[:, 0], -self.vz[:, 1]))
+        streamVelocityZ = Function(
+            streamVelocityZ,
+            "Time (s)",
+            "Freestream Velocity Z (m/s)",
+            interpolation,
+            extrapolation,
+        )
         return streamVelocityZ
 
     @cached_property
@@ -2382,6 +2406,7 @@ class Flight:
             + self.streamVelocityY**2
             + self.streamVelocityZ**2
         ) ** 0.5
+        freestreamSpeed.setInputs("Time (s)")
         freestreamSpeed.setOutputs("Freestream Speed (m/s)")
         return freestreamSpeed
 
@@ -2394,6 +2419,7 @@ class Flight:
     @cached_property
     def MachNumber(self):
         MachNumber = self.freestreamSpeed / self.speedOfSound
+        MachNumber.setInputs("Time (s)")
         MachNumber.setOutputs("Mach Number")
         return MachNumber
 
@@ -2412,6 +2438,7 @@ class Flight:
         ReynoldsNumber = (
             self.density * self.freestreamSpeed / self.dynamicViscosity
         ) * (2 * self.rocket.radius)
+        ReynoldsNumber.setInputs("Time (s)")
         ReynoldsNumber.setOutputs("Reynolds Number")
         return ReynoldsNumber
 
@@ -2428,6 +2455,7 @@ class Flight:
     @cached_property
     def dynamicPressure(self):
         dynamicPressure = 0.5 * self.density * self.freestreamSpeed**2
+        dynamicPressure.setInputs("Time (s)")
         dynamicPressure.setOutputs("Dynamic Pressure (Pa)")
         return dynamicPressure
 
@@ -2444,6 +2472,7 @@ class Flight:
     @cached_property
     def totalPressure(self):
         totalPressure = self.pressure * (1 + 0.2 * self.MachNumber**2) ** (3.5)
+        totalPressure.setInputs("Time (s)")
         totalPressure.setOutputs("Total Pressure (Pa)")
         return totalPressure
 
@@ -2462,12 +2491,14 @@ class Flight:
     @cached_property
     def aerodynamicLift(self):
         aerodynamicLift = (self.R1**2 + self.R2**2) ** 0.5
+        aerodynamicLift.setInputs("Time (s)")
         aerodynamicLift.setOutputs("Aerodynamic Lift Force (N)")
         return aerodynamicLift
 
     @cached_property
     def aerodynamicDrag(self):
         aerodynamicDrag = -1 * self.R3
+        aerodynamicDrag.setInputs("Time (s)")
         aerodynamicDrag.setOutputs("Aerodynamic Drag Force (N)")
         return aerodynamicDrag
 
@@ -2475,12 +2506,14 @@ class Flight:
     def aerodynamicBendingMoment(self):
 
         aerodynamicBendingMoment = (self.M1**2 + self.M2**2) ** 0.5
+        aerodynamicBendingMoment.setInputs("Time (s)")
         aerodynamicBendingMoment.setOutputs("Aerodynamic Bending Moment (N m)")
         return aerodynamicBendingMoment
 
     @cached_property
     def aerodynamicSpinMoment(self):
         aerodynamicSpinMoment = self.M3
+        aerodynamicSpinMoment.setInputs("Time (s)")
         aerodynamicSpinMoment.setOutputs("Aerodynamic Spin Moment (N m)")
         return aerodynamicSpinMoment
 
@@ -2503,6 +2536,7 @@ class Flight:
         rotationalEnergy = 0.5 * (
             I1 * self.w1**2 + I2 * self.w2**2 + I3 * self.w3**2
         )
+        rotationalEnergy.setInputs("Time (s)")
         rotationalEnergy.setOutputs("Rotational Kinetic Energy (J)")
         return rotationalEnergy
 
@@ -2515,12 +2549,14 @@ class Flight:
         translationalEnergy = (
             0.5 * totalMass * (self.vx**2 + self.vy**2 + self.vz**2)
         )
+        translationalEnergy.setInputs("Time (s)")
         translationalEnergy.setOutputs("Translational Kinetic Energy (J)")
         return translationalEnergy
 
     @cached_property
     def kineticEnergy(self):
         kineticEnergy = self.rotationalEnergy + self.translationalEnergy
+        kineticEnergy.setInputs("Time (s)")
         kineticEnergy.setOutputs("Kinetic Energy (J)")
         return kineticEnergy
 
@@ -2539,6 +2575,7 @@ class Flight:
     @cached_property
     def totalEnergy(self):
         totalEnergy = self.kineticEnergy + self.potentialEnergy
+        totalEnergy.setInputs("Time (s)")
         totalEnergy.setOutputs("Total Mechanical Energy (J)")
         return totalEnergy
 
@@ -2563,31 +2600,54 @@ class Flight:
 
     # Angle of Attack
     @cached_property
-    def angleOfAttack(self):
-        angleOfAttack = []
-        for i in range(len(self.attitudeVectorX[:, 1])):
-            dotProduct = -(
-                self.attitudeVectorX[i, 1] * self.streamVelocityX[i, 1]
-                + self.attitudeVectorY[i, 1] * self.streamVelocityY[i, 1]
-                + self.attitudeVectorZ[i, 1] * self.streamVelocityZ[i, 1]
-            )
-            if self.freestreamSpeed[i, 1] < 1e-6:
-                angleOfAttack.append([self.freestreamSpeed[i, 0], 0])
-            else:
-                dotProductNormalized = dotProduct / self.freestreamSpeed[i, 1]
-                dotProductNormalized = (
-                    1 if dotProductNormalized > 1 else dotProductNormalized
-                )
-                dotProductNormalized = (
-                    -1 if dotProductNormalized < -1 else dotProductNormalized
-                )
-                angleOfAttack.append(
-                    [
-                        self.freestreamSpeed[i, 0],
-                        (180 / np.pi) * np.arccos(dotProductNormalized),
-                    ]
-                )
-        return Function(angleOfAttack, "Time (s)", "Angle Of Attack (°)", "linear")
+    def angleOfAttack(self, interpolation="spline", extrapolation="natural"):
+        """Angle of attack of the rocket with respect to the freestream
+            velocity vector.
+
+        Parameters
+        ----------
+        interpolation : str, optional
+            Interpolation method, by default "spline"
+        extrapolation : str, optional
+            Extrapolation method, by default "natural"
+
+        Returns
+        -------
+        angleOfAttack: Function
+            Angle of attack of the rocket with respect to the freestream
+            velocity vector.
+        """
+        dotProduct = [
+            -self.attitudeVectorX.getValueOpt(i) * self.streamVelocityX.getValueOpt(i)
+            - self.attitudeVectorY.getValueOpt(i) * self.streamVelocityY.getValueOpt(i)
+            - self.attitudeVectorZ.getValueOpt(i) * self.streamVelocityZ.getValueOpt(i)
+            for i in self.x[:, 0]
+        ]
+        # Define freestream speed list
+        freestreamSpeed = [self.freestreamSpeed(i) for i in self.x[:, 0]]
+        freestreamSpeed = np.nan_to_num(freestreamSpeed)
+
+        # Normalize dot product
+        dotProductNormalized = [
+            i / j if j > 1e-6 else 0 for i, j in zip(dotProduct, freestreamSpeed)
+        ]
+        dotProductNormalized = np.nan_to_num(dotProductNormalized)
+        dotProductNormalized = np.clip(dotProductNormalized, -1, 1)
+
+        # Calculate angle of attack and convert to degrees
+        angleOfAttack = np.rad2deg(np.arccos(dotProductNormalized))
+        angleOfAttack = np.column_stack([self.x[:, 0], angleOfAttack])
+
+        # Convert to Function
+        angleOfAttack = Function(
+            angleOfAttack,
+            "Time (s)",
+            "Angle Of Attack (°)",
+            interpolation,
+            extrapolation,
+        )
+
+        return angleOfAttack
 
     # Stability and Control variables
     # Angular velocities frequency response - Fourier Analysis
@@ -2696,7 +2756,11 @@ class Flight:
         railButton1NormalForce: Function
             Upper rail button normal force as a function of time
         """
-        F11, F12 = self.__calculate_rail_button_forces()[0:1]
+
+        if isinstance(self.calculate_rail_button_forces, tuple):
+            F11, F12 = self.calculate_rail_button_forces[0:2]
+        else:
+            F11, F12 = self.calculate_rail_button_forces()[0:2]
         alpha = self.rocket.railButtons.angularPosition * (np.pi / 180)
         railButton1NormalForce = F11 * np.cos(alpha) + F12 * np.sin(alpha)
         railButton1NormalForce.setOutputs("Upper Rail Button Normal Force (N)")
@@ -2712,7 +2776,10 @@ class Flight:
         _type_
             _description_
         """
-        F11, F12 = self.__calculate_rail_button_forces()[0:1]
+        if isinstance(self.calculate_rail_button_forces, tuple):
+            F11, F12 = self.calculate_rail_button_forces[0:2]
+        else:
+            F11, F12 = self.calculate_rail_button_forces()[0:2]
         alpha = self.rocket.railButtons.angularPosition * (
             np.pi / 180
         )  # Rail buttons angular position
@@ -2730,7 +2797,10 @@ class Flight:
         railButton2NormalForce: Function
             Lower rail button normal force as a function of time
         """
-        F21, F22 = self.__calculate_rail_button_forces()[2:3]
+        if isinstance(self.calculate_rail_button_forces, tuple):
+            F21, F22 = self.calculate_rail_button_forces[2:4]
+        else:
+            F21, F22 = self.calculate_rail_button_forces()[2:4]
         alpha = self.rocket.railButtons.angularPosition * (np.pi / 180)
         railButton2NormalForce = F21 * np.cos(alpha) + F22 * np.sin(alpha)
         railButton2NormalForce.setOutputs("Lower Rail Button Normal Force (N)")
@@ -2746,8 +2816,10 @@ class Flight:
         railButton2ShearForce: Function
             Lower rail button shear force as a function of time
         """
-
-        F21, F22 = self.__calculate_rail_button_forces()[2:3]
+        if isinstance(self.calculate_rail_button_forces, tuple):
+            F21, F22 = self.calculate_rail_button_forces[2:4]
+        else:
+            F21, F22 = self.calculate_rail_button_forces()[2:4]
         alpha = self.rocket.railButtons.angularPosition * (np.pi / 180)
         railButton2ShearForce = F21 * -np.sin(alpha) + F22 * np.cos(alpha)
         railButton2ShearForce.setOutputs("Lower Rail Button Shear Force (N)")
@@ -2763,7 +2835,11 @@ class Flight:
         maxRailButton1NormalForce: float
             Maximum upper rail button normal force, in Newtons
         """
-        outOfRailTimeIndex = np.searchsorted(self.F11[:, 0], self.outOfRailTime)
+        if isinstance(self.calculate_rail_button_forces, tuple):
+            F11 = self.calculate_rail_button_forces[0]
+        else:
+            F11 = self.calculate_rail_button_forces()[0]
+        outOfRailTimeIndex = np.searchsorted(F11[:, 0], self.outOfRailTime)
         if outOfRailTimeIndex == 0:
             return 0
         else:
@@ -2778,7 +2854,11 @@ class Flight:
         maxRailButton1ShearForce: float
             Maximum upper rail button shear force, in Newtons
         """
-        outOfRailTimeIndex = np.searchsorted(self.F11[:, 0], self.outOfRailTime)
+        if isinstance(self.calculate_rail_button_forces, tuple):
+            F11 = self.calculate_rail_button_forces[0]
+        else:
+            F11 = self.calculate_rail_button_forces()[0]
+        outOfRailTimeIndex = np.searchsorted(F11[:, 0], self.outOfRailTime)
         if outOfRailTimeIndex == 0:
             return 0
         else:
@@ -2793,7 +2873,11 @@ class Flight:
         maxRailButton2NormalForce: float
             Maximum lower rail button normal force, in Newtons
         """
-        outOfRailTimeIndex = np.searchsorted(self.F11[:, 0], self.outOfRailTime)
+        if isinstance(self.calculate_rail_button_forces, tuple):
+            F11 = self.calculate_rail_button_forces[0]
+        else:
+            F11 = self.calculate_rail_button_forces()[0]
+        outOfRailTimeIndex = np.searchsorted(F11[:, 0], self.outOfRailTime)
         if outOfRailTimeIndex == 0:
             return 0
         else:
@@ -2808,7 +2892,11 @@ class Flight:
         maxRailButton2ShearForce: float
             Maximum lower rail button shear force, in Newtons
         """
-        outOfRailTimeIndex = np.searchsorted(self.F11[:, 0], self.outOfRailTime)
+        if isinstance(self.calculate_rail_button_forces, tuple):
+            F11 = self.calculate_rail_button_forces[0]
+        else:
+            F11 = self.calculate_rail_button_forces()[0]
+        outOfRailTimeIndex = np.searchsorted(F11[:, 0], self.outOfRailTime)
         if outOfRailTimeIndex == 0:
             return 0
         else:
@@ -2825,10 +2913,19 @@ class Flight:
             Rocket horizontal distance to tha launch point, in meters, at each
             time step.
         """
-        return (self.x**2 + self.y**2) ** 0.5
+        drift = np.column_stack(
+            (self.x[:, 0], (self.x[:, 1] ** 2 + self.y[:, 1] ** 2) ** 0.5)
+        )
+        drift = Function(
+            drift,
+            "Time (s)",
+            "Horizontal Distance to Launch Point (m)",
+        )
+
+        return drift
 
     @cached_property
-    def bearing(self):
+    def bearing(self, interpolation="spline", extrapolation="natural"):
         """Rocket bearing compass, in degrees, at each time step.
 
         Returns
@@ -2836,7 +2933,48 @@ class Flight:
         bearing: Function
             Rocket bearing, in degrees, at each time step.
         """
-        return np.arctan2(self.y, self.x) * 180 / np.pi
+
+        # Get some nicknames
+        t = self.x[:, 0]
+        x, y = self.x[:, 1], self.y[:, 1]
+        bearing = []
+        for i in range(len(t)):
+            # Forcing arctan2(0, 0) = self.heading
+            if abs(x[i]) < 1e-6 and abs(y[i]) < 1e-6:
+                bearing.append(np.deg2rad(self.heading))
+            elif abs(x[i]) < 1e-6:  # check if the rocket is on x axis
+                if y[i] > 0:
+                    bearing.append(0)
+                else:
+                    bearing.append(np.pi)
+            elif abs(y[i]) < 1e-6:  # check if the rocket is on x axis
+                if x[i] > 0:
+                    bearing.append(np.pi / 2)
+                else:
+                    bearing.append(3 * np.pi / 2)
+            else:
+                # Calculate bearing as the azimuth considering different quadrants
+                if x[i] * y[i] < 0 and x[i] < 0:  # Fourth quadrant
+                    bearing.append(-np.pi / 2 + np.arctan(abs(y[i]) / abs(x[i])))
+                elif x[i] * y[i] < 0 and x[i] > 0:  # Second quadrant
+                    bearing.append(np.pi / 2 + np.arctan(abs(x[i]) / abs(y[i])))
+                elif x[i] * y[i] > 0 and x[i] < 0:  # Third quadrant
+                    bearing.append(np.pi + np.arctan(abs(x[i]) / abs(y[i])))
+                else:  # First quadrant
+                    bearing.append(np.arctan(abs(x[i]) / abs(y[i])))
+
+        bearing = np.rad2deg(bearing)
+        bearing = np.column_stack((t, bearing))
+        print(bearing)
+        bearing = Function(
+            bearing,
+            "Time (s)",
+            "Bearing (deg)",
+            interpolation,
+            extrapolation,
+        )
+
+        return bearing
 
     @cached_property
     def latitude(self):
@@ -2851,13 +2989,14 @@ class Flight:
 
         # Applies the haversine equation to find final lat/lon coordinates
         latitude = np.rad2deg(
-            math.asin(
-                math.sin(lat1) * math.cos(self.drift / self.env.earthRadius)
-                + math.cos(lat1)
-                * math.sin(self.drift / self.env.earthRadius)
-                * math.cos(self.bearing)
+            np.arcsin(
+                np.sin(lat1) * np.cos(self.drift[:, 1] / self.env.earthRadius)
+                + np.cos(lat1)
+                * np.sin(self.drift[:, 1] / self.env.earthRadius)
+                * np.cos(np.deg2rad(self.bearing[:, 1]))
             )
         )
+        latitude = np.column_stack((self.x[:, 0], latitude))
         latitude = Function(latitude, "Time (s)", "Latitude (°)", "linear")
 
         return latitude
@@ -2877,20 +3016,22 @@ class Flight:
         # Applies the haversine equation to find final lat/lon coordinates
         longitude = np.rad2deg(
             lon1
-            + math.atan2(
-                math.sin(self.bearing)
-                * math.sin(self.drift / self.env.earthRadius)
-                * math.cos(lat1),
-                math.cos(self.drift / self.env.earthRadius)
-                - math.sin(lat1) * math.sin(self.latitude),
+            + np.arctan2(
+                np.sin(np.deg2rad(self.bearing[:, 1]))
+                * np.sin(self.drift[:, 1] / self.env.earthRadius)
+                * np.cos(lat1),
+                np.cos(self.drift[:, 1] / self.env.earthRadius)
+                - np.sin(lat1) * np.sin(np.deg2rad(self.latitude[:, 1])),
             )
         )
+
+        longitude = np.column_stack((self.x[:, 0], longitude))
         longitude = Function(longitude, "Time (s)", "Longitude (°)", "linear")
 
         return longitude
 
     @cached_property
-    def __retrieved_acceleration_arrays(self):
+    def retrieve_acceleration_arrays(self):
         """Retrieve acceleration arrays from the integration scheme
 
         Parameters
@@ -2942,7 +3083,7 @@ class Flight:
         return ax, ay, az, alpha1, alpha2, alpha3
 
     @cached_property
-    def __retrieved_temporary_values_arrays(self):
+    def retrieve_temporary_values_arrays(self):
         """Retrieve temporary values arrays from the integration scheme.
         Currently, the following temporary values are retrieved:
             - R1
@@ -2989,34 +3130,19 @@ class Flight:
         """
 
         # Initialize force and atmospheric arrays
-        (
-            self.R1_list,
-            self.R2_list,
-            self.R3_list,
-            self.M1_list,
-            self.M2_list,
-            self.M3_list,
-        ) = (
-            [],
-            [],
-            [],
-            [],
-            [],
-            [],
-        )
+        self.R1_list = []
+        self.R2_list = []
+        self.R3_list = []
+        self.M1_list = []
+        self.M2_list = []
+        self.M3_list = []
+        self.pressure_list = []
+        self.density_list = []
+        self.dynamicViscosity_list = []
+        self.speedOfSound_list = []
+        self.windVelocityX_list = []
+        self.windVelocityY_list = []
 
-        (
-            self.pressure_list,
-            self.density_list,
-            self.dynamicViscosity_list,
-            self.speedOfSound_list,
-        ) = (
-            [],
-            [],
-            [],
-            [],
-        )
-        self.windVelocityX_list, self.windVelocityY_list = [], []
         # Go through each time step and calculate forces and atmospheric values
         # Get flight phases
         for phase_index, phase in self.timeIterator(self.flightPhases):
@@ -3032,7 +3158,7 @@ class Flight:
                     # Call derivatives in post processing mode
                     uDot = currentDerivative(step[0], step[1:], postProcessing=True)
 
-        return (
+        temporary_values = [
             self.R1_list,
             self.R2_list,
             self.R3_list,
@@ -3045,10 +3171,12 @@ class Flight:
             self.speedOfSound_list,
             self.windVelocityX_list,
             self.windVelocityY_list,
-        )
+        ]
+
+        return temporary_values
 
     @cached_property
-    def __calculate_rail_button_forces(self):
+    def calculate_rail_button_forces(self):
         """Calculate the forces applied to the rail buttons while rocket is still
         on the launch rail. It will return 0 if none rail buttons are defined.
 
@@ -3056,11 +3184,11 @@ class Flight:
         -------
         F11: Function
             Rail Button 1 force in the 1 direction
-        F12:
+        F12: Function
             Rail Button 1 force in the 2 direction
-        F21:
+        F21: Function
             Rail Button 2 force in the 1 direction
-        F22:
+        F22: Function
             Rail Button 2 force in the 2 direction
         """
 
@@ -3070,24 +3198,18 @@ class Flight:
             )
             return 0, 0, 0, 0
 
-        D1 = self.rocket.railButtons.distanceToCM[
-            0
-        ]  # Distance from Rail Button 1 (upper) to CM
-        D2 = self.rocket.railButtons.distanceToCM[
-            1
-        ]  # Distance from Rail Button 2 (lower) to CM
-        F11 = (self.R1 * D2 - self.M2) / (
-            D1 + D2
-        )  # Rail Button 1 force in the 1 direction
-        F12 = (self.R2 * D2 + self.M1) / (
-            D1 + D2
-        )  # Rail Button 1 force in the 2 direction
-        F21 = (self.R1 * D1 + self.M2) / (
-            D1 + D2
-        )  # Rail Button 2 force in the 1 direction
-        F22 = (self.R2 * D1 - self.M1) / (
-            D1 + D2
-        )  # Rail Button 2 force in the 2 direction
+        # Distance from Rail Button 1 (upper) to CM
+        D1 = self.rocket.railButtons.distanceToCM[0]
+        # Distance from Rail Button 2 (lower) to CM
+        D2 = self.rocket.railButtons.distanceToCM[1]
+        F11 = (self.R1 * D2 - self.M2) / (D1 + D2)
+        F11.setOutputs("Upper button force direction 1 (m)")
+        F12 = (self.R2 * D2 + self.M1) / (D1 + D2)
+        F12.setOutputs("Upper button force direction 2 (m)")
+        F21 = (self.R1 * D1 + self.M2) / (D1 + D2)
+        F21.setOutputs("Lower button force direction 1 (m)")
+        F22 = (self.R2 * D1 - self.M1) / (D1 + D2)
+        F22.setOutputs("Lower button force direction 2 (m)")
 
         # F11 = F11[:outOfRailTimeIndex + 1, :] # Limit force calculation to when rocket is in rail
         # F12 = F12[:outOfRailTimeIndex + 1, :] # Limit force calculation to when rocket is in rail
