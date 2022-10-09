@@ -87,7 +87,6 @@ class Flight:
             Scipy LSODA integration scheme.
 
         State Space Vector Definition:
-        (Only available after Flight.postProcess has been called.)
         Flight.x : Function
             Rocket's X coordinate (positive east) as a function of time.
         Flight.y : Function
@@ -147,12 +146,6 @@ class Flight:
             Current integration state vector u.
         Flight.postProcessed : bool
             Defines if solution data has been post processed.
-        Flight.calculatedRailButtonForces: bool
-            Defines if rail button forces have been calculated.
-        Flight.calculatedGeodesicCoordinates: bool
-            Defines if geodesic coordinates have been calculated.
-        Flight.calculatedPressureSignals: bool
-            Defines if pressure signals have been calculated.
 
         Solution monitor attributes:
         Flight.initialSolution : list
@@ -210,7 +203,6 @@ class Flight:
             Stores and manages flight phases.
 
         Solution Secondary Attributes:
-        (Only available after Flight.postProcess has been called.)
         Atmospheric:
         Flight.windVelocityX : Function
             Wind velocity X (East) experienced by the rocket as a
@@ -637,11 +629,8 @@ class Flight:
         self.impactState = np.array([0])
         self.parachuteEvents = []
         self.postProcessed = False
-        self.calculatedRailButtonForces = False
-        self.calculatedGeodesicCoordinates = False
-        self.calculatedPressureSignals = False
         self._drift = Function(0)
-        self.bearing = Function(0)
+        self._bearing = Function(0)
         self._latitude = Function(0)
         self._longitude = Function(0)
         # Initialize solver monitors
@@ -2698,154 +2687,6 @@ class Flight:
     def staticMargin(self):
         return self.rocket.staticMargin
 
-    # Define initialization functions for post process variables
-
-    @cached_property
-    def __retrieved_acceleration_arrays(self):
-        """Retrieve acceleration arrays from the integration scheme
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-        ax: list
-            acceleration in x direction
-        ay: list
-            acceleration in y direction
-        az: list
-            acceleration in z direction
-        alpha1: list
-            angular acceleration in x direction
-        alpha2: list
-            angular acceleration in y direction
-        alpha3: list
-            angular acceleration in z direction
-        """
-        # Initialize acceleration arrays
-        ax, ay, az = [], [], []
-        alpha1, alpha2, alpha3 = [], [], []
-        # Go through each time step and calculate accelerations
-        # Get flight phases
-        for phase_index, phase in self.timeIterator(self.flightPhases):
-            initTime = phase.t
-            finalTime = self.flightPhases[phase_index + 1].t
-            currentDerivative = phase.derivative
-            # Call callback functions
-            for callback in phase.callbacks:
-                callback(self)
-            # Loop through time steps in flight phase
-            for step in self.solution:  # Can be optimized
-                if initTime < step[0] <= finalTime:
-                    # Get derivatives
-                    uDot = currentDerivative(step[0], step[1:])
-                    # Get accelerations
-                    ax_value, ay_value, az_value = uDot[3:6]
-                    alpha1_value, alpha2_value, alpha3_value = uDot[10:]
-                    # Save accelerations
-                    ax.append([step[0], ax_value])
-                    ay.append([step[0], ay_value])
-                    az.append([step[0], az_value])
-                    alpha1.append([step[0], alpha1_value])
-                    alpha2.append([step[0], alpha2_value])
-                    alpha3.append([step[0], alpha3_value])
-
-        return ax, ay, az, alpha1, alpha2, alpha3
-
-    @cached_property
-    def __retrieved_temporary_values_arrays(self):
-        """Retrieve temporary values arrays from the integration scheme.
-        Currently, the following temporary values are retrieved:
-            - R1
-            - R2
-            - R3
-            - M1
-            - M2
-            - M3
-            - pressure
-            - density
-            - dynamicViscosity
-            - speedOfSound
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        self._R1: list
-            R1 values
-        self._R2: list
-            R2 values
-        self._R3: list
-            R3 values are the aerodynamic force values in the rocket's axis direction
-        self._M1: list
-            M1 values
-        self._M2: list
-            Aerodynamic bending moment in ? direction at each time step
-        self._M3: list
-            Aerodynamic bending moment in ? direction at each time step
-        self._pressure: list
-            Air pressure at each time step
-        self._density: list
-            Air density at each time step
-        self._dynamicViscosity: list
-            Dynamic viscosity at each time step
-        self._speedOfSound: list
-            Speed of sound at each time step
-        self._windVelocityX: list
-            Wind velocity in x direction at each time step
-        self._windVelocityY: list
-            Wind velocity in y direction at each time step
-        """
-
-        # Initialize force and atmospheric arrays
-        self._R1, self._R2, self._R3, self._M1, self._M2, self._M3 = (
-            [],
-            [],
-            [],
-            [],
-            [],
-            [],
-        )
-
-        self._pressure, self._density, self._dynamicViscosity, self._speedOfSound = (
-            [],
-            [],
-            [],
-            [],
-        )
-        self._windVelocityX, self._windVelocityY = [], []
-        # Go through each time step and calculate forces and atmospheric values
-        # Get flight phases
-        for phase_index, phase in self.timeIterator(self.flightPhases):
-            initTime = phase.t
-            finalTime = self.flightPhases[phase_index + 1].t
-            currentDerivative = phase.derivative
-            # Call callback functions
-            for callback in phase.callbacks:
-                callback(self)
-            # Loop through time steps in flight phase
-            for step in self.solution:  # Can be optimized
-                if initTime < step[0] <= finalTime or (initTime == 0 and step[0] == 0):
-                    # Call derivatives in post processing mode
-                    uDot = currentDerivative(step[0], step[1:], postProcessing=True)
-
-        return (
-            self._R1,
-            self._R2,
-            self._R3,
-            self._M1,
-            self._M2,
-            self._M3,
-            self._pressure,
-            self._density,
-            self._dynamicViscosity,
-            self._speedOfSound,
-            self._windVelocityX,
-            self._windVelocityY,
-        )
-
     # Rail Button Forces
     @cached_property
     def railButton1NormalForce(self):
@@ -3050,6 +2891,152 @@ class Flight:
         return longitude
 
     @cached_property
+    def __retrieved_acceleration_arrays(self):
+        """Retrieve acceleration arrays from the integration scheme
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        ax: list
+            acceleration in x direction
+        ay: list
+            acceleration in y direction
+        az: list
+            acceleration in z direction
+        alpha1: list
+            angular acceleration in x direction
+        alpha2: list
+            angular acceleration in y direction
+        alpha3: list
+            angular acceleration in z direction
+        """
+        # Initialize acceleration arrays
+        ax, ay, az = [], [], []
+        alpha1, alpha2, alpha3 = [], [], []
+        # Go through each time step and calculate accelerations
+        # Get flight phases
+        for phase_index, phase in self.timeIterator(self.flightPhases):
+            initTime = phase.t
+            finalTime = self.flightPhases[phase_index + 1].t
+            currentDerivative = phase.derivative
+            # Call callback functions
+            for callback in phase.callbacks:
+                callback(self)
+            # Loop through time steps in flight phase
+            for step in self.solution:  # Can be optimized
+                if initTime < step[0] <= finalTime:
+                    # Get derivatives
+                    uDot = currentDerivative(step[0], step[1:])
+                    # Get accelerations
+                    ax_value, ay_value, az_value = uDot[3:6]
+                    alpha1_value, alpha2_value, alpha3_value = uDot[10:]
+                    # Save accelerations
+                    ax.append([step[0], ax_value])
+                    ay.append([step[0], ay_value])
+                    az.append([step[0], az_value])
+                    alpha1.append([step[0], alpha1_value])
+                    alpha2.append([step[0], alpha2_value])
+                    alpha3.append([step[0], alpha3_value])
+
+        return ax, ay, az, alpha1, alpha2, alpha3
+
+    @cached_property
+    def __retrieved_temporary_values_arrays(self):
+        """Retrieve temporary values arrays from the integration scheme.
+        Currently, the following temporary values are retrieved:
+            - R1
+            - R2
+            - R3
+            - M1
+            - M2
+            - M3
+            - pressure
+            - density
+            - dynamicViscosity
+            - speedOfSound
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        self._R1: list
+            R1 values
+        self._R2: list
+            R2 values
+        self._R3: list
+            R3 values are the aerodynamic force values in the rocket's axis direction
+        self._M1: list
+            M1 values
+        self._M2: list
+            Aerodynamic bending moment in ? direction at each time step
+        self._M3: list
+            Aerodynamic bending moment in ? direction at each time step
+        self._pressure: list
+            Air pressure at each time step
+        self._density: list
+            Air density at each time step
+        self._dynamicViscosity: list
+            Dynamic viscosity at each time step
+        self._speedOfSound: list
+            Speed of sound at each time step
+        self._windVelocityX: list
+            Wind velocity in x direction at each time step
+        self._windVelocityY: list
+            Wind velocity in y direction at each time step
+        """
+
+        # Initialize force and atmospheric arrays
+        self._R1, self._R2, self._R3, self._M1, self._M2, self._M3 = (
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+        )
+
+        self._pressure, self._density, self._dynamicViscosity, self._speedOfSound = (
+            [],
+            [],
+            [],
+            [],
+        )
+        self._windVelocityX, self._windVelocityY = [], []
+        # Go through each time step and calculate forces and atmospheric values
+        # Get flight phases
+        for phase_index, phase in self.timeIterator(self.flightPhases):
+            initTime = phase.t
+            finalTime = self.flightPhases[phase_index + 1].t
+            currentDerivative = phase.derivative
+            # Call callback functions
+            for callback in phase.callbacks:
+                callback(self)
+            # Loop through time steps in flight phase
+            for step in self.solution:  # Can be optimized
+                if initTime < step[0] <= finalTime or (initTime == 0 and step[0] == 0):
+                    # Call derivatives in post processing mode
+                    uDot = currentDerivative(step[0], step[1:], postProcessing=True)
+
+        return (
+            self._R1,
+            self._R2,
+            self._R3,
+            self._M1,
+            self._M2,
+            self._M3,
+            self._pressure,
+            self._density,
+            self._dynamicViscosity,
+            self._speedOfSound,
+            self._windVelocityX,
+            self._windVelocityY,
+        )
+
+    @cached_property
     def __calculate_rail_button_forces(self):
         """Calculate the forces applied to the rail buttons while rocket is still
         on the launch rail. It will return 0 if none rail buttons are defined.
@@ -3098,7 +3085,16 @@ class Flight:
 
         return F11, F12, F21, F22
 
+    @cached_property
     def __calculate_pressure_signal(self):
+        """Calculate the pressure signal from the pressure sensor.
+        It creates a SignalFunction attribute in the parachute object.
+        Parachute works as a subclass of Rocket class.
+
+        Returns
+        -------
+        None
+        """
         # Transform parachute sensor feed into functions
         for parachute in self.rocket.parachutes:
             parachute.cleanPressureSignalFunction = Function(
@@ -3117,8 +3113,6 @@ class Flight:
                 parachute.noiseSignal, "Time (s)", "Pressure Noise (Pa)", "linear"
             )
 
-        self.calculatedPressureSignal = True
-
         return None
 
     def postProcess(self, interpolation="spline", extrapolation="natural"):
@@ -3136,9 +3130,6 @@ class Flight:
         None
         """
 
-        if self.calculatedPressureSignals is not True:
-            self.__calculate_pressure_signal()
-
         # Register post processing
         self.postProcessed = True
 
@@ -3155,9 +3146,6 @@ class Flight:
         ------
         None
         """
-        # Post-process results
-        if self.postProcessed is False:
-            self.postProcess()
 
         # Get index of out of rail time
         outOfRailTimeIndexes = np.nonzero(self.x[:, 0] == self.outOfRailTime)
@@ -3351,9 +3339,6 @@ class Flight:
         ------
         None
         """
-        # Post-process results
-        if self.postProcessed is False:
-            self.postProcess()
 
         print(
             "Position - x: {:.2f} m | y: {:.2f} m | z: {:.2f} m".format(
@@ -3467,9 +3452,6 @@ class Flight:
         ------
         None
         """
-        # Post-process results
-        if self.postProcessed is False:
-            self.postProcess()
 
         # Get max and min x and y
         maxZ = max(self.z[:, 1] - self.env.elevation)
@@ -3525,9 +3507,6 @@ class Flight:
         ------
         None
         """
-        # Post-process results
-        if self.postProcessed is False:
-            self.postProcess()
 
         # Velocity and acceleration plots
         fig2 = plt.figure(figsize=(9, 12))
@@ -3603,9 +3582,6 @@ class Flight:
         ------
         None
         """
-        # Post-process results
-        if self.postProcessed is False:
-            self.postProcess()
 
         # Get index of time before parachute event
         if len(self.parachuteEvents) > 0:
@@ -3671,9 +3647,6 @@ class Flight:
         ------
         None
         """
-        # Post-process results
-        if self.postProcessed is False:
-            self.postProcess()
 
         # Get index of time before parachute event
         if len(self.parachuteEvents) > 0:
@@ -3726,9 +3699,6 @@ class Flight:
         ------
         None
         """
-        # Post-process results
-        if self.postProcessed is False:
-            self.postProcess()
 
         # Get index of time before parachute event
         if len(self.parachuteEvents) > 0:
@@ -3810,9 +3780,6 @@ class Flight:
         ------
         None
         """
-        # Post-process results
-        if self.postProcessed is False:
-            self.postProcess()
 
         # Get index of out of rail time
         outOfRailTimeIndexes = np.nonzero(self.x[:, 0] == self.outOfRailTime)
@@ -3937,9 +3904,6 @@ class Flight:
         -------
         None
         """
-        # Post-process results
-        if self.postProcessed is False:
-            self.postProcess()
 
         # Get index of out of rail time
         outOfRailTimeIndexes = np.nonzero(self.x[:, 0] == self.outOfRailTime)
@@ -4035,9 +3999,6 @@ class Flight:
         ------
         None
         """
-        # Post-process results
-        if self.postProcessed is False:
-            self.postProcess()
 
         # Get index of out of rail time
         outOfRailTimeIndexes = np.nonzero(self.x[:, 0] == self.outOfRailTime)
@@ -4120,9 +4081,6 @@ class Flight:
         ------
         None
         """
-        # Post-process results
-        if self.postProcessed is False:
-            self.postProcess()
 
         s = (self.rocket.tipChord + self.rocket.rootChord) * self.rocket.span / 2
         ar = self.rocket.span * self.rocket.span / s
@@ -4268,9 +4226,6 @@ class Flight:
         ------
         None
         """
-        # Post-process results
-        if self.postProcessed is False:
-            self.postProcess()
 
         fig9 = plt.figure(figsize=(9, 6))
 
@@ -4342,9 +4297,6 @@ class Flight:
         ------
         None
         """
-        # Post-process results
-        if self.postProcessed is False:
-            self.postProcess()
 
         if len(self.rocket.parachutes) == 0:
             plt.figure()
@@ -4392,8 +4344,6 @@ class Flight:
         ------
         None
         """
-        if self.postProcessed is False:
-            self.postProcess()
 
         timePoints = np.arange(0, self.tFinal, timeStep)
 
@@ -4440,8 +4390,6 @@ class Flight:
             will be exported. Otherwise, linear interpolation is carried out to
             calculate values at the desired time steps. Example: 0.001.
         """
-        if self.postProcessed is False:
-            self.postProcess()
 
         # Fast evaluation for the most basic scenario
         if timeStep is None and len(variables) == 0:
@@ -4562,8 +4510,6 @@ class Flight:
         None
         """
         # Define time points vector
-        if self.postProcessed is False:
-            self.postProcess()
         if timeStep is None:
             # Get time from any Function, should all be the same
             timePoints = self.z[:, 0]
@@ -4617,9 +4563,6 @@ class Flight:
         ------
         None
         """
-        # Post-process results
-        if self.postProcessed is False:
-            self.postProcess()
 
         # Print initial conditions
         print("Initial Conditions\n")
