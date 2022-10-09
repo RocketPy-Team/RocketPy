@@ -104,11 +104,14 @@ def test_hemisphere_geometry():
 
 def test_hemisphere_filling():
     Hemisphere1 = supplement.Hemisphere(3)
+    Hemisphere2 = supplement.Hemisphere(3, fill_direction="downwards")
 
     # Change filling
     Hemisphere1.filled_volume = 1 / 3 * np.pi * 3**3
+    Hemisphere2.filled_volume = 1 / 3 * np.pi * 3**3
 
     assert Hemisphere1.filled_volume == 1 / 3 * np.pi * 3**3
+    assert Hemisphere2.filled_volume == 1 / 3 * np.pi * 3**3
 
     assert np.isclose(
         Hemisphere1.filled_height,
@@ -116,7 +119,16 @@ def test_hemisphere_filling():
         atol=1e-10,
         rtol=1e-12,
     )
+    assert np.isclose(
+        Hemisphere2.filled_height,
+        3 * 2 * np.cos(4 * np.pi / 9),
+        atol=1e-10,
+        rtol=1e-12,
+    )
 
     assert np.isclose(
-        Hemisphere1.filled_centroid, 0.698077340960644, atol=1e-10, rtol=1e-12
+        Hemisphere1.filled_centroid, 1.260033593037774, atol=1e-10, rtol=1e-12
+    )
+    assert np.isclose(
+        Hemisphere2.filled_centroid, 0.510033593037774, atol=1e-10, rtol=1e-12
     )
