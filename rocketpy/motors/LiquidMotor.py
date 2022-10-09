@@ -27,14 +27,14 @@ class LiquidMotor(Motor):
     ):
 
         super.__init__()
-        self.tanks = []
+        self.positioned_tanks = []
         pass
 
     def evaluateMassFlowRate(self):
         massFlowRate = 0
 
-        for tank in self.tanks:
-            massFlowRate += tank.get("tank").netMassFlowRate
+        for positioned_tank in self.positioned_tanks:
+            massFlowRate += positioned_tank.get("tank").netMassFlowRate
 
         return massFlowRate
 
@@ -42,9 +42,9 @@ class LiquidMotor(Motor):
         totalMass = 0
         massBalance = 0
 
-        for tankElement in self.tanks:
-            tank = tankElement.get("tank")
-            tankPosition = tankElement.get("position")
+        for positioned_tank in self.positioned_tanks:
+            tank = positioned_tank.get("tank")
+            tankPosition = positioned_tank.get("position")
             totalMass += tank.mass
             massBalance += tank.mass * (tankPosition + tank.centerOfMass)
 
@@ -54,7 +54,18 @@ class LiquidMotor(Motor):
         pass
 
     def addTank(self, tank, position):
-        self.tanks.append({"tank": tank, "position": position})
+        """
+        Adds a tank to the rocket motor.
+
+        Parameters
+        ----------
+        tank : Tank
+            Tank object to be added to the rocket motor.
+        position : float
+            Position of the tank in relation to the motor nozzle, in meters.
+            Should be a positive value.
+        """
+        self.positioned_tanks.append({"tank": tank, "position": position})
 
 
 class Tank(ABC):
