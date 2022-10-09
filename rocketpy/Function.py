@@ -1876,7 +1876,7 @@ class Function:
                 # Create new Function object
                 return Function(source, inputs, outputs, interpolation)
             else:
-                return Function(lambda x: (self.getValue(x) * other(x)))
+                return Function(lambda x: (self.getValue(x) - other(x)))
         # If other is Float except...
         except:
             if isinstance(other, (float, int, complex)):
