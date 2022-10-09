@@ -31,24 +31,10 @@ class LiquidMotor(Motor):
         pass
 
     def evaluateMassFlowRate(self):
-        massFlowRate = 0
-
-        for tank in self.tanks:
-            massFlowRate += tank.get("tank").netMassFlowRate
-
-        return massFlowRate
+        pass
 
     def evaluateCenterOfMass(self):
-        totalMass = 0
-        massBalance = 0
-
-        for tankElement in self.tanks:
-            tank = tankElement.get("tank")
-            tankPosition = tankElement.get("position")
-            totalMass += tank.mass
-            massBalance += tank.mass * (tankPosition - tank.centerOfMass)
-
-        return massBalance / totalMass
+       pass
 
     def evaluateInertiaTensor(self):
         pass
@@ -199,9 +185,7 @@ class Tank(ABC):
         Function
             Inertia tensor of the tank's fluids as a function of time.
         """
-
-        liquid_volume = self.liquidVolume(t)
-        self.cylinder.filled_volume = liquid_volume - self.bottomCap.volume
+        self.setTankFilling(t)
 
         cylinder_mass = self.cylinder.filled_volume * self.liquid.density
 
