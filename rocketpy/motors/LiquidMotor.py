@@ -458,12 +458,36 @@ class UllageBasedTank(Tank):
         name,
         diameter,
         height,
-        liquid,
+        bottomCap,
+        upperCap,
         gas,
+        liquid,
         ullage,
-        bottomCap="flat",
-        upperCap="flat",
     ):
+        """A motor tank defined based on its ullage volume, i.e., the volume
+        of gas inside the tank.
+        
+        Parameters
+        ----------
+        name : str
+            Name of the tank.
+        diameter : float
+            Diameter of the tank in meters.
+        height : float
+            Height of the tank in meters.
+        bottomCap : str
+            Type of bottom cap. Options are "flat" and "spherical".
+        upperCap : str
+            Type of upper cap. Options are "flat" and "spherical".
+        gas : Gas
+            motor.Gas object.
+        liquid : Liquid
+            motor.Liquid object.
+        ullage : str, float, array_like or callable
+            Ullage volume of the tank as a function of time. Units in m^3.
+            If string is given, it should be the filepath of a csv file
+            containing the data. For more information, see Function.
+        """
         super().__init__(name, diameter, height, gas, liquid, bottomCap, upperCap)
         self.ullage = ullage
 
@@ -489,7 +513,7 @@ class UllageBasedTank(Tank):
         Function
             Tank's liquid volume as a function of time.
         """
-        return self.totalVolume - self.gasVolume
+        return self.cylinder.volume - self.gasVolume
 
     @functools.cached_property
     def gasMass(self):
@@ -528,7 +552,6 @@ class UllageBasedTank(Tank):
         return self.gasMass + self.liquidMass
 
     @functools.cached_property
-    @Function
     def netMassFlowRate(self):
         """Returns the net mass flow rate of the tank as a function of time.
         Net mass flow rate is the mass flow rate exiting the tank minus the
@@ -539,7 +562,7 @@ class UllageBasedTank(Tank):
         Function
             Net mass flow rate of the tank as a function of time.
         """
-        return self.massFunction.differentiate
+        return Function(self.mass.differentiate)
 
 
 # @ompro07
