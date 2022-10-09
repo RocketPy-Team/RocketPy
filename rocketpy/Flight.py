@@ -1506,19 +1506,19 @@ class Flight:
 
         if postProcessing:
             # Dynamics variables
-            self._R1.append([t, R1])
-            self._R2.append([t, R2])
-            self._R3.append([t, R3])
-            self._M1.append([t, M1])
-            self._M2.append([t, M2])
-            self._M3.append([t, M3])
+            self.R1_list.append([t, R1])
+            self.R2_list.append([t, R2])
+            self.R3_list.append([t, R3])
+            self.M1_list.append([t, M1])
+            self.M2_list.append([t, M2])
+            self.M3_list.append([t, M3])
             # Atmospheric Conditions
-            self._windVelocityX.append([t, self.env.windVelocityX(z)])
-            self._windVelocityY.append([t, self.env.windVelocityY(z)])
-            self._density.append([t, self.env.density(z)])
-            self._dynamicViscosity.append([t, self.env.dynamicViscosity(z)])
-            self._pressure.append([t, self.env.pressure(z)])
-            self._speedOfSound.append([t, self.env.speedOfSound(z)])
+            self.windVelocityX_list.append([t, self.env.windVelocityX(z)])
+            self.windVelocityY_list.append([t, self.env.windVelocityY(z)])
+            self.density_list.append([t, self.env.density(z)])
+            self.dynamicViscosity_list.append([t, self.env.dynamicViscosity(z)])
+            self.pressure_list.append([t, self.env.pressure(z)])
+            self.speedOfSound_list.append([t, self.env.speedOfSound(z)])
 
         return uDot
 
@@ -1582,19 +1582,19 @@ class Flight:
 
         if postProcessing:
             # Dynamics variables
-            self.R1.append([t, Dx])
-            self.R2.append([t, Dy])
-            self.R3.append([t, Dz])
-            self.M1.append([t, 0])
-            self.M2.append([t, 0])
-            self.M3.append([t, 0])
+            self.R1_list.append([t, Dx])
+            self.R2_list.append([t, Dy])
+            self.R3_list.append([t, Dz])
+            self.M1_list.append([t, 0])
+            self.M2_list.append([t, 0])
+            self.M3_list.append([t, 0])
             # Atmospheric Conditions
-            self.windVelocityX.append([t, self.env.windVelocityX(z)])
-            self.windVelocityY.append([t, self.env.windVelocityY(z)])
-            self.density.append([t, self.env.density(z)])
-            self.dynamicViscosity.append([t, self.env.dynamicViscosity(z)])
-            self.pressure.append([t, self.env.pressure(z)])
-            self.speedOfSound.append([t, self.env.speedOfSound(z)])
+            self.windVelocityX_list.append([t, self.env.windVelocityX(z)])
+            self.windVelocityY_list.append([t, self.env.windVelocityY(z)])
+            self.density_list.append([t, self.env.density(z)])
+            self.dynamicViscosity_list.append([t, self.env.dynamicViscosity(z)])
+            self.pressure_list.append([t, self.env.pressure(z)])
+            self.speedOfSound_list.append([t, self.env.speedOfSound(z)])
 
         return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
 
@@ -2962,34 +2962,41 @@ class Flight:
 
         Returns
         -------
-        self._R1: list
+        self.R1_list: list
             R1 values
-        self._R2: list
+        self.R2_list: list
             R2 values
-        self._R3: list
+        self.R3_list: list
             R3 values are the aerodynamic force values in the rocket's axis direction
-        self._M1: list
+        self.M1_list: list
             M1 values
-        self._M2: list
+        self.M2_list: list
             Aerodynamic bending moment in ? direction at each time step
-        self._M3: list
+        self.M3_list: list
             Aerodynamic bending moment in ? direction at each time step
-        self._pressure: list
+        self.pressure_list: list
             Air pressure at each time step
-        self._density: list
+        self.density_list: list
             Air density at each time step
-        self._dynamicViscosity: list
+        self.dynamicViscosity_list: list
             Dynamic viscosity at each time step
-        self._speedOfSound: list
+        elf_list._speedOfSound: list
             Speed of sound at each time step
-        self._windVelocityX: list
+        self.windVelocityX_list: list
             Wind velocity in x direction at each time step
-        self._windVelocityY: list
+        self.windVelocityY_list: list
             Wind velocity in y direction at each time step
         """
 
         # Initialize force and atmospheric arrays
-        self._R1, self._R2, self._R3, self._M1, self._M2, self._M3 = (
+        (
+            self.R1_list,
+            self.R2_list,
+            self.R3_list,
+            self.M1_list,
+            self.M2_list,
+            self.M3_list,
+        ) = (
             [],
             [],
             [],
@@ -2998,13 +3005,18 @@ class Flight:
             [],
         )
 
-        self._pressure, self._density, self._dynamicViscosity, self._speedOfSound = (
+        (
+            self.pressure_list,
+            self.density_list,
+            self.dynamicViscosity_list,
+            self.speedOfSound_list,
+        ) = (
             [],
             [],
             [],
             [],
         )
-        self._windVelocityX, self._windVelocityY = [], []
+        self.windVelocityX_list, self.windVelocityY_list = [], []
         # Go through each time step and calculate forces and atmospheric values
         # Get flight phases
         for phase_index, phase in self.timeIterator(self.flightPhases):
@@ -3021,18 +3033,18 @@ class Flight:
                     uDot = currentDerivative(step[0], step[1:], postProcessing=True)
 
         return (
-            self._R1,
-            self._R2,
-            self._R3,
-            self._M1,
-            self._M2,
-            self._M3,
-            self._pressure,
-            self._density,
-            self._dynamicViscosity,
-            self._speedOfSound,
-            self._windVelocityX,
-            self._windVelocityY,
+            self.R1_list,
+            self.R2_list,
+            self.R3_list,
+            self.M1_list,
+            self.M2_list,
+            self.M3_list,
+            self.pressure_list,
+            self.density_list,
+            self.dynamicViscosity_list,
+            self.speedOfSound_list,
+            self.windVelocityX_list,
+            self.windVelocityY_list,
         )
 
     @cached_property
