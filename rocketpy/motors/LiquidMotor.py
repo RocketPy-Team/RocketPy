@@ -190,7 +190,7 @@ class Tank(ABC):
             + self.cylinder.filled_centroid * cylinderMass
             + self.upperCap.filled_centroid * upperCapMass
         ) / (bottomCapMass + cylinderMass + upperCapMass)
-        
+
         return centerOfMass
 
     def inertiaTensor(self, t):
@@ -219,7 +219,7 @@ class Tank(ABC):
 
         # fluids considered inviscid so no shear resistance from torques in z axis
         self.inertiaZ = 0
-        
+
         return self.inertiaI, self.inertiaZ
 
 
