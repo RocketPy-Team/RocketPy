@@ -73,22 +73,28 @@ class Tank(ABC):
         )
 
     def setTankFilling(self, t):
-        liquidVolume = self.liquidVolume(t)
+        liquidVolume = self.liquidVolume.getValueOpt(t)
 
         if liquidVolume < self.bottomCap.volume:
             self.bottomCap.filled_volume = liquidVolume
-        elif (
-            self.bottomCap.volume
-            <= liquidVolume
-            <= self.bottomCap.volume + self.cylinder.volume
-        ):
+            self.cylinder.filled_volume = 0
+            self.upperCap.filled_volume = 0
+        elif liquidVolume <= self.bottomCap.volume + self.cylinder.volume:
             self.bottomCap.filled_volume = self.bottomCap.volume
             self.cylinder.filled_volume = liquidVolume - self.bottomCap.volume
-        else:
+            self.upperCap.filled_volume = 0
+        elif (
+            liquidVolume
+            <= self.bottomCap.volume + self.cylinder.volume + self.upperCap.volume
+        ):
             self.bottomCap.filled_volume = self.bottomCap.volume
             self.cylinder.filled_volume = self.cylinder.volume
             self.upperCap.filled_volume = liquidVolume - (
                 self.bottomCap.volume + self.cylinder.volume
+            )
+        else:
+            raise ValueError(
+                "Tank is overfilled. Check input data to make sure it is correct."
             )
 
     @abstractmethod
