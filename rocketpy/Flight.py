@@ -1842,28 +1842,28 @@ class Flight:
     # Process second type of outputs - accelerations components
     @cached_property
     def ax(self, interpolation="spline", extrapolation="natural"):
-        ax = self.__retrieved_acceleration_arrays()[0]
+        ax = self.__retrieved_acceleration_arrays[0]
         # Convert accelerations to functions
         ax = Function(ax, "Time (s)", "Ax (m/s2)", interpolation, extrapolation)
         return ax
 
     @cached_property
     def ay(self, interpolation="spline", extrapolation="natural"):
-        ay = self.__retrieved_acceleration_arrays()[1]
+        ay = self.__retrieved_acceleration_arrays[1]
         # Convert accelerations to functions
         ay = Function(ay, "Time (s)", "Ay (m/s2)", interpolation, extrapolation)
         return ay
 
     @cached_property
     def az(self, interpolation="spline", extrapolation="natural"):
-        az = self.__retrieved_acceleration_arrays()[2]
+        az = self.__retrieved_acceleration_arrays[2]
         # Convert accelerations to functions
         az = Function(az, "Time (s)", "Az (m/s2)", interpolation, extrapolation)
         return az
 
     @cached_property
     def alpha1(self, interpolation="spline", extrapolation="natural"):
-        alpha1 = self.__retrieved_acceleration_arrays()[3]
+        alpha1 = self.__retrieved_acceleration_arrays[3]
         # Convert accelerations to functions
         alpha1 = Function(
             alpha1, "Time (s)", "α1 (rad/s2)", interpolation, extrapolation
@@ -1872,7 +1872,7 @@ class Flight:
 
     @cached_property
     def alpha2(self, interpolation="spline", extrapolation="natural"):
-        alpha2 = self.__retrieved_acceleration_arrays()[4]
+        alpha2 = self.__retrieved_acceleration_arrays[4]
         # Convert accelerations to functions
         alpha2 = Function(
             alpha2, "Time (s)", "α2 (rad/s2)", interpolation, extrapolation
@@ -1881,7 +1881,7 @@ class Flight:
 
     @cached_property
     def alpha3(self, interpolation="spline", extrapolation="natural"):
-        alpha3 = self.__retrieved_acceleration_arrays()[5]
+        alpha3 = self.__retrieved_acceleration_arrays[5]
         # Convert accelerations to functions
         alpha3 = Function(
             alpha3, "Time (s)", "α3 (rad/s2)", interpolation, extrapolation
