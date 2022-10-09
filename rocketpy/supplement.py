@@ -17,6 +17,21 @@ class Geometry(ABC):
     def centroid(self):
         pass
 
+    @property
+    @abstractmethod
+    def filled_volume(self):
+        pass
+
+    @property
+    @abstractmethod
+    def filled_centroid(self):
+        pass
+
+    @property
+    @abstractmethod
+    def filled_height(self):
+        pass
+
     @abstractmethod
     def volume_to_height(self):
         pass
@@ -31,12 +46,28 @@ class Geometry2D(Geometry):
     def area(self):
         pass
 
-    @Geometry.volume.getter
+    @property
     def volume(self):
         return 0
 
-    @Geometry.centroid.getter
+    @property
     def centroid(self):
+        return 0
+
+    @property
+    def filled_volume(self):
+        return 0
+
+    @filled_volume.setter
+    def filled_volume(self, value):
+        pass
+
+    @property
+    def filled_centroid(self):
+        return 0
+
+    @property
+    def filled_height(self):
         return 0
 
     def volume_to_height(self):
@@ -53,14 +84,8 @@ class Geometry3D(Geometry):
         return self._filled_height
 
     @property
-    @abstractmethod
     def filled_volume(self):
-        pass
-
-    @property
-    @abstractmethod
-    def filled_centroid(self):
-        pass
+        return self._filled_volume
 
     @filled_volume.setter
     def filled_volume(self, volume):
@@ -73,10 +98,11 @@ class Geometry3D(Geometry):
 
 
 class Disk(Geometry2D):
-    def __init__(self, radius):
+    def __init__(self, radius, **kwargs):
         self.radius = radius
+        super().__init__(**kwargs)
 
-    @Geometry2D.area.getter
+    @property
     def area(self):
         return np.pi * self.radius**2
 
@@ -88,19 +114,15 @@ class Cylinder(Geometry3D):
         self.sectional_area = Disk(radius).area
         super().__init__(filled_volume, fill_direction)
 
-    @Geometry.volume.getter
+    @property
     def volume(self):
         return self.sectional_area * self.height
 
-    @Geometry3D.filled_volume.getter
-    def filled_volume(self):
-        return self._filled_volume
-
-    @Geometry.centroid.getter
+    @property
     def centroid(self):
         return self.height / 2
 
-    @Geometry3D.filled_centroid.getter
+    @property
     def filled_centroid(self):
         return self.filled_height / 2
 
@@ -114,19 +136,15 @@ class Hemisphere(Geometry3D):
         self.fill_direction = fill_direction
         super().__init__(filled_volume, fill_direction)
 
-    @Geometry.volume.getter
+    @property
     def volume(self):
         return 2 / 3 * np.pi * self.radius**3
 
-    @Geometry3D.filled_volume.getter
-    def filled_volume(self):
-        return self._filled_volume
-
-    @Geometry.centroid.getter
+    @property
     def centroid(self):
         return 0
 
-    @Geometry3D.filled_centroid.getter
+    @property
     def filled_centroid(self):
         if self.fill_direction == "upwards":
             centroid = self.radius - (

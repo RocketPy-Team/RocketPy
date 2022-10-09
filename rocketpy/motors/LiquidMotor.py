@@ -201,7 +201,7 @@ class Tank(ABC):
         """
 
         liquid_volume = self.liquidVolume(t)
-        self.cylinder.filled_volume = liquid_volume - self.cap.volume
+        self.cylinder.filled_volume = liquid_volume - self.bottomCap.volume
 
         cylinder_mass = self.cylinder.filled_volume * self.liquid.density
 
@@ -223,9 +223,10 @@ class MassFlowRateBasedTank(Tank):
         name,
         diameter,
         height,
+        bottomCap,
+        upperCap,
         gas,
         liquid,
-        endcap,
         initial_liquid_mass,
         initial_gas_mass,
         liquid_mass_flow_rate_in,
@@ -233,7 +234,7 @@ class MassFlowRateBasedTank(Tank):
         liquid_mass_flow_rate_out,
         gas_mass_flow_rate_out,
     ):
-        super().__init__(name, diameter, height, gas, liquid, endcap)
+        super().__init__(name, diameter, height, gas, liquid, bottomCap, upperCap)
 
         self.initial_liquid_mass = initial_liquid_mass
         self.initial_gas_mass = initial_gas_mass
@@ -403,11 +404,12 @@ class MassBasedTank(Tank):
         name,
         diameter,
         height,
-        endcap,
+        bottomCap,
+        upperCap,
         liquid_mass,
         gas_mass,
         liquid,
         gas,
     ):
-        super().__init__(name, diameter, height, endcap, gas, liquid)
+        super().__init__(name, diameter, height, bottomCap, upperCap, gas, liquid)
         pass
