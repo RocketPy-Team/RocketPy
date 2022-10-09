@@ -6,9 +6,9 @@ __author__ = (
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
-from logging import warning
 import math
 import time
+import warnings
 from functools import cached_property
 
 import matplotlib.pyplot as plt
@@ -17,7 +17,6 @@ import simplekml
 from scipy import integrate
 
 from .Function import Function
-import warnings
 
 
 class Flight:
