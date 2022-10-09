@@ -9,3 +9,4 @@ pytz
 timezonefinder
 simplekml
 imageio
+jsonpickle
