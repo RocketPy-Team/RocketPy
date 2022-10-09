@@ -27,6 +27,7 @@ The following packages are needed in order to run RocketPy:
 - timezonefinder
 - simplekml
 - ipywidgets >= 7.6.3
+- jsonpickle
 
  
 All of these packages, with the exception of netCDF4, should be automatically installed when RocketPy is installed using either ``pip`` or ``conda``.
@@ -49,6 +50,7 @@ The packages needed can be installed via ``pip`` by running the following lines 
     pip install pytz
     pip install timezonefinder
     pip install simplekml
+    pip install jsonpickle
 
 Installing Required Packages Using ``conda``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
