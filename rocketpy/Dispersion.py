@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__author__ = (
-    "Mateus Stano Junqueira, Sofia Lopes Suesdek Rocha, Guilherme Fernandes Alves, Bruno Abdulklech Sorban"
-)
+__author__ = "Mateus Stano Junqueira, Sofia Lopes Suesdek Rocha, Guilherme Fernandes Alves, Bruno Abdulklech Sorban"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
@@ -95,6 +93,11 @@ class Dispersion:
         # Save  and initialize parameters
         self.filename = filename
 
+        # Initialize variables so they can be accessed by MATLAB
+        self.dispersion_results = {}
+        self.mean_out_of_rail_time = 0
+        self.std_out_of_rail_time = 0
+
     def __set_distribution_function(self, distribution_type):
         """_summary_
 
@@ -182,17 +185,228 @@ class Dispersion:
             warnings.warn("Distribution type not supported")
 
     def __process_dispersion_dict(self, dictionary):
-        """_summary_
+        """Read the inputted dispersion dictionary from the run_dispersion method
+        and return a dictionary with the processed parameters, being ready to be
+        used in the dispersion simulation.
 
         Parameters
         ----------
         dictionary : dict
-            _description_
+            Dictionary containing the parameters to be varied in the dispersion
+            simulation. The keys of the dictionary are the names of the parameters
+            to be varied, and the values can be either tuple or list. If the value
+            is a single value, the corresponding class of the parameter need to
+            be passed on the run_dispersion method.
 
         Returns
         -------
-        _type_
-            _description_
+        dictionary: dict
+            The modified dictionary with the processed parameters.
+        """
+        # First we need to check if the dictionary is empty
+
+        # Now we prepare all the parachute data
+        dictionary = self.__process_parachute_from_dict(dictionary)
+
+        # Check remaining class inputs
+        # Environment
+        dictionary = self.__process_environment_from_dict(dictionary)
+
+        # Motor
+        dictionary = self.__process_motor_from_dict(dictionary)
+
+        # Rocket
+        dictionary = self.__process_rocket_from_dict(dictionary)
+
+        # Flight
+        dictionary = self.__process_flight_from_dict(dictionary)
+
+        # Finally check the inputted data
+        self.__check_inputted_values_from_dict(dictionary)
+
+        return dictionary
+
+    def __process_flight_from_dict(self, dictionary):
+        """Check if all the relevant inputs for the Flight class are present in
+        the dispersion dictionary, input the missing ones and return the modified
+        dictionary.
+
+        Parameters
+        ----------
+        dictionary : dict
+            Dictionary containing the parameters to be varied in the dispersion
+            simulation. The keys of the dictionary are the names of the parameters
+            to be varied, and the values can be either tuple or list. If the value
+            is a single value, the corresponding class of the parameter need to
+            be passed on the run_dispersion method.
+
+        Returns
+        -------
+        dictionary: dict
+            Modified dictionary with the processed flight parameters.
+        """
+        if not all(
+            flight_input in dictionary for flight_input in self.flight_inputs.keys()
+        ):
+            # Iterate through missing inputs
+            for missing_input in set(self.flight_inputs.keys()) - dictionary.keys():
+                missing_input = str(missing_input)
+                # Add to the dict
+                try:
+                    dictionary[missing_input] = [getattr(self.flight, missing_input)]
+                except:
+                    # class was not inputted
+                    # checks if missing parameter is required
+                    if self.flight_inputs[missing_input] == "required":
+                        warnings.warn(f'Missing "{missing_input}" in dictionary')
+                    else:  # if not, uses default value
+                        dictionary[missing_input] = [self.flight_inputs[missing_input]]
+
+        return dictionary
+
+    def __process_rocket_from_dict(self, dictionary):
+        """Check if all the relevant inputs for the Rocket class are present in
+        the dispersion dictionary, input the missing ones and return the modified
+        dictionary.
+
+        Parameters
+        ----------
+        dictionary : dict
+            Dictionary containing the parameters to be varied in the dispersion
+            simulation. The keys of the dictionary are the names of the parameters
+            to be varied, and the values can be either tuple or list. If the value
+            is a single value, the corresponding class of the parameter need to
+            be passed on the run_dispersion method.
+
+        Returns
+        -------
+        dictionary: dict
+            Modified dictionary with the processed rocket parameters.
+        """
+        if not all(
+            rocket_input in dictionary for rocket_input in self.rocket_inputs.keys()
+        ):
+            # Iterate through missing inputs
+            for missing_input in set(self.rocket_inputs.keys()) - dictionary.keys():
+                missing_input = str(missing_input)
+                # Add to the dict
+                try:
+                    dictionary[missing_input] = [getattr(self.rocket, missing_input)]
+                except:
+                    # class was not inputted
+                    # checks if missing parameter is required
+                    if self.rocket_inputs[missing_input] == "required":
+                        warnings.warn(f'Missing "{missing_input}" in dictionary')
+                    else:  # if not, uses default value
+                        dictionary[missing_input] = [self.rocket_inputs[missing_input]]
+
+        return dictionary
+
+    def __process_motor_from_dict(self, dictionary):
+        """Check if all the relevant inputs for the Motor class are present in
+        the dispersion dictionary, input the missing ones and return the modified
+        dictionary.
+
+        Parameters
+        ----------
+        dictionary : dict
+            Dictionary containing the parameters to be varied in the dispersion
+            simulation. The keys of the dictionary are the names of the parameters
+            to be varied, and the values can be either tuple or list. If the value
+            is a single value, the corresponding class of the parameter need to
+            be passed on the run_dispersion method.
+
+        Returns
+        -------
+        dictionary: dict
+            Modified dictionary with the processed rocket parameters.
+        """
+        # TODO: Add mor options of motor (i.e. Liquid and Hybrids)
+
+        if not all(
+            motor_input in dictionary for motor_input in self.solid_motor_inputs.keys()
+        ):
+            # Iterate through missing inputs
+            for missing_input in (
+                set(self.solid_motor_inputs.keys()) - dictionary.keys()
+            ):
+                missing_input = str(missing_input)
+                # Add to the dict
+                try:
+                    dictionary[missing_input] = [getattr(self.motor, missing_input)]
+                except:
+                    # class was not inputted
+                    # checks if missing parameter is required
+                    if self.solid_motor_inputs[missing_input] == "required":
+                        warnings.warn(f'Missing "{missing_input}" in d')
+                    else:  # if not uses default value
+                        dictionary[missing_input] = [
+                            self.solid_motor_inputs[missing_input]
+                        ]
+        return dictionary
+
+    def __process_environment_from_dict(self, dictionary):
+        """Check if all the relevant inputs for the Environment class are present in
+        the dispersion dictionary, input the missing ones and return the modified
+        dictionary.
+
+        Parameters
+        ----------
+        dictionary :  dict
+            Dictionary containing the parameters to be varied in the dispersion
+            simulation. The keys of the dictionary are the names of the parameters
+            to be varied, and the values can be either tuple or list. If the value
+            is a single value, the corresponding class of the parameter need to
+            be passed on the run_dispersion method.
+
+        Returns
+        -------
+        dictionary: dict
+            Modified dictionary with the processed environment parameters.
+        """
+        if not all(
+            environment_input in dictionary
+            for environment_input in self.environment_inputs.keys()
+        ):
+            # Iterate through missing inputs
+            for missing_input in (
+                set(self.environment_inputs.keys()) - dictionary.keys()
+            ):
+                missing_input = str(missing_input)
+                # Add to the dict
+                try:
+                    dictionary[missing_input] = [
+                        getattr(self.environment, missing_input)
+                    ]
+                except:
+                    # class was not inputted
+                    # checks if missing parameter is required
+                    if self.environment_inputs[missing_input] == "required":
+                        warnings.warn("Missing {} in dictionary".format(missing_input))
+                    else:  # if not, use default value
+                        dictionary[missing_input] = [
+                            self.environment_inputs[missing_input]
+                        ]
+        return dictionary
+
+    def __process_parachute_from_dict(self, dictionary):
+        """Check if all the relevant inputs for the Parachute class are present in
+        the dispersion dictionary, input the missing ones and return the modified
+        dictionary.
+
+        Parameters
+        ----------
+        dictionary : dict
+            Dictionary containing the parameters to be varied in the dispersion
+            simulation. The keys of the dictionary are the names of the parameters
+            to be varied, and the values can be either tuple or list. If the value
+            is a single value, the corresponding class of the parameter need to
+            be passed on the run_dispersion method.
+
+        Returns
+        -------
+        dictionary: dict
+            Modified dictionary with the processed parachute parameters.
         """
         # Get parachutes names
         if "parachuteNames" in dictionary:  # TODO: use only dictionary
@@ -221,6 +435,7 @@ class Dispersion:
                     dictionary["parachute_" + name + "_noise_corr"] = dictionary[
                         "noise_corr"
                     ][i]
+            # Remove already used keys from dictionary to avoid confusion
             dictionary.pop("CdS", None)
             dictionary.pop("trigger", None)
             dictionary.pop("samplingRate", None)
@@ -230,10 +445,29 @@ class Dispersion:
             dictionary.pop("noise_corr", None)
             self.parachute_names = dictionary.pop("parachuteNames", None)
 
+        return dictionary
+
+    def __check_inputted_values_from_dict(self, dictionary):
+        """Check if the inputted values are valid. If not, raise an error.
+
+        Parameters
+        ----------
+        dictionary : dict
+            Dictionary containing the parameters to be varied in the dispersion
+            simulation. The keys of the dictionary are the names of the parameters
+            to be varied, and the values can be either tuple or list. If the value
+            is a single value, the corresponding class of the parameter need to
+            be passed on the run_dispersion method.
+
+        Returns
+        -------
+        dictionary: dict
+            The modified dictionary with the processed parameters.
+        """
         for parameter_key, parameter_value in dictionary.items():
             if isinstance(parameter_value, (tuple, list)):
                 continue
-            else:  # if parameter_value is only the standard deviation
+            else:  # if parameter_value is only the std. dev.
                 if "parachute" in parameter_key:
                     _, parachute_name, parameter = parameter_key.split("_")
                     dictionary[parameter_key] = (
@@ -245,7 +479,7 @@ class Dispersion:
                         ),
                         parameter_value,
                     )
-                else:
+                else:  # TODO: Check if we can remove this else
                     if parameter_key in self.environment_inputs.keys():
                         try:
                             dictionary[parameter_key] = (
@@ -258,7 +492,7 @@ class Dispersion:
                                 "Check if parameter was inputted correctly in dispersion_dictionary."
                                 + " Dictionary values must be either tuple or lists."
                                 + " If single value, the corresponding Class must "
-                                + "must be inputted in Dispersion.run_dispersion method.\n"
+                                + " be inputted in Dispersion.run_dispersion method.\n"
                             )
                             print(traceback.format_exc())
                     elif parameter_key in self.solid_motor_inputs.keys():
@@ -307,86 +541,6 @@ class Dispersion:
                             )
                             print(traceback.format_exc())
 
-        # Check remaining class inputs
-
-        if not all(
-            environment_input in dictionary
-            for environment_input in self.environment_inputs.keys()
-        ):
-            # Iterate through missing inputs
-            for missing_input in (
-                set(self.environment_inputs.keys()) - dictionary.keys()
-            ):
-                missing_input = str(missing_input)
-                # Add to the dict
-                try:
-                    dictionary[missing_input] = [
-                        getattr(self.environment, missing_input)
-                    ]
-                except:
-                    # class was not inputted
-                    # checks if missing parameter is required
-                    if self.environment_inputs[missing_input] == "required":
-                        warnings.warn(f'Missing "{missing_input}" in dictionary')
-                    else:  # if not uses default value
-                        dictionary[missing_input] = [
-                            self.environment_inputs[missing_input]
-                        ]
-        if not all(
-            motor_input in dictionary for motor_input in self.solid_motor_inputs.keys()
-        ):
-            # Iterate through missing inputs
-            for missing_input in (
-                set(self.solid_motor_inputs.keys()) - dictionary.keys()
-            ):
-                missing_input = str(missing_input)
-                # Add to the dict
-                try:
-                    dictionary[missing_input] = [getattr(self.motor, missing_input)]
-                except:
-                    # class was not inputted
-                    # checks if missing parameter is required
-                    if self.solid_motor_inputs[missing_input] == "required":
-                        warnings.warn(f'Missing "{missing_input}" in d')
-                    else:  # if not uses default value
-                        dictionary[missing_input] = [
-                            self.solid_motor_inputs[missing_input]
-                        ]
-
-        if not all(
-            rocket_input in dictionary for rocket_input in self.rocket_inputs.keys()
-        ):
-            # Iterate through missing inputs
-            for missing_input in set(self.rocket_inputs.keys()) - dictionary.keys():
-                missing_input = str(missing_input)
-                # Add to the dict
-                try:
-                    dictionary[missing_input] = [getattr(self.rocket, missing_input)]
-                except:
-                    # class was not inputted
-                    # checks if missing parameter is required
-                    if self.rocket_inputs[missing_input] == "required":
-                        warnings.warn(f'Missing "{missing_input}" in dictionary')
-                    else:  # if not uses default value
-                        dictionary[missing_input] = [self.rocket_inputs[missing_input]]
-
-        if not all(
-            flight_input in dictionary for flight_input in self.flight_inputs.keys()
-        ):
-            # Iterate through missing inputs
-            for missing_input in set(self.flight_inputs.keys()) - dictionary.keys():
-                missing_input = str(missing_input)
-                # Add to the dict
-                try:
-                    dictionary[missing_input] = [getattr(self.flight, missing_input)]
-                except:
-                    # class was not inputted
-                    # checks if missing parameter is required
-                    if self.flight_inputs[missing_input] == "required":
-                        warnings.warn(f'Missing "{missing_input}" in dictionary')
-                    else:  # if not uses default value
-                        dictionary[missing_input] = [self.flight_inputs[missing_input]]
-
         return dictionary
 
     def __yield_flight_setting(
@@ -406,8 +560,8 @@ class Dispersion:
 
         Yields
         ------
-        _type_
-            _description_
+        flight_setting
+
         """
 
         i = 0
@@ -427,9 +581,8 @@ class Dispersion:
             # Yield a flight setting
             yield flight_setting
 
-    # TODO: Rework post process Flight method making it possible (and optimized) to
-    # chose what is going to be exported
-    def export_flight_data(
+    # TODO: allow user to chose what is going to be exported
+    def __export_flight_data(
         self,
         flight_setting,
         flight,
@@ -484,32 +637,33 @@ class Dispersion:
             "frontalWind": flight.frontalSurfaceWind,
         }
 
-        # Calculate maximum reached velocity
-        sol = np.array(flight.solution)
-        flight.vx = Function(
-            sol[:, [0, 4]],
-            "Time (s)",
-            "Vx (m/s)",
-            "linear",
-            extrapolation="natural",
-        )
-        flight.vy = Function(
-            sol[:, [0, 5]],
-            "Time (s)",
-            "Vy (m/s)",
-            "linear",
-            extrapolation="natural",
-        )
-        flight.vz = Function(
-            sol[:, [0, 6]],
-            "Time (s)",
-            "Vz (m/s)",
-            "linear",
-            extrapolation="natural",
-        )
-        flight.speed = (flight.vx**2 + flight.vy**2 + flight.vz**2) ** 0.5
-        flight.maxVel = np.amax(flight.speed.source[:, 1])
-        flight_result["maxVelocity"] = flight.maxVel
+        # # Calculate maximum reached velocity
+        # sol = np.array(flight.solution)
+        # flight.vx = Function(
+        #     sol[:, [0, 4]],
+        #     "Time (s)",
+        #     "Vx (m/s)",
+        #     "linear",
+        #     extrapolation="natural",
+        # )
+        # flight.vy = Function(
+        #     sol[:, [0, 5]],
+        #     "Time (s)",
+        #     "Vy (m/s)",
+        #     "linear",
+        #     extrapolation="natural",
+        # )
+        # flight.vz = Function(
+        #     sol[:, [0, 6]],
+        #     "Time (s)",
+        #     "Vz (m/s)",
+        #     "linear",
+        #     extrapolation="natural",
+        # )
+        # flight.speed = (flight.vx**2 + flight.vy**2 + flight.vz**2) ** 0.5
+        # flight.maxVel = np.amax(flight.speed.source[:, 1])
+        # flight_result["maxVelocity"] = flight.maxVel
+        flight_result["maxVelocity"] = flight.maxSpeed
 
         # Take care of parachute results
         for trigger_time, parachute in flight.parachuteEvents:
@@ -530,7 +684,7 @@ class Dispersion:
 
         return None
 
-    def export_flight_error(self, flight_setting, dispersion_error_file):
+    def __export_flight_data(self, flight_setting, dispersion_error_file):
 
         """Saves flight error in a .txt"""
 
@@ -547,7 +701,7 @@ class Dispersion:
         motor=None,
         rocket=None,
         distribution_type="normal",
-        image=None,
+        bg_image=None,
         actual_landing_point=None,
     ):
         """Runs the given number of simulations and saves the data
@@ -557,7 +711,7 @@ class Dispersion:
         number_of_simulations : int
             Number of simulations desired, must be non negative.
             This is needed when running a new simulation. Default is zero.
-        d : _type_
+        dispersion_dictionary : _type_
             _description_
         environment : _type_
             _description_
@@ -571,17 +725,17 @@ class Dispersion:
             _description_, by default None
         distribution_type : str, optional
             _description_, by default "normal"
-        image : str, optional
+        bg_image : str, optional
             The path to the image to be used as the background
         actual_landing_point : tuple, optional
             A tuple containing the actual landing point of the rocket, if known.
             Useful when comparing the dispersion results with the actual landing.
-            Must be given in tuple format, such as (lat, lon). By default None. # TODO: Check the order
+            Must be given in tuple format, such as (lat, lon). By default None.
+            # TODO: Check the order of these coordinates
 
         Returns
         -------
-        _type_
-            _description_
+        None
         """
 
         self.number_of_simulations = number_of_simulations
@@ -595,7 +749,7 @@ class Dispersion:
         self.motor = motor if motor else self.motor
         self.rocket = rocket if rocket else self.rocket
         self.distribution_type = distribution_type
-        self.image = image
+        self.image = bg_image
         self.actual_landing_point = actual_landing_point
 
         # Creates copy of dispersion_dictionary that will be altered
@@ -740,12 +894,12 @@ class Dispersion:
 
             # Run trajectory simulation
             try:
+                # TODO: Add initialSolution flight option
                 TestFlight = Flight(
                     rocket=rocket_dispersion,
                     environment=env_dispersion,
                     inclination=setting["inclination"],
                     heading=setting["heading"],
-                    # initialSolution=setting["initialSolution"] if "initialSolution" in setting else self.flight.initialSolution,
                     terminateOnApogee=setting["terminateOnApogee"],
                     maxTime=setting["maxTime"],
                     maxTimeStep=setting["maxTimeStep"],
@@ -756,7 +910,7 @@ class Dispersion:
                     verbose=setting["verbose"],
                 )
 
-                self.export_flight_data(
+                self.__export_flight_data(
                     flight_setting=setting,
                     flight_data=TestFlight,
                     exec_time=process_time() - self.start_time,
@@ -766,14 +920,14 @@ class Dispersion:
             except Exception as E:
                 print(E)
                 print(traceback.format_exc())
-                self.export_flight_error(setting, dispersion_error_file)
+                self.__export_flight_data(setting, dispersion_error_file)
 
             # Register time
             out.update(
                 f"Current iteration: {i:06d} | Average Time per Iteration: {(process_time() - initial_cpu_time)/i:2.6f} s | Estimated time left: {int((number_of_simulations - i)*((process_time() - initial_cpu_time)/i))} s"
             )
 
-        # Done
+        # Clean the house once all the simulations were already done
 
         ## Print and save total time
         final_string = f"Completed {i} iterations successfully. Total CPU time: {process_time() - initial_cpu_time} s. Total wall time: {time() - initial_wall_time} s"
@@ -794,18 +948,18 @@ class Dispersion:
 
         Parameters
         ----------
-        dispersion_output_file : _type_
-            _description_
+        dispersion_output_file : str
+            Path to the dispersion output file. This file will not be overwritten,
+            modified or deleted by this function.
 
         Returns
         -------
-        dispersion_results: dict
-            _description_
+        None
         """
-
         # Initialize variable to store all results
         dispersion_general_results = []
 
+        # TODO: Add more flexible way to define dispersion_results
         dispersion_results = {
             "outOfRailTime": [],
             "outOfRailVelocity": [],
@@ -832,61 +986,77 @@ class Dispersion:
         }
 
         # Get all dispersion results
-        # Get file
-        dispersion_output_file = open(dispersion_output_file, "r+")
+        # Open the file
+        file = open(dispersion_output_file, "r+")
 
         # Read each line of the file and convert to dict
-        for line in dispersion_output_file:
+        for line in file:
             # Skip comments lines
             if line[0] != "{":
                 continue
-            # Eval results and store them
+            # Evaluate results and store them
             flight_result = eval(line)
             dispersion_general_results.append(flight_result)
             for parameter_key, parameter_value in flight_result.items():
                 dispersion_results[parameter_key].append(parameter_value)
 
         # Close data file
-        dispersion_output_file.close()
+        file.close()
 
-        # Number of flights simulated
-        self.number_of_loaded_simulations = len(dispersion_general_results)
+        # Calculate the number of flights simulated
+        self.num_of_loaded_sims = len(dispersion_general_results)
 
-        return dispersion_results
+        # Print the number of flights simulated
+        print(
+            f"A total of {self.num_of_loaded_sims} simulations were loaded from the following file: {dispersion_output_file}"
+        )
+
+        # Save the results as an attribute of the class
+        self.dispersion_results = dispersion_results
+
+        return None
 
     # Start the processing analysis
 
-    @cached_property
-    def mean_out_of_rail_time(dispersion_results):
-        return np.mean(dispersion_results["outOfRailTime"])
+    def outOfRailTime(self):
+        """Calculate the time of the rocket's departure from the rail, in seconds.
 
-    @cached_property
-    def std_out_of_rail_time(dispersion_results):
-        return np.std(dispersion_results["outOfRailTime"])
+        Returns
+        -------
+        _type_
+            _description_
+        """
+        self.mean_out_of_rail_time = (
+            np.mean(self.dispersion_results["outOfRailTime"])
+            if self.dispersion_results["outOfRailTime"]
+            else None
+        )
+        self.std_out_of_rail_time = (
+            np.std(self.dispersion_results["outOfRailTime"])
+            if self.dispersion_results["outOfRailTime"]
+            else None
+        )
+        return None
 
-    def printMeanOutOfRailTime(self, dispersion_results):
-        """_summary_
+    def printMeanOutOfRailTime(self):
+        """Prints out the mean and std. dev. of the "outOfRailTime" parameter.
 
         Parameters
         ----------
-        dispersion_results : _type_
-            _description_
+        None
 
         Returns
         -------
         None
         """
-        print(
-            f"Out of Rail Time -         Mean Value: {self.mean_out_of_rail_time(dispersion_results):0.3f} s"
-        )
-        print(
-            f"Out of Rail Time - Standard Deviation: {self.std_out_of_rail_time(dispersion_results):0.3f} s"
-        )
+        self.outOfRailTime()
+        print(f"Out of Rail Time -Mean Value: {self.mean_out_of_rail_time:0.3f} s")
+        print(f"Out of Rail Time - Std. Dev.: {self.std_out_of_rail_time:0.3f} s")
 
         return None
 
-    def plotOutOfRailTime(self, dispersion_results):
-        """_summary_
+    def plotOutOfRailTime(self):
+        """Plot the out of rail time distribution
 
         Parameters
         ----------
@@ -898,12 +1068,12 @@ class Dispersion:
         _type_
             _description_
         """
-        self.meanOutOfRailTime(dispersion_results)
+        self.outOfRailTime()
 
         plt.figure()
         plt.hist(
-            dispersion_results["outOfRailTime"],
-            bins=int(self.number_of_loaded_simulations**0.5),
+            self.dispersion_results["outOfRailTime"],
+            bins=int(self.num_of_loaded_sims**0.5),
         )
         plt.title("Out of Rail Time")
         plt.xlabel("Time (s)")
@@ -926,10 +1096,10 @@ class Dispersion:
             _description_
         """
         print(
-            f'Out of Rail Velocity -         Mean Value: {np.mean(dispersion_results["outOfRailVelocity"]):0.3f} m/s'
+            f'Out of Rail Velocity -Mean Value: {np.mean(dispersion_results["outOfRailVelocity"]):0.3f} m/s'
         )
         print(
-            f'Out of Rail Velocity - Standard Deviation: {np.std(dispersion_results["outOfRailVelocity"]):0.3f} m/s'
+            f'Out of Rail Velocity - Std. Dev.: {np.std(dispersion_results["outOfRailVelocity"]):0.3f} m/s'
         )
 
         return None
@@ -952,7 +1122,7 @@ class Dispersion:
         plt.figure()
         plt.hist(
             dispersion_results["outOfRailVelocity"],
-            bins=int(self.number_of_loaded_simulations**0.5),
+            bins=int(self.num_of_loaded_sims**0.5),
         )
         plt.title("Out of Rail Velocity")
         plt.xlabel("Velocity (m/s)")
@@ -975,10 +1145,10 @@ class Dispersion:
             _description_
         """
         print(
-            f'Impact Time -         Mean Value: {np.mean(dispersion_results["impactTime"]):0.3f} s'
+            f'Impact Time -Mean Value: {np.mean(dispersion_results["impactTime"]):0.3f} s'
         )
         print(
-            f'Impact Time - Standard Deviation: {np.std(dispersion_results["impactTime"]):0.3f} s'
+            f'Impact Time - Std. Dev.: {np.std(dispersion_results["impactTime"]):0.3f} s'
         )
 
         return None
@@ -1001,7 +1171,7 @@ class Dispersion:
         plt.figure()
         plt.hist(
             dispersion_results["impactTime"],
-            bins=int(self.number_of_loaded_simulations**0.5),
+            bins=int(self.num_of_loaded_sims**0.5),
         )
         plt.title("Impact Time")
         plt.xlabel("Time (s)")
@@ -1024,10 +1194,10 @@ class Dispersion:
             _description_
         """
         print(
-            f'Apogee Altitude -         Mean Value: {np.mean(dispersion_results["apogeeAltitude"]):0.3f} m'
+            f'Apogee Altitude -Mean Value: {np.mean(dispersion_results["apogeeAltitude"]):0.3f} m'
         )
         print(
-            f'Apogee Altitude - Standard Deviation: {np.std(dispersion_results["apogeeAltitude"]):0.3f} m'
+            f'Apogee Altitude - Std. Dev.: {np.std(dispersion_results["apogeeAltitude"]):0.3f} m'
         )
 
         return None
@@ -1050,7 +1220,7 @@ class Dispersion:
         plt.figure()
         plt.hist(
             dispersion_results["apogeeAltitude"],
-            bins=int(self.number_of_loaded_simulations**0.5),
+            bins=int(self.num_of_loaded_sims**0.5),
         )
         plt.title("Apogee Altitude")
         plt.xlabel("Altitude (m)")
@@ -1073,10 +1243,10 @@ class Dispersion:
             _description_
         """
         print(
-            f'Apogee X Position -         Mean Value: {np.mean(dispersion_results["apogeeX"]):0.3f} m'
+            f'Apogee X Position -Mean Value: {np.mean(dispersion_results["apogeeX"]):0.3f} m'
         )
         print(
-            f'Apogee X Position - Standard Deviation: {np.std(dispersion_results["apogeeX"]):0.3f} m'
+            f'Apogee X Position - Std. Dev.: {np.std(dispersion_results["apogeeX"]):0.3f} m'
         )
 
         return None
@@ -1099,7 +1269,7 @@ class Dispersion:
         plt.figure()
         plt.hist(
             dispersion_results["apogeeX"],
-            bins=int(self.number_of_loaded_simulations**0.5),
+            bins=int(self.num_of_loaded_sims**0.5),
         )
         plt.title("Apogee X Position")
         plt.xlabel("Apogee X Position (m)")
@@ -1122,10 +1292,10 @@ class Dispersion:
             _description_
         """
         print(
-            f'Apogee Y Position -         Mean Value: {np.mean(dispersion_results["apogeeY"]):0.3f} m'
+            f'Apogee Y Position -Mean Value: {np.mean(dispersion_results["apogeeY"]):0.3f} m'
         )
         print(
-            f'Apogee Y Position - Standard Deviation: {np.std(dispersion_results["apogeeY"]):0.3f} m'
+            f'Apogee Y Position - Std. Dev.: {np.std(dispersion_results["apogeeY"]):0.3f} m'
         )
 
         return None
@@ -1148,7 +1318,7 @@ class Dispersion:
         plt.figure()
         plt.hist(
             dispersion_results["apogeeY"],
-            bins=int(self.number_of_loaded_simulations**0.5),
+            bins=int(self.num_of_loaded_sims**0.5),
         )
         plt.title("Apogee Y Position")
         plt.xlabel("Apogee Y Position (m)")
@@ -1171,10 +1341,10 @@ class Dispersion:
             _description_
         """
         print(
-            f'Impact Time -         Mean Value: {np.mean(dispersion_results["impactTime"]):0.3f} s'
+            f'Impact Time -Mean Value: {np.mean(dispersion_results["impactTime"]):0.3f} s'
         )
         print(
-            f'Impact Time - Standard Deviation: {np.std(dispersion_results["impactTime"]):0.3f} s'
+            f'Impact Time - Std. Dev.: {np.std(dispersion_results["impactTime"]):0.3f} s'
         )
 
         return None
@@ -1197,7 +1367,7 @@ class Dispersion:
         plt.figure()
         plt.hist(
             dispersion_results["impactTime"],
-            bins=int(self.number_of_loaded_simulations**0.5),
+            bins=int(self.num_of_loaded_sims**0.5),
         )
         plt.title("Impact Time")
         plt.xlabel("Time (s)")
@@ -1220,10 +1390,10 @@ class Dispersion:
             _description_
         """
         print(
-            f'Impact X Position -         Mean Value: {np.mean(dispersion_results["impactX"]):0.3f} m'
+            f'Impact X Position -Mean Value: {np.mean(dispersion_results["impactX"]):0.3f} m'
         )
         print(
-            f'Impact X Position - Standard Deviation: {np.std(dispersion_results["impactX"]):0.3f} m'
+            f'Impact X Position - Std. Dev.: {np.std(dispersion_results["impactX"]):0.3f} m'
         )
 
         return None
@@ -1246,7 +1416,7 @@ class Dispersion:
         plt.figure()
         plt.hist(
             dispersion_results["impactX"],
-            bins=int(self.number_of_loaded_simulations**0.5),
+            bins=int(self.num_of_loaded_sims**0.5),
         )
         plt.title("Impact X Position")
         plt.xlabel("Impact X Position (m)")
@@ -1269,10 +1439,10 @@ class Dispersion:
             _description_
         """
         print(
-            f'Impact Y Position -         Mean Value: {np.mean(dispersion_results["impactY"]):0.3f} m'
+            f'Impact Y Position -Mean Value: {np.mean(dispersion_results["impactY"]):0.3f} m'
         )
         print(
-            f'Impact Y Position - Standard Deviation: {np.std(dispersion_results["impactY"]):0.3f} m'
+            f'Impact Y Position - Std. Dev.: {np.std(dispersion_results["impactY"]):0.3f} m'
         )
 
         return None
@@ -1295,7 +1465,7 @@ class Dispersion:
         plt.figure()
         plt.hist(
             dispersion_results["impactY"],
-            bins=int(self.number_of_loaded_simulations**0.5),
+            bins=int(self.num_of_loaded_sims**0.5),
         )
         plt.title("Impact Y Position")
         plt.xlabel("Impact Y Position (m)")
@@ -1318,10 +1488,10 @@ class Dispersion:
             _description_
         """
         print(
-            f'Impact Velocity -         Mean Value: {np.mean(dispersion_results["impactVelocity"]):0.3f} m/s'
+            f'Impact Velocity -Mean Value: {np.mean(dispersion_results["impactVelocity"]):0.3f} m/s'
         )
         print(
-            f'Impact Velocity - Standard Deviation: {np.std(dispersion_results["impactVelocity"]):0.3f} m/s'
+            f'Impact Velocity - Std. Dev.: {np.std(dispersion_results["impactVelocity"]):0.3f} m/s'
         )
 
         return None
@@ -1344,7 +1514,7 @@ class Dispersion:
         plt.figure()
         plt.hist(
             dispersion_results["impactVelocity"],
-            bins=int(self.number_of_loaded_simulations**0.5),
+            bins=int(self.num_of_loaded_sims**0.5),
         )
         plt.title("Impact Velocity")
         plt.xlim(-35, 0)
@@ -1368,24 +1538,24 @@ class Dispersion:
             _description_
         """
         print(
-            f'Initial Static Margin -             Mean Value: {np.mean(dispersion_results["initialStaticMargin"]):0.3f} c'
+            f'Initial Static Margin -    Mean Value: {np.mean(dispersion_results["initialStaticMargin"]):0.3f} c'
         )
         print(
-            f'Initial Static Margin -     Standard Deviation: {np.std(dispersion_results["initialStaticMargin"]):0.3f} c'
-        )
-
-        print(
-            f'Out of Rail Static Margin -         Mean Value: {np.mean(dispersion_results["outOfRailStaticMargin"]):0.3f} c'
-        )
-        print(
-            f'Out of Rail Static Margin - Standard Deviation: {np.std(dispersion_results["outOfRailStaticMargin"]):0.3f} c'
+            f'Initial Static Margin -     Std. Dev.: {np.std(dispersion_results["initialStaticMargin"]):0.3f} c'
         )
 
         print(
-            f'Final Static Margin -               Mean Value: {np.mean(dispersion_results["finalStaticMargin"]):0.3f} c'
+            f'Out of Rail Static Margin -Mean Value: {np.mean(dispersion_results["outOfRailStaticMargin"]):0.3f} c'
         )
         print(
-            f'Final Static Margin -       Standard Deviation: {np.std(dispersion_results["finalStaticMargin"]):0.3f} c'
+            f'Out of Rail Static Margin - Std. Dev.: {np.std(dispersion_results["outOfRailStaticMargin"]):0.3f} c'
+        )
+
+        print(
+            f'Final Static Margin -      Mean Value: {np.mean(dispersion_results["finalStaticMargin"]):0.3f} c'
+        )
+        print(
+            f'Final Static Margin -       Std. Dev.: {np.std(dispersion_results["finalStaticMargin"]):0.3f} c'
         )
 
         return None
@@ -1409,17 +1579,17 @@ class Dispersion:
         plt.hist(
             dispersion_results["initialStaticMargin"],
             label="Initial",
-            bins=int(self.number_of_loaded_simulations**0.5),
+            bins=int(self.num_of_loaded_sims**0.5),
         )
         plt.hist(
             dispersion_results["outOfRailStaticMargin"],
             label="Out of Rail",
-            bins=int(self.number_of_loaded_simulations**0.5),
+            bins=int(self.num_of_loaded_sims**0.5),
         )
         plt.hist(
             dispersion_results["finalStaticMargin"],
             label="Final",
-            bins=int(self.number_of_loaded_simulations**0.5),
+            bins=int(self.num_of_loaded_sims**0.5),
         )
         plt.legend()
         plt.title("Static Margin")
@@ -1443,10 +1613,10 @@ class Dispersion:
             _description_
         """
         print(
-            f'Maximum Velocity -         Mean Value: {np.mean(dispersion_results["maxVelocity"]):0.3f} m/s'
+            f'Maximum Velocity -Mean Value: {np.mean(dispersion_results["maxVelocity"]):0.3f} m/s'
         )
         print(
-            f'Maximum Velocity - Standard Deviation: {np.std(dispersion_results["maxVelocity"]):0.3f} m/s'
+            f'Maximum Velocity - Std. Dev.: {np.std(dispersion_results["maxVelocity"]):0.3f} m/s'
         )
 
         return None
@@ -1469,7 +1639,7 @@ class Dispersion:
         plt.figure()
         plt.hist(
             dispersion_results["maxVelocity"],
-            bins=int(self.number_of_loaded_simulations**0.5),
+            bins=int(self.num_of_loaded_sims**0.5),
         )
         plt.title("Maximum Velocity")
         plt.xlabel("Velocity (m/s)")
@@ -1492,10 +1662,10 @@ class Dispersion:
             _description_
         """
         print(
-            f'Number of Parachute Events -         Mean Value: {np.mean(dispersion_results["numberOfEvents"]):0.3f} s'
+            f'Number of Parachute Events -Mean Value: {np.mean(dispersion_results["numberOfEvents"]):0.3f} s'
         )
         print(
-            f'Number of Parachute Events - Standard Deviation: {np.std(dispersion_results["numberOfEvents"]):0.3f} s'
+            f'Number of Parachute Events - Std. Dev.: {np.std(dispersion_results["numberOfEvents"]):0.3f} s'
         )
 
         return None
@@ -1538,10 +1708,10 @@ class Dispersion:
             _description_
         """
         print(
-            f'Drogue Trigger Time -         Mean Value: {np.mean(dispersion_results["drogueTriggerTime"]):0.3f} s'
+            f'Drogue Trigger Time -Mean Value: {np.mean(dispersion_results["drogueTriggerTime"]):0.3f} s'
         )
         print(
-            f'Drogue Trigger Time - Standard Deviation: {np.std(dispersion_results["drogueTriggerTime"]):0.3f} s'
+            f'Drogue Trigger Time - Std. Dev.: {np.std(dispersion_results["drogueTriggerTime"]):0.3f} s'
         )
 
         return None
@@ -1564,7 +1734,7 @@ class Dispersion:
         plt.figure()
         plt.hist(
             dispersion_results["drogueTriggerTime"],
-            bins=int(self.number_of_loaded_simulations**0.5),
+            bins=int(self.num_of_loaded_sims**0.5),
         )
         plt.title("Drogue Trigger Time")
         plt.xlabel("Time (s)")
@@ -1587,10 +1757,10 @@ class Dispersion:
             _description_
         """
         print(
-            f'Drogue Fully Inflated Time -         Mean Value: {np.mean(dispersion_results["drogueInflatedTime"]):0.3f} s'
+            f'Drogue Fully Inflated Time -Mean Value: {np.mean(dispersion_results["drogueInflatedTime"]):0.3f} s'
         )
         print(
-            f'Drogue Fully Inflated Time - Standard Deviation: {np.std(dispersion_results["drogueInflatedTime"]):0.3f} s'
+            f'Drogue Fully Inflated Time - Std. Dev.: {np.std(dispersion_results["drogueInflatedTime"]):0.3f} s'
         )
 
         return None
@@ -1613,7 +1783,7 @@ class Dispersion:
         plt.figure()
         plt.hist(
             dispersion_results["drogueInflatedTime"],
-            bins=int(self.number_of_loaded_simulations**0.5),
+            bins=int(self.num_of_loaded_sims**0.5),
         )
         plt.title("Drogue Fully Inflated Time")
         plt.xlabel("Time (s)")
@@ -1636,10 +1806,10 @@ class Dispersion:
             _description_
         """
         print(
-            f'Drogue Parachute Fully Inflated Velocity -         Mean Value: {np.mean(dispersion_results["drogueInflatedVelocity"]):0.3f} m/s'
+            f'Drogue Parachute Fully Inflated Velocity -Mean Value: {np.mean(dispersion_results["drogueInflatedVelocity"]):0.3f} m/s'
         )
         print(
-            f'Drogue Parachute Fully Inflated Velocity - Standard Deviation: {np.std(dispersion_results["drogueInflatedVelocity"]):0.3f} m/s'
+            f'Drogue Parachute Fully Inflated Velocity - Std. Dev.: {np.std(dispersion_results["drogueInflatedVelocity"]):0.3f} m/s'
         )
 
         return None
@@ -1662,7 +1832,7 @@ class Dispersion:
         plt.figure()
         plt.hist(
             dispersion_results["drogueInflatedVelocity"],
-            bins=int(self.number_of_loaded_simulations**0.5),
+            bins=int(self.num_of_loaded_sims**0.5),
         )
         plt.title("Drogue Parachute Fully Inflated Velocity")
         plt.xlabel("Velocity m/s)")
@@ -1996,10 +2166,10 @@ class Dispersion:
             _description_
         """
         print(
-            f'Lateral Surface Wind Speed -         Mean Value: {np.mean(dispersion_results["lateralWind"]):0.3f} m/s'
+            f'Lateral Surface Wind Speed -Mean Value: {np.mean(dispersion_results["lateralWind"]):0.3f} m/s'
         )
         print(
-            f'Lateral Surface Wind Speed - Standard Deviation: {np.std(dispersion_results["lateralWind"]):0.3f} m/s'
+            f'Lateral Surface Wind Speed - Std. Dev.: {np.std(dispersion_results["lateralWind"]):0.3f} m/s'
         )
 
     def plotLateralWindSpeed(self, dispersion_results):
@@ -2015,7 +2185,7 @@ class Dispersion:
         plt.figure()
         plt.hist(
             dispersion_results["lateralWind"],
-            bins=int(self.number_of_loaded_simulations**0.5),
+            bins=int(self.num_of_loaded_sims**0.5),
         )
         plt.title("Lateral Surface Wind Speed")
         plt.xlabel("Velocity (m/s)")
@@ -2031,10 +2201,10 @@ class Dispersion:
             _description_
         """
         print(
-            f'Frontal Surface Wind Speed -         Mean Value: {np.mean(dispersion_results["frontalWind"]):0.3f} m/s'
+            f'Frontal Surface Wind Speed -Mean Value: {np.mean(dispersion_results["frontalWind"]):0.3f} m/s'
         )
         print(
-            f'Frontal Surface Wind Speed - Standard Deviation: {np.std(dispersion_results["frontalWind"]):0.3f} m/s'
+            f'Frontal Surface Wind Speed - Std. Dev.: {np.std(dispersion_results["frontalWind"]):0.3f} m/s'
         )
 
     def plotFrontalWindSpeed(self, dispersion_results):
@@ -2050,7 +2220,7 @@ class Dispersion:
         plt.figure()
         plt.hist(
             dispersion_results["frontalWind"],
-            bins=int(self.number_of_loaded_simulations**0.5),
+            bins=int(self.num_of_loaded_sims**0.5),
         )
         plt.title("Frontal Surface Wind Speed")
         plt.xlabel("Velocity (m/s)")
