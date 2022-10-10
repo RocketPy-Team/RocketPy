@@ -125,7 +125,7 @@ def invertedHaversine(lat0, lon0, distance, bearing, eRadius=6.3781e6):
         Azimuth (or bearing compass) from the origin point, in degrees.
     eRadius : float, optional
         Earth radius, in meters. Default value is 6.3781e6.
-        See the utilities.calculateEarthRadius() function for more accuracy.
+        See the supplement.calculateEarthRadius() function for more accuracy.
 
     Returns
     -------
