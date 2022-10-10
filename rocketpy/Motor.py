@@ -154,6 +154,7 @@ class Motor(ABC):
         # Thrust parameters
         self.interpolate = interpolationMethod
         self.burnOutTime = burnOut
+        self.thrustSource = thrustSource
 
         # Check if thrustSource is csv, eng, function or other
         if isinstance(thrustSource, str):
