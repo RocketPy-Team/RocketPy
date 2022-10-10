@@ -189,7 +189,8 @@ class Tank(ABC):
         """
         pass
 
-    def centerOfMass(self, t):
+    @functools.cached_property
+    def centerOfMass(self):
         """Returns the center of mass of the tank's fluids as a function of
         time.
 
@@ -203,42 +204,55 @@ class Tank(ABC):
         Function
             Center of mass of the tank's fluids as a function of time.
         """
-        self.setTankFilling(t)
+        # TODO: improve naming
+        def centerOfMass(t):
+            self.setTankFilling(t)
 
-        bottomCapLiquidMass = self.liquid.density * self.bottomCap.filled_volume
-        cylinderLiquidMass = self.liquid.density * self.cylinder.filled_volume
-        upperCapLiquidMass = self.liquid.density * self.upperCap.filled_volume
+            bottomCapLiquidMass = self.liquid.density * self.bottomCap.filled_volume
+            cylinderLiquidMass = self.liquid.density * self.cylinder.filled_volume
+            upperCapLiquidMass = self.liquid.density * self.upperCap.filled_volume
 
-        bottomCapGasMass = self.gas.density * self.bottomCap.empty_volume
-        cylinderGasMass = self.gas.density * self.cylinder.empty_volume
-        upperCapGasMass = self.gas.density * self.upperCap.empty_volume
+            bottomCapGasMass = self.gas.density * self.bottomCap.empty_volume
+            cylinderGasMass = self.gas.density * self.cylinder.empty_volume
+            upperCapGasMass = self.gas.density * self.upperCap.empty_volume
 
-        bottomCapMass = bottomCapLiquidMass + bottomCapGasMass
-        cylinderMass = cylinderLiquidMass + cylinderGasMass
-        upperCapMass = upperCapLiquidMass + upperCapGasMass
+            bottomCapMass = bottomCapLiquidMass + bottomCapGasMass
+            cylinderMass = cylinderLiquidMass + cylinderGasMass
+            upperCapMass = upperCapLiquidMass + upperCapGasMass
 
-        totalMass = bottomCapMass + cylinderMass + upperCapMass
+            totalMass = bottomCapMass + cylinderMass + upperCapMass
 
-        bottomCapMassBalance = (
-            bottomCapLiquidMass * self.bottomCap.filled_centroid
-            + bottomCapGasMass * self.bottomCap.empty_centroid
+            bottomCapMassBalance = (
+                bottomCapLiquidMass * self.bottomCap.filled_centroid
+                + bottomCapGasMass * self.bottomCap.empty_centroid
+            )
+            cylinderMassBalance = cylinderLiquidMass * (
+                self.cylinder.filled_centroid + self.bottomCap.height
+            ) + cylinderGasMass * (self.cylinder.empty_centroid + self.bottomCap.height)
+            upperCapMassBalance = upperCapLiquidMass * (
+                self.upperCap.filled_centroid
+                + self.bottomCap.height
+                + self.cylinder.height
+            ) + upperCapGasMass * (
+                self.upperCap.empty_centroid
+                + self.bottomCap.height
+                + self.cylinder.height
+            )
+
+            centerOfMass = (
+                bottomCapMassBalance + cylinderMassBalance + upperCapMassBalance
+            ) / totalMass
+
+            return centerOfMass
+
+        centerOfMass = Function(
+            centerOfMass, inputs="Time (s)", outputs="Center of Mass (m)"
         )
-        cylinderMassBalance = cylinderLiquidMass * (
-            self.cylinder.filled_centroid + self.bottomCap.height
-        ) + cylinderGasMass * (self.cylinder.empty_centroid + self.bottomCap.height)
-        upperCapMassBalance = upperCapLiquidMass * (
-            self.upperCap.filled_centroid + self.bottomCap.height + self.cylinder.height
-        ) + upperCapGasMass * (
-            self.upperCap.empty_centroid + self.bottomCap.height + self.cylinder.height
-        )
-
-        centerOfMass = (
-            bottomCapMassBalance + cylinderMassBalance + upperCapMassBalance
-        ) / totalMass
 
         return centerOfMass
 
-    def inertiaTensor(self, t):
+    @functools.cached_property
+    def inertiaTensor(self):
         """Returns the inertia tensor of the tank's fluids as a function of
         time.
 
@@ -253,22 +267,29 @@ class Tank(ABC):
             Inertia tensor of the tank's fluids as a function of time.
         """
         # TODO: compute inertia for non flat caps
-        self.setTankFilling(t)
+        # TODO: compute inertia including gas mass
+        def inertiaTensor(t):
+            self.setTankFilling(t)
 
-        cylinder_mass = self.cylinder.filled_volume * self.liquid.density
+            cylinder_mass = self.cylinder.filled_volume * self.liquid.density
 
-        # For a solid cylinder, ixx = iyy = mr²/4 + mh²/12
-        self.inertiaI = cylinder_mass * (
-            self.diameter**2 + self.cylinder.filled_height**2 / 12
+            # For a solid cylinder, ixx = iyy = mr²/4 + mh²/12
+            inertiaI = cylinder_mass * (
+                self.diameter**2 + self.cylinder.filled_height**2 / 12
+            )
+
+            # fluids considered inviscid so no shear resistance from torques in z axis
+            inertiaZ = 0
+
+            return inertiaI, inertiaZ
+
+        inertiaTensor = Function(
+            inertiaTensor, inputs="Time (s)", outputs="Inertia Tensor (kg m²)"
         )
 
-        # fluids considered inviscid so no shear resistance from torques in z axis
-        self.inertiaZ = 0
-
-        return self.inertiaI, self.inertiaZ
+        return inertiaTensor
 
 
-# @MrGribel
 class MassFlowRateBasedTank(Tank):
     def __init__(
         self,
@@ -497,7 +518,6 @@ class MassFlowRateBasedTank(Tank):
         return self.liquid_volume
 
 
-# @phmbressan
 class UllageBasedTank(Tank):
     def __init__(
         self,
@@ -636,7 +656,6 @@ class UllageBasedTank(Tank):
         return netMassFlowRate
 
 
-# @ompro07
 class MassBasedTank(Tank):
     def __init__(
         self,
