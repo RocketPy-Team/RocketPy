@@ -548,15 +548,17 @@ class Rocket:
             Object of the Rocket class.
         """
 
-        # Save parameters for Dispersion
+        # Save parameters for Dispersion # TODO: We need to be more flexible here! Not all the rockets has exactly 1 fin set
         self.numberOfFins = n
         self.finRadius = radius
         self.finAirfoil = airfoil
+        self.finDistanceToCM = distanceToCM
 
         # Retrieves and convert basic geometrical parameters
-        Cr, Ct = rootChord, tipChord
-        s = span
+        Cr, Ct = self.finRootChord, self.finTipChord = rootChord, tipChord
+        s = self.span = span
         radius = self.radius if radius is None else radius
+        self.cantAngle = cantAngle
         cantAngleRad = np.radians(cantAngle)
 
         # Compute auxiliary geometrical parameters
