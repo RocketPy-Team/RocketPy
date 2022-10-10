@@ -131,8 +131,10 @@ class Geometry3D(Geometry):
             return self.height - empty_region.filled_centroid
 
     def reverse_fill(self):
-        self.fill_direction = "upwards" if self.fill_direction == "downwards" else "downwards"
-        
+        self.fill_direction = (
+            "upwards" if self.fill_direction == "downwards" else "downwards"
+        )
+
 
 class Disk(Geometry2D):
     def __init__(self, radius, **kwargs):
