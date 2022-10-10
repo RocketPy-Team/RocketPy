@@ -57,7 +57,7 @@ class Environment:
             Value of Air's Gas Constant = 287.05287 J/K/Kg
 
         Gravity and Launch Rail Length:
-        Environment.rl : float
+        Environment.railLength : float
             Launch rail length in meters.
         Environment.gravity : float
             Positive value of gravitational acceleration in m/s^2.
@@ -102,7 +102,7 @@ class Environment:
         Environment.elevArray: array
             Two-dimensional Array containing the elevation information
         Environment.topographicProfileActivated: bool
-            True if the user already set a topographic plofile
+            True if the user already set a topographic profile
 
         Atmosphere Static Conditions:
         Environment.maxExpectedHeight : float
@@ -352,7 +352,7 @@ class Environment:
         None
         """
         # Save launch rail length
-        self.rL = railLength
+        self.railLength = railLength
 
         # Save gravity value
         self.gravity = gravity
@@ -2763,10 +2763,10 @@ class Environment:
         # Retrieve gas constant R and temperature T
         R = self.airGasConstant
         T = self.temperature
-        G = 1.4  # Unused variable, why?
+        G = 1.4
 
         # Compute speed of sound using sqrt(gamma*R*T)
-        a = (1.4 * R * T) ** 0.5
+        a = (G * R * T) ** 0.5
 
         # Set new output for the calculated speed of sound
         a.setOutputs("Speed of Sound (m/s)")
@@ -2866,7 +2866,7 @@ class Environment:
         """
         # Print launch site details
         print("Launch Site Details")
-        print("\nLaunch Rail Length:", self.rL, " m")
+        print("\nLaunch Rail Length:", self.railLength, " m")
         time_format = "%Y-%m-%d %H:%M:%S"
         if self.date != None and "UTC" not in self.timeZone:
             print(
@@ -3002,7 +3002,7 @@ class Environment:
 
         # Print launch site details
         print("\n\nLaunch Site Details")
-        print("\nLaunch Rail Length:", self.rL, " m")
+        print("\nLaunch Rail Length:", self.railLength, " m")
         time_format = "%Y-%m-%d %H:%M:%S"
         if self.date != None and "UTC" not in self.timeZone:
             print(
@@ -3305,7 +3305,7 @@ class Environment:
         # Dictionary creation, if not commented follows the SI
         info = dict(
             grav=self.gravity,
-            launch_rail_length=self.rL,
+            launch_rail_length=self.railLength,
             elevation=self.elevation,
             modelType=self.atmosphericModelType,
             modelTypeMaxExpectedHeight=self.maxExpectedHeight,
@@ -3352,9 +3352,9 @@ class Environment:
 
         # TODO: in the future, allow the user to select which format will be used (json, csv, etc.). Default must be JSON.
         # TODO: add self.exportEnvDictionary to the documentation
-        # TODO: find a way to documennt the workaround I've used on ma.getdata(self...
+        # TODO: find a way to document the workaround I've used on ma.getdata(self...
         self.exportEnvDictionary = {
-            "railLength": self.rL,
+            "railLength": self.railLength,
             "gravity": self.g,
             "date": [self.date.year, self.date.month, self.date.day, self.date.hour],
             "latitude": self.lat,
