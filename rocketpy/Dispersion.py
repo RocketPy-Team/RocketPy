@@ -93,6 +93,57 @@ class Dispersion:
         # Save  and initialize parameters
         self.filename = filename
 
+        # Initialize variables to be used in the analysis in case of missing inputs
+        self.environment_inputs = {
+            "railLength": "required",
+            "gravity": 9.80665,
+            "date": None,
+            "latitude": 0,
+            "longitude": 0,
+            "elevation": 0,
+            "datum": "WGS84",
+            "timeZone": "UTC",
+        }
+
+        self.solid_motor_inputs = {
+            "thrust": "required",
+            "burnOutTime": "required",
+            "totalImpulse": 0,
+            "grainNumber": "required",
+            "grainDensity": "required",
+            "grainOuterRadius": "required",
+            "grainInitialInnerRadius": "required",
+            "grainInitialHeight": "required",
+            "grainSeparation": 0,
+            "nozzleRadius": 0.0335,
+            "throatRadius": 0.0114,
+        }
+
+        self.rocket_inputs = {
+            "mass": "required",
+            "inertiaI": "required",
+            "inertiaZ": "required",
+            "radius": "required",
+            "distanceRocketNozzle": "required",
+            "distanceRocketPropellant": "required",
+            "powerOffDrag": "required",
+            "powerOnDrag": "required",
+        }
+
+        self.flight_inputs = {
+            "inclination": 80,
+            "heading": 90,
+            "initialSolution": None,
+            "terminateOnApogee": False,
+            "maxTime": 600,
+            "maxTimeStep": np.inf,
+            "minTimeStep": 0,
+            "rtol": 1e-6,
+            "atol": 6 * [1e-3] + 4 * [1e-6] + 3 * [1e-3],
+            "timeOvershoot": True,
+            "verbose": False,
+        }
+
         # Initialize variables so they can be accessed by MATLAB
         self.dispersion_results = {}
         self.mean_out_of_rail_time = 0
@@ -2317,55 +2368,3 @@ class Dispersion:
         self.plotDrogueTriggerTime(dispersion_results)
 
         return None
-
-    # Variables
-
-    environment_inputs = {
-        "railLength": "required",
-        "gravity": 9.80665,
-        "date": None,
-        "latitude": 0,
-        "longitude": 0,
-        "elevation": 0,
-        "datum": "SIRGAS2000",
-        "timeZone": "UTC",
-    }
-
-    solid_motor_inputs = {
-        "thrust": "required",
-        "burnOutTime": "required",
-        "totalImpulse": 0,
-        "grainNumber": "required",
-        "grainDensity": "required",
-        "grainOuterRadius": "required",
-        "grainInitialInnerRadius": "required",
-        "grainInitialHeight": "required",
-        "grainSeparation": 0,
-        "nozzleRadius": 0.0335,
-        "throatRadius": 0.0114,
-    }
-
-    rocket_inputs = {
-        "mass": "required",
-        "inertiaI": "required",
-        "inertiaZ": "required",
-        "radius": "required",
-        "distanceRocketNozzle": "required",
-        "distanceRocketPropellant": "required",
-        "powerOffDrag": "required",
-        "powerOnDrag": "required",
-    }
-
-    flight_inputs = {
-        "inclination": 80,
-        "heading": 90,
-        "initialSolution": None,
-        "terminateOnApogee": False,
-        "maxTime": 600,
-        "maxTimeStep": np.inf,
-        "minTimeStep": 0,
-        "rtol": 1e-6,
-        "atol": 6 * [1e-3] + 4 * [1e-6] + 3 * [1e-3],
-        "timeOvershoot": True,
-        "verbose": False,
-    }
