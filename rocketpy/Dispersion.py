@@ -5,7 +5,6 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 
-from functools import cached_property
 import math
 import traceback
 import warnings
@@ -20,7 +19,6 @@ from matplotlib.patches import Ellipse
 from numpy.random import *
 
 from .Flight import Flight
-from .Function import Function
 from .Motor import SolidMotor
 from .Rocket import Rocket
 from .supplement import invertedHaversine
@@ -37,7 +35,9 @@ from .supplement import invertedHaversine
 # TODO: Optional return of matplotlib plots or abstract function to histogram plot based on stdev and mean
 
 # TODO: Implement MRS
-# TODO: Implement functions from compareDispersions
+# TODO: Implement functions from compareDispersions notebook
+
+# TODO: Convert the dictionary to a class attributes
 
 
 class Dispersion:
@@ -2286,7 +2286,7 @@ class Dispersion:
         None
         """
 
-        dispersion_results = self.import_results(self.filename)
+        dispersion_results = self.dispersion_results
 
         self.meanApogeeAltitude(dispersion_results)
 
@@ -2327,7 +2327,7 @@ class Dispersion:
         return None
 
     def allInfo(self):
-        dispersion_results = self.import_results(self.filename)
+        dispersion_results = self.dispersion_results
 
         self.plotEllipses(dispersion_results, self.image, self.actual_landing_point)
 
