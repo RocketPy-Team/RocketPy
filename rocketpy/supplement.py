@@ -1,5 +1,6 @@
 import numpy as np
 from abc import ABC, abstractmethod
+from copy import copy
 from scipy.optimize import fsolve
 
 
@@ -24,6 +25,16 @@ class Geometry(ABC):
 
     @property
     @abstractmethod
+    def empty_volume(self):
+        pass
+
+    @property
+    @abstractmethod
+    def empty_centroid(self):
+        pass
+
+    @property
+    @abstractmethod
     def filled_centroid(self):
         pass
 
@@ -39,6 +50,7 @@ class Geometry(ABC):
 
 class Geometry2D(Geometry):
     def __init__(self, **kwargs):
+        self.fill_direction = None
         pass
 
     @property
@@ -61,6 +73,14 @@ class Geometry2D(Geometry):
     @filled_volume.setter
     def filled_volume(self, value):
         pass
+
+    @property
+    def empty_volume(self):
+        return 0
+
+    @property
+    def empty_centroid(self):
+        return 0
 
     @property
     def filled_centroid(self):
@@ -96,10 +116,28 @@ class Geometry3D(Geometry):
             self._filled_volume = 0
             self._filled_height = 0
 
+    @property
+    def empty_volume(self):
+        return self.volume - self._filled_volume
+
+    @property
+    def empty_centroid(self):
+        if self.empty_volume == 0:
+            return 0
+        else:
+            empty_region = copy(self)
+            empty_region.reverse_fill()
+            empty_region.filled_volume = self.empty_volume
+            return self.height - empty_region.filled_centroid
+
+    def reverse_fill(self):
+        self.fill_direction = "upwards" if self.fill_direction == "downwards" else "downwards"
+        
 
 class Disk(Geometry2D):
     def __init__(self, radius, **kwargs):
         self.radius = radius
+        self.height = 0
         super().__init__(**kwargs)
 
     @property
@@ -133,6 +171,7 @@ class Cylinder(Geometry3D):
 class Hemisphere(Geometry3D):
     def __init__(self, radius, filled_volume=None, fill_direction="upwards"):
         self.radius = radius
+        self.height = radius
         self.fill_direction = fill_direction
         super().__init__(filled_volume, fill_direction)
 

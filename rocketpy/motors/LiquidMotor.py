@@ -194,15 +194,36 @@ class Tank(ABC):
         """
         self.setTankFilling(t)
 
-        bottomCapMass = self.liquid.density * self.bottomCap.filled_volume
-        cylinderMass = self.liquid.density * self.cylinder.filled_volume
-        upperCapMass = self.liquid.density * self.upperCap.filled_volume
+        bottomCapLiquidMass = self.liquid.density * self.bottomCap.filled_volume
+        cylinderLiquidMass = self.liquid.density * self.cylinder.filled_volume
+        upperCapLiquidMass = self.liquid.density * self.upperCap.filled_volume
+
+        bottomCapGasMass = self.gas.density * self.bottomCap.empty_volume
+        cylinderGasMass = self.gas.density * self.cylinder.empty_volume
+        upperCapGasMass = self.gas.density * self.upperCap.empty_volume
+
+        bottomCapMass = bottomCapLiquidMass + bottomCapGasMass
+        cylinderMass = cylinderLiquidMass + cylinderGasMass
+        upperCapMass = upperCapLiquidMass + upperCapGasMass
+
+        totalMass = bottomCapMass + cylinderMass + upperCapMass
+
+        bottomCapMassBalance = (
+            bottomCapLiquidMass * self.bottomCap.filled_centroid
+            + bottomCapGasMass * self.bottomCap.empty_centroid
+        )
+        cylinderMassBalance = cylinderLiquidMass * (
+            self.cylinder.filled_centroid + self.bottomCap.height
+        ) + cylinderGasMass * (self.cylinder.empty_centroid + self.bottomCap.height)
+        upperCapMassBalance = upperCapLiquidMass * (
+            self.upperCap.filled_centroid + self.bottomCap.height + self.cylinder.height
+        ) + upperCapGasMass * (
+            self.upperCap.empty_centroid + self.bottomCap.height + self.cylinder.height
+        )
 
         centerOfMass = (
-            self.bottomCap.filled_centroid * bottomCapMass
-            + self.cylinder.filled_centroid * cylinderMass
-            + self.upperCap.filled_centroid * upperCapMass
-        ) / (bottomCapMass + cylinderMass + upperCapMass)
+            bottomCapMassBalance + cylinderMassBalance + upperCapMassBalance
+        ) / totalMass
 
         return centerOfMass
 
