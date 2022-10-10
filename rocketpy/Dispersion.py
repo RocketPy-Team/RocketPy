@@ -18,6 +18,8 @@ from IPython.display import display
 from matplotlib.patches import Ellipse
 from numpy.random import *
 
+from rocketpy.Function import Function
+
 from .Environment import Environment
 from .Flight import Flight
 from .Motor import SolidMotor
@@ -519,80 +521,92 @@ class Dispersion:
         """
         for parameter_key, parameter_value in dictionary.items():
             if isinstance(parameter_value, (tuple, list)):
+                # Everything is right with the data, we have mean and stdev
                 continue
-            else:  # if parameter_value is only the std. dev.
-                if "parachute" in parameter_key:
-                    _, parachute_name, parameter = parameter_key.split("_")
+
+            # In this case the parameter_value is only the std. dev.
+            ## First solve the parachute values
+            if "parachute" in parameter_key:
+                _, parachute_name, parameter = parameter_key.split("_")
+                dictionary[parameter_key] = (
+                    getattr(
+                        self.rocket.parachutes[
+                            self.parachute_names.index(parachute_name)
+                        ],
+                        parameter,
+                    ),
+                    parameter_value,
+                )
+
+            ## Second corrections - Environment
+            if parameter_key in self.environment_inputs.keys():
+                try:
                     dictionary[parameter_key] = (
-                        getattr(
-                            self.rocket.parachutes[
-                                self.parachute_names.index(parachute_name)
-                            ],
-                            parameter,
-                        ),
+                        getattr(self.environment, parameter_key),
                         parameter_value,
                     )
-                else:  # TODO: Check if we can remove this else
-                    if parameter_key in self.environment_inputs.keys():
-                        try:
-                            dictionary[parameter_key] = (
-                                getattr(self.environment, parameter_key),
-                                parameter_value,
-                            )
-                        except Exception as E:
-                            print("Error:")
-                            print(
-                                "Check if parameter was inputted correctly in dispersion_dictionary."
-                                + " Dictionary values must be either tuple or lists."
-                                + " If single value, the corresponding Class must "
-                                + " be inputted in Dispersion.run_dispersion method.\n"
-                            )
-                            print(traceback.format_exc())
-                    elif parameter_key in self.solid_motor_inputs.keys():
-                        try:
-                            dictionary[parameter_key] = (
-                                getattr(self.motor, parameter_key),
-                                parameter_value,
-                            )
-                        except Exception as E:
-                            print("Error:")
-                            print(
-                                "Check if parameter was inputted correctly in dispersion_dictionary."
-                                + " Dictionary values must be either tuple or lists."
-                                + " If single value, the corresponding Class must "
-                                + "must be inputted in Dispersion.run_dispersion method.\n"
-                            )
-                            print(traceback.format_exc())
-                    elif parameter_key in self.rocket_inputs.keys():
-                        try:
-                            dictionary[parameter_key] = (
-                                getattr(self.rocket, parameter_key),
-                                parameter_value,
-                            )
-                        except Exception as E:
-                            print("Error:")
-                            print(
-                                "Check if parameter was inputted correctly in dispersion_dictionary."
-                                + " Dictionary values must be either tuple or lists."
-                                + " If single value, the corresponding Class must "
-                                + "must be inputted in Dispersion.run_dispersion method.\n"
-                            )
-                            print(traceback.format_exc())
-                    elif parameter_key in self.flight_inputs.keys():
-                        try:
-                            dictionary[parameter_key] = (
-                                getattr(self.flight, parameter_key),
-                                parameter_value,
-                            )
-                        except Exception as E:
-                            print("Error:")
-                            print(
-                                "Check if parameter was inputted correctly in dispersion_dictionary."
-                                + " Dictionary values must be either tuple or lists."
-                                + " If single value, the corresponding Class must "
-                                + "must be inputted in Dispersion.run_dispersion method.\n"
-                            )
-                            print(traceback.format_exc())
+                except Exception as E:
+                    print("Error:")
+                    print(
+                        "Please check if the parameter was inputted correctly in dispersion_dictionary."
+                        + " Dictionary values must be either tuple or lists."
+                        + " If single value, the corresponding Class must "
+                        + " be inputted in Dispersion.run_dispersion method.\n"
+                    )
+                    print(traceback.format_exc())
+
+            ## Third corrections - SolidMotor
+            elif parameter_key in self.solid_motor_inputs.keys():
+                try:
+                    dictionary[parameter_key] = (
+                        getattr(self.motor, parameter_key),
+                        parameter_value,
+                    )
+                except Exception as E:
+                    print("Error:")
+                    print(
+                        "Please check if the parameter was inputted correctly in dispersion_dictionary."
+                        + " Dictionary values must be either tuple or lists."
+                        + " If single value, the corresponding Class must "
+                        + "must be inputted in Dispersion.run_dispersion method.\n"
+                    )
+                    print(traceback.format_exc())
+
+            # Fourth correction - Rocket
+            elif parameter_key in self.rocket_inputs.keys():
+                try:
+                    dictionary[parameter_key] = (
+                        getattr(self.rocket, parameter_key),
+                        parameter_value,
+                    )
+                except Exception as E:
+                    print("Error:")
+                    print(
+                        "Please check if the parameter was inputted correctly in dispersion_dictionary."
+                        + " Dictionary values must be either tuple or lists."
+                        + " If single value, the corresponding Class must "
+                        + "must be inputted in Dispersion.run_dispersion method.\n"
+                    )
+                    print(traceback.format_exc())
+
+            # Fifth correction - Flight
+            elif parameter_key in self.flight_inputs.keys():
+                try:
+                    dictionary[parameter_key] = (
+                        getattr(self.flight, parameter_key),
+                        parameter_value,
+                    )
+                except Exception as E:
+                    print("Error:")
+                    print(
+                        "Please check if the parameter was inputted correctly in dispersion_dictionary."
+                        + " Dictionary values must be either tuple or lists."
+                        + " If single value, the corresponding Class must "
+                        + "must be inputted in Dispersion.run_dispersion method.\n"
+                    )
+                    print(traceback.format_exc())
+
+        # The analysis parameter dictionary must be corrected now!
 
         return dictionary
 
@@ -623,6 +637,8 @@ class Dispersion:
             flight_setting = {}
             for parameter_key, parameter_value in analysis_parameters.items():
                 if type(parameter_value) is tuple:
+                    flight_setting[parameter_key] = distribution_func(*parameter_value)
+                elif isinstance(parameter_value, Function):
                     flight_setting[parameter_key] = distribution_func(*parameter_value)
                 else:
                     # shuffles list and gets first item
@@ -811,15 +827,15 @@ class Dispersion:
 
         # Check if there's enough object to start a flight:
         ## Raise an error in case of any troubles
+        self.__check_initial_objects()
 
         # Creates copy of dispersion_dictionary that will be altered
         modified_dispersion_dict = {i: j for i, j in dispersion_dictionary.items()}
 
-        # TODO: Take care of next line, since analysis_parameters is not what the function is returning
         analysis_parameters = self.__process_dispersion_dict(modified_dispersion_dict)
 
+        # TODO: This should be more flexible, allow different distributions for different parameters
         self.distributionFunc = self.__set_distribution_function(self.distribution_type)
-        # Basic analysis info
 
         # Create data files for inputs, outputs and error logging
         dispersion_error_file = open(str(self.filename) + ".disp_errors.txt", "w")
@@ -842,14 +858,6 @@ class Dispersion:
 
             # Creates a copy of the environment
             env_dispersion = self.environment
-            if env_dispersion is None:
-                env_dispersion = Environment(
-                    railLength=dispersion_dictionary["railLength"][0],
-                    date=dispersion_dictionary["date"][0],
-                    latitude=dispersion_dictionary["latitude"][0],
-                    longitude=dispersion_dictionary["longitude"][0],
-                    elevation=dispersion_dictionary["elevation"][0],
-                )
 
             # Apply environment parameters variations on each iteration if possible
             env_dispersion.railLength = setting["railLength"]
@@ -904,10 +912,10 @@ class Dispersion:
             )
             rocket_dispersion.addFins(
                 n=setting["numberOfFins"],
-                rootChord=setting["rootChord"],
-                tipChord=setting["tipChord"],
-                span=setting["span"],
-                distanceToCM=setting["distanceToCM"],
+                rootChord=setting["finRootChord"],
+                tipChord=setting["finTipChord"],
+                span=setting["finSpan"],
+                distanceToCM=setting["finDistanceToCM"],
                 radius=setting["radius"],
                 airfoil=setting["airfoil"],
             )
@@ -991,6 +999,61 @@ class Dispersion:
         dispersion_output_file.close()
         dispersion_error_file.close()
 
+        return None
+
+    def __check_initial_objects(self):
+        """Create rocketpy objects (Environment, Motor, Rocket, Flight) in case
+        that
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
+        if self.environment is None:
+            self.environment = Environment(
+                railLength=self.dispersion_dictionary["railLength"][0]
+            )
+        if self.motor is None:
+            self.motor = SolidMotor(
+                thrustSource=self.dispersion_dictionary["thrustSource"][0],
+                burnOut=self.dispersion_dictionary["burnOutTime"][0],
+                grainNumber=self.dispersion_dictionary["grainNumber"][0],
+                grainDensity=self.dispersion_dictionary["grainDensity"][0],
+                grainOuterRadius=self.dispersion_dictionary["grainOuterRadius"][0],
+                grainInitialInnerRadius=self.dispersion_dictionary[
+                    "grainInitialInnerRadius"
+                ][0],
+                grainInitialHeight=self.dispersion_dictionary["grainInitialHeight"][0],
+            )
+        if self.rocket is None:
+            self.rocket = Rocket(
+                motor=self.motor,
+                mass=self.dispersion_dictionary["mass"][0],
+                radius=self.dispersion_dictionary["radius"][0],
+                inertiaI=self.dispersion_dictionary["inertiaI"][
+                    0
+                ],  # TODO: remove hardcode
+                inertiaZ=self.dispersion_dictionary["inertiaZ"][
+                    0
+                ],  # TODO: remove hardcode
+                distanceRocketPropellant=self.dispersion_dictionary[
+                    "distanceRocketPropellant"
+                ][0],
+                distanceRocketNozzle=self.dispersion_dictionary["distanceRocketNozzle"][
+                    0
+                ],
+                powerOffDrag=0.6,  # TODO: Remove this hardcoded
+                powerOnDrag=0.6,  # TODO: Remove this hardcoded
+            )
+            self.rocket.setRailButtons(distanceToCM=[0.2, -0.5])
+        if self.flight is None:
+            self.flight = Flight(
+                rocket=self.rocket,
+                environment=self.environment,
+                inclination=self.dispersion_dictionary["inclination"][0],
+                heading=self.dispersion_dictionary["heading"][0],
+            )
         return None
 
     def import_results(self, dispersion_output_file):
