@@ -610,8 +610,8 @@ class Flight:
         upperRButton = max(self.rocket.railButtons[0])
         lowerRButton = min(self.rocket.railButtons[0])
         nozzle = self.rocket.distanceRocketNozzle
-        self.effective1RL = self.env.rL - abs(nozzle - upperRButton)
-        self.effective2RL = self.env.rL - abs(nozzle - lowerRButton)
+        self.effective1RL = self.env.railLength - abs(nozzle - upperRButton)
+        self.effective2RL = self.env.railLength - abs(nozzle - lowerRButton)
 
         # Flight initialization
         self.__init_post_process_variables()
