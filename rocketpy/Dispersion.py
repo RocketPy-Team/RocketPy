@@ -747,11 +747,10 @@ class Dispersion:
         self,
         number_of_simulations,
         dispersion_dictionary,
-        environment,
+        environment=None,
         flight=None,
         motor=None,
         rocket=None,
-        distribution_type="normal",
         bg_image=None,
         actual_landing_point=None,
     ):
@@ -791,24 +790,32 @@ class Dispersion:
 
         self.number_of_simulations = number_of_simulations
         self.dispersion_dictionary = dispersion_dictionary
-        self.environment = environment
-        self.flight = flight
-        # TODO: What must be prioritized, the flight or the rocket and motor?
-        if flight:
-            self.motor = flight.rocket.motor if not motor else motor
-            self.rocket = flight.rocket if not rocket else rocket
+        self.environment = None
+        self.motor = None
+        self.rocket = None
+        if flight:  # In case a flight object is passed
+            self.environment = flight.env
+            self.motor = flight.rocket.motor
+            self.rocket = flight.rocket
+        self.environment = environment if environment else self.environment
         self.motor = motor if motor else self.motor
         self.rocket = rocket if rocket else self.rocket
-        self.distribution_type = distribution_type
+        self.flight = flight
+        self.distribution_type = "normal"  # TODO: Must be parametrized
         self.image = bg_image
-        self.actual_landing_point = actual_landing_point
+        self.actual_landing_point = actual_landing_point  #
+
+        # Obs.: The flight object is not prioritized, which is a good thing, but need to be documented
+
+        # Check if there's enough object to start a flight:
+        ## Raise an error in case of any troubles
 
         # Creates copy of dispersion_dictionary that will be altered
         modified_dispersion_dict = {i: j for i, j in dispersion_dictionary.items()}
 
         analysis_parameters = self.__process_dispersion_dict(modified_dispersion_dict)
 
-        self.distributionFunc = self.__set_distribution_function(distribution_type)
+        self.distributionFunc = self.__set_distribution_function(self.distribution_type)
         # Basic analysis info
 
         # Create data files for inputs, outputs and error logging
