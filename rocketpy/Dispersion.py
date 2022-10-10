@@ -18,6 +18,7 @@ from IPython.display import display
 from matplotlib.patches import Ellipse
 from numpy.random import *
 
+from .Environment import Environment
 from .Flight import Flight
 from .Motor import SolidMotor
 from .Rocket import Rocket
@@ -304,10 +305,11 @@ class Dispersion:
                 missing_input = str(missing_input)
                 # Add to the dict
                 try:
+                    # First try to catch value from the Flight object if passed
                     dictionary[missing_input] = [getattr(self.flight, missing_input)]
                 except:
                     # class was not inputted
-                    # checks if missing parameter is required
+                    # check if missing parameter is required
                     if self.flight_inputs[missing_input] == "required":
                         warnings.warn(f'Missing "{missing_input}" in dictionary')
                     else:  # if not, uses default value
@@ -803,7 +805,7 @@ class Dispersion:
         self.flight = flight
         self.distribution_type = "normal"  # TODO: Must be parametrized
         self.image = bg_image
-        self.actual_landing_point = actual_landing_point  #
+        self.actual_landing_point = actual_landing_point  # (lat, lon)
 
         # Obs.: The flight object is not prioritized, which is a good thing, but need to be documented
 
@@ -813,6 +815,7 @@ class Dispersion:
         # Creates copy of dispersion_dictionary that will be altered
         modified_dispersion_dict = {i: j for i, j in dispersion_dictionary.items()}
 
+        # TODO: Take care of next line, since analysis_parameters is not what the function is returning
         analysis_parameters = self.__process_dispersion_dict(modified_dispersion_dict)
 
         self.distributionFunc = self.__set_distribution_function(self.distribution_type)
@@ -822,26 +825,6 @@ class Dispersion:
         dispersion_error_file = open(str(self.filename) + ".disp_errors.txt", "w")
         dispersion_input_file = open(str(self.filename) + ".disp_inputs.txt", "w")
         dispersion_output_file = open(str(self.filename) + ".disp_outputs.txt", "w")
-
-        # # Initialize Environment
-        # customAtmosphere = False
-        # if not self.environment:
-        #     self.environment = Environment(
-        #         railLength=0,
-        #     )
-        #     if "envAtmosphericType" in dispersion_dictionary:
-        #         if dispersion_dictionary["envAtmosphericType"] == "CustomAtmosphere":
-        #             customAtmosphere = True
-        #         self.environment.setDate(datetime(*dispersion_dictionary["date"][0]))
-        #         self.environment.setAtmosphericModel(
-        #             type=dispersion_dictionary["envAtmosphericType"],
-        #             file=dispersion_dictionary["envAtmosphericFile"]
-        #             if "envAtmosphericFile" in dispersion_dictionary
-        #             else None,
-        #             dictionary=dispersion_dictionary["envAtmosphericDictionary"]
-        #             if "envAtmosphericDictionary" in dispersion_dictionary
-        #             else None,
-        #         )
 
         # Initialize counter and timer
         i = 0
@@ -857,8 +840,16 @@ class Dispersion:
             self.start_time = process_time()
             i += 1
 
-            # Creates an of environment
+            # Creates a copy of the environment
             env_dispersion = self.environment
+            if env_dispersion is None:
+                env_dispersion = Environment(
+                    railLength=dispersion_dictionary["railLength"][0],
+                    date=dispersion_dictionary["date"][0],
+                    latitude=dispersion_dictionary["latitude"][0],
+                    longitude=dispersion_dictionary["longitude"][0],
+                    elevation=dispersion_dictionary["elevation"][0],
+                )
 
             # Apply environment parameters variations on each iteration if possible
             env_dispersion.railLength = setting["railLength"]
@@ -867,7 +858,8 @@ class Dispersion:
             env_dispersion.latitude = setting["latitude"]
             env_dispersion.longitude = setting["longitude"]
             env_dispersion.elevation = setting["elevation"]
-            env_dispersion.selectEnsembleMember(setting["ensembleMember"])
+            if env_dispersion.atmosphericModelType in ["Ensemble", "Reanalysis"]:
+                env_dispersion.selectEnsembleMember(setting["ensembleMember"])
 
             # Creates copy of motor
             motor_dispersion = self.motor
