@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
-__author__ = "Mateus Stano Junqueira, Sofia Lopes Suesdek Rocha, Guilherme Fernandes Alves, Bruno Abdulklech Sorban"
-__copyright__ = "Copyright 20XX, Projeto Jupiter"
+__author__ = (
+    "Mateus Stano Junqueira, Sofia Lopes Suesdek Rocha, Guilherme Fernandes Alves, Bruno Abdulklech Sorban"
+)
+__copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 
@@ -19,15 +21,13 @@ from IPython.display import display
 from matplotlib.patches import Ellipse
 from numpy.random import *
 
-from .Environment import Environment
 from .Flight import Flight
 from .Function import Function
-from .Motor import HybridMotor, SolidMotor
+from .Motor import SolidMotor
 from .Rocket import Rocket
-from .utilities import invertedHaversine
+from .supplement import invertedHaversine
 
 ## Tasks from the first review:
-# TODO: Move some functions from utilities to supplement.py
 # TODO: Save instances of the class instead of just plotting
 # TODO: Document all methods
 # TODO: Create a way to choose what attributes are being saved

@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from .Function import Function
-
 __author__ = "Giovani Hidalgo Ceotto, Guilherme Fernandes Alves, Lucas Azevedo Pezente, Oscar Mauricio Prada Ramirez, Lucas Kierulff Balabram"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
@@ -17,6 +15,9 @@ import numpy as np
 import numpy.ma as ma
 import pytz
 import requests
+
+from .Function import Function
+from .supplement import geodesicToUtm, calculateEarthRadius
 
 try:
     import netCDF4
@@ -3745,6 +3746,3 @@ class Environment:
         print("Gravity acceleration at launch site: Still not implemented :(")
 
         return None
-
-
-from .utilities import calculateEarthRadius, geodesicToUtm

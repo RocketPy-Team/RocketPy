@@ -17,7 +17,7 @@ import simplekml
 from scipy import integrate
 
 from .Function import Function
-from .utilities import *
+from .supplement import *
 
 
 class Flight:
