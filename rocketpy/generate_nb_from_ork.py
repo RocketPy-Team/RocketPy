@@ -9,6 +9,7 @@ import numpy as np
 import orhelper
 from orhelper import FlightDataType, FlightEvent
 import zipfile
+import json
 
 flight_parameters = {}
 
@@ -84,9 +85,9 @@ def generate(ork_file, nb_file, eng_file, open_rocket_instance):
 
     trapezoidal_fin = ''
     # migue na distancia pro cg
-    for fin in bs.findAll('trapezoidfinset'):
+    for idx, fin in enumerate(bs.findAll('trapezoidfinset')):
         element_label = fin.find('name').text
-        trapezoidal_fin += trapezoidal_fin_code(fin, elements[element_label])
+        trapezoidal_fin += trapezoidal_fin_code(fin, elements[element_label], idx)
 
     tail = tail_code(bs, elements, ork)
 
@@ -98,26 +99,31 @@ def generate(ork_file, nb_file, eng_file, open_rocket_instance):
         main_deploy_delay = float(main_chute.find('deploydelay').text)
         main_deploy_altitude = float(main_chute.find('deployaltitude').text)
 
-        main_code = f'Main = Calisto.addParachute(\n    "Main",\n    CdS={main_cds},\n    trigger=mainTrigger,\n    samplingRate=105,\n    lag={main_deploy_delay},\n    noise=(0, 8.3, 0.5),\n)'
-        main_trigger = f'def mainTrigger(p, y):\n    # p = pressure\n    # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]\n    # activate main when vz < 0 m/s and z < 800 + 1400 m (+1400 due to surface elevation).\n    return True if y[5] < 0 and y[2] < {main_deploy_altitude} + {launch_altitude} else False'
+        main_code = f'Main = Calisto.addParachute(\n    "Main",\n    CdS=parameters["MainCds{idx}"],\n    trigger=mainTrigger,\n    samplingRate=105,\n    lag=parameters["MainDeployDelay{idx}"],\n    noise=(0, 8.3, 0.5),\n)'
+        main_trigger = f'def mainTrigger(p, y):\n    # p = pressure\n    # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]\n    # activate main when vz < 0 m/s and z < 800 + 1400 m (+1400 due to surface elevation).\n    return True if y[5] < 0 and y[2] < parameters["MainDeployAltitude{idx}"] + parameters["elevation"] else False'
         chute_cell_code += f'{main_trigger}\n\n{main_code}\n\n'
+        flight_parameters.update({
+            f'MainCds{idx}': main_cds, f'MainDeployDelay{idx}': main_deploy_delay, f'MainDeployAltitude{idx}': main_deploy_altitude
+        })
 
     
-    for drogue in filter(lambda x: 'Drogue' in x.find('name').text, chutes):
+    for idx, drogue in enumerate(filter(lambda x: 'Drogue' in x.find('name').text, chutes)):
         drogue_cds = search_cd_chute_if_auto(bs) if drogue.find('cd').text == 'auto' else float(drogue.find('cd').text)
         drogue_deploy_delay = float(drogue.find('deploydelay').text)
-        drogue_code = f'Drogue = Calisto.addParachute(\n    "Drogue",\n    CdS={drogue_cds},\n    trigger=drogueTrigger,\n    samplingRate=105,\n    lag={drogue_deploy_delay},\n    noise=(0, 8.3, 0.5),\n)'
+        drogue_code = f'Drogue = Calisto.addParachute(\n    "Drogue",\n    CdS=parameters["DrogueCds{idx}"],\n    trigger=drogueTrigger,\n    samplingRate=105,\n    lag=parameters["DrogueDeployDelay{idx}"],\n    noise=(0, 8.3, 0.5),\n)'
         drogue_trigger = 'def drogueTrigger(p, y):\n    # p = pressure\n    # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]\n    # activate drogue when vz < 0 m/s.\n    return True if y[5] < 0 else False\n\n\n'
         chute_cell_code += f'{drogue_trigger}\n\n{drogue_code}\n'
-
-    launch_rod_length = float(bs.find('launchrodlength').text)
+        flight_parameters.update({
+            f'DrogueCds{idx}': drogue_cds, f'DrogueDeployDelay{idx}': drogue_deploy_delay
+        })
     
     flight_parameters.update({
-            'propelant_mass': propelant_mass, 'burnout_time': time_vect[burnout_position], 'rocket_mass': rocket_mass,
-            'empty_rocket_cm': empty_rocket_cm, 'rocket_radius': rocket_radius, 'motor_cm': motor_cm, 'nozzle_cm': nozzle_cm,
-            'longitudinal_moment_of_inertia': longitudinal_moment_of_inertia, 'rotational_moment_of_inertia': rotational_moment_of_inertia,
-            'tube_length': tube_length, 'motor_radius': motor_radius, 'drag_coefficient_source_path': drag_coefficient_source_path,  
+            'rocketMass': rocket_mass, 'elevation': 160,
+            'emptyRocketCm': empty_rocket_cm, 'radius': rocket_radius, 'MotorCm': motor_cm, 'distanceRocketNozzle': nozzle_cm,
+            'inertiaI': longitudinal_moment_of_inertia, 'inertiaZ': rotational_moment_of_inertia, 'railLength': 12,
+            'dragCoefficientSourcePath': drag_coefficient_source_path, 'inclination': 84, 'heading': 133
         })
+    nb['cells'][4]['source'] = f'%matplotlib widget\n\nimport json\n\nparameters = json.loads(open("parameters.json").read())'
     nb['cells'][15]['source'] = generate_motor_code(path, 
                                                     burnout_position, 
                                                     burnout_time, 
@@ -126,15 +132,18 @@ def generate(ork_file, nb_file, eng_file, open_rocket_instance):
                                                     propelant_mass, 
                                                     motor_radius, 
                                                     tube_length)
-    nb['cells'][20]['source'] = f'Calisto = Rocket(\n    motor=Pro75M1670,\n    radius={rocket_radius},\n    mass={rocket_mass},\n    inertiaI={longitudinal_moment_of_inertia},\n    inertiaZ={rotational_moment_of_inertia},\n    distanceRocketNozzle={nozzle_cm},\n    distanceRocketPropellant={motor_cm},\n    powerOffDrag="drag_coefficient.csv",\n    powerOnDrag="drag_coefficient.csv",\n)\n\nCalisto.setRailButtons([0.2, -0.5])'
+    nb['cells'][20]['source'] = f'Calisto = Rocket(\n    motor=Pro75M1670,\n    radius=parameters["radius"],\n    mass=parameters["rocketMass"],\n    inertiaI=parameters["inertiaI"],\n    inertiaZ=parameters["inertiaZ"],\n    distanceRocketNozzle=parameters["distanceRocketNozzle"],\n    distanceRocketPropellant=parameters["MotorCm"],\n    powerOffDrag="drag_coefficient.csv",\n    powerOnDrag="drag_coefficient.csv",\n)\n\nCalisto.setRailButtons([0.2, -0.5])'
 
     nb['cells'][23]['source'] = f'{nosecone}\n\n{trapezoidal_fin}\n\n{tail}'
 
     nb['cells'][27]['source'] = chute_cell_code
 
-    nb['cells'][7]['source'] = f'Env = Environment(\n    railLength={launch_rod_length}, latitude=39.3897, longitude=-8.28896388889, elevation={launch_altitude}\n)'
-    nb['cells'][30]['source'] = f'TestFlight = Flight(rocket=Calisto, environment=Env, inclination=84, heading=133)'
+    nb['cells'][7]['source'] = f'Env = Environment(\n    railLength=parameters["railLength"], latitude=39.3897, longitude=-8.28896388889, elevation=parameters["elevation"]\n)'
+    nb['cells'][30]['source'] = f'TestFlight = Flight(rocket=Calisto, environment=Env, inclination=parameters["inclination"], heading=parameters["heading"])'
     print(np.max(altitude_vect))
+
+    with open(f'{path}parameters.json', 'w') as convert_file:
+        convert_file.write(json.dumps(flight_parameters))
 
     nbformat.write(nb, f'{path}Simulation.ipynb')
 
@@ -206,13 +215,22 @@ def process_elements_position(ork, elements, rocket_cg, rocket_mass, top_positio
             has_child = False
     return elements
 
-def trapezoidal_fin_code(fin, element):
+def trapezoidal_fin_code(fin, element, idx):
     n_fin = int(fin.find('fincount').text)
     root_chord = float(fin.find('rootchord').text)
     tip_chord = float(fin.find('tipchord').text)
     span = float(fin.find('height').text)
     fin_distance_to_cm = element["DistanceToCG"]
-    trapezoidal_fin = f'Calisto.addTrapezoidalFins({n_fin}, rootChord={root_chord}, tipChord={tip_chord}, span={span}, distanceToCM={fin_distance_to_cm}, radius=None, airfoil=None)\n\n'        
+
+    flight_parameters.update({
+        f'finN{idx}': n_fin,
+        f'finRootChord{idx}': root_chord,
+        f'finTipChord{idx}': tip_chord,
+        f'finSpan{idx}': span,
+        f'finDistanceToCm{idx}': fin_distance_to_cm
+    })
+
+    trapezoidal_fin = f'Calisto.addTrapezoidalFins(parameters["finN{idx}"], rootChord=parameters["finRootChord{idx}"], tipChord=parameters["finTipChord{idx}"], span=parameters["finSpan{idx}"], distanceToCM=parameters["finDistanceToCm{idx}"], radius=None, airfoil=None)\n\n'        
     return trapezoidal_fin
 
 def tail_code(bs, elements, ork):
@@ -223,7 +241,14 @@ def tail_code(bs, elements, ork):
         topRadius = tail_ork.getForeRadius()
         bottomRadius = tail_ork.getAftRadius()
         tail_length = float(tail.find('length').text)
-        tail = f'Calisto.addTail(\n    topRadius={topRadius}, bottomRadius={bottomRadius}, length={tail_length}, distanceToCM={elements[tail_label]["DistanceToCG"]}\n)'
+        tail = f'Calisto.addTail(\n    topRadius=parameters["tailTopRadius"], bottomRadius=parameters["tailBottomRadius"], length=parameters["tailLength"], distanceToCM=parameters["tailDistanceToCM"]\n)'
+        
+        flight_parameters.update({
+            'tailTopRadius': topRadius,
+            'tailBottomRadius': bottomRadius,
+            'tailLength': tail_length,
+            'tailDistanceToCM': elements[tail_label]['DistanceToCG']
+        })
     else:
         tail = ''    
     return tail
@@ -236,8 +261,17 @@ def generate_nosecone_code(bs, cm):
     if nosecone_shape == 'haack':
         nosecone_shape_parameter = float(nosecone.find('shapeparameter').text)
         nosecone_shape = 'Von Karman' if nosecone_shape_parameter == 0.0 else 'lvhaack'
+        flight_parameters.update({'noseShapeParameter': nosecone_shape_parameter})
+        #TODO: Shape
     nosecone_distanceToCM = cm
-    nosecone = f'NoseCone = Calisto.addNose(length={nosecone_length}, kind="{nosecone_shape}", distanceToCM={nosecone_distanceToCM})'
+
+    flight_parameters.update({
+            'noseLength': nosecone_length,
+            'noseShape': nosecone_shape,
+            'noseDistanceToCM': nosecone_distanceToCM
+    })
+
+    nosecone = f'NoseCone = Calisto.addNose(length=parameters["noseLength"], kind=parameters["noseShape"], distanceToCM=parameters["noseDistanceToCM"])'
     return nosecone
 
 def generate_motor_code(path, burnout_position, burnout_time, thrust_vect, time_vect, propelant_mass, motor_radius, motor_height):
@@ -248,7 +282,18 @@ def generate_motor_code(path, burnout_position, burnout_time, thrust_vect, time_
     thrust_vect = np.array([time_vect[0: burnout_position], thrust_vect[0: burnout_position]]).T
     thrust_source_name = f'{path}/thrust_source.csv'
     np.savetxt(thrust_source_name, thrust_vect, delimiter=",")
-    code = f'Pro75M1670 = SolidMotor(\n    thrustSource="thrust_source.csv",\n    burnOut={burnout_time},\n    grainNumber=1,\n    grainSeparation=0,\n    grainDensity={grain_density},\n    grainOuterRadius={motor_radius},\n    grainInitialInnerRadius={inner_radius},\n    grainInitialHeight={motor_height},\n    nozzleRadius={1.5*inner_radius},\n    throatRadius={inner_radius},\n    interpolationMethod="linear",\n)'
+
+    flight_parameters.update({
+            'burnOut': time_vect[burnout_position],
+            'grainDensity': grain_density,
+            'grainInitialInnerRadius': inner_radius,
+            'grainOuterRadius': motor_radius,
+            'grainInitialHeight': motor_height,
+            'nozzleRadius': 1.5*inner_radius,
+            'throatRadius': inner_radius,
+    })
+
+    code = f'Pro75M1670 = SolidMotor(\n    thrustSource="thrust_source.csv",\n    burnOut=parameters["burnOut"],\n    grainNumber=1,\n    grainSeparation=0,\n    grainDensity=parameters["grainDensity"],\n    grainOuterRadius=parameters["grainOuterRadius"],\n    grainInitialInnerRadius=parameters["grainInitialInnerRadius"],\n    grainInitialHeight=parameters["grainInitialHeight"],\n    nozzleRadius=parameters["nozzleRadius"],\n    throatRadius=parameters["throatRadius"],\n    interpolationMethod="linear",\n)'
     return code
 
 with orhelper.OpenRocketInstance() as instance:
@@ -277,7 +322,8 @@ with orhelper.OpenRocketInstance() as instance:
     #                     print(str(exc))
     # print(f'{i} Sucessful file generation')
     # print(f'{j} Incomplete files')
-    ork_file = './Trajectory Simulations/Team06_OpenRocketProject_v1.3.1/Team06_OpenRocketProject_v1.3.1/rocket.ork'
+    ork_file = './Trajectory Simulations/Team12_OpenRocketProject_v3.04/rocket.ork'
     eng_file = ''
     nb_file = './docs/notebooks/getting_started.ipynb'
     generate(ork_file, nb_file, eng_file, instance)
+    print(flight_parameters)
