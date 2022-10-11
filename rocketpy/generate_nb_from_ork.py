@@ -10,8 +10,9 @@ import orhelper
 from orhelper import FlightDataType, FlightEvent
 import zipfile
 
+flight_parameters = {}
+
 def generate(ork_file, nb_file, eng_file, open_rocket_instance):
-    #TODO Drag em função de mach
     nb = nbformat.read(nb_file, nbformat.NO_CONVERT)
     bs = BeautifulSoup(open(ork_file).read())
     team_name = ork_file.split("/")[2]
@@ -24,7 +25,9 @@ def generate(ork_file, nb_file, eng_file, open_rocket_instance):
 
     path = f'GeneratedSimulations/{team_name}/'
 
-    #rail button
+    #TODO: rail button
+    #TODO: Correct the drag coefficient
+    #TODO: equip 25
 
     orh = orhelper.Helper(instance)
     ork = orh.load_doc(ork_file)
@@ -39,7 +42,7 @@ def generate(ork_file, nb_file, eng_file, open_rocket_instance):
     time_vect = time_vect[starting_pos: final_pos]
     thrust_vect = [float(datapoint.text.split(',')[28]) for datapoint in bs.find_all('datapoint')][starting_pos: final_pos]
     cg_location_vect = [float(datapoint.text.split(',')[24]) for datapoint in bs.find_all('datapoint')][starting_pos: final_pos]
-    cp_location_vect = [float(datapoint.text.split(',')[23]) for datapoint in bs.find_all('datapoint')][starting_pos: final_pos]
+    
     altitude_vect = [float(datapoint.text.split(',')[1]) for datapoint in bs.find_all('datapoint')][starting_pos: final_pos]
     propelant_mass_vect = [float(datapoint.text.split(',')[20]) for datapoint in bs.find_all('datapoint')][starting_pos: final_pos]
     mass = [float(datapoint.text.split(',')[19]) for datapoint in bs.find_all('datapoint')][starting_pos: final_pos]
@@ -56,7 +59,6 @@ def generate(ork_file, nb_file, eng_file, open_rocket_instance):
     empty_rocket_cm = cg_location_vect[burnout_position] # calculate_rocket_cg(ork.getRocket(), rocket_mass)
     elements = process_elements_position(ork.getRocket(), {}, empty_rocket_cm, rocket_mass, top_position=0)
     rocket_radius = ork.getRocket().getChild(0).getChild(1).getAftRadius()
-    
     #TODO Resolver isso
     last_element = [key for key in elements.keys()][-1]
     motor_cm = empty_rocket_cm - (cg_location_vect[0] * mass[0] - empty_rocket_cm * rocket_mass)/propelant_mass
@@ -70,20 +72,12 @@ def generate(ork_file, nb_file, eng_file, open_rocket_instance):
     burnout_time = time_vect[burnout_position]
     tube_length = float(bs.find('motormount').find('length').text)
     motor_radius = float(bs.find('motormount').find('diameter').text) / 2
-
-    # rocket_mass = mass[0] - propelant_mass_vect[0]
-    nb['cells'][15]['source'] = generate_motor_code(path, 
-                                                    burnout_position, 
-                                                    burnout_time, 
-                                                    thrust_vect, 
-                                                    time_vect, 
-                                                    propelant_mass, 
-                                                    motor_radius, 
-                                                    tube_length)
-    drag_coefficient = np.sort(np.array([mach_number, drag_coefficient]).T, 0)
+    
+    drag_coefficient = np.array([mach_number, drag_coefficient]).T
+    drag_coefficient = drag_coefficient[~np.isnan(drag_coefficient).any(axis=1), :]
+    
     drag_coefficient_source_path = f'{path}drag_coefficient.csv'
     np.savetxt(drag_coefficient_source_path, drag_coefficient, delimiter=",")
-    nb['cells'][20]['source'] = f'Calisto = Rocket(\n    motor=Pro75M1670,\n    radius={rocket_radius},\n    mass={rocket_mass},\n    inertiaI={longitudinal_moment_of_inertia},\n    inertiaZ={rotational_moment_of_inertia},\n    distanceRocketNozzle={nozzle_cm},\n    distanceRocketPropellant={motor_cm},\n    powerOffDrag="drag_coefficient.csv",\n    powerOnDrag="drag_coefficient.csv",\n)\n\nCalisto.setRailButtons([0.2, -0.5])'
 
     nosecone = bs.find('nosecone')
     nosecone = generate_nosecone_code(bs, elements[bs.find('nosecone').find('name').text]['DistanceToCG'])        
@@ -95,12 +89,7 @@ def generate(ork_file, nb_file, eng_file, open_rocket_instance):
         trapezoidal_fin += trapezoidal_fin_code(fin, elements[element_label])
 
     tail = tail_code(bs, elements, ork)
-    # aerodynamic surfaces
-    nb['cells'][23]['source'] = f'{nosecone}\n\n{trapezoidal_fin}\n\n{tail}'
 
-    # filter by name = main
-    # sampling rate
-    # trigger functions
     chute_cell_code = ''
     chutes = bs.findAll('parachute')
     
@@ -121,9 +110,28 @@ def generate(ork_file, nb_file, eng_file, open_rocket_instance):
         drogue_trigger = 'def drogueTrigger(p, y):\n    # p = pressure\n    # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]\n    # activate drogue when vz < 0 m/s.\n    return True if y[5] < 0 else False\n\n\n'
         chute_cell_code += f'{drogue_trigger}\n\n{drogue_code}\n'
 
+    launch_rod_length = float(bs.find('launchrodlength').text)
+    
+    flight_parameters.update({
+            'propelant_mass': propelant_mass, 'burnout_time': time_vect[burnout_position], 'rocket_mass': rocket_mass,
+            'empty_rocket_cm': empty_rocket_cm, 'rocket_radius': rocket_radius, 'motor_cm': motor_cm, 'nozzle_cm': nozzle_cm,
+            'longitudinal_moment_of_inertia': longitudinal_moment_of_inertia, 'rotational_moment_of_inertia': rotational_moment_of_inertia,
+            'tube_length': tube_length, 'motor_radius': motor_radius, 'drag_coefficient_source_path': drag_coefficient_source_path,  
+        })
+    nb['cells'][15]['source'] = generate_motor_code(path, 
+                                                    burnout_position, 
+                                                    burnout_time, 
+                                                    thrust_vect, 
+                                                    time_vect, 
+                                                    propelant_mass, 
+                                                    motor_radius, 
+                                                    tube_length)
+    nb['cells'][20]['source'] = f'Calisto = Rocket(\n    motor=Pro75M1670,\n    radius={rocket_radius},\n    mass={rocket_mass},\n    inertiaI={longitudinal_moment_of_inertia},\n    inertiaZ={rotational_moment_of_inertia},\n    distanceRocketNozzle={nozzle_cm},\n    distanceRocketPropellant={motor_cm},\n    powerOffDrag="drag_coefficient.csv",\n    powerOnDrag="drag_coefficient.csv",\n)\n\nCalisto.setRailButtons([0.2, -0.5])'
+
+    nb['cells'][23]['source'] = f'{nosecone}\n\n{trapezoidal_fin}\n\n{tail}'
+
     nb['cells'][27]['source'] = chute_cell_code
 
-    launch_rod_length = float(bs.find('launchrodlength').text)
     nb['cells'][7]['source'] = f'Env = Environment(\n    railLength={launch_rod_length}, latitude=39.3897, longitude=-8.28896388889, elevation={launch_altitude}\n)'
     nb['cells'][30]['source'] = f'TestFlight = Flight(rocket=Calisto, environment=Env, inclination=84, heading=133)'
     print(np.max(altitude_vect))
@@ -146,29 +154,44 @@ after_parent_element = ['After the parent component', 'Bottom of the parent comp
 before_parent_element = ['Top of the parent component']
 
 def calculate_distance_to_cg(ork, rocket_cg, top_position):
-    element_position = ork.getRelativePosition().toString()
-    if element_position in after_parent_element and (rocket_cg - top_position) > 0:
-        relative_position = top_position + ork.getLength()
-    elif (element_position in before_parent_element):
-        relative_position = top_position
-    elif element_position == 'Bottom of the parent component':
-        relative_position = top_position + ork.getParent().getLength() + ork.getPositionValue() - ork.getLength()
+    if is_sub_component(ork) == True:
+        element_position = ork.getRelativePosition().toString()
+        relative_position = top_position + ork.getPositionValue()
+
+        ## TODO Tip of the nosecone
+        
+        if element_position == 'Bottom of the parent component':
+            relative_position += ork.getParent().getLength()
+        elif element_position == 'Middle of the parent component':
+            relative_position += ork.getParent().getLength()/2
     else:
-        relative_position = top_position
-        print(element_position)
+        relative_position = top_position + ork.getLength()
+
+    if (rocket_cg - relative_position) < 0:
+        relative_position -= ork.getLength()
 
     distance_to_cg = rocket_cg - (relative_position)
     return distance_to_cg
     
+def is_sub_component(ork):
+    i = 0
+    root = ork.getRoot()
+    while ork != ork.getRoot():
+        ork = ork.getParent()
+        if root != ork.getParent():
+            i+=1
+    return True if i >= 2 else False
 
 
 def process_elements_position(ork, elements, rocket_cg, rocket_mass, top_position=0):
     #TODO: Use relative position
+
     element = {
             'length': ork.getLength(),
             'CM': ork.getCG().x,
             'DistanceToCG': calculate_distance_to_cg(ork, rocket_cg, top_position)
         }
+    
     elements[ork.getName()] = element
     has_child = True
     i = 0
@@ -176,7 +199,8 @@ def process_elements_position(ork, elements, rocket_cg, rocket_mass, top_positio
         try:
             new_elements = process_elements_position(ork.getChild(i), {}, rocket_cg, rocket_mass, top_position)
             elements.update(new_elements)
-            top_position += ork.getChild(i).getLength()
+            if is_sub_component(ork.getChild(i)) == False:
+                top_position += ork.getChild(i).getLength()
             i += 1
         except Exception:
             has_child = False
@@ -253,7 +277,7 @@ with orhelper.OpenRocketInstance() as instance:
     #                     print(str(exc))
     # print(f'{i} Sucessful file generation')
     # print(f'{j} Incomplete files')
-    ork_file = './Trajectory Simulations/Team02_OpenRocketProject_v1/Periphas_EUROC/rocket.ork'
+    ork_file = './Trajectory Simulations/Team06_OpenRocketProject_v1.3.1/Team06_OpenRocketProject_v1.3.1/rocket.ork'
     eng_file = ''
     nb_file = './docs/notebooks/getting_started.ipynb'
     generate(ork_file, nb_file, eng_file, instance)
