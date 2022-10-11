@@ -95,7 +95,7 @@ def generate(ork_file, nb_file, eng_file, open_rocket_instance):
     chutes = bs.findAll('parachute')
     
     for main_chute in filter(lambda x: 'Main' in x.find('name').text, chutes):
-        main_cds = search_cd_chute_if_auto(bs) if main_chute.find('cd').text == 'auto' else float(main_chute.find('cd').text)
+        main_cds = 'auto' if main_chute.find('cd').text == 'auto' else float(main_chute.find('cd').text)
         main_deploy_delay = float(main_chute.find('deploydelay').text)
         main_deploy_altitude = float(main_chute.find('deployaltitude').text)
 
@@ -322,7 +322,7 @@ with orhelper.OpenRocketInstance() as instance:
     #                     print(str(exc))
     # print(f'{i} Sucessful file generation')
     # print(f'{j} Incomplete files')
-    ork_file = './Trajectory Simulations/Team12_OpenRocketProject_v3.04/rocket.ork'
+    ork_file = './Trajectory Simulations/Team16_OpenRocketProject_v2.00/Team16_OpenRocketProject_v2.00/rocket.ork'
     eng_file = ''
     nb_file = './docs/notebooks/getting_started.ipynb'
     generate(ork_file, nb_file, eng_file, instance)
