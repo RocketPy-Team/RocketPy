@@ -1,7 +1,7 @@
 from math import e
 from multiprocessing.sharedctypes import Value
 from turtle import distance
-from xml.sax.handler import property_lexical_handler
+from datetime import date, timedelta
 import os
 import nbformat
 from bs4 import BeautifulSoup
@@ -81,7 +81,8 @@ def generate(ork_file, nb_file, eng_file, open_rocket_instance):
     np.savetxt(drag_coefficient_source_path, drag_coefficient, delimiter=",")
 
     nosecone = bs.find('nosecone')
-    nosecone = generate_nosecone_code(bs, elements[bs.find('nosecone').find('name').text]['DistanceToCG'])        
+    element_name = nosecone.find('name').text if nosecone else 'Nosecone'
+    nosecone = generate_nosecone_code(bs, elements[element_name]['DistanceToCG'])        
 
     trapezoidal_fin = ''
     # migue na distancia pro cg
@@ -94,7 +95,8 @@ def generate(ork_file, nb_file, eng_file, open_rocket_instance):
     chute_cell_code = ''
     chutes = bs.findAll('parachute')
     
-    for main_chute in filter(lambda x: 'Main' in x.find('name').text, chutes):
+    # TODO: Multiplicar CD por S
+    for idx, main_chute in enumerate(filter(lambda x: 'Main' in x.find('name').text, chutes)):
         main_cds = 'auto' if main_chute.find('cd').text == 'auto' else float(main_chute.find('cd').text)
         main_deploy_delay = float(main_chute.find('deploydelay').text)
         main_deploy_altitude = float(main_chute.find('deployaltitude').text)
@@ -117,11 +119,13 @@ def generate(ork_file, nb_file, eng_file, open_rocket_instance):
             f'DrogueCds{idx}': drogue_cds, f'DrogueDeployDelay{idx}': drogue_deploy_delay
         })
     
+    #TODO: rail_button, tuple for launch date
     flight_parameters.update({
-            'rocketMass': rocket_mass, 'elevation': 160,
+            'rocketMass': rocket_mass, 'elevation': 160, 'launchDate': str(date.today() + timedelta(days=1)),
             'emptyRocketCm': empty_rocket_cm, 'radius': rocket_radius, 'MotorCm': motor_cm, 'distanceRocketNozzle': nozzle_cm,
             'inertiaI': longitudinal_moment_of_inertia, 'inertiaZ': rotational_moment_of_inertia, 'railLength': 12,
-            'dragCoefficientSourcePath': drag_coefficient_source_path, 'inclination': 84, 'heading': 133
+            'dragCoefficientSourcePath': drag_coefficient_source_path, 'inclination': 84, 'heading': 133,
+            'latitude': 39.3897, 'longitude' : -8.28896388889, 'distanceRocketPropellant': motor_cm
         })
     nb['cells'][4]['source'] = f'%matplotlib widget\n\nimport json\n\nparameters = json.loads(open("parameters.json").read())'
     nb['cells'][15]['source'] = generate_motor_code(path, 
@@ -255,6 +259,12 @@ def tail_code(bs, elements, ork):
 
 def generate_nosecone_code(bs, cm):
     nosecone = bs.find('nosecone')
+    if nosecone == None:
+        nosecones = list(filter(lambda x: x.find('name').text == 'Nosecone', bs.findAll('transition')))
+        if len(nosecones) == 0:
+            print('Could not fetch the nosecone')
+            return
+        nosecone = nosecones[0]
     nosecone_length = float(nosecone.find('length').text)
     nosecone_shape = nosecone.find('shape').text
     # TODO: Verificar shape da ogiva
@@ -322,7 +332,7 @@ with orhelper.OpenRocketInstance() as instance:
     #                     print(str(exc))
     # print(f'{i} Sucessful file generation')
     # print(f'{j} Incomplete files')
-    ork_file = './Trajectory Simulations/Team16_OpenRocketProject_v2.00/Team16_OpenRocketProject_v2.00/rocket.ork'
+    ork_file = './Trajectory Simulations/15 - Team 15-20221012T083510Z-001/rocket.ork'
     eng_file = ''
     nb_file = './docs/notebooks/getting_started.ipynb'
     generate(ork_file, nb_file, eng_file, instance)
