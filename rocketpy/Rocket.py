@@ -472,7 +472,7 @@ class Rocket:
             "removed by version 2.0.0. Use Rocket.addTrapezoidalFins instead",
             PendingDeprecationWarning,
         )
-        self.addTrapezoidalFins(*args, **kwargs)
+        return self.addTrapezoidalFins(*args, **kwargs)
 
     def addTrapezoidalFins(
         self,
