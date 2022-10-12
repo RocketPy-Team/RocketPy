@@ -472,7 +472,7 @@ class Rocket:
             "removed by version 2.0.0. Use Rocket.addTrapezoidalFins instead",
             PendingDeprecationWarning,
         )
-        self.addTrapezoidalFins(*args, **kwargs)
+        return self.addTrapezoidalFins(*args, **kwargs)
 
     def addTrapezoidalFins(
         self,
@@ -482,6 +482,8 @@ class Rocket:
         span,
         distanceToCM,
         cantAngle=0,
+        sweepLength=None,
+        sweepAngle=None,
         radius=None,
         airfoil=None,
     ):
@@ -507,6 +509,19 @@ class Rocket:
         cantAngle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
+        sweepLength : int, float, optional
+            Fins sweep length in meters. By sweep length, understand the axial distance
+            between the fin root leading edge and the fin tip leading edge measured
+            parallel to the rocket centerline. If not given, the sweep length is
+            assumed to be equal the root chord minus the tip chord, in which case the
+            fin is a right trapezoid with its base perpendicular to the rocket's axis.
+            Cannot be used in conjunction with sweepAngle.
+        sweepAngle : int, float, optional
+            Fins sweep angle with respect to the rocket centerline. Must
+            be given in degrees. If not given, the sweep angle is automatically
+            calculated, in which case the fin is assumed to be a right trapezoid with
+            its base perpendicular to the rocket's axis.
+            Cannot be used in conjunction with sweepLength.
         radius : int, float, optional
             Reference radius to calculate lift coefficient. If None, which
             is default, use rocket radius. Otherwise, enter the radius
@@ -542,14 +557,28 @@ class Rocket:
         radius = self.radius if radius is None else radius
         cantAngleRad = np.radians(cantAngle)
 
+        # Check if sweep angle or sweep length is given
+        if sweepLength is not None and sweepAngle is not None:
+            raise ValueError("Cannot use sweepLength and sweepAngle together")
+        elif sweepAngle is not None:
+            sweepLength = np.tan(sweepAngle * np.pi / 180) * span
+        elif sweepLength is None:
+            sweepLength = Cr - Ct
+        else:
+            # Sweep length is given
+            pass
+
         # Compute auxiliary geometrical parameters
         d = 2 * radius
         Aref = np.pi * radius**2
         Yr = Cr + Ct
         Af = Yr * s / 2  # Fin area
         AR = 2 * s**2 / Af  # Fin aspect ratio
-        gamac = np.arctan((Cr - Ct) / (2 * s))  # Mid chord angle
+        gamma_c = np.arctan(
+            (sweepLength + 0.5 * Ct - 0.5 * Cr) / (span)
+        )  # Mid chord angle
         Yma = (s / 3) * (Cr + 2 * Ct) / Yr  # Span wise coord of mean aero chord
+
         rollGeometricalConstant = (
             (Cr + 3 * Ct) * s**3
             + 4 * (Cr + 2 * Ct) * radius * s**2
@@ -558,7 +587,7 @@ class Rocket:
 
         # Center of pressure position relative to CDM (center of dry mass)
         cpz = distanceToCM + np.sign(distanceToCM) * (
-            ((Cr - Ct) / 3) * ((Cr + 2 * Ct) / (Cr + Ct))
+            (sweepLength / 3) * ((Cr + 2 * Ct) / (Cr + Ct))
             + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
         )
 
@@ -636,11 +665,11 @@ class Rocket:
             clalpha2D = Function(lambda mach: clalpha2D_Mach0 / beta(mach))
 
         # Diederich's Planform Correlation Parameter
-        FD = 2 * np.pi * AR / (clalpha2D * np.cos(gamac))
+        FD = 2 * np.pi * AR / (clalpha2D * np.cos(gamma_c))
 
         # Lift coefficient derivative for a single fin
         clalphaSingleFin = Function(
-            lambda mach: (clalpha2D(mach) * FD(mach) * (Af / Aref) * np.cos(gamac))
+            lambda mach: (clalpha2D(mach) * FD(mach) * (Af / Aref) * np.cos(gamma_c))
             / (2 + FD(mach) * np.sqrt(1 + (2 / FD(mach)) ** 2))
         )
 

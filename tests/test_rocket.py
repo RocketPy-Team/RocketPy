@@ -340,6 +340,70 @@ def test_add_tail_assert_cp_cm_plus_tail(rocket, dimensionless_rocket, m):
     )
 
 
+@pytest.mark.parametrize(
+    "sweep_angle, expected_fin_cpz, expected_clalpha, expected_cpz_cm",
+    [(39.8, 2.51, 3.16, 1.65), (-10, 2.47, 3.21, 1.63), (29.1, 2.50, 3.28, 1.66)],
+)
+def test_add_trapezoidal_fins_sweep_angle(
+    rocket, sweep_angle, expected_fin_cpz, expected_clalpha, expected_cpz_cm
+):
+    # Reference values from OpenRocket
+    Nose = rocket.addNose(length=0.55829, kind="vonKarman", distanceToCM=0.71971)
+
+    FinSet = rocket.addTrapezoidalFins(
+        n=3,
+        span=0.090,
+        rootChord=0.100,
+        tipChord=0.050,
+        sweepAngle=sweep_angle,
+        distanceToCM=-1.182,
+    )
+
+    # Check center of pressure
+    translate = 0.55829 + 0.71971
+    cpz = FinSet["cp"][2]
+    assert translate - cpz == pytest.approx(expected_fin_cpz, 0.01)
+
+    # Check lift coefficient derivative
+    cl_alpha = FinSet["cl"](1, 0.0)
+    assert cl_alpha == pytest.approx(expected_clalpha, 0.01)
+
+    # Check rocket's center of pressure (just double checking)
+    assert translate - rocket.cpPosition == pytest.approx(expected_cpz_cm, 0.01)
+
+
+@pytest.mark.parametrize(
+    "sweep_length, expected_fin_cpz, expected_clalpha, expected_cpz_cm",
+    [(0.075, 2.51, 3.16, 1.65), (-0.0159, 2.47, 3.21, 1.63), (0.05, 2.50, 3.28, 1.66)],
+)
+def test_add_trapezoidal_fins_sweep_length(
+    rocket, sweep_length, expected_fin_cpz, expected_clalpha, expected_cpz_cm
+):
+    # Reference values from OpenRocket
+    Nose = rocket.addNose(length=0.55829, kind="vonKarman", distanceToCM=0.71971)
+
+    FinSet = rocket.addTrapezoidalFins(
+        n=3,
+        span=0.090,
+        rootChord=0.100,
+        tipChord=0.050,
+        sweepLength=sweep_length,
+        distanceToCM=-1.182,
+    )
+
+    # Check center of pressure
+    translate = 0.55829 + 0.71971
+    cpz = FinSet["cp"][2]
+    assert translate - cpz == pytest.approx(expected_fin_cpz, 0.01)
+
+    # Check lift coefficient derivative
+    cl_alpha = FinSet["cl"](1, 0.0)
+    assert cl_alpha == pytest.approx(expected_clalpha, 0.01)
+
+    # Check rocket's center of pressure (just double checking)
+    assert translate - rocket.cpPosition == pytest.approx(expected_cpz_cm, 0.01)
+
+
 def test_add_fins_assert_cp_cm_plus_fins(rocket, dimensionless_rocket, m):
     rocket.addTrapezoidalFins(
         4,
