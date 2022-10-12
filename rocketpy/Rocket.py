@@ -483,6 +483,7 @@ class Rocket:
         distanceToCM,
         cantAngle=0,
         sweepLength=None,
+        sweepAngle=None,
         radius=None,
         airfoil=None,
     ):
@@ -514,6 +515,13 @@ class Rocket:
             parallel to the rocket centerline. If not given, the sweep length is
             assumed to be equal the root chord minus the tip chord, in which case the
             fin is a right trapezoid with its base perpendicular to the rocket's axis.
+            Cannot be used in conjunction with sweepAngle.
+        sweepAngle : int, float, optional
+            Fins sweep angle with respect to the rocket centerline. Must
+            be given in degrees. If not given, the sweep angle is automatically
+            calculated, in which case the fin is assumed to be a right trapezoid with
+            its base perpendicular to the rocket's axis.
+            Cannot be used in conjunction with sweepLength.
         radius : int, float, optional
             Reference radius to calculate lift coefficient. If None, which
             is default, use rocket radius. Otherwise, enter the radius
@@ -545,10 +553,20 @@ class Rocket:
         """
         # Retrieves and convert basic geometrical parameters
         Cr, Ct = rootChord, tipChord
-        sweepLength = Cr - Ct if sweepLength is None else sweepLength
         s = span
         radius = self.radius if radius is None else radius
         cantAngleRad = np.radians(cantAngle)
+
+        # Check if sweep angle or sweep length is given
+        if sweepLength is not None and sweepAngle is not None:
+            raise ValueError("Cannot use sweepLength and sweepAngle together")
+        elif sweepAngle is not None:
+            sweepLength = np.tan(sweepAngle * np.pi / 180) * span
+        elif sweepLength is None:
+            sweepLength = Cr - Ct
+        else:
+            # Sweep length is given
+            pass
 
         # Compute auxiliary geometrical parameters
         d = 2 * radius
