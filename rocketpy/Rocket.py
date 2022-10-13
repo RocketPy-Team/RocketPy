@@ -399,7 +399,7 @@ class Rocket:
         # Return self
         return self.aerodynamicSurfaces[-1]
 
-    def addNose(self, length, kind, distanceToCM):
+    def addNose(self, length, kind, distanceToCM, overwrite_cpz=None, overwrite_clalpha=None):
         """Creates a nose cone, storing its parameters as part of the
         aerodynamicSurfaces list. Its parameters are the axial position
         along the rocket and its derivative of the coefficient of lift
@@ -437,15 +437,15 @@ class Rocket:
             k = 1 - 1 / 3
         elif kind == "ogive":
             k = 1 - 0.534
-        elif kind == "lvhaack":
+        elif kind == "lvhaack": 
             k = 1 - 0.437
         else:
             k = 0.5
         # Calculate cp position relative to cm
-        cpz = distanceToCM + np.sign(distanceToCM) * k * length
+        cpz = overwrite_cpz or distanceToCM + np.sign(distanceToCM) * k * length
 
         # Calculate clalpha
-        clalpha = 2
+        clalpha = overwrite_clalpha or 2
         cl = Function(
             lambda alpha, mach: clalpha * alpha,
             ["Alpha (rad)", "Mach"],
