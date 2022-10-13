@@ -2937,35 +2937,13 @@ class Flight:
         # Get some nicknames
         t = self.x[:, 0]
         x, y = self.x[:, 1], self.y[:, 1]
-        bearing = []
-        for i in range(len(t)):
-            # Forcing arctan2(0, 0) = self.heading
-            if abs(x[i]) < 1e-6 and abs(y[i]) < 1e-6:
-                bearing.append(np.deg2rad(self.heading))
-            elif abs(x[i]) < 1e-6:  # check if the rocket is on x axis
-                if y[i] > 0:
-                    bearing.append(0)
-                else:
-                    bearing.append(np.pi)
-            elif abs(y[i]) < 1e-6:  # check if the rocket is on x axis
-                if x[i] > 0:
-                    bearing.append(np.pi / 2)
-                else:
-                    bearing.append(3 * np.pi / 2)
-            else:
-                # Calculate bearing as the azimuth considering different quadrants
-                if x[i] * y[i] < 0 and x[i] < 0:  # Fourth quadrant
-                    bearing.append(-np.pi / 2 + np.arctan(abs(y[i]) / abs(x[i])))
-                elif x[i] * y[i] < 0 and x[i] > 0:  # Second quadrant
-                    bearing.append(np.pi / 2 + np.arctan(abs(x[i]) / abs(y[i])))
-                elif x[i] * y[i] > 0 and x[i] < 0:  # Third quadrant
-                    bearing.append(np.pi + np.arctan(abs(x[i]) / abs(y[i])))
-                else:  # First quadrant
-                    bearing.append(np.arctan(abs(x[i]) / abs(y[i])))
 
-        bearing = np.rad2deg(bearing)
+        # Calculate the bearing
+        bearing = (2 * np.pi - np.arctan2(-x, y)) * (180 / np.pi)
+
+        # Convert to degress and create Function
         bearing = np.column_stack((t, bearing))
-        print(bearing)
+
         bearing = Function(
             bearing,
             "Time (s)",
@@ -2988,6 +2966,7 @@ class Flight:
         lat1 = np.deg2rad(self.env.lat)  # Launch lat point converted to radians
 
         # Applies the haversine equation to find final lat/lon coordinates
+
         latitude = np.rad2deg(
             np.arcsin(
                 np.sin(lat1) * np.cos(self.drift[:, 1] / self.env.earthRadius)
@@ -4610,11 +4589,11 @@ class Flight:
         fileName="trajectory.kml",
         timeStep=None,
         extrude=True,
-        color="641400F0",
+        color="FF1400F0",
+        fillColor="641400F0",
         altitudeMode="absolute",
     ):
         """Exports flight data to a .kml file, which can be opened with Google Earth to display the rocket's trajectory.
-
         Parameters
         ----------
         fileName : string
@@ -4643,6 +4622,8 @@ class Flight:
         None
         """
         # Define time points vector
+        if self.postProcessed is False:
+            self.postProcess()
         if timeStep is None:
             # Get time from any Function, should all be the same
             timePoints = self.z[:, 0]
@@ -4676,7 +4657,8 @@ class Flight:
             trajectory.altitudemode = simplekml.AltitudeMode.absolute
         # Modify style of trajectory linestring
         trajectory.style.linestyle.color = color
-        trajectory.style.polystyle.color = color
+        trajectory.style.polystyle.color = fillColor
+        trajectory.style.polystyle.outline = 0
         if extrude:
             trajectory.extrude = 1
         # Save the KML
