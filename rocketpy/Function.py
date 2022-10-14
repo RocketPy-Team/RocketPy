@@ -10,6 +10,7 @@ from inspect import signature
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import integrate, linalg
+import os
 
 
 class Function:
@@ -2032,6 +2033,89 @@ class Function:
         # z = x + h*1j
         # return self(z).imag/h
 
+    def integralFunction(self, lower=None, upper=None, datapoints=100):
+        """Returns a Function object representing the integral of the
+        PiecewiseFunction object.
+
+        Parameters
+        ----------
+        lower : scalar, optional
+            The lower limit of the interval in which the function is to be
+            plotted. If the Function is given by a dataset, the default
+            value is the start of the dataset.
+        upper : scalar, optional
+            The upper limit of the interval in which the function is to be
+            plotted. If the Function is given by a dataset, the default
+            value is the end of the dataset.
+        datapoints : int, optional
+            The number of points in which the integral will be evaluated for
+            plotting it, which draws lines between each evaluated point.
+            The default value is 100.
+
+        Returns
+        -------
+        result : Function
+            The integral of the PiecewiseFunction object.
+        """
+        # Check if lower and upper are given
+        if lower is None:
+            if isinstance(self.source, np.ndarray):
+                lower = self.source[0, 0]
+            else:
+                raise ValueError("Lower limit must be given if source is a function.")
+        if upper is None:
+            if isinstance(self.source, np.ndarray):
+                upper = self.source[-1, 0]
+            else:
+                raise ValueError("Upper limit must be given if source is a function.")
+
+        # Create a new Function object
+        xData = np.linspace(lower, upper, datapoints)
+        yData = np.zeros(datapoints)
+        for i in range(datapoints):
+            yData[i] = self.integral(lower, xData[i])
+        return Function(np.concatenate(([xData], [yData])).transpose(), 
+                    inputs=self.__inputs__, 
+                    outputs=[o + " Integral" for o in self.__outputs__])
+
+    def reverse(self, lower=None, upper=None, datapoints=100):
+        """
+        Reverse the domain of a Function object.
+
+        Parameters
+        ----------
+        lower : float
+            Lower limit of the new domain.
+        upper : float
+            Upper limit of the new domain.
+
+        Returns
+        -------
+        result : Function
+            A Function object which gives the result of self(upper-x).
+        """
+        # Check if lower and upper are given
+        if lower is None:
+            if isinstance(self.source, np.ndarray):
+                lower = self.source[0, 0]
+            else:
+                raise ValueError("Lower limit must be given if source is a function.")
+        if upper is None:
+            if isinstance(self.source, np.ndarray):
+                upper = self.source[-1, 0]
+            else:
+                raise ValueError("Upper limit must be given if source is a function.")
+
+        # Create a new Function object
+        xData = np.linspace(lower, upper, datapoints)
+        yData = np.zeros(datapoints)
+        for i in range(datapoints):
+            yData[i] = self.getValue(xData[i])
+        return Function(np.concatenate(([yData], [xData])).transpose(),
+                    inputs=self.__outputs__,
+                    outputs=self.__inputs__)
+
+
 
 class PiecewiseFunction(Function):
     def __init__(self, source, inputs=["Scalar"], outputs=["Scalar"], interpolation=None, extrapolation=None):
@@ -2091,7 +2175,6 @@ class PiecewiseFunction(Function):
             if isinstance(v, Function):
                 self.sub_functions[k] = v
             else:
-                print(v)
                 self.sub_functions[k] = Function(v, inputs, outputs, interpolation, extrapolation)
 
     def __mul__(self, other):
@@ -2416,3 +2499,40 @@ class PiecewiseFunction(Function):
         plt.show()
         if returnObject:
             return fig, ax
+
+    def integralFunction(self, lower=None, upper=None, datapoints=100):
+        
+        # Find lower and upper bounds
+        if lower is None:
+            lower = sorted(self.sub_functions.keys())[0][0]
+        elif lower < sorted(self.sub_functions.keys())[0][0]:
+            lower = sorted(self.sub_functions.keys())[0][0]
+        elif lower > sorted(self.sub_functions.keys())[-1][1]:
+            raise ValueError("Lower bound is greater than upper bound of PiecewiseFunction")
+        
+        if upper is None:
+            upper = sorted(self.sub_functions.keys())[-1][1]
+        elif upper > sorted(self.sub_functions.keys())[-1][1]:
+            upper = sorted(self.sub_functions.keys())[-1][1]
+        elif upper < sorted(self.sub_functions.keys())[0][0]:
+            raise ValueError("Upper bound is less than lower bound of PiecewiseFunction")
+        
+        # Create the integral function
+        return super().integralFunction(lower, upper, datapoints)
+
+    def reverse(self, lower=None, upper=None, datapoints=100):
+        if lower is None:
+            lower = sorted(self.sub_functions.keys())[0][0]
+        elif lower < sorted(self.sub_functions.keys())[0][0]:
+            lower = sorted(self.sub_functions.keys())[0][0]
+        elif lower > sorted(self.sub_functions.keys())[-1][1]:
+            raise ValueError("Lower bound is greater than upper bound of PiecewiseFunction")
+        
+        if upper is None:
+            upper = sorted(self.sub_functions.keys())[-1][1]
+        elif upper > sorted(self.sub_functions.keys())[-1][1]:
+            upper = sorted(self.sub_functions.keys())[-1][1]
+        elif upper < sorted(self.sub_functions.keys())[0][0]:
+            raise ValueError("Upper bound is less than lower bound of PiecewiseFunction")
+
+        return super().reverse(lower, upper, datapoints)
