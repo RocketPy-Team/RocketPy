@@ -244,7 +244,7 @@ def exportEllipsesToKML(
 
     # Prepare data to KML file
     kml_data = []
-    for i in range(len(outputs)):   
+    for i in range(len(outputs)):
         temp = []
         for j in range(len(outputs[i])):
             temp.append((outputs[i][j][1], outputs[i][j][0]))  # log, lat

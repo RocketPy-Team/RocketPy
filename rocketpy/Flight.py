@@ -620,7 +620,7 @@ class Flight:
         self.__init_post_process_variables()
         self.__init_solution_monitors()
         self.__init_flight_state()
-    
+
         self.tInitial = self.initialSolution[0]
         self.solution.append(self.initialSolution)
         self.t = self.solution[-1][0]
