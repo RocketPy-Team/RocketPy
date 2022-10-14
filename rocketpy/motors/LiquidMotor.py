@@ -745,6 +745,7 @@ class MassBasedTank(Tank):
             Tank's gas volume as a function of time.
         """
         gasVolume = self.gasMass / self.gas.density
+        gasVolume.setInputs("Time (s)")
         gasVolume.setOutputs("Gas Propellant Volume In Tank (m³)")
         return gasVolume
 
