@@ -2118,8 +2118,9 @@ class Function:
 
 
 class PiecewiseFunction(Function):
-    def __init__(self, source, inputs=["Scalar"], outputs=["Scalar"], interpolation=None, extrapolation=None):
-        """A Function object that can be used to represent a function with
+    def __new__(cls, source, inputs=["Scalar"], outputs=["Scalar"], interpolation=None, extrapolation=None, datapoints=1000):
+        """
+        A Function object that can be used to represent a function with
         multiple domains.
 
         Parameters
@@ -2137,6 +2138,9 @@ class PiecewiseFunction(Function):
             The type of extrapolation to use. Currently only supports
             'constant', 'natural' and 'zero'. If None, extrapolation is set to
             'natural'.
+        datapoints : int
+            The number of points in which the piecewise function will be
+            evaluated to create a base function. The default value is 100.
         """
         # Check if source is a dictionary
         if not isinstance(source, dict):
@@ -2151,388 +2155,26 @@ class PiecewiseFunction(Function):
                 if key1 != key2:
                     if key1[0] < key2[1] and key1[1] > key2[0]:
                         raise ValueError("domains must be disjoint")
-        # Check interpolation
-        if interpolation is None:
-            self.__interpolation__ = "spline"
-        elif interpolation not in ["spline", "linear"]:
-            raise ValueError("interpolation must be 'spline' or 'linear'")
-        # Check extrapolation
-        if extrapolation is None:
-            self.__extrapolation__ = "natural"
-        elif extrapolation not in ["constant", "natural", "zero"]:
-            raise ValueError("extrapolation must be 'constant', 'natural' or 'zero'")
 
-        # Set attributes
-        self.__source__ = source
-        self.__inputs__ = inputs
-        self.__outputs__ = outputs
-        self.__interpolation__ = interpolation
-        self.__extrapolation__ = extrapolation
+        # Crate Function
+        def calcOutput(func, inputs):
+            o = np.zeros(len(inputs))
+            for j in range(len(inputs)):
+                o[j] = func.getValue(inputs[j])
+            return o
 
-        # Creates a dictionary where the domains are the keys and the values are Functions
-        self.sub_functions = {}
-        for k, v in source.items():
-            if isinstance(v, Function):
-                self.sub_functions[k] = v
-            else:
-                self.sub_functions[k] = Function(v, inputs, outputs, interpolation, extrapolation)
+        inputData = []
+        outputData = []
+        for key in sorted(source.keys()):
+            i = np.linspace(key[0], key[1], datapoints)
+            i = i[~np.in1d(i, inputData)]
+            inputData = np.concatenate((inputData, i))
 
-    def __mul__(self, other):
-        """Multiplies a Function object and returns a new Function object
-        which gives the result of the multiplication. Only implemented for 1D
-        domains.
+            f = Function(source[key])
+            outputData = np.concatenate((outputData, calcOutput(f, i)))
 
-        Parameters
-        ----------
-        other : Function, int, float, callable
-            What self will be multiplied by. If other and self are Function
-            objects which are based on interpolation, have the exact same
-            domain (are defined in the same grid points), have the same
-            interpolation method and have the same input name, then a
-            special implementation is used. This implementation is faster,
-            however behavior between grid points is only interpolated,
-            not calculated as it would be.
-
-        Returns
-        -------
-        result : PiecewiseFunction
-            A Piecewise object which gives the result of self(x)*other(x).
-        """
-        if not isinstance(other, PiecewiseFunction):
-            return PiecewiseFunction({d: self.sub_functions[d] * other for d, f in self.sub_functions.items()}, self.__inputs__, self.__outputs__, self.__interpolation__, self.__extrapolation__)
-        else:
-            # Check if the two PiecewiseFunctions have the same domains
-            if self.__source__.keys() != other.__source__.keys():
-                raise ValueError("PiecewiseFunctions must have the same domains")
-            return PiecewiseFunction({d: self.sub_functions[d] * other.sub_functions[d] for d, f in self.sub_functions.items()}, self.__inputs__, self.__outputs__, self.__interpolation__, self.__extrapolation__)
-
-    def __rmul__(self, other):
-        """Multiplies 'other' by a Function object and returns a new Function
-        object which gives the result of the multiplication. Only implemented for
-        1D domains.
-
-        Parameters
-        ----------
-        other : int, float, callable
-            What self will be multiplied by.
-
-        Returns
-        -------
-        result : PiecewiseFunction
-            A Piecewise object which gives the result of other(x)*self(x).
-        """
-        if not isinstance(other, PiecewiseFunction):
-            return PiecewiseFunction({d: other * self.sub_functions[d] for d, f in self.sub_functions.items()}, self.__inputs__, self.__outputs__, self.__interpolation__, self.__extrapolation__)
-        else:
-            # Check if the two PiecewiseFunctions have the same domains
-            if self.__source__.keys() != other.__source__.keys():
-                raise ValueError("PiecewiseFunctions must have the same domains")
-            return PiecewiseFunction({d: other.sub_functions[d] * self.sub_functions[d] for d, f in self.sub_functions.items()}, self.__inputs__, self.__outputs__, self.__interpolation__, self.__extrapolation__)
-    
-    def __add__(self, other):
-        """
-        Adds to the PiecewiseFunction and returns a new PiecewiseFunction
-        which gives the result of the addition. Only implemented for 1D
-        domains.
-
-        Parameters
-        ----------
-        other : Function, int, float, callable
-            What self will be added by. If other and self are Function objects
-        
-        Returns
-        -------
-        result : PiecewiseFunction
-            A PiecewiseFunction object which gives the result of self(x)+other(x).
-        """
-        if not isinstance(other, PiecewiseFunction):
-            return PiecewiseFunction({d: self.sub_functions[d] + other for d, f in self.sub_functions.items()}, self.__inputs__, self.__outputs__, self.__interpolation__, self.__extrapolation__)
-        else:
-            # Check if the two PiecewiseFunctions have the same domains
-            if self.__source__.keys() != other.__source__.keys():
-                raise ValueError("PiecewiseFunctions must have the same domains")
-            return PiecewiseFunction({d: self.sub_functions[d] + other.sub_functions[d] for d, f in self.sub_functions.items()}, self.__inputs__, self.__outputs__, self.__interpolation__, self.__extrapolation__)
-
-    def __radd__(self, other):
-        """
-        Adds 'other' to a Function object and returns a new Function object which
-        gives the result of the addition. Only implemented for 1D domains.
-
-        Parameters
-        ----------
-        other : int, float, callable
-            What self will be added by.
-
-        Returns
-        -------
-        result : PiecewiseFunction
-            A PiecewiseFunction object which gives the result of other(x)+self(x).
-        """
-        return self.__add__(other)
-
-    def __sub__(self, other):
-        """
-        Subtracts "other" from the PiecewiseFunction object and returns a new
-        PiecewiseFunction object which gives the result of the subtraction. Only
-        implemented for 1D domains.
-
-        Parameters
-        ----------
-        other : Function, int, float, callable
-            What self will be subtracted by. If other and self are Function
-
-        Returns
-        -------
-        result : PiecewiseFunction
-            A PiecewiseFunction object which gives the result of self(x)-other(x).
-        """
-        if not isinstance(other, PiecewiseFunction):
-            return PiecewiseFunction({d: self.sub_functions[d] - other for d, f in self.sub_functions.items()}, self.__inputs__, self.__outputs__, self.__interpolation__, self.__extrapolation__)
-        else:
-            # Check if the two PiecewiseFunctions have the same domains
-            if self.__source__.keys() != other.__source__.keys():
-                raise ValueError("PiecewiseFunctions must have the same domains")
-            return PiecewiseFunction({d: self.sub_functions[d] - other.sub_functions[d] for d, f in self.sub_functions.items()}, self.__inputs__, self.__outputs__, self.__interpolation__, self.__extrapolation__)
-
-    def __rsub__(self, other):
-        """
-        Subtracts the PiecewiseFunction object from "other" and returns a new
-        PiecewiseFunction object which gives the result of the subtraction. Only
-        implemented for 1D domains.
-
-        Parameters
-        ----------
-        other : int, float, callable, Function
-            What self will be subtracted from.
-        
-        Returns
-        -------
-        result : PiecewiseFunction
-            A PiecewiseFunction object which gives the result of other(x)-self(x).
-        """
-        if not isinstance(other, PiecewiseFunction):
-            return PiecewiseFunction({d: other - self.sub_functions[d] for d, f in self.sub_functions.items()}, self.__inputs__, self.__outputs__, self.__interpolation__, self.__extrapolation__)
-        else:
-            # Check if the two PiecewiseFunctions have the same domains
-            if self.__source__.keys() != other.__source__.keys():
-                raise ValueError("PiecewiseFunctions must have the same domains")
-            return PiecewiseFunction({d: other.sub_functions[d] - self.sub_functions[d] for d, f in self.sub_functions.items()}, self.__inputs__, self.__outputs__, self.__interpolation__, self.__extrapolation__)
-
-    def __truediv__(self, other):
-        if not isinstance(other, PiecewiseFunction):
-            return PiecewiseFunction({d: self.sub_functions[d] / other for d, f in self.sub_functions.items()}, self.__inputs__, self.__outputs__, self.__interpolation__, self.__extrapolation__)
-        else:
-            # Check if the two PiecewiseFunctions have the same domains
-            if self.__source__.keys() != other.__source__.keys():
-                raise ValueError("PiecewiseFunctions must have the same domains")
-            return PiecewiseFunction({d: self.sub_functions[d] / other.sub_functions[d] for d, f in self.sub_functions.items()}, self.__inputs__, self.__outputs__, self.__interpolation__, self.__extrapolation__)
-
-    def __rtruediv__(self, other):
-        if not isinstance(other, PiecewiseFunction):
-            return PiecewiseFunction({d: other / self.sub_functions[d] for d, f in self.sub_functions.items()}, self.__inputs__, self.__outputs__, self.__interpolation__, self.__extrapolation__)
-        else:
-            # Check if the two PiecewiseFunctions have the same domains
-            if self.__source__.keys() != other.__source__.keys():
-                raise ValueError("PiecewiseFunctions must have the same domains")
-            return PiecewiseFunction({d: other.sub_functions[d] / self.sub_functions[d] for d, f in self.sub_functions.items()}, self.__inputs__, self.__outputs__, self.__interpolation__, self.__extrapolation__)
-
-    def __pow__(self, other):
-        if not isinstance(other, PiecewiseFunction):
-            return PiecewiseFunction({d: self.sub_functions[d] ** other for d, f in self.sub_functions.items()}, self.__inputs__, self.__outputs__, self.__interpolation__, self.__extrapolation__)
-        else:
-            # Check if the two PiecewiseFunctions have the same domains
-            if self.__source__.keys() != other.__source__.keys():
-                raise ValueError("PiecewiseFunctions must have the same domains")
-            return PiecewiseFunction({d: self.sub_functions[d] ** other.sub_functions[d] for d, f in self.sub_functions.items()}, self.__inputs__, self.__outputs__, self.__interpolation__, self.__extrapolation__)
-
-    def __rpow__(self, other):
-        if not isinstance(other, PiecewiseFunction):
-            return PiecewiseFunction({d: other ** self.sub_functions[d] for d, f in self.sub_functions.items()}, self.__inputs__, self.__outputs__, self.__interpolation__, self.__extrapolation__)
-        else:
-            # Check if the two PiecewiseFunctions have the same domains
-            if self.__source__.keys() != other.__source__.keys():
-                raise ValueError("PiecewiseFunctions must have the same domains")
-            return PiecewiseFunction({d: other.sub_functions[d] ** self.sub_functions[d] for d, f in self.sub_functions.items()}, self.__inputs__, self.__outputs__, self.__interpolation__, self.__extrapolation__)
-
-    def integral(self, a, b, numerical=False):
-        """
-        Calculates the integral of the PiecewiseFunction object from a to b.
-
-        Parameters
-        ----------
-        a : float
-            The lower bound of the integral.
-        b : float
-            The upper bound of the integral.
-        numerical : bool, optional
-            If True, the integral will be calculated numerically. If False, the
-            integral will be calculated analytically. Default is False.
-        
-        Returns
-        -------
-        result : float
-            The value of the integral.
-        """
-        result = 0
-        for d, f in self.sub_functions.items():
-            if b <= d[0]:
-                break
-            elif a >= d[1]:
-                continue
-            else:
-                result += f.integral(max(a, d[0]), min(b, d[1]), numerical)
-        return result
-    
-    
-    def getValue(self, x):
-        """
-        Returns the value of the PiecewiseFunction object at x.
-
-        Parameters
-        ----------
-        x : float
-            The value at which the PiecewiseFunction object will be evaluated.
-        
-        Returns
-        -------
-        result : float
-            The value of the PiecewiseFunction object at x.
-        """
-        for d, f in self.sub_functions.items():
-            if x >= d[0] and x <= d[1]:
-                return f.getValue(x)
-        return None
-
-    def __str__(self):
-        return str({d: str(f) for d, f in self.sub_functions.items()})
-    
-    def __repr__(self):
-        return str({d: repr(f) for d, f in self.sub_functions.items()})
-
-    def plot1D(
-        self,
-        lower=None,
-        upper=None,
-        samples=1000,
-        forceData=False,
-        forcePoints=False,
-        returnObject=False,
-    ):
-        """Plot 1-Dimensional Function, from a lower limit to an upper limit,
-        by sampling the Function several times in the interval. The title of
-        the graph is given by the name of the axes, which are taken from
-        the Function`s input and output names.
-
-        Parameters
-        ----------
-        lower : scalar, optional
-            The lower limit of the interval in which the function is to be
-            plotted. The default value for function type Functions is 0. By
-            contrast, if the Function is given by a dataset, the default
-            value is the start of the dataset.
-        upper : scalar, optional
-            The upper limit of the interval in which the function is to be
-            plotted. The default value for function type Functions is 10. By
-            contrast, if the Function is given by a dataset, the default
-            value is the end of the dataset.
-        samples : int, optional
-            The number of samples in which the function will be evaluated for
-            plotting it, which draws lines between each evaluated point.
-            The default value is 1000.
-        forceData : Boolean, optional
-            If Function is given by an interpolated dataset, setting forceData
-            to True will plot all points, as a scatter, in the dataset.
-            Default value is False.
-        forcePoints : Boolean, optional
-            Setting forcePoints to True will plot all points, as a scatter, in
-            which the Function was evaluated in the dataset. Default value is
-            False.
-
-        Returns
-        -------
-        None
-        """
-        # Define a mesh and y values at mesh nodes for plotting
-        fig = plt.figure()
-        ax = fig.axes
-        lower_global = lower
-        upper_global = upper
-        color = None
-        for d, f in self.sub_functions.items():
-            if callable(f.source):
-                # Determine boundaries
-                lower = max(lower, d[0]) if lower_global is not None else d[0]
-                upper = min(upper, d[1]) if upper_global is not None else d[1]
-            else:
-                # Determine boundaries
-                xData = f.source[:, 0]
-                xmin, xmax = xData[0], xData[-1]
-                lower = xmin if lower_global is None else lower
-                upper = xmax if upper_global is None else upper
-                # Plot data points if forceData = True
-                tooLow = True if xmin >= lower else False
-                tooHigh = True if xmax <= upper else False
-                loInd = 0 if tooLow else np.where(xData >= lower)[0][0]
-                upInd = len(xData) - 1 if tooHigh else np.where(xData <= upper)[0][0]
-                points = f.source[loInd : (upInd + 1), :].T.tolist()
-                if forceData:
-                    plt.scatter(points[0], points[1], marker="o")
-            # Calculate function at mesh nodes
-            x = np.linspace(lower, upper, samples)
-            y = f.getValue(x.tolist())
-            # Plots function
-            if forcePoints:
-                if color is None:
-                    plt.scatter(x, y, marker="o")
-                else:
-                    plt.scatter(x, y, marker="o", color=color)
-            if color is None:
-                line = plt.plot(x, y)
-            else:
-                line = plt.plot(x, y, color=color)
-            color = line[0].get_color()
-        # Turn on grid and set title and axis
-        plt.grid(True)
-        plt.title(self.__outputs__[0].title() + " x " + self.__inputs__[0].title())
-        plt.xlabel(self.__inputs__[0].title())
-        plt.ylabel(self.__outputs__[0].title())
-        plt.show()
-        if returnObject:
-            return fig, ax
-
-    def integralFunction(self, lower=None, upper=None, datapoints=100):
-        
-        # Find lower and upper bounds
-        if lower is None:
-            lower = sorted(self.sub_functions.keys())[0][0]
-        elif lower < sorted(self.sub_functions.keys())[0][0]:
-            lower = sorted(self.sub_functions.keys())[0][0]
-        elif lower > sorted(self.sub_functions.keys())[-1][1]:
-            raise ValueError("Lower bound is greater than upper bound of PiecewiseFunction")
-        
-        if upper is None:
-            upper = sorted(self.sub_functions.keys())[-1][1]
-        elif upper > sorted(self.sub_functions.keys())[-1][1]:
-            upper = sorted(self.sub_functions.keys())[-1][1]
-        elif upper < sorted(self.sub_functions.keys())[0][0]:
-            raise ValueError("Upper bound is less than lower bound of PiecewiseFunction")
-        
-        # Create the integral function
-        return super().integralFunction(lower, upper, datapoints)
-
-    def reverse(self, lower=None, upper=None, datapoints=100):
-        if lower is None:
-            lower = sorted(self.sub_functions.keys())[0][0]
-        elif lower < sorted(self.sub_functions.keys())[0][0]:
-            lower = sorted(self.sub_functions.keys())[0][0]
-        elif lower > sorted(self.sub_functions.keys())[-1][1]:
-            raise ValueError("Lower bound is greater than upper bound of PiecewiseFunction")
-        
-        if upper is None:
-            upper = sorted(self.sub_functions.keys())[-1][1]
-        elif upper > sorted(self.sub_functions.keys())[-1][1]:
-            upper = sorted(self.sub_functions.keys())[-1][1]
-        elif upper < sorted(self.sub_functions.keys())[0][0]:
-            raise ValueError("Upper bound is less than lower bound of PiecewiseFunction")
-
-        return super().reverse(lower, upper, datapoints)
+        return Function(np.concatenate(([inputData], [outputData])).T,
+                    inputs=inputs,
+                    outputs=outputs,
+                    interpolation=interpolation,
+                    extrapolation=extrapolation)
