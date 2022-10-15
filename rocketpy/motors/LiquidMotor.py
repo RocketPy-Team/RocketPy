@@ -30,13 +30,21 @@ class LiquidMotor(Motor):
 
         super.__init__()
         self.tanks = []
-        pass
+        self.thrustSource = thrustSource
+        self.burnOut = burnOut
+        self.nozzleRadius = nozzleRadius
+        self.throatRadius = throatRadius
 
     def evaluateMassFlowRate(self):
-        pass
+        total_mfr = 0
+        for tank in self.tanks:
+            total_mfr += tank.netMassFlowRate()
+        return total_mfr
+
 
     def evaluateCenterOfMass(self):
         pass
+
 
     def evaluateInertiaTensor(self):
         pass
