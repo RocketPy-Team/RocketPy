@@ -2115,6 +2115,65 @@ class Function:
                     inputs=self.__outputs__,
                     outputs=self.__inputs__)
 
+    def functionOfAFunction(self, func, lower=None, upper=None, datapoints=100):
+        """
+        Returns a Function object which is the result of inputing a function into a function
+        (i.e. f(g(x))). The domain will become the domain of the input function and the range
+        will become the range of the original function.
+
+        Parameters
+        ----------
+        func : Function
+            The function to be inputed into the function.
+        lower : float
+            Lower limit of the new domain.
+        upper : float
+            Upper limit of the new domain.
+
+        Returns
+        -------
+        result : Function
+            The result of inputing the function into the function.
+        """
+        # Check if the input is a function
+        if not isinstance(func, Function):
+            raise TypeError("Input must be a Function object.")
+
+        # Checks to make lower bound is given
+        # If not it will start at the higher of the two lower bounds
+        if lower is None:
+            lower_limit_found = False
+            if isinstance(self.source, np.ndarray):
+                lower = self.source[0, 0]
+                lower_limit_found = True
+            if isinstance(func.source, np.ndarray):
+                lower = max(lower, func.source[0, 0])
+            if not lower_limit_found:
+                raise ValueError("Lower limit must be given if source is a function.")
+        
+        # Checks to make upper bound is given
+        # If not it will end at the lower of the two upper bounds
+        if upper is None:
+            upper_limit_found = False
+            if isinstance(self.source, np.ndarray):
+                upper = self.source[-1, 0]
+                upper_limit_found = True
+            if isinstance(func.source, np.ndarray):
+                upper = min(upper, func.source[-1, 0])
+            if not upper_limit_found:
+                raise ValueError("Upper limit must be given if source is a function.")
+            
+        # Create a new Function object
+        xData = np.linspace(lower, upper, datapoints)
+        yData = np.zeros(datapoints)
+        for i in range(datapoints):
+            yData[i] = self.getValue(func.getValue(xData[i]))
+        return Function(np.concatenate(([xData], [yData])).T,
+                    inputs=func.__inputs__,
+                    outputs=self.__outputs__, 
+                    interpolation=self.__interpolation__, 
+                    extrapolation=self.__extrapolation__)
+
 
 
 class PiecewiseFunction(Function):

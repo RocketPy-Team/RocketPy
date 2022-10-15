@@ -90,7 +90,22 @@ class Tank(ABC):
         """
         pass
 
-    @abstractmethod
+    def uilageHeight(self):
+        """
+        Returns the height of the uilage as a function of time.
+
+        Parameters
+        ----------
+        time : float
+            Time in seconds.
+
+        Returns
+        -------
+        Function
+            Height of the uilage as a function of time.
+        """
+        pass
+    
     def centerOfMass(self):
         """Returns the center of mass of the tank's fluids as a function of
         time.
@@ -105,7 +120,23 @@ class Tank(ABC):
         Function
             Center of mass of the tank's fluids as a function of time.
         """
-        pass
+        A = self.tank_geometry.integralFunction()
+
+        insideIntegrandL = Function(lambda y: self.tank_geometry.getValue(y) * y)
+        funcL = insideIntegrandL.integralFunction()
+        funcL = funcL / A
+        comLiquid = funcL.functionOfAFunction(self.uilageHeight())
+
+        insideIntegrandG = Function(lambda x: (self.tank_geometry.integral(0, self.height) - self.tank_geometry.integralFunction().getValue(x)) * x)
+        funcG = insideIntegrandG.integralFunction()
+        funcG = funcG / A
+        comGas = funcG.functionOfAFunction(self.uilageHeight())
+
+        com = (comLiquid * self.liquidMass() + comGas * self.gasMass()) / self.mass()
+        com.setInputs("Time")
+        com.setOutputs("Height")
+        return com
+
 
     @property
     @abstractmethod
@@ -142,54 +173,65 @@ class MassFlowRateBasedTank(Tank):
         gas,
     ):
         super().__init__(name, tank_geometry, gas, liquid)
-        self.initial_liquid_mass = Function(initial_liquid_mass)
-        self.initial_gas_mass = Function(initial_gas_mass)
-        self.liquid_mass_flow_rate_in = Function(liquid_mass_flow_rate_in)
-        self.gas_mass_flow_rate_in = Function(gas_mass_flow_rate_in)
-        self.liquid_mass_flow_rate_out = Function(liquid_mass_flow_rate_out)
-        self.gas_mass_flow_rate_out = Function(gas_mass_flow_rate_out)
+        self.initial_liquid_mass = Function(initial_liquid_mass, inputs="Time", outputs="Mass")
+        self.initial_gas_mass = Function(initial_gas_mass, inputs="Time", outputs="Mass")
+        self.liquid_mass_flow_rate_in = Function(liquid_mass_flow_rate_in, inputs="Time", outputs="Mass Flow Rate")
+        self.gas_mass_flow_rate_in = Function(gas_mass_flow_rate_in, inputs="Time", outputs="Mass Flow Rate")
+        self.liquid_mass_flow_rate_out = Function(liquid_mass_flow_rate_out, inputs="Time", outputs="Mass Flow Rate")
+        self.gas_mass_flow_rate_out = Function(gas_mass_flow_rate_out, inputs="Time", outputs="Mass Flow Rate")
 
     def mass(self):
-        return (
-            self.initial_liquid_mass
-            + self.liquid_mass_flow_rate_in
-            - self.liquid_mass_flow_rate_out
-            + self.initial_gas_mass
-            + self.gas_mass_flow_rate_in
-            - self.gas_mass_flow_rate_out
-        )
+        m = self.liquidMass() + self.gasMass()
+        m.setInputs("Time")
+        m.setOutputs("Mass")
+        return m
     
     def netMassFlowRate(self):
-        return (
+        mfr = (
             self.liquid_mass_flow_rate_in
             - self.liquid_mass_flow_rate_out
             + self.gas_mass_flow_rate_in
             - self.gas_mass_flow_rate_out
         )
+        mfr.setInputs("Time")
+        mfr.setOutputs("Mass Flow Rate")
+        return mfr
 
-    def centerOfMass(self):
-        liquid_mass = (
-            self.initial_liquid_mass
-            + self.liquid_mass_flow_rate_in
-            - self.liquid_mass_flow_rate_out
-        )
+    def liquidMass(self):
+        lm = self.initial_liquid_mass + self.liquid_mass_flow_rate_in - self.liquid_mass_flow_rate_out
+        lm.setInputs("Time")
+        lm.setOutputs("Mass")
+        return lm
 
-        gas_mass = (
-            self.initial_gas_mass
-            + self.gas_mass_flow_rate_in
-            - self.gas_mass_flow_rate_out
-        )
-        
-        liquid_volume = liquid_mass / self.liquid.density
-        gas_volume = gas_mass / self.gas.density
+    def gasMass(self):
+        gm = self.initial_gas_mass + self.gas_mass_flow_rate_in - self.gas_mass_flow_rate_out
+        gm.setInputs("Time")
+        gm.setOutputs("Mass")
+        return gm
 
-        # How to get height of liquid and gas from volume of gas
+    def liquidVolume(self):
+        lV = self.liquidMass() / self.liquid.density
+        lV.setInputs("Time")
+        lV.setOutputs("Volume")
+        return lV
 
+    def gasVolume(self):
+        gV = self.gasMass() / self.gas.density
+        gV.setInputs("Time")
+        gV.setOutputs("Volume")
+        return gV
 
+    def tankVolume(self):
+        vol = (np.pi * self.tank_geometry.radius ** 2).integralFunction()
+        vol.setInputs("Height")
+        vol.setOutputs("Volume")
+        return vol
 
-    def inertiaTensor(self):
-        # How to calculate intertia tensor
-        pass
+    def uilageHeight(self):
+        uH = self.tankVolume().functionOfAFunction(self.liquidVolume())
+        uH.setInputs("Time")
+        uH.setOutputs("Height")
+        return uH
 
 
 # @phmbressan
