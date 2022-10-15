@@ -2033,6 +2033,31 @@ class Function:
         # z = x + h*1j
         # return self(z).imag/h
 
+    def derivativeFunction(self):
+        """Returns a Function object which gives the derivative of the
+        Function object.
+
+        Returns
+        -------
+        result : Function
+            A Function object which gives the derivative of self.
+        """
+        # Check if Function object source is array
+        if isinstance(self.source, np.ndarray):
+            # Operate on grid values
+            Ys = np.diff(self.source[:, 1]) / np.diff(self.source[:, 0])
+            Xs = self.source[:-1, 0] + np.diff(self.source[:, 0]) / 2
+            source = np.concatenate(([Xs], [Ys])).transpose()
+            # Retrieve inputs, outputs and interpolation
+            inputs = self.__inputs__[:]
+            outputs = "d(" + self.__outputs__[0] + ")/d(" + inputs[0] + ")"
+            outputs = "(" + outputs + ")"
+            interpolation = "linear"
+            # Create new Function object
+            return Function(source, inputs, outputs, interpolation)
+        else:
+            return Function(lambda x: self.differentiate(x))
+
     def integralFunction(self, lower=None, upper=None, datapoints=100):
         """Returns a Function object representing the integral of the
         PiecewiseFunction object.

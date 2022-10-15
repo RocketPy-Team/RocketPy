@@ -44,15 +44,26 @@ class LiquidMotor(Motor):
 
 class Tank(ABC):
     def __init__(self, name, tank_geometry, gas, liquid=0):
-        self.name = name
-        if isinstance(tank_geometry, PiecewiseFunction):
-            self.tank_geometry = tank_geometry
-        else:
+        if isinstance(tank_geometry, dict):
             self.tank_geometry = PiecewiseFunction(tank_geometry)
+        else:
+            self.tank_geometry = Function(tank_geometry)
         self.tank_geometry.setInputs("y")
         self.setoutputs("radius")
+
+        self.tank_area = self.tank_geometry ** 2 * np.pi
+        self.tank_area.setInputs("y")
+        self.tank_area.setOutputs("area")
+
+        self.tank_vol = self.tank_area.integralFunction()
+        self.tank_vol.setInputs("y")
+        self.tank_vol.setOutputs("volume")
+
+        self.height = sorted(self.tank_geometry.keys())[-1][1]
+
         self.gas = gas
         self.liquid = liquid
+        self.uilageHeight = self.uilageHeight()
 
 
     @abstractmethod
@@ -90,7 +101,7 @@ class Tank(ABC):
         """
         pass
 
-    def uilageHeight(self):
+    def evaluateUilageHeight(self):
         """
         Returns the height of the uilage as a function of time.
 
@@ -139,7 +150,6 @@ class Tank(ABC):
 
 
     @property
-    @abstractmethod
     def inertiaTensor(self):
         """Returns the inertia tensor of the tank's fluids as a function of
         time.
@@ -154,7 +164,23 @@ class Tank(ABC):
         Function
             Inertia tensor of the tank's fluids as a function of time.
         """
-        pass
+        lk = np.pi * self.liquid.density
+        insideIntegral = (self.tank_geometry ** 2) * (self.height * self.centerOfMass()) ** 2
+        integral = lk * insideIntegral.integralFunction()
+        integral.setInputs("time")
+        integral.setOutputs("Inertia")
+        Ixx = Iyy = integral
+        
+        lk = lk / 2
+        insideIntegral = self.tank_geometry ** 4
+        integral = lk * insideIntegral.integralFunction()
+        integral.setInputs("time")
+        integral.setOutputs("Inertia")
+        Izz = integral
+
+        
+
+
 
 
 # @MrGribel
@@ -227,7 +253,7 @@ class MassFlowRateBasedTank(Tank):
         vol.setOutputs("Volume")
         return vol
 
-    def uilageHeight(self):
+    def evaluateUilageHeight(self):
         uH = self.tankVolume().functionOfAFunction(self.liquidVolume())
         uH.setInputs("Time")
         uH.setOutputs("Height")
@@ -245,7 +271,26 @@ class UllageBasedTank(Tank):
         ullage,
     ):
         super().__init__(name, tank_geometry, gas, liquid)
-        pass
+        self.ullageHeight = Function(ullage, inputs="Time", outputs="Height")
+
+    def mass(self):
+        lm = self.tank_vol.functionOfAFunction(self.ullage) * self.liquid.density
+        gm = self.tank_vol.functionOfAFunction(self.ullage) * self.gas.density
+        m = lm + gm
+        m.setInputs("Time")
+        m.setOutputs("Mass")
+        return m
+
+    def netMassFlowRate(self):
+        m = self.mass()
+        mfr = m.derivativeFunction()
+        mfr.setInputs("Time")
+        mfr.setOutputs("Mass Flow Rate")
+        return mfr
+
+    def evaluateUilageHeight(self):
+        return self.ullageHeight
+
 
 
 # @ompro07
@@ -260,5 +305,23 @@ class MassBasedTank(Tank):
         gas,
     ):
         super().__init__(name, tank_geometry, gas, liquid)
-        pass
+        self.liquid_mass = Function(liquid_mass, inputs="Time", outputs="Mass")
+        self.gas_mass = Function(gas_mass, inputs="Time", outputs="Mass")
+
+    def mass(self):
+        m = self.liquid_mass + self.gas_mass
+        m.setInputs("Time")
+        m.setOutputs("Mass")
+        return m
+    
+    def netMassFlowRate(self):
+        m = self.mass()
+        mfr = m.derivativeFunction()
+        mfr.setInputs("Time")
+        mfr.setOutputs("Mass Flow Rate")
+        return mfr
+
+    def evaluateUilageHeight(self):
+        return super().evaluateUilageHeight()
+        
 
