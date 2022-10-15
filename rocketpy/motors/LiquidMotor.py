@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__author__ = "Giovani Hidalgo Ceotto, Oscar Mauricio Prada Ramirez, João Lemes Gribel Soares, Mateus Stano and Pedro Henrique Marinho Bressan"
+__author__ = "Giovani Hidalgo Ceotto, Oscar Mauricio Prada Ramirez, João Lemes Gribel Soares, Mateus Stano, Pedro Henrique Marinho Bressan, Patrick Bales, Lakshman Peri, Gautam Yarramreddy, Curtis Hu, and William Bradford"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
@@ -14,6 +14,9 @@ from rocketpy.Function import Function, PiecewiseFunction
 from rocketpy.motors import Motor
 
 # @Stano
+# @PBales1
+# @lperi03
+# @gautamsaiy
 class LiquidMotor(Motor):
     def __init__(
         self,
@@ -41,7 +44,7 @@ class LiquidMotor(Motor):
     def addTank(self, tank, position):
         self.tanks.append({"tank": tank, "position": position})
 
-
+# @gautamsaiy
 class Tank(ABC):
     def __init__(self, name, tank_geometry, gas, liquid=0):
         if isinstance(tank_geometry, dict):
@@ -184,6 +187,7 @@ class Tank(ABC):
 
 
 # @MrGribel
+# @gautamsaiy
 class MassFlowRateBasedTank(Tank):
     def __init__(
         self,
@@ -261,6 +265,8 @@ class MassFlowRateBasedTank(Tank):
 
 
 # @phmbressan
+# @lperi03
+# @curtisjhu
 class UllageBasedTank(Tank):
     def __init__(
         self,
@@ -294,6 +300,7 @@ class UllageBasedTank(Tank):
 
 
 # @ompro07
+# @PBales1
 class MassBasedTank(Tank):
     def __init__(
         self,
