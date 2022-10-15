@@ -22,8 +22,6 @@ class LiquidMotor(Motor):
         self,
         thrustSource,
         burnOut,
-        nozzleRadius,
-        throatRadius,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
     ):
@@ -32,8 +30,6 @@ class LiquidMotor(Motor):
         self.tanks = []
         self.thrustSource = thrustSource
         self.burnOut = burnOut
-        self.nozzleRadius = nozzleRadius
-        self.throatRadius = throatRadius
 
     def evaluateMassFlowRate(self):
         total_mfr = 0
@@ -43,7 +39,10 @@ class LiquidMotor(Motor):
 
 
     def evaluateCenterOfMass(self):
-        pass
+        try:
+            print('insert function here')
+        except NameError:
+            print("Chamber not added")
 
 
     def evaluateInertiaTensor(self):
@@ -51,6 +50,11 @@ class LiquidMotor(Motor):
 
     def addTank(self, tank, position):
         self.tanks.append({"tank": tank, "position": position})
+
+    def addChamber(self, nozzleHeight, nozzleRadius, throatHeight, throatRadius):
+        self.chamber = ({"nozzle": {"height": nozzleHeight, "radius": nozzleRadius}, \
+            "throat": {"height": throatHeight, "radius": throatRadius}})
+
 
 # @gautamsaiy
 class Tank(ABC):
