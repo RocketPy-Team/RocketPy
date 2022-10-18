@@ -662,12 +662,139 @@ class MassBasedTank(Tank):
         name,
         diameter,
         height,
-        bottomCap,
-        upperCap,
+        gas,
+        liquid,
         liquid_mass,
         gas_mass,
-        liquid,
-        gas,
+        bottomCap="flat",
+        upperCap="flat",
     ):
-        super().__init__(name, diameter, height, bottomCap, upperCap, gas, liquid)
-        pass
+        """
+        A motor tank defined based on the masses of its liquid and gaseous
+        portions.
+
+        Parameters
+        ----------
+        name : str
+            Name of the tank.
+        diameter : float
+            Diameter of the tank in meters.
+        height : float
+            Height of the tank in meters.
+        gas : Gas
+            motor.Gas object.
+        liquid : Liquid
+            motor.Liquid object.
+        liquid_mass : str, float, array_like or callable
+            Mass of the liquid portion of the tank as a function of time. Units in kg.
+            If string is given, it should be the filepath of a csv file
+            containing the data. For more information, see Function.
+        gas_mass : str, float, array_like or callable
+            Mass of the gaseous portion of the tank as a function of time. Units in kg.
+            If string is given, it should be the filepath of a csv file
+            containing the data. For more information, see Function.
+        bottomCap : str
+            Type of bottom cap. Options are "flat" and "spherical".
+            Default is "flat".
+        upperCap : str
+            Type of upper cap. Options are "flat" and "spherical".
+            Default is "flat".
+        """
+        super().__init__(name, diameter, height, gas, liquid, bottomCap, upperCap)
+        self.liquid_mass = liquid_mass
+        self.gas_mass = gas_mass
+
+    @functools.cached_property
+    def gasMass(self):
+        """
+        Returns the total gas mass inside the tank.
+
+        Returns
+        -------
+        Function
+            Tank's gas mass as a function of time.
+        """
+        gasMass = Function(
+            self.gas_mass, "Time (s)", "Gas Propellant Mass In Tank (kg)"
+        )
+        return gasMass
+
+    @functools.cached_property
+    def liquidMass(self):
+        """
+        Returns the total liquid mass inside the tank.
+
+        Returns
+        -------
+        Function
+            Tank's liquid mass as a function of time.
+        """
+        liquidMass = Function(
+            self.liquid_mass, "Time (s)", "Liquid Propellant Mass In Tank (kg)"
+        )
+        return liquidMass
+
+    @functools.cached_property
+    def gasVolume(self):
+        """
+        Returns the volume of gas inside the tank.
+
+        Returns
+        -------
+        Function
+            Tank's gas volume as a function of time.
+        """
+        gasVolume = self.gasMass / self.gas.density
+        gasVolume.setInputs("Time (s)")
+        gasVolume.setOutputs("Gas Propellant Volume In Tank (m³)")
+        return gasVolume
+
+    @functools.cached_property
+    def liquidVolume(self):
+        """Returns the volume of liquid inside the tank as a function
+        of time.
+
+        Returns
+        -------
+        Function
+            Tank's liquid volume as a function of time.
+        """
+        liquidVolume = self.liquidMass / self.liquid.density
+        liquidVolume.setInputs("Time (s)")
+        liquidVolume.setOutputs("Liquid Propellant Volume In Tank (m³)")
+        return liquidVolume
+
+    @functools.cached_property
+    def mass(self):
+        """Returns the total mass of liquid and gases inside the tank as a
+        function of time.
+
+        Returns
+        -------
+        Function
+            Mass of the tank as a function of time. Units in kg.
+        """
+        mass = self.liquidMass + self.gasMass
+        mass.setInputs("Time (s)")
+        mass.setOutputs("Total Propellant Mass In Tank (kg)")
+        return mass
+
+    @functools.cached_property
+    def netMassFlowRate(self):
+        """Returns the net mass flow rate of the tank as a function of time.
+        Net mass flow rate is the mass flow rate exiting the tank minus the
+        mass flow rate entering the tank, including liquids and gases.
+
+        Returns
+        -------
+        Function
+            Net mass flow rate of the tank as a function of time.
+        """
+        netMassFlowRate = Function(
+            lambda t: self.mass.differentiate(t, dx=1e-6),
+            "Time (s)",
+            "Mass Flow Rate (kg/s)",
+            extrapolation="zero",
+        )
+        netMassFlowRate.setOutputs("Net Tank Mass Flow Rate (kg/s)")
+        return netMassFlowRate
