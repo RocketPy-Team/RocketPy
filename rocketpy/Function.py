@@ -9,7 +9,7 @@ from inspect import signature
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import integrate, linalg
+from scipy import integrate, linalg, optimize
 import os
 
 
@@ -1878,7 +1878,7 @@ class Function:
                 # Create new Function object
                 return Function(source, inputs, outputs, interpolation)
             else:
-                return Function(lambda x: (self.getValue(x) * other(x)))
+                return Function(lambda x: (self.getValue(x) - other(x)))
         # If other is Float except...
         except:
             if isinstance(other, (float, int, complex)):
@@ -2139,6 +2139,22 @@ class Function:
         return Function(np.concatenate(([yData], [xData])).transpose(),
                     inputs=self.__outputs__,
                     outputs=self.__inputs__)
+
+    def findOptimalInput(self, val):
+        """
+        Find the optimal input for a given output.
+
+        Parameters
+        ----------
+        val : float
+            The value of the output.
+
+        Returns
+        -------
+        result : float
+            The value of the input which gives the output closest to val.
+        """
+        return optimize.fmin(lambda x: np.abs(self.getValue(x) - val), 0, ftol=1e-6)[0]
 
     def functionOfAFunction(self, func, lower=None, upper=None, datapoints=100):
         """

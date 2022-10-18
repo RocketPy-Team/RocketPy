@@ -59,12 +59,14 @@ class LiquidMotor(Motor):
 # @gautamsaiy
 class Tank(ABC):
     def __init__(self, name, tank_geometry, gas, liquid=0):
+        self.height = sorted(tank_geometry.keys())[-1][1]
+
         if isinstance(tank_geometry, dict):
             self.tank_geometry = PiecewiseFunction(tank_geometry)
         else:
             self.tank_geometry = Function(tank_geometry)
         self.tank_geometry.setInputs("y")
-        self.setoutputs("radius")
+        self.tank_geometry.setOutputs("radius")
 
         self.tank_area = self.tank_geometry ** 2 * np.pi
         self.tank_area.setInputs("y")
@@ -74,11 +76,8 @@ class Tank(ABC):
         self.tank_vol.setInputs("y")
         self.tank_vol.setOutputs("volume")
 
-        self.height = sorted(self.tank_geometry.keys())[-1][1]
-
         self.gas = gas
         self.liquid = liquid
-        self.uilageHeight = self.uilageHeight()
 
 
     @abstractmethod
@@ -223,7 +222,10 @@ class MassFlowRateBasedTank(Tank):
         self.gas_mass_flow_rate_out = Function(gas_mass_flow_rate_out, inputs="Time", outputs="Mass Flow Rate")
 
     def mass(self):
-        m = self.liquidMass() + self.gasMass()
+        nmfr = self.netMassFlowRate()
+        m = Function(lambda t: self.initial_liquid_mass.getValue(t) 
+            + self.initial_gas_mass.getValue(t) 
+            + nmfr.integral(0, t))
         m.setInputs("Time")
         m.setOutputs("Mass")
         return m
@@ -236,41 +238,16 @@ class MassFlowRateBasedTank(Tank):
             - self.gas_mass_flow_rate_out
         )
         mfr.setInputs("Time")
-        mfr.setOutputs("Mass Flow Rate")
+        mfr.setOutputs("Net Mass Flow Rate")
         return mfr
 
-    def liquidMass(self):
-        lm = self.initial_liquid_mass + self.liquid_mass_flow_rate_in - self.liquid_mass_flow_rate_out
-        lm.setInputs("Time")
-        lm.setOutputs("Mass")
-        return lm
-
-    def gasMass(self):
-        gm = self.initial_gas_mass + self.gas_mass_flow_rate_in - self.gas_mass_flow_rate_out
-        gm.setInputs("Time")
-        gm.setOutputs("Mass")
-        return gm
-
-    def liquidVolume(self):
-        lV = self.liquidMass() / self.liquid.density
-        lV.setInputs("Time")
-        lV.setOutputs("Volume")
-        return lV
-
-    def gasVolume(self):
-        gV = self.gasMass() / self.gas.density
-        gV.setInputs("Time")
-        gV.setOutputs("Volume")
-        return gV
-
-    def tankVolume(self):
-        vol = (np.pi * self.tank_geometry.radius ** 2).integralFunction()
-        vol.setInputs("Height")
-        vol.setOutputs("Volume")
-        return vol
-
     def evaluateUilageHeight(self):
-        uH = self.tankVolume().functionOfAFunction(self.liquidVolume())
+        liquid_vol = Function(lambda t: (self.initial_liquid_mass.getValue(t)
+                + self.liquid_mass_flow_rate_in.integral(0, t)
+                - self.liquid_mass_flow_rate_out.integral(0, t))
+                / self.liquid.density)
+        # uH = self.tank_vol.reverse().functionOfAFunction(liquid_vol)
+        uH = Function(lambda t: self.tank_vol.findOptimalInput(liquid_vol.getValue(t)))
         uH.setInputs("Time")
         uH.setOutputs("Height")
         return uH
