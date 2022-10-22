@@ -2,6 +2,7 @@ from rocketpy.motors.LiquidMotor import Tank, LiquidMotor, MassBasedTank, Ullage
 from rocketpy.motors.Fluid import Fluid
 from rocketpy.Function import Function
 from math import isclose
+from scipy.optimize import fmin
 import numpy as np
 
 
@@ -33,8 +34,7 @@ def test_ullage_based_motor():
 def test_mfr_tank_basic1():
     def test(t, a):
         for i in np.arange(0, 10, .2):
-            print(t.getValue(i), a(i))
-            # assert isclose(t.getValue(i), a(i))
+            assert isclose(t.getValue(i), a(i))
     
     def test_nmfr():
         nmfr = lambda x: liquid_mass_flow_rate_in + gas_mass_flow_rate_in - liquid_mass_flow_rate_out - gas_mass_flow_rate_out
@@ -46,11 +46,14 @@ def test_mfr_tank_basic1():
         lm = t.mass()
         test(lm, m)
 
-    def test_uh():
-        actual_liquid_vol = lambda x: ((initial_liquid_mass + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x) / lox.density) / np.pi * list(tank_radius_function.values())[0] ** 2
-        test(t.evaluateUilageHeight(), actual_liquid_vol)
+    def test_liquid_vol():
+        alv = lambda x: (initial_liquid_mass + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x) / lox.density
+        auh = lambda x: alv(x) / (np.pi * 1 ** 2)
+        tlv = Function(lambda x: (t.initial_liquid_mass(x) + (t.liquid_mass_flow_rate_in - t.liquid_mass_flow_rate_out).integral(0, x)) / t.liquid.density)
+        tuh = Function(lambda x: fmin(lambda y: abs(tlv(x) - t.tank_vol(y)), 0)[0])
+        test(tuh, auh)
 
-    
+
     tank_radius_function = {(0, 5): 1}
     lox = Fluid(name = "LOx", density = 1141, quality = 1.0) #Placeholder quality value
     n2 = Fluid(name = "Nitrogen Gas", density = 51.75, quality = 1.0) #Placeholder quality value; density value may be estimate
@@ -66,6 +69,6 @@ def test_mfr_tank_basic1():
             gas_mass_flow_rate_in, liquid_mass_flow_rate_out, 
             gas_mass_flow_rate_out, lox, n2)
 
-    test_nmfr()
-    test_mass()
-    test_uh()
+    # test_nmfr()
+    # test_mass()
+    test_liquid_vol()
