@@ -731,15 +731,14 @@ class Dispersion:
                         getattr(self.environment, parameter_key),
                         parameter_value,
                     )
-                except Exception as E:
-                    print("Error:")
-                    print(
-                        "Please check if the parameter was inputted correctly in dispersion_dictionary."
-                        + " Dictionary values must be either tuple or lists."
-                        + " If single value, the corresponding Class must "
-                        + " be inputted in Dispersion.run_dispersion method.\n"
+                except:
+                    raise AttributeError(
+                        f"Please check if the parameter {parameter_key} was inputted"
+                        "correctly in dispersion_dictionary."
+                        " Dictionary values must be either tuple or lists."
+                        " If single value, the corresponding Class must"
+                        " be inputted in the run_dispersion method."
                     )
-                    print(traceback.format_exc())
 
             ## Third corrections - SolidMotor
             elif parameter_key in self.solid_motor_inputs.keys():
@@ -748,15 +747,14 @@ class Dispersion:
                         getattr(self.motor, parameter_key),
                         parameter_value,
                     )
-                except Exception as E:
-                    print("Error:")
-                    print(
-                        "Please check if the parameter was inputted correctly in dispersion_dictionary."
-                        + " Dictionary values must be either tuple or lists."
-                        + " If single value, the corresponding Class must "
-                        + "must be inputted in Dispersion.run_dispersion method.\n"
+                except:
+                    raise AttributeError(
+                        f"Please check if the parameter {parameter_key} was inputted"
+                        "correctly in dispersion_dictionary."
+                        " Dictionary values must be either tuple or lists."
+                        " If single value, the corresponding Class must"
+                        " be inputted in the run_dispersion method."
                     )
-                    print(traceback.format_exc())
 
             # Fourth correction - Rocket
             elif parameter_key in self.rocket_inputs.keys():
@@ -765,15 +763,14 @@ class Dispersion:
                         getattr(self.rocket, parameter_key),
                         parameter_value,
                     )
-                except Exception as E:
-                    print("Error:")
-                    print(
-                        "Please check if the parameter was inputted correctly in dispersion_dictionary."
-                        + " Dictionary values must be either tuple or lists."
-                        + " If single value, the corresponding Class must "
-                        + "must be inputted in Dispersion.run_dispersion method.\n"
+                except:
+                    raise AttributeError(
+                        f"Please check if the parameter {parameter_key} was inputted"
+                        "correctly in dispersion_dictionary."
+                        " Dictionary values must be either tuple or lists."
+                        " If single value, the corresponding Class must"
+                        " be inputted in the run_dispersion method."
                     )
-                    print(traceback.format_exc())
 
             # Fifth correction - Flight
             elif parameter_key in self.flight_inputs.keys():
@@ -782,13 +779,13 @@ class Dispersion:
                         getattr(self.flight, parameter_key),
                         parameter_value,
                     )
-                except Exception as E:
-                    print("Error:")
-                    print(
-                        "Please check if the parameter was inputted correctly in dispersion_dictionary."
-                        + " Dictionary values must be either tuple or lists."
-                        + " If single value, the corresponding Class must "
-                        + "must be inputted in Dispersion.run_dispersion method.\n"
+                except:
+                    raise AttributeError(
+                        f"Please check if the parameter {parameter_key} was inputted"
+                        "correctly in dispersion_dictionary."
+                        " Dictionary values must be either tuple or lists."
+                        " If single value, the corresponding Class must"
+                        " be inputted in the run_dispersion method."
                     )
                     print(traceback.format_exc())
 
