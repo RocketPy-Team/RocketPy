@@ -975,9 +975,21 @@ class Dispersion:
 
         return None
 
-    def __export_flight_data(self, flight_setting, dispersion_error_file):
+    def __export_flight_data_error(setting, flight_setting, dispersion_error_file):
+        """Saves flight error in a .txt
 
-        """Saves flight error in a .txt"""
+        Parameters
+        ----------
+        setting : _type_
+            _description_
+        dispersion_error_file : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
 
         dispersion_error_file.write(str(flight_setting) + "\n")
 
