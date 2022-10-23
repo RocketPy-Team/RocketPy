@@ -596,7 +596,7 @@ class Dispersion:
                     # class was not inputted
                     # checks if missing parameter is required
                     if self.solid_motor_inputs[missing_input] == "required":
-                        warnings.warn(f'Missing "{missing_input}" in d')
+                        warnings.warn(f'Missing "{missing_input}" in dictionary')
                     else:  # if not uses default value
                         dictionary[missing_input] = [
                             self.solid_motor_inputs[missing_input]
@@ -642,8 +642,12 @@ class Dispersion:
                     # class was not inputted
                     # checks if missing parameter is required
                     if self.environment_inputs[missing_input] == "required":
-                        warnings.warn("Missing {} in dictionary".format(missing_input))
-                    else:  # if not, use default value
+                        warnings.warn(
+                            "Missing {} in dictionary, which is required to run a simulation".format(
+                                missing_input
+                            )
+                        )
+                    else:  # if not required, use default value
                         dictionary[missing_input] = [
                             self.environment_inputs[missing_input]
                         ]
@@ -727,15 +731,20 @@ class Dispersion:
             ## First solve the parachute values
             if "parachute" in parameter_key:
                 _, parachute_name, parameter = parameter_key.split("_")
-                dictionary[parameter_key] = (
-                    getattr(
-                        self.rocket.parachutes[
-                            self.parachute_names.index(parachute_name)
-                        ],
-                        parameter,
-                    ),
-                    parameter_value,
-                )
+                # try:
+                if isinstance(parameter_value, types.FunctionType):
+                    # Deal with trigger functions
+                    dictionary[parameter_key] = parameter_value
+                else:
+                    dictionary[parameter_key] = (
+                        getattr(
+                            self.rocket.parachutes[
+                                self.parachute_names.index(parachute_name)
+                            ],
+                            parameter,
+                        ),
+                        parameter_value,
+                    )
 
             ## Second corrections - Environment
             if parameter_key in self.environment_inputs.keys():
@@ -886,6 +895,9 @@ class Dispersion:
                     flight_setting[parameter_key] = distribution_func(*parameter_value)
                 elif isinstance(parameter_value, Function):
                     flight_setting[parameter_key] = distribution_func(*parameter_value)
+                elif isinstance(parameter_value, types.FunctionType):
+                    # Deal with parachute triggers functions
+                    flight_setting[parameter_key] = parameter_value
                 else:
                     # shuffles list and gets first item
                     shuffle(parameter_value)
@@ -1227,7 +1239,7 @@ class Dispersion:
             except Exception as E:
                 print(E)
                 print(traceback.format_exc())
-                self.__export_flight_data(setting, dispersion_error_file)
+                self.__export_flight_data_error(setting, dispersion_error_file)
 
             # Register time
             out.update(
