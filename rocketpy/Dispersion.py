@@ -134,6 +134,47 @@ class Dispersion:
             "powerOnDrag": "required",
         }
 
+        self.nose_inputs = {
+            "nose_name_length": "required",
+            "nose_name_kind": "Von Karman",
+            "nose_name_distanceToCM": "required",
+            "nose_name_name": "Nose Cone",
+        }
+
+        self.fins_inputs = {
+            "finSet_name_numberOfFins": "required",
+            "finSet_name_rootChord": "required",
+            "finSet_name_tipChord": "required",
+            "finSet_name_span": "required",
+            "finSet_name_distanceToCM": "required",
+            "finSet_name_cantAngle": 0,
+            "finSet_name_radius": None,
+            "finSet_name_airfoil": None,
+        }
+
+        self.tail_inputs = {
+            "tail_name_topRadius": "required",
+            "tail_name_bottomRadius": "required",
+            "tail_name_length": "required",
+            "tail_name_distanceToCM": "required",
+        }
+
+        self.rail_buttons_inputs = {
+            "positionFirstRailButton": "required",
+            "positionSecondRailButton": "required",
+            "railButtonAngularPosition": 45,
+        }
+
+        self.parachute_inputs = {
+            "parachute_name_CdS": "required",
+            "parachute_name_trigger": "required",
+            "parachute_name_samplingRate": 100,
+            "parachute_name_lag": 0,
+            "parachute_name_noise": (0, 0, 0),
+            # "parachute_name_noiseStd": 0,
+            # "parachute_name_noiseCorr": 0,
+        }
+
         self.flight_inputs = {
             "inclination": 80,
             "heading": 90,
