@@ -456,6 +456,72 @@ class Dispersion:
                         ]
 
         return dictionary
+
+    def __process_aerodynamic_surfaces_from_dict(self, dictionary):
+        """Still not implemented.
+        Must check if all the relevant inputs for the AerodynamicSurfaces class
+        are present in the dispersion dictionary, input the missing ones and
+        return the modified dictionary.
+        Something similar to the __process_parachute_from_dict method can be
+        used here, since aerodynamic surfaces are optional for the simulation.
+
+        Parameters
+        ----------
+        dictionary : _type_
+            _description_
+        """
+
+        # Check the number of fin sets, noses, and tails
+        self.nose_names = []
+        self.finSet_names = []
+        self.tail_names = []
+        # Get names from the input dictionary
+        for var in dictionary.keys():
+            if "nose" in var:
+                self.nose_names.append(var).split("_")[1]
+            elif "finSet" in var:
+                self.finSet_names.append(var).split("_")[1]
+            elif "tail" in var:
+                self.tail_names.append(var).split("_")[1]
+        # Get names from the rocket object
+        for surface in self.rocket.aerodynamicSurfaces:
+            if isinstance(surface, NoseCone):
+                self.nose_names.append(surface.name)
+            elif isinstance(surface, (TrapezoidalFins, EllipticalFins)):
+                self.finSet_names.append(surface.name)
+            elif isinstance(surface, Tail):
+                self.tail_names.append(surface.name)
+        # Remove duplicates
+        self.nose_names = list(set(self.nose_names))
+        self.finSet_names = list(set(self.finSet_names))
+        self.tail_names = list(set(self.tail_names))
+
+        # Check if there are enough arguments for each kind of aero surface
+
+        # Iterate through nose names
+        for name in self.nose_names:
+            # Iterate through aerodynamic surface available at rocket object
+            for surface in self.rocket.aerodynamicSurfaces:
+                if surface.name == name and isinstance(surface, NoseCone):
+                    # in case we find the corresponding nose, check if all the
+                    # inputs are present in the dictionary
+                    for input in self.nose_inputs.keys():
+                        _, _, parameter = input.split("_")
+                        if f"nose_{name}_{parameter}" not in dictionary:
+                            # Try to get the value from the rocket object
+                            try:
+                                dictionary[f"nose_{name}_{parameter}"] = [
+                                    getattr(surface, parameter)
+                                ]
+                            except:
+                                # If not possible, check if the parameter is required
+                                if self.nose_inputs[input] == "required":
+                                    warnings.warn(f'Missing "{input}" in dictionary')
+                                else:
+                                    # If not required, use default value
+                                    dictionary[f"nose_{name}_{parameter}"] = [
+                                        self.nose_inputs[input]
+                                    ]
     def __process_motor_from_dict(self, dictionary):
         """Check if all the relevant inputs for the Motor class are present in
         the dispersion dictionary, input the missing ones and return the modified
