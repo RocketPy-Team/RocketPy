@@ -300,6 +300,11 @@ class Dispersion:
             The modified dictionary with the processed parameters.
         """
         # First we need to check if the dictionary is empty
+        if not dictionary:
+            warnings.warn(
+                "The dispersion dictionary is empty, no dispersion will be performed"
+            )
+            return dictionary
 
         # Now we prepare all the parachute data
         dictionary = self.__process_parachute_from_dict(dictionary)
@@ -313,6 +318,12 @@ class Dispersion:
 
         # Rocket
         dictionary = self.__process_rocket_from_dict(dictionary)
+
+        # Rail button
+        dictionary = self.__process_rail_buttons_from_dict(dictionary)
+
+        # Aerodynamic Surfaces
+        dictionary = self.__process_aerodynamic_surfaces_from_dict(dictionary)
 
         # Flight
         dictionary = self.__process_flight_from_dict(dictionary)
