@@ -27,21 +27,13 @@ from .Rocket import Rocket
 from .supplement import invertedHaversine
 from .AeroSurfaces import NoseCone, TrapezoidalFins, EllipticalFins, Tail
 
-## Tasks from the first review:
-# TODO: Save instances of the class instead of just plotting
-# TODO: Document all methods
-# TODO: Create a way to choose what attributes are being saved
+## Tasks :
 # TODO: Allow each parameter to be varied following an specific probability distribution
-# TODO: Make it more flexible so we can work with more than 1 fin set, also with different aerodynamic surfaces as well.
 # TODO: Test simulations under different scenarios (with both parachutes, with only main chute, etc)
 # TODO: Add unit tests
 # TODO: Adjust the notebook to the new version of the code
-# TODO: Optional return of matplotlib plots or abstract function to histogram plot based on stdev and mean
-
-# TODO: Implement MRS
+# TODO: Implement MRS method
 # TODO: Implement functions from compareDispersions notebook
-
-# TODO: Convert the dictionary to a class attributes
 
 
 class Dispersion:
@@ -49,29 +41,6 @@ class Dispersion:
     """Monte Carlo analysis to predict probability distributions of the rocket's
     landing point, apogee and other relevant information.
 
-    Attributes
-    ----------
-    # TODO: Update at the end!
-        Parameters:
-        Dispersion.filename: string
-            When running a new simulation, this attribute represents the initial
-            part of the export filenames (e.g. 'filename.disp_outputs.txt').
-            When analyzing the results of a previous simulation, this attribute
-            shall be the filename containing the outputs of a dispersion calculation.
-        Dispersion.actual_landing_point: tuple
-            Rocket's experimental landing point relative to launch point.
-        Dispersion.N: integer
-            Number of simulations in an output file.
-        Other classes:
-        Dispersion.environment: Environment
-            Launch environment.
-            Attribute needed to run a new simulation, when Dispersion.flight remains unchanged.
-        Dispersion.motor: Motor
-            Rocket's motor.
-            Attribute needed to run a new simulation, when Dispersion.flight remains unchanged.
-        Dispersion.rocket: Rocket
-            Rocket with nominal values.
-            Attribute needed to run a new simulation, when Dispersion.flight remains unchanged.
     """
 
     def __init__(
@@ -195,17 +164,18 @@ class Dispersion:
         self.std_out_of_rail_time = 0
 
     def __set_distribution_function(self, distribution_type):
-        """_summary_
+        """Sets the distribution function to be used in the analysis.
 
         Parameters
         ----------
-        distribution_type : _type_
-            _description_
+        distribution_type : string
+            The type of distribution to be used in the analysis. It can be
+            'uniform', 'normal', 'lognormal', etc.
 
         Returns
         -------
-        _type_
-            _description_
+        np.random distribution function
+            The distribution function to be used in the analysis.
         """
         if distribution_type == "normal" or distribution_type == None:
             return normal
@@ -363,11 +333,11 @@ class Dispersion:
                     # First try to catch value from the Flight object if passed
                     dictionary[missing_input] = [getattr(self.flight, missing_input)]
                 except:
-                    # class was not inputted
+                    # Flight class was not inputted
                     # check if missing parameter is required
                     if self.flight_inputs[missing_input] == "required":
                         warnings.warn(f'Missing "{missing_input}" in dictionary')
-                    else:  # if not, uses default value
+                    else:  # if not required, uses default value
                         dictionary[missing_input] = [self.flight_inputs[missing_input]]
 
         return dictionary
@@ -596,7 +566,7 @@ class Dispersion:
         dictionary: dict
             Modified dictionary with the processed rocket parameters.
         """
-        # TODO: Add mor options of motor (i.e. Liquid and Hybrids)
+        # TODO: Add more options of motor (i.e. Liquid and Hybrids)
 
         if not all(
             motor_input in dictionary for motor_input in self.solid_motor_inputs.keys()
@@ -639,6 +609,7 @@ class Dispersion:
         dictionary: dict
             Modified dictionary with the processed environment parameters.
         """
+        # Check if there is any missing input for the environment
         if not all(
             environment_input in dictionary
             for environment_input in self.environment_inputs.keys()
@@ -650,6 +621,7 @@ class Dispersion:
                 missing_input = str(missing_input)
                 # Add to the dict
                 try:
+                    # First try to catch value from the Environment object if passed
                     dictionary[missing_input] = [
                         getattr(self.environment, missing_input)
                     ]
@@ -826,7 +798,8 @@ class Dispersion:
                     )
                     print(traceback.format_exc())
 
-        # The analysis parameter dictionary must be corrected now!
+        # The analysis parameter dictionary is ready! Now we have mean and stdev
+        # for all parameters
 
         return dictionary
 
