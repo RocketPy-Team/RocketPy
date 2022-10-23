@@ -800,7 +800,6 @@ class Dispersion:
                         " If single value, the corresponding Class must"
                         " be inputted in the run_dispersion method."
                     )
-                    print(traceback.format_exc())
 
         # The analysis parameter dictionary is ready! Now we have mean and stdev
         # for all parameters
@@ -1019,6 +1018,7 @@ class Dispersion:
         bg_image=None,
         append=False,
     ):
+        # TODO: Separate into different functions to make it more readable
         """Runs the given number of simulations and saves the data
 
         Parameters
@@ -1058,15 +1058,8 @@ class Dispersion:
             self.environment = flight.env
             self.motor = flight.rocket.motor
             self.rocket = flight.rocket
-        self.environment = environment if environment else self.environment
-        self.motor = motor if motor else self.motor
-        self.rocket = rocket if rocket else self.rocket
         self.flight = flight
         self.distribution_type = "normal"  # TODO: Must be parametrized
-        self.image = bg_image
-        self.actual_landing_point = actual_landing_point  # (lat, lon)
-
-        # Obs.: The flight object is not prioritized, which is a good thing, but need to be documented
 
         # Check if there's enough object to start a flight:
         ## Raise an error in case of any troubles
@@ -1088,7 +1081,6 @@ class Dispersion:
 
         # Initialize counter and timer
         i = 0
-
         initial_wall_time = time()
         initial_cpu_time = process_time()
 
@@ -1117,7 +1109,7 @@ class Dispersion:
             motor_dispersion = self.motor
 
             # Apply motor parameters variations on each iteration if possible
-            # TODO: add hybrid motor option
+            # TODO: add hybrid and liquid motor option
             motor_dispersion = SolidMotor(
                 thrustSource=setting["thrust"],
                 burnOut=setting["burnOutTime"],
@@ -1441,10 +1433,11 @@ class Dispersion:
         """
 
         # Retrieve dispersion data por apogee and impact XY position
+        # TODO: Exception handling for missing data
         apogeeX = np.array(dispersion_results["apogeeX"])
         apogeeY = np.array(dispersion_results["apogeeY"])
-        impactX = np.array(dispersion_results["impactX"])
-        impactY = np.array(dispersion_results["impactY"])
+        impactX = np.array(dispersion_results["xImpact"])
+        impactY = np.array(dispersion_results["yImpact"])
 
         # Define function to calculate eigen values
         def eigsorted(cov):
@@ -1520,10 +1513,11 @@ class Dispersion:
             img = imread(image)
 
         # Retrieve dispersion data por apogee and impact XY position
+        # TODO: Exception handling for missing data
         apogeeX = np.array(dispersion_results["apogeeX"])
         apogeeY = np.array(dispersion_results["apogeeY"])
-        impactX = np.array(dispersion_results["impactX"])
-        impactY = np.array(dispersion_results["impactY"])
+        impactX = np.array(dispersion_results["xImpact"])
+        impactY = np.array(dispersion_results["yImpact"])
 
         impact_ellipses, apogee_ellipses = self.createEllipses(dispersion_results)
 
