@@ -550,6 +550,33 @@ class Dispersion:
                                         self.fins_inputs[input]
                                     ]
 
+        # Iterate through tail names
+        for name in self.tail_names:
+            # Iterate through aerodynamic surface available at rocket object
+            for surface in self.rocket.aerodynamicSurfaces:
+                if surface.name == name and isinstance(surface, Tail):
+                    # in case we find the corresponding tail, check if all the
+                    # inputs are present in the dictionary
+                    for input in self.tail_inputs.keys():
+                        _, _, parameter = input.split("_")
+                        if f"tail_{name}_{parameter}" not in dictionary:
+                            # Try to get the value from the rocket object
+                            try:
+                                dictionary[f"tail_{name}_{parameter}"] = [
+                                    getattr(surface, parameter)
+                                ]
+                            except:
+                                # If not possible, check if the parameter is required
+                                if self.tail_inputs[input] == "required":
+                                    warnings.warn(f'Missing "{input}" in dictionary')
+                                else:
+                                    # If not required, use default value
+                                    dictionary[f"tail_{name}_{parameter}"] = [
+                                        self.tail_inputs[input]
+                                    ]
+
+        return dictionary
+
     def __process_motor_from_dict(self, dictionary):
         """Check if all the relevant inputs for the Motor class are present in
         the dispersion dictionary, input the missing ones and return the modified
