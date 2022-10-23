@@ -1385,7 +1385,7 @@ class Flight:
         vzB = a13 * vx + a23 * vy + a33 * vz
         # Calculate lift and moment for each component of the rocket
         for aerodynamicSurface in self.rocket.aerodynamicSurfaces:
-            compCp = aerodynamicSurface["cp"][2]
+            compCp = aerodynamicSurface.cp[2]
             # Component absolute velocity in body frame
             compVxB = vxB + compCp * omega2
             compVyB = vyB - compCp * omega1
@@ -1413,6 +1413,7 @@ class Flight:
                 if -1 * compStreamVzBn < 1:
                     compAttackAngle = np.arccos(-compStreamVzBn)
                     cLift = aerodynamicSurface["cl"](compAttackAngle, freestreamMach)
+                    cLift = aerodynamicSurface.cl(compAttackAngle, freestreamMach)
                     # Component lift force magnitude
                     compLift = (
                         0.5 * rho * (compStreamSpeed**2) * self.rocket.area * cLift
@@ -1428,8 +1429,8 @@ class Flight:
                     M1 -= (compCp + a) * compLiftYB
                     M2 += (compCp + a) * compLiftXB
             # Calculates Roll Moment
-            if aerodynamicSurface["name"] == "Fins":
-                Clfdelta, Cldomega, cantAngleRad = aerodynamicSurface["roll parameters"]
+            if aerodynamicSurface.name == "Fins":
+                Clfdelta, Cldomega, cantAngleRad = aerodynamicSurface.rollParameters
                 M3f = (
                     (1 / 2 * rho * freestreamSpeed**2)
                     * self.rocket.area
