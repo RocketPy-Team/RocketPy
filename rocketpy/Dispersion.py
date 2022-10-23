@@ -655,42 +655,36 @@ class Dispersion:
         dictionary: dict
             Modified dictionary with the processed parachute parameters.
         """
-        # Get parachutes names
-        if "parachuteNames" in dictionary:  # TODO: use only dictionary
-            for i, name in enumerate(dictionary["parachuteNames"]):
-                if "CdS" in dictionary:
-                    dictionary["parachute_" + name + "_CdS"] = dictionary["CdS"][i]
-                if "trigger" in dictionary:
-                    dictionary["parachute_" + name + "_trigger"] = dictionary[
-                        "trigger"
-                    ][i]
-                if "samplingRate" in dictionary:
-                    dictionary["parachute_" + name + "_samplingRate"] = dictionary[
-                        "samplingRate"
-                    ][i]
-                if "lag" in dictionary:
-                    dictionary["parachute_" + name + "_lag"] = dictionary["lag"][i]
-                if "noise_mean" in dictionary:
-                    dictionary["parachute_" + name + "_noise_mean"] = dictionary[
-                        "noise_mean"
-                    ][i]
-                if "noise_sd" in dictionary:
-                    dictionary["parachute_" + name + "_noise_std"] = dictionary[
-                        "noise_sd"
-                    ][i]
-                if "noise_corr" in dictionary:
-                    dictionary["parachute_" + name + "_noise_corr"] = dictionary[
-                        "noise_corr"
-                    ][i]
-            # Remove already used keys from dictionary to avoid confusion
-            dictionary.pop("CdS", None)
-            dictionary.pop("trigger", None)
-            dictionary.pop("samplingRate", None)
-            dictionary.pop("lag", None)
-            dictionary.pop("noise_mean", None)
-            dictionary.pop("noise_sd", None)
-            dictionary.pop("noise_corr", None)
-            self.parachute_names = dictionary.pop("parachuteNames", None)
+        # Get the number and names of parachutes
+        self.parachute_names = []
+        for key in dictionary.keys():
+            if "parachute_" in key:
+                self.parachute_names.append(key.split("_")[1])
+        # Remove duplicates
+        self.parachute_names = list(set(self.parachute_names))
+
+        # Check if there is enough arguments for defining each parachute
+        for name in self.parachute_names:
+            for parachute_input in self.parachute_inputs.keys():
+                _, _, parameter = parachute_input.split("_")
+                if "parachute_{}_{}".format(name, parameter) not in dictionary.keys():
+                    try:  # Try to get the value from the Parachute object
+                        for chute in self.rocket.parachutes:
+                            if getattr(chute, "name") == name:
+                                dictionary[
+                                    "parachute_{}_{}".format(name, parameter)
+                                ] = [getattr(chute, parameter)]
+                    except:  # Class not passed
+                        if self.parachute_inputs[parachute_input] == "required":
+                            warnings.warn(
+                                "Missing {} for parachute {} in dictionary, which is required to run a simulation".format(
+                                    parachute_input.split("_")[2], name
+                                )
+                            )
+                        else:
+                            dictionary["parachute_{}_{}".format(name, parameter)] = [
+                                self.parachute_inputs[parachute_input],
+                            ]
 
         return dictionary
 
