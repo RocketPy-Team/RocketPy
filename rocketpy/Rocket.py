@@ -13,6 +13,7 @@ import numpy as np
 
 from .Function import Function
 from .Parachute import Parachute
+from .AeroSurfaces import NoseCone, TrapezoidalFins, EllipticalFins, Tail
 
 
 class Rocket:
@@ -314,13 +315,13 @@ class Rocket:
         if len(self.aerodynamicSurfaces) > 0:
             for aerodynamicSurface in self.aerodynamicSurfaces:
                 self.totalLiftCoeffDer += Function(
-                    lambda alpha: aerodynamicSurface["cl"](alpha, 0)
+                    lambda alpha: aerodynamicSurface.cl(alpha, 0)
                 ).differentiate(x=1e-2, dx=1e-3)
                 self.cpPosition += (
                     Function(
-                        lambda alpha: aerodynamicSurface["cl"](alpha, 0)
+                        lambda alpha: aerodynamicSurface.cl(alpha, 0)
                     ).differentiate(x=1e-2, dx=1e-3)
-                    * aerodynamicSurface["cp"][2]
+                    * aerodynamicSurface.cp[2]
                 )
             self.cpPosition /= self.totalLiftCoeffDer
 
@@ -335,7 +336,9 @@ class Rocket:
         # Return self
         return self
 
-    def addTail(self, topRadius, bottomRadius, length, distanceToCM):
+    def addTail(
+        self, topRadius, bottomRadius, length, distanceToCM, radius=None, name="Tail"
+    ):
         """Create a new tail or rocket diameter change, storing its
         parameters as part of the aerodynamicSurfaces list. Its
         parameters are the axial position along the rocket and its
@@ -369,33 +372,14 @@ class Rocket:
         self : Rocket
             Object of the Rocket class.
         """
-        # Save parameters for Dispersion
-        self.tailTopRadius = topRadius
-        self.tailBottomRadius = bottomRadius
-        self.tailLength = length
-        self.tailDistanceToCM = distanceToCM
-        # Calculate ratio between top and bottom radius
-        r = topRadius / bottomRadius
 
-        # Retrieve reference radius
-        rref = self.radius
+        # Modify reference radius if not provided
+        radius = self.radius if radius is None else radius
 
-        # Calculate cp position relative to cm
-        if distanceToCM < 0:
-            cpz = distanceToCM - (length / 3) * (1 + (1 - r) / (1 - r**2))
-        else:
-            cpz = distanceToCM + (length / 3) * (1 + (1 - r) / (1 - r**2))
+        # Create new tail as an object of the Tail class
+        tail = Tail(topRadius, bottomRadius, length, distanceToCM, radius, name)
 
-        # Calculate clalpha
-        clalpha = -2 * (1 - r ** (-2)) * (topRadius / rref) ** 2
-        cl = Function(
-            lambda alpha, mach: clalpha * alpha,
-            ["Alpha (rad)", "Mach"],
-            "Cl",
-        )
-
-        # Store values as new aerodynamic surface
-        tail = {"cp": (0, 0, cpz), "cl": cl, "name": "Tail"}
+        # Add tail to aerodynamic surfaces list
         self.aerodynamicSurfaces.append(tail)
 
         # Refresh static margin calculation
@@ -404,7 +388,7 @@ class Rocket:
         # Return self
         return self.aerodynamicSurfaces[-1]
 
-    def addNose(self, length, kind, distanceToCM):
+    def addNose(self, length, kind, distanceToCM, name="Nose Cone"):
         """Creates a nose cone, storing its parameters as part of the
         aerodynamicSurfaces list. Its parameters are the axial position
         along the rocket and its derivative of the coefficient of lift
@@ -424,6 +408,8 @@ class Rocket:
             mass, considering positive direction from center of mass to
             nose cone. Consider the center point belonging to the nose
             cone base to calculate distance.
+        name : string
+            Nose cone name. Default is "Nose Cone".
 
         Returns
         -------
@@ -437,34 +423,9 @@ class Rocket:
         self : Rocket
             Object of the Rocket class.
         """
-
-        # Save parameters for Dispersion
-        self.noseLength = length
-        self.noseKind = kind
-        self.noseDistanceToCM = distanceToCM
-
-        # Analyze type
-        if kind == "conical":
-            k = 1 - 1 / 3
-        elif kind == "ogive":
-            k = 1 - 0.534
-        elif kind == "lvhaack":
-            k = 1 - 0.437
-        else:
-            k = 0.5
-        # Calculate cp position relative to cm
-        cpz = distanceToCM + np.sign(distanceToCM) * k * length
-
-        # Calculate clalpha
-        clalpha = 2
-        cl = Function(
-            lambda alpha, mach: clalpha * alpha,
-            ["Alpha (rad)", "Mach"],
-            "Cl",
-        )
-
-        # Store values
-        nose = {"cp": (0, 0, cpz), "cl": cl, "name": "Nose Cone"}
+        # Create a nose as an object of NoseCone class
+        nose = NoseCone(length, kind, distanceToCM, name)
+        # Add nose to the list of aerodynamic surfaces
         self.aerodynamicSurfaces.append(nose)
 
         # Refresh static margin calculation
@@ -495,6 +456,7 @@ class Rocket:
         cantAngle=0,
         radius=None,
         airfoil=None,
+        name="Fins",
     ):
         """Create a trapezoidal fin set, storing its parameters as part of the
         aerodynamicSurfaces list. Its parameters are the axial position
@@ -548,175 +510,16 @@ class Rocket:
             Object of the Rocket class.
         """
 
-        # Save parameters for Dispersion # TODO: We need to be more flexible here! Not all the rockets has exactly 1 fin set
-        self.numberOfFins = n
-        self.finRadius = radius
-        self.finAirfoil = airfoil
-        self.finDistanceToCM = distanceToCM
+        # Modify radius if not given, use rocket radius, otherwise use given.
+        radius = radius if radius is not None else self.radius
 
-        # Retrieves and convert basic geometrical parameters
-        Cr, Ct = self.finRootChord, self.finTipChord = rootChord, tipChord
-        s = self.span = span
-        radius = self.radius if radius is None else radius
-        self.cantAngle = cantAngle
-        cantAngleRad = np.radians(cantAngle)
-
-        # Compute auxiliary geometrical parameters
-        d = 2 * radius
-        Aref = np.pi * radius**2
-        Yr = Cr + Ct
-        Af = Yr * s / 2  # Fin area
-        AR = 2 * s**2 / Af  # Fin aspect ratio
-        gamac = np.arctan((Cr - Ct) / (2 * s))  # Mid chord angle
-        Yma = (s / 3) * (Cr + 2 * Ct) / Yr  # Span wise coord of mean aero chord
-        rollGeometricalConstant = (
-            (Cr + 3 * Ct) * s**3
-            + 4 * (Cr + 2 * Ct) * radius * s**2
-            + 6 * (Cr + Ct) * s * radius**2
-        ) / 12
-
-        # Center of pressure position relative to CDM (center of dry mass)
-        cpz = distanceToCM + np.sign(distanceToCM) * (
-            ((Cr - Ct) / 3) * ((Cr + 2 * Ct) / (Cr + Ct))
-            + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
+        # Create a fin set as an object of TrapezoidalFins class
+        finSet = TrapezoidalFins(
+            n, rootChord, tipChord, span, distanceToCM, cantAngle, radius, airfoil, name
         )
 
-        # Fin–body interference correction parameters
-        tau = (s + radius) / radius
-        liftInterferenceFactor = 1 + 1 / tau
-        λ = Ct / Cr
-
-        # Defines beta parameter
-        def beta(mach):
-            """Defines a parameter that is commonly used in aerodynamic
-            equations. It is commonly used in the Prandtl factor which
-            corrects subsonic force coefficients for compressible flow.
-
-            Parameters
-            ----------
-            mach : int, float
-                Number of mach.
-
-            Returns
-            -------
-            beta : int, float
-                Value that characterizes flow speed based on the mach number.
-            """
-
-            if mach < 0.8:
-                return np.sqrt(1 - mach**2)
-            elif mach < 1.1:
-                return np.sqrt(1 - 0.8**2)
-            else:
-                return np.sqrt(mach**2 - 1)
-
-        # Defines number of fins  factor
-        def finNumCorrection(n):
-            """Calculates a correction factor for the lift coefficient of multiple fins.
-            The specifics  values are documented at:
-            Niskanen, S. (2013). “OpenRocket technical documentation”. In: Development
-            of an Open Source model rocket simulation software.
-
-            Parameters
-            ----------
-            n : int
-                Number of fins.
-
-            Returns
-            -------
-            Corrector factor : int
-                Factor that accounts for the number of fins.
-            """
-            correctorFactor = [2.37, 2.74, 2.99, 3.24]
-            if n >= 5 and n <= 8:
-                return correctorFactor[n - 5]
-            else:
-                return n / 2
-
-        if not airfoil:
-            # Defines clalpha2D as 2*pi for planar fins
-            clalpha2D = Function(lambda mach: 2 * np.pi / beta(mach))
-        else:
-            # Defines clalpha2D as the derivative of the
-            # lift coefficient curve for a specific airfoil
-            airfoilCl = Function(
-                airfoil[0],
-                interpolation="linear",
-            )
-
-            # Differentiating at x = 0 to get cl_alpha
-            clalpha2D_Mach0 = airfoilCl.differentiate(x=1e-3, dx=1e-3)
-
-            # Convert to radians if needed
-            if airfoil[1] == "degrees":
-                clalpha2D_Mach0 *= 180 / np.pi
-
-            # Correcting for compressible flow
-            clalpha2D = Function(lambda mach: clalpha2D_Mach0 / beta(mach))
-
-        # Diederich's Planform Correlation Parameter
-        FD = 2 * np.pi * AR / (clalpha2D * np.cos(gamac))
-
-        # Lift coefficient derivative for a single fin
-        clalphaSingleFin = Function(
-            lambda mach: (clalpha2D(mach) * FD(mach) * (Af / Aref) * np.cos(gamac))
-            / (2 + FD(mach) * np.sqrt(1 + (2 / FD(mach)) ** 2))
-        )
-
-        # Lift coefficient derivative for a number of n fins corrected for Fin-Body interference
-        clalphaMultipleFins = (
-            liftInterferenceFactor * finNumCorrection(n) * clalphaSingleFin
-        )  # Function of mach number
-
-        # Calculates clalpha * alpha
-        cl = Function(
-            lambda alpha, mach: alpha * clalphaMultipleFins(mach),
-            ["Alpha (rad)", "Mach"],
-            "Cl",
-        )
-
-        # Parameters for Roll Moment.
-        # Documented at: https://github.com/Projeto-Jupiter/RocketPy/blob/master/docs/technical/aerodynamics/Roll_Equations.pdf
-        rollDampingInterferenceFactor = 1 + (
-            ((tau - λ) / (tau)) - ((1 - λ) / (tau - 1)) * np.log(tau)
-        ) / (
-            ((tau + 1) * (tau - λ)) / (2) - ((1 - λ) * (tau**3 - 1)) / (3 * (tau - 1))
-        )
-        rollForcingInterferenceFactor = (1 / np.pi**2) * (
-            (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
-            + ((np.pi * (tau**2 + 1) ** 2) / (tau**2 * (tau - 1) ** 2))
-            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
-            - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
-            + ((tau**2 + 1) ** 2)
-            / (tau**2 * (tau - 1) ** 2)
-            * (np.arcsin((tau**2 - 1) / (tau**2 + 1))) ** 2
-            - (4 * (tau + 1))
-            / (tau * (tau - 1))
-            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
-            + (8 / (tau - 1) ** 2) * np.log((tau**2 + 1) / (2 * tau))
-        )
-        clfDelta = (
-            rollForcingInterferenceFactor * n * (Yma + radius) * clalphaSingleFin / d
-        )  # Function of mach number
-        cldOmega = (
-            2
-            * rollDampingInterferenceFactor
-            * n
-            * clalphaSingleFin
-            * np.cos(cantAngleRad)
-            * rollGeometricalConstant
-            / (Aref * d**2)
-        )  # Function of mach number
-        rollParameters = [clfDelta, cldOmega, cantAngleRad]
-
-        # Store values
-        fin = {
-            "cp": (0, 0, cpz),
-            "cl": cl,
-            "roll parameters": rollParameters,
-            "name": "Fins",
-        }
-        self.aerodynamicSurfaces.append(fin)
+        # Add fin set to the list of aerodynamic surfaces
+        self.aerodynamicSurfaces.append(finSet)
 
         # Refresh static margin calculation
         self.evaluateStaticMargin()
@@ -733,6 +536,7 @@ class Rocket:
         cantAngle=0,
         radius=None,
         airfoil=None,
+        name="Fins",
     ):
         """Create an elliptical fin set, storing its parameters as part of the
         aerodynamicSurfaces list. Its parameters are the axial position
@@ -786,175 +590,17 @@ class Rocket:
         self : Rocket
             Object of the Rocket class.
         """
-        # Retrieves and convert basic geometrical parameters
-        Cr = rootChord
-        s = span
-        radius = self.radius if radius is None else radius
-        cantAngleRad = np.radians(cantAngle)
 
-        # Compute auxiliary geometrical parameters
-        d = 2 * radius
-        Aref = np.pi * radius**2  # Reference area for coefficients
-        Af = (np.pi * Cr / 2 * s) / 2  # Fin area
-        AR = 2 * s**2 / Af  # Fin aspect ratio
-        Yma = (
-            s / (3 * np.pi) * np.sqrt(9 * np.pi**2 - 16)
-        )  # Span wise coord of mean aero chord
-        rollGeometricalConstant = (
-            Cr
-            * s
-            * (3 * np.pi * s**2 + 32 * radius * s + 12 * np.pi * radius**2)
-            / 48
+        # Modify radius if not given, use rocket radius, otherwise use given.
+        radius = radius if radius is not None else self.radius
+
+        # Create a fin set as an object of EllipticalFins class
+        finSet = EllipticalFins(
+            n, rootChord, span, distanceToCM, cantAngle, radius, airfoil, name
         )
 
-        # Center of pressure position relative to CDM (center of dry mass)
-        cpz = distanceToCM + np.sign(distanceToCM) * (0.288 * Cr)
-
-        # Fin–body interference correction parameters
-        tau = (s + radius) / radius
-        liftInterferenceFactor = 1 + 1 / tau
-        rollDampingInterferenceFactor = 1 + (
-            (radius**2)
-            * (
-                2
-                * (radius**2)
-                * np.sqrt(s**2 - radius**2)
-                * np.log((2 * s * np.sqrt(s**2 - radius**2) + 2 * s**2) / radius)
-                - 2 * (radius**2) * np.sqrt(s**2 - radius**2) * np.log(2 * s)
-                + 2 * s**3
-                - np.pi * radius * s**2
-                - 2 * (radius**2) * s
-                + np.pi * radius**3
-            )
-        ) / (2 * (s**2) * (s / 3 + np.pi * radius / 4) * (s**2 - radius**2))
-        rollForcingInterferenceFactor = (1 / np.pi**2) * (
-            (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
-            + ((np.pi * (tau**2 + 1) ** 2) / (tau**2 * (tau - 1) ** 2))
-            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
-            - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
-            + ((tau**2 + 1) ** 2)
-            / (tau**2 * (tau - 1) ** 2)
-            * (np.arcsin((tau**2 - 1) / (tau**2 + 1))) ** 2
-            - (4 * (tau + 1))
-            / (tau * (tau - 1))
-            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
-            + (8 / (tau - 1) ** 2) * np.log((tau**2 + 1) / (2 * tau))
-        )
-
-        # Auxiliary functions
-        # Defines beta parameter
-        def beta(mach):
-            """Defines a parameter that is commonly used in aerodynamic
-            equations. It is commonly used in the Prandtl factor which
-            corrects subsonic force coefficients for compressible flow.
-
-            Parameters
-            ----------
-            mach : int, float
-                Number of mach.
-
-            Returns
-            -------
-            beta : int, float
-                Value that characterizes flow speed based on the mach number.
-            """
-
-            if mach < 0.8:
-                return np.sqrt(1 - mach**2)
-            elif mach < 1.1:
-                return np.sqrt(1 - 0.8**2)
-            else:
-                return np.sqrt(mach**2 - 1)
-
-        # Defines number of fins correction
-        def finNumCorrection(n):
-            """Calculates a corrector factor for the lift coefficient of multiple fins.
-            The specifics  values are documented at:
-            Niskanen, S. (2013). “OpenRocket technical documentation”. In: Development
-            of an Open Source model rocket simulation software.
-
-            Parameters
-            ----------
-            n : int
-                Number of fins.
-
-            Returns
-            -------
-            Corrector factor : int
-                Factor that accounts for the number of fins.
-            """
-            correctorFactor = [2.37, 2.74, 2.99, 3.24]
-            if n >= 5 and n <= 8:
-                return correctorFactor[n - 5]
-            else:
-                return n / 2
-
-        if not airfoil:
-            # Defines clalpha2D as 2*pi for planar fins
-            clalpha2D = Function(lambda mach: 2 * np.pi / beta(mach))
-        else:
-            # Defines clalpha2D as the derivative of the
-            # lift coefficient curve for a specific airfoil
-            airfoilCl = Function(
-                airfoil[0],
-                interpolation="linear",
-            )
-
-            # Differentiating at x = 0 to get cl_alpha
-            clalpha2D_Mach0 = airfoilCl.differentiate(x=1e-3, dx=1e-3)
-
-            # Convert to radians if needed
-            if airfoil[1] == "degrees":
-                clalpha2D_Mach0 *= 180 / np.pi
-
-            # Correcting for compressible flow
-            clalpha2D = Function(lambda mach: clalpha2D_Mach0 / beta(mach))
-        # Diederich's Planform Correlation Parameter
-        FD = 2 * np.pi * AR / (clalpha2D)
-
-        # Lift coefficient derivative for a single fin
-        clalphaSingleFin = Function(
-            lambda mach: (clalpha2D(mach) * FD(mach) * (Af / Aref))
-            / (2 + FD(mach) * np.sqrt(1 + (2 / FD(mach)) ** 2))
-        )
-
-        # Lift coefficient derivative for a number of n fins corrected for Fin-Body interference
-        clalphaMultipleFins = (
-            liftInterferenceFactor * finNumCorrection(n) * clalphaSingleFin
-        )  # Function of mach number
-
-        # Calculates clalpha * alpha
-        cl = Function(
-            lambda alpha, mach: alpha * clalphaMultipleFins(mach),
-            ["Alpha (rad)", "Mach"],
-            "Cl",
-        )
-
-        # Parameters for Roll Moment.
-        # Documented at: https://github.com/RocketPy-Team/RocketPy/blob/develop/docs/technical/aerodynamics/Roll_Equations.pdf
-        clfDelta = (
-            rollForcingInterferenceFactor * n * (Yma + radius) * clalphaSingleFin / d
-        )  # Function of mach number
-        cldOmega = (
-            2
-            * rollDampingInterferenceFactor
-            * n
-            * clalphaSingleFin
-            * np.cos(cantAngleRad)
-            * rollGeometricalConstant
-            / (Aref * d**2)
-        )
-        # Function of mach number
-        rollParameters = [clfDelta, cldOmega, cantAngleRad]
-
-        # Store values
-        fin = {
-            "cp": (0, 0, cpz),
-            "cl": cl,
-            "roll parameters": rollParameters,
-            "name": "Fins",
-        }
-        self.aerodynamicSurfaces.append(fin)
+        # Add fin set to the list of aerodynamic surfaces
+        self.aerodynamicSurfaces.append(finSet)
 
         # Refresh static margin calculation
         self.evaluateStaticMargin()
@@ -1053,7 +699,7 @@ class Rocket:
         # Order distance to CM
         if distanceToCM[0] < distanceToCM[1]:
             distanceToCM.reverse()
-        # Save
+        # Save important attributes
         self.railButtons = self.railButtonPair(distanceToCM, angularPosition)
         self.RBdistanceToCM = distanceToCM
         self.angularPosition = angularPosition
@@ -1230,9 +876,9 @@ class Rocket:
         # Print rocket aerodynamics quantities
         print("\nAerodynamics Lift Coefficient Derivatives")
         for aerodynamicSurface in self.aerodynamicSurfaces:
-            name = aerodynamicSurface["name"]
+            name = aerodynamicSurface.name
             clalpha = Function(
-                lambda alpha: aerodynamicSurface["cl"](alpha, 0),
+                lambda alpha: aerodynamicSurface.cl(alpha, 0),
             ).differentiate(x=1e-2, dx=1e-3)
             print(
                 name + " Lift Coefficient Derivative: {:.3f}".format(clalpha) + "/rad"
@@ -1240,8 +886,8 @@ class Rocket:
 
         print("\nAerodynamics Center of Pressure")
         for aerodynamicSurface in self.aerodynamicSurfaces:
-            name = aerodynamicSurface["name"]
-            cpz = aerodynamicSurface["cp"][2]
+            name = aerodynamicSurface.name
+            cpz = aerodynamicSurface.cp[2]
             print(name + " Center of Pressure to CM: {:.3f}".format(cpz) + " m")
         print(
             "Distance - Center of Pressure to CM: "
