@@ -1257,106 +1257,23 @@ class Dispersion:
 
         return None
 
-    def __check_initial_objects(self):
-        """Create rocketpy objects (Environment, Motor, Rocket, Flight) in case
-        that
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        if self.environment is None:
-            self.environment = Environment(
-                railLength=self.dispersion_dictionary["railLength"][0]
-            )
-        if self.motor is None:
-            self.motor = SolidMotor(
-                thrustSource=self.dispersion_dictionary["thrustSource"][0],
-                burnOut=self.dispersion_dictionary["burnOutTime"][0],
-                grainNumber=self.dispersion_dictionary["grainNumber"][0],
-                grainDensity=self.dispersion_dictionary["grainDensity"][0],
-                grainOuterRadius=self.dispersion_dictionary["grainOuterRadius"][0],
-                grainInitialInnerRadius=self.dispersion_dictionary[
-                    "grainInitialInnerRadius"
-                ][0],
-                grainInitialHeight=self.dispersion_dictionary["grainInitialHeight"][0],
-            )
-        if self.rocket is None:
-            self.rocket = Rocket(
-                motor=self.motor,
-                mass=self.dispersion_dictionary["mass"][0],
-                radius=self.dispersion_dictionary["radius"][0],
-                inertiaI=self.dispersion_dictionary["inertiaI"][
-                    0
-                ],  # TODO: remove hardcode
-                inertiaZ=self.dispersion_dictionary["inertiaZ"][
-                    0
-                ],  # TODO: remove hardcode
-                distanceRocketPropellant=self.dispersion_dictionary[
-                    "distanceRocketPropellant"
-                ][0],
-                distanceRocketNozzle=self.dispersion_dictionary["distanceRocketNozzle"][
-                    0
-                ],
-                powerOffDrag=0.6,  # TODO: Remove this hardcoded
-                powerOnDrag=0.6,  # TODO: Remove this hardcoded
-            )
-            self.rocket.setRailButtons(distanceToCM=[0.2, -0.5])
-        if self.flight is None:
-            self.flight = Flight(
-                rocket=self.rocket,
-                environment=self.environment,
-                inclination=self.dispersion_dictionary["inclination"][0],
-                heading=self.dispersion_dictionary["heading"][0],
-            )
-        return None
-
-    def import_results(self, dispersion_output_file):
-        """Import dispersion results from .txt file
+    def import_results(self):
+        """Import dispersion results from .txt file and save it into a dictionary.
 
         Parameters
         ----------
-        dispersion_output_file : str
-            Path to the dispersion output file. This file will not be overwritten,
-            modified or deleted by this function.
+        None
 
         Returns
         -------
         None
         """
         # Initialize variable to store all results
-        dispersion_general_results = []
-
-        # TODO: Add more flexible way to define dispersion_results
-        dispersion_results = {
-            "outOfRailTime": [],
-            "outOfRailVelocity": [],
-            "apogeeTime": [],
-            "apogeeAltitude": [],
-            "apogeeX": [],
-            "apogeeY": [],
-            "impactTime": [],
-            "impactX": [],
-            "impactY": [],
-            "impactVelocity": [],
-            "initialStaticMargin": [],
-            "outOfRailStaticMargin": [],
-            "finalStaticMargin": [],
-            "numberOfEvents": [],
-            "maxVelocity": [],
-            "drogueTriggerTime": [],
-            "drogueInflatedTime": [],
-            "drogueInflatedVelocity": [],
-            "executionTime": [],
-            "railDepartureAngleOfAttack": [],
-            "lateralWind": [],
-            "frontalWind": [],
-        }
+        dispersion_results = {}
 
         # Get all dispersion results
         # Open the file
-        file = open(dispersion_output_file, "r+")
+        file = open(self.filename.split(".")[0] + ".disp_outputs.txt", "r+")
 
         # Read each line of the file and convert to dict
         for line in file:
@@ -1365,19 +1282,32 @@ class Dispersion:
                 continue
             # Evaluate results and store them
             flight_result = eval(line)
-            dispersion_general_results.append(flight_result)
+            # Append to the list
             for parameter_key, parameter_value in flight_result.items():
-                dispersion_results[parameter_key].append(parameter_value)
+                if parameter_key not in dispersion_results.keys():
+                    # Create a new list to store the parameter
+                    dispersion_results[parameter_key] = [parameter_value]
+                else:
+                    # Append the parameter value to the list
+                    dispersion_results[parameter_key].append(parameter_value)
 
         # Close data file
         file.close()
 
         # Calculate the number of flights simulated
-        self.num_of_loaded_sims = len(dispersion_general_results)
+        len_dict = {key: len(value) for key, value in dispersion_results.items()}
+        if min(len_dict.values()) - max(len_dict.values()) > 1:
+            print(
+                "Warning: The number of simulations imported from the file is not "
+                "the same for all parameters. The number of simulations will be "
+                "set to the minimum number of simulations found."
+            )
+        self.num_of_loaded_sims = min(len_dict.values())
 
         # Print the number of flights simulated
         print(
-            f"A total of {self.num_of_loaded_sims} simulations were loaded from the following file: {dispersion_output_file}"
+            f"A total of {self.num_of_loaded_sims} simulations were loaded from"
+            f" the following file: {self.filename.split('.')[0] + '.disp_outputs.txt'}"
         )
 
         # Save the results as an attribute of the class
