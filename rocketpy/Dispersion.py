@@ -1317,828 +1317,105 @@ class Dispersion:
 
     # Start the processing analysis
 
-    def outOfRailTime(self):
-        """Calculate the time of the rocket's departure from the rail, in seconds.
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        self.mean_out_of_rail_time = (
-            np.mean(self.dispersion_results["outOfRailTime"])
-            if self.dispersion_results["outOfRailTime"]
-            else None
-        )
-        self.std_out_of_rail_time = (
-            np.std(self.dispersion_results["outOfRailTime"])
-            if self.dispersion_results["outOfRailTime"]
-            else None
-        )
-        return None
-
-    def printMeanOutOfRailTime(self):
-        """Prints out the mean and std. dev. of the "outOfRailTime" parameter.
+    def process_results(self, variables=None):
+        """Save the mean and standard deviation of each parameter in the results
+        dictionary. Create class attributes for each parameter.
 
         Parameters
         ----------
-        None
+        variables : list, optional
+            List of variables to be processed. If None, all variables will be
+            processed. The default is None. Example: ['outOfRailTime', 'apogeeTime']
 
         Returns
         -------
         None
         """
-        self.outOfRailTime()
-        print(f"Out of Rail Time -Mean Value: {self.mean_out_of_rail_time:0.3f} s")
-        print(f"Out of Rail Time - Std. Dev.: {self.std_out_of_rail_time:0.3f} s")
-
+        if isinstance(variables, list):
+            for result in variables:
+                mean = np.mean(self.dispersion_results[result])
+                stdev = np.std(self.dispersion_results[result])
+                setattr(self, str(result), (mean, stdev))
+        else:
+            for result in self.dispersion_results.keys():
+                mean = np.mean(self.dispersion_results[result])
+                stdev = np.std(self.dispersion_results[result])
+                setattr(self, str(result), (mean, stdev))
         return None
 
-    def plotOutOfRailTime(self):
-        """Plot the out of rail time distribution
+    # TODO: print as a table instead of prints
+    def print_results(self, variables=None):
+        """Print the mean and standard deviation of each parameter in the results
+        dictionary or of the variables passed as argument.
 
         Parameters
         ----------
-        dispersion_results : _type_
-            _description_
+        variables : list, optional
+            List of variables to be processed. If None, all variables will be
+            processed. The default is None. Example: ['outOfRailTime', 'apogee']
 
         Returns
         -------
-        _type_
-            _description_
-        """
-        self.outOfRailTime()
+        None
 
-        plt.figure()
-        plt.hist(
-            self.dispersion_results["outOfRailTime"],
-            bins=int(self.num_of_loaded_sims**0.5),
-        )
-        plt.title("Out of Rail Time")
-        plt.xlabel("Time (s)")
-        plt.ylabel("Number of Occurrences")
-        plt.show()
+        Raises
+        ------
+        TypeError
+            If the variable passed as argument is not a string.
+        """
+        # Check if the variables argument is a list, if not, use all variables
+        if not isinstance(variables, list):
+            variables = self.dispersion_results.keys()
+
+        # Check if the variables are strings
+        if not all(isinstance(var, str) for var in variables):
+            raise TypeError("The list of variables must be a list of strings.")
+
+        for var in variables:
+            tp = getattr(self, var)  # Get the tuple with the mean and stdev
+            print("{}: \u03BC = {:.3f}, \u03C3 = {:.3f}".format(var, tp[0], tp[1]))
 
         return None
 
-    def meanOutOfRailVelocity(self, dispersion_results):
+    def plot_results(self, variables=None):
         """_summary_
 
         Parameters
         ----------
-        dispersion_results : _type_
-            _description_
+        variables : _type_, optional
+            _description_, by default None
 
         Returns
         -------
         _type_
             _description_
+
+        Raises
+        ------
+        TypeError
+            _description_
         """
-        print(
-            f'Out of Rail Velocity -Mean Value: {np.mean(dispersion_results["outOfRailVelocity"]):0.3f} m/s'
-        )
-        print(
-            f'Out of Rail Velocity - Std. Dev.: {np.std(dispersion_results["outOfRailVelocity"]):0.3f} m/s'
-        )
+        # Check if the variables argument is a list, if not, use all variables
+        if not isinstance(variables, list):
+            variables = self.dispersion_results.keys()
+
+        # Check if the variables are strings
+        if not all(isinstance(var, str) for var in variables):
+            raise TypeError("The list of variables must be a list of strings.")
+
+        for var in variables:
+            plt.figure()
+            plt.hist(
+                self.dispersion_results[var],
+            )
+            plt.title("Histogram of " + var)
+            # plt.xlabel("Time (s)")
+            plt.ylabel("Number of Occurrences")
+            plt.show()
 
         return None
 
-    def plotOutOfRailVelocity(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        self.meanOutOfRailVelocity(dispersion_results)
-
-        plt.figure()
-        plt.hist(
-            dispersion_results["outOfRailVelocity"],
-            bins=int(self.num_of_loaded_sims**0.5),
-        )
-        plt.title("Out of Rail Velocity")
-        plt.xlabel("Velocity (m/s)")
-        plt.ylabel("Number of Occurrences")
-        plt.show()
-
-        return None
-
-    def meanApogeeTime(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        print(
-            f'Impact Time -Mean Value: {np.mean(dispersion_results["impactTime"]):0.3f} s'
-        )
-        print(
-            f'Impact Time - Std. Dev.: {np.std(dispersion_results["impactTime"]):0.3f} s'
-        )
-
-        return None
-
-    def plotApogeeTime(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        self.meanApogeeTime(dispersion_results)
-
-        plt.figure()
-        plt.hist(
-            dispersion_results["impactTime"],
-            bins=int(self.num_of_loaded_sims**0.5),
-        )
-        plt.title("Impact Time")
-        plt.xlabel("Time (s)")
-        plt.ylabel("Number of Occurrences")
-        plt.show()
-
-        return None
-
-    def meanApogeeAltitude(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        print(
-            f'Apogee Altitude -Mean Value: {np.mean(dispersion_results["apogeeAltitude"]):0.3f} m'
-        )
-        print(
-            f'Apogee Altitude - Std. Dev.: {np.std(dispersion_results["apogeeAltitude"]):0.3f} m'
-        )
-
-        return None
-
-    def plotApogeeAltitude(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        self.meanApogeeAltitude(dispersion_results)
-
-        plt.figure()
-        plt.hist(
-            dispersion_results["apogeeAltitude"],
-            bins=int(self.num_of_loaded_sims**0.5),
-        )
-        plt.title("Apogee Altitude")
-        plt.xlabel("Altitude (m)")
-        plt.ylabel("Number of Occurrences")
-        plt.show()
-
-        return None
-
-    def meanApogeeXPosition(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        print(
-            f'Apogee X Position -Mean Value: {np.mean(dispersion_results["apogeeX"]):0.3f} m'
-        )
-        print(
-            f'Apogee X Position - Std. Dev.: {np.std(dispersion_results["apogeeX"]):0.3f} m'
-        )
-
-        return None
-
-    def plotApogeeXPosition(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        self.meanApogeeAltitude(dispersion_results)
-
-        plt.figure()
-        plt.hist(
-            dispersion_results["apogeeX"],
-            bins=int(self.num_of_loaded_sims**0.5),
-        )
-        plt.title("Apogee X Position")
-        plt.xlabel("Apogee X Position (m)")
-        plt.ylabel("Number of Occurrences")
-        plt.show()
-
-        return None
-
-    def meanApogeeYPosition(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        print(
-            f'Apogee Y Position -Mean Value: {np.mean(dispersion_results["apogeeY"]):0.3f} m'
-        )
-        print(
-            f'Apogee Y Position - Std. Dev.: {np.std(dispersion_results["apogeeY"]):0.3f} m'
-        )
-
-        return None
-
-    def plotApogeeYPosition(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        self.meanApogeeAltitude(dispersion_results)
-
-        plt.figure()
-        plt.hist(
-            dispersion_results["apogeeY"],
-            bins=int(self.num_of_loaded_sims**0.5),
-        )
-        plt.title("Apogee Y Position")
-        plt.xlabel("Apogee Y Position (m)")
-        plt.ylabel("Number of Occurrences")
-        plt.show()
-
-        return None
-
-    def meanImpactTime(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        print(
-            f'Impact Time -Mean Value: {np.mean(dispersion_results["impactTime"]):0.3f} s'
-        )
-        print(
-            f'Impact Time - Std. Dev.: {np.std(dispersion_results["impactTime"]):0.3f} s'
-        )
-
-        return None
-
-    def plotImpactTime(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        self.meanImpactTime(dispersion_results)
-
-        plt.figure()
-        plt.hist(
-            dispersion_results["impactTime"],
-            bins=int(self.num_of_loaded_sims**0.5),
-        )
-        plt.title("Impact Time")
-        plt.xlabel("Time (s)")
-        plt.ylabel("Number of Occurrences")
-        plt.show()
-
-        return None
-
-    def meanImpactXPosition(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        print(
-            f'Impact X Position -Mean Value: {np.mean(dispersion_results["impactX"]):0.3f} m'
-        )
-        print(
-            f'Impact X Position - Std. Dev.: {np.std(dispersion_results["impactX"]):0.3f} m'
-        )
-
-        return None
-
-    def plotImpactXPosition(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        self.meanImpactXPosition(dispersion_results)
-
-        plt.figure()
-        plt.hist(
-            dispersion_results["impactX"],
-            bins=int(self.num_of_loaded_sims**0.5),
-        )
-        plt.title("Impact X Position")
-        plt.xlabel("Impact X Position (m)")
-        plt.ylabel("Number of Occurrences")
-        plt.show()
-
-        return None
-
-    def meanImpactYPosition(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        print(
-            f'Impact Y Position -Mean Value: {np.mean(dispersion_results["impactY"]):0.3f} m'
-        )
-        print(
-            f'Impact Y Position - Std. Dev.: {np.std(dispersion_results["impactY"]):0.3f} m'
-        )
-
-        return None
-
-    def plotImpactYPosition(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        self.meanImpactYPosition(dispersion_results)
-
-        plt.figure()
-        plt.hist(
-            dispersion_results["impactY"],
-            bins=int(self.num_of_loaded_sims**0.5),
-        )
-        plt.title("Impact Y Position")
-        plt.xlabel("Impact Y Position (m)")
-        plt.ylabel("Number of Occurrences")
-        plt.show()
-
-        return None
-
-    def meanImpactVelocity(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        print(
-            f'Impact Velocity -Mean Value: {np.mean(dispersion_results["impactVelocity"]):0.3f} m/s'
-        )
-        print(
-            f'Impact Velocity - Std. Dev.: {np.std(dispersion_results["impactVelocity"]):0.3f} m/s'
-        )
-
-        return None
-
-    def plotImpactVelocity(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        self.meanImpactVelocity(dispersion_results)
-
-        plt.figure()
-        plt.hist(
-            dispersion_results["impactVelocity"],
-            bins=int(self.num_of_loaded_sims**0.5),
-        )
-        plt.title("Impact Velocity")
-        plt.xlim(-35, 0)
-        plt.xlabel("Velocity (m/s)")
-        plt.ylabel("Number of Occurrences")
-        plt.show()
-
-        return None
-
-    def meanStaticMargin(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        print(
-            f'Initial Static Margin -    Mean Value: {np.mean(dispersion_results["initialStaticMargin"]):0.3f} c'
-        )
-        print(
-            f'Initial Static Margin -     Std. Dev.: {np.std(dispersion_results["initialStaticMargin"]):0.3f} c'
-        )
-
-        print(
-            f'Out of Rail Static Margin -Mean Value: {np.mean(dispersion_results["outOfRailStaticMargin"]):0.3f} c'
-        )
-        print(
-            f'Out of Rail Static Margin - Std. Dev.: {np.std(dispersion_results["outOfRailStaticMargin"]):0.3f} c'
-        )
-
-        print(
-            f'Final Static Margin -      Mean Value: {np.mean(dispersion_results["finalStaticMargin"]):0.3f} c'
-        )
-        print(
-            f'Final Static Margin -       Std. Dev.: {np.std(dispersion_results["finalStaticMargin"]):0.3f} c'
-        )
-
-        return None
-
-    def plotStaticMargin(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        self.meanStaticMargin(dispersion_results)
-
-        plt.figure()
-        plt.hist(
-            dispersion_results["initialStaticMargin"],
-            label="Initial",
-            bins=int(self.num_of_loaded_sims**0.5),
-        )
-        plt.hist(
-            dispersion_results["outOfRailStaticMargin"],
-            label="Out of Rail",
-            bins=int(self.num_of_loaded_sims**0.5),
-        )
-        plt.hist(
-            dispersion_results["finalStaticMargin"],
-            label="Final",
-            bins=int(self.num_of_loaded_sims**0.5),
-        )
-        plt.legend()
-        plt.title("Static Margin")
-        plt.xlabel("Static Margin (c)")
-        plt.ylabel("Number of Occurrences")
-        plt.show()
-
-        return None
-
-    def meanMaximumVelocity(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        print(
-            f'Maximum Velocity -Mean Value: {np.mean(dispersion_results["maxVelocity"]):0.3f} m/s'
-        )
-        print(
-            f'Maximum Velocity - Std. Dev.: {np.std(dispersion_results["maxVelocity"]):0.3f} m/s'
-        )
-
-        return None
-
-    def plotMaximumVelocity(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        self.meanMaximumVelocity(dispersion_results)
-
-        plt.figure()
-        plt.hist(
-            dispersion_results["maxVelocity"],
-            bins=int(self.num_of_loaded_sims**0.5),
-        )
-        plt.title("Maximum Velocity")
-        plt.xlabel("Velocity (m/s)")
-        plt.ylabel("Number of Occurrences")
-        plt.show()
-
-        return None
-
-    def meanNumberOfParachuteEvents(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        print(
-            f'Number of Parachute Events -Mean Value: {np.mean(dispersion_results["numberOfEvents"]):0.3f} s'
-        )
-        print(
-            f'Number of Parachute Events - Std. Dev.: {np.std(dispersion_results["numberOfEvents"]):0.3f} s'
-        )
-
-        return None
-
-    def plotNumberOfParachuteEvents(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        self.meanNumberOfParachuteEvents(dispersion_results)
-
-        plt.figure()
-        plt.hist(dispersion_results["numberOfEvents"])
-        plt.title("Parachute Events")
-        plt.xlabel("Number of Parachute Events")
-        plt.ylabel("Number of Occurrences")
-        plt.show()
-
-        return None
-
-    def meanDrogueTriggerTime(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        print(
-            f'Drogue Trigger Time -Mean Value: {np.mean(dispersion_results["drogueTriggerTime"]):0.3f} s'
-        )
-        print(
-            f'Drogue Trigger Time - Std. Dev.: {np.std(dispersion_results["drogueTriggerTime"]):0.3f} s'
-        )
-
-        return None
-
-    def plotDrogueTriggerTime(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        self.meanDrogueTriggerTime(dispersion_results)
-
-        plt.figure()
-        plt.hist(
-            dispersion_results["drogueTriggerTime"],
-            bins=int(self.num_of_loaded_sims**0.5),
-        )
-        plt.title("Drogue Trigger Time")
-        plt.xlabel("Time (s)")
-        plt.ylabel("Number of Occurrences")
-        plt.show()
-
-        return None
-
-    def meanDrogueFullyInflatedTime(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        print(
-            f'Drogue Fully Inflated Time -Mean Value: {np.mean(dispersion_results["drogueInflatedTime"]):0.3f} s'
-        )
-        print(
-            f'Drogue Fully Inflated Time - Std. Dev.: {np.std(dispersion_results["drogueInflatedTime"]):0.3f} s'
-        )
-
-        return None
-
-    def plotDrogueFullyInflatedTime(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        self.meanDrogueFullyInflatedTime(dispersion_results)
-
-        plt.figure()
-        plt.hist(
-            dispersion_results["drogueInflatedTime"],
-            bins=int(self.num_of_loaded_sims**0.5),
-        )
-        plt.title("Drogue Fully Inflated Time")
-        plt.xlabel("Time (s)")
-        plt.ylabel("Number of Occurrences")
-        plt.show()
-
-        return None
-
-    def meanDrogueFullyVelocity(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        print(
-            f'Drogue Parachute Fully Inflated Velocity -Mean Value: {np.mean(dispersion_results["drogueInflatedVelocity"]):0.3f} m/s'
-        )
-        print(
-            f'Drogue Parachute Fully Inflated Velocity - Std. Dev.: {np.std(dispersion_results["drogueInflatedVelocity"]):0.3f} m/s'
-        )
-
-        return None
-
-    def plotDrogueFullyVelocity(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        self.meanDrogueFullyVelocity(dispersion_results)
-
-        plt.figure()
-        plt.hist(
-            dispersion_results["drogueInflatedVelocity"],
-            bins=int(self.num_of_loaded_sims**0.5),
-        )
-        plt.title("Drogue Parachute Fully Inflated Velocity")
-        plt.xlabel("Velocity m/s)")
-        plt.ylabel("Number of Occurrences")
-        plt.show()
-
-        return None
+    # TODO: Create evolution plots to analyze convergence
 
     def createEllipses(self, dispersion_results):
         """_summary_
