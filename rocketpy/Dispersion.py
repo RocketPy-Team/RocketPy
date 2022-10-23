@@ -410,6 +410,52 @@ class Dispersion:
 
         return dictionary
 
+    def __process_rail_buttons_from_dict(self, dictionary):
+        """Check if all the relevant inputs for the RailButtons class are present
+        in the dispersion dictionary, input the missing ones and return the
+        modified dictionary.
+
+        Parameters
+        ----------
+        dictionary : dict
+            Dictionary containing the parameters to be varied in the dispersion
+            simulation. The keys of the dictionary are the names of the parameters
+            to be varied, and the values can be either tuple or list. If the value
+            is a single value, the corresponding class of the parameter need to
+            be passed on the run_dispersion method.
+
+        Returns
+        -------
+        dictionary: dict
+            Modified dictionary with the processed rail buttons parameters.
+        """
+
+        if not all(
+            rail_buttons_input in dictionary
+            for rail_buttons_input in self.rail_buttons_inputs.keys()
+        ):
+            # Iterate through missing inputs
+            for missing_input in (
+                set(self.rail_buttons_inputs.keys()) - dictionary.keys()
+            ):
+                missing_input = str(missing_input)
+                # Add to the dict
+                try:
+                    dictionary[missing_input] = [
+                        getattr(self.rocket, missing_input)
+                    ]
+                except:
+                    # class was not inputted
+                    # checks if missing parameter is required
+                    if self.rail_buttons_inputs[missing_input] == "required":
+                        warnings.warn(f'Missing "{missing_input}" in dictionary')
+                    else:
+                        # if not, uses default value
+                        dictionary[missing_input] = [
+                            self.rail_buttons_inputs[missing_input]
+                        ]
+
+        return dictionary
     def __process_motor_from_dict(self, dictionary):
         """Check if all the relevant inputs for the Motor class are present in
         the dispersion dictionary, input the missing ones and return the modified
