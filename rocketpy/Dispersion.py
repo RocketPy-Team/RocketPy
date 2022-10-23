@@ -884,7 +884,6 @@ class Dispersion:
             # Yield a flight setting
             yield flight_setting
 
-    # TODO: allow user to chose what is going to be exported
     def __export_flight_data(
         self,
         flight_setting,
@@ -892,6 +891,7 @@ class Dispersion:
         exec_time,
         dispersion_input_file,
         dispersion_output_file,
+        variables=None,
     ):
         """Saves flight results in a .txt
 
@@ -914,59 +914,49 @@ class Dispersion:
             _description_
         """
 
-        # Generate flight results
-        flight_result = {
-            "outOfRailTime": flight.outOfRailTime,
-            "outOfRailVelocity": flight.outOfRailVelocity,
-            "apogeeTime": flight.apogeeTime,
-            "apogeeAltitude": flight.apogee - flight.env.elevation,
-            "apogeeX": flight.apogeeX,
-            "apogeeY": flight.apogeeY,
-            "impactTime": flight.tFinal,
-            "impactX": flight.xImpact,
-            "impactY": flight.yImpact,
-            "impactVelocity": flight.impactVelocity,
-            "initialStaticMargin": flight.rocket.staticMargin(0),
-            "outOfRailStaticMargin": flight.rocket.staticMargin(flight.outOfRailTime),
-            "finalStaticMargin": flight.rocket.staticMargin(
-                flight.rocket.motor.burnOutTime
-            ),
-            "numberOfEvents": len(flight.parachuteEvents),
-            "drogueTriggerTime": [],
-            "drogueInflatedTime": [],
-            "drogueInflatedVelocity": [],
-            "executionTime": exec_time,
-            "lateralWind": flight.lateralSurfaceWind,
-            "frontalWind": flight.frontalSurfaceWind,
-        }
+        # In case not variables are passed, export default variables
+        if not isinstance(variables, list):
+            variables = [
+                "apogee",
+                "apogeeTime",
+                "apogeeX",
+                "apogeeY",
+                "executionTime",
+                "finalStaticMargin",
+                "frontalSurfaceWind",
+                "impactVelocity",
+                "initialStaticMargin",
+                "lateralSurfaceWind",
+                "maxAcceleration",
+                "maxAccelerationTime",
+                "maxSpeed",
+                "maxSpeedTime",
+                "numberOfEvents",
+                "outOfRailStaticMargin",
+                "outOfRailTime",
+                "outOfRailVelocity",
+                "tFinal",
+                "xImpact",
+                "yImpact",
+            ]
+        else:  # Check if variables are valid and raise error if not
+            if not all([isinstance(var, str) for var in variables]):
+                raise TypeError("Variables must be strings.")
 
-        # # Calculate maximum reached velocity
-        # sol = np.array(flight.solution)
-        # flight.vx = Function(
-        #     sol[:, [0, 4]],
-        #     "Time (s)",
-        #     "Vx (m/s)",
-        #     "linear",
-        #     extrapolation="natural",
-        # )
-        # flight.vy = Function(
-        #     sol[:, [0, 5]],
-        #     "Time (s)",
-        #     "Vy (m/s)",
-        #     "linear",
-        #     extrapolation="natural",
-        # )
-        # flight.vz = Function(
-        #     sol[:, [0, 6]],
-        #     "Time (s)",
-        #     "Vz (m/s)",
-        #     "linear",
-        #     extrapolation="natural",
-        # )
-        # flight.speed = (flight.vx**2 + flight.vy**2 + flight.vz**2) ** 0.5
-        # flight.maxVel = np.amax(flight.speed.source[:, 1])
-        # flight_result["maxVelocity"] = flight.maxVel
-        flight_result["maxVelocity"] = flight.maxSpeed
+        # First, capture the flight data that are saved in the flight object
+        attributes_list = list(set(dir(flight)).intersection(variables))
+        flight_result = {}
+        for var in attributes_list:
+            flight_result[str(var)] = getattr(flight, var)
+
+        # Second, capture data that needs to be calculated
+        for var in list(set(variables) - set(attributes_list)):
+            if var == "executionTime":
+                flight_result[str(var)] = exec_time
+            elif var == "numberOfEvents":
+                flight_result[str(var)] = len(flight.parachuteEvents)
+            else:
+                raise ValueError(f"Variable {var} could not be found.")
 
         # Take care of parachute results
         for trigger_time, parachute in flight.parachuteEvents:
@@ -977,8 +967,6 @@ class Dispersion:
             flight_result[parachute.name + "_inflatedVelocity"] = flight.speed(
                 trigger_time + parachute.lag
             )
-        else:
-            flight_result["parachuteInfo"] = "No Parachute Events"
 
         # Write flight setting and results to file
         flight_setting.pop("thrust", None)
