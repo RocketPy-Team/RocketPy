@@ -160,8 +160,21 @@ class Dispersion:
 
         # Initialize variables so they can be accessed by MATLAB
         self.dispersion_results = {}
-        self.mean_out_of_rail_time = 0
-        self.std_out_of_rail_time = 0
+        self.dispersion_dictionary = {}
+        self.nose_names = []
+        self.finSet_names = []
+        self.tail_names = []
+        self.parachute_names = []
+        self.distributionFunc = None
+        self.distribution_type = None
+        self.environment = None
+        self.flight = None
+        self.motor = None
+        self.rocket = None
+        self.rocket_dispersion = None
+        self.number_of_simulations = 0
+        self.num_of_loaded_sims = 0
+        self.start_time = 0
 
     def __set_distribution_function(self, distribution_type):
         """Sets the distribution function to be used in the analysis.
@@ -1038,9 +1051,9 @@ class Dispersion:
 
         self.number_of_simulations = number_of_simulations
         self.dispersion_dictionary = dispersion_dictionary
-        self.environment = None
-        self.motor = None
-        self.rocket = None
+        self.environment = environment
+        self.motor = motor
+        self.rocket = rocket
         if flight:  # In case a flight object is passed
             self.environment = flight.env
             self.motor = flight.rocket.motor
