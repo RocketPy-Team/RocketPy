@@ -1027,7 +1027,7 @@ class Dispersion:
         flight=None,
         motor=None,
         rocket=None,
-        bg_image=None,
+        exported_variables=None,
         append=False,
     ):
         # TODO: Separate into different functions to make it more readable
@@ -1052,6 +1052,8 @@ class Dispersion:
             _description_, by default None
         distribution_type : str, optional
             _description_, by default "normal"
+        exported_variables : list, optional
+            A list containing the variables to be exported. By default None.
         append : bool, optional
             If True, the results will be appended to the existing files. If False,
             the files will be overwritten. By default False.
@@ -1214,7 +1216,7 @@ class Dispersion:
             # Run trajectory simulation
             try:
                 # TODO: Add initialSolution flight option
-                TestFlight = Flight(
+                dispersion_flight = Flight(
                     rocket=rocket_dispersion,
                     environment=env_dispersion,
                     inclination=setting["inclination"],
@@ -1231,10 +1233,11 @@ class Dispersion:
 
                 self.__export_flight_data(
                     flight_setting=setting,
-                    flight_data=TestFlight,
+                    flight=dispersion_flight,
                     exec_time=process_time() - self.start_time,
                     dispersion_input_file=dispersion_input_file,
                     dispersion_output_file=dispersion_output_file,
+                    variables=exported_variables,
                 )
             except Exception as E:
                 print(E)
@@ -1243,13 +1246,19 @@ class Dispersion:
 
             # Register time
             out.update(
-                f"Current iteration: {i:06d} | Average Time per Iteration: {(process_time() - initial_cpu_time)/i:2.6f} s | Estimated time left: {int((number_of_simulations - i)*((process_time() - initial_cpu_time)/i))} s"
+                f"Current iteration: {i:06d} | Average Time per Iteration: "
+                f"{(process_time() - initial_cpu_time)/i:2.6f} s | Estimated time"
+                f" left: {int((number_of_simulations - i)*((process_time() - initial_cpu_time)/i))} s"
             )
 
         # Clean the house once all the simulations were already done
 
         ## Print and save total time
-        final_string = f"Completed {i} iterations successfully. Total CPU time: {process_time() - initial_cpu_time} s. Total wall time: {time() - initial_wall_time} s"
+        final_string = (
+            f"Completed {i} iterations successfully. Total CPU time: "
+            f"{process_time() - initial_cpu_time} s. Total wall time: "
+            f"{time() - initial_wall_time} s"
+        )
         out.update(final_string)
         dispersion_input_file.write(final_string + "\n")
         dispersion_output_file.write(final_string + "\n")
