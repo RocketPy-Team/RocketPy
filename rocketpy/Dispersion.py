@@ -1734,76 +1734,6 @@ class Dispersion:
         kml.save(filename)
         return None
 
-    def meanLateralWindSpeed(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-        """
-        print(
-            f'Lateral Surface Wind Speed -Mean Value: {np.mean(dispersion_results["lateralWind"]):0.3f} m/s'
-        )
-        print(
-            f'Lateral Surface Wind Speed - Std. Dev.: {np.std(dispersion_results["lateralWind"]):0.3f} m/s'
-        )
-
-    def plotLateralWindSpeed(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-        """
-        self.meanLateralWindSpeed(dispersion_results)
-
-        plt.figure()
-        plt.hist(
-            dispersion_results["lateralWind"],
-            bins=int(self.num_of_loaded_sims**0.5),
-        )
-        plt.title("Lateral Surface Wind Speed")
-        plt.xlabel("Velocity (m/s)")
-        plt.ylabel("Number of Occurrences")
-        plt.show()
-
-    def meanFrontalWindSpeed(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-        """
-        print(
-            f'Frontal Surface Wind Speed -Mean Value: {np.mean(dispersion_results["frontalWind"]):0.3f} m/s'
-        )
-        print(
-            f'Frontal Surface Wind Speed - Std. Dev.: {np.std(dispersion_results["frontalWind"]):0.3f} m/s'
-        )
-
-    def plotFrontalWindSpeed(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-        """
-        self.meanFrontalWindSpeed(dispersion_results)
-
-        plt.figure()
-        plt.hist(
-            dispersion_results["frontalWind"],
-            bins=int(self.num_of_loaded_sims**0.5),
-        )
-        plt.title("Frontal Surface Wind Speed")
-        plt.xlabel("Velocity (m/s)")
-        plt.ylabel("Number of Occurrences")
-        plt.show()
-
     def info(self):
         """_summary_
 
@@ -1812,85 +1742,24 @@ class Dispersion:
         None
         """
 
-        dispersion_results = self.dispersion_results
-
-        self.meanApogeeAltitude(dispersion_results)
-
-        self.meanOutOfRailVelocity(dispersion_results)
-
-        self.meanStaticMargin(dispersion_results)
-
-        self.meanLateralWindSpeed(dispersion_results)
-
-        self.meanFrontalWindSpeed(dispersion_results)
-
-        self.printMeanOutOfRailTime(dispersion_results)
-
-        self.meanApogeeTime(dispersion_results)
-
-        self.meanApogeeXPosition(dispersion_results)
-
-        self.meanApogeeYPosition(dispersion_results)
-
-        self.meanImpactTime(dispersion_results)
-
-        self.meanImpactVelocity(dispersion_results)
-
-        self.meanImpactXPosition(dispersion_results)
-
-        self.meanImpactYPosition(dispersion_results)
-
-        self.meanMaximumVelocity(dispersion_results)
-
-        self.meanNumberOfParachuteEvents(dispersion_results)
-
-        self.meanDrogueFullyInflatedTime(dispersion_results)
-
-        self.meanDrogueFullyVelocity(dispersion_results)
-
-        self.meanDrogueTriggerTime(dispersion_results)
+        print("Monte Carlo Simulation by RocketPy")
+        print("Data Source: ", self.filename)
+        print("Number of simulations: ", self.num_of_loaded_sims)
+        print("Results: ")
+        self.print_results()
 
         return None
 
     def allInfo(self):
         dispersion_results = self.dispersion_results
 
-        self.plotEllipses(dispersion_results, self.image, self.actual_landing_point)
-
-        self.plotApogeeAltitude(dispersion_results)
-
-        self.plotOutOfRailVelocity(dispersion_results)
-
-        self.plotStaticMargin(dispersion_results)
-
-        self.plotLateralWindSpeed(dispersion_results)
-
-        self.plotFrontalWindSpeed(dispersion_results)
-
-        self.plotOutOfRailTime(dispersion_results)
-
-        self.plotApogeeTime(dispersion_results)
-
-        self.plotApogeeXPosition(dispersion_results)
-
-        self.plotApogeeYPosition(dispersion_results)
-
-        self.plotImpactTime(dispersion_results)
-
-        self.plotImpactVelocity(dispersion_results)
-
-        self.plotImpactXPosition(dispersion_results)
-
-        self.plotImpactYPosition(dispersion_results)
-
-        self.plotMaximumVelocity(dispersion_results)
-
-        self.plotNumberOfParachuteEvents(dispersion_results)
-
-        self.plotDrogueFullyInflatedTime(dispersion_results)
-
-        self.plotDrogueFullyVelocity(dispersion_results)
-
-        self.plotDrogueTriggerTime(dispersion_results)
+        print("Monte Carlo Simulation by RocketPy")
+        print("Data Source: ", self.filename)
+        print("Number of simulations: ", self.num_of_loaded_sims)
+        print("Results: ")
+        self.print_results()
+        print("Plotting results: ")
+        self.plotEllipses(dispersion_results=dispersion_results)
+        self.plot_results()
 
         return None
