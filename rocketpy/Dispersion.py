@@ -1147,44 +1147,57 @@ class Dispersion:
                 powerOnDrag=setting["powerOnDrag"],
             )
 
+            # Clean up aerodynamic surfaces
+            rocket_dispersion.aerodynamicSurfaces = []  # Remove all surfaces
+
             # Add rocket nose, fins and tail
-            rocket_dispersion.addNose(
-                length=setting["noseLength"],
-                kind=setting["noseKind"],
-                distanceToCM=setting["noseDistanceToCM"],
-            )
-            rocket_dispersion.addFins(
-                n=setting["numberOfFins"],
-                rootChord=setting["finRootChord"],
-                tipChord=setting["finTipChord"],
-                span=setting["finSpan"],
-                distanceToCM=setting["finDistanceToCM"],
-                radius=setting["radius"],
-                airfoil=setting["airfoil"],
-            )
-            if not "noTail" in setting:
+            # Nose
+            for nose in self.nose_names:
+                rocket_dispersion.addNose(
+                    length=setting[f"nose_{nose}_length"],
+                    kind=setting[f"nose_{nose}_kind"],
+                    distanceToCM=setting[f"nose_{nose}_distanceToCM"],
+                    name=nose,
+                )
+
+            # Fins
+            for finSet in self.finSet_names:
+                # TODO: Allow elliptical fins as well
+                rocket_dispersion.addTrapezoidalFins(
+                    n=setting[f"finSet_{finSet}_numberOfFins"],
+                    rootChord=setting[f"finSet_{finSet}_rootChord"],
+                    tipChord=setting[f"finSet_{finSet}_tipChord"],
+                    span=setting[f"finSet_{finSet}_span"],
+                    distanceToCM=setting[f"finSet_{finSet}_distanceToCM"],
+                    radius=setting[f"finSet_{finSet}_radius"],
+                    airfoil=setting[f"finSet_{finSet}_airfoil"],
+                    name=finSet,
+                )
+
+            # Tail
+            for tail in self.tail_names:
                 rocket_dispersion.addTail(
-                    topRadius=setting["topRadius"],
-                    bottomRadius=setting["bottomRadius"],
-                    length=setting["length"],
-                    distanceToCM=setting["distanceToCM"],
+                    topRadius=setting[f"tail_{tail}_topRadius"],
+                    bottomRadius=setting[f"tail_{tail}_bottomRadius"],
+                    length=setting[f"tail_{tail}_length"],
+                    distanceToCM=setting[f"tail_{tail}_distanceToCM"],
+                    radius=None,
+                    name="Tail",
                 )
 
             # Add parachutes
-            for num, name in enumerate(self.parachute_names):
+            rocket_dispersion.parachutes = []  # Remove existing parachutes
+            for name in self.parachute_names:
                 rocket_dispersion.addParachute(
                     name=name,
                     CdS=setting["parachute_" + name + "_CdS"],
                     trigger=setting["parachute_" + name + "_trigger"],
                     samplingRate=setting["parachute_" + name + "_samplingRate"],
                     lag=setting["parachute_" + name + "_lag"],
-                    noise=(
-                        setting["parachute_" + name + "_noise_mean"],
-                        setting["parachute_" + name + "_noise_std"],
-                        setting["parachute_" + name + "_noise_corr"],
-                    ),
+                    noise=setting["parachute_" + name + "_noise"],
                 )
 
+            # TODO: Remove hard-coded rail buttons definition
             rocket_dispersion.setRailButtons(
                 distanceToCM=[
                     setting["positionFirstRailButton"],
