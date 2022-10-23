@@ -1004,7 +1004,7 @@ class Dispersion:
         motor=None,
         rocket=None,
         bg_image=None,
-        actual_landing_point=None,
+        append=False,
     ):
         """Runs the given number of simulations and saves the data
 
@@ -1027,13 +1027,9 @@ class Dispersion:
             _description_, by default None
         distribution_type : str, optional
             _description_, by default "normal"
-        bg_image : str, optional
-            The path to the image to be used as the background
-        actual_landing_point : tuple, optional
-            A tuple containing the actual landing point of the rocket, if known.
-            Useful when comparing the dispersion results with the actual landing.
-            Must be given in tuple format, such as (lat, lon). By default None.
-            # TODO: Check the order of these coordinates
+        append : bool, optional
+            If True, the results will be appended to the existing files. If False,
+            the files will be overwritten. By default False.
 
         Returns
         -------
@@ -1072,9 +1068,10 @@ class Dispersion:
         self.distributionFunc = self.__set_distribution_function(self.distribution_type)
 
         # Create data files for inputs, outputs and error logging
-        dispersion_error_file = open(str(self.filename) + ".disp_errors.txt", "w")
-        dispersion_input_file = open(str(self.filename) + ".disp_inputs.txt", "w")
-        dispersion_output_file = open(str(self.filename) + ".disp_outputs.txt", "w")
+        open_mode = "a" if append else "w"
+        dispersion_error_file = open(f"{self.filename}.disp_errors.txt", open_mode)
+        dispersion_input_file = open(f"{self.filename}.disp_inputs.txt", open_mode)
+        dispersion_output_file = open(f"{self.filename}.disp_outputs.txt", open_mode)
 
         # Initialize counter and timer
         i = 0
