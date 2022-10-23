@@ -2751,6 +2751,19 @@ class Flight:
     def staticMargin(self):
         return self.rocket.staticMargin
 
+    # Save important Static Margin values
+    @cached_property
+    def initialStaticMargin(self):
+        return self.staticMargin(0)
+
+    @cached_property
+    def outOfRailStaticMargin(self):
+        return self.staticMargin(self.outOfRailTime)
+
+    @cached_property
+    def finalStaticMargin(self):
+        return self.staticMargin(self.staticMargin(0))
+
     # Rail Button Forces
     @cached_property
     def railButton1NormalForce(self):
