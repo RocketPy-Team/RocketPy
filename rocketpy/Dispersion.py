@@ -522,6 +522,34 @@ class Dispersion:
                                     dictionary[f"nose_{name}_{parameter}"] = [
                                         self.nose_inputs[input]
                                     ]
+
+        # Iterate through fin sets names
+        for name in self.finSet_names:
+            # Iterate through aerodynamic surface available at rocket object
+            for surface in self.rocket.aerodynamicSurfaces:
+                if surface.name == name and isinstance(
+                    surface, (TrapezoidalFins, EllipticalFins)
+                ):
+                    # in case we find the corresponding fin set, check if all the
+                    # inputs are present in the dictionary
+                    for input in self.fins_inputs.keys():
+                        _, _, parameter = input.split("_")
+                        if f"finSet_{name}_{parameter}" not in dictionary:
+                            # Try to get the value from the rocket object
+                            try:
+                                dictionary[f"finSet_{name}_{parameter}"] = [
+                                    getattr(surface, parameter)
+                                ]
+                            except:
+                                # If not possible, check if the parameter is required
+                                if self.fins_inputs[input] == "required":
+                                    warnings.warn(f'Missing "{input}" in dictionary')
+                                else:
+                                    # If not required, use default value
+                                    dictionary[f"finSet_{name}_{parameter}"] = [
+                                        self.fins_inputs[input]
+                                    ]
+
     def __process_motor_from_dict(self, dictionary):
         """Check if all the relevant inputs for the Motor class are present in
         the dispersion dictionary, input the missing ones and return the modified
