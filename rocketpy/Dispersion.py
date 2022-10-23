@@ -803,6 +803,56 @@ class Dispersion:
 
         return dictionary
 
+    def __check_initial_objects(self):
+        """Create rocketpy objects (Environment, Motor, Rocket, Flight) in case
+        that they were not created yet.
+
+        Returns
+        -------
+        None
+        """
+        if self.environment is None:
+            self.environment = Environment(
+                railLength=self.dispersion_dictionary["railLength"][0]
+            )
+        if self.motor is None:
+            self.motor = SolidMotor(
+                thrustSource=self.dispersion_dictionary["thrustSource"][0],
+                burnOut=self.dispersion_dictionary["burnOutTime"][0],
+                grainNumber=self.dispersion_dictionary["grainNumber"][0],
+                grainDensity=self.dispersion_dictionary["grainDensity"][0],
+                grainOuterRadius=self.dispersion_dictionary["grainOuterRadius"][0],
+                grainInitialInnerRadius=self.dispersion_dictionary[
+                    "grainInitialInnerRadius"
+                ][0],
+                grainInitialHeight=self.dispersion_dictionary["grainInitialHeight"][0],
+            )
+        if self.rocket is None:
+            self.rocket = Rocket(
+                motor=self.motor,
+                mass=self.dispersion_dictionary["mass"][0],
+                radius=self.dispersion_dictionary["radius"][0],
+                inertiaI=self.dispersion_dictionary["inertiaI"][0],
+                inertiaZ=self.dispersion_dictionary["inertiaZ"][0],
+                distanceRocketPropellant=self.dispersion_dictionary[
+                    "distanceRocketPropellant"
+                ][0],
+                distanceRocketNozzle=self.dispersion_dictionary["distanceRocketNozzle"][
+                    0
+                ],
+                powerOffDrag=self.dispersion_dictionary["powerOffDrag"][0],
+                powerOnDrag=self.dispersion_dictionary["dispersion_dictionary"][0],
+            )
+            self.rocket.setRailButtons(distanceToCM=[0.2, -0.5])
+        if self.flight is None:
+            self.flight = Flight(
+                rocket=self.rocket,
+                environment=self.environment,
+                inclination=self.dispersion_dictionary["inclination"][0],
+                heading=self.dispersion_dictionary["heading"][0],
+            )
+        return None
+
     def __yield_flight_setting(
         self, distribution_func, analysis_parameters, number_of_simulations
     ):
