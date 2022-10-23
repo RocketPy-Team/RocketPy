@@ -7,6 +7,7 @@ __license__ = "MIT"
 
 import math
 import traceback
+import types
 import warnings
 from time import process_time, time
 
@@ -18,13 +19,13 @@ from IPython.display import display
 from matplotlib.patches import Ellipse
 from numpy.random import *
 
-from rocketpy.Function import Function
-
 from .Environment import Environment
 from .Flight import Flight
+from .Function import Function
 from .Motor import SolidMotor
 from .Rocket import Rocket
 from .supplement import invertedHaversine
+from .AeroSurfaces import NoseCone, TrapezoidalFins, EllipticalFins, Tail
 
 ## Tasks from the first review:
 # TODO: Save instances of the class instead of just plotting
