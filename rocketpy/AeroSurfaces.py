@@ -155,18 +155,18 @@ class TrapezoidalFins:
         """
         # Store values
         self.numberOfFins = n
-        self.finRadius = radius
-        self.finAirfoil = airfoil
-        self.finDistanceToCM = distanceToCM
-        self.finCantAngle = cantAngle
-        self.finRootChord = rootChord
-        self.finTipChord = tipChord
-        self.finSpan = span
+        self.radius = radius
+        self.airfoil = airfoil
+        self.distanceToCM = distanceToCM
+        self.cantAngle = cantAngle
+        self.rootChord = rootChord
+        self.tipChord = tipChord
+        self.span = span
         self.name = name
 
         # get some nicknames
-        Cr, Ct = self.finRootChord, self.finTipChord
-        s = self.finSpan
+        Cr, Ct = self.rootChord, self.tipChord
+        s = self.span
         cantAngleRad = np.radians(cantAngle)
 
         # Check if sweep angle or sweep length is given
@@ -618,10 +618,10 @@ class Tail:
         """
 
         # Store arguments as attributes
-        self.tailTopRadius = topRadius
-        self.tailBottomRadius = bottomRadius
-        self.tailLength = length
-        self.tailDistanceToCM = distanceToCM
+        self.topRadius = topRadius
+        self.bottomRadius = bottomRadius
+        self.length = length
+        self.distanceToCM = distanceToCM
         self.name = name
         self.radius = radius
 
