@@ -701,8 +701,10 @@ class Rocket:
             distanceToCM.reverse()
         # Save important attributes
         self.railButtons = self.railButtonPair(distanceToCM, angularPosition)
-        self.RBdistanceToCM = distanceToCM
-        self.angularPosition = angularPosition
+        # Saving in a special format just for dispersion class
+        self.positionFirstRailButton = distanceToCM[0]
+        self.positionSecondRailButton = distanceToCM[1]
+        self.railButtonAngularPosition = angularPosition
         return None
 
     def addCMEccentricity(self, x, y):
