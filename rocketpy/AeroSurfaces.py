@@ -163,8 +163,10 @@ class TrapezoidalFins:
         self.tipChord = tipChord
         self.span = span
         self.name = name
+        self.sweepLength = sweepLength
+        self.sweepAngle = sweepAngle
 
-        # get some nicknames
+        # Get some nicknames
         Cr, Ct = self.rootChord, self.tipChord
         s = self.span
         cantAngleRad = np.radians(cantAngle)
@@ -191,9 +193,15 @@ class TrapezoidalFins:
         )  # Mid chord angle
         Yma = (s / 3) * (Cr + 2 * Ct) / Yr  # Span wise coord of mean aero chord
 
+        rollGeometricalConstant = (
+            (Cr + 3 * Ct) * s**3
+            + 4 * (Cr + 2 * Ct) * radius * s**2
+            + 6 * (Cr + Ct) * s * radius**2
+        ) / 12
+
         # Center of pressure position relative to CDM (center of dry mass)
         cpz = distanceToCM + np.sign(distanceToCM) * (
-            ((Cr - Ct) / 3) * ((Cr + 2 * Ct) / (Cr + Ct))
+            (sweepLength / 3) * ((Cr + 2 * Ct) / (Cr + Ct))
             + (1 / 6) * (Cr + Ct - Cr * Ct / (Cr + Ct))
         )
 
@@ -271,11 +279,11 @@ class TrapezoidalFins:
             clalpha2D = Function(lambda mach: clalpha2D_Mach0 / beta(mach))
 
         # Diederich's Planform Correlation Parameter
-        FD = 2 * np.pi * AR / (clalpha2D * np.cos(gamac))
+        FD = 2 * np.pi * AR / (clalpha2D * np.cos(gamma_c))
 
         # Lift coefficient derivative for a single fin
         clalphaSingleFin = Function(
-            lambda mach: (clalpha2D(mach) * FD(mach) * (Af / Aref) * np.cos(gamac))
+            lambda mach: (clalpha2D(mach) * FD(mach) * (Af / Aref) * np.cos(gamma_c))
             / (2 + FD(mach) * np.sqrt(1 + (2 / FD(mach)) ** 2))
         )
 
