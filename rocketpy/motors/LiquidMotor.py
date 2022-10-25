@@ -115,6 +115,7 @@ class Tank(ABC):
         """
         pass
 
+    @abstractmethod
     def evaluateUilageHeight(self):
         """
         Returns the height of the uilage as a function of time.

@@ -11,7 +11,18 @@ def test_mass_based_motor():
     propane = Fluid(name = "Propane", density = 493, quality = 1.0) #Placeholder quality value
     n2 = Fluid(name = "Nitrogen Gas", density = 51.75, quality = 1.0) #Placeholder quality value; density value may be estimate
     
-    example_motor = MassBasedTank("Example Tank", 0.1540, 0.66, 0.7, "Placeholder", "Placeholder", lox, n2) 
+    top_endcap = lambda y: np.sqrt(0.0775 ** 2 - (y - 0.692300000000001) ** 2)
+    bottom_endcap = lambda y: np.sqrt(0.0775 ** 2 - (0.0775 - y) **2)
+    real_geometry = {(0, 0.0559): bottom_endcap, (.0559, 0.7139): lambda y: 0.0744, (0.7139, 0.7698): top_endcap}
+    
+    real_tank_lox = MassBasedTank("Real Tank", real_geometry, "Placeholder", "Placeholder", lox, n2) 
+    real_tank_propane = MassBasedTank("Real Tank", real_geometry, "Placeholder", "Placeholder", propane, n2) 
+
+
+    example_geometry = {(0, 5): 1}
+
+    example_tank_lox = MassBasedTank("Example Tank", example_geometry, "Placeholder", "Placeholder", lox, n2) 
+    example_tank_propane = MassBasedTank("Example Tank", example_geometry, "Placeholder", "Placeholder", propane, n2) 
     #Need docs to be pushed + tank dimension values
 
 
