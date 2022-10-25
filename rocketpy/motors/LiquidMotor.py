@@ -116,7 +116,7 @@ class Tank(ABC):
         pass
 
     @abstractmethod
-    def evaluateUilageHeight(self):
+    def evaluateUllageHeight(self):
         """
         Returns the height of the uilage as a function of time.
 
@@ -242,7 +242,7 @@ class MassFlowRateBasedTank(Tank):
         mfr.setOutputs("Net Mass Flow Rate")
         return mfr
 
-    def evaluateUilageHeight(self):
+    def evaluateUllageHeight(self):
         liquid_vol = Function(lambda t: (self.initial_liquid_mass.getValue(t)
                 + self.liquid_mass_flow_rate_in.integral(0, t)
                 - self.liquid_mass_flow_rate_out.integral(0, t))
@@ -284,7 +284,7 @@ class UllageBasedTank(Tank):
         mfr.setOutputs("Mass Flow Rate")
         return mfr
 
-    def evaluateUilageHeight(self):
+    def evaluateUllageHeight(self):
         return self.ullageHeight
 
 
@@ -318,7 +318,7 @@ class MassBasedTank(Tank):
         mfr.setOutputs("Mass Flow Rate")
         return mfr
 
-    def evaluateUilageHeight(self):
+    def evaluateUllageHeight(self):
         return super().evaluateUilageHeight()
         
 

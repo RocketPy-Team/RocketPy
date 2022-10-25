@@ -23,7 +23,17 @@ def test_mass_based_motor():
 
     example_tank_lox = MassBasedTank("Example Tank", example_geometry, "Placeholder", "Placeholder", lox, n2) 
     example_tank_propane = MassBasedTank("Example Tank", example_geometry, "Placeholder", "Placeholder", propane, n2) 
-    #Need docs to be pushed + tank dimension values
+
+    def test_mass():
+        pass
+
+    def test_net_mfr():
+        pass
+    
+    def test_eval_ullage():
+        pass
+
+    #Need docs to be pushed
 
 
 # @curtisjhu
