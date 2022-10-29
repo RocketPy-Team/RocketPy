@@ -126,3 +126,7 @@ fetchCuritibaRioSaoPauloEnsemble.py
 # Tests
 naboI/
 
+# PyCharm
+.idea/
+
+
