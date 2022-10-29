@@ -37,7 +37,6 @@ class LiquidMotor(Motor):
             total_mfr += tank.netMassFlowRate()
         return total_mfr
 
-
     def evaluateCenterOfMass(self):
         try:
             print('insert function here')
@@ -305,8 +304,14 @@ class MassBasedTank(Tank):
         self.liquid_mass = Function(liquid_mass, inputs="Time", outputs="Mass")
         self.gas_mass = Function(gas_mass, inputs="Time", outputs="Mass")
 
+    def find_liquid_mass(self):
+        return self.liquid_mass
+
+    def find_gas_mass(self):
+        return self.gas_mass
+
     def mass(self):
-        m = self.liquid_mass + self.gas_mass
+        m = self.find_liquid_mass() + self.find_gas_mass()
         m.setInputs("Time")
         m.setOutputs("Mass")
         return m

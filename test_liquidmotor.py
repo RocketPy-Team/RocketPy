@@ -3,6 +3,7 @@ from rocketpy.motors.Fluid import Fluid
 from rocketpy.Function import Function
 from math import isclose
 import numpy as np
+import csv
 
 
 # @PBales1
@@ -11,29 +12,94 @@ def test_mass_based_motor():
     propane = Fluid(name = "Propane", density = 493, quality = 1.0) #Placeholder quality value
     n2 = Fluid(name = "Nitrogen Gas", density = 51.75, quality = 1.0) #Placeholder quality value; density value may be estimate
     
-    top_endcap = lambda y: np.sqrt(0.0775 ** 2 - (y - 0.692300000000001) ** 2)
-    bottom_endcap = lambda y: np.sqrt(0.0775 ** 2 - (0.0775 - y) **2)
-    real_geometry = {(0, 0.0559): bottom_endcap, (.0559, 0.7139): lambda y: 0.0744, (0.7139, 0.7698): top_endcap}
+    top_endcap = lambda y: np.sqrt(0.0775 ** 2 - (y - 0.692300000000001) ** 2) #Hemisphere equation creating top endcap
+    bottom_endcap = lambda y: np.sqrt(0.0775 ** 2 - (0.0775 - y) **2) #Hemisphere equation creating bottom endcap
+
+    #Generate tank geometry {radius: height, ...}
+    real_geometry = {(0, 0.0559): bottom_endcap, (.0559, 0.7139): lambda y: 0.0744, (0.7139, 0.7698): top_endcap} 
+
+    #Import liquid mass data
+    lox_masses = "data/berkeley/test135LoxMass.csv"
+    example_liquid_masses = "data/berkeley/ExampleTankLiquidMassData.csv"
+
+    #Import gas mass data
+    gas_masses = "Placeholder"
+    example_gas_masses = "Placeholder"
     
-    real_tank_lox = MassBasedTank("Real Tank", real_geometry, "Placeholder", "Placeholder", lox, n2) 
-    real_tank_propane = MassBasedTank("Real Tank", real_geometry, "Placeholder", "Placeholder", propane, n2) 
+    #Generate tanks based on Berkeley SEB team's real tank geometries
+    real_tank_lox = MassBasedTank("Real Tank", real_geometry, lox_masses, gas_masses, lox, n2) 
 
-
+    #Generate tank geometry {radius: height, ...}
     example_geometry = {(0, 5): 1}
 
-    example_tank_lox = MassBasedTank("Example Tank", example_geometry, "Placeholder", "Placeholder", lox, n2) 
-    example_tank_propane = MassBasedTank("Example Tank", example_geometry, "Placeholder", "Placeholder", propane, n2) 
+    #Generate tanks based on simplified tank geometry
+    example_tank_lox = MassBasedTank("Example Tank", example_geometry, example_liquid_masses, example_gas_masses, lox, n2) 
+
+    initial_liquid_mass = 5
+    initial_gas_mass = .1
+    liquid_mass_flow_rate_in = .1
+    gas_mass_flow_rate_in = .01
+    liquid_mass_flow_rate_out = .2
+    gas_mass_flow_rate_out = .02
+
+    def test(calculated, expected, t):
+        """Iterate over time range and test that calculated value is close to actual value"""
+        for i in range(0, t, 0.1):
+            assert isclose(calculated.getValue(i), expected(i), abs_tol=10e-4)
 
     def test_mass():
-        pass
+        """Test mass function of MassBasedTank subclass of Tank"""
+        example_expected = lambda t: initial_liquid_mass + t * (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) \
+                            + initial_gas_mass + t * (gas_mass_flow_rate_in - gas_mass_flow_rate_out)
+        example_calculated = example_tank_lox.mass()
+
+        lox_vals = []
+        with open(lox_masses) as masses:
+            reader = csv.reader(masses)
+            for row in reader:
+                lox_vals.append(row[1])
+
+        real_expected = lambda t: lox_vals[t]
+        real_calculated = real_tank_lox.mass()
+
+        test(example_calculated, example_expected, 10)
+        test(real_calculated, real_expected, 15.5)
 
     def test_net_mfr():
-        pass
-    
-    def test_eval_ullage():
-        pass
+        """Test netMassFlowRate function of MassBasedTank subclass of Tank"""
+        example_expected = lambda t: liquid_mass_flow_rate_in - liquid_mass_flow_rate_out \
+                            + gas_mass_flow_rate_in - gas_mass_flow_rate_out
+        example_calculated = example_tank_lox.netMassFlowRate()
 
-    #Need docs to be pushed
+        liquid_mfrs = []
+        with open(lox_masses) as masses:
+            reader = csv.reader(masses)
+            initial_mass = reader[0][1]
+            for row in reader:
+                liquid_mfrs.append(initial_mass - row[1])
+
+        gas_mfrs = []
+        with open(gas_masses) as masses:
+            reader = csv.reader(masses)
+            initial_mass = reader[0][1]
+            for row in reader:
+                gas_mfrs.append(initial_mass - row[1])
+
+        real_expected = lambda t: (liquid_mfrs[t] + gas_mfrs[t]) / t
+        real_calculated = real_tank_lox.netMassFlowRate()
+
+        test(example_calculated, example_expected, 10)
+        test(real_calculated, real_expected, 15.5)
+
+    def test_eval_ullage():
+        """Test evaluateUllage function of MassBasedTank subclass of Tank"""
+        example_expected = lambda t: 0
+        example_calculated = example_tank_lox.evaluateUllageHeight()
+
+        real_expected = lambda t: 0
+        real_calcualted = real_tank_lox.evaluateUllageHeight()
+
+    #Need docs to be pushed -> "Placeholder" represents where these data analysis-created docs will be inserted
 
 
 # @curtisjhu
