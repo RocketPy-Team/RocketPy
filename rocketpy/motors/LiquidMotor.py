@@ -12,7 +12,6 @@ from scipy import integrate
 
 from rocketpy.Function import Function, PiecewiseFunction
 from rocketpy.motors import Motor
-from rocketpy.motors import Fluid
 
 # @Stano
 # @PBales1
@@ -59,7 +58,7 @@ class LiquidMotor(Motor):
 
 # @gautamsaiy
 class Tank(ABC):
-    def __init__(self, name, tank_geometry, gas: Fluid, liquid: Fluid):
+    def __init__(self, name, tank_geometry, gas, liquid=0):
         self.height = sorted(tank_geometry.keys())[-1][1]
 
         if isinstance(tank_geometry, dict):
@@ -242,7 +241,7 @@ class MassFlowRateBasedTank(Tank):
         mfr.setOutputs("Net Mass Flow Rate")
         return mfr
 
-    def evaluateUllageHeight(self):
+    def evaluateUilageHeight(self):
         liquid_vol = Function(lambda t: (self.initial_liquid_mass.getValue(t)
                 + self.liquid_mass_flow_rate_in.integral(0, t)
                 - self.liquid_mass_flow_rate_out.integral(0, t))
@@ -270,10 +269,12 @@ class UllageBasedTank(Tank):
         self.ullageHeight = Function(ullage, inputs="Time", outputs="Height")
 
     def mass(self):
-        mass = self.liquidMass() + self.gasMass()
-        mass.setInputs("Time")
-        mass.setOutputs("Total Mass")
-        return mass
+        lm = self.tank_vol.functionOfAFunction(self.ullage) * self.liquid.density
+        gm = self.tank_vol.functionOfAFunction(self.ullage) * self.gas.density
+        m = lm + gm
+        m.setInputs("Time")
+        m.setOutputs("Mass")
+        return m
 
     def netMassFlowRate(self):
         m = self.mass()
@@ -282,20 +283,8 @@ class UllageBasedTank(Tank):
         mfr.setOutputs("Mass Flow Rate")
         return mfr
 
-    def evaluateUllageHeight(self):
+    def evaluateUilageHeight(self):
         return self.ullageHeight
-
-    def liquidMass(self):
-        liquid_mass = self.tank_vol.functionOfAFunction(self.ullageHeight) * self.liquid.density
-        liquid_mass.setInputs("Time")
-        liquid_mass.setOutputs("Liquid Mass")
-        return liquid_mass
-    def gasMass(self):
-        gas_mass = self.tank_vol.functionOfAFunction(self.ullageHeight) * self.gas.density
-        gas_mass.setInputs("Time")
-        gas_mass.setOutputs("Gas Mass")
-        return gas_mass
-
 
 
 
