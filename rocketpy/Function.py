@@ -2154,7 +2154,7 @@ class Function:
         result : float
             The value of the input which gives the output closest to val.
         """
-        return optimize.fmin(lambda x: np.abs(self.getValue(x) - val), 0, ftol=1e-6)[0]
+        return optimize.fmin(lambda x: np.abs(self.getValue(x) - val), 0, ftol=1e-6, disp=False)
 
     def functionOfAFunction(self, func, lower=None, upper=None, datapoints=100):
         """
@@ -2218,7 +2218,7 @@ class Function:
 
 
 class PiecewiseFunction(Function):
-    def __new__(cls, source, inputs=["Scalar"], outputs=["Scalar"], interpolation=None, extrapolation=None, datapoints=1000):
+    def __new__(cls, source, inputs=["Scalar"], outputs=["Scalar"], interpolation="polynomial", extrapolation=None, datapoints=50):
         """
         A Function object that can be used to represent a function with
         multiple domains.

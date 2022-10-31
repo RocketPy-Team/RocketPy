@@ -34,8 +34,9 @@ def test_ullage_based_motor():
 def test_mfr_tank_basic1():
     def test(t, a):
         for i in np.arange(0, 10, .2):
-            assert isclose(t.getValue(i), a(i))
-    
+            assert isclose(t.getValue(i), a(i), abs_tol=1e-5)
+            # print(t.getValue(i), a(i))
+
     def test_nmfr():
         nmfr = lambda x: liquid_mass_flow_rate_in + gas_mass_flow_rate_in - liquid_mass_flow_rate_out - gas_mass_flow_rate_out
         test(t.netMassFlowRate(), nmfr)
@@ -46,12 +47,25 @@ def test_mfr_tank_basic1():
         lm = t.mass()
         test(lm, m)
 
-    def test_liquid_vol():
+    def test_liquid_height():
         alv = lambda x: (initial_liquid_mass + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x) / lox.density
-        auh = lambda x: alv(x) / (np.pi * 1 ** 2)
-        tlv = Function(lambda x: (t.initial_liquid_mass(x) + (t.liquid_mass_flow_rate_in - t.liquid_mass_flow_rate_out).integral(0, x)) / t.liquid.density)
-        tuh = Function(lambda x: fmin(lambda y: abs(tlv(x) - t.tank_vol(y)), 0)[0])
-        test(tuh, auh)
+        alh = lambda x: alv(x) / (np.pi)
+        tlh = t.liquidHeight()
+        test(tlh, alh)
+
+    def test_com():
+        alv = lambda x: (initial_liquid_mass + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x) / lox.density
+        alh = lambda x: alv(x) / (np.pi)
+        alm = lambda x: (initial_liquid_mass + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x)
+        agm = lambda x: (initial_gas_mass + (gas_mass_flow_rate_in - gas_mass_flow_rate_out) * x)
+
+        alcom = lambda x: alh(x) / 2
+        agcom = lambda x: (5 - alh(x)) / 2 + alh(x)
+        acom = lambda x: (alm(x) * alcom(x) + agm(x) * agcom(x)) / (alm(x) + agm(x))
+
+        tcom = t.centerOfMass
+        test(tcom, acom)
+        
 
 
     tank_radius_function = {(0, 5): 1}
@@ -69,6 +83,7 @@ def test_mfr_tank_basic1():
             gas_mass_flow_rate_in, liquid_mass_flow_rate_out, 
             gas_mass_flow_rate_out, lox, n2)
 
-    # test_nmfr()
-    # test_mass()
-    test_liquid_vol()
+    test_nmfr()
+    test_mass()
+    test_liquid_height()
+    test_com()
