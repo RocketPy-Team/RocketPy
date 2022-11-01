@@ -108,9 +108,9 @@ class Fins:
             nose cone.
         Fins.cantAngle : float
             Fins cant angle with respect to the rocket centerline, in degrees
-        Fins.cantAngleList : list
-            List of cant angles that fins are set to throughout a flight
-            simulation. Useful for control systems
+        Fins.changingAttributeDict : dict
+            Dictionary that stores the name and the values of the attributes that may
+            be changed during a simulation. Useful for control systems.
         Fins.cantAngleRad : float
             Fins cant angle with respect to the rocket centerline, in radians
         Fins.rootChord : float
@@ -252,15 +252,36 @@ class Fins:
         self.rollParameters = [clfDelta, cldOmega, self.cantAngleRad]
         return self.rollParameters
 
-    def changeCantAngle(self, cantAngle):  # TODO: make it generic def ChangeParam
-        self.cantAngleList.append(cantAngle)
+    def setAttribute(self, name, value):
+        """Changes an existing attribute to a new value and
+        reruns the evaluate methods.
 
-        self.cantAngle = cantAngle
-        self.cantAngleRad = np.radians(cantAngle)
+        Parameters
+        ----------
+        name : strig
+            Name of the attribute that will be changed.
+        value : any
+            value to which the attribute will be changed to.
 
+        Returns
+        -------
+        None
+        """
+        # Changes attribute value
+        self.__dict__[name] = value
+
+        # Add changed attribute to dict
+        if self.changingAttributeDict.has_key(name):
+            self.changingAttributeDict[name].append(value)
+        else:
+            self.changingAttributeDict[name] = [value]
+
+        # Rerun important calculations
+        self.evaluateCenterOfPressure()
+        self.evaluateLiftCoefficient()
         self.evaluateRollCoefficients()
 
-        return self
+        return None
 
     # Defines beta parameter
     def _beta(_, mach):
@@ -447,9 +468,9 @@ class TrapezoidalFins(Fins):
             nose cone.
         TrapezoidalFins.cantAngle : float
             Fins cant angle with respect to the rocket centerline, in degrees
-        TrapezoidalFins.cantAngleList : list
-            List of cant angles that fins are set to throughout a flight
-            simulation. Useful for control systems
+        TrapezoidalFins.changingAttributeDict : dict
+            Dictionary that stores the name and the values of the attributes that may
+            be changed during a simulation. Useful for control systems.
         TrapezoidalFins.cantAngleRad : float
             Fins cant angle with respect to the rocket centerline, in radians
         TrapezoidalFins.rootChord : float
@@ -601,7 +622,7 @@ class TrapezoidalFins(Fins):
         self.airfoil = airfoil
         self.distanceToCM = distanceToCM
         self.cantAngle = cantAngle
-        self.cantAngleList = [cantAngle]
+        self.changingAttributeDict = {}
         self.cantAngleRad = np.radians(cantAngle)
         self.rootChord = rootChord
         self.tipChord = tipChord
@@ -804,9 +825,9 @@ class EllipticalFins(Fins):
             nose cone.
         EllipticalFins.cantAngle : float
             Fins cant angle with respect to the rocket centerline, in degrees
-        EllipticalFins.cantAngleList : list
-            List of cant angles that fins are set to throughout a flight
-            simulation. Useful for control systems
+        EllipticalFins.changingAttributeDict : dict
+            Dictionary that stores the name and the values of the attributes that may
+            be changed during a simulation. Useful for control systems.
         EllipticalFins.cantAngleRad : float
             Fins cant angle with respect to the rocket centerline, in radians
         EllipticalFins.rootChord : float
@@ -937,7 +958,7 @@ class EllipticalFins(Fins):
         self.airfoil = airfoil
         self.distanceToCM = distanceToCM
         self.cantAngle = cantAngle
-        self.cantAngleList = [cantAngle]
+        self.changingAttributeDict = {}
         self.cantAngleRad = np.radians(cantAngle)
         self.rootChord = rootChord
         self.span = span
