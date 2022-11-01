@@ -339,6 +339,96 @@ class TrapezoidalFins(Fins):
         self.cp = (self.cpx, self.cpy, self.cpz)
         return self.cp
 
+    def draw(self):
+        # Color cycle [#348ABD, #A60628, #7A68A6, #467821, #D55E00, #CC79A7, #56B4E9, #009E73, #F0E442, #0072B2]
+        # Fin
+        leadingEdge = plt.Line2D((0, self.sweepLength), (0, self.span), color="#A60628")
+        tip = plt.Line2D(
+            (self.sweepLength, self.sweepLength + self.tipChord),
+            (self.span, self.span),
+            color="#A60628",
+        )
+        backEdge = plt.Line2D(
+            (self.sweepLength + self.tipChord, self.rootChord),
+            (self.span, 0),
+            color="#A60628",
+        )
+        root = plt.Line2D((self.rootChord, 0), (0, 0), color="#A60628")
+
+        # Center and Quarter line
+        center_line = plt.Line2D(
+            (self.rootChord / 2, self.sweepLength + self.tipChord / 2),
+            (0, self.span),
+            color="#7A68A6",
+            alpha=0.35,
+            linestyle="--",
+            label="Center Line",
+        )
+        quarter_line = plt.Line2D(
+            (self.rootChord / 4, self.sweepLength + self.tipChord / 4),
+            (0, self.span),
+            color="#7A68A6",
+            alpha=1,
+            linestyle="--",
+            label="Quarter Line",
+        )
+
+        # Center of pressure
+        cp_point = [abs(self.distanceToCM - self.cpz), self.Yma]
+
+        # Mean Aerodynamic Chord
+        Yma_start = (
+            self.sweepLength
+            * (self.rootChord + 2 * self.tipChord)
+            / (3 * (self.rootChord + self.tipChord))
+        )
+        Yma_end = (
+            2 * self.rootChord**2
+            + self.rootChord * self.sweepLength
+            + 2 * self.rootChord * self.tipChord
+            + 2 * self.sweepLength * self.tipChord
+            + 2 * self.tipChord**2
+        ) / (3 * (self.rootChord + self.tipChord))
+        Yma_line = plt.Line2D(
+            (Yma_start, Yma_end),
+            (self.Yma, self.Yma),
+            color="#467821",
+            linestyle="--",
+            label="Mean Aerodynamic Chord",
+        )
+
+        # Plotting
+        fig3 = plt.figure(figsize=(4, 4))
+        with plt.style.context("bmh"):
+            ax1 = fig3.add_subplot(111)
+
+        # Fin
+        ax1.add_line(leadingEdge)
+        ax1.add_line(tip)
+        ax1.add_line(backEdge)
+        ax1.add_line(root)
+
+        ax1.add_line(center_line)
+        ax1.add_line(quarter_line)
+        ax1.add_line(Yma_line)
+        ax1.scatter(
+            *cp_point, label="Center Of Pressure", color="red", s=100, zorder=10
+        )
+        ax1.scatter(*cp_point, facecolors="none", edgecolors="red", s=500, zorder=10)
+
+        # Plot settings
+        xlim = (
+            self.rootChord
+            if self.sweepLength + self.tipChord < self.rootChord
+            else self.sweepLength + self.tipChord
+        )
+        ax1.set_xlim(0, xlim * 1.1)
+        ax1.set_ylim(0, self.span * 1.1)
+        ax1.set_xlabel("Root Chord")
+        ax1.set_ylabel("Span")
+        ax1.set_title("Trapezoidal Fin")
+        ax1.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
+
 
 class EllipticalFins(Fins):
     def __init__(
@@ -445,6 +535,64 @@ class EllipticalFins(Fins):
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
+        return self
+
+    def draw(self):
+        # Color cycle [#348ABD, #A60628, #7A68A6, #467821, #D55E00, #CC79A7, #56B4E9, #009E73, #F0E442, #0072B2]
+        # Ellipse
+        el = Ellipse(
+            (self.rootChord / 2, 0),
+            self.rootChord,
+            self.span * 2,
+            fill=False,
+            edgecolor="#A60628",
+            linewidth=2,
+        )
+
+        # Mean Aerodynamic Chord
+        Yma_length = 8 * self.rootChord / (3 * np.pi)  # From barrowman
+        Yma_start = (self.rootChord - Yma_length) / 2
+        Yma_end = self.rootChord - (self.rootChord - Yma_length) / 2
+        Yma_line = plt.Line2D(
+            (Yma_start, Yma_end),
+            (self.Yma, self.Yma),
+            label="Mean Aerodynamic Chord",
+            color="#467821",
+        )
+
+        # Center Line
+        center_line = plt.Line2D(
+            (self.rootChord / 2, self.rootChord / 2),
+            (0, self.span),
+            color="#7A68A6",
+            alpha=0.35,
+            linestyle="--",
+            label="Center Line",
+        )
+
+        # Center of pressure
+        cp_point = [abs(self.distanceToCM - self.cpz), self.Yma]
+
+        # Plotting
+        fig3 = plt.figure(figsize=(4, 4))
+        with plt.style.context("bmh"):
+            ax1 = fig3.add_subplot(111)
+        ax1.add_patch(el)
+        ax1.add_line(Yma_line)
+        ax1.add_line(center_line)
+        ax1.scatter(
+            *cp_point, label="Center Of Pressure", color="red", s=100, zorder=10
+        )
+        ax1.scatter(*cp_point, facecolors="none", edgecolors="red", s=500, zorder=10)
+
+        # Plot settings
+        ax1.set_xlim(0, self.rootChord)
+        ax1.set_ylim(0, self.span * 1.1)
+        ax1.set_xlabel("Root Chord")
+        ax1.set_ylabel("Span")
+        ax1.set_title("Elliptical Fin")
+        ax1.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
+
         return self
 
 
