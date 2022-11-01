@@ -6,12 +6,13 @@ __license__ = "MIT"
 
 from abc import ABC, abstractmethod
 from cmath import tan
+from turtle import position
 
 import numpy as np
 from scipy import integrate
 
 from rocketpy.Function import Function, PiecewiseFunction
-from rocketpy.motors import Motor
+from rocketpy.motors import Motor, Fluid
 
 # @Stano
 # @PBales1
@@ -28,7 +29,7 @@ class LiquidMotor(Motor):
 
         super.__init__()
         self.tanks = []
-        self.thrustSource = thrustSource
+        self.thrustSource = Function(thrustSource)
         self.burnOut = burnOut
 
     def evaluateMassFlowRate(self):
@@ -39,32 +40,45 @@ class LiquidMotor(Motor):
 
 
     def evaluateCenterOfMass(self):
-        try:
-            print('insert function here')
-        except NameError:
-            print("Chamber not added")
+        com = Function(0)
+        total_mass = Function(0)
+        for tank in self.tanks:
+            com += (tank["tank"].centerOfMass() + tank[position]) * tank["tank"].mass()
+            total_mass += tank["tank"].mass() + Function(lambda t: tank["tank"].netMassFlowRate.integral(t - .05, t + .05))
+        com = com / total_mass
+        com.setInputs("Time")
+        com.setOutputs("Center of mass")
+        return com
 
 
     def evaluateInertiaTensor(self):
-        pass
+        inertiaI = Function(0)
+        inertiaZ = Function(0)
+        for tank in self.tanks:
+            inertia = tank["tank"].inertiaTensor()
+            inertiaI += inertia[0]
+            inertiaZ += inertia[1]
+        inertiaI.setInputs("Time")
+        inertiaI.setOutputs("Inertia tensor")
+        inertiaZ.setInputs("Time")
+        inertiaZ.setOutputs("Inertia tensor")
+        return [inertiaI, inertiaZ]
 
     def addTank(self, tank, position):
         self.tanks.append({"tank": tank, "position": position})
-
-    def addChamber(self, nozzleHeight, nozzleRadius, throatHeight, throatRadius):
-        self.chamber = ({"nozzle": {"height": nozzleHeight, "radius": nozzleRadius}, \
-            "throat": {"height": throatHeight, "radius": throatRadius}})
 
 
 # @gautamsaiy
 class Tank(ABC):
     def __init__(self, name, tank_geometry, gas, liquid=0):
-        self.height = sorted(tank_geometry.keys())[-1][1]
+        assert isinstance(name, str)
+        assert(isinstance(tank_geometry, dict))
+        assert(isinstance(gas, Fluid))
+        assert(isinstance(liquid, Fluid) or liquid == 0)
 
-        if isinstance(tank_geometry, dict):
-            self.tank_geometry = PiecewiseFunction(tank_geometry)
-        else:
-            self.tank_geometry = Function(tank_geometry)
+        self.height = sorted(tank_geometry.keys())[-1][1]
+        self.tank_geometry = PiecewiseFunction(tank_geometry)
+            
         self.tank_geometry.setInputs("y")
         self.tank_geometry.setOutputs("radius")
 
@@ -206,7 +220,8 @@ class Tank(ABC):
 
     @property
     def inertiaTensor(self):
-        """Returns the inertia tensor of the tank's fluids as a function of
+        """
+        Returns the inertia tensor of the tank's fluids as a function of
         time.
 
         Parameters
@@ -219,24 +234,11 @@ class Tank(ABC):
         Function
             Inertia tensor of the tank's fluids as a function of time.
         """
-        lk = np.pi * self.liquid.density
-        insideIntegral = (self.tank_geometry ** 2) * (self.height * self.centerOfMass()) ** 2
-        integral = lk * insideIntegral.integralFunction()
-        integral.setInputs("time")
-        integral.setOutputs("Inertia")
-        Ixx = Iyy = integral
+        Ix = Function(lambda h: (self.tank_geometry ** 2).integral(0, h))
+        Ix = Function(lambda t: Ix(self.liquidHeight()(t)) * (1/2) * self.mass()(t), "Time", "Inertia tensor")
+
+        return Ix
         
-        lk = lk / 2
-        insideIntegral = self.tank_geometry ** 4
-        integral = lk * insideIntegral.integralFunction()
-        integral.setInputs("time")
-        integral.setOutputs("Inertia")
-        Izz = integral
-
-        
-
-
-
 
 # @MrGribel
 # @gautamsaiy
