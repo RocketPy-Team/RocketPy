@@ -217,6 +217,70 @@ class Fins:
         else:
             return n / 2
 
+    def geometricalInfo(self):
+        print("\n\n Geometrical Parameters\n")
+        if isinstance(self, TrapezoidalFins):
+            print("Fin Type: Trapezoidal")
+            print("Tip Chord: {:.3f} m".format(self.tipChord))
+        else:
+            print("Fin Type: Elliptical")
+
+        print("Root Chord: {:.3f} m".format(self.rootChord))
+        print("Span: {:.3f} m".format(self.span))
+        print("Cant Angle: {:.3f} °".format(self.cantAngle))
+        print("Fin Area: {:.3f} m".format(self.Af))
+        print("Aspect Ratio: {:.3f} m".format(self.AR))
+        print("Gamma_c: {:.3f} m".format(self.gamma_c))
+        print("Mean Aerodynamic Chord: {:.3f} m".format(self.Yma))
+        print(
+            "Roll Geometrical Constant: {:.3f} m".format(self.rollGeometricalConstant)
+        )
+
+        self.draw()
+
+    def liftInfo(self):
+        print("\n\nLift Information\n")
+        print("Lift Interference Factor: {:.3f} m".format(self.liftInterferenceFactor))
+        print(
+            "Center of Pressure position: ({:.3f},{:.3f},{:.3f}) (x, y, z)".format(
+                self.cpx, self.cpy, self.cpz
+            )
+        )
+        self.clalphaSingleFin()
+        self.clalphaMultipleFins()
+        self.cl()
+
+    def rollInfo(self):
+        print("\n\nRoll Information\n")
+        print("Cant Angle: {:.3f} °".format(self.cantAngle))
+        print("Cant Angle Radians: {:.3f} rad".format(self.cantAngleRad))
+        print(
+            "Roll Damping Interference Factor: {:.3f} rad".format(
+                self.rollDampingInterferenceFactor
+            )
+        )
+        print(
+            "Roll Forcing Interference Factor: {:.3f} rad".format(
+                self.rollForcingInterferenceFactor
+            )
+        )
+        self.rollParameters[0]()
+        self.rollParameters[1]()
+
+    def allInfo(self):
+        print("Fin information\n\n")
+
+        print("Basic Information\n")
+
+        print("Number of Fins: {:.0f}".format(self.n))
+        print("Rocket radius at self's position: {:.3f} m".format(self.radius))
+        print("Fin Distance to CM: {:.3f} m".format(self.distanceToCM))
+
+        self.geometricalInfo()
+        self.liftInfo()
+        if self.cantAngle:
+            self.rollInfo()
+
 
 class TrapezoidalFins(Fins):
     def __init__(
