@@ -88,7 +88,85 @@ class NoseCone:
 
 
 class Fins:
+    """Super class that holds common methods for the fin classes.
+    Should not be instantiated.
+
+    Attributes
+    ----------
+
+        Geometrical attributes:
+        Fins.n : int
+            Number of fins in fin set
+        Fins.radius : float
+            Radius of the rocket at the position of the fin set
+        Fins.airfoil : tuple
+            Tuple of two items. First is the airfoil lift curve.
+            Second is the unit of the curve (radians or degrees)
+        Fins.distanceToCM : float
+            Fin set position relative to rocket unloaded center of
+            mass, considering positive direction from center of mass to
+            nose cone.
+        Fins.cantAngle : float
+            Fins cant angle with respect to the rocket centerline, in degrees
+        Fins.cantAngleList : list
+            List of cant angles that fins are set to throughout a flight
+            simulation. Useful for control systems
+        Fins.cantAngleRad : float
+            Fins cant angle with respect to the rocket centerline, in radians
+        Fins.rootChord : float
+            Fin root chord in meters.
+        Fins.tipChord : float
+            Fin tip chord in meters.
+        Fins.span : float
+            Fin span in meters.
+        Fins.name : string
+            Name of fin set
+        Fins.sweepLength : float
+            Fins sweep length in meters. By sweep length, understand the axial distance
+            between the fin root leading edge and the fin tip leading edge measured
+            parallel to the rocket centerline.
+        Fins.sweepAngle : float
+            Fins sweep angle with respect to the rocket centerline. Must
+            be given in degrees.
+        Fins.d : float
+            Diameter of the rocket at the position of the fin set
+        Fins.Aref : float
+            Reference area of the rocket
+        Fins.Af : float
+            Area of the longtudinal section of each fin in the set
+        Fins.AR : float
+            Aspect ratio of each fin in the set
+        Fins.gamma_c : float
+            Fin midchord sweep angle
+        Fins.Yma : float
+            Span wise position of the mean aerodynamic chord
+        Fins.rollGeometricalConstant : float
+            Geometrical constant used in roll calculations
+        Fins.tau : float
+            Geometrical relation used to simplify lift and roll calculations
+        Fins.liftInterferenceFactor : float
+            Factor of Fin-Body interference in the lift coefficient
+    """
+
     def evaluateLiftCoefficient(self):
+        """Calculates and returns the finset's lift coefficient.
+        The lift coefficient is saved and returned. This function
+        also calculates and saves the lift coefficient derivative
+        for a single fin and the lift coefficient derivative for
+        a number of n fins corrected for Fin-Body interference.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        self.cl : Function
+            Function of the angle of attack (Alpha) and the mach number
+            (Mach) expressing the finset's lift coefficient. The inputs
+            are the angle of attack (in radians) and the mach number.
+            The output is the finset's lift coefficient.
+        """
         if not self.airfoil:
             # Defines clalpha2D as 2*pi for planar fins
             clalpha2D = Function(lambda mach: 2 * np.pi / self._beta(mach))
@@ -138,9 +216,23 @@ class Fins:
             "Cl",
         )
 
-        return self
+        return self.cl
 
     def evaluateRollCoefficients(self):
+        """Calculates and returns the finset's roll coefficients.
+        The roll coefficients are saved in a list.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        self.rollParameters : list
+            List containing the roll moment lift coefficient, the
+            roll moment damping coefficient and the cant angle in
+            radians
+        """
         clfDelta = (
             self.rollForcingInterferenceFactor
             * self.n
@@ -158,9 +250,9 @@ class Fins:
             / (self.Aref * self.d**2)
         )  # Function of mach number
         self.rollParameters = [clfDelta, cldOmega, self.cantAngleRad]
-        return self
+        return self.rollParameters
 
-    def changeCantAngle(self, cantAngle):
+    def changeCantAngle(self, cantAngle):  # TODO: make it generic def ChangeParam
         self.cantAngleList.append(cantAngle)
 
         self.cantAngle = cantAngle
@@ -172,7 +264,7 @@ class Fins:
 
     # Defines beta parameter
     def _beta(_, mach):
-        """Defines a parameter that is commonly used in aerodynamic
+        """Defines a parameter that is often used in aerodynamic
         equations. It is commonly used in the Prandtl factor which
         corrects subsonic force coefficients for compressible flow.
 
@@ -218,6 +310,17 @@ class Fins:
             return n / 2
 
     def geometricalInfo(self):
+        """Prints out information about geometrical parameters
+        of the fin set.
+
+        Parameters
+        ----------
+        None
+
+        Return
+        ------
+        None
+        """
         print("\n\n Geometrical Parameters\n")
         if isinstance(self, TrapezoidalFins):
             print("Fin Type: Trapezoidal")
@@ -238,7 +341,20 @@ class Fins:
 
         self.draw()
 
+        return None
+
     def liftInfo(self):
+        """Prints out information about lift parameters
+        of the fin set.
+
+        Parameters
+        ----------
+        None
+
+        Return
+        ------
+        None
+        """
         print("\n\nLift Information\n")
         print("Lift Interference Factor: {:.3f} m".format(self.liftInterferenceFactor))
         print(
@@ -250,7 +366,20 @@ class Fins:
         self.clalphaMultipleFins()
         self.cl()
 
+        return None
+
     def rollInfo(self):
+        """Prints out information about roll parameters
+        of the fin set.
+
+        Parameters
+        ----------
+        None
+
+        Return
+        ------
+        None
+        """
         print("\n\nRoll Information\n")
         print("Cant Angle: {:.3f} °".format(self.cantAngle))
         print("Cant Angle Radians: {:.3f} rad".format(self.cantAngleRad))
@@ -264,10 +393,24 @@ class Fins:
                 self.rollForcingInterferenceFactor
             )
         )
+
         self.rollParameters[0]()
         self.rollParameters[1]()
 
+        return None
+
     def allInfo(self):
+        """Prints out all data and graphs available about the Rocket.
+
+        Parameters
+        ----------
+        None
+
+        Return
+        ------
+        None
+        """
+
         print("Fin information\n\n")
 
         print("Basic Information\n")
@@ -281,8 +424,69 @@ class Fins:
         if self.cantAngle:
             self.rollInfo()
 
+        return None
+
 
 class TrapezoidalFins(Fins):
+    """Class that defines and holds information for a trapezoidal fin set.
+
+    Attributes
+    ----------
+
+        Geometrical attributes:
+        TrapezoidalFins.n : int
+            Number of fins in fin set
+        TrapezoidalFins.radius : float
+            Radius of the rocket at the position of the fin set
+        TrapezoidalFins.airfoil : tuple
+            Tuple of two items. First is the airfoil lift curve.
+            Second is the unit of the curve (radians or degrees)
+        TrapezoidalFins.distanceToCM : float
+            Fin set position relative to rocket unloaded center of
+            mass, considering positive direction from center of mass to
+            nose cone.
+        TrapezoidalFins.cantAngle : float
+            Fins cant angle with respect to the rocket centerline, in degrees
+        TrapezoidalFins.cantAngleList : list
+            List of cant angles that fins are set to throughout a flight
+            simulation. Useful for control systems
+        TrapezoidalFins.cantAngleRad : float
+            Fins cant angle with respect to the rocket centerline, in radians
+        TrapezoidalFins.rootChord : float
+            Fin root chord in meters.
+        TrapezoidalFins.tipChord : float
+            Fin tip chord in meters.
+        TrapezoidalFins.span : float
+            Fin span in meters.
+        TrapezoidalFins.name : string
+            Name of fin set
+        TrapezoidalFins.sweepLength : float
+            Fins sweep length in meters. By sweep length, understand the axial distance
+            between the fin root leading edge and the fin tip leading edge measured
+            parallel to the rocket centerline.
+        TrapezoidalFins.sweepAngle : float
+            Fins sweep angle with respect to the rocket centerline. Must
+            be given in degrees.
+        TrapezoidalFins.d : float
+            Diameter of the rocket at the position of the fin set
+        TrapezoidalFins.Aref : float
+            Reference area of the rocket
+        TrapezoidalFins.Af : float
+            Area of the longtudinal section of each fin in the set
+        TrapezoidalFins.AR : float
+            Aspect ratio of each fin in the set
+        TrapezoidalFins.gamma_c : float
+            Fin midchord sweep angle
+        TrapezoidalFins.Yma : float
+            Span wise position of the mean aerodynamic chord
+        TrapezoidalFins.rollGeometricalConstant : float
+            Geometrical constant used in roll calculations
+        TrapezoidalFins.tau : float
+            Geometrical relation used to simplify lift and roll calculations
+        TrapezoidalFins.liftInterferenceFactor : float
+            Factor of Fin-Body interference in the lift coefficient
+    """
+
     def __init__(
         self,
         n,
@@ -297,6 +501,65 @@ class TrapezoidalFins(Fins):
         airfoil=None,
         name="Fins",
     ):
+        """Initialize TrapezoidalFins class.
+
+        Parameters
+        ----------
+        n : int
+            Number of fins, from 2 to infinity.
+        rootChord : int, float
+            Fin root chord in meters.
+        tipChord : int, float
+            Fin tip chord in meters.
+        span : int, float
+            Fin span in meters.
+        distanceToCM : int, float
+            Fin set position relative to rocket unloaded center of
+            mass, considering positive direction from center of mass to
+            nose cone. Consider the center point belonging to the top
+            of the fins to calculate distance.
+        radius : int, float
+            Reference radius to calculate lift coefficient. If None, which
+            is default, use rocket radius. Otherwise, enter the radius
+            of the rocket in the section of the fins, as this impacts
+            its lift coefficient.
+        cantAngle : int, float, optional
+            Fins cant angle with respect to the rocket centerline. Must
+            be given in degrees.
+        sweepLength : int, float, optional
+            Fins sweep length in meters. By sweep length, understand the axial distance
+            between the fin root leading edge and the fin tip leading edge measured
+            parallel to the rocket centerline. If not given, the sweep length is
+            assumed to be equal the root chord minus the tip chord, in which case the
+            fin is a right trapezoid with its base perpendicular to the rocket's axis.
+            Cannot be used in conjunction with sweepAngle.
+        sweepAngle : int, float, optional
+            Fins sweep angle with respect to the rocket centerline. Must
+            be given in degrees. If not given, the sweep angle is automatically
+            calculated, in which case the fin is assumed to be a right trapezoid with
+            its base perpendicular to the rocket's axis.
+            Cannot be used in conjunction with sweepLength.
+        airfoil : tuple, optional
+            Default is null, in which case fins will be treated as flat plates.
+            Otherwise, if tuple, fins will be considered as airfoils. The
+            tuple's first item specifies the airfoil's lift coefficient
+            by angle of attack and must be either a .csv, .txt, ndarray
+            or callable. The .csv and .txt files must contain no headers
+            and the first column must specify the angle of attack, while
+            the second column must specify the lift coefficient. The
+            ndarray should be as [(x0, y0), (x1, y1), (x2, y2), ...]
+            where x0 is the angle of attack and y0 is the lift coefficient.
+            If callable, it should take an angle of attack as input and
+            return the lift coefficient at that angle of attack.
+            The tuple's second item is the unit of the angle of attack,
+            accepting either "radians" or "degrees".
+        name : str
+            Name of fin set.
+
+        Returns
+        -------
+        None
+        """
 
         # Check if sweep angle or sweep length is given
         if sweepLength is not None and sweepAngle is not None:
@@ -386,6 +649,19 @@ class TrapezoidalFins(Fins):
             self.evaluateRollCoefficients()
 
     def evaluateCenterOfPressure(self):
+        """Calculates and returns the finset's center of pressure
+        in relation to the rocket's center of dry mass. the center
+        of pressure position is saved and stored in a tuple.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        self.cp : tuple
+            Tuple containing cpx, cpy, cpz.
+        """
         # Center of pressure position relative to CDM (center of dry mass)
         cpz = self.distanceToCM + np.sign(self.distanceToCM) * (
             (self.sweepLength / 3)
@@ -404,6 +680,18 @@ class TrapezoidalFins(Fins):
         return self.cp
 
     def draw(self):
+        """Draw the fin shape along with some important
+        information. These being, the center line, the
+        quarter line and the center of pressure position.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
         # Color cycle [#348ABD, #A60628, #7A68A6, #467821, #D55E00, #CC79A7, #56B4E9, #009E73, #F0E442, #0072B2]
         # Fin
         leadingEdge = plt.Line2D((0, self.sweepLength), (0, self.span), color="#A60628")
@@ -493,8 +781,67 @@ class TrapezoidalFins(Fins):
         ax1.set_title("Trapezoidal Fin")
         ax1.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
 
+        return None
+
 
 class EllipticalFins(Fins):
+    """Class that defines and holds information for an elliptical fin set.
+
+    Attributes
+    ----------
+
+        Geometrical attributes:
+        EllipticalFins.n : int
+            Number of fins in fin set
+        EllipticalFins.radius : float
+            Radius of the rocket at the position of the fin set
+        EllipticalFins.airfoil : tuple
+            Tuple of two items. First is the airfoil lift curve.
+            Second is the unit of the curve (radians or degrees)
+        EllipticalFins.distanceToCM : float
+            Fin set position relative to rocket unloaded center of
+            mass, considering positive direction from center of mass to
+            nose cone.
+        EllipticalFins.cantAngle : float
+            Fins cant angle with respect to the rocket centerline, in degrees
+        EllipticalFins.cantAngleList : list
+            List of cant angles that fins are set to throughout a flight
+            simulation. Useful for control systems
+        EllipticalFins.cantAngleRad : float
+            Fins cant angle with respect to the rocket centerline, in radians
+        EllipticalFins.rootChord : float
+            Fin root chord in meters.
+        EllipticalFins.span : float
+            Fin span in meters.
+        EllipticalFins.name : string
+            Name of fin set
+        EllipticalFins.sweepLength : float
+            Fins sweep length in meters. By sweep length, understand the axial distance
+            between the fin root leading edge and the fin tip leading edge measured
+            parallel to the rocket centerline.
+        EllipticalFins.sweepAngle : float
+            Fins sweep angle with respect to the rocket centerline. Must
+            be given in degrees.
+        EllipticalFins.d : float
+            Diameter of the rocket at the position of the fin set
+        EllipticalFins.Aref : float
+            Reference area of the rocket
+        EllipticalFins.Af : float
+            Area of the longtudinal section of each fin in the set
+        EllipticalFins.AR : float
+            Aspect ratio of each fin in the set
+        EllipticalFins.gamma_c : float
+            Fin midchord sweep angle
+        EllipticalFins.Yma : float
+            Span wise position of the mean aerodynamic chord
+        EllipticalFins.rollGeometricalConstant : float
+            Geometrical constant used in roll calculations
+        EllipticalFins.tau : float
+            Geometrical relation used to simplify lift and roll calculations
+        EllipticalFins.liftInterferenceFactor : float
+            Factor of Fin-Body interference in the lift coefficient
+    """
+
     def __init__(
         self,
         n,
@@ -506,6 +853,63 @@ class EllipticalFins(Fins):
         airfoil=None,
         name="Fins",
     ):
+        """Initialize EllipticalFins class.
+
+        Parameters
+        ----------
+        n : int
+            Number of fins, from 2 to infinity.
+        rootChord : int, float
+            Fin root chord in meters.
+        span : int, float
+            Fin span in meters.
+        distanceToCM : int, float
+            Fin set position relative to rocket unloaded center of
+            mass, considering positive direction from center of mass to
+            nose cone. Consider the center point belonging to the top
+            of the fins to calculate distance.
+        radius : int, float
+            Reference radius to calculate lift coefficient. If None, which
+            is default, use rocket radius. Otherwise, enter the radius
+            of the rocket in the section of the fins, as this impacts
+            its lift coefficient.
+        cantAngle : int, float, optional
+            Fins cant angle with respect to the rocket centerline. Must
+            be given in degrees.
+        sweepLength : int, float, optional
+            Fins sweep length in meters. By sweep length, understand the axial distance
+            between the fin root leading edge and the fin tip leading edge measured
+            parallel to the rocket centerline. If not given, the sweep length is
+            assumed to be equal the root chord minus the tip chord, in which case the
+            fin is a right trapezoid with its base perpendicular to the rocket's axis.
+            Cannot be used in conjunction with sweepAngle.
+        sweepAngle : int, float, optional
+            Fins sweep angle with respect to the rocket centerline. Must
+            be given in degrees. If not given, the sweep angle is automatically
+            calculated, in which case the fin is assumed to be a right trapezoid with
+            its base perpendicular to the rocket's axis.
+            Cannot be used in conjunction with sweepLength.
+        airfoil : tuple, optional
+            Default is null, in which case fins will be treated as flat plates.
+            Otherwise, if tuple, fins will be considered as airfoils. The
+            tuple's first item specifies the airfoil's lift coefficient
+            by angle of attack and must be either a .csv, .txt, ndarray
+            or callable. The .csv and .txt files must contain no headers
+            and the first column must specify the angle of attack, while
+            the second column must specify the lift coefficient. The
+            ndarray should be as [(x0, y0), (x1, y1), (x2, y2), ...]
+            where x0 is the angle of attack and y0 is the lift coefficient.
+            If callable, it should take an angle of attack as input and
+            return the lift coefficient at that angle of attack.
+            The tuple's second item is the unit of the angle of attack,
+            accepting either "radians" or "degrees".
+        name : str
+            Name of fin set.
+
+        Returns
+        -------
+        None
+        """
 
         # Compute auxiliary geometrical parameters
         d = 2 * radius
@@ -592,7 +996,22 @@ class EllipticalFins(Fins):
             )
             self.evaluateRollCoefficients()
 
+        return None
+
     def evaluateCenterOfPressure(self):
+        """Calculates and returns the finset's center of pressure
+        in relation to the rocket's center of dry mass. the center
+        of pressure position is saved and stored in a tuple.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        self.cp : tuple
+            Tuple containing cpx, cpy, cpz.
+        """
         # Center of pressure position relative to CDM (center of dry mass)
         cpz = self.distanceToCM + np.sign(self.distanceToCM) * (0.288 * self.rootChord)
         self.cpx = 0
@@ -602,6 +1021,17 @@ class EllipticalFins(Fins):
         return self
 
     def draw(self):
+        """Draw the fin shape along with some important information.
+        These being, the center line and the center of pressure position.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
         # Color cycle [#348ABD, #A60628, #7A68A6, #467821, #D55E00, #CC79A7, #56B4E9, #009E73, #F0E442, #0072B2]
         # Ellipse
         el = Ellipse(
@@ -657,7 +1087,7 @@ class EllipticalFins(Fins):
         ax1.set_title("Elliptical Fin")
         ax1.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
 
-        return self
+        return None
 
 
 class Tail:
