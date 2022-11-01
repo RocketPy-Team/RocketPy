@@ -233,6 +233,9 @@ class Fins:
             roll moment damping coefficient and the cant angle in
             radians
         """
+
+        self.cantAngleRad = np.radians(self.cantAngle)
+
         clfDelta = (
             self.rollForcingInterferenceFactor
             * self.n
@@ -271,7 +274,7 @@ class Fins:
         self.__dict__[name] = value
 
         # Add changed attribute to dict
-        if self.changingAttributeDict.has_key(name):
+        if self.changingAttributeDict.get(name) != None:
             self.changingAttributeDict[name].append(value)
         else:
             self.changingAttributeDict[name] = [value]
@@ -442,8 +445,7 @@ class Fins:
 
         self.geometricalInfo()
         self.liftInfo()
-        if self.cantAngle:
-            self.rollInfo()
+        self.rollInfo()
 
         return None
 
@@ -615,6 +617,27 @@ class TrapezoidalFins(Fins):
         # Fin–body interference correction parameters
         tau = (span + radius) / radius
         liftInterferenceFactor = 1 + 1 / tau
+        # Parameters for Roll Moment.
+        # Documented at: https://github.com/RocketPy-Team/RocketPy/blob/master/docs/technical/aerodynamics/Roll_Equations.pdf
+        λ = tipChord / rootChord
+        rollDampingInterferenceFactor = 1 + (
+            ((tau - λ) / (tau)) - ((1 - λ) / (tau - 1)) * np.log(tau)
+        ) / (
+            ((tau + 1) * (tau - λ)) / (2) - ((1 - λ) * (tau**3 - 1)) / (3 * (tau - 1))
+        )
+        rollForcingInterferenceFactor = (1 / np.pi**2) * (
+            (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
+            + ((np.pi * (tau**2 + 1) ** 2) / (tau**2 * (tau - 1) ** 2))
+            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
+            - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
+            + ((tau**2 + 1) ** 2)
+            / (tau**2 * (tau - 1) ** 2)
+            * (np.arcsin((tau**2 - 1) / (tau**2 + 1))) ** 2
+            - (4 * (tau + 1))
+            / (tau * (tau - 1))
+            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
+            + (8 / (tau - 1) ** 2) * np.log((tau**2 + 1) / (2 * tau))
+        )
 
         # Store values
         self.n = n
@@ -623,7 +646,6 @@ class TrapezoidalFins(Fins):
         self.distanceToCM = distanceToCM
         self.cantAngle = cantAngle
         self.changingAttributeDict = {}
-        self.cantAngleRad = np.radians(cantAngle)
         self.rootChord = rootChord
         self.tipChord = tipChord
         self.span = span
@@ -633,41 +655,21 @@ class TrapezoidalFins(Fins):
         self.d = d
         self.Aref = Aref  # Reference area
         self.Yr = Yr
-        self.Af = Af * span / 2  # Fin area
+        self.Af = Af  # Fin area
         self.AR = AR  # Fin aspect ratio
         self.gamma_c = gamma_c  # Mid chord angle
         self.Yma = Yma  # Span wise coord of mean aero chord
         self.rollGeometricalConstant = rollGeometricalConstant
         self.tau = tau
         self.liftInterferenceFactor = liftInterferenceFactor
+        self.λ = λ
+        self.rollDampingInterferenceFactor = rollDampingInterferenceFactor
+        self.rollForcingInterferenceFactor = rollForcingInterferenceFactor
 
         self.evaluateCenterOfPressure()
         self.evaluateLiftCoefficient()
 
-        if cantAngle:
-            # Parameters for Roll Moment.
-            # Documented at: https://github.com/RocketPy-Team/RocketPy/blob/master/docs/technical/aerodynamics/Roll_Equations.pdf
-            self.λ = tipChord / rootChord
-            self.rollDampingInterferenceFactor = 1 + (
-                ((tau - self.λ) / (tau)) - ((1 - self.λ) / (tau - 1)) * np.log(tau)
-            ) / (
-                ((tau + 1) * (tau - self.λ)) / (2)
-                - ((1 - self.λ) * (tau**3 - 1)) / (3 * (tau - 1))
-            )
-            self.rollForcingInterferenceFactor = (1 / np.pi**2) * (
-                (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
-                + ((np.pi * (tau**2 + 1) ** 2) / (tau**2 * (tau - 1) ** 2))
-                * np.arcsin((tau**2 - 1) / (tau**2 + 1))
-                - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
-                + ((tau**2 + 1) ** 2)
-                / (tau**2 * (tau - 1) ** 2)
-                * (np.arcsin((tau**2 - 1) / (tau**2 + 1))) ** 2
-                - (4 * (tau + 1))
-                / (tau * (tau - 1))
-                * np.arcsin((tau**2 - 1) / (tau**2 + 1))
-                + (8 / (tau - 1) ** 2) * np.log((tau**2 + 1) / (2 * tau))
-            )
-            self.evaluateRollCoefficients()
+        self.evaluateRollCoefficients()
 
     def evaluateCenterOfPressure(self):
         """Calculates and returns the finset's center of pressure
@@ -951,6 +953,44 @@ class EllipticalFins(Fins):
         # Fin–body interference correction parameters
         tau = (span + radius) / radius
         liftInterferenceFactor = 1 + 1 / tau
+        rollDampingInterferenceFactor = 1 + (
+            (radius**2)
+            * (
+                2
+                * (radius**2)
+                * np.sqrt(span**2 - radius**2)
+                * np.log(
+                    (2 * span * np.sqrt(span**2 - radius**2) + 2 * span**2)
+                    / radius
+                )
+                - 2
+                * (radius**2)
+                * np.sqrt(span**2 - radius**2)
+                * np.log(2 * span)
+                + 2 * span**3
+                - np.pi * radius * span**2
+                - 2 * (radius**2) * span
+                + np.pi * radius**3
+            )
+        ) / (
+            2
+            * (span**2)
+            * (span / 3 + np.pi * radius / 4)
+            * (span**2 - radius**2)
+        )
+        rollForcingInterferenceFactor = (1 / np.pi**2) * (
+            (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
+            + ((np.pi * (tau**2 + 1) ** 2) / (tau**2 * (tau - 1) ** 2))
+            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
+            - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
+            + ((tau**2 + 1) ** 2)
+            / (tau**2 * (tau - 1) ** 2)
+            * (np.arcsin((tau**2 - 1) / (tau**2 + 1))) ** 2
+            - (4 * (tau + 1))
+            / (tau * (tau - 1))
+            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
+            + (8 / (tau - 1) ** 2) * np.log((tau**2 + 1) / (2 * tau))
+        )
 
         # Store values
         self.n = n
@@ -965,57 +1005,19 @@ class EllipticalFins(Fins):
         self.name = name
         self.d = d
         self.Aref = Aref  # Reference area
-        self.Af = Af * span / 2  # Fin area
+        self.Af = Af  # Fin area
         self.AR = AR  # Fin aspect ratio
         self.gamma_c = gamma_c  # Mid chord angle
         self.Yma = Yma  # Span wise coord of mean aero chord
         self.rollGeometricalConstant = rollGeometricalConstant
         self.tau = tau
         self.liftInterferenceFactor = liftInterferenceFactor
+        self.rollDampingInterferenceFactor = rollDampingInterferenceFactor
+        self.rollForcingInterferenceFactor = rollForcingInterferenceFactor
 
         self.evaluateCenterOfPressure()
         self.evaluateLiftCoefficient()
-
-        if cantAngle:
-            self.rollDampingInterferenceFactor = 1 + (
-                (radius**2)
-                * (
-                    2
-                    * (radius**2)
-                    * np.sqrt(span**2 - radius**2)
-                    * np.log(
-                        (2 * span * np.sqrt(span**2 - radius**2) + 2 * span**2)
-                        / radius
-                    )
-                    - 2
-                    * (radius**2)
-                    * np.sqrt(span**2 - radius**2)
-                    * np.log(2 * span)
-                    + 2 * span**3
-                    - np.pi * radius * span**2
-                    - 2 * (radius**2) * span
-                    + np.pi * radius**3
-                )
-            ) / (
-                2
-                * (span**2)
-                * (span / 3 + np.pi * radius / 4)
-                * (span**2 - radius**2)
-            )
-            self.rollForcingInterferenceFactor = (1 / np.pi**2) * (
-                (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
-                + ((np.pi * (tau**2 + 1) ** 2) / (tau**2 * (tau - 1) ** 2))
-                * np.arcsin((tau**2 - 1) / (tau**2 + 1))
-                - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
-                + ((tau**2 + 1) ** 2)
-                / (tau**2 * (tau - 1) ** 2)
-                * (np.arcsin((tau**2 - 1) / (tau**2 + 1))) ** 2
-                - (4 * (tau + 1))
-                / (tau * (tau - 1))
-                * np.arcsin((tau**2 - 1) / (tau**2 + 1))
-                + (8 / (tau - 1) ** 2) * np.log((tau**2 + 1) / (2 * tau))
-            )
-            self.evaluateRollCoefficients()
+        self.evaluateRollCoefficients()
 
         return None
 

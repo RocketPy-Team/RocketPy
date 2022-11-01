@@ -535,10 +535,10 @@ class Rocket:
             tipChord,
             span,
             distanceToCM,
+            radius,
             cantAngle,
             sweepLength,
             sweepAngle,
-            radius,
             airfoil,
             name,
         )
@@ -621,7 +621,7 @@ class Rocket:
 
         # Create a fin set as an object of EllipticalFins class
         finSet = EllipticalFins(
-            n, rootChord, span, distanceToCM, cantAngle, radius, airfoil, name
+            n, rootChord, span, distanceToCM, radius, cantAngle, airfoil, name
         )
 
         # Add fin set to the list of aerodynamic surfaces
