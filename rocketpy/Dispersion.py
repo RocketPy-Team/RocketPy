@@ -424,9 +424,7 @@ class Dispersion:
                 missing_input = str(missing_input)
                 # Add to the dict
                 try:
-                    dictionary[missing_input] = [
-                        getattr(self.rocket, missing_input)
-                    ]
+                    dictionary[missing_input] = [getattr(self.rocket, missing_input)]
                 except:
                     # class was not inputted
                     # checks if missing parameter is required
@@ -738,10 +736,7 @@ class Dispersion:
                 else:
                     dictionary[parameter_key] = (
                         getattr(
-                            self.rocket.parachutes[
-                                self.parachute_names.index(parachute_name)
-                            ],
-                            parameter,
+                            self.rocket.get_parachute_by_name(parachute_name), parameter
                         ),
                         parameter_value,
                     )
@@ -1204,7 +1199,6 @@ class Dispersion:
                     noise=setting["parachute_" + name + "_noise"],
                 )
 
-            # TODO: Remove hard-coded rail buttons definition
             rocket_dispersion.setRailButtons(
                 distanceToCM=[
                     setting["positionFirstRailButton"],
