@@ -425,7 +425,7 @@ class Rocket:
         """
         # Create a nose as an object of NoseCone class
         nose = NoseCone(length, kind, distanceToCM, self.radius, name)
-        
+
         # Add nose to the list of aerodynamic surfaces
         self.aerodynamicSurfaces.append(nose)
 
