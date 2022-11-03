@@ -7,6 +7,7 @@ import numpy as np
 from matplotlib.patches import Ellipse
 
 from .Function import Function
+from abc import ABC, abstractmethod, abstractproperty
 
 
 class NoseCone:
@@ -45,7 +46,7 @@ class NoseCone:
         Lift coefficient slope. Has units of 1/rad.
     """
 
-    def __init__(self, length, kind, distanceToCM, name="Nose Cone"):
+    def __init__(self, length, kind, distanceToCM, rocketRadius, name="Nose Cone"):
         """Initializes the nose cone. It is used to define the nose cone
         length, kind, distance to center of mass and name.
 
@@ -58,6 +59,8 @@ class NoseCone:
         distanceToCM : float
             Distance between nose cone tip and rocket center of mass. Has units of
             length and must be given in meters.
+        rocketRadius : int, float
+            The radius of the rocket's body at the nose cone position.
         name : str, optional
             Nose cone name. Has no impact in simulation, as it is only used to
             display data in a more organized matter.
@@ -70,6 +73,7 @@ class NoseCone:
         self.kind = kind
         self.distanceToCM = distanceToCM
         self.name = name
+        self.rocketRadius = rocketRadius
 
         # Analyze type
         if self.kind == "conical":
@@ -154,19 +158,15 @@ class NoseCone:
         return None
 
 
-class Fins:
-    """Super class that holds common methods for the fin classes.
-    Should not be instantiated.
-
-    Parameters
-    ----------
-    None
+class Fins(ABC):
+    """Abstract class that holds common methods for the fin classes.
+    Cannot be instantiated.
 
     Attributes
     ----------
     Fins.n : int
         Number of fins in fin set
-    Fins.radius : float
+    Fins.rocketRadius : float
         Radius of the rocket at the position of the fin set
     Fins.airfoil : tuple
         Tuple of two items. First is the airfoil lift curve.
@@ -177,10 +177,6 @@ class Fins:
         nose cone.
     Fins.cantAngle : float
         Fins cant angle with respect to the rocket centerline, in degrees
-    Fins.cl : Function
-        Function which defines the lift coefficient as a function of the angle of
-        attack and the Mach number. It must take as input the angle of attack in
-        radians and the Mach number. It should return the lift coefficient.
     Fins.changingAttributeDict : dict
         Dictionary that stores the name and the values of the attributes that may
         be changed during a simulation. Useful for control systems.
@@ -204,7 +200,7 @@ class Fins:
     Fins.d : float
         Diameter of the rocket at the position of the fin set
     Fins.Aref : float
-        Reference area of the rocket
+        Reference area of the rocket at the fin set position.
     Fins.Af : float
         Area of the longitudinal section of each fin in the set
     Fins.AR : float
@@ -221,8 +217,97 @@ class Fins:
         Factor of Fin-Body interference in the lift coefficient
     """
 
+    def __init__(
+        self,
+        n,
+        rootChord,
+        span,
+        distanceToCM,
+        rocketRadius,
+        cantAngle=0,
+        airfoil=None,
+        name="Fins",
+    ):
+        """Initialize Fins class.
+
+        Parameters
+        ----------
+        n : int
+            Number of fins, from 2 to infinity.
+        rootChord : int, float
+            Fin root chord in meters.
+        span : int, float
+            Fin span in meters.
+        distanceToCM : int, float
+            Fin set position relative to rocket unloaded center of
+            mass, considering positive direction from center of mass to
+            nose cone. Consider the center point belonging to the top
+            of the fins to calculate distance.
+        rocketRadius : int, float
+            Reference radius to calculate lift coefficient.
+        cantAngle : int, float, optional
+            Fins cant angle with respect to the rocket centerline. Must
+            be given in degrees.
+        airfoil : tuple, optional
+            Default is null, in which case fins will be treated as flat plates.
+            Otherwise, if tuple, fins will be considered as airfoils. The
+            tuple's first item specifies the airfoil's lift coefficient
+            by angle of attack and must be either a .csv, .txt, ndarray
+            or callable. The .csv and .txt files must contain no headers
+            and the first column must specify the angle of attack, while
+            the second column must specify the lift coefficient. The
+            ndarray should be as [(x0, y0), (x1, y1), (x2, y2), ...]
+            where x0 is the angle of attack and y0 is the lift coefficient.
+            If callable, it should take an angle of attack as input and
+            return the lift coefficient at that angle of attack.
+            The tuple's second item is the unit of the angle of attack,
+            accepting either "radians" or "degrees".
+        name : str
+            Name of fin set.
+
+        Returns
+        -------
+        None
+        """
+
+        # Compute auxiliary geometrical parameters
+        d = 2 * rocketRadius
+        Aref = np.pi * rocketRadius**2  # Reference area
+
+        # Store values
+        self.n = n
+        self.rocketRadius = rocketRadius
+        self.airfoil = airfoil
+        self.distanceToCM = distanceToCM
+        self.cantAngle = cantAngle
+        self.rootChord = rootChord
+        self.span = span
+        self.name = name
+        self.d = d
+        self.Aref = Aref  # Reference area
+
+        return None
+
+    @abstractmethod
+    def evaluateCenterOfPressure(self):
+        """Calculates and returns the finset's center of pressure
+        in relation to the rocket's center of dry mass. The center
+        of pressure position is saved and stored in a tuple.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        self.cp : tuple
+            Tuple containing cpx, cpy, cpz.
+        """
+
+        pass
+
     def evaluateLiftCoefficient(self):
-        """Calculates and returns the lift coefficient of the fin set.
+        """Calculates and returns the finset's lift coefficient.
         The lift coefficient is saved and returned. This function
         also calculates and saves the lift coefficient derivative
         for a single fin and the lift coefficient derivative for
@@ -242,7 +327,7 @@ class Fins:
         """
         if not self.airfoil:
             # Defines clalpha2D as 2*pi for planar fins
-            clalpha2D = Function(lambda mach: 2 * np.pi / self._beta(mach))
+            clalpha2D = Function(lambda mach: 2 * np.pi / self.__beta(mach))
         else:
             # Defines clalpha2D as the derivative of the
             # lift coefficient curve for a specific airfoil
@@ -259,7 +344,7 @@ class Fins:
                 clalpha2D_Mach0 *= 180 / np.pi
 
             # Correcting for compressible flow
-            clalpha2D = Function(lambda mach: clalpha2D_Mach0 / self._beta(mach))
+            clalpha2D = Function(lambda mach: clalpha2D_Mach0 / self.__beta(mach))
 
         # Diederich's Planform Correlation Parameter
         FD = 2 * np.pi * self.AR / (clalpha2D * np.cos(self.gamma_c))
@@ -272,27 +357,33 @@ class Fins:
                 * (self.Af / self.Aref)
                 * np.cos(self.gamma_c)
             )
-            / (2 + FD(mach) * np.sqrt(1 + (2 / FD(mach)) ** 2))
+            / (2 + FD(mach) * np.sqrt(1 + (2 / FD(mach)) ** 2)),
+            "Mach",
+            "Lift coefficient derivative for a single fin",
         )
 
         # Lift coefficient derivative for a number of n fins corrected for Fin-Body interference
         self.clalphaMultipleFins = (
             self.liftInterferenceFactor
-            * self._finNumCorrection(self.n)
+            * self.__finNumCorrection(self.n)
             * self.clalphaSingleFin
         )  # Function of mach number
+        self.clalphaMultipleFins.setInputs("Mach")
+        self.clalphaMultipleFins.setOutputs(
+            "Lift coefficient derivative for {:.0f} fins".format(self.n)
+        )
 
         # Calculates clalpha * alpha
         self.cl = Function(
             lambda alpha, mach: alpha * self.clalphaMultipleFins(mach),
             ["Alpha (rad)", "Mach"],
-            "Cl",
+            "Lift coefficient",
         )
 
         return self.cl
 
-    def evaluateRollCoefficients(self):
-        """Calculates and returns the fin set's roll coefficients.
+    def evaluateRollParameters(self):
+        """Calculates and returns the finset's roll coefficients.
         The roll coefficients are saved in a list.
 
         Parameters
@@ -312,10 +403,12 @@ class Fins:
         clfDelta = (
             self.rollForcingInterferenceFactor
             * self.n
-            * (self.Yma + self.radius)
+            * (self.Yma + self.rocketRadius)
             * self.clalphaSingleFin
             / self.d
         )  # Function of mach number
+        clfDelta.setInputs("Mach")
+        clfDelta.setOutputs("Roll moment forcing coefficient derivative")
         cldOmega = (
             2
             * self.rollDampingInterferenceFactor
@@ -325,42 +418,13 @@ class Fins:
             * self.rollGeometricalConstant
             / (self.Aref * self.d**2)
         )  # Function of mach number
+        cldOmega.setInputs("Mach")
+        cldOmega.setOutputs("Roll moment damping coefficient derivative")
         self.rollParameters = [clfDelta, cldOmega, self.cantAngleRad]
         return self.rollParameters
 
-    def setAttribute(self, name, value):
-        """Changes an existing attribute to a new value and
-        reruns the evaluate methods.
-
-        Parameters
-        ----------
-        name : string
-            Name of the attribute that will be changed.
-        value : any
-            value to which the attribute will be changed to.
-
-        Returns
-        -------
-        None
-        """
-        # Changes attribute value
-        self.__dict__[name] = value
-
-        # Add changed attribute to dict
-        if self.changingAttributeDict.get(name) != None:
-            self.changingAttributeDict[name].append(value)
-        else:
-            self.changingAttributeDict[name] = [value]
-
-        # Rerun important calculations
-        self.evaluateCenterOfPressure()
-        self.evaluateLiftCoefficient()
-        self.evaluateRollCoefficients()
-
-        return None
-
     # Defines beta parameter
-    def _beta(_, mach):
+    def __beta(_, mach):
         """Defines a parameter that is often used in aerodynamic
         equations. It is commonly used in the Prandtl factor which
         corrects subsonic force coefficients for compressible flow.
@@ -384,7 +448,7 @@ class Fins:
             return np.sqrt(mach**2 - 1)
 
     # Defines number of fins  factor
-    def _finNumCorrection(_, n):
+    def __finNumCorrection(_, n):
         """Calculates a correction factor for the lift coefficient of multiple fins.
         The specifics  values are documented at:
         Niskanen, S. (2013). “OpenRocket technical documentation”. In: Development
@@ -406,6 +470,22 @@ class Fins:
         else:
             return n / 2
 
+    @abstractmethod
+    def draw():
+        """Draw the fin shape along with some important
+        information. These being, the center line, the
+        quarter line and the center of pressure position.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        pass
+
     def geometricalInfo(self):
         """Prints out information about geometrical parameters
         of the fin set.
@@ -418,7 +498,8 @@ class Fins:
         ------
         None
         """
-        print("\n Geometrical Parameters\n")
+
+        print("\n\nGeometrical Parameters\n")
         if isinstance(self, TrapezoidalFins):
             print("Fin Type: Trapezoidal")
             print("Tip Chord: {:.3f} m".format(self.tipChord))
@@ -436,11 +517,9 @@ class Fins:
             "Roll Geometrical Constant: {:.3f} m".format(self.rollGeometricalConstant)
         )
 
-        self.draw()
-
         return None
 
-    def liftInfo(self):
+    def aerodynamicInfo(self):
         """Prints out information about lift parameters
         of the fin set.
 
@@ -452,7 +531,7 @@ class Fins:
         ------
         None
         """
-        print("\nLift Information")
+        print("\n\nAerodynamic Information")
         print("----------------")
         print("Lift Interference Factor: {:.3f} m".format(self.liftInterferenceFactor))
         print(
@@ -503,8 +582,8 @@ class Fins:
             )
         )
 
-        self.rollParameters[0]()  # TODO: improve this plot
-        self.rollParameters[1]()  # TODO: improve this plot
+        self.rollParameters[0]()
+        self.rollParameters[1]()
 
         return None
 
@@ -520,16 +599,18 @@ class Fins:
         None
         """
 
-        print("Fin set information\n\n")
+        print("Fin set information\n")
+
+        self.draw()
 
         print("Basic Information\n")
 
         print("Number of Fins: {:.0f}".format(self.n))
-        print("Rocket radius at self's position: {:.3f} m".format(self.radius))
+        print("Rocket radius at self's position: {:.3f} m".format(self.rocketRadius))
         print("Fin Distance to CM: {:.3f} m".format(self.distanceToCM))
 
         self.geometricalInfo()
-        self.liftInfo()
+        self.aerodynamicInfo()
         self.rollInfo()
 
         return None
@@ -542,56 +623,56 @@ class TrapezoidalFins(Fins):
     ----------
 
         Geometrical attributes:
-        TrapezoidalFins.n : int
+        Fins.n : int
             Number of fins in fin set
-        TrapezoidalFins.radius : float
+        Fins.rocketRadius : float
             Radius of the rocket at the position of the fin set
-        TrapezoidalFins.airfoil : tuple
+        Fins.airfoil : tuple
             Tuple of two items. First is the airfoil lift curve.
             Second is the unit of the curve (radians or degrees)
-        TrapezoidalFins.distanceToCM : float
+        Fins.distanceToCM : float
             Fin set position relative to rocket unloaded center of
             mass, considering positive direction from center of mass to
             nose cone.
-        TrapezoidalFins.cantAngle : float
+        Fins.cantAngle : float
             Fins cant angle with respect to the rocket centerline, in degrees
-        TrapezoidalFins.changingAttributeDict : dict
+        Fins.changingAttributeDict : dict
             Dictionary that stores the name and the values of the attributes that may
             be changed during a simulation. Useful for control systems.
-        TrapezoidalFins.cantAngleRad : float
+        Fins.cantAngleRad : float
             Fins cant angle with respect to the rocket centerline, in radians
-        TrapezoidalFins.rootChord : float
+        Fins.rootChord : float
             Fin root chord in meters.
-        TrapezoidalFins.tipChord : float
+        Fins.tipChord : float
             Fin tip chord in meters.
-        TrapezoidalFins.span : float
+        Fins.span : float
             Fin span in meters.
-        TrapezoidalFins.name : string
+        Fins.name : string
             Name of fin set
-        TrapezoidalFins.sweepLength : float
+        Fins.sweepLength : float
             Fins sweep length in meters. By sweep length, understand the axial distance
             between the fin root leading edge and the fin tip leading edge measured
             parallel to the rocket centerline.
-        TrapezoidalFins.sweepAngle : float
+        Fins.sweepAngle : float
             Fins sweep angle with respect to the rocket centerline. Must
             be given in degrees.
-        TrapezoidalFins.d : float
+        Fins.d : float
             Diameter of the rocket at the position of the fin set
-        TrapezoidalFins.Aref : float
+        Fins.Aref : float
             Reference area of the rocket
-        TrapezoidalFins.Af : float
+        Fins.Af : float
             Area of the longitudinal section of each fin in the set
-        TrapezoidalFins.AR : float
+        Fins.AR : float
             Aspect ratio of each fin in the set
-        TrapezoidalFins.gamma_c : float
+        Fins.gamma_c : float
             Fin mid-chord sweep angle
-        TrapezoidalFins.Yma : float
+        Fins.Yma : float
             Span wise position of the mean aerodynamic chord
-        TrapezoidalFins.rollGeometricalConstant : float
+        Fins.rollGeometricalConstant : float
             Geometrical constant used in roll calculations
-        TrapezoidalFins.tau : float
+        Fins.tau : float
             Geometrical relation used to simplify lift and roll calculations
-        TrapezoidalFins.liftInterferenceFactor : float
+        Fins.liftInterferenceFactor : float
             Factor of Fin-Body interference in the lift coefficient
     """
 
@@ -602,7 +683,7 @@ class TrapezoidalFins(Fins):
         tipChord,
         span,
         distanceToCM,
-        radius,
+        rocketRadius,
         cantAngle=0,
         sweepLength=None,
         sweepAngle=None,
@@ -626,7 +707,7 @@ class TrapezoidalFins(Fins):
             mass, considering positive direction from center of mass to
             nose cone. Consider the center point belonging to the top
             of the fins to calculate distance.
-        radius : int, float
+        rocketRadius : int, float
             Reference radius to calculate lift coefficient. If None, which
             is default, use rocket radius. Otherwise, enter the radius
             of the rocket in the section of the fins, as this impacts
@@ -669,6 +750,17 @@ class TrapezoidalFins(Fins):
         None
         """
 
+        super().__init__(
+            n,
+            rootChord,
+            span,
+            distanceToCM,
+            rocketRadius,
+            cantAngle,
+            airfoil,
+            name,
+        )
+
         # Check if sweep angle or sweep length is given
         if sweepLength is not None and sweepAngle is not None:
             raise ValueError("Cannot use sweepLength and sweepAngle together")
@@ -680,31 +772,26 @@ class TrapezoidalFins(Fins):
             # Sweep length is given
             pass
 
-        # Compute auxiliary geometrical parameters
-        d = 2 * radius
-        Aref = np.pi * radius**2  # Reference area
         Yr = rootChord + tipChord
         Af = Yr * span / 2  # Fin area
         AR = 2 * span**2 / Af  # Fin aspect ratio
-        gamma_c = np.arctan(
-            (sweepLength + 0.5 * tipChord - 0.5 * rootChord) / (span)
-        )  # Mid chord angle
+        gamma_c = np.arctan((sweepLength + 0.5 * tipChord - 0.5 * rootChord) / (span))
         Yma = (
             (span / 3) * (rootChord + 2 * tipChord) / Yr
         )  # Span wise coord of mean aero chord
 
-        rollGeometricalConstant = (
-            (rootChord + 3 * tipChord) * span**3
-            + 4 * (rootChord + 2 * tipChord) * radius * span**2
-            + 6 * (rootChord + tipChord) * span * radius**2
-        ) / 12
-
         # Fin–body interference correction parameters
-        tau = (span + radius) / radius
+        tau = (span + rocketRadius) / rocketRadius
         liftInterferenceFactor = 1 + 1 / tau
+        λ = tipChord / rootChord
+
         # Parameters for Roll Moment.
         # Documented at: https://github.com/RocketPy-Team/RocketPy/blob/master/docs/technical/aerodynamics/Roll_Equations.pdf
-        λ = tipChord / rootChord
+        rollGeometricalConstant = (
+            (rootChord + 3 * tipChord) * span**3
+            + 4 * (rootChord + 2 * tipChord) * rocketRadius * span**2
+            + 6 * (rootChord + tipChord) * span * rocketRadius**2
+        ) / 12
         rollDampingInterferenceFactor = 1 + (
             ((tau - λ) / (tau)) - ((1 - λ) / (tau - 1)) * np.log(tau)
         ) / (
@@ -724,24 +811,12 @@ class TrapezoidalFins(Fins):
             + (8 / (tau - 1) ** 2) * np.log((tau**2 + 1) / (2 * tau))
         )
 
-        # Store values
-        self.n = n
-        self.radius = radius
-        self.airfoil = airfoil
-        self.distanceToCM = distanceToCM
-        self.cantAngle = cantAngle
-        self.changingAttributeDict = {}
-        self.rootChord = rootChord
         self.tipChord = tipChord
-        self.span = span
-        self.name = name
         self.sweepLength = sweepLength
         self.sweepAngle = sweepAngle
-        self.d = d
-        self.Aref = Aref  # Reference area
         self.Yr = Yr
         self.Af = Af  # Fin area
-        self.AR = AR  # Fin aspect ratio
+        self.AR = AR  # Aspect Ratio
         self.gamma_c = gamma_c  # Mid chord angle
         self.Yma = Yma  # Span wise coord of mean aero chord
         self.rollGeometricalConstant = rollGeometricalConstant
@@ -753,8 +828,7 @@ class TrapezoidalFins(Fins):
 
         self.evaluateCenterOfPressure()
         self.evaluateLiftCoefficient()
-
-        self.evaluateRollCoefficients()
+        self.evaluateRollParameters()
 
     def evaluateCenterOfPressure(self):
         """Calculates and returns the center of pressure of the fin set
@@ -889,6 +963,8 @@ class TrapezoidalFins(Fins):
         ax1.set_title("Trapezoidal Fin")
         ax1.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
 
+        plt.show()
+
         return None
 
 
@@ -899,54 +975,54 @@ class EllipticalFins(Fins):
     ----------
 
         Geometrical attributes:
-        EllipticalFins.n : int
+        Fins.n : int
             Number of fins in fin set
-        EllipticalFins.radius : float
+        Fins.rocketRadius : float
             Radius of the rocket at the position of the fin set
-        EllipticalFins.airfoil : tuple
+        Fins.airfoil : tuple
             Tuple of two items. First is the airfoil lift curve.
             Second is the unit of the curve (radians or degrees)
-        EllipticalFins.distanceToCM : float
+        Fins.distanceToCM : float
             Fin set position relative to rocket unloaded center of
             mass, considering positive direction from center of mass to
             nose cone.
-        EllipticalFins.cantAngle : float
+        Fins.cantAngle : float
             Fins cant angle with respect to the rocket centerline, in degrees
-        EllipticalFins.changingAttributeDict : dict
+        Fins.changingAttributeDict : dict
             Dictionary that stores the name and the values of the attributes that may
             be changed during a simulation. Useful for control systems.
-        EllipticalFins.cantAngleRad : float
+        Fins.cantAngleRad : float
             Fins cant angle with respect to the rocket centerline, in radians
-        EllipticalFins.rootChord : float
+        Fins.rootChord : float
             Fin root chord in meters.
-        EllipticalFins.span : float
+        Fins.span : float
             Fin span in meters.
-        EllipticalFins.name : string
+        Fins.name : string
             Name of fin set
-        EllipticalFins.sweepLength : float
+        Fins.sweepLength : float
             Fins sweep length in meters. By sweep length, understand the axial distance
             between the fin root leading edge and the fin tip leading edge measured
             parallel to the rocket centerline.
-        EllipticalFins.sweepAngle : float
+        Fins.sweepAngle : float
             Fins sweep angle with respect to the rocket centerline. Must
             be given in degrees.
-        EllipticalFins.d : float
+        Fins.d : float
             Diameter of the rocket at the position of the fin set
-        EllipticalFins.Aref : float
-            Reference area of the rocket
-        EllipticalFins.Af : float
-            Area of the longitudinal section of each fin in the set
-        EllipticalFins.AR : float
+        Fins.Aref : float
+            Reference area of the rocket at the fin set position.
+        Fins.Af : float
+            Area of the longtudinal section of each fin in the set
+        Fins.AR : float
             Aspect ratio of each fin in the set
-        EllipticalFins.gamma_c : float
+        Fins.gamma_c : float
             Fin mid-chord sweep angle
-        EllipticalFins.Yma : float
+        Fins.Yma : float
             Span wise position of the mean aerodynamic chord
-        EllipticalFins.rollGeometricalConstant : float
+        Fins.rollGeometricalConstant : float
             Geometrical constant used in roll calculations
-        EllipticalFins.tau : float
+        Fins.tau : float
             Geometrical relation used to simplify lift and roll calculations
-        EllipticalFins.liftInterferenceFactor : float
+        Fins.liftInterferenceFactor : float
             Factor of Fin-Body interference in the lift coefficient
     """
 
@@ -956,7 +1032,7 @@ class EllipticalFins(Fins):
         rootChord,
         span,
         distanceToCM,
-        radius,
+        rocketRadius,
         cantAngle=0,
         airfoil=None,
         name="Fins",
@@ -976,7 +1052,7 @@ class EllipticalFins(Fins):
             mass, considering positive direction from center of mass to
             nose cone. Consider the center point belonging to the top
             of the fins to calculate distance.
-        radius : int, float
+        rocketRadius : int, float
             Reference radius to calculate lift coefficient. If None, which
             is default, use rocket radius. Otherwise, enter the radius
             of the rocket in the section of the fins, as this impacts
@@ -1019,9 +1095,18 @@ class EllipticalFins(Fins):
         None
         """
 
+        super().__init__(
+            n,
+            rootChord,
+            span,
+            distanceToCM,
+            rocketRadius,
+            cantAngle,
+            airfoil,
+            name,
+        )
+
         # Compute auxiliary geometrical parameters
-        d = 2 * radius
-        Aref = np.pi * radius**2  # Reference area for coefficients
         Af = (np.pi * rootChord / 2 * span) / 2  # Fin area
         gamma_c = 0  # Zero for elliptical fins
         AR = 2 * span**2 / Af  # Fin aspect ratio
@@ -1031,37 +1116,41 @@ class EllipticalFins(Fins):
         rollGeometricalConstant = (
             rootChord
             * span
-            * (3 * np.pi * span**2 + 32 * radius * span + 12 * np.pi * radius**2)
+            * (
+                3 * np.pi * span**2
+                + 32 * rocketRadius * span
+                + 12 * np.pi * rocketRadius**2
+            )
             / 48
         )
 
         # Fin–body interference correction parameters
-        tau = (span + radius) / radius
+        tau = (span + rocketRadius) / rocketRadius
         liftInterferenceFactor = 1 + 1 / tau
         rollDampingInterferenceFactor = 1 + (
-            (radius**2)
+            (rocketRadius**2)
             * (
                 2
-                * (radius**2)
-                * np.sqrt(span**2 - radius**2)
+                * (rocketRadius**2)
+                * np.sqrt(span**2 - rocketRadius**2)
                 * np.log(
-                    (2 * span * np.sqrt(span**2 - radius**2) + 2 * span**2)
-                    / radius
+                    (2 * span * np.sqrt(span**2 - rocketRadius**2) + 2 * span**2)
+                    / rocketRadius
                 )
                 - 2
-                * (radius**2)
-                * np.sqrt(span**2 - radius**2)
+                * (rocketRadius**2)
+                * np.sqrt(span**2 - rocketRadius**2)
                 * np.log(2 * span)
                 + 2 * span**3
-                - np.pi * radius * span**2
-                - 2 * (radius**2) * span
-                + np.pi * radius**3
+                - np.pi * rocketRadius * span**2
+                - 2 * (rocketRadius**2) * span
+                + np.pi * rocketRadius**3
             )
         ) / (
             2
             * (span**2)
-            * (span / 3 + np.pi * radius / 4)
-            * (span**2 - radius**2)
+            * (span / 3 + np.pi * rocketRadius / 4)
+            * (span**2 - rocketRadius**2)
         )
         rollForcingInterferenceFactor = (1 / np.pi**2) * (
             (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
@@ -1078,18 +1167,6 @@ class EllipticalFins(Fins):
         )
 
         # Store values
-        self.n = n
-        self.radius = radius
-        self.airfoil = airfoil
-        self.distanceToCM = distanceToCM
-        self.cantAngle = cantAngle
-        self.changingAttributeDict = {}
-        self.cantAngleRad = np.radians(cantAngle)
-        self.rootChord = rootChord
-        self.span = span
-        self.name = name
-        self.d = d
-        self.Aref = Aref  # Reference area
         self.Af = Af  # Fin area
         self.AR = AR  # Fin aspect ratio
         self.gamma_c = gamma_c  # Mid chord angle
@@ -1102,7 +1179,7 @@ class EllipticalFins(Fins):
 
         self.evaluateCenterOfPressure()
         self.evaluateLiftCoefficient()
-        self.evaluateRollCoefficients()
+        self.evaluateRollParameters()
 
         return None
 
@@ -1195,6 +1272,8 @@ class EllipticalFins(Fins):
         ax1.set_title("Elliptical Fin")
         ax1.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
 
+        plt.show()
+
         return None
 
 
@@ -1215,7 +1294,7 @@ class Tail:
         longitudinal axis. Has the unit of meters.
     Tail.distanceToCM : int, float
         Distance from the center of dry mass to the center of the tail.
-    Tail.radius: int, float
+    Tail.rocketRadius: int, float
         The radius of the rocket's body at the tail's position.
     Tail.name : str
         Name of the tail. Default is 'Tail'.
@@ -1245,7 +1324,7 @@ class Tail:
     """
 
     def __init__(
-        self, topRadius, bottomRadius, length, distanceToCM, radius, name="Tail"
+        self, topRadius, bottomRadius, length, distanceToCM, rocketRadius, name="Tail"
     ):
         """Initializes the tail object by computing and storing the most
         important values.
@@ -1261,7 +1340,7 @@ class Tail:
             Length of the tail.
         distanceToCM : int, float
             Distance from the center of dry mass to the center of the tail.
-        radius : int, float
+        rocketRadius : int, float
             The radius of the rocket's body at the tail's position.
         name : str
             Name of the tail. Default is 'Tail'.
@@ -1277,13 +1356,10 @@ class Tail:
         self.length = length
         self.distanceToCM = distanceToCM
         self.name = name
-        self.radius = radius
+        self.rocketRadius = rocketRadius
 
         # Calculate ratio between top and bottom radius
         r = topRadius / bottomRadius
-
-        # Retrieve reference radius
-        rref = self.radius
 
         # Calculate tail slant length
         self.slantLength = np.sqrt(
@@ -1301,7 +1377,7 @@ class Tail:
             cpz = distanceToCM + (length / 3) * (1 + (1 - r) / (1 - r**2))
 
         # Calculate clalpha
-        clalpha = -2 * (1 - r ** (-2)) * (topRadius / rref) ** 2
+        clalpha = -2 * (1 - r ** (-2)) * (topRadius / rocketRadius) ** 2
         cl = Function(
             lambda alpha, mach: clalpha * alpha,
             ["Alpha (rad)", "Mach"],
@@ -1331,7 +1407,7 @@ class Tail:
         print(f"Tail Bottom Radius: {self.bottomRadius:.3f} m")
         print(f"Tail Length: {self.length:.3f} m")
         print(f"Tail Distance to Center of Dry Mass: {self.distanceToCM:.3f} m")
-        print(f"Rocket body radius at tail position: {2*self.radius:.3f} m")
+        print(f"Rocket body radius at tail position: {2*self.rocketRadius:.3f} m")
         print(f"Tail Slant Length: {self.slantLength:.3f} m")
         print(f"Tail Surface Area: {self.surfaceArea:.6f} m^2")
 
@@ -1341,7 +1417,6 @@ class Tail:
 
         print(f"\nTail name: {self.name}")
         print(f"Tail Center of Pressure: {self.cp}")
-        # print(f"Tail Lift Coefficient: {self.cl}")
         print(f"Tail Lift Coefficient Slope: {self.clalpha}")
         print("Tail Lift Coefficient as a function of Alpha and Mach:")
         self.cl()

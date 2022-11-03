@@ -1386,6 +1386,8 @@ class Flight:
         # Calculate lift and moment for each component of the rocket
         for aerodynamicSurface in self.rocket.aerodynamicSurfaces:
             compCp = aerodynamicSurface.cp[2]
+            surfaceRadius = aerodynamicSurface.rocketRadius
+            referenceArea = np.pi * surfaceRadius**2
             # Component absolute velocity in body frame
             compVxB = vxB + compCp * omega2
             compVyB = vyB - compCp * omega1
@@ -1413,9 +1415,10 @@ class Flight:
                 if -1 * compStreamVzBn < 1:
                     compAttackAngle = np.arccos(-compStreamVzBn)
                     cLift = aerodynamicSurface.cl(compAttackAngle, freestreamMach)
+                    cLift = aerodynamicSurface.cl(compAttackAngle, freestreamMach)
                     # Component lift force magnitude
                     compLift = (
-                        0.5 * rho * (compStreamSpeed**2) * self.rocket.area * cLift
+                        0.5 * rho * (compStreamSpeed**2) * referenceArea * cLift
                     )
                     # Component lift force components
                     liftDirNorm = (compStreamVxB**2 + compStreamVyB**2) ** 0.5
@@ -1432,16 +1435,16 @@ class Flight:
                 Clfdelta, Cldomega, cantAngleRad = aerodynamicSurface.rollParameters
                 M3f = (
                     (1 / 2 * rho * freestreamSpeed**2)
-                    * self.rocket.area
+                    * referenceArea
                     * 2
-                    * self.rocket.radius
+                    * surfaceRadius
                     * Clfdelta(freestreamMach)
                     * cantAngleRad
                 )
                 M3d = (
                     (1 / 2 * rho * freestreamSpeed)
-                    * self.rocket.area
-                    * (2 * self.rocket.radius) ** 2
+                    * referenceArea
+                    * (2 * surfaceRadius) ** 2
                     * Cldomega(freestreamMach)
                     * omega3
                     / 2
