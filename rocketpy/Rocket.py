@@ -444,7 +444,7 @@ class Rocket:
             "removed by version 2.0.0. Use Rocket.addTrapezoidalFins instead",
             PendingDeprecationWarning,
         )
-        self.addTrapezoidalFins(*args, **kwargs)
+        return self.addTrapezoidalFins(*args, **kwargs)
 
     def addTrapezoidalFins(
         self,
@@ -454,6 +454,8 @@ class Rocket:
         span,
         distanceToCM,
         cantAngle=0,
+        sweepLength=None,
+        sweepAngle=None,
         radius=None,
         airfoil=None,
         name="Fins",
@@ -480,6 +482,19 @@ class Rocket:
         cantAngle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
+        sweepLength : int, float, optional
+            Fins sweep length in meters. By sweep length, understand the axial distance
+            between the fin root leading edge and the fin tip leading edge measured
+            parallel to the rocket centerline. If not given, the sweep length is
+            assumed to be equal the root chord minus the tip chord, in which case the
+            fin is a right trapezoid with its base perpendicular to the rocket's axis.
+            Cannot be used in conjunction with sweepAngle.
+        sweepAngle : int, float, optional
+            Fins sweep angle with respect to the rocket centerline. Must
+            be given in degrees. If not given, the sweep angle is automatically
+            calculated, in which case the fin is assumed to be a right trapezoid with
+            its base perpendicular to the rocket's axis.
+            Cannot be used in conjunction with sweepLength.
         radius : int, float, optional
             Reference radius to calculate lift coefficient. If None, which
             is default, use rocket radius. Otherwise, enter the radius
@@ -509,13 +524,22 @@ class Rocket:
         self : Rocket
             Object of the Rocket class.
         """
-
         # Modify radius if not given, use rocket radius, otherwise use given.
         radius = radius if radius is not None else self.radius
 
         # Create a fin set as an object of TrapezoidalFins class
         finSet = TrapezoidalFins(
-            n, rootChord, tipChord, span, distanceToCM, cantAngle, radius, airfoil, name
+            n,
+            rootChord,
+            tipChord,
+            span,
+            distanceToCM,
+            radius,
+            cantAngle,
+            sweepLength,
+            sweepAngle,
+            airfoil,
+            name,
         )
 
         # Add fin set to the list of aerodynamic surfaces
