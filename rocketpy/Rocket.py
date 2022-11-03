@@ -955,7 +955,7 @@ class Rocket:
         self.thrustToWeight.plot(lower=0, upper=self.motor.burnOutTime)
 
         # ax = plt.subplot(415)
-        # ax.plot(  , self.rocket.motor.thrust()/(self.env.g() * self.rocket.totalMass()))
+        # ax.plot(  , self.rocket.motor.thrust()/(self.env.gravity * self.rocket.totalMass()))
         # ax.set_xlim(0, self.rocket.motor.burnOutTime)
         # ax.set_xlabel("Time (s)")
         # ax.set_ylabel("Thrust/Weight")

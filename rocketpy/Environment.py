@@ -492,7 +492,7 @@ class Environment:
         """
         if elevation != "Open-Elevation" and elevation != "SRTM":
             self.elevation = elevation
-        # elif elevation == "SRTM" and self.latitude != None and self.lon != None:
+        # elif elevation == "SRTM" and self.latitude != None and self.longitude != None:
         #     # Trigger the authentication flow.
         #     #ee.Authenticate()
         #     # Initialize the library.
@@ -500,7 +500,7 @@ class Environment:
 
         #     # Calculate elevation
         #     dem  = ee.Image('USGS/SRTMGL1_003')
-        #     xy   = ee.Geometry.Point([self.lon, self.latitude])
+        #     xy   = ee.Geometry.Point([selfgitude, self.latitude])
         #     elev = dem.sample(xy, 30).first().get('elevation').getInfo()
 
         #     self.elevation = elev
@@ -3354,10 +3354,10 @@ class Environment:
         # TODO: find a way to documennt the workaround I've used on ma.getdata(self...
         self.exportEnvDictionary = {
             "railLength": self.rL,
-            "gravity": self.g,
+            "gravity": self.gravity,
             "date": [self.date.year, self.date.month, self.date.day, self.date.hour],
-            "latitude": self.lat,
-            "longitude": self.lon,
+            "latitude": self.latitude,
+            "longitude": self.longitude,
             "elevation": self.elevation,
             "datum": self.datum,
             "timeZone": self.timeZone,

@@ -2576,7 +2576,7 @@ class Flight:
         totalMass = self.rocket.totalMass
         grid = self.vx[:, 0]
         totalMass = Function(np.column_stack([grid, totalMass(grid)]), "Time (s)")
-        potentialEnergy = totalMass * self.env.g * self.z
+        potentialEnergy = totalMass * self.env.gravity * self.z
         potentialEnergy.setInputs("Time (s)")
         return potentialEnergy
 
@@ -2994,7 +2994,7 @@ class Flight:
         latitude: Function
             Rocket latitude coordinate, in degrees, at each time step.
         """
-        lat1 = np.deg2rad(self.env.lat)  # Launch lat point converted to radians
+        lat1 = np.deg2rad(self.env.latitude)  # Launch lat point converted to radians
 
         # Applies the haversine equation to find final lat/lon coordinates
         latitude = np.rad2deg(
@@ -3019,8 +3019,8 @@ class Flight:
         longitude: Function
             Rocket longitude coordinate, in degrees, at each time step.
         """
-        lat1 = np.deg2rad(self.env.lat)  # Launch lat point converted to radians
-        lon1 = np.deg2rad(self.env.lon)  # Launch lon point converted to radians
+        lat1 = np.deg2rad(self.env.latitude)  # Launch lat point converted to radians
+        lon1 = np.deg2rad(self.env.longitude)  # Launch lon point converted to radians
 
         # Applies the haversine equation to find final lat/lon coordinates
         longitude = np.rad2deg(
