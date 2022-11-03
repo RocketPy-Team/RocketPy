@@ -1431,7 +1431,7 @@ class Flight:
                     M1 -= (compCp + a) * compLiftYB
                     M2 += (compCp + a) * compLiftXB
             # Calculates Roll Moment
-            if aerodynamicSurface.name == "Fins":
+            try:
                 Clfdelta, Cldomega, cantAngleRad = aerodynamicSurface.rollParameters
                 M3f = (
                     (1 / 2 * rho * freestreamSpeed**2)
@@ -1450,6 +1450,8 @@ class Flight:
                     / 2
                 )
                 M3 += M3f - M3d
+            except AttributeError:
+                pass
         # Calculate derivatives
         # Angular acceleration
         alpha1 = (
