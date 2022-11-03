@@ -820,7 +820,6 @@ class TrapezoidalFins(Fins):
             + (8 / (tau - 1) ** 2) * np.log((tau**2 + 1) / (2 * tau))
         )
 
-
         self.tipChord = tipChord
         self.sweepLength = sweepLength
         self.sweepAngle = sweepAngle
@@ -977,9 +976,7 @@ class TrapezoidalFins(Fins):
 
         plt.show()
 
-
         return None
-
 
 
 class EllipticalFins(Fins):
@@ -1047,7 +1044,6 @@ class EllipticalFins(Fins):
         rootChord,
         span,
         distanceToCM,
-
         rocketRadius,
         cantAngle=0,
         airfoil=None,
@@ -1294,7 +1290,6 @@ class EllipticalFins(Fins):
         ax1.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
 
         plt.show()
-
 
         return None
 
