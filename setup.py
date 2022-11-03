@@ -5,13 +5,14 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="rocketpy",
-    version="0.12.0",
+    version="0.12.1",
     install_requires=[
         "numpy>=1.0",
         "scipy>=1.0",
         "matplotlib>=3.0",
-        "netCDF4>=1.4",
+        "netCDF4>=1.4,<1.6",
         "windrose>=1.6.8",
+        "ipywidgets>=7.6.3",
         "requests",
         "pytz",
         "timezonefinder",
