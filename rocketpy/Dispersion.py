@@ -41,6 +41,19 @@ class Dispersion:
     """Monte Carlo analysis to predict probability distributions of the rocket's
     landing point, apogee and other relevant information.
 
+    Parameters
+    ----------
+    filename : string
+        The name of the file containing the data to be used in the analysis.
+
+    Attributes
+    ---------- # TODO: add "Dispersion" at the beginning of each attribute
+    filename : string
+        The name of the file containing the data to be used in the analysis.
+    num_of_loaded_sims : int
+        The number of simulations loaded from the file.
+    num_of_sims : int
+        The number of simulations to be performed.
     """
 
     def __init__(
@@ -175,6 +188,8 @@ class Dispersion:
         self.number_of_simulations = 0
         self.num_of_loaded_sims = 0
         self.start_time = 0
+
+        return None
 
     def __set_distribution_function(self, distribution_type):
         """Sets the distribution function to be used in the analysis.
@@ -335,6 +350,8 @@ class Dispersion:
         dictionary: dict
             Modified dictionary with the processed flight parameters.
         """
+        # First check if all the inputs for the flight class are present in the
+        # dictionary, if not, input the missing ones
         if not all(
             flight_input in dictionary for flight_input in self.flight_inputs.keys()
         ):
@@ -439,31 +456,31 @@ class Dispersion:
         return dictionary
 
     def __process_aerodynamic_surfaces_from_dict(self, dictionary):
-        """Still not implemented.
-        Must check if all the relevant inputs for the AerodynamicSurfaces class
+        """Check if all the relevant inputs for the AerodynamicSurfaces class
         are present in the dispersion dictionary, input the missing ones and
         return the modified dictionary.
-        Something similar to the __process_parachute_from_dict method can be
-        used here, since aerodynamic surfaces are optional for the simulation.
 
         Parameters
         ----------
-        dictionary : _type_
-            _description_
+        dictionary : dict
+            Dictionary containing the parameters to be varied in the dispersion
+            simulation. The keys of the dictionary are the names of the parameters
+            to be varied, and the values can be either tuple or list. If the value
+            is a single value, the corresponding class of the parameter need to
+            be passed on the run_dispersion method.
         """
 
         # Check the number of fin sets, noses, and tails
-        self.nose_names = []
-        self.finSet_names = []
-        self.tail_names = []
+        self.nose_names, self.finSet_names, self.tail_names = [], [], []
+
         # Get names from the input dictionary
         for var in dictionary.keys():
             if "nose" in var:
-                self.nose_names.append(var).split("_")[1]
+                self.nose_names.append(var.split("_")[1])
             elif "finSet" in var:
-                self.finSet_names.append(var).split("_")[1]
+                self.finSet_names.append(var.split("_")[1])
             elif "tail" in var:
-                self.tail_names.append(var).split("_")[1]
+                self.tail_names.append(var.split("_")[1])
         # Get names from the rocket object
         for surface in self.rocket.aerodynamicSurfaces:
             if isinstance(surface, NoseCone):
@@ -848,7 +865,7 @@ class Dispersion:
                     0
                 ],
                 powerOffDrag=self.dispersion_dictionary["powerOffDrag"][0],
-                powerOnDrag=self.dispersion_dictionary["dispersion_dictionary"][0],
+                powerOnDrag=self.dispersion_dictionary["powerOnDrag"][0],
             )
             self.rocket.setRailButtons(distanceToCM=[0.2, -0.5])
         if self.flight is None:
@@ -867,17 +884,19 @@ class Dispersion:
 
         Parameters
         ----------
-        distribution_func : _type_
-            _description_
+        distribution_func : np.random distribution function
+            The function that will be used to generate the random values.
         analysis_parameters : dict
-            _description_
+            The dictionary with the parameters to be analyzed. This includes the
+            mean and standard deviation of the parameters.
         number_of_simulations : int
             Number of simulations desired, must be non negative.
             This is needed when running a new simulation. Default is zero.
 
         Yields
         ------
-        flight_setting
+        flight_setting: dict
+            A dictionary with the flight setting for one simulation.
 
         """
 
@@ -916,21 +935,20 @@ class Dispersion:
 
         Parameters
         ----------
-        flight_setting : _type_
-            _description_
+        flight_setting : dict
+            The flight setting used in the simulation.
         flight : Flight
-            _description_
-        exec_time : _type_
-            _description_
-        dispersion_input_file : _type_
-            _description_
-        dispersion_output_file : _type_
-            _description_
+            The flight object.
+        exec_time : float
+            The execution time of the simulation.
+        dispersion_input_file : str
+            The name of the file containing all the inputs for the simulation.
+        dispersion_output_file : str
+            The name of the file containing all the outputs for the simulation.
 
         Returns
         -------
-        _type_
-            _description_
+        None
         """
 
         # In case not variables are passed, export default variables
@@ -999,15 +1017,14 @@ class Dispersion:
 
         Parameters
         ----------
-        setting : _type_
-            _description_
-        dispersion_error_file : _type_
-            _description_
+        setting : dict
+            The flight setting used in the simulation.
+        dispersion_error_file : str
+            The name of the file containing all the errors for the simulation.
 
         Returns
         -------
-        _type_
-            _description_
+        None
         """
 
         dispersion_error_file.write(str(flight_setting) + "\n")
@@ -1025,7 +1042,6 @@ class Dispersion:
         exported_variables=None,
         append=False,
     ):
-        # TODO: Separate into different functions to make it more readable
         """Runs the given number of simulations and saves the data
 
         Parameters
@@ -1033,20 +1049,22 @@ class Dispersion:
         number_of_simulations : int
             Number of simulations desired, must be non negative.
             This is needed when running a new simulation. Default is zero.
-        dispersion_dictionary : _type_
-            _description_
-        environment : _type_
-            _description_
+        dispersion_dictionary : dict
+            The dictionary with the parameters to be analyzed. This includes the
+            mean and standard deviation of the parameters.
+        environment : Environment, optional
+            The environment object. Default is None.
         flight : Flight, optional
             Original rocket's flight with nominal values. Parameter needed to run
             a new flight simulation when environment, motor and rocket remain
             unchanged. By default None.
-        motor : _type_, optional
-            _description_, by default None
-        rocket : _type_, optional
-            _description_, by default None
+        motor : Motor, optional
+            The motor object of the rocket. Default is None.
+        rocket : Rocket, optional
+            The rocket object. Default is None.
         distribution_type : str, optional
-            _description_, by default "normal"
+            The probability distribution function to be used in the analysis,
+            by default "normal"
         exported_variables : list, optional
             A list containing the variables to be exported. By default None.
         append : bool, optional
@@ -1058,6 +1076,7 @@ class Dispersion:
         None
         """
 
+        # Saving the arguments as attributes
         self.number_of_simulations = number_of_simulations
         self.dispersion_dictionary = dispersion_dictionary
         self.environment = environment
@@ -1265,12 +1284,13 @@ class Dispersion:
 
         return None
 
-    def import_results(self):
+    def import_results(self, variables=None):
         """Import dispersion results from .txt file and save it into a dictionary.
 
         Parameters
         ----------
-        None
+        variables : list of str, optional
+            List of variables to be imported. If None, all variables will be imported.
 
         Returns
         -------
@@ -1321,13 +1341,16 @@ class Dispersion:
         # Save the results as an attribute of the class
         self.dispersion_results = dispersion_results
 
+        # Process the results and save them as attributes of the class
+        self.__process_results(variables=variables)
+
         return None
 
     # Start the processing analysis
 
-    def process_results(self, variables=None):
-        """Save the mean and standard deviation of each parameter in the results
-        dictionary. Create class attributes for each parameter.
+    def __process_results(self, variables=None):
+        """Save the mean and standard deviation of each parameter available
+        in the results dictionary. Create class attributes for each parameter.
 
         Parameters
         ----------
@@ -1386,22 +1409,17 @@ class Dispersion:
         return None
 
     def plot_results(self, variables=None):
-        """_summary_
+        """Plot the results of the dispersion analysis.
 
         Parameters
         ----------
-        variables : _type_, optional
-            _description_, by default None
+        variables : list, optional
+            List of variables to be plotted. If None, all variables will be
+            plotted. The default is None. Example: ['outOfRailTime', 'apogee']
 
         Returns
         -------
-        _type_
-            _description_
-
-        Raises
-        ------
-        TypeError
-            _description_
+        None
         """
         # Check if the variables argument is a list, if not, use all variables
         if not isinstance(variables, list):
@@ -1425,19 +1443,7 @@ class Dispersion:
 
     # TODO: Create evolution plots to analyze convergence
 
-    def createEllipses(self, dispersion_results):
-        """_summary_
-
-        Parameters
-        ----------
-        dispersion_results : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
+    def __createEllipses(self, dispersion_results):
         """A function to create apogee and impact ellipses from the dispersion
         results.
 
@@ -1445,14 +1451,38 @@ class Dispersion:
         ----------
         dispersion_results : dict
             A dictionary containing the results of the dispersion analysis.
+
+        Returns
+        -------
+        apogee_ellipse : Ellipse
+            An ellipse object representing the apogee ellipse.
+        impact_ellipse : Ellipse
+            An ellipse object representing the impact ellipse.
+        apogeeX : np.array
+            An array containing the x coordinates of the apogee ellipse.
+        apogeeY : np.array
+            An array containing the y coordinates of the apogee ellipse.
+        impactX : np.array
+            An array containing the x coordinates of the impact ellipse.
+        impactY : np.array
+            An array containing the y coordinates of the impact ellipse.
         """
 
         # Retrieve dispersion data por apogee and impact XY position
-        # TODO: Exception handling for missing data
-        apogeeX = np.array(dispersion_results["apogeeX"])
-        apogeeY = np.array(dispersion_results["apogeeY"])
-        impactX = np.array(dispersion_results["xImpact"])
-        impactY = np.array(dispersion_results["yImpact"])
+        try:
+            apogeeX = np.array(dispersion_results["apogeeX"])
+            apogeeY = np.array(dispersion_results["apogeeY"])
+        except KeyError:
+            print("No apogee data found.")
+            apogeeX = np.array([])
+            apogeeY = np.array([])
+        try:
+            impactX = np.array(dispersion_results["xImpact"])
+            impactY = np.array(dispersion_results["yImpact"])
+        except KeyError:
+            print("No impact data found.")
+            impactX = np.array([])
+            impactY = np.array([])
 
         # Define function to calculate eigen values
         def eigsorted(cov):
@@ -1497,7 +1527,7 @@ class Dispersion:
             )
             apogeeEll.set_facecolor((0, 1, 0, 0.2))
             apogee_ellipses.append(apogeeEll)
-        return impact_ellipses, apogee_ellipses
+        return impact_ellipses, apogee_ellipses, apogeeX, apogeeY, impactX, impactY
 
     def plotEllipses(
         self,
@@ -1522,19 +1552,29 @@ class Dispersion:
             A tuple containing the actual landing point of the rocket, if known.
             Useful when comparing the dispersion results with the actual landing.
             Must be given in tuple format, such as (lat, lon). By default None. # TODO: Check the order
+        perimeterSize : int, optional
+            The size of the perimeter to be plotted. The default is 3000.
+        xlim : tuple, optional
+            The limits of the x axis. The default is (-3000, 3000).
+        ylim : tuple, optional
+            The limits of the y axis. The default is (-3000, 3000).
+
+        Returns
+        -------
+        None
         """
         # Import background map
         if image is not None:
             img = imread(image)
 
-        # Retrieve dispersion data por apogee and impact XY position
-        # TODO: Exception handling for missing data
-        apogeeX = np.array(dispersion_results["apogeeX"])
-        apogeeY = np.array(dispersion_results["apogeeY"])
-        impactX = np.array(dispersion_results["xImpact"])
-        impactY = np.array(dispersion_results["yImpact"])
-
-        impact_ellipses, apogee_ellipses = self.createEllipses(dispersion_results)
+        (
+            impact_ellipses,
+            apogee_ellipses,
+            apogeeX,
+            apogeeY,
+            impactX,
+            impactY,
+        ) = self.__createEllipses(dispersion_results)
 
         # Create plot figure
         plt.figure(num=None, figsize=(8, 6), dpi=150, facecolor="w", edgecolor="k")
@@ -1581,6 +1621,7 @@ class Dispersion:
         ax.set_xlabel("East (m)")
 
         # Add background image to plot
+        # TODO: In the future, integrate with other libraries to plot the map (e.g. cartopy, ee, etc.)
         # You can translate the basemap by changing dx and dy (in meters)
         dx = 0
         dy = 0
@@ -1606,7 +1647,7 @@ class Dispersion:
         plt.show()
         return None
 
-    def prepareEllipses(self, ellipses, origin_lat, origin_lon, resolution=100):
+    def __prepareEllipses(self, ellipses, origin_lat, origin_lon, resolution=100):
         """Generate a list of latitude and longitude points for each ellipse in
         ellipses.
 
@@ -1620,6 +1661,12 @@ class Dispersion:
             Longitude of the origin of the coordinate system.
         resolution : int, optional
             Number of points to generate for each ellipse, by default 100
+
+        Returns
+        -------
+        list
+            List of lists of tuples containing the latitude and longitude of each
+            point in each ellipse.
         """
         outputs = []
 
@@ -1690,18 +1737,22 @@ class Dispersion:
             Number of points to be used to draw the ellipse. Default is 100.
         color : String
             Color of the ellipse. Default is 'ff0000ff', which is red.
+
+        Returns
+        -------
+        None
         """
 
-        impact_ellipses, apogee_ellipses = self.createEllipses(dispersion_results)
+        impact_ellipses, apogee_ellipses = self.__createEllipses(dispersion_results)
         outputs = []
 
         if type == "all" or type == "impact":
-            outputs = outputs + self.prepareEllipses(
+            outputs = outputs + self.__prepareEllipses(
                 impact_ellipses, origin_lat, origin_lon, resolution=resolution
             )
 
         if type == "all" or type == "apogee":
-            outputs = outputs + self.prepareEllipses(
+            outputs = outputs + self.__prepareEllipses(
                 apogee_ellipses, origin_lat, origin_lon, resolution=resolution
             )
 
@@ -1744,7 +1795,7 @@ class Dispersion:
         return None
 
     def info(self):
-        """_summary_
+        """Print information about the dispersion model.
 
         Returns
         -------
@@ -1760,6 +1811,12 @@ class Dispersion:
         return None
 
     def allInfo(self):
+        """Print and plot information about the dispersion model and the results.
+
+        Returns
+        -------
+        None
+        """
         dispersion_results = self.dispersion_results
 
         print("Monte Carlo Simulation by RocketPy")
