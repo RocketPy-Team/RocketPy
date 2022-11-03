@@ -1710,7 +1710,6 @@ class Dispersion:
 
     def exportEllipsesToKML(
         self,
-        dispersion_results,
         filename,
         origin_lat,
         origin_lon,
@@ -1743,7 +1742,14 @@ class Dispersion:
         None
         """
 
-        impact_ellipses, apogee_ellipses = self.__createEllipses(dispersion_results)
+        (
+            impact_ellipses,
+            apogee_ellipses,
+            _,
+            _,
+            _,
+            _,
+        ) = self.__createEllipses(self.dispersion_results)
         outputs = []
 
         if type == "all" or type == "impact":
