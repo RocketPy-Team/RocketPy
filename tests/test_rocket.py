@@ -361,11 +361,11 @@ def test_add_trapezoidal_fins_sweep_angle(
 
     # Check center of pressure
     translate = 0.55829 + 0.71971
-    cpz = FinSet["cp"][2]
+    cpz = FinSet.cp[2]
     assert translate - cpz == pytest.approx(expected_fin_cpz, 0.01)
 
     # Check lift coefficient derivative
-    cl_alpha = FinSet["cl"](1, 0.0)
+    cl_alpha = FinSet.cl(1, 0.0)
     assert cl_alpha == pytest.approx(expected_clalpha, 0.01)
 
     # Check rocket's center of pressure (just double checking)
@@ -393,11 +393,11 @@ def test_add_trapezoidal_fins_sweep_length(
 
     # Check center of pressure
     translate = 0.55829 + 0.71971
-    cpz = FinSet["cp"][2]
+    cpz = FinSet.cp[2]
     assert translate - cpz == pytest.approx(expected_fin_cpz, 0.01)
 
     # Check lift coefficient derivative
-    cl_alpha = FinSet["cl"](1, 0.0)
+    cl_alpha = FinSet.cl(1, 0.0)
     assert cl_alpha == pytest.approx(expected_clalpha, 0.01)
 
     # Check rocket's center of pressure (just double checking)
