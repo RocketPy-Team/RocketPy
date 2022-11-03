@@ -39,6 +39,11 @@ class Parachute:
             parachute is fully opened. During this time, the simulation will
             consider the rocket as flying without a parachute. Default value
             is 0. Must be given in seconds.
+        noise : tuple, list, optional
+            List in the format (mean, standard deviation, time-correlation).
+            The values are used to add noise to the pressure signal which is
+            passed to the trigger function. Default value is (0, 0, 0). Units
+            are in pascal.
         noiseBias : float
             Mean value of the noise added to the pressure signal, which is
             passed to the trigger function. Unit is in pascal.
@@ -101,6 +106,7 @@ class Parachute:
         self.trigger = Trigger
         self.samplingRate = samplingRate
         self.lag = lag
+        self.noise = noise
         self.noiseSignal = [[-1e-6, np.random.normal(noise[0], noise[1])]]
         self.noisyPressureSignal = []
         self.cleanPressureSignal = []

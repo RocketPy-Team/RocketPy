@@ -425,6 +425,7 @@ class Rocket:
         """
         # Create a nose as an object of NoseCone class
         nose = NoseCone(length, kind, distanceToCM, self.radius, name)
+        
         # Add nose to the list of aerodynamic surfaces
         self.aerodynamicSurfaces.append(nose)
 
@@ -524,7 +525,6 @@ class Rocket:
         self : Rocket
             Object of the Rocket class.
         """
-
         # Modify radius if not given, use rocket radius, otherwise use given.
         radius = radius if radius is not None else self.radius
 
@@ -726,7 +726,8 @@ class Rocket:
             distanceToCM.reverse()
         # Save important attributes
         self.railButtons = self.railButtonPair(distanceToCM, angularPosition)
-
+        self.RBdistanceToCM = distanceToCM
+        self.angularPosition = angularPosition
         return None
 
     def addCMEccentricity(self, x, y):

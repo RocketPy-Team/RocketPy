@@ -17,6 +17,7 @@ import simplekml
 from scipy import integrate
 
 from .Function import Function
+from .utilities import *
 
 
 class Flight:
@@ -603,6 +604,7 @@ class Flight:
         self.initialSolution = initialSolution
         self.timeOvershoot = timeOvershoot
         self.terminateOnApogee = terminateOnApogee
+        self.verbose = verbose
 
         # Modifying Rail Length for a better out of rail condition
         upperRButton = max(self.rocket.railButtons[0])
@@ -1242,7 +1244,9 @@ class Flight:
         R3 = -0.5 * rho * (freestreamSpeed**2) * self.rocket.area * (dragCoeff)
 
         # Calculate Linear acceleration
-        a3 = (R3 + Thrust) / M - (e0**2 - e1**2 - e2**2 + e3**2) * self.env.g
+        a3 = (R3 + Thrust) / M - (
+            e0**2 - e1**2 - e2**2 + e3**2
+        ) * self.env.gravity
         if a3 > 0:
             ax = 2 * (e1 * e3 + e0 * e2) * a3
             ay = 2 * (e2 * e3 - e0 * e1) * a3
@@ -1490,7 +1494,7 @@ class Flight:
             (R3 - b * Mt * (alpha2 - omega1 * omega3) + Thrust) / M,
         ]
         ax, ay, az = np.dot(K, L)
-        az -= self.env.g  # Include gravity
+        az -= self.env.gravity  # Include gravity
 
         # Create uDot
         uDot = [
@@ -3440,7 +3444,7 @@ class Flight:
         )
         print(
             "Maximum Gs: {:.3f} g at {:.2f} s".format(
-                self.maxAcceleration / self.env.g, self.maxAccelerationTime
+                self.maxAcceleration / self.env.gravity, self.maxAccelerationTime
             )
         )
         print(

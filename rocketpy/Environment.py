@@ -58,16 +58,16 @@ class Environment:
         Gravity and Launch Rail Length:
         Environment.rl : float
             Launch rail length in meters.
-        Environment.g : float
+        Environment.gravity : float
             Positive value of gravitational acceleration in m/s^2.
 
         Coordinates and Date:
-        Environment.lat : float
+        Environment.latitude : float
             Launch site latitude.
-        Environment.lon : float
+        Environment.longitude : float
             Launch site longitude.
         Environment.datum: string
-            The desired reference ellipsoide model, the following options are
+            The desired reference ellipsoid model, the following options are
             available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
             is "SIRGAS2000", then this model will be used if the user make some
             typing mistake
@@ -185,11 +185,11 @@ class Environment:
             Dictionary used to properly interpret netCDF and OPeNDAP
             files. Only defined for 'Forecast', 'Reanalysis', 'Ensemble'.
         Environment.atmosphericModelInitDate : datetime
-            Datetime object instance of first availabe date in netCDF
+            Datetime object instance of first available date in netCDF
             and OPeNDAP files when using 'Forecast', 'Reanalysis' or
             'Ensemble'.
         Environment.atmosphericModelEndDate : datetime
-            Datetime object instance of last availabe date in netCDF
+            Datetime object instance of last available date in netCDF
             and OPeNDAP files when using 'Forecast', 'Reanalysis' or
             'Ensemble'.
         Environment.atmosphericModelInterval : int
@@ -339,7 +339,7 @@ class Environment:
             find elevation data. For this option, latitude and
             longitude must also be specified. Default value is 0.
         datum : string
-            The desired reference ellipsoide model, the following options are
+            The desired reference ellipsoidal model, the following options are
             available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
             is "SIRGAS2000", then this model will be used if the user make some
             typing mistake.
@@ -354,12 +354,13 @@ class Environment:
         self.rL = railLength
 
         # Save gravity value
-        self.g = gravity
+        self.gravity = gravity
 
         # Save datum
         self.datum = datum
 
         # Save date
+        self.date = date
         if date != None:
             self.setDate(date, timeZone)
         else:
@@ -375,14 +376,16 @@ class Environment:
         self.setAtmosphericModel("StandardAtmosphere")
 
         # Save latitude and longitude
+        self.latitude = latitude
+        self.longitude = longitude
         if latitude != None and longitude != None:
             self.setLocation(latitude, longitude)
         else:
-            self.lat, self.lon = None, None
+            self.latitude, self.longitude = None, None
 
         # Store launch site coordinates referenced to UTM projection system
-        if self.lat > -80 and self.lat < 84:
-            convert = self.geodesicToUtm(self.lat, self.lon, self.datum)
+        if self.latitude > -80 and self.latitude < 84:
+            convert = geodesicToUtm(self.latitude, self.longitude, self.datum)
             self.initialNorth = convert[1]
             self.initialEast = convert[0]
             self.initialUtmZone = convert[2]
@@ -391,10 +394,11 @@ class Environment:
             self.initialEW = convert[5]
 
         # Save elevation
+        self.elevation = elevation
         self.setElevation(elevation)
 
         # Recalculate Earth Radius
-        self.earthRadius = self.calculateEarthRadius(self.lat, self.datum)  # in m
+        self.earthRadius = calculateEarthRadius(self.latitude, self.datum)  # in m
 
         return None
 
@@ -456,8 +460,8 @@ class Environment:
         None
         """
         # Store latitude and longitude
-        self.lat = latitude
-        self.lon = longitude
+        self.latitude = latitude
+        self.longitude = longitude
 
         # Update atmospheric conditions if atmosphere type is Forecast,
         # Reanalysis or Ensemble
@@ -488,7 +492,7 @@ class Environment:
         """
         if elevation != "Open-Elevation" and elevation != "SRTM":
             self.elevation = elevation
-        # elif elevation == "SRTM" and self.lat != None and self.lon != None:
+        # elif elevation == "SRTM" and self.latitude != None and self.lon != None:
         #     # Trigger the authentication flow.
         #     #ee.Authenticate()
         #     # Initialize the library.
@@ -496,16 +500,16 @@ class Environment:
 
         #     # Calculate elevation
         #     dem  = ee.Image('USGS/SRTMGL1_003')
-        #     xy   = ee.Geometry.Point([self.lon, self.lat])
+        #     xy   = ee.Geometry.Point([self.lon, self.latitude])
         #     elev = dem.sample(xy, 30).first().get('elevation').getInfo()
 
         #     self.elevation = elev
 
-        elif self.lat != None and self.lon != None:
+        elif self.latitude != None and self.longitude != None:
             try:
                 print("Fetching elevation from open-elevation.com...")
                 requestURL = "https://api.open-elevation.com/api/v1/lookup?locations={:f},{:f}".format(
-                    self.lat, self.lon
+                    self.latitude, self.longitude
                 )
                 response = requests.get(requestURL)
                 results = response.json()["results"]
@@ -569,7 +573,7 @@ class Environment:
 
         return None
 
-    def getElevationFromTopograghicProfile(self, lat, lon):
+    def getElevationFromTopographicProfile(self, lat, lon):
         """Function which receives as inputs the coordinates of a point and finds its
         elevation in the provided Topographic Profile
 
@@ -594,7 +598,7 @@ class Environment:
         """
         if self.topographicProfileActivated == False:
             print(
-                "You must define a Topographic profile first, please use the method Environment.setTopograghicProfile()"
+                "You must define a Topographic profile first, please use the method Environment.setTopographicProfile()"
             )
             return None
 
@@ -676,7 +680,7 @@ class Environment:
         Supported functionality includes using data from the
         International Standard Atmosphere, importing data from
         weather reanalysis, forecasts and ensemble forecasts,
-        importing data from upper air soundings and inputing
+        importing data from upper air soundings and inputting
         data as custom functions, arrays or csv files.
 
         Parameters
@@ -1461,7 +1465,7 @@ class Environment:
                 "Invalid OUTPUT: specified. Make sure the output is Text: List."
             )
 
-        # Process Wyoming Souding by finding data table and station info
+        # Process Wyoming Sounding by finding data table and station info
         response_split_text = re.split("(<.{0,1}PRE>)", response.text)
         data_table = response_split_text[2]
         station_info = response_split_text[6]
@@ -1781,7 +1785,7 @@ class Environment:
                 "Alternatively, use the Environment.setDate"
                 " method."
             )
-        if self.lat is None:
+        if self.latitude is None:
             raise TypeError(
                 "Please specify Location (lat, lon). when "
                 "initializing this Environment. "
@@ -1834,10 +1838,12 @@ class Environment:
         # Determine if file uses -180 to 180 or 0 to 360
         if lonArray[0] < 0 or lonArray[-1] < 0:
             # Convert input to -180 - 180
-            lon = self.lon if self.lon < 180 else -180 + self.lon % 180
+            lon = (
+                self.longitude if self.longitude < 180 else -180 + self.longitude % 180
+            )
         else:
             # Convert input to 0 - 360
-            lon = self.lon % 360
+            lon = self.longitude % 360
         # Check if reversed or sorted
         if lonArray[0] < lonArray[-1]:
             # Deal with sorted lonArray
@@ -1862,20 +1868,20 @@ class Environment:
         # Check if reversed or sorted
         if latArray[0] < latArray[-1]:
             # Deal with sorted latArray
-            latIndex = bisect.bisect(latArray, self.lat)
+            latIndex = bisect.bisect(latArray, self.latitude)
         else:
             # Deal with reversed latArray
             latArray.reverse()
-            latIndex = len(latArray) - bisect.bisect_left(latArray, self.lat)
+            latIndex = len(latArray) - bisect.bisect_left(latArray, self.latitude)
             latArray.reverse()
         # Take care of latitude value equal to maximum longitude in the grid
-        if latIndex == len(latArray) and latArray[latIndex - 1] == self.lat:
+        if latIndex == len(latArray) and latArray[latIndex - 1] == self.latitude:
             latIndex = latIndex - 1
         # Check if latitude value is inside the grid
         if latIndex == 0 or latIndex == len(latArray):
             raise ValueError(
                 "Latitude {:f} not inside region covered by file, which is from {:f} to {:f}.".format(
-                    self.lat, latArray[0], latArray[-1]
+                    self.latitude, latArray[0], latArray[-1]
                 )
             )
 
@@ -1900,11 +1906,11 @@ class Environment:
                     weatherData.variables[dictionary["geopotential"]][
                         timeIndex, :, (latIndex - 1, latIndex), (lonIndex - 1, lonIndex)
                     ]
-                    / self.g
+                    / self.gravity
                 )
             except:
                 raise ValueError(
-                    "Unable to read geopontential height"
+                    "Unable to read geopotential height"
                     " nor geopotential from file. At least"
                     " one of them is necessary. Check "
                     " file and dictionary."
@@ -1939,7 +1945,7 @@ class Environment:
             )
 
         # Prepare for bilinear interpolation
-        x, y = self.lat, lon
+        x, y = self.latitude, lon
         x1, y1 = latArray[latIndex - 1], lonArray[lonIndex - 1]
         x2, y2 = latArray[latIndex], lonArray[lonIndex]
 
@@ -2176,7 +2182,7 @@ class Environment:
                 "Alternatively, use the Environment.setDate"
                 " method."
             )
-        if self.lat is None:
+        if self.latitude is None:
             raise TypeError(
                 "Please specify Location (lat, lon). when "
                 "initializing this Environment. "
@@ -2229,10 +2235,12 @@ class Environment:
         # Determine if file uses -180 to 180 or 0 to 360
         if lonArray[0] < 0 or lonArray[-1] < 0:
             # Convert input to -180 - 180
-            lon = self.lon if self.lon < 180 else -180 + self.lon % 180
+            lon = (
+                self.longitude if self.longitude < 180 else -180 + self.longitude % 180
+            )
         else:
             # Convert input to 0 - 360
-            lon = self.lon % 360
+            lon = self.longitude % 360
         # Check if reversed or sorted
         if lonArray[0] < lonArray[-1]:
             # Deal with sorted lonArray
@@ -2257,20 +2265,20 @@ class Environment:
         # Check if reversed or sorted
         if latArray[0] < latArray[-1]:
             # Deal with sorted latArray
-            latIndex = bisect.bisect(latArray, self.lat)
+            latIndex = bisect.bisect(latArray, self.latitude)
         else:
             # Deal with reversed latArray
             latArray.reverse()
-            latIndex = len(latArray) - bisect.bisect_left(latArray, self.lat)
+            latIndex = len(latArray) - bisect.bisect_left(latArray, self.latitude)
             latArray.reverse()
         # Take care of latitude value equal to maximum longitude in the grid
-        if latIndex == len(latArray) and latArray[latIndex - 1] == self.lat:
+        if latIndex == len(latArray) and latArray[latIndex - 1] == self.latitude:
             latIndex = latIndex - 1
         # Check if latitude value is inside the grid
         if latIndex == 0 or latIndex == len(latArray):
             raise ValueError(
                 "Latitude {:f} not inside region covered by file, which is from {:f} to {:f}.".format(
-                    self.lat, latArray[0], latArray[-1]
+                    self.latitude, latArray[0], latArray[-1]
                 )
             )
 
@@ -2323,11 +2331,12 @@ class Environment:
                     [paramDictionary[inverseDictionary[dim]] for dim in dimensions]
                 )
                 geopotentials = (
-                    weatherData.variables[dictionary["geopotential"]][params] / self.g
+                    weatherData.variables[dictionary["geopotential"]][params]
+                    / self.gravity
                 )
             except:
                 raise ValueError(
-                    "Unable to read geopontential height"
+                    "Unable to read geopotential height"
                     " nor geopotential from file. At least"
                     " one of them is necessary. Check "
                     " file and dictionary."
@@ -2356,7 +2365,7 @@ class Environment:
             )
 
         # Prepare for bilinear interpolation
-        x, y = self.lat, lon
+        x, y = self.latitude, lon
         x1, y1 = latArray[latIndex - 1], lonArray[lonIndex - 1]
         x2, y2 = latArray[latIndex], lonArray[lonIndex]
 
@@ -2665,7 +2674,7 @@ class Environment:
         )
 
         # Get gravity and R
-        g = self.g
+        g = self.gravity
         R = self.airGasConstant
 
         # Create function to compute pressure profile
@@ -2688,7 +2697,7 @@ class Environment:
             Pb = pressure[layer]
             B = beta[layer]
 
-            # Compute presure
+            # Compute pressure
             if B != 0:
                 P = Pb * (1 + (B / Tb) * (H - Hb)) ** (-g / (B * R))
             else:
@@ -2868,9 +2877,9 @@ class Environment:
             )
         elif self.date != None:
             print("Launch Date:", self.date.strftime(time_format), "UTC")
-        if self.lat != None and self.lon != None:
-            print("Launch Site Latitude: {:.5f}°".format(self.lat))
-            print("Launch Site Longitude: {:.5f}°".format(self.lon))
+        if self.latitude != None and self.longitude != None:
+            print("Launch Site Latitude: {:.5f}°".format(self.latitude))
+            print("Launch Site Longitude: {:.5f}°".format(self.longitude))
         print("Reference Datum: " + self.datum)
         print(
             "Launch Site UTM coordinates: {:.2f} ".format(self.initialEast)
@@ -2988,7 +2997,7 @@ class Environment:
         """
         # Print gravity details
         print("Gravity Details")
-        print("\nAcceleration of Gravity: " + str(self.g) + " m/s²")
+        print("\nAcceleration of Gravity: " + str(self.gravity) + " m/s²")
 
         # Print launch site details
         print("\n\nLaunch Site Details")
@@ -3004,9 +3013,9 @@ class Environment:
             )
         elif self.date != None:
             print("Launch Date:", self.date.strftime(time_format), "UTC")
-        if self.lat != None and self.lon != None:
-            print("Launch Site Latitude: {:.5f}°".format(self.lat))
-            print("Launch Site Longitude: {:.5f}°".format(self.lon))
+        if self.latitude != None and self.longitude != None:
+            print("Launch Site Latitude: {:.5f}°".format(self.latitude))
+            print("Launch Site Longitude: {:.5f}°".format(self.longitude))
         print("Launch Site Surface Elevation: {:.1f} m".format(self.elevation))
 
         # Print atmospheric model details
@@ -3294,7 +3303,7 @@ class Environment:
 
         # Dictionary creation, if not commented follows the SI
         info = dict(
-            grav=self.g,
+            grav=self.gravity,
             launch_rail_length=self.rL,
             elevation=self.elevation,
             modelType=self.atmosphericModelType,
@@ -3309,9 +3318,9 @@ class Environment:
         )
         if self.date != None:
             info["launch_date"] = self.date.strftime("%Y-%d-%m %H:%M:%S")
-        if self.lat != None and self.lon != None:
-            info["lat"] = self.lat
-            info["lon"] = self.lon
+        if self.latitude != None and self.longitude != None:
+            info["lat"] = self.latitude
+            info["lon"] = self.longitude
         if info["modelType"] in ["Forecast", "Reanalysis", "Ensemble"]:
             info["initDate"] = self.atmosphericModelInitDate.strftime(
                 "%Y-%d-%m %H:%M:%S"
@@ -3329,7 +3338,7 @@ class Environment:
 
     def exportEnvironment(self, filename="environment"):
         """Export important attributes of Environment class so it can be used
-        again in further siulations by using the customAtmosphere atmospheric
+        again in further simulations by using the customAtmosphere atmospheric
         model.
         Parameters
         ----------
@@ -3724,7 +3733,7 @@ class Environment:
         """
         # Print launch site details
         # print("Launch Site Details")
-        # print("Launch Site Latitude: {:.5f}°".format(self.lat))
+        # print("Launch Site Latitude: {:.5f}°".format(self.latitude))
         # print("Launch Site Longitude: {:.5f}°".format(self.lon))
         # print("Reference Datum: " + self.datum)
         # print("Launch Site UTM coordinates: {:.2f} ".format(self.initialEast)
@@ -3736,3 +3745,6 @@ class Environment:
         print("Gravity acceleration at launch site: Still not implemented :(")
 
         return None
+
+
+from .utilities import calculateEarthRadius, geodesicToUtm

@@ -50,7 +50,7 @@ def test_env_set_date_time_zone(example_env):
 
 def test_env_set_location(example_env):
     example_env.setLocation(-21.960641, -47.482122)
-    assert example_env.lat == -21.960641 and example_env.lon == -47.482122
+    assert example_env.latitude == -21.960641 and example_env.longitude == -47.482122
 
 
 def test_set_elevation(example_env):
@@ -66,7 +66,9 @@ def test_set_topographic_profile(example_env):
         dictionary="netCDF4",
     )
     assert (
-        example_env.getElevationFromTopograghicProfile(example_env.lat, example_env.lon)
+        example_env.getElevationFromTopographicProfile(
+            example_env.latitude, example_env.longitude
+        )
         == 1565
     )
 
