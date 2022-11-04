@@ -14,17 +14,22 @@ def test_mass_based_motor():
 
 # @curtisjhu
 def test_ullage_based_motor():
-    lox = Fluid(name = "LOx", density = 1, quality = 1.0)
-    n2 = Fluid(name = "Nitrogen Gas", density = 3, quality = 1.0)
+    lox = Fluid(name = "LOx", density = 2, quality = 1.0)
+    n2 = Fluid(name = "Nitrogen Gas", density = 1, quality = 1.0)
 
     ullageData = [(1, 6), (2, 5), (3, 4), (4, 3), (5, 2), (6, 1)] # constant flow rate
     tank_geometry = {(0, 6): lambda y: 1}
     ullageTank = UllageBasedTank("Ullage Tank", tank_geometry, gas=n2, liquid=lox, ullage=ullageData)
 
 
-    assert np.allclose(ullageTank.centerOfMass().getSource(), np.array([3, 2.5, 2, 1.5, 1, 0.5]))
-    assert np.allclose(ullageTank.mass().getSource(), np.array([18.84, 25.12, 31.4, 37.68, 43.96, 50.24]))
-    assert np.allclose(ullageTank.netMassFlowRate().getSource(), np.array([-6.28, -6.28, -6.28, -6.28, -6.28, -6.28]))
+    center_of_mass_data = [[1, 3], [2, 2.5], [3, 2], [4, 1.5], [5, 1], [6, 0.5]]
+    assert ullageTank.centerOfMass() == Function(center_of_mass_data)
+
+    mass_data = [[1, 12], [2, 11], [3, 10], [4, 9], [5, 8], [6, 7]]
+    assert ullageTank.mass() == Function(mass_data)
+
+    mass_flow_rate_data = [[1, 1], [1, 1], [1, 1], [1, 1], [1, 1], [1, 1]]
+    assert ullageTank.netMassFlowRate() == Function(mass_flow_rate_data)
 
 # @gautamsaiy
 def test_mfr_tank_basic1():
