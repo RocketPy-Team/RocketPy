@@ -1935,6 +1935,20 @@ class Function:
         # Or if it is just a callable
         elif callable(other):
             return Function(lambda x: (other(x) - self.getValue(x)))
+    
+    def __eq__(self, other):
+        """ Checks if two functions are suffiently close enough.
+
+        Parameters
+        ----------
+        other : Function
+
+        Returns
+        -------
+        result : Boolean
+            True if the two function's sources are within a tolerance.
+        """
+        return np.allclose(self.source, other.source)
 
     def integral(self, a, b, numerical=False):
         """Evaluate a definite integral of a 1-D Function in the interval
