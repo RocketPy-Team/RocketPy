@@ -1,6 +1,9 @@
 test:
 	python -m pytest tests -vv
 
+testfile:
+	python -m pytest tests/$(file) -vv
+
 tests: 
 	test
 
