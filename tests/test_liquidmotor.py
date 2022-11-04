@@ -1,7 +1,5 @@
+from rocketpy import Fluid
 from rocketpy.motors.LiquidMotor import Tank, LiquidMotor, MassBasedTank, UllageBasedTank, MassFlowRateBasedTank
-from rocketpy.motors.Fluid import Fluid
-from rocketpy.Function import Function
-from math import isclose
 import numpy as np
 
 
@@ -12,22 +10,21 @@ def test_mass_based_motor():
     n2 = Fluid(name = "Nitrogen Gas", density = 51.75, quality = 1.0) #Placeholder quality value; density value may be estimate
     
     example_motor = MassBasedTank("Example Tank", 0.1540, 0.66, 0.7, "Placeholder", "Placeholder", lox, n2) 
-    #Need docs to be pushed + tank dimension values
 
 
 # @curtisjhu
 def test_ullage_based_motor():
-    lox = Fluid(name = "LOx", density = 1141, quality = 1.0) #Placeholder quality value
-    propane = Fluid(name = "Propane", density = 493, quality = 1.0) #Placeholder quality value
-    n2 = Fluid(name = "Nitrogen Gas", density = 51.75, quality = 1.0) #Placeholder quality value; density value may be estimate
+    lox = Fluid(name = "LOx", density = 1, quality = 1.0)
+    n2 = Fluid(name = "Nitrogen Gas", density = 3, quality = 1.0)
 
-    ullageData = []
-    ullageTank = UllageBasedTank("Ullage Tank",  diameter=3, height=4, endcap="flat", gas=n2, liquid=lox, ullage=ullageData)
-    
-    ullageTank.centerOfMass()
-    ullageTank.netMassFlowRate()
-    ullageTank.mass()
-    ullageTank.liquidVolume()
+    ullageData = [(1, 6), (2, 5), (3, 4), (4, 3), (5, 2), (6, 1)] # constant flow rate
+    tank_geometry = {(0, 6): lambda y: 1}
+    ullageTank = UllageBasedTank("Ullage Tank", tank_geometry, gas=n2, liquid=lox, ullage=ullageData)
+
+
+    assert np.allclose(ullageTank.centerOfMass().getSource(), np.array([3, 2.5, 2, 1.5, 1, 0.5]))
+    assert np.allclose(ullageTank.mass().getSource(), np.array([18.84, 25.12, 31.4, 37.68, 43.96, 50.24]))
+    assert np.allclose(ullageTank.netMassFlowRate().getSource(), np.array([-6.28, -6.28, -6.28, -6.28, -6.28, -6.28]))
 
 # @gautamsaiy
 def test_mfr_tank_basic1():
@@ -48,7 +45,7 @@ def test_mfr_tank_basic1():
 
     def test_uh():
         actual_liquid_vol = lambda x: ((initial_liquid_mass + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x) / lox.density) / np.pi * list(tank_radius_function.values())[0] ** 2
-        test(t.evaluateUilageHeight(), actual_liquid_vol)
+        test(t.evaluateUllageHeight(), actual_liquid_vol)
 
     
     tank_radius_function = {(0, 5): 1}
