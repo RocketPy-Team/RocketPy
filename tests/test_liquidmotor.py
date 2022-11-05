@@ -1,5 +1,9 @@
 from rocketpy import Fluid
 from rocketpy.motors.LiquidMotor import Tank, LiquidMotor, MassBasedTank, UllageBasedTank, MassFlowRateBasedTank
+from rocketpy.motors.Fluid import Fluid
+from rocketpy.Function import Function
+from math import isclose
+from scipy.optimize import fmin
 import numpy as np
 
 
@@ -35,9 +39,10 @@ def test_ullage_based_motor():
 def test_mfr_tank_basic1():
     def test(t, a):
         for i in np.arange(0, 10, .2):
-            print(t.getValue(i), a(i))
-            # assert isclose(t.getValue(i), a(i))
-    
+            # assert isclose(t.getValue(i), a(i), abs_tol=1e-5)
+            # print(t.getValue(i), a(i))
+            print(t(i))
+
     def test_nmfr():
         nmfr = lambda x: liquid_mass_flow_rate_in + gas_mass_flow_rate_in - liquid_mass_flow_rate_out - gas_mass_flow_rate_out
         test(t.netMassFlowRate(), nmfr)
@@ -48,11 +53,31 @@ def test_mfr_tank_basic1():
         lm = t.mass()
         test(lm, m)
 
-    def test_uh():
-        actual_liquid_vol = lambda x: ((initial_liquid_mass + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x) / lox.density) / np.pi * list(tank_radius_function.values())[0] ** 2
-        test(t.evaluateUllageHeight(), actual_liquid_vol)
+    def test_liquid_height():
+        alv = lambda x: (initial_liquid_mass + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x) / lox.density
+        alh = lambda x: alv(x) / (np.pi)
+        tlh = t.liquidHeight()
+        test(tlh, alh)
 
-    
+    def test_com():
+        alv = lambda x: (initial_liquid_mass + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x) / lox.density
+        alh = lambda x: alv(x) / (np.pi)
+        alm = lambda x: (initial_liquid_mass + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x)
+        agm = lambda x: (initial_gas_mass + (gas_mass_flow_rate_in - gas_mass_flow_rate_out) * x)
+
+        alcom = lambda x: alh(x) / 2
+        agcom = lambda x: (5 - alh(x)) / 2 + alh(x)
+        acom = lambda x: (alm(x) * alcom(x) + agm(x) * agcom(x)) / (alm(x) + agm(x))
+
+        tcom = t.centerOfMass
+        test(tcom, acom)
+
+    def test_inertia():
+        i = t.inertiaTensor()
+        test(i, 0)
+        
+
+
     tank_radius_function = {(0, 5): 1}
     lox = Fluid(name = "LOx", density = 1141, quality = 1.0) #Placeholder quality value
     n2 = Fluid(name = "Nitrogen Gas", density = 51.75, quality = 1.0) #Placeholder quality value; density value may be estimate
@@ -70,4 +95,6 @@ def test_mfr_tank_basic1():
 
     test_nmfr()
     test_mass()
-    test_uh()
+    test_liquid_height()
+    test_com()
+    test_inertia()

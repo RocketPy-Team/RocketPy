@@ -6,13 +6,13 @@ __license__ = "MIT"
 
 from abc import ABC, abstractmethod
 from cmath import tan
+from turtle import position
 
 import numpy as np
 from scipy import integrate
 
 from rocketpy.Function import Function, PiecewiseFunction
-from rocketpy.motors import Motor
-from rocketpy.motors import Fluid
+from rocketpy.motors import Motor, Fluid
 
 # @Stano
 # @PBales1
@@ -29,7 +29,7 @@ class LiquidMotor(Motor):
 
         super.__init__()
         self.tanks = []
-        self.thrustSource = thrustSource
+        self.thrustSource = Function(thrustSource)
         self.burnOut = burnOut
 
     def evaluateMassFlowRate(self):
@@ -40,32 +40,45 @@ class LiquidMotor(Motor):
 
 
     def evaluateCenterOfMass(self):
-        try:
-            print('insert function here')
-        except NameError:
-            print("Chamber not added")
+        com = Function(0)
+        total_mass = Function(0)
+        for tank in self.tanks:
+            com += (tank["tank"].centerOfMass() + tank[position]) * tank["tank"].mass()
+            total_mass += tank["tank"].mass() + Function(lambda t: tank["tank"].netMassFlowRate.integral(t - .05, t + .05))
+        com = com / total_mass
+        com.setInputs("Time")
+        com.setOutputs("Center of mass")
+        return com
 
 
     def evaluateInertiaTensor(self):
-        pass
+        inertiaI = Function(0)
+        inertiaZ = Function(0)
+        for tank in self.tanks:
+            inertia = tank["tank"].inertiaTensor()
+            inertiaI += inertia[0]
+            inertiaZ += inertia[1]
+        inertiaI.setInputs("Time")
+        inertiaI.setOutputs("Inertia tensor")
+        inertiaZ.setInputs("Time")
+        inertiaZ.setOutputs("Inertia tensor")
+        return [inertiaI, inertiaZ]
 
     def addTank(self, tank, position):
         self.tanks.append({"tank": tank, "position": position})
 
-    def addChamber(self, nozzleHeight, nozzleRadius, throatHeight, throatRadius):
-        self.chamber = ({"nozzle": {"height": nozzleHeight, "radius": nozzleRadius}, \
-            "throat": {"height": throatHeight, "radius": throatRadius}})
-
 
 # @gautamsaiy
 class Tank(ABC):
-    def __init__(self, name, tank_geometry, gas: Fluid, liquid: Fluid):
-        self.height = sorted(tank_geometry.keys())[-1][1]
+    def __init__(self, name, tank_geometry, gas, liquid=0):
+        assert isinstance(name, str)
+        assert(isinstance(tank_geometry, dict))
+        assert(isinstance(gas, Fluid))
+        assert(isinstance(liquid, Fluid) or liquid == 0)
 
-        if isinstance(tank_geometry, dict):
-            self.tank_geometry = PiecewiseFunction(tank_geometry)
-        else:
-            self.tank_geometry = Function(tank_geometry)
+        self.height = sorted(tank_geometry.keys())[-1][1]
+        self.tank_geometry = PiecewiseFunction(tank_geometry)
+            
         self.tank_geometry.setInputs("y")
         self.tank_geometry.setOutputs("radius")
 
@@ -73,7 +86,7 @@ class Tank(ABC):
         self.tank_area.setInputs("y")
         self.tank_area.setOutputs("area")
 
-        self.tank_vol = self.tank_area.integralFunction()
+        self.tank_vol = Function(lambda x: self.tank_area.integral(0, x))
         self.tank_vol.setInputs("y")
         self.tank_vol.setOutputs("volume")
 
@@ -116,7 +129,8 @@ class Tank(ABC):
         """
         pass
 
-    def evaluateUllageHeight(self):
+    @abstractmethod
+    def liquidHeight(self):
         """
         Returns the height of the uilage as a function of time.
 
@@ -132,6 +146,41 @@ class Tank(ABC):
         """
         pass
     
+    @abstractmethod
+    def liquidMass():
+        """
+        Returns the mass of the liquid as a function of time.
+
+        Parameters
+        ----------
+        time : float
+            Time in seconds.
+
+        Returns
+        -------
+        Function
+            Mass of the liquid as a function of time.
+        """
+        pass
+
+    @abstractmethod
+    def gasMass():
+        """
+        Returns the mass of the gas as a function of time.
+
+        Parameters
+        ----------
+        time : float
+            Time in seconds.
+
+        Returns
+        -------
+        Function
+            Mass of the gas as a function of time.
+        """
+        pass
+
+    @property
     def centerOfMass(self):
         """Returns the center of mass of the tank's fluids as a function of
         time.
@@ -146,27 +195,33 @@ class Tank(ABC):
         Function
             Center of mass of the tank's fluids as a function of time.
         """
-        A = self.tank_geometry.integralFunction()
+        tank_liquid_A = Function(lambda x: self.tank_geometry.integral(0, x))
+        tank_liquid_inside_integral = Function(lambda x: x * self.tank_geometry(x))
+        tank_liquid_integral = Function(lambda x: tank_liquid_inside_integral.integral(0, x))
+        tank_liquid_com = Function(lambda x: tank_liquid_integral(x) / (tank_liquid_A(x) + 1e-9))
 
-        insideIntegrandL = Function(lambda y: self.tank_geometry.getValue(y) * y)
-        funcL = insideIntegrandL.integralFunction()
-        funcL = funcL / A
-        comLiquid = funcL.functionOfAFunction(self.uilageHeight())
+        tank_gas_A = Function(lambda x: self.tank_geometry.integral(x, self.height))
+        tank_gas_inside_integral = Function(lambda x: x * self.tank_geometry(x))
+        tank_gas_integral = Function(lambda x: tank_gas_inside_integral.integral(x, self.height))
+        tank_gas_com = Function(lambda x: tank_gas_integral(x) / (tank_gas_A(x) + 1e-9))
 
-        insideIntegrandG = Function(lambda x: (self.tank_geometry.integral(0, self.height) - self.tank_geometry.integralFunction().getValue(x)) * x)
-        funcG = insideIntegrandG.integralFunction()
-        funcG = funcG / A
-        comGas = funcG.functionOfAFunction(self.uilageHeight())
 
-        com = (comLiquid * self.liquidMass() + comGas * self.gasMass()) / self.mass()
-        com.setInputs("Time")
-        com.setOutputs("Height")
+        tank_liquid_com_t = Function(lambda t: tank_liquid_com(self.liquidHeight()(t)))
+        tank_gas_com_t = Function(lambda t: tank_gas_com(self.liquidHeight()(t)))
+
+        lm = self.liquidMass()
+        gm = self.gasMass()
+
+        liquid_mass_c = Function(lambda t: tank_liquid_com_t(t) * lm(t))
+        gas_mass_c = Function(lambda t: tank_gas_com_t(t) * gm(t))
+
+        com = Function(lambda t: (liquid_mass_c(t) + gas_mass_c(t)) / (self.mass()(t) + 1e-9), "Time", "Center of Mass")
         return com
-
 
     @property
     def inertiaTensor(self):
-        """Returns the inertia tensor of the tank's fluids as a function of
+        """
+        Returns the inertia tensor of the tank's fluids as a function of
         time.
 
         Parameters
@@ -179,24 +234,11 @@ class Tank(ABC):
         Function
             Inertia tensor of the tank's fluids as a function of time.
         """
-        lk = np.pi * self.liquid.density
-        insideIntegral = (self.tank_geometry ** 2) * (self.height * self.centerOfMass()) ** 2
-        integral = lk * insideIntegral.integralFunction()
-        integral.setInputs("time")
-        integral.setOutputs("Inertia")
-        Ixx = Iyy = integral
+        Ix = Function(lambda h: (self.tank_geometry ** 2).integral(0, h))
+        Ix = Function(lambda t: Ix(self.liquidHeight()(t)) * (1/2) * self.mass()(t), "Time", "Inertia tensor")
+
+        return Ix
         
-        lk = lk / 2
-        insideIntegral = self.tank_geometry ** 4
-        integral = lk * insideIntegral.integralFunction()
-        integral.setInputs("time")
-        integral.setOutputs("Inertia")
-        Izz = integral
-
-        
-
-
-
 
 # @MrGribel
 # @gautamsaiy
@@ -242,16 +284,31 @@ class MassFlowRateBasedTank(Tank):
         mfr.setOutputs("Net Mass Flow Rate")
         return mfr
 
-    def evaluateUllageHeight(self):
+    def liquidHeight(self):
         liquid_vol = Function(lambda t: (self.initial_liquid_mass.getValue(t)
                 + self.liquid_mass_flow_rate_in.integral(0, t)
                 - self.liquid_mass_flow_rate_out.integral(0, t))
                 / self.liquid.density)
-        # uH = self.tank_vol.reverse().functionOfAFunction(liquid_vol)
         uH = Function(lambda t: self.tank_vol.findOptimalInput(liquid_vol.getValue(t)))
         uH.setInputs("Time")
         uH.setOutputs("Height")
         return uH
+
+    def liquidMass(self):
+        liquid_mass = Function(lambda t: self.initial_liquid_mass.getValue(t)
+                + self.liquid_mass_flow_rate_in.integral(0, t)
+                - self.liquid_mass_flow_rate_out.integral(0, t))
+        liquid_mass.setInputs("Time")
+        liquid_mass.setOutputs("Mass")
+        return liquid_mass
+    
+    def gasMass(self):
+        gas_mass = Function(lambda t: self.initial_gas_mass.getValue(t)
+                + self.gas_mass_flow_rate_in.integral(0, t)
+                - self.gas_mass_flow_rate_out.integral(0, t))
+        gas_mass.setInputs("Time")
+        gas_mass.setOutputs("Mass")
+        return gas_mass
 
 
 # @phmbressan
