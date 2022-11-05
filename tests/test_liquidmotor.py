@@ -73,7 +73,14 @@ def test_mfr_tank_basic1():
         test(tcom, acom)
 
     def test_inertia():
-        i = t.inertiaTensor()
+        alv = lambda x: (initial_liquid_mass + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x) / lox.density
+        alh = lambda x: alv(x) / (np.pi)
+        m = lambda x: (initial_liquid_mass + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x) + \
+            (initial_gas_mass + (gas_mass_flow_rate_in - gas_mass_flow_rate_out) * x)
+        r = 1
+        iz = lambda x: (m(x) * r**2)/2
+        ix = lambda x: (1/12)*m(x)*(3*r**2 + alh(x) **2)
+        iy = lambda x: (1/12)*m(x)*(3*r**2 + alh(x) **2)
         test(i, 0)
         
 
