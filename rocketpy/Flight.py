@@ -9,7 +9,7 @@ __license__ = "MIT"
 import math
 import time
 import warnings
-from functools import cached_property
+import functools
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -1607,7 +1607,8 @@ class Flight:
 
     # Process first type of outputs - state vector
     # Transform solution array into Functions
-    @cached_property
+    @property
+    @functools.lru_cache()
     def x(self, interpolation="spline", extrapolation="natural"):
         """Rocket x position as a function of time.
 
@@ -1635,7 +1636,8 @@ class Flight:
             extrapolation,
         )
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def y(self, interpolation="spline", extrapolation="natural"):
         """ocket y position as a function of time.
 
@@ -1663,7 +1665,8 @@ class Flight:
             extrapolation,
         )
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def z(self, interpolation="spline", extrapolation="natural"):
         """Rocket z position as a function of time.
 
@@ -1691,7 +1694,8 @@ class Flight:
             extrapolation,
         )
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def vx(self, interpolation="spline", extrapolation="natural"):
         """Rocket x velocity as a function of time.
 
@@ -1720,7 +1724,8 @@ class Flight:
             extrapolation,
         )
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def vy(self, interpolation="spline", extrapolation="natural"):
         """Rocket y velocity as a function of time.
 
@@ -1748,7 +1753,8 @@ class Flight:
             extrapolation,
         )
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def vz(self, interpolation="spline", extrapolation="natural"):
         """Rocket z velocity as a function of time.
 
@@ -1776,7 +1782,8 @@ class Flight:
             extrapolation,
         )
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def e0(self, interpolation="spline", extrapolation="natural"):
         return Function(
             np.array(self.solution)[:, [0, 7]],
@@ -1786,7 +1793,8 @@ class Flight:
             extrapolation,
         )
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def e1(self, interpolation="spline", extrapolation="natural"):
         return Function(
             np.array(self.solution)[:, [0, 8]],
@@ -1796,7 +1804,8 @@ class Flight:
             extrapolation,
         )
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def e2(self, interpolation="spline", extrapolation="natural"):
         return Function(
             np.array(self.solution)[:, [0, 9]],
@@ -1806,7 +1815,8 @@ class Flight:
             extrapolation,
         )
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def e3(self, interpolation="spline", extrapolation="natural"):
         return Function(
             np.array(self.solution)[:, [0, 10]],
@@ -1816,7 +1826,8 @@ class Flight:
             extrapolation,
         )
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def w1(self, interpolation="spline", extrapolation="natural"):
         return Function(
             np.array(self.solution)[:, [0, 11]],
@@ -1826,7 +1837,8 @@ class Flight:
             extrapolation,
         )
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def w2(self, interpolation="spline", extrapolation="natural"):
         return Function(
             np.array(self.solution)[:, [0, 12]],
@@ -1836,7 +1848,8 @@ class Flight:
             extrapolation,
         )
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def w3(self, interpolation="spline", extrapolation="natural"):
         return Function(
             np.array(self.solution)[:, [0, 13]],
@@ -1847,28 +1860,32 @@ class Flight:
         )
 
     # Process second type of outputs - accelerations components
-    @cached_property
+    @property
+    @functools.lru_cache()
     def ax(self, interpolation="spline", extrapolation="natural"):
         ax = self.retrieve_acceleration_arrays[0]
         # Convert accelerations to functions
         ax = Function(ax, "Time (s)", "Ax (m/s2)", interpolation, extrapolation)
         return ax
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def ay(self, interpolation="spline", extrapolation="natural"):
         ay = self.retrieve_acceleration_arrays[1]
         # Convert accelerations to functions
         ay = Function(ay, "Time (s)", "Ay (m/s2)", interpolation, extrapolation)
         return ay
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def az(self, interpolation="spline", extrapolation="natural"):
         az = self.retrieve_acceleration_arrays[2]
         # Convert accelerations to functions
         az = Function(az, "Time (s)", "Az (m/s2)", interpolation, extrapolation)
         return az
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def alpha1(self, interpolation="spline", extrapolation="natural"):
         alpha1 = self.retrieve_acceleration_arrays[3]
         # Convert accelerations to functions
@@ -1877,7 +1894,8 @@ class Flight:
         )
         return alpha1
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def alpha2(self, interpolation="spline", extrapolation="natural"):
         alpha2 = self.retrieve_acceleration_arrays[4]
         # Convert accelerations to functions
@@ -1886,7 +1904,8 @@ class Flight:
         )
         return alpha2
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def alpha3(self, interpolation="spline", extrapolation="natural"):
         alpha3 = self.retrieve_acceleration_arrays[5]
         # Convert accelerations to functions
@@ -1896,7 +1915,8 @@ class Flight:
         return alpha3
 
     # Process third type of outputs - Temporary values
-    @cached_property
+    @property
+    @functools.lru_cache()
     def R1(self, interpolation="spline", extrapolation="natural"):
         """Aerodynamic force along the first axis that is perpendicular to the
         rocket's axis of symmetry.
@@ -1923,7 +1943,8 @@ class Flight:
 
         return R1
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def R2(self, interpolation="spline", extrapolation="natural"):
         """Aerodynamic force along the second axis that is perpendicular to the
         rocket's axis of symmetry.
@@ -1950,7 +1971,8 @@ class Flight:
 
         return R2
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def R3(self, interpolation="spline", extrapolation="natural"):
         """Aerodynamic force along the rocket's axis of symmetry.
 
@@ -1975,7 +1997,8 @@ class Flight:
 
         return R3
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def M1(self, interpolation="spline", extrapolation="natural"):
         """Aerodynamic bending moment in the same direction as the axis that is
         perpendicular to the rocket's axis of symmetry.
@@ -2002,7 +2025,8 @@ class Flight:
 
         return M1
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def M2(self, interpolation="spline", extrapolation="natural"):
         """Aerodynamic moment in the same direction as the second axis that is
         perpendicular to the rocket's axis of symmetry.
@@ -2029,7 +2053,8 @@ class Flight:
 
         return M2
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def M3(self, interpolation="spline", extrapolation="natural"):
         """Aerodynamic bending in the rocket's axis of symmetry direction.
 
@@ -2054,7 +2079,8 @@ class Flight:
 
         return M3
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def pressure(self, interpolation="spline", extrapolation="natural"):
         """Air pressure at each time step.
 
@@ -2081,7 +2107,8 @@ class Flight:
 
         return pressure
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def density(self, interpolation="spline", extrapolation="natural"):
         """Air density at each time step.
 
@@ -2108,7 +2135,8 @@ class Flight:
 
         return density
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def dynamicViscosity(self, interpolation="spline", extrapolation="natural"):
         """Air dynamic viscosity at each time step.
 
@@ -2139,7 +2167,8 @@ class Flight:
 
         return dynamicViscosity
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def speedOfSound(self, interpolation="spline", extrapolation="natural"):
         """Speed of sound at each time step.
 
@@ -2170,7 +2199,8 @@ class Flight:
 
         return speedOfSound
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def windVelocityX(self, interpolation="spline", extrapolation="natural"):
         """Wind velocity in the X direction at each time step.
 
@@ -2201,7 +2231,8 @@ class Flight:
 
         return windVelocityX
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def windVelocityY(self, interpolation="spline", extrapolation="natural"):
         """Wind velocity in the Y direction at each time step.
 
@@ -2236,44 +2267,52 @@ class Flight:
 
     # Kinematics functions and values
     # Velocity Magnitude
-    @cached_property
+    @property
+    @functools.lru_cache()
     def speed(self):
         speed = (self.vx**2 + self.vy**2 + self.vz**2) ** 0.5
         speed.setOutputs("Speed - Velocity Magnitude (m/s)")
         return speed
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def maxSpeedTime(self):
         maxSpeedTimeIndex = np.argmax(self.speed[:, 1])
         return self.speed[maxSpeedTimeIndex, 0]
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def maxSpeed(self):
         return self.speed(self.maxSpeedTime)
 
     # Accelerations
-    @cached_property
+    @property
+    @functools.lru_cache()
     def acceleration(self):
         acceleration = (self.ax**2 + self.ay**2 + self.az**2) ** 0.5
         acceleration.setOutputs("Acceleration Magnitude (m/s²)")
         return acceleration
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def maxAcceleration(self):
         maxAccelerationTimeIndex = np.argmax(self.acceleration[:, 1])
         return self.acceleration[maxAccelerationTimeIndex, 1]
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def maxAccelerationTime(self):
         maxAccelerationTimeIndex = np.argmax(self.acceleration[:, 1])
         return self.acceleration[maxAccelerationTimeIndex, 0]
 
     # Path Angle
-    @cached_property
+    @property
+    @functools.lru_cache()
     def horizontalSpeed(self):
         return (self.vx**2 + self.vy**2) ** 0.5
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def pathAngle(self):
         pathAngle = (180 / np.pi) * np.arctan2(
             self.vz[:, 1], self.horizontalSpeed[:, 1]
@@ -2282,19 +2321,23 @@ class Flight:
         return Function(pathAngle, "Time (s)", "Path Angle (°)")
 
     # Attitude Angle
-    @cached_property
+    @property
+    @functools.lru_cache()
     def attitudeVectorX(self):
         return 2 * (self.e1 * self.e3 + self.e0 * self.e2)  # a13
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def attitudeVectorY(self):
         return 2 * (self.e2 * self.e3 - self.e0 * self.e1)  # a23
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def attitudeVectorZ(self):
         return 1 - 2 * (self.e1**2 + self.e2**2)  # a33
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def attitudeAngle(self):
         horizontalAttitudeProj = (
             self.attitudeVectorX**2 + self.attitudeVectorY**2
@@ -2306,7 +2349,8 @@ class Flight:
         return Function(attitudeAngle, "Time (s)", "Attitude Angle (°)")
 
     # Lateral Attitude Angle
-    @cached_property
+    @property
+    @functools.lru_cache()
     def lateralAttitudeAngle(self):
         lateralVectorAngle = (np.pi / 180) * (self.heading - 90)
         lateralVectorX = np.sin(lateralVectorAngle)
@@ -2334,7 +2378,8 @@ class Flight:
         return Function(lateralAttitudeAngle, "Time (s)", "Lateral Attitude Angle (°)")
 
     # Euler Angles
-    @cached_property
+    @property
+    @functools.lru_cache()
     def psi(self):
         psi = (180 / np.pi) * (
             np.arctan2(self.e3[:, 1], self.e0[:, 1])
@@ -2343,7 +2388,8 @@ class Flight:
         psi = np.column_stack([self.e1[:, 0], psi])  # Precession angle
         return Function(psi, "Time (s)", "Precession Angle - ψ (°)")
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def phi(self):
         phi = (180 / np.pi) * (
             np.arctan2(self.e3[:, 1], self.e0[:, 1])
@@ -2352,7 +2398,8 @@ class Flight:
         phi = np.column_stack([self.e1[:, 0], phi])  # Spin angle
         return Function(phi, "Time (s)", "Spin Angle - φ (°)")
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def theta(self):
         theta = (
             (180 / np.pi)
@@ -2364,7 +2411,8 @@ class Flight:
 
     # Fluid Mechanics variables
     # Freestream Velocity
-    @cached_property
+    @property
+    @functools.lru_cache()
     def streamVelocityX(self, interpolation="spline", extrapolation="natural"):
         streamVelocityX = np.column_stack(
             (self.vx[:, 0], self.windVelocityX[:, 1] - self.vx[:, 1])
@@ -2378,7 +2426,8 @@ class Flight:
         )
         return streamVelocityX
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def streamVelocityY(self, interpolation="spline", extrapolation="natural"):
         streamVelocityY = np.column_stack(
             (self.vy[:, 0], self.windVelocityY[:, 1] - self.vy[:, 1])
@@ -2392,7 +2441,8 @@ class Flight:
         )
         return streamVelocityY
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def streamVelocityZ(self, interpolation="spline", extrapolation="natural"):
         streamVelocityZ = np.column_stack((self.vz[:, 0], -self.vz[:, 1]))
         streamVelocityZ = Function(
@@ -2404,7 +2454,8 @@ class Flight:
         )
         return streamVelocityZ
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def freestreamSpeed(self):
         freestreamSpeed = (
             self.streamVelocityX**2
@@ -2416,29 +2467,34 @@ class Flight:
         return freestreamSpeed
 
     # Apogee Freestream speed
-    @cached_property
+    @property
+    @functools.lru_cache()
     def apogeeFreestreamSpeed(self):
         return self.freestreamSpeed(self.apogeeTime)
 
     # Mach Number
-    @cached_property
+    @property
+    @functools.lru_cache()
     def MachNumber(self):
         MachNumber = self.freestreamSpeed / self.speedOfSound
         MachNumber.setInputs("Time (s)")
         MachNumber.setOutputs("Mach Number")
         return MachNumber
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def maxMachNumberTime(self):
         maxMachNumberTimeIndex = np.argmax(self.MachNumber[:, 1])
         return self.MachNumber[maxMachNumberTimeIndex, 0]
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def maxMachNumber(self):
         return self.MachNumber(self.maxMachNumberTime)
 
     # Reynolds Number
-    @cached_property
+    @property
+    @functools.lru_cache()
     def ReynoldsNumber(self):
         ReynoldsNumber = (
             self.density * self.freestreamSpeed / self.dynamicViscosity
@@ -2447,67 +2503,78 @@ class Flight:
         ReynoldsNumber.setOutputs("Reynolds Number")
         return ReynoldsNumber
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def maxReynoldsNumberTime(self):
         maxReynoldsNumberTimeIndex = np.argmax(self.ReynoldsNumber[:, 1])
         return self.ReynoldsNumber[maxReynoldsNumberTimeIndex, 0]
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def maxReynoldsNumber(self):
         return self.ReynoldsNumber(self.maxReynoldsNumberTime)
 
     # Dynamic Pressure
-    @cached_property
+    @property
+    @functools.lru_cache()
     def dynamicPressure(self):
         dynamicPressure = 0.5 * self.density * self.freestreamSpeed**2
         dynamicPressure.setInputs("Time (s)")
         dynamicPressure.setOutputs("Dynamic Pressure (Pa)")
         return dynamicPressure
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def maxDynamicPressureTime(self):
         maxDynamicPressureTimeIndex = np.argmax(self.dynamicPressure[:, 1])
         return self.dynamicPressure[maxDynamicPressureTimeIndex, 0]
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def maxDynamicPressure(self):
         return self.dynamicPressure(self.maxDynamicPressureTime)
 
     # Total Pressure
-    @cached_property
+    @property
+    @functools.lru_cache()
     def totalPressure(self):
         totalPressure = self.pressure * (1 + 0.2 * self.MachNumber**2) ** (3.5)
         totalPressure.setInputs("Time (s)")
         totalPressure.setOutputs("Total Pressure (Pa)")
         return totalPressure
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def maxtotalPressureTime(self):
         maxtotalPressureTimeIndex = np.argmax(self.totalPressure[:, 1])
         return self.totalPressure[maxtotalPressureTimeIndex, 0]
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def maxtotalPressure(self):
         return self.totalPressure(self.maxtotalPressureTime)
 
     # Dynamics functions and variables
 
     #  Aerodynamic Lift and Drag
-    @cached_property
+    @property
+    @functools.lru_cache()
     def aerodynamicLift(self):
         aerodynamicLift = (self.R1**2 + self.R2**2) ** 0.5
         aerodynamicLift.setInputs("Time (s)")
         aerodynamicLift.setOutputs("Aerodynamic Lift Force (N)")
         return aerodynamicLift
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def aerodynamicDrag(self):
         aerodynamicDrag = -1 * self.R3
         aerodynamicDrag.setInputs("Time (s)")
         aerodynamicDrag.setOutputs("Aerodynamic Drag Force (N)")
         return aerodynamicDrag
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def aerodynamicBendingMoment(self):
 
         aerodynamicBendingMoment = (self.M1**2 + self.M2**2) ** 0.5
@@ -2515,7 +2582,8 @@ class Flight:
         aerodynamicBendingMoment.setOutputs("Aerodynamic Bending Moment (N m)")
         return aerodynamicBendingMoment
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def aerodynamicSpinMoment(self):
         aerodynamicSpinMoment = self.M3
         aerodynamicSpinMoment.setInputs("Time (s)")
@@ -2524,7 +2592,8 @@ class Flight:
 
     # Energy
     # Kinetic Energy
-    @cached_property
+    @property
+    @functools.lru_cache()
     def rotationalEnergy(self):
         b = -self.rocket.distanceRocketPropellant
         mu = self.rocket.reducedMass
@@ -2545,7 +2614,8 @@ class Flight:
         rotationalEnergy.setOutputs("Rotational Kinetic Energy (J)")
         return rotationalEnergy
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def translationalEnergy(self):
         # Redefine total mass grid
         totalMass = self.rocket.totalMass
@@ -2558,7 +2628,8 @@ class Flight:
         translationalEnergy.setOutputs("Translational Kinetic Energy (J)")
         return translationalEnergy
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def kineticEnergy(self):
         kineticEnergy = self.rotationalEnergy + self.translationalEnergy
         kineticEnergy.setInputs("Time (s)")
@@ -2566,7 +2637,8 @@ class Flight:
         return kineticEnergy
 
     # Potential Energy
-    @cached_property
+    @property
+    @functools.lru_cache()
     def potentialEnergy(self):
         # Redefine total mass grid
         totalMass = self.rocket.totalMass
@@ -2577,7 +2649,8 @@ class Flight:
         return potentialEnergy
 
     # Total Mechanical Energy
-    @cached_property
+    @property
+    @functools.lru_cache()
     def totalEnergy(self):
         totalEnergy = self.kineticEnergy + self.potentialEnergy
         totalEnergy.setInputs("Time (s)")
@@ -2585,7 +2658,8 @@ class Flight:
         return totalEnergy
 
     # Thrust Power
-    @cached_property
+    @property
+    @functools.lru_cache()
     def thrustPower(self):
         grid = self.vx[:, 0]
         # Redefine thrust grid
@@ -2597,14 +2671,16 @@ class Flight:
         return thrustPower
 
     # Drag Power
-    @cached_property
+    @property
+    @functools.lru_cache()
     def dragPower(self):
         dragPower = self.R3 * self.speed
         dragPower.setOutputs("Drag Power (W)")
         return dragPower
 
     # Angle of Attack
-    @cached_property
+    @property
+    @functools.lru_cache()
     def angleOfAttack(self, interpolation="spline", extrapolation="natural"):
         """Angle of attack of the rocket with respect to the freestream
             velocity vector.
@@ -2656,7 +2732,8 @@ class Flight:
 
     # Stability and Control variables
     # Angular velocities frequency response - Fourier Analysis
-    @cached_property
+    @property
+    @functools.lru_cache()
     def omega1FrequencyResponse(self):
         Fs = 100.0
         # sampling rate
@@ -2678,7 +2755,8 @@ class Flight:
         )
         return omega1FrequencyResponse
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def omega2FrequencyResponse(self):
         Fs = 100.0
         # sampling rate
@@ -2700,7 +2778,8 @@ class Flight:
         )
         return omega2FrequencyResponse
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def omega3FrequencyResponse(self):
         Fs = 100.0
         # sampling rate
@@ -2722,7 +2801,8 @@ class Flight:
         )
         return omega3FrequencyResponse
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def attitudeFrequencyResponse(self):
         Fs = 100.0
         # sampling rate
@@ -2747,12 +2827,14 @@ class Flight:
         return attitudeFrequencyResponse
 
     # Static Margin
-    @cached_property
+    @property
+    @functools.lru_cache()
     def staticMargin(self):
         return self.rocket.staticMargin
 
     # Rail Button Forces
-    @cached_property
+    @property
+    @functools.lru_cache()
     def railButton1NormalForce(self):
         """Upper rail button normal force as a function of time
 
@@ -2772,7 +2854,8 @@ class Flight:
 
         return railButton1NormalForce
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def railButton1ShearForce(self):
         """Upper rail button shear force as a function of time
 
@@ -2793,7 +2876,8 @@ class Flight:
 
         return railButton1ShearForce
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def railButton2NormalForce(self):
         """Lower rail button normal force as a function of time
 
@@ -2812,7 +2896,8 @@ class Flight:
 
         return railButton2NormalForce
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def railButton2ShearForce(self):
         """Lower rail button shear force as a function of time
 
@@ -2831,7 +2916,8 @@ class Flight:
 
         return railButton2ShearForce
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def maxRailButton1NormalForce(self):
         """Maximum upper rail button normal force, in Newtons
 
@@ -2850,7 +2936,8 @@ class Flight:
         else:
             return np.max(self.railButton1NormalForce[:outOfRailTimeIndex])
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def maxRailButton1ShearForce(self):
         """Maximum upper rail button shear force, in Newtons
 
@@ -2869,7 +2956,8 @@ class Flight:
         else:
             return np.max(self.railButton1ShearForce[:outOfRailTimeIndex])
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def maxRailButton2NormalForce(self):
         """Maximum lower rail button normal force, in Newtons
 
@@ -2888,7 +2976,8 @@ class Flight:
         else:
             return np.max(self.railButton2NormalForce[:outOfRailTimeIndex])
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def maxRailButton2ShearForce(self):
         """Maximum lower rail button shear force, in Newtons
 
@@ -2907,7 +2996,8 @@ class Flight:
         else:
             return np.max(self.railButton2ShearForce[:outOfRailTimeIndex])
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def drift(self):
         """Rocket horizontal distance to tha launch point, in meters, at each
         time step.
@@ -2929,7 +3019,8 @@ class Flight:
 
         return drift
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def bearing(self, interpolation="spline", extrapolation="natural"):
         """Rocket bearing compass, in degrees, at each time step.
 
@@ -2981,7 +3072,8 @@ class Flight:
 
         return bearing
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def latitude(self):
         """Rocket latitude coordinate, in degrees, at each time step.
 
@@ -3006,7 +3098,8 @@ class Flight:
 
         return latitude
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def longitude(self):
         """Rocket longitude coordinate, in degrees, at each time step.
 
@@ -3035,7 +3128,8 @@ class Flight:
 
         return longitude
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def retrieve_acceleration_arrays(self):
         """Retrieve acceleration arrays from the integration scheme
 
@@ -3087,7 +3181,8 @@ class Flight:
 
         return ax, ay, az, alpha1, alpha2, alpha3
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def retrieve_temporary_values_arrays(self):
         """Retrieve temporary values arrays from the integration scheme.
         Currently, the following temporary values are retrieved:
@@ -3180,7 +3275,8 @@ class Flight:
 
         return temporary_values
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def calculate_rail_button_forces(self):
         """Calculate the forces applied to the rail buttons while rocket is still
         on the launch rail. It will return 0 if none rail buttons are defined.
@@ -3223,7 +3319,8 @@ class Flight:
 
         return F11, F12, F21, F22
 
-    @cached_property
+    @property
+    @functools.lru_cache()
     def __calculate_pressure_signal(self):
         """Calculate the pressure signal from the pressure sensor.
         It creates a SignalFunction attribute in the parachute object.
@@ -4587,7 +4684,7 @@ class Flight:
             else:
                 try:
                     obj = getattr(self.__class__, variable)
-                    if isinstance(obj, property) or isinstance(obj, cached_property):
+                    if isinstance(obj, property):
                         variableFunction = obj.__get__(self, self.__class__)
                 except AttributeError:
                     raise AttributeError(
