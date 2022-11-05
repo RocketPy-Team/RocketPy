@@ -19,12 +19,12 @@ def test_mass_based_motor():
     real_geometry = {(0, 0.0559): bottom_endcap, (.0559, 0.7139): lambda y: 0.0744, (0.7139, 0.7698): top_endcap} 
 
     #Import liquid mass data
-    lox_masses = "data/berkeley/test135LoxMass.csv"
+    lox_masses = "data/berkeley/Test135LoxMass.csv"
     example_liquid_masses = "data/berkeley/ExampleTankLiquidMassData.csv"
 
     #Import gas mass data
-    gas_masses = "Placeholder"
-    example_gas_masses = "Placeholder"
+    gas_masses = "data/berkeley/Test135GasMass.csv"
+    example_gas_masses = "data/berkeley/ExampleTankGasMassData.csv"
     
     #Generate tanks based on Berkeley SEB team's real tank geometries
     real_tank_lox = MassBasedTank("Real Tank", real_geometry, lox_masses, gas_masses, lox, n2) 
@@ -42,15 +42,24 @@ def test_mass_based_motor():
     liquid_mass_flow_rate_out = .2
     gas_mass_flow_rate_out = .02
 
-    def test(calculated, expected, t):
+    def test(calculated, expected, t, real=False):
         """Iterate over time range and test that calculated value is close to actual value"""
+        j = 0
         for i in range(0, t, 0.1):
-            assert isclose(calculated.getValue(i), expected(i), abs_tol=10e-4)
+            try: 
+                assert isclose(calculated.getValue(i), expected(j), abs_tol=10e-4)
+            except IndexError:
+                break
+            
+            if real:
+                j+= 4
+            else:
+                j += 1
 
     def test_mass():
         """Test mass function of MassBasedTank subclass of Tank"""
         example_expected = lambda t: initial_liquid_mass + t * (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) \
-                            + initial_gas_mass + t * (gas_mass_flow_rate_in - gas_mass_flow_rate_out)
+                                + initial_gas_mass + t * (gas_mass_flow_rate_in - gas_mass_flow_rate_out)
         example_calculated = example_tank_lox.mass()
 
         lox_vals = []
@@ -63,12 +72,12 @@ def test_mass_based_motor():
         real_calculated = real_tank_lox.mass()
 
         test(example_calculated, example_expected, 10)
-        test(real_calculated, real_expected, 15.5)
+        test(real_calculated, real_expected, 15.5, real=True)
 
     def test_net_mfr():
         """Test netMassFlowRate function of MassBasedTank subclass of Tank"""
         example_expected = lambda t: liquid_mass_flow_rate_in - liquid_mass_flow_rate_out \
-                            + gas_mass_flow_rate_in - gas_mass_flow_rate_out
+                                + gas_mass_flow_rate_in - gas_mass_flow_rate_out
         example_calculated = example_tank_lox.netMassFlowRate()
 
         liquid_mfrs = []
@@ -89,15 +98,27 @@ def test_mass_based_motor():
         real_calculated = real_tank_lox.netMassFlowRate()
 
         test(example_calculated, example_expected, 10)
-        test(real_calculated, real_expected, 15.5)
+        test(real_calculated, real_expected, 15.5, real=True)
 
     def test_eval_ullage():
         """Test evaluateUllage function of MassBasedTank subclass of Tank"""
-        example_expected = lambda t: 0
+        example_expected = lambda t: (initial_liquid_mass * (liquid_mass_flow_rate_in - \
+                                liquid_mass_flow_rate_out) * t) / lox.density / np.pi
         example_calculated = example_tank_lox.evaluateUllageHeight()
 
-        real_expected = lambda t: 0
-        real_calcualted = real_tank_lox.evaluateUllageHeight()
+        liquid_heights = []
+        with open(lox_masses) as masses:
+            reader = csv.reader(masses)
+            for row in reader:
+                tank_vol = real_tank_lox.tank_vol.reverse()
+                curr_height = tank_vol.getValue(row[1] / real_tank_lox.liquid.density)
+                liquid_heights.append(curr_height)
+
+        real_expected = lambda t: liquid_heights[t]
+        real_calculated = real_tank_lox.evaluateUllageHeight()
+
+        test(example_calculated, example_expected, 10)
+        test(real_calculated, real_expected, 15.5, real=True)
 
     #Need docs to be pushed -> "Placeholder" represents where these data analysis-created docs will be inserted
 

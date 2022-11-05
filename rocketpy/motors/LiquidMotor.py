@@ -324,6 +324,12 @@ class MassBasedTank(Tank):
         return mfr
 
     def evaluateUllageHeight(self):
-        return super().evaluateUilageHeight()
+        liquid_volume = self.liquid_mass / self.liquid.density
+        tank_vol = self.tank_vol.reverse()
+        ullage_height = Function(lambda t: tank_vol.getValue(liquid_volume.getValue(t)))
+        ullage_height.setInputs("Time")
+        ullage_height.setOutputs("Ullage Height")
+        return ullage_height
+
         
 
