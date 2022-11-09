@@ -12,7 +12,7 @@ from scipy import integrate
 
 from rocketpy.Function import Function
 from rocketpy.motors import Motor
-from rocketpy.supplement import Disk, Cylinder, Hemisphere
+from rocketpy.motors.TankGeometry import Disk, Cylinder, Hemisphere
 
 
 class LiquidMotor(Motor):
