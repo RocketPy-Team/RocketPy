@@ -21,8 +21,8 @@ def test_mass_based_motor():
 # @curtisjhu
 def test_ullage_based_motor():
 
-    lox = Fluid(name = "LOx", density=2, quality = 1.0)
-    n2 = Fluid(name = "Nitrogen Gas", density=1, quality = 1.0)
+    lox = Fluid(name = "LOx", density=1141.7, quality = 1.0)
+    n2 = Fluid(name = "Nitrogen Gas", density=51.75, quality = 1.0)
 
     test_dir = '../data/e1-hotfires/test136/'
 
@@ -45,22 +45,32 @@ def test_ullage_based_motor():
         result_larger_source = np.ndarray(small_source.shape)
         result_smaller_source = np.ndarray(small_source.shape)
         tolerance = .1
-        for smallIndex, val in enumerate(small_source):
+        curr_ind = 0
+        for val in small_source:
             time = val[0]
             delta_time_vector = abs(time-large_source[:, 0])
             largeIndex = np.argmin(delta_time_vector)
             delta_time = abs(time - large_source[largeIndex][0])
 
             if delta_time < tolerance:
-                result_larger_source[smallIndex] = large_source[largeIndex]
-                result_smaller_source[smallIndex] = val
+                result_larger_source[curr_ind] = large_source[largeIndex]
+                result_smaller_source[curr_ind] = val
+                curr_ind += 1
         return result_larger_source, result_smaller_source
 
     assert np.allclose(ullageTank.liquidHeight().getSource(), ullage_data)
-    ullage_tank_mass_data, mass_data = align_time_series(ullageTank.liquidMass().getSource(), mass_data)
-    Function(ullage_tank_mass_data).plot1D()
-    # assert np.allclose(ullage_tank_mass, mass_data, rtol=3)
-    # assert np.allclose(ullageTank.netMassFlowRate().getSource(), mass_flow_rate_data)
+
+    calculated_mass = ullageTank.liquidMass().getSource()
+    calculated_mass, mass_data = align_time_series(calculated_mass, mass_data)
+    assert np.allclose(calculated_mass, mass_data, rtol=1, atol=2)
+    # Function(calculated_mass).plot1D()
+    # Function(mass_data).plot1D()
+
+
+    calculated_mfr, test_mfr = align_time_series(ullageTank.netMassFlowRate().getSource(), mass_flow_rate_data)
+    # assert np.allclose(calculated_mfr, test_mfr)
+    # Function(calculated_mfr).plot1D()
+    # Function(test_mfr).plot1D()
 
 # @gautamsaiy
 def test_mfr_tank_basic1():
