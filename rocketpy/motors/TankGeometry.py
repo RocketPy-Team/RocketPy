@@ -41,13 +41,6 @@ class TankGeometry(ABC):
     def volume(self):
         return 0
 
-    @volume.setter
-    def volume(self, volume_value):
-        if volume_value > 0:
-            self._volume = volume_value
-        else:
-            raise ValueError("Tank volume must be non-negative.")
-
     @property
     def centroid(self):
         return 0
@@ -79,7 +72,7 @@ class TankGeometry(ABC):
 
     @property
     def empty_volume(self):
-        return self.volume - self.filled_volume
+        return self.volume - self._filled_volume
 
     @property
     def empty_centroid(self):
@@ -147,7 +140,14 @@ class Hemisphere(TankGeometry):
 
     @TankGeometry.centroid.getter
     def centroid(self):
-        return 0
+        if self.fill_direction == "upwards":
+            centroid = 5 * self.radius / 8
+        elif self.fill_direction == "downwards":
+            centroid = 3 * self.radius / 8
+        else:
+            raise AttributeError("Input a valid fill_direction")
+
+        return centroid
 
     @TankGeometry.filled_centroid.getter
     def filled_centroid(self):
