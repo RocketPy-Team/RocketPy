@@ -1315,8 +1315,13 @@ class Tail:
         Length of the tail. The length is defined as the distance between the
         top and bottom of the tail. The length is measured along the rocket's
         longitudinal axis. Has the unit of meters.
-    Tail.distanceToCM : int, float
-        Distance from the center of dry mass to the center of the tail.
+    Tail.position : int, float
+        Tail position relative to user defined rocket reference system.
+        By tail position, understand the point belonging to the tail which is
+        lowest in the rocket reference system (i.e. generally the point furthest
+        from the nose cone).
+        See `Rocket.centerOfDryMass` for more information regarding the rocket
+        reference system.
     Tail.rocketRadius: int, float
         The radius of the rocket's body at the tail's position.
     Tail.name : str
@@ -1347,7 +1352,7 @@ class Tail:
     """
 
     def __init__(
-        self, topRadius, bottomRadius, length, distanceToCM, rocketRadius, name="Tail"
+        self, topRadius, bottomRadius, length, position, rocketRadius, name="Tail"
     ):
         """Initializes the tail object by computing and storing the most
         important values.
@@ -1361,8 +1366,13 @@ class Tail:
             Radius of the bottom of the tail.
         length : int, float
             Length of the tail.
-        distanceToCM : int, float
-            Distance from the center of dry mass to the center of the tail.
+        position : int, float
+            Tail position relative to user defined rocket reference system.
+            By tail position, understand the point belonging to the tail which is
+            lowest in the rocket reference system (i.e. generally the point furthest
+            from the nose cone).
+            See `Rocket.centerOfDryMass` for more information regarding the rocket
+            reference system.
         rocketRadius : int, float
             The radius of the rocket's body at the tail's position.
         name : str
@@ -1377,7 +1387,7 @@ class Tail:
         self.topRadius = topRadius
         self.bottomRadius = bottomRadius
         self.length = length
-        self.distanceToCM = distanceToCM
+        self.position = position
         self.name = name
         self.rocketRadius = rocketRadius
 
@@ -1393,11 +1403,8 @@ class Tail:
             np.pi * self.slantLength * (self.topRadius + self.bottomRadius)
         )
 
-        # Calculate cp position relative to center of dry mass
-        if distanceToCM < 0:
-            cpz = distanceToCM - (length / 3) * (1 + (1 - r) / (1 - r**2))
-        else:
-            cpz = distanceToCM + (length / 3) * (1 + (1 - r) / (1 - r**2))
+        # Calculate cp position in the rocket reference system
+        cpz = position + (length / 3) * (1 + (1 - r) / (1 - r**2))
 
         # Calculate clalpha
         clalpha = -2 * (1 - r ** (-2)) * (topRadius / rocketRadius) ** 2
@@ -1429,7 +1436,7 @@ class Tail:
         print(f"Tail Top Radius: {self.topRadius:.3f} m")
         print(f"Tail Bottom Radius: {self.bottomRadius:.3f} m")
         print(f"Tail Length: {self.length:.3f} m")
-        print(f"Tail Distance to Center of Dry Mass: {self.distanceToCM:.3f} m")
+        print(f"Tail Position: {self.position:.3f} m")
         print(f"Rocket body radius at tail position: {2*self.rocketRadius:.3f} m")
         print(f"Tail Slant Length: {self.slantLength:.3f} m")
         print(f"Tail Surface Area: {self.surfaceArea:.6f} m^2")
@@ -1439,8 +1446,8 @@ class Tail:
     def aerodynamicInfo(self):
 
         print(f"\nTail name: {self.name}")
-        print(f"Tail Center of Pressure: {self.cp}")
-        print(f"Tail Lift Coefficient Slope: {self.clalpha}")
+        print(f"Tail Center of Pressure Position: {self.cp:.3f} m")
+        print(f"Tail Lift Coefficient Slope: {self.clalpha:.3f} 1/rad")
         print("Tail Lift Coefficient as a function of Alpha and Mach:")
         self.cl()
 
