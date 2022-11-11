@@ -28,13 +28,12 @@ class Rocket:
         Rocket.area : float
             Rocket's circular cross section largest frontal area in squared
             meters.
-        Rocket.distanceRocketNozzle : float
-            Distance between rocket's center of mass, without propellant,
-            to the exit face of the nozzle, in meters. Always positive.
-        Rocket.distanceRocketPropellant : float
-            Distance between rocket's center of mass, without propellant,
-            to the motor reference point, which for solid and hybrid motors
-            is the center of mass of solid propellant, in meters. Always positive.
+        Rocket.centerOfDryMassPosition : float
+            Rocket's center of dry mass position relative to the user desired
+            reference system. The only requirement is that the chosen reference
+            system has a positive axis pointing from the rocket's tail to it's
+            nose cone. The system's origin may be placed anywhere along such
+            axis and should be kept the same for all other positions specified later.
 
         Mass and Inertia attributes:
         Rocket.mass : float
@@ -47,9 +46,11 @@ class Rocket:
             Rocket's moment of inertia, without propellant, with respect to
             the rocket's axis of cylindrical symmetry, in kg*m^2.
         Rocket.centerOfMass : Function
-            Distance of the rocket's center of mass, including propellant,
-            to rocket's center of mass without propellant, in meters.
-            Expressed as a function of time.
+            Position of the rocket's center of mass, including propellant, relative
+            to the user defined rocket reference system.
+            See `Rocket.centerOfDryMassPosition` for more information regarding the
+            coordinate system.            
+            Expressed in meters as a function of time.
         Rocket.reducedMass : Function
             Function of time expressing the reduced mass of the rocket,
             defined as the product of the propellant mass and the mass
@@ -80,6 +81,11 @@ class Rocket:
         Aerodynamic attributes
         Rocket.aerodynamicSurfaces : list
             List of aerodynamic surfaces of the rocket.
+        Rocket.cpPosition : float
+            Rocket's center of pressure position relative to the user defined rocket
+            reference system. See `Rocket.centerOfDryMassPosition` for more information
+            regarding the reference system.
+            Expressed in meters.
         Rocket.staticMargin : float
             Float value corresponding to rocket static margin when
             loaded with propellant in units of rocket diameter or
@@ -94,27 +100,36 @@ class Rocket:
         Motor attributes:
         Rocket.motor : Motor
             Rocket's motor. See Motor class for more details.
+        Rocket.motorPosition : float
+            Position of the motor's reference origin relative to the user defined rocket
+            reference system. See Rocket.centerOfDryMassPosition for more information
+            regarding the rocket reference system.
+        Rocket.centerOfPropellantPosition : Function
+            Position of the propellant's center of mass relative to the user defined
+            rocket reference system. See Rocket.centerOfDryMassPosition for more
+            information regarding the rocket reference system.
+            Expressed in meters as a function of time.
     """
 
     def __init__(
         self,
-        motor,
+        radius,
         mass,
         inertiaI,
         inertiaZ,
-        radius,
-        distanceRocketNozzle,
-        distanceRocketPropellant,
+        motor,
+        motorPosition,
         powerOffDrag,
         powerOnDrag,
+        centerOfDryMassPosition=0,
     ):
         """Initializes Rocket class, process inertial, geometrical and
         aerodynamic parameters.
 
         Parameters
         ----------
-        motor : Motor
-            Motor used in the rocket. See Motor class for more information.
+        radius : int, float
+            Rocket largest outer radius in meters.
         mass : int, float
             Unloaded rocket total mass (without propellant) in kg.
         inertiaI : int, float
@@ -122,20 +137,13 @@ class Rocket:
             moment of inertia (without propellant) in kg m^2.
         inertiaZ : int, float
             Unloaded rocket axial moment of inertia (without propellant)
+        motor : Motor
+            Motor used in the rocket. See Motor class for more information.
             in kg m^2.
-        radius : int, float
-            Rocket largest outer radius in meters.
-        distanceRocketNozzle : int, float
-            Distance from rocket's unloaded center of mass to nozzle outlet,
-            in meters. Generally negative, meaning a negative position in the
-            z axis which has an origin in the rocket's center of mass (without
-            propellant) and points towards the nose cone.
-        distanceRocketPropellant : int, float
-            Distance from rocket's unloaded center of mass to the motor reference
-            point, which for solid and hybrid motor the is the center of mass of
-            solid propellant, in meters. Generally negative, meaning a negative
-            position in the z axis which has an origin in the rocket's center of
-            mass (with out propellant) and points towards the nose cone.
+        motorPosition : int, float
+            Position of the motor's reference origin relative to the user defined rocket
+            reference system. See Rocket.centerOfDryMassPosition for more information
+            regarding the rocket reference system.
         powerOffDrag : int, float, callable, string, array
             Rocket's drag coefficient when the motor is off. Can be given as an
             entry to the Function class. See help(Function) for more
@@ -148,6 +156,15 @@ class Rocket:
             information. If int or float is given, it is assumed constant. If
             callable, string or array is given, it must be a function of Mach
             number only.
+        centerOfDryMassPosition : int, float, optional
+            Position of the rocket's center of dry mass (i.e. center of mass without
+            propellant) relative to the user desired reference system. The only
+            requirement is that the chosen reference system has a positive axis pointing
+            from the rocket's tail to it's nose cone. The system's origin may be placed
+            anywhere along such axis, such as in the nozzle or in the nose cone, and
+            should be kept the same for all other positions specified later.
+            Value expressed in meters. Default is 0, which means the center of dry mass
+            is chosen as the origin, the legacy behavior of version 0.X.Y.
 
         Returns
         -------
@@ -157,17 +174,11 @@ class Rocket:
         self.mass = mass
         self.inertiaI = inertiaI
         self.inertiaZ = inertiaZ
-        self.centerOfMass = (
-            (distanceRocketPropellant - motor.zCM) * motor.mass / (mass + motor.mass)
-        )
 
         # Define rocket geometrical parameters in SI units
         self.radius = radius
         self.area = np.pi * self.radius**2
-
-        # Center of mass distance to points of interest
-        self.distanceRocketNozzle = distanceRocketNozzle
-        self.distanceRocketPropellant = distanceRocketPropellant
+        self.centerOfDryMassPosition = centerOfDryMassPosition
 
         # Eccentricity data initialization
         self.cpEccentricityX = 0
@@ -203,25 +214,82 @@ class Rocket:
             "linear",
             "constant",
         )
+        self.cpPosition = 0 # Set bys elf.evaluateStaticMargin()
 
         # Define motor to be used
         self.motor = motor
+        self.motorPosition = motorPosition
+        self.centerOfPropellantPosition = self.motor.centerOfMass + self.motorPosition
 
         # Important dynamic inertial quantities
+        self.centerOfMass = None
         self.reducedMass = None
         self.totalMass = None
 
         # Calculate dynamic inertial quantities
-        self.evaluateReducedMass()
         self.evaluateTotalMass()
-        self.thrustToWeight = self.motor.thrust / (9.80665 * self.totalMass)
-        self.thrustToWeight.setInputs("Time (s)")
-        self.thrustToWeight.setOutputs("Thrust/Weight")
+        self.evaluateCenterOfMass()
+        self.evaluateReducedMass()
+        self.evaluateThrustToWeight()
 
         # Evaluate static margin (even though no aerodynamic surfaces are present yet)
         self.evaluateStaticMargin()
 
         return None
+
+    def evaluateTotalMass(self):
+        """Calculates and returns the rocket's total mass. The total
+        mass is defined as the sum of the propellant mass and the
+        rocket mass without propellant. The function returns an object
+        of the Function class and is defined as a function of time.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        self.totalMass : Function
+            Function of time expressing the total mass of the rocket,
+            defined as the sum of the propellant mass and the rocket
+            mass without propellant.
+        """
+        # Make sure there is a motor associated with the rocket
+        if self.motor is None:
+            print("Please associate this rocket with a motor!")
+            return False
+
+        # Calculate total mass by summing up propellant and dry mass
+        self.totalMass = self.mass + self.motor.mass
+        self.totalMass.setOutputs("Total Mass (Rocket + Propellant) (kg)")
+
+        # Return total mass
+        return self.totalMass
+
+    def evaluateCenterOfMass(self):
+        """Evaluates rocket center of mass position relative to user defined rocket
+        reference system.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        self.centerOfMass : Function
+            Function of time expressing the rocket's center of mass position relative to
+            user defined rocket reference system. See `Rocket.centerOfMass` for more
+            information.
+        """
+        # Compute center of mass position
+        self.centerOfMass = (
+            self.centerOfDryMassPosition * self.mass
+            + self.centerOfPropellantPosition * self.motor.mass
+        ) / self.totalMass()
+        self.centerOfMass.setInputs("Time (s)")
+        self.centerOfMass.setOutputs("Center of Mass Position (m)")
+
+        return self.centerOfMass
 
     def evaluateReducedMass(self):
         """Calculates and returns the rocket's total reduced mass. The
@@ -261,34 +329,18 @@ class Rocket:
         # Return reduced mass
         return self.reducedMass
 
-    def evaluateTotalMass(self):
-        """Calculates and returns the rocket's total mass. The total
-        mass is defined as the sum of the propellant mass and the
-        rocket mass without propellant. The function returns an object
-        of the Function class and is defined as a function of time.
+    def evaluateThrustToWeight(self):
+        """Evaluates thrust to weight as a Function of time.
 
-        Parameters
-        ----------
-        None
+        Uses g = 9.80665 m/s² as nominal gravity for weight calculation.
 
         Returns
         -------
-        self.totalMass : Function
-            Function of time expressing the total mass of the rocket,
-            defined as the sum of the propellant mass and the rocket
-            mass without propellant.
+        None
         """
-        # Make sure there is a motor associated with the rocket
-        if self.motor is None:
-            print("Please associate this rocket with a motor!")
-            return False
-
-        # Calculate total mass by summing up propellant and dry mass
-        self.totalMass = self.mass + self.motor.mass
-        self.totalMass.setOutputs("Total Mass (Rocket + Propellant) (kg)")
-
-        # Return total mass
-        return self.totalMass
+        self.thrustToWeight = self.motor.thrust / (9.80665 * self.totalMass)
+        self.thrustToWeight.setInputs("Time (s)")
+        self.thrustToWeight.setOutputs("Thrust/Weight")
 
     def evaluateStaticMargin(self):
         """Calculates and returns the rocket's static margin when
@@ -307,9 +359,8 @@ class Rocket:
             loaded with propellant in units of rocket diameter or
             calibers.
         """
-        # Initialize total lift coefficient derivative and center of pressure
+        # Initialize total lift coefficient derivative
         self.totalLiftCoeffDer = 0
-        self.cpPosition = 0
 
         # Calculate total lift coefficient derivative and center of pressure
         if len(self.aerodynamicSurfaces) > 0:
@@ -337,7 +388,7 @@ class Rocket:
         return self
 
     def addTail(
-        self, topRadius, bottomRadius, length, distanceToCM, radius=None, name="Tail"
+        self, topRadius, bottomRadius, length, position, radius=None, name="Tail"
     ):
         """Create a new tail or rocket diameter change, storing its
         parameters as part of the aerodynamicSurfaces list. Its
@@ -354,12 +405,13 @@ class Rocket:
             from center of mass to nose cone.
         length : int, float
             Tail length or height in meters. Must be a positive value.
-        distanceToCM : int, float
-            Tail position relative to rocket unloaded center of mass,
-            considering positive direction from center of mass to nose
-            cone. Consider the point belonging to the tail which is
-            closest to the unloaded center of mass to calculate
-            distance.
+        position : int, float
+            Tail position relative to user defined rocket reference system.
+            By tail position, understand the point belonging to the tail which is
+            lowest in the rocket reference system (i.e. generally the point furthest
+            from the nose cone).
+            See `Rocket.centerOfDryMass` for more information regarding the rocket
+            reference system.
         Returns
         -------
         cl : Function
@@ -377,7 +429,7 @@ class Rocket:
         radius = self.radius if radius is None else radius
 
         # Create new tail as an object of the Tail class
-        tail = Tail(topRadius, bottomRadius, length, distanceToCM, radius, name)
+        tail = Tail(topRadius, bottomRadius, length, position, radius, name)
 
         # Add tail to aerodynamic surfaces list
         self.aerodynamicSurfaces.append(tail)
@@ -388,7 +440,7 @@ class Rocket:
         # Return self
         return self.aerodynamicSurfaces[-1]
 
-    def addNose(self, length, kind, distanceToCM, name="Nose Cone"):
+    def addNose(self, length, kind, position, name="Nose Cone"):
         """Creates a nose cone, storing its parameters as part of the
         aerodynamicSurfaces list. Its parameters are the axial position
         along the rocket and its derivative of the coefficient of lift
@@ -403,11 +455,13 @@ class Rocket:
         kind : string
             Nose cone type. Von Karman, conical, ogive, and lvhaack are
             supported.
-        distanceToCM : int, float
-            Nose cone position relative to rocket unloaded center of
-            mass, considering positive direction from center of mass to
-            nose cone. Consider the center point belonging to the nose
-            cone base to calculate distance.
+        position : int, float
+            Nose cone position relative to user defined rocket reference system.
+            By nose cone position, understand the point belonging to the nose cone which
+            is lowest in the rocket reference system (i.e. generally the center point
+            of the nose cone base).
+            See `Rocket.centerOfDryMass` for more information regarding the rocket
+            reference system.
         name : string
             Nose cone name. Default is "Nose Cone".
 
@@ -424,7 +478,8 @@ class Rocket:
             Object of the Rocket class.
         """
         # Create a nose as an object of NoseCone class
-        nose = NoseCone(length, kind, distanceToCM, self.radius, name)
+        nose = NoseCone(length, kind, position, self.radius, name)
+
         # Add nose to the list of aerodynamic surfaces
         self.aerodynamicSurfaces.append(nose)
 
@@ -452,7 +507,7 @@ class Rocket:
         rootChord,
         tipChord,
         span,
-        distanceToCM,
+        position,
         cantAngle=0,
         sweepLength=None,
         sweepAngle=None,
@@ -474,11 +529,13 @@ class Rocket:
             Fin root chord in meters.
         tipChord : int, float
             Fin tip chord in meters.
-        distanceToCM : int, float
-            Fin set position relative to rocket unloaded center of
-            mass, considering positive direction from center of mass to
-            nose cone. Consider the center point belonging to the top
-            of the fins to calculate distance.
+        position : int, float
+            Fin set position relative to user defined rocket reference system.
+            By fin set position, understand the point belonging to the root chord which
+            is lowest in the rocket reference system (i.e. generally the point furthest
+            from the nose cone).
+            See `Rocket.centerOfDryMass` for more information regarding the rocket
+            reference system.
         cantAngle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
@@ -529,6 +586,7 @@ class Rocket:
         radius = radius if radius is not None else self.radius
 
         # Create a fin set as an object of TrapezoidalFins class
+        distanceToCM = position - self.centerOfDryMassPosition
         finSet = TrapezoidalFins(
             n,
             rootChord,
@@ -557,7 +615,7 @@ class Rocket:
         n,
         rootChord,
         span,
-        distanceToCM,
+        position,
         cantAngle=0,
         radius=None,
         airfoil=None,
@@ -578,11 +636,13 @@ class Rocket:
             Fin root chord in meters.
         n : int
             Number of fins, from 2 to infinity.
-        distanceToCM : int, float
-            Fin set position relative to rocket unloaded center of
-            mass, considering positive direction from center of mass to
-            nose cone. Consider the center point belonging to the top
-            of the fins to calculate distance.
+        position : int, float
+            Fin set position relative to user defined rocket reference system.
+            By fin set position, understand the point belonging to the root chord which
+            is lowest in the rocket reference system (i.e. generally the point furthest
+            from the nose cone).
+            See `Rocket.centerOfDryMass` for more information regarding the rocket
+            reference system.
         cantAngle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
@@ -620,6 +680,7 @@ class Rocket:
         radius = radius if radius is not None else self.radius
 
         # Create a fin set as an object of EllipticalFins class
+        distanceToCM = position - self.centerOfDryMassPosition
         finSet = EllipticalFins(
             n, rootChord, span, distanceToCM, radius, cantAngle, airfoil, name
         )
@@ -692,7 +753,7 @@ class Rocket:
         # Return self
         return self.parachutes[-1]
 
-    def setRailButtons(self, distanceToCM, angularPosition=45):
+    def setRailButtons(self, position, angularPosition=45):
         """Adds rail buttons to the rocket, allowing for the
         calculation of forces exerted by them when the rocket is
         sliding in the launch rail. Furthermore, rail buttons are
@@ -702,14 +763,13 @@ class Rocket:
 
         Parameters
         ----------
-        distanceToCM : tuple, list, array
+        position : tuple, list, array
             Two values organized in a tuple, list or array which
-            represent the distance of each of the two rail buttons
-            to the center of mass of the rocket without propellant.
-            If the rail button is positioned above the center of mass,
-            its distance should be a positive value. If it is below,
-            its distance should be a negative value. The order does
-            not matter. All values should be in meters.
+            represent the position of each of the two rail buttons
+            in the user defined rocket reference system
+            The order does not matter. All values should be in meters.
+            See `Rocket.centerOfDryMass` for more information regarding the rocket
+            reference system.
         angularPosition : float
             Angular position of the rail buttons in degrees measured
             as the rotation around the symmetry axis of the rocket
@@ -721,11 +781,11 @@ class Rocket:
         -------
         None
         """
-        # Order distance to CM
-        if distanceToCM[0] < distanceToCM[1]:
-            distanceToCM.reverse()
+        # Place top most rail button as the first element of the list
+        if position[0] < position[1]:
+            position.reverse()
         # Save important attributes
-        self.railButtons = self.railButtonPair(distanceToCM, angularPosition)
+        self.railButtons = self.railButtonPair(position, angularPosition)
 
         return None
 
@@ -880,19 +940,20 @@ class Rocket:
         print("Rocket Frontal Area: " + "{:.6f}".format(self.area) + " m2")
         print("\nRocket Distances")
         print(
-            "Rocket Center of Mass - Nozzle Exit Distance: "
-            + str(self.distanceRocketNozzle)
-            + " m"
+            "Rocket Center of Dry Mass - Nozzle Exit Distance: "
+            + f"{:.3f}".format(
+                self.motor.nozzlePosition +
+                self.motorPosition -
+                self.centerOfDryMassPosition
+            )
         )
         print(
-            "Rocket Center of Mass - Motor reference point: "
-            + str(self.distanceRocketPropellant)
-            + " m"
+            "Rocket Center of Dry Mass - Motor reference point: "
+            + f"{:.3f} m".format(self.motorPosition - self.centerOfDryMassPosition)
         )
         print(
             "Rocket Center of Mass - Rocket Loaded Center of Mass: "
-            + "{:.3f}".format(self.centerOfMass(0))
-            + " m"
+            + "{:.3f} m".format(self.centerOfMass(0) - self.centerOfDryMassPosition)
         )
         print("\nAerodynamic Components Parameters")
         print("Currently not implemented.")
@@ -953,14 +1014,6 @@ class Rocket:
         self.powerOffDrag()
         self.thrustToWeight.plot(lower=0, upper=self.motor.burnOutTime)
 
-        # ax = plt.subplot(415)
-        # ax.plot(  , self.rocket.motor.thrust()/(self.env.g() * self.rocket.totalMass()))
-        # ax.set_xlim(0, self.rocket.motor.burnOutTime)
-        # ax.set_xlabel("Time (s)")
-        # ax.set_ylabel("Thrust/Weight")
-        # ax.set_title("Thrust-Weight Ratio")
-
-        # Return None
         return None
 
     def addFin(
@@ -1002,4 +1055,4 @@ class Rocket:
         return None
 
     # Variables
-    railButtonPair = namedtuple("railButtonPair", "distanceToCM angularPosition")
+    railButtonPair = namedtuple("railButtonPair", "position angularPosition")
