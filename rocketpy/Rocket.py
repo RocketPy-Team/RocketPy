@@ -49,7 +49,7 @@ class Rocket:
             Position of the rocket's center of mass, including propellant, relative
             to the user defined rocket reference system.
             See `Rocket.centerOfDryMassPosition` for more information regarding the
-            coordinate system.            
+            coordinate system.
             Expressed in meters as a function of time.
         Rocket.reducedMass : Function
             Function of time expressing the reduced mass of the rocket,
@@ -214,7 +214,7 @@ class Rocket:
             "linear",
             "constant",
         )
-        self.cpPosition = 0 # Set bys elf.evaluateStaticMargin()
+        self.cpPosition = 0  # Set bys elf.evaluateStaticMargin()
 
         # Define motor to be used
         self.motor = motor
@@ -941,15 +941,15 @@ class Rocket:
         print("\nRocket Distances")
         print(
             "Rocket Center of Dry Mass - Nozzle Exit Distance: "
-            + f"{:.3f}".format(
-                self.motor.nozzlePosition +
-                self.motorPosition -
-                self.centerOfDryMassPosition
+            + "{:.3f} m".format(
+                self.motor.nozzlePosition
+                + self.motorPosition
+                - self.centerOfDryMassPosition
             )
         )
         print(
             "Rocket Center of Dry Mass - Motor reference point: "
-            + f"{:.3f} m".format(self.motorPosition - self.centerOfDryMassPosition)
+            + "{:.3f} m".format(self.motorPosition - self.centerOfDryMassPosition)
         )
         print(
             "Rocket Center of Mass - Rocket Loaded Center of Mass: "

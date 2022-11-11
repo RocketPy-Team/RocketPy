@@ -777,7 +777,7 @@ class SolidMotor(Motor):
             reference frame which follows the motor's axis of symmetry, being
             positive upwards from the nozzle. The origin of such reference system
             maybe chosen by the user as desired, but must be consistent with the
-            nozzlePosition argument.            
+            nozzlePosition argument.
         grainNumber : int
             Number of solid grains
         grainDensity : int, float
@@ -924,10 +924,8 @@ class SolidMotor(Motor):
         """
 
         self.centerOfMass = Function(
-            self.grainsCenterOfMassPosition,
-            'Time (s)',
-            'Center of Mass (m)'
-        )	
+            self.grainsCenterOfMassPosition, "Time (s)", "Center of Mass (m)"
+        )
 
         return self.centerOfMass
 
