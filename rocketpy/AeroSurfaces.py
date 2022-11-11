@@ -19,9 +19,13 @@ class NoseCone:
         Nose cone length. Has units of length and must be given in meters.
     NoseCone.kind : string
         Nose cone kind. Can be "conical", "ogive" or "lvhaack".
-    NoseCone.distanceToCM : float
-        Distance between nose cone tip and rocket center of mass. Has units of
-        length and must be given in meters.
+    NoseCone.position : float
+        Nose cone position relative to user defined rocket reference system.
+            By nose cone position, understand the point belonging to the nose cone which
+            is lowest in the rocket reference system (i.e. generally the center point
+            of the nose cone base).
+            See `Rocket.centerOfDryMass` for more information regarding the rocket
+            reference system.
     NoseCone.name : string
         Nose cone name. Has no impact in simulation, as it is only used to
         display data in a more organized matter.
@@ -46,7 +50,7 @@ class NoseCone:
         Lift coefficient slope. Has units of 1/rad.
     """
 
-    def __init__(self, length, kind, distanceToCM, rocketRadius, name="Nose Cone"):
+    def __init__(self, length, kind, position, rocketRadius, name="Nose Cone"):
         """Initializes the nose cone. It is used to define the nose cone
         length, kind, distance to center of mass and name.
 
@@ -56,9 +60,13 @@ class NoseCone:
             Nose cone length. Has units of length and must be given in meters.
         kind : string
             Nose cone kind. Can be "conical", "ogive" or "lvhaack".
-        distanceToCM : float
-            Distance between nose cone tip and rocket center of mass. Has units of
-            length and must be given in meters.
+        position : float
+            Nose cone position relative to user defined rocket reference system.
+            By nose cone position, understand the point belonging to the nose cone which
+            is lowest in the rocket reference system (i.e. generally the center point
+            of the nose cone base).
+            See `Rocket.centerOfDryMass` for more information regarding the rocket
+            reference system.
         rocketRadius : int, float
             The radius of the rocket's body at the nose cone position.
         name : str, optional
@@ -71,7 +79,7 @@ class NoseCone:
         """
         self.length = length
         self.kind = kind
-        self.distanceToCM = distanceToCM
+        self.position = position
         self.name = name
         self.rocketRadius = rocketRadius
 
@@ -85,7 +93,7 @@ class NoseCone:
         else:
             self.k = 0.5
         # Calculate cp position relative to cm
-        self.cpz = self.distanceToCM + np.sign(self.distanceToCM) * self.k * length
+        self.cpz = self.position + self.k * length
         self.cpy = 0
         self.cpx = 0
         self.cp = (self.cpx, self.cpy, self.cpz)
@@ -115,9 +123,9 @@ class NoseCone:
         """
         print("Nose Cone Geometric Information of Nose: {}".format(self.name))
         print("-------------------------------")
-        print("Length: ", self.length)
-        print("Kind: ", self.kind)
-        print(f"Distance to rocket's dry CM: {self.distanceToCM:.3f} m")
+        print(f"Length: {self.length:.3f} m")
+        print(f"Kind: {self.kind}")
+        print(f"Position: {self.position:.3f} m")
 
         return None
 
@@ -132,11 +140,11 @@ class NoseCone:
         -------
         None
         """
-        print("Nose Cone Aerodynamic Information of Nose: {}".format(self.name))
+        print(f"Nose Cone Aerodynamic Information of Nose: {self.name}")
         print("-------------------------------")
-        print("Center of Pressure position: ", self.cp, "m")
-        print("Lift Coefficient Slope: ", self.clalpha)
-        print("Lift Coefficient as a function of Alpha and Mach:")
+        print(f"Center of Pressure Position: {self.cp} m")
+        print(f"Lift Coefficient Slope: {self.clalpha:.3f} 1/rad")
+        print("Lift Coefficient as a Function of Alpha and Mach:")
         self.cl()
 
         return None
