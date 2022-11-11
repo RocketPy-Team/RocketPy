@@ -179,10 +179,13 @@ class Fins(ABC):
     Fins.airfoil : tuple
         Tuple of two items. First is the airfoil lift curve.
         Second is the unit of the curve (radians or degrees)
-    Fins.distanceToCM : float
-        Fin set position relative to rocket unloaded center of
-        mass, considering positive direction from center of mass to
-        nose cone.
+    Fins.position : float
+        Fin set position relative to user defined rocket reference system.
+        By fin set position, understand the point belonging to the root chord which
+        is lowest in the rocket reference system (i.e. generally the point furthest
+        from the nose cone).
+        See `Rocket.centerOfDryMass` for more information regarding the rocket
+        reference system.
     Fins.cantAngle : float
         Fins cant angle with respect to the rocket centerline, in degrees
     Fins.changingAttributeDict : dict
@@ -230,7 +233,7 @@ class Fins(ABC):
         n,
         rootChord,
         span,
-        distanceToCM,
+        position,
         rocketRadius,
         cantAngle=0,
         airfoil=None,
@@ -246,11 +249,13 @@ class Fins(ABC):
             Fin root chord in meters.
         span : int, float
             Fin span in meters.
-        distanceToCM : int, float
-            Fin set position relative to rocket unloaded center of
-            mass, considering positive direction from center of mass to
-            nose cone. Consider the center point belonging to the top
-            of the fins to calculate distance.
+        position : int, float
+            Fin set position relative to user defined rocket reference system.
+            By fin set position, understand the point belonging to the root chord which
+            is lowest in the rocket reference system (i.e. generally the point furthest
+            from the nose cone).
+            See `Rocket.centerOfDryMass` for more information regarding the rocket
+            reference system.
         rocketRadius : int, float
             Reference radius to calculate lift coefficient.
         cantAngle : int, float, optional
@@ -286,7 +291,7 @@ class Fins(ABC):
         self.n = n
         self.rocketRadius = rocketRadius
         self.airfoil = airfoil
-        self.distanceToCM = distanceToCM
+        self.position = position
         self.cantAngle = cantAngle
         self.rootChord = rootChord
         self.span = span
@@ -613,9 +618,9 @@ class Fins(ABC):
 
         print("Basic Information\n")
 
-        print("Number of Fins: {:.0f}".format(self.n))
+        print("Number of fins: {:.0f}".format(self.n))
         print("Rocket radius at self's position: {:.3f} m".format(self.rocketRadius))
-        print("Fin Distance to CM: {:.3f} m".format(self.distanceToCM))
+        print("Fin set position: {:.3f} m".format(self.position))
 
         self.geometricalInfo()
         self.aerodynamicInfo()
@@ -638,10 +643,13 @@ class TrapezoidalFins(Fins):
         Fins.airfoil : tuple
             Tuple of two items. First is the airfoil lift curve.
             Second is the unit of the curve (radians or degrees)
-        Fins.distanceToCM : float
-            Fin set position relative to rocket unloaded center of
-            mass, considering positive direction from center of mass to
-            nose cone.
+        Fins.position : int, float
+            Fin set position relative to user defined rocket reference system.
+            By fin set position, understand the point belonging to the root chord which
+            is lowest in the rocket reference system (i.e. generally the point furthest
+            from the nose cone).
+            See `Rocket.centerOfDryMass` for more information regarding the rocket
+            reference system.
         Fins.cantAngle : float
             Fins cant angle with respect to the rocket centerline, in degrees
         Fins.changingAttributeDict : dict
@@ -690,7 +698,7 @@ class TrapezoidalFins(Fins):
         rootChord,
         tipChord,
         span,
-        distanceToCM,
+        position,
         rocketRadius,
         cantAngle=0,
         sweepLength=None,
@@ -710,11 +718,13 @@ class TrapezoidalFins(Fins):
             Fin tip chord in meters.
         span : int, float
             Fin span in meters.
-        distanceToCM : int, float
-            Fin set position relative to rocket unloaded center of
-            mass, considering positive direction from center of mass to
-            nose cone. Consider the center point belonging to the top
-            of the fins to calculate distance.
+        position : int, float
+            Fin set position relative to user defined rocket reference system.
+            By fin set position, understand the point belonging to the root chord which
+            is lowest in the rocket reference system (i.e. generally the point furthest
+            from the nose cone).
+            See `Rocket.centerOfDryMass` for more information regarding the rocket
+            reference system.
         rocketRadius : int, float
             Reference radius to calculate lift coefficient. If None, which
             is default, use rocket radius. Otherwise, enter the radius
@@ -762,7 +772,7 @@ class TrapezoidalFins(Fins):
             n,
             rootChord,
             span,
-            distanceToCM,
+            position,
             rocketRadius,
             cantAngle,
             airfoil,
@@ -852,8 +862,8 @@ class TrapezoidalFins(Fins):
         self.cp : tuple
             Tuple containing cpx, cpy, cpz.
         """
-        # Center of pressure position relative to CDM (center of dry mass)
-        cpz = self.distanceToCM + np.sign(self.distanceToCM) * (
+        # Center of pressure position relative to rocket's reference system
+        cpz = self.position + (
             (self.sweepLength / 3)
             * ((self.rootChord + 2 * self.tipChord) / (self.rootChord + self.tipChord))
             + (1 / 6)
@@ -916,7 +926,7 @@ class TrapezoidalFins(Fins):
         )
 
         # Center of pressure
-        cp_point = [abs(self.distanceToCM - self.cpz), self.Yma]
+        cp_point = [abs(self.cpz - self.position), self.Yma]
 
         # Mean Aerodynamic Chord
         Yma_start = (
@@ -990,10 +1000,13 @@ class EllipticalFins(Fins):
         Fins.airfoil : tuple
             Tuple of two items. First is the airfoil lift curve.
             Second is the unit of the curve (radians or degrees)
-        Fins.distanceToCM : float
-            Fin set position relative to rocket unloaded center of
-            mass, considering positive direction from center of mass to
-            nose cone.
+        Fins.position : int, float
+            Fin set position relative to user defined rocket reference system.
+            By fin set position, understand the point belonging to the root chord which
+            is lowest in the rocket reference system (i.e. generally the point furthest
+            from the nose cone).
+            See `Rocket.centerOfDryMass` for more information regarding the rocket
+            reference system.
         Fins.cantAngle : float
             Fins cant angle with respect to the rocket centerline, in degrees
         Fins.changingAttributeDict : dict
@@ -1039,7 +1052,7 @@ class EllipticalFins(Fins):
         n,
         rootChord,
         span,
-        distanceToCM,
+        position,
         rocketRadius,
         cantAngle=0,
         airfoil=None,
@@ -1055,11 +1068,13 @@ class EllipticalFins(Fins):
             Fin root chord in meters.
         span : int, float
             Fin span in meters.
-        distanceToCM : int, float
-            Fin set position relative to rocket unloaded center of
-            mass, considering positive direction from center of mass to
-            nose cone. Consider the center point belonging to the top
-            of the fins to calculate distance.
+        position : int, float
+            Fin set position relative to user defined rocket reference system.
+            By fin set position, understand the point belonging to the root chord which
+            is lowest in the rocket reference system (i.e. generally the point furthest
+            from the nose cone).
+            See `Rocket.centerOfDryMass` for more information regarding the rocket
+            reference system.
         rocketRadius : int, float
             Reference radius to calculate lift coefficient. If None, which
             is default, use rocket radius. Otherwise, enter the radius
@@ -1107,7 +1122,7 @@ class EllipticalFins(Fins):
             n,
             rootChord,
             span,
-            distanceToCM,
+            position,
             rocketRadius,
             cantAngle,
             airfoil,
@@ -1205,8 +1220,8 @@ class EllipticalFins(Fins):
         self.cp : tuple
             Tuple containing cpx, cpy, cpz.
         """
-        # Center of pressure position relative to CDM (center of dry mass)
-        cpz = self.distanceToCM + np.sign(self.distanceToCM) * (0.288 * self.rootChord)
+        # Center of pressure position relative to the rocket's center of dry mass
+        cpz = self.position + (0.288 * self.rootChord)
         self.cpx = 0
         self.cpy = 0
         self.cpz = cpz
@@ -1258,7 +1273,7 @@ class EllipticalFins(Fins):
         )
 
         # Center of pressure
-        cp_point = [abs(self.distanceToCM - self.cpz), self.Yma]
+        cp_point = [abs(self.cpz - self.position), self.Yma]
 
         # Plotting
         fig3 = plt.figure(figsize=(4, 4))
