@@ -605,11 +605,10 @@ class Flight:
         self.terminateOnApogee = terminateOnApogee
 
         # Modifying Rail Length for a better out of rail condition
-        upperRButton = max(self.rocket.railButtons[0])
-        lowerRButton = min(self.rocket.railButtons[0])
-        nozzle = self.rocket.distanceRocketNozzle
-        self.effective1RL = self.env.rL - abs(nozzle - upperRButton)
-        self.effective2RL = self.env.rL - abs(nozzle - lowerRButton)
+        upperButtonPosition, lowerButtonPosition = self.rocket.railButtons.position
+        nozzlePosition = self.rocket.motor.nozzlePosition + self.rocket.motorPosition
+        self.effective1RL = self.env.rL - abs(nozzle - upperButtonPosition)
+        self.effective2RL = self.env.rL - abs(nozzle - lowerButtonPosition)
 
         # Flight initialization
         self.__init_post_process_variables()
@@ -1340,8 +1339,14 @@ class Flight:
         M = Mt + Mr
         mu = (Mt * Mr) / (Mt + Mr)
         # Geometry
-        b = -self.rocket.distanceRocketPropellant
-        c = -self.rocket.distanceRocketNozzle
+        # b = -self.rocket.distanceRocketPropellant
+        b = -(self.rocket.motorPosition - self.rocket.centerOfDryMassPosition)
+        # c = -self.rocket.distanceRocketNozzle
+        c = -(
+            self.rocket.motor.nozzlePosition
+            + self.rocket.motorPosition
+            - self.rocket.centerOfDryMassPosition
+        )
         a = b * Mt / M
         rN = self.rocket.motor.nozzleRadius
         # Prepare transformation matrix
@@ -1385,7 +1390,7 @@ class Flight:
         vzB = a13 * vx + a23 * vy + a33 * vz
         # Calculate lift and moment for each component of the rocket
         for aerodynamicSurface in self.rocket.aerodynamicSurfaces:
-            compCp = aerodynamicSurface.cp[2]
+            compCp = aerodynamicSurface.cp[2] - self.rocket.centerOfDryMassPosition
             surfaceRadius = aerodynamicSurface.rocketRadius
             referenceArea = np.pi * surfaceRadius**2
             # Component absolute velocity in body frame
@@ -2526,7 +2531,8 @@ class Flight:
     # Kinetic Energy
     @cached_property
     def rotationalEnergy(self):
-        b = -self.rocket.distanceRocketPropellant
+        # b = -self.rocket.distanceRocketPropellant
+        b = -(self.rocket.motorPosition - self.rocket.centerOfDryMassPosition)
         mu = self.rocket.reducedMass
         Rz = self.rocket.inertiaZ
         Ri = self.rocket.inertiaI
@@ -3204,9 +3210,9 @@ class Flight:
             return 0, 0, 0, 0
 
         # Distance from Rail Button 1 (upper) to CM
-        D1 = self.rocket.railButtons.distanceToCM[0]
+        D1 = self.rocket.railButtons.position[0] - self.rocket.centerOfDryMassPosition
         # Distance from Rail Button 2 (lower) to CM
-        D2 = self.rocket.railButtons.distanceToCM[1]
+        D2 = self.rocket.railButtons.position[1] - self.rocket.centerOfDryMassPosition
         F11 = (self.R1 * D2 - self.M2) / (D1 + D2)
         F11.setOutputs("Upper button force direction 1 (m)")
         F12 = (self.R2 * D2 + self.M1) / (D1 + D2)
