@@ -10,6 +10,7 @@ Welcome to RocketPy's user documentation!
    ../notebooks/getting_started.ipynb
    ../notebooks/environment_class_usage.ipynb
    ../notebooks/environment_analysis_class_usage.ipynb
+   ../notebooks/environment_analysis_EuroC_example.ipynb
    ../notebooks/solid_motor_class_usage.ipynb
    ../notebooks/dispersion_analysis/dispersion_analysis.ipynb
    ../notebooks/utilities_usage.ipynb
