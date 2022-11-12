@@ -2040,7 +2040,7 @@ class EnvironmentAnalysis:
             ax.set_ylabel("Probability")
             ax.set_title("Wind Gust Distribution")
             # ax.grid(True)
-            return ln, *bar_container.patches, tx
+            return (ln, *bar_container.patches, tx)
 
         # Define function which sets each animation frame
         def update(frame):
@@ -2056,7 +2056,7 @@ class EnvironmentAnalysis:
             ln.set_data(xdata, ydata)
             # Update hour text
             tx.set_text(f"{float(frame[0]):05.2f}".replace(".", ":"))
-            return ln, *bar_container.patches, tx
+            return (ln, *bar_container.patches, tx)
 
         for frame in wind_gusts_at_given_hour.items():
             update(frame)
@@ -2243,7 +2243,7 @@ class EnvironmentAnalysis:
                     label="SAcup wind speed constraints",
                 )  # Plot SAcup wind speed constraints
 
-            return ln, *bar_container.patches, tx
+            return (ln, *bar_container.patches, tx)
 
         # Define function which sets each animation frame
         def update(frame):
@@ -2261,7 +2261,7 @@ class EnvironmentAnalysis:
             ln.set_data(xdata, ydata)
             # Update hour text
             tx.set_text(f"{float(frame[0]):05.2f}".replace(".", ":"))
-            return ln, *bar_container.patches, tx
+            return (ln, *bar_container.patches, tx)
 
         for frame in surface_wind_speeds_at_given_hour.items():
             update(frame)
