@@ -8,7 +8,6 @@ __license__ = "MIT"
 import math
 import traceback
 import types
-import warnings
 from time import process_time, time
 
 import matplotlib.pyplot as plt
@@ -26,14 +25,6 @@ from .Motor import SolidMotor
 from .Rocket import Rocket
 from .supplement import invertedHaversine
 from .AeroSurfaces import NoseCone, TrapezoidalFins, EllipticalFins, Tail
-
-## Tasks :
-# TODO: Allow each parameter to be varied following an specific probability distribution
-# TODO: Test simulations under different scenarios (with both parachutes, with only main chute, etc)
-# TODO: Add unit tests
-# TODO: Adjust the notebook to the new version of the code
-# TODO: Implement MRS method
-# TODO: Implement functions from compareDispersions notebook
 
 
 class Dispersion:
@@ -276,7 +267,9 @@ class Dispersion:
         elif distribution_type == "zipf":
             return zipf
         else:
-            warnings.warn("Distribution type not supported")
+            raise ValueError(
+                "Distribution type not recognized. Please use a valid distribution type."
+            )
 
     def __process_dispersion_dict(self, dictionary):
         """Read the inputted dispersion dictionary from the run_dispersion method
@@ -299,10 +292,9 @@ class Dispersion:
         """
         # First we need to check if the dictionary is empty
         if not dictionary:
-            warnings.warn(
-                "The dispersion dictionary is empty, no dispersion will be performed"
+            raise ValueError(
+                "The dispersion dictionary is empty. no dispersion can be performed"
             )
-            return dictionary
 
         # Now we prepare all the parachute data
         dictionary = self.__process_parachute_from_dict(dictionary)
@@ -362,11 +354,15 @@ class Dispersion:
                 try:
                     # First try to catch value from the Flight object if passed
                     dictionary[missing_input] = [getattr(self.flight, missing_input)]
-                except:
+                except AttributeError:
                     # Flight class was not inputted
                     # check if missing parameter is required
                     if self.flight_inputs[missing_input] == "required":
-                        warnings.warn(f'Missing "{missing_input}" in dictionary')
+                        raise ValueError(
+                            "The input {} is required for the Flight class.".format(
+                                missing_input
+                            )
+                        )
                     else:  # if not required, uses default value
                         dictionary[missing_input] = [self.flight_inputs[missing_input]]
 
@@ -400,11 +396,15 @@ class Dispersion:
                 # Add to the dict
                 try:
                     dictionary[missing_input] = [getattr(self.rocket, missing_input)]
-                except:
+                except AttributeError:
                     # class was not inputted
                     # checks if missing parameter is required
                     if self.rocket_inputs[missing_input] == "required":
-                        warnings.warn(f'Missing "{missing_input}" in dictionary')
+                        raise ValueError(
+                            "The input {} is required for the Rocket class.".format(
+                                missing_input
+                            )
+                        )
                     else:  # if not, uses default value
                         dictionary[missing_input] = [self.rocket_inputs[missing_input]]
 
@@ -442,11 +442,15 @@ class Dispersion:
                 # Add to the dict
                 try:
                     dictionary[missing_input] = [getattr(self.rocket, missing_input)]
-                except:
+                except AttributeError:
                     # class was not inputted
                     # checks if missing parameter is required
                     if self.rail_buttons_inputs[missing_input] == "required":
-                        warnings.warn(f'Missing "{missing_input}" in dictionary')
+                        raise ValueError(
+                            "The input {} is required for the RailButtons class.".format(
+                                missing_input
+                            )
+                        )
                     else:
                         # if not, uses default value
                         dictionary[missing_input] = [
@@ -511,10 +515,15 @@ class Dispersion:
                                 dictionary[f"nose_{name}_{parameter}"] = [
                                     getattr(surface, parameter)
                                 ]
-                            except:
+                            except AttributeError:
                                 # If not possible, check if the parameter is required
                                 if self.nose_inputs[input] == "required":
-                                    warnings.warn(f'Missing "{input}" in dictionary')
+                                    raise ValueError(
+                                        "The input {} is required for the NoseCone class.".format(
+                                            input
+                                        )
+                                    )
+
                                 else:
                                     # If not required, use default value
                                     dictionary[f"nose_{name}_{parameter}"] = [
@@ -538,10 +547,14 @@ class Dispersion:
                                 dictionary[f"finSet_{name}_{parameter}"] = [
                                     getattr(surface, parameter)
                                 ]
-                            except:
+                            except AttributeError:
                                 # If not possible, check if the parameter is required
                                 if self.fins_inputs[input] == "required":
-                                    warnings.warn(f'Missing "{input}" in dictionary')
+                                    raise ValueError(
+                                        "The input {} is required for the Fins class.".format(
+                                            input
+                                        )
+                                    )
                                 else:
                                     # If not required, use default value
                                     dictionary[f"finSet_{name}_{parameter}"] = [
@@ -563,10 +576,14 @@ class Dispersion:
                                 dictionary[f"tail_{name}_{parameter}"] = [
                                     getattr(surface, parameter)
                                 ]
-                            except:
+                            except AttributeError:
                                 # If not possible, check if the parameter is required
                                 if self.tail_inputs[input] == "required":
-                                    warnings.warn(f'Missing "{input}" in dictionary')
+                                    raise ValueError(
+                                        "The input {} is required for the Tail class.".format(
+                                            input
+                                        )
+                                    )
                                 else:
                                     # If not required, use default value
                                     dictionary[f"tail_{name}_{parameter}"] = [
@@ -607,11 +624,15 @@ class Dispersion:
                 # Add to the dict
                 try:
                     dictionary[missing_input] = [getattr(self.motor, missing_input)]
-                except:
+                except AttributeError:
                     # class was not inputted
                     # checks if missing parameter is required
                     if self.solid_motor_inputs[missing_input] == "required":
-                        warnings.warn(f'Missing "{missing_input}" in dictionary')
+                        raise ValueError(
+                            "The input {} is required for the SolidMotor class.".format(
+                                missing_input
+                            )
+                        )
                     else:  # if not uses default value
                         dictionary[missing_input] = [
                             self.solid_motor_inputs[missing_input]
@@ -653,12 +674,12 @@ class Dispersion:
                     dictionary[missing_input] = [
                         getattr(self.environment, missing_input)
                     ]
-                except:
+                except AttributeError:
                     # class was not inputted
                     # checks if missing parameter is required
                     if self.environment_inputs[missing_input] == "required":
-                        warnings.warn(
-                            "Missing {} in dictionary, which is required to run a simulation".format(
+                        raise ValueError(
+                            "The input {} is required for the Environment class.".format(
                                 missing_input
                             )
                         )
@@ -706,11 +727,11 @@ class Dispersion:
                                 dictionary[
                                     "parachute_{}_{}".format(name, parameter)
                                 ] = [getattr(chute, parameter)]
-                    except:  # Class not passed
+                    except AttributeError:  # Class not passed
                         if self.parachute_inputs[parachute_input] == "required":
-                            warnings.warn(
-                                "Missing {} for parachute {} in dictionary, which is required to run a simulation".format(
-                                    parachute_input.split("_")[2], name
+                            raise ValueError(
+                                "The input {} is required for the Parachute class.".format(
+                                    parachute_input
                                 )
                             )
                         else:
@@ -765,7 +786,7 @@ class Dispersion:
                         getattr(self.environment, parameter_key),
                         parameter_value,
                     )
-                except:
+                except AttributeError:
                     raise AttributeError(
                         f"Please check if the parameter {parameter_key} was inputted"
                         "correctly in dispersion_dictionary."
@@ -781,7 +802,7 @@ class Dispersion:
                         getattr(self.motor, parameter_key),
                         parameter_value,
                     )
-                except:
+                except AttributeError:
                     raise AttributeError(
                         f"Please check if the parameter {parameter_key} was inputted"
                         "correctly in dispersion_dictionary."
@@ -797,7 +818,7 @@ class Dispersion:
                         getattr(self.rocket, parameter_key),
                         parameter_value,
                     )
-                except:
+                except AttributeError:
                     raise AttributeError(
                         f"Please check if the parameter {parameter_key} was inputted"
                         "correctly in dispersion_dictionary."
@@ -813,7 +834,7 @@ class Dispersion:
                         getattr(self.flight, parameter_key),
                         parameter_value,
                     )
-                except:
+                except AttributeError:
                     raise AttributeError(
                         f"Please check if the parameter {parameter_key} was inputted"
                         "correctly in dispersion_dictionary."
