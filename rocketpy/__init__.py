@@ -21,7 +21,6 @@ __maintainer__ = "Giovani Hidalgo Ceotto"
 __email__ = "ghceotto@gmail.com"
 __status__ = "Production"
 
-from .dispersion import *
 from .Environment import Environment
 from .EnvironmentAnalysis import EnvironmentAnalysis
 from .Flight import Flight
