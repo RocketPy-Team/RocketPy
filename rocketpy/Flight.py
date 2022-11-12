@@ -9,7 +9,6 @@ __license__ = "MIT"
 import math
 import time
 import warnings
-from functools import cached_property
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -17,6 +16,11 @@ import simplekml
 from scipy import integrate
 
 from .Function import Function
+
+try:
+    from functools import cached_property
+except ImportError:
+    from .tools import cached_property
 
 
 class Flight:
