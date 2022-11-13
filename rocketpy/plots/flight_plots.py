@@ -42,9 +42,6 @@ class _FlightPlots:
         ------
         None
         """
-        # Post-process results
-        if self.flight.postProcessed is False:
-            self.flight.postProcess()
 
         # Get max and min x and y
         maxZ = max(self.flight.z[:, 1] - self.flight.env.elevation)
@@ -105,9 +102,6 @@ class _FlightPlots:
         ------
         None
         """
-        # Post-process results
-        if self.flight.postProcessed is False:
-            self.flight.postProcess()
 
         # Velocity and acceleration plots
         fig2 = plt.figure(figsize=(9, 12))
@@ -187,9 +181,6 @@ class _FlightPlots:
         ------
         None
         """
-        # Post-process results
-        if self.flight.postProcessed is False:
-            self.flight.postProcess()
 
         # Get index of time before parachute event
         if len(self.flight.parachuteEvents) > 0:
@@ -197,10 +188,8 @@ class _FlightPlots:
                 self.flight.parachuteEvents[0][0]
                 + self.flight.parachuteEvents[0][1].lag
             )
-            eventTimeIndex = np.nonzero(self.flight.x[:, 0] == eventTime)[0][0]
         else:
             eventTime = self.flight.tFinal
-            eventTimeIndex = -1
 
         # Angular position plots
         fig3 = plt.figure(figsize=(9, 12))
@@ -258,9 +247,6 @@ class _FlightPlots:
         ------
         None
         """
-        # Post-process results
-        if self.flight.postProcessed is False:
-            self.flight.postProcess()
 
         # Get index of time before parachute event
         if len(self.flight.parachuteEvents) > 0:
@@ -268,10 +254,8 @@ class _FlightPlots:
                 self.flight.parachuteEvents[0][0]
                 + self.flight.parachuteEvents[0][1].lag
             )
-            eventTimeIndex = np.nonzero(self.flight.x[:, 0] == eventTime)[0][0]
         else:
             eventTime = self.flight.tFinal
-            eventTimeIndex = -1
 
         # Path, Attitude and Lateral Attitude Angle
         # Angular position plots
@@ -323,9 +307,6 @@ class _FlightPlots:
         ------
         None
         """
-        # Post-process results
-        if self.flight.postProcessed is False:
-            self.flight.postProcess()
 
         # Get index of time before parachute event
         if len(self.flight.parachuteEvents) > 0:
@@ -333,10 +314,8 @@ class _FlightPlots:
                 self.flight.parachuteEvents[0][0]
                 + self.flight.parachuteEvents[0][1].lag
             )
-            eventTimeIndex = np.nonzero(self.flight.x[:, 0] == eventTime)[0][0]
         else:
             eventTime = self.flight.tFinal
-            eventTimeIndex = -1
 
         # Angular velocity and acceleration plots
         fig4 = plt.figure(figsize=(9, 9))
@@ -410,9 +389,6 @@ class _FlightPlots:
         ------
         None
         """
-        # Post-process results
-        if self.flight.postProcessed is False:
-            self.flight.postProcess()
 
         # Get index of out of rail time
         outOfRailTimeIndexes = np.nonzero(
@@ -568,16 +544,10 @@ class _FlightPlots:
         -------
         None
         """
-        # Post-process results
-        if self.flight.postProcessed is False:
-            self.flight.postProcess()
 
         # Get index of out of rail time
         outOfRailTimeIndexes = np.nonzero(
             self.flight.x[:, 0] == self.flight.outOfRailTime
-        )
-        outOfRailTimeIndex = (
-            -1 if len(outOfRailTimeIndexes) == 0 else outOfRailTimeIndexes[0][0]
         )
 
         # Get index of time before parachute event
@@ -586,10 +556,8 @@ class _FlightPlots:
                 self.flight.parachuteEvents[0][0]
                 + self.flight.parachuteEvents[0][1].lag
             )
-            eventTimeIndex = np.nonzero(self.flight.x[:, 0] == eventTime)[0][0]
         else:
             eventTime = self.flight.tFinal
-            eventTimeIndex = -1
 
         fig8 = plt.figure(figsize=(9, 9))
 
@@ -702,16 +670,10 @@ class _FlightPlots:
         ------
         None
         """
-        # Post-process results
-        if self.flight.postProcessed is False:
-            self.flight.postProcess()
 
         # Get index of out of rail time
         outOfRailTimeIndexes = np.nonzero(
             self.flight.x[:, 0] == self.flight.outOfRailTime
-        )
-        outOfRailTimeIndex = (
-            -1 if len(outOfRailTimeIndexes) == 0 else outOfRailTimeIndexes[0][0]
         )
 
         # Trajectory Fluid Mechanics Plots
@@ -790,9 +752,6 @@ class _FlightPlots:
         ------
         None
         """
-        # Post-process results
-        if self.flight.postProcessed is False:
-            self.flight.postProcess()
 
         fig9 = plt.figure(figsize=(9, 6))
 
@@ -864,9 +823,6 @@ class _FlightPlots:
         ------
         None
         """
-        # Post-process results
-        if self.flight.postProcessed is False:
-            self.flight.postProcess()
 
         if len(self.flight.rocket.parachutes) == 0:
             plt.figure()
