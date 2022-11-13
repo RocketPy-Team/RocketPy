@@ -2116,3 +2116,101 @@ class Function:
         # h = (10)**-300
         # z = x + h*1j
         # return self(z).imag/h
+
+
+def funcify_method(*args, **kwargs):
+    """Decorator factory to wrap methods as Function objects and save them as cached
+    properties.
+
+    Parameters
+    ----------
+    *args : list
+        Positional arguments to be passed to rocketpy.Function.
+    **kwargs : dict
+        Keyword arguments to be passed to rocketpy.Function.
+
+    Returns
+    -------
+    decorator : function
+        Decorator function to wrap callables as Function objects.
+
+    Examples
+    --------
+    >>> class Test():
+    ...     @Funcify(inputs=['x'], outputs=['y'])
+    ...     def func(x):
+    ...         return x**2
+    >>> t = Test()
+    ... t.func
+    Function from R1 to R1 : (x) → (y)
+    >>> g = 2*t.func + 3
+    >>> g(2)
+    11
+
+    Can also be used without any arguments:
+
+    >>> class Test():
+    ...     @Funcify
+    ...     def func(x):
+    ...         return x**2
+    >>> t = Test()
+    ... t.func
+    Function from R1 to R1 : (Scalar) → (Scalar)
+
+    Can also be used when the method already returns a Function instance. In such case
+    it is interesting to use the `inputs` and `outputs` arguments to overwrite the
+    inputs and outputs of the method.
+
+    >>> class Test():
+    ...     @Funcify(inputs='x', outputs='y')
+    ...     def func(x):
+    ...         return Function(lambda x: x**2)
+    >>> t = Test()
+    ... t.func
+    Function from R1 to R1 : (x) → (y)
+
+    In order to reset the cache, just delete de attribute from the instance:
+
+    >>> del t.func
+
+    Once it is requested again, it will be re-created as a new Function object:
+
+    >>> t.func
+    Function from R1 to R1 : (Scalar) → (Scalar)
+    """
+    func = None
+    if len(args) == 1 and callable(args[0]):
+        func = args[0]
+        args = []
+
+    class funcify_method_decorator:
+        def __init__(self, func):
+            self.func = func
+            self.attrname = None
+            self.__doc__ = func.__doc__
+
+        def __set_name__(self, owner, name):
+            self.attrname = name
+
+        def __get__(self, instance, owner=None):
+            if instance is None:
+                return self
+            cache = instance.__dict__
+            try:
+                val = cache[self.attrname]
+            except KeyError:
+                source = self.func(instance)
+                if isinstance(source, Function):
+                    # Avoid creating a new Function object if the source is already one
+                    val = source
+                    val.reset(*args, **kwargs)
+                else:
+                    val = Function(source, *args, **kwargs)
+                val.__doc__ = self.__doc__
+                cache[self.attrname] = val
+            return val
+
+    if func:
+        return funcify_method_decorator(func)
+    else:
+        return funcify_method_decorator
