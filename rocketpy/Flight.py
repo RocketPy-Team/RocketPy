@@ -64,6 +64,8 @@ class Flight:
             Original rail length minus the distance measured from nozzle exit
             to the lower rail button. It assumes the nozzle to be aligned with
             the beginning of the rail.
+        Flight.name: str
+            Name of the flight.
 
 
         Numerical Integration settings:
@@ -529,6 +531,7 @@ class Flight:
         atol=6 * [1e-3] + 4 * [1e-6] + 3 * [1e-3],
         timeOvershoot=True,
         verbose=False,
+        name="",
     ):
         """Run a trajectory simulation.
 
@@ -584,6 +587,8 @@ class Flight:
             time in some cases. Default is True.
         verbose : bool, optional
             If true, verbose mode is activated. Default is False.
+        name : str, optional
+            Name of the flight. Default is "".
 
         Returns
         -------
@@ -609,6 +614,7 @@ class Flight:
         self.initialSolution = initialSolution
         self.timeOvershoot = timeOvershoot
         self.terminateOnApogee = terminateOnApogee
+        self.name = name
 
         # Modifying Rail Length for a better out of rail condition
         upperRButton = max(self.rocket.railButtons[0])
