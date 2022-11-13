@@ -473,6 +473,54 @@ class Function:
             self.__interpolation__ = "shepard"
         return self
 
+    def setDiscreteBasedOnModel(self, modelFunction, oneByOne=True):
+        """This method transforms function defined Functions into list
+        defined Functions. It evaluates the function at certain points
+        (sampling range) and stores the results in a list, which is converted
+        into a Function and then returned. The original Function object is
+        replaced by the new one.
+
+        Parameters
+        ----------
+        modelFunction : Function
+            Function object that will be used to define the sampling points,
+            interpolation method and extrapolation method.
+            Must be a Function whose source attribute is a list (i.e. a list based
+            Function instance).
+            Must have the same domain dimension as the Function to be discretized.
+
+        oneByOne : boolean, optional
+            If True, evaluate Function in each sample point separately. If
+            False, evaluates Function in vectorized form. Default is True.
+
+        Returns
+        -------
+        self : Function
+        """
+        if not isinstance(modelFunction.source, np.ndarray):
+            raise TypeError("modelFunction must be a list based Function.")
+        if modelFunction.__domDim__ != self.__domDim__:
+            raise ValueError("modelFunction must have the same domain dimension.")
+
+        if self.__domDim__ == 1:
+            Xs = modelFunction.source[:, 0]
+            Ys = self.getValue(Xs.tolist()) if oneByOne else self.getValue(Xs)
+            self.source = np.concatenate(([Xs], [Ys])).transpose()
+        elif self.__domDim__ == 2:
+            # Create nodes to evaluate function
+            Xs = modelFunction.source[:, 0]
+            Ys = modelFunction.source[:, 1]
+            Xs, Ys = np.meshgrid(Xs, Ys)
+            Xs, Ys = Xs.flatten(), Ys.flatten()
+            mesh = [[Xs[i], Ys[i]] for i in range(len(Xs))]
+            # Evaluate function at all mesh nodes and convert it to matrix
+            Zs = np.array(self.getValue(mesh))
+            self.source = np.concatenate(([Xs], [Ys], [Zs])).transpose()
+
+        self.setInterpolation(modelFunction.__interpolation__)
+        self.setExtrapolation(modelFunction.__extrapolation__)
+        return self
+
     # Define all get methods
     def getInputs(self):
         "Return tuple of inputs of the function."
