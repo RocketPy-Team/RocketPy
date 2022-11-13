@@ -639,6 +639,8 @@ class Flight:
         self._bearing = Function(0)
         self._latitude = Function(0)
         self._longitude = Function(0)
+
+        # Initialize prints and plots objects
         self.prints = _FlightPrints(self)
         # Initialize solver monitors
         self.functionEvaluations = []
