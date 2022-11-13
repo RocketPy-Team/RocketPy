@@ -609,7 +609,6 @@ class Flight:
         self.initialSolution = initialSolution
         self.timeOvershoot = timeOvershoot
         self.terminateOnApogee = terminateOnApogee
-        self.plots = _FlightPlots(self)
 
         # Modifying Rail Length for a better out of rail condition
         upperRButton = max(self.rocket.railButtons[0])
@@ -642,6 +641,7 @@ class Flight:
 
         # Initialize prints and plots objects
         self.prints = _FlightPrints(self)
+        self.plots = _FlightPlots(self)
 
         # Initialize solver monitors
         self.functionEvaluations = []
