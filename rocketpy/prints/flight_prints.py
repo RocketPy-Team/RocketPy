@@ -17,7 +17,7 @@ class _FlightPrints:
         self,
         flight,
     ):
-        """_summary_
+        """Initializes _FlightPrints class
 
         Parameters
         ----------
