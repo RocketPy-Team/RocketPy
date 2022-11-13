@@ -16,6 +16,7 @@ import simplekml
 from scipy import integrate
 
 from .Function import Function
+from .prints.flight_prints import _FlightPrints
 
 try:
     from functools import cached_property
@@ -636,6 +637,10 @@ class Flight:
         self._bearing = Function(0)
         self._latitude = Function(0)
         self._longitude = Function(0)
+
+        # Initialize prints and plots objects
+        self.prints = _FlightPrints(self)
+
         # Initialize solver monitors
         self.functionEvaluations = []
         self.functionEvaluationsPerTimeStep = []
@@ -3288,256 +3293,7 @@ class Flight:
         ------
         None
         """
-
-        # Get index of out of rail time
-        outOfRailTimeIndexes = np.nonzero(self.x[:, 0] == self.outOfRailTime)
-        outOfRailTimeIndex = (
-            -1 if len(outOfRailTimeIndexes) == 0 else outOfRailTimeIndexes[0][0]
-        )
-
-        # Get index of time before parachute event
-        if len(self.parachuteEvents) > 0:
-            eventTime = self.parachuteEvents[0][0] + self.parachuteEvents[0][1].lag
-            eventTimeIndex = np.nonzero(self.x[:, 0] == eventTime)[0][0]
-        else:
-            eventTime = self.tFinal
-            eventTimeIndex = -1
-
-        # Print surface wind conditions
-        print("Surface Wind Conditions\n")
-        print("Frontal Surface Wind Speed: {:.2f} m/s".format(self.frontalSurfaceWind))
-        print("Lateral Surface Wind Speed: {:.2f} m/s".format(self.lateralSurfaceWind))
-
-        # Print out of rail conditions
-        print("\n\n Rail Departure State\n")
-        print("Rail Departure Time: {:.3f} s".format(self.outOfRailTime))
-        print("Rail Departure Velocity: {:.3f} m/s".format(self.outOfRailVelocity))
-        print(
-            "Rail Departure Static Margin: {:.3f} c".format(
-                self.staticMargin(self.outOfRailTime)
-            )
-        )
-        print(
-            "Rail Departure Angle of Attack: {:.3f}°".format(
-                self.angleOfAttack(self.outOfRailTime)
-            )
-        )
-        print(
-            "Rail Departure Thrust-Weight Ratio: {:.3f}".format(
-                self.rocket.thrustToWeight(self.outOfRailTime)
-            )
-        )
-        print(
-            "Rail Departure Reynolds Number: {:.3e}".format(
-                self.ReynoldsNumber(self.outOfRailTime)
-            )
-        )
-
-        # Print burnOut conditions
-        print("\n\nBurnOut State\n")
-        print("BurnOut time: {:.3f} s".format(self.rocket.motor.burnOutTime))
-        print(
-            "Altitude at burnOut: {:.3f} m (AGL)".format(
-                self.z(self.rocket.motor.burnOutTime) - self.env.elevation
-            )
-        )
-        print(
-            "Rocket velocity at burnOut: {:.3f} m/s".format(
-                self.speed(self.rocket.motor.burnOutTime)
-            )
-        )
-        print(
-            "Freestream velocity at burnOut: {:.3f} m/s".format(
-                (
-                    self.streamVelocityX(self.rocket.motor.burnOutTime) ** 2
-                    + self.streamVelocityY(self.rocket.motor.burnOutTime) ** 2
-                    + self.streamVelocityZ(self.rocket.motor.burnOutTime) ** 2
-                )
-                ** 0.5
-            )
-        )
-        print(
-            "Mach Number at burnOut: {:.3f}".format(
-                self.MachNumber(self.rocket.motor.burnOutTime)
-            )
-        )
-        print(
-            "Kinetic energy at burnOut: {:.3e} J".format(
-                self.kineticEnergy(self.rocket.motor.burnOutTime)
-            )
-        )
-
-        # Print apogee conditions
-        print("\n\nApogee\n")
-        print(
-            "Apogee Altitude: {:.3f} m (ASL) | {:.3f} m (AGL)".format(
-                self.apogee, self.apogee - self.env.elevation
-            )
-        )
-        print("Apogee Time: {:.3f} s".format(self.apogeeTime))
-        print("Apogee Freestream Speed: {:.3f} m/s".format(self.apogeeFreestreamSpeed))
-
-        # Print events registered
-        print("\n\nEvents\n")
-        if len(self.parachuteEvents) == 0:
-            print("No Parachute Events Were Triggered.")
-        for event in self.parachuteEvents:
-            triggerTime = event[0]
-            parachute = event[1]
-            openTime = triggerTime + parachute.lag
-            velocity = self.freestreamSpeed(openTime)
-            altitude = self.z(openTime)
-            name = parachute.name.title()
-            print(name + " Ejection Triggered at: {:.3f} s".format(triggerTime))
-            print(name + " Parachute Inflated at: {:.3f} s".format(openTime))
-            print(
-                name
-                + " Parachute Inflated with Freestream Speed of: {:.3f} m/s".format(
-                    velocity
-                )
-            )
-            print(
-                name
-                + " Parachute Inflated at Height of: {:.3f} m (AGL)".format(
-                    altitude - self.env.elevation
-                )
-            )
-
-        # Print impact conditions
-        if len(self.impactState) != 0:
-            print("\n\nImpact\n")
-            print("X Impact: {:.3f} m".format(self.xImpact))
-            print("Y Impact: {:.3f} m".format(self.yImpact))
-            print("Time of Impact: {:.3f} s".format(self.tFinal))
-            print("Velocity at Impact: {:.3f} m/s".format(self.impactVelocity))
-        elif self.terminateOnApogee is False:
-            print("\n\nEnd of Simulation\n")
-            print("Time: {:.3f} s".format(self.solution[-1][0]))
-            print("Altitude: {:.3f} m".format(self.solution[-1][3]))
-
-        # Print maximum values
-        print("\n\nMaximum Values\n")
-        print(
-            "Maximum Speed: {:.3f} m/s at {:.2f} s".format(
-                self.maxSpeed, self.maxSpeedTime
-            )
-        )
-        print(
-            "Maximum Mach Number: {:.3f} Mach at {:.2f} s".format(
-                self.maxMachNumber, self.maxMachNumberTime
-            )
-        )
-        print(
-            "Maximum Reynolds Number: {:.3e} at {:.2f} s".format(
-                self.maxReynoldsNumber, self.maxReynoldsNumberTime
-            )
-        )
-        print(
-            "Maximum Dynamic Pressure: {:.3e} Pa at {:.2f} s".format(
-                self.maxDynamicPressure, self.maxDynamicPressureTime
-            )
-        )
-        print(
-            "Maximum Acceleration: {:.3f} m/s² at {:.2f} s".format(
-                self.maxAcceleration, self.maxAccelerationTime
-            )
-        )
-        print(
-            "Maximum Gs: {:.3f} g at {:.2f} s".format(
-                self.maxAcceleration / self.env.g, self.maxAccelerationTime
-            )
-        )
-        print(
-            "Maximum Upper Rail Button Normal Force: {:.3f} N".format(
-                self.maxRailButton1NormalForce
-            )
-        )
-        print(
-            "Maximum Upper Rail Button Shear Force: {:.3f} N".format(
-                self.maxRailButton1ShearForce
-            )
-        )
-        print(
-            "Maximum Lower Rail Button Normal Force: {:.3f} N".format(
-                self.maxRailButton2NormalForce
-            )
-        )
-        print(
-            "Maximum Lower Rail Button Shear Force: {:.3f} N".format(
-                self.maxRailButton2ShearForce
-            )
-        )
-
-        return None
-
-    def printInitialConditionsData(self):
-        """Prints all initial conditions data available about the flight
-
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
-        None
-        """
-
-        print(
-            "Position - x: {:.2f} m | y: {:.2f} m | z: {:.2f} m".format(
-                self.x(0), self.y(0), self.z(0)
-            )
-        )
-        print(
-            "Velocity - Vx: {:.2f} m/s | Vy: {:.2f} m/s | Vz: {:.2f} m/s".format(
-                self.vx(0), self.vy(0), self.vz(0)
-            )
-        )
-        print(
-            "Attitude - e0: {:.3f} | e1: {:.3f} | e2: {:.3f} | e3: {:.3f}".format(
-                self.e0(0), self.e1(0), self.e2(0), self.e3(0)
-            )
-        )
-        print(
-            "Euler Angles - Spin φ : {:.2f}° | Nutation θ: {:.2f}° | Precession ψ: {:.2f}°".format(
-                self.phi(0), self.theta(0), self.psi(0)
-            )
-        )
-        print(
-            "Angular Velocity - ω1: {:.2f} rad/s | ω2: {:.2f} rad/s| ω3: {:.2f} rad/s".format(
-                self.w1(0), self.w2(0), self.w3(0)
-            )
-        )
-        return None
-
-    def printNumericalIntegrationSettings(self):
-        """Prints out the Numerical Integration settings
-
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
-        None
-        """
-        print("Maximum Allowed Flight Time: {:f} s".format(self.maxTime))
-        print("Maximum Allowed Time Step: {:f} s".format(self.maxTimeStep))
-        print("Minimum Allowed Time Step: {:e} s".format(self.minTimeStep))
-        print("Relative Error Tolerance: ", self.rtol)
-        print("Absolute Error Tolerance: ", self.atol)
-        print("Allow Event Overshoot: ", self.timeOvershoot)
-        print("Terminate Simulation on Apogee: ", self.terminateOnApogee)
-        print("Number of Time Steps Used: ", len(self.timeSteps))
-        print(
-            "Number of Derivative Functions Evaluation: ",
-            sum(self.functionEvaluationsPerTimeStep),
-        )
-        print(
-            "Average Function Evaluations per Time Step: {:3f}".format(
-                sum(self.functionEvaluationsPerTimeStep) / len(self.timeSteps)
-            )
-        )
-
+        self.prints.all()
         return None
 
     def calculateStallWindVelocity(self, stallAngle):
@@ -4706,20 +4462,8 @@ class Flight:
         None
         """
 
-        # Print initial conditions
-        print("Initial Conditions\n")
-        self.printInitialConditionsData()
-
-        # Print launch rail orientation
-        print("\n\nLaunch Rail Orientation\n")
-        print("Launch Rail Inclination: {:.2f}°".format(self.inclination))
-        print("Launch Rail Heading: {:.2f}°\n\n".format(self.heading))
-
         # Print a summary of data about the flight
         self.info()
-
-        print("\n\nNumerical Integration Information\n")
-        self.printNumericalIntegrationSettings()
 
         print("\n\nTrajectory 3d Plot\n")
         self.plot3dTrajectory()
