@@ -2202,7 +2202,7 @@ class Flight:
         if self.outOfRailTimeIndex == 0:
             return 0
         else:
-            return np.max(self.railButton1NormalForce[: self.outOfRailTimeIndex])
+            return np.max(self.railButton1NormalForce)
 
     @cached_property
     def maxRailButton1ShearForce(self):
@@ -2214,7 +2214,7 @@ class Flight:
         if self.outOfRailTimeIndex == 0:
             return 0
         else:
-            return np.max(self.railButton1ShearForce[: self.outOfRailTimeIndex])
+            return np.max(self.railButton1ShearForce)
 
     @cached_property
     def maxRailButton2NormalForce(self):
@@ -2226,7 +2226,7 @@ class Flight:
         if self.outOfRailTimeIndex == 0:
             return 0
         else:
-            return np.max(self.railButton2NormalForce[: self.outOfRailTimeIndex])
+            return np.max(self.railButton2NormalForce)
 
     @cached_property
     def maxRailButton2ShearForce(self):
@@ -2238,7 +2238,7 @@ class Flight:
         if self.outOfRailTimeIndex == 0:
             return 0
         else:
-            return np.max(self.railButton2ShearForce[: self.outOfRailTimeIndex])
+            return np.max(self.railButton2ShearForce)
 
     @funcify_method(
         "Time (s)", "Horizontal Distance to Launch Point (m)", "spline", "constant"
@@ -2488,6 +2488,10 @@ class Flight:
                 "Trying to calculate rail button forces without rail buttons defined."
             )
             return 0, 0, 0, 0
+        if self.outOfRailTimeIndex == 0:
+            # No rail phase, no rail button forces
+            nullForce = 0 * self.R1
+            return nullForce, nullForce, nullForce, nullForce
 
         # Distance from Rail Button 1 (upper) to CM
         D1 = self.rocket.railButtons.distanceToCM[0]
@@ -2502,11 +2506,16 @@ class Flight:
         F22 = (self.R2 * D1 - self.M1) / (D1 + D2)
         F22.setOutputs("Lower button force direction 2 (m)")
 
+        model = Function(
+            F11.source[: self.outOfRailTimeIndex + 1, :],
+            interpolation=F11.__interpolation__,
+        )
+
         # Limit force calculation to when rocket is in rail
-        F11 = F11[: self.outOfRailTimeIndex, :]
-        F12 = F12[: self.outOfRailTimeIndex, :]
-        F21 = F21[: self.outOfRailTimeIndex, :]
-        F22 = F22[: self.outOfRailTimeIndex, :]
+        F11.setDiscreteBasedOnModel(model)
+        F12.setDiscreteBasedOnModel(model)
+        F21.setDiscreteBasedOnModel(model)
+        F22.setDiscreteBasedOnModel(model)
 
         return F11, F12, F21, F22
 
@@ -3215,13 +3224,13 @@ class Flight:
 
         ax1 = plt.subplot(211)
         ax1.plot(
-            self.railButton1NormalForce[: self.outOfRailTimeIndex, 0],
-            self.railButton1NormalForce[: self.outOfRailTimeIndex, 1],
+            self.railButton1NormalForce[:, 0],
+            self.railButton1NormalForce[:, 1],
             label="Upper Rail Button",
         )
         ax1.plot(
-            self.railButton2NormalForce[: self.outOfRailTimeIndex, 0],
-            self.railButton2NormalForce[: self.outOfRailTimeIndex, 1],
+            self.railButton2NormalForce[:, 0],
+            self.railButton2NormalForce[:, 1],
             label="Lower Rail Button",
         )
         ax1.set_xlim(0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal)
@@ -3233,13 +3242,13 @@ class Flight:
 
         ax2 = plt.subplot(212)
         ax2.plot(
-            self.railButton1ShearForce[: self.outOfRailTimeIndex, 0],
-            self.railButton1ShearForce[: self.outOfRailTimeIndex, 1],
+            self.railButton1ShearForce[:, 0],
+            self.railButton1ShearForce[:, 1],
             label="Upper Rail Button",
         )
         ax2.plot(
-            self.railButton2ShearForce[: self.outOfRailTimeIndex, 0],
-            self.railButton2ShearForce[: self.outOfRailTimeIndex, 1],
+            self.railButton2ShearForce[:, 0],
+            self.railButton2ShearForce[:, 1],
             label="Lower Rail Button",
         )
         ax2.set_xlim(0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal)
