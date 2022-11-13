@@ -43,7 +43,7 @@ class _FlightPrints:
         None
         """
 
-        print("\n\nInitial Conditions\n")
+        print("\nInitial Conditions\n")
 
         # Post-process results
         if self.flight.postProcessed is False:
@@ -92,7 +92,7 @@ class _FlightPrints:
         None
         """
 
-        print("\n\nNumerical Integration Settings\n")
+        print("\nNumerical Integration Settings\n")
         print("Maximum Allowed Flight Time: {:f} s".format(self.flight.maxTime))
         print("Maximum Allowed Time Step: {:f} s".format(self.flight.maxTimeStep))
         print("Minimum Allowed Time Step: {:e} s".format(self.flight.minTimeStep))
@@ -123,7 +123,7 @@ class _FlightPrints:
         """
         if self.flight.postProcessed is False:
             self.flight.postProcess()
-        print("\n\nSurface Wind Conditions\n")
+        print("\nSurface Wind Conditions\n")
         print(
             "Frontal Surface Wind Speed: {:.2f} m/s".format(
                 self.flight.frontalSurfaceWind
@@ -149,7 +149,7 @@ class _FlightPrints:
         None
         """
 
-        print("\n\nLaunch Rail Orientation\n")
+        print("\nLaunch Rail Orientation\n")
         print("Launch Rail Inclination: {:.2f}°".format(self.flight.inclination))
         print("Launch Rail Heading: {:.2f}°".format(self.flight.heading))
         return None
@@ -163,7 +163,7 @@ class _FlightPrints:
         """
         if self.flight.postProcessed is False:
             self.flight.postProcess()
-        print("\n\nRail Departure State\n")
+        print("\nRail Departure State\n")
         print("Rail Departure Time: {:.3f} s".format(self.flight.outOfRailTime))
         print(
             "Rail Departure Velocity: {:.3f} m/s".format(self.flight.outOfRailVelocity)
@@ -200,7 +200,7 @@ class _FlightPrints:
         """
         if self.flight.postProcessed is False:
             self.flight.postProcess()
-        print("\n\nBurnOut State\n")
+        print("\nBurnOut State\n")
         print("BurnOut time: {:.3f} s".format(self.flight.rocket.motor.burnOutTime))
         print(
             "Altitude at burnOut: {:.3f} m (AGL)".format(
@@ -248,7 +248,7 @@ class _FlightPrints:
         """
         if self.flight.postProcessed is False:
             self.flight.postProcess()
-        print("\n\nApogee State\n")
+        print("\nApogee State\n")
         print(
             "Apogee Altitude: {:.3f} m (ASL) | {:.3f} m (AGL)".format(
                 self.flight.apogee, self.flight.apogee - self.flight.env.elevation
@@ -272,7 +272,7 @@ class _FlightPrints:
         """
         if self.flight.postProcessed is False:
             self.flight.postProcess()
-        print("\n\nParachute Events\n")
+        print("\nParachute Events\n")
         if len(self.flight.parachuteEvents) == 0:
             print("No Parachute Events Were Triggered.")
         for event in self.flight.parachuteEvents:
@@ -308,7 +308,7 @@ class _FlightPrints:
         if self.flight.postProcessed is False:
             self.flight.postProcess()
         if len(self.flight.impactState) != 0:
-            print("\n\nImpact Conditions\n")
+            print("\nImpact Conditions\n")
             print("X Impact: {:.3f} m".format(self.flight.xImpact))
             print("Y Impact: {:.3f} m".format(self.flight.yImpact))
             print("Time of Impact: {:.3f} s".format(self.flight.tFinal))
@@ -327,7 +327,7 @@ class _FlightPrints:
         -------
         None
         """
-        print("\n\nMaximum Values\n")
+        print("\nMaximum Values\n")
         print(
             "Maximum Speed: {:.3f} m/s at {:.2f} s".format(
                 self.flight.maxSpeed, self.flight.maxSpeedTime
@@ -395,32 +395,42 @@ class _FlightPrints:
 
         # Print initial conditions
         self.initial_conditions()
+        print()
 
         # Print surface wind conditions
         self.surface_wind_conditions()
+        print()
 
         # Print launch rail orientation
         self.launch_rail_conditions()
+        print()
 
         # Print out of rail conditions
         self.out_of_rail_conditions()
+        print()
 
         # Print burnOut conditions
         self.burn_out_conditions()
+        print()
 
         # Print apogee conditions
         self.apogee_conditions()
+        print()
 
         # Print events registered
         self.events_registered()
+        print()
 
         # Print impact conditions
         self.impact_conditions()
+        print()
 
         # Print maximum values
         self.maximum_values()
+        print()
 
         # Print Numerical Integration Information
         self.numerical_integration_settings()
+        print()
 
         return None
