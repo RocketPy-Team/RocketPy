@@ -635,8 +635,10 @@ class Flight:
         self.impactState = np.array([0])
         self.parachuteEvents = []
         self.postProcessed = False
-        self.latitude = 0  # Function(0)
-        self.longitude = 0  # Function(0)'
+        self._drift = Function(0)
+        self._bearing = Function(0)
+        self._latitude = Function(0)
+        self._longitude = Function(0)
         self.prints = _FlightPrints(self)
         # Initialize solver monitors
         self.functionEvaluations = []
