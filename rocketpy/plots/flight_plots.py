@@ -33,7 +33,7 @@ class _FlightPlots:
 
     # Start definition of 'basic' plots methods, the traditional RocketPy plots
 
-    def plot3dTrajectory(self):
+    def trajectory_3d(self):
         """Plot a 3D graph of the trajectory
 
         Parameters
@@ -96,7 +96,7 @@ class _FlightPlots:
 
         return None
 
-    def plotLinearKinematicsData(self):
+    def linear_kinematics_data(self):
         """Prints out all Kinematics graphs available about the Flight
 
         Parameters
@@ -178,7 +178,7 @@ class _FlightPlots:
         plt.show()
         return None
 
-    def plotAttitudeData(self):
+    def attitude_data(self):
         """Prints out all Angular position graphs available about the Flight
 
         Parameters
@@ -248,7 +248,7 @@ class _FlightPlots:
 
         return None
 
-    def plotFlightPathAngleData(self):
+    def flight_path_angle_data(self):
         """Prints out Flight path and Rocket Attitude angle graphs available
         about the Flight
 
@@ -313,7 +313,7 @@ class _FlightPlots:
 
         return None
 
-    def plotAngularKinematicsData(self):
+    def angular_kinematics_data(self):
         """Prints out all Angular velocity and acceleration graphs available
         about the Flight
 
@@ -401,7 +401,7 @@ class _FlightPlots:
 
         return None
 
-    def plotTrajectoryForceData(self):
+    def trajectory_force_data(self):
         """Prints out all Forces and Moments graphs available about the Flight
 
         Parameters
@@ -563,7 +563,7 @@ class _FlightPlots:
 
         return None
 
-    def plotEnergyData(self):
+    def energy_data(self):
         """Prints out all Energy components graphs available about the Flight
 
         Returns
@@ -692,7 +692,7 @@ class _FlightPlots:
 
         return None
 
-    def plotFluidMechanicsData(self):
+    def fluid_mechanics_data(self):
         """Prints out a summary of the Fluid Mechanics graphs available about
         the Flight
 
@@ -780,7 +780,7 @@ class _FlightPlots:
 
         return None
 
-    def plotStabilityAndControlData(self):
+    def stability_and_control_data(self):
         """Prints out Rocket Stability and Control parameters graphs available
         about the Flight
 
@@ -847,7 +847,7 @@ class _FlightPlots:
 
         return None
 
-    def plotPressureSignals(self):
+    def pressure_signals(self):
         """Prints out all Parachute Trigger Pressure Signals.
         This function can be called also for plot pressure data for flights
         without Parachutes, in this case the Pressure Signals will be simply
@@ -891,7 +891,7 @@ class _FlightPlots:
 
         return None
 
-    def allPlots(self):
+    def all(self):
         """Prints out all plots available about the Flight.
 
         Parameters
@@ -904,33 +904,33 @@ class _FlightPlots:
         """
 
         # Plot flight trajectory in a 3D plot
-        self.plot3dTrajectory()
+        self.trajectory_3d()
 
         # Plot
-        self.plotLinearKinematicsData()
+        self.linear_kinematics_data()
 
         # Plot
-        self.plotFlightPathAngleData()
+        self.flight_path_angle_data()
 
         # Plot
-        self.plotAttitudeData()
+        self.attitude_data()
 
         # Plot
-        self.plotAngularKinematicsData()
+        self.angular_kinematics_data()
 
         # Plot
-        self.plotTrajectoryForceData()
+        self.trajectory_force_data()
 
         # Plot
-        self.plotEnergyData()
+        self.energy_data()
 
         # Plot
-        self.plotFluidMechanicsData()
+        self.fluid_mechanics_data()
 
         # Plot pressure signals recorded by the sensors
-        self.plotPressureSignals()
+        self.pressure_signals()
 
         # Plot Stability and Control Data
-        self.plotStabilityAndControlData()
+        self.stability_and_control_data()
 
         return None

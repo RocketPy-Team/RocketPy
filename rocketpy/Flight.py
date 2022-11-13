@@ -2940,31 +2940,31 @@ class Flight:
         self.printNumericalIntegrationSettings()
 
         print("\n\nTrajectory 3d Plot\n")
-        self.plots.plot3dTrajectory()
+        self.plots.trajectory_3d()
 
         print("\n\nTrajectory Kinematic Plots\n")
-        self.plots.plotLinearKinematicsData()
+        self.plots.linear_kinematics_data()
 
         print("\n\nAngular Position Plots\n")
-        self.plots.plotFlightPathAngleData()
+        self.plots.flight_path_angle_data()
 
         print("\n\nPath, Attitude and Lateral Attitude Angle plots\n")
-        self.plots.plotAttitudeData()
+        self.plots.attitude_data()
 
         print("\n\nTrajectory Angular Velocity and Acceleration Plots\n")
-        self.plots.plotAngularKinematicsData()
+        self.plots.angular_kinematics_data()
 
         print("\n\nTrajectory Force Plots\n")
-        self.plots.plotTrajectoryForceData()
+        self.plots.trajectory_force_data()
 
         print("\n\nTrajectory Energy Plots\n")
-        self.plots.plotEnergyData()
+        self.plots.energy_data()
 
         print("\n\nTrajectory Fluid Mechanics Plots\n")
-        self.plots.plotFluidMechanicsData()
+        self.plots.fluid_mechanics_data()
 
         print("\n\nTrajectory Stability and Control Plots\n")
-        self.plots.plotStabilityAndControlData()
+        self.plots.stability_and_control_data()
 
         return None
 
