@@ -1556,7 +1556,7 @@ class Function:
             else:
                 return Function(lambda x: (self.getValueOpt2(x) / other(x)))
         # If other is Float except...
-        except:
+        except AttributeError:
             if isinstance(other, (float, int, complex)):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
@@ -1658,7 +1658,7 @@ class Function:
             else:
                 return Function(lambda x: (self.getValueOpt2(x) ** other(x)))
         # If other is Float except...
-        except:
+        except AttributeError:
             if isinstance(other, (float, int, complex)):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
@@ -1760,7 +1760,7 @@ class Function:
             else:
                 return Function(lambda x: (self.getValue(x) * other(x)))
         # If other is Float except...
-        except:
+        except AttributeError:
             if isinstance(other, (float, int, complex)):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
@@ -1862,7 +1862,7 @@ class Function:
             else:
                 return Function(lambda x: (self.getValue(x) + other(x)))
         # If other is Float except...
-        except:
+        except AttributeError:
             if isinstance(other, (float, int, complex)):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
@@ -1964,7 +1964,7 @@ class Function:
             else:
                 return Function(lambda x: (self.getValue(x) * other(x)))
         # If other is Float except...
-        except:
+        except AttributeError:
             if isinstance(other, (float, int, complex)):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
