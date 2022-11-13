@@ -2224,7 +2224,7 @@ class Flight:
         ------
         None
         """
-        self.prints.allPrints()
+        self.prints.all()
         return None
 
     def calculateStallWindVelocity(self, stallAngle):

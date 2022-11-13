@@ -31,7 +31,7 @@ class _FlightPrints:
         self.flight = flight
         return None
 
-    def printInitialConditionsData(self):
+    def initial_conditions(self):
         """Prints all initial conditions data available about the Flight.
 
         Parameters
@@ -79,7 +79,7 @@ class _FlightPrints:
 
         return None
 
-    def printNumericalIntegrationSettings(self):
+    def numerical_integration_settings(self):
         """Prints out the Numerical Integration settings available about the
         flight.
 
@@ -114,7 +114,7 @@ class _FlightPrints:
 
         return None
 
-    def printSurfaceWindConditions(self):
+    def surface_wind_conditions(self):
         """Prints out the Surface Wind Conditions available about the flight.
 
         Returns
@@ -137,7 +137,7 @@ class _FlightPrints:
 
         return None
 
-    def printLaunchRailConditions(self):
+    def launch_rail_conditions(self):
         """Prints out the Launch Rail Conditions available about the flight.
 
         Parameters
@@ -154,7 +154,7 @@ class _FlightPrints:
         print("Launch Rail Heading: {:.2f}°".format(self.flight.heading))
         return None
 
-    def printOutOfRailConditions(self):
+    def out_of_rail_conditions(self):
         """Prints out the Out of Rail Conditions available about the flight.
 
         Returns
@@ -191,7 +191,7 @@ class _FlightPrints:
 
         return None
 
-    def printBurnOutConditions(self):
+    def burn_out_conditions(self):
         """Prints out the Burn Out Conditions available about the flight.
 
         Returns
@@ -239,7 +239,7 @@ class _FlightPrints:
 
         return None
 
-    def printApogeeConditions(self):
+    def apogee_conditions(self):
         """Prints out the Apogee Conditions available about the flight.
 
         Returns
@@ -263,7 +263,7 @@ class _FlightPrints:
 
         return None
 
-    def printEventsRegistered(self):
+    def events_registered(self):
         """Prints out the Events Registered available about the flight.
 
         Returns
@@ -298,7 +298,7 @@ class _FlightPrints:
             )
         return None
 
-    def printImpactConditions(self):
+    def impact_conditions(self):
         """Prints out the Impact Conditions available about the flight.
 
         Returns
@@ -320,7 +320,7 @@ class _FlightPrints:
 
         return None
 
-    def printMaximumValues(self):
+    def maximum_values(self):
         """Prints out the Maximum Values available about the flight.
 
         Returns
@@ -381,7 +381,7 @@ class _FlightPrints:
         )
         return None
 
-    def allPrints(self):
+    def all(self):
         """Prints out all data available about the Flight.
 
         Parameters
@@ -394,33 +394,33 @@ class _FlightPrints:
         """
 
         # Print initial conditions
-        self.printInitialConditionsData()
+        self.initial_conditions()
 
         # Print surface wind conditions
-        self.printSurfaceWindConditions()
+        self.surface_wind_conditions()
 
         # Print launch rail orientation
-        self.printLaunchRailConditions()
+        self.launch_rail_conditions()
 
         # Print out of rail conditions
-        self.printOutOfRailConditions()
+        self.out_of_rail_conditions()
 
         # Print burnOut conditions
-        self.printBurnOutConditions()
+        self.burn_out_conditions()
 
         # Print apogee conditions
-        self.printApogeeConditions()
+        self.apogee_conditions()
 
         # Print events registered
-        self.printEventsRegistered()
+        self.events_registered()
 
         # Print impact conditions
-        self.printImpactConditions()
+        self.impact_conditions()
 
         # Print maximum values
-        self.printMaximumValues()
+        self.maximum_values()
 
         # Print Numerical Integration Information
-        self.printNumericalIntegrationSettings()
+        self.numerical_integration_settings()
 
         return None
