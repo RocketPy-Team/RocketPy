@@ -31,8 +31,6 @@ class _FlightPlots:
         self.flight = flight
         return None
 
-    # Start definition of 'basic' plots methods, the traditional RocketPy plots
-
     def trajectory_3d(self):
         """Plot a 3D graph of the trajectory
 
