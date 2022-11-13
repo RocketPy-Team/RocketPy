@@ -1123,7 +1123,7 @@ class Function:
         """
         # Prepare plot
         figure = plt.figure()
-        axes = figure.gca(projection="3d")
+        axes = figure.add_subplot(111, projection="3d")
         # Define a mesh and f values at mesh nodes for plotting
         if callable(self.source):
             # Determine boundaries

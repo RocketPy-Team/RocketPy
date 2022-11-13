@@ -17,6 +17,7 @@ setuptools.setup(
         "pytz",
         "timezonefinder",
         "simplekml",
+        "jsonpickle",
     ],
     maintainer="RocketPy Developers",
     author="Giovani Hidalgo Ceotto",
