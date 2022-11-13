@@ -8,16 +8,16 @@ import numpy as np
 
 
 class _FlightPlots:
-    """class to plot flight data
-    Here you also can:
-    - Print important information about the flight
-    - See animations of the flight
-    - Compare plots from different flights
-    - Compare flights from different rocket simulators
+    """Class that holds plot methods for Flight class.
+
+    Attributes
+    ----------
+    _FlightPlots.flight : Flight
+        Flight object that will be used for the plots.
     """
 
     def __init__(self, flight):
-        """_summary_
+        """Initializes _FlightPlots class.
 
         Parameters
         ----------
@@ -893,7 +893,6 @@ class _FlightPlots:
 
     def allPlots(self):
         """Prints out all plots available about the Flight.
-        It call info() and then all the plots available.
 
         Parameters
         ----------
