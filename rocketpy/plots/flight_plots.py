@@ -3,6 +3,6 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 
-class FlightPlots:
+class _FlightPlots:
     def __init__(self) -> None:
         pass

@@ -1,1 +1,1 @@
-from . import flight_plots
+from . import plots
