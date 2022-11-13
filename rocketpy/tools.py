@@ -15,7 +15,8 @@ class cached_property:
             return self
         if self.attrname is None:
             raise TypeError(
-                "Cannot use cached_property instance without calling __set_name__ on it.")
+                "Cannot use cached_property instance without calling __set_name__ on it."
+            )
         cache = instance.__dict__
         val = cache.get(self.attrname, _NOT_FOUND)
         if val is _NOT_FOUND:
