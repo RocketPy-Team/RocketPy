@@ -632,10 +632,6 @@ class Flight:
         self.impactState = np.array([0])
         self.parachuteEvents = []
         self.postProcessed = False
-        self._drift = Function(0)
-        self._bearing = Function(0)
-        self._latitude = Function(0)
-        self._longitude = Function(0)
         # Initialize solver monitors
         self.functionEvaluations = []
         self.functionEvaluationsPerTimeStep = []
@@ -1116,83 +1112,8 @@ class Flight:
 
     def __init_post_process_variables(self):
         """Initialize post-process variables."""
-        # Initialize all variables created during Flight.postProcess()
+        # Initialize all variables calculated after initialization.
         # Important to do so that MATLAB® can access them
-        self._windVelocityX = Function(0)
-        self._windVelocityY = Function(0)
-        self._density = Function(0)
-        self._pressure = Function(0)
-        self._dynamicViscosity = Function(0)
-        self._speedOfSound = Function(0)
-        self._ax = Function(0)
-        self._ay = Function(0)
-        self._az = Function(0)
-        self._alpha1 = Function(0)
-        self._alpha2 = Function(0)
-        self._alpha3 = Function(0)
-        self._speed = Function(0)
-        self._maxSpeed = 0
-        self._maxSpeedTime = 0
-        self._horizontalSpeed = Function(0)
-        self._Acceleration = Function(0)
-        self._maxAcceleration = 0
-        self._maxAccelerationTime = 0
-        self._pathAngle = Function(0)
-        self._attitudeVectorX = Function(0)
-        self._attitudeVectorY = Function(0)
-        self._attitudeVectorZ = Function(0)
-        self._attitudeAngle = Function(0)
-        self._lateralAttitudeAngle = Function(0)
-        self._phi = Function(0)
-        self._theta = Function(0)
-        self._psi = Function(0)
-        self._R1 = Function(0)
-        self._R2 = Function(0)
-        self._R3 = Function(0)
-        self._M1 = Function(0)
-        self._M2 = Function(0)
-        self._M3 = Function(0)
-        self._aerodynamicLift = Function(0)
-        self._aerodynamicDrag = Function(0)
-        self._aerodynamicBendingMoment = Function(0)
-        self._aerodynamicSpinMoment = Function(0)
-        self._railButton1NormalForce = Function(0)
-        self._maxRailButton1NormalForce = 0
-        self._railButton1ShearForce = Function(0)
-        self._maxRailButton1ShearForce = 0
-        self._railButton2NormalForce = Function(0)
-        self._maxRailButton2NormalForce = 0
-        self._railButton2ShearForce = Function(0)
-        self._maxRailButton2ShearForce = 0
-        self._rotationalEnergy = Function(0)
-        self._translationalEnergy = Function(0)
-        self._kineticEnergy = Function(0)
-        self._potentialEnergy = Function(0)
-        self._totalEnergy = Function(0)
-        self._thrustPower = Function(0)
-        self._dragPower = Function(0)
-        self._attitudeFrequencyResponse = Function(0)
-        self._omega1FrequencyResponse = Function(0)
-        self._omega2FrequencyResponse = Function(0)
-        self._omega3FrequencyResponse = Function(0)
-        self._streamVelocityX = Function(0)
-        self._streamVelocityY = Function(0)
-        self._streamVelocityZ = Function(0)
-        self._freestreamSpeed = Function(0)
-        self._apogeeFreestreamSpeed = 0
-        self._MachNumber = Function(0)
-        self._maxMachNumber = 0
-        self._maxMachNumberTime = 0
-        self._ReynoldsNumber = Function(0)
-        self._maxReynoldsNumber = 0
-        self._maxReynoldsNumberTime = 0
-        self._dynamicPressure = Function(0)
-        self._maxDynamicPressure = 0
-        self._maxDynamicPressureTime = 0
-        self._totalPressure = Function(0)
-        self._maxTotalPressure = 0
-        self._maxTotalPressureTime = 0
-        self._angleOfAttack = Function(0)
         self.flutterMachNumber = Function(0)
         self.difference = Function(0)
         self.safetyFactor = Function(0)
