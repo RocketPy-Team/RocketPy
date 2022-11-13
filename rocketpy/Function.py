@@ -521,6 +521,44 @@ class Function:
         self.setExtrapolation(modelFunction.__extrapolation__)
         return self
 
+    def reset(
+        self,
+        inputs=None,
+        outputs=None,
+        interpolation=None,
+        extrapolation=None,
+    ):
+        """This method resets the Function object to its initial state, with the
+        possibility of resetting all of its initialization arguments besides the
+        source.
+
+        Parameters
+        ----------
+        inputs : string, sequence of strings, optional
+            List of input variable names. If None, the original inputs are kept.
+        outputs : string, sequence of strings, optional
+            List of output variable names. If None, the original outputs are kept.
+        interpolation : string, optional
+            Interpolation method to be used if source type is ndarray.
+            For 1-D functions, linear, polynomial, akima and spline is
+            supported. For N-D functions, only shepard is supported.
+            If None, the original interpolation method is kept.
+        extrapolation : string, optional
+            Extrapolation method to be used if source type is ndarray.
+            Options are 'natural', which keeps interpolation, 'constant',
+            which returns the value of the function at the edge of the interval,
+            and 'zero', which returns zero for all points outside of source
+            range. If None, the original extrapolation method is kept.
+        """
+        if inputs is not None:
+            self.setInputs(inputs)
+        if outputs is not None:
+            self.setOutputs(outputs)
+        if interpolation is not None and interpolation != self.__interpolation__:
+            self.setInterpolation(interpolation)
+        if extrapolation is not None and extrapolation != self.__extrapolation__:
+            self.setExtrapolation(extrapolation)
+
     # Define all get methods
     def getInputs(self):
         "Return tuple of inputs of the function."
