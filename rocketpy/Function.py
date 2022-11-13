@@ -1511,7 +1511,7 @@ class Function:
 
     # Define all possible algebraic operations
     def __truediv__(self, other):
-        """Devides a Function object and returns a new Function object
+        """Divides a Function object and returns a new Function object
         which gives the result of the division. Only implemented for 1D
         domains.
 
@@ -1543,7 +1543,9 @@ class Function:
                 and np.any(self.source[:, 0] - other.source[:, 0]) == False
             ):
                 # Operate on grid values
-                Ys = self.source[:, 1] / other.source[:, 1]
+                with np.errstate(divide="ignore"):
+                    Ys = self.source[:, 1] / other.source[:, 1]
+                    Ys = np.nan_to_num(Ys)
                 Xs = self.source[:, 0]
                 source = np.concatenate(([Xs], [Ys])).transpose()
                 # Retrieve inputs, outputs and interpolation
