@@ -28,3 +28,4 @@ from .Function import Function
 from .Motor import HybridMotor, SolidMotor
 from .Rocket import Rocket
 from .utilities import *
+from . import plots
