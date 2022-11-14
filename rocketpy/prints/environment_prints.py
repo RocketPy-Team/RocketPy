@@ -1,4 +1,4 @@
-__author__ = " "
+__author__ = "Mateus Stano Junqueira"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
