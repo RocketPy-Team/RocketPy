@@ -38,7 +38,11 @@ class _FlightPlots:
         None
         """
         self.flight = flight
+        self.calculated_index = False
 
+        return None
+
+    def __calculate_indexes(self):
         # Get index of out of rail time
         out_of_rail_time_indexes = np.nonzero(
             self.flight.x[:, 0] == self.flight.outOfRailTime
@@ -60,6 +64,8 @@ class _FlightPlots:
             self.first_event_time = self.flight.tFinal
             self.first_event_time_index = -1
 
+        self.calculated_index = True
+
         return None
 
     def trajectory_3d(self):
@@ -73,6 +79,9 @@ class _FlightPlots:
         ------
         None
         """
+
+        if not self.calculated_index:
+            self.__calculate_indexes()
 
         # Get max and min x and y
         maxZ = max(self.flight.z[:, 1] - self.flight.env.elevation)
@@ -133,6 +142,9 @@ class _FlightPlots:
         ------
         None
         """
+
+        if not self.calculated_index:
+            self.__calculate_indexes()
 
         # Velocity and acceleration plots
         fig2 = plt.figure(figsize=(9, 12))
@@ -213,6 +225,9 @@ class _FlightPlots:
         None
         """
 
+        if not self.calculated_index:
+            self.__calculate_indexes()
+
         # Angular position plots
         fig3 = plt.figure(figsize=(9, 12))
 
@@ -270,6 +285,9 @@ class _FlightPlots:
         None
         """
 
+        if not self.calculated_index:
+            self.__calculate_indexes()
+
         # Path, Attitude and Lateral Attitude Angle
         # Angular position plots
         fig5 = plt.figure(figsize=(9, 6))
@@ -320,6 +338,9 @@ class _FlightPlots:
         ------
         None
         """
+
+        if not self.calculated_index:
+            self.__calculate_indexes()
 
         # Angular velocity and acceleration plots
         fig4 = plt.figure(figsize=(9, 9))
@@ -393,6 +414,9 @@ class _FlightPlots:
         ------
         None
         """
+
+        if not self.calculated_index:
+            self.__calculate_indexes()
 
         # Rail Button Forces
         fig6 = plt.figure(figsize=(9, 6))
@@ -530,6 +554,9 @@ class _FlightPlots:
         None
         """
 
+        if not self.calculated_index:
+            self.__calculate_indexes()
+
         fig8 = plt.figure(figsize=(9, 9))
 
         ax1 = plt.subplot(411)
@@ -642,6 +669,9 @@ class _FlightPlots:
         None
         """
 
+        if not self.calculated_index:
+            self.__calculate_indexes()
+
         # Trajectory Fluid Mechanics Plots
         fig10 = plt.figure(figsize=(9, 12))
 
@@ -719,6 +749,9 @@ class _FlightPlots:
         None
         """
 
+        if not self.calculated_index:
+            self.__calculate_indexes()
+
         fig9 = plt.figure(figsize=(9, 6))
 
         ax1 = plt.subplot(211)
@@ -771,7 +804,7 @@ class _FlightPlots:
         return None
 
     def pressure_signals(self):
-        """Prints out all Parachute Trigger Pressure Signals.
+        """Plots out all Parachute Trigger Pressure Signals.
         This function can be called also for plot pressure data for flights
         without Parachutes, in this case the Pressure Signals will be simply
         the pressure provided by the atmosphericModel, at Flight z positions.
@@ -789,6 +822,9 @@ class _FlightPlots:
         ------
         None
         """
+
+        if not self.calculated_index:
+            self.__calculate_indexes()
 
         if len(self.flight.rocket.parachutes) == 0:
             plt.figure()
