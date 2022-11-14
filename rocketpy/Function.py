@@ -518,8 +518,8 @@ class Function:
         >>> f = Function([(0, 0), (1, 1), (2, 4), (3, 9), (4, 16)])
         >>> g = Function([(0, 0), (2, 2), (4, 4)])
         >>> h = f * g
-        >>> h.source
-        <function rocketpy.Function.Function.__mul__.<locals>.<lambda>(x)>
+        >>> type(h.source)
+        <class 'function'>
 
         Therefore, it is good practice to make sure both Function instances are defined
         by the same domain, i.e. by the same list of mesh points. This way, the
@@ -529,6 +529,7 @@ class Function:
         interpolations.
 
         >>> g.setDiscreteBasedOnModel(f)
+        Function from R1 to R1 : (Scalar) → (Scalar)
         >>> h = f * g
         >>> h.source
         array([[ 0.,  0.],
@@ -601,16 +602,15 @@ class Function:
         that has been defined by algebraic manipulation of other Function objects.
 
         >>> from rocketpy import Function
-        >>> v = Function(lambda t: t**2, inputs='t', outputs='v')
+        >>> v = Function(lambda t: (9.8*t**2)/2, inputs='t', outputs='v')
         >>> mass = 10 # Mass
         >>> kinetic_energy = mass * v**2 / 2
         >>> v.getInputs(), v.getOutputs()
         (['t'], ['v'])
-        >>> kinetic_energy.getInputs(), kinetic_energy.getOutputs()
-        (['x'], ['Scalar'])
-        >>> kinetic_energy.reset(inputs='t', outputs='Kinetic Energy')
-        >>> kinetic_energy.getInputs(), kinetic_energy.getOutputs()
-        (['t'], ['Kinetic Energy'])
+        >>> kinetic_energy
+        Function from R1 to R1 : (x) → (Scalar)
+        >>> kinetic_energy.reset(inputs='t', outputs='Kinetic Energy');
+        Function from R1 to R1 : (t) → (Kinetic Energy)
 
         Returns
         -------
@@ -2305,3 +2305,9 @@ def funcify_method(*args, **kwargs):
         return funcify_method_decorator(func)
     else:
         return funcify_method_decorator
+
+
+if __name__ == "__main__":
+    import doctest
+
+    doctest.testmod()
