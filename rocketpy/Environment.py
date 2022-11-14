@@ -3082,7 +3082,7 @@ class Environment:
         ------
         None
         """
-        
+
         self.prints.all()
 
         # Plot graphs
