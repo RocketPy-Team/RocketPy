@@ -15,6 +15,10 @@ class _FlightPlots:
     _FlightPlots.flight : Flight
         Flight object that will be used for the plots.
 
+    _FlightPlots.calculated_index : bool
+        Flag that informs if events time indexes have been
+        calculated.
+
     _FlightPlots.out_of_rail_time_index : int
         Time index of out of rail event.
 
@@ -43,6 +47,17 @@ class _FlightPlots:
         return None
 
     def __calculate_indexes(self):
+        """Calculates necessary events time index for plots settings.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+
         # Get index of out of rail time
         out_of_rail_time_indexes = np.nonzero(
             self.flight.x[:, 0] == self.flight.outOfRailTime
