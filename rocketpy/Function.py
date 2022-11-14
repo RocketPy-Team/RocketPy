@@ -528,27 +528,45 @@ class Function:
         interpolation=None,
         extrapolation=None,
     ):
-        """This method resets the Function object to its initial state, with the
-        possibility of resetting all of its initialization arguments besides the
-        source.
+        """This method allows the user to reset the inputs, outputs, interpolation
+        and extrapolation settings of a Function object, all at once, without
+        having to call each of the corresponding methods.
 
         Parameters
         ----------
         inputs : string, sequence of strings, optional
             List of input variable names. If None, the original inputs are kept.
+            See Function.setInputs for more information.
         outputs : string, sequence of strings, optional
             List of output variable names. If None, the original outputs are kept.
+            See Function.setOutputs for more information.
         interpolation : string, optional
             Interpolation method to be used if source type is ndarray.
-            For 1-D functions, linear, polynomial, akima and spline is
-            supported. For N-D functions, only shepard is supported.
-            If None, the original interpolation method is kept.
+            See Function.setInterpolation for more information.
         extrapolation : string, optional
             Extrapolation method to be used if source type is ndarray.
-            Options are 'natural', which keeps interpolation, 'constant',
-            which returns the value of the function at the edge of the interval,
-            and 'zero', which returns zero for all points outside of source
-            range. If None, the original extrapolation method is kept.
+            See Function.setExtrapolation for more information.
+
+        Examples
+        --------
+        A simple use case is to reset the inputs and outputs of a Function object
+        that has been defined by algebraic manipulation of other Function objects.
+
+        >>> from rocketpy import Function
+        >>> v = Function(lambda t: t**2, inputs='t', outputs='v')
+        >>> mass = 10 # Mass
+        >>> kinetic_energy = mass * v**2 / 2
+        >>> v.getInputs(), v.getOutputs()
+        (['t'], ['v'])
+        >>> kinetic_energy.getInputs(), kinetic_energy.getOutputs()
+        (['x'], ['Scalar'])
+        >>> kinetic_energy.reset(inputs='t', outputs='Kinetic Energy')
+        >>> kinetic_energy.getInputs(), kinetic_energy.getOutputs()
+        (['t'], ['Kinetic Energy'])
+
+        Returns
+        -------
+        self : Function
         """
         if inputs is not None:
             self.setInputs(inputs)
@@ -558,6 +576,8 @@ class Function:
             self.setInterpolation(interpolation)
         if extrapolation is not None and extrapolation != self.__extrapolation__:
             self.setExtrapolation(extrapolation)
+
+        return self
 
     # Define all get methods
     def getInputs(self):
