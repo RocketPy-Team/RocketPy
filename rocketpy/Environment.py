@@ -7,16 +7,20 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 import bisect
+import json
 import re
 import warnings
 from datetime import datetime, timedelta
 
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.ma as ma
 import pytz
 import requests
 
 from .plots.environment_plots import _EnvironmentPlots
+from .prints.environment_prints import _EnvironmentPrints
+
 
 try:
     import netCDF4
@@ -370,6 +374,9 @@ class Environment:
         # Initialize constants
         self.earthRadius = 6.3781 * (10**6)
         self.airGasConstant = 287.05287  # in J/K/Kg
+
+        # Initialize plots and prints objects
+        self.prints = _EnvironmentPrints(self)
 
         # Initialize atmosphere
         self.setAtmosphericModel("StandardAtmosphere")
@@ -2857,76 +2864,9 @@ class Environment:
         ------
         None
         """
-        # Print launch site details
-        print("Launch Site Details")
-        print("\nLaunch Rail Length:", self.rL, " m")
-        time_format = "%Y-%m-%d %H:%M:%S"
-        if self.date != None and "UTC" not in self.timeZone:
-            print(
-                "Launch Date:",
-                self.date.strftime(time_format),
-                "UTC |",
-                self.localDate.strftime(time_format),
-                self.timeZone,
-            )
-        elif self.date != None:
-            print("Launch Date:", self.date.strftime(time_format), "UTC")
-        if self.lat != None and self.lon != None:
-            print("Launch Site Latitude: {:.5f}°".format(self.lat))
-            print("Launch Site Longitude: {:.5f}°".format(self.lon))
-        print("Reference Datum: " + self.datum)
-        print(
-            "Launch Site UTM coordinates: {:.2f} ".format(self.initialEast)
-            + self.initialEW
-            + "    {:.2f} ".format(self.initialNorth)
-            + self.initialHemisphere
-        )
-        print("Launch Site UTM zone:", str(self.initialUtmZone) + self.initialUtmLetter)
-        print("Launch Site Surface Elevation: {:.1f} m".format(self.elevation))
 
-        # Print atmospheric model details
-        print("\n\nAtmospheric Model Details")
-        modelType = self.atmosphericModelType
-        print("\nAtmospheric Model Type:", modelType)
-        print(
-            modelType
-            + " Maximum Height: {:.3f} km".format(self.maxExpectedHeight / 1000)
-        )
-        if modelType in ["Forecast", "Reanalysis", "Ensemble"]:
-            # Determine time period
-            initDate = self.atmosphericModelInitDate
-            endDate = self.atmosphericModelEndDate
-            interval = self.atmosphericModelInterval
-            print(modelType + " Time Period: From ", initDate, " to ", endDate, " UTC")
-            print(modelType + " Hour Interval:", interval, " hrs")
-            # Determine latitude and longitude range
-            initLat = self.atmosphericModelInitLat
-            endLat = self.atmosphericModelEndLat
-            initLon = self.atmosphericModelInitLon
-            endLon = self.atmosphericModelEndLon
-            print(modelType + " Latitude Range: From ", initLat, "° To ", endLat, "°")
-            print(modelType + " Longitude Range: From ", initLon, "° To ", endLon, "°")
-        if modelType == "Ensemble":
-            print("Number of Ensemble Members:", self.numEnsembleMembers)
-            print("Selected Ensemble Member:", self.ensembleMember, " (Starts from 0)")
-
-        # Print atmospheric conditions
-        print("\n\nSurface Atmospheric Conditions")
-        print("\nSurface Wind Speed: {:.2f} m/s".format(self.windSpeed(self.elevation)))
-        print(
-            "Surface Wind Direction: {:.2f}°".format(self.windDirection(self.elevation))
-        )
-        print("Surface Wind Heading: {:.2f}°".format(self.windHeading(self.elevation)))
-        print(
-            "Surface Pressure: {:.2f} hPa".format(self.pressure(self.elevation) / 100)
-        )
-        print("Surface Temperature: {:.2f} K".format(self.temperature(self.elevation)))
-        print("Surface Air Density: {:.3f} kg/m³".format(self.density(self.elevation)))
-        print(
-            "Surface Speed of Sound: {:.2f} m/s".format(
-                self.speedOfSound(self.elevation)
-            )
-        )
+        # All prints
+        self.prints.all()
 
         # Plot graphs
         print("\n\nAtmospheric Model Plots")
@@ -2943,72 +2883,8 @@ class Environment:
         ------
         None
         """
-        # Print gravity details
-        print("Gravity Details")
-        print("\nAcceleration of Gravity: " + str(self.g) + " m/s²")
 
-        # Print launch site details
-        print("\n\nLaunch Site Details")
-        print("\nLaunch Rail Length:", self.rL, " m")
-        time_format = "%Y-%m-%d %H:%M:%S"
-        if self.date != None and "UTC" not in self.timeZone:
-            print(
-                "Launch Date:",
-                self.date.strftime(time_format),
-                "UTC |",
-                self.localDate.strftime(time_format),
-                self.timeZone,
-            )
-        elif self.date != None:
-            print("Launch Date:", self.date.strftime(time_format), "UTC")
-        if self.lat != None and self.lon != None:
-            print("Launch Site Latitude: {:.5f}°".format(self.lat))
-            print("Launch Site Longitude: {:.5f}°".format(self.lon))
-        print("Launch Site Surface Elevation: {:.1f} m".format(self.elevation))
-
-        # Print atmospheric model details
-        print("\n\nAtmospheric Model Details")
-        modelType = self.atmosphericModelType
-        print("\nAtmospheric Model Type:", modelType)
-        print(
-            modelType
-            + " Maximum Height: {:.3f} km".format(self.maxExpectedHeight / 1000)
-        )
-        if modelType in ["Forecast", "Reanalysis", "Ensemble"]:
-            # Determine time period
-            initDate = self.atmosphericModelInitDate
-            endDate = self.atmosphericModelEndDate
-            interval = self.atmosphericModelInterval
-            print(modelType + " Time Period: From ", initDate, " to ", endDate, " UTC")
-            print(modelType + " Hour Interval:", interval, " hrs")
-            # Determine latitude and longitude range
-            initLat = self.atmosphericModelInitLat
-            endLat = self.atmosphericModelEndLat
-            initLon = self.atmosphericModelInitLon
-            endLon = self.atmosphericModelEndLon
-            print(modelType + " Latitude Range: From ", initLat, "° To ", endLat, "°")
-            print(modelType + " Longitude Range: From ", initLon, "° To ", endLon, "°")
-        if modelType == "Ensemble":
-            print("Number of Ensemble Members:", self.numEnsembleMembers)
-            print("Selected Ensemble Member:", self.ensembleMember, " (Starts from 0)")
-
-        # Print atmospheric conditions
-        print("\n\nSurface Atmospheric Conditions")
-        print("\nSurface Wind Speed: {:.2f} m/s".format(self.windSpeed(self.elevation)))
-        print(
-            "Surface Wind Direction: {:.2f}°".format(self.windDirection(self.elevation))
-        )
-        print("Surface Wind Heading: {:.2f}°".format(self.windHeading(self.elevation)))
-        print(
-            "Surface Pressure: {:.2f} hPa".format(self.pressure(self.elevation) / 100)
-        )
-        print("Surface Temperature: {:.2f} K".format(self.temperature(self.elevation)))
-        print("Surface Air Density: {:.3f} kg/m³".format(self.density(self.elevation)))
-        print(
-            "Surface Speed of Sound: {:.2f} m/s".format(
-                self.speedOfSound(self.elevation)
-            )
-        )
+        self.prints.all()
 
         # Plot graphs
         self.plots.all()
@@ -3125,6 +3001,65 @@ class Environment:
             info["numEnsembleMembers"] = self.numEnsembleMembers
             info["selectedEnsembleMember"] = self.ensembleMember
         return info
+
+    def exportEnvironment(self, filename="environment"):
+        """Export important attributes of Environment class so it can be used
+        again in further siulations by using the customAtmosphere atmospheric
+        model.
+        Parameters
+        ----------
+        filename
+
+        Return
+        ------
+        None
+        """
+
+        # TODO: in the future, allow the user to select which format will be used (json, csv, etc.). Default must be JSON.
+        # TODO: add self.exportEnvDictionary to the documentation
+        # TODO: find a way to documennt the workaround I've used on ma.getdata(self...
+        self.exportEnvDictionary = {
+            "railLength": self.rL,
+            "gravity": self.g,
+            "date": [self.date.year, self.date.month, self.date.day, self.date.hour],
+            "latitude": self.lat,
+            "longitude": self.lon,
+            "elevation": self.elevation,
+            "datum": self.datum,
+            "timeZone": self.timeZone,
+            "maxExpectedHeight": float(self.maxExpectedHeight),
+            "atmosphericModelType": self.atmosphericModelType,
+            "atmosphericModelFile": self.atmosphericModelFile,
+            "atmosphericModelDict": self.atmosphericModelDict,
+            "atmosphericModelPressureProfile": ma.getdata(
+                self.pressure.getSource()
+            ).tolist(),
+            "atmosphericModelTemperatureProfile": ma.getdata(
+                self.temperature.getSource()
+            ).tolist(),
+            "atmosphericModelWindVelocityXProfile": ma.getdata(
+                self.windVelocityX.getSource()
+            ).tolist(),
+            "atmosphericModelWindVelocityYProfile": ma.getdata(
+                self.windVelocityY.getSource()
+            ).tolist(),
+        }
+
+        f = open(filename + ".json", "w")
+
+        # write json object to file
+        f.write(
+            json.dumps(self.exportEnvDictionary, sort_keys=False, indent=4, default=str)
+        )
+
+        # close file
+        f.close()
+        print("Your Environment file was saved, check it out: " + filename + ".json")
+        print(
+            "You can use it in the future by using the customAtmosphere atmospheric model."
+        )
+
+        return None
 
     # Auxiliary functions - Geodesic Coordinates
     def geodesicToUtm(self, lat, lon, datum):
@@ -3455,24 +3390,3 @@ class Environment:
         # ))
 
         return deg, min, sec
-
-    def printEarthDetails(self):
-        """[UNDER CONSTRUCTION]
-        Function to print information about the Earth Model used in the
-        Environment Class
-
-        """
-        # Print launch site details
-        # print("Launch Site Details")
-        # print("Launch Site Latitude: {:.5f}°".format(self.lat))
-        # print("Launch Site Longitude: {:.5f}°".format(self.lon))
-        # print("Reference Datum: " + self.datum)
-        # print("Launch Site UTM coordinates: {:.2f} ".format(self.initialEast)
-        #    + self.initialEW + "    {:.2f} ".format(self.initialNorth) + self.initialHemisphere
-        # )
-        # print("Launch Site UTM zone number:", self.initialUtmZone)
-        # print("Launch Site Surface Elevation: {:.1f} m".format(self.elevation))
-        print("Earth Radius at Launch site: {:.1f} m".format(self.earthRadius))
-        print("Gravity acceleration at launch site: Still not implemented :(")
-
-        return None
