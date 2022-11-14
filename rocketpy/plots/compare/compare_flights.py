@@ -1024,3 +1024,51 @@ class CompareFlights:
             plt.close()
 
         return None
+
+    def trajectories_3d(self, figsize=(7, 7), legend=None, filename=None):
+        """Creates a trajectory plot that is the combination of the trajectories of
+        the Flight objects passed via a Python list.
+
+        Parameters
+        ----------
+        figsize: tuple, optional
+            Tuple with the size of the figure. The default is (7, 7). The tuple
+            must be in the form (width, height).
+        legend : boolean, optional
+            Whether legend will or will not be included. Default is True
+        savefig : string, optional
+            If a string is passed, the figure will be saved in the path passed.
+        Returns
+        -------
+        None
+        """
+
+        # Iterate through Flight objects and create a list of trajectories
+        flights = []
+        names_list = []
+        for index, flight in enumerate(self.flights):
+
+            # Get trajectories
+            try:
+                x = flight.x[:, 1]
+                y = flight.y[:, 1]
+                z = flight.z[:, 1] - flight.env.elevation
+            except AttributeError:
+                raise AttributeError(
+                    "Flight object {} does not have a trajectory.".format(
+                        self.names_list[index]
+                    )
+                )
+            flights.append([x, y, z])
+            names_list.append(self.names_list[index])
+
+        # Call __compare_trajectories_3d function to do the hard work
+        self.__compare_trajectories_3d(
+            flights=flights,
+            names_list=names_list,
+            legend=legend,
+            filename=filename,
+            figsize=figsize,
+        )
+
+        return None
