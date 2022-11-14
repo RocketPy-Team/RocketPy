@@ -254,7 +254,7 @@ class _EnvironmentPlots:
         return None
 
     def all(self):
-        """Prints out all data and graphs available about the Environment.
+        """Prints out all graphs available about the Environment.
 
         Parameters
         ----------
