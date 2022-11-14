@@ -529,7 +529,7 @@ class Flight:
         atol=6 * [1e-3] + 4 * [1e-6] + 3 * [1e-3],
         timeOvershoot=True,
         verbose=False,
-        name="",
+        name="Flight",
     ):
         """Run a trajectory simulation.
 
