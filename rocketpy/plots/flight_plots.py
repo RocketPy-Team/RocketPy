@@ -14,6 +14,15 @@ class _FlightPlots:
     ----------
     _FlightPlots.flight : Flight
         Flight object that will be used for the plots.
+
+    _FlightPlots.out_of_rail_time_index : int
+        Time index of out of rail event.
+
+    _FlightPlots.first_event_time : float
+        Time of first event.
+
+    _FlightPlots.first_event_time_index : int
+        Time index of first event.
     """
 
     def __init__(self, flight):
@@ -29,6 +38,28 @@ class _FlightPlots:
         None
         """
         self.flight = flight
+
+        # Get index of out of rail time
+        out_of_rail_time_indexes = np.nonzero(
+            self.flight.x[:, 0] == self.flight.outOfRailTime
+        )
+        self.out_of_rail_time_index = (
+            -1 if len(out_of_rail_time_indexes) == 0 else out_of_rail_time_indexes[0][0]
+        )
+
+        # Get index of time before parachute event
+        if len(self.flight.parachuteEvents) > 0:
+            self.first_event_time = (
+                self.flight.parachuteEvents[0][0]
+                + self.flight.parachuteEvents[0][1].lag
+            )
+            self.first_event_time_index = np.nonzero(
+                self.flight.x[:, 0] == self.first_event_time
+            )[0][0]
+        else:
+            self.first_event_time = self.flight.tFinal
+            self.first_event_time_index = -1
+
         return None
 
     def trajectory_3d(self):
@@ -182,15 +213,6 @@ class _FlightPlots:
         None
         """
 
-        # Get index of time before parachute event
-        if len(self.flight.parachuteEvents) > 0:
-            eventTime = (
-                self.flight.parachuteEvents[0][0]
-                + self.flight.parachuteEvents[0][1].lag
-            )
-        else:
-            eventTime = self.flight.tFinal
-
         # Angular position plots
         fig3 = plt.figure(figsize=(9, 12))
 
@@ -199,7 +221,7 @@ class _FlightPlots:
         ax1.plot(self.flight.e1[:, 0], self.flight.e1[:, 1], label="$e_1$")
         ax1.plot(self.flight.e2[:, 0], self.flight.e2[:, 1], label="$e_2$")
         ax1.plot(self.flight.e3[:, 0], self.flight.e3[:, 1], label="$e_3$")
-        ax1.set_xlim(0, eventTime)
+        ax1.set_xlim(0, self.first_event_time)
         ax1.set_xlabel("Time (s)")
         ax1.set_ylabel("Euler Parameters")
         ax1.set_title("Euler Parameters")
@@ -208,7 +230,7 @@ class _FlightPlots:
 
         ax2 = plt.subplot(412)
         ax2.plot(self.flight.psi[:, 0], self.flight.psi[:, 1])
-        ax2.set_xlim(0, eventTime)
+        ax2.set_xlim(0, self.first_event_time)
         ax2.set_xlabel("Time (s)")
         ax2.set_ylabel("ψ (°)")
         ax2.set_title("Euler Precession Angle")
@@ -216,7 +238,7 @@ class _FlightPlots:
 
         ax3 = plt.subplot(413)
         ax3.plot(self.flight.theta[:, 0], self.flight.theta[:, 1], label="θ - Nutation")
-        ax3.set_xlim(0, eventTime)
+        ax3.set_xlim(0, self.first_event_time)
         ax3.set_xlabel("Time (s)")
         ax3.set_ylabel("θ (°)")
         ax3.set_title("Euler Nutation Angle")
@@ -224,7 +246,7 @@ class _FlightPlots:
 
         ax4 = plt.subplot(414)
         ax4.plot(self.flight.phi[:, 0], self.flight.phi[:, 1], label="φ - Spin")
-        ax4.set_xlim(0, eventTime)
+        ax4.set_xlim(0, self.first_event_time)
         ax4.set_xlabel("Time (s)")
         ax4.set_ylabel("φ (°)")
         ax4.set_title("Euler Spin Angle")
@@ -248,15 +270,6 @@ class _FlightPlots:
         None
         """
 
-        # Get index of time before parachute event
-        if len(self.flight.parachuteEvents) > 0:
-            eventTime = (
-                self.flight.parachuteEvents[0][0]
-                + self.flight.parachuteEvents[0][1].lag
-            )
-        else:
-            eventTime = self.flight.tFinal
-
         # Path, Attitude and Lateral Attitude Angle
         # Angular position plots
         fig5 = plt.figure(figsize=(9, 6))
@@ -272,7 +285,7 @@ class _FlightPlots:
             self.flight.attitudeAngle[:, 1],
             label="Rocket Attitude Angle",
         )
-        ax1.set_xlim(0, eventTime)
+        ax1.set_xlim(0, self.first_event_time)
         ax1.legend()
         ax1.grid(True)
         ax1.set_xlabel("Time (s)")
@@ -284,7 +297,7 @@ class _FlightPlots:
             self.flight.lateralAttitudeAngle[:, 0],
             self.flight.lateralAttitudeAngle[:, 1],
         )
-        ax2.set_xlim(0, eventTime)
+        ax2.set_xlim(0, self.first_event_time)
         ax2.set_xlabel("Time (s)")
         ax2.set_ylabel("Lateral Attitude Angle (°)")
         ax2.set_title("Lateral Attitude Angle")
@@ -308,20 +321,11 @@ class _FlightPlots:
         None
         """
 
-        # Get index of time before parachute event
-        if len(self.flight.parachuteEvents) > 0:
-            eventTime = (
-                self.flight.parachuteEvents[0][0]
-                + self.flight.parachuteEvents[0][1].lag
-            )
-        else:
-            eventTime = self.flight.tFinal
-
         # Angular velocity and acceleration plots
         fig4 = plt.figure(figsize=(9, 9))
         ax1 = plt.subplot(311)
         ax1.plot(self.flight.w1[:, 0], self.flight.w1[:, 1], color="#ff7f0e")
-        ax1.set_xlim(0, eventTime)
+        ax1.set_xlim(0, self.first_event_time)
         ax1.set_xlabel("Time (s)")
         ax1.set_ylabel(r"Angular Velocity - ${\omega_1}$ (rad/s)", color="#ff7f0e")
         ax1.set_title(
@@ -339,7 +343,7 @@ class _FlightPlots:
 
         ax2 = plt.subplot(312)
         ax2.plot(self.flight.w2[:, 0], self.flight.w2[:, 1], color="#ff7f0e")
-        ax2.set_xlim(0, eventTime)
+        ax2.set_xlim(0, self.first_event_time)
         ax2.set_xlabel("Time (s)")
         ax2.set_ylabel(r"Angular Velocity - ${\omega_2}$ (rad/s)", color="#ff7f0e")
         ax2.set_title(
@@ -357,7 +361,7 @@ class _FlightPlots:
 
         ax3 = plt.subplot(313)
         ax3.plot(self.flight.w3[:, 0], self.flight.w3[:, 1], color="#ff7f0e")
-        ax3.set_xlim(0, eventTime)
+        ax3.set_xlim(0, self.first_event_time)
         ax3.set_xlabel("Time (s)")
         ax3.set_ylabel(r"Angular Velocity - ${\omega_3}$ (rad/s)", color="#ff7f0e")
         ax3.set_title(
@@ -390,37 +394,18 @@ class _FlightPlots:
         None
         """
 
-        # Get index of out of rail time
-        outOfRailTimeIndexes = np.nonzero(
-            self.flight.x[:, 0] == self.flight.outOfRailTime
-        )
-        outOfRailTimeIndex = (
-            -1 if len(outOfRailTimeIndexes) == 0 else outOfRailTimeIndexes[0][0]
-        )
-
-        # Get index of time before parachute event
-        if len(self.flight.parachuteEvents) > 0:
-            eventTime = (
-                self.flight.parachuteEvents[0][0]
-                + self.flight.parachuteEvents[0][1].lag
-            )
-            eventTimeIndex = np.nonzero(self.flight.x[:, 0] == eventTime)[0][0]
-        else:
-            eventTime = self.flight.tFinal
-            eventTimeIndex = -1
-
         # Rail Button Forces
         fig6 = plt.figure(figsize=(9, 6))
 
         ax1 = plt.subplot(211)
         ax1.plot(
-            self.flight.railButton1NormalForce[:outOfRailTimeIndex, 0],
-            self.flight.railButton1NormalForce[:outOfRailTimeIndex, 1],
+            self.flight.railButton1NormalForce[: self.out_of_rail_time_index, 0],
+            self.flight.railButton1NormalForce[: self.out_of_rail_time_index, 1],
             label="Upper Rail Button",
         )
         ax1.plot(
-            self.flight.railButton2NormalForce[:outOfRailTimeIndex, 0],
-            self.flight.railButton2NormalForce[:outOfRailTimeIndex, 1],
+            self.flight.railButton2NormalForce[: self.out_of_rail_time_index, 0],
+            self.flight.railButton2NormalForce[: self.out_of_rail_time_index, 1],
             label="Lower Rail Button",
         )
         ax1.set_xlim(
@@ -437,13 +422,13 @@ class _FlightPlots:
 
         ax2 = plt.subplot(212)
         ax2.plot(
-            self.flight.railButton1ShearForce[:outOfRailTimeIndex, 0],
-            self.flight.railButton1ShearForce[:outOfRailTimeIndex, 1],
+            self.flight.railButton1ShearForce[: self.out_of_rail_time_index, 0],
+            self.flight.railButton1ShearForce[: self.out_of_rail_time_index, 1],
             label="Upper Rail Button",
         )
         ax2.plot(
-            self.flight.railButton2ShearForce[:outOfRailTimeIndex, 0],
-            self.flight.railButton2ShearForce[:outOfRailTimeIndex, 1],
+            self.flight.railButton2ShearForce[: self.out_of_rail_time_index, 0],
+            self.flight.railButton2ShearForce[: self.out_of_rail_time_index, 1],
             label="Lower Rail Button",
         )
         ax2.set_xlim(
@@ -466,21 +451,21 @@ class _FlightPlots:
 
         ax1 = plt.subplot(411)
         ax1.plot(
-            self.flight.aerodynamicLift[:eventTimeIndex, 0],
-            self.flight.aerodynamicLift[:eventTimeIndex, 1],
+            self.flight.aerodynamicLift[: self.first_event_time_index, 0],
+            self.flight.aerodynamicLift[: self.first_event_time_index, 1],
             label="Resultant",
         )
         ax1.plot(
-            self.flight.R1[:eventTimeIndex, 0],
-            self.flight.R1[:eventTimeIndex, 1],
+            self.flight.R1[: self.first_event_time_index, 0],
+            self.flight.R1[: self.first_event_time_index, 1],
             label="R1",
         )
         ax1.plot(
-            self.flight.R2[:eventTimeIndex, 0],
-            self.flight.R2[:eventTimeIndex, 1],
+            self.flight.R2[: self.first_event_time_index, 0],
+            self.flight.R2[: self.first_event_time_index, 1],
             label="R2",
         )
-        ax1.set_xlim(0, eventTime)
+        ax1.set_xlim(0, self.first_event_time)
         ax1.legend()
         ax1.set_xlabel("Time (s)")
         ax1.set_ylabel("Lift Force (N)")
@@ -489,10 +474,10 @@ class _FlightPlots:
 
         ax2 = plt.subplot(412)
         ax2.plot(
-            self.flight.aerodynamicDrag[:eventTimeIndex, 0],
-            self.flight.aerodynamicDrag[:eventTimeIndex, 1],
+            self.flight.aerodynamicDrag[: self.first_event_time_index, 0],
+            self.flight.aerodynamicDrag[: self.first_event_time_index, 1],
         )
-        ax2.set_xlim(0, eventTime)
+        ax2.set_xlim(0, self.first_event_time)
         ax2.set_xlabel("Time (s)")
         ax2.set_ylabel("Drag Force (N)")
         ax2.set_title("Aerodynamic Drag Force")
@@ -500,21 +485,21 @@ class _FlightPlots:
 
         ax3 = plt.subplot(413)
         ax3.plot(
-            self.flight.aerodynamicBendingMoment[:eventTimeIndex, 0],
-            self.flight.aerodynamicBendingMoment[:eventTimeIndex, 1],
+            self.flight.aerodynamicBendingMoment[: self.first_event_time_index, 0],
+            self.flight.aerodynamicBendingMoment[: self.first_event_time_index, 1],
             label="Resultant",
         )
         ax3.plot(
-            self.flight.M1[:eventTimeIndex, 0],
-            self.flight.M1[:eventTimeIndex, 1],
+            self.flight.M1[: self.first_event_time_index, 0],
+            self.flight.M1[: self.first_event_time_index, 1],
             label="M1",
         )
         ax3.plot(
-            self.flight.M2[:eventTimeIndex, 0],
-            self.flight.M2[:eventTimeIndex, 1],
+            self.flight.M2[: self.first_event_time_index, 0],
+            self.flight.M2[: self.first_event_time_index, 1],
             label="M2",
         )
-        ax3.set_xlim(0, eventTime)
+        ax3.set_xlim(0, self.first_event_time)
         ax3.legend()
         ax3.set_xlabel("Time (s)")
         ax3.set_ylabel("Bending Moment (N m)")
@@ -523,10 +508,10 @@ class _FlightPlots:
 
         ax4 = plt.subplot(414)
         ax4.plot(
-            self.flight.aerodynamicSpinMoment[:eventTimeIndex, 0],
-            self.flight.aerodynamicSpinMoment[:eventTimeIndex, 1],
+            self.flight.aerodynamicSpinMoment[: self.first_event_time_index, 0],
+            self.flight.aerodynamicSpinMoment[: self.first_event_time_index, 1],
         )
-        ax4.set_xlim(0, eventTime)
+        ax4.set_xlim(0, self.first_event_time)
         ax4.set_xlabel("Time (s)")
         ax4.set_ylabel("Spin Moment (N m)")
         ax4.set_title("Aerodynamic Spin Moment")
@@ -544,20 +529,6 @@ class _FlightPlots:
         -------
         None
         """
-
-        # Get index of out of rail time
-        outOfRailTimeIndexes = np.nonzero(
-            self.flight.x[:, 0] == self.flight.outOfRailTime
-        )
-
-        # Get index of time before parachute event
-        if len(self.flight.parachuteEvents) > 0:
-            eventTime = (
-                self.flight.parachuteEvents[0][0]
-                + self.flight.parachuteEvents[0][1].lag
-            )
-        else:
-            eventTime = self.flight.tFinal
 
         fig8 = plt.figure(figsize=(9, 9))
 
@@ -670,11 +641,6 @@ class _FlightPlots:
         ------
         None
         """
-
-        # Get index of out of rail time
-        outOfRailTimeIndexes = np.nonzero(
-            self.flight.x[:, 0] == self.flight.outOfRailTime
-        )
 
         # Trajectory Fluid Mechanics Plots
         fig10 = plt.figure(figsize=(9, 12))
