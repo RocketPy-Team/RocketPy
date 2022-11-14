@@ -463,3 +463,47 @@ class CompareFlights:
             plt.close()
 
         return None
+
+    def angular_velocities(self, figsize=(7, 10), legend=True, filename=None):
+        """Plots a comparison of the angular velocities of the rocket for the different
+        flights.
+
+        Parameters
+        ----------
+        figsize : tuple, optional
+            standard matplotlib figsize to be used in the plots, by default (7, 10),
+            where the tuple means (width, height).
+        legend : bool, optional
+            Weather or not to show the legend, by default True
+        filename : str, optional
+            If a filename is provided, the plot will be saved to a file, by default None.
+            Image options are: png, pdf, ps, eps and svg.
+
+        Returns
+        -------
+        None
+        """
+
+        # Create the figure
+        fig, _ = self.__create_comparison_figure(
+            figsize=figsize,
+            legend=legend,
+            n_rows=3,
+            n_cols=1,
+            n_plots=3,
+            title="Comparison of the angular velocities of the flights",
+            x_labels=["Time (s)", "Time (s)", "Time (s)"],
+            y_labels=[
+                "w1 (deg/s)",
+                "w2 (deg/s)",
+                "w3 (deg/s)",
+            ],
+            flight_attributes=["w1", "w2", "w3"],
+        )
+
+        # Saving the plot to a file if a filename is provided, showing the plot otherwise
+        if filename:
+            fig.savefig(filename)
+            plt.close()
+
+        return None
