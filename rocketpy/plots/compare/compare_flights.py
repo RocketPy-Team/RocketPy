@@ -825,3 +825,55 @@ class CompareFlights:
             plt.close()
 
         return None
+
+    def fluid_mechanics(self, figsize=(7, 10 * 4 / 3), legend=True, filename=None):
+        """Plots a comparison of the fluid mechanics of the rocket for the different
+        flights.
+
+        Parameters
+        ----------
+        figsize : tuple, optional
+            standard matplotlib figsize to be used in the plots, by default (7, 10),
+            where the tuple means (width, height).
+        legend : bool, optional
+            Weather or not to show the legend, by default True
+        filename : str, optional
+            If a filename is provided, the plot will be saved to a file, by default None.
+
+        Returns
+        -------
+        None
+        """
+
+        # Create the figure
+        fig, _ = self.__create_comparison_figure(
+            figsize=figsize,
+            legend=legend,
+            n_rows=4,
+            n_cols=1,
+            n_plots=4,
+            title="Comparison of the fluid mechanics of the flights",
+            x_labels=["Time (s)", "Time (s)", "Time (s)", "Time (s)"],
+            y_labels=[
+                "Mach Number",
+                "Reynolds Number",
+                "Dynamic Pressure (Pa)",
+                "Total Pressure (Pa)",
+            ],
+            flight_attributes=[
+                "machNumber",
+                "reynoldsNumber",
+                "dynamicPressure",
+                "totalPressure",
+            ],
+        )
+
+        # Saving the plot to a file if a filename is provided, showing the plot otherwise
+        if filename:
+            fig.savefig(filename)
+            plt.close()
+        else:
+            plt.show()
+            plt.close()
+
+        return None
