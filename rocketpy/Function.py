@@ -2206,47 +2206,56 @@ def funcify_method(*args, **kwargs):
 
     Examples
     --------
-    >>> class Test():
-    ...     @Funcify(inputs=['x'], outputs=['y'])
-    ...     def func(x):
-    ...         return x**2
-    >>> t = Test()
-    ... t.func
+    There are 3 types of methods that this decorator supports:
+
+    1. Method which returns a valid rocketpy.Function source argument.
+
+    >>> from rocketpy.Function import funcify_method
+    >>> class Example():
+    ...     @funcify_method(inputs=['x'], outputs=['y'])
+    ...     def f(self):
+    ...         return lambda x: x**2
+    >>> example = Example()
+    >>> example.f
     Function from R1 to R1 : (x) → (y)
-    >>> g = 2*t.func + 3
+
+    Normal algebra can be performed afterwards:
+
+    >>> g = 2*example.f + 3
     >>> g(2)
     11
 
-    Can also be used without any arguments:
+    2. Method which returns a rocketpy.Function instance. An interesting use is to reset
+    input and output names after algebraic operations.
 
-    >>> class Test():
-    ...     @Funcify
-    ...     def func(x):
+    >>> class Example():
+    ...     @funcify_method(inputs=['x'], outputs=['x**3'])
+    ...     def cube(self):
+    ...         f = Function(lambda x: x**2)
+    ...         g = Function(lambda x: x**5)
+    ...         return g / f
+    >>> example = Example()
+    >>> example.cube
+    Function from R1 to R1 : (x) → (x**3)
+
+    3. Method which is itself a valid rocketpy.Function source argument. 
+
+    >>> class Example():
+    ...     @funcify_method('x', 'f(x)')
+    ...     def f(self, x):
     ...         return x**2
-    >>> t = Test()
-    ... t.func
-    Function from R1 to R1 : (Scalar) → (Scalar)
-
-    Can also be used when the method already returns a Function instance. In such case
-    it is interesting to use the `inputs` and `outputs` arguments to overwrite the
-    inputs and outputs of the method.
-
-    >>> class Test():
-    ...     @Funcify(inputs='x', outputs='y')
-    ...     def func(x):
-    ...         return Function(lambda x: x**2)
-    >>> t = Test()
-    ... t.func
-    Function from R1 to R1 : (x) → (y)
+    >>> example = Example()
+    >>> example.f
+    Function from R1 to R1 : (x) → (f(x))
 
     In order to reset the cache, just delete de attribute from the instance:
 
-    >>> del t.func
+    >>> del example.f
 
     Once it is requested again, it will be re-created as a new Function object:
 
-    >>> t.func
-    Function from R1 to R1 : (Scalar) → (Scalar)
+    >>> example.f
+    Function from R1 to R1 : (x) → (f(x))
     """
     func = None
     if len(args) == 1 and callable(args[0]):
