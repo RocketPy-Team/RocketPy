@@ -645,3 +645,89 @@ class CompareFlights:
             plt.close()
 
         return None
+
+    def energies(self, figsize=(7, 10), legend=True, filename=None):
+        """Plots a comparison of the energies of the rocket for the different flights.
+
+        Parameters
+        ----------
+        figsize : tuple, optional
+            standard matplotlib figsize to be used in the plots, by default (7, 10),
+            where the tuple means (width, height).
+        legend : bool, optional
+            Weather or not to show the legend, by default True
+        filename : str, optional
+            If a filename is provided, the plot will be saved to a file, by default None.
+
+        Returns
+        -------
+        None
+        """
+
+        # Create the figure
+        fig, _ = self.__create_comparison_figure(
+            figsize=figsize,
+            legend=legend,
+            n_rows=3,
+            n_cols=1,
+            n_plots=3,
+            title="Comparison of the energies of the flights",
+            x_labels=["Time (s)", "Time (s)", "Time (s)"],
+            y_labels=[
+                "Kinetic Energy (J)",
+                "Potential Energy (J)",
+                "Total Energy (J)",
+            ],
+            flight_attributes=["kineticEnergy", "potentialEnergy", "totalEnergy"],
+        )
+
+        # Saving the plot to a file if a filename is provided, showing the plot otherwise
+        if filename:
+            fig.savefig(filename)
+            plt.close()
+        else:
+            plt.show()
+            plt.close()
+
+        return None
+
+    def powers(self, figsize=(7, 10 * 2 / 3), legend=True, filename=None):
+        """Plots a comparison of the powers of the rocket for the different flights.
+
+        Parameters
+        ----------
+        figsize : tuple, optional
+            standard matplotlib figsize to be used in the plots, by default (7, 10),
+            where the tuple means (width, height).
+        legend : bool, optional
+            Weather or not to show the legend, by default True
+        filename : str, optional
+            If a filename is provided, the plot will be saved to a file, by default None.
+
+        Returns
+        -------
+        None
+        """
+
+        # Create the figure
+        fig, _ = self.__create_comparison_figure(
+            figsize=figsize,
+            legend=legend,
+            n_rows=2,
+            n_cols=1,
+            n_plots=2,
+            title="Comparison of the powers of the flights",
+            x_labels=["Time (s)", "Time (s)"],
+            y_labels=["Thrust Power (W)", "Drag Power (W)"],
+            flight_attributes=["thrustPower", "dragPower"],
+        )
+
+        # Saving the plot to a file if a filename is provided, showing the plot otherwise
+        if filename:
+            fig.savefig(filename)
+            plt.close()
+        else:
+            plt.show()
+            plt.close()
+
+        return None
