@@ -784,3 +784,44 @@ class CompareFlights:
 
         return None
 
+    def angles_of_attack(self, figsize=(7, 10 * 1 / 3), legend=True, filename=None):
+        """Plots a comparison of the angles of attack of the rocket for the different
+        flights.
+
+        Parameters
+        ----------
+        figsize : tuple, optional
+            standard matplotlib figsize to be used in the plots, by default (7, 10),
+            where the tuple means (width, height).
+        legend : bool, optional
+            Weather or not to show the legend, by default True
+        filename : str, optional
+            If a filename is provided, the plot will be saved to a file, by default None.
+
+        Returns
+        -------
+        None
+        """
+
+        # Create the figure
+        fig, _ = self.__create_comparison_figure(
+            figsize=figsize,
+            legend=legend,
+            n_rows=1,
+            n_cols=1,
+            n_plots=1,
+            title="Comparison of the angles of attack of the flights",
+            x_labels=["Time (s)"],
+            y_labels=["Angle of Attack (deg)"],
+            flight_attributes=["angleOfAttack"],
+        )
+
+        # Saving the plot to a file if a filename is provided, showing the plot otherwise
+        if filename:
+            fig.savefig(filename)
+            plt.close()
+        else:
+            plt.show()
+            plt.close()
+
+        return None
