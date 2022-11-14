@@ -1608,7 +1608,7 @@ class Function:
                 and isinstance(self.source, np.ndarray)
                 and self.__interpolation__ == other.__interpolation__
                 and self.__inputs__ == other.__inputs__
-                and np.any(self.source[:, 0] - other.source[:, 0]) == False
+                and np.array_equal(self.source[:, 0], other.source[:, 0])
             ):
                 # Operate on grid values
                 with np.errstate(divide="ignore"):
@@ -1712,7 +1712,7 @@ class Function:
                 and isinstance(self.source, np.ndarray)
                 and self.__interpolation__ == other.__interpolation__
                 and self.__inputs__ == other.__inputs__
-                and np.any(self.source[:, 0] - other.source[:, 0]) == False
+                and np.array_equal(self.source[:, 0], other.source[:, 0])
             ):
                 # Operate on grid values
                 Ys = self.source[:, 1] ** other.source[:, 1]
@@ -1814,7 +1814,7 @@ class Function:
                 and isinstance(self.source, np.ndarray)
                 and self.__interpolation__ == other.__interpolation__
                 and self.__inputs__ == other.__inputs__
-                and np.any(self.source[:, 0] - other.source[:, 0]) == False
+                and np.array_equal(self.source[:, 0], other.source[:, 0])
             ):
                 # Operate on grid values
                 Ys = self.source[:, 1] * other.source[:, 1]
@@ -1916,7 +1916,7 @@ class Function:
                 and isinstance(self.source, np.ndarray)
                 and self.__interpolation__ == other.__interpolation__
                 and self.__inputs__ == other.__inputs__
-                and np.any(self.source[:, 0] - other.source[:, 0]) == False
+                and np.array_equal(self.source[:, 0], other.source[:, 0])
             ):
                 # Operate on grid values
                 Ys = self.source[:, 1] + other.source[:, 1]
@@ -2018,7 +2018,7 @@ class Function:
                 and isinstance(self.source, np.ndarray)
                 and self.__interpolation__ == other.__interpolation__
                 and self.__inputs__ == other.__inputs__
-                and np.any(self.source[:, 0] - other.source[:, 0]) == False
+                and np.array_equal(self.source[:, 0], other.source[:, 0])
             ):
                 # Operate on grid values
                 Ys = self.source[:, 1] - other.source[:, 1]
