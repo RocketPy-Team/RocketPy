@@ -474,7 +474,7 @@ class Function:
         return self
 
     def setDiscreteBasedOnModel(self, modelFunction, oneByOne=True):
-        """This method transform a Function instance defined from callables into a
+        """This method transforms a Function instance defined from callables into a
         Function instance defined by a list of discrete points.
         It does so based on a model Function, from which it retrieves the domain,
         domain name, interpolation method and extrapolation method.
@@ -2238,7 +2238,7 @@ def funcify_method(*args, **kwargs):
     >>> example.cube
     Function from R1 to R1 : (x) → (x**3)
 
-    3. Method which is itself a valid rocketpy.Function source argument. 
+    3. Method which is itself a valid rocketpy.Function source argument.
 
     >>> class Example():
     ...     @funcify_method('x', 'f(x)')
