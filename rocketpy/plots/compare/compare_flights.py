@@ -933,3 +933,94 @@ class CompareFlights:
             plt.close()
 
         return None
+
+    @staticmethod
+    def __compare_trajectories_3d(
+        flights, names_list=None, figsize=(7, 7), legend=None, filename=None
+    ):
+        """Creates a trajectory plot combining the trajectories listed.
+        This function was created based two source-codes:
+        - Mateus Stano: https://github.com/RocketPy-Team/Hackathon_2020/pull/123
+        - Dyllon Preston: https://github.com/Dyllon-P/MBS-Template/blob/main/MBS.py
+        Also, some of the credits go to Georgia Tech Experimental Rocketry Club (GTXR)
+        as well.
+        The final function was created by the RocketPy Team.
+        Parameters
+        ----------
+        flights : list, array
+            List of trajectories. Must be in the form of [trajectory_1, trajectory_2, ..., trajectory_n]
+            where each element is a list with the arrays regarding positions in x, y and z [x, y, z].
+            The trajectories must be in the same reference frame. The z coordinate must be referenced
+            to the ground or to the sea level, but it is important that all trajectories are passed
+            in the same reference.
+        names_list : list, optional
+            List of strings with the name of each trajectory inputted. The names must be in
+            the same order as the trajectories in flights. If no names are passed, the
+            trajectories will be named as "Trajectory 1", "Trajectory 2", ..., "Trajectory n".
+        figsize : tuple, optional
+            Tuple with the size of the figure. The default is (7,7).
+        legend : boolean, optional
+            Whether legend will or will not be plotted. Default is True
+        filename : string, optional
+            If a filename is passed, the figure will be saved in the current directory.
+            The default is None.
+
+        Returns
+        -------
+        None
+        """
+
+        # Initialize variables
+        maxX, maxY, maxZ, minX, minY, minZ, maxXY, minXY = 0, 0, 0, 0, 0, 0, 0, 0
+
+        # Create the figure
+        fig1 = plt.figure(figsize=figsize)
+        fig1.suptitle("Flight Trajectories Comparison", fontsize=16, y=0.95, x=0.5)
+        ax1 = plt.subplot(
+            111,
+            projection="3d",
+        )
+
+        # Iterate through trajectories
+        for index, flight in enumerate(flights):
+
+            x, y, z = flight
+
+            # Find max/min values for each component
+            maxX = max(x) if max(x) > maxX else maxX
+            maxY = max(y) if max(y) > maxY else maxY
+            maxZ = max(z) if max(z) > maxZ else maxZ
+            minX = min(x) if min(x) < minX else minX
+            minY = min(x) if min(x) < minX else minX
+            minZ = min(z) if min(z) < minZ else minZ
+            maxXY = max(maxX, maxY) if max(maxX, maxY) > maxXY else maxXY
+            minXY = min(minX, minY) if min(minX, minY) > minXY else minXY
+
+            # Add Trajectory as a plot in main figure
+            ax1.plot(x, y, z, linewidth="2", label=names_list[index])
+
+        # Plot settings
+        ax1.scatter(0, 0, 0, color="black", s=10, marker="o")
+        ax1.set_xlabel("X - East (m)")
+        ax1.set_ylabel("Y - North (m)")
+        ax1.set_zlabel("Z - Altitude (m)")
+        ax1.set_zlim3d([minZ, maxZ])
+        ax1.set_ylim3d([minXY, maxXY])
+        ax1.set_xlim3d([minXY, maxXY])
+        ax1.view_init(15, 45)
+
+        # Add legend
+        if legend:
+            fig1.legend()
+
+        fig1.tight_layout()
+
+        # Save figure
+        if filename:
+            plt.savefig(filename)
+            plt.close()
+        else:
+            plt.show()
+            plt.close()
+
+        return None
