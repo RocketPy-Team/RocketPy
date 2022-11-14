@@ -1072,3 +1072,56 @@ class CompareFlights:
         )
 
         return None
+
+    def all(self):
+        """Prints out all data and graphs available about the Flight.
+
+        Parameters
+        ----------
+        None
+
+        Return
+        ------
+        None
+        """
+
+        self.trajectories_3d()
+
+        self.positions()
+
+        self.velocities()
+
+        self.stream_velocities()
+
+        self.accelerations()
+
+        self.angular_velocities()
+
+        self.angular_accelerations()
+
+        self.euler_angles()
+
+        self.quaternions()
+
+        self.attitude_angles()
+
+        self.angles_of_attack()
+
+        self.stability_margin()
+
+        self.aerodynamic_forces()
+
+        self.aerodynamic_moments()
+
+        self.rail_buttons_forces()
+
+        self.energies()
+
+        self.powers()
+
+        self.fluid_mechanics()
+
+        self.attitude_frequency()
+
+        return None
+
