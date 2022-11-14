@@ -3743,32 +3743,7 @@ class Flight:
         # Print a summary of data about the flight
         self.info()
 
-        print("\n\nTrajectory 3d Plot\n")
-        self.plots.trajectory_3d()
-
-        print("\n\nTrajectory Kinematic Plots\n")
-        self.plots.linear_kinematics_data()
-
-        print("\n\nAngular Position Plots\n")
-        self.plots.flight_path_angle_data()
-
-        print("\n\nPath, Attitude and Lateral Attitude Angle plots\n")
-        self.plots.attitude_data()
-
-        print("\n\nTrajectory Angular Velocity and Acceleration Plots\n")
-        self.plots.angular_kinematics_data()
-
-        print("\n\nTrajectory Force Plots\n")
-        self.plots.trajectory_force_data()
-
-        print("\n\nTrajectory Energy Plots\n")
-        self.plots.energy_data()
-
-        print("\n\nTrajectory Fluid Mechanics Plots\n")
-        self.plots.fluid_mechanics_data()
-
-        print("\n\nTrajectory Stability and Control Plots\n")
-        self.plots.stability_and_control_data()
+        self.plots.all()
 
         return None
 

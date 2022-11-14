@@ -874,34 +874,34 @@ class _FlightPlots:
         None
         """
 
-        # Plot flight trajectory in a 3D plot
+        print("\n\nTrajectory 3d Plot\n")
         self.trajectory_3d()
 
-        # Plot
+        print("\n\nTrajectory Kinematic Plots\n")
         self.linear_kinematics_data()
 
-        # Plot
+        print("\n\nAngular Position Plots\n")
         self.flight_path_angle_data()
 
-        # Plot
+        print("\n\nPath, Attitude and Lateral Attitude Angle plots\n")
         self.attitude_data()
 
-        # Plot
+        print("\n\nTrajectory Angular Velocity and Acceleration Plots\n")
         self.angular_kinematics_data()
 
-        # Plot
+        print("\n\nTrajectory Force Plots\n")
         self.trajectory_force_data()
 
-        # Plot
+        print("\n\nTrajectory Energy Plots\n")
         self.energy_data()
 
-        # Plot
+        print("\n\nTrajectory Fluid Mechanics Plots\n")
         self.fluid_mechanics_data()
 
-        # Plot pressure signals recorded by the sensors
-        self.pressure_signals()
-
-        # Plot Stability and Control Data
+        print("\n\nTrajectory Stability and Control Plots\n")
         self.stability_and_control_data()
+
+        print("\n\nParachute Pressure Signal Plots\n")
+        self.pressure_signals()
 
         return None
