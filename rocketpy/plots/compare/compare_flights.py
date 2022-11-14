@@ -555,3 +555,93 @@ class CompareFlights:
 
         return None
 
+    def aerodynamic_forces(self, figsize=(7, 10 * 2 / 3), legend=True, filename=None):
+        """Plots a comparison of the aerodynamic forces of the rocket for the different
+        flights.
+
+        Parameters
+        ----------
+        figsize : tuple, optional
+            standard matplotlib figsize to be used in the plots, by default (7, 10),
+            where the tuple means (width, height).
+        legend : bool, optional
+            Weather or not to show the legend, by default True
+        filename : str, optional
+            If a filename is provided, the plot will be saved to a file, by default None.
+            Image options are: png, pdf, ps, eps and svg.
+
+        Returns
+        -------
+        None
+        """
+
+        # Create the figure
+        fig, _ = self.__create_comparison_figure(
+            figsize=figsize,
+            legend=legend,
+            n_rows=2,
+            n_cols=1,
+            n_plots=2,
+            title="Comparison of the aerodynamic forces of the flights",
+            x_labels=["Time (s)", "Time (s)"],
+            y_labels=[
+                "Drag Force (N)",
+                "Lift Force (N)",
+            ],
+            flight_attributes=["aerodynamicDrag", "aerodynamicLift"],
+        )
+
+        # Saving the plot to a file if a filename is provided, showing the plot otherwise
+        if filename:
+            fig.savefig(filename)
+            plt.close()
+        else:
+            plt.show()
+            plt.close()
+
+        return None
+
+    def aerodynamic_moments(self, figsize=(7, 10 * 2 / 3), legend=True, filename=None):
+        """Plots a comparison of the aerodynamic moments of the rocket for the different
+        flights.
+
+        Parameters
+        ----------
+        figsize : tuple, optional
+            standard matplotlib figsize to be used in the plots, by default (7, 10),
+            where the tuple means (width, height).
+        legend : bool, optional
+            Weather or not to show the legend, by default True
+        filename : str, optional
+            If a filename is provided, the plot will be saved to a file, by default None.
+
+        Returns
+        -------
+        None
+        """
+
+        # Create the figure
+        fig, _ = self.__create_comparison_figure(
+            figsize=figsize,
+            legend=legend,
+            n_rows=2,
+            n_cols=1,
+            n_plots=2,
+            title="Comparison of the aerodynamic moments of the flights",
+            x_labels=["Time (s)", "Time (s)"],
+            y_labels=[
+                "Bending Moment (N*m)",
+                "Spin Moment (N*m)",
+            ],
+            flight_attributes=["aerodynamicBendingMoment", "aerodynamicSpinMoment"],
+        )
+
+        # Saving the plot to a file if a filename is provided, showing the plot otherwise
+        if filename:
+            fig.savefig(filename)
+            plt.close()
+        else:
+            plt.show()
+            plt.close()
+
+        return None
