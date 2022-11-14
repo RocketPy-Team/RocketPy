@@ -2267,15 +2267,27 @@ def funcify_method(*args, **kwargs):
                 return self
             cache = instance.__dict__
             try:
+                # If cache is ready, return it
                 val = cache[self.attrname]
             except KeyError:
-                source = self.func(instance)
-                if isinstance(source, Function):
-                    # Avoid creating a new Function object if the source is already one
-                    val = source
-                    val.reset(*args, **kwargs)
-                else:
+                # If cache is not ready, create it
+                try:
+                    # Handle methods which return Function instances
+                    val = self.func(instance).reset(*args, **kwargs)
+                except AttributeError:
+                    # Handle methods which return a valid source
+                    source = self.func(instance)
                     val = Function(source, *args, **kwargs)
+                except TypeError:
+                    # Handle methods which are the source themselves
+                    source = lambda *_: self.func(instance, *_)
+                    val = Function(source, *args, **kwargs)
+                except Exception:
+                    raise Exception(
+                        "Could not create Function object from method "
+                        f"{self.func.__name__}."
+                    )
+
                 val.__doc__ = self.__doc__
                 cache[self.attrname] = val
             return val
