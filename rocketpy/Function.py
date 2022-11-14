@@ -474,11 +474,13 @@ class Function:
         return self
 
     def setDiscreteBasedOnModel(self, modelFunction, oneByOne=True):
-        """This method transforms function defined Functions into list
-        defined Functions. It evaluates the function at certain points
-        (sampling range) and stores the results in a list, which is converted
-        into a Function and then returned. The original Function object is
-        replaced by the new one.
+        """This method transform a Function instance defined from callables into a
+        Function instance defined by a list of discrete points.
+        It does so based on a model Function, from which it retrieves the domain,
+        domain name, interpolation method and extrapolation method.
+        It then evaluates the original Function instance in all points of the retrieved
+        domain to generate the list of discrete points that will be used for
+        interpolation when this Function is called.
 
         Parameters
         ----------
@@ -496,6 +498,52 @@ class Function:
         Returns
         -------
         self : Function
+
+        See also
+        --------
+        Function.setDiscrete
+
+        Examples
+        --------
+        This method is particularly useful when algebraic operations is carried out
+        using Function instances defined by different discretized domains (same range,
+        but different mesh size). Once an algebraic operation is done, it will not
+        directly be applied between the list of discrete points of the two Function
+        instances. Instead, the result will be a Function instance defined by a callable
+        that calls both Function instances and performs the operation. This makes the
+        evaluation of the resulting Function inefficient, due to extra function calling
+        overhead and multiple interpolations being carried out.
+
+        >>> from rocketpy import Function
+        >>> f = Function([(0, 0), (1, 1), (2, 4), (3, 9), (4, 16)])
+        >>> g = Function([(0, 0), (2, 2), (4, 4)])
+        >>> h = f * g
+        >>> h.source
+        <function rocketpy.Function.Function.__mul__.<locals>.<lambda>(x)>
+
+        Therefore, it is good practice to make sure both Function instances are defined
+        by the same domain, i.e. by the same list of mesh points. This way, the
+        algebraic operation will be carried out directly between the lists of discrete
+        points, generating a new Function instance defined by this result. When it is
+        evaluated, there are no extra function calling overheads neither multiple
+        interpolations.
+
+        >>> g.setDiscreteBasedOnModel(f)
+        >>> h = f * g
+        >>> h.source
+        array([[ 0.,  0.],
+               [ 1.,  1.],
+               [ 2.,  8.],
+               [ 3., 27.],
+               [ 4., 64.]])
+
+        Notes
+        -----
+        1. This method performs in place replacement of the original Function object
+        source.
+
+        2. This method is similar to setDiscrete, but it uses the domain of a model
+        Function to define the domain of the new Function instance.
         """
         if not isinstance(modelFunction.source, np.ndarray):
             raise TypeError("modelFunction must be a list based Function.")
