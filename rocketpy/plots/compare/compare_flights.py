@@ -878,6 +878,31 @@ class CompareFlights:
 
         return None
 
+    def stability_margin(self, figsize=(7, 10), legend=True, filename=None):
+        """Plots the stability margin of the rocket for the different flights.
+        The stability margin here is different than the static margin, it is the
+        difference between the center of pressure and the center of gravity of the
+        rocket varying with time.
+
+        Parameters
+        ----------
+        figsize : tuple, optional
+            standard matplotlib figsize to be used in the plots, by default (7, 10),
+            where the tuple means (width, height).
+        legend : bool, optional
+            Weather or not to show the legend, by default True
+        filename : str, optional
+            If a filename is provided, the plot will be saved to a file, by default None.
+
+        Returns
+        -------
+        None
+        """
+
+        print("This method is not implemented yet")
+
+        return None
+
     def attitude_frequency(self, figsize=(7, 10 * 4 / 3), legend=True, filename=None):
         """Plots the frequency of the attitude of the rocket for the different flights.
 
@@ -1073,6 +1098,35 @@ class CompareFlights:
 
         return None
 
+    def trajectories_2d(self, plane="xy", figsize=(7, 7), legend=None, filename=None):
+        """Creates a 2D trajectory plot that is the combination of the trajectories of
+        the Flight objects passed via a Python list.
+
+        Parameters
+        ----------
+        legend : boolean, optional
+            Whether legend will or will not be included. Default is True
+        plane : string, optional
+            The plane in which the trajectories will be plotted. The default is "xy".
+            The options are:
+                - "xy": X-Y plane
+                - "xz": X-Z plane
+                - "yz": Y-Z plane
+        filename : string, optional
+            If a string is passed, the figure will be saved in the path passed.
+            The image format options are: .png, .jpg, .jpeg, .tiff, .bmp, .pdf, .svg, .pgf, .eps
+        figsize : tuple, optional
+            Tuple with the size of the figure. The default is (7, 7).
+
+        Returns
+        -------
+        None
+        """
+
+        print("Still not implemented yet!")
+
+        return None
+
     def all(self):
         """Prints out all data and graphs available about the Flight.
 
@@ -1125,3 +1179,18 @@ class CompareFlights:
 
         return None
 
+    def report(self, filename=None):
+        """Creates a report with all the information about the flight.
+        Parameters
+        ----------
+        filename : str, optional
+            The name of the file to be saved. The default is None. The file
+            format supported are: .pdf.
+
+        Returns
+        -------
+        None
+        """
+        print("Still not implemented yet!")
+
+        return None
