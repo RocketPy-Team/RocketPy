@@ -2238,7 +2238,7 @@ def funcify_method(*args, **kwargs):
     >>> example.cube
     Function from R1 to R1 : (x) → (x**3)
 
-    3. Method which is itself a valid rocketpy.Function source argument. 
+    3. Method which is itself a valid rocketpy.Function source argument.
 
     >>> class Example():
     ...     @funcify_method('x', 'f(x)')
