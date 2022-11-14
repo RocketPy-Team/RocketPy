@@ -588,7 +588,7 @@ class Flight:
         verbose : bool, optional
             If true, verbose mode is activated. Default is False.
         name : str, optional
-            Name of the flight. Default is "".
+            Name of the flight. Default is "Flight".
 
         Returns
         -------
