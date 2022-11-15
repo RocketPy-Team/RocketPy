@@ -474,13 +474,12 @@ class Function:
         return self
 
     def setDiscreteBasedOnModel(self, modelFunction, oneByOne=True):
-        """This method transforms a Function instance defined from callables into a
-        Function instance defined by a list of discrete points.
-        It does so based on a model Function, from which it retrieves the domain,
-        domain name, interpolation method and extrapolation method.
-        It then evaluates the original Function instance in all points of the retrieved
-        domain to generate the list of discrete points that will be used for
-        interpolation when this Function is called.
+        """This method transforms the domain of Function instance into a list of
+        discrete points based on the domain of a model Function instance. It does so by
+        retrieving the domain, domain name, interpolation method and extrapolation
+        method of the model Function instance. It then evaluates the original Function
+        instance in all points of the retrieved domain to generate the list of discrete
+        points that will be used for interpolation when this Function is called.
 
         Parameters
         ----------
@@ -505,7 +504,7 @@ class Function:
 
         Examples
         --------
-        This method is particularly useful when algebraic operations is carried out
+        This method is particularly useful when algebraic operations are carried out
         using Function instances defined by different discretized domains (same range,
         but different mesh size). Once an algebraic operation is done, it will not
         directly be applied between the list of discrete points of the two Function
