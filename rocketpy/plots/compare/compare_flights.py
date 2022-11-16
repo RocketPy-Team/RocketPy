@@ -105,7 +105,8 @@ class CompareFlights:
                         label=flight.name,
                     )
                     # Update the maximum time
-                    max_time = flight.tFinal if flight.time[-1] > max_time else max_time
+                    max_time = max(max_time, flight.tFinal)
+
                 except AttributeError:
                     raise AttributeError(
                         f"Invalid attribute {flight_attributes[i]} for the Flight class."
