@@ -10,6 +10,25 @@ from .Function import Function
 from abc import ABC, abstractmethod, abstractproperty
 
 
+class AeroSurfaces:
+    """Class used to hold multiple aerodynamic surfaces and their positions."""
+
+    def __init__(self):
+        self._aeroSurfaces = []
+
+    def append(self, aeroSurface, position):
+        self._aeroSurfaces.append((aeroSurface, position))
+
+    def __len__(self):
+        return len(self._aeroSurfaces)
+
+    def __getitem__(self, index):
+        return self._aeroSurfaces[index]
+
+    def __iter__(self):
+        return iter(self._aeroSurfaces)
+
+
 class NoseCone:
     """Keeps nose cone information.
 
