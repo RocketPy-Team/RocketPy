@@ -928,41 +928,7 @@ class CompareFlights:
         None
         """
 
-        # Create the figure
-        fig, _ = self.__create_comparison_figure(
-            figsize=figsize,
-            legend=legend,
-            n_rows=4,
-            n_cols=1,
-            n_plots=4,
-            title="Comparison of the attitude frequency of the flights",
-            x_labels=[
-                "Frequency (Hz)",
-                "Frequency (Hz)",
-                "Frequency (Hz)",
-                "Frequency (Hz)",
-            ],
-            y_labels=[
-                "Attitude Angle Fourier Amplitude",
-                "Omega 1 Angle Fourier Amplitude",
-                "Omega 2 Angle Fourier Amplitude",
-                "Omega 3 Angle Fourier Amplitude",
-            ],
-            flight_attributes=[
-                "attitudeFrequencyResponse",
-                "omega1FrequencyResponse",
-                "omega2FrequencyResponse",
-                "omega3FrequencyResponse",
-            ],
-        )
-
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
-        if filename:
-            fig.savefig(filename)
-            plt.close()
-        else:
-            plt.show()
-            plt.close()
+        print("This method is not implemented yet")
 
         return None
 
