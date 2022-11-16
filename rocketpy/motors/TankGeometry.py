@@ -5,10 +5,11 @@ from scipy.optimize import fsolve
 
 class TankGeometry:
     """Class to evaluate mathematical and geometrical properties of a tank
-    geometry, such as volume, mass, center of mass, inertia tensor, etc. The 
+    geometry, such as volume, mass, center of mass, inertia tensor, etc. The
     specific geometry is defined by its subclasses and may be used as the main
-    body of the tank or its end caps. 
+    body of the tank or its end caps.
     """
+
     def __init__(
         self, radius, height=None, filled_volume=None, fill_direction="upwards"
     ):
@@ -67,7 +68,7 @@ class TankGeometry:
 
     @property
     def height(self):
-        """Returns the characteristic vertical height of the tank or caps. Is 
+        """Returns the characteristic vertical height of the tank or caps. Is
         zero if the geometry is two dimensional.
         e.g. the height of a cylindrical tank or the radius of a spherical cap.
 
@@ -109,7 +110,7 @@ class TankGeometry:
 
     @property
     def centroid(self):
-        """Returns the centroid height of the geometry body, not considering 
+        """Returns the centroid height of the geometry body, not considering
         filling.
 
         Returns
@@ -121,7 +122,7 @@ class TankGeometry:
 
     @property
     def filled_volume(self):
-        """Returns the volume of the partial geometry that is filled with 
+        """Returns the volume of the partial geometry that is filled with
         propellant.
 
         Returns
@@ -155,7 +156,7 @@ class TankGeometry:
 
     @property
     def filled_centroid(self):
-        """Returns the centroid height of filled portion of the geometry. The 
+        """Returns the centroid height of filled portion of the geometry. The
         zero level reference is the bottom of the geometry (level that the filling
         begins).
 
@@ -170,7 +171,7 @@ class TankGeometry:
     def filled_height(self):
         """Returns the height of the filled portion of the geometry, i.e., the
         height of the boundary between the filled portion and the gaseous portion.
-        Generally considered the level of propellant. The zero level reference 
+        Generally considered the level of propellant. The zero level reference
         is the bottom of the geometry (level that the filling begins).
 
         Returns
@@ -182,8 +183,8 @@ class TankGeometry:
 
     @property
     def empty_volume(self):
-        """Returns the volume of the empty (or gaseous phase) portion of the 
-        geometry, i.e., ullage volume. Is zero if the tank is fully filled. 
+        """Returns the volume of the empty (or gaseous phase) portion of the
+        geometry, i.e., ullage volume. Is zero if the tank is fully filled.
 
         Returns
         -------
@@ -224,7 +225,9 @@ class TankGeometry:
         respect to the centroid of the shape that originated the geometry (e.g.
         for an hemispherical cap it is an sphere). The z-axis is the direction
         of filling and perpendicular to the liquid level.
-        
+        Note: the volumes of inertia must be multiplied by the density of the
+        fluid to get the actual moments of inertia.
+
         Returns
         -------
         tuple
@@ -237,7 +240,9 @@ class TankGeometry:
         respect to the centroid of the shape that originated the geometry (e.g.
         for an hemispherical cap it is an sphere). The z-axis is the direction
         of filling and perpendicular to the liquid level.
-        
+        Note: the volumes of inertia must be multiplied by the density of the
+        fluid to get the actual moments of inertia.
+
         Returns
         -------
         tuple
