@@ -1623,6 +1623,16 @@ class Flight:
     # Process first type of outputs - state vector
     # Transform solution array into Functions
     @cached_property
+    def solutionArray(self):
+        """Returns solution array of the rocket flight."""
+        return np.array(self.solution)
+
+    @cached_property
+    def time(self):
+        """Returns time array from solution."""
+        return self.solutionArray[:, 0]
+
+    @cached_property
     def x(self, interpolation="spline", extrapolation="natural"):
         """Rocket x position as a function of time.
 
