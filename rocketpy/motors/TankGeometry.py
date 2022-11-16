@@ -60,6 +60,10 @@ class TankGeometry:
         ----------
         radius_value : float
             New radius value to be set.
+
+        Returns
+        -------
+        None
         """
         if radius_value > 0:
             self._radius = radius_value
@@ -88,8 +92,11 @@ class TankGeometry:
         ----------
         height_value : float
             New height value to be set.
-        """
 
+        Returns
+        -------
+        None
+        """
         if height_value is None:
             self._height = self._radius
         elif height_value >= 0:
@@ -142,6 +149,10 @@ class TankGeometry:
         ----------
         volume : float
             New filled volume value to be set.
+
+        Returns
+        -------
+        None
         """
         if not volume:
             self._filled_volume = 0
@@ -210,7 +221,12 @@ class TankGeometry:
     def empty_centroid(self):
         """Returns the centroid height of the empty (or gaseous phase) portion.
         The zero level reference is the bottom of the geometry (level that the
-        filling begins)."""
+        filling begins).
+
+        Returns
+        -------
+        None
+        """
         if self.empty_volume == 0:
             return self.height
         else:
@@ -231,7 +247,8 @@ class TankGeometry:
         Returns
         -------
         tuple
-            Principal volumes of inertia: Ixx, Iyy, Izz."""
+            Principal volumes of inertia: Ixx, Iyy, Izz.
+        """
         return 0, 0, 0
 
     @property
@@ -246,12 +263,18 @@ class TankGeometry:
         Returns
         -------
         tuple
-            Principal volumes of inertia: Ixx, Iyy, Izz."""
+            Principal volumes of inertia: Ixx, Iyy, Izz.
+        """
         return 0, 0, 0
 
     def reverse_fill(self):
         """Reverses the filling direction of the geometry. Useful for calculating
-        the empty portion of the geometry."""
+        the empty portion of the geometry.
+
+        Returns
+        -------
+        None
+        """
         self.fill_direction = (
             "upwards" if self.fill_direction == "downwards" else "downwards"
         )
@@ -259,7 +282,13 @@ class TankGeometry:
     def volume_to_height(self):
         """Returns the filled height of the geometry for a given filled volume.
         The zero level reference is the bottom of the geometry (level that the
-        filling begins)."""
+        filling begins).
+
+        Returns
+        -------
+        float
+            The height for the given volume.
+        """
         return 0
 
 
