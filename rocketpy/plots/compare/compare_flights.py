@@ -119,15 +119,22 @@ class CompareFlights:
         # Set the limits for the x axis
         for subplot in ax:
             subplot.set_xlim(0, max_time)
+            subplot.grid(True)  # Add a grid to the plot
+
+        # Find the two closest integers to the square root of the number of flights
+        # to be used as the number of columns and rows of the legend
+        n_cols_legend = int(round(len(self.flights) ** 0.5))
+        n_rows_legend = int(round(len(self.flights) / n_cols_legend))
 
         # Set the legend
-        if legend:
+        if legend:  # Add a global legend to the figure
             fig.legend(
-                loc="upper center",
-                fancybox=True,
-                shadow=True,
-                fontsize=10,
-                bbox_to_anchor=(0.5, 0.995),
+                *ax[0].get_legend_handles_labels(),
+                loc="lower center",
+                ncol=n_cols_legend,
+                numpoints=1,
+                frameon=True,
+                bbox_to_anchor=(0.5, 1.05),
             )
 
         fig.tight_layout()
@@ -538,9 +545,9 @@ class CompareFlights:
             title="Comparison of the angular accelerations of the flights",
             x_labels=["Time (s)", "Time (s)", "Time (s)"],
             y_labels=[
-                self.flights[0].alpha1.getOutputs()[0].getUnits(),
-                self.flights[0].alpha2.getOutputs()[0].getUnits(),
-                self.flights[0].alpha3.getOutputs()[0].getUnits(),
+                self.flights[0].alpha1.getOutputs()[0],
+                self.flights[0].alpha2.getOutputs()[0],
+                self.flights[0].alpha3.getOutputs()[0],
             ],
             flight_attributes=["alpha1", "alpha2", "alpha3"],
         )
@@ -861,8 +868,8 @@ class CompareFlights:
                 "Total Pressure (Pa)",
             ],
             flight_attributes=[
-                "machNumber",
-                "reynoldsNumber",
+                "MachNumber",
+                "ReynoldsNumber",
                 "dynamicPressure",
                 "totalPressure",
             ],
@@ -1011,15 +1018,15 @@ class CompareFlights:
 
             x, y, z = flight
 
-            # Find max/min values for each component
-            maxX = max(x) if max(x) > maxX else maxX
-            maxY = max(y) if max(y) > maxY else maxY
-            maxZ = max(z) if max(z) > maxZ else maxZ
-            minX = min(x) if min(x) < minX else minX
-            minY = min(x) if min(x) < minX else minX
-            minZ = min(z) if min(z) < minZ else minZ
-            maxXY = max(maxX, maxY) if max(maxX, maxY) > maxXY else maxXY
-            minXY = min(minX, minY) if min(minX, minY) > minXY else minXY
+            # Update mx and min values to set the limits of the plot
+            maxX = max(maxX, max(x))
+            maxY = max(maxY, max(y))
+            maxZ = max(maxZ, max(z))
+            minX = min(minX, min(x))
+            minY = min(minY, min(y))
+            minZ = min(minZ, min(z))
+            maxXY = max(maxXY, max(max(x), max(y)))
+            minXY = min(minXY, min(min(x), min(y)))
 
             # Add Trajectory as a plot in main figure
             ax1.plot(x, y, z, linewidth="2", label=names_list[index])
@@ -1080,12 +1087,10 @@ class CompareFlights:
                 z = flight.z[:, 1] - flight.env.elevation
             except AttributeError:
                 raise AttributeError(
-                    "Flight object {} does not have a trajectory.".format(
-                        self.names_list[index]
-                    )
+                    "Flight object {} does not have a trajectory.".format(flight.name)
                 )
             flights.append([x, y, z])
-            names_list.append(self.names_list[index])
+            names_list.append(flight.name)
 
         # Call __compare_trajectories_3d function to do the hard work
         self.__compare_trajectories_3d(
