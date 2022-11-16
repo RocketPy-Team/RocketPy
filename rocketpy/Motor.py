@@ -21,14 +21,18 @@ class Motor(ABC):
     ----------
 
         Geometrical attributes:
+        Motor.coordinateSystemOrientation : str
+            Orientation of the motor's coordinate system. The coordinate system
+            is defined by the motor's axis of symmetry. The origin of the
+            coordinate system  may be placed anywhere along such axis, such as at the
+            nozzle area, and must be kept the same for all other positions specified.
+            Options are "nozzleToCombustionChamber" and "combustionChamberToNozzle".
         Motor.nozzleRadius : float
             Radius of motor nozzle outlet in meters.
         Motor.nozzlePosition : float
             Motor's nozzle outlet position in meters. More specifically, the coordinate
-            of the nozzle outlet specified in a user defined reference frame which
-            follows the motor's axis of symmetry, being positive upwards from the
-            nozzle. The origin of such reference system maybe chosen by the user as
-            desired.
+            of the nozzle outlet specified in the motor's coordinate system.
+            See `Motor.coordinateSystemOrientation` for more information.
         Motor.throatRadius : float
             Radius of motor nozzle throat in meters.
         Motor.grainNumber : int
@@ -70,7 +74,7 @@ class Motor(ABC):
         Motor.inertiaZ : Function
             Propellant moment of inertia in kg*meter^2 with respect to axis of
             cylindrical symmetry of each grain, given as a function of time.
-        Motor.inertiaDot : Function
+        Motor.inertiaZDot : Function
             Time derivative of inertiaZ given in kg*meter^2/s as a function
             of time.
 
@@ -111,10 +115,11 @@ class Motor(ABC):
         thrustSource,
         burnOut,
         nozzleRadius=0.0335,
-        throatRadius=0.0114,
         nozzlePosition=0,
+        throatRadius=0.0114,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
+        coordinateSystemOrientation="nozzleToCombustionChamber",
     ):
         """Initialize Motor class, process thrust curve and geometrical
         parameters and store results.
@@ -139,11 +144,9 @@ class Motor(ABC):
             trajectory simulation.
         nozzlePosition : int, float, optional
             Motor's nozzle outlet position in meters. More specifically, the coordinate
-            of the nozzle outlet specified in a user defined reference frame which
-            follows the motor's axis of symmetry, being positive upwards from the
-            nozzle. The origin of such reference system maybe chosen by the user as
-            desired.
-            Default is 0, in which case the origin of the motor's reference system
+            of the nozzle outlet specified in the motor's coordinate system.
+            See `Motor.coordinateSystemOrientation` for more information.
+            Default is 0, in which case the origin of the motor's coordinate system
             is placed at the motor's nozzle outlet.
         throatRadius : int, float, optional
             Motor's nozzle throat radius in meters. Its value has very low
@@ -161,11 +164,25 @@ class Motor(ABC):
             Method of interpolation to be used in case thrust curve is given
             by data set in .csv or .eng, or as an array. Options are 'spline'
             'akima' and 'linear'. Default is "linear".
+        coordinateSystemOrientation : string, optional
+            Orientation of the motor's coordinate system. The coordinate system
+            is defined by the motor's axis of symmetry. The origin of the
+            coordinate system  may be placed anywhere along such axis, such as at the
+            nozzle area, and must be kept the same for all other positions specified.
+            Options are "nozzleToCombustionChamber" and "combustionChamberToNozzle".
+            Default is "nozzleToCombustionChamber".
 
         Returns
         -------
         None
         """
+        # Define coordinate system orientation
+        self.coordinateSystemOrientation = coordinateSystemOrientation
+        if coordinateSystemOrientation == "nozzleToCombustionChamber":
+            self._csys = 1
+        elif coordinateSystemOrientation == "combustionChamberToNozzle":
+            self._csys = -1
+
         # Thrust parameters
         self.interpolate = interpolationMethod
         self.burnOutTime = burnOut
@@ -640,25 +657,26 @@ class SolidMotor(Motor):
     ----------
 
         Geometrical attributes:
+        Motor.coordinateSystemOrientation : str
+            Orientation of the motor's coordinate system. The coordinate system
+            is defined by the motor's axis of symmetry. The origin of the
+            coordinate system  may be placed anywhere along such axis, such as at the
+            nozzle area, and must be kept the same for all other positions specified.
+            Options are "nozzleToCombustionChamber" and "combustionChamberToNozzle".
         Motor.nozzleRadius : float
             Radius of motor nozzle outlet in meters.
         Motor.nozzlePosition : float
             Motor's nozzle outlet position in meters. More specifically, the coordinate
-            of the nozzle outlet specified in a user defined reference frame which
-            follows the motor's axis of symmetry, being positive upwards from the
-            nozzle. The origin of such reference system maybe chosen by the user as
-            desired.
+            of the nozzle outlet specified in the motor's coordinate system.
+            See `Motor.coordinateSystemOrientation` for more information.
         Motor.throatRadius : float
             Radius of motor nozzle throat in meters.
         Motor.grainNumber : int
             Number of solid grains.
         Motor.grainsCenterOfMassPosition : float
             Position of the center of mass of the grains in meters. More specifically,
-            the coordinate of the center of mass specified in a user defined reference
-            frame which follows the motor's axis of symmetry, being positive upwards
-            from the nozzle. The origin of such reference system maybe chosen by the
-            user as desired, but needs to be consistent with the Motor.nozzlePosition
-            attribute.
+            the coordinate of the center of mass specified in the motor's coordinate
+            system. See `Motor.coordinateSystemOrientation` for more information.
         Motor.grainSeparation : float
             Distance between two grains in meters.
         Motor.grainDensity : float
@@ -679,9 +697,9 @@ class SolidMotor(Motor):
         Mass and moment of inertia attributes:
         Motor.centerOfMass : Function
             Position of the center of mass in meters as a function of time. Constant for
-            solid motors, as the grains are assumed to be fixed. For information
-            regarding the reference frame, see Motor.nozzlePosition or
-            Motor.grainsCenterOfMassPosition.
+            solid motors, as the grains are assumed to be fixed.
+            See `Motor.coordinateSystemOrientation` for more information regarding
+            the motor's coordinate system
         Motor.grainInitialMass : float
             Initial mass of each grain in kg.
         Motor.propellantInitialMass : float
@@ -753,6 +771,7 @@ class SolidMotor(Motor):
         throatRadius=0.0114,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
+        coordinateSystemOrientation="nozzleToCombustionChamber",
     ):
         """Initialize Motor class, process thrust curve and geometrical
         parameters and store results.
@@ -772,12 +791,9 @@ class SolidMotor(Motor):
         burnOut : int, float
             Motor burn out time in seconds.
         grainsCenterOfMassPosition : float
-            Position of grains center of mass in meters. More specifically, the
-            coordinate of the grains center of mass specified in a user defined
-            reference frame which follows the motor's axis of symmetry, being
-            positive upwards from the nozzle. The origin of such reference system
-            maybe chosen by the user as desired, but must be consistent with the
-            nozzlePosition argument.
+            Position of the center of mass of the grains in meters. More specifically,
+            the coordinate of the center of mass specified in the motor's coordinate
+            system. See `Motor.coordinateSystemOrientation` for more information.
         grainNumber : int
             Number of solid grains
         grainDensity : int, float
@@ -796,11 +812,9 @@ class SolidMotor(Motor):
             trajectory simulation.
         nozzlePosition : int, float, optional
             Motor's nozzle outlet position in meters. More specifically, the coordinate
-            of the nozzle outlet specified in a user defined reference frame which
-            follows the motor's axis of symmetry, being positive upwards from the
-            nozzle. The origin of such reference system maybe chosen by the user as
-            desired.
-            Default is 0, in which case the origin of the motor's reference system
+            of the nozzle outlet specified in the motor's coordinate system.
+            See `Motor.coordinateSystemOrientation` for more information.
+            Default is 0, in which case the origin of the motor's coordinate system
             is placed at the motor's nozzle outlet.
         throatRadius : int, float, optional
             Motor's nozzle throat radius in meters. Its value has very low
@@ -818,6 +832,13 @@ class SolidMotor(Motor):
             Method of interpolation to be used in case thrust curve is given
             by data set in .csv or .eng, or as an array. Options are 'spline'
             'akima' and 'linear'. Default is "linear".
+        coordinateSystemOrientation : string, optional
+            Orientation of the motor's coordinate system. The coordinate system
+            is defined by the motor's axis of symmetry. The origin of the
+            coordinate system  may be placed anywhere along such axis, such as at the
+            nozzle area, and must be kept the same for all other positions specified.
+            Options are "nozzleToCombustionChamber" and "combustionChamberToNozzle".
+            Default is "nozzleToCombustionChamber".
 
         Returns
         -------
@@ -831,6 +852,7 @@ class SolidMotor(Motor):
             throatRadius,
             reshapeThrustCurve,
             interpolationMethod,
+            coordinateSystemOrientation,
         )
         # Define motor attributes
         # Grain parameters
@@ -1211,14 +1233,18 @@ class HybridMotor(Motor):
     ----------
 
         Geometrical attributes:
+        Motor.coordinateSystemOrientation : str
+            Orientation of the motor's coordinate system. The coordinate system
+            is defined by the motor's axis of symmetry. The origin of the
+            coordinate system  may be placed anywhere along such axis, such as at the
+            nozzle area, and must be kept the same for all other positions specified.
+            Options are "nozzleToCombustionChamber" and "combustionChamberToNozzle".
         Motor.nozzleRadius : float
             Radius of motor nozzle outlet in meters.
-        nozzlePosition : float
+        Motor.nozzlePosition : float
             Motor's nozzle outlet position in meters. More specifically, the coordinate
-            of the nozzle outlet specified in a user defined reference frame which
-            follows the motor's axis of symmetry, being positive upwards from the
-            nozzle. The origin of such reference system maybe chosen by the user as
-            desired.
+            of the nozzle outlet specified in the motor's coordinate system.
+            See `Motor.coordinateSystemOrientation` for more information.
         Motor.throatRadius : float
             Radius of motor nozzle throat in meters.
         Motor.grainNumber : int
@@ -1319,6 +1345,7 @@ class HybridMotor(Motor):
         throatRadius=0.0114,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
+        coordinateSystemOrientation="nozzleToCombustionChamber",
     ):
         """Initialize Motor class, process thrust curve and geometrical
         parameters and store results.
@@ -1371,11 +1398,9 @@ class HybridMotor(Motor):
             trajectory simulation.
         nozzlePosition : int, float, optional
             Motor's nozzle outlet position in meters. More specifically, the coordinate
-            of the nozzle outlet specified in a user defined reference frame which
-            follows the motor's axis of symmetry, being positive upwards from the
-            nozzle. The origin of such reference system maybe chosen by the user as
-            desired.
-            Default is 0, in which case the origin of the motor's reference system
+            of the nozzle outlet specified in the motor's coordinate system.
+            See `Motor.coordinateSystemOrientation` for more information.
+            Default is 0, in which case the origin of the motor's coordinate system
             is placed at the motor's nozzle outlet.
         throatRadius : int, float, optional
             Motor's nozzle throat radius in meters. Its value has very low
@@ -1393,6 +1418,13 @@ class HybridMotor(Motor):
             Method of interpolation to be used in case thrust curve is given
             by data set in .csv or .eng, or as an array. Options are 'spline'
             'akima' and 'linear'. Default is "linear".
+        coordinateSystemOrientation : string, optional
+            Orientation of the motor's coordinate system. The coordinate system
+            is defined by the motor's axis of symmetry. The origin of the
+            coordinate system  may be placed anywhere along such axis, such as at the
+            nozzle area, and must be kept the same for all other positions specified.
+            Options are "nozzleToCombustionChamber" and "combustionChamberToNozzle".
+            Default is "nozzleToCombustionChamber".
 
         Returns
         -------
