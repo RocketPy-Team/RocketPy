@@ -1565,17 +1565,17 @@ class Flight:
         """Rocket z position as a rocketpy.Function of time."""
         return self.solutionArray[:, [0, 3]]
 
-    @funcify_method("Time (s)", "Vx (m/s)", "spline", "constant")
+    @funcify_method("Time (s)", "Vx (m/s)", "spline", "zero")
     def vx(self):
         """Rocket x velocity as a rocketpy.Function of time."""
         return self.solutionArray[:, [0, 4]]
 
-    @funcify_method("Time (s)", "Vy (m/s)", "spline", "constant")
+    @funcify_method("Time (s)", "Vy (m/s)", "spline", "zero")
     def vy(self):
         """Rocket y velocity as a rocketpy.Function of time."""
         return self.solutionArray[:, [0, 5]]
 
-    @funcify_method("Time (s)", "Vz (m/s)", "spline", "constant")
+    @funcify_method("Time (s)", "Vz (m/s)", "spline", "zero")
     def vz(self):
         """Rocket z velocity as a rocketpy.Function of time."""
         return self.solutionArray[:, [0, 6]]
@@ -1600,86 +1600,86 @@ class Flight:
         """Rocket quaternion e3 as a rocketpy.Function of time."""
         return self.solutionArray[:, [0, 10]]
 
-    @funcify_method("Time (s)", "ω1 (rad/s)", "spline", "constant")
+    @funcify_method("Time (s)", "ω1 (rad/s)", "spline", "zero")
     def w1(self):
         """Rocket angular velocity ω1 as a rocketpy.Function of time."""
         return self.solutionArray[:, [0, 11]]
 
-    @funcify_method("Time (s)", "ω2 (rad/s)", "spline", "constant")
+    @funcify_method("Time (s)", "ω2 (rad/s)", "spline", "zero")
     def w2(self):
         """Rocket angular velocity ω2 as a rocketpy.Function of time."""
         return self.solutionArray[:, [0, 12]]
 
-    @funcify_method("Time (s)", "ω3 (rad/s)", "spline", "constant")
+    @funcify_method("Time (s)", "ω3 (rad/s)", "spline", "zero")
     def w3(self):
         """Rocket angular velocity ω3 as a rocketpy.Function of time."""
         return self.solutionArray[:, [0, 13]]
 
     # Process second type of outputs - accelerations components
-    @funcify_method("Time (s)", "Ax (m/s²)", "spline", "constant")
+    @funcify_method("Time (s)", "Ax (m/s²)", "spline", "zero")
     def ax(self):
         """Rocket x acceleration as a rocketpy.Function of time."""
         return self.retrieve_acceleration_arrays[0]
 
-    @funcify_method("Time (s)", "Ay (m/s²)", "spline", "constant")
+    @funcify_method("Time (s)", "Ay (m/s²)", "spline", "zero")
     def ay(self):
         """Rocket y acceleration as a rocketpy.Function of time."""
         return self.retrieve_acceleration_arrays[1]
 
-    @funcify_method("Time (s)", "Az (m/s²)", "spline", "constant")
+    @funcify_method("Time (s)", "Az (m/s²)", "spline", "zero")
     def az(self):
         """Rocket z acceleration as a rocketpy.Function of time."""
         return self.retrieve_acceleration_arrays[2]
 
-    @funcify_method("Time (s)", "α1 (rad/s²)", "spline", "constant")
+    @funcify_method("Time (s)", "α1 (rad/s²)", "spline", "zero")
     def alpha1(self):
         """Rocket angular acceleration α1 as a rocketpy.Function of time."""
         return self.retrieve_acceleration_arrays[3]
 
-    @funcify_method("Time (s)", "α2 (rad/s²)", "spline", "constant")
+    @funcify_method("Time (s)", "α2 (rad/s²)", "spline", "zero")
     def alpha2(self):
         """Rocket angular acceleration α2 as a rocketpy.Function of time."""
         return self.retrieve_acceleration_arrays[4]
 
-    @funcify_method("Time (s)", "α3 (rad/s²)", "spline", "constant")
+    @funcify_method("Time (s)", "α3 (rad/s²)", "spline", "zero")
     def alpha3(self):
         """Rocket angular acceleration α3 as a rocketpy.Function of time."""
         return self.retrieve_acceleration_arrays[5]
 
     # Process third type of outputs - Temporary values
-    @funcify_method("Time (s)", "R1 (N)", "spline", "constant")
+    @funcify_method("Time (s)", "R1 (N)", "spline", "zero")
     def R1(self):
         """Aerodynamic force along the first axis that is perpendicular to the
         rocket's axis of symmetry as a rocketpy.Function of time."""
         return self.retrieve_temporary_values_arrays[0]
 
-    @funcify_method("Time (s)", "R2 (N)", "spline", "constant")
+    @funcify_method("Time (s)", "R2 (N)", "spline", "zero")
     def R2(self):
         """Aerodynamic force along the second axis that is perpendicular to the
         rocket's axis of symmetry as a rocketpy.Function of time."""
         return self.retrieve_temporary_values_arrays[1]
 
-    @funcify_method("Time (s)", "R3 (N)", "spline", "constant")
+    @funcify_method("Time (s)", "R3 (N)", "spline", "zero")
     def R3(self):
         """Aerodynamic force along the rocket's axis of symmetry as a rocketpy.Function
         of time."""
         return self.retrieve_temporary_values_arrays[2]
 
-    @funcify_method("Time (s)", "M1 (Nm)", "spline", "constant")
+    @funcify_method("Time (s)", "M1 (Nm)", "spline", "zero")
     def M1(self):
         """Aerodynamic bending moment in the same direction as the axis that is
         perpendicular to the rocket's axis of symmetry as a rocketpy.Function of time.
         """
         return self.retrieve_temporary_values_arrays[3]
 
-    @funcify_method("Time (s)", "M2 (Nm)", "spline", "constant")
+    @funcify_method("Time (s)", "M2 (Nm)", "spline", "zero")
     def M2(self):
         """Aerodynamic bending moment in the same direction as the axis that is
         perpendicular to the rocket's axis of symmetry as a rocketpy.Function of time.
         """
         return self.retrieve_temporary_values_arrays[4]
 
-    @funcify_method("Time (s)", "M3 (Nm)", "spline", "constant")
+    @funcify_method("Time (s)", "M3 (Nm)", "spline", "zero")
     def M3(self):
         """Aerodynamic bending moment in the same direction as the rocket's axis of
         symmetry as a rocketpy.Function of time."""
@@ -1895,7 +1895,7 @@ class Flight:
         return self.freestreamSpeed(self.apogeeTime)
 
     # Mach Number
-    @funcify_method("Time (s)", "Mach Number", "spline", "constant")
+    @funcify_method("Time (s)", "Mach Number", "spline", "zero")
     def MachNumber(self):
         """Mach number as a rocketpy.Function of time."""
         return self.freestreamSpeed / self.speedOfSound
@@ -1912,7 +1912,7 @@ class Flight:
         return self.MachNumber(self.maxMachNumberTime)
 
     # Reynolds Number
-    @funcify_method("Time (s)", "Reynolds Number", "spline", "constant")
+    @funcify_method("Time (s)", "Reynolds Number", "spline", "zero")
     def ReynoldsNumber(self):
         """Reynolds number as a rocketpy.Function of time."""
         return (self.density * self.freestreamSpeed / self.dynamicViscosity) * (
@@ -1931,7 +1931,7 @@ class Flight:
         return self.ReynoldsNumber(self.maxReynoldsNumberTime)
 
     # Dynamic Pressure
-    @funcify_method("Time (s)", "Dynamic Pressure (Pa)", "spline", "constant")
+    @funcify_method("Time (s)", "Dynamic Pressure (Pa)", "spline", "zero")
     def dynamicPressure(self):
         """Dynamic pressure as a rocketpy.Function of time."""
         return 0.5 * self.density * self.freestreamSpeed**2
@@ -1948,7 +1948,7 @@ class Flight:
         return self.dynamicPressure(self.maxDynamicPressureTime)
 
     # Total Pressure
-    @funcify_method("Time (s)", "Total Pressure (Pa)", "spline", "constant")
+    @funcify_method("Time (s)", "Total Pressure (Pa)", "spline", "zero")
     def totalPressure(self):
         return self.pressure * (1 + 0.2 * self.MachNumber**2) ** (3.5)
 
@@ -1966,29 +1966,29 @@ class Flight:
     # Dynamics functions and variables
 
     #  Aerodynamic Lift and Drag
-    @funcify_method("Time (s)", "Aerodynamic Lift Force (N)", "spline", "constant")
+    @funcify_method("Time (s)", "Aerodynamic Lift Force (N)", "spline", "zero")
     def aerodynamicLift(self):
         """Aerodynamic lift force as a rocketpy.Function of time."""
         return (self.R1**2 + self.R2**2) ** 0.5
 
-    @funcify_method("Time (s)", "Aerodynamic Drag Force (N)", "spline", "constant")
+    @funcify_method("Time (s)", "Aerodynamic Drag Force (N)", "spline", "zero")
     def aerodynamicDrag(self):
         """Aerodynamic drag force as a rocketpy.Function of time."""
         return -1 * self.R3
 
-    @funcify_method("Time (s)", "Aerodynamic Bending Moment (Nm)", "spline", "constant")
+    @funcify_method("Time (s)", "Aerodynamic Bending Moment (Nm)", "spline", "zero")
     def aerodynamicBendingMoment(self):
         """Aerodynamic bending moment as a rocketpy.Function of time."""
         return (self.M1**2 + self.M2**2) ** 0.5
 
-    @funcify_method("Time (s)", "Aerodynamic Spin Moment (Nm)", "spline", "constant")
+    @funcify_method("Time (s)", "Aerodynamic Spin Moment (Nm)", "spline", "zero")
     def aerodynamicSpinMoment(self):
         """Aerodynamic spin moment as a rocketpy.Function of time."""
         return self.M3
 
     # Energy
     # Kinetic Energy
-    @funcify_method("Time (s)", "Rotational Kinetic Energy (J)", "spline", "constant")
+    @funcify_method("Time (s)", "Rotational Kinetic Energy (J)", "spline", "zero")
     def rotationalEnergy(self):
         """Rotational kinetic energy as a rocketpy.Function of time."""
         b = -self.rocket.distanceRocketPropellant
@@ -2007,9 +2007,7 @@ class Flight:
         )
         return rotationalEnergy
 
-    @funcify_method(
-        "Time (s)", "Translational Kinetic Energy (J)", "spline", "constant"
-    )
+    @funcify_method("Time (s)", "Translational Kinetic Energy (J)", "spline", "zero")
     def translationalEnergy(self):
         """Translational kinetic energy as a rocketpy.Function of time."""
         # Redefine totalMass time grid to allow for efficient Function algebra
@@ -2020,7 +2018,7 @@ class Flight:
         )
         return translationalEnergy
 
-    @funcify_method("Time (s)", "Kinetic Energy (J)", "spline", "constant")
+    @funcify_method("Time (s)", "Kinetic Energy (J)", "spline", "zero")
     def kineticEnergy(self):
         """Total kinetic energy as a rocketpy.Function of time."""
         return self.rotationalEnergy + self.translationalEnergy
@@ -2043,7 +2041,7 @@ class Flight:
         return self.kineticEnergy + self.potentialEnergy
 
     # Thrust Power
-    @funcify_method("Time (s)", "Thrust Power (W)", "spline", "constant")
+    @funcify_method("Time (s)", "Thrust Power (W)", "spline", "zero")
     def thrustPower(self):
         """Thrust power as a rocketpy.Function of time."""
         thrust = deepcopy(self.rocket.motor.thrust)
@@ -2052,7 +2050,7 @@ class Flight:
         return thrustPower
 
     # Drag Power
-    @funcify_method("Time (s)", "Drag Power (W)", "spline", "constant")
+    @funcify_method("Time (s)", "Drag Power (W)", "spline", "zero")
     def dragPower(self):
         """Drag power as a rocketpy.Function of time."""
         dragPower = self.R3 * self.speed
@@ -2114,29 +2112,23 @@ class Flight:
         return FourierFrequencies, FourierAmplitude
 
     # Angular velocities frequency response - Fourier Analysis
-    @funcify_method(
-        "Frequency (Hz)", "ω1 Angle Fourier Amplitude", "spline", "constant"
-    )
+    @funcify_method("Frequency (Hz)", "ω1 Angle Fourier Amplitude", "spline", "zero")
     def omega1FrequencyResponse(self):
         """Angular velocity 1 frequency response as a rocketpy.Function of frequency."""
         return np.column_stack(self._frequency_analysis(self.w1))
 
-    @funcify_method(
-        "Frequency (Hz)", "ω2 Angle Fourier Amplitude", "spline", "constant"
-    )
+    @funcify_method("Frequency (Hz)", "ω2 Angle Fourier Amplitude", "spline", "zero")
     def omega2FrequencyResponse(self):
         """Angular velocity 2 frequency response as a rocketpy.Function of frequency."""
         return np.column_stack(self._frequency_analysis(self.w2))
 
-    @funcify_method(
-        "Frequency (Hz)", "ω3 Angle Fourier Amplitude", "spline", "constant"
-    )
+    @funcify_method("Frequency (Hz)", "ω3 Angle Fourier Amplitude", "spline", "zero")
     def omega3FrequencyResponse(self):
         """Angular velocity 3 frequency response as a rocketpy.Function of frequency."""
         return np.column_stack(self._frequency_analysis(self.w3))
 
     @funcify_method(
-        "Frequency (Hz)", "Attitude Angle Fourier Amplitude", "spline", "constant"
+        "Frequency (Hz)", "Attitude Angle Fourier Amplitude", "spline", "zero"
     )
     def attitudeFrequencyResponse(self):
         """Attitude frequency response as a rocketpy.Function of frequency."""
@@ -2285,7 +2277,7 @@ class Flight:
         bearing = np.column_stack((t, bearing))
         return bearing
 
-    @funcify_method("Time (s)", "Latitude (°)", "linear")
+    @funcify_method("Time (s)", "Latitude (°)", "linear", "constant")
     def latitude(self):
         """Rocket latitude coordinate, in degrees, as a rocketpy.Function of time."""
         lat1 = np.deg2rad(self.env.lat)  # Launch lat point converted to radians
@@ -2301,7 +2293,7 @@ class Flight:
         )
         return np.column_stack((self.time, latitude))
 
-    @funcify_method("Time (s)", "Longitude (°)", "linear")
+    @funcify_method("Time (s)", "Longitude (°)", "linear", "constant")
     def longitude(self):
         """Rocket longitude coordinate, in degrees, as a rocketpy.Function of time."""
         lat1 = np.deg2rad(self.env.lat)  # Launch lat point converted to radians
