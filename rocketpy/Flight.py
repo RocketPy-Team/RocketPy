@@ -606,9 +606,9 @@ class Flight:
 
         # Modifying Rail Length for a better out of rail condition
         upperButtonPosition, lowerButtonPosition = self.rocket.railButtons.position
-        nozzlePosition = self.rocket.motor.nozzlePosition + self.rocket.motorPosition
-        self.effective1RL = self.env.rL - abs(nozzle - upperButtonPosition)
-        self.effective2RL = self.env.rL - abs(nozzle - lowerButtonPosition)
+        nozzlePosition = self.rocket.motorPosition
+        self.effective1RL = self.env.rL - abs(nozzlePosition - upperButtonPosition)
+        self.effective2RL = self.env.rL - abs(nozzlePosition - lowerButtonPosition)
 
         # Flight initialization
         self.__init_post_process_variables()
@@ -1340,12 +1340,18 @@ class Flight:
         mu = (Mt * Mr) / (Mt + Mr)
         # Geometry
         # b = -self.rocket.distanceRocketPropellant
-        b = -(self.rocket.motorPosition - self.rocket.centerOfDryMassPosition)
+        b = (
+            -(self.rocket.motorPosition - self.rocket.centerOfDryMassPosition)
+            * self.rocket._csys
+        )
         # c = -self.rocket.distanceRocketNozzle
-        c = -(
-            self.rocket.motor.nozzlePosition
-            + self.rocket.motorPosition
-            - self.rocket.centerOfDryMassPosition
+        c = (
+            -(
+                self.rocket.motor.nozzlePosition
+                + self.rocket.motorPosition
+                - self.rocket.centerOfDryMassPosition
+            )
+            * self.rocket._csys
         )
         a = b * Mt / M
         rN = self.rocket.motor.nozzleRadius
@@ -1389,9 +1395,11 @@ class Flight:
         vyB = a12 * vx + a22 * vy + a32 * vz
         vzB = a13 * vx + a23 * vy + a33 * vz
         # Calculate lift and moment for each component of the rocket
-        for aerodynamicSurface in self.rocket.aerodynamicSurfaces:
-            compCp = aerodynamicSurface.cp[2] - self.rocket.centerOfDryMassPosition
-            surfaceRadius = aerodynamicSurface.rocketRadius
+        for aeroSurface, position in self.rocket.aerodynamicSurfaces:
+            compCp = (
+                position - self.rocket.centerOfDryMassPosition
+            ) * self.rocket._csys - aeroSurface.cpz
+            surfaceRadius = aeroSurface.rocketRadius
             referenceArea = np.pi * surfaceRadius**2
             # Component absolute velocity in body frame
             compVxB = vxB + compCp * omega2
@@ -1419,8 +1427,8 @@ class Flight:
                 compStreamVzBn = compStreamVzB / compStreamSpeed
                 if -1 * compStreamVzBn < 1:
                     compAttackAngle = np.arccos(-compStreamVzBn)
-                    cLift = aerodynamicSurface.cl(compAttackAngle, freestreamMach)
-                    cLift = aerodynamicSurface.cl(compAttackAngle, freestreamMach)
+                    cLift = aeroSurface.cl(compAttackAngle, freestreamMach)
+                    cLift = aeroSurface.cl(compAttackAngle, freestreamMach)
                     # Component lift force magnitude
                     compLift = (
                         0.5 * rho * (compStreamSpeed**2) * referenceArea * cLift
@@ -1437,7 +1445,7 @@ class Flight:
                     M2 += (compCp + a) * compLiftXB
             # Calculates Roll Moment
             try:
-                Clfdelta, Cldomega, cantAngleRad = aerodynamicSurface.rollParameters
+                Clfdelta, Cldomega, cantAngleRad = aeroSurface.rollParameters
                 M3f = (
                     (1 / 2 * rho * freestreamSpeed**2)
                     * referenceArea
@@ -2532,7 +2540,10 @@ class Flight:
     @cached_property
     def rotationalEnergy(self):
         # b = -self.rocket.distanceRocketPropellant
-        b = -(self.rocket.motorPosition - self.rocket.centerOfDryMassPosition)
+        b = (
+            -(self.rocket.motorPosition - self.rocket.centerOfDryMassPosition)
+            * self.rocket._csys
+        )
         mu = self.rocket.reducedMass
         Rz = self.rocket.inertiaZ
         Ri = self.rocket.inertiaI
@@ -3210,9 +3221,13 @@ class Flight:
             return 0, 0, 0, 0
 
         # Distance from Rail Button 1 (upper) to CM
-        D1 = self.rocket.railButtons.position[0] - self.rocket.centerOfDryMassPosition
+        D1 = (
+            self.rocket.railButtons.position[0] - self.rocket.centerOfDryMassPosition
+        ) * self.rocket._csys
         # Distance from Rail Button 2 (lower) to CM
-        D2 = self.rocket.railButtons.position[1] - self.rocket.centerOfDryMassPosition
+        D2 = (
+            self.rocket.railButtons.position[1] - self.rocket.centerOfDryMassPosition
+        ) * self.rocket._csys
         F11 = (self.R1 * D2 - self.M2) / (D1 + D2)
         F11.setOutputs("Upper button force direction 1 (m)")
         F12 = (self.R2 * D2 + self.M1) / (D1 + D2)
