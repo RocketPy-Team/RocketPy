@@ -339,7 +339,7 @@ class UllageBasedTank(Tank):
         mfr.setOutputs("Mass Flow Rate")
         return mfr
 
-    def evaluateUllageHeight(self):
+    def liquidHeight(self):
         return self.ullageHeight
 
     def liquidMass(self):

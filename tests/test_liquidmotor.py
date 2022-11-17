@@ -5,6 +5,8 @@ from rocketpy.Function import Function
 from math import isclose
 from scipy.optimize import fmin
 import numpy as np
+import pandas as pd
+import os
 
 
 # @PBales1
@@ -18,22 +20,57 @@ def test_mass_based_motor():
 
 # @curtisjhu
 def test_ullage_based_motor():
-    lox = Fluid(name = "LOx", density = 2, quality = 1.0)
-    n2 = Fluid(name = "Nitrogen Gas", density = 1, quality = 1.0)
 
-    ullageData = [(1, 6), (2, 5), (3, 4), (4, 3), (5, 2), (6, 1)] # constant flow rate
-    tank_geometry = {(0, 6): lambda y: 1}
-    ullageTank = UllageBasedTank("Ullage Tank", tank_geometry, gas=n2, liquid=lox, ullage=ullageData)
+    lox = Fluid(name = "LOx", density=1141.7, quality = 1.0)
+    n2 = Fluid(name = "Nitrogen Gas", density=51.75, quality = 1.0)
+
+    test_dir = '../data/e1-hotfires/test136/'
+
+    top_endcap = lambda y: np.sqrt(0.0775 ** 2 - (y - 0.692300000000001) ** 2)
+    bottom_endcap = lambda y: np.sqrt(0.0775 ** 2 - (0.0775 - y) ** 2)
+    tank_geometry = {(0, 0.0559): bottom_endcap, (.0559, 0.7139): lambda y: 0.0744, (0.7139, 0.7698): top_endcap}
+
+    ullage_data = pd.read_csv(os.path.abspath(test_dir+'loxUllage.csv')).to_numpy()
+    ullageTank = UllageBasedTank("Ullage Tank", tank_geometry,
+                                 gas=n2, liquid=lox, ullage=ullage_data)
+
+    mass_data = pd.read_csv(test_dir+'loxMass.csv').to_numpy()
+    mass_flow_rate_data = pd.read_csv(test_dir+'loxMFR.csv').to_numpy()
+
+    def align_time_series(small_source, large_source):
+        assert isinstance(small_source, np.ndarray) and isinstance(large_source, np.ndarray), "Must be np.ndarrays"
+        if small_source.shape[0] > large_source.shape[0]:
+            small_source, large_source = large_source, small_source
+
+        result_larger_source = np.ndarray(small_source.shape)
+        result_smaller_source = np.ndarray(small_source.shape)
+        tolerance = .1
+        curr_ind = 0
+        for val in small_source:
+            time = val[0]
+            delta_time_vector = abs(time-large_source[:, 0])
+            largeIndex = np.argmin(delta_time_vector)
+            delta_time = abs(time - large_source[largeIndex][0])
+
+            if delta_time < tolerance:
+                result_larger_source[curr_ind] = large_source[largeIndex]
+                result_smaller_source[curr_ind] = val
+                curr_ind += 1
+        return result_larger_source, result_smaller_source
+
+    assert np.allclose(ullageTank.liquidHeight().getSource(), ullage_data)
+
+    calculated_mass = ullageTank.liquidMass().getSource()
+    calculated_mass, mass_data = align_time_series(calculated_mass, mass_data)
+    assert np.allclose(calculated_mass, mass_data, rtol=1, atol=2)
+    # Function(calculated_mass).plot1D()
+    # Function(mass_data).plot1D()
 
 
-    center_of_mass_data = [[1, 3], [2, 2.5], [3, 2], [4, 1.5], [5, 1], [6, 0.5]]
-    assert ullageTank.centerOfMass() == Function(center_of_mass_data)
-
-    mass_data = [[1, 12], [2, 11], [3, 10], [4, 9], [5, 8], [6, 7]]
-    assert ullageTank.mass() == Function(mass_data)
-
-    mass_flow_rate_data = [[1, 1], [1, 1], [1, 1], [1, 1], [1, 1], [1, 1]]
-    assert ullageTank.netMassFlowRate() == Function(mass_flow_rate_data)
+    calculated_mfr, test_mfr = align_time_series(ullageTank.netMassFlowRate().getSource(), mass_flow_rate_data)
+    # assert np.allclose(calculated_mfr, test_mfr)
+    # Function(calculated_mfr).plot1D()
+    # Function(test_mfr).plot1D()
 
 # @gautamsaiy
 def test_mfr_tank_basic():
@@ -72,10 +109,17 @@ def test_mfr_tank_basic():
         tcom = t.centerOfMass
         test(tcom, acom)
 
-    def test_inertia():
-        i = t.inertiaTensor()
-        test(i, 0)
-        
+    # def test_inertia():
+    #     alv = lambda x: (initial_liquid_mass + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x) / lox.density
+    #     alh = lambda x: alv(x) / (np.pi)
+    #     m = lambda x: (initial_liquid_mass + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x) + \
+    #         (initial_gas_mass + (gas_mass_flow_rate_in - gas_mass_flow_rate_out) * x)
+    #     r = 1
+    #     iz = lambda x: (m(x) * r**2)/2
+    #     ix = lambda x: (1/12)*m(x)*(3*r**2 + alh(x) **2)
+    #     iy = lambda x: (1/12)*m(x)*(3*r**2 + alh(x) **2)
+    #     test(i, 0)
+    #
 
 
     tank_radius_function = {(0, 5): 1}
@@ -98,7 +142,6 @@ def test_mfr_tank_basic():
     test_liquid_height()
     test_com()
     # test_inertia()
-
 
 def test_mfr_tank():
     def test(t, a):

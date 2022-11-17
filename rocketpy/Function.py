@@ -1936,20 +1936,6 @@ class Function:
         elif callable(other):
             return Function(lambda x: (other(x) - self.getValue(x)))
     
-    def __eq__(self, other):
-        """ Checks if two functions are suffiently close enough.
-
-        Parameters
-        ----------
-        other : Function
-
-        Returns
-        -------
-        result : Boolean
-            True if the two function's sources are within a tolerance.
-        """
-        return np.allclose(self.source, other.source)
-
     def integral(self, a, b, numerical=False):
         """Evaluate a definite integral of a 1-D Function in the interval
         from a to b.
@@ -2197,27 +2183,23 @@ class Function:
         # Checks to make lower bound is given
         # If not it will start at the higher of the two lower bounds
         if lower is None:
-            lower_limit_found = False
             if isinstance(self.source, np.ndarray):
                 lower = self.source[0, 0]
-                lower_limit_found = True
             if isinstance(func.source, np.ndarray):
-                lower = max(lower, func.source[0, 0])
-            if not lower_limit_found:
-                raise ValueError("Lower limit must be given if source is a function.")
-        
+                lower = func.source[0, 0] if lower is None else max(lower, func.source[0, 0])
+            if lower is None:
+                raise ValueError("If Functions.source is a <class 'function'>, must provide bounds")
+
         # Checks to make upper bound is given
         # If not it will end at the lower of the two upper bounds
         if upper is None:
-            upper_limit_found = False
             if isinstance(self.source, np.ndarray):
                 upper = self.source[-1, 0]
-                upper_limit_found = True
             if isinstance(func.source, np.ndarray):
-                upper = min(upper, func.source[-1, 0])
-            if not upper_limit_found:
-                raise ValueError("Upper limit must be given if source is a function.")
-            
+                upper = func.source[-1, 0] if upper is None else min(upper, func.source[-1, 0])
+            if upper is None:
+                raise ValueError("If Functions.source is a <class 'function'>, must provide bounds")
+
         # Create a new Function object
         xData = np.linspace(lower, upper, datapoints)
         yData = np.zeros(datapoints)
