@@ -36,12 +36,12 @@ def test_ullage_based_motor():
     assert ullageTank.netMassFlowRate() == Function(mass_flow_rate_data)
 
 # @gautamsaiy
-def test_mfr_tank_basic1():
+def test_mfr_tank_basic():
     def test(t, a):
         for i in np.arange(0, 10, .2):
-            # assert isclose(t.getValue(i), a(i), abs_tol=1e-5)
+            assert isclose(t.getValue(i), a(i), abs_tol=1e-5)
             # print(t.getValue(i), a(i))
-            print(t(i))
+            # print(t(i))
 
     def test_nmfr():
         nmfr = lambda x: liquid_mass_flow_rate_in + gas_mass_flow_rate_in - liquid_mass_flow_rate_out - gas_mass_flow_rate_out
@@ -97,4 +97,48 @@ def test_mfr_tank_basic1():
     test_mass()
     test_liquid_height()
     test_com()
-    test_inertia()
+    # test_inertia()
+
+
+def test_mfr_tank():
+    def test(t, a):
+        for i in np.arange(0, 10, .2):
+            assert isclose(t.getValue(i), a(i), abs_tol=1e-5)
+
+    def test_nmfr():
+        anmfr = Function("../data/e1/nmfr.csv")
+        nmfr = t.netMassFlowRate()
+        test(nmfr, anmfr)
+
+    def test_mass():
+        am = Function("../data/e1/mass.csv")
+        m = t.mass()
+        test(m, am)
+    
+    def test_liquid_height():
+        alh = Function("../data/e1/ullage_height.csv")
+        lh = t.liquidHeight()
+        test(lh, alh)
+
+    initial_liquid_mass = Function("../data/e1/liquid_mass.csv")(0)
+    initial_gas_mass = Function("../data/e1/gas_mass.csv")(0)
+    liquid_mass_flow_rate_in = Function(0)
+    gas_mass_flow_rate_in = Function("../data/e1/gas_mfri.csv")
+    liquid_mass_flow_rate_out = Function("../data/e1/liquid_mfr.csv")
+    gas_mass_flow_rate_out = Function("../data/e1/gas_mfro.csv")
+
+    lox = Fluid(name = "LOx", density = 1141, quality = 1.0) #Placeholder quality value
+    n2 = Fluid(name = "Nitrogen Gas", density = 51.75, quality = 1.0) #Placeholder quality value; density value may be estimate
+
+    top_endcap = lambda y: np.sqrt(0.0775 ** 2 - (y - 0.692300000000001) ** 2)
+    bottom_endcap = lambda y: np.sqrt(0.0775 ** 2 - (0.0775 - y) **2)
+    tank_geometry = {(0, 0.0559): bottom_endcap, (.0559, 0.7139): lambda y: 0.0744, (0.7139, 0.7698): top_endcap}
+    
+    t = MassFlowRateBasedTank("Test Tank", tank_geometry,
+            initial_liquid_mass, initial_gas_mass, liquid_mass_flow_rate_in,
+            gas_mass_flow_rate_in, liquid_mass_flow_rate_out,
+            gas_mass_flow_rate_out, lox, n2)
+
+    test_nmfr()
+    test_mass()
+    test_liquid_height()

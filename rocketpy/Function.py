@@ -2232,7 +2232,7 @@ class Function:
 
 
 class PiecewiseFunction(Function):
-    def __new__(cls, source, inputs=["Scalar"], outputs=["Scalar"], interpolation="polynomial", extrapolation=None, datapoints=50):
+    def __new__(cls, source, inputs=["Scalar"], outputs=["Scalar"], interpolation="akima", extrapolation=None, datapoints=50):
         """
         A Function object that can be used to represent a function with
         multiple domains.
