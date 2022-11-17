@@ -374,8 +374,9 @@ class Rocket:
             loaded with propellant in units of rocket diameter or
             calibers.
         """
-        # Initialize total lift coefficient derivative
+        # Initialize total lift coefficient derivative and center of pressure position
         self.totalLiftCoeffDer = 0
+        self.cpPosition = 0
 
         # Calculate total lift coefficient derivative and center of pressure
         if len(self.aerodynamicSurfaces) > 0:
