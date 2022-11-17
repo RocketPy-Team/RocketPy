@@ -38,7 +38,6 @@ class LiquidMotor(Motor):
             total_mfr += tank.netMassFlowRate()
         return total_mfr
 
-
     def evaluateCenterOfMass(self):
         com = Function(0)
         total_mass = Function(0)
@@ -373,8 +372,14 @@ class MassBasedTank(Tank):
         self.liquid_mass = Function(liquid_mass, inputs="Time", outputs="Mass")
         self.gas_mass = Function(gas_mass, inputs="Time", outputs="Mass")
 
+    def find_liquid_mass(self):
+        return self.liquid_mass
+
+    def find_gas_mass(self):
+        return self.gas_mass
+
     def mass(self):
-        m = self.liquid_mass + self.gas_mass
+        m = self.find_liquid_mass() + self.find_gas_mass()
         m.setInputs("Time")
         m.setOutputs("Mass")
         return m
@@ -387,6 +392,12 @@ class MassBasedTank(Tank):
         return mfr
 
     def evaluateUllageHeight(self):
-        return super().evaluateUllageHeight()
+        liquid_volume = self.liquid_mass / self.liquid.density
+        tank_vol = self.tank_vol.reverse()
+        ullage_height = Function(lambda t: tank_vol.getValue(liquid_volume.getValue(t)))
+        ullage_height.setInputs("Time")
+        ullage_height.setOutputs("Ullage Height")
+        return ullage_height
+
         
 
