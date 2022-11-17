@@ -2120,19 +2120,19 @@ class Flight:
     # Angular velocities frequency response - Fourier Analysis
     @funcify_method("Frequency (Hz)", "ω1 Angle Fourier Amplitude", "spline", "zero")
     def omega1FrequencyResponse(self):
-        """Angular velocity 1 frequency response as a rocketpy.Function of frequency, 
+        """Angular velocity 1 frequency response as a rocketpy.Function of frequency,
         as the rocket leaves the launch rail."""
         return np.column_stack(self._frequency_analysis(self.w1))
 
     @funcify_method("Frequency (Hz)", "ω2 Angle Fourier Amplitude", "spline", "zero")
     def omega2FrequencyResponse(self):
-        """Angular velocity 2 frequency response as a rocketpy.Function of frequency, 
+        """Angular velocity 2 frequency response as a rocketpy.Function of frequency,
         as the rocket leaves the launch rail."""
         return np.column_stack(self._frequency_analysis(self.w2))
 
     @funcify_method("Frequency (Hz)", "ω3 Angle Fourier Amplitude", "spline", "zero")
     def omega3FrequencyResponse(self):
-        """Angular velocity 3 frequency response as a rocketpy.Function of frequency, 
+        """Angular velocity 3 frequency response as a rocketpy.Function of frequency,
         as the rocket leaves the launch rail."""
         return np.column_stack(self._frequency_analysis(self.w3))
 
