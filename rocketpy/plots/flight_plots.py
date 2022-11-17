@@ -856,9 +856,15 @@ class _FlightPlots:
         else:
             for parachute in self.flight.rocket.parachutes:
                 print("Parachute: ", parachute.name)
-                parachute.noiseSignalFunction()
-                parachute.noisyPressureSignalFunction()
-                parachute.cleanPressureSignalFunction()
+                try:
+                    parachute.noiseSignalFunction()
+                    parachute.noisyPressureSignalFunction()
+                    parachute.cleanPressureSignalFunction()
+                except:
+                    self.flight.__calculate_pressure_signal()
+                    parachute.noiseSignalFunction()
+                    parachute.noisyPressureSignalFunction()
+                    parachute.cleanPressureSignalFunction()
 
         return None
 

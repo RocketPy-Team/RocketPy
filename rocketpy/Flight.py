@@ -3234,7 +3234,6 @@ class Flight:
 
         return F11, F12, F21, F22
 
-    @cached_property
     def __calculate_pressure_signal(self):
         """Calculate the pressure signal from the pressure sensor.
         It creates a SignalFunction attribute in the parachute object.
@@ -3534,8 +3533,18 @@ class Flight:
         else:
             for parachute in self.rocket.parachutes:
                 for i in range(0, timePoints.size, 1):
-                    pCl = parachute.cleanPressureSignalFunction(timePoints[i])
-                    pNs = parachute.noisyPressureSignalFunction(timePoints[i])
+                    pCl = Function(
+                        parachute.cleanPressureSignal,
+                        "Time (s)",
+                        "Pressure - Without Noise (Pa)",
+                        "linear",
+                    )(timePoints[i])
+                    pNs = Function(
+                        parachute.noisyPressureSignal,
+                        "Time (s)",
+                        "Pressure - With Noise (Pa)",
+                        "linear",
+                    )(timePoints[i])
                     file.write("{:f}, {:.5f}, {:.5f}\n".format(timePoints[i], pCl, pNs))
                 # We need to save only 1 parachute data
                 pass
