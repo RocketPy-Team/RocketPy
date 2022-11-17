@@ -64,6 +64,7 @@ class Tank(ABC):
         """
         self.evaluateFilling(t)
         self.evaluateMassDistribution()
+        self.evaluateCentroids()
 
     def evaluateFilling(self, t):
         """Calculates the distribution of volume of liquid and gases in the tank
@@ -128,7 +129,7 @@ class Tank(ABC):
         -------
         None
         """
-        self.bottomCapLiquidCentroid = self.bottomCap.centroid
+        self.bottomCapLiquidCentroid = self.bottomCap.filled_centroid
         self.bottomCapGasCentroid = self.bottomCap.empty_centroid
         self.bottomCapCentroid = self.bottomCap.centroid
 
@@ -155,13 +156,12 @@ class Tank(ABC):
         -------
         None
         """
-        self.bottomCapRelDist = self.centerOfMass(t) - self.bottomCap.height
-        self.cylinderRelDist = (
-            self.bottomCap.height + self.cylinder.centroid - self.centerOfMass(t)
-        )
-        self.upperCapRelDist = (
-            self.bottomCap.height + self.cylinder.height - self.centerOfMass(t)
-        )
+        self.bottomCapRelDistLiq = self.centerOfMass(t) - self.bottomCapLiquidCentroid
+        self.bottomCapRelDistGas = self.centerOfMass(t) - self.bottomCapGasCentroid
+        self.cylinderRelDistLiq = self.centerOfMass(t) - self.cylinderLiquidCentroid
+        self.cylinderRelDistGas = self.centerOfMass(t) - self.cylinderGasCentroid
+        self.upperCapRelDistLiq = self.centerOfMass(t) - self.upperCapLiquidCentroid
+        self.upperCapRelDistGas = self.centerOfMass(t) - self.upperCapGasCentroid
 
     @functools.cached_property
     def volume(self):
@@ -246,7 +246,6 @@ class Tank(ABC):
 
         def centerOfMass(t):
             self.evaluateTankState(t)
-            self.evaluateCentroids()
 
             bottomCapMassBalance = (
                 self.bottomCapLiquidMass * self.bottomCap.filled_centroid
@@ -303,18 +302,21 @@ class Tank(ABC):
 
             bottomCapInertia = (
                 self.gas.density * bottomCapGasInertia[0]
+                + self.bottomCapLiquidMass * self.bottomCapRelDistLiq**2
                 + self.liquid.density * bottomCapLiquidInertia[0]
-                + self.bottomCapMass * self.bottomCapRelDist**2
+                + self.bottomCapGasMass * self.bottomCapRelDistGas**2
             )
             cylinderInertia = (
                 self.gas.density * cylinderGasInertia[0]
+                + self.cylinderLiquidMass * self.cylinderRelDistLiq**2
                 + self.liquid.density * cylinderLiquidInertia[0]
-                + self.cylinderMass * self.cylinderRelDist**2
+                + self.cylinderGasMass * self.cylinderRelDistGas**2
             )
             upperCapInertia = (
                 self.gas.density * upperCapGasInertia[0]
+                + self.upperCapLiquidMass * self.upperCapRelDistLiq**2
                 + self.liquid.density * upperCapLiquidInertia[0]
-                + self.upperCapMass * self.upperCapRelDist**2
+                + self.upperCapGasMass * self.upperCapRelDistGas**2
             )
 
             inertia_ixx = bottomCapInertia + cylinderInertia + upperCapInertia

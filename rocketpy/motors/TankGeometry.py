@@ -238,9 +238,8 @@ class TankGeometry:
     @property
     def filled_inertia(self):
         """Returns the principal volumes of inertia of the filled portion with
-        respect to the centroid of the shape that originated the geometry (e.g.
-        for an hemispherical cap it is an sphere). The z-axis is the direction
-        of filling and perpendicular to the liquid level.
+        respect to the centroid the geometry. The z-axis is the direction of
+        filling and it is perpendicular to the liquid level.
         Note: the volumes of inertia must be multiplied by the density of the
         fluid to get the actual moments of inertia.
 
@@ -254,9 +253,8 @@ class TankGeometry:
     @property
     def empty_inertia(self):
         """Returns the principal volumes of inertia of the empty portion with
-        respect to the centroid of the shape that originated the geometry (e.g.
-        for an hemispherical cap it is an sphere). The z-axis is the direction
-        of filling and perpendicular to the liquid level.
+        respect to the centroid the geometry. The z-axis is the direction of
+        filling and it is perpendicular to the liquid level.
         Note: the volumes of inertia must be multiplied by the density of the
         fluid to get the actual moments of inertia.
 
@@ -326,9 +324,7 @@ class Cylinder(TankGeometry):
     @TankGeometry.filled_inertia.getter
     def filled_inertia(self):
         inertia_x = self.filled_volume * (
-            self.radius**2 / 4
-            + self.filled_height**2 / 12
-            + (self.centroid - self.filled_centroid) ** 2
+            self.radius**2 / 4 + self.filled_height**2 / 12
         )
         inertia_y = inertia_x
         inertia_z = self.filled_volume * self.radius**2 / 2
@@ -337,9 +333,7 @@ class Cylinder(TankGeometry):
     @TankGeometry.empty_inertia.getter
     def empty_inertia(self):
         inertia_x = self.empty_volume * (
-            self.radius**2 / 4
-            + self.empty_height**2 / 12
-            + (self.empty_centroid - self.centroid) ** 2
+            self.radius**2 / 4 + self.empty_height**2 / 12
         )
         inertia_y = inertia_x
         inertia_z = self.empty_volume * self.radius**2 / 2
@@ -423,19 +417,37 @@ class Hemisphere(TankGeometry):
 
     @TankGeometry.filled_inertia.getter
     def filled_inertia(self):
-        # Remember that the inertia is calculated with respect to the center of sphere
         if self.fill_direction == "downwards":
-            return self.__downwards_inertia(self.filled_height)
+            inertia_x, inertia_y, inertia_z = self.__downwards_inertia(
+                self.filled_height
+            )
+            # Steiner theorem to move inertia to the filled centroid
+            inertia_x -= self.filled_volume * self.filled_centroid**2
+            inertia_y = inertia_x
+            return inertia_x, inertia_y, inertia_z
         else:
-            return self.__upwards_inertia(self.filled_height)
+            inertia_x, inertia_y, inertia_z = self.__upwards_inertia(self.filled_height)
+            # Steiner theorem to move inertia to the filled centroid
+            inertia_x -= self.filled_volume * (self.filled_centroid - self.height) ** 2
+            inertia_y = inertia_x
+            return inertia_x, inertia_y, inertia_z
 
     @TankGeometry.empty_inertia.getter
     def empty_inertia(self):
-        # Empty region inertia is opposite to the filling
         if self.fill_direction == "downwards":
-            return self.__upwards_inertia(self.empty_height)
+            inertia_x, inertia_y, inertia_z = self.__upwards_inertia(self.empty_height)
+            # Steiner theorem to move inertia to the empty centroid
+            inertia_x -= self.empty_volume * self.empty_centroid**2
+            inertia_y = inertia_x
+            return inertia_x, inertia_y, inertia_z
         else:
-            return self.__downwards_inertia(self.empty_height)
+            inertia_x, inertia_y, inertia_z = self.__downwards_inertia(
+                self.empty_height
+            )
+            # Steiner theorem to move inertia to the empty centroid
+            inertia_x -= self.empty_volume * (self.empty_centroid - self.height) ** 2
+            inertia_y = inertia_x
+            return inertia_x, inertia_y, inertia_z
 
     def volume_to_height(self, volume):
         if self.fill_direction == "downwards":
