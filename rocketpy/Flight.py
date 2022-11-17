@@ -2086,7 +2086,7 @@ class Flight:
         return angleOfAttack
 
     # Stability and Control variables
-    def _frequency_analysis(self, func, samplingFrequency=1000):
+    def _frequency_analysis(self, func, samplingFrequency=100, sampleWindow=5):
         """Frequency analysis of any function of time between out of rail time
         and final simulation time.
 
@@ -2094,6 +2094,11 @@ class Flight:
         ----------
         func : rocketpy.Function, callable
             Function of time to be analyzed.
+        samplingFrequency : int, optional
+            Sampling frequency in Hz. The default is 100 Hz.
+        sampleWindow : float, optional
+            Sample window in seconds, starting from Flight.outOfRailTime.
+        The default is 5 seconds.
 
         Returns
         -------
@@ -2103,7 +2108,8 @@ class Flight:
             Array of amplitude values.
         """
         samplingTimeStep = 1.0 / samplingFrequency
-        samplingRange = np.arange(self.outOfRailTime, self.tFinal, samplingTimeStep)
+        finalTime = self.outOfRailTime + sampleWindow
+        samplingRange = np.arange(self.outOfRailTime, finalTime, samplingTimeStep)
         sampledPoints = func(samplingRange)
         sampledPoints -= np.mean(sampledPoints)
         numberOfSamples = len(sampledPoints)
@@ -2114,24 +2120,28 @@ class Flight:
     # Angular velocities frequency response - Fourier Analysis
     @funcify_method("Frequency (Hz)", "ω1 Angle Fourier Amplitude", "spline", "zero")
     def omega1FrequencyResponse(self):
-        """Angular velocity 1 frequency response as a rocketpy.Function of frequency."""
+        """Angular velocity 1 frequency response as a rocketpy.Function of frequency, 
+        as the rocket leaves the launch rail."""
         return np.column_stack(self._frequency_analysis(self.w1))
 
     @funcify_method("Frequency (Hz)", "ω2 Angle Fourier Amplitude", "spline", "zero")
     def omega2FrequencyResponse(self):
-        """Angular velocity 2 frequency response as a rocketpy.Function of frequency."""
+        """Angular velocity 2 frequency response as a rocketpy.Function of frequency, 
+        as the rocket leaves the launch rail."""
         return np.column_stack(self._frequency_analysis(self.w2))
 
     @funcify_method("Frequency (Hz)", "ω3 Angle Fourier Amplitude", "spline", "zero")
     def omega3FrequencyResponse(self):
-        """Angular velocity 3 frequency response as a rocketpy.Function of frequency."""
+        """Angular velocity 3 frequency response as a rocketpy.Function of frequency, 
+        as the rocket leaves the launch rail."""
         return np.column_stack(self._frequency_analysis(self.w3))
 
     @funcify_method(
         "Frequency (Hz)", "Attitude Angle Fourier Amplitude", "spline", "zero"
     )
     def attitudeFrequencyResponse(self):
-        """Attitude frequency response as a rocketpy.Function of frequency."""
+        """Attitude frequency response as a rocketpy.Function of frequency, as the
+        rocket leaves the launch rail."""
         return np.column_stack(self._frequency_analysis(self.attitudeAngle))
 
     # Static Margin
