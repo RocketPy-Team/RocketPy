@@ -747,5 +747,5 @@ def test_latlon_conversions2(mock_show):
 
     test_flight.postProcess()
 
-    assert test_flight.longitude(test_flight.tFinal) == 0
+    assert abs(test_flight.longitude(test_flight.tFinal) - 0) < 1e-12
     assert test_flight.latitude(test_flight.tFinal) > 0
