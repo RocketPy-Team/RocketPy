@@ -58,6 +58,6 @@ class _RocketPlots:
         self.rocket.staticMargin()
         self.rocket.powerOnDrag()
         self.rocket.powerOffDrag()
-        self.rocket.thrustToWeight.plot(lower=0, upper=self.motor.burnOutTime)
+        self.rocket.thrustToWeight.plot(lower=0, upper=self.rocket.motor.burnOutTime)
 
         return None
