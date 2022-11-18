@@ -2085,66 +2085,43 @@ class Flight:
 
         return angleOfAttack
 
-    # Stability and Control variables
-    def _frequency_analysis(self, func, samplingFrequency=100, sampleWindow=5):
-        """Frequency analysis of any function of time between out of rail time
-        and final simulation time.
-
-        Parameters
-        ----------
-        func : rocketpy.Function, callable
-            Function of time to be analyzed.
-        samplingFrequency : int, optional
-            Sampling frequency in Hz. The default is 100 Hz.
-        sampleWindow : float, optional
-            Sample window in seconds, starting from Flight.outOfRailTime.
-        The default is 5 seconds.
-
-        Returns
-        -------
-        FourierFrequencies : numpy.ndarray
-            Array of frequencies.
-        FourierAmplitude : numpy.ndarray
-            Array of amplitude values.
-        """
-        samplingTimeStep = 1.0 / samplingFrequency
-        finalTime = self.outOfRailTime + sampleWindow
-        samplingRange = np.arange(self.outOfRailTime, finalTime, samplingTimeStep)
-        sampledPoints = func(samplingRange)
-        sampledPoints -= np.mean(sampledPoints)
-        numberOfSamples = len(sampledPoints)
-        FourierAmplitude = np.abs(np.fft.fft(sampledPoints) / numberOfSamples)
-        FourierFrequencies = np.fft.fftfreq(numberOfSamples, samplingTimeStep)
-        return FourierFrequencies, FourierAmplitude
-
-    # Angular velocities frequency response - Fourier Analysis
-    @funcify_method("Frequency (Hz)", "ω1 Angle Fourier Amplitude", "spline", "zero")
+    # Frequency response and stability variables
+    @funcify_method("Frequency (Hz)", "ω1 Fourier Amplitude", "spline", "zero")
     def omega1FrequencyResponse(self):
         """Angular velocity 1 frequency response as a rocketpy.Function of frequency,
-        as the rocket leaves the launch rail."""
-        return np.column_stack(self._frequency_analysis(self.w1))
+        as the rocket leaves the launch rail for 5 seconds of flight."""
+        return self.w1.toFrequencyDomain(
+            self.outOfRailTime, self.outOfRailTime + 5, 100
+        )
 
-    @funcify_method("Frequency (Hz)", "ω2 Angle Fourier Amplitude", "spline", "zero")
+    @funcify_method("Frequency (Hz)", "ω2 Fourier Amplitude", "spline", "zero")
     def omega2FrequencyResponse(self):
         """Angular velocity 2 frequency response as a rocketpy.Function of frequency,
-        as the rocket leaves the launch rail."""
-        return np.column_stack(self._frequency_analysis(self.w2))
+        as the rocket leaves the launch rail for 5 seconds of flight."""
+        return self.w2.toFrequencyDomain(
+            self.outOfRailTime, self.outOfRailTime + 5, 100
+        )
 
-    @funcify_method("Frequency (Hz)", "ω3 Angle Fourier Amplitude", "spline", "zero")
+    @funcify_method("Frequency (Hz)", "ω3 Fourier Amplitude", "spline", "zero")
     def omega3FrequencyResponse(self):
         """Angular velocity 3 frequency response as a rocketpy.Function of frequency,
-        as the rocket leaves the launch rail."""
-        return np.column_stack(self._frequency_analysis(self.w3))
+        as the rocket leaves the launch rail for 5 seconds of flight."""
+        return self.w3.toFrequencyDomain(
+            self.outOfRailTime, self.outOfRailTime + 5, 100
+        )
 
     @funcify_method(
         "Frequency (Hz)", "Attitude Angle Fourier Amplitude", "spline", "zero"
     )
     def attitudeFrequencyResponse(self):
         """Attitude frequency response as a rocketpy.Function of frequency, as the
-        rocket leaves the launch rail."""
-        return np.column_stack(self._frequency_analysis(self.attitudeAngle))
+        rocket leaves the launch rail for 5 seconds of flight."""
+        return self.attitudeAngle.toFrequencyDomain(
+            lower=self.outOfRailTime,
+            upper=self.outOfRailTime + 5,
+            samplingFrequency=100,
+        )
 
-    # Static Margin
     @cached_property
     def staticMargin(self):
         """Static margin of the rocket."""
