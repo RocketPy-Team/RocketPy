@@ -30,6 +30,8 @@ class _RocketPlots:
         None
         """
 
+        self.rocket = rocket
+
         return None
 
     def powerOnDrag(self):
