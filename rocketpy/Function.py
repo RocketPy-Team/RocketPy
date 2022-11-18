@@ -1081,6 +1081,60 @@ class Function:
         """
         return len(self.source)
 
+    # Define all conversion methods
+    def toFrequencyDomain(self, lower, upper, samplingFrequency, removeDC=True):
+        """Performs the conversion of the Function to the Frequency Domain and returns
+        the result. This is done by taking the Fourier transform of the Function.
+        The resulting frequency domain is symmetric, i.e., the negative frequencies are
+        included as well.
+
+        Parameters
+        ----------
+        lower : float
+            Lower bound of the time range.
+        upper : float
+            Upper bound of the time range.
+        samplingFrequency : float
+            Sampling frequency at which to perform the Fourier transform.
+        removeDC : bool, optional
+            If True, the DC component is removed from the Fourier transform.
+
+        Returns
+        -------
+        Function
+            The Function in the frequency domain.
+
+        Examples
+        --------
+        >>> from rocketpy import Function
+        >>> import numpy as np
+        >>> mainFrequency = 10 # Hz
+        >>> time = np.linspace(0, 10, 1000)
+        >>> signal = np.sin(2 * np.pi * mainFrequency * time)
+        >>> timeDomain = Function(np.array([time, signal]).T)
+        >>> frequencyDomain = timeDomain.toFrequencyDomain(lower=0, upper=10, samplingFrequency=100)
+        >>> peakFrequenciesIndex = np.where(frequencyDomain[:, 1] > 0.001)
+        >>> peakFrequencies = frequencyDomain[peakFrequenciesIndex, 0]
+        >>> print(peakFrequencies)
+        [[-10.  10.]]
+        """
+        # Get the time domain data
+        samplingTimeStep = 1.0 / samplingFrequency
+        samplingRange = np.arange(lower, upper, samplingTimeStep)
+        numberOfSamples = len(samplingRange)
+        sampledPoints = self(samplingRange)
+        if removeDC:
+            sampledPoints -= np.mean(sampledPoints)
+        FourierAmplitude = np.abs(np.fft.fft(sampledPoints) / numberOfSamples)
+        FourierFrequencies = np.fft.fftfreq(numberOfSamples, samplingTimeStep)
+        return Function(
+            source=np.array([FourierFrequencies, FourierAmplitude]).T,
+            inputs="Frequency (Hz)",
+            outputs="Amplitude",
+            interpolation="linear",
+            extrapolation="zero",
+        )
+
     # Define all presentation methods
     def __call__(self, *args):
         """Plot the Function if no argument is given. If an
