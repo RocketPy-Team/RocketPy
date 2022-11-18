@@ -2228,41 +2228,14 @@ class Flight:
             (self.time, (self.x[:, 1] ** 2 + self.y[:, 1] ** 2) ** 0.5)
         )
 
+        return drift
+
     @funcify_method("Time (s)", "Bearing (°)", "spline", "constant")
     def bearing(self):
         """Rocket bearing compass, in degrees, as a rocketpy.Function of time."""
-        # Get some nicknames
-        t = self.time
         x, y = self.x[:, 1], self.y[:, 1]
-        bearing = []
-        for i in range(len(t)):
-            # Forcing arctan2(0, 0) = self.heading
-            if abs(x[i]) < 1e-6 and abs(y[i]) < 1e-6:
-                bearing.append(np.deg2rad(self.heading))
-            elif abs(x[i]) < 1e-6:  # check if the rocket is on x axis
-                if y[i] > 0:
-                    bearing.append(0)
-                else:
-                    bearing.append(np.pi)
-            elif abs(y[i]) < 1e-6:  # check if the rocket is on x axis
-                if x[i] > 0:
-                    bearing.append(np.pi / 2)
-                else:
-                    bearing.append(3 * np.pi / 2)
-            else:
-                # Calculate bearing as the azimuth considering different quadrants
-                if x[i] * y[i] < 0 and x[i] < 0:  # Fourth quadrant
-                    bearing.append(-np.pi / 2 + np.arctan(abs(y[i]) / abs(x[i])))
-                elif x[i] * y[i] < 0 and x[i] > 0:  # Second quadrant
-                    bearing.append(np.pi / 2 + np.arctan(abs(x[i]) / abs(y[i])))
-                elif x[i] * y[i] > 0 and x[i] < 0:  # Third quadrant
-                    bearing.append(np.pi + np.arctan(abs(x[i]) / abs(y[i])))
-                else:  # First quadrant
-                    bearing.append(np.arctan(abs(x[i]) / abs(y[i])))
-
-        bearing = np.rad2deg(bearing)
-        bearing = np.column_stack((t, bearing))
-        return bearing
+        bearing = (2 * np.pi - np.arctan2(-x, y)) * (180 / np.pi)
+        return np.column_stack((self.time, bearing))
 
     @funcify_method("Time (s)", "Latitude (°)", "linear", "constant")
     def latitude(self):
