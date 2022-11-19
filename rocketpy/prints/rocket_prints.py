@@ -40,7 +40,7 @@ class _RocketPrints:
         ------
         None
         """
-        print("Inertia Details")
+        print("\nInertia Details\n")
         print("Rocket Mass: {:.3f} kg (No Propellant)".format(self.rocket.mass))
         print(
             "Rocket Mass: {:.3f} kg (With Propellant)".format(self.rocket.totalMass(0))
@@ -61,7 +61,7 @@ class _RocketPrints:
         ------
         None
         """
-        print("\nGeometrical Parameters")
+        print("\nGeometrical Parameters\n")
         print("Rocket Maximum Radius: " + str(self.rocket.radius) + " m")
         print("Rocket Frontal Area: " + "{:.6f}".format(self.rocket.area) + " m2")
         print("\nRocket Distances")
@@ -96,7 +96,7 @@ class _RocketPrints:
         ------
         None
         """
-        print("\nAerodynamics Lift Coefficient Derivatives")
+        print("\nAerodynamics Lift Coefficient Derivatives\n")
         for aerodynamicSurface in self.rocket.aerodynamicSurfaces:
             name = aerodynamicSurface.name
             try:
@@ -116,7 +116,7 @@ class _RocketPrints:
                     + "/rad"
                 )
 
-        print("\nAerodynamics Center of Pressure")
+        print("\nAerodynamics Center of Pressure\n")
         for aerodynamicSurface in self.rocket.aerodynamicSurfaces:
             name = aerodynamicSurface.name
             cpz = aerodynamicSurface.cp[2]
@@ -151,7 +151,7 @@ class _RocketPrints:
         None
         """
         for chute in self.rocket.parachutes:
-            print("\n" + chute.name.title() + " Parachute")
+            print("\n" + chute.name.title() + " Parachute\n")
             print("CdS Coefficient: " + str(chute.CdS) + " m2")
             if chute.trigger.__name__ == "<lambda>":
                 line = self.rocket.getsourcelines(chute.trigger)[0][0]
