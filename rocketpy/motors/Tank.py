@@ -77,7 +77,7 @@ class Tank(ABC):
             self.bottomCap = self.capMap[self.bottomCap](
                 self.diameter / 2, fill_direction="upwards"
             )
-            self.upperCap = self.capMap.get[self.upperCap](
+            self.upperCap = self.capMap[self.upperCap](
                 self.diameter / 2, fill_direction="downwards"
             )
         except KeyError:

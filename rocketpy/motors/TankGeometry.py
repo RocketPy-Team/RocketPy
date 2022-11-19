@@ -285,7 +285,7 @@ class TankGeometry:
         ----------
         direction : str
             New filling direction value to be set.
-        
+
         Returns
         -------
         None
