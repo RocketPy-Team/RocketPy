@@ -29,9 +29,9 @@ class TankGeometry:
             Direction of propellant filling. Relevant for tri-dimensional geometries
             which are not vertically simetrical. Can be either "upwards" or "downwards",
             as such:
-                - "upwards": propellant is filled with the convex site facing down, as in
+                - "upwards": propellant is filled with the convex side facing down, as in
                 a cup of water. Most used for bottom caps.
-                - "downwards": propellant is filled with the concave site facing down, as
+                - "downwards": propellant is filled with the concave side facing down, as
                 in an inverted cup. Most used for upper caps.
         """
         self.radius = radius

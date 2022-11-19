@@ -64,8 +64,6 @@ class Tank(ABC):
         }
         self.setGeometry()
 
-        pass
-
     def setGeometry(self):
         """Sets the geometry of the tank based on the input parameters. If the
         geometry name does not exist, an error is raised.
@@ -89,7 +87,7 @@ class Tank(ABC):
 
     def evaluateTankState(self, t):
         """Gets the state of the tank at a given time: the volume of liquid and
-        gases at each part of the tank (body and caps) as well as its masses.
+        gases at each part of the tank (body and caps) as well as their masses.
 
         Parameters
         ----------
@@ -289,8 +287,8 @@ class Tank(ABC):
             self.evaluateTankState(t)
 
             bottomCapMassBalance = (
-                self.bottomCapLiquidMass * self.bottomCap.filled_centroid
-                + self.bottomCapGasMass * self.bottomCap.empty_centroid
+                self.bottomCapLiquidMass * self.bottomCapLiquidCentroid
+                + self.bottomCapGasMass * self.bottomCapGasCentroid
             )
             cylinderMassBalance = (
                 self.cylinderLiquidMass * self.cylinderLiquidCentroid
