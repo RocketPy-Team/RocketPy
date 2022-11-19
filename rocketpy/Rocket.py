@@ -165,7 +165,7 @@ class Rocket:
 
         # Define rocket geometrical parameters in SI units
         self.radius = radius
-        self.area = np.pi * self.radius**2
+        self.area = np.pi * self.radius ** 2
 
         # Center of mass distance to points of interest
         self.distanceRocketNozzle = distanceRocketNozzle
@@ -854,11 +854,6 @@ class Rocket:
             print("\n" + chute.name.title() + " Parachute")
             print("CdS Coefficient: " + str(chute.CdS) + " m2")
 
-        # Show plots
-        print("\nAerodynamics Plots")
-        self.plots.powerOnDrag()
-
-        # Return None
         return None
 
     def allInfo(self):

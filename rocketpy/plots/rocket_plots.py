@@ -34,9 +34,101 @@ class _RocketPlots:
 
         return None
 
+        
+    def totalMass(self):
+        """Plots total mass of the rocket as a function of time.
+
+        Parameters
+        ----------
+        None
+
+        Return
+        ------
+        None
+        """
+
+        self.rocket.totalMass()
+
+        return None
+
+    def reducedMass(self):
+        """Plots reduced mass of the rocket as a function of time.
+
+        Parameters
+        ----------
+        None
+
+        Return
+        ------
+        None
+        """
+
+        self.rocket.reducedMass()
+
+        return None
+
+    def staticMargin(self):
+        """Plots static margin of the rocket as a function of time.
+
+        Parameters
+        ----------
+        None
+
+        Return
+        ------
+        None
+        """
+
+        self.rocket.staticMargin()
+
+        return None        
+
     def powerOnDrag(self):
+        """Plots power on drag of the rocket as a function of time.
+
+        Parameters
+        ----------
+        None
+
+        Return
+        ------
+        None
+        """
 
         self.rocket.powerOnDrag()
+
+        return None
+
+    def powerOffDrag(self):
+        """Plots power off drag of the rocket as a function of time.
+
+        Parameters
+        ----------
+        None
+
+        Return
+        ------
+        None
+        """
+
+        self.rocket.powerOffDrag()
+
+        return None
+
+    def thrustToWeight(self):
+        """Plots the motor thrust force divided by rocket
+            weight as a function of time.
+
+        Parameters
+        ----------
+        None
+
+        Return
+        ------
+        None
+        """
+
+        self.rocket.thrustToWeight.plot(lower=0, upper=self.rocket.motor.burnOutTime)
 
         return None
 
