@@ -3,9 +3,6 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 
-from rocketpy.Rocket import Rocket
-
-
 class _RocketPrints:
     """Class that holds prints methods for Rocket class.
 
@@ -102,12 +99,22 @@ class _RocketPrints:
         print("\nAerodynamics Lift Coefficient Derivatives")
         for aerodynamicSurface in self.rocket.aerodynamicSurfaces:
             name = aerodynamicSurface.name
-            clalpha = Function(
-                lambda alpha: aerodynamicSurface.cl(alpha, 0),
-            ).differentiate(x=1e-2, dx=1e-3)
-            print(
-                name + " Lift Coefficient Derivative: {:.3f}".format(clalpha) + "/rad"
-            )
+            try:
+                print(
+                    name
+                    + " Lift Coefficient Derivative: {:.3f}".format(
+                        aerodynamicSurface.clalpha(0)
+                    )
+                    + "/rad"
+                )
+            except:
+                print(
+                    name
+                    + " Lift Coefficient Derivative: {:.3f}".format(
+                        aerodynamicSurface.clalpha
+                    )
+                    + "/rad"
+                )
 
         print("\nAerodynamics Center of Pressure")
         for aerodynamicSurface in self.rocket.aerodynamicSurfaces:
