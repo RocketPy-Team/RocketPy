@@ -32,8 +32,6 @@ class Tank(ABC):
         }
         self.setGeometry()
 
-        pass
-
     def setGeometry(self):
         """Sets the geometry of the tank based on the input parameters.
 
@@ -51,7 +49,7 @@ class Tank(ABC):
 
     def evaluateTankState(self, t):
         """Gets the state of the tank at a given time: the volume of liquid and
-        gases at each part of the tank (body and caps) as well as its masses.
+        gases at each part of the tank (body and caps) as well as their masses.
 
         Parameters
         ----------
