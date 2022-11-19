@@ -248,8 +248,8 @@ class Tank(ABC):
             self.evaluateTankState(t)
 
             bottomCapMassBalance = (
-                self.bottomCapLiquidMass * self.bottomCap.filled_centroid
-                + self.bottomCapGasMass * self.bottomCap.empty_centroid
+                self.bottomCapLiquidMass * self.bottomCapLiquidCentroid
+                + self.bottomCapGasMass * self.bottomCapGasCentroid
             )
             cylinderMassBalance = (
                 self.cylinderLiquidMass * self.cylinderLiquidCentroid
