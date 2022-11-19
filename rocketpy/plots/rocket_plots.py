@@ -34,7 +34,6 @@ class _RocketPlots:
 
         return None
 
-        
     def totalMass(self):
         """Plots total mass of the rocket as a function of time.
 
@@ -81,7 +80,7 @@ class _RocketPlots:
 
         self.rocket.staticMargin()
 
-        return None        
+        return None
 
     def powerOnDrag(self):
         """Plots power on drag of the rocket as a function of time.
