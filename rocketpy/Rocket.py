@@ -16,6 +16,7 @@ from .Parachute import Parachute
 from .AeroSurfaces import NoseCone, TrapezoidalFins, EllipticalFins, Tail
 
 from .prints.rocket_prints import _RocketPrints
+from .plots.rocket_plots import _RocketPlots
 
 
 class Rocket:
@@ -225,6 +226,7 @@ class Rocket:
 
         # Initialize plots and prints object
         self.prints = _RocketPrints(self)
+        self.plots = _RocketPlots(self)
 
         return None
 
@@ -834,11 +836,6 @@ class Rocket:
         # All prints
         self.prints.all()
 
-        # Show plots
-        print("\nAerodynamics Plots")
-        self.powerOnDrag()
-
-        # Return None
         return None
 
     def allInfo(self):
@@ -855,15 +852,7 @@ class Rocket:
         # All prints
         self.prints.all()
 
-        # Show plots
-        print("\nMass Plots")
-        self.totalMass()
-        self.reducedMass()
-        print("\nAerodynamics Plots")
-        self.staticMargin()
-        self.powerOnDrag()
-        self.powerOffDrag()
-        self.thrustToWeight.plot(lower=0, upper=self.motor.burnOutTime)
+        self.plots.all()
 
         # ax = plt.subplot(415)
         # ax.plot(  , self.rocket.motor.thrust()/(self.env.g() * self.rocket.totalMass()))
