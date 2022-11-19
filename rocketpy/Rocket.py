@@ -15,6 +15,8 @@ from .Function import Function
 from .Parachute import Parachute
 from .AeroSurfaces import NoseCone, TrapezoidalFins, EllipticalFins, Tail
 
+from .plots.rocket_plots import _RocketPlots
+
 
 class Rocket:
 
@@ -220,6 +222,9 @@ class Rocket:
 
         # Evaluate static margin (even though no aerodynamic surfaces are present yet)
         self.evaluateStaticMargin()
+
+        # Initialize plots and prints object
+        self.plots = _RocketPlots(self)
 
         return None
 
@@ -849,11 +854,6 @@ class Rocket:
             print("\n" + chute.name.title() + " Parachute")
             print("CdS Coefficient: " + str(chute.CdS) + " m2")
 
-        # Show plots
-        print("\nAerodynamics Plots")
-        self.powerOnDrag()
-
-        # Return None
         return None
 
     def allInfo(self):
@@ -943,15 +943,7 @@ class Rocket:
                 "parachute is fully opened: " + str(chute.lag) + " s"
             )
 
-        # Show plots
-        print("\nMass Plots")
-        self.totalMass()
-        self.reducedMass()
-        print("\nAerodynamics Plots")
-        self.staticMargin()
-        self.powerOnDrag()
-        self.powerOffDrag()
-        self.thrustToWeight.plot(lower=0, upper=self.motor.burnOutTime)
+        self.plots.all()
 
         # ax = plt.subplot(415)
         # ax.plot(  , self.rocket.motor.thrust()/(self.env.g() * self.rocket.totalMass()))
