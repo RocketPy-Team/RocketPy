@@ -11,13 +11,45 @@ import numpy as np
 from scipy import integrate
 
 from rocketpy.Function import Function
+from rocketpy.motors import Fluid
 from rocketpy.motors.TankGeometry import Disk, Cylinder, Hemisphere
 
 
 class Tank(ABC):
+    """Abstract class for Tank objects. This class is used to define the
+    tank and its filling state at a given time. Specific tank mass change
+    are defined by the subclasses.
+    """
+
     def __init__(
-        self, name, diameter, height, gas, liquid=0, bottomCap="flat", upperCap="flat"
+        self,
+        name,
+        diameter,
+        height,
+        gas,
+        liquid=Fluid("None", 0, 0),
+        bottomCap="flat",
+        upperCap="flat",
     ):
+        """Initializes the Tank object.
+
+        Parameters
+        ----------
+        name : str
+            Name of the tank.
+        diameter : float
+            Inner diameter of the tank.
+        height : float
+            Height of the cylindrical portial of the tank (excluding caps).
+        gas : Fluid object
+            Gas inside the tank.
+        liquid : Fluid object, optional. If not provided, the tank is assumed to
+            contain only gases.
+        bottomCap : str, optional. Default is "flat".
+            Bottom cap type. Can be "flat" or "spherical".
+        upperCap : str, optional. Default is "flat".
+            Upper cap type. Can be "flat" or "spherical".
+        """
         self.name = name
         self.diameter = diameter
         self.height = height
@@ -129,7 +161,9 @@ class Tank(ABC):
 
     def evaluateCentroids(self):
         """Calculates the centroids of the liquid and gaseous portions of the tank
-        based on the volume distributions.
+        based on the volume distributions. The centroid height is measured on the
+        filling direction with the zero level reference being the lowest point of 
+        the tank (including caps).
 
         Returns
         -------
@@ -237,7 +271,8 @@ class Tank(ABC):
     @functools.cached_property
     def centerOfMass(self):
         """Returns the center of mass of the tank's fluids as a function of
-        time.
+        time. The center of mass height is measured on the filling direction with 
+        the zero level reference being the lowest point of the tank (including caps).
 
         Parameters
         ----------
@@ -281,7 +316,9 @@ class Tank(ABC):
     @functools.cached_property
     def inertiaTensor(self):
         """Returns the inertia tensor of the tank's fluids as a function of
-        time.
+        time. The inertia tensor is calculated with respect to the tank's
+        center of mass, the z-axis if aligned with the filling direction and
+        the x and y axes complete the right-handed coordinate system.
 
         Parameters
         ----------
