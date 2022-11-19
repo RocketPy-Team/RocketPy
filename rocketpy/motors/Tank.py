@@ -35,19 +35,25 @@ class Tank(ABC):
         pass
 
     def setGeometry(self):
-        """Sets the geometry of the tank based on the input parameters.
+        """Sets the geometry of the tank based on the input parameters. If the
+        geometry name does not exist, an error is raised.
 
         Returns
         -------
         None
         """
+        try:
         self.cylinder = Cylinder(self.diameter / 2, self.height)
-        self.bottomCap = self.capMap.get(self.bottomCap)(
+            self.bottomCap = self.capMap[self.bottomCap](
             self.diameter / 2, fill_direction="upwards"
         )
-        self.upperCap = self.capMap.get(self.upperCap)(
+            self.upperCap = self.capMap.get[self.upperCap](
             self.diameter / 2, fill_direction="downwards"
         )
+        except KeyError:
+            raise ValueError(
+                "Tank cap name is not valid. Check input data to make sure it is correct."
+            )
 
     def evaluateTankState(self, t):
         """Gets the state of the tank at a given time: the volume of liquid and

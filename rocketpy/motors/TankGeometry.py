@@ -33,7 +33,6 @@ class TankGeometry:
                 a cup of water. Most used for bottom caps.
                 - "downwards": propellant is filled with the concave site facing down, as
                 in an inverted cup. Most used for upper caps.
-            The default is "upwards", and will be used if the user commits a typing error.
         """
         self.radius = radius
         self.height = height
@@ -264,6 +263,40 @@ class TankGeometry:
             Principal volumes of inertia: Ixx, Iyy, Izz.
         """
         return 0, 0, 0
+
+    @property
+    def fill_direction(self):
+        """Returns the direction of filling of the geometry. Can be either
+        "upwards" or "downwards".
+
+        Returns
+        -------
+        str
+            Filling direction.
+        """
+        return self._fill_direction
+
+    @fill_direction.setter
+    def fill_direction(self, direction):
+        """Sets the direction of filling of the geometry. Must be either
+        "upwards" or "downwards", raises an error otherwise.
+
+        Parameters
+        ----------
+        direction : str
+            New filling direction value to be set.
+        
+        Returns
+        -------
+        None
+        """
+        if direction in ("upwards", "downwards"):
+            self._fill_direction = direction
+        else:
+            raise AttributeError(
+                f"""Filling direction '{direction}' is not recognized, must be either 
+                'upwards' or 'downwards'."""
+            )
 
     def reverse_fill(self):
         """Reverses the filling direction of the geometry. Useful for calculating
