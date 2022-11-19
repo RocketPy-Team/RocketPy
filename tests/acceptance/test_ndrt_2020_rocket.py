@@ -86,6 +86,7 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     L1395 = SolidMotor(
         thrustSource="tests/fixtures/acceptance/NDRT_2020/ndrt_2020_motor_Cesaroni_4895L1395-P.eng",
         burnOut=parameters.get("burnOut")[0],
+        grainsCenterOfMassPosition=parameters.get("distanceRocketPropellant")[0],
         grainNumber=5,
         grainSeparation=parameters.get("grainSeparation")[0],
         grainDensity=parameters.get("grainDensity")[0],
@@ -95,38 +96,38 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
         nozzleRadius=parameters.get("nozzleRadius")[0],
         throatRadius=parameters.get("throatRadius")[0],
         interpolationMethod="linear",
+        nozzlePosition=parameters.get("distanceRocketNozzle")[0],
     )
 
     # Rocket information
     NDRT2020 = Rocket(
-        motor=L1395,
         radius=parameters.get("radius")[0],
         mass=parameters.get("rocketMass")[0],
         inertiaI=parameters.get("inertiaI")[0],
         inertiaZ=parameters.get("inertiaZ")[0],
-        distanceRocketNozzle=parameters.get("distanceRocketNozzle")[0],
-        distanceRocketPropellant=parameters.get("distanceRocketPropellant")[0],
         powerOffDrag=parameters.get("dragCoefficient")[0],
         powerOnDrag=parameters.get("dragCoefficient")[0],
     )
     NDRT2020.setRailButtons([0.2, -0.5], 45)
+    NDRT2020.addMotor(L1395, parameters.get("distanceRocketNozzle")[0])
     NoseCone = NDRT2020.addNose(
         length=parameters.get("noseLength")[0],
         kind="tangent",
-        distanceToCM=parameters.get("noseDistanceToCM")[0],
+        position=parameters.get("noseDistanceToCM")[0]
+        + parameters.get("noseLength")[0],
     )
     FinSet = NDRT2020.addTrapezoidalFins(
         3,
         span=parameters.get("finSpan")[0],
         rootChord=parameters.get("finRootChord")[0],
         tipChord=parameters.get("finTipChord")[0],
-        distanceToCM=parameters.get("finDistanceToCM")[0],
+        position=parameters.get("finDistanceToCM")[0],
     )
     Transition = NDRT2020.addTail(
         topRadius=parameters.get("transitionTopRadius")[0],
         bottomRadius=parameters.get("transitionBottomRadius")[0],
         length=parameters.get("transitionLength")[0],
-        distanceToCM=parameters.get("transitiondistanceToCM")[0],
+        position=parameters.get("transitiondistanceToCM")[0],
     )
 
     # Parachute set-up
