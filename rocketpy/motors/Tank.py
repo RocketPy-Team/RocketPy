@@ -73,13 +73,13 @@ class Tank(ABC):
         None
         """
         try:
-        self.cylinder = Cylinder(self.diameter / 2, self.height)
+            self.cylinder = Cylinder(self.diameter / 2, self.height)
             self.bottomCap = self.capMap[self.bottomCap](
-            self.diameter / 2, fill_direction="upwards"
-        )
+                self.diameter / 2, fill_direction="upwards"
+            )
             self.upperCap = self.capMap.get[self.upperCap](
-            self.diameter / 2, fill_direction="downwards"
-        )
+                self.diameter / 2, fill_direction="downwards"
+            )
         except KeyError:
             raise ValueError(
                 "Tank cap name is not valid. Check input data to make sure it is correct."
@@ -160,7 +160,7 @@ class Tank(ABC):
     def evaluateCentroids(self):
         """Calculates the centroids of the liquid and gaseous portions of the tank
         based on the volume distributions. The centroid height is measured on the
-        filling direction with the zero level reference being the lowest point of 
+        filling direction with the zero level reference being the lowest point of
         the tank (including caps).
 
         Returns
@@ -269,7 +269,7 @@ class Tank(ABC):
     @functools.cached_property
     def centerOfMass(self):
         """Returns the center of mass of the tank's fluids as a function of
-        time. The center of mass height is measured on the filling direction with 
+        time. The center of mass height is measured on the filling direction with
         the zero level reference being the lowest point of the tank (including caps).
 
         Parameters
