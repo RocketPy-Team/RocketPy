@@ -1,9 +1,12 @@
 import datetime
+import os
 from unittest.mock import patch
 
+import numpy as np
 import pytest
 import pytz
-from rocketpy import Environment, Flight, Rocket, SolidMotor
+
+from rocketpy import Environment
 
 
 @pytest.fixture
@@ -74,8 +77,10 @@ def test_set_topographic_profile(example_env):
 @patch("matplotlib.pyplot.show")
 def test_standard_atmosphere(mock_show, example_env):
     example_env.setAtmosphericModel(type="StandardAtmosphere")
+    assert example_env.info() == None
     assert example_env.allInfo() == None
     assert example_env.pressure(0) == 101325.0
+    assert example_env.printEarthDetails() == None
 
 
 @patch("matplotlib.pyplot.show")
@@ -155,11 +160,16 @@ def test_era5_atmosphere(mock_show):
     assert Env.allInfo() == None
 
 
+# TODO: utmToGeodesic
+
+
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_gefs_atmosphere(mock_show, example_env_robust):
     example_env_robust.setAtmosphericModel(type="Ensemble", file="GEFS")
     assert example_env_robust.allInfo() == None
+    assert isinstance(example_env.allPlotInfoReturned(), dict)
+    assert isinstance(example_env.allInfoReturned(), dict)
 
 
 @pytest.mark.slow
@@ -205,3 +215,16 @@ def test_hiresw_ensemble_atmosphere(mock_show, example_env_robust):
         dictionary=HIRESW_dictionary,
     )
     assert example_env_robust.allInfo() == None
+
+
+def test_export_environment(example_env_robust):
+    assert example_env_robust.exportEnvironment(filename="environment") == None
+    os.remove("environment.json")
+
+
+def test_utmToGeodesic(example_env_robust):
+    lat, lon = example_env_robust.utmToGeodesic(
+        x=315468.64, y=3651938.65, utmZone=13, hemis="N", datum="WGS84"
+    )
+    assert np.isclose(lat, 32.99025, atol=1e-5) == True
+    assert np.isclose(lon, -106.9750, atol=1e-5) == True
