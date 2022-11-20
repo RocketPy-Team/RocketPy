@@ -26,7 +26,7 @@ class Tank(ABC):
         name,
         diameter,
         height,
-        gas,
+        gas=Fluid("None", 0, 0),
         liquid=Fluid("None", 0, 0),
         bottomCap="flat",
         upperCap="flat",
@@ -41,10 +41,11 @@ class Tank(ABC):
             Inner diameter of the tank.
         height : float
             Height of the cylindrical portial of the tank (excluding caps).
-        gas : Fluid object
-            Gas inside the tank.
+        gas : Fluid object, optional
+            Gas inside the tank. If not provided, the tank is assumed to
+            not contain any gaseous fluid.
         liquid : Fluid object, optional. If not provided, the tank is assumed to
-            contain only gases.
+            not contain any liquid fluid.
         bottomCap : str, optional. Default is "flat".
             Bottom cap type. Can be "flat" or "spherical".
         upperCap : str, optional. Default is "flat".
@@ -341,32 +342,6 @@ class Tank(ABC):
             cylinderLiquidInertia = self.cylinder.filled_inertia
             upperCapLiquidInertia = self.upperCap.filled_inertia
 
-            print(self.bottomCapLiquidCentroid)
-            print(self.bottomCapMass, 2 / 3 * np.pi * 0.1**3 * self.liquid.density)
-            print(
-                self.bottomCapMass
-                * (self.bottomCapLiquidCentroid - self.centerOfMass(t)) ** 2
-                + 0.259 * self.bottomCapMass * 0.1**2
-            )
-
-            print(
-                self.liquid.density * cylinderLiquidInertia[0]
-                + self.cylinderLiquidMass * self.cylinderRelDistLiq**2
-                + self.liquid.density * bottomCapLiquidInertia[0]
-                + self.bottomCapLiquidMass * self.bottomCapRelDistLiq**2,
-                self.liquid.density * cylinderLiquidInertia[0]
-                + self.cylinderLiquidMass * self.cylinderRelDistLiq**2,
-                self.liquid.density * bottomCapLiquidInertia[0]
-                + self.bottomCapLiquidMass * self.bottomCapRelDistLiq**2,
-            )
-
-            print(
-                self.gas.density * cylinderGasInertia[0]
-                + self.cylinderGasMass * self.cylinderRelDistGas**2
-                + self.gas.density * upperCapGasInertia[0]
-                + self.upperCapGasMass * self.upperCapRelDistGas**2
-            )
-
             bottomCapInertia = (
                 self.gas.density * bottomCapGasInertia[0]
                 + self.bottomCapGasMass * self.bottomCapRelDistGas**2
@@ -405,14 +380,14 @@ class MassFlowRateBasedTank(Tank):
         name,
         diameter,
         height,
-        gas,
-        liquid,
         initial_liquid_mass,
         initial_gas_mass,
         liquid_mass_flow_rate_in,
         gas_mass_flow_rate_in,
         liquid_mass_flow_rate_out,
         gas_mass_flow_rate_out,
+        gas=Fluid("None", 0, 0),
+        liquid=Fluid("None", 0, 0),
         burn_out_time=300,
         bottomCap="flat",
         upperCap="flat",
@@ -633,9 +608,9 @@ class UllageBasedTank(Tank):
         name,
         diameter,
         height,
-        gas,
-        liquid,
         ullage,
+        gas=Fluid("None", 0, 0),
+        liquid=Fluid("None", 0, 0),
         bottomCap="flat",
         upperCap="flat",
     ):
@@ -771,10 +746,10 @@ class MassBasedTank(Tank):
         name,
         diameter,
         height,
-        gas,
-        liquid,
         liquid_mass,
         gas_mass,
+        gas=Fluid("None", 0, 0),
+        liquid=Fluid("None", 0, 0),
         bottomCap="flat",
         upperCap="flat",
     ):
