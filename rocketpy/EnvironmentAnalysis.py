@@ -2869,7 +2869,9 @@ class EnvironmentAnalysis:
 
         return None
 
-    def animate_wind_profile_over_average_day(self, clear_range_limits: bool =False) -> HTML:
+    def animate_wind_profile_over_average_day(
+        self, clear_range_limits: bool = False
+    ) -> HTML:
         """Animation of how wind profile evolves throughout an average day."""
         self.process_wind_speed_profile_over_average_day()
 
@@ -2938,7 +2940,9 @@ class EnvironmentAnalysis:
         plt.close(fig)
         return HTML(animation.to_jshtml())
 
-    def animate_wind_heading_profile_over_average_day(self, clear_range_limits: bool =False) -> HTML:
+    def animate_wind_heading_profile_over_average_day(
+        self, clear_range_limits: bool = False
+    ) -> HTML:
         """Animation of how wind heading profile evolves throughout an average day."""
         self.process_wind_heading_profile_over_average_day()
 
