@@ -128,3 +128,25 @@ class TestGeometry(unittest.TestCase):
             + Hemisphere2.empty_centroid * Hemisphere2.empty_volume
         ) / Hemisphere2.volume
         self.assertAlmostEqual(Hemisphere2.centroid, check_centroid2)
+
+        # Check inertia
+        Hemisphere1.filled_volume = 2 / 3 * np.pi * 3**3
+        Hemisphere2.filled_volume = 2 / 3 * np.pi * 3**3
+        self.assertAlmostEqual(
+            Hemisphere1.filled_inertia[0], Hemisphere2.filled_inertia[0]
+        )
+        self.assertAlmostEqual(
+            Hemisphere1.empty_inertia[0], Hemisphere2.empty_inertia[0]
+        )
+        self.assertAlmostEqual(
+            Hemisphere1.filled_inertia[1], Hemisphere2.filled_inertia[1]
+        )
+        self.assertAlmostEqual(
+            Hemisphere1.empty_inertia[1], Hemisphere2.empty_inertia[1]
+        )
+        self.assertAlmostEqual(
+            Hemisphere1.filled_inertia[2], Hemisphere2.filled_inertia[2]
+        )
+        self.assertAlmostEqual(
+            Hemisphere1.empty_inertia[2], Hemisphere2.empty_inertia[2]
+        )
