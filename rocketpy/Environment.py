@@ -3329,7 +3329,7 @@ class Environment:
 
     def exportEnvironment(self, filename="environment"):
         """Export important attributes of Environment class so it can be used
-        again in further siulations by using the customAtmosphere atmospheric
+        again in further simulations by using the customAtmosphere atmospheric
         model.
         Parameters
         ----------
@@ -3340,9 +3340,13 @@ class Environment:
         None
         """
 
-        # TODO: in the future, allow the user to select which format will be used (json, csv, etc.). Default must be JSON.
-        # TODO: add self.exportEnvDictionary to the documentation
-        # TODO: find a way to documennt the workaround I've used on ma.getdata(self...
+        try:
+            atmosphericModelFile = self.atmosphericModelFile
+            atmosphericModelDict = self.atmosphericModelDict
+        except AttributeError:
+            atmosphericModelFile = ""
+            atmosphericModelDict = ""
+
         self.exportEnvDictionary = {
             "railLength": self.rL,
             "gravity": self.g,
@@ -3354,8 +3358,8 @@ class Environment:
             "timeZone": self.timeZone,
             "maxExpectedHeight": float(self.maxExpectedHeight),
             "atmosphericModelType": self.atmosphericModelType,
-            "atmosphericModelFile": self.atmosphericModelFile,
-            "atmosphericModelDict": self.atmosphericModelDict,
+            "atmosphericModelFile": atmosphericModelFile,
+            "atmosphericModelDict": atmosphericModelDict,
             "atmosphericModelPressureProfile": ma.getdata(
                 self.pressure.getSource()
             ).tolist(),
