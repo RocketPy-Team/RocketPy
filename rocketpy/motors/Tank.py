@@ -341,23 +341,49 @@ class Tank(ABC):
             cylinderLiquidInertia = self.cylinder.filled_inertia
             upperCapLiquidInertia = self.upperCap.filled_inertia
 
+            print(self.bottomCapLiquidCentroid)
+            print(self.bottomCapMass, 2 / 3 * np.pi * 0.1**3 * self.liquid.density)
+            print(
+                self.bottomCapMass
+                * (self.bottomCapLiquidCentroid - self.centerOfMass(t)) ** 2
+                + 0.259 * self.bottomCapMass * 0.1**2
+            )
+
+            print(
+                self.liquid.density * cylinderLiquidInertia[0]
+                + self.cylinderLiquidMass * self.cylinderRelDistLiq**2
+                + self.liquid.density * bottomCapLiquidInertia[0]
+                + self.bottomCapLiquidMass * self.bottomCapRelDistLiq**2,
+                self.liquid.density * cylinderLiquidInertia[0]
+                + self.cylinderLiquidMass * self.cylinderRelDistLiq**2,
+                self.liquid.density * bottomCapLiquidInertia[0]
+                + self.bottomCapLiquidMass * self.bottomCapRelDistLiq**2,
+            )
+
+            print(
+                self.gas.density * cylinderGasInertia[0]
+                + self.cylinderGasMass * self.cylinderRelDistGas**2
+                + self.gas.density * upperCapGasInertia[0]
+                + self.upperCapGasMass * self.upperCapRelDistGas**2
+            )
+
             bottomCapInertia = (
                 self.gas.density * bottomCapGasInertia[0]
-                + self.bottomCapLiquidMass * self.bottomCapRelDistLiq**2
-                + self.liquid.density * bottomCapLiquidInertia[0]
                 + self.bottomCapGasMass * self.bottomCapRelDistGas**2
+                + self.liquid.density * bottomCapLiquidInertia[0]
+                + self.bottomCapLiquidMass * self.bottomCapRelDistLiq**2
             )
             cylinderInertia = (
                 self.gas.density * cylinderGasInertia[0]
-                + self.cylinderLiquidMass * self.cylinderRelDistLiq**2
-                + self.liquid.density * cylinderLiquidInertia[0]
                 + self.cylinderGasMass * self.cylinderRelDistGas**2
+                + self.liquid.density * cylinderLiquidInertia[0]
+                + self.cylinderLiquidMass * self.cylinderRelDistLiq**2
             )
             upperCapInertia = (
                 self.gas.density * upperCapGasInertia[0]
-                + self.upperCapLiquidMass * self.upperCapRelDistLiq**2
-                + self.liquid.density * upperCapLiquidInertia[0]
                 + self.upperCapGasMass * self.upperCapRelDistGas**2
+                + self.liquid.density * upperCapLiquidInertia[0]
+                + self.upperCapLiquidMass * self.upperCapRelDistLiq**2
             )
 
             inertia_ixx = bottomCapInertia + cylinderInertia + upperCapInertia

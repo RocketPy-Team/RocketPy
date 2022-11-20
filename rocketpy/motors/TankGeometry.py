@@ -417,12 +417,12 @@ class Hemisphere(TankGeometry):
             np.pi
             * height**2
             * (
-                -3 * height**3
-                + 15 * height**2 * self.radius
-                - 25 * height * self.radius**2
-                + 15 * self.radius**3
+                -9 * height**3
+                + 45 * height**2 * self.radius
+                - 80 * height * self.radius**2
+                + 60 * self.radius**3
             )
-            / 15
+            / 60
         )
         inertia_y = inertia_x
         inertia_z = (
@@ -434,7 +434,15 @@ class Hemisphere(TankGeometry):
         return inertia_x, inertia_y, inertia_z
 
     def __downwards_inertia(self, height):
-        inertia_x = np.pi * height**3 * (self.radius**2 / 3 - height**2 / 5)
+        inertia_x = (
+            np.pi
+            * height
+            * (
+                -9 * height**4
+                + 10 * height**2 * self.radius**2
+                + 15 * self.radius**4
+            )
+        ) / 60
         inertia_y = inertia_x
         inertia_z = (
             np.pi
