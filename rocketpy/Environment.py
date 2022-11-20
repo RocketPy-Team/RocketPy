@@ -3341,9 +3341,6 @@ class Environment:
         None
         """
 
-        # TODO: in the future, allow the user to select which format will be used (json, csv, etc.). Default must be JSON.
-        # TODO: add self.exportEnvDictionary to the documentation
-
         try:
             atmosphericModelFile = self.atmosphericModelFile
             atmosphericModelDict = self.atmosphericModelDict

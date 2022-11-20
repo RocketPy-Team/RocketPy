@@ -160,9 +160,6 @@ def test_era5_atmosphere(mock_show):
     assert Env.allInfo() == None
 
 
-# TODO: utmToGeodesic
-
-
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_gefs_atmosphere(mock_show, example_env_robust):
