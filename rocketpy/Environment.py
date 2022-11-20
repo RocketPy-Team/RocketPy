@@ -2974,6 +2974,7 @@ class Environment:
 
         plt.subplots_adjust(wspace=0.5)
         plt.show()
+        return None
 
     def allInfo(self):
         """Prints out all data and graphs available about the Environment.
@@ -3216,7 +3217,7 @@ class Environment:
 
         return None
 
-    def allPlotInfoReturned(self):
+    def allPlotInfoReturned(self) -> dict:
         """Returns a dictionary with all plot information available about the Environment.
 
         Parameters
@@ -3339,6 +3340,9 @@ class Environment:
         ------
         None
         """
+
+        # TODO: in the future, allow the user to select which format will be used (json, csv, etc.). Default must be JSON.
+        # TODO: add self.exportEnvDictionary to the documentation
 
         try:
             atmosphericModelFile = self.atmosphericModelFile
@@ -3522,7 +3526,7 @@ class Environment:
 
         return x, y, utmZone, utmLetter, hemis, EW
 
-    def utmToGeodesic(self, x, y, utmZone, hemis, datum):
+    def utmToGeodesic(self, x: float, y: float, utmZone: int, hemis: str, datum: str):
         """Function to convert UTM coordinates to geodesic coordinates
         (i.e. latitude and longitude). The latitude should be between -80°
         and 84°
@@ -3539,7 +3543,7 @@ class Environment:
         hemis : string
             Equals to "S" for southern hemisphere and "N" for Northern hemisphere
         datum : string
-            The desired reference ellipsoide model, the following options are
+            The desired reference ellipsoid model, the following options are
             available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
             is "SIRGAS2000", then this model will be used if the user make some
             typing mistake
@@ -3547,9 +3551,9 @@ class Environment:
         Returns
         -------
         lat: float
-            latitude of the analysed point
+            latitude of the analyzed point
         lon: float
-            latitude of the analysed point
+            latitude of the analyzed point
         """
 
         if hemis == "N":
