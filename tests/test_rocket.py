@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from rocketpy import Rocket, SolidMotor
+from rocketpy.AeroSurfaces import NoseCone
 
 
 @patch("matplotlib.pyplot.show")
@@ -81,7 +82,16 @@ def test_rocket(mock_show):
 
     static_margin = test_rocket.staticMargin(0)
 
+    # Check if allInfo and static_method methods are working properly
     assert test_rocket.allInfo() == None or not abs(static_margin - 2.05) < 0.01
+    # Check if NoseCone allInfo() is working properly
+    assert NoseCone.allInfo() == None
+    # Check if FinSet allInfo() is working properly
+    assert FinSet.allInfo() == None
+    # Check if Tail allInfo() is working properly
+    assert Tail.allInfo() == None
+    # Check if draw method is working properly
+    assert FinSet.draw() == None
 
 
 @patch("matplotlib.pyplot.show")
@@ -160,6 +170,7 @@ def test_elliptical_fins(mock_show):
     static_margin = test_rocket.staticMargin(0)
 
     assert test_rocket.allInfo() == None or not abs(static_margin - 2.30) < 0.01
+    assert FinSet.draw() == None
 
 
 @patch("matplotlib.pyplot.show")
@@ -409,6 +420,9 @@ def test_add_trapezoidal_fins_sweep_length(
 
     # Check rocket's center of pressure (just double checking)
     assert translate - rocket.cpPosition == pytest.approx(expected_cpz_cm, 0.01)
+
+    # Check if AeroSurfaces.__getitem__() works
+    assert isinstance(rocket.aerodynamicSurfaces.__getitem__(0)[0], NoseCone)
 
 
 def test_add_fins_assert_cp_cm_plus_fins(rocket, dimensionless_rocket, m):
