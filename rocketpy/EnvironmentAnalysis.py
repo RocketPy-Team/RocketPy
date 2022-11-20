@@ -1237,7 +1237,7 @@ class EnvironmentAnalysis:
         self.record_min_surface_100m_wind_speed = np.min(self.surface_100m_wind_speed)
         return self.record_min_surface_100m_wind_speed
 
-    def plot_wind_gust_distribution(self):
+    def plot_wind_gust_distribution(self) -> None:
         """Get all values of wind gust speed (for every date and hour available)
         and plot a single distribution. Expected result is a Weibull distribution.
         """
@@ -1410,6 +1410,7 @@ class EnvironmentAnalysis:
         plt.grid(alpha=0.25)
         plt.legend()
         plt.show()
+        return None
 
     def calculate_average_sustained_surface10m_wind_along_day(self):
         """Computes average sustained wind speed progression throughout the
@@ -1509,6 +1510,7 @@ class EnvironmentAnalysis:
         plt.grid(alpha=0.25)
         plt.legend()
         plt.show()
+        return None
 
     def calculate_average_sustained_surface100m_wind_along_day(self):
         """Computes average sustained wind speed progression throughout the
@@ -1672,6 +1674,7 @@ class EnvironmentAnalysis:
         plt.legend()
         plt.xlim(0, max(np.percentile(wind_speed_profiles, 50 + 49.85, axis=0)))
         plt.show()
+        return None
 
     def plot_average_wind_heading_profile(self, clear_range_limits=False):
         """Average wind heading for all datetimes available."""
@@ -1764,6 +1767,7 @@ class EnvironmentAnalysis:
         plt.title("Average Wind heading Profile")
         plt.legend()
         plt.show()
+        return None
 
     def process_wind_speed_and_direction_data_for_average_day(self):
         """Process the wind_speed and wind_direction data to generate lists of all the wind_speeds recorded
@@ -1892,6 +1896,7 @@ class EnvironmentAnalysis:
         plt.legend()
         plt.xlim(0, max(np.percentile(pressure_profiles, 50 + 49.85, axis=0)))
         plt.show()
+        return None
 
     @staticmethod
     def plot_wind_rose(
@@ -1932,7 +1937,7 @@ class EnvironmentAnalysis:
         ax.yaxis.set_major_formatter(mtick.PercentFormatter(decimals=0))
         return ax
 
-    def plot_average_day_wind_rose_specific_hour(self, hour, fig=None):
+    def plot_average_day_wind_rose_specific_hour(self, hour, fig=None) -> None:
         """Plot a specific hour of the average windrose
 
         Parameters
@@ -1958,7 +1963,9 @@ class EnvironmentAnalysis:
         )
         plt.show()
 
-    def plot_average_day_wind_rose_all_hours(self):
+        return None
+
+    def plot_average_day_wind_rose_all_hours(self) -> None:
         """Plot wind roses for all hours of a day, in a grid like plot."""
         # Get days and hours
         days = list(self.surfaceDataDict.keys())
@@ -2032,8 +2039,11 @@ class EnvironmentAnalysis:
             f"Wind Roses ({self.unit_system['wind_speed']})", fontsize=20, x=0.5, y=1
         )
         plt.show()
+        return None
 
-    def animate_average_wind_rose(self, figsize=(8, 8), filename="wind_rose.gif"):
+    def animate_average_wind_rose(
+        self, figsize: tuple = (8, 8), filename: str = "wind_rose.gif"
+    ) -> widgets.Image:
         """Animates the wind_rose of an average day. The inputs of a wind_rose
         are the location of the place where we want to analyze, (x,y,z). The data
         is assembled by hour, which means, the windrose of a specific hour is
@@ -2099,7 +2109,7 @@ class EnvironmentAnalysis:
             height=fig_height,
         )
 
-    def plot_wind_gust_distribution_over_average_day(self):
+    def plot_wind_gust_distribution_over_average_day(self) -> None:
         """Plots shown in the animation of how the wind gust distribution varies throughout the day."""
         # Gather animation data
         average_wind_gust_at_given_hour = {}
@@ -2169,7 +2179,9 @@ class EnvironmentAnalysis:
         fig.supylabel("Probability")
         plt.show()
 
-    def animate_wind_gust_distribution_over_average_day(self):
+        return None
+
+    def animate_wind_gust_distribution_over_average_day(self) -> HTML:
         """Animation of how the wind gust distribution varies throughout the day."""
         # Gather animation data
         wind_gusts_at_given_hour = {}
@@ -2252,8 +2264,8 @@ class EnvironmentAnalysis:
         return HTML(animation.to_jshtml())
 
     def plot_sustained_surface_wind_speed_distribution_over_average_day(
-        self, windSpeedLimit=False
-    ):
+        self, windSpeedLimit: bool = False
+    ) -> None:
         """Plots shown in the animation of how the sustained surface wind speed distribution varies throughout the day."""
         # Gather animation data
         average_wind_speed_at_given_hour = {}
@@ -2347,9 +2359,12 @@ class EnvironmentAnalysis:
         fig.supylabel("Probability")
         plt.show()
 
+        return None
+
     def animate_sustained_surface_wind_speed_distribution_over_average_day(
-        self, windSpeedLimit=False
-    ):  # TODO: getting weird results since the 0.3 on y axis is not parametrized
+        self, windSpeedLimit: bool = False
+    ) -> HTML:
+        # TODO: getting weird results since the 0.3 on y axis is not parametrized
         """Animation of how the sustained surface wind speed distribution varies throughout the day."""
         # Gather animation data
         surface_wind_speeds_at_given_hour = {}
@@ -2457,7 +2472,7 @@ class EnvironmentAnalysis:
         return HTML(animation.to_jshtml())
 
     @property
-    def altitude_AGL_range(self):
+    def altitude_AGL_range(self) -> tuple:
         min_altitude = 0
         if self.maxExpectedAltitude == None:
             max_altitudes = [
@@ -2470,7 +2485,7 @@ class EnvironmentAnalysis:
             max_altitude = self.maxExpectedAltitude
         return min_altitude, max_altitude
 
-    def process_temperature_profile_over_average_day(self):
+    def process_temperature_profile_over_average_day(self) -> None:
         """Compute the average temperature profile for each available hour of a day, over all
         days in the dataset."""
         altitude_list = np.linspace(*self.altitude_AGL_range, 100)
@@ -2503,7 +2518,9 @@ class EnvironmentAnalysis:
             average_temperature_profile_at_given_hour
         )
 
-    def process_pressure_profile_over_average_day(self):
+        return None
+
+    def process_pressure_profile_over_average_day(self) -> None:
         """Compute the average pressure profile for each available hour of a day, over all
         days in the dataset."""
         altitude_list = np.linspace(*self.altitude_AGL_range, 100)
@@ -2536,7 +2553,9 @@ class EnvironmentAnalysis:
             average_pressure_profile_at_given_hour
         )
 
-    def process_wind_speed_profile_over_average_day(self):
+        return None
+
+    def process_wind_speed_profile_over_average_day(self) -> None:
         """Compute the average wind profile for each available hour of a day, over all
         days in the dataset."""
         altitude_list = np.linspace(*self.altitude_AGL_range, 100)
@@ -2570,7 +2589,9 @@ class EnvironmentAnalysis:
                 self.max_average_wind_at_altitude = max_wind
         self.average_wind_profile_at_given_hour = average_wind_profile_at_given_hour
 
-    def process_wind_velocity_x_profile_over_average_day(self):
+        return None
+
+    def process_wind_velocity_x_profile_over_average_day(self) -> None:
         """Compute the average windVelocityX profile for each available hour of a day, over all
         days in the dataset."""
         altitude_list = np.linspace(*self.altitude_AGL_range, 100)
@@ -2602,8 +2623,9 @@ class EnvironmentAnalysis:
         self.average_windVelocityX_profile_at_given_hour = (
             average_windVelocityX_profile_at_given_hour
         )
+        return None
 
-    def process_wind_velocity_y_profile_over_average_day(self):
+    def process_wind_velocity_y_profile_over_average_day(self) -> None:
         """Compute the average windVelocityY profile for each available hour of a day, over all
         days in the dataset."""
         altitude_list = np.linspace(*self.altitude_AGL_range, 100)
@@ -2635,8 +2657,11 @@ class EnvironmentAnalysis:
         self.average_windVelocityY_profile_at_given_hour = (
             average_windVelocityY_profile_at_given_hour
         )
+        return None
 
-    def plot_wind_profile_over_average_day(self, clear_range_limits=False):
+    def plot_wind_profile_over_average_day(
+        self, clear_range_limits: bool = False
+    ) -> None:
         """Creates a grid of plots with the wind profile over the average day."""
         self.process_wind_speed_profile_over_average_day()
 
@@ -2706,7 +2731,9 @@ class EnvironmentAnalysis:
         fig.supylabel(f"Altitude AGL ({self.unit_system['length']})")
         plt.show()
 
-    def process_wind_heading_profile_over_average_day(self):
+        return None
+
+    def process_wind_heading_profile_over_average_day(self) -> None:
         """Compute the average wind velocities (both X and Y components) profile for each available hour of a day, over all days in the dataset."""
         altitude_list = np.linspace(*self.altitude_AGL_range, 100)
         average_wind_velocity_X_profile_at_given_hour = {}
@@ -2774,7 +2801,11 @@ class EnvironmentAnalysis:
             average_wind_heading_profile_at_given_hour
         )
 
-    def plot_wind_heading_profile_over_average_day(self, clear_range_limits=False):
+        return None
+
+    def plot_wind_heading_profile_over_average_day(
+        self, clear_range_limits: bool = False
+    ) -> None:
         """Creates a grid of plots with the wind heading profile over the average day."""
         self.process_wind_heading_profile_over_average_day()
 
@@ -2836,7 +2867,9 @@ class EnvironmentAnalysis:
         fig.supylabel(f"Altitude AGL ({self.unit_system['length']})")
         plt.show()
 
-    def animate_wind_profile_over_average_day(self, clear_range_limits=False):
+        return None
+
+    def animate_wind_profile_over_average_day(self, clear_range_limits: bool =False) -> HTML:
         """Animation of how wind profile evolves throughout an average day."""
         self.process_wind_speed_profile_over_average_day()
 
@@ -2905,7 +2938,7 @@ class EnvironmentAnalysis:
         plt.close(fig)
         return HTML(animation.to_jshtml())
 
-    def animate_wind_heading_profile_over_average_day(self, clear_range_limits=False):
+    def animate_wind_heading_profile_over_average_day(self, clear_range_limits: bool =False) -> HTML:
         """Animation of how wind heading profile evolves throughout an average day."""
         self.process_wind_heading_profile_over_average_day()
 
@@ -3109,6 +3142,8 @@ class EnvironmentAnalysis:
         print(
             f"Percentage of Days Without Clouds: {100*self.percentage_of_days_with_no_cloud_coverage:.1f} %"
         )
+
+        return None
 
     def exportMeanProfiles(self, filename="export_env_analysis"):
         """
