@@ -2030,30 +2030,3 @@ class Function:
         # h = (10)**-300
         # z = x + h*1j
         # return self(z).imag/h
-
-
-def Funcify(*args, **kwargs):
-    """Decorator factory to wrap callables as Function objects.
-    See rocketpy.Function for parameters information.
-
-    Returns
-    -------
-    decorator : function
-        Decorator function to wrap callables as Function objects.
-
-    Examples
-    --------
-    >>> @Funcify(inputs=['x'], outputs=['y'])
-    ... def f(x):
-    ...     return x**2
-    >>> f
-    Function object with inputs ['x'] and outputs ['y'].
-    >>> g = 2*f + 3
-    >>> g(2)
-    11
-    """
-
-    def decorator(func):
-        return Function(func, *args, **kwargs)
-
-    return decorator

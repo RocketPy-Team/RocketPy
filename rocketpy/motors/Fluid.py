@@ -40,7 +40,7 @@ class Fluid:
 
         if not isinstance(self.name, str):
             raise ValueError("The name must be a string.")
-        if self.density <= 0:
+        if self.density < 0:
             raise ValueError("The density must be a positive number.")
         if self.quality < 0 or self.quality > 1:
             raise ValueError("The quality must be a number between 0 and 1.")
