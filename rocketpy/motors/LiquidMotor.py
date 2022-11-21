@@ -16,6 +16,10 @@ from rocketpy.supplement import Disk, Cylinder, Hemisphere
 
 
 class LiquidMotor(Motor):
+    """Class to specify characteristics and useful operations for Liquid
+    motors.
+    """
+
     def __init__(
         self,
         thrustSource,
@@ -25,12 +29,62 @@ class LiquidMotor(Motor):
         reshapeThrustCurve=False,
         interpolationMethod="linear",
     ):
+        """Initialize Motor class, process thrust curve and geometrical
+        parameters and store results.
 
-        super.__init__()
+        Parameters
+        ----------
+        thrustSource : int, float, callable, string, array
+            Motor's thrust curve. Can be given as an int or float, in which
+            case the thrust will be considered constant in time. It can
+            also be given as a callable function, whose argument is time in
+            seconds and returns the thrust supplied by the motor in the
+            instant. If a string is given, it must point to a .csv or .eng file.
+            The .csv file shall contain no headers and the first column must
+            specify time in seconds, while the second column specifies thrust.
+            Arrays may also be specified, following rules set by the class
+            Function. See help(Function). Thrust units are Newtons.
+        burnOut : int, float
+            Motor burn out time in seconds.
+        nozzleRadius : int, float, optional
+            Motor's nozzle outlet radius in meters. Its value does not impact
+            trajectory simulation.
+        throatRadius : int, float, optional
+            Motor's nozzle throat radius in meters. Its value has very low
+            impact in trajectory simulation, only useful to analyze
+            dynamic instabilities, therefore it is optional.
+        reshapeThrustCurve : boolean, tuple, optional
+            If False, the original thrust curve supplied is not altered. If a
+            tuple is given, whose first parameter is a new burn out time and
+            whose second parameter is a new total impulse in Ns, the thrust
+            curve is reshaped to match the new specifications. May be useful
+            for motors whose thrust curve shape is expected to remain similar
+            in case the impulse and burn time varies slightly. Default is
+            False.
+        interpolationMethod : string, optional
+            Method of interpolation to be used in case thrust curve is given
+            by data set in .csv or .eng, or as an array. Options are 'spline'
+            'akima' and 'linear'. Default is "linear".
+        """
+        super().__init__(
+            thrustSource,
+            burnOut,
+            nozzleRadius,
+            throatRadius,
+            reshapeThrustCurve,
+            interpolationMethod,
+        )
         self.positioned_tanks = []
-        pass
 
     def evaluateMassFlowRate(self):
+        """Evaluates the mass flow rate of the motor as the sum of each tank
+        mass flow rate.
+
+        Returns
+        -------
+        float
+            Mass flow rate of the motor, in kg/s.
+        """
         massFlowRate = 0
 
         for positioned_tank in self.positioned_tanks:
@@ -39,6 +93,14 @@ class LiquidMotor(Motor):
         return massFlowRate
 
     def evaluateCenterOfMass(self):
+        """Evaluates the center of mass of the motor from each tank center of
+        mass and positioning.
+
+        Returns
+        -------
+        float
+            Center of mass of the motor, in meters.
+        """
         totalMass = 0
         massBalance = 0
 
@@ -51,6 +113,14 @@ class LiquidMotor(Motor):
         return massBalance / totalMass
 
     def evaluateInertiaTensor(self):
+        """Evaluates the principal moment of inertia of the motor from each tank
+        inertia and mass by the parallel axis theorem.
+
+        Returns
+        -------
+        tuple
+            Pricipal moment of inertia tensor of the motor, in kg*m^2.
+        """
         inertia_x = inertia_y = inertia_z = 0
         centerOfMass = self.evaluateCenterOfMass()
 
@@ -66,16 +136,16 @@ class LiquidMotor(Motor):
         return inertia_x, inertia_y, inertia_z
 
     def addTank(self, tank, position):
-        """
-        Adds a tank to the rocket motor.
+        """Adds a tank to the rocket motor.
 
         Parameters
         ----------
         tank : Tank
             Tank object to be added to the rocket motor.
         position : float
-            Position of the tank in relation to the motor nozzle, in meters.
-            Should be a positive value.
+            Position of the tank relative to the motor nozzle, in meters.
+            Should be a positive value. The position is measured from the
+            nozzle tip to the tank lowest point (including caps).
         """
         self.positioned_tanks.append({"tank": tank, "position": position})
 
