@@ -1125,7 +1125,7 @@ class Function:
         sampledPoints = self(samplingRange)
         if removeDC:
             sampledPoints -= np.mean(sampledPoints)
-        FourierAmplitude = np.abs(np.fft.fft(sampledPoints) / numberOfSamples)
+        FourierAmplitude = np.abs(np.fft.fft(sampledPoints) / (numberOfSamples / 2))
         FourierFrequencies = np.fft.fftfreq(numberOfSamples, samplingTimeStep)
         return Function(
             source=np.array([FourierFrequencies, FourierAmplitude]).T,
