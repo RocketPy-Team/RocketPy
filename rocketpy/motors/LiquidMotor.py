@@ -94,7 +94,8 @@ class LiquidMotor(Motor):
 
     def evaluateCenterOfMass(self):
         """Evaluates the center of mass of the motor from each tank center of
-        mass and positioning.
+        mass and positioning. The center of mass height is measured relative
+        to the motor nozzle.
 
         Returns
         -------
@@ -114,7 +115,9 @@ class LiquidMotor(Motor):
 
     def evaluateInertiaTensor(self):
         """Evaluates the principal moment of inertia of the motor from each tank
-        inertia and mass by the parallel axis theorem.
+        by the parallel axis theorem. The moment of inertia is measured relative
+        to the motor center of mass with the z-axis being the motor symmetry axis
+        and the x and y axes completing the right-handed coordinate system.
 
         Returns
         -------
