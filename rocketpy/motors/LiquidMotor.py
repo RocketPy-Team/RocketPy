@@ -51,7 +51,19 @@ class LiquidMotor(Motor):
         return massBalance / totalMass
 
     def evaluateInertiaTensor(self):
-        pass
+        inertia_x = inertia_y = inertia_z = 0
+        centerOfMass = self.evaluateCenterOfMass()
+
+        for positioned_tank in self.positioned_tanks:
+            tank = positioned_tank.get("tank")
+            tankPosition = positioned_tank.get("position")
+            inertia_x += (
+                tank.inertiaTensor[0]
+                + tank.mass * (tankPosition + tank.centerOfMass - centerOfMass) ** 2
+            )
+            inertia_y = inertia_x
+
+        return inertia_x, inertia_y, inertia_z
 
     def addTank(self, tank, position):
         """
