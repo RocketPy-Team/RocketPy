@@ -31,6 +31,8 @@ def test_motor(mock_show):
         nozzleRadius=33 / 1000,
         throatRadius=11 / 1000,
         interpolationMethod="linear",
+        grainsCenterOfMassPosition=0.39796,
+        coordinateSystemOrientation="nozzleToCombustionChamber",
     )
 
     assert example_motor.allInfo() == None
@@ -225,6 +227,8 @@ def test_reshape_thrust_curve_asserts_resultant_thrust_curve_correct():
         throatRadius=11 / 1000,
         reshapeThrustCurve=(5, 3000),
         interpolationMethod="linear",
+        grainsCenterOfMassPosition=0.39796,
+        coordinateSystemOrientation="nozzleToCombustionChamber",
     )
 
     thrust_reshaped = example_motor.thrust.getSource()

@@ -19,6 +19,7 @@ def solid_motor():
     example_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
         burnOut=3.9,
+        grainsCenterOfMassPosition=0.39796,
         grainNumber=5,
         grainSeparation=5 / 1000,
         grainDensity=1815,
@@ -26,8 +27,11 @@ def solid_motor():
         grainInitialInnerRadius=15 / 1000,
         grainInitialHeight=120 / 1000,
         nozzleRadius=33 / 1000,
+        nozzlePosition=0,
         throatRadius=11 / 1000,
+        reshapeThrustCurve=False,
         interpolationMethod="linear",
+        coordinateSystemOrientation="nozzleToCombustionChamber",
     )
     return example_motor
 
@@ -35,16 +39,16 @@ def solid_motor():
 @pytest.fixture
 def rocket(solid_motor):
     example_rocket = Rocket(
-        motor=solid_motor,
         radius=127 / 2000,
         mass=19.197 - 2.956,
         inertiaI=6.60,
         inertiaZ=0.0351,
-        distanceRocketNozzle=-1.255,
-        distanceRocketPropellant=-0.85704,
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
+        centerOfDryMassPosition=0,
+        coordinateSystemOrientation="tailToNose",
     )
+    example_rocket.addMotor(solid_motor, position=-1.255)
     return example_rocket
 
 
@@ -72,6 +76,9 @@ def dimensionless_solid_motor(kg, m):
         nozzleRadius=33 / 1000 * m,
         throatRadius=11 / 1000 * m,
         interpolationMethod="linear",
+        grainsCenterOfMassPosition=0.39796 * m,
+        nozzlePosition=0 * m,
+        coordinateSystemOrientation="nozzleToCombustionChamber",
     )
     return example_motor
 
@@ -79,16 +86,16 @@ def dimensionless_solid_motor(kg, m):
 @pytest.fixture
 def dimensionless_rocket(kg, m, dimensionless_solid_motor):
     example_rocket = Rocket(
-        motor=dimensionless_solid_motor,
         radius=127 / 2000 * m,
         mass=(19.197 - 2.956) * kg,
         inertiaI=6.60 * (kg * m**2),
         inertiaZ=0.0351 * (kg * m**2),
-        distanceRocketNozzle=-1.255 * m,
-        distanceRocketPropellant=-0.85704 * m,
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
+        centerOfDryMassPosition=0 * m,
+        coordinateSystemOrientation="tailToNose",
     )
+    example_rocket.addMotor(dimensionless_solid_motor, position=-1.255 * m)
     return example_rocket
 
 

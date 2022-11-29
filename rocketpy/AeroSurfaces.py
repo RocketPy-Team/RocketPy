@@ -114,7 +114,9 @@ class NoseCone:
             self.k = 0.563
         else:
             self.k = 0.5
+
         # Calculate cp position in local coordinates
+        # Local coordinate origin is found at the tip of the nose cone
         self.cpz = self.k * length
         self.cpy = 0
         self.cpx = 0

@@ -1,9 +1,9 @@
 from unittest.mock import patch
 
-import pytest
 import numpy as np
+import pytest
 
-from rocketpy import Environment, SolidMotor, Rocket, Flight, Parachute
+from rocketpy import Rocket, SolidMotor
 
 
 @patch("matplotlib.pyplot.show")
@@ -20,30 +20,33 @@ def test_rocket(mock_show):
         nozzleRadius=33 / 1000,
         throatRadius=11 / 1000,
         interpolationMethod="linear",
+        grainsCenterOfMassPosition=0.39796,
+        coordinateSystemOrientation="nozzleToCombustionChamber",
     )
 
     test_rocket = Rocket(
-        motor=test_motor,
         radius=127 / 2000,
         mass=19.197 - 2.956,
         inertiaI=6.60,
         inertiaZ=0.0351,
-        distanceRocketNozzle=-1.255,
-        distanceRocketPropellant=-0.85704,
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
+        centerOfDryMassPosition=0,
+        coordinateSystemOrientation="tailToNose",
     )
+
+    test_rocket.addMotor(test_motor, position=-1.255)
 
     test_rocket.setRailButtons([0.2, -0.5])
 
     NoseCone = test_rocket.addNose(
-        length=0.55829, kind="vonKarman", distanceToCM=0.71971
+        length=0.55829, kind="vonKarman", position=1.278, name="NoseCone"
     )
     FinSet = test_rocket.addTrapezoidalFins(
-        4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
+        4, span=0.100, rootChord=0.120, tipChord=0.040, position=-1.04956
     )
     Tail = test_rocket.addTail(
-        topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656
+        topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
     )
 
     def drogueTrigger(p, y):
@@ -95,30 +98,33 @@ def test_elliptical_fins(mock_show):
         nozzleRadius=33 / 1000,
         throatRadius=11 / 1000,
         interpolationMethod="linear",
+        grainsCenterOfMassPosition=0.39796,
+        coordinateSystemOrientation="nozzleToCombustionChamber",
     )
 
     test_rocket = Rocket(
-        motor=test_motor,
         radius=127 / 2000,
         mass=19.197 - 2.956,
         inertiaI=6.60,
         inertiaZ=0.0351,
-        distanceRocketNozzle=-1.255,
-        distanceRocketPropellant=-0.85704,
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
+        centerOfDryMassPosition=0,
+        coordinateSystemOrientation="tailToNose",
     )
+
+    test_rocket.addMotor(test_motor, position=-1.255)
 
     test_rocket.setRailButtons([0.2, -0.5])
 
     NoseCone = test_rocket.addNose(
-        length=0.55829, kind="vonKarman", distanceToCM=0.71971
+        length=0.55829, kind="vonKarman", position=1.278, name="NoseCone"
     )
     FinSet = test_rocket.addEllipticalFins(
-        4, span=0.100, rootChord=0.120, distanceToCM=-1.04956
+        4, span=0.100, rootChord=0.120, position=-1.04956
     )
     Tail = test_rocket.addTail(
-        topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656
+        topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
     )
 
     def drogueTrigger(p, y):
@@ -170,31 +176,34 @@ def test_airfoil(mock_show):
         nozzleRadius=33 / 1000,
         throatRadius=11 / 1000,
         interpolationMethod="linear",
+        grainsCenterOfMassPosition=0.39796,
+        coordinateSystemOrientation="nozzleToCombustionChamber",
     )
 
     test_rocket = Rocket(
-        motor=test_motor,
         radius=127 / 2000,
         mass=19.197 - 2.956,
         inertiaI=6.60,
         inertiaZ=0.0351,
-        distanceRocketNozzle=-1.255,
-        distanceRocketPropellant=-0.85704,
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
+        centerOfDryMassPosition=0,
+        coordinateSystemOrientation="tailToNose",
     )
+
+    test_rocket.addMotor(test_motor, position=-1.255)
 
     test_rocket.setRailButtons([0.2, -0.5])
 
     NoseCone = test_rocket.addNose(
-        length=0.55829, kind="vonKarman", distanceToCM=0.71971
+        length=0.55829, kind="vonKarman", position=1.278, name="NoseCone"
     )
     FinSetNACA = test_rocket.addTrapezoidalFins(
         2,
         span=0.100,
         rootChord=0.120,
         tipChord=0.040,
-        distanceToCM=-1.04956,
+        position=-1.04956,
         airfoil=("tests/fixtures/airfoils/NACA0012-radians.txt", "radians"),
     )
     FinSetE473 = test_rocket.addTrapezoidalFins(
@@ -202,11 +211,11 @@ def test_airfoil(mock_show):
         span=0.100,
         rootChord=0.120,
         tipChord=0.040,
-        distanceToCM=-1.04956,
+        position=-1.04956,
         airfoil=("tests/fixtures/airfoils/e473-10e6-degrees.csv", "degrees"),
     )
     Tail = test_rocket.addTail(
-        topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656
+        topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
     )
 
     def drogueTrigger(p, y):
@@ -261,16 +270,16 @@ def test_evaluate_static_margin_assert_cp_equals_cm(kg, m, dimensionless_rocket)
 @pytest.mark.parametrize(
     "k, type",
     (
-        [1 - 1 / 3, "conical"],
-        [1 - 0.534, "ogive"],
-        [1 - 0.437, "lvhaack"],
+        [2 / 3, "conical"],
+        [0.466, "ogive"],
+        [0.563, "lvhaack"],
         [0.5, "default"],
         [0.5, "not a mapped string, to show default case"],
     ),
 )
 def test_add_nose_assert_cp_cm_plus_nose(k, type, rocket, dimensionless_rocket, m):
-    rocket.addNose(length=0.55829, kind=type, distanceToCM=0.71971)
-    cpz = 0.71971 + k * 0.55829
+    rocket.addNose(length=0.55829, kind=type, position=1.278)
+    cpz = 1.278 - k * 0.55829  # Relative to the center of dry mass
     clalpha = 2
 
     static_margin_initial = (rocket.centerOfMass(0) - cpz) / (2 * rocket.radius)
@@ -282,9 +291,7 @@ def test_add_nose_assert_cp_cm_plus_nose(k, type, rocket, dimensionless_rocket, 
     assert clalpha == pytest.approx(rocket.totalLiftCoeffDer, 1e-12)
     assert rocket.cpPosition == pytest.approx(cpz, 1e-12)
 
-    dimensionless_rocket.addNose(
-        length=0.55829 * m, kind=type, distanceToCM=0.71971 * m
-    )
+    dimensionless_rocket.addNose(length=0.55829 * m, kind=type, position=1.278 * m)
     assert pytest.approx(dimensionless_rocket.staticMargin(0), 1e-12) == pytest.approx(
         rocket.staticMargin(0), 1e-12
     )
@@ -304,7 +311,7 @@ def test_add_tail_assert_cp_cm_plus_tail(rocket, dimensionless_rocket, m):
         topRadius=0.0635,
         bottomRadius=0.0435,
         length=0.060,
-        distanceToCM=-1.194656,
+        position=-1.194656,
     )
 
     clalpha = -2 * (1 - (0.0635 / 0.0435) ** (-2)) * (0.0635 / (rocket.radius)) ** 2
@@ -324,7 +331,7 @@ def test_add_tail_assert_cp_cm_plus_tail(rocket, dimensionless_rocket, m):
         topRadius=0.0635 * m,
         bottomRadius=0.0435 * m,
         length=0.060 * m,
-        distanceToCM=-1.194656 * m,
+        position=-1.194656 * m,
     )
     assert pytest.approx(dimensionless_rocket.staticMargin(0), 1e-12) == pytest.approx(
         rocket.staticMargin(0), 1e-12
@@ -348,7 +355,7 @@ def test_add_trapezoidal_fins_sweep_angle(
     rocket, sweep_angle, expected_fin_cpz, expected_clalpha, expected_cpz_cm
 ):
     # Reference values from OpenRocket
-    Nose = rocket.addNose(length=0.55829, kind="vonKarman", distanceToCM=0.71971)
+    Nose = rocket.addNose(length=0.55829, kind="vonKarman", position=1.278)
 
     FinSet = rocket.addTrapezoidalFins(
         n=3,
@@ -356,12 +363,12 @@ def test_add_trapezoidal_fins_sweep_angle(
         rootChord=0.100,
         tipChord=0.050,
         sweepAngle=sweep_angle,
-        distanceToCM=-1.182,
+        position=-1.182,
     )
 
     # Check center of pressure
     translate = 0.55829 + 0.71971
-    cpz = FinSet.cp[2]
+    cpz = -1.182 - FinSet.cpz  # Should be - 1.232
     assert translate - cpz == pytest.approx(expected_fin_cpz, 0.01)
 
     # Check lift coefficient derivative
@@ -380,7 +387,7 @@ def test_add_trapezoidal_fins_sweep_length(
     rocket, sweep_length, expected_fin_cpz, expected_clalpha, expected_cpz_cm
 ):
     # Reference values from OpenRocket
-    Nose = rocket.addNose(length=0.55829, kind="vonKarman", distanceToCM=0.71971)
+    Nose = rocket.addNose(length=0.55829, kind="vonKarman", position=1.278)
 
     FinSet = rocket.addTrapezoidalFins(
         n=3,
@@ -388,12 +395,12 @@ def test_add_trapezoidal_fins_sweep_length(
         rootChord=0.100,
         tipChord=0.050,
         sweepLength=sweep_length,
-        distanceToCM=-1.182,
+        position=-1.182,
     )
 
     # Check center of pressure
     translate = 0.55829 + 0.71971
-    cpz = FinSet.cp[2]
+    cpz = -FinSet.cp[2] - 1.182
     assert translate - cpz == pytest.approx(expected_fin_cpz, 0.01)
 
     # Check lift coefficient derivative
@@ -410,7 +417,7 @@ def test_add_fins_assert_cp_cm_plus_fins(rocket, dimensionless_rocket, m):
         span=0.100,
         rootChord=0.120,
         tipChord=0.040,
-        distanceToCM=-1.04956,
+        position=-1.04956,
     )
 
     cpz = -1.04956 - (
@@ -442,7 +449,7 @@ def test_add_fins_assert_cp_cm_plus_fins(rocket, dimensionless_rocket, m):
         span=0.100 * m,
         rootChord=0.120 * m,
         tipChord=0.040 * m,
-        distanceToCM=-1.04956 * m,
+        position=-1.04956 * m,
     )
     assert pytest.approx(dimensionless_rocket.staticMargin(0), 1e-12) == pytest.approx(
         rocket.staticMargin(0), 1e-12
