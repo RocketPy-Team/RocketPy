@@ -77,7 +77,7 @@ def dimensionless_solid_motor(kg, m):
         throatRadius=11 / 1000 * m,
         interpolationMethod="linear",
         grainsCenterOfMassPosition=0.39796 * m,
-        nozzlePosition=0*m,
+        nozzlePosition=0 * m,
         coordinateSystemOrientation="nozzleToCombustionChamber",
     )
     return example_motor
