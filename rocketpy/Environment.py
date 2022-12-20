@@ -1451,6 +1451,8 @@ class Environment:
 
         # Process the model string
         model = model.lower()
+        if model[-1] == "u":  # case iconEu
+            model = "".join([model[:4], model[4].upper(), model[4 + 1 :]])
 
         # Load data from Windy.com: json file
         url = f"https://node.windy.com/forecast/meteogram/{model}/{self.lat}/{self.lon}/?step=undefined"
