@@ -711,6 +711,10 @@ class Environment:
             so information from virtual soundings such as GFS and NAM
             can also be imported.
 
+            - 'WindyAtmosphere': sets pressure, temperature, wind-u and wind-v
+            profiles and surface elevation obtained from the Windy API. See file
+            argument to specify the model as either ECMWF, GFS or ICON.
+
             - 'Forecast': sets pressure, temperature, wind-u and wind-v
             profiles and surface elevation obtained from a weather
             forecast file in netCDF format or from an OPeNDAP URL, both
@@ -780,11 +784,9 @@ class Environment:
             International Standard Atmosphere. If the wind components
             are not given, it will default to 0.
 
-            - 'WindyAtmosphere': retrieves data from the Windy API. See file argument
-            to specify the model as either ECMWF, GFS or ICON.
         file : string, optional
             String that must be given when type is either
-            'WyomingSounding', 'Forecast', 'Reanalysis' or 'Ensemble'.
+            'WyomingSounding', 'Forecast', 'Reanalysis', 'Ensemble' or 'Windy'.
             It specifies the location of the data given, either through
             a local file address or a URL.
             If type is 'Forecast', this parameter can also be either
@@ -797,8 +799,8 @@ class Environment:
             'GEFS', or 'CMC' for the latest of these ensembles.
             References: GEFS: Global, bias-corrected, 0.5deg resolution, 21 forecast members, Updates every 6 hours, forecast for 65 points spaced by 4 hours
                        CMC: Global, 0.5deg resolution, 21 forecast members, Updates every 12 hours, forecast for 65 points spaced by 4 hours
-            If type is 'Windy', tis parameter can be either 'gfs', 'ecmwf', 'icon' or
-            'iconEu'.
+            If type is 'Windy', this parameter can be either 'GFS', 'ECMWF', 'ICON' or
+            'ICONEU'
             Default in this case is 'ecmwf'.
         dictionary : dictionary, string, optional
             Dictionary that must be given when type is either
@@ -1199,7 +1201,7 @@ class Environment:
             self.atmosphericModelDict = dictionary
         elif type == "CustomAtmosphere":
             self.processCustomAtmosphere(pressure, temperature, wind_u, wind_v)
-        elif type == "WindyAtmosphere":
+        elif type == "Windy":
             self.processWindyAtmosphere(file)
         else:
             raise ValueError("Unknown model type.")
@@ -1436,16 +1438,20 @@ class Environment:
 
         return None
 
-    def processWindyAtmosphere(self, model="ecmwf"):
+    def processWindyAtmosphere(self, model="ECMWF"):
         """Process data from Windy.com to retrieve atmospheric forecast data.
 
         Paramaters
         ----------
         model : string, optional
-            The atmospheric model to use. Default is 'ecmwf'. Options are: 'ecmwf' for
-            the ECMWF-HRES model, 'gfs' for the GFS model, 'icon' for the ICON-Global
-            model or 'iconEu' for the ICON-EU model.
+            The atmospheric model to use. Default is 'ECMWF'. Options are: 'ECMWF' for
+            the ECMWF-HRES model, 'GFS' for the GFS model, 'ICON' for the ICON-Global
+            model or 'ICONEU' for the ICON-EU model.
         """
+
+        # Process the model string
+        model = model.lower()
+
         # Load data from Windy.com: json file
         url = f"https://node.windy.com/forecast/meteogram/{model}/{self.lat}/{self.lon}/?step=undefined"
         response = requests.get(url).json()
