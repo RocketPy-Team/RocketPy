@@ -151,16 +151,17 @@ The first step is to initialize the class with the vital data:
 .. code-block:: python
 
     Calisto = Rocket(
-        motor=Pro75M1670,
         radius=127 / 2000,
         mass=19.197 - 2.956,
         inertiaI=6.60,
         inertiaZ=0.0351,
-        distanceRocketNozzle=-1.255,
-        distanceRocketPropellant=-0.85704,
-        powerOffDrag="../../data/calisto/powerOffDragCurve.csv", #copy here the path to the drag curve file
-        powerOnDrag="../../data/calisto/powerOnDragCurve.csv", #copy here the path to the drag curve file
+        powerOffDrag="../../data/calisto/powerOffDragCurve.csv",
+        powerOnDrag="../../data/calisto/powerOnDragCurve.csv",
+        centerOfDryMassPosition=0,
+        coordinateSystemOrientation="tailToNose",
     )
+
+    Calisto.addMotor(Pro75M1670, position=-1.255)
 
 Then the rail buttons must be set:
 
@@ -174,11 +175,22 @@ In the example, a nosecone, one fin set and one tail were added, but each case c
 
 .. code-block:: python
 
-    NoseCone = Calisto.addNose(length=0.55829, kind="vonKarman", distanceToCM=0.71971)
+    NoseCone = Calisto.addNose(length=0.55829, kind="vonKarman", position=0.71971 + 0.55829)
 
-    FinSet = Calisto.addFins(4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956)
+    FinSet = Calisto.addTrapezoidalFins(
+        n=4,
+        rootChord=0.120,
+        tipChord=0.040,
+        span=0.100,
+        position=-1.04956,
+        cantAngle=0,
+        radius=None,
+        airfoil=None,
+    )
 
-    Tail = Calisto.addTail(topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656)
+    Tail = Calisto.addTail(
+        topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
+    )
 
 If you are considering the parachutes in the simulation, they also have to be added to the rocket object.
 A trigger function must be supplied to trigger the parachutes.
