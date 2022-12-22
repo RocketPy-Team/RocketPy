@@ -1453,10 +1453,16 @@ class Environment:
         model = model.lower()
         if model[-1] == "u":  # case iconEu
             model = "".join([model[:4], model[4].upper(), model[4 + 1 :]])
-
         # Load data from Windy.com: json file
         url = f"https://node.windy.com/forecast/meteogram/{model}/{self.lat}/{self.lon}/?step=undefined"
-        response = requests.get(url).json()
+        try:
+            response = requests.get(url).json()
+        except:
+            if model == "iconEu":
+                raise ValueError(
+                    "Could not get a response from Icon-EU by windy. Maybe latitude and longitude coordinates are out of Europe?",
+                )
+            raise
 
         # Determine time index from model
         timeArray = np.array(response["data"]["hours"])
