@@ -19,6 +19,16 @@ class AeroSurfaces:
     def append(self, aeroSurface, position):
         self._aeroSurfaces.append((aeroSurface, position))
 
+    def remove(self, aeroSurface):
+        for surface, position in self._aeroSurfaces:
+            if surface == aeroSurface:
+                self._aeroSurfaces.remove((aeroSurface, position))
+
+    def pop(self, aeroSurface):
+        for surface, position in self._aeroSurfaces:
+            if surface == aeroSurface:
+                self._aeroSurfaces.pop((aeroSurface, position))
+
     def __len__(self):
         return len(self._aeroSurfaces)
 
