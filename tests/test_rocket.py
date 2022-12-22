@@ -20,7 +20,7 @@ def test_rocket(mock_show):
         nozzleRadius=33 / 1000,
         throatRadius=11 / 1000,
         interpolationMethod="linear",
-        grainsCenterOfMassPosition=0.39796,
+        grainsCenterOfMassPosition=-0.85704,
         coordinateSystemOrientation="nozzleToCombustionChamber",
     )
 
@@ -85,6 +85,91 @@ def test_rocket(mock_show):
 
 
 @patch("matplotlib.pyplot.show")
+def test_coordinate_system_orientation(mock_show):
+    motor_nozzleToCombustionChamber = SolidMotor(
+        thrustSource="data/motors/Cesaroni_M1670.eng",
+        burnOut=3.9,
+        grainNumber=5,
+        grainSeparation=5 / 1000,
+        grainDensity=1815,
+        grainOuterRadius=33 / 1000,
+        grainInitialInnerRadius=15 / 1000,
+        grainInitialHeight=120 / 1000,
+        nozzleRadius=33 / 1000,
+        throatRadius=11 / 1000,
+        interpolationMethod="linear",
+        grainsCenterOfMassPosition=-0.85704,
+        coordinateSystemOrientation="nozzleToCombustionChamber",
+    )
+
+    motor_combustionChamberToNozzle = SolidMotor(
+        thrustSource="data/motors/Cesaroni_M1670.eng",
+        burnOut=3.9,
+        grainNumber=5,
+        grainSeparation=5 / 1000,
+        grainDensity=1815,
+        grainOuterRadius=33 / 1000,
+        grainInitialInnerRadius=15 / 1000,
+        grainInitialHeight=120 / 1000,
+        nozzleRadius=33 / 1000,
+        throatRadius=11 / 1000,
+        interpolationMethod="linear",
+        grainsCenterOfMassPosition=0.85704,
+        coordinateSystemOrientation="combustionChamberToNozzle",
+    )
+
+    rocket_tail_to_nose = Rocket(
+        radius=127 / 2000,
+        mass=19.197 - 2.956,
+        inertiaI=6.60,
+        inertiaZ=0.0351,
+        powerOffDrag="data/calisto/powerOffDragCurve.csv",
+        powerOnDrag="data/calisto/powerOnDragCurve.csv",
+        centerOfDryMassPosition=0,
+        coordinateSystemOrientation="tailToNose",
+    )
+
+    rocket_tail_to_nose.addMotor(motor_nozzleToCombustionChamber, position=-1.255)
+
+    NoseCone = rocket_tail_to_nose.addNose(
+        length=0.55829, kind="vonKarman", position=1.278, name="NoseCone"
+    )
+    FinSet = rocket_tail_to_nose.addTrapezoidalFins(
+        4, span=0.100, rootChord=0.120, tipChord=0.040, position=-1.04956
+    )
+
+    static_margin_tail_to_nose = rocket_tail_to_nose.staticMargin(0)
+
+    rocket_nose_to_tail = Rocket(
+        radius=127 / 2000,
+        mass=19.197 - 2.956,
+        inertiaI=6.60,
+        inertiaZ=0.0351,
+        powerOffDrag="data/calisto/powerOffDragCurve.csv",
+        powerOnDrag="data/calisto/powerOnDragCurve.csv",
+        centerOfDryMassPosition=0,
+        coordinateSystemOrientation="noseToTail",
+    )
+
+    rocket_nose_to_tail.addMotor(motor_combustionChamberToNozzle, position=1.255)
+
+    NoseCone = rocket_nose_to_tail.addNose(
+        length=0.55829, kind="vonKarman", position=-1.278, name="NoseCone"
+    )
+    FinSet = rocket_nose_to_tail.addTrapezoidalFins(
+        4, span=0.100, rootChord=0.120, tipChord=0.040, position=1.04956
+    )
+
+    static_margin_nose_to_tail = rocket_nose_to_tail.staticMargin(0)
+
+    assert (
+        rocket_tail_to_nose.allInfo() == None
+        or rocket_nose_to_tail.allInfo() == None
+        or not abs(static_margin_tail_to_nose - static_margin_nose_to_tail) < 0.0001
+    )
+
+
+@patch("matplotlib.pyplot.show")
 def test_elliptical_fins(mock_show):
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
@@ -98,7 +183,7 @@ def test_elliptical_fins(mock_show):
         nozzleRadius=33 / 1000,
         throatRadius=11 / 1000,
         interpolationMethod="linear",
-        grainsCenterOfMassPosition=0.39796,
+        grainsCenterOfMassPosition=-0.85704,
         coordinateSystemOrientation="nozzleToCombustionChamber",
     )
 
@@ -176,7 +261,7 @@ def test_airfoil(mock_show):
         nozzleRadius=33 / 1000,
         throatRadius=11 / 1000,
         interpolationMethod="linear",
-        grainsCenterOfMassPosition=0.39796,
+        grainsCenterOfMassPosition=-0.85704,
         coordinateSystemOrientation="nozzleToCombustionChamber",
     )
 
