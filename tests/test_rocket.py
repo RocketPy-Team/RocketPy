@@ -20,7 +20,8 @@ def test_rocket(mock_show):
         nozzleRadius=33 / 1000,
         throatRadius=11 / 1000,
         interpolationMethod="linear",
-        grainsCenterOfMassPosition=-0.85704,
+        grainsCenterOfMassPosition=0.39796,
+        nozzlePosition=0,
         coordinateSystemOrientation="nozzleToCombustionChamber",
     )
 
@@ -98,7 +99,8 @@ def test_coordinate_system_orientation(mock_show):
         nozzleRadius=33 / 1000,
         throatRadius=11 / 1000,
         interpolationMethod="linear",
-        grainsCenterOfMassPosition=-0.85704,
+        grainsCenterOfMassPosition=0.39796,
+        nozzlePosition=0,
         coordinateSystemOrientation="nozzleToCombustionChamber",
     )
 
@@ -114,7 +116,8 @@ def test_coordinate_system_orientation(mock_show):
         nozzleRadius=33 / 1000,
         throatRadius=11 / 1000,
         interpolationMethod="linear",
-        grainsCenterOfMassPosition=0.85704,
+        grainsCenterOfMassPosition=-0.39796,
+        nozzlePosition=0,
         coordinateSystemOrientation="combustionChamberToNozzle",
     )
 
@@ -183,7 +186,8 @@ def test_elliptical_fins(mock_show):
         nozzleRadius=33 / 1000,
         throatRadius=11 / 1000,
         interpolationMethod="linear",
-        grainsCenterOfMassPosition=-0.85704,
+        grainsCenterOfMassPosition=0.39796,
+        nozzlePosition=0,
         coordinateSystemOrientation="nozzleToCombustionChamber",
     )
 
@@ -261,7 +265,8 @@ def test_airfoil(mock_show):
         nozzleRadius=33 / 1000,
         throatRadius=11 / 1000,
         interpolationMethod="linear",
-        grainsCenterOfMassPosition=-0.85704,
+        grainsCenterOfMassPosition=0.39796,
+        nozzlePosition=0,
         coordinateSystemOrientation="nozzleToCombustionChamber",
     )
 
