@@ -1460,7 +1460,7 @@ class Environment:
         except:
             if model == "iconEu":
                 raise ValueError(
-                    "Could not get a response from Icon-EU by windy. Maybe latitude and longitude coordinates are out of Europe?",
+                    "Could not get a valid response for Icon-EU from Windy. Check if the latitude and longitude coordinates set are inside Europe.",
                 )
             raise
 
