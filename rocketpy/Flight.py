@@ -16,7 +16,7 @@ import numpy as np
 import simplekml
 from scipy import integrate
 
-from .Function import Function
+from .Function import Function, funcify_method
 from .prints.flight_prints import _FlightPrints
 
 try:
