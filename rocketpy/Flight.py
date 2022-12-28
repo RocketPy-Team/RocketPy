@@ -648,6 +648,7 @@ class Flight:
 
         # Initialize prints and plots objects
         self.prints = _FlightPrints(self)
+
         # Initialize solver monitors
         self.functionEvaluations = []
         self.functionEvaluationsPerTimeStep = []
