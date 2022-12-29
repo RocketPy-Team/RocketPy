@@ -781,16 +781,7 @@ class _FlightPlots:
         None
         """
 
-        plt.figure()
-        ax1 = plt.subplot(111)
-        ax1.plot(self.flight.z[:, 0], self.flight.env.pressure(self.flight.z[:, 1]))
-        ax1.set_title("Pressure at Rocket's Altitude")
-        ax1.set_xlabel("Time (s)")
-        ax1.set_ylabel("Pressure (Pa)")
-        ax1.set_xlim(0, self.flight.tFinal)
-        ax1.grid()
-
-        plt.show()
+        self.flight.pressure()
 
         return None
 
