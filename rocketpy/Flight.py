@@ -2470,7 +2470,6 @@ class Flight:
 
         return F11, F12, F21, F22
 
-    @cached_property
     def __calculate_pressure_signal(self):
         """Calculate the pressure signal from the pressure sensor.
         It creates a SignalFunction attribute in the parachute object.
@@ -3663,7 +3662,7 @@ class Flight:
         if len(self.rocket.parachutes) == 0:
             plt.figure()
             ax1 = plt.subplot(111)
-            ax1.plot(self.z[:, 0], self.env.pressure(self.z[:, 1]))
+            ax1.plot(self.z[:, 0], self.env.pressure(self.z[:, 1].tolist()))
             ax1.set_title("Pressure at Rocket's Altitude")
             ax1.set_xlabel("Time (s)")
             ax1.set_ylabel("Pressure (Pa)")
@@ -3675,6 +3674,7 @@ class Flight:
         else:
             for parachute in self.rocket.parachutes:
                 print("Parachute: ", parachute.name)
+                self.__calculate_pressure_signal()
                 parachute.noiseSignalFunction()
                 parachute.noisyPressureSignalFunction()
                 parachute.cleanPressureSignalFunction()
