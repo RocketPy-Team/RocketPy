@@ -711,6 +711,10 @@ class Environment:
             so information from virtual soundings such as GFS and NAM
             can also be imported.
 
+            - 'WindyAtmosphere': sets pressure, temperature, wind-u and wind-v
+            profiles and surface elevation obtained from the Windy API. See file
+            argument to specify the model as either ECMWF, GFS or ICON.
+
             - 'Forecast': sets pressure, temperature, wind-u and wind-v
             profiles and surface elevation obtained from a weather
             forecast file in netCDF format or from an OPeNDAP URL, both
@@ -779,9 +783,10 @@ class Environment:
             or temperature is not given, it will default to the
             International Standard Atmosphere. If the wind components
             are not given, it will default to 0.
+
         file : string, optional
             String that must be given when type is either
-            'WyomingSounding', 'Forecast', 'Reanalysis' or 'Ensemble'.
+            'WyomingSounding', 'Forecast', 'Reanalysis', 'Ensemble' or 'Windy'.
             It specifies the location of the data given, either through
             a local file address or a URL.
             If type is 'Forecast', this parameter can also be either
@@ -794,6 +799,9 @@ class Environment:
             'GEFS', or 'CMC' for the latest of these ensembles.
             References: GEFS: Global, bias-corrected, 0.5deg resolution, 21 forecast members, Updates every 6 hours, forecast for 65 points spaced by 4 hours
                        CMC: Global, 0.5deg resolution, 21 forecast members, Updates every 12 hours, forecast for 65 points spaced by 4 hours
+            If type is 'Windy', this parameter can be either 'GFS', 'ECMWF', 'ICON' or
+            'ICONEU'
+            Default in this case is 'ecmwf'.
         dictionary : dictionary, string, optional
             Dictionary that must be given when type is either
             'Forecast', 'Reanalysis' or 'Ensemble'.
@@ -1193,6 +1201,8 @@ class Environment:
             self.atmosphericModelDict = dictionary
         elif type == "CustomAtmosphere":
             self.processCustomAtmosphere(pressure, temperature, wind_u, wind_v)
+        elif type == "Windy":
+            self.processWindyAtmosphere(file)
         else:
             raise ValueError("Unknown model type.")
 
@@ -1427,6 +1437,154 @@ class Environment:
         self.maxExpectedHeight = maxExpectedHeight
 
         return None
+
+    def processWindyAtmosphere(self, model="ECMWF"):
+        """Process data from Windy.com to retrieve atmospheric forecast data.
+
+        Paramaters
+        ----------
+        model : string, optional
+            The atmospheric model to use. Default is 'ECMWF'. Options are: 'ECMWF' for
+            the ECMWF-HRES model, 'GFS' for the GFS model, 'ICON' for the ICON-Global
+            model or 'ICONEU' for the ICON-EU model.
+        """
+
+        # Process the model string
+        model = model.lower()
+        if model[-1] == "u":  # case iconEu
+            model = "".join([model[:4], model[4].upper(), model[4 + 1 :]])
+        # Load data from Windy.com: json file
+        url = f"https://node.windy.com/forecast/meteogram/{model}/{self.lat}/{self.lon}/?step=undefined"
+        try:
+            response = requests.get(url).json()
+        except:
+            if model == "iconEu":
+                raise ValueError(
+                    "Could not get a valid response for Icon-EU from Windy. Check if the latitude and longitude coordinates set are inside Europe.",
+                )
+            raise
+
+        # Determine time index from model
+        timeArray = np.array(response["data"]["hours"])
+        timeUnits = "milliseconds since 1970-01-01 00:00:00"
+        launchTimeInUnits = netCDF4.date2num(self.date, timeUnits)
+        # Find the index of the closest time in timeArray to the launch time
+        timeIndex = (np.abs(timeArray - launchTimeInUnits)).argmin()
+
+        # Define available pressure levels
+        pressureLevels = np.array(
+            [1000, 950, 925, 900, 850, 800, 700, 600, 500, 400, 300, 250, 200, 150]
+        )
+
+        # Process geopotential height array
+        geopotentialHeightArray = np.array(
+            [response["data"][f"gh-{pL}h"][timeIndex] for pL in pressureLevels]
+        )
+        # Convert geopotential height to geometric altitude (ASL)
+        R = self.earthRadius
+        altitudeArray = R * geopotentialHeightArray / (R - geopotentialHeightArray)
+
+        # Process temperature array (in Kelvin)
+        temperatureArray = np.array(
+            [response["data"][f"temp-{pL}h"][timeIndex] for pL in pressureLevels]
+        )
+
+        # Process wind-u and wind-v array (in m/s)
+        windUArray = np.array(
+            [response["data"][f"wind_u-{pL}h"][timeIndex] for pL in pressureLevels]
+        )
+        windVArray = np.array(
+            [response["data"][f"wind_v-{pL}h"][timeIndex] for pL in pressureLevels]
+        )
+
+        # Determine wind speed, heading and direction
+        windSpeedArray = np.sqrt(windUArray**2 + windVArray**2)
+        windHeadingArray = np.arctan2(windUArray, windVArray) * (180 / np.pi) % 360
+        windDirectionArray = (windHeadingArray - 180) % 360
+
+        # Combine all data into big array
+        data_array = np.ma.column_stack(
+            [
+                100 * pressureLevels,  # Convert hPa to Pa
+                altitudeArray,
+                temperatureArray,
+                windUArray,
+                windVArray,
+                windHeadingArray,
+                windDirectionArray,
+                windSpeedArray,
+            ]
+        )
+
+        # Save atmospheric data
+        self.pressure = Function(
+            data_array[:, (1, 0)],
+            inputs="Height Above Sea Level (m)",
+            outputs="Pressure (Pa)",
+            interpolation="linear",
+        )
+        self.temperature = Function(
+            data_array[:, (1, 2)],
+            inputs="Height Above Sea Level (m)",
+            outputs="Temperature (K)",
+            interpolation="linear",
+        )
+        self.windDirection = Function(
+            data_array[:, (1, 6)],
+            inputs="Height Above Sea Level (m)",
+            outputs="Wind Direction (Deg True)",
+            interpolation="linear",
+        )
+        self.windHeading = Function(
+            data_array[:, (1, 5)],
+            inputs="Height Above Sea Level (m)",
+            outputs="Wind Heading (Deg True)",
+            interpolation="linear",
+        )
+        self.windSpeed = Function(
+            data_array[:, (1, 7)],
+            inputs="Height Above Sea Level (m)",
+            outputs="Wind Speed (m/s)",
+            interpolation="linear",
+        )
+        self.windVelocityX = Function(
+            data_array[:, (1, 3)],
+            inputs="Height Above Sea Level (m)",
+            outputs="Wind Velocity X (m/s)",
+            interpolation="linear",
+        )
+        self.windVelocityY = Function(
+            data_array[:, (1, 4)],
+            inputs="Height Above Sea Level (m)",
+            outputs="Wind Velocity Y (m/s)",
+            interpolation="linear",
+        )
+
+        # Save maximum expected height
+        self.maxExpectedHeight = max(altitudeArray[0], altitudeArray[-1])
+
+        # Get elevation data from file
+        self.elevation = response["header"]["elevation"]
+
+        # Compute info data
+        self.atmosphericModelInitDate = netCDF4.num2date(timeArray[0], units=timeUnits)
+        self.atmosphericModelEndDate = netCDF4.num2date(timeArray[-1], units=timeUnits)
+        self.atmosphericModelInterval = netCDF4.num2date(
+            (timeArray[-1] - timeArray[0]) / (len(timeArray) - 1), units=timeUnits
+        ).hour
+        self.atmosphericModelInitLat = self.lat
+        self.atmosphericModelEndLat = self.lat
+        self.atmosphericModelInitLon = self.lon
+        self.atmosphericModelEndLon = self.lon
+
+        # Save debugging data
+        self.geopotentials = geopotentialHeightArray
+        self.windUs = windUArray
+        self.windVs = windVArray
+        self.levels = pressureLevels
+        self.temperatures = temperatureArray
+        self.timeArray = timeArray
+        self.height = altitudeArray
 
     def processWyomingSounding(self, file):
         """Import and process the upper air sounding data from Wyoming
