@@ -2487,7 +2487,7 @@ class Flight:
 
         return F11, F12, F21, F22
 
-    def __calculate_pressure_signal(self):
+    def _calculate_pressure_signal(self):
         """Calculate the pressure signal from the pressure sensor.
         It creates a SignalFunction attribute in the parachute object.
         Parachute works as a subclass of Rocket class.

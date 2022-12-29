@@ -6,6 +6,11 @@ __license__ = "MIT"
 import matplotlib.pyplot as plt
 import numpy as np
 
+try:
+    from functools import cached_property
+except ImportError:
+    from ..tools import cached_property
+
 
 class _FlightPlots:
     """Class that holds plot methods for Flight class.
@@ -14,13 +19,6 @@ class _FlightPlots:
     ----------
     _FlightPlots.flight : Flight
         Flight object that will be used for the plots.
-
-    _FlightPlots.calculated_index : bool
-        Flag that informs if events time indexes have been
-        calculated.
-
-    _FlightPlots.out_of_rail_time_index : int
-        Time index of out of rail event.
 
     _FlightPlots.first_event_time : float
         Time of first event.
@@ -42,46 +40,26 @@ class _FlightPlots:
         None
         """
         self.flight = flight
-        self.calculated_index = False
-
         return None
 
-    def __calculate_indexes(self):
-        """Calculates necessary events time index for plots settings.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-
-        # Get index of out of rail time
-        out_of_rail_time_indexes = np.nonzero(
-            self.flight.x[:, 0] == self.flight.outOfRailTime
-        )
-        self.out_of_rail_time_index = (
-            -1 if len(out_of_rail_time_indexes) == 0 else out_of_rail_time_indexes[0][0]
-        )
-
-        # Get index of time before parachute event
+    @cached_property
+    def first_event_time(self):
+        """Time of the first flight event."""
         if len(self.flight.parachuteEvents) > 0:
-            self.first_event_time = (
+            return (
                 self.flight.parachuteEvents[0][0]
                 + self.flight.parachuteEvents[0][1].lag
             )
-            self.first_event_time_index = np.nonzero(
-                self.flight.x[:, 0] == self.first_event_time
-            )[0][0]
         else:
-            self.first_event_time = self.flight.tFinal
-            self.first_event_time_index = -1
+            return self.flight.tFinal
 
-        self.calculated_index = True
-
-        return None
+    @cached_property
+    def first_event_time_index(self):
+        """Time index of the first flight event."""
+        if len(self.flight.parachuteEvents) > 0:
+            return np.nonzero(self.flight.x[:, 0] == self.first_event_time)[0][0]
+        else:
+            return -1
 
     def trajectory_3d(self):
         """Plot a 3D graph of the trajectory
@@ -94,9 +72,6 @@ class _FlightPlots:
         ------
         None
         """
-
-        if not self.calculated_index:
-            self.__calculate_indexes()
 
         # Get max and min x and y
         maxZ = max(self.flight.z[:, 1] - self.flight.env.elevation)
@@ -157,9 +132,6 @@ class _FlightPlots:
         ------
         None
         """
-
-        if not self.calculated_index:
-            self.__calculate_indexes()
 
         # Velocity and acceleration plots
         fig2 = plt.figure(figsize=(9, 12))
@@ -240,9 +212,6 @@ class _FlightPlots:
         None
         """
 
-        if not self.calculated_index:
-            self.__calculate_indexes()
-
         # Angular position plots
         fig3 = plt.figure(figsize=(9, 12))
 
@@ -300,9 +269,6 @@ class _FlightPlots:
         None
         """
 
-        if not self.calculated_index:
-            self.__calculate_indexes()
-
         # Path, Attitude and Lateral Attitude Angle
         # Angular position plots
         fig5 = plt.figure(figsize=(9, 6))
@@ -353,9 +319,6 @@ class _FlightPlots:
         ------
         None
         """
-
-        if not self.calculated_index:
-            self.__calculate_indexes()
 
         # Angular velocity and acceleration plots
         fig4 = plt.figure(figsize=(9, 9))
@@ -430,21 +393,18 @@ class _FlightPlots:
         None
         """
 
-        if not self.calculated_index:
-            self.__calculate_indexes()
-
         # Rail Button Forces
         fig6 = plt.figure(figsize=(9, 6))
 
         ax1 = plt.subplot(211)
         ax1.plot(
-            self.flight.railButton1NormalForce[: self.out_of_rail_time_index, 0],
-            self.flight.railButton1NormalForce[: self.out_of_rail_time_index, 1],
+            self.flight.railButton1NormalForce[: self.flight.outOfRailTimeIndex, 0],
+            self.flight.railButton1NormalForce[: self.flight.outOfRailTimeIndex, 1],
             label="Upper Rail Button",
         )
         ax1.plot(
-            self.flight.railButton2NormalForce[: self.out_of_rail_time_index, 0],
-            self.flight.railButton2NormalForce[: self.out_of_rail_time_index, 1],
+            self.flight.railButton2NormalForce[: self.flight.outOfRailTimeIndex, 0],
+            self.flight.railButton2NormalForce[: self.flight.outOfRailTimeIndex, 1],
             label="Lower Rail Button",
         )
         ax1.set_xlim(
@@ -461,13 +421,13 @@ class _FlightPlots:
 
         ax2 = plt.subplot(212)
         ax2.plot(
-            self.flight.railButton1ShearForce[: self.out_of_rail_time_index, 0],
-            self.flight.railButton1ShearForce[: self.out_of_rail_time_index, 1],
+            self.flight.railButton1ShearForce[: self.flight.outOfRailTimeIndex, 0],
+            self.flight.railButton1ShearForce[: self.flight.outOfRailTimeIndex, 1],
             label="Upper Rail Button",
         )
         ax2.plot(
-            self.flight.railButton2ShearForce[: self.out_of_rail_time_index, 0],
-            self.flight.railButton2ShearForce[: self.out_of_rail_time_index, 1],
+            self.flight.railButton2ShearForce[: self.flight.outOfRailTimeIndex, 0],
+            self.flight.railButton2ShearForce[: self.flight.outOfRailTimeIndex, 1],
             label="Lower Rail Button",
         )
         ax2.set_xlim(
@@ -568,9 +528,6 @@ class _FlightPlots:
         -------
         None
         """
-
-        if not self.calculated_index:
-            self.__calculate_indexes()
 
         fig8 = plt.figure(figsize=(9, 9))
 
@@ -684,9 +641,6 @@ class _FlightPlots:
         None
         """
 
-        if not self.calculated_index:
-            self.__calculate_indexes()
-
         # Trajectory Fluid Mechanics Plots
         fig10 = plt.figure(figsize=(9, 12))
 
@@ -764,9 +718,6 @@ class _FlightPlots:
         None
         """
 
-        if not self.calculated_index:
-            self.__calculate_indexes()
-
         fig9 = plt.figure(figsize=(9, 6))
 
         ax1 = plt.subplot(211)
@@ -818,6 +769,31 @@ class _FlightPlots:
 
         return None
 
+    def pressure_rocket_altitude(self):
+        """Plots out pressure at rocket's altitude.
+
+        Parameters
+        ----------
+        None
+
+        Return
+        ------
+        None
+        """
+
+        plt.figure()
+        ax1 = plt.subplot(111)
+        ax1.plot(self.flight.z[:, 0], self.flight.env.pressure(self.flight.z[:, 1]))
+        ax1.set_title("Pressure at Rocket's Altitude")
+        ax1.set_xlabel("Time (s)")
+        ax1.set_ylabel("Pressure (Pa)")
+        ax1.set_xlim(0, self.flight.tFinal)
+        ax1.grid()
+
+        plt.show()
+
+        return None
+
     def pressure_signals(self):
         """Plots out all Parachute Trigger Pressure Signals.
         This function can be called also for plot pressure data for flights
@@ -838,33 +814,15 @@ class _FlightPlots:
         None
         """
 
-        if not self.calculated_index:
-            self.__calculate_indexes()
-
-        if len(self.flight.rocket.parachutes) == 0:
-            plt.figure()
-            ax1 = plt.subplot(111)
-            ax1.plot(self.flight.z[:, 0], self.flight.env.pressure(self.flight.z[:, 1]))
-            ax1.set_title("Pressure at Rocket's Altitude")
-            ax1.set_xlabel("Time (s)")
-            ax1.set_ylabel("Pressure (Pa)")
-            ax1.set_xlim(0, self.flight.tFinal)
-            ax1.grid()
-
-            plt.show()
-
-        else:
+        if len(self.flight.parachuteEvents) > 0:
             for parachute in self.flight.rocket.parachutes:
-                print("Parachute: ", parachute.name)
-                try:
-                    parachute.noiseSignalFunction()
-                    parachute.noisyPressureSignalFunction()
-                    parachute.cleanPressureSignalFunction()
-                except:
-                    self.flight.__calculate_pressure_signal()
-                    parachute.noiseSignalFunction()
-                    parachute.noisyPressureSignalFunction()
-                    parachute.cleanPressureSignalFunction()
+                print("\nParachute: ", parachute.name)
+                self.flight._calculate_pressure_signal()
+                parachute.noiseSignalFunction()
+                parachute.noisyPressureSignalFunction()
+                parachute.cleanPressureSignalFunction()
+        else:
+            print("\nRocket has no parachutes. No parachute plots available")
 
         return None
 
@@ -907,7 +865,8 @@ class _FlightPlots:
         print("\n\nTrajectory Stability and Control Plots\n")
         self.stability_and_control_data()
 
-        print("\n\nParachute Pressure Signal Plots\n")
+        print("\n\nRocket and Parachute Pressure Plots\n")
+        self.pressure_rocket_altitude()
         self.pressure_signals()
 
         return None
