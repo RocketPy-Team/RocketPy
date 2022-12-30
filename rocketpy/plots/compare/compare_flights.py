@@ -178,10 +178,8 @@ class CompareFlights:
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
         if filename:
             fig.savefig(filename)
-            plt.close()
         else:
             plt.show()
-            plt.close()
 
         return None
 
@@ -221,10 +219,8 @@ class CompareFlights:
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
         if filename:
             fig.savefig(filename)
-            plt.close()
         else:
             plt.show()
-            plt.close()
 
         return None
 
@@ -275,10 +271,8 @@ class CompareFlights:
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
         if filename:
             fig.savefig(filename)
-            plt.close()
         else:
             plt.show()
-            plt.close()
 
         return None
 
@@ -323,10 +317,8 @@ class CompareFlights:
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
         if filename:
             fig.savefig(filename)
-            plt.close()
         else:
             plt.show()
-            plt.close()
 
         return None
 
@@ -370,10 +362,8 @@ class CompareFlights:
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
         if filename:
             fig.savefig(filename)
-            plt.close()
         else:
             plt.show()
-            plt.close()
 
         return None
 
@@ -418,10 +408,8 @@ class CompareFlights:
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
         if filename:
             fig.savefig(filename)
-            plt.close()
         else:
             plt.show()
-            plt.close()
 
         return None
 
@@ -465,10 +453,8 @@ class CompareFlights:
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
         if filename:
             fig.savefig(filename)
-            plt.close()
         else:
             plt.show()
-            plt.close()
 
         return None
 
@@ -512,7 +498,6 @@ class CompareFlights:
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
         if filename:
             fig.savefig(filename)
-            plt.close()
 
         return None
 
@@ -556,10 +541,8 @@ class CompareFlights:
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
         if filename:
             fig.savefig(filename)
-            plt.close()
         else:
             plt.show()
-            plt.close()
 
         return None
 
@@ -602,10 +585,8 @@ class CompareFlights:
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
         if filename:
             fig.savefig(filename)
-            plt.close()
         else:
             plt.show()
-            plt.close()
 
         return None
 
@@ -647,10 +628,8 @@ class CompareFlights:
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
         if filename:
             fig.savefig(filename)
-            plt.close()
         else:
             plt.show()
-            plt.close()
 
         return None
 
@@ -692,10 +671,8 @@ class CompareFlights:
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
         if filename:
             fig.savefig(filename)
-            plt.close()
         else:
             plt.show()
-            plt.close()
 
         return None
 
@@ -733,10 +710,8 @@ class CompareFlights:
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
         if filename:
             fig.savefig(filename)
-            plt.close()
         else:
             plt.show()
-            plt.close()
 
         return None
 
@@ -785,10 +760,8 @@ class CompareFlights:
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
         if filename:
             fig.savefig(filename)
-            plt.close()
         else:
             plt.show()
-            plt.close()
 
         return None
 
@@ -827,10 +800,8 @@ class CompareFlights:
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
         if filename:
             fig.savefig(filename)
-            plt.close()
         else:
             plt.show()
-            plt.close()
 
         return None
 
@@ -879,10 +850,8 @@ class CompareFlights:
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
         if filename:
             fig.savefig(filename)
-            plt.close()
         else:
             plt.show()
-            plt.close()
 
         return None
 
@@ -1017,10 +986,8 @@ class CompareFlights:
         # Save figure
         if filename:
             plt.savefig(filename)
-            plt.close()
         else:
             plt.show()
-            plt.close()
 
         return None
 
