@@ -3329,9 +3329,10 @@ class Environment:
         return info
 
     def exportEnvironment(self, filename="environment"):
-        """Export important attributes of Environment class so it can be used
-        again in further simulations by using the customAtmosphere atmospheric
-        model.
+        """Export important attributes of Environment class to a .json file,
+        saving all the information needed to recreate the same environment using
+        customAtmosphere.
+
         Parameters
         ----------
         filename
@@ -3523,7 +3524,7 @@ class Environment:
 
         return x, y, utmZone, utmLetter, hemis, EW
 
-    def utmToGeodesic(self, x: float, y: float, utmZone: int, hemis: str, datum: str):
+    def utmToGeodesic(self, x, y, utmZone, hemis, datum):
         """Function to convert UTM coordinates to geodesic coordinates
         (i.e. latitude and longitude). The latitude should be between -80°
         and 84°
