@@ -1,3 +1,4 @@
+import os
 import datetime
 import os
 from unittest.mock import patch
@@ -509,7 +510,7 @@ def test_export_data():
     test_1 = np.loadtxt("test_export_data_1.csv", delimiter=",")
     test_2 = np.loadtxt("test_export_data_2.csv", delimiter=",")
 
-    # Clean up the files that were created
+    # Delete files
     os.remove("test_export_data_1.csv")
     os.remove("test_export_data_2.csv")
 
@@ -617,9 +618,9 @@ def test_export_KML():
         lat.append(float(coords[i + 1]))
         z.append(float(coords[i + 2]))
 
-    # Close the files
+
+    # Delete temporary test file
     test_1.close()
-    # Clean up the files that were created
     os.remove("test_export_data_1.kml")
 
     assert np.allclose(test_flight.latitude[:, 1], lat, atol=1e-3) == True
