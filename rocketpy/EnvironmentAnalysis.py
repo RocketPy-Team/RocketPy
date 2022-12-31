@@ -424,11 +424,11 @@ class EnvironmentAnalysis:
                 import timezonefinder as TimezoneFinder
             except ImportError:
                 raise ImportError(
-                    "The timezonefinder package is required to automatically " +
-                    "determine local timezone based on lat,lon coordinates. " +
-                    "Please specify the desired timezone using the `timezone` " +
-                    "argument when initializing the EnvironmentAnalysis class " +
-                    "or install timezonefinder with `pip install timezonefinder`."
+                    "The timezonefinder package is required to automatically "
+                    + "determine local timezone based on lat,lon coordinates. "
+                    + "Please specify the desired timezone using the `timezone` "
+                    + "argument when initializing the EnvironmentAnalysis class "
+                    + "or install timezonefinder with `pip install timezonefinder`."
                 )
             # Use local timezone based on lat lon pair
             tf = TimezoneFinder()
