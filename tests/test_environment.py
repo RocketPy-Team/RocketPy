@@ -9,28 +9,6 @@ import pytz
 from rocketpy import Environment
 
 
-@pytest.fixture
-def example_env():
-    Env = Environment(railLength=5, datum="WGS84")
-    return Env
-
-
-@pytest.fixture
-def example_env_robust():
-    Env = Environment(
-        railLength=5,
-        latitude=32.990254,
-        longitude=-106.974998,
-        elevation=1400,
-        datum="WGS84",
-    )
-    tomorrow = datetime.date.today() + datetime.timedelta(days=1)
-    Env.setDate(
-        (tomorrow.year, tomorrow.month, tomorrow.day, 12)
-    )  # Hour given in UTC time
-    return Env
-
-
 def test_env_set_date(example_env):
     tomorrow = datetime.date.today() + datetime.timedelta(days=1)
     example_env.setDate((tomorrow.year, tomorrow.month, tomorrow.day, 12))
@@ -165,8 +143,43 @@ def test_era5_atmosphere(mock_show):
 def test_gefs_atmosphere(mock_show, example_env_robust):
     example_env_robust.setAtmosphericModel(type="Ensemble", file="GEFS")
     assert example_env_robust.allInfo() == None
-    assert isinstance(example_env.allPlotInfoReturned(), dict)
-    assert isinstance(example_env.allInfoReturned(), dict)
+
+
+@patch("matplotlib.pyplot.show")
+def test_info_returns(mock_show, example_env):
+
+    returned_plots = example_env.allPlotInfoReturned()
+    returned_infos = example_env.allInfoReturned()
+    expected_info = {
+        "grav": 9.80665,
+        "launch_rail_length": 5,
+        "elevation": 0,
+        "modelType": "StandardAtmosphere",
+        "modelTypeMaxExpectedHeight": 80000,
+        "windSpeed": 0,
+        "windDirection": 0,
+        "windHeading": 0,
+        "surfacePressure": 1013.25,
+        "surfaceTemperature": 288.15,
+        "surfaceAirDensity": 1.225000018124288,
+        "surfaceSpeedOfSound": 340.293988026089,
+        "lat": 0,
+        "lon": 0,
+    }
+    expected_plots_keys = [
+        "grid",
+        "windSpeed",
+        "windDirection",
+        "speedOfSound",
+        "density",
+        "windVelX",
+        "windVelY",
+        "pressure",
+        "temperature",
+    ]
+    assert list(returned_infos.keys()) == list(expected_info.keys())
+    assert list(returned_infos.values()) == list(expected_info.values())
+    assert list(returned_plots.keys()) == expected_plots_keys
 
 
 @pytest.mark.slow
