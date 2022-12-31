@@ -618,7 +618,6 @@ def test_export_KML():
         lat.append(float(coords[i + 1]))
         z.append(float(coords[i + 2]))
 
-
     # Delete temporary test file
     test_1.close()
     os.remove("test_export_data_1.kml")
