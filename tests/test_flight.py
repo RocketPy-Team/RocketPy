@@ -1,4 +1,5 @@
 import datetime
+import os
 from unittest.mock import patch
 
 import matplotlib as plt
@@ -508,6 +509,10 @@ def test_export_data():
     test_1 = np.loadtxt("test_export_data_1.csv", delimiter=",")
     test_2 = np.loadtxt("test_export_data_2.csv", delimiter=",")
 
+    # Clean up the files that were created
+    os.remove("test_export_data_1.csv")
+    os.remove("test_export_data_2.csv")
+
     # Check if basic exported content matches data
     assert np.allclose(test_flight.x[:, 0], test_1[:, 0], atol=1e-5) == True
     assert np.allclose(test_flight.x[:, 1], test_1[:, 1], atol=1e-5) == True
@@ -596,6 +601,7 @@ def test_export_KML():
 
     # Load exported files and fixtures and compare them
     test_1 = open("test_export_data_1.kml", "r")
+
     for row in test_1:
         if row[:29] == "                <coordinates>":
             r = row[29:-15]
@@ -610,6 +616,11 @@ def test_export_KML():
         lon.append(float(coords[i]))
         lat.append(float(coords[i + 1]))
         z.append(float(coords[i + 2]))
+
+    # Close the files
+    test_1.close()
+    # Clean up the files that were created
+    os.remove("test_export_data_1.kml")
 
     assert np.allclose(test_flight.latitude[:, 1], lat, atol=1e-3) == True
     assert np.allclose(test_flight.longitude[:, 1], lon, atol=1e-3) == True
