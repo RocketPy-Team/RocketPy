@@ -22,7 +22,6 @@ from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.animation import PillowWriter as ImageWriter
 from scipy import stats
-from timezonefinder import TimezoneFinder
 from windrose import WindroseAxes
 from rocketpy.Environment import Environment
 
@@ -421,6 +420,16 @@ class EnvironmentAnalysis:
 
     def __find_preferred_timezone(self):
         if self.preferred_timezone is None:
+            try:
+                import timezonefinder as TimezoneFinder
+            except ImportError:
+                raise ImportError(
+                    "The timezonefinder package is required to automatically " +
+                    "determine local timezone based on lat,lon coordinates. " +
+                    "Please specify the desired timezone using the `timezone` " +
+                    "argument when initializing the EnvironmentAnalysis class " +
+                    "or install timezonefinder with `pip install timezonefinder`."
+                )
             # Use local timezone based on lat lon pair
             tf = TimezoneFinder()
             self.preferred_timezone = pytz.timezone(
