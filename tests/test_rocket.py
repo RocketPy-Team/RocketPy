@@ -276,8 +276,8 @@ def test_add_nose_assert_cp_cm_plus_nose(k, type, rocket, dimensionless_rocket, 
     static_margin_initial = (rocket.centerOfMass(0) - cpz) / (2 * rocket.radius)
     assert static_margin_initial == pytest.approx(rocket.staticMargin(0), 1e-12)
 
-    static_margin_final = (rocket.centerOfMass(-1) - cpz) / (2 * rocket.radius)
-    assert static_margin_final == pytest.approx(rocket.staticMargin(-1), 1e-12)
+    static_margin_final = (rocket.centerOfMass(np.inf) - cpz) / (2 * rocket.radius)
+    assert static_margin_final == pytest.approx(rocket.staticMargin(np.inf), 1e-12)
 
     assert clalpha == pytest.approx(rocket.totalLiftCoeffDer, 1e-12)
     assert rocket.cpPosition == pytest.approx(cpz, 1e-12)
@@ -288,9 +288,9 @@ def test_add_nose_assert_cp_cm_plus_nose(k, type, rocket, dimensionless_rocket, 
     assert pytest.approx(dimensionless_rocket.staticMargin(0), 1e-12) == pytest.approx(
         rocket.staticMargin(0), 1e-12
     )
-    assert pytest.approx(dimensionless_rocket.staticMargin(-1), 1e-12) == pytest.approx(
-        rocket.staticMargin(-1), 1e-12
-    )
+    assert pytest.approx(
+        dimensionless_rocket.staticMargin(np.inf), 1e-12
+    ) == pytest.approx(rocket.staticMargin(np.inf), 1e-12)
     assert pytest.approx(
         dimensionless_rocket.totalLiftCoeffDer, 1e-12
     ) == pytest.approx(rocket.totalLiftCoeffDer, 1e-12)
@@ -315,8 +315,8 @@ def test_add_tail_assert_cp_cm_plus_tail(rocket, dimensionless_rocket, m):
     static_margin_initial = (rocket.centerOfMass(0) - cpz) / (2 * rocket.radius)
     assert static_margin_initial == pytest.approx(rocket.staticMargin(0), 1e-12)
 
-    static_margin_final = (rocket.centerOfMass(-1) - cpz) / (2 * rocket.radius)
-    assert static_margin_final == pytest.approx(rocket.staticMargin(-1), 1e-12)
+    static_margin_final = (rocket.centerOfMass(np.inf) - cpz) / (2 * rocket.radius)
+    assert static_margin_final == pytest.approx(rocket.staticMargin(np.inf), 1e-12)
     assert np.abs(clalpha) == pytest.approx(np.abs(rocket.totalLiftCoeffDer), 1e-8)
     assert rocket.cpPosition == cpz
 
@@ -329,9 +329,9 @@ def test_add_tail_assert_cp_cm_plus_tail(rocket, dimensionless_rocket, m):
     assert pytest.approx(dimensionless_rocket.staticMargin(0), 1e-12) == pytest.approx(
         rocket.staticMargin(0), 1e-12
     )
-    assert pytest.approx(dimensionless_rocket.staticMargin(-1), 1e-12) == pytest.approx(
-        rocket.staticMargin(-1), 1e-12
-    )
+    assert pytest.approx(
+        dimensionless_rocket.staticMargin(np.inf), 1e-12
+    ) == pytest.approx(rocket.staticMargin(np.inf), 1e-12)
     assert pytest.approx(
         dimensionless_rocket.totalLiftCoeffDer, 1e-12
     ) == pytest.approx(rocket.totalLiftCoeffDer, 1e-12)
@@ -431,8 +431,8 @@ def test_add_fins_assert_cp_cm_plus_fins(rocket, dimensionless_rocket, m):
     static_margin_initial = (rocket.centerOfMass(0) - cpz) / (2 * rocket.radius)
     assert static_margin_initial == pytest.approx(rocket.staticMargin(0), 1e-12)
 
-    static_margin_final = (rocket.centerOfMass(-1) - cpz) / (2 * rocket.radius)
-    assert static_margin_final == pytest.approx(rocket.staticMargin(-1), 1e-12)
+    static_margin_final = (rocket.centerOfMass(np.inf) - cpz) / (2 * rocket.radius)
+    assert static_margin_final == pytest.approx(rocket.staticMargin(np.inf), 1e-12)
 
     assert np.abs(clalpha) == pytest.approx(np.abs(rocket.totalLiftCoeffDer), 1e-12)
     assert rocket.cpPosition == pytest.approx(cpz, 1e-12)
@@ -447,9 +447,9 @@ def test_add_fins_assert_cp_cm_plus_fins(rocket, dimensionless_rocket, m):
     assert pytest.approx(dimensionless_rocket.staticMargin(0), 1e-12) == pytest.approx(
         rocket.staticMargin(0), 1e-12
     )
-    assert pytest.approx(dimensionless_rocket.staticMargin(-1), 1e-12) == pytest.approx(
-        rocket.staticMargin(-1), 1e-12
-    )
+    assert pytest.approx(
+        dimensionless_rocket.staticMargin(np.inf), 1e-12
+    ) == pytest.approx(rocket.staticMargin(np.inf), 1e-12)
     assert pytest.approx(
         dimensionless_rocket.totalLiftCoeffDer, 1e-12
     ) == pytest.approx(rocket.totalLiftCoeffDer, 1e-12)

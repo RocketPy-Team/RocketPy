@@ -215,6 +215,8 @@ class Fins(ABC):
         Geometrical relation used to simplify lift and roll calculations
     Fins.liftInterferenceFactor : float
         Factor of Fin-Body interference in the lift coefficient
+    Fins.clalpha : float
+        Lift coefficient slope. Has units of 1/rad.
     """
 
     def __init__(
@@ -372,6 +374,7 @@ class Fins(ABC):
         self.clalphaMultipleFins.setOutputs(
             "Lift coefficient derivative for {:.0f} fins".format(self.n)
         )
+        self.clalpha = self.clalphaMultipleFins
 
         # Calculates clalpha * alpha
         self.cl = Function(
