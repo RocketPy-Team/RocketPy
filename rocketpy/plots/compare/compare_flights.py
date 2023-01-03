@@ -3,9 +3,10 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 import matplotlib.pyplot as plt
+from .compare import Compare
 
 
-class CompareFlights:
+class CompareFlights(Compare):
     """A class to compare the results of multiple flights.
 
     Parameters
@@ -20,7 +21,7 @@ class CompareFlights:
 
     """
 
-    def __init__(self, flights: list) -> None:
+    def __init__(self, flights):
         """Initializes the CompareFlights class.
 
         Parameters
@@ -32,117 +33,26 @@ class CompareFlights:
         -------
         None
         """
+        super().__init__(flights)
 
-        self.flights = flights
+        # Get the maximum time of all the flights
+        # Get the maximum apogee time
+        max_time = 0
+        apogee_time = 0
+        for flight in flights:
+            # Update the maximum time
+            max_time = max(max_time, flight.tFinal)
+            apogee_time = max(apogee_time, flight.apogeeTime)
+
+        self.max_time = max_time
+        self.apogee_time = apogee_time
+        self.flights = self.object_list
 
         return None
 
-    def __create_comparison_figure(
-        self,
-        figsize=(7, 10),  # (width, height)
-        legend=True,
-        n_rows=3,
-        n_cols=1,
-        n_plots=3,
-        title="Comparison",
-        x_labels=["Time (s)", "Time (s)", "Time (s)"],
-        y_labels=["x (m)", "y (m)", "z (m)"],
-        flight_attributes=["x", "y", "z"],
+    def positions(
+        self, figsize=(7, 10), x_lim=None, y_lim=None, legend=True, filename=None
     ):
-        """Creates a figure to compare the results of multiple flights.
-
-        Parameters
-        ----------
-        figsize : tuple, optional
-            The size of the figure, by default (7, 10)
-        legend : bool, optional
-            Whether to show the legend or not, by default True
-        n_rows : int, optional
-            The number of rows of the figure, by default 3
-        n_cols : int, optional
-            The number of columns of the figure, by default 1
-        n_plots : int, optional
-            The number of plots in the figure, by default 3
-        title : str, optional
-            The title of the figure, by default "Comparison"
-        x_labels : list, optional
-            The x labels of each subplot, by default ["Time (s)", "Time (s)", "Time (s)"]
-        y_labels : list, optional
-            The y labels of each subplot, by default ["x (m)", "y (m)", "z (m)"]
-        flight_attributes : list, optional
-            The attributes of the Flight class to be plotted, by default ["x", "y", "z"].
-            The attributes must be a list of strings. Each string must be a valid
-            attribute of the Flight class, i.e., should point to a attribute of
-            the Flight class that is a Function object or a numpy array.
-
-        Returns
-        -------
-        fig : matplotlib.figure.Figure
-            The figure object.
-        ax : matplotlib.axes._subplots.AxesSubplot
-            The axes object.
-        """
-
-        # Create the matplotlib figure
-        fig = plt.figure(figsize=figsize)
-        fig.suptitle(title, fontsize=16, y=1.02, x=0.5)
-
-        # Create the subplots
-        ax = []
-        for i in range(n_plots):
-            ax.append(plt.subplot(n_rows, n_cols, i + 1))
-
-        # Get the maximum time of all the flights
-        max_time = 0
-
-        # Adding the plots to each subplot
-        for flight in self.flights:
-            for i in range(n_plots):
-                try:
-                    ax[i].plot(
-                        flight.time,
-                        flight.__getattribute__(flight_attributes[i])[:, 1],
-                        label=flight.name,
-                    )
-                    # Update the maximum time
-                    max_time = max(max_time, flight.tFinal)
-
-                except AttributeError:
-                    raise AttributeError(
-                        f"Invalid attribute {flight_attributes[i]} for the Flight class."
-                    )
-
-        # Set the labels for the x and y axis
-        for i, subplot in enumerate(ax):
-            subplot.set_xlabel(x_labels[i])
-            subplot.set_ylabel(y_labels[i])
-
-        # Set the limits for the x axis
-        for subplot in ax:
-            subplot.set_xlim(0, max_time)
-            subplot.grid(True)  # Add a grid to the plot
-
-        # Find the two closest integers to the square root of the number of flights
-        # to be used as the number of columns and rows of the legend
-        n_cols_legend = int(round(len(self.flights) ** 0.5))
-        n_rows_legend = int(round(len(self.flights) / n_cols_legend))
-
-        # Set the legend
-        if legend:  # Add a global legend to the figure
-            fig.legend(
-                *ax[0].get_legend_handles_labels(),
-                loc="lower center",
-                ncol=n_cols_legend,
-                numpoints=1,
-                frameon=True,
-                bbox_to_anchor=(0.5, 1.05),
-            )
-
-        fig.tight_layout()
-
-        return fig, ax
-
-    def positions(self, figsize=(7, 10), legend=True, filename=None):
         """Plots a comparison of the position of the rocket in the three
         dimensions separately.
 
@@ -151,6 +61,15 @@ class CompareFlights:
         figsize : tuple, optional
             standard matplotlib figsize to be used in the plots, by default (7, 10),
             where the tuple means (width, height).
+        x_lim : tuple
+            A list of two items, where the first item represents the x axis lower limit
+            and second item, the x axis upper limit. If set to None, will be calculated
+            automatically by matplotlib. If the string "apogee" is used as a item for the
+            tuple, the maximum apogee time of all flights will be used instead.
+        y_lim : tuple
+            A list of two item, where the first item represents the y axis lower limit
+            and second item, the y axis upper limit. If set to None, will be calculated
+            automatically by matplotlib.
         legend : bool, optional
             Weather or not to show the legend, by default True
         filename : str, optional
@@ -161,18 +80,24 @@ class CompareFlights:
         -------
         None
         """
+        # Check if key word is used for x_limit
+        if x_lim:
+            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
+            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
 
         # Create the figure
-        fig, _ = self.__create_comparison_figure(
-            figsize=figsize,
-            legend=legend,
+        fig, _ = super().create_comparison_figure(
+            x_attributes=["time", "time", "time"],
+            y_attributes=["x", "y", "z"],
             n_rows=3,
             n_cols=1,
-            n_plots=3,
+            figsize=figsize,  # (width, height)
+            legend=legend,
             title="Comparison of the position of the rocket",
             x_labels=["Time (s)", "Time (s)", "Time (s)"],
             y_labels=["x (m)", "y (m)", "z (m)"],
-            flight_attributes=["x", "y", "z"],
+            x_lim=x_lim,
+            y_lim=y_lim,
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
@@ -183,7 +108,14 @@ class CompareFlights:
 
         return None
 
-    def velocities(self, figsize=(7, 10 * 4 / 3), legend=True, filename=None):
+    def velocities(
+        self,
+        figsize=(7, 10 * 4 / 3),
+        x_lim=None,
+        y_lim=None,
+        legend=True,
+        filename=None,
+    ):
         """Plots a comparison of the velocity of the rocket in the three
         dimensions separately.
 
@@ -192,6 +124,15 @@ class CompareFlights:
         figsize : tuple, optional
             standard matplotlib figsize to be used in the plots, by default (7, 10),
             where the tuple means (width, height).
+        x_lim : tuple
+            A list of two items, where the first item represents the x axis lower limit
+            and second item, the x axis upper limit. If set to None, will be calculated
+            automatically by matplotlib. If the string "apogee" is used as a item for the
+            tuple, the maximum apogee time of all flights will be used instead.
+        y_lim : tuple
+            A list of two item, where the first item represents the y axis lower limit
+            and second item, the y axis upper limit. If set to None, will be calculated
+            automatically by matplotlib.
         legend : bool, optional
             Weather or not to show the legend, by default True
         filename : str, optional
@@ -203,17 +144,24 @@ class CompareFlights:
         None
         """
 
+        # Check if key word is used for x_limit
+        if x_lim:
+            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
+            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+
         # Create the figure
-        fig, _ = self.__create_comparison_figure(
-            figsize=figsize,
-            legend=legend,
+        fig, _ = super().create_comparison_figure(
+            x_attributes=["time", "time", "time", "time"],
+            y_attributes=["speed", "vx", "vy", "vz"],
             n_rows=4,
             n_cols=1,
-            n_plots=4,
+            figsize=figsize,
+            legend=legend,
             title="Comparison of the velocity of the flights",
             x_labels=["Time (s)", "Time (s)", "Time (s)", "Time (s)"],
             y_labels=["speed (m/s)", "vx (m/s)", "vy (m/s)", "vz (m/s)"],
-            flight_attributes=["speed", "vx", "vy", "vz"],
+            x_lim=x_lim,
+            y_lim=y_lim,
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
@@ -224,7 +172,14 @@ class CompareFlights:
 
         return None
 
-    def stream_velocities(self, figsize=(7, 10 * 4 / 3), legend=True, filename=None):
+    def stream_velocities(
+        self,
+        figsize=(7, 10 * 4 / 3),
+        x_lim=None,
+        y_lim=None,
+        legend=True,
+        filename=None,
+    ):
         """Plots a stream plot of the free stream velocity of the rocket in the
         three dimensions separately. The free stream velocity is the velocity of
         the rocket relative to the air.
@@ -234,6 +189,15 @@ class CompareFlights:
         figsize : tuple, optional
             standard matplotlib figsize to be used in the plots, by default (7, 10 * 4 / 3),
             where the tuple means (width, height).
+        x_lim : tuple
+            A list of two items, where the first item represents the x axis lower limit
+            and second item, the x axis upper limit. If set to None, will be calculated
+            automatically by matplotlib. If the string "apogee" is used as a item for the
+            tuple, the maximum apogee time of all flights will be used instead.
+        y_lim : tuple
+            A list of two item, where the first item represents the y axis lower limit
+            and second item, the y axis upper limit. If set to None, will be calculated
+            automatically by matplotlib.
         legend : bool, optional
             Weather or not to show the legend, by default True
         filename : str, optional
@@ -245,13 +209,24 @@ class CompareFlights:
         None
         """
 
+        # Check if key word is used for x_limit
+        if x_lim:
+            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
+            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+
         # Create the figure
-        fig, _ = self.__create_comparison_figure(
-            figsize=figsize,
-            legend=legend,
+        fig, _ = super().create_comparison_figure(
+            x_attributes=["time", "time", "time", "time"],
+            y_attributes=[
+                "freestreamSpeed",
+                "streamVelocityX",
+                "streamVelocityY",
+                "streamVelocityZ",
+            ],
             n_rows=4,
             n_cols=1,
-            n_plots=4,
+            figsize=figsize,
+            legend=legend,
             title="Comparison of the free stream velocity of the flights",
             x_labels=["Time (s)", "Time (s)", "Time (s)", "Time (s)"],
             y_labels=[
@@ -260,12 +235,8 @@ class CompareFlights:
                 "Freestream vy (m/s)",
                 "Freestream vz (m/s)",
             ],
-            flight_attributes=[
-                "freestreamSpeed",
-                "streamVelocityX",
-                "streamVelocityY",
-                "streamVelocityZ",
-            ],
+            x_lim=x_lim,
+            y_lim=y_lim,
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
@@ -276,7 +247,14 @@ class CompareFlights:
 
         return None
 
-    def accelerations(self, figsize=(7, 10 * 4 / 3), legend=True, filename=None):
+    def accelerations(
+        self,
+        figsize=(7, 10 * 4 / 3),
+        x_lim=None,
+        y_lim=None,
+        legend=True,
+        filename=None,
+    ):
         """Plots a comparison of the acceleration of the rocket in the three
         dimensions separately.
 
@@ -285,6 +263,15 @@ class CompareFlights:
         figsize : tuple, optional
             standard matplotlib figsize to be used in the plots, by default (7, 10),
             where the tuple means (width, height).
+        x_lim : tuple
+            A list of two items, where the first item represents the x axis lower limit
+            and second item, the x axis upper limit. If set to None, will be calculated
+            automatically by matplotlib. If the string "apogee" is used as a item for the
+            tuple, the maximum apogee time of all flights will be used instead.
+        y_lim : tuple
+            A list of two item, where the first item represents the y axis lower limit
+            and second item, the y axis upper limit. If set to None, will be calculated
+            automatically by matplotlib.
         legend : bool, optional
             Weather or not to show the legend, by default True
         filename : str, optional
@@ -296,13 +283,19 @@ class CompareFlights:
         None
         """
 
+        # Check if key word is used for x_limit
+        if x_lim:
+            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
+            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+
         # Create the figure
-        fig, _ = self.__create_comparison_figure(
-            figsize=figsize,
-            legend=legend,
+        fig, _ = super().create_comparison_figure(
+            x_attributes=["time", "time", "time", "time"],
+            y_attributes=["acceleration", "ax", "ay", "az"],
             n_rows=4,
             n_cols=1,
-            n_plots=4,
+            figsize=figsize,
+            legend=legend,
             title="Comparison of the acceleration of the flights",
             x_labels=["Time (s)", "Time (s)", "Time (s)", "Time (s)"],
             y_labels=[
@@ -311,7 +304,8 @@ class CompareFlights:
                 "ay (m/s^2)",
                 "az (m/s^2)",
             ],
-            flight_attributes=["acceleration", "ax", "ay", "az"],
+            x_lim=x_lim,
+            y_lim=y_lim,
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
@@ -322,7 +316,9 @@ class CompareFlights:
 
         return None
 
-    def euler_angles(self, figsize=(7, 10), legend=True, filename=None):
+    def euler_angles(
+        self, figsize=(7, 10), x_lim=None, y_lim=None, legend=True, filename=None
+    ):
         """Plots a comparison of the euler angles of the rocket for the different
         flights.
 
@@ -331,6 +327,15 @@ class CompareFlights:
         figsize : tuple, optional
             standard matplotlib figsize to be used in the plots, by default (7, 10),
             where the tuple means (width, height).
+        x_lim : tuple
+            A list of two items, where the first item represents the x axis lower limit
+            and second item, the x axis upper limit. If set to None, will be calculated
+            automatically by matplotlib. If the string "apogee" is used as a item for the
+            tuple, the maximum apogee time of all flights will be used instead.
+        y_lim : tuple
+            A list of two item, where the first item represents the y axis lower limit
+            and second item, the y axis upper limit. If set to None, will be calculated
+            automatically by matplotlib.
         legend : bool, optional
             Weather or not to show the legend, by default True
         filename : str, optional
@@ -342,13 +347,19 @@ class CompareFlights:
         None
         """
 
+        # Check if key word is used for x_limit
+        if x_lim:
+            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
+            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+
         # Create the figure
-        fig, _ = self.__create_comparison_figure(
-            figsize=figsize,
-            legend=legend,
+        fig, _ = super().create_comparison_figure(
+            x_attributes=["time", "time", "time"],
+            y_attributes=["phi", "theta", "psi"],
             n_rows=3,
             n_cols=1,
-            n_plots=3,
+            figsize=figsize,
+            legend=legend,
             title="Comparison of the euler angles of the flights",
             x_labels=["Time (s)", "Time (s)", "Time (s)"],
             y_labels=[
@@ -356,7 +367,8 @@ class CompareFlights:
                 self.flights[0].theta.getOutputs()[0],
                 self.flights[0].psi.getOutputs()[0],
             ],
-            flight_attributes=["phi", "theta", "psi"],
+            x_lim=x_lim,
+            y_lim=y_lim,
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
@@ -367,7 +379,14 @@ class CompareFlights:
 
         return None
 
-    def quaternions(self, figsize=(7, 10 * 4 / 3), legend=True, filename=None):
+    def quaternions(
+        self,
+        figsize=(7, 10 * 4 / 3),
+        x_lim=None,
+        y_lim=None,
+        legend=True,
+        filename=None,
+    ):
         """Plots a comparison of the quaternions of the rocket for the different
         flights.
 
@@ -376,6 +395,15 @@ class CompareFlights:
         figsize : tuple, optional
             standard matplotlib figsize to be used in the plots, by default (7, 10),
             where the tuple means (width, height).
+        x_lim : tuple
+            A list of two items, where the first item represents the x axis lower limit
+            and second item, the x axis upper limit. If set to None, will be calculated
+            automatically by matplotlib. If the string "apogee" is used as a item for the
+            tuple, the maximum apogee time of all flights will be used instead.
+        y_lim : tuple
+            A list of two item, where the first item represents the y axis lower limit
+            and second item, the y axis upper limit. If set to None, will be calculated
+            automatically by matplotlib.
         legend : bool, optional
             Weather or not to show the legend, by default True
         filename : str, optional
@@ -387,13 +415,19 @@ class CompareFlights:
         None
         """
 
+        # Check if key word is used for x_limit
+        if x_lim:
+            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
+            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+
         # Create the figure
-        fig, _ = self.__create_comparison_figure(
-            figsize=figsize,
-            legend=legend,
+        fig, _ = super().create_comparison_figure(
+            x_attributes=["time", "time", "time", "time"],
+            y_attributes=["e0", "e1", "e2", "e3"],
             n_rows=4,
             n_cols=1,
-            n_plots=4,
+            figsize=figsize,
+            legend=legend,
             title="Comparison of the quaternions of the flights",
             x_labels=["Time (s)", "Time (s)", "Time (s)", "Time (s)"],
             y_labels=[
@@ -402,7 +436,8 @@ class CompareFlights:
                 "e2 (deg)",
                 "e3 (deg)",
             ],
-            flight_attributes=["e0", "e1", "e2", "e3"],
+            x_lim=x_lim,
+            y_lim=y_lim,
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
@@ -413,7 +448,9 @@ class CompareFlights:
 
         return None
 
-    def attitude_angles(self, figsize=(7, 10), legend=True, filename=None):
+    def attitude_angles(
+        self, figsize=(7, 10), x_lim=None, y_lim=None, legend=True, filename=None
+    ):
         """Plots a comparison of the attitude angles of the rocket for the different
         flights.
 
@@ -422,6 +459,15 @@ class CompareFlights:
         figsize : tuple, optional
             standard matplotlib figsize to be used in the plots, by default (7, 10),
             where the tuple means (width, height).
+        x_lim : tuple
+            A list of two items, where the first item represents the x axis lower limit
+            and second item, the x axis upper limit. If set to None, will be calculated
+            automatically by matplotlib. If the string "apogee" is used as a item for the
+            tuple, the maximum apogee time of all flights will be used instead.
+        y_lim : tuple
+            A list of two item, where the first item represents the y axis lower limit
+            and second item, the y axis upper limit. If set to None, will be calculated
+            automatically by matplotlib.
         legend : bool, optional
             Weather or not to show the legend, by default True
         filename : str, optional
@@ -433,13 +479,19 @@ class CompareFlights:
         None
         """
 
+        # Check if key word is used for x_limit
+        if x_lim:
+            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
+            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+
         # Create the figure
-        fig, _ = self.__create_comparison_figure(
-            figsize=figsize,
-            legend=legend,
+        fig, _ = super().create_comparison_figure(
+            x_attributes=["time", "time", "time"],
+            y_attributes=["pathAngle", "attitudeAngle", "lateralAttitudeAngle"],
             n_rows=3,
             n_cols=1,
-            n_plots=3,
+            figsize=figsize,
+            legend=legend,
             title="Comparison of the attitude angles of the flights",
             x_labels=["Time (s)", "Time (s)", "Time (s)"],
             y_labels=[
@@ -447,7 +499,8 @@ class CompareFlights:
                 "attitudeAngle (deg)",
                 "lateralAttitudeAngle (deg)",
             ],
-            flight_attributes=["pathAngle", "attitudeAngle", "lateralAttitudeAngle"],
+            x_lim=x_lim,
+            y_lim=y_lim,
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
@@ -458,7 +511,9 @@ class CompareFlights:
 
         return None
 
-    def angular_velocities(self, figsize=(7, 10), legend=True, filename=None):
+    def angular_velocities(
+        self, figsize=(7, 10), x_lim=None, y_lim=None, legend=True, filename=None
+    ):
         """Plots a comparison of the angular velocities of the rocket for the different
         flights.
 
@@ -467,6 +522,15 @@ class CompareFlights:
         figsize : tuple, optional
             standard matplotlib figsize to be used in the plots, by default (7, 10),
             where the tuple means (width, height).
+        x_lim : tuple
+            A list of two items, where the first item represents the x axis lower limit
+            and second item, the x axis upper limit. If set to None, will be calculated
+            automatically by matplotlib. If the string "apogee" is used as a item for the
+            tuple, the maximum apogee time of all flights will be used instead.
+        y_lim : tuple
+            A list of two item, where the first item represents the y axis lower limit
+            and second item, the y axis upper limit. If set to None, will be calculated
+            automatically by matplotlib.
         legend : bool, optional
             Weather or not to show the legend, by default True
         filename : str, optional
@@ -478,13 +542,24 @@ class CompareFlights:
         None
         """
 
+        # Check if key word is used for x_limit
+        if x_lim:
+            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
+            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+
+        # Check if key word is used for x_limit
+        if x_lim:
+            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
+            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+
         # Create the figure
-        fig, _ = self.__create_comparison_figure(
-            figsize=figsize,
-            legend=legend,
+        fig, _ = super().create_comparison_figure(
+            x_attributes=["time", "time", "time"],
+            y_attributes=["w1", "w2", "w3"],
             n_rows=3,
             n_cols=1,
-            n_plots=3,
+            figsize=figsize,
+            legend=legend,
             title="Comparison of the angular velocities of the flights",
             x_labels=["Time (s)", "Time (s)", "Time (s)"],
             y_labels=[
@@ -492,7 +567,8 @@ class CompareFlights:
                 "w2 (deg/s)",
                 "w3 (deg/s)",
             ],
-            flight_attributes=["w1", "w2", "w3"],
+            x_lim=x_lim,
+            y_lim=y_lim,
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
@@ -501,7 +577,9 @@ class CompareFlights:
 
         return None
 
-    def angular_accelerations(self, figsize=(7, 10), legend=True, filename=None):
+    def angular_accelerations(
+        self, figsize=(7, 10), x_lim=None, y_lim=None, legend=True, filename=None
+    ):
         """Plots a comparison of the angular accelerations of the rocket for the different
         flights.
 
@@ -510,6 +588,15 @@ class CompareFlights:
         figsize : tuple, optional
             standard matplotlib figsize to be used in the plots, by default (7, 10),
             where the tuple means (width, height).
+        x_lim : tuple
+            A list of two items, where the first item represents the x axis lower limit
+            and second item, the x axis upper limit. If set to None, will be calculated
+            automatically by matplotlib. If the string "apogee" is used as a item for the
+            tuple, the maximum apogee time of all flights will be used instead.
+        y_lim : tuple
+            A list of two item, where the first item represents the y axis lower limit
+            and second item, the y axis upper limit. If set to None, will be calculated
+            automatically by matplotlib.
         legend : bool, optional
             Weather or not to show the legend, by default True
         filename : str, optional
@@ -521,13 +608,19 @@ class CompareFlights:
         None
         """
 
+        # Check if key word is used for x_limit
+        if x_lim:
+            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
+            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+
         # Create the figure
-        fig, _ = self.__create_comparison_figure(
-            figsize=figsize,
-            legend=legend,
+        fig, _ = super().create_comparison_figure(
+            x_attributes=["time", "time", "time"],
+            y_attributes=["alpha1", "alpha2", "alpha3"],
             n_rows=3,
             n_cols=1,
-            n_plots=3,
+            figsize=figsize,
+            legend=legend,
             title="Comparison of the angular accelerations of the flights",
             x_labels=["Time (s)", "Time (s)", "Time (s)"],
             y_labels=[
@@ -535,7 +628,8 @@ class CompareFlights:
                 self.flights[0].alpha2.getOutputs()[0],
                 self.flights[0].alpha3.getOutputs()[0],
             ],
-            flight_attributes=["alpha1", "alpha2", "alpha3"],
+            x_lim=x_lim,
+            y_lim=y_lim,
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
@@ -546,7 +640,14 @@ class CompareFlights:
 
         return None
 
-    def aerodynamic_forces(self, figsize=(7, 10 * 2 / 3), legend=True, filename=None):
+    def aerodynamic_forces(
+        self,
+        figsize=(7, 10 * 2 / 3),
+        x_lim=None,
+        y_lim=None,
+        legend=True,
+        filename=None,
+    ):
         """Plots a comparison of the aerodynamic forces of the rocket for the different
         flights.
 
@@ -555,6 +656,15 @@ class CompareFlights:
         figsize : tuple, optional
             standard matplotlib figsize to be used in the plots, by default (7, 10),
             where the tuple means (width, height).
+        x_lim : tuple
+            A list of two items, where the first item represents the x axis lower limit
+            and second item, the x axis upper limit. If set to None, will be calculated
+            automatically by matplotlib. If the string "apogee" is used as a item for the
+            tuple, the maximum apogee time of all flights will be used instead.
+        y_lim : tuple
+            A list of two item, where the first item represents the y axis lower limit
+            and second item, the y axis upper limit. If set to None, will be calculated
+            automatically by matplotlib.
         legend : bool, optional
             Weather or not to show the legend, by default True
         filename : str, optional
@@ -566,20 +676,27 @@ class CompareFlights:
         None
         """
 
+        # Check if key word is used for x_limit
+        if x_lim:
+            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
+            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+
         # Create the figure
-        fig, _ = self.__create_comparison_figure(
-            figsize=figsize,
-            legend=legend,
+        fig, _ = super().create_comparison_figure(
+            x_attributes=["time", "time"],
+            y_attributes=["aerodynamicDrag", "aerodynamicLift"],
             n_rows=2,
             n_cols=1,
-            n_plots=2,
+            figsize=figsize,
+            legend=legend,
             title="Comparison of the aerodynamic forces of the flights",
             x_labels=["Time (s)", "Time (s)"],
             y_labels=[
                 "Drag Force (N)",
                 "Lift Force (N)",
             ],
-            flight_attributes=["aerodynamicDrag", "aerodynamicLift"],
+            x_lim=x_lim,
+            y_lim=y_lim,
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
@@ -590,7 +707,14 @@ class CompareFlights:
 
         return None
 
-    def aerodynamic_moments(self, figsize=(7, 10 * 2 / 3), legend=True, filename=None):
+    def aerodynamic_moments(
+        self,
+        figsize=(7, 10 * 2 / 3),
+        x_lim=None,
+        y_lim=None,
+        legend=True,
+        filename=None,
+    ):
         """Plots a comparison of the aerodynamic moments of the rocket for the different
         flights.
 
@@ -599,6 +723,15 @@ class CompareFlights:
         figsize : tuple, optional
             standard matplotlib figsize to be used in the plots, by default (7, 10),
             where the tuple means (width, height).
+        x_lim : tuple
+            A list of two items, where the first item represents the x axis lower limit
+            and second item, the x axis upper limit. If set to None, will be calculated
+            automatically by matplotlib. If the string "apogee" is used as a item for the
+            tuple, the maximum apogee time of all flights will be used instead.
+        y_lim : tuple
+            A list of two item, where the first item represents the y axis lower limit
+            and second item, the y axis upper limit. If set to None, will be calculated
+            automatically by matplotlib.
         legend : bool, optional
             Weather or not to show the legend, by default True
         filename : str, optional
@@ -609,20 +742,27 @@ class CompareFlights:
         None
         """
 
+        # Check if key word is used for x_limit
+        if x_lim:
+            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
+            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+
         # Create the figure
-        fig, _ = self.__create_comparison_figure(
-            figsize=figsize,
-            legend=legend,
+        fig, _ = super().create_comparison_figure(
+            x_attributes=["time", "time"],
+            y_attributes=["aerodynamicBendingMoment", "aerodynamicSpinMoment"],
             n_rows=2,
             n_cols=1,
-            n_plots=2,
+            figsize=figsize,
+            legend=legend,
             title="Comparison of the aerodynamic moments of the flights",
             x_labels=["Time (s)", "Time (s)"],
             y_labels=[
                 "Bending Moment (N*m)",
                 "Spin Moment (N*m)",
             ],
-            flight_attributes=["aerodynamicBendingMoment", "aerodynamicSpinMoment"],
+            x_lim=x_lim,
+            y_lim=y_lim,
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
@@ -633,7 +773,9 @@ class CompareFlights:
 
         return None
 
-    def energies(self, figsize=(7, 10), legend=True, filename=None):
+    def energies(
+        self, figsize=(7, 10), x_lim=None, y_lim=None, legend=True, filename=None
+    ):
         """Plots a comparison of the energies of the rocket for the different flights.
 
         Parameters
@@ -641,6 +783,15 @@ class CompareFlights:
         figsize : tuple, optional
             standard matplotlib figsize to be used in the plots, by default (7, 10),
             where the tuple means (width, height).
+        x_lim : tuple
+            A list of two items, where the first item represents the x axis lower limit
+            and second item, the x axis upper limit. If set to None, will be calculated
+            automatically by matplotlib. If the string "apogee" is used as a item for the
+            tuple, the maximum apogee time of all flights will be used instead.
+        y_lim : tuple
+            A list of two item, where the first item represents the y axis lower limit
+            and second item, the y axis upper limit. If set to None, will be calculated
+            automatically by matplotlib.
         legend : bool, optional
             Weather or not to show the legend, by default True
         filename : str, optional
@@ -651,13 +802,19 @@ class CompareFlights:
         None
         """
 
+        # Check if key word is used for x_limit
+        if x_lim:
+            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
+            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+
         # Create the figure
-        fig, _ = self.__create_comparison_figure(
-            figsize=figsize,
-            legend=legend,
+        fig, _ = super().create_comparison_figure(
+            x_attributes=["time", "time", "time"],
+            y_attributes=["kineticEnergy", "potentialEnergy", "totalEnergy"],
             n_rows=3,
             n_cols=1,
-            n_plots=3,
+            figsize=figsize,
+            legend=legend,
             title="Comparison of the energies of the flights",
             x_labels=["Time (s)", "Time (s)", "Time (s)"],
             y_labels=[
@@ -665,7 +822,8 @@ class CompareFlights:
                 "Potential Energy (J)",
                 "Total Energy (J)",
             ],
-            flight_attributes=["kineticEnergy", "potentialEnergy", "totalEnergy"],
+            x_lim=x_lim,
+            y_lim=y_lim,
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
@@ -676,7 +834,14 @@ class CompareFlights:
 
         return None
 
-    def powers(self, figsize=(7, 10 * 2 / 3), legend=True, filename=None):
+    def powers(
+        self,
+        figsize=(7, 10 * 2 / 3),
+        x_lim=None,
+        y_lim=None,
+        legend=True,
+        filename=None,
+    ):
         """Plots a comparison of the powers of the rocket for the different flights.
 
         Parameters
@@ -684,6 +849,15 @@ class CompareFlights:
         figsize : tuple, optional
             standard matplotlib figsize to be used in the plots, by default (7, 10),
             where the tuple means (width, height).
+        x_lim : tuple
+            A list of two items, where the first item represents the x axis lower limit
+            and second item, the x axis upper limit. If set to None, will be calculated
+            automatically by matplotlib. If the string "apogee" is used as a item for the
+            tuple, the maximum apogee time of all flights will be used instead.
+        y_lim : tuple
+            A list of two item, where the first item represents the y axis lower limit
+            and second item, the y axis upper limit. If set to None, will be calculated
+            automatically by matplotlib.
         legend : bool, optional
             Weather or not to show the legend, by default True
         filename : str, optional
@@ -694,17 +868,24 @@ class CompareFlights:
         None
         """
 
+        # Check if key word is used for x_limit
+        if x_lim:
+            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
+            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+
         # Create the figure
-        fig, _ = self.__create_comparison_figure(
-            figsize=figsize,
-            legend=legend,
+        fig, _ = super().create_comparison_figure(
+            x_attributes=["time", "time"],
+            y_attributes=["thrustPower", "dragPower"],
             n_rows=2,
             n_cols=1,
-            n_plots=2,
+            figsize=figsize,
+            legend=legend,
             title="Comparison of the powers of the flights",
             x_labels=["Time (s)", "Time (s)"],
             y_labels=["Thrust Power (W)", "Drag Power (W)"],
-            flight_attributes=["thrustPower", "dragPower"],
+            x_lim=x_lim,
+            y_lim=y_lim,
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
@@ -715,7 +896,14 @@ class CompareFlights:
 
         return None
 
-    def rail_buttons_forces(self, figsize=(7, 10 * 4 / 3), legend=True, filename=None):
+    def rail_buttons_forces(
+        self,
+        figsize=(7, 10 * 4 / 3),
+        x_lim=None,
+        y_lim=None,
+        legend=True,
+        filename=None,
+    ):
         """Plots a comparison of the forces acting on the rail buttons of the rocket for
         the different flights.
 
@@ -724,6 +912,15 @@ class CompareFlights:
         figsize : tuple, optional
             standard matplotlib figsize to be used in the plots, by default (7, 10),
             where the tuple means (width, height).
+        x_lim : tuple
+            A list of two items, where the first item represents the x axis lower limit
+            and second item, the x axis upper limit. If set to None, will be calculated
+            automatically by matplotlib. If the string "apogee" is used as a item for the
+            tuple, the maximum apogee time of all flights will be used instead.
+        y_lim : tuple
+            A list of two item, where the first item represents the y axis lower limit
+            and second item, the y axis upper limit. If set to None, will be calculated
+            automatically by matplotlib.
         legend : bool, optional
             Weather or not to show the legend, by default True
         filename : str, optional
@@ -734,13 +931,24 @@ class CompareFlights:
         None
         """
 
+        # Check if key word is used for x_limit
+        if x_lim:
+            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
+            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+
         # Create the figure
-        fig, _ = self.__create_comparison_figure(
-            figsize=figsize,
-            legend=legend,
+        fig, _ = super().create_comparison_figure(
+            x_attributes=["time", "time", "time", "time"],
+            y_attributes=[
+                "railButton1NormalForce",
+                "railButton1ShearForce",
+                "railButton2NormalForce",
+                "railButton2ShearForce",
+            ],
             n_rows=4,
             n_cols=1,
-            n_plots=4,
+            figsize=figsize,
+            legend=legend,
             title="Comparison of the forces acting on the rail buttons of the flights",
             x_labels=["Time (s)", "Time (s)", "Time (s)", "Time (s)"],
             y_labels=[
@@ -749,12 +957,8 @@ class CompareFlights:
                 "Rail Button 2 Normal Force (N)",
                 "Rail Button 2 Shear Force (N)",
             ],
-            flight_attributes=[
-                "railButton1NormalForce",
-                "railButton1ShearForce",
-                "railButton2NormalForce",
-                "railButton2ShearForce",
-            ],
+            x_lim=x_lim,
+            y_lim=y_lim,
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
@@ -765,7 +969,14 @@ class CompareFlights:
 
         return None
 
-    def angles_of_attack(self, figsize=(7, 10 * 1 / 3), legend=True, filename=None):
+    def angles_of_attack(
+        self,
+        figsize=(7, 10 * 1 / 3),
+        x_lim=None,
+        y_lim=None,
+        legend=True,
+        filename=None,
+    ):
         """Plots a comparison of the angles of attack of the rocket for the different
         flights.
 
@@ -774,6 +985,15 @@ class CompareFlights:
         figsize : tuple, optional
             standard matplotlib figsize to be used in the plots, by default (7, 10),
             where the tuple means (width, height).
+        x_lim : tuple
+            A list of two items, where the first item represents the x axis lower limit
+            and second item, the x axis upper limit. If set to None, will be calculated
+            automatically by matplotlib. If the string "apogee" is used as a item for the
+            tuple, the maximum apogee time of all flights will be used instead.
+        y_lim : tuple
+            A list of two item, where the first item represents the y axis lower limit
+            and second item, the y axis upper limit. If set to None, will be calculated
+            automatically by matplotlib.
         legend : bool, optional
             Weather or not to show the legend, by default True
         filename : str, optional
@@ -784,17 +1004,24 @@ class CompareFlights:
         None
         """
 
+        # Check if key word is used for x_limit
+        if x_lim:
+            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
+            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+
         # Create the figure
-        fig, _ = self.__create_comparison_figure(
-            figsize=figsize,
-            legend=legend,
+        fig, _ = super().create_comparison_figure(
+            x_attributes=["time"],
+            y_attributes=["angleOfAttack"],
             n_rows=1,
             n_cols=1,
-            n_plots=1,
+            figsize=figsize,
+            legend=legend,
             title="Comparison of the angles of attack of the flights",
             x_labels=["Time (s)"],
             y_labels=["Angle of Attack (deg)"],
-            flight_attributes=["angleOfAttack"],
+            x_lim=x_lim,
+            y_lim=y_lim,
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
@@ -805,7 +1032,14 @@ class CompareFlights:
 
         return None
 
-    def fluid_mechanics(self, figsize=(7, 10 * 4 / 3), legend=True, filename=None):
+    def fluid_mechanics(
+        self,
+        figsize=(7, 10 * 4 / 3),
+        x_lim=None,
+        y_lim=None,
+        legend=True,
+        filename=None,
+    ):
         """Plots a comparison of the fluid mechanics of the rocket for the different
         flights.
 
@@ -814,6 +1048,15 @@ class CompareFlights:
         figsize : tuple, optional
             standard matplotlib figsize to be used in the plots, by default (7, 10),
             where the tuple means (width, height).
+        x_lim : tuple
+            A list of two items, where the first item represents the x axis lower limit
+            and second item, the x axis upper limit. If set to None, will be calculated
+            automatically by matplotlib. If the string "apogee" is used as a item for the
+            tuple, the maximum apogee time of all flights will be used instead.
+        y_lim : tuple
+            A list of two item, where the first item represents the y axis lower limit
+            and second item, the y axis upper limit. If set to None, will be calculated
+            automatically by matplotlib.
         legend : bool, optional
             Weather or not to show the legend, by default True
         filename : str, optional
@@ -824,13 +1067,24 @@ class CompareFlights:
         None
         """
 
+        # Check if key word is used for x_limit
+        if x_lim:
+            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
+            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+
         # Create the figure
-        fig, _ = self.__create_comparison_figure(
-            figsize=figsize,
-            legend=legend,
+        fig, _ = super().create_comparison_figure(
+            x_attributes=["time", "time", "time", "time"],
+            y_attributes=[
+                "MachNumber",
+                "ReynoldsNumber",
+                "dynamicPressure",
+                "totalPressure",
+            ],
             n_rows=4,
             n_cols=1,
-            n_plots=4,
+            figsize=figsize,
+            legend=legend,
             title="Comparison of the fluid mechanics of the flights",
             x_labels=["Time (s)", "Time (s)", "Time (s)", "Time (s)"],
             y_labels=[
@@ -839,12 +1093,8 @@ class CompareFlights:
                 "Dynamic Pressure (Pa)",
                 "Total Pressure (Pa)",
             ],
-            flight_attributes=[
-                "MachNumber",
-                "ReynoldsNumber",
-                "dynamicPressure",
-                "totalPressure",
-            ],
+            x_lim=x_lim,
+            y_lim=y_lim,
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
@@ -855,7 +1105,9 @@ class CompareFlights:
 
         return None
 
-    def stability_margin(self, figsize=(7, 10), legend=True, filename=None):
+    def stability_margin(
+        self, figsize=(7, 10), x_lim=None, y_lim=None, legend=True, filename=None
+    ):
         """Plots the stability margin of the rocket for the different flights.
         The stability margin here is different than the static margin, it is the
         difference between the center of pressure and the center of gravity of the
@@ -866,6 +1118,15 @@ class CompareFlights:
         figsize : tuple, optional
             standard matplotlib figsize to be used in the plots, by default (7, 10),
             where the tuple means (width, height).
+        x_lim : tuple
+            A list of two items, where the first item represents the x axis lower limit
+            and second item, the x axis upper limit. If set to None, will be calculated
+            automatically by matplotlib. If the string "apogee" is used as a item for the
+            tuple, the maximum apogee time of all flights will be used instead.
+        y_lim : tuple
+            A list of two item, where the first item represents the y axis lower limit
+            and second item, the y axis upper limit. If set to None, will be calculated
+            automatically by matplotlib.
         legend : bool, optional
             Weather or not to show the legend, by default True
         filename : str, optional
@@ -880,7 +1141,14 @@ class CompareFlights:
 
         return None
 
-    def attitude_frequency(self, figsize=(7, 10 * 4 / 3), legend=True, filename=None):
+    def attitude_frequency(
+        self,
+        figsize=(7, 10 * 4 / 3),
+        x_lim=None,
+        y_lim=None,
+        legend=True,
+        filename=None,
+    ):
         """Plots the frequency of the attitude of the rocket for the different flights.
 
         Parameters
@@ -888,6 +1156,15 @@ class CompareFlights:
         figsize : tuple, optional
             standard matplotlib figsize to be used in the plots, by default (7, 10),
             where the tuple means (width, height).
+        x_lim : tuple
+            A list of two items, where the first item represents the x axis lower limit
+            and second item, the x axis upper limit. If set to None, will be calculated
+            automatically by matplotlib. If the string "apogee" is used as a item for the
+            tuple, the maximum apogee time of all flights will be used instead.
+        y_lim : tuple
+            A list of two item, where the first item represents the y axis lower limit
+            and second item, the y axis upper limit. If set to None, will be calculated
+            automatically by matplotlib.
         legend : bool, optional
             Weather or not to show the legend, by default True
         filename : str, optional
@@ -903,7 +1180,7 @@ class CompareFlights:
         return None
 
     @staticmethod
-    def __compare_trajectories_3d(
+    def compare_trajectories_3d(
         flights, names_list=None, figsize=(7, 7), legend=None, filename=None
     ):
         """Creates a trajectory plot combining the trajectories listed.
@@ -921,7 +1198,7 @@ class CompareFlights:
             The trajectories must be in the same reference frame. The z coordinate must be referenced
             to the ground or to the sea level, but it is important that all trajectories are passed
             in the same reference.
-        names_list : list, optional
+        names_list : list
             List of strings with the name of each trajectory inputted. The names must be in
             the same order as the trajectories in flights. If no names are passed, the
             trajectories will be named as "Trajectory 1", "Trajectory 2", ..., "Trajectory n".
@@ -940,6 +1217,11 @@ class CompareFlights:
 
         # Initialize variables
         maxX, maxY, maxZ, minX, minY, minZ, maxXY, minXY = 0, 0, 0, 0, 0, 0, 0, 0
+        names_list = (
+            [f" Trajectory {i}" for i in range(len(flights))]
+            if not names_list
+            else names_list
+        )
 
         # Create the figure
         fig1 = plt.figure(figsize=figsize)
@@ -1026,8 +1308,8 @@ class CompareFlights:
             flights.append([x, y, z])
             names_list.append(flight.name)
 
-        # Call __compare_trajectories_3d function to do the hard work
-        self.__compare_trajectories_3d(
+        # Call compare_trajectories_3d function to do the hard work
+        self.compare_trajectories_3d(
             flights=flights,
             names_list=names_list,
             legend=legend,
