@@ -46,7 +46,6 @@ class Compare:
 
     def create_comparison_figure(
         self,
-        x_attributes,
         y_attributes,
         n_rows,
         n_cols,
@@ -57,17 +56,12 @@ class Compare:
         y_labels,
         x_lim,
         y_lim,
+        x_attributes=None,
     ):
         """Creates a figure to compare the results of multiple objects of the same type.
 
         Parameters
         ----------
-        x_attributes : list
-            The attributes of the class to be plotted as the horizontal coordinates
-            of the data points. The attributes must be a list of strings. Each string
-            must be a valid attribute of the object's class, i.e., should point to a
-            attribute of the object's class that is a Function object or a numpy array.
-            For example ["time", "time", "time"].
         y_attributes : list
             The attributes of the class to be plotted as the vertical coordinates
             of the data points. The attributes must be a list of strings. Each string
@@ -99,6 +93,12 @@ class Compare:
             A tuple where the first item represents the y axis lower limit and second item,
             the y axis upper limit. If set to None, will be calculated automatically by
             matplotlib.
+        x_attributes : list
+            The attributes of the class to be plotted as the horizontal coordinates
+            of the data points. The attributes must be a list of strings. Each string
+            must be a valid attribute of the object's class, i.e., should point to a
+            attribute of the object's class that is a Function object or a numpy array.
+            For example ["time", "time", "time"].
 
         Returns
         -------
@@ -120,24 +120,37 @@ class Compare:
             ax.append(plt.subplot(n_rows, n_cols, i + 1))
 
         # Adding the plots to each subplot
-        for object in self.object_list:
-            for i in range(n_plots):
-                try:
-                    ax[i].plot(
-                        object.__getattribute__(x_attributes[i])[:, 1],
-                        object.__getattribute__(y_attributes[i])[:, 1],
-                        label=object.name,
-                    )
-                except IndexError:
-                    ax[i].plot(
-                        object.__getattribute__(x_attributes[i]),
-                        object.__getattribute__(y_attributes[i])[:, 1],
-                        label=object.name,
-                    )
-                except AttributeError:
-                    raise AttributeError(
-                        f"Invalid attribute {y_attributes[i]} or {x_attributes[i]}."
-                    )
+        if x_attributes:
+            for object in self.object_list:
+                for i in range(n_plots):
+                    try:
+                        ax[i].plot(
+                            object.__getattribute__(x_attributes[i])[:, 1],
+                            object.__getattribute__(y_attributes[i])[:, 1],
+                            label=object.name,
+                        )
+                    except IndexError:
+                        ax[i].plot(
+                            object.__getattribute__(x_attributes[i]),
+                            object.__getattribute__(y_attributes[i])[:, 1],
+                            label=object.name,
+                        )
+                    except AttributeError:
+                        raise AttributeError(
+                            f"Invalid attribute {y_attributes[i]} or {x_attributes[i]}."
+                        )
+        else:
+            # Adding the plots to each subplot
+            for object in self.object_list:
+                for i in range(n_plots):
+                    try:
+                        ax[i].plot(
+                            object.__getattribute__(y_attributes[i])[:, 0],
+                            object.__getattribute__(y_attributes[i])[:, 1],
+                            label=object.name,
+                        )
+                    except AttributeError:
+                        raise AttributeError(f"Invalid attribute {y_attributes[i]}.")
 
         for i, subplot in enumerate(ax):
 

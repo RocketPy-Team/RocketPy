@@ -89,7 +89,6 @@ class CompareFlights(Compare):
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
-            x_attributes=["time", "time", "time"],
             y_attributes=["x", "y", "z"],
             n_rows=3,
             n_cols=1,
@@ -153,7 +152,6 @@ class CompareFlights(Compare):
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
-            x_attributes=["time", "time", "time", "time"],
             y_attributes=["speed", "vx", "vy", "vz"],
             n_rows=4,
             n_cols=1,
@@ -218,7 +216,6 @@ class CompareFlights(Compare):
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
-            x_attributes=["time", "time", "time", "time"],
             y_attributes=[
                 "freestreamSpeed",
                 "streamVelocityX",
@@ -292,7 +289,6 @@ class CompareFlights(Compare):
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
-            x_attributes=["time", "time", "time", "time"],
             y_attributes=["acceleration", "ax", "ay", "az"],
             n_rows=4,
             n_cols=1,
@@ -356,7 +352,6 @@ class CompareFlights(Compare):
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
-            x_attributes=["time", "time", "time"],
             y_attributes=["phi", "theta", "psi"],
             n_rows=3,
             n_cols=1,
@@ -424,7 +419,6 @@ class CompareFlights(Compare):
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
-            x_attributes=["time", "time", "time", "time"],
             y_attributes=["e0", "e1", "e2", "e3"],
             n_rows=4,
             n_cols=1,
@@ -488,7 +482,6 @@ class CompareFlights(Compare):
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
-            x_attributes=["time", "time", "time"],
             y_attributes=["pathAngle", "attitudeAngle", "lateralAttitudeAngle"],
             n_rows=3,
             n_cols=1,
@@ -556,7 +549,6 @@ class CompareFlights(Compare):
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
-            x_attributes=["time", "time", "time"],
             y_attributes=["w1", "w2", "w3"],
             n_rows=3,
             n_cols=1,
@@ -617,7 +609,6 @@ class CompareFlights(Compare):
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
-            x_attributes=["time", "time", "time"],
             y_attributes=["alpha1", "alpha2", "alpha3"],
             n_rows=3,
             n_cols=1,
@@ -685,7 +676,6 @@ class CompareFlights(Compare):
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
-            x_attributes=["time", "time"],
             y_attributes=["aerodynamicDrag", "aerodynamicLift"],
             n_rows=2,
             n_cols=1,
@@ -751,7 +741,6 @@ class CompareFlights(Compare):
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
-            x_attributes=["time", "time"],
             y_attributes=["aerodynamicBendingMoment", "aerodynamicSpinMoment"],
             n_rows=2,
             n_cols=1,
@@ -811,7 +800,6 @@ class CompareFlights(Compare):
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
-            x_attributes=["time", "time", "time"],
             y_attributes=["kineticEnergy", "potentialEnergy", "totalEnergy"],
             n_rows=3,
             n_cols=1,
@@ -877,7 +865,6 @@ class CompareFlights(Compare):
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
-            x_attributes=["time", "time"],
             y_attributes=["thrustPower", "dragPower"],
             n_rows=2,
             n_cols=1,
@@ -939,77 +926,28 @@ class CompareFlights(Compare):
             x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
 
         # Create the figure
-        # Needs to be manually done beacuse of specific time array length
-        y_attributes = [
-            "railButton1NormalForce",
-            "railButton1ShearForce",
-            "railButton2NormalForce",
-            "railButton2ShearForce",
-        ]
-        n_rows = 4
-        n_cols = 1
-        title = "Comparison of the forces acting on the rail buttons of the flights"
-        x_labels = ["Time (s)", "Time (s)", "Time (s)", "Time (s)"]
-        y_labels = [
-            "Rail Button 1 Normal Force (N)",
-            "Rail Button 1 Shear Force (N)",
-            "Rail Button 2 Normal Force (N)",
-            "Rail Button 2 Shear Force (N)",
-        ]
-
-        n_plots = len(y_attributes)
-
-        # Create the matplotlib figure
-        fig = plt.figure(figsize=figsize)
-        fig.suptitle(title, fontsize=16, y=1.02, x=0.5)
-
-        # Create the subplots
-        ax = []
-        for i in range(n_plots):
-            ax.append(plt.subplot(n_rows, n_cols, i + 1))
-
-        # Adding the plots to each subplot
-        for flight in self.flights:
-            for i in range(n_plots):
-                time = np.linspace(
-                    0, flight.outOfRailTime, flight.outOfRailTimeIndex + 1
-                )
-                ax[i].plot(
-                    time,
-                    flight.__getattribute__(y_attributes[i])(time),
-                    label=flight.name,
-                )
-
-        for i, subplot in enumerate(ax):
-
-            # Set the labels for the x and y axis
-            subplot.set_xlabel(x_labels[i])
-            subplot.set_ylabel(y_labels[i])
-
-            # Set the limits for the x axis
-            if x_lim:
-                subplot.set_xlim(*x_lim)
-            if y_lim:
-                subplot.set_ylim(*y_lim)
-            subplot.grid(True)  # Add a grid to the plot
-
-        # Find the two closest integers to the square root of the number of object_list
-        # to be used as the number of columns and rows of the legend
-        n_cols_legend = int(round(len(self.object_list) ** 0.5))
-        n_rows_legend = int(round(len(self.object_list) / n_cols_legend))
-
-        # Set the legend
-        if legend:  # Add a global legend to the figure
-            fig.legend(
-                *ax[0].get_legend_handles_labels(),
-                loc="lower center",
-                ncol=n_cols_legend,
-                numpoints=1,
-                frameon=True,
-                bbox_to_anchor=(0.5, 1.05),
-            )
-
-        fig.tight_layout()
+        fig, _ = super().create_comparison_figure(
+            y_attributes=[
+                "railButton1NormalForce",
+                "railButton1ShearForce",
+                "railButton2NormalForce",
+                "railButton2ShearForce",
+            ],
+            n_rows=4,
+            n_cols=1,
+            figsize=figsize,
+            legend=legend,
+            title="Comparison of the forces acting on the rail buttons of the flights",
+            x_labels=["Time (s)", "Time (s)", "Time (s)", "Time (s)"],
+            y_labels=[
+                "Rail Button 1 Normal Force (N)",
+                "Rail Button 1 Shear Force (N)",
+                "Rail Button 2 Normal Force (N)",
+                "Rail Button 2 Shear Force (N)",
+            ],
+            x_lim=x_lim,
+            y_lim=y_lim,
+        )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
         if filename:
@@ -1061,7 +999,6 @@ class CompareFlights(Compare):
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
-            x_attributes=["time"],
             y_attributes=["angleOfAttack"],
             n_rows=1,
             n_cols=1,
@@ -1124,7 +1061,6 @@ class CompareFlights(Compare):
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
-            x_attributes=["time", "time", "time", "time"],
             y_attributes=[
                 "MachNumber",
                 "ReynoldsNumber",
