@@ -3,7 +3,7 @@ import datetime
 import numericalunits
 import pytest
 
-from rocketpy import Environment, Function, Rocket, SolidMotor
+from rocketpy import Environment, EnvironmentAnalysis, Function, Rocket, SolidMotor
 
 
 def pytest_addoption(parser):
