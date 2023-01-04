@@ -79,7 +79,7 @@ class Compare:
         n_cols : int
             The number of columns of the figure.
         figsize : tuple
-            The standar matplotlib size of the figure, where the tuple means (width, height).
+            The standard matplotlib size of the figure, where the tuple means (width, height).
             For example (7, 10).
         legend : bool
             Whether to show the legend or not.
