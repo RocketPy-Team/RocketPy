@@ -152,7 +152,7 @@ class Function:
             temp = 1 * source
 
             def source(x):
-                return 0 * x + temp
+                return temp
 
         # Handle callable source or number source
         if callable(source):
