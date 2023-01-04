@@ -3,6 +3,8 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 import matplotlib.pyplot as plt
+import numpy as np
+
 from .compare import Compare
 
 
@@ -1292,21 +1294,7 @@ class CompareFlights(Compare):
         """
 
         # Iterate through Flight objects and create a list of trajectories
-        flights = []
-        names_list = []
-        for index, flight in enumerate(self.flights):
-
-            # Get trajectories
-            try:
-                x = flight.x[:, 1]
-                y = flight.y[:, 1]
-                z = flight.z[:, 1] - flight.env.elevation
-            except AttributeError:
-                raise AttributeError(
-                    "Flight object {} does not have a trajectory.".format(flight.name)
-                )
-            flights.append([x, y, z])
-            names_list.append(flight.name)
+        flights, names_list = self.__retrieve_trajectories()
 
         # Call compare_trajectories_3d function to do the hard work
         self.compare_trajectories_3d(
@@ -1318,6 +1306,39 @@ class CompareFlights(Compare):
         )
 
         return None
+
+    def __retrieve_trajectories(self):
+        """Retrieve trajectories from Flight objects.
+
+        Returns
+        -------
+        flights : list
+            List of trajectories. Must be in the form of [trajectory_1, trajectory_2, ..., trajectory_n]
+            where each element is a list with the arrays regarding positions in x, y and z [x, y, z].
+            The trajectories must be in the same reference frame. The z coordinate must be referenced
+            to the ground or to the sea level, but it is important that all trajectories are passed
+            in the same reference.
+        names_list : list
+            List of strings with the name of each trajectory inputted. The names must be in
+            the same order as the trajectories in flights. If no names are passed, the
+            trajectories will be named as "Trajectory 1", "Trajectory 2", ..., "Trajectory n".
+        """
+
+        flights = []
+        names_list = []
+        for _, flight in enumerate(self.flights):
+            # Get trajectories
+            try:
+                x = flight.x[:, 1]
+                y = flight.y[:, 1]
+                z = flight.z[:, 1] - flight.env.elevation
+            except AttributeError:
+                raise AttributeError(
+                    "Flight object {} does not have a trajectory.".format(flight.name)
+                )
+            flights.append([x, y, z])
+            names_list.append(flight.name)
+        return flights, names_list
 
     def trajectories_2d(self, plane="xy", figsize=(7, 7), legend=None, filename=None):
         """Creates a 2D trajectory plot that is the combination of the trajectories of
@@ -1344,7 +1365,223 @@ class CompareFlights(Compare):
         None
         """
 
-        print("Still not implemented yet!")
+        # Iterate through Flight objects and create a list of trajectories
+        flights, names_list = self.__retrieve_trajectories()
+
+        f_planes = {
+            "xy": self.__plot_xy,
+            "xz": self.__plot_xz,
+            "yz": self.__plot_yz,
+        }
+
+        # Check if the plane is valid and call the corresponding function
+        # If the plane is not valid, the default plane is "xy"
+        func = f_planes.get(plane, f_planes.get("xy"))
+
+        func(flights, names_list, figsize, legend, filename)
+
+        return None
+
+    def __plot_xy(
+        self, flights, names_list, figsize=(7, 7), legend=None, filename=None
+    ):
+        """Creates a 2D trajectory plot in the X-Y plane that is the combination of the trajectories of
+        the Flight objects passed via a Python list.
+
+        Parameters
+        ----------
+        legend : boolean, optional
+            Whether legend will or will not be included. Default is True
+        filename : string, optional
+            If a string is passed, the figure will be saved in the path passed.
+            The image format options are: .png, .jpg, .jpeg, .tiff, .bmp, .pdf, .svg, .pgf, .eps
+        figsize : tuple, optional
+            Tuple with the size of the figure. The default is (7, 7).
+
+        Returns
+        -------
+        None
+        """
+
+        # Create the figure
+        fig = plt.figure(figsize=figsize)
+        fig.suptitle("Flight Trajectories Comparison", fontsize=16, y=0.95, x=0.5)
+        ax = plt.subplot(111)
+
+        # Initialize variables to set the limits of the plot
+        maxX = maxY = maxXY = -np.inf
+        minX = minY = minXY = np.inf
+
+        # Iterate through trajectories
+        for index, flight in enumerate(flights):
+
+            x, y, _ = flight
+
+            # Update mx and min values to set the limits of the plot
+            maxX = max(maxX, max(x))
+            maxY = max(maxY, max(y))
+            maxXY = max(maxXY, max(max(x), max(y)))
+            minX = min(minX, min(x))
+            minY = min(minY, min(y))
+            minXY = min(minXY, min(min(x), min(y)))
+
+            # Add Trajectory as a plot in main figure
+            ax.plot(x, y, linewidth="2", label=names_list[index])
+
+        # Plot settings
+        ax.scatter(0, 0, color="black", s=10, marker="o")
+        ax.set_xlabel("X - East (m)")
+        ax.set_ylabel("Y - North (m)")
+        ax.set_ylim([minXY, maxXY])
+        ax.set_xlim([minXY, maxXY])
+
+        # Add legend
+        if legend:
+            fig.legend()
+
+        fig.tight_layout()
+
+        # Save figure
+        if filename:
+            plt.savefig(filename)
+        else:
+            plt.show()
+
+        return None
+
+    def __plot_xz(
+        self, flights, names_list, figsize=(7, 7), legend=None, filename=None
+    ):
+        """Creates a 2D trajectory plot in the X-Z plane that is the combination
+        of the trajectories of the Flight objects passed via a Python list.
+
+        Parameters
+        ----------
+        legend : boolean, optional
+            Whether legend will or will not be included. Default is True
+        filename : string, optional
+            If a string is passed, the figure will be saved in the path passed.
+            The image format options are: .png, .jpg, .jpeg, .tiff, .bmp, .pdf,
+            .svg, .pgf, .eps
+        figsize : tuple, optional
+            Tuple with the size of the figure. The default is (7, 7).
+
+        Returns
+        -------
+        None
+        """
+
+        # Create the figure
+        fig = plt.figure(figsize=figsize)
+        fig.suptitle("Flight Trajectories Comparison", fontsize=16, y=0.95, x=0.5)
+        ax = plt.subplot(111)
+
+        # Initialize variables to set the limits of the plot
+        maxX = maxZ = maxXY = -np.inf
+        minX = minZ = minXY = np.inf
+
+        # Iterate through trajectories
+        for index, flight in enumerate(flights):
+
+            x, _, z = flight
+
+            # Update mx and min values to set the limits of the plot
+            maxX = max(maxX, max(x))
+            maxZ = max(maxZ, max(z))
+            maxXY = max(maxXY, max(max(x), max(z)))
+            minX = min(minX, min(x))
+            minZ = min(minZ, min(z))
+            minXY = min(minXY, min(min(x), min(z)))
+
+            # Add Trajectory as a plot in main figure
+            ax.plot(x, z, linewidth="2", label=names_list[index])
+
+        # Plot settings
+        ax.scatter(0, 0, color="black", s=10, marker="o")
+        ax.set_xlabel("X - East (m)")
+        ax.set_ylabel("Z - Up (m)")
+        ax.set_ylim([minXY, maxXY])
+        ax.set_xlim([minXY, maxXY])
+
+        # Add legend
+        if legend:
+            fig.legend()
+
+        fig.tight_layout()
+
+        # Save figure
+        if filename:
+            plt.savefig(filename)
+        else:
+            plt.show()
+
+        return None
+
+    def __plot_yz(
+        self, flights, names_list, figsize=(7, 7), legend=None, filename=None
+    ):
+        """Creates a 2D trajectory plot in the Y-Z plane that is the combination
+        of the trajectories of the Flight objects passed via a Python list.
+
+        Parameters
+        ----------
+        legend : boolean, optional
+            Whether legend will or will not be included. Default is True
+        filename : string, optional
+            If a string is passed, the figure will be saved in the path passed.
+            The image format options are: .png, .jpg, .jpeg, .tiff, .bmp, .pdf,
+            .svg, .pgf, .eps
+        figsize : tuple, optional
+            Tuple with the size of the figure. The default is (7, 7).
+
+        Returns
+        -------
+        None
+        """
+
+        # Create the figure
+        fig = plt.figure(figsize=figsize)
+        fig.suptitle("Flight Trajectories Comparison", fontsize=16, y=0.95, x=0.5)
+        ax = plt.subplot(111)
+
+        # Initialize variables to set the limits of the plot
+        maxY = maxZ = maxXY = -np.inf
+        minY = minZ = minXY = np.inf
+
+        # Iterate through trajectories
+        for index, flight in enumerate(flights):
+
+            _, y, z = flight
+
+            # Update mx and min values to set the limits of the plot
+            maxY = max(maxY, max(y))
+            maxZ = max(maxZ, max(z))
+            maxXY = max(maxXY, max(max(y), max(z)))
+            minY = min(minY, min(y))
+            minZ = min(minZ, min(z))
+            minXY = min(minXY, min(min(y), min(z)))
+
+            # Add Trajectory as a plot in main figure
+            ax.plot(y, z, linewidth="2", label=names_list[index])
+
+        # Plot settings
+        ax.scatter(0, 0, color="black", s=10, marker="o")
+        ax.set_xlabel("Y - North (m)")
+        ax.set_ylabel("Z - Up (m)")
+        ax.set_ylim([minXY, maxXY])
+        ax.set_xlim([minXY, maxXY])
+
+        # Add legend
+        if legend:
+            fig.legend()
+
+        fig.tight_layout()
+
+        # Save figure
+        if filename:
+            plt.savefig(filename)
+        else:
+            plt.show()
 
         return None
 
@@ -1397,21 +1634,5 @@ class CompareFlights(Compare):
         self.fluid_mechanics()
 
         self.attitude_frequency()
-
-        return None
-
-    def report(self, filename=None):
-        """Creates a report with all the information about the flight.
-        Parameters
-        ----------
-        filename : str, optional
-            The name of the file to be saved. The default is None. The file
-            format supported are: .pdf.
-
-        Returns
-        -------
-        None
-        """
-        print("Still not implemented yet!")
 
         return None
