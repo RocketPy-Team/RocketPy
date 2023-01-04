@@ -18,8 +18,8 @@ import numpy.ma as ma
 import pytz
 import requests
 
-from .prints.environment_prints import _EnvironmentPrints
 from .plots.environment_plots import _EnvironmentPlots
+from .prints.environment_prints import _EnvironmentPrints
 
 try:
     import netCDF4
@@ -3042,8 +3042,6 @@ class Environment:
         """
 
         self.prints.all()
-
-        # Plot graphs
         self.plots.all()
 
         return None

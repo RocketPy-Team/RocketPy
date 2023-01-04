@@ -13,5 +13,6 @@ Welcome to RocketPy's user documentation!
    ../notebooks/environment_analysis_EuroC_example.ipynb
    ../notebooks/dispersion_analysis/dispersion_analysis.ipynb
    ../notebooks/utilities_usage.ipynb
+   ../notebooks/compare_flights_usage.ipynb
    ../matlab/matlab.rst
 

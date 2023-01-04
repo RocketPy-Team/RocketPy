@@ -2313,8 +2313,8 @@ class Flight:
             angular acceleration in z direction
         """
         # Initialize acceleration arrays
-        ax, ay, az = [], [], []
-        alpha1, alpha2, alpha3 = [], [], []
+        ax, ay, az = [[0, 0]], [[0, 0]], [[0, 0]]
+        alpha1, alpha2, alpha3 = [[0, 0]], [[0, 0]], [[0, 0]]
         # Go through each time step and calculate accelerations
         # Get flight phases
         for phase_index, phase in self.timeIterator(self.flightPhases):
