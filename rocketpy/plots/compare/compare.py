@@ -62,18 +62,18 @@ class Compare:
 
         Parameters
         ----------
-        y_attributes : list
-            The attributes of the class to be plotted as the vertical coordinates
-            of the data points. The attributes must be a list of strings. Each string
-            must be a valid attribute of the object's class, i.e., should point to a
-            attribute of the object's class that is a Function object or a numpy array.
-            For example ["x", "y", "z"].
         x_attributes : list
             The attributes of the class to be plotted as the horizontal coordinates
             of the data points. The attributes must be a list of strings. Each string
             must be a valid attribute of the object's class, i.e., should point to a
             attribute of the object's class that is a Function object or a numpy array.
             For example ["time", "time", "time"].
+        y_attributes : list
+            The attributes of the class to be plotted as the vertical coordinates
+            of the data points. The attributes must be a list of strings. Each string
+            must be a valid attribute of the object's class, i.e., should point to a
+            attribute of the object's class that is a Function object or a numpy array.
+            For example ["x", "y", "z"].
         n_rows : int
             The number of rows of the figure.
         n_cols : int
