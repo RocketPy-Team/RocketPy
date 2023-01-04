@@ -13,6 +13,7 @@ from rocketpy import EnvironmentAnalysis
 plt.rcParams.update({"figure.max_open_warning": 0})
 
 
+@pytest.mark.slow
 def test_allInfo(env_analysis):
     """Test the EnvironmentAnalysis.allInfo() method, which already invokes
     several other methods. It is a good way to test the whole class in a first view.
@@ -30,6 +31,7 @@ def test_allInfo(env_analysis):
     assert env_analysis.allInfo() == None
 
 
+@pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_distribution_plots(mock_show, env_analysis):
     """Tests the distribution plots method of the EnvironmentAnalysis class. It
@@ -57,6 +59,7 @@ def test_distribution_plots(mock_show, env_analysis):
     )
 
 
+@pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_average_plots(mock_show, env_analysis):
     """Tests the average plots method of the EnvironmentAnalysis class. It
@@ -85,6 +88,7 @@ def test_average_plots(mock_show, env_analysis):
     assert env_analysis.plot_average_day_wind_rose_specific_hour(12) == None
 
 
+@pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_profile_plots(mock_show, env_analysis):
     """Check the profile plots method of the EnvironmentAnalysis class. It
@@ -116,6 +120,7 @@ def test_profile_plots(mock_show, env_analysis):
     assert env_analysis.plot_wind_profile_over_average_day() == None
 
 
+@pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_animation_plots(mock_show, env_analysis):
     """Check the animation plots method of the EnvironmentAnalysis class. It
@@ -146,6 +151,7 @@ def test_animation_plots(mock_show, env_analysis):
     )
 
 
+@pytest.mark.slow
 def test_exports(env_analysis):
     """Check the export methods of the EnvironmentAnalysis class. It
     only checks if the method runs without errors. It does not check if the
