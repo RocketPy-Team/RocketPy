@@ -132,7 +132,9 @@ class _RocketPlots:
         return None
 
     def all(self):
-        """Prints out all graphs available about the Rocket.
+        """Prints out all graphs available about the Rocket. It simply calls
+        all the other plotter methods in this class.
+
         Parameters
         ----------
         None
@@ -143,12 +145,12 @@ class _RocketPlots:
 
         # Show plots
         print("\nMass Plots")
-        self.rocket.totalMass()
-        self.rocket.reducedMass()
+        self.totalMass()
+        self.reducedMass()
         print("\nAerodynamics Plots")
-        self.rocket.staticMargin()
-        self.rocket.powerOnDrag()
-        self.rocket.powerOffDrag()
-        self.rocket.thrustToWeight.plot(lower=0, upper=self.rocket.motor.burnOutTime)
+        self.staticMargin()
+        self.powerOnDrag()
+        self.powerOffDrag()
+        self.thrustToWeight()
 
         return None
