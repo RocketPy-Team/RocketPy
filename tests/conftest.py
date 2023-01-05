@@ -1,7 +1,9 @@
-import pytest
-from rocketpy import SolidMotor
-from rocketpy import Rocket
+import datetime
+
 import numericalunits
+import pytest
+
+from rocketpy import Environment, Rocket, SolidMotor
 
 
 def pytest_addoption(parser):
@@ -100,3 +102,25 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         if "slow" in item.keywords:
             item.add_marker(skip_slow)
+
+
+@pytest.fixture
+def example_env():
+    Env = Environment(railLength=5, datum="WGS84")
+    return Env
+
+
+@pytest.fixture
+def example_env_robust():
+    Env = Environment(
+        railLength=5,
+        latitude=32.990254,
+        longitude=-106.974998,
+        elevation=1400,
+        datum="WGS84",
+    )
+    tomorrow = datetime.date.today() + datetime.timedelta(days=1)
+    Env.setDate(
+        (tomorrow.year, tomorrow.month, tomorrow.day, 12)
+    )  # Hour given in UT/C time
+    return Env
