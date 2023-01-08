@@ -58,7 +58,7 @@ chord (:math:`Cr`) and the span (:math:`S`), as can be seen in Figure
 calculated, which are then used in the computations for the center of pressure
 and roll coefficients.
 
-.. image:: ../static/elliptical_fins/elliptical_fin.svg
+.. image:: ../../static/elliptical_fins/elliptical_fin.svg
    :align: center
    :width: 400
    :name: fig:elliptical

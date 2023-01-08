@@ -65,38 +65,38 @@ transformation is given by:
 
 .. math::
 
-   \begin{matrix}
+   \begin{bmatrix}
    {\overrightarrow{b}}_{1} \\
    {\overrightarrow{b}}_{2} \\
    {\overrightarrow{b}}_{3} \\
-   \end{matrix} = \begin{matrix}
+   \end{bmatrix} = \begin{bmatrix}
    e_{0}^{2} + e_{1}^{2} - e_{2}^{2} - e_{3}^{2} & 2\Bigl( e_{1}e_{2} + e_{0}e_{3} \Bigr) & 2(e_{1}e_{3} - e_{0}e_{2}) \\
    2\Bigl( e_{1}e_{2} - e_{0}e_{3} \Bigr) & e_{0}^{2} - e_{1}^{2} + e_{2}^{2} - e_{3}^{2} & 2\Bigl( e_{2}e_{3} + e_{0}e_{1} \Bigr) \\
    2(e_{1}e_{3} + e_{0}e_{2}) & 2\Bigl( e_{2}e_{3} - e_{0}e_{1} \Bigr) & e_{0}^{2} - e_{1}^{2} - e_{2}^{2} + e_{3}^{2} \\
-   \end{matrix}\begin{matrix}
+   \end{bmatrix}\begin{bmatrix}
    {\overrightarrow{a}}_{1} \\
    {\overrightarrow{a}}_{2} \\
    {\overrightarrow{a}}_{3} \\
-   \end{matrix}
+   \end{bmatrix}
 
 The reverse transformation is found by inverting the rotation matrix,
 which is the same as transposing it:
 
 .. math::
 
-   \begin{matrix}
+   \begin{bmatrix}
    {\overrightarrow{a}}_{1} \\
    {\overrightarrow{a}}_{2} \\
    {\overrightarrow{a}}_{3} \\
-   \end{matrix} = \begin{matrix}
+   \end{bmatrix} = \begin{bmatrix}
    e_{0}^{2} + e_{1}^{2} - e_{2}^{2} - e_{3}^{2} & 2\Bigl( e_{1}e_{2} - e_{0}e_{3} \Bigr) & 2(e_{1}e_{3} + e_{0}e_{2}) \\
    2\Bigl( e_{1}e_{2} + e_{0}e_{3} \Bigr) & e_{0}^{2} - e_{1}^{2} + e_{2}^{2} - e_{3}^{2} & 2\Bigl( e_{2}e_{3} - e_{0}e_{1} \Bigr) \\
    2(e_{1}e_{3} - e_{0}e_{2}) & 2\Bigl( e_{2}e_{3} + e_{0}e_{1} \Bigr) & e_{0}^{2} - e_{1}^{2} - e_{2}^{2} + e_{3}^{2} \\
-   \end{matrix}\begin{matrix}
+   \end{bmatrix}\begin{bmatrix}
    {\overrightarrow{b}}_{1} \\
    {\overrightarrow{b}}_{2} \\
    {\overrightarrow{b}}_{3} \\
-   \end{matrix}
+   \end{bmatrix}
 
 Therefore, point O’s velocity relative to :math:`A` expressed in
 :math:`B` is given by:
@@ -116,30 +116,23 @@ given in terms of Euler parameters and their derivatives:
 
 .. math::
 
-   \begin{matrix}
+   \begin{bmatrix}
    \omega_{1} \\
-   \begin{matrix}
    \omega_{2} \\
    \omega_{3} \\
-   \end{matrix} \\
-   \end{matrix} = 2\begin{matrix}
-    - e_{1} & e_{0} & \begin{matrix}
+   \end{bmatrix} = 2\begin{bmatrix}
+    - e_{1} & e_{0} &
    e_{3} & {- e}_{2} \\
-   \end{matrix} \\
-   {- e}_{2} & {- e}_{3} & \begin{matrix}
+   {- e}_{2} & {- e}_{3} &
    e_{0} & e_{1} \\
-   \end{matrix} \\
-   {- e}_{3} & e_{2} & \begin{matrix}
+   {- e}_{3} & e_{2} &
     - e_{1} & e_{0} \\
-   \end{matrix} \\
-   \end{matrix}\begin{matrix}
+   \end{bmatrix}\begin{bmatrix}
    {\dot{e}}_{0} \\
    {\dot{e}}_{1} \\
-   \begin{matrix}
    {\dot{e}}_{2} \\
    {\dot{e}}_{3} \\
-   \end{matrix} \\
-   \end{matrix}
+   \end{bmatrix}
 
 Procedure to Derive the Equations of Motion
 ===========================================
@@ -310,46 +303,46 @@ have:
 Rearranging and writing sum over mass in integral from assuming a
 continuous system :math:`S`:
 
-.. math:: \sum_{}^{}{\Bigl( {\overrightarrow{r}}_{i - *} \times \overrightarrow{F_{i}} \Bigr) \cdot {\overrightarrow{b}}_{1}} = \iiint_{S}^{\ }{\Bigl( {\overrightarrow{r}}_{i - *} \times {\overrightarrow{a}}_{i} \Bigr) \cdot {\overrightarrow{b}}_{1}\text{\ dm}}
+.. math:: \sum_{}^{}{\Bigl( {\overrightarrow{r}}_{i - *} \times \overrightarrow{F_{i}} \Bigr) \cdot {\overrightarrow{b}}_{1}} = \iiint_{S}^{\ }{\Bigl( {\overrightarrow{r}}_{i - *} \times {\overrightarrow{a}}_{i} \Bigr) \cdot {\overrightarrow{b}}_{1}\text{dm}}
 
-.. math:: \sum_{}^{}{\Bigl( {\overrightarrow{r}}_{i - *} \times \overrightarrow{F_{i}} \Bigr) \cdot {\overrightarrow{b}}_{2}} = \iiint_{S}^{\ }{\Bigl( {\overrightarrow{r}}_{i - *} \times {\overrightarrow{a}}_{i} \Bigr) \cdot {\overrightarrow{b}}_{2}\text{\ dm}}
+.. math:: \sum_{}^{}{\Bigl( {\overrightarrow{r}}_{i - *} \times \overrightarrow{F_{i}} \Bigr) \cdot {\overrightarrow{b}}_{2}} = \iiint_{S}^{\ }{\Bigl( {\overrightarrow{r}}_{i - *} \times {\overrightarrow{a}}_{i} \Bigr) \cdot {\overrightarrow{b}}_{2}\text{dm}}
 
-.. math:: \sum_{}^{}{\Bigl( {\overrightarrow{r}}_{i - *} \times \overrightarrow{F_{i}} \Bigr) \cdot {\overrightarrow{b}}_{3}} = \iiint_{S}^{\ }{\Bigl( {\overrightarrow{r}}_{i - *} \times {\overrightarrow{a}}_{i} \Bigr) \cdot {\overrightarrow{b}}_{3}\text{\ dm}}
+.. math:: \sum_{}^{}{\Bigl( {\overrightarrow{r}}_{i - *} \times \overrightarrow{F_{i}} \Bigr) \cdot {\overrightarrow{b}}_{3}} = \iiint_{S}^{\ }{\Bigl( {\overrightarrow{r}}_{i - *} \times {\overrightarrow{a}}_{i} \Bigr) \cdot {\overrightarrow{b}}_{3}\text{dm}}
 
-.. math:: \sum_{}^{}{{\overrightarrow{b}}_{1} \cdot \overrightarrow{F_{i}}} = \iiint_{S}^{\ }{{\overrightarrow{a}}_{i} \cdot {\overrightarrow{b}}_{1}\text{\ dm}}
+.. math:: \sum_{}^{}{{\overrightarrow{b}}_{1} \cdot \overrightarrow{F_{i}}} = \iiint_{S}^{\ }{{\overrightarrow{a}}_{i} \cdot {\overrightarrow{b}}_{1}\text{dm}}
 
-.. math:: \sum_{}^{}{{\overrightarrow{b}}_{2} \cdot \overrightarrow{F_{i}}} = \iiint_{S}^{\ }{{\overrightarrow{a}}_{i} \cdot {\overrightarrow{b}}_{2}\text{\ dm}}
+.. math:: \sum_{}^{}{{\overrightarrow{b}}_{2} \cdot \overrightarrow{F_{i}}} = \iiint_{S}^{\ }{{\overrightarrow{a}}_{i} \cdot {\overrightarrow{b}}_{2}\text{dm}}
 
-.. math:: \sum_{}^{}{{\overrightarrow{b}}_{3} \cdot \overrightarrow{F_{i}}} = \iiint_{S}^{\ }{{\overrightarrow{a}}_{i} \cdot {\overrightarrow{b}}_{3}\text{\ dm}}
+.. math:: \sum_{}^{}{{\overrightarrow{b}}_{3} \cdot \overrightarrow{F_{i}}} = \iiint_{S}^{\ }{{\overrightarrow{a}}_{i} \cdot {\overrightarrow{b}}_{3}\text{dm}}
 
 Writing :math:`\sum_{}^{}\overrightarrow{F_{i}} = \overrightarrow{R}`
 and
 :math:`\sum_{}^{}\Bigl( {\overrightarrow{r}}_{i - *} \times \overrightarrow{F_{i}} \Bigr) = {\overrightarrow{M}}_{*}`,
 it simplifies to:
 
-.. math:: {\overrightarrow{M}}_{*} \cdot {\overrightarrow{b}}_{1} = \iiint_{S}^{\ }{\Bigl( {\overrightarrow{r}}_{i - *} \times {\overrightarrow{a}}_{i} \Bigr) \cdot {\overrightarrow{b}}_{1}\text{\ dm}}
+.. math:: {\overrightarrow{M}}_{*} \cdot {\overrightarrow{b}}_{1} = \iiint_{S}^{\ }{\Bigl( {\overrightarrow{r}}_{i - *} \times {\overrightarrow{a}}_{i} \Bigr) \cdot {\overrightarrow{b}}_{1}\text{dm}}
 
-.. math:: {\overrightarrow{M}}_{*} \cdot {\overrightarrow{b}}_{2} = \iiint_{S}^{\ }{\Bigl( {\overrightarrow{r}}_{i - *} \times {\overrightarrow{a}}_{i} \Bigr) \cdot {\overrightarrow{b}}_{2}\text{\ dm}}
+.. math:: {\overrightarrow{M}}_{*} \cdot {\overrightarrow{b}}_{2} = \iiint_{S}^{\ }{\Bigl( {\overrightarrow{r}}_{i - *} \times {\overrightarrow{a}}_{i} \Bigr) \cdot {\overrightarrow{b}}_{2}\text{dm}}
 
-.. math:: {\overrightarrow{M}}_{*} \cdot {\overrightarrow{b}}_{3} = \iiint_{S}^{\ }{\Bigl( {\overrightarrow{r}}_{i - *} \times {\overrightarrow{a}}_{i} \Bigr) \cdot {\overrightarrow{b}}_{3}\text{\ dm}}
+.. math:: {\overrightarrow{M}}_{*} \cdot {\overrightarrow{b}}_{3} = \iiint_{S}^{\ }{\Bigl( {\overrightarrow{r}}_{i - *} \times {\overrightarrow{a}}_{i} \Bigr) \cdot {\overrightarrow{b}}_{3}\text{dm}}
 
-.. math:: \overrightarrow{R} \cdot {\overrightarrow{b}}_{1} = \iiint_{S}^{\ }{{\overrightarrow{a}}_{i} \cdot {\overrightarrow{b}}_{1}\text{\ dm}}
+.. math:: \overrightarrow{R} \cdot {\overrightarrow{b}}_{1} = \iiint_{S}^{\ }{{\overrightarrow{a}}_{i} \cdot {\overrightarrow{b}}_{1}\text{dm}}
 
-.. math:: \overrightarrow{R} \cdot {\overrightarrow{b}}_{2} = \iiint_{S}^{\ }{{\overrightarrow{a}}_{i} \cdot {\overrightarrow{b}}_{2}\text{\ dm}}
+.. math:: \overrightarrow{R} \cdot {\overrightarrow{b}}_{2} = \iiint_{S}^{\ }{{\overrightarrow{a}}_{i} \cdot {\overrightarrow{b}}_{2}\text{dm}}
 
-.. math:: \overrightarrow{R} \cdot {\overrightarrow{b}}_{3} = \iiint_{S}^{\ }{{\overrightarrow{a}}_{i} \cdot {\overrightarrow{b}}_{3}\text{\ dm}}
+.. math:: \overrightarrow{R} \cdot {\overrightarrow{b}}_{3} = \iiint_{S}^{\ }{{\overrightarrow{a}}_{i} \cdot {\overrightarrow{b}}_{3}\text{dm}}
 
 This can be written in a considerably reduced form as:
 
-.. math:: \overrightarrow{R} = \int_{S}^{\ }{{\overrightarrow{a}}_{i}\text{\ dm}}
+.. math:: \overrightarrow{R} = \int_{S}^{\ }{{\overrightarrow{a}}_{i}\text{dm}}
 
-.. math:: {\overrightarrow{M}}_{*} = \int_{S}^{\ }{{\overrightarrow{r}}_{i - *} \times {\overrightarrow{a}}_{i}\text{\ dm}}
+.. math:: {\overrightarrow{M}}_{*} = \int_{S}^{\ }{{\overrightarrow{r}}_{i - *} \times {\overrightarrow{a}}_{i}\text{dm}}
 
 Now, expanding the integral we have:
 
-.. math:: \overrightarrow{R} = \int_{S}^{\ }{_{\ }^{A}{\overrightarrow{a}}_{*} +_{\ }^{A}\overrightarrow{\alpha} \times {\overrightarrow{r}}_{i - *} +_{\ }^{A}\overrightarrow{\omega} \times \Bigl(_{\ }^{A}\overrightarrow{\omega} \times {\overrightarrow{r}}_{i - *} \Bigr) + 2_{\ }^{A}\overrightarrow{\omega} \times (_{\ }^{R}{\overrightarrow{v}}_{i} -_{\ }^{R}{\overrightarrow{v}}_{*}) + (_{\ }^{R}{\overrightarrow{a}}_{i} -_{\ }^{R}{\overrightarrow{a}}_{*})\text{\ dm}}
+.. math:: \overrightarrow{R} = \int_{S}^{\ }{_{\ }^{A}{\overrightarrow{a}}_{*} +_{\ }^{A}\overrightarrow{\alpha} \times {\overrightarrow{r}}_{i - *} +_{\ }^{A}\overrightarrow{\omega} \times \Bigl(_{\ }^{A}\overrightarrow{\omega} \times {\overrightarrow{r}}_{i - *} \Bigr) + 2_{\ }^{A}\overrightarrow{\omega} \times (_{\ }^{R}{\overrightarrow{v}}_{i} -_{\ }^{R}{\overrightarrow{v}}_{*}) + (_{\ }^{R}{\overrightarrow{a}}_{i} -_{\ }^{R}{\overrightarrow{a}}_{*})\text{dm}}
 
-.. math:: {\overrightarrow{M}}_{*} = \int_{S}^{\ }{{\overrightarrow{r}}_{i - *} \times \Bigl(_{\ }^{A}{\overrightarrow{a}}_{*} +_{\ }^{A}\overrightarrow{\alpha} \times {\overrightarrow{r}}_{i - *} +_{\ }^{A}\overrightarrow{\omega} \times \Bigl(_{\ }^{A}\overrightarrow{\omega} \times {\overrightarrow{r}}_{i - *} \Bigr) + 2_{\ }^{A}\overrightarrow{\omega} \times (_{\ }^{R}{\overrightarrow{v}}_{i} -_{\ }^{R}{\overrightarrow{v}}_{*}) + (_{\ }^{R}{\overrightarrow{a}}_{i} -_{\ }^{R}{\overrightarrow{a}}_{*}) \Bigr)\text{\ dm}}
+.. math:: {\overrightarrow{M}}_{*} = \int_{S}^{\ }{{\overrightarrow{r}}_{i - *} \times \Bigl(_{\ }^{A}{\overrightarrow{a}}_{*} +_{\ }^{A}\overrightarrow{\alpha} \times {\overrightarrow{r}}_{i - *} +_{\ }^{A}\overrightarrow{\omega} \times \Bigl(_{\ }^{A}\overrightarrow{\omega} \times {\overrightarrow{r}}_{i - *} \Bigr) + 2_{\ }^{A}\overrightarrow{\omega} \times (_{\ }^{R}{\overrightarrow{v}}_{i} -_{\ }^{R}{\overrightarrow{v}}_{*}) + (_{\ }^{R}{\overrightarrow{a}}_{i} -_{\ }^{R}{\overrightarrow{a}}_{*}) \Bigr)\text{dm}}
 
 Which after straight forward simplifications and remembering that
 :math:`\iiint_{S}^{\ }{{\overrightarrow{r}}_{i - *}\text{dm}} = 0`
@@ -357,13 +350,13 @@ becomes:
 
 .. math:: \overrightarrow{R} = m_{\ }^{A}{\overrightarrow{a}}_{*} \Rightarrow \overrightarrow{R} = m\Bigl(_{\ }^{A}{\overrightarrow{a}}_{O} +_{\ }^{A}\overrightarrow{\alpha} \times {\overrightarrow{r}}_{* - O} +_{\ }^{A}\overrightarrow{\omega} \times \Bigl(_{\ }^{A}\overrightarrow{\omega} \times {\overrightarrow{r}}_{* - O} \Bigr) + 2_{\ }^{A}\overrightarrow{\omega} \times_{\ }^{R}{\overrightarrow{v}}_{*} +_{\ }^{R}{\overrightarrow{a}}_{*} \Bigr)
 
-.. math:: {\overrightarrow{M}}_{*} = \int_{S}^{\ }{{\overrightarrow{r}}_{i - *} \times (_{\ }^{A}\overrightarrow{\alpha} \times {\overrightarrow{r}}_{i - *}) + {\overrightarrow{r}}_{i - *} \times (_{\ }^{A}\overrightarrow{\omega} \times \Bigl(_{\ }^{A}\overrightarrow{\omega} \times {\overrightarrow{r}}_{i - *} \Bigr)) + {\overrightarrow{r}}_{i - *} \times (2_{\ }^{A}\overrightarrow{\omega} \times \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} -_{\ }^{R}{\overrightarrow{v}}_{*} \Bigr)) + {\overrightarrow{r}}_{i - *} \times \Bigl(_{\ }^{R}{\overrightarrow{a}}_{i} -_{\ }^{R}{\overrightarrow{a}}_{*} \Bigr)\text{\ dm}}
+.. math:: {\overrightarrow{M}}_{*} = \int_{S}^{\ }{{\overrightarrow{r}}_{i - *} \times (_{\ }^{A}\overrightarrow{\alpha} \times {\overrightarrow{r}}_{i - *}) + {\overrightarrow{r}}_{i - *} \times (_{\ }^{A}\overrightarrow{\omega} \times \Bigl(_{\ }^{A}\overrightarrow{\omega} \times {\overrightarrow{r}}_{i - *} \Bigr)) + {\overrightarrow{r}}_{i - *} \times (2_{\ }^{A}\overrightarrow{\omega} \times \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} -_{\ }^{R}{\overrightarrow{v}}_{*} \Bigr)) + {\overrightarrow{r}}_{i - *} \times \Bigl(_{\ }^{R}{\overrightarrow{a}}_{i} -_{\ }^{R}{\overrightarrow{a}}_{*} \Bigr)\text{dm}}
 
 Knowing that:
 
-.. math:: \int_{S}^{\ }{{\overrightarrow{r}}_{i - *} \times \Bigl(_{\ }^{A}\overrightarrow{\alpha} \times {\overrightarrow{r}}_{i - *} \Bigr)\ dm =}\int_{S}^{\ }{_{\ }^{A}\overrightarrow{\alpha} \cdot ({\overrightarrow{r}}_{i - *}^{2}\widetilde{U} - {\overrightarrow{r}}_{i - *}{\overrightarrow{r}}_{i - *})\ dm} = {\widetilde{I}}_{*} \cdot_{\ }^{A}\overrightarrow{\alpha}
+.. math:: \int_{S}^{\ }{{\overrightarrow{r}}_{i - *} \times \Bigl(_{\ }^{A}\overrightarrow{\alpha} \times {\overrightarrow{r}}_{i - *} \Bigr)dm =}\int_{S}^{\ }{_{\ }^{A}\overrightarrow{\alpha} \cdot ({\overrightarrow{r}}_{i - *}^{2}\widetilde{U} - {\overrightarrow{r}}_{i - *}{\overrightarrow{r}}_{i - *})dm} = {\widetilde{I}}_{*} \cdot_{\ }^{A}\overrightarrow{\alpha}
 
-.. math:: \int_{S}^{\ }{{\overrightarrow{r}}_{i - *} \times (_{\ }^{A}\overrightarrow{\omega} \times \Bigl(_{\ }^{A}\overrightarrow{\omega} \times {\overrightarrow{r}}_{i - *} \Bigr))\ dm =}\int_{S}^{\ }{_{\ }^{A}\overrightarrow{\omega} \times ({\overrightarrow{r}}_{i - *} \times \Bigl(_{\ }^{A}\overrightarrow{\omega} \times {\overrightarrow{r}}_{i - *} \Bigr))\ dm =}_{\ }^{A}\overrightarrow{\omega}\  \times \ {\widetilde{I}}_{*} \cdot_{\ }^{A}\overrightarrow{\omega}
+.. math:: \int_{S}^{\ }{{\overrightarrow{r}}_{i - *} \times (_{\ }^{A}\overrightarrow{\omega} \times \Bigl(_{\ }^{A}\overrightarrow{\omega} \times {\overrightarrow{r}}_{i - *} \Bigr))dm =}\int_{S}^{\ }{_{\ }^{A}\overrightarrow{\omega} \times ({\overrightarrow{r}}_{i - *} \times \Bigl(_{\ }^{A}\overrightarrow{\omega} \times {\overrightarrow{r}}_{i - *} \Bigr))dm =}_{\ }^{A}\overrightarrow{\omega}\  \times \ {\widetilde{I}}_{*} \cdot_{\ }^{A}\overrightarrow{\omega}
 
 Where :math:`\widetilde{U}` is the identity dyadic and
 :math:`{\widetilde{I}}_{*}` is the central inertia dyadic, we can
@@ -371,7 +364,7 @@ simplify the equations to:
 
 .. math:: \boxed{\overrightarrow{R} = m\Bigl(_{\ }^{A}{\overrightarrow{a}}_{O} +_{\ }^{A}\overrightarrow{\alpha} \times {\overrightarrow{r}}_{* - O} +_{\ }^{A}\overrightarrow{\omega} \times \Bigl(_{\ }^{A}\overrightarrow{\omega} \times {\overrightarrow{r}}_{* - O} \Bigr) + 2_{\ }^{A}\overrightarrow{\omega} \times_{\ }^{R}{\overrightarrow{v}}_{*} +_{\ }^{R}{\overrightarrow{a}}_{*} \Bigr)}
 
-.. math:: \boxed{{\overrightarrow{M}}_{*} = {\widetilde{I}}_{*} \cdot_{\ }^{A}\overrightarrow{\alpha} +_{\ }^{A}\overrightarrow{\omega}\  \times \ {\widetilde{I}}_{*} \cdot_{\ }^{A}\overrightarrow{\omega} + 2\int_{S}^{\ }{{\overrightarrow{r}}_{i - *} \times \Bigl( 2_{\ }^{A}\overrightarrow{\omega} \times_{\ }^{R}{\overrightarrow{v}}_{i} \Bigr)\text{\ dm}} + \int_{S}^{\ }{{\overrightarrow{r}}_{i - *} \times_{\ }^{R}{\overrightarrow{a}}_{i}\text{\ dm}}}
+.. math:: \boxed{{\overrightarrow{M}}_{*} = {\widetilde{I}}_{*} \cdot_{\ }^{A}\overrightarrow{\alpha} +_{\ }^{A}\overrightarrow{\omega}\  \times \ {\widetilde{I}}_{*} \cdot_{\ }^{A}\overrightarrow{\omega} + 2\int_{S}^{\ }{{\overrightarrow{r}}_{i - *} \times \Bigl( 2_{\ }^{A}\overrightarrow{\omega} \times_{\ }^{R}{\overrightarrow{v}}_{i} \Bigr)\text{dm}} + \int_{S}^{\ }{{\overrightarrow{r}}_{i - *} \times_{\ }^{R}{\overrightarrow{a}}_{i}\text{dm}}}
 
 Notice that when :math:`_{\ }^{R}{\overrightarrow{v}}_{i}` and
 :math:`_{\ }^{R}{\overrightarrow{a}}_{i}` equals zero for every particle
@@ -395,18 +388,18 @@ Let’s first work with the following equation:
 
 Knowing that:
 
-.. math:: m_{\ }^{R}{\overrightarrow{v}}_{*} = \int_{S}^{\ }{_{\ }^{R}{\overrightarrow{v}}_{i}\text{\ dm\ }} = \frac{d}{\text{dt}}\int_{S}^{\ }{{\overrightarrow{r}}_{i - O}\text{\ dm\ }}\text{and\ }\text{\ m}_{\ }^{R}{\overrightarrow{a}}_{*} = \int_{S}^{\ }{_{\ }^{R}{\overrightarrow{a}}_{i}\text{\ dm}} = \frac{d}{\text{dt}}\int_{S}^{\ }{_{\ }^{R}{\overrightarrow{v}}_{i}\text{\ dm}}
+.. math:: m_{\ }^{R}{\overrightarrow{v}}_{*} = \int_{S}^{\ }{_{\ }^{R}{\overrightarrow{v}}_{i}\text{dm\ }} = \frac{d}{\text{dt}}\int_{S}^{\ }{{\overrightarrow{r}}_{i - O}\text{dm\ }}\text{and\ }\text{\ m}_{\ }^{R}{\overrightarrow{a}}_{*} = \int_{S}^{\ }{_{\ }^{R}{\overrightarrow{a}}_{i}\text{dm}} = \frac{d}{\text{dt}}\int_{S}^{\ }{_{\ }^{R}{\overrightarrow{v}}_{i}\text{dm}}
 
 We can rewrite the equation as:
 
-.. math:: \overrightarrow{R} = m\Bigl(_{\ }^{A}{\overrightarrow{a}}_{O} +_{\ }^{A}\overrightarrow{\alpha} \times {\overrightarrow{r}}_{* - O} +_{\ }^{A}\overrightarrow{\omega} \times \Bigl(_{\ }^{A}\overrightarrow{\omega} \times {\overrightarrow{r}}_{* - O} \Bigr) \Bigr) + 2_{\ }^{A}\overrightarrow{\omega} \times \frac{d}{\text{dt}}\int_{S}^{\ }{{\overrightarrow{r}}_{i - O}\text{\ dm\ }}\ \  + \frac{d}{\text{dt}}\int_{S}^{\ }{_{\ }^{R}{\overrightarrow{v}}_{i}\text{\ dm}}
+.. math:: \overrightarrow{R} = m\Bigl(_{\ }^{A}{\overrightarrow{a}}_{O} +_{\ }^{A}\overrightarrow{\alpha} \times {\overrightarrow{r}}_{* - O} +_{\ }^{A}\overrightarrow{\omega} \times \Bigl(_{\ }^{A}\overrightarrow{\omega} \times {\overrightarrow{r}}_{* - O} \Bigr) \Bigr) + 2_{\ }^{A}\overrightarrow{\omega} \times \frac{d}{\text{dt}}\int_{S}^{\ }{{\overrightarrow{r}}_{i - O}\text{dm\ }}\ \  + \frac{d}{\text{dt}}\int_{S}^{\ }{_{\ }^{R}{\overrightarrow{v}}_{i}\text{dm}}
 
 Studying the integrals in :math:`S` and using Reynolds Transport Theorem
 when convenient, we have:
 
-.. math:: \frac{d}{\text{dt}}\int_{S}^{\ }{{\overrightarrow{r}}_{i - O}\text{\ dm\ }} = \frac{d}{\text{dt}}\int_{S}^{\ }{\rho{\overrightarrow{r}}_{i - O}\text{\ dV\ }} = \frac{d}{\text{dt}}\int_{C}^{\ }{\rho{\overrightarrow{r}}_{i - O}\text{\ dV\ }} + \int_{\partial C}^{\ }{\rho{\overrightarrow{r}}_{i - O}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{\ dS\ }}
+.. math:: \frac{d}{\text{dt}}\int_{S}^{\ }{{\overrightarrow{r}}_{i - O}\text{dm\ }} = \frac{d}{\text{dt}}\int_{S}^{\ }{\rho{\overrightarrow{r}}_{i - O}\text{\ dV\ }} = \frac{d}{\text{dt}}\int_{C}^{\ }{\rho{\overrightarrow{r}}_{i - O}\text{\ dV\ }} + \int_{\partial C}^{\ }{\rho{\overrightarrow{r}}_{i - O}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{dS}}
 
-.. math:: \frac{d}{\text{dt}}\int_{S}^{\ }{_{\ }^{R}{\overrightarrow{v}}_{i}\text{\ dm}} = \frac{d}{\text{dt}}\int_{S}^{\ }{\rho_{\ }^{R}{\overrightarrow{v}}_{i}\text{\ dV}} = \frac{d}{\text{dt}}\int_{C}^{\ }{\rho_{\ }^{R}{\overrightarrow{v}}_{i}\text{\ dV}} + \int_{\partial C}^{\ }{\rho_{\ }^{R}{\overrightarrow{v}}_{i}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{dS}}
+.. math:: \frac{d}{\text{dt}}\int_{S}^{\ }{_{\ }^{R}{\overrightarrow{v}}_{i}\text{dm}} = \frac{d}{\text{dt}}\int_{S}^{\ }{\rho_{\ }^{R}{\overrightarrow{v}}_{i}\text{\ dV}} = \frac{d}{\text{dt}}\int_{C}^{\ }{\rho_{\ }^{R}{\overrightarrow{v}}_{i}\text{\ dV}} + \int_{\partial C}^{\ }{\rho_{\ }^{R}{\overrightarrow{v}}_{i}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{dS}}
 
 Where :math:`C` is a control volume which includes :math:`R`, :math:`T`
 and all the particles of the gas phase :math:`G` inside the rocket,
@@ -421,7 +414,7 @@ and in its surface :math:`\partial C`.
 
 We can rewrite the equation of motion as:
 
-.. math:: \overrightarrow{R} = m\Bigl(_{\ }^{A}{\overrightarrow{a}}_{O} +_{\ }^{A}\overrightarrow{\alpha} \times {\overrightarrow{r}}_{* - O} +_{\ }^{A}\overrightarrow{\omega} \times \Bigl(_{\ }^{A}\overrightarrow{\omega} \times {\overrightarrow{r}}_{* - O} \Bigr) \Bigr) + 2_{\ }^{A}\overrightarrow{\omega} \times \Bigl( \frac{d}{\text{dt}}\int_{C}^{\ }{\rho{\overrightarrow{r}}_{i - O}\text{\ dV\ }} + \int_{\partial C}^{\ }{\rho{\overrightarrow{r}}_{i - O}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{\ dS\ }} \Bigr) + \Bigl( \frac{d}{\text{dt}}\int_{C}^{\ }{\rho_{\ }^{R}{\overrightarrow{v}}_{i}\text{\ dV}} + \int_{\partial C}^{\ }{\rho_{\ }^{R}{\overrightarrow{v}}_{i}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{dS}} \Bigr)
+.. math:: \overrightarrow{R} = m\Bigl(_{\ }^{A}{\overrightarrow{a}}_{O} +_{\ }^{A}\overrightarrow{\alpha} \times {\overrightarrow{r}}_{* - O} +_{\ }^{A}\overrightarrow{\omega} \times \Bigl(_{\ }^{A}\overrightarrow{\omega} \times {\overrightarrow{r}}_{* - O} \Bigr) \Bigr) + 2_{\ }^{A}\overrightarrow{\omega} \times \Bigl( \frac{d}{\text{dt}}\int_{C}^{\ }{\rho{\overrightarrow{r}}_{i - O}\text{\ dV\ }} + \int_{\partial C}^{\ }{\rho{\overrightarrow{r}}_{i - O}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{dS}} \Bigr) + \Bigl( \frac{d}{\text{dt}}\int_{C}^{\ }{\rho_{\ }^{R}{\overrightarrow{v}}_{i}\text{\ dV}} + \int_{\partial C}^{\ }{\rho_{\ }^{R}{\overrightarrow{v}}_{i}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{dS}} \Bigr)
 
 This equation defines has no simplifications yet. However, calculating
 derivatives of volume integrals concerning position and velocity of gas
@@ -432,7 +425,7 @@ and their derivatives become null.
 
 With this assumption, the final form of the equation becomes:
 
-.. math:: \boxed{\overrightarrow{R} = m\Bigl(_{\ }^{A}{\overrightarrow{a}}_{O} +_{\ }^{A}\overrightarrow{\alpha} \times {\overrightarrow{r}}_{* - O} +_{\ }^{A}\overrightarrow{\omega} \times \Bigl(_{\ }^{A}\overrightarrow{\omega} \times {\overrightarrow{r}}_{* - O} \Bigr) \Bigr) + 2\int_{\partial C}^{\ }{_{\ }^{A}\overrightarrow{\omega} \times \rho{\overrightarrow{r}}_{i - O}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{\ dS\ }} + \int_{\partial C}^{\ }{\rho_{\ }^{R}{\overrightarrow{v}}_{i}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{dS}}}
+.. math:: \boxed{\overrightarrow{R} = m\Bigl(_{\ }^{A}{\overrightarrow{a}}_{O} +_{\ }^{A}\overrightarrow{\alpha} \times {\overrightarrow{r}}_{* - O} +_{\ }^{A}\overrightarrow{\omega} \times \Bigl(_{\ }^{A}\overrightarrow{\omega} \times {\overrightarrow{r}}_{* - O} \Bigr) \Bigr) + 2\int_{\partial C}^{\ }{_{\ }^{A}\overrightarrow{\omega} \times \rho{\overrightarrow{r}}_{i - O}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{dS}} + \int_{\partial C}^{\ }{\rho_{\ }^{R}{\overrightarrow{v}}_{i}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{dS}}}
 
 The first integral is generally referred to as the Coriolis term while
 the second integral represents thrust. Notice how if
@@ -443,7 +436,7 @@ simplifies to the classical equations of rigid body motion.
 Now we must deal with the following equation which describes rotational
 motion:
 
-.. math:: {\overrightarrow{M}}_{*} = {\widetilde{I}}_{*} \cdot_{\ }^{A}\overrightarrow{\alpha} +_{\ }^{A}\overrightarrow{\omega}\  \times \ {\widetilde{I}}_{*} \cdot_{\ }^{A}\overrightarrow{\omega} + 2\int_{S}^{\ }{{\overrightarrow{r}}_{i - *} \times \Bigl( 2_{\ }^{A}\overrightarrow{\omega} \times_{\ }^{R}{\overrightarrow{v}}_{i} \Bigr)\text{\ dm}} + \int_{S}^{\ }{{\overrightarrow{r}}_{i - *} \times_{\ }^{R}{\overrightarrow{a}}_{i}\text{\ dm}}
+.. math:: {\overrightarrow{M}}_{*} = {\widetilde{I}}_{*} \cdot_{\ }^{A}\overrightarrow{\alpha} +_{\ }^{A}\overrightarrow{\omega}\  \times \ {\widetilde{I}}_{*} \cdot_{\ }^{A}\overrightarrow{\omega} + 2\int_{S}^{\ }{{\overrightarrow{r}}_{i - *} \times \Bigl( 2_{\ }^{A}\overrightarrow{\omega} \times_{\ }^{R}{\overrightarrow{v}}_{i} \Bigr)\text{dm}} + \int_{S}^{\ }{{\overrightarrow{r}}_{i - *} \times_{\ }^{R}{\overrightarrow{a}}_{i}\text{dm}}
 
 Similarly, both integrals in this equation can be expanded using
 Reynolds Transport Theorem. By using the simplification that the flow in
@@ -457,7 +450,7 @@ Preparing Equations for Simulation
 The following two equations have been derived to describe the complete
 motion of a variable mass system:
 
-.. math:: \overrightarrow{R} = m\Bigl(_{\ }^{A}{\overrightarrow{a}}_{O} +_{\ }^{A}\overrightarrow{\alpha} \times {\overrightarrow{r}}_{* - O} +_{\ }^{A}\overrightarrow{\omega} \times \Bigl(_{\ }^{A}\overrightarrow{\omega} \times {\overrightarrow{r}}_{* - O} \Bigr) \Bigr) + 2\int_{\partial C}^{\ }{_{\ }^{A}\overrightarrow{\omega} \times \rho{\overrightarrow{r}}_{i - O}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{\ dS\ }} + \int_{\partial C}^{\ }{\rho_{\ }^{R}{\overrightarrow{v}}_{i}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{dS}}
+.. math:: \overrightarrow{R} = m\Bigl(_{\ }^{A}{\overrightarrow{a}}_{O} +_{\ }^{A}\overrightarrow{\alpha} \times {\overrightarrow{r}}_{* - O} +_{\ }^{A}\overrightarrow{\omega} \times \Bigl(_{\ }^{A}\overrightarrow{\omega} \times {\overrightarrow{r}}_{* - O} \Bigr) \Bigr) + 2\int_{\partial C}^{\ }{_{\ }^{A}\overrightarrow{\omega} \times \rho{\overrightarrow{r}}_{i - O}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{dS}} + \int_{\partial C}^{\ }{\rho_{\ }^{R}{\overrightarrow{v}}_{i}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{dS}}
 
 .. math:: {\overrightarrow{M}}_{*} = {\widetilde{I}}_{*} \cdot_{\ }^{A}\overrightarrow{\alpha} +_{\ }^{A}\overrightarrow{\omega}\  \times \ {\widetilde{I}}_{*} \cdot_{\ }^{A}\overrightarrow{\omega} + \Bigl( \frac{_{\ }^{B}d{\widetilde{I}}_{*}}{\text{dt}} \Bigr) \cdot_{\ }^{A}\overrightarrow{\omega} + \int_{\partial C}^{\ }{\rho\left\lbrack {\overrightarrow{r}}_{i - *} \times \Bigl(_{\ }^{A}\overrightarrow{\omega} \times {\overrightarrow{r}}_{i - *} \Bigr) \right\rbrack\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{dS}}
 
@@ -489,11 +482,11 @@ we have:
 
 .. math::
 
-   {\widetilde{I}}_{R} = \begin{matrix}
+   {\widetilde{I}}_{R} = \begin{bmatrix}
    R_{x} & 0 & 0 \\
    0 & R_{y} & 0 \\
    0 & 0 & R_{z} \\
-   \end{matrix}
+   \end{bmatrix}
 
 Notice how :math:`{\overrightarrow{b}}_{1}`,
 :math:`{\overrightarrow{b}}_{2}` and :math:`{\overrightarrow{b}}_{3}`
@@ -510,22 +503,22 @@ For most rockets, we have that :math:`R_{x} = R_{y} = R_{I}`, therefore:
 
 .. math::
 
-   {\widetilde{I}}_{R} = R_{I}\Bigl( {\overrightarrow{b}}_{1}{\overrightarrow{b}}_{1} + {\overrightarrow{b}}_{2}{\overrightarrow{b}}_{2} \Bigr) + R_{z}\Bigl( {\overrightarrow{b}}_{3}{\overrightarrow{b}}_{3} \Bigr) = \begin{matrix}
+   {\widetilde{I}}_{R} = R_{I}\Bigl( {\overrightarrow{b}}_{1}{\overrightarrow{b}}_{1} + {\overrightarrow{b}}_{2}{\overrightarrow{b}}_{2} \Bigr) + R_{z}\Bigl( {\overrightarrow{b}}_{3}{\overrightarrow{b}}_{3} \Bigr) = \begin{bmatrix}
    R_{I} & 0 & 0 \\
    0 & R_{I} & 0 \\
    0 & 0 & R_{z} \\
-   \end{matrix}
+   \end{bmatrix}
 
 Similarly, the central inertial dyadic for the grains in the motor, that
 is, the temporary solid phase :math:`T`, is given by:
 
 .. math::
 
-   {\widetilde{I}}_{T} = T_{I}\Bigl( {\overrightarrow{b}}_{1}{\overrightarrow{b}}_{1} + {\overrightarrow{b}}_{2}{\overrightarrow{b}}_{2} \Bigr) + T_{z}\Bigl( {\overrightarrow{b}}_{3}{\overrightarrow{b}}_{3} \Bigr) = \begin{matrix}
+   {\widetilde{I}}_{T} = T_{I}\Bigl( {\overrightarrow{b}}_{1}{\overrightarrow{b}}_{1} + {\overrightarrow{b}}_{2}{\overrightarrow{b}}_{2} \Bigr) + T_{z}\Bigl( {\overrightarrow{b}}_{3}{\overrightarrow{b}}_{3} \Bigr) = \begin{bmatrix}
    T_{I} & 0 & 0 \\
    0 & T_{I} & 0 \\
    0 & 0 & T_{z} \\
-   \end{matrix}
+   \end{bmatrix}
 
 By using the parallel axis theorem, we can write the central inertia
 dyadic for :math:`S = R + T`:
@@ -534,11 +527,11 @@ dyadic for :math:`S = R + T`:
 
 .. math::
 
-   {\widetilde{I}}_{*} = \begin{matrix}
+   {\widetilde{I}}_{*} = \begin{bmatrix}
    R_{I} + m_{R}a^{2} + T_{I} + m_{T}(b - a)^{2} & 0 & 0 \\
    0 & R_{I} + m_{R}a^{2} + T_{I} + m_{T}(b - a)^{2} & 0 \\
    0 & 0 & R_{z} + T_{z} \\
-   \end{matrix}
+   \end{bmatrix}
 
 Where :math:`m_{R}` is the mass of the rocket’s permanent rigid body
 :math:`R`, :math:`m_{T}` is the mass of the rocket’s propellant grains,
@@ -640,9 +633,9 @@ conservation):
 
 Where :math:`p_{e}` is the static pressure at nozzle exit and
 :math:`p_{\text{amb}}` is the outside ambient pressure. It is a general
-assumption that:
+assumption that, since :math:`p_{e} \approx p_{\text{amb}}`:
 
-.. math:: \int_{\partial C}^{\ }{\rho_{\ }^{R}{\overrightarrow{v}}_{i}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{dS}} \gg \pi r_{n}^{2}\Bigl( p_{e} - p_{\text{amb}} \Bigr)\overrightarrow{n},\ \text{because\ }p_{e} \approx p_{\text{amb}}\ 
+.. math:: \int_{\partial C}^{\ }{\rho_{\ }^{R}{\overrightarrow{v}}_{i}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{dS}} \gg \pi r_{n}^{2}\Bigl( p_{e} - p_{\text{amb}} \Bigr)\overrightarrow{n}
 
 Which simplifies the thrust equation to:
 
@@ -687,13 +680,13 @@ The last integral which must be solved has to do the with the Coriolis
 effect. If we chose :math:`O` as the center of mass of the permanent
 rigid body :math:`R`, we have:
 
-.. math:: 2\int_{\partial C}^{\ }{_{\ }^{A}\overrightarrow{\omega} \times \rho{\overrightarrow{r}}_{i - O}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{\ dS\ }} = 2\rho v_{e}_{\ }^{A}\overrightarrow{\omega} \times \int_{\partial C}^{\ }{{\overrightarrow{r}}_{i - R_{*}}\text{\ dS\ }}
+.. math:: 2 \cdot \int_{\partial C}^{\ }{_{\ }^{A}\overrightarrow{\omega} \times \rho \cdot {\overrightarrow{r}}_{i - O}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{dS}} = 2\cdot \rho \cdot v_{e_{\ }^{A}}\cdot \overrightarrow{\omega} \times \int_{\partial C}^{\ }{{\overrightarrow{r}}_{i - R_{*}}\text{dS}}
 
-.. math:: 2\int_{\partial C}^{\ }{_{\ }^{A}\overrightarrow{\omega} \times \rho{\overrightarrow{r}}_{i - O}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{\ dS\ }} = 2\rho v_{e}_{\ }^{A}\overrightarrow{\omega} \times \Bigl( - c\pi r_{n}^{2}{\overrightarrow{b}}_{3} \Bigr)
+.. math:: 2 \cdot \int_{\partial C}^{\ }{_{\ }^{A}\overrightarrow{\omega} \times \rho \cdot {\overrightarrow{r}}_{i - O}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{dS}} = 2\cdot \rho \cdot v_{e_{\ }^{A}}\cdot \overrightarrow{\omega} \times \Bigl( - c\pi r_{n}^{2}{\overrightarrow{b}}_{3} \Bigr)
 
-.. math:: 2\int_{\partial C}^{\ }{_{\ }^{A}\overrightarrow{\omega} \times \rho{\overrightarrow{r}}_{i - O}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{\ dS\ }} = 2c{\dot{m}}_{T}_{\ }^{A}\overrightarrow{\omega} \times \Bigl( {\overrightarrow{b}}_{3} \Bigr)
+.. math:: 2 \cdot \int_{\partial C}^{\ }{_{\ }^{A}\overrightarrow{\omega} \times \rho \cdot {\overrightarrow{r}}_{i - O}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{dS}} = 2\cdot c\cdot {\dot{m}}_{{T_{\ }}^{A}} \cdot \overrightarrow{\omega} \times \Bigl( {\overrightarrow{b}}_{3} \Bigr)
 
-.. math:: 2\int_{\partial C}^{\ }{_{\ }^{A}\overrightarrow{\omega} \times \rho{\overrightarrow{r}}_{i - O}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{\ dS\ }} = 2c{\dot{m}}_{T}(\omega_{2}{\overrightarrow{b}}_{1} - \omega_{1}{\overrightarrow{b}}_{2})
+.. math:: 2 \cdot \int_{\partial C}^{\ }{_{\ }^{A}\overrightarrow{\omega} \times \rho \cdot {\overrightarrow{r}}_{i - O}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{dS}} = 2\cdot c\cdot {\dot{m}}_{T} \cdot(\omega_{2}{\overrightarrow{b}}_{1} - \omega_{1}{\overrightarrow{b}}_{2})
 
 Having solved these integrals, we are ready to write our equations in
 final form. The equation governing rotational motion is written as:
@@ -704,72 +697,72 @@ We can also try a matrix representation:
 
 .. math::
 
-   \begin{matrix}
+   \begin{bmatrix}
    {\overrightarrow{M}}_{*} \cdot {\overrightarrow{b}}_{1} \\
    {\overrightarrow{M}}_{*} \cdot {\overrightarrow{b}}_{2} \\
    {\overrightarrow{M}}_{*} \cdot {\overrightarrow{b}}_{3} \\
-   \end{matrix} = \begin{matrix}
+   \end{bmatrix} = \begin{bmatrix}
    R_{I} + T_{I} + b^{2}\mu & 0 & 0 \\
    0 & R_{I} + T_{I} + b^{2}\mu & 0 \\
    0 & 0 & R_{z} + T_{z} \\
-   \end{matrix}\begin{matrix}
+   \end{bmatrix}\begin{bmatrix}
    \alpha_{1} \\
    \alpha_{2} \\
    \alpha_{3} \\
-   \end{matrix} + \begin{matrix}
+   \end{bmatrix} + \begin{bmatrix}
    \omega_{1} \\
    \omega_{2} \\
    \omega_{3} \\
-   \end{matrix} \times \begin{matrix}
+   \end{bmatrix} \times \begin{bmatrix}
    R_{I} + T_{I} + b^{2}\mu & 0 & 0 \\
    0 & R_{I} + T_{I} + b^{2}\mu & 0 \\
    0 & 0 & R_{z} + T_{z} \\
-   \end{matrix}\begin{matrix}
+   \end{bmatrix}\begin{bmatrix}
    \omega_{1} \\
    \omega_{2} \\
    \omega_{3} \\
-   \end{matrix} + \begin{matrix}
+   \end{bmatrix} + \begin{bmatrix}
    {\dot{T}}_{I} + {\dot{m}}_{T}b^{2}\frac{\mu^{2}}{m_{T}^{2}} & 0 & 0 \\
    0 & {\dot{T}}_{I} + {\dot{m}}_{T}b^{2}\frac{\mu^{2}}{m_{T}^{2}} & 0 \\
    0 & 0 & {\dot{T}}_{z} \\
-   \end{matrix}\begin{matrix}
+   \end{bmatrix}\begin{bmatrix}
    \omega_{1} \\
    \omega_{2} \\
    \omega_{3} \\
-   \end{matrix} - {\dot{m}}_{T}\begin{matrix}
+   \end{bmatrix} - {\dot{m}}_{T}\begin{bmatrix}
    \frac{r_{n}^{2}}{4} + \Bigl( c - b\frac{\mu}{m_{R}} \Bigr)^{2} & 0 & 0 \\
    0 & \frac{r_{n}^{2}}{4} + \Bigl( c - b\frac{\mu}{m_{R}} \Bigr)^{2} & 0 \\
    0 & 0 & \frac{r_{n}^{2}}{2} \\
-   \end{matrix}\begin{matrix}
+   \end{bmatrix}\begin{bmatrix}
    \omega_{1} \\
    \omega_{2} \\
    \omega_{3} \\
-   \end{matrix}
+   \end{bmatrix}
 
 However, the best representation for our purposes is in terms of its
 components:
 
 .. math::
 
-   \begin{matrix}
+   \begin{bmatrix}
    M_{1} = \alpha_{1}\Bigl( R_{I} + T_{I} + b^{2}\mu \Bigr) + \omega_{2}\omega_{3}\Bigl( {R_{Z} + T_{Z} - R}_{I} - T_{I} - b^{2}\mu \Bigr) + \omega_{1}\left\lbrack \Bigl( {\dot{T}}_{I} + {\dot{m}}_{T}b^{2}\frac{\mu^{2}}{m_{T}^{2}} \Bigr) - {\dot{m}}_{T}\Bigl( \frac{r_{n}^{2}}{4} + \Bigl( c - b\frac{\mu}{m_{R}} \Bigr)^{2} \Bigr) \right\rbrack \\
    M_{2} = \alpha_{2}\Bigl( R_{I} + T_{I} + b^{2}\mu \Bigr) + \omega_{1}\omega_{3}\Bigl( R_{I} + T_{I} + b^{2}\mu - R_{z} - T_{z} \Bigr) + \omega_{2}\left\lbrack \Bigl( {\dot{T}}_{I} + {\dot{m}}_{T}b^{2}\frac{\mu^{2}}{m_{T}^{2}} \Bigr) - {\dot{m}}_{T}\Bigl( \frac{r_{n}^{2}}{4} + \Bigl( c - b\frac{\mu}{m_{R}} \Bigr)^{2} \Bigr) \right\rbrack \\
    M_{3} = \alpha_{3}\Bigl( R_{z} + T_{z} \Bigr) + \omega_{3}\left\lbrack \Bigl( {\dot{T}}_{z} \Bigr) - {\dot{m}}_{T}\Bigl( \frac{r_{n}^{2}}{2} \Bigr) \right\rbrack \\
-   \end{matrix}
+   \end{bmatrix}
 
 Where :math:`M_{1}`, :math:`M_{2}` and :math:`M_{3}` are given by:
 
 .. math::
 
-   \begin{matrix}
+   \begin{bmatrix}
    M_{1} \\
    M_{2} \\
    M_{3} \\
-   \end{matrix} = \begin{matrix}
+   \end{bmatrix} = \begin{bmatrix}
    {\overrightarrow{M}}_{*} \cdot {\overrightarrow{b}}_{1} \\
    {\overrightarrow{M}}_{*} \cdot {\overrightarrow{b}}_{2} \\
    {\overrightarrow{M}}_{*} \cdot {\overrightarrow{b}}_{3} \\
-   \end{matrix}
+   \end{bmatrix}
 
 The equation governing translational motion, remembering :math:`O` was
 chosen as the center of mass of the permanent rigid body :math:`R`, is
@@ -787,15 +780,15 @@ Or, in terms of its components:
 
 .. math::
 
-   \begin{matrix}
+   \begin{bmatrix}
    R_{1} \\
    R_{2} \\
    R_{3} \\
-   \end{matrix} = \begin{matrix}
+   \end{bmatrix} = \begin{bmatrix}
    ma_{1} + \Bigl( \omega_{2}^{2} + \omega_{3}^{2} \Bigr)bm_{T} + 2c{\dot{m}}_{T}\omega_{2} \\
    ma_{2} - bm_{T}\Bigl( \alpha_{3} + \omega_{1}\omega_{2} \Bigr) - 2c{\dot{m}}_{T}\omega_{1} \\
    ma_{3} + bm_{T}\Bigl( \alpha_{2} - \omega_{1}\omega_{3} \Bigr) + \left| {\overrightarrow{T}}_{\text{thrust}} \right| \\
-   \end{matrix}
+   \end{bmatrix}
 
 State-Space Representation
 ==========================
@@ -821,7 +814,7 @@ Consider the following vector:
 
 .. math::
 
-   \overrightarrow{u} = \begin{matrix}
+   \overrightarrow{u} = \begin{bmatrix}
    x \\
    y \\
    z \\
@@ -835,32 +828,32 @@ Consider the following vector:
    \omega_{1} \\
    \omega_{2} \\
    \omega_{3} \\
-   \end{matrix}
+   \end{bmatrix}
 
 Defining that:
 
 .. math::
 
-   \begin{matrix}
+   \begin{bmatrix}
    a_{x} \\
    a_{y} \\
    a_{z} \\
-   \end{matrix} = \begin{matrix}
+   \end{bmatrix} = \begin{bmatrix}
    e_{0}^{2} + e_{1}^{2} - e_{2}^{2} - e_{3}^{2} & 2\Bigl( e_{1}e_{2} - e_{0}e_{3} \Bigr) & 2(e_{1}e_{3} + e_{0}e_{2}) \\
    2\Bigl( e_{1}e_{2} + e_{0}e_{3} \Bigr) & e_{0}^{2} - e_{1}^{2} + e_{2}^{2} - e_{3}^{2} & 2\Bigl( e_{2}e_{3} - e_{0}e_{1} \Bigr) \\
    2(e_{1}e_{3} - e_{0}e_{2}) & 2\Bigl( e_{2}e_{3} + e_{0}e_{1} \Bigr) & e_{0}^{2} - e_{1}^{2} - e_{2}^{2} + e_{3}^{2} \\
-   \end{matrix}\begin{matrix}
+   \end{bmatrix}\begin{bmatrix}
    \frac{R_{1} - bm_{T}\Bigl( \omega_{2}^{2} + \omega_{3}^{2} \Bigr) - 2c{\dot{m}}_{T}\omega_{2}}{m} \\
    \frac{R_{2} + bm_{T}\Bigl( \alpha_{3} + \omega_{1}\omega_{2} \Bigr) + 2c{\dot{m}}_{T}\omega_{1}}{m} \\
    \frac{R_{3} - bm_{T}\Bigl( \alpha_{2} - \omega_{1}\omega_{3} \Bigr) + \left| {\overrightarrow{T}}_{\text{thrust}} \right|}{m} \\
-   \end{matrix}
+   \end{bmatrix}
 
 We have that the derivative of :math:`\overrightarrow{u}` in time is
 given by:
 
 .. math::
 
-   \frac{d}{\text{dt}}\overrightarrow{u} = \begin{matrix}
+   \frac{d}{\text{dt}}\overrightarrow{u} = \begin{bmatrix}
    v_{x} \\
    v_{y} \\
    v_{z} \\
@@ -874,7 +867,7 @@ given by:
    \alpha_{1} \\
    \alpha_{2} \\
    \alpha_{3} \\
-   \end{matrix} = \begin{matrix}
+   \end{bmatrix} = \begin{bmatrix}
    v_{x} \\
    v_{y} \\
    v_{z} \\
@@ -888,4 +881,4 @@ given by:
    \frac{\Bigl( M_{1} - \Bigl( \omega_{2}\omega_{3}\Bigl( {R_{Z} + T_{Z} - R}_{I} - T_{I} - b^{2}\mu \Bigr) + \omega_{1}\left\lbrack \Bigl( {\dot{T}}_{I} + {\dot{m}}_{T}b^{2}\frac{\mu^{2}}{m_{T}^{2}} \Bigr) - {\dot{m}}_{T}\Bigl( \frac{r_{n}^{2}}{4} + \Bigl( c - b\frac{\mu}{m_{R}} \Bigr)^{2} \Bigr) \right\rbrack \Bigr) \Bigr)}{\Bigl( R_{I} + T_{I} + b^{2}\mu \Bigr)} \\
    \frac{\Bigl( M_{2} - \Bigl( \omega_{1}\omega_{3}\Bigl( R_{I} + T_{I} + b^{2}\mu - R_{z} - T_{z} \Bigr) + \omega_{2}\left\lbrack \Bigl( {\dot{T}}_{I} + {\dot{m}}_{T}b^{2}\frac{\mu^{2}}{m_{T}^{2}} \Bigr) - {\dot{m}}_{T}\Bigl( \frac{r_{n}^{2}}{4} + \Bigl( c - b\frac{\mu}{m_{R}} \Bigr)^{2} \Bigr) \right\rbrack \Bigr) \Bigr)}{\Bigl( R_{I} + T_{I} + b^{2}\mu \Bigr)} \\
    \frac{\Bigl( M_{3} - \omega_{3}\left\lbrack \Bigl( {\dot{T}}_{z} \Bigr) - {\dot{m}}_{T}\Bigl( \frac{r_{n}^{2}}{2} \Bigr) \right\rbrack \Bigr)}{\Bigl( R_{z} + T_{z} \Bigr)} \\
-   \end{matrix}
+   \end{bmatrix}

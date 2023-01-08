@@ -46,7 +46,7 @@ construction. The most noteworthy of this possible asymmetries is the
 fin cant angle (:math:`\delta`), which can be seen in Figure `1 <#fig:cant_angle>`__, 
 and will be considered for the calculations.
 
-.. image:: ../static/roll_equations/cant_angle.jpg
+.. image:: ../../static/roll_equations/cant_angle.jpg
    :name: fig:cant_angle
    :align: center
    :width: 500
@@ -77,7 +77,7 @@ Due to the symmetry of the fins - as can be seen in Figure
 resulting force :math:`F_{R}` is equal to zero. However, the resulting
 moment :math:`M_{R} \neq 0`, that is, it constitutes a gyroscope binary.
 
-.. image:: ../static/roll_equations/forces_comp.jpg
+.. image:: ../../static/roll_equations/forces_comp.jpg
    :name: fig:force_comp
    :align: center
    :width: 500
@@ -133,7 +133,7 @@ From [Barrowman]_, the roll damping moment depends on the angle of attack of the
 tangential velocity of the fin panel at a certain span wise position :math:`\xi`,
 as can be seen in Figure `3 <#fig:figure3>`__.
 
-.. image:: ../static/roll_equations/fin_views.png
+.. image:: ../../static/roll_equations/fin_views.png
    :name: fig:figure3
    :align: center
    :width: 500
@@ -229,13 +229,11 @@ For the damping moment lift coefficient derivative:
 
 .. math:: K_d=1+\frac{\frac{\tau-\lambda}{\tau}-\frac{1-\lambda}{\tau-1} \ln \tau}{\frac{(\tau+1)(\tau-\lambda)}{2}-\frac{(1-\lambda)\Bigl(\tau^{3}-1\Bigr)}{3(\tau-1)}}
 
-| Where :math:`\tau = \frac{s + r_t}{r_t}` and
-  :math:`\lambda = \frac{C_t}{C_r}`.
-| The final lift coefficients are:
+| Where :math:`\tau = \frac{s + r_t}{r_t}` and :math:`\lambda = \frac{C_t}{C_r}`. The final lift coefficients are:
 
-  .. math:: (C_{lf\delta})_K_f = K_f\ C_{lf\delta}
+.. math:: (C_{lf\delta})_{K_{f}} = K_{f} \cdot C_{lf\delta}
 
-.. math:: (C_{ld\omega})_K_d = K_d\ C_{ld\omega}
+.. math:: (C_{ld\omega})_{K_{d}} = K_{d} \cdot C_{ld\omega}
 
 Comments
 ========
