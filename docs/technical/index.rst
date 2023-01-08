@@ -1,5 +1,5 @@
-Welcome to RocketPy's theory documentation!
-=========================================
+Technical documentation!
+========================
 
 The following documentations are complementary to the RocketPy's documentation.
 They are intended to provide a more in-depth explanation of the theory behind RocketPy's code.
@@ -11,8 +11,8 @@ in their code.
    :caption: Contents:
 
    Equations of Motion <equations_of_motion.rst>
-   Elliptical Fins <elliptical_fins.rst>
-   Roll Moment <roll_equations.rst>
+   Elliptical Fins <aerodynamics/elliptical_fins.rst>
+   Roll Moment <aerodynamics/roll_equations.rst>
 
 This section is still a work in progress, however, and not everything is documented yet.
 If you have any questions, please contact the maintainers of RocketPy.
