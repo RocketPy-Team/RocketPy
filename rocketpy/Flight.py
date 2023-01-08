@@ -622,7 +622,7 @@ class Flight:
 
         # Flight initialization
         self.__init_post_process_variables()
-        
+
         # Initialize solution monitors
         self.__init_solution_monitors()
         self.__init_flight_state()
