@@ -4,6 +4,8 @@ __license__ = "MIT"
 
 import numpy as np
 
+from .Function import Function
+
 
 class Parachute:
     """Keeps parachute information.
@@ -107,6 +109,10 @@ class Parachute:
         self.noiseBias = noise[0]
         self.noiseDeviation = noise[1]
         self.noiseCorr = (noise[2], (1 - noise[2] ** 2) ** 0.5)
+        self.cleanPressureSignalFunction = Function(0)
+        self.noisyPressureSignalFunction = Function(0)
+        self.noiseSignalFunction = Function(0)
+
         alpha, beta = self.noiseCorr
         self.noiseFunction = lambda: alpha * self.noiseSignal[-1][
             1
