@@ -549,15 +549,18 @@ class Flight:
         heading : int, float, optional
             Heading angle relative to north given in degrees.
             Default is 90, which points in the x direction.
-        initialSolution : array, optional
+        initialSolution : array, Flight, optional
             Initial solution array to be used. Format is
-            initialSolution = [self.tInitial,
-                                xInit, yInit, zInit,
-                                vxInit, vyInit, vzInit,
-                                e0Init, e1Init, e2Init, e3Init,
-                                w1Init, w2Init, w3Init].
-            If None, the initial solution will start with all null values,
-            except for the euler parameters which will be calculated based
+            initialSolution = []
+                self.tInitial,
+                xInit, yInit, zInit,
+                vxInit, vyInit, vzInit,
+                e0Init, e1Init, e2Init, e3Init,
+                w1Init, w2Init, w3Init
+            ].
+            If a Flight object is used, the last state vector will be used as
+            initial solution. If None, the initial solution will start with
+            all null values, except for the euler parameters which will be calculated based
             on given values of inclination and heading. Default is None.
         terminateOnApogee : boolean, optional
             Whether to terminate simulation when rocket reaches apogee.
@@ -619,92 +622,14 @@ class Flight:
 
         # Flight initialization
         self.__init_post_process_variables()
-        # Initialize solution monitors
-        self.outOfRailTime = 0
-        self.outOfRailTimeIndex = 0
-        self.outOfRailState = np.array([0])
-        self.outOfRailVelocity = 0
-        self.apogeeState = np.array([0])
-        self.apogeeTime = 0
-        self.apogeeX = 0
-        self.apogeeY = 0
-        self.apogee = 0
-        self.xImpact = 0
-        self.yImpact = 0
-        self.impactVelocity = 0
-        self.impactState = np.array([0])
-        self.parachuteEvents = []
-        self.postProcessed = False
-        self._drift = Function(0)
-        self._bearing = Function(0)
-        self._latitude = Function(0)
-        self._longitude = Function(0)
+        self.__init_solution_monitors()
 
         # Initialize prints and plots objects
         self.prints = _FlightPrints(self)
         self.plots = _FlightPlots(self)
 
         # Initialize solver monitors
-        self.functionEvaluations = []
-        self.functionEvaluationsPerTimeStep = []
-        self.timeSteps = []
-        # Initialize solution state
-        self.solution = []
-        if self.initialSolution is None:
-            # Initialize time and state variables
-            self.tInitial = 0
-            xInit, yInit, zInit = 0, 0, self.env.elevation
-            vxInit, vyInit, vzInit = 0, 0, 0
-            w1Init, w2Init, w3Init = 0, 0, 0
-            # Initialize attitude
-            psiInit = -heading * (np.pi / 180)  # Precession / Heading Angle
-            thetaInit = (inclination - 90) * (np.pi / 180)  # Nutation Angle
-            e0Init = np.cos(psiInit / 2) * np.cos(thetaInit / 2)
-            e1Init = np.cos(psiInit / 2) * np.sin(thetaInit / 2)
-            e2Init = np.sin(psiInit / 2) * np.sin(thetaInit / 2)
-            e3Init = np.sin(psiInit / 2) * np.cos(thetaInit / 2)
-            # Store initial conditions
-            self.initialSolution = [
-                self.tInitial,
-                xInit,
-                yInit,
-                zInit,
-                vxInit,
-                vyInit,
-                vzInit,
-                e0Init,
-                e1Init,
-                e2Init,
-                e3Init,
-                w1Init,
-                w2Init,
-                w3Init,
-            ]
-            # Set initial derivative for rail phase
-            self.initialDerivative = self.uDotRail1
-        else:
-            # Initial solution given, ignore rail phase
-            # TODO: Check if rocket is actually out of rail. Otherwise, start at rail
-            self.outOfRailState = self.initialSolution[1:]
-            self.outOfRailTime = self.initialSolution[0]
-            self.outOfRailTimeIndex = 0
-            self.initialDerivative = self.uDot
-
-        self.tInitial = self.initialSolution[0]
-        self.solution.append(self.initialSolution)
-        self.t = self.solution[-1][0]
-        self.ySol = self.solution[-1][1:]
-
-        # Calculate normal and lateral surface wind
-        windU = self.env.windVelocityX(self.env.elevation)
-        windV = self.env.windVelocityY(self.env.elevation)
-        headingRad = heading * np.pi / 180
-        self.frontalSurfaceWind = windU * np.sin(headingRad) + windV * np.cos(
-            headingRad
-        )
-        self.lateralSurfaceWind = -windU * np.cos(headingRad) + windV * np.sin(
-            headingRad
-        )
+        self.__init_solver_monitors()
 
         # Create known flight phases
         self.flightPhases = FlightPhases()
@@ -1135,6 +1060,96 @@ class Flight:
         self.flutterMachNumber = Function(0)
         self.difference = Function(0)
         self.safetyFactor = Function(0)
+        self._drift = Function(0)
+        self._bearing = Function(0)
+        self._latitude = Function(0)
+        self._longitude = Function(0)
+
+    def __init_solution_monitors(self):
+        # Initialize solution monitors
+        self.outOfRailTime = 0
+        self.outOfRailTimeIndex = 0
+        self.outOfRailState = np.array([0])
+        self.outOfRailVelocity = 0
+        self.apogeeState = np.array([0])
+        self.apogeeTime = 0
+        self.apogeeX = 0
+        self.apogeeY = 0
+        self.apogee = 0
+        self.xImpact = 0
+        self.yImpact = 0
+        self.impactVelocity = 0
+        self.impactState = np.array([0])
+        self.parachuteEvents = []
+        self.postProcessed = False
+
+        return None
+
+    def __init_flight_state(self):
+        """Initialize flight state variables."""
+        if self.initialSolution is None:
+            # Initialize time and state variables
+            self.tInitial = 0
+            xInit, yInit, zInit = 0, 0, self.env.elevation
+            vxInit, vyInit, vzInit = 0, 0, 0
+            w1Init, w2Init, w3Init = 0, 0, 0
+            # Initialize attitude
+            psiInit = -self.heading * (np.pi / 180)  # Precession / Heading Angle
+            thetaInit = (self.inclination - 90) * (np.pi / 180)  # Nutation Angle
+            e0Init = np.cos(psiInit / 2) * np.cos(thetaInit / 2)
+            e1Init = np.cos(psiInit / 2) * np.sin(thetaInit / 2)
+            e2Init = np.sin(psiInit / 2) * np.sin(thetaInit / 2)
+            e3Init = np.sin(psiInit / 2) * np.cos(thetaInit / 2)
+            # Store initial conditions
+            self.initialSolution = [
+                self.tInitial,
+                xInit,
+                yInit,
+                zInit,
+                vxInit,
+                vyInit,
+                vzInit,
+                e0Init,
+                e1Init,
+                e2Init,
+                e3Init,
+                w1Init,
+                w2Init,
+                w3Init,
+            ]
+            # Set initial derivative for rail phase
+            self.initialDerivative = self.uDotRail1
+        elif isinstance(self.initialSolution, Flight):
+            # Initialize time and state variables based on last solution of
+            # previous flight
+            self.initialSolution = self.initialSolution.solution[-1]
+            # Set unused monitors
+            self.outOfRailState = self.initialSolution[1:]
+            self.outOfRailTime = self.initialSolution[0]
+            # Set initial derivative for 6-DOF flight phase
+            self.initialDerivative = self.uDot
+        else:
+            # Initial solution given, ignore rail phase
+            # TODO: Check if rocket is actually out of rail. Otherwise, start at rail
+            self.outOfRailState = self.initialSolution[1:]
+            self.outOfRailTime = self.initialSolution[0]
+            self.outOfRailTimeIndex = 0
+            self.initialDerivative = self.uDot
+
+    def __init_solver_monitors(self):
+        # Initialize solver monitors
+        self.functionEvaluations = []
+        self.functionEvaluationsPerTimeStep = []
+        self.timeSteps = []
+        # Initialize solution state
+        self.solution = []
+        self.__init_flight_state()
+
+        self.tInitial = self.initialSolution[0]
+        self.solution.append(self.initialSolution)
+        self.t = self.solution[-1][0]
+        self.ySol = self.solution[-1][1:]
+
     @cached_property
     def effective1RL(self):
         # Modifying Rail Length for a better out of rail condition
