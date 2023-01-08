@@ -1179,9 +1179,7 @@ class Flight:
         windU = self.env.windVelocityX(self.env.elevation)
         windV = self.env.windVelocityY(self.env.elevation)
         headingRad = self.heading * np.pi / 180
-        frontalSurfaceWind = windU * np.sin(headingRad) + windV * np.cos(
-            headingRad
-        )
+        frontalSurfaceWind = windU * np.sin(headingRad) + windV * np.cos(headingRad)
         return frontalSurfaceWind
 
     @cached_property
@@ -1190,9 +1188,7 @@ class Flight:
         windU = self.env.windVelocityX(self.env.elevation)
         windV = self.env.windVelocityY(self.env.elevation)
         headingRad = self.heading * np.pi / 180
-        lateralSurfaceWind = -windU * np.cos(headingRad) + windV * np.sin(
-            headingRad
-        )
+        lateralSurfaceWind = -windU * np.cos(headingRad) + windV * np.sin(headingRad)
         return lateralSurfaceWind
 
     def uDotRail1(self, t, u, postProcessing=False):
