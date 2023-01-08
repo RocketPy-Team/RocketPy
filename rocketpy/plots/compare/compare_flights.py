@@ -52,6 +52,74 @@ class CompareFlights(Compare):
 
         return None
 
+    def __process_xlim(self, x_lim):
+        """Function to process the x_lim key word argument. It is simply a
+        logic to check if the string "apogee" is used as an item for the tuple,
+        and if so, replace it with the maximum apogee time of all flights.
+        This garantes that we do not repeat the same code for each plot.
+
+        Parameters
+        ----------
+        x_lim : tuple
+            A list of two items, where the first item represents the x axis lower limit
+            and second item, the x axis upper limit. If set to None, will be calculated
+            automatically by matplotlib. If the string "apogee" is used as a item for the
+            tuple, the maximum apogee time of all flights will be used instead.
+
+        Returns
+        -------
+        x_lim
+            The processed x_lim keyword argument.
+        """
+        if x_lim:
+            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
+            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+        return x_lim
+
+    def __process_savefig(self, filename, fig):
+        """Function to either save the plot or show it, depending on the
+        filename key word argument. This way we do not repeat the same code
+        for each plot.
+
+        Parameters
+        ----------
+        filename : str, optional
+            If a filename is provided, the plot will be saved to a file, by default None.
+            Image options are: png, pdf, ps, eps and svg.
+        fig : matplotlib.figure.Figure
+            The figure to be saved or shown.
+
+        Returns
+        -------
+        None
+        """
+        if filename:
+            fig.savefig(filename)
+            print("Plot saved to file: " + filename)
+        else:
+            plt.show()
+        return None
+
+    def __process_legend(self, legend, fig):
+        """Function to add a legend to the plot, if the legend key word
+        argument is set to True. This way we do not repeat the same code for
+        each plot.
+
+        Parameters
+        ----------
+        legend : bool
+            If set to True, a legend will be added to the plot, by default True.
+        fig : matplotlib.figure.Figure
+            The figure to which the legend will be added.
+
+        Returns
+        -------
+        None
+        """
+        if legend:
+            fig.legend()
+        return None
+
     def positions(
         self, figsize=(7, 10), x_lim=None, y_lim=None, legend=True, filename=None
     ):
@@ -83,9 +151,7 @@ class CompareFlights(Compare):
         None
         """
         # Check if key word is used for x_limit
-        if x_lim:
-            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
-            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+        x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
@@ -102,10 +168,7 @@ class CompareFlights(Compare):
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
-        if filename:
-            fig.savefig(filename)
-        else:
-            plt.show()
+        self.__process_savefig(filename, fig)
 
         return None
 
@@ -146,9 +209,7 @@ class CompareFlights(Compare):
         """
 
         # Check if key word is used for x_limit
-        if x_lim:
-            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
-            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+        x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
@@ -165,10 +226,7 @@ class CompareFlights(Compare):
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
-        if filename:
-            fig.savefig(filename)
-        else:
-            plt.show()
+        self.__process_savefig(filename, fig)
 
         return None
 
@@ -210,9 +268,7 @@ class CompareFlights(Compare):
         """
 
         # Check if key word is used for x_limit
-        if x_lim:
-            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
-            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+        x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
@@ -239,10 +295,7 @@ class CompareFlights(Compare):
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
-        if filename:
-            fig.savefig(filename)
-        else:
-            plt.show()
+        self.__process_savefig(filename, fig)
 
         return None
 
@@ -283,9 +336,7 @@ class CompareFlights(Compare):
         """
 
         # Check if key word is used for x_limit
-        if x_lim:
-            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
-            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+        x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
@@ -307,10 +358,7 @@ class CompareFlights(Compare):
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
-        if filename:
-            fig.savefig(filename)
-        else:
-            plt.show()
+        self.__process_savefig(filename, fig)
 
         return None
 
@@ -346,9 +394,7 @@ class CompareFlights(Compare):
         """
 
         # Check if key word is used for x_limit
-        if x_lim:
-            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
-            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+        x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
@@ -369,10 +415,7 @@ class CompareFlights(Compare):
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
-        if filename:
-            fig.savefig(filename)
-        else:
-            plt.show()
+        self.__process_savefig(filename, fig)
 
         return None
 
@@ -413,9 +456,7 @@ class CompareFlights(Compare):
         """
 
         # Check if key word is used for x_limit
-        if x_lim:
-            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
-            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+        x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
@@ -437,10 +478,7 @@ class CompareFlights(Compare):
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
-        if filename:
-            fig.savefig(filename)
-        else:
-            plt.show()
+        self.__process_savefig(filename, fig)
 
         return None
 
@@ -476,9 +514,7 @@ class CompareFlights(Compare):
         """
 
         # Check if key word is used for x_limit
-        if x_lim:
-            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
-            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+        x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
@@ -499,10 +535,7 @@ class CompareFlights(Compare):
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
-        if filename:
-            fig.savefig(filename)
-        else:
-            plt.show()
+        self.__process_savefig(filename, fig)
 
         return None
 
@@ -538,14 +571,7 @@ class CompareFlights(Compare):
         """
 
         # Check if key word is used for x_limit
-        if x_lim:
-            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
-            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
-
-        # Check if key word is used for x_limit
-        if x_lim:
-            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
-            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+        x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
@@ -566,8 +592,7 @@ class CompareFlights(Compare):
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
-        if filename:
-            fig.savefig(filename)
+        self.__process_savefig(filename, fig)
 
         return None
 
@@ -603,9 +628,7 @@ class CompareFlights(Compare):
         """
 
         # Check if key word is used for x_limit
-        if x_lim:
-            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
-            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+        x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
@@ -626,10 +649,7 @@ class CompareFlights(Compare):
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
-        if filename:
-            fig.savefig(filename)
-        else:
-            plt.show()
+        self.__process_savefig(filename, fig)
 
         return None
 
@@ -670,9 +690,7 @@ class CompareFlights(Compare):
         """
 
         # Check if key word is used for x_limit
-        if x_lim:
-            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
-            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+        x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
@@ -692,10 +710,7 @@ class CompareFlights(Compare):
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
-        if filename:
-            fig.savefig(filename)
-        else:
-            plt.show()
+        self.__process_savefig(filename, fig)
 
         return None
 
@@ -735,9 +750,7 @@ class CompareFlights(Compare):
         """
 
         # Check if key word is used for x_limit
-        if x_lim:
-            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
-            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+        x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
@@ -757,10 +770,7 @@ class CompareFlights(Compare):
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
-        if filename:
-            fig.savefig(filename)
-        else:
-            plt.show()
+        self.__process_savefig(filename, fig)
 
         return None
 
@@ -794,9 +804,7 @@ class CompareFlights(Compare):
         """
 
         # Check if key word is used for x_limit
-        if x_lim:
-            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
-            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+        x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
@@ -817,10 +825,7 @@ class CompareFlights(Compare):
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
-        if filename:
-            fig.savefig(filename)
-        else:
-            plt.show()
+        self.__process_savefig(filename, fig)
 
         return None
 
@@ -859,9 +864,7 @@ class CompareFlights(Compare):
         """
 
         # Check if key word is used for x_limit
-        if x_lim:
-            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
-            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+        x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
@@ -878,10 +881,7 @@ class CompareFlights(Compare):
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
-        if filename:
-            fig.savefig(filename)
-        else:
-            plt.show()
+        self.__process_savefig(filename, fig)
 
         return None
 
@@ -921,9 +921,7 @@ class CompareFlights(Compare):
         """
 
         # Check if key word is used for x_limit
-        if x_lim:
-            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
-            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+        x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
@@ -950,10 +948,7 @@ class CompareFlights(Compare):
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
-        if filename:
-            fig.savefig(filename)
-        else:
-            plt.show()
+        self.__process_savefig(filename, fig)
 
         return None
 
@@ -993,9 +988,7 @@ class CompareFlights(Compare):
         """
 
         # Check if key word is used for x_limit
-        if x_lim:
-            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
-            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+        x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
@@ -1012,10 +1005,7 @@ class CompareFlights(Compare):
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
-        if filename:
-            fig.savefig(filename)
-        else:
-            plt.show()
+        self.__process_savefig(filename, fig)
 
         return None
 
@@ -1055,9 +1045,7 @@ class CompareFlights(Compare):
         """
 
         # Check if key word is used for x_limit
-        if x_lim:
-            x_lim[0] = self.apogee_time if x_lim[0] == "apogee" else x_lim[0]
-            x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
+        x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
         fig, _ = super().create_comparison_figure(
@@ -1084,10 +1072,7 @@ class CompareFlights(Compare):
         )
 
         # Saving the plot to a file if a filename is provided, showing the plot otherwise
-        if filename:
-            fig.savefig(filename)
-        else:
-            plt.show()
+        self.__process_savefig(filename, fig)
 
         return None
 
@@ -1420,16 +1405,12 @@ class CompareFlights(Compare):
         ax.set_xlim([minXY, maxXY])
 
         # Add legend
-        if legend:
-            fig.legend()
+        self.__process_legend(legend, fig)
 
         fig.tight_layout()
 
         # Save figure
-        if filename:
-            plt.savefig(filename)
-        else:
-            plt.show()
+        self.__process_savefig(filename, fig)
 
         return None
 
@@ -1488,8 +1469,7 @@ class CompareFlights(Compare):
         ax.set_xlim([minXY, maxXY])
 
         # Add legend
-        if legend:
-            fig.legend()
+        self.__process_legend(legend, fig)
 
         fig.tight_layout()
 
@@ -1556,16 +1536,12 @@ class CompareFlights(Compare):
         ax.set_xlim([minXY, maxXY])
 
         # Add legend
-        if legend:
-            fig.legend()
+        self.__process_legend(legend, fig)
 
         fig.tight_layout()
 
         # Save figure
-        if filename:
-            plt.savefig(filename)
-        else:
-            plt.show()
+        self.__process_savefig(filename, fig)
 
         return None
 
@@ -1582,6 +1558,8 @@ class CompareFlights(Compare):
         """
 
         self.trajectories_3d()
+
+        self.trajectories_2d()
 
         self.positions()
 

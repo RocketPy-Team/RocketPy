@@ -6,28 +6,6 @@ import pytz
 from rocketpy import Environment, Flight, Rocket, SolidMotor
 
 
-@pytest.fixture
-def example_env():
-    Env = Environment(railLength=5, datum="WGS84")
-    return Env
-
-
-@pytest.fixture
-def example_env_robust():
-    Env = Environment(
-        railLength=5,
-        latitude=32.990254,
-        longitude=-106.974998,
-        elevation=1400,
-        datum="WGS84",
-    )
-    tomorrow = datetime.date.today() + datetime.timedelta(days=1)
-    Env.setDate(
-        (tomorrow.year, tomorrow.month, tomorrow.day, 12)
-    )  # Hour given in UTC time
-    return Env
-
-
 def test_env_set_date(example_env):
     tomorrow = datetime.date.today() + datetime.timedelta(days=1)
     example_env.setDate((tomorrow.year, tomorrow.month, tomorrow.day, 12))
