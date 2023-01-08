@@ -617,13 +617,6 @@ class Flight:
         self.terminateOnApogee = terminateOnApogee
         self.name = name
 
-        # Modifying Rail Length for a better out of rail condition
-        upperRButton = max(self.rocket.railButtons[0])
-        lowerRButton = min(self.rocket.railButtons[0])
-        nozzle = self.rocket.distanceRocketNozzle
-        self.effective1RL = self.env.rL - abs(nozzle - upperRButton)
-        self.effective2RL = self.env.rL - abs(nozzle - lowerRButton)
-
         # Flight initialization
         self.__init_post_process_variables()
         # Initialize solution monitors
@@ -1142,6 +1135,50 @@ class Flight:
         self.flutterMachNumber = Function(0)
         self.difference = Function(0)
         self.safetyFactor = Function(0)
+    @cached_property
+    def effective1RL(self):
+        # Modifying Rail Length for a better out of rail condition
+        nozzle = self.rocket.distanceRocketNozzle  # Kinda works for single nozzle
+        try:
+            upperRButton = max(self.rocket.railButtons[0])
+        except AttributeError:  # If there is no rail button
+            upperRButton = nozzle
+        effective1RL = self.env.rL - abs(nozzle - upperRButton)
+
+        return effective1RL
+
+    @cached_property
+    def effective2RL(self):
+        # Modifying Rail Length for a better out of rail condition
+        nozzle = self.rocket.distanceRocketNozzle
+        try:
+            lowerRButton = min(self.rocket.railButtons[0])
+        except AttributeError:
+            lowerRButton = nozzle
+        effective2RL = self.env.rL - abs(nozzle - lowerRButton)
+        return effective2RL
+
+    @cached_property
+    def frontalSurfaceWind(self):
+        # Surface wind magnitude in the frontal direction at the rail's elevation
+        windU = self.env.windVelocityX(self.env.elevation)
+        windV = self.env.windVelocityY(self.env.elevation)
+        headingRad = self.heading * np.pi / 180
+        frontalSurfaceWind = windU * np.sin(headingRad) + windV * np.cos(
+            headingRad
+        )
+        return frontalSurfaceWind
+
+    @cached_property
+    def lateralSurfaceWind(self):
+        # Surface wind magnitude in the lateral direction at the rail's elevation
+        windU = self.env.windVelocityX(self.env.elevation)
+        windV = self.env.windVelocityY(self.env.elevation)
+        headingRad = self.heading * np.pi / 180
+        lateralSurfaceWind = -windU * np.cos(headingRad) + windV * np.sin(
+            headingRad
+        )
+        return lateralSurfaceWind
 
     def uDotRail1(self, t, u, postProcessing=False):
         """Calculates derivative of u state vector with respect to time
