@@ -18,6 +18,8 @@ import simplekml
 from scipy import integrate
 
 from .Function import Function, funcify_method
+from .plots.flight_plots import _FlightPlots
+from .prints.flight_prints import _FlightPrints
 
 try:
     from functools import cached_property
@@ -69,6 +71,8 @@ class Flight:
             Original rail length minus the distance measured from nozzle exit
             to the lower rail button. It assumes the nozzle to be aligned with
             the beginning of the rail.
+        Flight.name: str
+            Name of the flight.
 
 
         Numerical Integration settings:
@@ -534,6 +538,7 @@ class Flight:
         atol=6 * [1e-3] + 4 * [1e-6] + 3 * [1e-3],
         timeOvershoot=True,
         verbose=False,
+        name="Flight",
     ):
         """Run a trajectory simulation.
 
@@ -592,6 +597,8 @@ class Flight:
             time in some cases. Default is True.
         verbose : bool, optional
             If true, verbose mode is activated. Default is False.
+        name : str, optional
+            Name of the flight. Default is "Flight".
 
         Returns
         -------
@@ -617,6 +624,7 @@ class Flight:
         self.initialSolution = initialSolution
         self.timeOvershoot = timeOvershoot
         self.terminateOnApogee = terminateOnApogee
+        self.name = name
 
         # Modifying Rail Length for a better out of rail condition
         upperButtonPosition, lowerButtonPosition = self.rocket.railButtons.position
@@ -626,25 +634,14 @@ class Flight:
 
         # Flight initialization
         self.__init_post_process_variables()
-        # Initialize solution monitors
         self.__init_solution_monitors()
-        self.__init_flight_state()
 
-        self.tInitial = self.initialSolution[0]
-        self.solution.append(self.initialSolution)
-        self.t = self.solution[-1][0]
-        self.ySol = self.solution[-1][1:]
+        # Initialize prints and plots objects
+        self.prints = _FlightPrints(self)
+        self.plots = _FlightPlots(self)
 
-        # Calculate normal and lateral surface wind
-        windU = self.env.windVelocityX(self.env.elevation)
-        windV = self.env.windVelocityY(self.env.elevation)
-        headingRad = heading * np.pi / 180
-        self.frontalSurfaceWind = windU * np.sin(headingRad) + windV * np.cos(
-            headingRad
-        )
-        self.lateralSurfaceWind = -windU * np.cos(headingRad) + windV * np.sin(
-            headingRad
-        )
+        # Initialize solver monitors
+        self.__init_solver_monitors()
 
         # Create known flight phases
         self.flightPhases = FlightPhases()
@@ -1068,6 +1065,38 @@ class Flight:
         if verbose:
             print("Simulation Completed at Time: {:3.4f} s".format(self.t))
 
+    def __init_post_process_variables(self):
+        """Initialize post-process variables."""
+        # Initialize all variables calculated after initialization.
+        # Important to do so that MATLAB® can access them
+        self.flutterMachNumber = Function(0)
+        self.difference = Function(0)
+        self.safetyFactor = Function(0)
+        self._drift = Function(0)
+        self._bearing = Function(0)
+        self._latitude = Function(0)
+        self._longitude = Function(0)
+
+    def __init_solution_monitors(self):
+        # Initialize solution monitors
+        self.outOfRailTime = 0
+        self.outOfRailTimeIndex = 0
+        self.outOfRailState = np.array([0])
+        self.outOfRailVelocity = 0
+        self.apogeeState = np.array([0])
+        self.apogeeTime = 0
+        self.apogeeX = 0
+        self.apogeeY = 0
+        self.apogee = 0
+        self.xImpact = 0
+        self.yImpact = 0
+        self.impactVelocity = 0
+        self.impactState = np.array([0])
+        self.parachuteEvents = []
+        self.postProcessed = False
+
+        return None
+
     def __init_flight_state(self):
         """Initialize flight state variables."""
         if self.initialSolution is None:
@@ -1119,37 +1148,19 @@ class Flight:
             self.outOfRailTimeIndex = 0
             self.initialDerivative = self.uDot
 
-    def __init_solution_monitors(self):
-        """Initialize solution monitors."""
-        self.outOfRailTime = 0
-        self.outOfRailTimeIndex = 0
-        self.outOfRailState = np.array([0])
-        self.outOfRailVelocity = 0
-        self.apogeeState = np.array([0])
-        self.apogeeTime = 0
-        self.apogeeX = 0
-        self.apogeeY = 0
-        self.apogee = 0
-        self.xImpact = 0
-        self.yImpact = 0
-        self.impactVelocity = 0
-        self.impactState = np.array([0])
-        self.parachuteEvents = []
-        self.postProcessed = False
+    def __init_solver_monitors(self):
         # Initialize solver monitors
         self.functionEvaluations = []
         self.functionEvaluationsPerTimeStep = []
         self.timeSteps = []
         # Initialize solution state
         self.solution = []
+        self.__init_flight_state()
 
-    def __init_post_process_variables(self):
-        """Initialize post-process variables."""
-        # Initialize all variables calculated after initialization.
-        # Important to do so that MATLAB® can access them
-        self.flutterMachNumber = Function(0)
-        self.difference = Function(0)
-        self.safetyFactor = Function(0)
+        self.tInitial = self.initialSolution[0]
+        self.solution.append(self.initialSolution)
+        self.t = self.solution[-1][0]
+        self.ySol = self.solution[-1][1:]
 
     @cached_property
     def effective1RL(self):
@@ -1173,6 +1184,24 @@ class Flight:
             lowerRButton = nozzle
         effective2RL = self.env.rL - abs(nozzle - lowerRButton)
         return effective2RL
+
+    @cached_property
+    def frontalSurfaceWind(self):
+        # Surface wind magnitude in the frontal direction at the rail's elevation
+        windU = self.env.windVelocityX(self.env.elevation)
+        windV = self.env.windVelocityY(self.env.elevation)
+        headingRad = self.heading * np.pi / 180
+        frontalSurfaceWind = windU * np.sin(headingRad) + windV * np.cos(headingRad)
+        return frontalSurfaceWind
+
+    @cached_property
+    def lateralSurfaceWind(self):
+        # Surface wind magnitude in the lateral direction at the rail's elevation
+        windU = self.env.windVelocityX(self.env.elevation)
+        windV = self.env.windVelocityY(self.env.elevation)
+        headingRad = self.heading * np.pi / 180
+        lateralSurfaceWind = -windU * np.cos(headingRad) + windV * np.sin(headingRad)
+        return lateralSurfaceWind
 
     def uDotRail1(self, t, u, postProcessing=False):
         """Calculates derivative of u state vector with respect to time
@@ -2361,8 +2390,8 @@ class Flight:
             angular acceleration in z direction
         """
         # Initialize acceleration arrays
-        ax, ay, az = [], [], []
-        alpha1, alpha2, alpha3 = [], [], []
+        ax, ay, az = [[0, 0]], [[0, 0]], [[0, 0]]
+        alpha1, alpha2, alpha3 = [[0, 0]], [[0, 0]], [[0, 0]]
         # Go through each time step and calculate accelerations
         # Get flight phases
         for phase_index, phase in self.timeIterator(self.flightPhases):
@@ -2374,9 +2403,7 @@ class Flight:
                 callback(self)
             # Loop through time steps in flight phase
             for step in self.solution:  # Can be optimized
-                if initTime < step[0] <= finalTime or (
-                    initTime == self.tInitial and step[0] == self.tInitial
-                ):
+                if initTime < step[0] <= finalTime:
                     # Get derivatives
                     uDot = currentDerivative(step[0], step[1:])
                     # Get accelerations
@@ -2543,8 +2570,7 @@ class Flight:
 
         return F11, F12, F21, F22
 
-    @cached_property
-    def __calculate_pressure_signal(self):
+    def _calculate_pressure_signal(self):
         """Calculate the pressure signal from the pressure sensor.
         It creates a SignalFunction attribute in the parachute object.
         Parachute works as a subclass of Rocket class.
@@ -2606,250 +2632,7 @@ class Flight:
         ------
         None
         """
-
-        # Get index of time before parachute event
-        if len(self.parachuteEvents) > 0:
-            eventTime = self.parachuteEvents[0][0] + self.parachuteEvents[0][1].lag
-            eventTimeIndex = np.nonzero(self.time == eventTime)[0][0]
-        else:
-            eventTime = self.tFinal
-            eventTimeIndex = -1
-
-        # Print surface wind conditions
-        print("Surface Wind Conditions\n")
-        print("Frontal Surface Wind Speed: {:.2f} m/s".format(self.frontalSurfaceWind))
-        print("Lateral Surface Wind Speed: {:.2f} m/s".format(self.lateralSurfaceWind))
-
-        # Print out of rail conditions
-        print("\n\n Rail Departure State\n")
-        print("Rail Departure Time: {:.3f} s".format(self.outOfRailTime))
-        print("Rail Departure Velocity: {:.3f} m/s".format(self.outOfRailVelocity))
-        print(
-            "Rail Departure Static Margin: {:.3f} c".format(
-                self.staticMargin(self.outOfRailTime)
-            )
-        )
-        print(
-            "Rail Departure Angle of Attack: {:.3f}°".format(
-                self.angleOfAttack(self.outOfRailTime)
-            )
-        )
-        print(
-            "Rail Departure Thrust-Weight Ratio: {:.3f}".format(
-                self.rocket.thrustToWeight(self.outOfRailTime)
-            )
-        )
-        print(
-            "Rail Departure Reynolds Number: {:.3e}".format(
-                self.ReynoldsNumber(self.outOfRailTime)
-            )
-        )
-
-        # Print burnOut conditions
-        print("\n\nBurnOut State\n")
-        print("BurnOut time: {:.3f} s".format(self.rocket.motor.burnOutTime))
-        print(
-            "Altitude at burnOut: {:.3f} m (AGL)".format(
-                self.z(self.rocket.motor.burnOutTime) - self.env.elevation
-            )
-        )
-        print(
-            "Rocket velocity at burnOut: {:.3f} m/s".format(
-                self.speed(self.rocket.motor.burnOutTime)
-            )
-        )
-        print(
-            "Freestream velocity at burnOut: {:.3f} m/s".format(
-                (
-                    self.streamVelocityX(self.rocket.motor.burnOutTime) ** 2
-                    + self.streamVelocityY(self.rocket.motor.burnOutTime) ** 2
-                    + self.streamVelocityZ(self.rocket.motor.burnOutTime) ** 2
-                )
-                ** 0.5
-            )
-        )
-        print(
-            "Mach Number at burnOut: {:.3f}".format(
-                self.MachNumber(self.rocket.motor.burnOutTime)
-            )
-        )
-        print(
-            "Kinetic energy at burnOut: {:.3e} J".format(
-                self.kineticEnergy(self.rocket.motor.burnOutTime)
-            )
-        )
-
-        # Print apogee conditions
-        print("\n\nApogee\n")
-        print(
-            "Apogee Altitude: {:.3f} m (ASL) | {:.3f} m (AGL)".format(
-                self.apogee, self.apogee - self.env.elevation
-            )
-        )
-        print("Apogee Time: {:.3f} s".format(self.apogeeTime))
-        print("Apogee Freestream Speed: {:.3f} m/s".format(self.apogeeFreestreamSpeed))
-
-        # Print events registered
-        print("\n\nEvents\n")
-        if len(self.parachuteEvents) == 0:
-            print("No Parachute Events Were Triggered.")
-        for event in self.parachuteEvents:
-            triggerTime = event[0]
-            parachute = event[1]
-            openTime = triggerTime + parachute.lag
-            velocity = self.freestreamSpeed(openTime)
-            altitude = self.z(openTime)
-            name = parachute.name.title()
-            print(name + " Ejection Triggered at: {:.3f} s".format(triggerTime))
-            print(name + " Parachute Inflated at: {:.3f} s".format(openTime))
-            print(
-                name
-                + " Parachute Inflated with Freestream Speed of: {:.3f} m/s".format(
-                    velocity
-                )
-            )
-            print(
-                name
-                + " Parachute Inflated at Height of: {:.3f} m (AGL)".format(
-                    altitude - self.env.elevation
-                )
-            )
-
-        # Print impact conditions
-        if len(self.impactState) != 0:
-            print("\n\nImpact\n")
-            print("X Impact: {:.3f} m".format(self.xImpact))
-            print("Y Impact: {:.3f} m".format(self.yImpact))
-            print("Time of Impact: {:.3f} s".format(self.tFinal))
-            print("Velocity at Impact: {:.3f} m/s".format(self.impactVelocity))
-        elif self.terminateOnApogee is False:
-            print("\n\nEnd of Simulation\n")
-            print("Time: {:.3f} s".format(self.solution[-1][0]))
-            print("Altitude: {:.3f} m".format(self.solution[-1][3]))
-
-        # Print maximum values
-        print("\n\nMaximum Values\n")
-        print(
-            "Maximum Speed: {:.3f} m/s at {:.2f} s".format(
-                self.maxSpeed, self.maxSpeedTime
-            )
-        )
-        print(
-            "Maximum Mach Number: {:.3f} Mach at {:.2f} s".format(
-                self.maxMachNumber, self.maxMachNumberTime
-            )
-        )
-        print(
-            "Maximum Reynolds Number: {:.3e} at {:.2f} s".format(
-                self.maxReynoldsNumber, self.maxReynoldsNumberTime
-            )
-        )
-        print(
-            "Maximum Dynamic Pressure: {:.3e} Pa at {:.2f} s".format(
-                self.maxDynamicPressure, self.maxDynamicPressureTime
-            )
-        )
-        print(
-            "Maximum Acceleration: {:.3f} m/s² at {:.2f} s".format(
-                self.maxAcceleration, self.maxAccelerationTime
-            )
-        )
-        print(
-            "Maximum Gs: {:.3f} g at {:.2f} s".format(
-                self.maxAcceleration / self.env.g, self.maxAccelerationTime
-            )
-        )
-        print(
-            "Maximum Upper Rail Button Normal Force: {:.3f} N".format(
-                self.maxRailButton1NormalForce
-            )
-        )
-        print(
-            "Maximum Upper Rail Button Shear Force: {:.3f} N".format(
-                self.maxRailButton1ShearForce
-            )
-        )
-        print(
-            "Maximum Lower Rail Button Normal Force: {:.3f} N".format(
-                self.maxRailButton2NormalForce
-            )
-        )
-        print(
-            "Maximum Lower Rail Button Shear Force: {:.3f} N".format(
-                self.maxRailButton2ShearForce
-            )
-        )
-
-        return None
-
-    def printInitialConditionsData(self):
-        """Prints all initial conditions data available about the flight
-
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
-        None
-        """
-
-        print(
-            "Position - x: {:.2f} m | y: {:.2f} m | z: {:.2f} m".format(
-                self.x(0), self.y(0), self.z(0)
-            )
-        )
-        print(
-            "Velocity - Vx: {:.2f} m/s | Vy: {:.2f} m/s | Vz: {:.2f} m/s".format(
-                self.vx(0), self.vy(0), self.vz(0)
-            )
-        )
-        print(
-            "Attitude - e0: {:.3f} | e1: {:.3f} | e2: {:.3f} | e3: {:.3f}".format(
-                self.e0(0), self.e1(0), self.e2(0), self.e3(0)
-            )
-        )
-        print(
-            "Euler Angles - Spin φ : {:.2f}° | Nutation θ: {:.2f}° | Precession ψ: {:.2f}°".format(
-                self.phi(0), self.theta(0), self.psi(0)
-            )
-        )
-        print(
-            "Angular Velocity - ω1: {:.2f} rad/s | ω2: {:.2f} rad/s| ω3: {:.2f} rad/s".format(
-                self.w1(0), self.w2(0), self.w3(0)
-            )
-        )
-        return None
-
-    def printNumericalIntegrationSettings(self):
-        """Prints out the Numerical Integration settings
-
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
-        None
-        """
-        print("Maximum Allowed Flight Time: {:f} s".format(self.maxTime))
-        print("Maximum Allowed Time Step: {:f} s".format(self.maxTimeStep))
-        print("Minimum Allowed Time Step: {:e} s".format(self.minTimeStep))
-        print("Relative Error Tolerance: ", self.rtol)
-        print("Absolute Error Tolerance: ", self.atol)
-        print("Allow Event Overshoot: ", self.timeOvershoot)
-        print("Terminate Simulation on Apogee: ", self.terminateOnApogee)
-        print("Number of Time Steps Used: ", len(self.timeSteps))
-        print(
-            "Number of Derivative Functions Evaluation: ",
-            sum(self.functionEvaluationsPerTimeStep),
-        )
-        print(
-            "Average Function Evaluations per Time Step: {:3f}".format(
-                sum(self.functionEvaluationsPerTimeStep) / len(self.timeSteps)
-            )
-        )
-
+        self.prints.all()
         return None
 
     def calculateStallWindVelocity(self, stallAngle):
@@ -2892,607 +2675,6 @@ class Flight:
                 stallAngle, wV
             )
         )
-
-        return None
-
-    def plot3dTrajectory(self):
-        """Plot a 3D graph of the trajectory
-
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
-        None
-        """
-
-        # Get max and min x and y
-        maxZ = max(self.z[:, 1] - self.env.elevation)
-        maxX = max(self.x[:, 1])
-        minX = min(self.x[:, 1])
-        maxY = max(self.y[:, 1])
-        minY = min(self.y[:, 1])
-        maxXY = max(maxX, maxY)
-        minXY = min(minX, minY)
-
-        # Create figure
-        fig1 = plt.figure(figsize=(9, 9))
-        ax1 = plt.subplot(111, projection="3d")
-        ax1.plot(self.x[:, 1], self.y[:, 1], zs=0, zdir="z", linestyle="--")
-        ax1.plot(
-            self.x[:, 1],
-            self.z[:, 1] - self.env.elevation,
-            zs=minXY,
-            zdir="y",
-            linestyle="--",
-        )
-        ax1.plot(
-            self.y[:, 1],
-            self.z[:, 1] - self.env.elevation,
-            zs=minXY,
-            zdir="x",
-            linestyle="--",
-        )
-        ax1.plot(
-            self.x[:, 1], self.y[:, 1], self.z[:, 1] - self.env.elevation, linewidth="2"
-        )
-        ax1.scatter(0, 0, 0)
-        ax1.set_xlabel("X - East (m)")
-        ax1.set_ylabel("Y - North (m)")
-        ax1.set_zlabel("Z - Altitude Above Ground Level (m)")
-        ax1.set_title("Flight Trajectory")
-        ax1.set_zlim3d([0, maxZ])
-        ax1.set_ylim3d([minXY, maxXY])
-        ax1.set_xlim3d([minXY, maxXY])
-        ax1.view_init(15, 45)
-        plt.show()
-
-        return None
-
-    def plotLinearKinematicsData(self):
-        """Prints out all Kinematics graphs available about the Flight
-
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
-        None
-        """
-
-        # Velocity and acceleration plots
-        fig2 = plt.figure(figsize=(9, 12))
-
-        ax1 = plt.subplot(414)
-        ax1.plot(self.vx[:, 0], self.vx[:, 1], color="#ff7f0e")
-        ax1.set_xlim(0, self.tFinal)
-        ax1.set_title("Velocity X | Acceleration X")
-        ax1.set_xlabel("Time (s)")
-        ax1.set_ylabel("Velocity X (m/s)", color="#ff7f0e")
-        ax1.tick_params("y", colors="#ff7f0e")
-        ax1.grid(True)
-
-        ax1up = ax1.twinx()
-        ax1up.plot(self.ax[:, 0], self.ax[:, 1], color="#1f77b4")
-        ax1up.set_ylabel("Acceleration X (m/s²)", color="#1f77b4")
-        ax1up.tick_params("y", colors="#1f77b4")
-
-        ax2 = plt.subplot(413)
-        ax2.plot(self.vy[:, 0], self.vy[:, 1], color="#ff7f0e")
-        ax2.set_xlim(0, self.tFinal)
-        ax2.set_title("Velocity Y | Acceleration Y")
-        ax2.set_xlabel("Time (s)")
-        ax2.set_ylabel("Velocity Y (m/s)", color="#ff7f0e")
-        ax2.tick_params("y", colors="#ff7f0e")
-        ax2.grid(True)
-
-        ax2up = ax2.twinx()
-        ax2up.plot(self.ay[:, 0], self.ay[:, 1], color="#1f77b4")
-        ax2up.set_ylabel("Acceleration Y (m/s²)", color="#1f77b4")
-        ax2up.tick_params("y", colors="#1f77b4")
-
-        ax3 = plt.subplot(412)
-        ax3.plot(self.vz[:, 0], self.vz[:, 1], color="#ff7f0e")
-        ax3.set_xlim(0, self.tFinal)
-        ax3.set_title("Velocity Z | Acceleration Z")
-        ax3.set_xlabel("Time (s)")
-        ax3.set_ylabel("Velocity Z (m/s)", color="#ff7f0e")
-        ax3.tick_params("y", colors="#ff7f0e")
-        ax3.grid(True)
-
-        ax3up = ax3.twinx()
-        ax3up.plot(self.az[:, 0], self.az[:, 1], color="#1f77b4")
-        ax3up.set_ylabel("Acceleration Z (m/s²)", color="#1f77b4")
-        ax3up.tick_params("y", colors="#1f77b4")
-
-        ax4 = plt.subplot(411)
-        ax4.plot(self.speed[:, 0], self.speed[:, 1], color="#ff7f0e")
-        ax4.set_xlim(0, self.tFinal)
-        ax4.set_title("Velocity Magnitude | Acceleration Magnitude")
-        ax4.set_xlabel("Time (s)")
-        ax4.set_ylabel("Velocity (m/s)", color="#ff7f0e")
-        ax4.tick_params("y", colors="#ff7f0e")
-        ax4.grid(True)
-
-        ax4up = ax4.twinx()
-        ax4up.plot(self.acceleration[:, 0], self.acceleration[:, 1], color="#1f77b4")
-        ax4up.set_ylabel("Acceleration (m/s²)", color="#1f77b4")
-        ax4up.tick_params("y", colors="#1f77b4")
-
-        plt.subplots_adjust(hspace=0.5)
-        plt.show()
-        return None
-
-    def plotAttitudeData(self):
-        """Prints out all Angular position graphs available about the Flight
-
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
-        None
-        """
-
-        # Get index of time before parachute event
-        if len(self.parachuteEvents) > 0:
-            eventTime = self.parachuteEvents[0][0] + self.parachuteEvents[0][1].lag
-            eventTimeIndex = np.nonzero(self.time == eventTime)[0][0]
-        else:
-            eventTime = self.tFinal
-            eventTimeIndex = -1
-
-        # Angular position plots
-        fig3 = plt.figure(figsize=(9, 12))
-
-        ax1 = plt.subplot(411)
-        ax1.plot(self.e0[:, 0], self.e0[:, 1], label="$e_0$")
-        ax1.plot(self.e1[:, 0], self.e1[:, 1], label="$e_1$")
-        ax1.plot(self.e2[:, 0], self.e2[:, 1], label="$e_2$")
-        ax1.plot(self.e3[:, 0], self.e3[:, 1], label="$e_3$")
-        ax1.set_xlim(0, eventTime)
-        ax1.set_xlabel("Time (s)")
-        ax1.set_ylabel("Euler Parameters")
-        ax1.set_title("Euler Parameters")
-        ax1.legend()
-        ax1.grid(True)
-
-        ax2 = plt.subplot(412)
-        ax2.plot(self.psi[:, 0], self.psi[:, 1])
-        ax2.set_xlim(0, eventTime)
-        ax2.set_xlabel("Time (s)")
-        ax2.set_ylabel("ψ (°)")
-        ax2.set_title("Euler Precession Angle")
-        ax2.grid(True)
-
-        ax3 = plt.subplot(413)
-        ax3.plot(self.theta[:, 0], self.theta[:, 1], label="θ - Nutation")
-        ax3.set_xlim(0, eventTime)
-        ax3.set_xlabel("Time (s)")
-        ax3.set_ylabel("θ (°)")
-        ax3.set_title("Euler Nutation Angle")
-        ax3.grid(True)
-
-        ax4 = plt.subplot(414)
-        ax4.plot(self.phi[:, 0], self.phi[:, 1], label="φ - Spin")
-        ax4.set_xlim(0, eventTime)
-        ax4.set_xlabel("Time (s)")
-        ax4.set_ylabel("φ (°)")
-        ax4.set_title("Euler Spin Angle")
-        ax4.grid(True)
-
-        plt.subplots_adjust(hspace=0.5)
-        plt.show()
-
-        return None
-
-    def plotFlightPathAngleData(self):
-        """Prints out Flight path and Rocket Attitude angle graphs available
-        about the Flight
-
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
-        None
-        """
-
-        # Get index of time before parachute event
-        if len(self.parachuteEvents) > 0:
-            eventTime = self.parachuteEvents[0][0] + self.parachuteEvents[0][1].lag
-            eventTimeIndex = np.nonzero(self.time == eventTime)[0][0]
-        else:
-            eventTime = self.tFinal
-            eventTimeIndex = -1
-
-        # Path, Attitude and Lateral Attitude Angle
-        # Angular position plots
-        fig5 = plt.figure(figsize=(9, 6))
-
-        ax1 = plt.subplot(211)
-        ax1.plot(self.pathAngle[:, 0], self.pathAngle[:, 1], label="Flight Path Angle")
-        ax1.plot(
-            self.attitudeAngle[:, 0],
-            self.attitudeAngle[:, 1],
-            label="Rocket Attitude Angle",
-        )
-        ax1.set_xlim(0, eventTime)
-        ax1.legend()
-        ax1.grid(True)
-        ax1.set_xlabel("Time (s)")
-        ax1.set_ylabel("Angle (°)")
-        ax1.set_title("Flight Path and Attitude Angle")
-
-        ax2 = plt.subplot(212)
-        ax2.plot(self.lateralAttitudeAngle[:, 0], self.lateralAttitudeAngle[:, 1])
-        ax2.set_xlim(0, eventTime)
-        ax2.set_xlabel("Time (s)")
-        ax2.set_ylabel("Lateral Attitude Angle (°)")
-        ax2.set_title("Lateral Attitude Angle")
-        ax2.grid(True)
-
-        plt.subplots_adjust(hspace=0.5)
-        plt.show()
-
-        return None
-
-    def plotAngularKinematicsData(self):
-        """Prints out all Angular velocity and acceleration graphs available
-        about the Flight
-
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
-        None
-        """
-
-        # Get index of time before parachute event
-        if len(self.parachuteEvents) > 0:
-            eventTime = self.parachuteEvents[0][0] + self.parachuteEvents[0][1].lag
-            eventTimeIndex = np.nonzero(self.time == eventTime)[0][0]
-        else:
-            eventTime = self.tFinal
-            eventTimeIndex = -1
-
-        # Angular velocity and acceleration plots
-        fig4 = plt.figure(figsize=(9, 9))
-        ax1 = plt.subplot(311)
-        ax1.plot(self.w1[:, 0], self.w1[:, 1], color="#ff7f0e")
-        ax1.set_xlim(0, eventTime)
-        ax1.set_xlabel("Time (s)")
-        ax1.set_ylabel(r"Angular Velocity - ${\omega_1}$ (rad/s)", color="#ff7f0e")
-        ax1.set_title(
-            r"Angular Velocity ${\omega_1}$ | Angular Acceleration ${\alpha_1}$"
-        )
-        ax1.tick_params("y", colors="#ff7f0e")
-        ax1.grid(True)
-
-        ax1up = ax1.twinx()
-        ax1up.plot(self.alpha1[:, 0], self.alpha1[:, 1], color="#1f77b4")
-        ax1up.set_ylabel(
-            r"Angular Acceleration - ${\alpha_1}$ (rad/s²)", color="#1f77b4"
-        )
-        ax1up.tick_params("y", colors="#1f77b4")
-
-        ax2 = plt.subplot(312)
-        ax2.plot(self.w2[:, 0], self.w2[:, 1], color="#ff7f0e")
-        ax2.set_xlim(0, eventTime)
-        ax2.set_xlabel("Time (s)")
-        ax2.set_ylabel(r"Angular Velocity - ${\omega_2}$ (rad/s)", color="#ff7f0e")
-        ax2.set_title(
-            r"Angular Velocity ${\omega_2}$ | Angular Acceleration ${\alpha_2}$"
-        )
-        ax2.tick_params("y", colors="#ff7f0e")
-        ax2.grid(True)
-
-        ax2up = ax2.twinx()
-        ax2up.plot(self.alpha2[:, 0], self.alpha2[:, 1], color="#1f77b4")
-        ax2up.set_ylabel(
-            r"Angular Acceleration - ${\alpha_2}$ (rad/s²)", color="#1f77b4"
-        )
-        ax2up.tick_params("y", colors="#1f77b4")
-
-        ax3 = plt.subplot(313)
-        ax3.plot(self.w3[:, 0], self.w3[:, 1], color="#ff7f0e")
-        ax3.set_xlim(0, eventTime)
-        ax3.set_xlabel("Time (s)")
-        ax3.set_ylabel(r"Angular Velocity - ${\omega_3}$ (rad/s)", color="#ff7f0e")
-        ax3.set_title(
-            r"Angular Velocity ${\omega_3}$ | Angular Acceleration ${\alpha_3}$"
-        )
-        ax3.tick_params("y", colors="#ff7f0e")
-        ax3.grid(True)
-
-        ax3up = ax3.twinx()
-        ax3up.plot(self.alpha3[:, 0], self.alpha3[:, 1], color="#1f77b4")
-        ax3up.set_ylabel(
-            r"Angular Acceleration - ${\alpha_3}$ (rad/s²)", color="#1f77b4"
-        )
-        ax3up.tick_params("y", colors="#1f77b4")
-
-        plt.subplots_adjust(hspace=0.5)
-        plt.show()
-
-        return None
-
-    def plotTrajectoryForceData(self):
-        """Prints out all Forces and Moments graphs available about the Flight
-
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
-        None
-        """
-
-        # Get index of time before parachute event
-        if len(self.parachuteEvents) > 0:
-            eventTime = self.parachuteEvents[0][0] + self.parachuteEvents[0][1].lag
-            eventTimeIndex = np.nonzero(self.time == eventTime)[0][0]
-        else:
-            eventTime = self.tFinal
-            eventTimeIndex = -1
-
-        # Rail Button Forces
-        if self.rocket.railButtons is not None:
-            fig6 = plt.figure(figsize=(9, 6))
-
-        ax1 = plt.subplot(211)
-        ax1.plot(
-            self.railButton1NormalForce[:, 0],
-            self.railButton1NormalForce[:, 1],
-            label="Upper Rail Button",
-        )
-        ax1.plot(
-            self.railButton2NormalForce[:, 0],
-            self.railButton2NormalForce[:, 1],
-            label="Lower Rail Button",
-        )
-        ax1.set_xlim(0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal)
-        ax1.legend()
-        ax1.grid(True)
-        ax1.set_xlabel("Time (s)")
-        ax1.set_ylabel("Normal Force (N)")
-        ax1.set_title("Rail Buttons Normal Force")
-
-        ax2 = plt.subplot(212)
-        ax2.plot(
-            self.railButton1ShearForce[:, 0],
-            self.railButton1ShearForce[:, 1],
-            label="Upper Rail Button",
-        )
-        ax2.plot(
-            self.railButton2ShearForce[:, 0],
-            self.railButton2ShearForce[:, 1],
-            label="Lower Rail Button",
-        )
-        ax2.set_xlim(0, self.outOfRailTime if self.outOfRailTime > 0 else self.tFinal)
-        ax2.legend()
-        ax2.grid(True)
-        ax2.set_xlabel("Time (s)")
-        ax2.set_ylabel("Shear Force (N)")
-        ax2.set_title("Rail Buttons Shear Force")
-
-        plt.subplots_adjust(hspace=0.5)
-        plt.show()
-
-        # Aerodynamic force and moment plots
-        fig7 = plt.figure(figsize=(9, 12))
-
-        ax1 = plt.subplot(411)
-        ax1.plot(
-            self.aerodynamicLift[:eventTimeIndex, 0],
-            self.aerodynamicLift[:eventTimeIndex, 1],
-            label="Resultant",
-        )
-        ax1.plot(self.R1[:eventTimeIndex, 0], self.R1[:eventTimeIndex, 1], label="R1")
-        ax1.plot(self.R2[:eventTimeIndex, 0], self.R2[:eventTimeIndex, 1], label="R2")
-        ax1.set_xlim(0, eventTime)
-        ax1.legend()
-        ax1.set_xlabel("Time (s)")
-        ax1.set_ylabel("Lift Force (N)")
-        ax1.set_title("Aerodynamic Lift Resultant Force")
-        ax1.grid()
-
-        ax2 = plt.subplot(412)
-        ax2.plot(
-            self.aerodynamicDrag[:eventTimeIndex, 0],
-            self.aerodynamicDrag[:eventTimeIndex, 1],
-        )
-        ax2.set_xlim(0, eventTime)
-        ax2.set_xlabel("Time (s)")
-        ax2.set_ylabel("Drag Force (N)")
-        ax2.set_title("Aerodynamic Drag Force")
-        ax2.grid()
-
-        ax3 = plt.subplot(413)
-        ax3.plot(
-            self.aerodynamicBendingMoment[:eventTimeIndex, 0],
-            self.aerodynamicBendingMoment[:eventTimeIndex, 1],
-            label="Resultant",
-        )
-        ax3.plot(self.M1[:eventTimeIndex, 0], self.M1[:eventTimeIndex, 1], label="M1")
-        ax3.plot(self.M2[:eventTimeIndex, 0], self.M2[:eventTimeIndex, 1], label="M2")
-        ax3.set_xlim(0, eventTime)
-        ax3.legend()
-        ax3.set_xlabel("Time (s)")
-        ax3.set_ylabel("Bending Moment (N m)")
-        ax3.set_title("Aerodynamic Bending Resultant Moment")
-        ax3.grid()
-
-        ax4 = plt.subplot(414)
-        ax4.plot(
-            self.aerodynamicSpinMoment[:eventTimeIndex, 0],
-            self.aerodynamicSpinMoment[:eventTimeIndex, 1],
-        )
-        ax4.set_xlim(0, eventTime)
-        ax4.set_xlabel("Time (s)")
-        ax4.set_ylabel("Spin Moment (N m)")
-        ax4.set_title("Aerodynamic Spin Moment")
-        ax4.grid()
-
-        plt.subplots_adjust(hspace=0.5)
-        plt.show()
-
-        return None
-
-    def plotEnergyData(self):
-        """Prints out all Energy components graphs available about the Flight
-
-        Returns
-        -------
-        None
-        """
-        # Get index of time before parachute event
-        if len(self.parachuteEvents) > 0:
-            eventTime = self.parachuteEvents[0][0] + self.parachuteEvents[0][1].lag
-            eventTimeIndex = np.nonzero(self.time == eventTime)[0][0]
-        else:
-            eventTime = self.tFinal
-            eventTimeIndex = -1
-
-        fig8 = plt.figure(figsize=(9, 9))
-
-        ax1 = plt.subplot(411)
-        ax1.plot(
-            self.kineticEnergy[:, 0], self.kineticEnergy[:, 1], label="Kinetic Energy"
-        )
-        ax1.plot(
-            self.rotationalEnergy[:, 0],
-            self.rotationalEnergy[:, 1],
-            label="Rotational Energy",
-        )
-        ax1.plot(
-            self.translationalEnergy[:, 0],
-            self.translationalEnergy[:, 1],
-            label="Translational Energy",
-        )
-        ax1.set_xlim(0, self.apogeeTime if self.apogeeTime != 0.0 else self.tFinal)
-        ax1.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
-        ax1.set_title("Kinetic Energy Components")
-        ax1.set_xlabel("Time (s)")
-        ax1.set_ylabel("Energy (J)")
-
-        ax1.legend()
-        ax1.grid()
-
-        ax2 = plt.subplot(412)
-        ax2.plot(self.totalEnergy[:, 0], self.totalEnergy[:, 1], label="Total Energy")
-        ax2.plot(
-            self.kineticEnergy[:, 0], self.kineticEnergy[:, 1], label="Kinetic Energy"
-        )
-        ax2.plot(
-            self.potentialEnergy[:, 0],
-            self.potentialEnergy[:, 1],
-            label="Potential Energy",
-        )
-        ax2.set_xlim(0, self.apogeeTime if self.apogeeTime != 0.0 else self.tFinal)
-        ax2.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
-        ax2.set_title("Total Mechanical Energy Components")
-        ax2.set_xlabel("Time (s)")
-        ax2.set_ylabel("Energy (J)")
-        ax2.legend()
-        ax2.grid()
-
-        ax3 = plt.subplot(413)
-        ax3.plot(self.thrustPower[:, 0], self.thrustPower[:, 1], label="|Thrust Power|")
-        ax3.set_xlim(0, self.rocket.motor.burnOutTime)
-        ax3.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
-        ax3.set_title("Thrust Absolute Power")
-        ax3.set_xlabel("Time (s)")
-        ax3.set_ylabel("Power (W)")
-        ax3.legend()
-        ax3.grid()
-
-        ax4 = plt.subplot(414)
-        ax4.plot(self.dragPower[:, 0], -self.dragPower[:, 1], label="|Drag Power|")
-        ax4.set_xlim(0, self.apogeeTime if self.apogeeTime != 0.0 else self.tFinal)
-        ax3.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
-        ax4.set_title("Drag Absolute Power")
-        ax4.set_xlabel("Time (s)")
-        ax4.set_ylabel("Power (W)")
-        ax4.legend()
-        ax4.grid()
-
-        plt.subplots_adjust(hspace=1)
-        plt.show()
-
-        return None
-
-    def plotFluidMechanicsData(self):
-        """Prints out a summary of the Fluid Mechanics graphs available about
-        the Flight
-
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
-        None
-        """
-
-        # Trajectory Fluid Mechanics Plots
-        fig10 = plt.figure(figsize=(9, 12))
-
-        ax1 = plt.subplot(411)
-        ax1.plot(self.MachNumber[:, 0], self.MachNumber[:, 1])
-        ax1.set_xlim(0, self.tFinal)
-        ax1.set_title("Mach Number")
-        ax1.set_xlabel("Time (s)")
-        ax1.set_ylabel("Mach Number")
-        ax1.grid()
-
-        ax2 = plt.subplot(412)
-        ax2.plot(self.ReynoldsNumber[:, 0], self.ReynoldsNumber[:, 1])
-        ax2.set_xlim(0, self.tFinal)
-        ax2.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
-        ax2.set_title("Reynolds Number")
-        ax2.set_xlabel("Time (s)")
-        ax2.set_ylabel("Reynolds Number")
-        ax2.grid()
-
-        ax3 = plt.subplot(413)
-        ax3.plot(
-            self.dynamicPressure[:, 0],
-            self.dynamicPressure[:, 1],
-            label="Dynamic Pressure",
-        )
-        ax3.plot(
-            self.totalPressure[:, 0], self.totalPressure[:, 1], label="Total Pressure"
-        )
-        ax3.plot(self.pressure[:, 0], self.pressure[:, 1], label="Static Pressure")
-        ax3.set_xlim(0, self.tFinal)
-        ax3.legend()
-        ax3.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
-        ax3.set_title("Total and Dynamic Pressure")
-        ax3.set_xlabel("Time (s)")
-        ax3.set_ylabel("Pressure (Pa)")
-        ax3.grid()
-
-        ax4 = plt.subplot(414)
-        ax4.plot(self.angleOfAttack[:, 0], self.angleOfAttack[:, 1])
-        # Make sure bottom and top limits are different
-        if self.outOfRailTime * self.angleOfAttack(self.outOfRailTime) != 0:
-            ax4.set_xlim(self.outOfRailTime, 10 * self.outOfRailTime + 1)
-            ax4.set_ylim(0, self.angleOfAttack(self.outOfRailTime))
-        ax4.set_title("Angle of Attack")
-        ax4.set_xlabel("Time (s)")
-        ax4.set_ylabel("Angle of Attack (°)")
-        ax4.grid()
-
-        plt.subplots_adjust(hspace=0.5)
-        plt.show()
 
         return None
 
@@ -3650,111 +2832,6 @@ class Flight:
 
         return None
 
-    def plotStabilityAndControlData(self):
-        """Prints out Rocket Stability and Control parameters graphs available
-        about the Flight
-
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
-        None
-        """
-
-        fig9 = plt.figure(figsize=(9, 6))
-
-        ax1 = plt.subplot(211)
-        ax1.plot(self.staticMargin[:, 0], self.staticMargin[:, 1])
-        ax1.set_xlim(0, self.staticMargin[:, 0][-1])
-        ax1.set_title("Static Margin")
-        ax1.set_xlabel("Time (s)")
-        ax1.set_ylabel("Static Margin (c)")
-        ax1.grid()
-
-        ax2 = plt.subplot(212)
-        maxAttitude = max(self.attitudeFrequencyResponse[:, 1])
-        maxAttitude = maxAttitude if maxAttitude != 0 else 1
-        ax2.plot(
-            self.attitudeFrequencyResponse[:, 0],
-            self.attitudeFrequencyResponse[:, 1] / maxAttitude,
-            label="Attitude Angle",
-        )
-        maxOmega1 = max(self.omega1FrequencyResponse[:, 1])
-        maxOmega1 = maxOmega1 if maxOmega1 != 0 else 1
-        ax2.plot(
-            self.omega1FrequencyResponse[:, 0],
-            self.omega1FrequencyResponse[:, 1] / maxOmega1,
-            label=r"$\omega_1$",
-        )
-        maxOmega2 = max(self.omega2FrequencyResponse[:, 1])
-        maxOmega2 = maxOmega2 if maxOmega2 != 0 else 1
-        ax2.plot(
-            self.omega2FrequencyResponse[:, 0],
-            self.omega2FrequencyResponse[:, 1] / maxOmega2,
-            label=r"$\omega_2$",
-        )
-        maxOmega3 = max(self.omega3FrequencyResponse[:, 1])
-        maxOmega3 = maxOmega3 if maxOmega3 != 0 else 1
-        ax2.plot(
-            self.omega3FrequencyResponse[:, 0],
-            self.omega3FrequencyResponse[:, 1] / maxOmega3,
-            label=r"$\omega_3$",
-        )
-        ax2.set_title("Frequency Response")
-        ax2.set_xlabel("Frequency (Hz)")
-        ax2.set_ylabel("Amplitude Magnitude Normalized")
-        ax2.set_xlim(0, 5)
-        ax2.legend()
-        ax2.grid()
-
-        plt.subplots_adjust(hspace=0.5)
-        plt.show()
-
-        return None
-
-    def plotPressureSignals(self):
-        """Prints out all Parachute Trigger Pressure Signals.
-        This function can be called also for plot pressure data for flights
-        without Parachutes, in this case the Pressure Signals will be simply
-        the pressure provided by the atmosphericModel, at Flight z positions.
-        This means that no noise will be considered if at least one parachute
-        has not been added.
-
-        This function aims to help the engineer to visually check if there
-        are anomalies with the Flight Simulation.
-
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
-        None
-        """
-
-        if len(self.rocket.parachutes) == 0:
-            plt.figure()
-            ax1 = plt.subplot(111)
-            ax1.plot(self.z[:, 0], self.env.pressure(self.z[:, 1]))
-            ax1.set_title("Pressure at Rocket's Altitude")
-            ax1.set_xlabel("Time (s)")
-            ax1.set_ylabel("Pressure (Pa)")
-            ax1.set_xlim(0, self.tFinal)
-            ax1.grid()
-
-            plt.show()
-
-        else:
-            for parachute in self.rocket.parachutes:
-                print("Parachute: ", parachute.name)
-                parachute.noiseSignalFunction()
-                parachute.noisyPressureSignalFunction()
-                parachute.cleanPressureSignalFunction()
-
-        return None
-
     def exportPressures(self, fileName, timeStep):
         """Exports the pressure experienced by the rocket during the flight to
         an external file, the '.csv' format is recommended, as the columns will
@@ -3794,8 +2871,18 @@ class Flight:
         else:
             for parachute in self.rocket.parachutes:
                 for i in range(0, timePoints.size, 1):
-                    pCl = parachute.cleanPressureSignalFunction(timePoints[i])
-                    pNs = parachute.noisyPressureSignalFunction(timePoints[i])
+                    pCl = Function(
+                        parachute.cleanPressureSignal,
+                        "Time (s)",
+                        "Pressure - Without Noise (Pa)",
+                        "linear",
+                    )(timePoints[i])
+                    pNs = Function(
+                        parachute.noisyPressureSignal,
+                        "Time (s)",
+                        "Pressure - With Noise (Pa)",
+                        "linear",
+                    )(timePoints[i])
                     file.write("{:f}, {:.5f}, {:.5f}\n".format(timePoints[i], pCl, pNs))
                 # We need to save only 1 parachute data
                 pass
@@ -3997,47 +3084,10 @@ class Flight:
         None
         """
 
-        # Print initial conditions
-        print("Initial Conditions\n")
-        self.printInitialConditionsData()
-
-        # Print launch rail orientation
-        print("\n\nLaunch Rail Orientation\n")
-        print("Launch Rail Inclination: {:.2f}°".format(self.inclination))
-        print("Launch Rail Heading: {:.2f}°\n\n".format(self.heading))
-
         # Print a summary of data about the flight
         self.info()
 
-        print("\n\nNumerical Integration Information\n")
-        self.printNumericalIntegrationSettings()
-
-        print("\n\nTrajectory 3d Plot\n")
-        self.plot3dTrajectory()
-
-        print("\n\nTrajectory Kinematic Plots\n")
-        self.plotLinearKinematicsData()
-
-        print("\n\nAngular Position Plots\n")
-        self.plotFlightPathAngleData()
-
-        print("\n\nPath, Attitude and Lateral Attitude Angle plots\n")
-        self.plotAttitudeData()
-
-        print("\n\nTrajectory Angular Velocity and Acceleration Plots\n")
-        self.plotAngularKinematicsData()
-
-        print("\n\nTrajectory Force Plots\n")
-        self.plotTrajectoryForceData()
-
-        print("\n\nTrajectory Energy Plots\n")
-        self.plotEnergyData()
-
-        print("\n\nTrajectory Fluid Mechanics Plots\n")
-        self.plotFluidMechanicsData()
-
-        print("\n\nTrajectory Stability and Control Plots\n")
-        self.plotStabilityAndControlData()
+        self.plots.all()
 
         return None
 
