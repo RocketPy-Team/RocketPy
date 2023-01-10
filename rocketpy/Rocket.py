@@ -17,6 +17,9 @@ from .AeroSurfaces import AeroSurfaces
 from .AeroSurfaces import NoseCone, TrapezoidalFins, EllipticalFins, Tail
 from .Motor import EmptyMotor
 
+from .prints.rocket_prints import _RocketPrints
+from .plots.rocket_plots import _RocketPlots
+
 
 class Rocket:
 
@@ -249,6 +252,10 @@ class Rocket:
 
         # Evaluate static margin (even though no aerodynamic surfaces are present yet)
         self.evaluateStaticMargin()
+
+        # Initialize plots and prints object
+        self.prints = _RocketPrints(self)
+        self.plots = _RocketPlots(self)
 
         return None
 
@@ -897,34 +904,9 @@ class Rocket:
         ------
         None
         """
-        # Print inertia details
-        print("Inertia Details")
-        print("Rocket Dry Mass: " + str(self.mass) + " kg (No Propellant)")
-        print("Rocket Total Mass: " + str(self.totalMass(0)) + " kg (With Propellant)")
+        # All prints
+        self.prints.all()
 
-        # Print rocket geometrical parameters
-        print("\nGeometrical Parameters")
-        print("Rocket Radius: " + str(self.radius) + " m")
-
-        # Print rocket aerodynamics quantities
-        print("\nAerodynamics Stability")
-        print("Initial Static Margin: " + "{:.3f}".format(self.staticMargin(0)) + " c")
-        print(
-            "Final Static Margin: "
-            + "{:.3f}".format(self.staticMargin(self.motor.burnOutTime))
-            + " c"
-        )
-
-        # Print parachute data
-        for chute in self.parachutes:
-            print("\n" + chute.name.title() + " Parachute")
-            print("CdS Coefficient: " + str(chute.CdS) + " m2")
-
-        # Show plots
-        print("\nAerodynamics Plots")
-        self.powerOnDrag()
-
-        # Return None
         return None
 
     def allInfo(self):
@@ -938,90 +920,10 @@ class Rocket:
         ------
         None
         """
-        # Print inertia details
-        print("Inertia Details")
-        print("Rocket Mass: {:.3f} kg (No Propellant)".format(self.mass))
-        print("Rocket Mass: {:.3f} kg (With Propellant)".format(self.totalMass(0)))
-        print("Rocket Inertia I: {:.3f} kg*m2".format(self.inertiaI))
-        print("Rocket Inertia Z: {:.3f} kg*m2".format(self.inertiaZ))
 
-        # Print rocket geometrical parameters
-        print("\nGeometrical Parameters")
-        print("Rocket Maximum Radius: " + str(self.radius) + " m")
-        print("Rocket Frontal Area: " + "{:.6f}".format(self.area) + " m2")
-        print("\nRocket Distances")
-        print(
-            "Rocket Center of Dry Mass - Nozzle Exit Distance: "
-            + "{:.3f} m".format(abs(self.centerOfDryMassPosition - self.motorPosition))
-        )
-        print(
-            "Rocket Center of Dry Mass - Center of Propellant Mass: "
-            + "{:.3f} m".format(
-                abs(self.centerOfPropellantPosition(0) - self.centerOfDryMassPosition)
-            )
-        )
-        print(
-            "Rocket Center of Mass - Rocket Loaded Center of Mass: "
-            + "{:.3f} m".format(
-                abs(self.centerOfMass(0) - self.centerOfDryMassPosition)
-            )
-        )
-
-        # Print rocket aerodynamics quantities
-        print("\nAerodynamics Lift Coefficient Derivatives")
-        for aeroSurface, position in self.aerodynamicSurfaces:
-            name = aeroSurface.name
-            clalpha = Function(
-                lambda alpha: aeroSurface.cl(alpha, 0),
-            ).differentiate(x=1e-2, dx=1e-3)
-            print(
-                name + " Lift Coefficient Derivative: {:.3f}".format(clalpha) + "/rad"
-            )
-
-        print("\nAerodynamics Center of Pressure")
-        for aeroSurface, position in self.aerodynamicSurfaces:
-            name = aeroSurface.name
-            cpz = position - self._csys * aeroSurface.cpz
-            print(name + " Center of Pressure Position: {:.3f}".format(cpz) + " m")
-        print(
-            "Distance - Center of Pressure to CM: "
-            + "{:.3f}".format(abs(self.cpPosition - self.centerOfDryMassPosition))
-            + " m"
-        )
-        print("Initial Static Margin: " + "{:.3f}".format(self.staticMargin(0)) + " c")
-        print(
-            "Final Static Margin: "
-            + "{:.3f}".format(self.staticMargin(self.motor.burnOutTime))
-            + " c"
-        )
-
-        # Print parachute data
-        for chute in self.parachutes:
-            print("\n" + chute.name.title() + " Parachute")
-            print("CdS Coefficient: " + str(chute.CdS) + " m2")
-            if chute.trigger.__name__ == "<lambda>":
-                line = getsourcelines(chute.trigger)[0][0]
-                print(
-                    "Ejection signal trigger: "
-                    + line.split("lambda ")[1].split(",")[0].split("\n")[0]
-                )
-            else:
-                print("Ejection signal trigger: " + chute.trigger.__name__)
-            print("Ejection system refresh rate: " + str(chute.samplingRate) + " Hz.")
-            print(
-                "Time between ejection signal is triggered and the "
-                "parachute is fully opened: " + str(chute.lag) + " s"
-            )
-
-        # Show plots
-        print("\nMass Plots")
-        self.totalMass()
-        self.reducedMass()
-        print("\nAerodynamics Plots")
-        self.staticMargin()
-        self.powerOnDrag()
-        self.powerOffDrag()
-        self.thrustToWeight.plot(lower=0, upper=self.motor.burnOutTime)
+        # All prints and plots
+        self.info()
+        self.plots.all()
 
         return None
 
