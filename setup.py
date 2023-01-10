@@ -15,10 +15,12 @@ setuptools.setup(
         "ipywidgets>=7.6.3",
         "requests",
         "pytz",
-        "timezonefinder",
         "simplekml",
         "jsonpickle",
     ],
+    extras_require={
+        "timezonefinder": ["timezonefinder"],
+    },
     maintainer="RocketPy Developers",
     author="Giovani Hidalgo Ceotto",
     author_email="ghceotto@gmail.com",
@@ -32,5 +34,5 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.6",
+    python_requires=">=3.7",
 )
