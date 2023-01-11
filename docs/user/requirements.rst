@@ -48,7 +48,6 @@ The packages needed can be installed via ``pip`` by running the following lines 
     pip install "ipywidgets>=7.6.3"
     pip install requests
     pip install pytz
-    pip install timezonefinder
     pip install simplekml
     pip install jsonpickle
 
