@@ -254,7 +254,7 @@ def create_dispersion_dictionary(filename):
         file = np.genfromtxt(
             filename, usecols=(1, 2, 3), skip_header=1, delimiter=",", dtype=str
         )
-    analysis_parameters = {i: {} for i in file[:, 0]}
+    analysis_parameters = dict()
     for row in file:
         if row[0] != "":
             if row[2] == "":
