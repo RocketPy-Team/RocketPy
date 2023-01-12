@@ -569,7 +569,7 @@ class Environment:
 
         return None
 
-    def getElevationFromTopograghicProfile(self, lat, lon):
+    def getElevationFromTopographicProfile(self, lat, lon):
         """Function which receives as inputs the coordinates of a point and finds its
         elevation in the provided Topographic Profile
 
