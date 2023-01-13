@@ -3,6 +3,9 @@ __author__ = "Franz Masatoshi Yuri, Lucas Kierulff Balabram, Guilherme Fernandes
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
+import traceback
+import warnings
+
 import numpy as np
 from scipy.integrate import solve_ivp
 
@@ -244,13 +247,14 @@ def create_dispersion_dictionary(filename):
         file = np.genfromtxt(
             filename, usecols=(1, 2, 3), skip_header=1, delimiter=";", dtype=str
         )
-    except Exception as e:
-        print(
-            f"Error {e} caught: the delimiter should be ';'. Using ',' instead, be"
+    except ValueError:
+        warnings.warn(
+            f"Error caught: the recommended delimiter is ';'. If using ',' instead, be "
             + "aware that some resources might not work as expected if your data "
-            + "set contains lists where the items are separated by commas."
+            + "set contains lists where the items are separated by commas. "
             + "Please consider changing the delimiter to ';' if that is the case."
         )
+        warnings.warn(traceback.format_exc())
         file = np.genfromtxt(
             filename, usecols=(1, 2, 3), skip_header=1, delimiter=",", dtype=str
         )
