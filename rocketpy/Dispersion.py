@@ -155,7 +155,29 @@ class Dispersion:
                 "verbose": False,
             },
         }
-
+        self.exportable_list = [
+            "apogee",
+            "apogeeTime",
+            "apogeeX",
+            "apogeeY",
+            "executionTime",
+            "finalStaticMargin",
+            "frontalSurfaceWind",
+            "impactVelocity",
+            "initialStaticMargin",
+            "lateralSurfaceWind",
+            "maxAcceleration",
+            "maxAccelerationTime",
+            "maxSpeed",
+            "maxSpeedTime",
+            "numberOfEvents",
+            "outOfRailStaticMargin",
+            "outOfRailTime",
+            "outOfRailVelocity",
+            "tFinal",
+            "xImpact",
+            "yImpact",
+        ]
         # Initialize variables so they can be accessed by MATLAB
         self.dispersion_results = {}
         self.dispersion_dictionary = {}
@@ -954,6 +976,35 @@ class Dispersion:
             # Yield a flight setting
             yield flight_setting
 
+    def __check_export_list(self, export_list):
+        """Check if export list is valid or if it is None. In case it is
+        None, export all possible attributes.
+
+        Parameters
+        ----------
+        export_list : list
+            List of strings with the names of the attributes to be exported
+
+        Returns
+        -------
+        export_list
+        """
+
+        if export_list:
+            for attr in export_list:
+                if not isinstance(attr, str):
+                    raise TypeError("Variables must be strings.")
+
+                # Checks if attribute is not valid
+                if attr not in self.export_list:
+                    raise ValueError(
+                        "Attribute can not be exported. Check export_list."
+                    )
+        else:
+            export_list = self.exportable_list
+
+        return export_list
+
     def __export_flight_data(
         self,
         flight_setting,
@@ -961,7 +1012,6 @@ class Dispersion:
         exec_time,
         dispersion_input_file,
         dispersion_output_file,
-        variables=None,
     ):
         """Saves flight results in a .txt
 
@@ -1013,13 +1063,13 @@ class Dispersion:
                 raise TypeError("Variables must be strings.")
 
         # First, capture the flight data that are saved in the flight object
-        attributes_list = list(set(dir(flight)).intersection(variables))
+        attributes_list = list(set(dir(flight)).intersection(self.export_list))
         flight_result = {}
         for var in attributes_list:
             flight_result[str(var)] = getattr(flight, var)
 
         # Second, capture data that needs to be calculated
-        for var in list(set(variables) - set(attributes_list)):
+        for var in list(set(self.export_list) - set(attributes_list)):
             if var == "executionTime":
                 flight_result[str(var)] = exec_time
             elif var == "numberOfEvents":
