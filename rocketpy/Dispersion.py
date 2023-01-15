@@ -38,13 +38,43 @@ class Dispersion:
         The name of the file containing the data to be used in the analysis.
 
     Attributes
-    ---------- # TODO: add "Dispersion" at the beginning of each attribute
-    filename : string
-        The name of the file containing the data to be used in the analysis.
-    num_of_loaded_sims : int
-        The number of simulations loaded from the file.
-    num_of_sims : int
-        The number of simulations to be performed.
+    ---------- # TODO: finish documentation
+        Dispersion.filename : string
+            Directory and name of dispersion files. When running a new simulation,
+            this parameter represents the initial part of the export filenames
+            (e.g. 'filename.disp_outputs.txt'). When analyzing the results of a
+            previous simulation, this parameter shall be the .txt filename containing
+            the outputs of a previous ran dispersion analysis.
+        Dispersion.inputs_dict : dict
+            Contains information regarding the input arguments of the
+            classes. Its keys refers to each of the classes that must be defined during
+            the simulation. Its values are dictionaries where the keys are the input
+            arguments of each class and the values are either the string "required"
+            (meaning it is not an optional argument) or the default value if that argument
+            is optional.
+        Dispersion.dispersion_results : dict
+            Holds dispersion results.
+        Dispersion.dispersion_dictionary : dict
+            Contains inputs to run dispersion
+        Dispersion.nose_names = []
+        Dispersion.finSet_names = []
+        Dispersion.tail_names = []
+        Dispersion.parachute_names = []
+        Dispersion.distributionFunc = None
+        Dispersion.distribution_type = None
+        Dispersion.environment = None
+        Dispersion.flight = None
+        Dispersion.motor = None
+        Dispersion.rocket = None
+        Dispersion.rocket_dispersion = None
+        Dispersion.number_of_simulations = 0
+        Dispersion.num_of_loaded_sims = 0
+        Dispersion.start_time = 0
+
+        Dispersion.num_of_loaded_sims : int
+            The number of simulations loaded from the file.
+        Dispersion.num_of_sims : int
+            The number of simulations to be performed.
     """
 
     def __init__(
@@ -522,7 +552,6 @@ class Dispersion:
         self.tail_names = list(set(self.tail_names))
 
         # Check if there are enough arguments for each kind of aero surface
-
         # Iterate through nose names
         for name in self.nose_names:
             # Iterate through aerodynamic surface available at rocket object
@@ -1142,31 +1171,52 @@ class Dispersion:
         export_list=None,
         append=False,
     ):
-        """Runs the given number of simulations and saves the data
+        """Runs the dispersion simulation and saves all data. For the simulation to be run
+        all classes must be defined. This can happen either trough the dispersion_dictionary
+        or by inputing objects
 
         Parameters
         ----------
         number_of_simulations : int
-            Number of simulations desired, must be non negative.
-            This is needed when running a new simulation. Default is zero.
+            Number of simulations to be run, must be non negative.
         dispersion_dictionary : dict
-            The dictionary with the parameters to be analyzed. This includes the
-            mean and standard deviation of the parameters.
+            The dictionary with the parameters to be analyzed. The keys must be the
+            names of the attributes that will be used in the dispersion simulation.
+            The values can either be a tuple, containing the nominal values of that
+            parameter and its standard deviation, a list, containing the possible
+            values to be randomly chosen in each simulation, or a single value (int
+            or float), being the standard deviation of that parameter. See example
+            for further explanations.
         environment : Environment, optional
-            The environment object. Default is None.
+            Environment object that will be used in the simulations. Default is None.
+            If none, environment must be defined via passing its attributes in the
+            dispersion_dictionary. Arguments related to environment will only vary
+            according to the distribution method if the standard deviation for the
+            desired attributes are on the dispersion_dictionary.
         flight : Flight, optional
-            Original rocket's flight with nominal values. Parameter needed to run
-            a new flight simulation when environment, motor and rocket remain
-            unchanged. By default None.
+            Flight object that will be used in the simulations. Default is None.
+            If none, Flight must be defined via passing its attributes in the
+            dispersion_dictionary. Arguments related to Flight will only vary
+            according to the distribution method if the standard deviation for the
+            desired attributes are on the dispersion_dictionary.
         motor : Motor, optional
-            The motor object of the rocket. Default is None.
+            Motor object that will be used in the simulations. Default is None.
+            If none, Motor must be defined via passing its attributes in the
+            dispersion_dictionary. Arguments related to Motor will only vary
+            according to the distribution method if the standard deviation for the
+            desired attributes are on the dispersion_dictionary.
         rocket : Rocket, optional
-            The rocket object. Default is None.
+            Rocket object that will be used in the simulations. Default is None.
+            If none, Rocket must be defined via passing its attributes in the
+            dispersion_dictionary. Arguments related to Rocket will only vary
+            according to the distribution method if the standard deviation for the
+            desired attributes are on the dispersion_dictionary.
         distribution_type : str, optional
             The probability distribution function to be used in the analysis,
-            by default "normal"
-        exported_variables : list, optional
-            A list containing the variables to be exported. By default None.
+            by default "normal". Options are any numpy.ramdom distributions
+        export_list : list, optional
+            A list containing the name of the attributes to be saved on the dispersion
+            outputs file. See Examples for all possible attribues
         append : bool, optional
             If True, the results will be appended to the existing files. If False,
             the files will be overwritten. By default False.
@@ -1174,6 +1224,13 @@ class Dispersion:
         Returns
         -------
         None
+
+        Examples
+        --------
+
+        TODO: add list of all possible attributes in dispersion_dictionaries and
+              all possible attributes in export_list
+
         """
 
         # Saving the arguments as attributes
