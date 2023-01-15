@@ -539,8 +539,8 @@ class Dispersion:
                         if f"nose_{name}_{input}" not in dictionary:
                             # Try to get the value from the rocket object
                             try:
-                                dictionary[f"nose_{name}_{parameter}"] = [
-                                    getattr(surface, parameter)
+                                dictionary[f"nose_{name}_{input}"] = [
+                                    getattr(surface, input)
                                 ]
                             except AttributeError:
                                 # If not possible, check if the input is required
@@ -570,8 +570,8 @@ class Dispersion:
                         if f"finSet_{name}_{input}" not in dictionary:
                             # Try to get the value from the rocket object
                             try:
-                                dictionary[f"finSet_{name}_{parameter}"] = [
-                                    getattr(surface, parameter)
+                                dictionary[f"finSet_{name}_{input}"] = [
+                                    getattr(surface, input)
                                 ]
                             except AttributeError:
                                 # If not possible, check if the input is required
@@ -598,8 +598,8 @@ class Dispersion:
                         if f"tail_{name}_{input}" not in dictionary:
                             # Try to get the value from the rocket object
                             try:
-                                dictionary[f"tail_{name}_{parameter}"] = [
-                                    getattr(surface, parameter)
+                                dictionary[f"tail_{name}_{input}"] = [
+                                    getattr(surface, input)
                                 ]
                             except AttributeError:
                                 # If not possible, check if the input is required
