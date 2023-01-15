@@ -1143,7 +1143,8 @@ class Dispersion:
         flight=None,
         motor=None,
         rocket=None,
-        exported_variables=None,
+        distribution_type="normal",
+        export_list=None,
         append=False,
     ):
         """Runs the given number of simulations and saves the data
@@ -1183,15 +1184,20 @@ class Dispersion:
         # Saving the arguments as attributes
         self.number_of_simulations = number_of_simulations
         self.dispersion_dictionary = dispersion_dictionary
-        self.environment = environment
-        self.motor = motor
-        self.rocket = rocket
         if flight:  # In case a flight object is passed
             self.environment = flight.env
             self.motor = flight.rocket.motor
             self.rocket = flight.rocket
-        self.flight = flight
-        self.distribution_type = "normal"  # TODO: Must be parametrized
+            self.flight = flight
+        if rocket:
+            self.rocket = rocket
+            self.motor = rocket.motor
+        if motor:
+            self.motor = motor
+        if environment:
+            self.environment = environment
+
+        self.distribution_type = distribution_type
 
         # Check if there's enough object to start a flight:
         ## Raise an error in case of any troubles
@@ -1211,6 +1217,18 @@ class Dispersion:
         dispersion_input_file = open(f"{self.filename}.disp_inputs.txt", open_mode)
         dispersion_output_file = open(f"{self.filename}.disp_outputs.txt", open_mode)
 
+        # Checks export_list
+        self.export_list = self.__check_export_list(export_list)
+
+        # Creates a copy of the environment
+        env_dispersion = self.environment
+
+        # Creates copy of motor
+        motor_dispersion = self.motor
+
+        # Creates copy of rocket
+        rocket_dispersion = self.rocket
+
         # Initialize counter and timer
         i = 0
         initial_wall_time = time()
@@ -1224,9 +1242,6 @@ class Dispersion:
             self.start_time = process_time()
             i += 1
 
-            # Creates a copy of the environment
-            env_dispersion = self.environment
-
             # Apply environment parameters variations on each iteration if possible
             env_dispersion.railLength = setting["railLength"]
             env_dispersion.gravity = setting["gravity"]
@@ -1236,9 +1251,6 @@ class Dispersion:
             env_dispersion.elevation = setting["elevation"]
             if env_dispersion.atmosphericModelType in ["Ensemble", "Reanalysis"]:
                 env_dispersion.selectEnsembleMember(setting["ensembleMember"])
-
-            # Creates copy of motor
-            motor_dispersion = self.motor
 
             # Apply motor parameters variations on each iteration if possible
             # TODO: add hybrid and liquid motor option
@@ -1256,9 +1268,6 @@ class Dispersion:
                 reshapeThrustCurve=(setting["burnOutTime"], setting["totalImpulse"]),
             )
 
-            # Creates copy of rocket
-            rocket_dispersion = self.rocket
-
             # Apply rocket parameters variations on each iteration if possible
             rocket_dispersion = Rocket(
                 motor=motor_dispersion,
@@ -1271,9 +1280,6 @@ class Dispersion:
                 powerOffDrag=setting["powerOffDrag"],
                 powerOnDrag=setting["powerOnDrag"],
             )
-
-            # Clean up aerodynamic surfaces
-            rocket_dispersion.aerodynamicSurfaces = []  # Remove all surfaces
 
             # Add rocket nose, fins and tail
             # Nose
@@ -1289,12 +1295,11 @@ class Dispersion:
             for finSet in self.finSet_names:
                 # TODO: Allow elliptical fins as well
                 rocket_dispersion.addTrapezoidalFins(
-                    n=setting[f"finSet_{finSet}_numberOfFins"],
+                    n=setting[f"finSet_{finSet}_n"],
                     rootChord=setting[f"finSet_{finSet}_rootChord"],
                     tipChord=setting[f"finSet_{finSet}_tipChord"],
                     span=setting[f"finSet_{finSet}_span"],
                     distanceToCM=setting[f"finSet_{finSet}_distanceToCM"],
-                    radius=setting[f"finSet_{finSet}_radius"],
                     airfoil=setting[f"finSet_{finSet}_airfoil"],
                     name=finSet,
                 )
@@ -1354,7 +1359,6 @@ class Dispersion:
                     exec_time=process_time() - self.start_time,
                     dispersion_input_file=dispersion_input_file,
                     dispersion_output_file=dispersion_output_file,
-                    variables=exported_variables,
                 )
             except Exception as E:
                 print(E)
