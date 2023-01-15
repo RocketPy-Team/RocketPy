@@ -185,6 +185,7 @@ class Dispersion:
                 "verbose": False,
             },
         }
+        # TODO: add all exportable attributes to this list
         self.exportable_list = [
             "apogee",
             "apogeeTime",
@@ -1078,35 +1079,9 @@ class Dispersion:
         -------
         None
         """
-
-        # In case not variables are passed, export default variables
-        if not isinstance(variables, list):
-            variables = [
-                "apogee",
-                "apogeeTime",
-                "apogeeX",
-                "apogeeY",
-                "executionTime",
-                "finalStaticMargin",
-                "frontalSurfaceWind",
-                "impactVelocity",
-                "initialStaticMargin",
-                "lateralSurfaceWind",
-                "maxAcceleration",
-                "maxAccelerationTime",
-                "maxSpeed",
-                "maxSpeedTime",
-                "numberOfEvents",
-                "outOfRailStaticMargin",
-                "outOfRailTime",
-                "outOfRailVelocity",
-                "tFinal",
-                "xImpact",
-                "yImpact",
-            ]
-        else:  # Check if variables are valid and raise error if not
-            if not all([isinstance(var, str) for var in variables]):
-                raise TypeError("Variables must be strings.")
+        # TODO: This method is called at every loop of the dispersion
+        # so all the for loops are slowing down de dispersion
+        # find a more efficient way to save attributes
 
         # First, capture the flight data that are saved in the flight object
         attributes_list = list(set(dir(flight)).intersection(self.export_list))
@@ -1345,7 +1320,7 @@ class Dispersion:
 
             # Fins
             for finSet in self.finSet_names:
-                # TODO: Allow elliptical fins as well
+                # TODO: Allow elliptical fins
                 rocket_dispersion.addTrapezoidalFins(
                     n=setting[f"finSet_{finSet}_n"],
                     rootChord=setting[f"finSet_{finSet}_rootChord"],
