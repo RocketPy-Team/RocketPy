@@ -306,11 +306,6 @@ class Dispersion:
         dictionary: dict
             The modified dictionary with the processed parameters.
         """
-        # First we need to check if the dictionary is empty
-        if not dictionary:
-            raise ValueError(
-                "The dispersion dictionary is empty. no dispersion can be performed"
-            )
 
         # Now we prepare all the parachute data
         dictionary = self.__process_parachute_from_dict(dictionary)
