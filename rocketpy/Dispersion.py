@@ -18,13 +18,13 @@ from IPython.display import display
 from matplotlib.patches import Ellipse
 from numpy.random import *
 
+from .AeroSurfaces import EllipticalFins, NoseCone, Tail, TrapezoidalFins
 from .Environment import Environment
 from .Flight import Flight
 from .Function import Function
 from .Motor import SolidMotor
 from .Rocket import Rocket
 from .supplement import invertedHaversine
-from .AeroSurfaces import NoseCone, TrapezoidalFins, EllipticalFins, Tail
 
 
 class Dispersion:
@@ -71,95 +71,89 @@ class Dispersion:
         self.filename = filename
 
         # Initialize variables to be used in the analysis in case of missing inputs
-        self.environment_inputs = {
-            "railLength": "required",
-            "gravity": 9.80665,
-            "date": None,
-            "latitude": 0,
-            "longitude": 0,
-            "elevation": 0,
-            "datum": "WGS84",
-            "timeZone": "UTC",
-        }
-
-        self.solid_motor_inputs = {
-            "thrust": "required",
-            "burnOutTime": "required",
-            "totalImpulse": 0,
-            "grainNumber": "required",
-            "grainDensity": "required",
-            "grainOuterRadius": "required",
-            "grainInitialInnerRadius": "required",
-            "grainInitialHeight": "required",
-            "grainSeparation": 0,
-            "nozzleRadius": 0.0335,
-            "throatRadius": 0.0114,
-        }
-
-        self.rocket_inputs = {
-            "mass": "required",
-            "inertiaI": "required",
-            "inertiaZ": "required",
-            "radius": "required",
-            "distanceRocketNozzle": "required",
-            "distanceRocketPropellant": "required",
-            "powerOffDrag": "required",
-            "powerOnDrag": "required",
-        }
-
-        self.nose_inputs = {
-            "nose_name_length": "required",
-            "nose_name_kind": "Von Karman",
-            "nose_name_distanceToCM": "required",
-            "nose_name_name": "Nose Cone",
-        }
-
-        self.fins_inputs = {
-            "finSet_name_numberOfFins": "required",
-            "finSet_name_rootChord": "required",
-            "finSet_name_tipChord": "required",
-            "finSet_name_span": "required",
-            "finSet_name_distanceToCM": "required",
-            "finSet_name_cantAngle": 0,
-            "finSet_name_radius": None,
-            "finSet_name_airfoil": None,
-        }
-
-        self.tail_inputs = {
-            "tail_name_topRadius": "required",
-            "tail_name_bottomRadius": "required",
-            "tail_name_length": "required",
-            "tail_name_distanceToCM": "required",
-        }
-
-        self.rail_buttons_inputs = {
-            "positionFirstRailButton": "required",
-            "positionSecondRailButton": "required",
-            "railButtonAngularPosition": 45,
-        }
-
-        self.parachute_inputs = {
-            "parachute_name_CdS": "required",
-            "parachute_name_trigger": "required",
-            "parachute_name_samplingRate": 100,
-            "parachute_name_lag": 0,
-            "parachute_name_noise": (0, 0, 0),
-            # "parachute_name_noiseStd": 0,
-            # "parachute_name_noiseCorr": 0,
-        }
-
-        self.flight_inputs = {
-            "inclination": 80,
-            "heading": 90,
-            "initialSolution": None,
-            "terminateOnApogee": False,
-            "maxTime": 600,
-            "maxTimeStep": np.inf,
-            "minTimeStep": 0,
-            "rtol": 1e-6,
-            "atol": 6 * [1e-3] + 4 * [1e-6] + 3 * [1e-3],
-            "timeOvershoot": True,
-            "verbose": False,
+        self.inputs_dict = {
+            "environment": {
+                "railLength": "required",
+                "gravity": 9.80665,
+                "date": None,
+                "latitude": 0,
+                "longitude": 0,
+                "elevation": 0,
+                "datum": "WGS84",
+                "timeZone": "UTC",
+            },
+            "solidmotor": {
+                "thrust": "required",
+                "burnOutTime": "required",
+                "totalImpulse": 0,
+                "grainNumber": "required",
+                "grainDensity": "required",
+                "grainOuterRadius": "required",
+                "grainInitialInnerRadius": "required",
+                "grainInitialHeight": "required",
+                "grainSeparation": 0,
+                "nozzleRadius": 0.0335,
+                "throatRadius": 0.0114,
+            },
+            "rocket": {
+                "mass": "required",
+                "inertiaI": "required",
+                "inertiaZ": "required",
+                "radius": "required",
+                "distanceRocketNozzle": "required",
+                "distanceRocketPropellant": "required",
+                "powerOffDrag": "required",
+                "powerOnDrag": "required",
+            },
+            "nose": {
+                "length": "required",
+                "kind": "Von Karman",
+                "distanceToCM": "required",
+                "name": "Nose Cone",
+            },
+            "fins": {
+                "n": "required",
+                "rootChord": "required",
+                "tipChord": "required",
+                "span": "required",
+                "distanceToCM": "required",
+                "cantAngle": 0,
+                "radius": None,
+                "airfoil": None,
+            },
+            "tail": {
+                "topRadius": "required",
+                "bottomRadius": "required",
+                "length": "required",
+                "distanceToCM": "required",
+            },
+            "railbuttons": {
+                "positionFirstRailButton": "required",
+                "positionSecondRailButton": "required",
+                "railButtonAngularPosition": 45,
+            },
+            "parachute": {
+                "CdS": "required",
+                "trigger": "required",
+                "samplingRate": 100,
+                "lag": 0,
+                "noise": (0, 0, 0),
+                # "noiseStd": 0,
+                # "noiseCorr": 0,
+            },
+            "flight": {
+                "inclination": 80,
+                "heading": 90,
+                "initialSolution": None,
+                "terminateOnApogee": False,
+                "maxTime": 600,
+                "maxTimeStep": np.inf,
+                "minTimeStep": 0,
+                "rtol": 1e-6,
+                "atol": 6 * [1e-3] + 4 * [1e-6] + 3 * [1e-3],
+                "timeOvershoot": True,
+                "verbose": False,
+            },
         }
 
         # Initialize variables so they can be accessed by MATLAB
@@ -345,10 +339,13 @@ class Dispersion:
         # First check if all the inputs for the flight class are present in the
         # dictionary, if not, input the missing ones
         if not all(
-            flight_input in dictionary for flight_input in self.flight_inputs.keys()
+            flight_input in dictionary
+            for flight_input in self.inputs_dict["flight"].keys()
         ):
             # Iterate through missing inputs
-            for missing_input in set(self.flight_inputs.keys()) - dictionary.keys():
+            for missing_input in (
+                set(self.inputs_dict["flight"].keys()) - dictionary.keys()
+            ):
                 missing_input = str(missing_input)
                 # Add to the dict
                 try:
@@ -357,14 +354,16 @@ class Dispersion:
                 except AttributeError:
                     # Flight class was not inputted
                     # check if missing parameter is required
-                    if self.flight_inputs[missing_input] == "required":
+                    if self.inputs_dict["flight"][missing_input] == "required":
                         raise ValueError(
                             "The input {} is required for the Flight class.".format(
                                 missing_input
                             )
                         )
                     else:  # if not required, uses default value
-                        dictionary[missing_input] = [self.flight_inputs[missing_input]]
+                        dictionary[missing_input] = [
+                            self.inputs_dict["flight"][missing_input]
+                        ]
 
         return dictionary
 
@@ -387,11 +386,16 @@ class Dispersion:
         dictionary: dict
             Modified dictionary with the processed rocket parameters.
         """
+
+        # Checks if there are any missing rocket inputs in dictionary
         if not all(
-            rocket_input in dictionary for rocket_input in self.rocket_inputs.keys()
+            rocket_input in dictionary
+            for rocket_input in self.inputs_dict["rocket"].keys()
         ):
             # Iterate through missing inputs
-            for missing_input in set(self.rocket_inputs.keys()) - dictionary.keys():
+            for missing_input in (
+                set(self.inputs_dict["rocket"].keys()) - dictionary.keys()
+            ):
                 missing_input = str(missing_input)
                 # Add to the dict
                 try:
@@ -399,14 +403,16 @@ class Dispersion:
                 except AttributeError:
                     # class was not inputted
                     # checks if missing parameter is required
-                    if self.rocket_inputs[missing_input] == "required":
+                    if self.inputs_dict["rocket"][missing_input] == "required":
                         raise ValueError(
                             "The input {} is required for the Rocket class.".format(
                                 missing_input
                             )
                         )
                     else:  # if not, uses default value
-                        dictionary[missing_input] = [self.rocket_inputs[missing_input]]
+                        dictionary[missing_input] = [
+                            self.inputs_dict["rocket"][missing_input]
+                        ]
 
         return dictionary
 
@@ -432,11 +438,11 @@ class Dispersion:
 
         if not all(
             rail_buttons_input in dictionary
-            for rail_buttons_input in self.rail_buttons_inputs.keys()
+            for rail_buttons_input in self.inputs_dict["railbuttons"].keys()
         ):
             # Iterate through missing inputs
             for missing_input in (
-                set(self.rail_buttons_inputs.keys()) - dictionary.keys()
+                set(self.inputs_dict["railbuttons"].keys()) - dictionary.keys()
             ):
                 missing_input = str(missing_input)
                 # Add to the dict
@@ -445,7 +451,7 @@ class Dispersion:
                 except AttributeError:
                     # class was not inputted
                     # checks if missing parameter is required
-                    if self.rail_buttons_inputs[missing_input] == "required":
+                    if self.inputs_dict["railbuttons"][missing_input] == "required":
                         raise ValueError(
                             "The input {} is required for the RailButtons class.".format(
                                 missing_input
@@ -454,7 +460,7 @@ class Dispersion:
                     else:
                         # if not, uses default value
                         dictionary[missing_input] = [
-                            self.rail_buttons_inputs[missing_input]
+                            self.inputs_dict["railbuttons"][missing_input]
                         ]
 
         return dictionary
@@ -507,17 +513,16 @@ class Dispersion:
                 if surface.name == name and isinstance(surface, NoseCone):
                     # in case we find the corresponding nose, check if all the
                     # inputs are present in the dictionary
-                    for input in self.nose_inputs.keys():
-                        _, _, parameter = input.split("_")
-                        if f"nose_{name}_{parameter}" not in dictionary:
+                    for input in self.inputs_dict["nose"].keys():
+                        if f"nose_{name}_{input}" not in dictionary:
                             # Try to get the value from the rocket object
                             try:
                                 dictionary[f"nose_{name}_{parameter}"] = [
                                     getattr(surface, parameter)
                                 ]
                             except AttributeError:
-                                # If not possible, check if the parameter is required
-                                if self.nose_inputs[input] == "required":
+                                # If not possible, check if the input is required
+                                if self.inputs_dict["nose"][input] == "required":
                                     raise ValueError(
                                         "The input {} is required for the NoseCone class.".format(
                                             input
@@ -526,8 +531,8 @@ class Dispersion:
 
                                 else:
                                     # If not required, use default value
-                                    dictionary[f"nose_{name}_{parameter}"] = [
-                                        self.nose_inputs[input]
+                                    dictionary[f"nose_{name}_{input}"] = [
+                                        self.inputs_dict["nose"][input]
                                     ]
 
         # Iterate through fin sets names
@@ -539,17 +544,16 @@ class Dispersion:
                 ):
                     # in case we find the corresponding fin set, check if all the
                     # inputs are present in the dictionary
-                    for input in self.fins_inputs.keys():
-                        _, _, parameter = input.split("_")
-                        if f"finSet_{name}_{parameter}" not in dictionary:
+                    for input in self.inputs_dict["fins"].keys():
+                        if f"finSet_{name}_{input}" not in dictionary:
                             # Try to get the value from the rocket object
                             try:
                                 dictionary[f"finSet_{name}_{parameter}"] = [
                                     getattr(surface, parameter)
                                 ]
                             except AttributeError:
-                                # If not possible, check if the parameter is required
-                                if self.fins_inputs[input] == "required":
+                                # If not possible, check if the input is required
+                                if self.inputs_dict["fins"][input] == "required":
                                     raise ValueError(
                                         "The input {} is required for the Fins class.".format(
                                             input
@@ -557,8 +561,8 @@ class Dispersion:
                                     )
                                 else:
                                     # If not required, use default value
-                                    dictionary[f"finSet_{name}_{parameter}"] = [
-                                        self.fins_inputs[input]
+                                    dictionary[f"finSet_{name}_{input}"] = [
+                                        self.inputs_dict["fins"][input]
                                     ]
 
         # Iterate through tail names
@@ -568,17 +572,16 @@ class Dispersion:
                 if surface.name == name and isinstance(surface, Tail):
                     # in case we find the corresponding tail, check if all the
                     # inputs are present in the dictionary
-                    for input in self.tail_inputs.keys():
-                        _, _, parameter = input.split("_")
-                        if f"tail_{name}_{parameter}" not in dictionary:
+                    for input in self.inputs_dict["tail"].keys():
+                        if f"tail_{name}_{input}" not in dictionary:
                             # Try to get the value from the rocket object
                             try:
                                 dictionary[f"tail_{name}_{parameter}"] = [
                                     getattr(surface, parameter)
                                 ]
                             except AttributeError:
-                                # If not possible, check if the parameter is required
-                                if self.tail_inputs[input] == "required":
+                                # If not possible, check if the input is required
+                                if self.inputs_dict["tail"][input] == "required":
                                     raise ValueError(
                                         "The input {} is required for the Tail class.".format(
                                             input
@@ -586,8 +589,8 @@ class Dispersion:
                                     )
                                 else:
                                     # If not required, use default value
-                                    dictionary[f"tail_{name}_{parameter}"] = [
-                                        self.tail_inputs[input]
+                                    dictionary[f"tail_{name}_{input}"] = [
+                                        self.inputs_dict["tail"][input]
                                     ]
 
         return dictionary
@@ -614,11 +617,12 @@ class Dispersion:
         # TODO: Add more options of motor (i.e. Liquid and Hybrids)
 
         if not all(
-            motor_input in dictionary for motor_input in self.solid_motor_inputs.keys()
+            motor_input in dictionary
+            for motor_input in self.inputs_dict["solidmotor"].keys()
         ):
             # Iterate through missing inputs
             for missing_input in (
-                set(self.solid_motor_inputs.keys()) - dictionary.keys()
+                set(self.inputs_dict["solidmotor"].keys()) - dictionary.keys()
             ):
                 missing_input = str(missing_input)
                 # Add to the dict
@@ -627,7 +631,7 @@ class Dispersion:
                 except AttributeError:
                     # class was not inputted
                     # checks if missing parameter is required
-                    if self.solid_motor_inputs[missing_input] == "required":
+                    if self.inputs_dict["solidmotor"][missing_input] == "required":
                         raise ValueError(
                             "The input {} is required for the SolidMotor class.".format(
                                 missing_input
@@ -635,7 +639,7 @@ class Dispersion:
                         )
                     else:  # if not uses default value
                         dictionary[missing_input] = [
-                            self.solid_motor_inputs[missing_input]
+                            self.inputs_dict["solidmotor"][missing_input]
                         ]
         return dictionary
 
@@ -661,11 +665,11 @@ class Dispersion:
         # Check if there is any missing input for the environment
         if not all(
             environment_input in dictionary
-            for environment_input in self.environment_inputs.keys()
+            for environment_input in self.inputs_dict["environment"].keys()
         ):
             # Iterate through missing inputs
             for missing_input in (
-                set(self.environment_inputs.keys()) - dictionary.keys()
+                set(self.inputs_dict["environment"].keys()) - dictionary.keys()
             ):
                 missing_input = str(missing_input)
                 # Add to the dict
@@ -677,7 +681,7 @@ class Dispersion:
                 except AttributeError:
                     # class was not inputted
                     # checks if missing parameter is required
-                    if self.environment_inputs[missing_input] == "required":
+                    if self.inputs_dict["environment"][missing_input] == "required":
                         raise ValueError(
                             "The input {} is required for the Environment class.".format(
                                 missing_input
@@ -685,7 +689,7 @@ class Dispersion:
                         )
                     else:  # if not required, use default value
                         dictionary[missing_input] = [
-                            self.environment_inputs[missing_input]
+                            self.inputs_dict["environment"][missing_input]
                         ]
         return dictionary
 
@@ -718,25 +722,32 @@ class Dispersion:
 
         # Check if there is enough arguments for defining each parachute
         for name in self.parachute_names:
-            for parachute_input in self.parachute_inputs.keys():
-                _, _, parameter = parachute_input.split("_")
-                if "parachute_{}_{}".format(name, parameter) not in dictionary.keys():
+            for parachute_input in self.inputs_dict["parachute"].keys():
+                if (
+                    "parachute_{}_{}".format(name, parachute_input)
+                    not in dictionary.keys()
+                ):
                     try:  # Try to get the value from the Parachute object
-                        for chute in self.rocket.parachutes:
-                            if getattr(chute, "name") == name:
-                                dictionary[
-                                    "parachute_{}_{}".format(name, parameter)
-                                ] = [getattr(chute, parameter)]
-                    except AttributeError:  # Class not passed
-                        if self.parachute_inputs[parachute_input] == "required":
+                        if len(self.rocket.parachutes) > 0:
+                            for chute in self.rocket.parachutes:
+                                if getattr(chute, "name") == name:
+                                    dictionary[
+                                        "parachute_{}_{}".format(name, parachute_input)
+                                    ] = [getattr(chute, parachute_input)]
+                        else:
+                            raise Exception
+                    except Exception:  # Class not passed
+                        if self.inputs_dict["parachute"][parachute_input] == "required":
                             raise ValueError(
                                 "The input {} is required for the Parachute class.".format(
                                     parachute_input
                                 )
                             )
                         else:
-                            dictionary["parachute_{}_{}".format(name, parameter)] = [
-                                self.parachute_inputs[parachute_input],
+                            dictionary[
+                                "parachute_{}_{}".format(name, parachute_input)
+                            ] = [
+                                self.inputs_dict["parachute"][parachute_input],
                             ]
 
         return dictionary
@@ -780,7 +791,7 @@ class Dispersion:
                     )
 
             ## Second corrections - Environment
-            if parameter_key in self.environment_inputs.keys():
+            elif parameter_key in self.inputs_dict["environment"].keys():
                 try:
                     dictionary[parameter_key] = (
                         getattr(self.environment, parameter_key),
@@ -796,7 +807,7 @@ class Dispersion:
                     )
 
             ## Third corrections - SolidMotor
-            elif parameter_key in self.solid_motor_inputs.keys():
+            elif parameter_key in self.inputs_dict["solidmotor"].keys():
                 try:
                     dictionary[parameter_key] = (
                         getattr(self.motor, parameter_key),
@@ -812,7 +823,7 @@ class Dispersion:
                     )
 
             # Fourth correction - Rocket
-            elif parameter_key in self.rocket_inputs.keys():
+            elif parameter_key in self.inputs_dict["rocket"].keys():
                 try:
                     dictionary[parameter_key] = (
                         getattr(self.rocket, parameter_key),
@@ -828,7 +839,7 @@ class Dispersion:
                     )
 
             # Fifth correction - Flight
-            elif parameter_key in self.flight_inputs.keys():
+            elif parameter_key in self.inputs_dict["flight"].keys():
                 try:
                     dictionary[parameter_key] = (
                         getattr(self.flight, parameter_key),
