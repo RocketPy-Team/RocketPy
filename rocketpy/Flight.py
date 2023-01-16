@@ -17,7 +17,7 @@ import simplekml
 from scipy import integrate
 
 from .Function import Function
-from .utilities import *
+from .supplement import *
 
 
 class Flight:
@@ -610,8 +610,8 @@ class Flight:
         upperRButton = max(self.rocket.railButtons[0])
         lowerRButton = min(self.rocket.railButtons[0])
         nozzle = self.rocket.distanceRocketNozzle
-        self.effective1RL = self.env.rL - abs(nozzle - upperRButton)
-        self.effective2RL = self.env.rL - abs(nozzle - lowerRButton)
+        self.effective1RL = self.env.railLength - abs(nozzle - upperRButton)
+        self.effective2RL = self.env.railLength - abs(nozzle - lowerRButton)
 
         # Flight initialization
         self.__init_post_process_variables()
@@ -1418,7 +1418,6 @@ class Flight:
                 compStreamVzBn = compStreamVzB / compStreamSpeed
                 if -1 * compStreamVzBn < 1:
                     compAttackAngle = np.arccos(-compStreamVzBn)
-                    cLift = aerodynamicSurface.cl(compAttackAngle, freestreamMach)
                     cLift = aerodynamicSurface.cl(compAttackAngle, freestreamMach)
                     # Component lift force magnitude
                     compLift = (
@@ -2754,6 +2753,19 @@ class Flight:
     @cached_property
     def staticMargin(self):
         return self.rocket.staticMargin
+
+    # Save important Static Margin values
+    @cached_property
+    def initialStaticMargin(self):
+        return self.staticMargin(0)
+
+    @cached_property
+    def outOfRailStaticMargin(self):
+        return self.staticMargin(self.outOfRailTime)
+
+    @cached_property
+    def finalStaticMargin(self):
+        return self.staticMargin(self.staticMargin(0))
 
     # Rail Button Forces
     @cached_property

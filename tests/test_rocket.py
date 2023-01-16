@@ -361,7 +361,6 @@ def test_add_trapezoidal_fins_sweep_angle(
 
     # Check center of pressure
     translate = 0.55829 + 0.71971
-    cpz = FinSet.cp[2]
     assert translate - cpz == pytest.approx(expected_fin_cpz, 0.01)
 
     # Check lift coefficient derivative

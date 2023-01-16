@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from .Function import Function
-
 __author__ = "Giovani Hidalgo Ceotto, Guilherme Fernandes Alves, Lucas Azevedo Pezente, Oscar Mauricio Prada Ramirez, Lucas Kierulff Balabram"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
@@ -17,6 +15,9 @@ import numpy as np
 import numpy.ma as ma
 import pytz
 import requests
+
+from .Function import Function
+from .supplement import geodesicToUtm, calculateEarthRadius
 
 try:
     import netCDF4
@@ -56,7 +57,7 @@ class Environment:
             Value of Air's Gas Constant = 287.05287 J/K/Kg
 
         Gravity and Launch Rail Length:
-        Environment.rl : float
+        Environment.railLength : float
             Launch rail length in meters.
         Environment.gravity : float
             Positive value of gravitational acceleration in m/s^2.
@@ -101,7 +102,7 @@ class Environment:
         Environment.elevArray: array
             Two-dimensional Array containing the elevation information
         Environment.topographicProfileActivated: bool
-            True if the user already set a topographic plofile
+            True if the user already set a topographic profile
 
         Atmosphere Static Conditions:
         Environment.maxExpectedHeight : float
@@ -351,7 +352,7 @@ class Environment:
         None
         """
         # Save launch rail length
-        self.rL = railLength
+        self.railLength = railLength
 
         # Save gravity value
         self.gravity = gravity
@@ -2762,10 +2763,10 @@ class Environment:
         # Retrieve gas constant R and temperature T
         R = self.airGasConstant
         T = self.temperature
-        G = 1.4  # Unused variable, why?
+        G = 1.4
 
         # Compute speed of sound using sqrt(gamma*R*T)
-        a = (1.4 * R * T) ** 0.5
+        a = (G * R * T) ** 0.5
 
         # Set new output for the calculated speed of sound
         a.setOutputs("Speed of Sound (m/s)")
@@ -2865,7 +2866,7 @@ class Environment:
         """
         # Print launch site details
         print("Launch Site Details")
-        print("\nLaunch Rail Length:", self.rL, " m")
+        print("\nLaunch Rail Length:", self.railLength, " m")
         time_format = "%Y-%m-%d %H:%M:%S"
         if self.date != None and "UTC" not in self.timeZone:
             print(
@@ -3001,7 +3002,7 @@ class Environment:
 
         # Print launch site details
         print("\n\nLaunch Site Details")
-        print("\nLaunch Rail Length:", self.rL, " m")
+        print("\nLaunch Rail Length:", self.railLength, " m")
         time_format = "%Y-%m-%d %H:%M:%S"
         if self.date != None and "UTC" not in self.timeZone:
             print(
@@ -3304,7 +3305,7 @@ class Environment:
         # Dictionary creation, if not commented follows the SI
         info = dict(
             grav=self.gravity,
-            launch_rail_length=self.rL,
+            launch_rail_length=self.railLength,
             elevation=self.elevation,
             modelType=self.atmosphericModelType,
             modelTypeMaxExpectedHeight=self.maxExpectedHeight,
@@ -3351,9 +3352,9 @@ class Environment:
 
         # TODO: in the future, allow the user to select which format will be used (json, csv, etc.). Default must be JSON.
         # TODO: add self.exportEnvDictionary to the documentation
-        # TODO: find a way to documennt the workaround I've used on ma.getdata(self...
+        # TODO: find a way to document the workaround I've used on ma.getdata(self...
         self.exportEnvDictionary = {
-            "railLength": self.rL,
+            "railLength": self.railLength,
             "gravity": self.gravity,
             "date": [self.date.year, self.date.month, self.date.day, self.date.hour],
             "latitude": self.latitude,
@@ -3395,336 +3396,6 @@ class Environment:
 
         return None
 
-    # Auxiliary functions - Geodesic Coordinates
-    def geodesicToUtm(self, lat, lon, datum):
-        """Function which converts geodetic coordinates, i.e. lat/lon, to UTM
-        projection coordinates. Can be used only for latitudes between -80.00°
-        and 84.00°
-
-        Parameters
-        ----------
-        lat : float
-            The latitude coordinates of the point of analysis, must be contained
-            between -80.00° and 84.00°
-        lon : float
-            The longitude coordinates of the point of analysis, must be contained
-            between -180.00° and 180.00°
-        datum : string
-            The desired reference ellipsoide model, the following options are
-            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
-            is "SIRGAS2000", then this model will be used if the user make some
-            typing mistake
-
-        Returns
-        -------
-        x: float
-            East coordinate, always positive
-        y:
-            North coordinate, always positive
-        utmZone: int
-            The number of the UTM zone of the point of analysis, can vary between
-            1 and 60
-        utmLetter: string
-            The letter of the UTM zone of the point of analysis, can vary between
-            C and X, omitting the letters "I" and "O"
-        hemis: string
-            Returns "S" for southern hemisphere and "N" for Northern hemisphere
-        EW: string
-            Returns "W" for western hemisphere and "E" for eastern hemisphere
-        """
-
-        # Calculate the central meridian of UTM zone
-        if lon != 0:
-            signal = lon / abs(lon)
-            if signal > 0:
-                aux = lon - 3
-                aux = aux * signal
-                div = aux // 6
-                lon_mc = div * 6 + 3
-                EW = "E"
-            else:
-                aux = lon + 3
-                aux = aux * signal
-                div = aux // 6
-                lon_mc = (div * 6 + 3) * signal
-                EW = "W"
-        else:
-            lon_mc = 3
-            EW = "W|E"
-
-        # Select the desired datum (i.e. the ellipsoid parameters)
-        if datum == "SAD69":
-            semiMajorAxis = 6378160.0
-            flattening = 1 / 298.25
-        elif datum == "WGS84":
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257223563
-        elif datum == "NAD83":
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257024899
-        else:
-            # SIRGAS2000
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257223563
-
-        # Evaluate the hemisphere and determine the N coordinate at the Equator
-        if lat < 0:
-            N0 = 10000000
-            hemis = "S"
-        else:
-            N0 = 0
-            hemis = "N"
-
-        # Convert the input lat and lon to radians
-        lat = lat * np.pi / 180
-        lon = lon * np.pi / 180
-        lon_mc = lon_mc * np.pi / 180
-
-        # Evaluate reference parameters
-        K0 = 1 - 1 / 2500
-        e2 = 2 * flattening - flattening**2
-        e2lin = e2 / (1 - e2)
-
-        # Evaluate auxiliary parameters
-        A = e2 * e2
-        B = A * e2
-        C = np.sin(2 * lat)
-        D = np.sin(4 * lat)
-        E = np.sin(6 * lat)
-        F = (1 - e2 / 4 - 3 * A / 64 - 5 * B / 256) * lat
-        G = (3 * e2 / 8 + 3 * A / 32 + 45 * B / 1024) * C
-        H = (15 * A / 256 + 45 * B / 1024) * D
-        I = (35 * B / 3072) * E
-
-        # Evaluate other reference parameters
-        n = semiMajorAxis / ((1 - e2 * (np.sin(lat) ** 2)) ** 0.5)
-        t = np.tan(lat) ** 2
-        c = e2lin * (np.cos(lat) ** 2)
-        ag = (lon - lon_mc) * np.cos(lat)
-        m = semiMajorAxis * (F - G + H - I)
-
-        # Evaluate new auxiliary parameters
-        J = (1 - t + c) * ag * ag * ag / 6
-        K = (5 - 18 * t + t * t + 72 * c - 58 * e2lin) * (ag**5) / 120
-        L = (5 - t + 9 * c + 4 * c * c) * ag * ag * ag * ag / 24
-        M = (61 - 58 * t + t * t + 600 * c - 330 * e2lin) * (ag**6) / 720
-
-        # Evaluate the final coordinates
-        x = 500000 + K0 * n * (ag + J + K)
-        y = N0 + K0 * (m + n * np.tan(lat) * (ag * ag / 2 + L + M))
-
-        # Convert the output lat and lon to degrees
-        lat = lat * 180 / np.pi
-        lon = lon * 180 / np.pi
-        lon_mc = lon_mc * 180 / np.pi
-
-        # Calculate the UTM zone number
-        utmZone = int((lon_mc + 183) / 6)
-
-        # Calculate the UTM zone letter
-        letters = "CDEFGHJKLMNPQRSTUVWXX"
-        utmLetter = letters[int(80 + lat) >> 3]
-
-        return x, y, utmZone, utmLetter, hemis, EW
-
-    def utmToGeodesic(self, x, y, utmZone, hemis, datum):
-        """Function to convert UTM coordinates to geodesic coordinates
-        (i.e. latitude and longitude). The latitude should be between -80°
-        and 84°
-
-        Parameters
-        ----------
-        x : float
-            East UTM coordinate in meters
-        y : float
-            North UTM coordinate in meters
-        utmZone : int
-            The number of the UTM zone of the point of analysis, can vary between
-            1 and 60
-        hemis : string
-            Equals to "S" for southern hemisphere and "N" for Northern hemisphere
-        datum : string
-            The desired reference ellipsoide model, the following options are
-            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
-            is "SIRGAS2000", then this model will be used if the user make some
-            typing mistake
-
-        Returns
-        -------
-        lat: float
-            latitude of the analysed point
-        lon: float
-            latitude of the analysed point
-        """
-
-        if hemis == "N":
-            y = y + 10000000
-
-        # Calculate the Central Meridian from the UTM zone number
-        centralMeridian = utmZone * 6 - 183  # degrees
-
-        # Select the desired datum
-        if datum == "SAD69":
-            semiMajorAxis = 6378160.0
-            flattening = 1 / 298.25
-        elif datum == "WGS84":
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257223563
-        elif datum == "NAD83":
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257024899
-        else:
-            # SIRGAS2000
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257223563
-
-        # Calculate reference values
-        K0 = 1 - 1 / 2500
-        e2 = 2 * flattening - flattening**2
-        e2lin = e2 / (1 - e2)
-        e1 = (1 - (1 - e2) ** 0.5) / (1 + (1 - e2) ** 0.5)
-
-        # Calculate auxiliary values
-        A = e2 * e2
-        B = A * e2
-        C = e1 * e1
-        D = e1 * C
-        E = e1 * D
-
-        m = (y - 10000000) / K0
-        mi = m / (semiMajorAxis * (1 - e2 / 4 - 3 * A / 64 - 5 * B / 256))
-
-        # Calculate other auxiliary values
-        F = (3 * e1 / 2 - 27 * D / 32) * np.sin(2 * mi)
-        G = (21 * C / 16 - 55 * E / 32) * np.sin(4 * mi)
-        H = (151 * D / 96) * np.sin(6 * mi)
-
-        lat1 = mi + F + G + H
-        c1 = e2lin * (np.cos(lat1) ** 2)
-        t1 = np.tan(lat1) ** 2
-        n1 = semiMajorAxis / ((1 - e2 * (np.sin(lat1) ** 2)) ** 0.5)
-        quoc = (1 - e2 * np.sin(lat1) * np.sin(lat1)) ** 3
-        r1 = semiMajorAxis * (1 - e2) / (quoc**0.5)
-        d = (x - 500000) / (n1 * K0)
-
-        # Calculate other auxiliary values
-        I = (5 + 3 * t1 + 10 * c1 - 4 * c1 * c1 - 9 * e2lin) * d * d * d * d / 24
-        J = (
-            (61 + 90 * t1 + 298 * c1 + 45 * t1 * t1 - 252 * e2lin - 3 * c1 * c1)
-            * (d**6)
-            / 720
-        )
-        K = d - (1 + 2 * t1 + c1) * d * d * d / 6
-        L = (
-            (5 - 2 * c1 + 28 * t1 - 3 * c1 * c1 + 8 * e2lin + 24 * t1 * t1)
-            * (d**5)
-            / 120
-        )
-
-        # Finally calculate the coordinates in lat/lot
-        lat = lat1 - (n1 * np.tan(lat1) / r1) * (d * d / 2 - I + J)
-        lon = centralMeridian * np.pi / 180 + (K + L) / np.cos(lat1)
-
-        # Convert final lat/lon to Degrees
-        lat = lat * 180 / np.pi
-        lon = lon * 180 / np.pi
-
-        return lat, lon
-
-    def calculateEarthRadius(self, lat, datum):
-        """Simple function to calculate the Earth Radius at a specific latitude
-        based on ellipsoidal reference model (datum). The earth radius here is
-        assumed as the distance between the ellipsoid's center of gravity and a
-        point on ellipsoid surface at the desired
-        Pay attention: The ellipsoid is an approximation for the earth model and
-        will obviously output an estimate of the perfect distance between earth's
-        relief and its center of gravity.
-
-        Parameters
-        ----------
-        lat : float
-            latitude in which the Earth radius will be calculated
-        datum : string
-            The desired reference ellipsoide model, the following options are
-            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
-            is "SIRGAS2000", then this model will be used if the user make some
-            typing mistake
-
-        Returns
-        -------
-        float:
-            Earth Radius at the desired latitude in meters
-        """
-        # Select the desired datum (i.e. the ellipsoid parameters)
-        if datum == "SAD69":
-            semiMajorAxis = 6378160.0
-            flattening = 1 / 298.25
-        elif datum == "WGS84":
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257223563
-        elif datum == "NAD83":
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257024899
-        else:
-            # SIRGAS2000
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257223563
-
-        # Calculate the semi minor axis length
-        # semiMinorAxis = semiMajorAxis - semiMajorAxis*(flattening**(-1))
-        semiMinorAxis = semiMajorAxis * (1 - flattening)
-
-        # Convert latitude to radians
-        lat = lat * np.pi / 180
-
-        # Calculate the Earth Radius in meters
-        eRadius = np.sqrt(
-            (
-                (np.cos(lat) * (semiMajorAxis**2)) ** 2
-                + (np.sin(lat) * (semiMinorAxis**2)) ** 2
-            )
-            / ((np.cos(lat) * semiMajorAxis) ** 2 + (np.sin(lat) * semiMinorAxis) ** 2)
-        )
-
-        # Convert latitude to degress
-        lat = lat * 180 / np.pi
-
-        return eRadius
-
-    def decimalDegressToArcSeconds(self, angle):
-        """Function to convert an angle in decimal degrees to deg/min/sec.
-         Converts (°) to (° ' ")
-
-        Parameters
-        ----------
-        angle : float
-            The angle that you need convert to deg/min/sec. Must be given in
-            decimal degrees.
-
-        Returns
-        -------
-        deg: float
-            The degrees.
-        min: float
-            The arc minutes. 1 arc-minute = (1/60)*degree
-        sec: float
-            The arc Seconds. 1 arc-second = (1/3600)*degree
-        """
-
-        if angle < 0:
-            signal = -1
-        else:
-            signal = 1
-
-        deg = (signal * angle) // 1
-        min = abs(signal * angle - deg) * 60 // 1
-        sec = abs((signal * angle - deg) * 60 - min) * 60
-        # print("The angle {:f} is equals to {:.0f}º {:.0f}' {:.3f}'' ".format(
-        #    angle, signal*deg, min, sec
-        # ))
-
-        return deg, min, sec
-
     def printEarthDetails(self):
         """[UNDER CONSTRUCTION]
         Function to print information about the Earth Model used in the
@@ -3745,6 +3416,3 @@ class Environment:
         print("Gravity acceleration at launch site: Still not implemented :(")
 
         return None
-
-
-from .utilities import calculateEarthRadius, geodesicToUtm

@@ -621,7 +621,7 @@ class Rocket:
 
         # Create a fin set as an object of EllipticalFins class
         finSet = EllipticalFins(
-            n, rootChord, span, distanceToCM, radius, cantAngle, airfoil, name
+            n, rootChord, span, distanceToCM, cantAngle, radius, airfoil, name
         )
 
         # Add fin set to the list of aerodynamic surfaces
@@ -726,8 +726,10 @@ class Rocket:
             distanceToCM.reverse()
         # Save important attributes
         self.railButtons = self.railButtonPair(distanceToCM, angularPosition)
-        self.RBdistanceToCM = distanceToCM
-        self.angularPosition = angularPosition
+        # Saving in a special format just for dispersion class
+        self.positionFirstRailButton = distanceToCM[0]
+        self.positionSecondRailButton = distanceToCM[1]
+        self.railButtonAngularPosition = angularPosition
         return None
 
     def addCMEccentricity(self, x, y):
@@ -814,6 +816,24 @@ class Rocket:
 
         # Return self
         return self
+
+    def get_parachute_by_name(self, name):
+        """Returns parachute object by name.
+
+        Parameters
+        ----------
+        name : str
+            Name of the parachute.
+
+        Returns
+        -------
+        parachute : Parachute
+            Parachute object with the given name.
+        """
+        for parachute in self.parachutes:
+            if parachute.name == name:
+                return parachute
+        raise ValueError("No parachute with name {} found.".format(name))
 
     def info(self):
         """Prints out a summary of the data and graphs available about

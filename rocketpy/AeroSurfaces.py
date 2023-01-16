@@ -215,6 +215,7 @@ class Fins(ABC):
         Geometrical relation used to simplify lift and roll calculations
     Fins.liftInterferenceFactor : float
         Factor of Fin-Body interference in the lift coefficient
+
     """
 
     def __init__(
@@ -230,14 +231,17 @@ class Fins(ABC):
     ):
         """Initialize Fins class.
 
+
         Parameters
         ----------
         n : int
             Number of fins, from 2 to infinity.
+
         rootChord : int, float
             Fin root chord in meters.
         span : int, float
             Fin span in meters.
+
         distanceToCM : int, float
             Fin set position relative to rocket unloaded center of
             mass, considering positive direction from center of mass to
@@ -248,6 +252,7 @@ class Fins(ABC):
         cantAngle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
+
         airfoil : tuple, optional
             Default is null, in which case fins will be treated as flat plates.
             Otherwise, if tuple, fins will be considered as airfoils. The
@@ -277,10 +282,12 @@ class Fins(ABC):
         # Store values
         self.n = n
         self.rocketRadius = rocketRadius
+
         self.airfoil = airfoil
         self.distanceToCM = distanceToCM
         self.cantAngle = cantAngle
         self.rootChord = rootChord
+
         self.span = span
         self.name = name
         self.d = d
@@ -328,6 +335,7 @@ class Fins(ABC):
         if not self.airfoil:
             # Defines clalpha2D as 2*pi for planar fins
             clalpha2D = Function(lambda mach: 2 * np.pi / self.__beta(mach))
+
         else:
             # Defines clalpha2D as the derivative of the
             # lift coefficient curve for a specific airfoil
@@ -792,6 +800,7 @@ class TrapezoidalFins(Fins):
             + 4 * (rootChord + 2 * tipChord) * rocketRadius * span**2
             + 6 * (rootChord + tipChord) * span * rocketRadius**2
         ) / 12
+
         rollDampingInterferenceFactor = 1 + (
             ((tau - λ) / (tau)) - ((1 - λ) / (tau - 1)) * np.log(tau)
         ) / (
@@ -855,10 +864,12 @@ class TrapezoidalFins(Fins):
                 - self.rootChord * self.tipChord / (self.rootChord + self.tipChord)
             )
         )
+
         self.cpx = 0
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
+
         return self.cp
 
     def draw(self):
@@ -1024,6 +1035,7 @@ class EllipticalFins(Fins):
             Geometrical relation used to simplify lift and roll calculations
         Fins.liftInterferenceFactor : float
             Factor of Fin-Body interference in the lift coefficient
+
     """
 
     def __init__(
@@ -1039,9 +1051,11 @@ class EllipticalFins(Fins):
     ):
         """Initialize EllipticalFins class.
 
+
         Parameters
         ----------
         n : int
+
             Number of fins, from 2 to infinity.
         rootChord : int, float
             Fin root chord in meters.
@@ -1090,9 +1104,11 @@ class EllipticalFins(Fins):
         name : str
             Name of fin set.
 
+
         Returns
         -------
         None
+
         """
 
         super().__init__(
@@ -1152,6 +1168,7 @@ class EllipticalFins(Fins):
             * (span / 3 + np.pi * rocketRadius / 4)
             * (span**2 - rocketRadius**2)
         )
+
         rollForcingInterferenceFactor = (1 / np.pi**2) * (
             (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
             + ((np.pi * (tau**2 + 1) ** 2) / (tau**2 * (tau - 1) ** 2))
@@ -1278,6 +1295,7 @@ class EllipticalFins(Fins):
 
 
 class Tail:
+
     """Class that defines a tail for the rocket. Currently only accepts
     conical tails.
 
@@ -1320,6 +1338,7 @@ class Tail:
         along the tail's slant axis. Has the unit of meters.
     Tail.surfaceArea : float
         Surface area of the tail. Has the unit of meters squared.
+
 
     """
 

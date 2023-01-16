@@ -3115,6 +3115,7 @@ class EnvironmentAnalysis:
         Exports the mean profiles of the weather data to a file in order to it
         be used as inputs on Environment Class by using the CustomAtmosphere
         model.
+        OBS: Not all units are allowed as inputs of Environment Class.
 
         Parameters
         ----------
