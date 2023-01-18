@@ -3027,7 +3027,54 @@ class Environment:
 
         # Plot graphs
         print("\n\nAtmospheric Model Plots")
-        self.plots.atmospheric_model()
+        # Create height grid
+        grid = np.linspace(self.elevation, self.maxExpectedHeight)
+
+        # Create figure
+        plt.figure(figsize=(9, 4.5))
+
+        # Create wind speed and wind direction subplot
+        ax1 = plt.subplot(121)
+        ax1.plot(
+            [self.windSpeed(i) for i in grid], grid, "#ff7f0e", label="Speed of Sound"
+        )
+        ax1.set_xlabel("Wind Speed (m/s)", color="#ff7f0e")
+        ax1.tick_params("x", colors="#ff7f0e")
+        ax1up = ax1.twiny()
+        ax1up.plot(
+            [self.windDirection(i) for i in grid],
+            grid,
+            color="#1f77b4",
+            label="Density",
+        )
+        ax1up.set_xlabel("Wind Direction (°)", color="#1f77b4")
+        ax1up.tick_params("x", colors="#1f77b4")
+        ax1up.set_xlim(0, 360)
+        ax1.set_ylabel("Height Above Sea Level (m)")
+        ax1.grid(True)
+
+        # Create density and speed of sound subplot
+        ax2 = plt.subplot(122)
+        ax2.plot(
+            [self.speedOfSound(i) for i in grid],
+            grid,
+            "#ff7f0e",
+            label="Speed of Sound",
+        )
+        ax2.set_xlabel("Speed of Sound (m/s)", color="#ff7f0e")
+        ax2.tick_params("x", colors="#ff7f0e")
+        ax2up = ax2.twiny()
+        ax2up.plot(
+            [self.density(i) for i in grid], grid, color="#1f77b4", label="Density"
+        )
+        ax2up.set_xlabel("Density (kg/m³)", color="#1f77b4")
+        ax2up.tick_params("x", colors="#1f77b4")
+        ax2.set_ylabel("Height Above Sea Level (m)")
+        ax2.grid(True)
+
+        plt.subplots_adjust(wspace=0.5)
+        plt.show()
+        return None
 
     def allInfo(self):
         """Prints out all data and graphs available about the Environment.
@@ -3046,7 +3093,7 @@ class Environment:
 
         return None
 
-    def allPlotInfoReturned(self):
+    def allPlotInfoReturned(self) -> dict:
         """Returns a dictionary with all plot information available about the Environment.
 
         Parameters
@@ -3158,9 +3205,10 @@ class Environment:
         return info
 
     def exportEnvironment(self, filename="environment"):
-        """Export important attributes of Environment class so it can be used
-        again in further siulations by using the customAtmosphere atmospheric
-        model.
+        """Export important attributes of Environment class to a .json file,
+        saving all the information needed to recreate the same environment using
+        customAtmosphere.
+
         Parameters
         ----------
         filename
@@ -3170,9 +3218,13 @@ class Environment:
         None
         """
 
-        # TODO: in the future, allow the user to select which format will be used (json, csv, etc.). Default must be JSON.
-        # TODO: add self.exportEnvDictionary to the documentation
-        # TODO: find a way to documennt the workaround I've used on ma.getdata(self...
+        try:
+            atmosphericModelFile = self.atmosphericModelFile
+            atmosphericModelDict = self.atmosphericModelDict
+        except AttributeError:
+            atmosphericModelFile = ""
+            atmosphericModelDict = ""
+
         self.exportEnvDictionary = {
             "railLength": self.rL,
             "gravity": self.g,
@@ -3184,8 +3236,8 @@ class Environment:
             "timeZone": self.timeZone,
             "maxExpectedHeight": float(self.maxExpectedHeight),
             "atmosphericModelType": self.atmosphericModelType,
-            "atmosphericModelFile": self.atmosphericModelFile,
-            "atmosphericModelDict": self.atmosphericModelDict,
+            "atmosphericModelFile": atmosphericModelFile,
+            "atmosphericModelDict": atmosphericModelDict,
             "atmosphericModelPressureProfile": ma.getdata(
                 self.pressure.getSource()
             ).tolist(),
@@ -3365,7 +3417,7 @@ class Environment:
         hemis : string
             Equals to "S" for southern hemisphere and "N" for Northern hemisphere
         datum : string
-            The desired reference ellipsoide model, the following options are
+            The desired reference ellipsoid model, the following options are
             available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
             is "SIRGAS2000", then this model will be used if the user make some
             typing mistake
@@ -3373,9 +3425,9 @@ class Environment:
         Returns
         -------
         lat: float
-            latitude of the analysed point
+            latitude of the analyzed point
         lon: float
-            latitude of the analysed point
+            latitude of the analyzed point
         """
 
         if hemis == "N":

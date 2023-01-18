@@ -1,5 +1,5 @@
-import os
 import datetime
+import os
 from unittest.mock import patch
 
 import matplotlib as plt
@@ -601,6 +601,7 @@ def test_export_KML():
 
     # Load exported files and fixtures and compare them
     test_1 = open("test_export_data_1.kml", "r")
+
     for row in test_1:
         if row[:29] == "                <coordinates>":
             r = row[29:-15]
