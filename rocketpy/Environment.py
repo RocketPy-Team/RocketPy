@@ -392,7 +392,7 @@ class Environment:
 
         # Store launch site coordinates referenced to UTM projection system
         if self.lat > -80 and self.lat < 84:
-            convert = self.geodesicToUtm(self.lat, self.lon, self.datum)
+            convert = self.geodesicToUtm(self.lat, self.lon)
             self.initialNorth = convert[1]
             self.initialEast = convert[0]
             self.initialUtmZone = convert[2]
@@ -404,7 +404,7 @@ class Environment:
         self.setElevation(elevation)
 
         # Recalculate Earth Radius
-        self.earthRadius = self.calculateEarthRadius(self.lat, self.datum)  # in m
+        self.earthRadius = self.calculateEarthRadius(self.lat)  # in m
 
         # Initialize plots and prints object
         self.plots = _EnvironmentPlots(self)
@@ -3231,7 +3231,7 @@ class Environment:
         return ellipsoid[datum]
 
     # Auxiliary functions - Geodesic Coordinates
-    def geodesicToUtm(self, lat, lon, datum):
+    def geodesicToUtm(self, lat, lon):
         """Function which converts geodetic coordinates, i.e. lat/lon, to UTM
         projection coordinates. Can be used only for latitudes between -80.00°
         and 84.00°
@@ -3244,11 +3244,6 @@ class Environment:
         lon : float
             The longitude coordinates of the point of analysis, must be contained
             between -180.00° and 180.00°
-        datum : string
-            The desired reference ellipsoide model, the following options are
-            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
-            is "SIRGAS2000", then this model will be used if the user make some
-            typing mistake
 
         Returns
         -------
@@ -3351,7 +3346,7 @@ class Environment:
 
         return x, y, utmZone, utmLetter, hemis, EW
 
-    def utmToGeodesic(self, x, y, utmZone, hemis, datum):
+    def utmToGeodesic(self, x, y, utmZone, hemis):
         """Function to convert UTM coordinates to geodesic coordinates
         (i.e. latitude and longitude). The latitude should be between -80°
         and 84°
@@ -3367,11 +3362,6 @@ class Environment:
             1 and 60
         hemis : string
             Equals to "S" for southern hemisphere and "N" for Northern hemisphere
-        datum : string
-            The desired reference ellipsoide model, the following options are
-            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
-            is "SIRGAS2000", then this model will be used if the user make some
-            typing mistake
 
         Returns
         -------
@@ -3444,7 +3434,7 @@ class Environment:
 
         return lat, lon
 
-    def calculateEarthRadius(self, lat, datum):
+    def calculateEarthRadius(self, lat):
         """Simple function to calculate the Earth Radius at a specific latitude
         based on ellipsoidal reference model (datum). The earth radius here is
         assumed as the distance between the ellipsoid's center of gravity and a
@@ -3457,11 +3447,6 @@ class Environment:
         ----------
         lat : float
             latitude in which the Earth radius will be calculated
-        datum : string
-            The desired reference ellipsoide model, the following options are
-            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
-            is "SIRGAS2000", then this model will be used if the user make some
-            typing mistake
 
         Returns
         -------
