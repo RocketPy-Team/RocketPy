@@ -1356,16 +1356,15 @@ class Flight:
         # Geometry
         # b = -self.rocket.distanceRocketPropellant
         b = (
-            -(self.rocket.motorPosition - self.rocket.centerOfDryMassPosition)
+            -(
+                self.rocket.centerOfPropellantPosition(0)
+                - self.rocket.centerOfDryMassPosition
+            )
             * self.rocket._csys
         )
         # c = -self.rocket.distanceRocketNozzle
         c = (
-            -(
-                self.rocket.motor.nozzlePosition
-                + self.rocket.motorPosition
-                - self.rocket.centerOfDryMassPosition
-            )
+            -(self.rocket.motorPosition - self.rocket.centerOfDryMassPosition)
             * self.rocket._csys
         )
         a = b * Mt / M

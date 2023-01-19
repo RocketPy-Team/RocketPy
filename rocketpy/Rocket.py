@@ -114,7 +114,7 @@ class Rocket:
         Rocket.motor : Motor
             Rocket's motor. See Motor class for more details.
         Rocket.motorPosition : float
-            Position, in m, of the motor's reference origin relative to the user defined
+            Position, in m, of the motor's nozzle exit area relative to the user defined
             rocket coordinate system. See `Rocket.coordinateSystemOrientation` for more
             information regarding the rocket's coordinate system.
         Rocket.centerOfPropellantPosition : Function
