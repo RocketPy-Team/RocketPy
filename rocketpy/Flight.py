@@ -9,6 +9,7 @@ __license__ = "MIT"
 import math
 import time
 import warnings
+
 from copy import deepcopy
 
 import matplotlib.pyplot as plt
@@ -19,6 +20,11 @@ from scipy import integrate
 from .Function import Function, funcify_method
 from .plots.flight_plots import _FlightPlots
 from .prints.flight_prints import _FlightPrints
+
+try:
+    from functools import cached_property
+except ImportError:
+    from .tools import cached_property
 
 try:
     from functools import cached_property
@@ -620,6 +626,12 @@ class Flight:
         self.terminateOnApogee = terminateOnApogee
         self.name = name
 
+        # Modifying Rail Length for a better out of rail condition
+        upperButtonPosition, lowerButtonPosition = self.rocket.railButtons.position
+        nozzlePosition = self.rocket.motorPosition
+        self.effective1RL = self.env.rL - abs(nozzlePosition - upperButtonPosition)
+        self.effective2RL = self.env.rL - abs(nozzlePosition - lowerButtonPosition)
+
         # Flight initialization
         self.__init_post_process_variables()
         self.__init_solution_monitors()
@@ -1153,7 +1165,9 @@ class Flight:
     @cached_property
     def effective1RL(self):
         # Modifying Rail Length for a better out of rail condition
-        nozzle = self.rocket.distanceRocketNozzle  # Kinda works for single nozzle
+        nozzle = (
+            self.rocket.motorPosition - self.rocket.centerOfDryMassPosition
+        ) * self.rocket._csys  # Kinda works for single nozzle
         try:
             upperRButton = max(self.rocket.railButtons[0])
         except AttributeError:  # If there is no rail button
@@ -1165,7 +1179,9 @@ class Flight:
     @cached_property
     def effective2RL(self):
         # Modifying Rail Length for a better out of rail condition
-        nozzle = self.rocket.distanceRocketNozzle
+        nozzle = (
+            self.rocket.motorPosition - self.rocket.centerOfDryMassPosition
+        ) * self.rocket._csys
         try:
             lowerRButton = min(self.rocket.railButtons[0])
         except AttributeError:
@@ -1338,8 +1354,19 @@ class Flight:
         M = Mt + Mr
         mu = (Mt * Mr) / (Mt + Mr)
         # Geometry
-        b = -self.rocket.distanceRocketPropellant
-        c = -self.rocket.distanceRocketNozzle
+        # b = -self.rocket.distanceRocketPropellant
+        b = (
+            -(
+                self.rocket.centerOfPropellantPosition(0)
+                - self.rocket.centerOfDryMassPosition
+            )
+            * self.rocket._csys
+        )
+        # c = -self.rocket.distanceRocketNozzle
+        c = (
+            -(self.rocket.motorPosition - self.rocket.centerOfDryMassPosition)
+            * self.rocket._csys
+        )
         a = b * Mt / M
         rN = self.rocket.motor.nozzleRadius
         # Prepare transformation matrix
@@ -1382,9 +1409,11 @@ class Flight:
         vyB = a12 * vx + a22 * vy + a32 * vz
         vzB = a13 * vx + a23 * vy + a33 * vz
         # Calculate lift and moment for each component of the rocket
-        for aerodynamicSurface in self.rocket.aerodynamicSurfaces:
-            compCp = aerodynamicSurface.cp[2]
-            surfaceRadius = aerodynamicSurface.rocketRadius
+        for aeroSurface, position in self.rocket.aerodynamicSurfaces:
+            compCp = (
+                position - self.rocket.centerOfDryMassPosition
+            ) * self.rocket._csys - aeroSurface.cpz
+            surfaceRadius = aeroSurface.rocketRadius
             referenceArea = np.pi * surfaceRadius**2
             # Component absolute velocity in body frame
             compVxB = vxB + compCp * omega2
@@ -1412,8 +1441,8 @@ class Flight:
                 compStreamVzBn = compStreamVzB / compStreamSpeed
                 if -1 * compStreamVzBn < 1:
                     compAttackAngle = np.arccos(-compStreamVzBn)
-                    cLift = aerodynamicSurface.cl(compAttackAngle, freestreamMach)
-                    cLift = aerodynamicSurface.cl(compAttackAngle, freestreamMach)
+                    cLift = aeroSurface.cl(compAttackAngle, freestreamMach)
+                    cLift = aeroSurface.cl(compAttackAngle, freestreamMach)
                     # Component lift force magnitude
                     compLift = (
                         0.5 * rho * (compStreamSpeed**2) * referenceArea * cLift
@@ -1430,7 +1459,7 @@ class Flight:
                     M2 += (compCp + a) * compLiftXB
             # Calculates Roll Moment
             try:
-                Clfdelta, Cldomega, cantAngleRad = aerodynamicSurface.rollParameters
+                Clfdelta, Cldomega, cantAngleRad = aeroSurface.rollParameters
                 M3f = (
                     (1 / 2 * rho * freestreamSpeed**2)
                     * referenceArea
@@ -2055,8 +2084,11 @@ class Flight:
     # Kinetic Energy
     @funcify_method("Time (s)", "Rotational Kinetic Energy (J)", "spline", "zero")
     def rotationalEnergy(self):
-        """Rotational kinetic energy as a rocketpy.Function of time."""
-        b = -self.rocket.distanceRocketPropellant
+        # b = -self.rocket.distanceRocketPropellant
+        b = (
+            -(self.rocket.motorPosition - self.rocket.centerOfDryMassPosition)
+            * self.rocket._csys
+        )
         mu = self.rocket.reducedMass
         Rz = self.rocket.inertiaZ
         Ri = self.rocket.inertiaI
@@ -2512,9 +2544,13 @@ class Flight:
             return nullForce, nullForce, nullForce, nullForce
 
         # Distance from Rail Button 1 (upper) to CM
-        D1 = self.rocket.railButtons.distanceToCM[0]
+        D1 = (
+            self.rocket.railButtons.position[0] - self.rocket.centerOfDryMassPosition
+        ) * self.rocket._csys
         # Distance from Rail Button 2 (lower) to CM
-        D2 = self.rocket.railButtons.distanceToCM[1]
+        D2 = (
+            self.rocket.railButtons.position[1] - self.rocket.centerOfDryMassPosition
+        ) * self.rocket._csys
         F11 = (self.R1 * D2 - self.M2) / (D1 + D2)
         F11.setOutputs("Upper button force direction 1 (m)")
         F12 = (self.R2 * D2 + self.M1) / (D1 + D2)
