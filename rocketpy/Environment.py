@@ -3228,7 +3228,10 @@ class Environment:
             "NAD83": geodesy(6378137.0, 1 / 298.257024899),
             "WGS84": geodesy(6378137.0, 1 / 298.257223563),
         }
-        return ellipsoid[datum]
+        try:
+            return ellipsoid[datum]
+        except KeyError:
+            return ellipsoid["SIRGAS2000"]
 
     # Auxiliary functions - Geodesic Coordinates
     def geodesicToUtm(self, lat, lon):
