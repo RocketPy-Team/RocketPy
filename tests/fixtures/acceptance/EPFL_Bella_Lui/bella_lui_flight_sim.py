@@ -69,6 +69,7 @@ Env.maxExpectedHeight = 2000
 K828FJ = SolidMotor(
     thrustSource="tests/fixtures/acceptance/EPFL_Bella_Lui/bella_lui_motor_AeroTech_K828FJ.eng",
     burnOut=parameters.get("burnOut")[0],
+    grainsCenterOfMassPosition=parameters.get("distanceRocketPropellant")[0],
     grainNumber=3,
     grainSeparation=parameters.get("grainSeparation")[0],
     grainDensity=parameters.get("grainDensity")[0],
@@ -78,38 +79,37 @@ K828FJ = SolidMotor(
     nozzleRadius=parameters.get("nozzleRadius")[0],
     throatRadius=parameters.get("throatRadius")[0],
     interpolationMethod="linear",
+    nozzlePosition=parameters.get("distanceRocketNozzle")[0],
 )
 
 # Rocket information
 BellaLui = Rocket(
-    motor=K828FJ,
     radius=parameters.get("radius")[0],
     mass=parameters.get("rocketMass")[0],
     inertiaI=parameters.get("inertiaI")[0],
     inertiaZ=parameters.get("inertiaZ")[0],
-    distanceRocketNozzle=parameters.get("distanceRocketNozzle")[0],
-    distanceRocketPropellant=parameters.get("distanceRocketPropellant")[0],
     powerOffDrag=0.43,
     powerOnDrag=0.43,
 )
 BellaLui.setRailButtons([0.1, -0.5])
+BellaLui.addMotor(K828FJ, parameters.get("distanceRocketNozzle")[0])
 NoseCone = BellaLui.addNose(
     length=parameters.get("noseLength")[0],
     kind="tangent",
-    distanceToCM=parameters.get("noseDistanceToCM")[0],
+    position=parameters.get("noseDistanceToCM")[0] + parameters.get("noseLength")[0],
 )
 FinSet = BellaLui.addTrapezoidalFins(
     3,
     span=parameters.get("finSpan")[0],
     rootChord=parameters.get("finRootChord")[0],
     tipChord=parameters.get("finTipChord")[0],
-    distanceToCM=parameters.get("finDistanceToCM")[0],
+    position=parameters.get("finDistanceToCM")[0],
 )
 Tail = BellaLui.addTail(
     topRadius=parameters.get("tailTopRadius")[0],
     bottomRadius=parameters.get("tailBottomRadius")[0],
     length=parameters.get("tailLength")[0],
-    distanceToCM=parameters.get("tailDistanceToCM")[0],
+    position=parameters.get("tailDistanceToCM")[0],
 )
 
 # Parachute set-up

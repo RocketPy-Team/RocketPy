@@ -31,3 +31,5 @@ from .Motor import HybridMotor, SolidMotor
 from .Rocket import Rocket
 from .utilities import *
 from .supplement import *
+from .plots import *
+from .prints import *

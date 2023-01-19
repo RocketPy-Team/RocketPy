@@ -21,8 +21,18 @@ class Motor(ABC):
     ----------
 
         Geometrical attributes:
+        Motor.coordinateSystemOrientation : str
+            Orientation of the motor's coordinate system. The coordinate system
+            is defined by the motor's axis of symmetry. The origin of the
+            coordinate system  may be placed anywhere along such axis, such as at the
+            nozzle area, and must be kept the same for all other positions specified.
+            Options are "nozzleToCombustionChamber" and "combustionChamberToNozzle".
         Motor.nozzleRadius : float
             Radius of motor nozzle outlet in meters.
+        Motor.nozzlePosition : float
+            Motor's nozzle outlet position in meters. More specifically, the coordinate
+            of the nozzle outlet specified in the motor's coordinate system.
+            See `Motor.coordinateSystemOrientation` for more information.
         Motor.throatRadius : float
             Radius of motor nozzle throat in meters.
         Motor.grainNumber : int
@@ -64,7 +74,7 @@ class Motor(ABC):
         Motor.inertiaZ : Function
             Propellant moment of inertia in kg*meter^2 with respect to axis of
             cylindrical symmetry of each grain, given as a function of time.
-        Motor.inertiaDot : Function
+        Motor.inertiaZDot : Function
             Time derivative of inertiaZ given in kg*meter^2/s as a function
             of time.
 
@@ -105,9 +115,11 @@ class Motor(ABC):
         thrustSource,
         burnOut,
         nozzleRadius=0.0335,
+        nozzlePosition=0,
         throatRadius=0.0114,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
+        coordinateSystemOrientation="nozzleToCombustionChamber",
     ):
         """Initialize Motor class, process thrust curve and geometrical
         parameters and store results.
@@ -130,6 +142,12 @@ class Motor(ABC):
             Motor's nozzle outlet radius in meters. Used to calculate Kn curve.
             Optional if the Kn curve is not interesting. Its value does not impact
             trajectory simulation.
+        nozzlePosition : int, float, optional
+            Motor's nozzle outlet position in meters. More specifically, the coordinate
+            of the nozzle outlet specified in the motor's coordinate system.
+            See `Motor.coordinateSystemOrientation` for more information.
+            Default is 0, in which case the origin of the motor's coordinate system
+            is placed at the motor's nozzle outlet.
         throatRadius : int, float, optional
             Motor's nozzle throat radius in meters. Its value has very low
             impact in trajectory simulation, only useful to analyze
@@ -146,11 +164,25 @@ class Motor(ABC):
             Method of interpolation to be used in case thrust curve is given
             by data set in .csv or .eng, or as an array. Options are 'spline'
             'akima' and 'linear'. Default is "linear".
+        coordinateSystemOrientation : string, optional
+            Orientation of the motor's coordinate system. The coordinate system
+            is defined by the motor's axis of symmetry. The origin of the
+            coordinate system  may be placed anywhere along such axis, such as at the
+            nozzle area, and must be kept the same for all other positions specified.
+            Options are "nozzleToCombustionChamber" and "combustionChamberToNozzle".
+            Default is "nozzleToCombustionChamber".
 
         Returns
         -------
         None
         """
+        # Define coordinate system orientation
+        self.coordinateSystemOrientation = coordinateSystemOrientation
+        if coordinateSystemOrientation == "nozzleToCombustionChamber":
+            self._csys = 1
+        elif coordinateSystemOrientation == "combustionChamberToNozzle":
+            self._csys = -1
+
         # Thrust parameters
         self.interpolate = interpolationMethod
         self.burnOutTime = burnOut
@@ -193,6 +225,7 @@ class Motor(ABC):
         # Define motor attributes
         # Grain and nozzle parameters
         self.nozzleRadius = nozzleRadius
+        self.nozzlePosition = nozzlePosition
         self.throatRadius = throatRadius
 
         # Other quantities that will be computed
@@ -625,12 +658,26 @@ class SolidMotor(Motor):
     ----------
 
         Geometrical attributes:
+        Motor.coordinateSystemOrientation : str
+            Orientation of the motor's coordinate system. The coordinate system
+            is defined by the motor's axis of symmetry. The origin of the
+            coordinate system  may be placed anywhere along such axis, such as at the
+            nozzle area, and must be kept the same for all other positions specified.
+            Options are "nozzleToCombustionChamber" and "combustionChamberToNozzle".
         Motor.nozzleRadius : float
             Radius of motor nozzle outlet in meters.
+        Motor.nozzlePosition : float
+            Motor's nozzle outlet position in meters. More specifically, the coordinate
+            of the nozzle outlet specified in the motor's coordinate system.
+            See `Motor.coordinateSystemOrientation` for more information.
         Motor.throatRadius : float
             Radius of motor nozzle throat in meters.
         Motor.grainNumber : int
             Number of solid grains.
+        Motor.grainsCenterOfMassPosition : float
+            Position of the center of mass of the grains in meters. More specifically,
+            the coordinate of the center of mass specified in the motor's coordinate
+            system. See `Motor.coordinateSystemOrientation` for more information.
         Motor.grainSeparation : float
             Distance between two grains in meters.
         Motor.grainDensity : float
@@ -649,6 +696,11 @@ class SolidMotor(Motor):
             Height of each grain in meters as a function of time.
 
         Mass and moment of inertia attributes:
+        Motor.centerOfMass : Function
+            Position of the center of mass in meters as a function of time. Constant for
+            solid motors, as the grains are assumed to be fixed.
+            See `Motor.coordinateSystemOrientation` for more information regarding
+            the motor's coordinate system
         Motor.grainInitialMass : float
             Initial mass of each grain in kg.
         Motor.propellantInitialMass : float
@@ -708,6 +760,7 @@ class SolidMotor(Motor):
         self,
         thrustSource,
         burnOut,
+        grainsCenterOfMassPosition,
         grainNumber,
         grainDensity,
         grainOuterRadius,
@@ -715,9 +768,11 @@ class SolidMotor(Motor):
         grainInitialHeight,
         grainSeparation=0,
         nozzleRadius=0.0335,
+        nozzlePosition=0,
         throatRadius=0.0114,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
+        coordinateSystemOrientation="nozzleToCombustionChamber",
     ):
         """Initialize Motor class, process thrust curve and geometrical
         parameters and store results.
@@ -736,6 +791,10 @@ class SolidMotor(Motor):
             Function. See help(Function). Thrust units are Newtons.
         burnOut : int, float
             Motor burn out time in seconds.
+        grainsCenterOfMassPosition : float
+            Position of the center of mass of the grains in meters. More specifically,
+            the coordinate of the center of mass specified in the motor's coordinate
+            system. See `Motor.coordinateSystemOrientation` for more information.
         grainNumber : int
             Number of solid grains
         grainDensity : int, float
@@ -752,6 +811,12 @@ class SolidMotor(Motor):
             Motor's nozzle outlet radius in meters. Used to calculate Kn curve.
             Optional if the Kn curve is not interesting. Its value does not impact
             trajectory simulation.
+        nozzlePosition : int, float, optional
+            Motor's nozzle outlet position in meters. More specifically, the coordinate
+            of the nozzle outlet specified in the motor's coordinate system.
+            See `Motor.coordinateSystemOrientation` for more information.
+            Default is 0, in which case the origin of the motor's coordinate system
+            is placed at the motor's nozzle outlet.
         throatRadius : int, float, optional
             Motor's nozzle throat radius in meters. Its value has very low
             impact in trajectory simulation, only useful to analyze
@@ -768,6 +833,13 @@ class SolidMotor(Motor):
             Method of interpolation to be used in case thrust curve is given
             by data set in .csv or .eng, or as an array. Options are 'spline'
             'akima' and 'linear'. Default is "linear".
+        coordinateSystemOrientation : string, optional
+            Orientation of the motor's coordinate system. The coordinate system
+            is defined by the motor's axis of symmetry. The origin of the
+            coordinate system  may be placed anywhere along such axis, such as at the
+            nozzle area, and must be kept the same for all other positions specified.
+            Options are "nozzleToCombustionChamber" and "combustionChamberToNozzle".
+            Default is "nozzleToCombustionChamber".
 
         Returns
         -------
@@ -777,12 +849,15 @@ class SolidMotor(Motor):
             thrustSource,
             burnOut,
             nozzleRadius,
+            nozzlePosition,
             throatRadius,
             reshapeThrustCurve,
             interpolationMethod,
+            coordinateSystemOrientation,
         )
         # Define motor attributes
         # Grain parameters
+        self.grainsCenterOfMassPosition = grainsCenterOfMassPosition
         self.grainNumber = grainNumber
         self.grainSeparation = grainSeparation
         self.grainDensity = grainDensity
@@ -866,14 +941,16 @@ class SolidMotor(Motor):
 
         Returns
         -------
-        zCM : Function
-            Position of the center of mass as a function
-            of time.
+        self.centerOfMass : Function
+            Position of the center of mass as a function of time. Constant for solid
+            motors, as the grains are assumed to be fixed.
         """
 
-        self.zCM = 0
+        self.centerOfMass = Function(
+            self.grainsCenterOfMassPosition, "Time (s)", "Center of Mass (m)"
+        )
 
-        return self.zCM
+        return self.centerOfMass
 
     def evaluateGeometry(self):
         """Calculates grain inner radius and grain height as a
@@ -1157,8 +1234,18 @@ class HybridMotor(Motor):
     ----------
 
         Geometrical attributes:
+        Motor.coordinateSystemOrientation : str
+            Orientation of the motor's coordinate system. The coordinate system
+            is defined by the motor's axis of symmetry. The origin of the
+            coordinate system  may be placed anywhere along such axis, such as at the
+            nozzle area, and must be kept the same for all other positions specified.
+            Options are "nozzleToCombustionChamber" and "combustionChamberToNozzle".
         Motor.nozzleRadius : float
             Radius of motor nozzle outlet in meters.
+        Motor.nozzlePosition : float
+            Motor's nozzle outlet position in meters. More specifically, the coordinate
+            of the nozzle outlet specified in the motor's coordinate system.
+            See `Motor.coordinateSystemOrientation` for more information.
         Motor.throatRadius : float
             Radius of motor nozzle throat in meters.
         Motor.grainNumber : int
@@ -1255,9 +1342,11 @@ class HybridMotor(Motor):
         injectorArea,
         grainSeparation=0,
         nozzleRadius=0.0335,
+        nozzlePosition=0,
         throatRadius=0.0114,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
+        coordinateSystemOrientation="nozzleToCombustionChamber",
     ):
         """Initialize Motor class, process thrust curve and geometrical
         parameters and store results.
@@ -1308,6 +1397,12 @@ class HybridMotor(Motor):
             Motor's nozzle outlet radius in meters. Used to calculate Kn curve.
             Optional if the Kn curve is not interesting. Its value does not impact
             trajectory simulation.
+        nozzlePosition : int, float, optional
+            Motor's nozzle outlet position in meters. More specifically, the coordinate
+            of the nozzle outlet specified in the motor's coordinate system.
+            See `Motor.coordinateSystemOrientation` for more information.
+            Default is 0, in which case the origin of the motor's coordinate system
+            is placed at the motor's nozzle outlet.
         throatRadius : int, float, optional
             Motor's nozzle throat radius in meters. Its value has very low
             impact in trajectory simulation, only useful to analyze
@@ -1324,6 +1419,13 @@ class HybridMotor(Motor):
             Method of interpolation to be used in case thrust curve is given
             by data set in .csv or .eng, or as an array. Options are 'spline'
             'akima' and 'linear'. Default is "linear".
+        coordinateSystemOrientation : string, optional
+            Orientation of the motor's coordinate system. The coordinate system
+            is defined by the motor's axis of symmetry. The origin of the
+            coordinate system  may be placed anywhere along such axis, such as at the
+            nozzle area, and must be kept the same for all other positions specified.
+            Options are "nozzleToCombustionChamber" and "combustionChamberToNozzle".
+            Default is "nozzleToCombustionChamber".
 
         Returns
         -------
@@ -1333,6 +1435,7 @@ class HybridMotor(Motor):
             thrustSource,
             burnOut,
             nozzleRadius,
+            nozzlePosition,
             throatRadius,
             reshapeThrustCurve,
             interpolationMethod,
@@ -1654,3 +1757,24 @@ class HybridMotor(Motor):
 
     def allInfo(self):
         pass
+
+
+class EmptyMotor:
+    """Class that represents an empty motor with no mass and no thrust."""
+
+    # TODO: This is a temporary solution. It should be replaced by a class that
+    # inherits from the abstract Motor class. Currently cannot be done easily.
+    def __init__(self):
+        """Initializes an empty motor with no mass and no thrust."""
+        self._csys = 1
+        self.nozzleRadius = 0
+        self.thrust = Function(0, "Time (s)", "Thrust (N)")
+        self.mass = Function(0, "Time (s)", "Mass (kg)")
+        self.massDot = Function(0, "Time (s)", "Mass Depletion Rate (kg/s)")
+        self.burnOutTime = 1
+        self.nozzlePosition = 0
+        self.centerOfMass = Function(0, "Time (s)", "Mass (kg)")
+        self.inertiaZ = Function(0, "Time (s)", "Moment of Inertia Z (kg m²)")
+        self.inertiaI = Function(0, "Time (s)", "Moment of Inertia I (kg m²)")
+        self.inertiaZDot = Function(0, "Time (s)", "Propellant Inertia Z Dot (kgm²/s)")
+        self.inertiaIDot = Function(0, "Time (s)", "Propellant Inertia I Dot (kgm²/s)")
