@@ -17,6 +17,7 @@ import numpy as np
 import numpy.ma as ma
 import pytz
 import requests
+from collections import namedtuple
 
 from .plots.environment_plots import _EnvironmentPlots
 from .prints.environment_prints import _EnvironmentPrints
@@ -369,6 +370,9 @@ class Environment:
             self.date = None
             self.localDate = None
             self.timeZone = None
+
+        # Initialize Earth geometry
+        self.ellipsoid = self.setEarthGeometry(datum)
 
         # Initialize constants
         self.earthRadius = 6.3781 * (10**6)
@@ -3216,6 +3220,16 @@ class Environment:
 
         return None
 
+    def setEarthGeometry(self, datum):
+        geodesy = namedtuple("earthGeometry", "semiMajorAxis flattening")
+        ellipsoid = {
+            "SIRGAS2000": geodesy(6378137.0, 1 / 298.257223563),
+            "SAD69": geodesy(6378160.0, 1 / 298.25),
+            "NAD83": geodesy(6378137.0, 1 / 298.257024899),
+            "WGS84": geodesy(6378137.0, 1 / 298.257223563),
+        }
+        return ellipsoid[datum]
+
     # Auxiliary functions - Geodesic Coordinates
     def geodesicToUtm(self, lat, lon, datum):
         """Function which converts geodetic coordinates, i.e. lat/lon, to UTM
@@ -3274,19 +3288,8 @@ class Environment:
             EW = "W|E"
 
         # Select the desired datum (i.e. the ellipsoid parameters)
-        if datum == "SAD69":
-            semiMajorAxis = 6378160.0
-            flattening = 1 / 298.25
-        elif datum == "WGS84":
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257223563
-        elif datum == "NAD83":
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257024899
-        else:
-            # SIRGAS2000
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257223563
+        flattening = self.ellipsoid.flattening
+        semiMajorAxis = self.ellipsoid.semiMajorAxis
 
         # Evaluate the hemisphere and determine the N coordinate at the Equator
         if lat < 0:
@@ -3385,19 +3388,8 @@ class Environment:
         centralMeridian = utmZone * 6 - 183  # degrees
 
         # Select the desired datum
-        if datum == "SAD69":
-            semiMajorAxis = 6378160.0
-            flattening = 1 / 298.25
-        elif datum == "WGS84":
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257223563
-        elif datum == "NAD83":
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257024899
-        else:
-            # SIRGAS2000
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257223563
+        flattening = self.ellipsoid.flattening
+        semiMajorAxis = self.ellipsoid.semiMajorAxis
 
         # Calculate reference values
         K0 = 1 - 1 / 2500
@@ -3477,19 +3469,8 @@ class Environment:
             Earth Radius at the desired latitude in meters
         """
         # Select the desired datum (i.e. the ellipsoid parameters)
-        if datum == "SAD69":
-            semiMajorAxis = 6378160.0
-            flattening = 1 / 298.25
-        elif datum == "WGS84":
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257223563
-        elif datum == "NAD83":
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257024899
-        else:
-            # SIRGAS2000
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257223563
+        flattening = self.ellipsoid.flattening
+        semiMajorAxis = self.ellipsoid.semiMajorAxis
 
         # Calculate the semi minor axis length
         # semiMinorAxis = semiMajorAxis - semiMajorAxis*(flattening**(-1))
