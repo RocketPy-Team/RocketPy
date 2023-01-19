@@ -58,7 +58,7 @@ def test_standard_atmosphere(mock_show, example_env):
     assert example_env.info() == None
     assert example_env.allInfo() == None
     assert example_env.pressure(0) == 101325.0
-    assert example_env.printEarthDetails() == None
+    assert example_env.prints.printEarthDetails() == None
 
 
 @patch("matplotlib.pyplot.show")

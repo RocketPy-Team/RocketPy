@@ -1165,7 +1165,9 @@ class Flight:
     @cached_property
     def effective1RL(self):
         # Modifying Rail Length for a better out of rail condition
-        nozzle = self.rocket.distanceRocketNozzle  # Kinda works for single nozzle
+        nozzle = (
+            self.rocket.motorPosition - self.rocket.centerOfDryMassPosition
+        ) * self.rocket._csys  # Kinda works for single nozzle
         try:
             upperRButton = max(self.rocket.railButtons[0])
         except AttributeError:  # If there is no rail button
@@ -1177,7 +1179,9 @@ class Flight:
     @cached_property
     def effective2RL(self):
         # Modifying Rail Length for a better out of rail condition
-        nozzle = self.rocket.distanceRocketNozzle
+        nozzle = (
+            self.rocket.motorPosition - self.rocket.centerOfDryMassPosition
+        ) * self.rocket._csys
         try:
             lowerRButton = min(self.rocket.railButtons[0])
         except AttributeError:
