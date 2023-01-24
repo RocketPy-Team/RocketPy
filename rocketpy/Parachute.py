@@ -117,4 +117,20 @@ class Parachute:
         self.noiseFunction = lambda: alpha * self.noiseSignal[-1][
             1
         ] + beta * np.random.normal(noise[0], noise[1])
+    def __str__(self):
+        """Returns a string representation of the Parachute class.
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        string
+            String representation of Parachute class. It is human readable.
+        """
+        return "Parachute {} with a CdS of {:.4f} m2".format(
+            self.name.title(),
+            self.CdS,
+        )
+
         return None
