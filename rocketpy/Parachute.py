@@ -1,10 +1,12 @@
-__author__ = "Giovani Hidalgo Ceotto, Franz Masatoshi Yuri"
+__author__ = "Giovani Hidalgo Ceotto, Franz Masatoshi Yuri, Guilherme Fernandes Alves"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 import numpy as np
 
 from .Function import Function
+
+from .prints.parachute_prints import _ParachutePrints
 
 
 class Parachute:
@@ -117,6 +119,11 @@ class Parachute:
         self.noiseFunction = lambda: alpha * self.noiseSignal[-1][
             1
         ] + beta * np.random.normal(noise[0], noise[1])
+
+        self.prints = _ParachutePrints(self)
+
+        return None
+
     def __str__(self):
         """Returns a string representation of the Parachute class.
         Parameters
@@ -132,5 +139,16 @@ class Parachute:
             self.name.title(),
             self.CdS,
         )
+
+    def info(self):
+
+        self.prints.all()
+
+        return None
+
+    def allInfo(self):
+
+        self.info()
+        # self.plots.all() # Parachutes still doesn't have plots
 
         return None
