@@ -1,4 +1,4 @@
-__author__ = " "
+__author__ = "Mateus Stano Junqueira"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
@@ -8,7 +8,7 @@ class _RocketPrints:
 
     Attributes
     ----------
-    _RocketPrints.environment : rocket
+    _RocketPrints.rocket : rocket
         Rocket object that will be used for the prints.
 
     """
@@ -18,8 +18,8 @@ class _RocketPrints:
 
         Parameters
         ----------
-        environment: Environment
-            Instance of the Environment class.
+        rocket: rocketpy.rocket
+            Instance of the rocket class.
 
         Returns
         -------
@@ -159,7 +159,7 @@ class _RocketPrints:
         """
         for chute in self.rocket.parachutes:
             chute.allInfo()
-            return None
+        return None
 
     def all(self):
         """Prints all print methods about the Environment.
