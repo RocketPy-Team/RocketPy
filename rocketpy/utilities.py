@@ -210,7 +210,7 @@ def fin_flutter_analysis(
     provided by the selected atmospheric model. It considers the Flutter Boundary
     Equation that published in NACA Technical Paper 4197.
     These results are only estimates of a real problem and may not be useful for
-    fins made from non-isotropic materials. 
+    fins made from non-isotropic materials.
     Currently, this function works if only a single set of fins is added, otherwise
     it will use the last set of fins added to the rocket.
 
