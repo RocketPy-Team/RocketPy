@@ -984,7 +984,7 @@ class TrapezoidalFins(Fins):
         )
 
         # Plotting
-        fig3 = plt.figure(figsize=(4, 4))
+        fig3 = plt.figure(figsize=(7, 4))
         with plt.style.context("bmh"):
             ax1 = fig3.add_subplot(111)
 
@@ -1015,6 +1015,7 @@ class TrapezoidalFins(Fins):
         ax1.set_title("Trapezoidal Fin")
         ax1.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
 
+        plt.tight_layout()
         plt.show()
 
         return None
@@ -1309,7 +1310,7 @@ class EllipticalFins(Fins):
         cp_point = [self.cpz, self.Yma]
 
         # Plotting
-        fig3 = plt.figure(figsize=(4, 4))
+        fig3 = plt.figure(figsize=(7, 4))
         with plt.style.context("bmh"):
             ax1 = fig3.add_subplot(111)
         ax1.add_patch(el)
@@ -1328,6 +1329,7 @@ class EllipticalFins(Fins):
         ax1.set_title("Elliptical Fin")
         ax1.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
 
+        plt.tight_layout()
         plt.show()
 
         return None
