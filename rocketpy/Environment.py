@@ -17,7 +17,6 @@ import pytz
 import requests
 
 from .Function import Function
-from .supplement import geodesicToUtm, calculateEarthRadius
 
 from .plots.environment_plots import _EnvironmentPlots
 from .prints.environment_prints import _EnvironmentPrints
@@ -392,7 +391,7 @@ class Environment:
 
         # Store launch site coordinates referenced to UTM projection system
         if self.latitude > -80 and self.latitude < 84:
-            convert = geodesicToUtm(self.latitude, self.longitude, self.datum)
+            convert = self.geodesicToUtm(self.latitude, self.longitude, self.datum)
             self.initialNorth = convert[1]
             self.initialEast = convert[0]
             self.initialUtmZone = convert[2]
@@ -405,7 +404,7 @@ class Environment:
         self.setElevation(elevation)
 
         # Recalculate Earth Radius
-        self.earthRadius = calculateEarthRadius(self.latitude, self.datum)  # in m
+        self.earthRadius = self.calculateEarthRadius(self.latitude, self.datum)  # in m
 
         # Initialize plots and prints object
         self.plots = _EnvironmentPlots(self)
@@ -1471,7 +1470,7 @@ class Environment:
         if model[-1] == "u":  # case iconEu
             model = "".join([model[:4], model[4].upper(), model[4 + 1 :]])
         # Load data from Windy.com: json file
-        url = f"https://node.windy.com/forecast/meteogram/{model}/{self.lat}/{self.lon}/?step=undefined"
+        url = f"https://node.windy.com/forecast/meteogram/{model}/{self.latitude}/{self.longitude}/?step=undefined"
         try:
             response = requests.get(url).json()
         except:
@@ -1589,10 +1588,10 @@ class Environment:
         self.atmosphericModelInterval = netCDF4.num2date(
             (timeArray[-1] - timeArray[0]) / (len(timeArray) - 1), units=timeUnits
         ).hour
-        self.atmosphericModelInitLat = self.lat
-        self.atmosphericModelEndLat = self.lat
-        self.atmosphericModelInitLon = self.lon
-        self.atmosphericModelEndLon = self.lon
+        self.atmosphericModelInitLat = self.latitude
+        self.atmosphericModelEndLat = self.latitude
+        self.atmosphericModelInitLon = self.longitude
+        self.atmosphericModelEndLon = self.longitude
 
         # Save debugging data
         self.geopotentials = geopotentialHeightArray

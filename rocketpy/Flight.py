@@ -17,7 +17,6 @@ import numpy as np
 import simplekml
 from scipy import integrate
 
-from .supplement import *
 from .Function import Function, funcify_method
 from .plots.flight_plots import _FlightPlots
 from .prints.flight_prints import _FlightPrints
@@ -2135,7 +2134,7 @@ class Flight:
         totalMass = deepcopy(self.rocket.totalMass)
         totalMass.setDiscreteBasedOnModel(self.z)
         # TODO: change calculation method to account for variable gravity
-        potentialEnergy = totalMass * self.env.g * self.z
+        potentialEnergy = totalMass * self.env.gravity * self.z
         return potentialEnergy
 
     # Total Mechanical Energy
@@ -2357,7 +2356,7 @@ class Flight:
     @funcify_method("Time (s)", "Latitude (°)", "linear", "constant")
     def latitude(self):
         """Rocket latitude coordinate, in degrees, as a rocketpy.Function of time."""
-        lat1 = np.deg2rad(self.env.lat)  # Launch lat point converted to radians
+        lat1 = np.deg2rad(self.env.latitude)  # Launch lat point converted to radians
 
         # Applies the haversine equation to find final lat/lon coordinates
         latitude = np.rad2deg(
@@ -2373,8 +2372,8 @@ class Flight:
     @funcify_method("Time (s)", "Longitude (°)", "linear", "constant")
     def longitude(self):
         """Rocket longitude coordinate, in degrees, as a rocketpy.Function of time."""
-        lat1 = np.deg2rad(self.env.lat)  # Launch lat point converted to radians
-        lon1 = np.deg2rad(self.env.lon)  # Launch lon point converted to radians
+        lat1 = np.deg2rad(self.env.latitude)  # Launch lat point converted to radians
+        lon1 = np.deg2rad(self.env.longitude)  # Launch lon point converted to radians
 
         # Applies the haversine equation to find final lat/lon coordinates
         longitude = np.rad2deg(

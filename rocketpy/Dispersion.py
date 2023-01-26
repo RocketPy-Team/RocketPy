@@ -18,13 +18,14 @@ from IPython.display import display
 from matplotlib.patches import Ellipse
 from numpy.random import *
 
+from rocketpy.utilities import invertedHaversine
+
 from .AeroSurfaces import EllipticalFins, NoseCone, Tail, TrapezoidalFins
 from .Environment import Environment
 from .Flight import Flight
 from .Function import Function
 from .Motor import SolidMotor
 from .Rocket import Rocket
-from .supplement import invertedHaversine
 
 
 class Dispersion:
