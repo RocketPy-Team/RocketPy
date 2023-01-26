@@ -685,11 +685,19 @@ class Dispersion:
                     # class was not inputted
                     # checks if missing parameter is required
                     if self.inputs_dict["solidmotor"][missing_input] == "required":
-                        raise ValueError(
-                            "The input {} is required for the SolidMotor class.".format(
-                                missing_input
+                        # if motor position in relation to rocket
+                        if missing_input == "motor_position":
+                            raise ValueError(
+                                'Missing motor\'s "position" argument in the input dictionary.'
+                                " This refers to the position of the motor's nozzle in relation"
+                                " to the rocket's coordinate system, used in the Rocket.addMotor method."
                             )
-                        )
+                        else:
+                            raise ValueError(
+                                "The input {} is required for the SolidMotor class.".format(
+                                    missing_input
+                                )
+                            )
                     else:  # if not uses default value
                         dictionary[missing_input] = [
                             self.inputs_dict["solidmotor"][missing_input]
