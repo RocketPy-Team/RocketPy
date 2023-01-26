@@ -1110,10 +1110,16 @@ class Dispersion:
         # First, capture the flight data that are saved in the flight object
         attributes_list = list(set(dir(flight)).intersection(self.export_list))
         flight_result = {}
-        for var in attributes_list:
-            flight_result[str(var)] = getattr(flight, var)
+        for var in self.export_list:
+            # First, capture the flight data that are saved in the flight object
+            if var in attributes_list:
+                # Check if Function. If so, get source
+                if isinstance(getattr(flight, var), Function):
+                    flight_result[str(var)] = getattr(flight, var).getSource()
+                else:
+                    flight_result[str(var)] = getattr(flight, var)
 
-        # Second, capture data that needs to be calculated
+            # Second, capture data that needs to be calculated
         for var in list(set(self.export_list) - set(attributes_list)):
             if var == "executionTime":
                 flight_result[str(var)] = exec_time
@@ -1132,19 +1138,24 @@ class Dispersion:
                 trigger_time + parachute.lag
             )
 
-        # Write flight setting and results to file
-        flight_setting.pop("thrust", None)
+        # TODO: maybe we should not have any Function object in flight_setting,
+        #       only have their source and make this check before the dispersion loop
+        # Check if attr is Function. If so, get source
+        for key, value in flight_setting.items():
+            if isinstance(value, Function):
+                flight_setting[key] = value.getSource()
+
         dispersion_input_file.write(str(flight_setting) + "\n")
         dispersion_output_file.write(str(flight_result) + "\n")
 
         return None
 
-    def __export_flight_data_error(setting, flight_setting, dispersion_error_file):
+    def __export_flight_data_error(self, flight_setting, dispersion_error_file):
         """Saves flight error in a .txt
 
         Parameters
         ----------
-        setting : dict
+        flight_setting : dict
             The flight setting used in the simulation.
         dispersion_error_file : str
             The name of the file containing all the errors for the simulation.
@@ -1153,6 +1164,10 @@ class Dispersion:
         -------
         None
         """
+        # Check if attr is Function. If so, get source
+        for key, value in flight_setting.items():
+            if isinstance(value, Function):
+                flight_setting[key] = value.getSource()
 
         dispersion_error_file.write(str(flight_setting) + "\n")
 
