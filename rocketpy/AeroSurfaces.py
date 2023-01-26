@@ -633,22 +633,22 @@ class Fins(ABC):
                 self.rollForcingInterferenceFactor
             )
         )
-        #lacks a title for the plot
+        # lacks a title for the plot
         self.rollParameters[0]()
-        #lacks a title for the plot
+        # lacks a title for the plot
         self.rollParameters[1]()
 
         return None
 
     def airfoilPlots(self):
-        
+
         if self.airfoil is not None:
             airfoilCl = Function(
                 self.airfoil[0],
-                inputs = "angle of attack",
-                outputs = "lift coefficient",
+                inputs="angle of attack",
+                outputs="lift coefficient",
                 interpolation="linear",
-                extrapolation = None,
+                extrapolation=None,
             )
             airfoilCl.plot1D()
 
