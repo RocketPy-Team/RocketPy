@@ -869,7 +869,7 @@ class Dispersion:
                 except AttributeError:
                     raise AttributeError(
                         f"Please check if the parameter {parameter_key} was inputted"
-                        "correctly in dispersion_dictionary."
+                        " correctly in dispersion_dictionary."
                         " Dictionary values must be either tuple or lists."
                         " If single value, the corresponding Class must"
                         " be inputted in the run_dispersion method."
@@ -943,6 +943,9 @@ class Dispersion:
                     grainInitialHeight=self.dispersion_dictionary["grainInitialHeight"][
                         0
                     ],
+                    grainsCenterOfMassPosition=self.dispersion_dictionary[
+                        "grainsCenterOfMassPosition"
+                    ][0],
                 )
             except:
                 raise TypeError(
@@ -951,21 +954,16 @@ class Dispersion:
         if self.rocket is None:
             try:
                 self.rocket = Rocket(
-                    motor=self.motor,
                     mass=self.dispersion_dictionary["mass"][0],
                     radius=self.dispersion_dictionary["radius"][0],
                     inertiaI=self.dispersion_dictionary["inertiaI"][0],
                     inertiaZ=self.dispersion_dictionary["inertiaZ"][0],
-                    distanceRocketPropellant=self.dispersion_dictionary[
-                        "distanceRocketPropellant"
-                    ][0],
-                    distanceRocketNozzle=self.dispersion_dictionary[
-                        "distanceRocketNozzle"
-                    ][0],
                     powerOffDrag=self.dispersion_dictionary["powerOffDrag"][0],
                     powerOnDrag=self.dispersion_dictionary["powerOnDrag"][0],
                 )
-                self.rocket.setRailButtons(distanceToCM=[0.2, -0.5])
+                self.rocket.setRailButtons(
+                    position=[0.2, -0.5]
+                )  # TODO: needs to check if required
             except:
                 raise TypeError(
                     "Cannot define basic Rocket and add rail buttons. Missing required parameters in dictionary"
@@ -1299,19 +1297,28 @@ class Dispersion:
                 nozzleRadius=setting["nozzleRadius"],
                 throatRadius=setting["throatRadius"],
                 reshapeThrustCurve=(setting["burnOutTime"], setting["totalImpulse"]),
+                grainsCenterOfMassPosition=setting["grainsCenterOfMassPosition"],
+                nozzlePosition=setting["nozzlePosition"],
             )
 
             # Apply rocket parameters variations on each iteration if possible
             rocket_dispersion = Rocket(
-                motor=motor_dispersion,
                 mass=setting["mass"],
                 inertiaI=setting["inertiaI"],
                 inertiaZ=setting["inertiaZ"],
                 radius=setting["radius"],
-                distanceRocketNozzle=setting["distanceRocketNozzle"],
-                distanceRocketPropellant=setting["distanceRocketPropellant"],
                 powerOffDrag=setting["powerOffDrag"],
                 powerOnDrag=setting["powerOnDrag"],
+                centerOfDryMassPosition=setting["centerOfDryMassPosition"],
+            )
+
+            # Edit rocket drag
+            rocket_dispersion.powerOffDrag *= setting["powerOffDragFactor"]
+            rocket_dispersion.powerOnDrag *= setting["powerOnDragFactor"]
+
+            # Add Motor
+            rocket_dispersion.addMotor(
+                motor_dispersion, position=setting["motor_position"]
             )
 
             # Add rocket nose, fins and tail
@@ -1320,7 +1327,7 @@ class Dispersion:
                 rocket_dispersion.addNose(
                     length=setting[f"nose_{nose}_length"],
                     kind=setting[f"nose_{nose}_kind"],
-                    distanceToCM=setting[f"nose_{nose}_distanceToCM"],
+                    position=setting[f"nose_{nose}_position"],
                     name=nose,
                 )
 
@@ -1332,7 +1339,7 @@ class Dispersion:
                     rootChord=setting[f"finSet_{finSet}_rootChord"],
                     tipChord=setting[f"finSet_{finSet}_tipChord"],
                     span=setting[f"finSet_{finSet}_span"],
-                    distanceToCM=setting[f"finSet_{finSet}_distanceToCM"],
+                    position=setting[f"finSet_{finSet}_position"],
                     airfoil=setting[f"finSet_{finSet}_airfoil"],
                     name=finSet,
                 )
@@ -1343,7 +1350,7 @@ class Dispersion:
                     topRadius=setting[f"tail_{tail}_topRadius"],
                     bottomRadius=setting[f"tail_{tail}_bottomRadius"],
                     length=setting[f"tail_{tail}_length"],
-                    distanceToCM=setting[f"tail_{tail}_distanceToCM"],
+                    position=setting[f"tail_{tail}_position"],
                     radius=None,
                     name="Tail",
                 )
@@ -1361,7 +1368,7 @@ class Dispersion:
                 )
 
             rocket_dispersion.setRailButtons(
-                distanceToCM=[
+                position=[
                     setting["positionFirstRailButton"],
                     setting["positionSecondRailButton"],
                 ],
