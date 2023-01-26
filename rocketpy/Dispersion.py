@@ -1108,7 +1108,9 @@ class Dispersion:
         # so all the for loops are slowing down de dispersion
         # find a more efficient way to save attributes
 
-        # First, capture the flight data that are saved in the flight object
+        # TODO: Add a way to save more than just flight attributes, i.e. rocket, motor...
+
+        # Get list of selected flight attributes
         attributes_list = list(set(dir(flight)).intersection(self.export_list))
         flight_result = {}
         for var in self.export_list:
@@ -1121,8 +1123,7 @@ class Dispersion:
                     flight_result[str(var)] = getattr(flight, var)
 
             # Second, capture data that needs to be calculated
-        for var in list(set(self.export_list) - set(attributes_list)):
-            if var == "executionTime":
+            elif var == "executionTime":
                 flight_result[str(var)] = exec_time
             elif var == "numberOfEvents":
                 flight_result[str(var)] = len(flight.parachuteEvents)
@@ -1130,6 +1131,7 @@ class Dispersion:
                 raise ValueError(f"Variable {var} could not be found.")
 
         # Take care of parachute results
+        # TODO: this always gets saved... must be parametrized
         for trigger_time, parachute in flight.parachuteEvents:
             flight_result[parachute.name + "_triggerTime"] = trigger_time
             flight_result[parachute.name + "_inflatedTime"] = (
@@ -1308,6 +1310,9 @@ class Dispersion:
         ):
             self.start_time = process_time()
             i += 1
+
+            # TODO: resolve environment definitions here. Currently does not work
+            #       because atmospheric model is not recalculated
 
             # Apply environment parameters variations on each iteration if possible
             env_dispersion.railLength = setting["railLength"]
