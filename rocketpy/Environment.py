@@ -410,6 +410,9 @@ class Environment:
         # Initialize plots and prints object
         self.plots = _EnvironmentPlots(self)
 
+        # Initialize plots and prints object
+        self.plots = _EnvironmentPlots(self)
+
         return None
 
     def setDate(self, date, timeZone="UTC"):
@@ -3427,7 +3430,7 @@ class Environment:
         hemis : string
             Equals to "S" for southern hemisphere and "N" for Northern hemisphere
         datum : string
-            The desired reference ellipsoide model, the following options are
+            The desired reference ellipsoid model, the following options are
             available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
             is "SIRGAS2000", then this model will be used if the user make some
             typing mistake
@@ -3435,9 +3438,9 @@ class Environment:
         Returns
         -------
         lat: float
-            latitude of the analysed point
+            latitude of the analyzed point
         lon: float
-            latitude of the analysed point
+            latitude of the analyzed point
         """
 
         if hemis == "N":
@@ -3607,24 +3610,3 @@ class Environment:
         # ))
 
         return deg, min, sec
-
-    def printEarthDetails(self):
-        """[UNDER CONSTRUCTION]
-        Function to print information about the Earth Model used in the
-        Environment Class
-
-        """
-        # Print launch site details
-        # print("Launch Site Details")
-        # print("Launch Site Latitude: {:.5f}°".format(self.lat))
-        # print("Launch Site Longitude: {:.5f}°".format(self.lon))
-        # print("Reference Datum: " + self.datum)
-        # print("Launch Site UTM coordinates: {:.2f} ".format(self.initialEast)
-        #    + self.initialEW + "    {:.2f} ".format(self.initialNorth) + self.initialHemisphere
-        # )
-        # print("Launch Site UTM zone number:", self.initialUtmZone)
-        # print("Launch Site Surface Elevation: {:.1f} m".format(self.elevation))
-        print("Earth Radius at Launch site: {:.1f} m".format(self.earthRadius))
-        print("Gravity acceleration at launch site: Still not implemented :(")
-
-        return None
