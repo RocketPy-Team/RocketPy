@@ -631,8 +631,12 @@ class Flight:
         # Modifying Rail Length for a better out of rail condition
         upperButtonPosition, lowerButtonPosition = self.rocket.railButtons.position
         nozzlePosition = self.rocket.motorPosition
-        self.effective1RL = self.env.rL - abs(nozzlePosition - upperButtonPosition)
-        self.effective2RL = self.env.rL - abs(nozzlePosition - lowerButtonPosition)
+        self.effective1RL = self.env.railLength - abs(
+            nozzlePosition - upperButtonPosition
+        )  # TODO: check if this is right with the merge
+        self.effective2RL = self.env.railLength - abs(
+            nozzlePosition - lowerButtonPosition
+        )  # TODO: check if this is right with the merge
 
         # Flight initialization
         self.__init_post_process_variables()
