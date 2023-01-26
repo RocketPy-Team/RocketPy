@@ -1174,7 +1174,7 @@ class Flight:
             upperRButton = max(self.rocket.railButtons[0])
         except AttributeError:  # If there is no rail button
             upperRButton = nozzle
-        effective1RL = self.env.rL - abs(nozzle - upperRButton)
+        effective1RL = self.env.railLength - abs(nozzle - upperRButton)
 
         return effective1RL
 
@@ -1188,7 +1188,7 @@ class Flight:
             lowerRButton = min(self.rocket.railButtons[0])
         except AttributeError:
             lowerRButton = nozzle
-        effective2RL = self.env.rL - abs(nozzle - lowerRButton)
+        effective2RL = self.env.railLength - abs(nozzle - lowerRButton)
         return effective2RL
 
     @cached_property
