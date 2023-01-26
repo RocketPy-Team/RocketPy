@@ -804,6 +804,11 @@ class Rocket:
         # Save important attributes
         self.railButtons = self.railButtonPair(position, angularPosition)
 
+        # Saving in a special format just for dispersion class
+        self.positionFirstRailButton = position[0]
+        self.positionSecondRailButton = position[1]
+        self.railButtonAngularPosition = angularPosition
+
         return None
 
     def addCMEccentricity(self, x, y):
