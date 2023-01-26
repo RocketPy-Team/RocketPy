@@ -171,11 +171,9 @@ class Dispersion:
             "parachute": {
                 "CdS": "required",
                 "trigger": "required",
-                "samplingRate": 100,
-                "lag": 0,
+                "samplingRate": "required",
+                "lag": "required",
                 "noise": (0, 0, 0),
-                # "noiseStd": 0,
-                # "noiseCorr": 0,
             },
             "flight": {
                 "inclination": 80,
@@ -790,6 +788,9 @@ class Dispersion:
         for key in dictionary.keys():
             if "parachute_" in key:
                 self.parachute_names.append(key.split("_")[1])
+        # Get names from the rocket object
+        for chute in self.rocket.parachutes:
+            self.parachute_names.append(chute.name)
         # Remove duplicates
         self.parachute_names = list(set(self.parachute_names))
 
