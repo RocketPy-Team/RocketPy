@@ -546,7 +546,7 @@ class Dispersion:
             elif "tail" in var:
                 self.tail_names.append(var.split("_")[1])
         # Get names from the rocket object
-        for surface in self.rocket.aerodynamicSurfaces:
+        for surface, position in self.rocket.aerodynamicSurfaces:
             if isinstance(surface, NoseCone):
                 self.nose_names.append(surface.name)
             elif isinstance(surface, (TrapezoidalFins, EllipticalFins)):
@@ -562,7 +562,7 @@ class Dispersion:
         # Iterate through nose names
         for name in self.nose_names:
             # Iterate through aerodynamic surface available at rocket object
-            for surface in self.rocket.aerodynamicSurfaces:
+            for surface, position in self.rocket.aerodynamicSurfaces:
                 if surface.name == name and isinstance(surface, NoseCone):
                     # in case we find the corresponding nose, check if all the
                     # inputs are present in the dictionary
@@ -570,9 +570,13 @@ class Dispersion:
                         if f"nose_{name}_{input}" not in dictionary:
                             # Try to get the value from the rocket object
                             try:
-                                dictionary[f"nose_{name}_{input}"] = [
-                                    getattr(surface, input)
-                                ]
+                                # special check for position
+                                if input == "position":
+                                    dictionary[f"nose_{name}_{input}"] = [position]
+                                else:
+                                    dictionary[f"nose_{name}_{input}"] = [
+                                        getattr(surface, input)
+                                    ]
                             except AttributeError:
                                 # If not possible, check if the input is required
                                 if self.inputs_dict["nose"][input] == "required":
@@ -591,7 +595,7 @@ class Dispersion:
         # Iterate through fin sets names
         for name in self.finSet_names:
             # Iterate through aerodynamic surface available at rocket object
-            for surface in self.rocket.aerodynamicSurfaces:
+            for surface, position in self.rocket.aerodynamicSurfaces:
                 if surface.name == name and isinstance(
                     surface, (TrapezoidalFins, EllipticalFins)
                 ):
@@ -601,9 +605,13 @@ class Dispersion:
                         if f"finSet_{name}_{input}" not in dictionary:
                             # Try to get the value from the rocket object
                             try:
-                                dictionary[f"finSet_{name}_{input}"] = [
-                                    getattr(surface, input)
-                                ]
+                                # special check for position
+                                if input == "position":
+                                    dictionary[f"finSet_{name}_{input}"] = [position]
+                                else:
+                                    dictionary[f"finSet_{name}_{input}"] = [
+                                        getattr(surface, input)
+                                    ]
                             except AttributeError:
                                 # If not possible, check if the input is required
                                 if self.inputs_dict["fins"][input] == "required":
@@ -621,7 +629,7 @@ class Dispersion:
         # Iterate through tail names
         for name in self.tail_names:
             # Iterate through aerodynamic surface available at rocket object
-            for surface in self.rocket.aerodynamicSurfaces:
+            for surface, position in self.rocket.aerodynamicSurfaces:
                 if surface.name == name and isinstance(surface, Tail):
                     # in case we find the corresponding tail, check if all the
                     # inputs are present in the dictionary
@@ -629,9 +637,13 @@ class Dispersion:
                         if f"tail_{name}_{input}" not in dictionary:
                             # Try to get the value from the rocket object
                             try:
-                                dictionary[f"tail_{name}_{input}"] = [
-                                    getattr(surface, input)
-                                ]
+                                # special check for position
+                                if input == "position":
+                                    dictionary[f"tail_{name}_{input}"] = [position]
+                                else:
+                                    dictionary[f"tail_{name}_{input}"] = [
+                                        getattr(surface, input)
+                                    ]
                             except AttributeError:
                                 # If not possible, check if the input is required
                                 if self.inputs_dict["tail"][input] == "required":
