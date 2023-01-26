@@ -633,11 +633,24 @@ class Fins(ABC):
                 self.rollForcingInterferenceFactor
             )
         )
-
+        #lacks a title for the plot
         self.rollParameters[0]()
+        #lacks a title for the plot
         self.rollParameters[1]()
 
         return None
+
+    def airfoilPlots(self):
+        
+        if self.airfoil is not None:
+            airfoilCl = Function(
+                self.airfoil[0],
+                inputs = "angle of attack",
+                outputs = "lift coefficient",
+                interpolation="linear",
+                extrapolation = None,
+            )
+            airfoilCl.plot1D()
 
     def allInfo(self):
         """Prints out all data and graphs available about the Rocket.
@@ -663,6 +676,7 @@ class Fins(ABC):
         self.geometricalInfo()
         self.aerodynamicInfo()
         self.rollInfo()
+        self.airfoilPlots()
 
         return None
 
@@ -984,7 +998,7 @@ class TrapezoidalFins(Fins):
         )
 
         # Plotting
-        fig3 = plt.figure(figsize=(4, 4))
+        fig3 = plt.figure(figsize=(7, 4))
         with plt.style.context("bmh"):
             ax1 = fig3.add_subplot(111)
 
@@ -1015,6 +1029,7 @@ class TrapezoidalFins(Fins):
         ax1.set_title("Trapezoidal Fin")
         ax1.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
 
+        plt.tight_layout()
         plt.show()
 
         return None
@@ -1309,7 +1324,7 @@ class EllipticalFins(Fins):
         cp_point = [self.cpz, self.Yma]
 
         # Plotting
-        fig3 = plt.figure(figsize=(4, 4))
+        fig3 = plt.figure(figsize=(7, 4))
         with plt.style.context("bmh"):
             ax1 = fig3.add_subplot(111)
         ax1.add_patch(el)
@@ -1328,6 +1343,7 @@ class EllipticalFins(Fins):
         ax1.set_title("Elliptical Fin")
         ax1.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
 
+        plt.tight_layout()
         plt.show()
 
         return None
