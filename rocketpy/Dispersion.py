@@ -1484,8 +1484,10 @@ class Dispersion:
         initial_wall_time = time()
         initial_cpu_time = process_time()
 
-        # Iterate over flight settings, start the flight simulations
+        # Begin display when running in notebook
         out = display("Starting", display_id=True)
+
+        # Iterate over flight settings, start the flight simulations
         for setting in self.__yield_flight_setting(
             self.distributionFunc, analysis_parameters, self.number_of_simulations
         ):
@@ -1628,11 +1630,14 @@ class Dispersion:
                 self.__export_flight_data_error(setting, dispersion_error_file)
 
             # Register time
-            out.update(
-                f"Current iteration: {i:06d} | Average Time per Iteration: "
-                f"{(process_time() - initial_cpu_time)/i:2.6f} s | Estimated time"
-                f" left: {int((number_of_simulations - i)*((process_time() - initial_cpu_time)/i))} s"
-            )
+            # checks if out was defined
+            # out only gets defined when using a jupyter notebook
+            if out:
+                out.update(
+                    f"Current iteration: {i:06d} | Average Time per Iteration: "
+                    f"{(process_time() - initial_cpu_time)/i:2.6f} s | Estimated time"
+                    f" left: {int((number_of_simulations - i)*((process_time() - initial_cpu_time)/i))} s"
+                )
 
         # Clean the house once all the simulations were already done
 
@@ -1642,7 +1647,8 @@ class Dispersion:
             f"{process_time() - initial_cpu_time} s. Total wall time: "
             f"{time() - initial_wall_time} s"
         )
-        out.update(final_string)
+        if out:
+            out.update(final_string)
         dispersion_input_file.write(final_string + "\n")
         dispersion_output_file.write(final_string + "\n")
         dispersion_error_file.write(final_string + "\n")
