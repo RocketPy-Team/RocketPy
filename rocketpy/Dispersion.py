@@ -895,11 +895,14 @@ class Dispersion:
                     powerOnDrag=self.dispersion_dictionary["powerOnDrag"][0],
                 )
                 self.rocket.setRailButtons(
-                    position=[0.2, -0.5]
-                )  # TODO: needs to check if required
+                    position=[
+                        self.dispersion_dictionary["positionFirstRailButton"][0],
+                        self.dispersion_dictionary["positionSecondRailButton"][0],
+                    ]
+                )
             except:
                 raise TypeError(
-                    "Cannot define basic Rocket and add rail buttons. Missing required parameters in dictionary"
+                    "Cannot define basic Rocket and add Rail Buttons. Missing required parameters in dictionary"
                 )
         if self.flight is None:
             try:

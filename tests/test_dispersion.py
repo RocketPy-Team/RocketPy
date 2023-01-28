@@ -228,9 +228,9 @@ def test_dispersion_dict_defined(
         "parachute_Drogue_samplingRate": (105, 0),
         "parachute_Drogue_lag": (1.5, 0),
         "parachute_Drogue_noise": [(0, 8.3, 0.5)],
-        "positionFirstRailButton": 0.001,
-        "positionSecondRailButton": 0.001,
-        "railButtonAngularPosition": 0,
+        "positionFirstRailButton": (0.2, 0.001),
+        "positionSecondRailButton": (-0.5, 0.001),
+        "railButtonAngularPosition": (45, 0),
         "inclination": (85, 1),
         "heading": (90, 2)
         # "terminateOnApogee":,
