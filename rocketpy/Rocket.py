@@ -914,6 +914,26 @@ class Rocket:
                 return parachute
         raise ValueError("No parachute with name {} found.".format(name))
 
+    def get_aero_surface_by_name(self, name):
+        """Returns aero surface object by name.
+
+        Parameters
+        ----------
+        name : str
+            Name of the aerodynamic surface.
+
+        Returns
+        -------
+        surface : AeroSurface
+            AeroSurface object with the given name.
+        position: float, int
+            AeroSurface object's position.
+        """
+        for surface, position in self.aerodynamicSurfaces:
+            if surface.name == name:
+                return surface, position
+        raise ValueError("No aerodynamic surface with name {} found.".format(name))
+
     def info(self):
         """Prints out a summary of the data and graphs available about
         the Rocket.
