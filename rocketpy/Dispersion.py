@@ -489,6 +489,7 @@ class Dispersion:
             Modified dictionary with the processed rail buttons parameters.
         """
 
+        # if there is any missing input
         if not all(
             rail_buttons_input in dictionary
             for rail_buttons_input in self.inputs_dict["railbuttons"].keys()
@@ -515,7 +516,16 @@ class Dispersion:
                         dictionary[missing_input] = [
                             self.inputs_dict["railbuttons"][missing_input]
                         ]
-
+        # else, all inputs are there
+        else:
+            # Iterate through possible inputs
+            for rail_buttons_input in self.inputs_dict["railbuttons"].keys():
+                # if value of input is not list or tuple
+                if not isinstance(dictionary[rail_buttons_input], (tuple, list)):
+                    dictionary[rail_buttons_input] = (
+                        getattr(self.rocket, rail_buttons_input),
+                        dictionary[rail_buttons_input],
+                    )
         return dictionary
 
     def __process_aerodynamic_surfaces_from_dict(self, dictionary):
