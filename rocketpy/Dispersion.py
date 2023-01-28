@@ -600,6 +600,62 @@ class Dispersion:
                                     dictionary[f"nose_{name}_{input}"] = [
                                         self.inputs_dict["nose"][input]
                                     ]
+                        # if the input is in the dictionary, then check format
+                        else:
+                            # if value of input is not list or tuple
+                            if not isinstance(
+                                dictionary[f"nose_{name}_{input}"], (list, tuple)
+                            ):
+                                # Try to get value from class to construct tuple
+                                if len(self.rocket.aerodynamicSurfaces) > 0:
+                                    for (
+                                        surface,
+                                        position,
+                                    ) in self.rocket.aerodynamicSurfaces:
+                                        if isinstance(surface, NoseCone):
+                                            try:
+                                                # special check for position
+                                                if input == "position":
+                                                    dictionary[
+                                                        f"nose_{name}_{input}"
+                                                    ] = (
+                                                        position,
+                                                        dictionary[
+                                                            f"nose_{name}_{input}"
+                                                        ],
+                                                    )
+                                                else:
+                                                    dictionary[
+                                                        f"nose_{name}_{input}"
+                                                    ] = (
+                                                        getattr(surface, input),
+                                                        dictionary[
+                                                            f"nose_{name}_{input}"
+                                                        ],
+                                                    )
+
+                                            except AttributeError:
+                                                raise AttributeError(
+                                                    f"Please check if the parameter "
+                                                    + f"nose_{name}_{input}"
+                                                    + " was inputted"
+                                                    " correctly in dispersion_dictionary."
+                                                    " Dictionary values must be either tuple or lists."
+                                                    " If single value, a Rocket object with at least one"
+                                                    " NoseCone must be inputted in the run_dispersion method"
+                                                    " and the NoseCone must have {input} defined"
+                                                )
+
+                                else:
+                                    raise AttributeError(
+                                        f"Please check if the parameter "
+                                        + f"nose_{name}_{input}"
+                                        + " was inputted"
+                                        " correctly in dispersion_dictionary."
+                                        " Dictionary values must be either tuple or lists."
+                                        " If single value, a Rocket object with at least one"
+                                        " NoseCone must be inputted in the run_dispersion method."
+                                    )
 
         # Iterate through fin sets names
         for name in self.finSet_names:
@@ -634,6 +690,64 @@ class Dispersion:
                                     dictionary[f"finSet_{name}_{input}"] = [
                                         self.inputs_dict["fins"][input]
                                     ]
+                        # if the input is in the dictionary, then check format
+                        else:
+                            # if value of input is not list or tuple
+                            if not isinstance(
+                                dictionary[f"finSet_{name}_{input}"], (list, tuple)
+                            ):
+                                # Try to get value from class to construct tuple
+                                if len(self.rocket.aerodynamicSurfaces) > 0:
+                                    for (
+                                        surface,
+                                        position,
+                                    ) in self.rocket.aerodynamicSurfaces:
+                                        if isinstance(
+                                            surface, (TrapezoidalFins, EllipticalFins)
+                                        ):
+                                            try:
+                                                # special check for position
+                                                if input == "position":
+                                                    dictionary[
+                                                        f"finSet_{name}_{input}"
+                                                    ] = (
+                                                        position,
+                                                        dictionary[
+                                                            f"finSet_{name}_{input}"
+                                                        ],
+                                                    )
+                                                else:
+                                                    dictionary[
+                                                        f"finSet_{name}_{input}"
+                                                    ] = (
+                                                        getattr(surface, input),
+                                                        dictionary[
+                                                            f"finSet_{name}_{input}"
+                                                        ],
+                                                    )
+
+                                            except AttributeError:
+                                                raise AttributeError(
+                                                    f"Please check if the parameter "
+                                                    + f"finSet_{name}_{input}"
+                                                    + " was inputted"
+                                                    " correctly in dispersion_dictionary."
+                                                    " Dictionary values must be either tuple or lists."
+                                                    " If single value, a Rocket object with at least one"
+                                                    " FinSet must be inputted in the run_dispersion method"
+                                                    " and the FinSet must have {input} defined"
+                                                )
+
+                                else:
+                                    raise AttributeError(
+                                        f"Please check if the parameter "
+                                        + f"finSet_{name}_{input}"
+                                        + " was inputted"
+                                        " correctly in dispersion_dictionary."
+                                        " Dictionary values must be either tuple or lists."
+                                        " If single value, a Rocket object with at least one"
+                                        " FinSet must be inputted in the run_dispersion method."
+                                    )
 
         # Iterate through tail names
         for name in self.tail_names:
@@ -666,6 +780,62 @@ class Dispersion:
                                     dictionary[f"tail_{name}_{input}"] = [
                                         self.inputs_dict["tail"][input]
                                     ]
+                        # if the input is in the dictionary, then check format
+                        else:
+                            # if value of input is not list or tuple
+                            if not isinstance(
+                                dictionary[f"tail_{name}_{input}"], (list, tuple)
+                            ):
+                                # Try to get value from class to construct tuple
+                                if len(self.rocket.aerodynamicSurfaces) > 0:
+                                    for (
+                                        surface,
+                                        position,
+                                    ) in self.rocket.aerodynamicSurfaces:
+                                        if isinstance(surface, Tail):
+                                            try:
+                                                # special check for position
+                                                if input == "position":
+                                                    dictionary[
+                                                        f"tail_{name}_{input}"
+                                                    ] = (
+                                                        position,
+                                                        dictionary[
+                                                            f"tail_{name}_{input}"
+                                                        ],
+                                                    )
+                                                else:
+                                                    dictionary[
+                                                        f"tail_{name}_{input}"
+                                                    ] = (
+                                                        getattr(surface, input),
+                                                        dictionary[
+                                                            f"tail_{name}_{input}"
+                                                        ],
+                                                    )
+
+                                            except AttributeError:
+                                                raise AttributeError(
+                                                    f"Please check if the parameter "
+                                                    + f"tail_{name}_{input}"
+                                                    + " was inputted"
+                                                    " correctly in dispersion_dictionary."
+                                                    " Dictionary values must be either tuple or lists."
+                                                    " If single value, a Rocket object with at least one"
+                                                    " Tail must be inputted in the run_dispersion method"
+                                                    " and the Tail must have {input} defined"
+                                                )
+
+                                else:
+                                    raise AttributeError(
+                                        f"Please check if the parameter "
+                                        + f"tail_{name}_{input}"
+                                        + " was inputted"
+                                        " correctly in dispersion_dictionary."
+                                        " Dictionary values must be either tuple or lists."
+                                        " If single value, a Rocket object with at least one"
+                                        " Tail must be inputted in the run_dispersion method."
+                                    )
 
         return dictionary
 
