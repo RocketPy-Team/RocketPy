@@ -75,7 +75,7 @@ class NoseCone:
     """
 
     def __init__(
-        self, length, kind, baseRadius=None, rocketRadius=None, name="Nose Cone"
+        self, length, kind, baseRadius=None, rocketRadius=None, name="NoseCone"
     ):
         """Initializes the nose cone. It is used to define the nose cone
         length, kind, center of pressure and lift coefficient curve.

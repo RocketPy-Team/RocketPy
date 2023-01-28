@@ -6,14 +6,41 @@ from tests.conftest import *
 
 
 @patch("matplotlib.pyplot.show")
-def test_dispersion_object_defined(mock_show, rocket, solid_motor, example_env_robust):
+def test_dispersion_object_defined(mock_show, solid_motor, example_env_robust):
     "Test dispersion when it is defined by objects and only std are given in the dict"
 
     # start dispersion
     test_disp = Dispersion(filename="test_obj_defined")
 
     # setup rocket
-    disp_rocket = rocket
+    disp_rocket = Rocket(
+        radius=127 / 2000,
+        mass=19.197 - 2.956,
+        inertiaI=6.60,
+        inertiaZ=0.0351,
+        powerOffDrag="data/calisto/powerOffDragCurve.csv",
+        powerOnDrag="data/calisto/powerOnDragCurve.csv",
+        centerOfDryMassPosition=0,
+        coordinateSystemOrientation="tailToNose",
+    )
+    disp_rocket.setRailButtons([0.2, -0.5])
+    disp_rocket.addMotor(solid_motor, position=-1.255)
+    NoseCone = disp_rocket.addNose(
+        length=0.55829, kind="vonKarman", position=0.71971 + 0.55829
+    )
+    FinSet = disp_rocket.addTrapezoidalFins(
+        n=4,
+        rootChord=0.120,
+        tipChord=0.040,
+        span=0.100,
+        position=-1.04956,
+        cantAngle=0,
+        radius=None,
+        airfoil=None,
+    )
+    Tail = disp_rocket.addTail(
+        topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
+    )
 
     def drogueTrigger(p, y):
         # p = pressure

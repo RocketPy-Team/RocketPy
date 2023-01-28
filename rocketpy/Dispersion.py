@@ -146,7 +146,7 @@ class Dispersion:
                 "length": "required",
                 "kind": "Von Karman",
                 "position": "required",
-                "name": "Nose Cone",
+                "name": "NoseCone",
             },
             "fins": {
                 "n": "required",
@@ -1219,10 +1219,16 @@ class Dispersion:
                 elif isinstance(parameter_value, types.FunctionType):
                     # Deal with parachute triggers functions
                     flight_setting[parameter_key] = parameter_value
-                else:
+                elif isinstance(parameter_value, list):
                     # shuffles list and gets first item
                     shuffle(parameter_value)
                     flight_setting[parameter_key] = parameter_value[0]
+                else:
+                    # parameter_value is defined wrong
+                    raise AttributeError(
+                        "Something went wrong when analyzing the dispersion_dictionary."
+                        " Please check if everything was inputed correctly."
+                    )
 
             # Update counter
             i += 1

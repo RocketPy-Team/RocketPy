@@ -491,7 +491,7 @@ class Rocket:
         # Return self
         return tail
 
-    def addNose(self, length, kind, position, name="Nose Cone"):
+    def addNose(self, length, kind, position, name="NoseCone"):
         """Creates a nose cone, storing its parameters as part of the
         aerodynamicSurfaces list. Its parameters are the axial position
         along the rocket and its derivative of the coefficient of lift
@@ -510,7 +510,7 @@ class Rocket:
             Nose cone tip coordinate relative to the rocket's coordinate system.
             See `Rocket.coordinateSystemOrientation` for more information.
         name : string
-            Nose cone name. Default is "Nose Cone".
+            Nose cone name. Default is "NoseCone".
 
         Returns
         -------
