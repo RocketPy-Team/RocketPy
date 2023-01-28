@@ -128,7 +128,6 @@ class Dispersion:
                 "grainsCenterOfMassPosition": "required",
                 "nozzlePosition": 0,
                 "coordinateSystemOrientation": "nozzleToCombustionChamber",
-                "motor_position": "required",
             },
             "rocket": {
                 "mass": "required",
@@ -139,8 +138,9 @@ class Dispersion:
                 "powerOnDrag": "required",
                 "centerOfDryMassPosition": 0,
                 "coordinateSystemOrientation": "tailToNose",
-                "powerOffDragFactor": (1, 0),
-                "powerOnDragFactor": (1, 0),
+                "powerOffDragFactor": 1,
+                "powerOnDragFactor": 1,
+                "motorPosition": "required",
             },
             "nose": {
                 "length": "required",
