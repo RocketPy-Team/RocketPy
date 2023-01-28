@@ -155,7 +155,7 @@ class Dispersion:
                 "span": "required",
                 "position": "required",
                 "cantAngle": 0,
-                "radius": None,
+                "rocketRadius": None,
                 "airfoil": None,
             },
             "tail": {
@@ -343,189 +343,120 @@ class Dispersion:
             The modified dictionary with the processed parameters.
         """
 
-        # Now we prepare all the parachute data
-        dictionary = self.__process_parachute_from_dict(dictionary)
-
-        # Check remaining class inputs
+        # Check class inputs
         # Environment
-        dictionary = self.__process_environment_from_dict(dictionary)
+        dictionary = self.__process_class_from_dict(
+            dictionary, self.environment, "environment", "Environment"
+        )
 
         # Motor
-        dictionary = self.__process_motor_from_dict(dictionary)
+        dictionary = self.__process_class_from_dict(
+            dictionary, self.motor, "solidmotor", "SolidMotor"
+        )
 
         # Rocket
-        dictionary = self.__process_rocket_from_dict(dictionary)
+        dictionary = self.__process_class_from_dict(
+            dictionary, self.rocket, "rocket", "Rocket"
+        )
 
         # Rail button
-        dictionary = self.__process_rail_buttons_from_dict(dictionary)
+        dictionary = self.__process_class_from_dict(
+            dictionary,
+            self.rocket,
+            "railbuttons",
+            "Rocket with Rail Buttons",
+            "RailButtons",
+        )
+
+        # Flight
+        dictionary = self.__process_class_from_dict(
+            dictionary, self.flight, "flight", "Flight"
+        )
+
+        # Parachute and Aero Surfaces need special treatment
+        # Parachute
+        dictionary = self.__process_parachute_from_dict(dictionary)
 
         # Aerodynamic Surfaces
         dictionary = self.__process_aerodynamic_surfaces_from_dict(dictionary)
 
-        # Flight
-        dictionary = self.__process_flight_from_dict(dictionary)
-
-        # Finally check the inputted data
-        self.__check_inputted_values_from_dict(dictionary)
-
         return dictionary
 
-    def __process_flight_from_dict(self, dictionary):
-        """Check if all the relevant inputs for the Flight class are present in
+    def __process_class_from_dict(
+        self,
+        dictionary,
+        object,
+        class_name,
+        class_name_pretty1,
+        class_name_pretty2=None,
+    ):
+        """Check if all the relevant inputs for the classes are present in
         the dispersion dictionary, input the missing ones and return the modified
         dictionary.
 
         Parameters
         ----------
-        dictionary : dict
+        dictionary :  dict
             Dictionary containing the parameters to be varied in the dispersion
             simulation. The keys of the dictionary are the names of the parameters
             to be varied, and the values can be either tuple or list. If the value
             is a single value, the corresponding class of the parameter need to
             be passed on the run_dispersion method.
+        object : Environment, SolidMotor, Rocket, Flight
+            Object that will be used to get attributes from.
+        class_name : string
+            Name of the class used in input_dict.
+        class_name_pretty : string
+            Name of the class used for prints.
 
         Returns
         -------
         dictionary: dict
-            Modified dictionary with the processed flight parameters.
+            Modified dictionary with the processed class parameters.
         """
-        # First check if all the inputs for the flight class are present in the
-        # dictionary, if not, input the missing ones
-        if not all(
-            flight_input in dictionary
-            for flight_input in self.inputs_dict["flight"].keys()
-        ):
-            # Iterate through missing inputs
-            for missing_input in (
-                set(self.inputs_dict["flight"].keys()) - dictionary.keys()
-            ):
-                missing_input = str(missing_input)
-                # Add to the dict
-                try:
-                    # First try to catch value from the Flight object if passed
-                    dictionary[missing_input] = [getattr(self.flight, missing_input)]
-                except AttributeError:
-                    # Flight class was not inputted
-                    # check if missing parameter is required
-                    if self.inputs_dict["flight"][missing_input] == "required":
-                        raise ValueError(
-                            "The input {} is required for the Flight class.".format(
-                                missing_input
-                            )
+
+        if class_name_pretty2 is None:
+            class_name_pretty2 = class_name_pretty2
+
+        # iterate through all possible inputs
+        for input in self.inputs_dict[class_name].keys():
+            # if input is in dictionary
+            if input in dictionary:
+                # check if it is not list or tuple
+                # meaning it should be a std value
+                # and the mean value should come from class
+                if not isinstance(dictionary[input], (tuple, list)):
+                    try:
+                        # dictionary should be {... input : (mean, std) ...}
+                        dictionary[input] = (
+                            getattr(object, input),
+                            dictionary[input],
                         )
-                    else:  # if not required, uses default value
-                        dictionary[missing_input] = [
-                            self.inputs_dict["flight"][missing_input]
-                        ]
-
-        return dictionary
-
-    def __process_rocket_from_dict(self, dictionary):
-        """Check if all the relevant inputs for the Rocket class are present in
-        the dispersion dictionary, input the missing ones and return the modified
-        dictionary.
-
-        Parameters
-        ----------
-        dictionary : dict
-            Dictionary containing the parameters to be varied in the dispersion
-            simulation. The keys of the dictionary are the names of the parameters
-            to be varied, and the values can be either tuple or list. If the value
-            is a single value, the corresponding class of the parameter need to
-            be passed on the run_dispersion method.
-
-        Returns
-        -------
-        dictionary: dict
-            Modified dictionary with the processed rocket parameters.
-        """
-
-        # Checks if there are any missing rocket inputs in dictionary
-        if not all(
-            rocket_input in dictionary
-            for rocket_input in self.inputs_dict["rocket"].keys()
-        ):
-            # Iterate through missing inputs
-            for missing_input in (
-                set(self.inputs_dict["rocket"].keys()) - dictionary.keys()
-            ):
-                missing_input = str(missing_input)
-                # Add to the dict
+                    except AttributeError:
+                        raise AttributeError(
+                            f"Please check if the parameter {input} was inputted"
+                            " correctly in dispersion_dictionary."
+                            " Dictionary values must be either tuple or lists."
+                            " If single value, a {class_name_pretty1} object must"
+                            " be inputted in the run_dispersion method."
+                        )
+            # if input is missing
+            else:
+                # First try to catch value from the object if passed
                 try:
-                    dictionary[missing_input] = [getattr(self.rocket, missing_input)]
+                    dictionary[input] = [getattr(object, input)]
                 except AttributeError:
                     # class was not inputted
                     # checks if missing parameter is required
-                    if self.inputs_dict["rocket"][missing_input] == "required":
+                    # if is, raise error
+                    if self.inputs_dict[class_name][input] == "required":
                         raise ValueError(
-                            "The input {} is required for the Rocket class.".format(
-                                missing_input
+                            "The input {} is required for the {} class.".format(
+                                input, class_name_pretty2
                             )
                         )
-                    else:  # if not, uses default value
-                        dictionary[missing_input] = [
-                            self.inputs_dict["rocket"][missing_input]
-                        ]
-
-        return dictionary
-
-    def __process_rail_buttons_from_dict(self, dictionary):
-        """Check if all the relevant inputs for the RailButtons class are present
-        in the dispersion dictionary, input the missing ones and return the
-        modified dictionary.
-
-        Parameters
-        ----------
-        dictionary : dict
-            Dictionary containing the parameters to be varied in the dispersion
-            simulation. The keys of the dictionary are the names of the parameters
-            to be varied, and the values can be either tuple or list. If the value
-            is a single value, the corresponding class of the parameter need to
-            be passed on the run_dispersion method.
-
-        Returns
-        -------
-        dictionary: dict
-            Modified dictionary with the processed rail buttons parameters.
-        """
-
-        # if there is any missing input
-        if not all(
-            rail_buttons_input in dictionary
-            for rail_buttons_input in self.inputs_dict["railbuttons"].keys()
-        ):
-            # Iterate through missing inputs
-            for missing_input in (
-                set(self.inputs_dict["railbuttons"].keys()) - dictionary.keys()
-            ):
-                missing_input = str(missing_input)
-                # Add to the dict
-                try:
-                    dictionary[missing_input] = [getattr(self.rocket, missing_input)]
-                except AttributeError:
-                    # class was not inputted
-                    # checks if missing parameter is required
-                    if self.inputs_dict["railbuttons"][missing_input] == "required":
-                        raise ValueError(
-                            "The input {} is required for the RailButtons class.".format(
-                                missing_input
-                            )
-                        )
-                    else:
-                        # if not, uses default value
-                        dictionary[missing_input] = [
-                            self.inputs_dict["railbuttons"][missing_input]
-                        ]
-        # else, all inputs are there
-        else:
-            # Iterate through possible inputs
-            for rail_buttons_input in self.inputs_dict["railbuttons"].keys():
-                # if value of input is not list or tuple
-                if not isinstance(dictionary[rail_buttons_input], (tuple, list)):
-                    dictionary[rail_buttons_input] = (
-                        getattr(self.rocket, rail_buttons_input),
-                        dictionary[rail_buttons_input],
-                    )
+                    else:  # if not required, use default value
+                        dictionary[input] = [self.inputs_dict[class_name][input]]
         return dictionary
 
     def __process_aerodynamic_surfaces_from_dict(self, dictionary):
@@ -567,382 +498,249 @@ class Dispersion:
         self.finSet_names = list(set(self.finSet_names))
         self.tail_names = list(set(self.tail_names))
 
-        # Check if there are enough arguments for each kind of aero surface
         # Iterate through nose names
         for name in self.nose_names:
-            # Iterate through aerodynamic surface available at rocket object
-            for surface, position in self.rocket.aerodynamicSurfaces:
-                if surface.name == name and isinstance(surface, NoseCone):
-                    # in case we find the corresponding nose, check if all the
-                    # inputs are present in the dictionary
-                    for input in self.inputs_dict["nose"].keys():
-                        if f"nose_{name}_{input}" not in dictionary:
-                            # Try to get the value from the rocket object
+            # iterate through all possible solid motor inputs
+            for input in self.inputs_dict["nose"].keys():
+                # if input is in dictionary
+                if f"nose_{name}_{input}" in dictionary:
+                    # check if it is not list or tuple
+                    # meaning it should be a std value
+                    # and the mean value should come from class
+                    if not isinstance(
+                        dictionary[f"nose_{name}_{input}"], (tuple, list)
+                    ):
+                        try:
+                            # first try to get aero surface by name
                             try:
-                                # special check for position
-                                if input == "position":
-                                    dictionary[f"nose_{name}_{input}"] = [position]
-                                else:
-                                    dictionary[f"nose_{name}_{input}"] = [
-                                        getattr(surface, input)
-                                    ]
-                            except AttributeError:
-                                # If not possible, check if the input is required
-                                if self.inputs_dict["nose"][input] == "required":
-                                    raise ValueError(
-                                        "The input {} is required for the NoseCone class.".format(
-                                            input
-                                        )
-                                    )
+                                (
+                                    surface,
+                                    position,
+                                ) = self.rocket.get_aero_surface_by_name(name)
+                            except:
+                                raise AttributeError
 
-                                else:
-                                    # If not required, use default value
-                                    dictionary[f"nose_{name}_{input}"] = [
-                                        self.inputs_dict["nose"][input]
-                                    ]
-                        # if the input is in the dictionary, then check format
+                            # change dict so that input is in the right format
+                            # dictionary should be {... input : (mean, std) ...}
+                            # special treatment for position
+                            if input == "position":
+                                dictionary[f"nose_{name}_{input}"] = (
+                                    position,
+                                    dictionary[f"nose_{name}_{input}"],
+                                )
+                            else:
+                                dictionary[f"nose_{name}_{input}"] = (
+                                    getattr(surface, input),
+                                    dictionary[f"nose_{name}_{input}"],
+                                )
+                        except AttributeError:
+                            raise AttributeError(
+                                f"Please check if the parameter "
+                                + f"nose_{name}_{input}"
+                                + " was inputted correctly in dispersion_dictionary."
+                                " Dictionary values must be either tuple or lists."
+                                " If single value, a Rocket object with at least one"
+                                " NoseCone with the same name as in the dictionary"
+                                " must be inputted in the run_dispersion method."
+                            )
+                # if input is missing
+                else:
+                    # first try to catch value from the AeroSurface object if passed
+                    try:
+                        # then try to get aero surface by name
+                        try:
+                            surface, position = self.rocket.get_aero_surface_by_name(
+                                name
+                            )
+                        except:
+                            raise AttributeError
+
+                        # change dict so that input is in the right format
+                        # dictionary should be {... input : [value] ...}
+                        # special treatment for position
+                        if input == "position":
+                            dictionary[f"nose_{name}_{input}"] = [
+                                position,
+                            ]
                         else:
-                            # if value of input is not list or tuple
-                            if not isinstance(
-                                dictionary[f"nose_{name}_{input}"], (list, tuple)
-                            ):
-                                # Try to get value from class to construct tuple
-                                if len(self.rocket.aerodynamicSurfaces) > 0:
-                                    for (
-                                        surface,
-                                        position,
-                                    ) in self.rocket.aerodynamicSurfaces:
-                                        if isinstance(surface, NoseCone):
-                                            try:
-                                                # special check for position
-                                                if input == "position":
-                                                    dictionary[
-                                                        f"nose_{name}_{input}"
-                                                    ] = (
-                                                        position,
-                                                        dictionary[
-                                                            f"nose_{name}_{input}"
-                                                        ],
-                                                    )
-                                                else:
-                                                    dictionary[
-                                                        f"nose_{name}_{input}"
-                                                    ] = (
-                                                        getattr(surface, input),
-                                                        dictionary[
-                                                            f"nose_{name}_{input}"
-                                                        ],
-                                                    )
-
-                                            except AttributeError:
-                                                raise AttributeError(
-                                                    f"Please check if the parameter "
-                                                    + f"nose_{name}_{input}"
-                                                    + " was inputted"
-                                                    " correctly in dispersion_dictionary."
-                                                    " Dictionary values must be either tuple or lists."
-                                                    " If single value, a Rocket object with at least one"
-                                                    " NoseCone must be inputted in the run_dispersion method"
-                                                    " and the NoseCone must have {input} defined"
-                                                )
-
-                                else:
-                                    raise AttributeError(
-                                        f"Please check if the parameter "
-                                        + f"nose_{name}_{input}"
-                                        + " was inputted"
-                                        " correctly in dispersion_dictionary."
-                                        " Dictionary values must be either tuple or lists."
-                                        " If single value, a Rocket object with at least one"
-                                        " NoseCone must be inputted in the run_dispersion method."
-                                    )
+                            dictionary[f"nose_{name}_{input}"] = [
+                                getattr(surface, input),
+                            ]
+                    except AttributeError:
+                        # class was not inputted
+                        # checks if missing parameter is required
+                        # if is, raise error
+                        if self.inputs_dict["nose"][input] == "required":
+                            raise ValueError(
+                                "The input {} is required for the NoseCone class.".format(
+                                    input
+                                )
+                            )
+                        else:  # if not required, use default value
+                            dictionary[input] = [self.inputs_dict["nose"][input]]
 
         # Iterate through fin sets names
         for name in self.finSet_names:
-            # Iterate through aerodynamic surface available at rocket object
-            for surface, position in self.rocket.aerodynamicSurfaces:
-                if surface.name == name and isinstance(
-                    surface, (TrapezoidalFins, EllipticalFins)
-                ):
-                    # in case we find the corresponding fin set, check if all the
-                    # inputs are present in the dictionary
-                    for input in self.inputs_dict["fins"].keys():
-                        if f"finSet_{name}_{input}" not in dictionary:
-                            # Try to get the value from the rocket object
+            # iterate through all possible inputs
+            for input in self.inputs_dict["fins"].keys():
+                # if input is in dictionary
+                if f"finSet_{name}_{input}" in dictionary:
+                    # check if it is not list or tuple
+                    # meaning it should be a std value
+                    # and the mean value should come from class
+                    if not isinstance(
+                        dictionary[f"finSet_{name}_{input}"], (tuple, list)
+                    ):
+                        try:
+                            # first try to get aero surface by name
                             try:
-                                # special check for position
-                                if input == "position":
-                                    dictionary[f"finSet_{name}_{input}"] = [position]
-                                else:
-                                    dictionary[f"finSet_{name}_{input}"] = [
-                                        getattr(surface, input)
-                                    ]
-                            except AttributeError:
-                                # If not possible, check if the input is required
-                                if self.inputs_dict["fins"][input] == "required":
-                                    raise ValueError(
-                                        "The input {} is required for the Fins class.".format(
-                                            input
-                                        )
-                                    )
-                                else:
-                                    # If not required, use default value
-                                    dictionary[f"finSet_{name}_{input}"] = [
-                                        self.inputs_dict["fins"][input]
-                                    ]
-                        # if the input is in the dictionary, then check format
+                                (
+                                    surface,
+                                    position,
+                                ) = self.rocket.get_aero_surface_by_name(name)
+                            except:
+                                raise AttributeError
+
+                            # change dict so that input is in the right format
+                            # dictionary should be {... input : (mean, std) ...}
+                            # special treatment for position
+                            if input == "position":
+                                dictionary[f"finSet_{name}_{input}"] = (
+                                    position,
+                                    dictionary[f"finSet_{name}_{input}"],
+                                )
+                            else:
+                                dictionary[f"finSet_{name}_{input}"] = (
+                                    getattr(surface, input),
+                                    dictionary[f"finSet_{name}_{input}"],
+                                )
+                        except AttributeError:
+                            raise AttributeError(
+                                f"Please check if the parameter "
+                                + f"finSet_{name}_{input}"
+                                + " was inputted correctly in dispersion_dictionary."
+                                " Dictionary values must be either tuple or lists."
+                                " If single value, a Rocket object with at least one"
+                                " FinSet with the same name as in the dictionary"
+                                " must be inputted in the run_dispersion method."
+                            )
+                # if input is missing
+                else:
+                    # first try to catch value from the AeroSurface object if passed
+                    try:
+                        # then try to get aero surface by name
+                        try:
+                            surface, position = self.rocket.get_aero_surface_by_name(
+                                name
+                            )
+                        except:
+                            raise AttributeError
+
+                        # change dict so that input is in the right format
+                        # dictionary should be {... input : [value] ...}
+                        # special treatment for position
+                        if input == "position":
+                            dictionary[f"finSet_{name}_{input}"] = [
+                                position,
+                            ]
                         else:
-                            # if value of input is not list or tuple
-                            if not isinstance(
-                                dictionary[f"finSet_{name}_{input}"], (list, tuple)
-                            ):
-                                # Try to get value from class to construct tuple
-                                if len(self.rocket.aerodynamicSurfaces) > 0:
-                                    for (
-                                        surface,
-                                        position,
-                                    ) in self.rocket.aerodynamicSurfaces:
-                                        if isinstance(
-                                            surface, (TrapezoidalFins, EllipticalFins)
-                                        ):
-                                            try:
-                                                # special check for position
-                                                if input == "position":
-                                                    dictionary[
-                                                        f"finSet_{name}_{input}"
-                                                    ] = (
-                                                        position,
-                                                        dictionary[
-                                                            f"finSet_{name}_{input}"
-                                                        ],
-                                                    )
-                                                else:
-                                                    dictionary[
-                                                        f"finSet_{name}_{input}"
-                                                    ] = (
-                                                        getattr(surface, input),
-                                                        dictionary[
-                                                            f"finSet_{name}_{input}"
-                                                        ],
-                                                    )
-
-                                            except AttributeError:
-                                                raise AttributeError(
-                                                    f"Please check if the parameter "
-                                                    + f"finSet_{name}_{input}"
-                                                    + " was inputted"
-                                                    " correctly in dispersion_dictionary."
-                                                    " Dictionary values must be either tuple or lists."
-                                                    " If single value, a Rocket object with at least one"
-                                                    " FinSet must be inputted in the run_dispersion method"
-                                                    " and the FinSet must have {input} defined"
-                                                )
-
-                                else:
-                                    raise AttributeError(
-                                        f"Please check if the parameter "
-                                        + f"finSet_{name}_{input}"
-                                        + " was inputted"
-                                        " correctly in dispersion_dictionary."
-                                        " Dictionary values must be either tuple or lists."
-                                        " If single value, a Rocket object with at least one"
-                                        " FinSet must be inputted in the run_dispersion method."
-                                    )
+                            dictionary[f"finSet_{name}_{input}"] = [
+                                getattr(surface, input),
+                            ]
+                    except AttributeError:
+                        # class was not inputted
+                        # checks if missing parameter is required
+                        # if is, raise error
+                        if self.inputs_dict["fins"][input] == "required":
+                            raise ValueError(
+                                "The input {} is required for the Fins class.".format(
+                                    input
+                                )
+                            )
+                        else:  # if not required, use default value
+                            dictionary[input] = [self.inputs_dict["fins"][input]]
 
         # Iterate through tail names
         for name in self.tail_names:
-            # Iterate through aerodynamic surface available at rocket object
-            for surface, position in self.rocket.aerodynamicSurfaces:
-                if surface.name == name and isinstance(surface, Tail):
-                    # in case we find the corresponding tail, check if all the
-                    # inputs are present in the dictionary
-                    for input in self.inputs_dict["tail"].keys():
-                        if f"tail_{name}_{input}" not in dictionary:
-                            # Try to get the value from the rocket object
+            # iterate through all possible inputs
+            for input in self.inputs_dict["tail"].keys():
+                # if input is in dictionary
+                if f"tail_{name}_{input}" in dictionary:
+                    # check if it is not list or tuple
+                    # meaning it should be a std value
+                    # and the mean value should come from class
+                    if not isinstance(
+                        dictionary[f"tail_{name}_{input}"], (tuple, list)
+                    ):
+                        try:
+                            # first try to get aero surface by name
                             try:
-                                # special check for position
-                                if input == "position":
-                                    dictionary[f"tail_{name}_{input}"] = [position]
-                                else:
-                                    dictionary[f"tail_{name}_{input}"] = [
-                                        getattr(surface, input)
-                                    ]
-                            except AttributeError:
-                                # If not possible, check if the input is required
-                                if self.inputs_dict["tail"][input] == "required":
-                                    raise ValueError(
-                                        "The input {} is required for the Tail class.".format(
-                                            input
-                                        )
-                                    )
-                                else:
-                                    # If not required, use default value
-                                    dictionary[f"tail_{name}_{input}"] = [
-                                        self.inputs_dict["tail"][input]
-                                    ]
-                        # if the input is in the dictionary, then check format
-                        else:
-                            # if value of input is not list or tuple
-                            if not isinstance(
-                                dictionary[f"tail_{name}_{input}"], (list, tuple)
-                            ):
-                                # Try to get value from class to construct tuple
-                                if len(self.rocket.aerodynamicSurfaces) > 0:
-                                    for (
-                                        surface,
-                                        position,
-                                    ) in self.rocket.aerodynamicSurfaces:
-                                        if isinstance(surface, Tail):
-                                            try:
-                                                # special check for position
-                                                if input == "position":
-                                                    dictionary[
-                                                        f"tail_{name}_{input}"
-                                                    ] = (
-                                                        position,
-                                                        dictionary[
-                                                            f"tail_{name}_{input}"
-                                                        ],
-                                                    )
-                                                else:
-                                                    dictionary[
-                                                        f"tail_{name}_{input}"
-                                                    ] = (
-                                                        getattr(surface, input),
-                                                        dictionary[
-                                                            f"tail_{name}_{input}"
-                                                        ],
-                                                    )
+                                (
+                                    surface,
+                                    position,
+                                ) = self.rocket.get_aero_surface_by_name(name)
+                            except:
+                                raise AttributeError
 
-                                            except AttributeError:
-                                                raise AttributeError(
-                                                    f"Please check if the parameter "
-                                                    + f"tail_{name}_{input}"
-                                                    + " was inputted"
-                                                    " correctly in dispersion_dictionary."
-                                                    " Dictionary values must be either tuple or lists."
-                                                    " If single value, a Rocket object with at least one"
-                                                    " Tail must be inputted in the run_dispersion method"
-                                                    " and the Tail must have {input} defined"
-                                                )
-
-                                else:
-                                    raise AttributeError(
-                                        f"Please check if the parameter "
-                                        + f"tail_{name}_{input}"
-                                        + " was inputted"
-                                        " correctly in dispersion_dictionary."
-                                        " Dictionary values must be either tuple or lists."
-                                        " If single value, a Rocket object with at least one"
-                                        " Tail must be inputted in the run_dispersion method."
-                                    )
-
-        return dictionary
-
-    def __process_motor_from_dict(self, dictionary):
-        """Check if all the relevant inputs for the Motor class are present in
-        the dispersion dictionary, input the missing ones and return the modified
-        dictionary.
-
-        Parameters
-        ----------
-        dictionary : dict
-            Dictionary containing the parameters to be varied in the dispersion
-            simulation. The keys of the dictionary are the names of the parameters
-            to be varied, and the values can be either tuple or list. If the value
-            is a single value, the corresponding class of the parameter need to
-            be passed on the run_dispersion method.
-
-        Returns
-        -------
-        dictionary: dict
-            Modified dictionary with the processed rocket parameters.
-        """
-        # TODO: Add more options of motor (i.e. Liquid and Hybrids)
-
-        if not all(
-            motor_input in dictionary
-            for motor_input in self.inputs_dict["solidmotor"].keys()
-        ):
-            # Iterate through missing inputs
-            for missing_input in (
-                set(self.inputs_dict["solidmotor"].keys()) - dictionary.keys()
-            ):
-                missing_input = str(missing_input)
-                # Add to the dict
-                try:
-                    dictionary[missing_input] = [getattr(self.motor, missing_input)]
-                except AttributeError:
-                    # class was not inputted
-                    # checks if missing parameter is required
-                    if self.inputs_dict["solidmotor"][missing_input] == "required":
-                        # if motor position in relation to rocket
-                        if missing_input == "motor_position":
-                            raise ValueError(
-                                'Missing motor\'s "position" argument in the input dictionary.'
-                                " This refers to the position of the motor's nozzle in relation"
-                                " to the rocket's coordinate system, used in the Rocket.addMotor method."
+                            # change dict so that input is in the right format
+                            # dictionary should be {... input : (mean, std) ...}
+                            # special treatment for position
+                            if input == "position":
+                                dictionary[f"tail_{name}_{input}"] = (
+                                    position,
+                                    dictionary[f"tail_{name}_{input}"],
+                                )
+                            else:
+                                dictionary[f"tail_{name}_{input}"] = (
+                                    getattr(surface, input),
+                                    dictionary[f"tail_{name}_{input}"],
+                                )
+                        except AttributeError:
+                            raise AttributeError(
+                                f"Please check if the parameter "
+                                + f"tail_{name}_{input}"
+                                + " was inputted correctly in dispersion_dictionary."
+                                " Dictionary values must be either tuple or lists."
+                                " If single value, a Rocket object with at least one"
+                                " Tail with the same name as in the dictionary"
+                                " must be inputted in the run_dispersion method."
                             )
+                # if input is missing
+                else:
+                    # first try to catch value from the AeroSurface object if passed
+                    try:
+                        # then try to get aero surface by name
+                        try:
+                            surface, position = self.rocket.get_aero_surface_by_name(
+                                name
+                            )
+                        except:
+                            raise AttributeError
+
+                        # change dict so that input is in the right format
+                        # dictionary should be {... input : [value] ...}
+                        # special treatment for position
+                        if input == "position":
+                            dictionary[f"tail_{name}_{input}"] = [
+                                position,
+                            ]
                         else:
+                            dictionary[f"tail_{name}_{input}"] = [
+                                getattr(surface, input),
+                            ]
+                    except AttributeError:
+                        # class was not inputted
+                        # checks if missing parameter is required
+                        # if is, raise error
+                        if self.inputs_dict["tail"][input] == "required":
                             raise ValueError(
-                                "The input {} is required for the SolidMotor class.".format(
-                                    missing_input
+                                "The input {} is required for the Fins class.".format(
+                                    input
                                 )
                             )
-                    else:  # if not uses default value
-                        dictionary[missing_input] = [
-                            self.inputs_dict["solidmotor"][missing_input]
-                        ]
-        return dictionary
+                        else:  # if not required, use default value
+                            dictionary[input] = [self.inputs_dict["tail"][input]]
 
-    def __process_environment_from_dict(self, dictionary):
-        """Check if all the relevant inputs for the Environment class are present in
-        the dispersion dictionary, input the missing ones and return the modified
-        dictionary.
-
-        Parameters
-        ----------
-        dictionary :  dict
-            Dictionary containing the parameters to be varied in the dispersion
-            simulation. The keys of the dictionary are the names of the parameters
-            to be varied, and the values can be either tuple or list. If the value
-            is a single value, the corresponding class of the parameter need to
-            be passed on the run_dispersion method.
-
-        Returns
-        -------
-        dictionary: dict
-            Modified dictionary with the processed environment parameters.
-        """
-        # Check if there is any missing input for the environment
-        if not all(
-            environment_input in dictionary
-            for environment_input in self.inputs_dict["environment"].keys()
-        ):
-            # Iterate through missing inputs
-            for missing_input in (
-                set(self.inputs_dict["environment"].keys()) - dictionary.keys()
-            ):
-                missing_input = str(missing_input)
-                # Add to the dict
-                try:
-                    # First try to catch value from the Environment object if passed
-                    dictionary[missing_input] = [
-                        getattr(self.environment, missing_input)
-                    ]
-                except AttributeError:
-                    # class was not inputted
-                    # checks if missing parameter is required
-                    if self.inputs_dict["environment"][missing_input] == "required":
-                        raise ValueError(
-                            "The input {} is required for the Environment class.".format(
-                                missing_input
-                            )
-                        )
-                    else:  # if not required, use default value
-                        dictionary[missing_input] = [
-                            self.inputs_dict["environment"][missing_input]
-                        ]
         return dictionary
 
     def __process_parachute_from_dict(self, dictionary):
@@ -978,6 +776,7 @@ class Dispersion:
         # Check if there is enough arguments for defining each parachute
         for name in self.parachute_names:
             for parachute_input in self.inputs_dict["parachute"].keys():
+                # If input is missing
                 if (
                     "parachute_{}_{}".format(name, parachute_input)
                     not in dictionary.keys()
@@ -1004,113 +803,45 @@ class Dispersion:
                             ] = [
                                 self.inputs_dict["parachute"][parachute_input],
                             ]
-
-        return dictionary
-
-    def __check_inputted_values_from_dict(self, dictionary):
-        """Check if the inputted values are valid. If not, raise an error.
-
-        Parameters
-        ----------
-        dictionary : dict
-            Dictionary containing the parameters to be varied in the dispersion
-            simulation. The keys of the dictionary are the names of the parameters
-            to be varied, and the values can be either tuple or list. If the value
-            is a single value, the corresponding class of the parameter need to
-            be passed on the run_dispersion method.
-
-        Returns
-        -------
-        dictionary: dict
-            The modified dictionary with the processed parameters.
-        """
-        for parameter_key, parameter_value in dictionary.items():
-            if isinstance(parameter_value, (tuple, list)):
-                # Everything is right with the data, we have mean and stdev
-                continue
-
-            # In this case the parameter_value is only the std. dev.
-            ## First solve the parachute values
-            if "parachute" in parameter_key:
-                _, parachute_name, parameter = parameter_key.split("_")
-                # try:
-                if isinstance(parameter_value, types.FunctionType):
-                    # Deal with trigger functions
-                    dictionary[parameter_key] = parameter_value
+                # If input is not missing
                 else:
-                    dictionary[parameter_key] = (
-                        getattr(
-                            self.rocket.get_parachute_by_name(parachute_name), parameter
-                        ),
-                        parameter_value,
-                    )
-
-            ## Second corrections - Environment
-            elif parameter_key in self.inputs_dict["environment"].keys():
-                try:
-                    dictionary[parameter_key] = (
-                        getattr(self.environment, parameter_key),
-                        parameter_value,
-                    )
-                except AttributeError:
-                    raise AttributeError(
-                        f"Please check if the parameter {parameter_key} was inputted"
-                        "correctly in dispersion_dictionary."
-                        " Dictionary values must be either tuple or lists."
-                        " If single value, the corresponding Class must"
-                        " be inputted in the run_dispersion method."
-                    )
-
-            ## Third corrections - SolidMotor
-            elif parameter_key in self.inputs_dict["solidmotor"].keys():
-                try:
-                    dictionary[parameter_key] = (
-                        getattr(self.motor, parameter_key),
-                        parameter_value,
-                    )
-                except AttributeError:
-                    raise AttributeError(
-                        f"Please check if the parameter {parameter_key} was inputted"
-                        " correctly in dispersion_dictionary."
-                        " Dictionary values must be either tuple or lists."
-                        " If single value, the corresponding Class must"
-                        " be inputted in the run_dispersion method."
-                    )
-
-            # Fourth correction - Rocket
-            elif parameter_key in self.inputs_dict["rocket"].keys():
-                try:
-                    dictionary[parameter_key] = (
-                        getattr(self.rocket, parameter_key),
-                        parameter_value,
-                    )
-                except AttributeError:
-                    raise AttributeError(
-                        f"Please check if the parameter {parameter_key} was inputted"
-                        "correctly in dispersion_dictionary."
-                        " Dictionary values must be either tuple or lists."
-                        " If single value, the corresponding Class must"
-                        " be inputted in the run_dispersion method."
-                    )
-
-            # Fifth correction - Flight
-            elif parameter_key in self.inputs_dict["flight"].keys():
-                try:
-                    dictionary[parameter_key] = (
-                        getattr(self.flight, parameter_key),
-                        parameter_value,
-                    )
-                except AttributeError:
-                    raise AttributeError(
-                        f"Please check if the parameter {parameter_key} was inputted"
-                        "correctly in dispersion_dictionary."
-                        " Dictionary values must be either tuple or lists."
-                        " If single value, the corresponding Class must"
-                        " be inputted in the run_dispersion method."
-                    )
-
-        # The analysis parameter dictionary is ready! Now we have mean and stdev
-        # for all parameters
+                    # if value is a function
+                    if isinstance(
+                        dictionary["parachute_{}_{}".format(name, parachute_input)],
+                        types.FunctionType,
+                    ):
+                        # Deal with trigger functions
+                        dictionary["parachute_{}_{}".format(name, parachute_input)] = [
+                            dictionary["parachute_{}_{}".format(name, parachute_input)]
+                        ]
+                    # if value of input is not list or tuple
+                    # value should be a int or float that represents the standard dev
+                    # and the mean value needs to be get from class
+                    elif not isinstance(
+                        dictionary["parachute_{}_{}".format(name, parachute_input)],
+                        (tuple, list),
+                    ):
+                        try:
+                            dictionary[
+                                "parachute_{}_{}".format(name, parachute_input)
+                            ] = (
+                                getattr(
+                                    self.rocket.get_parachute_by_name(name),
+                                    parachute_input,
+                                ),
+                                dictionary[
+                                    "parachute_{}_{}".format(name, parachute_input)
+                                ],
+                            )
+                        except AttributeError:
+                            raise AttributeError(
+                                f"Please check if the parameter"
+                                + " parachute_{}_{}".format(name, parachute_input)
+                                + " was inputted correctly in dispersion_dictionary."
+                                " Dictionary values must be either tuple or lists."
+                                " If single value, the corresponding Class must"
+                                " be inputted in the run_dispersion method."
+                            )
 
         return dictionary
 
