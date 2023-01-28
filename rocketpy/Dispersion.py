@@ -416,7 +416,7 @@ class Dispersion:
         """
 
         if class_name_pretty2 is None:
-            class_name_pretty2 = class_name_pretty2
+            class_name_pretty2 = class_name_pretty1
 
         # iterate through all possible inputs
         for input in self.inputs_dict[class_name].keys():
