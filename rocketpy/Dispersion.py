@@ -1134,7 +1134,7 @@ class Dispersion:
         if self.motor is None:
             try:
                 self.motor = SolidMotor(
-                    thrustSource=self.dispersion_dictionary["thrustSource"][0],
+                    thrustSource=self.dispersion_dictionary["thrust"][0],
                     burnOut=self.dispersion_dictionary["burnOutTime"][0],
                     grainNumber=self.dispersion_dictionary["grainNumber"][0],
                     grainDensity=self.dispersion_dictionary["grainDensity"][0],
@@ -1540,7 +1540,7 @@ class Dispersion:
 
             # Add Motor
             rocket_dispersion.addMotor(
-                motor_dispersion, position=setting["motor_position"]
+                motor_dispersion, position=setting["motorPosition"]
             )
 
             # Add rocket nose, fins and tail
