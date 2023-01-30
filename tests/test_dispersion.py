@@ -1,4 +1,5 @@
 import datetime
+import os
 from unittest.mock import patch
 
 from rocketpy import Dispersion, Flight
@@ -152,6 +153,13 @@ def test_dispersion_object_defined(mock_show, solid_motor, example_env_robust):
     assert test_disp.print_results() == None
     assert test_disp.allInfo() == None
 
+    # Delete the test file
+    os.remove("test_obj_defined.disp_errors.txt")
+    os.remove("test_obj_defined.disp_inputs.txt")
+    os.remove("test_obj_defined.disp_outputs.txt")
+    os.remove("test_obj_defined.pdf")
+    os.remove("test_obj_defined.svg")
+
 
 @patch("matplotlib.pyplot.show")
 def test_dispersion_dict_defined(
@@ -252,3 +260,8 @@ def test_dispersion_dict_defined(
 
     assert test_disp.print_results() == None
     assert test_disp.allInfo() == None
+
+    os.remove("test_obj_defined.disp_inputs.txt")
+    os.remove("test_obj_defined.disp_outputs.txt")
+    os.remove("test_obj_defined.disp_errors.txt")
+    os.remove("test_obj_defined.svg")
