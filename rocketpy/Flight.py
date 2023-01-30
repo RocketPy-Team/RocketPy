@@ -2241,7 +2241,7 @@ class Flight:
 
     @cached_property
     def finalStaticMargin(self):
-        return self.staticMargin(self.staticMargin(0))
+        return self.staticMargin(self.time[-1])
 
     # Rail Button Forces
     @funcify_method("Time (s)", "Upper Rail Button Normal Force (N)", "spline", "zero")
