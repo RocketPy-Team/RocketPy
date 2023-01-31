@@ -13,7 +13,6 @@ from time import process_time, time
 import matplotlib.pyplot as plt
 import numpy as np
 import simplekml
-from imageio import imread
 from IPython.display import display
 from matplotlib.patches import Ellipse
 from numpy.random import *
@@ -1681,7 +1680,18 @@ class Dispersion:
         """
         # Import background map
         if image is not None:
+            try:
+                from imageio import imread
+
             img = imread(image)
+            except ImportError:
+                print(
+                    "The 'imageio' package could not be. Please install it to add background images."
+                )
+            except FileNotFoundError:
+                raise FileNotFoundError(
+                    "The image file was not found. Please check the path."
+                )
 
         (
             impact_ellipses,

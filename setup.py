@@ -20,6 +20,7 @@ setuptools.setup(
     ],
     extras_require={
         "timezonefinder": ["timezonefinder"],
+        "imageio": ["imageio"],
     },
     maintainer="RocketPy Developers",
     author="Giovani Hidalgo Ceotto",
