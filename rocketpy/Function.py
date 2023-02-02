@@ -249,7 +249,7 @@ class Function:
             Options are 'natural', which keeps interpolation, 'constant',
             which returns the value of the function at the edge of the interval,
             and 'zero', which returns zero for all points outside of source
-            range. Default is 'zero'.
+            range. Default is 'constant'.
 
         Returns
         -------
@@ -2227,7 +2227,50 @@ class Function:
                     # self.__extrapolation__ = 'zero'
                     pass
         elif self.__interpolation__ == "linear" and numerical is False:
-            return np.trapz(self.source[:, 1], x=self.source[:, 0])
+            # Integrate from a to b using np.trapz
+            xData = self.source[:, 0]
+            yData = self.source[:, 1]
+            # Get data in interval
+            xData = xData[(xData >= a) & (xData <= b)]
+            yData = yData[(xData >= a) & (xData <= b)]
+            # Check to see if interval starts before point data
+            if a < xData[0]:
+                if self.__extrapolation__ == "constant":
+                    yData = np.append(yData[0], yData)
+                    xData = np.append(a, xData)
+                elif self.__extrapolation__ == "natural":
+                    # Linearly extrapolate first point
+                    yData = np.append(
+                        yData[0]
+                        + (yData[0] - yData[1])
+                        / (xData[1] - xData[0])
+                        * (a - xData[0]),
+                        yData,
+                    )
+                    xData = np.append(a, xData)
+                else:
+                    # self.__extrapolation__ = 'zero'
+                    pass
+            # Check to see if interval ends after point data
+            if b > xData[-1]:
+                if self.__extrapolation__ == "constant":
+                    yData = np.append(yData, yData[-1])
+                    xData = np.append(xData, b)
+                elif self.__extrapolation__ == "natural":
+                    # Linearly extrapolate last point
+                    yData = np.append(
+                        yData,
+                        yData[-1]
+                        + (yData[-1] - yData[-2])
+                        / (xData[-1] - xData[-2])
+                        * (b - xData[-1]),
+                    )
+                    xData = np.append(xData, b)
+                else:
+                    # self.__extrapolation__ = 'zero'
+                    pass
+            # Integrate using np.trapz
+            ans = np.trapz(yData, xData)
         else:
             # Integrate numerically
             ans, _ = integrate.quad(self, a, b, epsabs=0.1, limit=10000)
