@@ -2293,24 +2293,24 @@ class Function:
                     pass
         elif self.__interpolation__ == "linear" and numerical is False:
             # Integrate from a to b using np.trapz
+            xData = self.xArray
+            yData = self.yArray
             # Get data in interval
-            xIntegrationData = self.xArray[(self.xArray >= a) & (self.xArray <= b)]
-            yIntegrationData = self.yArray[(self.xArray >= a) & (self.xArray <= b)]
+            xIntegrationData = xData[(xData >= a) & (xData <= b)]
+            yIntegrationData = yData[(xData >= a) & (xData <= b)]
             # Add integration limits to data
             if self.__extrapolation__ == "zero":
                 if a >= xData[0]:
-                    xIntegrationData = np.concatenate(([a], xIntegrationData, [b]))
-                    yIntegrationData = np.concatenate(
-                        ([self(a)], yIntegrationData, [self(b)])
-                    )
-                else:
+                    xIntegrationData = np.concatenate(([a], xIntegrationData))
+                    yIntegrationData = np.concatenate(([self(a)], yIntegrationData))
+                if b <= xData[-1]:
                     xIntegrationData = np.concatenate((xIntegrationData, [b]))
                     yIntegrationData = np.concatenate((yIntegrationData, [self(b)]))
             else:
-                xIntegrationData = np.concatenate(([a], xIntegrationData, [b]))
-                yIntegrationData = np.concatenate(
-                    ([self(a)], yIntegrationData, [self(b)])
-                )
+                xIntegrationData = np.concatenate(([a], xIntegrationData))
+                yIntegrationData = np.concatenate(([self(a)], yIntegrationData))
+                xIntegrationData = np.concatenate((xIntegrationData, [b]))
+                yIntegrationData = np.concatenate((yIntegrationData, [self(b)]))
             # Integrate using np.trapz
             ans = np.trapz(yIntegrationData, xIntegrationData)
         else:
