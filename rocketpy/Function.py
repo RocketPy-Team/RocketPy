@@ -60,7 +60,7 @@ class Function:
             and 'zero', which returns zero for all points outside of source
             range. Default for 1-D functions is constant.
         title : string, optional
-            Title for the plots.
+            Title to be displayed in the plots' figures. If none, the title will be constructed using the inputs and outputs arguments in the form "{inputs} x {outputs}".
 
         Returns
         -------
