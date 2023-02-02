@@ -2165,8 +2165,12 @@ class Function:
         ans : float
             Evaluated integral.
         """
+        # Guarantee a < b
+        integrationSign = np.sign(b - a)
+        if integrationSign == -1:
+            a, b = b, a
+        # Different implementations depending on interpolation
         if self.__interpolation__ == "spline" and numerical is False:
-            # Integrate using spline coefficients
             xData = self.source[:, 0]
             yData = self.source[:, 1]
             coeffs = self.__splineCoefficients__
@@ -2241,7 +2245,7 @@ class Function:
                 if b <= yData[-1]:
                     xIntegrationData = np.concatenate((xIntegrationData, [b]))
                     yIntegrationData = np.concatenate((yIntegrationData, [self(b)]))
-                else:
+            else:
                 xIntegrationData = np.concatenate(([a], xIntegrationData))
                 yIntegrationData = np.concatenate(([self(a)], yIntegrationData))
                 xIntegrationData = np.concatenate((xIntegrationData, [b]))
@@ -2251,7 +2255,7 @@ class Function:
         else:
             # Integrate numerically
             ans, _ = integrate.quad(self, a, b, epsabs=0.1, limit=10000)
-        return ans
+        return integrationSign * ans
 
     # Not implemented
     def differentiate(self, x, dx=1e-6):
