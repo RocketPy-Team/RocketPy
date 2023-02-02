@@ -2231,46 +2231,23 @@ class Function:
             xData = self.source[:, 0]
             yData = self.source[:, 1]
             # Get data in interval
-            xData = xData[(xData >= a) & (xData <= b)]
-            yData = yData[(xData >= a) & (xData <= b)]
-            # Check to see if interval starts before point data
-            if a < xData[0]:
-                if self.__extrapolation__ == "constant":
-                    yData = np.append(yData[0], yData)
-                    xData = np.append(a, xData)
-                elif self.__extrapolation__ == "natural":
-                    # Linearly extrapolate first point
-                    yData = np.append(
-                        yData[0]
-                        + (yData[0] - yData[1])
-                        / (xData[1] - xData[0])
-                        * (a - xData[0]),
-                        yData,
-                    )
-                    xData = np.append(a, xData)
+            xIntegrationData = xData[(xData >= a) & (xData <= b)]
+            yIntegrationData = yData[(xData >= a) & (xData <= b)]
+            # Add integration limits to data
+            if self.__extrapolation__ == "zero":
+                if a >= xData[0]:
+                    xIntegrationData = np.concatenate(([a], xIntegrationData))
+                    yIntegrationData = np.concatenate(([self(a)], yIntegrationData))
+                if b <= yData[-1]:
+                    xIntegrationData = np.concatenate((xIntegrationData, [b]))
+                    yIntegrationData = np.concatenate((yIntegrationData, [self(b)]))
                 else:
-                    # self.__extrapolation__ = 'zero'
-                    pass
-            # Check to see if interval ends after point data
-            if b > xData[-1]:
-                if self.__extrapolation__ == "constant":
-                    yData = np.append(yData, yData[-1])
-                    xData = np.append(xData, b)
-                elif self.__extrapolation__ == "natural":
-                    # Linearly extrapolate last point
-                    yData = np.append(
-                        yData,
-                        yData[-1]
-                        + (yData[-1] - yData[-2])
-                        / (xData[-1] - xData[-2])
-                        * (b - xData[-1]),
-                    )
-                    xData = np.append(xData, b)
-                else:
-                    # self.__extrapolation__ = 'zero'
-                    pass
+                xIntegrationData = np.concatenate(([a], xIntegrationData))
+                yIntegrationData = np.concatenate(([self(a)], yIntegrationData))
+                xIntegrationData = np.concatenate((xIntegrationData, [b]))
+                yIntegrationData = np.concatenate((yIntegrationData, [self(b)]))
             # Integrate using np.trapz
-            ans = np.trapz(yData, xData)
+            ans = np.trapz(yIntegrationData, xIntegrationData)
         else:
             # Integrate numerically
             ans, _ = integrate.quad(self, a, b, epsabs=0.1, limit=10000)
