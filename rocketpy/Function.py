@@ -2146,7 +2146,14 @@ class Function:
         for i in range(datapoints):
             yData[i] = self.getValue(xData[i])
 
-        return Function(np.concatenate(([yData], [xData])).transpose(),
+        try:
+            return Function(
+                np.concatenate(([yData], [xData])).transpose(),
+                inputs=self.__outputs__,
+                outputs=self.__inputs__,
+            )
+        except ValueError:
+            raise ValueError("Check if given domain of the function is invertible.")
                     inputs=self.__outputs__,
                     outputs=self.__inputs__)
 
