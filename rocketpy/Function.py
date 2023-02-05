@@ -2154,8 +2154,6 @@ class Function:
             )
         except ValueError:
             raise ValueError("Check if given domain of the function is invertible.")
-                    inputs=self.__outputs__,
-                    outputs=self.__inputs__)
 
     def findOptimalInput(self, val):
         """
