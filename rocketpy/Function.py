@@ -2120,7 +2120,7 @@ class Function:
         Parameters
         ----------
         lower : float
-            Lower limit of the new domain.
+            Lower limit of the new domain. Only required if the Function's source is a callable instead of a list of points.
         upper : float
             Upper limit of the new domain.
 
