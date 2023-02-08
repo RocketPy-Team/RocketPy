@@ -2112,9 +2112,10 @@ class Function:
                     inputs=self.__inputs__, 
                     outputs=[o + " Integral" for o in self.__outputs__])
 
-    def invert(self, lower=None, upper=None, datapoints=100):
+    def inverseFunction(self, lower=None, upper=None, datapoints=100):
         """
-        Inverts the Function. Makes the domain the range and the range the domain.
+        Returns the inverse of the Function. The inverse function of F is a function that undoes the operation of F. The 
+        inverse of F exists if and only if F is bijective. Makes the domain the range and the range the domain.
 
         Parameters
         ----------
