@@ -2242,7 +2242,7 @@ class Function:
                 if a >= xData[0]:
                     xIntegrationData = np.concatenate(([a], xIntegrationData))
                     yIntegrationData = np.concatenate(([self(a)], yIntegrationData))
-                if b <= yData[-1]:
+                if b <= xData[-1]:
                     xIntegrationData = np.concatenate((xIntegrationData, [b]))
                     yIntegrationData = np.concatenate((yIntegrationData, [self(b)]))
             else:
