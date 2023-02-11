@@ -2129,32 +2129,23 @@ class Function:
         result : Function
             A Function whose domain and range have been inverted.
         """
-        # Check if lower and upper are given
-        if lower is None:
-            if isinstance(self.source, np.ndarray):
-                lower = self.source[0, 0]
-            else:
-                raise ValueError("Lower limit must be given if source is a function.")
-        if upper is None:
-            if isinstance(self.source, np.ndarray):
-                upper = self.source[-1, 0]
-            else:
-                raise ValueError("Upper limit must be given if source is a function.")
-
-        # Create a new Function object
-        xData = np.linspace(lower, upper, datapoints)
-        yData = np.zeros(datapoints)
-        for i in range(datapoints):
-            yData[i] = self.getValue(xData[i])
-
-        try:
+        if isinstance(self.source, np.ndarray):
+            # Swap the columns
+            source = np.concatenate(([self.source[:, 1]], [self.source[:, 0]])).transpose()
+            
             return Function(
-                np.concatenate(([yData], [xData])).transpose(),
+                source,
                 inputs=self.__outputs__,
                 outputs=self.__inputs__,
+                interpolation=self.__interpolation__
             )
-        except ValueError:
-            raise ValueError("Check if given domain of the function is invertible.")
+        else:
+            return Function(
+                lambda x: self.findOptimalInput(x),
+                inputs=self.__outputs__,
+                outputs=self.__inputs__,
+                interpolation=self.__interpolation__
+            )
 
     def findOptimalInput(self, val):
         """
