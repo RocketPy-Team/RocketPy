@@ -357,6 +357,21 @@ class Fins(ABC):
 
         pass
 
+    @abstractmethod
+    def evaluateGeometricalParameters(self):
+        """Calculates and returns fin set's geometrical parameters such as the fins' area, aspect ratio and parameters for roll movement.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+
+        pass
+
     def evaluateLiftCoefficient(self):
         """Calculates and returns the finset's lift coefficient.
         The lift coefficient is saved and returned. This function
@@ -633,33 +648,12 @@ class Fins(ABC):
                 self.rollForcingInterferenceFactor
             )
         )
-<<<<<<< Updated upstream
 
         self.rollParameters[0]()
-=======
-        # lacks a title for the plot
-        self.rollParameters[0]()
-        # lacks a title for the plot
->>>>>>> Stashed changes
         self.rollParameters[1]()
 
         return None
 
-<<<<<<< Updated upstream
-=======
-    def airfoilPlots(self):
-
-        if self.airfoil is not None:
-            airfoilCl = Function(
-                self.airfoil[0],
-                inputs="angle of attack",
-                outputs="lift coefficient",
-                interpolation="linear",
-                extrapolation=None,
-            )
-            airfoilCl.plot1D()
-
->>>>>>> Stashed changes
     def allInfo(self):
         """Prints out all data and graphs available about the Rocket.
 
@@ -853,24 +847,7 @@ class TrapezoidalFins(Fins):
         self.sweepLength = sweepLength
         self.sweepAngle = sweepAngle
 
-        coefficients = self.trapezoidalFinsCalculations()
-
-        self.Yr = coefficients["Yr"]
-        self.Af = coefficients["Af"]  # Fin area
-        self.AR = coefficients["AR"]  # Aspect Ratio
-        self.gamma_c = coefficients["gamma_c"]  # Mid chord angle
-        self.Yma = coefficients["Yma"]  # Span wise coord of mean aero chord
-        self.rollGeometricalConstant = coefficients["rollGeometricalConstant"]
-        self.tau = coefficients["tau"]
-        self.liftInterferenceFactor = coefficients["liftInterferenceFactor"]
-        self.λ = coefficients["λ"]
-        self.rollDampingInterferenceFactor = coefficients[
-            "rollDampingInterferenceFactor"
-        ]
-        self.rollForcingInterferenceFactor = coefficients[
-            "rollForcingInterferenceFactor"
-        ]
-
+        self.evaluateGeometricalParameters()
         self.evaluateCenterOfPressure()
         self.evaluateLiftCoefficient()
         self.evaluateRollParameters()
@@ -1009,7 +986,19 @@ class TrapezoidalFins(Fins):
 
         return None
 
-    def trapezoidalFinsCalculations(self):
+    def evaluateGeometricalParameters(self):
+
+        """Calculates and returns fin set's geometrical parameters such as the 
+        fins' area, aspect ratio and parameters for roll movement.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
 
         Yr = self.rootChord + self.tipChord
         Af = Yr * self.span / 2  # Fin area
@@ -1056,20 +1045,18 @@ class TrapezoidalFins(Fins):
             + (8 / (tau - 1) ** 2) * np.log((tau ** 2 + 1) / (2 * tau))
         )
 
-        coefficients = {
-            "Yr": Yr,
-            "Af": Af,
-            "AR": AR,
-            "gamma_c": gamma_c,
-            "Yma": Yma,
-            "rollGeometricalConstant": rollGeometricalConstant,
-            "tau": tau,
-            "liftInterferenceFactor": liftInterferenceFactor,
-            "λ": λ,
-            "rollDampingInterferenceFactor": rollDampingInterferenceFactor,
-            "rollForcingInterferenceFactor": rollForcingInterferenceFactor,
-        }
-        return coefficients
+        # Store values
+        self.Yr = Yr
+        self.Af = Af  # Fin area
+        self.AR = AR  # Aspect Ratio
+        self.gamma_c = gamma_c  # Mid chord angle
+        self.Yma = Yma  # Span wise coord of mean aero chord
+        self.rollGeometricalConstant = rollGeometricalConstant
+        self.tau = tau
+        self.liftInterferenceFactor = liftInterferenceFactor
+        self.λ = λ
+        self.rollDampingInterferenceFactor = rollDampingInterferenceFactor
+        self.rollForcingInterferenceFactor = rollForcingInterferenceFactor
 
 
 class EllipticalFins(Fins):
@@ -1215,23 +1202,7 @@ class EllipticalFins(Fins):
             name,
         )
 
-        # Compute auxiliary geometrical parameters
-        coefficients = self.trapezoidalFinsCalculations()
-        # Store values
-        self.Af = coefficients["Af"]  # Fin area
-        self.AR = coefficients["AR"]  # Aspect Ratio
-        self.gamma_c = coefficients["gamma_c"]  # Mid chord angle
-        self.Yma = coefficients["Yma"]  # Span wise coord of mean aero chord
-        self.rollGeometricalConstant = coefficients["rollGeometricalConstant"]
-        self.tau = coefficients["tau"]
-        self.liftInterferenceFactor = coefficients["liftInterferenceFactor"]
-        self.rollDampingInterferenceFactor = coefficients[
-            "rollDampingInterferenceFactor"
-        ]
-        self.rollForcingInterferenceFactor = coefficients[
-            "rollForcingInterferenceFactor"
-        ]
-
+        self.evaluateGeometricalParameters()
         self.evaluateCenterOfPressure()
         self.evaluateLiftCoefficient()
         self.evaluateRollParameters()
@@ -1331,7 +1302,19 @@ class EllipticalFins(Fins):
 
         return None
 
-    def trapezoidalFinsCalculations(self):
+    def evaluateGeometricalParameters(self):
+
+        """Calculates and returns fin set's geometrical parameters such as the 
+        fins' area, aspect ratio and parameters for roll movement.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
 
         # Compute auxiliary geometrical parameters
         Af = (np.pi * self.rootChord / 2 * self.span) / 2  # Fin area
@@ -1396,18 +1379,16 @@ class EllipticalFins(Fins):
             + (8 / (tau - 1) ** 2) * np.log((tau ** 2 + 1) / (2 * tau))
         )
 
-        coefficients = {
-            "Af": Af,
-            "AR": AR,
-            "gamma_c": gamma_c,
-            "Yma": Yma,
-            "rollGeometricalConstant": rollGeometricalConstant,
-            "tau": tau,
-            "liftInterferenceFactor": liftInterferenceFactor,
-            "rollDampingInterferenceFactor": rollDampingInterferenceFactor,
-            "rollForcingInterferenceFactor": rollForcingInterferenceFactor,
-        }
-        return coefficients
+        # Store values
+        self.Af = Af  # Fin area
+        self.AR = AR  # Fin aspect ratio
+        self.gamma_c = gamma_c  # Mid chord angle
+        self.Yma = Yma  # Span wise coord of mean aero chord
+        self.rollGeometricalConstant = rollGeometricalConstant
+        self.tau = tau
+        self.liftInterferenceFactor = liftInterferenceFactor
+        self.rollDampingInterferenceFactor = rollDampingInterferenceFactor
+        self.rollForcingInterferenceFactor = rollForcingInterferenceFactor
 
 
 class Tail:
