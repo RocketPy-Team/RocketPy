@@ -233,10 +233,20 @@ class Tank(ABC):
         Function
             Inertia tensor of the tank's fluids as a function of time.
         """
-        Ix = Function(lambda h: (self.tank_geometry ** 2).integral(0, h))
-        Ix = Function(lambda t: Ix(self.liquidHeight()(t)) * (1/2) * self.mass()(t), "Time", "Inertia tensor")
+        def Ii(start, stop, density):
+            r = self.tank_geometry
+            rho = density
+            z = Function(lambda x: x)
+            Izz = Iz(start, stop, density)
+            return Izz / 2 + rho * np.pi * (z ** 2 * r ** 2).integral(start, stop) / 4
+    
+        def Iz(start, stop, density):
+            r = self.tank_geometry
+            rho = density
+            return (rho * np.pi / 2) * (r ** 4).integral(start, stop)
 
-        return Ix
+        lh = self.liquidHeight()
+        return Function(lambda time: (Ii(0, lh(time), self.liquid.density), Iz(0, lh(time), self.liquid.density)))
         
 
 # @MrGribel
