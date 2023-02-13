@@ -4,6 +4,7 @@ __author__ = "Giovani Hidalgo Ceotto, Lucas Kierulff Balabram"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
+import functools
 from inspect import signature
 
 import matplotlib.pyplot as plt
@@ -1876,7 +1877,7 @@ class Function:
                 # Create new Function object
                 return Function(source, inputs, outputs, interpolation)
             else:
-                return Function(lambda x: (self.getValue(x) * other(x)))
+                return Function(lambda x: (self.getValue(x) - other(x)))
         # If other is Float except...
         except:
             if isinstance(other, (float, int, complex)):
@@ -1933,7 +1934,7 @@ class Function:
         # Or if it is just a callable
         elif callable(other):
             return Function(lambda x: (other(x) - self.getValue(x)))
-
+    
     def integral(self, a, b, numerical=False):
         """Evaluate a definite integral of a 1-D Function in the interval
         from a to b.
@@ -2056,13 +2057,11 @@ class Function:
             Ys = np.diff(self.source[:, 1]) / np.diff(self.source[:, 0])
             Xs = self.source[:-1, 0] + np.diff(self.source[:, 0]) / 2
             source = np.concatenate(([Xs], [Ys])).transpose()
-
             # Retrieve inputs, outputs and interpolation
             inputs = self.__inputs__[:]
             outputs = "d(" + self.__outputs__[0] + ")/d(" + inputs[0] + ")"
             outputs = "(" + outputs + ")"
             interpolation = "linear"
-
             # Create new Function object
             return Function(source, inputs, outputs, interpolation)
         else:
@@ -2245,12 +2244,10 @@ class PiecewiseFunction(Function):
         # Check if source is a dictionary
         if not isinstance(source, dict):
             raise TypeError("source must be a dictionary")
-
         # Check if all keys are tuples
         for key in source.keys():
             if not isinstance(key, tuple):
                 raise TypeError("keys of source must be tuples")
-
         # Check if all domains are disjoint
         for key1 in source.keys():
             for key2 in source.keys():
