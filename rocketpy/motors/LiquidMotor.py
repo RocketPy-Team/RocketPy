@@ -298,7 +298,9 @@ class MassFlowRateBasedTank(Tank):
                 + self.liquid_mass_flow_rate_in.integral(0, t)
                 - self.liquid_mass_flow_rate_out.integral(0, t))
                 / self.liquid.density)
-        uH = Function(lambda t: self.tank_vol.findOptimalInput(liquid_vol.getValue(t)))
+                
+        inverse_tank_vol = self.tank_vol.inverseFunction()
+        uH = Function(lambda t: inverse_tank_vol(liquid_vol(t)))
         uH.setInputs("Time")
         uH.setOutputs("Height")
         return uH
@@ -352,13 +354,13 @@ class UllageBasedTank(Tank):
         return self.ullageHeight
 
     def liquidMass(self):
-        liquid_mass = self.tank_vol.functionOfAFunction(self.ullageHeight) * self.liquid.density
+        liquid_mass = self.tank_vol.compose(self.ullageHeight) * self.liquid.density
         liquid_mass.setInputs("Time")
         liquid_mass.setOutputs("Liquid Mass")
         return liquid_mass
 
     def gasMass(self):
-        gas_mass = self.tank_vol.functionOfAFunction(self.ullageHeight) * self.gas.density
+        gas_mass = self.tank_vol.compose(self.ullageHeight) * self.gas.density
         gas_mass.setInputs("Time")
         gas_mass.setOutputs("Gas Mass")
         return gas_mass
@@ -382,14 +384,14 @@ class MassBasedTank(Tank):
         self.liquid_mass = Function(liquid_mass, inputs="Time", outputs="Mass")
         self.gas_mass = Function(gas_mass, inputs="Time", outputs="Mass")
 
-    def find_liquid_mass(self):
+    def liquidMass(self):
         return self.liquid_mass
 
-    def find_gas_mass(self):
+    def gasMass(self):
         return self.gas_mass
 
     def mass(self):
-        m = self.find_liquid_mass() + self.find_gas_mass()
+        m = self.liquidMass() + self.gasMass()
         m.setInputs("Time")
         m.setOutputs("Mass")
         return m
@@ -401,9 +403,9 @@ class MassBasedTank(Tank):
         mfr.setOutputs("Mass Flow Rate")
         return mfr
 
-    def evaluateUllageHeight(self):
+    def liquidHeight(self):
         liquid_volume = self.liquid_mass / self.liquid.density
-        tank_vol = self.tank_vol.reverse()
+        tank_vol = self.tank_vol.inverseFunction()
         ullage_height = Function(lambda t: tank_vol.getValue(liquid_volume.getValue(t)))
         ullage_height.setInputs("Time")
         ullage_height.setOutputs("Ullage Height")
