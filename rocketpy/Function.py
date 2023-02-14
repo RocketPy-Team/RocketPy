@@ -2108,9 +2108,11 @@ class Function:
         yData = np.zeros(datapoints)
         for i in range(datapoints):
             yData[i] = self.integral(lower, xData[i])
-        return Function(np.concatenate(([xData], [yData])).transpose(), 
-                    inputs=self.__inputs__, 
-                    outputs=[o + " Integral" for o in self.__outputs__])
+        return Function(
+            np.concatenate(([xData], [yData])).transpose(),
+            inputs=self.__inputs__,
+            outputs=[o + " Integral" for o in self.__outputs__],
+        )
 
     def isBijective(self):
         """Checks whether the Function is bijective. Only applicable to Functions whose source is a list of points, raises an error otherwise.
@@ -2127,6 +2129,7 @@ class Function:
             return len(distinctMap) == len(xDataDistinct) == len(yDataDistinct)
         else:
             raise TypeError("Only Functions whose source is a list of points can be checked for bijectivity.")
+
 
     def inverseFunction(self):
         """
@@ -2169,9 +2172,9 @@ class Function:
                 interpolation=self.__interpolation__,
             )
 
-    def findOptimalInput(self, val):
+    def findInput(self, val):
         """
-        Finds the optimal input for a given output.
+        Finds the input for a given output.
 
         Parameters
         ----------
@@ -2183,13 +2186,15 @@ class Function:
         result : ndarray
             The value of the input which gives the output closest to val.
         """
-        return optimize.fmin(lambda x: np.abs(self.getValue(x) - val), 0, ftol=1e-6, disp=False)
+        return optimize.fmin(
+            lambda x: np.abs(self.getValue(x) - val), 0, ftol=1e-6, disp=False
+        )
 
     def compose(self, func, lower=None, upper=None, datapoints=100):
         """
-        Returns a Function object which is the result of inputing a function into a function
-        (i.e. f(g(x))). The domain will become the domain of the input function and the range
-        will become the range of the original function.
+        Returns a Function object which is the result of inputing a function into a 
+        function (i.e. f(g(x))). The domain will become the domain of the input function
+        and the range will become the range of the original function.
 
         Parameters
         ----------
@@ -2215,9 +2220,15 @@ class Function:
             if isinstance(self.source, np.ndarray):
                 lower = self.source[0, 0]
             if isinstance(func.source, np.ndarray):
-                lower = func.source[0, 0] if lower is None else max(lower, func.source[0, 0])
+                lower = (
+                    func.source[0, 0]
+                    if lower is None
+                    else max(lower, func.source[0, 0])
+                )
             if lower is None:
-                raise ValueError("If Functions.source is a <class 'function'>, must provide bounds")
+                raise ValueError(
+                    "If Functions.source is a <class 'function'>, must provide bounds"
+                )
 
         # Checks to make sure upper bound is given
         # If not it will end at the lower of the two upper bounds
@@ -2225,28 +2236,45 @@ class Function:
             if isinstance(self.source, np.ndarray):
                 upper = self.source[-1, 0]
             if isinstance(func.source, np.ndarray):
-                upper = func.source[-1, 0] if upper is None else min(upper, func.source[-1, 0])
+                upper = (
+                    func.source[-1, 0]
+                    if upper is None
+                    else min(upper, func.source[-1, 0])
+                )
             if upper is None:
-                raise ValueError("If Functions.source is a <class 'function'>, must provide bounds")
+                raise ValueError(
+                    "If Functions.source is a <class 'function'>, must provide bounds"
+                )
 
         # Create a new Function object
         xData = np.linspace(lower, upper, datapoints)
         yData = np.zeros(datapoints)
         for i in range(datapoints):
             yData[i] = self.getValue(func.getValue(xData[i]))
-        return Function(np.concatenate(([xData], [yData])).T,
-                    inputs=func.__inputs__,
-                    outputs=self.__outputs__, 
-                    interpolation=self.__interpolation__, 
-                    extrapolation=self.__extrapolation__)
+        return Function(
+            np.concatenate(([xData], [yData])).T,
+            inputs=func.__inputs__,
+            outputs=self.__outputs__,
+            interpolation=self.__interpolation__,
+            extrapolation=self.__extrapolation__,
+        )
 
 
 class PiecewiseFunction(Function):
-    def __new__(cls, source, inputs=["Scalar"], outputs=["Scalar"], interpolation="akima", extrapolation=None, datapoints=50):
+    def __new__(
+        cls,
+        source,
+        inputs=["Scalar"],
+        outputs=["Scalar"],
+        interpolation="akima",
+        extrapolation=None,
+        datapoints=50,
+    ):
         """
-        Creates a piecewise function from a dictionary of functions. The keys of the dictionary
-        must be tuples that represent the domain of the function. The domains must be disjoint.
-        The piecewise function will be evaluated at datapoints points to create Function object.
+        Creates a piecewise function from a dictionary of functions. The keys of the 
+        dictionary must be tuples that represent the domain of the function. The domains 
+        must be disjoint. The piecewise function will be evaluated at datapoints points 
+        to create Function object.
 
         Parameters
         ----------
@@ -2297,8 +2325,10 @@ class PiecewiseFunction(Function):
             f = Function(source[key])
             outputData = np.concatenate((outputData, calcOutput(f, i)))
 
-        return Function(np.concatenate(([inputData], [outputData])).T,
-                    inputs=inputs,
-                    outputs=outputs,
-                    interpolation=interpolation,
-                    extrapolation=extrapolation)
+        return Function(
+            np.concatenate(([inputData], [outputData])).T,
+            inputs=inputs,
+            outputs=outputs,
+            interpolation=interpolation,
+            extrapolation=extrapolation,
+        )
