@@ -8,7 +8,7 @@ from inspect import signature
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import integrate, linalg
+from scipy import integrate, linalg, optimize
 
 
 class Function:
@@ -2024,9 +2024,259 @@ class Function:
             ans, _ = integrate.quad(self, a, b, epsabs=0.1, limit=10000)
         return ans
 
-    # Not implemented
     def differentiate(self, x, dx=1e-6):
+        """Evaluates the derivative of a 1-D Function at x with a step size of dx.
+
+        Parameters
+        ----------
+        x : float
+            Point at which to evaluate the derivative.
+        dx : float
+            Step size to use in the derivative calculation. Default is 1e-6.
+
+
+        Returns
+        -------
+        ans : float
+            Evaluated derivative.
+        """
         return (self.getValue(x + dx) - self.getValue(x - dx)) / (2 * dx)
-        # h = (10)**-300
-        # z = x + h*1j
-        # return self(z).imag/h
+
+    def derivativeFunction(self):
+        """Returns a Function object which gives the derivative of the Function object.
+
+        Returns
+        -------
+        result : Function
+            A Function object which gives the derivative of self.
+        """
+        # Check if Function object source is array
+        if isinstance(self.source, np.ndarray):
+            # Operate on grid values
+            Ys = np.diff(self.source[:, 1]) / np.diff(self.source[:, 0])
+            Xs = self.source[:-1, 0] + np.diff(self.source[:, 0]) / 2
+            source = np.concatenate(([Xs], [Ys])).transpose()
+
+            # Retrieve inputs, outputs and interpolation
+            inputs = self.__inputs__[:]
+            outputs = "d(" + self.__outputs__[0] + ")/d(" + inputs[0] + ")"
+            outputs = "(" + outputs + ")"
+            interpolation = "linear"
+
+            # Create new Function object
+            return Function(source, inputs, outputs, interpolation)
+        else:
+            return Function(lambda x: self.differentiate(x))
+
+    def integralFunction(self, lower=None, upper=None, datapoints=100):
+        """Returns a Function object representing the integral of the Function object.
+
+        Parameters
+        ----------
+        lower : scalar, optional
+            The lower limit of the interval in which the function is to be
+            plotted. If the Function is given by a dataset, the default
+            value is the start of the dataset.
+        upper : scalar, optional
+            The upper limit of the interval in which the function is to be
+            plotted. If the Function is given by a dataset, the default
+            value is the end of the dataset.
+        datapoints : int, optional
+            The number of points in which the integral will be evaluated for
+            plotting it, which draws lines between each evaluated point.
+            The default value is 100.
+
+        Returns
+        -------
+        result : Function
+            The integral of the Function object.
+        """
+        # Check if lower and upper are given
+        if lower is None:
+            if isinstance(self.source, np.ndarray):
+                lower = self.source[0, 0]
+            else:
+                raise ValueError("Lower limit must be given if source is a function.")
+        if upper is None:
+            if isinstance(self.source, np.ndarray):
+                upper = self.source[-1, 0]
+            else:
+                raise ValueError("Upper limit must be given if source is a function.")
+
+        # Create a new Function object
+        xData = np.linspace(lower, upper, datapoints)
+        yData = np.zeros(datapoints)
+        for i in range(datapoints):
+            yData[i] = self.integral(lower, xData[i])
+        return Function(np.concatenate(([xData], [yData])).transpose(), 
+                    inputs=self.__inputs__, 
+                    outputs=[o + " Integral" for o in self.__outputs__])
+
+    def inverseFunction(self, lower=None, upper=None, datapoints=100):
+        """
+        Returns the inverse of the Function. The inverse function of F is a function that undoes the operation of F. The 
+        inverse of F exists if and only if F is bijective. Makes the domain the range and the range the domain.
+
+        Parameters
+        ----------
+        lower : float
+            Lower limit of the new domain. Only required if the Function's source is a callable instead of a list of points.
+        upper : float
+            Upper limit of the new domain. Only required if the Function's source is a callable instead of a list of points.
+
+        Returns
+        -------
+        result : Function
+            A Function whose domain and range have been inverted.
+        """
+        if isinstance(self.source, np.ndarray):
+            # Swap the columns
+            source = np.concatenate(([self.source[:, 1]], [self.source[:, 0]])).transpose()
+            
+            return Function(
+                source,
+                inputs=self.__outputs__,
+                outputs=self.__inputs__,
+                interpolation=self.__interpolation__
+            )
+        else:
+            return Function(
+                lambda x: self.findOptimalInput(x),
+                inputs=self.__outputs__,
+                outputs=self.__inputs__,
+                interpolation=self.__interpolation__
+            )
+
+    def findOptimalInput(self, val):
+        """
+        Finds the optimal input for a given output.
+
+        Parameters
+        ----------
+        val : float
+            The value of the output.
+
+        Returns
+        -------
+        result : ndarray
+            The value of the input which gives the output closest to val.
+        """
+        return optimize.fmin(lambda x: np.abs(self.getValue(x) - val), 0, ftol=1e-6, disp=False)
+
+    def compose(self, func, lower=None, upper=None, datapoints=100):
+        """
+        Returns a Function object which is the result of inputing a function into a function
+        (i.e. f(g(x))). The domain will become the domain of the input function and the range
+        will become the range of the original function.
+
+        Parameters
+        ----------
+        func : Function
+            The function to be inputed into the function.
+        lower : float
+            Lower limit of the new domain.
+        upper : float
+            Upper limit of the new domain.
+
+        Returns
+        -------
+        result : Function
+            The result of inputing the function into the function.
+        """
+        # Check if the input is a function
+        if not isinstance(func, Function):
+            raise TypeError("Input must be a Function object.")
+
+        # Checks to make sure lower bound is given
+        # If not it will start at the higher of the two lower bounds
+        if lower is None:
+            if isinstance(self.source, np.ndarray):
+                lower = self.source[0, 0]
+            if isinstance(func.source, np.ndarray):
+                lower = func.source[0, 0] if lower is None else max(lower, func.source[0, 0])
+            if lower is None:
+                raise ValueError("If Functions.source is a <class 'function'>, must provide bounds")
+
+        # Checks to make sure upper bound is given
+        # If not it will end at the lower of the two upper bounds
+        if upper is None:
+            if isinstance(self.source, np.ndarray):
+                upper = self.source[-1, 0]
+            if isinstance(func.source, np.ndarray):
+                upper = func.source[-1, 0] if upper is None else min(upper, func.source[-1, 0])
+            if upper is None:
+                raise ValueError("If Functions.source is a <class 'function'>, must provide bounds")
+
+        # Create a new Function object
+        xData = np.linspace(lower, upper, datapoints)
+        yData = np.zeros(datapoints)
+        for i in range(datapoints):
+            yData[i] = self.getValue(func.getValue(xData[i]))
+        return Function(np.concatenate(([xData], [yData])).T,
+                    inputs=func.__inputs__,
+                    outputs=self.__outputs__, 
+                    interpolation=self.__interpolation__, 
+                    extrapolation=self.__extrapolation__)
+
+
+class PiecewiseFunction(Function):
+    def __new__(cls, source, inputs=["Scalar"], outputs=["Scalar"], interpolation="akima", extrapolation=None, datapoints=50):
+        """
+        Creates a piecewise function from a dictionary of functions. The keys of the dictionary
+        must be tuples that represent the domain of the function. The domains must be disjoint.
+        The piecewise function will be evaluated at datapoints points to create Function object.
+
+        Parameters
+        ----------
+        source: dictionary
+            A dictionary of Function objects, where the keys are the domains.
+        inputs : list
+            A list of strings that represent the inputs of the function.
+        outputs: list
+            A list of strings that represent the outputs of the function.
+        interpolation: str
+            The type of interpolation to use. The default value is 'akima'.
+        extrapolation: str
+            The type of extrapolation to use. The default value is None.
+        datapoints: int
+            The number of points in which the piecewise function will be
+            evaluated to create a base function. The default value is 100.
+        """
+        # Check if source is a dictionary
+        if not isinstance(source, dict):
+            raise TypeError("source must be a dictionary")
+
+        # Check if all keys are tuples
+        for key in source.keys():
+            if not isinstance(key, tuple):
+                raise TypeError("keys of source must be tuples")
+
+        # Check if all domains are disjoint
+        for key1 in source.keys():
+            for key2 in source.keys():
+                if key1 != key2:
+                    if key1[0] < key2[1] and key1[1] > key2[0]:
+                        raise ValueError("domains must be disjoint")
+
+        # Crate Function
+        def calcOutput(func, inputs):
+            o = np.zeros(len(inputs))
+            for j in range(len(inputs)):
+                o[j] = func.getValue(inputs[j])
+            return o
+
+        inputData = []
+        outputData = []
+        for key in sorted(source.keys()):
+            i = np.linspace(key[0], key[1], datapoints)
+            i = i[~np.in1d(i, inputData)]
+            inputData = np.concatenate((inputData, i))
+
+            f = Function(source[key])
+            outputData = np.concatenate((outputData, calcOutput(f, i)))
+
+        return Function(np.concatenate(([inputData], [outputData])).T,
+                    inputs=inputs,
+                    outputs=outputs,
+                    interpolation=interpolation,
+                    extrapolation=extrapolation)
