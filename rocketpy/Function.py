@@ -2112,10 +2112,21 @@ class Function:
                     inputs=self.__inputs__, 
                     outputs=[o + " Integral" for o in self.__outputs__])
 
-    def inverseFunction(self, lower=None, upper=None, datapoints=100):
+    def isBijective(self):
+        """Checks whether the Function is bijective. Only applicable to Functions whose source is a list of points, raises an error otherwise.
+
+        Returns
+        -------
+        result : bool
+            True if the Function is bijective, False otherwise.
         """
-        Returns the inverse of the Function. The inverse function of F is a function that undoes the operation of F. The 
-        inverse of F exists if and only if F is bijective. Makes the domain the range and the range the domain.
+        if isinstance(self.source, np.ndarray):
+            xDataDistinct = set(self.source[:, 0])
+            yDataDistinct = set(self.source[:, 1])
+            distinctMap = set(zip(xDataDistinct, yDataDistinct))
+            return len(distinctMap) == len(xDataDistinct) == len(yDataDistinct)
+        else:
+            raise TypeError("Only Functions whose source is a list of points can be checked for bijectivity.")
 
         Parameters
         ----------
