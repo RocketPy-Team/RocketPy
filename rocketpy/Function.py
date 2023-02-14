@@ -2128,13 +2128,14 @@ class Function:
             distinctMap = set(zip(xDataDistinct, yDataDistinct))
             return len(distinctMap) == len(xDataDistinct) == len(yDataDistinct)
         else:
-            raise TypeError("Only Functions whose source is a list of points can be checked for bijectivity.")
-
+            raise TypeError(
+                "Only Functions whose source is a list of points can be checked for bijectivity."
+            )
 
     def inverseFunction(self):
         """
-        Returns the inverse of the Function. The inverse function of F is a function 
-        that undoes the operation of F. The inverse of F exists if and only if F is 
+        Returns the inverse of the Function. The inverse function of F is a function
+        that undoes the operation of F. The inverse of F exists if and only if F is
         bijective. Makes the domain the range and the range the domain.
 
         If the Function is given by a list of points, its bijectivity is checked and an
@@ -2163,7 +2164,7 @@ class Function:
             else:
                 raise ValueError(
                     "Function is not bijective, so it does not have an inverse."
-                    )
+                )
         else:
             return Function(
                 lambda x: self.findInput(x),
@@ -2192,7 +2193,7 @@ class Function:
 
     def compose(self, func, lower=None, upper=None, datapoints=100):
         """
-        Returns a Function object which is the result of inputing a function into a 
+        Returns a Function object which is the result of inputing a function into a
         function (i.e. f(g(x))). The domain will become the domain of the input function
         and the range will become the range of the original function.
 
@@ -2271,9 +2272,9 @@ class PiecewiseFunction(Function):
         datapoints=50,
     ):
         """
-        Creates a piecewise function from a dictionary of functions. The keys of the 
-        dictionary must be tuples that represent the domain of the function. The domains 
-        must be disjoint. The piecewise function will be evaluated at datapoints points 
+        Creates a piecewise function from a dictionary of functions. The keys of the
+        dictionary must be tuples that represent the domain of the function. The domains
+        must be disjoint. The piecewise function will be evaluated at datapoints points
         to create Function object.
 
         Parameters
