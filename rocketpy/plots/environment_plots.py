@@ -56,7 +56,7 @@ class _EnvironmentPlots:
             [self.environment.windSpeed(i) for i in self.grid],
             self.grid,
             "#ff7f0e",
-            label="Speed of Sound",
+            label="Wind Speed",
         )
         ax.set_xlabel("Wind Speed (m/s)", color="#ff7f0e")
         ax.tick_params("x", colors="#ff7f0e")
@@ -65,7 +65,7 @@ class _EnvironmentPlots:
             [self.environment.windDirection(i) for i in self.grid],
             self.grid,
             color="#1f77b4",
-            label="Density",
+            label="Wind Direction",
         )
         axup.set_xlabel("Wind Direction (°)", color="#1f77b4")
         axup.tick_params("x", colors="#1f77b4")
@@ -195,12 +195,10 @@ class _EnvironmentPlots:
         # Create wind speed and wind direction subplot
         ax1 = plt.subplot(221)
         ax1 = self.__wind(ax1)
-        ax1.legend(loc="best").set_draggable(True)
 
         # Create density and speed of sound subplot
         ax2 = plt.subplot(222)
         ax2 = self.__density_speed_of_sound(ax2)
-        ax2.legend(loc="best").set_draggable(True)
 
         # Create wind u and wind v subplot
         ax3 = plt.subplot(223)
@@ -210,7 +208,6 @@ class _EnvironmentPlots:
         # Create pressure and temperature subplot
         ax4 = plt.subplot(224)
         ax4 = self.__pressure_temperature(ax4)
-        ax4.legend(loc="best").set_draggable(True)
 
         plt.subplots_adjust(wspace=0.5, hspace=0.3)
         plt.show()
@@ -342,12 +339,10 @@ class _EnvironmentPlots:
         # Create wind speed and wind direction subplot
         ax1 = plt.subplot(121)
         ax1 = self.__wind(ax1)
-        ax1.legend(loc="best").set_draggable(True)
 
         # Create density and speed of sound subplot
         ax2 = plt.subplot(122)
         ax2 = self.__density_speed_of_sound(ax2)
-        ax2.legend(loc="best").set_draggable(True)
 
         plt.subplots_adjust(wspace=0.5)
         plt.show()
