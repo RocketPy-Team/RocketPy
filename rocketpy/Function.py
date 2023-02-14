@@ -626,6 +626,52 @@ class Function:
 
         return self
 
+    # Define transformation methods
+    def crop(self, domain):
+        """This method allows the user to crop a Function object, i.e. to define
+        a new Function object with a smaller domain.
+
+        Parameters
+        ----------
+        domain : list of tuples
+            List of tuples containing the lower and upper bounds of the domain
+            to be cropped. The length of the list must be equal to the domain
+            dimension of the Function object.
+
+        Examples
+        --------
+        >>> from rocketpy import Function
+        >>> f = Function(lambda x: x**2, inputs='x', outputs='y')
+        >>> f
+        Function from R1 to R1 : (x) → (y)
+        >>> f.crop([(-1, 1)])
+
+        Returns
+        -------
+        self : Function
+        """
+        if not isinstance(domain, list):
+            raise TypeError("domain must be a list of tuples.")
+        if len(domain) != self.__domDim__:
+            raise ValueError(
+                "domain must have the same length as the domain dimension."
+            )
+
+        if self.__domDim__ == 1:
+            self.source = self.source[
+                (self.source[:, 0] >= domain[0][0])
+                & (self.source[:, 0] <= domain[0][1])
+            ]
+        elif self.__domDim__ == 2:
+            self.source = self.source[
+                (self.source[:, 0] >= domain[0][0])
+                & (self.source[:, 0] <= domain[0][1])
+                & (self.source[:, 1] >= domain[1][0])
+                & (self.source[:, 1] <= domain[1][1])
+            ]
+
+        return self
+
     # Define all get methods
     def getInputs(self):
         "Return tuple of inputs of the function."
@@ -2227,7 +2273,50 @@ class Function:
                     # self.__extrapolation__ = 'zero'
                     pass
         elif self.__interpolation__ == "linear" and numerical is False:
-            return np.trapz(self.source[:, 1], x=self.source[:, 0])
+            # Integrate from a to b using np.trapz
+            xData = self.source[:, 0]
+            yData = self.source[:, 1]
+            # Get data in interval
+            xData = xData[(xData >= a) & (xData <= b)]
+            yData = yData[(xData >= a) & (xData <= b)]
+            # Check to see if interval starts before point data
+            if a < xData[0]:
+                if self.__extrapolation__ == "constant":
+                    yData = np.append(yData[0], yData)
+                    xData = np.append(a, xData)
+                elif self.__extrapolation__ == "natural":
+                    # Linearly extrapolate first point
+                    yData = np.append(
+                        yData[0]
+                        + (yData[0] - yData[1])
+                        / (xData[1] - xData[0])
+                        * (a - xData[0]),
+                        yData,
+                    )
+                    xData = np.append(a, xData)
+                else:
+                    # self.__extrapolation__ = 'zero'
+                    pass
+            # Check to see if interval ends after point data
+            if b > xData[-1]:
+                if self.__extrapolation__ == "constant":
+                    yData = np.append(yData, yData[-1])
+                    xData = np.append(xData, b)
+                elif self.__extrapolation__ == "natural":
+                    # Linearly extrapolate last point
+                    yData = np.append(
+                        yData,
+                        yData[-1]
+                        + (yData[-1] - yData[-2])
+                        / (xData[-1] - xData[-2])
+                        * (b - xData[-1]),
+                    )
+                    xData = np.append(xData, b)
+                else:
+                    # self.__extrapolation__ = 'zero'
+                    pass
+            # Integrate using np.trapz
+            ans = np.trapz(yData, xData)
         else:
             # Integrate numerically
             ans, _ = integrate.quad(self, a, b, epsabs=0.1, limit=10000)
