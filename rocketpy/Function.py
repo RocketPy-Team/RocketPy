@@ -2128,12 +2128,16 @@ class Function:
         else:
             raise TypeError("Only Functions whose source is a list of points can be checked for bijectivity.")
 
-        Parameters
-        ----------
-        lower : float
-            Lower limit of the new domain. Only required if the Function's source is a callable instead of a list of points.
-        upper : float
-            Upper limit of the new domain. Only required if the Function's source is a callable instead of a list of points.
+    def inverseFunction(self):
+        """
+        Returns the inverse of the Function. The inverse function of F is a function 
+        that undoes the operation of F. The inverse of F exists if and only if F is 
+        bijective. Makes the domain the range and the range the domain.
+
+        If the Function is given by a list of points, its bijectivity is checked and an
+        error is raised if it is not bijective.
+        If the Function is given by a function, its bijectivity is not checked and may
+        lead to innacuracies outside of its bijective region.
 
         Returns
         -------
@@ -2141,21 +2145,28 @@ class Function:
             A Function whose domain and range have been inverted.
         """
         if isinstance(self.source, np.ndarray):
-            # Swap the columns
-            source = np.concatenate(([self.source[:, 1]], [self.source[:, 0]])).transpose()
-            
-            return Function(
-                source,
-                inputs=self.__outputs__,
-                outputs=self.__inputs__,
-                interpolation=self.__interpolation__
-            )
+            if self.isBijective():
+                # Swap the columns
+                source = np.concatenate(
+                    ([self.source[:, 1]], [self.source[:, 0]])
+                ).transpose()
+
+                return Function(
+                    source,
+                    inputs=self.__outputs__,
+                    outputs=self.__inputs__,
+                    interpolation=self.__interpolation__,
+                )
+            else:
+                raise ValueError(
+                    "Function is not bijective, so it does not have an inverse."
+                    )
         else:
             return Function(
-                lambda x: self.findOptimalInput(x),
+                lambda x: self.findInput(x),
                 inputs=self.__outputs__,
                 outputs=self.__inputs__,
-                interpolation=self.__interpolation__
+                interpolation=self.__interpolation__,
             )
 
     def findOptimalInput(self, val):
