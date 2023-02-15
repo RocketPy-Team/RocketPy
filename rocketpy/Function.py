@@ -581,7 +581,7 @@ class Function:
             return ans if len(ans) > 1 else ans[0]
         # Returns value for spline, akima or linear interpolation function type
         elif self.__interpolation__ in ["spline", "akima", "linear"]:
-            if isinstance(args[0], (int, float, complex)):
+            if isinstance(args[0], (int, float, complex, np.integer)):
                 args = [list(args)]
             x = [arg for arg in args[0]]
             xData = self.source[:, 0]
@@ -1934,7 +1934,7 @@ class Function:
         # Or if it is just a callable
         elif callable(other):
             return Function(lambda x: (other(x) - self.getValue(x)))
-    
+
     def integral(self, a, b, numerical=False):
         """Evaluate a definite integral of a 1-D Function in the interval
         from a to b.
@@ -2090,30 +2090,29 @@ class Function:
         result : Function
             The integral of the Function object.
         """
-        # Check if lower and upper are given
-        if lower is None:
-            if isinstance(self.source, np.ndarray):
-                lower = self.source[0, 0]
-            else:
-                raise ValueError("Lower limit must be given if source is a function.")
-        if upper is None:
-            if isinstance(self.source, np.ndarray):
-                upper = self.source[-1, 0]
-            else:
-                raise ValueError("Upper limit must be given if source is a function.")
-
-        # Create a new Function object
-        xData = np.linspace(lower, upper, datapoints)
-        yData = np.zeros(datapoints)
-        for i in range(datapoints):
-            yData[i] = self.integral(lower, xData[i])
-        return Function(np.concatenate(([xData], [yData])).transpose(), 
-                    inputs=self.__inputs__, 
-                    outputs=[o + " Integral" for o in self.__outputs__])
+        if isinstance(self.source, np.ndarray):
+            lower = self.source[0, 0] if lower is None else lower
+            upper = self.source[-1, 0] if upper is None else upper
+            xData = np.linspace(lower, upper, datapoints)
+            yData = np.zeros(datapoints)
+            for i in range(datapoints):
+                yData[i] = self.integral(lower, xData[i])
+            return Function(
+                np.concatenate(([xData], [yData])).transpose(),
+                inputs=self.__inputs__,
+                outputs=[o + " Integral" for o in self.__outputs__],
+            )
+        else:
+            lower = 0 if lower is None else lower
+            return Function(
+                lambda x: self.integral(lower, x),
+                inputs=self.__inputs__,
+                outputs=[o + " Integral" for o in self.__outputs__],
+            )
 
     def inverseFunction(self, lower=None, upper=None, datapoints=100):
         """
-        Returns the inverse of the Function. The inverse function of F is a function that undoes the operation of F. The 
+        Returns the inverse of the Function. The inverse function of F is a function that undoes the operation of F. The
         inverse of F exists if and only if F is bijective. Makes the domain the range and the range the domain.
 
         Parameters
@@ -2130,20 +2129,22 @@ class Function:
         """
         if isinstance(self.source, np.ndarray):
             # Swap the columns
-            source = np.concatenate(([self.source[:, 1]], [self.source[:, 0]])).transpose()
-            
+            source = np.concatenate(
+                ([self.source[:, 1]], [self.source[:, 0]])
+            ).transpose()
+
             return Function(
                 source,
                 inputs=self.__outputs__,
                 outputs=self.__inputs__,
-                interpolation=self.__interpolation__
+                interpolation=self.__interpolation__,
             )
         else:
             return Function(
                 lambda x: self.findOptimalInput(x),
                 inputs=self.__outputs__,
                 outputs=self.__inputs__,
-                interpolation=self.__interpolation__
+                interpolation=self.__interpolation__,
             )
 
     def findOptimalInput(self, val):
@@ -2160,7 +2161,9 @@ class Function:
         result : ndarray
             The value of the input which gives the output closest to val.
         """
-        return optimize.fmin(lambda x: np.abs(self.getValue(x) - val), 0, ftol=1e-6, disp=False)
+        return optimize.fmin(
+            lambda x: np.abs(self.getValue(x) - val), 0, ftol=1e-6, disp=False
+        )
 
     def compose(self, func, lower=None, upper=None, datapoints=100):
         """
@@ -2192,9 +2195,15 @@ class Function:
             if isinstance(self.source, np.ndarray):
                 lower = self.source[0, 0]
             if isinstance(func.source, np.ndarray):
-                lower = func.source[0, 0] if lower is None else max(lower, func.source[0, 0])
+                lower = (
+                    func.source[0, 0]
+                    if lower is None
+                    else max(lower, func.source[0, 0])
+                )
             if lower is None:
-                raise ValueError("If Functions.source is a <class 'function'>, must provide bounds")
+                raise ValueError(
+                    "If Functions.source is a <class 'function'>, must provide bounds"
+                )
 
         # Checks to make sure upper bound is given
         # If not it will end at the lower of the two upper bounds
@@ -2202,24 +2211,40 @@ class Function:
             if isinstance(self.source, np.ndarray):
                 upper = self.source[-1, 0]
             if isinstance(func.source, np.ndarray):
-                upper = func.source[-1, 0] if upper is None else min(upper, func.source[-1, 0])
+                upper = (
+                    func.source[-1, 0]
+                    if upper is None
+                    else min(upper, func.source[-1, 0])
+                )
             if upper is None:
-                raise ValueError("If Functions.source is a <class 'function'>, must provide bounds")
+                raise ValueError(
+                    "If Functions.source is a <class 'function'>, must provide bounds"
+                )
 
         # Create a new Function object
         xData = np.linspace(lower, upper, datapoints)
         yData = np.zeros(datapoints)
         for i in range(datapoints):
             yData[i] = self.getValue(func.getValue(xData[i]))
-        return Function(np.concatenate(([xData], [yData])).T,
-                    inputs=func.__inputs__,
-                    outputs=self.__outputs__, 
-                    interpolation=self.__interpolation__, 
-                    extrapolation=self.__extrapolation__)
+        return Function(
+            np.concatenate(([xData], [yData])).T,
+            inputs=func.__inputs__,
+            outputs=self.__outputs__,
+            interpolation=self.__interpolation__,
+            extrapolation=self.__extrapolation__,
+        )
 
 
 class PiecewiseFunction(Function):
-    def __new__(cls, source, inputs=["Scalar"], outputs=["Scalar"], interpolation="akima", extrapolation=None, datapoints=50):
+    def __new__(
+        cls,
+        source,
+        inputs=["Scalar"],
+        outputs=["Scalar"],
+        interpolation="akima",
+        extrapolation=None,
+        datapoints=50,
+    ):
         """
         Creates a piecewise function from a dictionary of functions. The keys of the dictionary
         must be tuples that represent the domain of the function. The domains must be disjoint.
@@ -2272,8 +2297,10 @@ class PiecewiseFunction(Function):
             f = Function(source[key])
             outputData = np.concatenate((outputData, calcOutput(f, i)))
 
-        return Function(np.concatenate(([inputData], [outputData])).T,
-                    inputs=inputs,
-                    outputs=outputs,
-                    interpolation=interpolation,
-                    extrapolation=extrapolation)
+        return Function(
+            np.concatenate(([inputData], [outputData])).T,
+            inputs=inputs,
+            outputs=outputs,
+            interpolation=interpolation,
+            extrapolation=extrapolation,
+        )
