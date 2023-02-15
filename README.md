@@ -244,7 +244,7 @@ Calisto.setRailButtons([0.2, -0.5])
 
 NoseCone = Calisto.addNose(length=0.55829, kind="vonKarman", distanceToCM=0.71971)
 
-FinSet = Calisto.addTrapezoildalFins(4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956)
+FinSet = Calisto.addTrapezoidalFins(4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956)
 
 Tail = Calisto.addTail(topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656)
 ```
@@ -299,7 +299,7 @@ TestFlight.allInfo()
 
 Here is just a quick taste of what RocketPy is able to calculate. There are hundred of plots and data points computed by RocketPy to enhance your analyses.
 
-![6-DOF Trajectory Plot](docs/static/rocketpy_example_trajectory.svg)
+![6-DOF Trajectory Plot](https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/rocketpy_example_trajectory.svg)
 
 <br>
 
@@ -317,9 +317,10 @@ See a [detailed list of contributors](https://github.com/RocketPy-Team/RocketPy/
 
 ## Supporting RocketPy and Contributing
 
-The easiest way to help RocketPy is to demonstrate your support by starring our repository! ![GitHub Repo stars](https://img.shields.io/github/stars/RocketPy-Team/RocketPy?style=social)
+The easiest way to help RocketPy is to demonstrate your support by starring our repository!
+[![starcharts stargazers over time](https://starchart.cc/rocketpy-team/rocketpy.svg)](https://starchart.cc/rocketpy-team/rocketpy)
 
-<br>
+You can also become a [sponsor](https://github.com/sponsors/RocketPy-Team) and help us financially to keep the project going.
 
 If you are actively using RocketPy in one of your projects, reaching out to our core team via [Discord](https://discord.gg/b6xYnNh) and providing feedback can help improve RocketPy a lot!
 
