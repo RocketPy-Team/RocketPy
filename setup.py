@@ -17,6 +17,7 @@ setuptools.setup(
         "pytz",
         "simplekml",
         "jsonpickle",
+        "vedo",
     ],
     extras_require={
         "timezonefinder": ["timezonefinder"],

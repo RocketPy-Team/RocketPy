@@ -28,6 +28,7 @@ The following packages are needed in order to run RocketPy:
 - simplekml
 - ipywidgets >= 7.6.3
 - jsonpickle
+- vedo
 
  
 All of these packages, are automatically installed when RocketPy is installed using either ``pip`` or ``conda``.
