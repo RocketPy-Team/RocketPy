@@ -2132,6 +2132,58 @@ class Function:
                 "Only Functions whose source is a list of points can be checked for bijectivity."
             )
 
+    def isStrictlyBijective(self):
+        """Checks whether the Function is "strictly" bijective.
+        Only applicable to Functions whose source is a list of points,raises an
+        error otherwise.
+        
+        Notes
+        -----
+        By "strictly" bijective, this implementation considers the
+        list-of-points-defined Function bijective between each consecutive pair
+        of points. Therefore, the Function may be flagged as not bijective even
+        if the mapping between the set of points which define the Function is
+        bijective.       
+
+        Returns
+        -------
+        result : bool
+            True if the Function is "strictly" bijective, False otherwise.
+
+        Examples
+        --------
+        >>> f = Function([[0, 0], [1, 1], [2, 4]])
+        >>> f.isBijective()
+        True
+        >>> f.isStrictlyBijective()
+        True
+
+        >>> f = Function([[-1, 1], [0, 0], [1, 1], [2, 4]])
+        >>> f.isBijective()
+        False
+        >>> f.isStrictlyBijective()
+        False
+
+        A Function which is not "strictly" bijective, but is bijective, can be
+        constructed as x^2 defined at -1, 0 and 2.
+
+        >>> f = Function([[-1, 1], [0, 0], [2, 4]])
+        >>> f.isBijective()
+        True
+        >>> f.isStrictlyBijective()
+        False
+        """
+        if isinstance(self.source, np.ndarray):
+            # Assuming domain is sorted, range must also be
+            yData = self.source[:, 1]
+            # Both ascending and descending order means Function is bijective
+            yDataDiff = np.diff(yData)
+            return np.all(yDataDiff >= 0) or np.all(yDataDiff <= 0)
+        else:
+            raise TypeError(
+                "Only Functions whose source is a list of points can be checked for bijectivity."
+            )
+
     def inverseFunction(self):
         """
         Returns the inverse of the Function. The inverse function of F is a function
@@ -2149,7 +2201,7 @@ class Function:
             A Function whose domain and range have been inverted.
         """
         if isinstance(self.source, np.ndarray):
-            if self.isBijective():
+            if self.isStrictlyBijective():
                 # Swap the columns
                 source = np.concatenate(
                     ([self.source[:, 1]], [self.source[:, 0]])
