@@ -2089,12 +2089,12 @@ class Function:
         """
         if callable(self.source):
             return Function(lambda x: self.integral(lower, x))
-        
+
         # Not callable, i.e., defined by a dataset of points
         lower = lower if lower is not None else self.source[0, 0]
         xData = self.source[:, 0]
         yData = [self.integral(lower, x) for x in xData]
-        
+
         return Function(
             np.concatenate(([xData], [yData])).transpose(),
             inputs=self.__inputs__,
@@ -2123,14 +2123,14 @@ class Function:
         """Checks whether the Function is "strictly" bijective.
         Only applicable to Functions whose source is a list of points,raises an
         error otherwise.
-        
+
         Notes
         -----
         By "strictly" bijective, this implementation considers the
         list-of-points-defined Function bijective between each consecutive pair
         of points. Therefore, the Function may be flagged as not bijective even
         if the mapping between the set of points which define the Function is
-        bijective.       
+        bijective.
 
         Returns
         -------
