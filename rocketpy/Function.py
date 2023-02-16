@@ -2068,46 +2068,33 @@ class Function:
         else:
             return Function(lambda x: self.differentiate(x))
 
-    def integralFunction(self, lower=None, upper=None, datapoints=100):
-        """Returns a Function object representing the integral of the Function object.
+    def integralFunction(self, lower=None):
+        """Returns a Function object representing the integral of the Function
+        object.
 
         Parameters
         ----------
         lower : scalar, optional
-            The lower limit of the interval in which the function is to be
-            plotted. If the Function is given by a dataset, the default
-            value is the start of the dataset.
-        upper : scalar, optional
-            The upper limit of the interval in which the function is to be
-            plotted. If the Function is given by a dataset, the default
-            value is the end of the dataset.
-        datapoints : int, optional
-            The number of points in which the integral will be evaluated for
-            plotting it, which draws lines between each evaluated point.
-            The default value is 100.
+            The lower integration limit. If the Function is given by a dataset
+            of points the default value is the start of the dataset. If the
+            Function is defined by a callable, then this parameter must be
+            given.
 
         Returns
         -------
         result : Function
-            The integral of the Function object.
+            The integral function of the Function object. Note that the domain
+            of the integral function is the same as the domain of the original
+            Function object.
         """
-        # Check if lower and upper are given
-        if lower is None:
-            if isinstance(self.source, np.ndarray):
-                lower = self.source[0, 0]
-            else:
-                raise ValueError("Lower limit must be given if source is a function.")
-        if upper is None:
-            if isinstance(self.source, np.ndarray):
-                upper = self.source[-1, 0]
-            else:
-                raise ValueError("Upper limit must be given if source is a function.")
-
-        # Create a new Function object
-        xData = np.linspace(lower, upper, datapoints)
-        yData = np.zeros(datapoints)
-        for i in range(datapoints):
-            yData[i] = self.integral(lower, xData[i])
+        if callable(self.source):
+            return Function(lambda x: self.integral(lower, x))
+        
+        # Not callable, i.e., defined by a dataset of points
+        lower = lower if lower is not None else self.source[0, 0]
+        xData = self.source[:, 0]
+        yData = [self.integral(lower, x) for x in xData]
+        
         return Function(
             np.concatenate(([xData], [yData])).transpose(),
             inputs=self.__inputs__,
