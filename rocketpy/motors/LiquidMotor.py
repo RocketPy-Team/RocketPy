@@ -333,23 +333,37 @@ class UllageBasedTank(Tank):
         ullage,
     ):
         super().__init__(name, tank_geometry, gas, liquid)
-        self.ullageHeight = Function(ullage, inputs="Time", outputs="Height")
+        self.ullage = Function(ullage, inputs="Time", outputs="Volume")
 
     def mass(self):
-        m = self.liquidMass() + self.gasMass()
-        m.setInputs("Time")
-        m.setOutputs("Mass")
-        return m
+        return self.liquidMass() + self.gasMass()
 
     def netMassFlowRate(self):
-        m = self.mass()
-        mfr = m.derivativeFunction()
-        mfr.setInputs("Time")
-        mfr.setOutputs("Mass Flow Rate")
-        return mfr
+        return self.mass().derivativeFunction()
+
+    def liquidVolume(self):
+        return self.structure.total_volume.item - self.ullage
+
+    def gasVolume(self):
+        return self.ullage
+
+    def gasMass(self):
+        return self.gasVolume() * self.gas.density
+
+    def liquidMass(self):
+        return self.liquidVolume() * self.liquid.density
 
     def liquidHeight(self):
-        return self.ullageHeight
+        liquid_volume = self.liquidVolume()
+        inverse_volume = self.structure.volume.inverseFunction()
+        return inverse_volume.compose(liquid_volume)
+
+    def gasHeight(self):
+        fluid_volume = self.gasVolume() + self.liquidVolume()
+        inverse_volume = self.structure.volume.inverseFunction()
+        return inverse_volume.compose(fluid_volume)
+
+
 
     def liquidMass(self):
         liquid_mass = self.tank_vol.compose(self.ullageHeight) * self.liquid.density
