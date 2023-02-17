@@ -266,60 +266,58 @@ class MassFlowRateBasedTank(Tank):
         gas,
     ):
         super().__init__(name, tank_geometry, gas, liquid)
-        self.initial_liquid_mass = Function(initial_liquid_mass, inputs="Time", outputs="Mass")
-        self.initial_gas_mass = Function(initial_gas_mass, inputs="Time", outputs="Mass")
-        self.liquid_mass_flow_rate_in = Function(liquid_mass_flow_rate_in, inputs="Time", outputs="Mass Flow Rate")
-        self.gas_mass_flow_rate_in = Function(gas_mass_flow_rate_in, inputs="Time", outputs="Mass Flow Rate")
-        self.liquid_mass_flow_rate_out = Function(liquid_mass_flow_rate_out, inputs="Time", outputs="Mass Flow Rate")
-        self.gas_mass_flow_rate_out = Function(gas_mass_flow_rate_out, inputs="Time", outputs="Mass Flow Rate")
+        self.initial_liquid_mass = initial_liquid_mass
+        self.initial_gas_mass = initial_gas_mass
+
+        self.liquid_mass_flow_rate_in = Function(
+            liquid_mass_flow_rate_in, inputs="Time", outputs="Mass Flow Rate"
+        )
+        self.gas_mass_flow_rate_in = Function(
+            gas_mass_flow_rate_in, inputs="Time", outputs="Mass Flow Rate"
+        )
+        self.liquid_mass_flow_rate_out = Function(
+            liquid_mass_flow_rate_out, inputs="Time", outputs="Mass Flow Rate"
+        )
+        self.gas_mass_flow_rate_out = Function(
+            gas_mass_flow_rate_out, inputs="Time", outputs="Mass Flow Rate"
+        )
 
     def mass(self):
-        nmfr = self.netMassFlowRate()
-        m = Function(lambda t: self.initial_liquid_mass.getValue(t) 
-            + self.initial_gas_mass.getValue(t) 
-            + nmfr.integral(0, t))
-        m.setInputs("Time")
-        m.setOutputs("Mass")
-        return m
-    
-    def netMassFlowRate(self):
-        mfr = (
-            self.liquid_mass_flow_rate_in
-            - self.liquid_mass_flow_rate_out
-            + self.gas_mass_flow_rate_in
-            - self.gas_mass_flow_rate_out
-        )
-        mfr.setInputs("Time")
-        mfr.setOutputs("Net Mass Flow Rate")
-        return mfr
-
-    def liquidHeight(self):
-        liquid_vol = Function(lambda t: (self.initial_liquid_mass.getValue(t)
-                + self.liquid_mass_flow_rate_in.integral(0, t)
-                - self.liquid_mass_flow_rate_out.integral(0, t))
-                / self.liquid.density)
-                
-        inverse_tank_vol = self.tank_vol.inverseFunction()
-        uH = Function(lambda t: inverse_tank_vol(liquid_vol(t)))
-        uH.setInputs("Time")
-        uH.setOutputs("Height")
-        return uH
+        return self.liquidMass() + self.gasMass()
 
     def liquidMass(self):
-        liquid_mass = Function(lambda t: self.initial_liquid_mass.getValue(t)
-                + self.liquid_mass_flow_rate_in.integral(0, t)
-                - self.liquid_mass_flow_rate_out.integral(0, t))
-        liquid_mass.setInputs("Time")
-        liquid_mass.setOutputs("Mass")
-        return liquid_mass
-    
+        liquid_flow = self.netLiquidFlowRate().integralFunction()
+        return self.initial_liquid_mass + liquid_flow
+
     def gasMass(self):
-        gas_mass = Function(lambda t: self.initial_gas_mass.getValue(t)
-                + self.gas_mass_flow_rate_in.integral(0, t)
-                - self.gas_mass_flow_rate_out.integral(0, t))
-        gas_mass.setInputs("Time")
-        gas_mass.setOutputs("Mass")
-        return gas_mass
+        gas_flow = self.netGasFlowRate().integralFunction()
+        return self.initial_gas_mass + gas_flow
+
+    def netLiquidFlowRate(self):
+        return self.liquid_mass_flow_rate_in - self.liquid_mass_flow_rate_out
+
+    def netGasFlowRate(self):
+        return self.gas_mass_flow_rate_in - self.gas_mass_flow_rate_out
+
+    def netMassFlowRate(self):
+        return self.netLiquidFlowRate() + self.netGasFlowRate()
+
+    def liquidVolume(self):
+        return self.liquidMass() / self.liquid.density
+
+    def gasVolume(self):
+        return self.gasMass() / self.gas.density
+
+    def liquidHeight(self):
+        liquid_volume = self.liquidVolume()
+        inverse_volume = self.structure.inverse_volume.setDiscrete()
+        return inverse_volume.compose(liquid_volume)
+
+    def gasHeight(self):
+        fluid_volume = self.gasVolume() + self.liquidVolume()
+        inverse_volume = self.structure.inverse_volume.setDiscrete()
+        return inverse_volume.compose(fluid_volume)
+ 
 
 
 # @phmbressan
