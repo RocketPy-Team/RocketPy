@@ -364,20 +364,47 @@ class UllageBasedTank(Tank):
         return inverse_volume.compose(fluid_volume)
 
 
+# @phmbressan
+# @lperi03
+# @curtisjhu
+class LevelBasedTank(Tank):
+    def __init__(
+        self,
+        name,
+        tank_geometry,
+        liquid,
+        gas,
+        liquid_height,
+    ):
+        super().__init__(name, tank_geometry, gas, liquid)
+        self.liquid_height = Function(liquid_height, inputs="Time", outputs="Height")
 
-    def liquidMass(self):
-        liquid_mass = self.tank_vol.compose(self.ullageHeight) * self.liquid.density
-        liquid_mass.setInputs("Time")
-        liquid_mass.setOutputs("Liquid Mass")
-        return liquid_mass
+    def mass(self):
+        # print(type(self.liquidMass()), type(self.gasMass()))
+        return self.liquidMass() + self.gasMass()
+
+    def netMassFlowRate(self):
+        return self.mass().derivativeFunction()
+
+    def liquidVolume(self):
+        return self.structure.volume.compose(self.liquidHeight())
+
+    def gasVolume(self):
+        return self.structure.total_volume.item() - self.liquidVolume()
+
+    def liquidHeight(self):
+        return self.liquid_height
 
     def gasMass(self):
-        gas_mass = self.tank_vol.compose(self.ullageHeight) * self.gas.density
-        gas_mass.setInputs("Time")
-        gas_mass.setOutputs("Gas Mass")
-        return gas_mass
+        return self.gasVolume() * self.gas.density
 
+    def liquidMass(self):
+        return self.liquidVolume() * self.liquid.density
 
+    def gasHeight(self):
+        fluid_volume = self.gasVolume() + self.liquidVolume()
+        inverse_volume = self.structure.volume.inverseFunction()
+        return inverse_volume.compose(fluid_volume)
 
 
 # @ompro07
