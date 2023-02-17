@@ -423,32 +423,30 @@ class MassBasedTank(Tank):
         self.liquid_mass = Function(liquid_mass, inputs="Time", outputs="Mass")
         self.gas_mass = Function(gas_mass, inputs="Time", outputs="Mass")
 
+    def mass(self):
+        return self.liquidMass() + self.gasMass()
+
+    def netMassFlowRate(self):
+        return self.mass().derivativeFunction()
+
     def liquidMass(self):
         return self.liquid_mass
 
     def gasMass(self):
         return self.gas_mass
 
-    def mass(self):
-        m = self.liquidMass() + self.gasMass()
-        m.setInputs("Time")
-        m.setOutputs("Mass")
-        return m
-    
-    def netMassFlowRate(self):
-        m = self.mass()
-        mfr = m.derivativeFunction()
-        mfr.setInputs("Time")
-        mfr.setOutputs("Mass Flow Rate")
-        return mfr
+    def gasVolume(self):
+        return self.gasMass() / self.gas.density
+
+    def liquidVolume(self):
+        return self.liquidMass() / self.liquid.density
 
     def liquidHeight(self):
-        liquid_volume = self.liquid_mass / self.liquid.density
-        tank_vol = self.tank_vol.inverseFunction()
-        ullage_height = Function(lambda t: tank_vol.getValue(liquid_volume.getValue(t)))
-        ullage_height.setInputs("Time")
-        ullage_height.setOutputs("Ullage Height")
-        return ullage_height
+        liquid_volume = self.liquidVolume()
+        inverse_volume = self.structure.volume.inverseFunction()
+        return inverse_volume.compose(liquid_volume)
 
-        
-
+    def gasHeight(self):
+        fluid_volume = self.gasVolume() + self.liquidVolume()
+        inverse_volume = self.structure.volume.inverseFunction()
+        return inverse_volume.compose(fluid_volume)
