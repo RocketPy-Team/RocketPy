@@ -24,6 +24,7 @@ class Function:
         outputs=["Scalar"],
         interpolation=None,
         extrapolation=None,
+        title=None,
     ):
         """Convert source into a Function, to be used more naturally.
         Set inputs, outputs, domain dimension, interpolation and extrapolation
@@ -58,6 +59,8 @@ class Function:
             which returns the value of the function at the edge of the interval,
             and 'zero', which returns zero for all points outside of source
             range. Default for 1-D functions is constant.
+        title : string, optional
+            Title to be displayed in the plots' figures. If none, the title will be constructed using the inputs and outputs arguments in the form "{inputs} x {outputs}".
 
         Returns
         -------
@@ -73,6 +76,22 @@ class Function:
         self.last_interval = 0
         # Set source
         self.setSource(source)
+        #  Set function title
+        if title:
+            self.setTitle(title)
+        else:
+            if self.__domDim__ == 1:
+                self.setTitle(
+                    self.__outputs__[0].title() + " x " + self.__inputs__[0].title()
+                )
+            elif self.__domDim__ == 2:
+                self.setTitle(
+                    self.__outputs__[0].title()
+                    + " x "
+                    + self.__inputs__[0].title()
+                    + " x "
+                    + self.__inputs__[1].title()
+                )
         # Return
         return None
 
@@ -1188,6 +1207,9 @@ class Function:
             + ")"
         )
 
+    def setTitle(self, title):
+        self.title = title
+
     def plot(self, *args, **kwargs):
         """Call Function.plot1D if Function is 1-Dimensional or call
         Function.plot2D if Function is 2-Dimensional and forward arguments
@@ -1276,7 +1298,7 @@ class Function:
         plt.plot(x, y)
         # Turn on grid and set title and axis
         plt.grid(True)
-        plt.title(self.__outputs__[0].title() + " x " + self.__inputs__[0].title())
+        plt.title(self.title)
         plt.xlabel(self.__inputs__[0].title())
         plt.ylabel(self.__outputs__[0].title())
         plt.show()
@@ -1385,13 +1407,7 @@ class Function:
             plt.clabel(CS, inline=1, fontsize=10)
         # axes.contourf(meshX, meshY, z, zdir='x', offset=xMin, cmap=cm.coolwarm)
         # axes.contourf(meshX, meshY, z, zdir='y', offset=yMax, cmap=cm.coolwarm)
-        plt.title(
-            self.__outputs__[0].title()
-            + " x "
-            + self.__inputs__[0].title()
-            + " x "
-            + self.__inputs__[1].title()
-        )
+        plt.title(self.title)
         axes.set_xlabel(self.__inputs__[0].title())
         axes.set_ylabel(self.__inputs__[1].title())
         axes.set_zlabel(self.__outputs__[0].title())
