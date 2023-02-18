@@ -635,7 +635,7 @@ class Fins(ABC):
         )
         # lacks a title for the plot
         self.rollParameters[0]()
-        # lacks a title for the plot
+        # TODO: lacks a title for the plot
         self.rollParameters[1]()
 
         return None
