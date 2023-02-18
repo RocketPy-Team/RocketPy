@@ -654,9 +654,13 @@ class Fins(ABC):
         """
         if self.airfoil is not None:
             print("\n\nAerodynamic Information\n")
-            print("Airfoil's Lift Curve as a Function of Alpha ({}))".format(self.airfoil[1]))
+            print(
+                "Airfoil's Lift Curve as a Function of Alpha ({}))".format(
+                    self.airfoil[1]
+                )
+            )
             self.airfoilCl.plot1D()
-        
+
         return None
 
     def allInfo(self):
@@ -1487,7 +1491,6 @@ class Tail:
         return None
 
     def aerodynamicInfo(self):
-
         print(f"\nTail name: {self.name}")
         print(f"Tail Center of Pressure Position in Local Coordinates: {self.cp} m")
         print(f"Tail Lift Coefficient Slope: {self.clalpha:.3f} 1/rad")
