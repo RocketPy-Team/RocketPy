@@ -1182,7 +1182,6 @@ class TrapezoidalFins(Fins):
         return None
 
     def evaluateGeometricalParameters(self):
-
         """Calculates and returns fin set's geometrical parameters such as the
         fins' area, aspect ratio and parameters for roll movement.
 
@@ -1498,7 +1497,6 @@ class EllipticalFins(Fins):
         return None
 
     def evaluateGeometricalParameters(self):
-
         """Calculates and returns fin set's geometrical parameters such as the
         fins' area, aspect ratio and parameters for roll movement.
 
@@ -1713,7 +1711,6 @@ class Tail:
         self.evaluateLiftCoefficient()
 
     def evaluateGeometricalParameters(self):
-
         """Calculates and returns tail's slant length and surface area.
 
         Parameters
@@ -1778,7 +1775,7 @@ class Tail:
         """
         # Calculate cp position in local coordinates
         r = self.topRadius / self.bottomRadius
-        cpz = (self.length / 3) * (1 + (1 - r) / (1 - r ** 2))
+        cpz = (self.length / 3) * (1 + (1 - r) / (1 - r**2))
 
         # Store values as class attributes
         self.cpx = 0
