@@ -512,7 +512,7 @@ def test_add_trapezoidal_fins_sweep_length(
     assert translate - rocket.cpPosition == pytest.approx(expected_cpz_cm, 0.01)
 
     # Check if AeroSurfaces.__getitem__() works
-    assert isinstance(rocket.aerodynamicSurfaces.__getitem__(0)[0], NoseCone)
+    assert isinstance(rocket.aerodynamicSurfaces.__getitem__(0), NoseCone)
 
 
 def test_add_fins_assert_cp_cm_plus_fins(rocket, dimensionless_rocket, m):
