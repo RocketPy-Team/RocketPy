@@ -1204,7 +1204,6 @@ class CompareFlights(Compare):
 
         # Iterate through trajectories
         for index, flight in enumerate(flights):
-
             x, y, z = flight
 
             # Update mx and min values to set the limits of the plot
@@ -1383,7 +1382,6 @@ class CompareFlights(Compare):
 
         # Iterate through trajectories
         for index, flight in enumerate(flights):
-
             x, y, _ = flight
 
             # Update mx and min values to set the limits of the plot
@@ -1447,7 +1445,6 @@ class CompareFlights(Compare):
 
         # Iterate through trajectories
         for index, flight in enumerate(flights):
-
             x, _, z = flight
 
             # Update mx and min values to set the limits of the plot
@@ -1514,7 +1511,6 @@ class CompareFlights(Compare):
 
         # Iterate through trajectories
         for index, flight in enumerate(flights):
-
             _, y, z = flight
 
             # Update mx and min values to set the limits of the plot
