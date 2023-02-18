@@ -112,6 +112,7 @@ Tail = BellaLui.addTail(
     position=parameters.get("tailDistanceToCM")[0],
 )
 
+
 # Parachute set-up
 def drogueTrigger(p, y):
     # p = pressure

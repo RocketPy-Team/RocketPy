@@ -122,6 +122,7 @@ Transition = NDRT2020.addTail(
     position=parameters.get("transitiondistanceToCM")[0],
 )
 
+
 # Parachute set-up
 def drogueTrigger(p, y):
     # p = pressure
