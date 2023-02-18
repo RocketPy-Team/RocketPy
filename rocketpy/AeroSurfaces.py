@@ -102,34 +102,103 @@ class NoseCone:
         -------
         None
         """
-        self.length = length
+        self.cpy = 0
+        self.cpx = 0
+
+        self._rocketRadius = rocketRadius
+        self._baseRadius = baseRadius
+        self._length = length
         self.kind = kind
         self.name = name
-        self.baseRadius = baseRadius
-        self.rocketRadius = rocketRadius
 
+        self.evaluateGeometricalParameters()
+        self.evaluateLiftCoefficient()
+        self.evaluateCenterOfPressure()
+        # # Store values
+        # nose = {"cp": (0, 0, self.cpz), "cl": self.cl, "name": name}
+
+        return None
+
+    @property
+    def rocketRadius(self):
+        return self._rocketRadius
+
+    @rocketRadius.setter
+    def rocketRadius(self, value):
+        self._rocketRadius = value
+        self.evaluateGeometricalParameters()
+        self.evaluateLiftCoefficient()
+
+    @property
+    def baseRadius(self):
+        return self._baseRadius
+
+    @baseRadius.setter
+    def baseRadius(self, value):
+        self._baseRadius = value
+        self.evaluateGeometricalParameters()
+        self.evaluateLiftCoefficient()
+
+    @property
+    def length(self):
+        return self._length
+
+    @length.setter
+    def length(self, value):
+        self._length = value
+        self.evaluateCenterOfPressure()
+
+    @property
+    def kind(self):
+        return self._kind
+
+    @kind.setter
+    def kind(self, value):
+        # Analyze type
+        self._kind = value
+        if value == "conical":
+            self.k = 2 / 3
+        elif value == "ogive":
+            self.k = 0.466
+        elif value == "lvhaack":
+            self.k = 0.563
+        else:
+            self.k = 0.5
+        self.evaluateCenterOfPressure()
+
+    def evaluateGeometricalParameters(self):
+        """Calculates and returns nose cone's radius ratio.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
         if self.baseRadius is None or self.rocketRadius is None:
             self.radiusRatio = 1
         else:
             self.radiusRatio = self.baseRadius / self.rocketRadius
 
-        # Analyze type
-        if self.kind == "conical":
-            self.k = 2 / 3
-        elif self.kind == "ogive":
-            self.k = 0.466
-        elif self.kind == "lvhaack":
-            self.k = 0.563
-        else:
-            self.k = 0.5
+    def evaluateLiftCoefficient(self):
+        """Calculates and returns nose cone's lift coefficient.
+        The lift coefficient is saved and returned. This function
+        also calculates and saves its lift coefficient derivative.
 
-        # Calculate cp position in local coordinates
-        # Local coordinate origin is found at the tip of the nose cone
-        self.cpz = self.k * length
-        self.cpy = 0
-        self.cpx = 0
-        self.cp = (self.cpx, self.cpy, self.cpz)
+        Parameters
+        ----------
+        None
 
+        Returns
+        -------
+        self.cl : Function
+            Function of the angle of attack (Alpha) and the mach number
+            (Mach) expressing the lift coefficient of the nose cone. The inputs
+            are the angle of attack (in radians) and the mach number.
+            The output is the lift coefficient of the nose cone.
+        """
         # Calculate clalpha
         self.clalpha = 2 * self.radiusRatio**2
         self.cl = Function(
@@ -137,10 +206,26 @@ class NoseCone:
             ["Alpha (rad)", "Mach"],
             "Cl",
         )
-        # # Store values
-        # nose = {"cp": (0, 0, self.cpz), "cl": self.cl, "name": name}
 
-        return None
+    def evaluateCenterOfPressure(self):
+        """Calculates and returns the center of pressure of the nose cone in local
+        coordinates. The center of pressure position is saved and stored as a tuple.
+        Local coordinate origin is found at the tip of the nose cone.
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        self.cp : tuple
+            Tuple containing cpx, cpy, cpz.
+        """
+
+        self.cpz = self.k * self.length
+        self.cpy = 0
+        self.cpx = 0
+        self.cp = (self.cpx, self.cpy, self.cpz)
+        return self.cp
 
     def geometricInfo(self):
         """Prints out all the geometric information of the nose cone.
@@ -328,17 +413,89 @@ class Fins(ABC):
         Aref = np.pi * rocketRadius**2  # Reference area
 
         # Store values
-        self.n = n
-        self.rocketRadius = rocketRadius
-        self.airfoil = airfoil
-        self.cantAngle = cantAngle
-        self.rootChord = rootChord
-        self.span = span
+        self._n = n
+        self._rocketRadius = rocketRadius
+        self._airfoil = airfoil
+        self._cantAngle = cantAngle
+        self._rootChord = rootChord
+        self._span = span
         self.name = name
         self.d = d
         self.Aref = Aref  # Reference area
 
         return None
+
+    @property
+    def n(self):
+        return self._n
+
+    @n.setter
+    def n(self, value):
+        self._n = value
+        self.evaluateGeometricalParameters()
+        self.evaluateCenterOfPressure()
+        self.evaluateLiftCoefficient()
+        self.evaluateRollParameters()
+
+    @property
+    def rootChord(self):
+        return self._rootChord
+
+    @rootChord.setter
+    def rootChord(self, value):
+        self._rootChord = value
+        self.evaluateGeometricalParameters()
+        self.evaluateCenterOfPressure()
+        self.evaluateLiftCoefficient()
+        self.evaluateRollParameters()
+
+    @property
+    def span(self):
+        return self._span
+
+    @span.setter
+    def span(self, value):
+        self._span = value
+        self.evaluateGeometricalParameters()
+        self.evaluateCenterOfPressure()
+        self.evaluateLiftCoefficient()
+        self.evaluateRollParameters()
+
+    @property
+    def rocketRadius(self):
+        return self._rocketRadius
+
+    @rocketRadius.setter
+    def rocketRadius(self, value):
+        self._rocketRadius = value
+        self.evaluateGeometricalParameters()
+        self.evaluateCenterOfPressure()
+        self.evaluateLiftCoefficient()
+        self.evaluateRollParameters()
+
+    @property
+    def cantAngle(self):
+        return self._cantAngle
+
+    @cantAngle.setter
+    def cantAngle(self, value):
+        self._cantAngle = value
+        self.evaluateGeometricalParameters()
+        self.evaluateCenterOfPressure()
+        self.evaluateLiftCoefficient()
+        self.evaluateRollParameters()
+
+    @property
+    def airfoil(self):
+        return self._airfoil
+
+    @airfoil.setter
+    def airfoil(self, value):
+        self._airfoil = value
+        self.evaluateGeometricalParameters()
+        self.evaluateCenterOfPressure()
+        self.evaluateLiftCoefficient()
+        self.evaluateRollParameters()
 
     @abstractmethod
     def evaluateCenterOfPressure(self):
@@ -359,7 +516,8 @@ class Fins(ABC):
 
     @abstractmethod
     def evaluateGeometricalParameters(self):
-        """Calculates and returns fin set's geometrical parameters such as the fins' area, aspect ratio and parameters for roll movement.
+        """Calculates and returns fin set's geometrical parameters such as the
+        fins' area, aspect ratio and parameters for roll movement.
 
         Parameters
         ----------
@@ -843,10 +1001,47 @@ class TrapezoidalFins(Fins):
             # Sweep length is given
             pass
 
-        self.tipChord = tipChord
-        self.sweepLength = sweepLength
-        self.sweepAngle = sweepAngle
+        self._tipChord = tipChord
+        self._sweepLength = sweepLength
+        self._sweepAngle = sweepAngle
 
+        self.evaluateGeometricalParameters()
+        self.evaluateCenterOfPressure()
+        self.evaluateLiftCoefficient()
+        self.evaluateRollParameters()
+
+    @property
+    def tipChord(self):
+        return self._tipChord
+
+    @tipChord.setter
+    def tipChord(self, value):
+        self._tipChord = value
+        self.evaluateGeometricalParameters()
+        self.evaluateCenterOfPressure()
+        self.evaluateLiftCoefficient()
+        self.evaluateRollParameters()
+
+    @property
+    def sweepAngle(self):
+        return self._sweepAngle
+
+    @sweepAngle.setter
+    def sweepAngle(self, value):
+        self._sweepAngle = value
+        self._sweepLength = np.tan(value * np.pi / 180) * self.span
+        self.evaluateGeometricalParameters()
+        self.evaluateCenterOfPressure()
+        self.evaluateLiftCoefficient()
+        self.evaluateRollParameters()
+
+    @property
+    def sweepLength(self):
+        return self._sweepLength
+
+    @sweepLength.setter
+    def sweepLength(self, value):
+        self._sweepLength = value
         self.evaluateGeometricalParameters()
         self.evaluateCenterOfPressure()
         self.evaluateLiftCoefficient()
@@ -987,6 +1182,7 @@ class TrapezoidalFins(Fins):
         return None
 
     def evaluateGeometricalParameters(self):
+
         """Calculates and returns fin set's geometrical parameters such as the
         fins' area, aspect ratio and parameters for roll movement.
 
@@ -1302,6 +1498,7 @@ class EllipticalFins(Fins):
         return None
 
     def evaluateGeometricalParameters(self):
+
         """Calculates and returns fin set's geometrical parameters such as the
         fins' area, aspect ratio and parameters for roll movement.
 
@@ -1460,14 +1657,73 @@ class Tail:
         """
 
         # Store arguments as attributes
-        self.topRadius = topRadius
-        self.bottomRadius = bottomRadius
-        self.length = length
+        self._topRadius = topRadius
+        self._bottomRadius = bottomRadius
+        self._length = length
+        self._rocketRadius = rocketRadius
         self.name = name
-        self.rocketRadius = rocketRadius
-
         # Calculate ratio between top and bottom radius
 
+        # Calculate geometrical parameters
+        self.evaluateGeometricalParameters()
+        self.evaluateLiftCoefficient()
+        self.evaluateCenterOfPressure()
+
+        return None
+
+    @property
+    def topRadius(self):
+        return self._topRadius
+
+    @topRadius.setter
+    def topRadius(self, value):
+        self._topRadius = value
+        self.evaluateGeometricalParameters()
+        self.evaluateLiftCoefficient()
+        self.evaluateCenterOfPressure()
+
+    @property
+    def bottomRadius(self):
+        return self._bottomRadius
+
+    @bottomRadius.setter
+    def bottomRadius(self, value):
+        self._bottomRadius = value
+        self.evaluateGeometricalParameters()
+        self.evaluateLiftCoefficient()
+        self.evaluateCenterOfPressure()
+
+    @property
+    def length(self):
+        return self._length
+
+    @length.setter
+    def length(self, value):
+        self._length = value
+        self.evaluateGeometricalParameters()
+        self.evaluateCenterOfPressure()
+
+    @property
+    def rocketRadius(self):
+        return self._rocketRadius
+
+    @rocketRadius.setter
+    def rocketRadius(self, value):
+        self._rocketRadius = value
+        self.evaluateLiftCoefficient()
+
+    def evaluateGeometricalParameters(self):
+
+        """Calculates and returns tail's slant length and surface area.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
         # Calculate tail slant length
         self.slantLength = np.sqrt(
             (self.length) ** 2 + (self.topRadius - self.bottomRadius) ** 2
@@ -1477,29 +1733,58 @@ class Tail:
             np.pi * self.slantLength * (self.topRadius + self.bottomRadius)
         )
 
-        # Calculate cp position in local coordinates
-        r = topRadius / bottomRadius
-        cpz = (length / 3) * (1 + (1 - r) / (1 - r**2))
+    def evaluateLiftCoefficient(self):
+        """Calculates and returns tail's lift coefficient.
+        The lift coefficient is saved and returned. This function
+        also calculates and saves its lift coefficient derivative.
 
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        self.cl : Function
+            Function of the angle of attack (Alpha) and the mach number
+            (Mach) expressing the lift coefficient of the tail. The inputs
+            are the angle of attack (in radians) and the mach number.
+            The output is the lift coefficient of the tail.
+        """
         # Calculate clalpha
         clalpha = 2 * (
-            (bottomRadius / rocketRadius) ** 2 - (topRadius / rocketRadius) ** 2
+            (self.bottomRadius / self.rocketRadius) ** 2
+            - (self.topRadius / self.rocketRadius) ** 2
         )
         cl = Function(
             lambda alpha, mach: clalpha * alpha,
             ["Alpha (rad)", "Mach"],
             "Cl",
         )
+        self.cl = cl
+        self.clalpha = clalpha
+        return self.cl
+
+    def evaluateCenterOfPressure(self):
+        """Calculates and returns the center of pressure of the tail in local
+        coordinates. The center of pressure position is saved and stored as a tuple.
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        self.cp : tuple
+            Tuple containing cpx, cpy, cpz.
+        """
+        # Calculate cp position in local coordinates
+        r = self.topRadius / self.bottomRadius
+        cpz = (self.length / 3) * (1 + (1 - r) / (1 - r ** 2))
 
         # Store values as class attributes
         self.cpx = 0
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
-        self.cl = cl
-        self.clalpha = clalpha
-
-        return None
 
     def geometricInfo(self):
         """Prints out all the geometric information of the tail.
