@@ -141,13 +141,11 @@ class Parachute:
         )
 
     def info(self):
-
         self.prints.all()
 
         return None
 
     def allInfo(self):
-
         self.info()
         # self.plots.all() # Parachutes still doesn't have plots
 
