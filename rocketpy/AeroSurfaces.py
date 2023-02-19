@@ -167,7 +167,7 @@ class NoseCone:
         self.evaluateCenterOfPressure()
 
     def evaluateGeometricalParameters(self):
-        """Calculates and returns nose cone's radius ratio.
+        """Calculates and saves nose cone's radius ratio.
 
         Parameters
         ----------
@@ -206,6 +206,7 @@ class NoseCone:
             ["Alpha (rad)", "Mach"],
             "Cl",
         )
+        return self.cl
 
     def evaluateCenterOfPressure(self):
         """Calculates and returns the center of pressure of the nose cone in local
@@ -516,7 +517,7 @@ class Fins(ABC):
 
     @abstractmethod
     def evaluateGeometricalParameters(self):
-        """Calculates and returns fin set's geometrical parameters such as the
+        """Calculates and saves fin set's geometrical parameters such as the
         fins' area, aspect ratio and parameters for roll movement.
 
         Parameters
@@ -734,8 +735,8 @@ class Fins(ABC):
         print("Root Chord: {:.3f} m".format(self.rootChord))
         print("Span: {:.3f} m".format(self.span))
         print("Cant Angle: {:.3f} °".format(self.cantAngle))
-        print("Longitudinal Section Area: {:.3f} m".format(self.Af))
-        print("Aspect Ratio: {:.3f} m".format(self.AR))
+        print("Longitudinal Section Area: {:.3f} m²".format(self.Af))
+        print("Aspect Ratio: {:.3f} ".format(self.AR))
         print("Gamma_c: {:.3f} m".format(self.gamma_c))
         print("Mean Aerodynamic Chord: {:.3f} m".format(self.Yma))
         print(
@@ -1182,7 +1183,7 @@ class TrapezoidalFins(Fins):
         return None
 
     def evaluateGeometricalParameters(self):
-        """Calculates and returns fin set's geometrical parameters such as the
+        """Calculates and saves fin set's geometrical parameters such as the
         fins' area, aspect ratio and parameters for roll movement.
 
         Parameters
@@ -1422,7 +1423,7 @@ class EllipticalFins(Fins):
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
-        return self
+        return self.cp
 
     def draw(self):
         """Draw the fin shape along with some important information.
@@ -1497,7 +1498,7 @@ class EllipticalFins(Fins):
         return None
 
     def evaluateGeometricalParameters(self):
-        """Calculates and returns fin set's geometrical parameters such as the
+        """Calculates and saves fin set's geometrical parameters such as the
         fins' area, aspect ratio and parameters for roll movement.
 
         Parameters
@@ -1711,7 +1712,7 @@ class Tail:
         self.evaluateLiftCoefficient()
 
     def evaluateGeometricalParameters(self):
-        """Calculates and returns tail's slant length and surface area.
+        """Calculates and saves tail's slant length and surface area.
 
         Parameters
         ----------
@@ -1782,6 +1783,7 @@ class Tail:
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
+        return self.cp
 
     def geometricInfo(self):
         """Prints out all the geometric information of the tail.
@@ -1797,7 +1799,7 @@ class Tail:
         print(f"Tail Length: {self.length:.3f} m")
         print(f"Reference Radius: {2*self.rocketRadius:.3f} m")
         print(f"Tail Slant Length: {self.slantLength:.3f} m")
-        print(f"Tail Surface Area: {self.surfaceArea:.6f} m^2")
+        print(f"Tail Surface Area: {self.surfaceArea:.6f} m²")
 
         return None
 
