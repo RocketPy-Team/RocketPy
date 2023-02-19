@@ -11,14 +11,15 @@ class TankGeometry:
     axi-symmetric, and its geometry is defined by a set of Functions that are
     used to calculate the radius as a function of height.
     """
+
     def __init__(self, geometry_dict=dict()):
         """Initialize TankGeometry class.
-        
+
         Parameters
         ----------
         geometry_dict : dict, optional
-            Dictionary containing the geometry of the tank. The geometry is 
-            calculated by a PiecewiseFunction. Hence, the dict keys are disjoint 
+            Dictionary containing the geometry of the tank. The geometry is
+            calculated by a PiecewiseFunction. Hence, the dict keys are disjoint
             tuples containing the lower and upper bounds of the domain of the
             corresponding Function, while the values correspond to the radius
             function from a axis of symmetry.
@@ -41,7 +42,7 @@ class TankGeometry:
     def geometry(self, geometry_dict):
         """
         Sets the geometry of the tank.
-        
+
         Parameters
         ----------
         geometry_dict : dict
@@ -55,7 +56,7 @@ class TankGeometry:
     def radius(self):
         """
         The radius of the tank as a function of height.
-        
+
         Returns
         -------
         Function
@@ -67,7 +68,7 @@ class TankGeometry:
     def average_radius(self):
         """
         The average radius of the tank.
-        
+
         Returns
         -------
         float
@@ -80,7 +81,7 @@ class TankGeometry:
         """
         The bottom of the tank. It is the lowest coordinate that belongs to
         the domain of the geometry.
-        
+
         Returns
         -------
         float
@@ -173,7 +174,7 @@ class TankGeometry:
         domain : tuple
             Tuple containing the lower and upper bounds of the domain where the
             radius is valid.
-        function : Function, 
+        function : Function,
             Function that defines the radius of the tank as a function of height.
         """
         self._geometry[domain] = Function(function)
@@ -182,9 +183,10 @@ class TankGeometry:
 
 class CylindricalTank(TankGeometry):
     """Class to define the geometry of a cylindrical tank."""
+
     def __init__(self, radius, height, spherical_caps=False, geometry_dict=dict()):
         """Initialize CylindricalTank class. The zero reference point of the
-        cylinder is its center (i.e. half of its height). Therefore the its 
+        cylinder is its center (i.e. half of its height). Therefore the its
         height coordinate span is (-height/2, height/2).
 
         Parameters
@@ -225,6 +227,7 @@ class CylindricalTank(TankGeometry):
 
 class SphericalTank(TankGeometry):
     """Class to define the geometry of a spherical tank."""
+
     def __init__(self, radius, geometry_dict=dict()):
         """Initialize SphericalTank class. The zero reference point of the
         sphere is its center (i.e. half of its height). Therefore the its
