@@ -1,6 +1,8 @@
 import numpy as np
 
+from rocketpy import Function
 from rocketpy.Function import PiecewiseFunction, funcify_method
+from functools import cached_property
 
 
 class TankGeometry:
@@ -17,9 +19,13 @@ class TankGeometry:
         for domain, function in geometry_dict.items():
             self.add_geometry(domain, function)
 
-    @property
+    @funcify_method("height (m)", "radius (m)", extrapolation="zero")
     def radius(self):
-        return self._radius
+        return self.radius
+
+    @cached_property
+    def average_radius(self):
+        return self.radius.average(self.bottom, self.top)
 
     @property
     def bottom(self):
@@ -29,48 +35,56 @@ class TankGeometry:
     def top(self):
         return max(self._geometry.keys())[1]
 
-    @property
+    @cached_property
     def total_height(self):
         return self.top - self.bottom
 
-    @property
+    @funcify_method("height (m)", "area (m²)", extrapolation="zero")
     def area(self):
         return np.pi * self.radius**2
 
-    @property
+    @funcify_method("height (m)", "volume (m³)", extrapolation="zero")
     def volume(self):
         return self.area.integralFunction(self.bottom)
 
-    @property
+    @cached_property
     def total_volume(self):
         return self.volume(self.top)
 
-    @property
+    @funcify_method("volume (m³)", "height (m)", extrapolation="constant")
     def inverse_volume(self):
-        return self.volume.inverseFunction()
+        return self.volume.inverseFunction(
+            lambda v: v / (np.pi * self.average_radius**2),
+        )
 
     def add_geometry(self, domain, function):
-        self._geometry[domain] = function
-        self._radius = PiecewiseFunction(self._geometry)
+        self._geometry[domain] = Function(function)
+        self.radius = PiecewiseFunction(self._geometry, "height (m)", "radius (m)")
 
 
 class CylindricalTank(TankGeometry):
-    def __init__(self, radius, height, spherical_caps=False):
-        super().__init__()
+    def __init__(self, radius, height, spherical_caps=False, geometry_dict=dict()):
+        super().__init__(geometry_dict)
+        self.has_caps = False
         self.add_geometry((-height / 2, height / 2), radius)
         self.add_spherical_caps() if spherical_caps else None
 
     def add_spherical_caps(self):
-        radius = self.radius(0)
-        bottom_cap_range = (-self.height / 2 - radius, -self.height / 2)
-        upper_cap_range = (self.height / 2, self.height / 2 + radius)
-        bottom_cap_radius = lambda h: (radius**2 - (h + self.height / 2) ** 2) ** 0.5
-        upper_cap_radius = lambda h: (radius**2 - (h - self.height / 2) ** 2) ** 0.5
-        self.add_geometry(bottom_cap_range, bottom_cap_radius)
-        self.add_geometry(upper_cap_range, upper_cap_radius)
+        if not self.has_caps:
+            radius = self.radius(0)
+            height = self.total_height
+            bottom_cap_range = (-height / 2 - radius, -height / 2)
+            upper_cap_range = (height / 2, height / 2 + radius)
+            bottom_cap_radius = lambda h: (radius**2 - (h + height / 2) ** 2) ** 0.5
+            upper_cap_radius = lambda h: (radius**2 - (h - height / 2) ** 2) ** 0.5
+            self.add_geometry(bottom_cap_range, bottom_cap_radius)
+            self.add_geometry(upper_cap_range, upper_cap_radius)
+            self.has_caps = True
+        else:
+            raise ValueError("Tank already has caps.")
 
 
 class SphericalTank(TankGeometry):
-    def __init__(self, radius):
-        super().__init__()
+    def __init__(self, radius, geometry_dict=dict()):
+        super().__init__(geometry_dict)
         self.add_geometry((-radius, radius), lambda h: (radius**2 - h**2) ** 0.5)
