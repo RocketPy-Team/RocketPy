@@ -1212,6 +1212,7 @@ class Function:
         forceData=False,
         forcePoints=False,
         returnObject=False,
+        equalAxis=False,
     ):
         """Plot 1-Dimensional Function, from a lower limit to an upper limit,
         by sampling the Function several times in the interval. The title of
@@ -1274,6 +1275,8 @@ class Function:
         # Plots function
         if forcePoints:
             plt.scatter(x, y, marker="o")
+        if equalAxis:
+            plt.axis("equal")
         plt.plot(x, y)
         # Turn on grid and set title and axis
         plt.grid(True)
@@ -2110,7 +2113,7 @@ class Function:
                 return Function(lambda x: (self.getValue(x) - other(x)))
 
     def __rsub__(self, other):
-    def inverseFunction(self, approxFunc=None, tol=1e-4):
+        """Subtracts a Function object from 'other' and returns a new Function
         object which gives the result of the subtraction. Only implemented for
         1D domains.
 
@@ -2140,18 +2143,14 @@ class Function:
                 return Function(source, inputs, outputs, interpolation)
             else:
                 return Function(lambda x: (other - self.getValue(x)))
-            if approxFunc:
-                source = lambda x: self.findOptimalInput(x, approxFunc(x), tol)
-            else:
-                source = lambda x: self.findOptimalInput(x, tol=tol)
         # Or if it is just a callable
-                source,
+        elif callable(other):
             return Function(lambda x: (other(x) - self.getValue(x)))
 
     def integral(self, a, b, numerical=False):
         """Evaluate a definite integral of a 1-D Function in the interval
         from a to b.
-    def findOptimalInput(self, val, start=0, tol=1e-4):
+
         Parameters
         ----------
         a : float
@@ -2161,59 +2160,13 @@ class Function:
         numerical : bool
             If True, forces the definite integral to be evaluated numerically.
             The current numerical method used is scipy.integrate.quad.
-    def average(self, lower, upper):
-        """
-        Returns the average of the function.
+            If False, try to calculate using interpolation information.
+            Currently, only available for spline and linear interpolation. If
+            unavailable, calculate numerically anyways.
 
         Returns
         -------
-        result : float
-            The average of the function.
-        """
-        return self.integral(lower, upper) / (upper - lower)
-
-    def averageFunction(self, lower=None):
-        """
-        Returns a Function object representing the average of the Function object.
-
-        Parameters
-        ----------
-        lower : float
-            Lower limit of the new domain. Only required if the Function's source is a callable instead of a list of points.
-
-        Returns
-        -------
-        result : Function
-            The average of the Function object.
-        """
-        if isinstance(self.source, np.ndarray):
-            if lower is None:
-                lower = self.source[0, 0]
-            upper = self.source[-1, 0]
-            xData = np.linspace(lower, upper, 100)
-            yData = np.zeros(100)
-            yData[0] = self.source[:, 1][0]
-            for i in range(1, 100):
-                yData[i] = self.average(lower, xData[i])
-            return Function(
-                np.concatenate(([xData], [yData])).transpose(),
-                inputs=self.__inputs__,
-                outputs=[o + " Average" for o in self.__outputs__],
-            )
-        else:
-            if lower is None:
-                lower = 0
-            return Function(
-                lambda x: self.average(lower, x),
-                inputs=self.__inputs__,
-                outputs=[o + " Average" for o in self.__outputs__],
-            )
-
-        return optimize.root(
-            lambda x: self.getValue(x) - val,
-            start,
-            tol=tol,
-        ).x
+        ans : float
             Evaluated integral.
         """
         if self.__interpolation__ == "spline" and numerical is False:
@@ -2369,7 +2322,7 @@ class Function:
                 outputs=[o + " Integral" for o in self.__outputs__],
             )
 
-    def inverseFunction(self, lower=None, upper=None, datapoints=100):
+    def inverseFunction(self, approxFunc=None, tol=1e-4):
         """
         Returns the inverse of the Function. The inverse function of F is a function that undoes the operation of F. The
         inverse of F exists if and only if F is bijective. Makes the domain the range and the range the domain.
@@ -2399,14 +2352,18 @@ class Function:
                 interpolation=self.__interpolation__,
             )
         else:
+            if approxFunc:
+                source = lambda x: self.findOptimalInput(x, approxFunc(x), tol)
+            else:
+                source = lambda x: self.findOptimalInput(x, tol=tol)
             return Function(
-                lambda x: self.findOptimalInput(x),
+                source,
                 inputs=self.__outputs__,
                 outputs=self.__inputs__,
                 interpolation=self.__interpolation__,
             )
 
-    def findOptimalInput(self, val):
+    def findOptimalInput(self, val, start=0, tol=1e-4):
         """
         Finds the optimal input for a given output.
 
@@ -2420,9 +2377,59 @@ class Function:
         result : ndarray
             The value of the input which gives the output closest to val.
         """
-        return optimize.fmin(
-            lambda x: np.abs(self.getValue(x) - val), 0, ftol=1e-6, disp=False
-        )
+        return optimize.root(
+            lambda x: self.getValue(x) - val,
+            start,
+            tol=tol,
+        ).x
+
+    def average(self, lower, upper):
+        """
+        Returns the average of the function.
+
+        Returns
+        -------
+        result : float
+            The average of the function.
+        """
+        return self.integral(lower, upper) / (upper - lower)
+
+    def averageFunction(self, lower=None):
+        """
+        Returns a Function object representing the average of the Function object.
+
+        Parameters
+        ----------
+        lower : float
+            Lower limit of the new domain. Only required if the Function's source is a callable instead of a list of points.
+
+        Returns
+        -------
+        result : Function
+            The average of the Function object.
+        """
+        if isinstance(self.source, np.ndarray):
+            if lower is None:
+                lower = self.source[0, 0]
+            upper = self.source[-1, 0]
+            xData = np.linspace(lower, upper, 100)
+            yData = np.zeros(100)
+            yData[0] = self.source[:, 1][0]
+            for i in range(1, 100):
+                yData[i] = self.average(lower, xData[i])
+            return Function(
+                np.concatenate(([xData], [yData])).transpose(),
+                inputs=self.__inputs__,
+                outputs=[o + " Average" for o in self.__outputs__],
+            )
+        else:
+            if lower is None:
+                lower = 0
+            return Function(
+                lambda x: self.average(lower, x),
+                inputs=self.__inputs__,
+                outputs=[o + " Average" for o in self.__outputs__],
+            )
 
     def compose(self, func, lower=None, upper=None, datapoints=100):
         """
