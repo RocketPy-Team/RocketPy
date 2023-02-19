@@ -1,5 +1,6 @@
 from rocketpy import Fluid
-from rocketpy.motors.LiquidMotor import Tank, LiquidMotor, MassBasedTank, UllageBasedTank, MassFlowRateBasedTank
+from rocketpy.motors.Tank import MassBasedTank, UllageBasedTank, MassFlowRateBasedTank, LevelBasedTank
+from rocketpy.motors import TankGeometry
 from rocketpy.motors.Fluid import Fluid
 from rocketpy.Function import Function
 from math import isclose
@@ -19,21 +20,21 @@ def test_mass_based_motor():
     bottom_endcap = lambda y: np.sqrt(0.0775 ** 2 - (0.0775 - y) **2) #Hemisphere equation creating bottom endcap
 
     #Generate tank geometry {radius: height, ...}
-    real_geometry = {(0, 0.0559): bottom_endcap, (.0559, 0.7139): lambda y: 0.0744, (0.7139, 0.7698): top_endcap} 
+    real_geometry = TankGeometry({(0, 0.0559): bottom_endcap, (.0559, 0.7139): lambda y: 0.0744, (0.7139, 0.7698): top_endcap})
 
     #Import liquid mass data
-    lox_masses = "../data/berkeley/Test135LoxMass.csv"
-    example_liquid_masses = "../data/berkeley/ExampleTankLiquidMassData.csv"
+    lox_masses = "./data/berkeley/Test135LoxMass.csv"
+    example_liquid_masses = "./data/berkeley/ExampleTankLiquidMassData.csv"
 
     #Import gas mass data
-    gas_masses = "../data/berkeley/Test135GasMass.csv"
-    example_gas_masses = "../data/berkeley/ExampleTankGasMassData.csv"
+    gas_masses = "./data/berkeley/Test135GasMass.csv"
+    example_gas_masses = "./data/berkeley/ExampleTankGasMassData.csv"
     
     #Generate tanks based on Berkeley SEB team's real tank geometries
     real_tank_lox = MassBasedTank("Real Tank", real_geometry, lox_masses, gas_masses, lox, n2) 
 
     #Generate tank geometry {radius: height, ...}
-    example_geometry = {(0, 5): 1}
+    example_geometry = TankGeometry({(0, 5): 1})
 
     #Generate tanks based on simplified tank geometry
     example_tank_lox = MassBasedTank("Example Tank", example_geometry, example_liquid_masses, example_gas_masses, lox, n2) 
@@ -119,15 +120,15 @@ def test_ullage_based_motor():
     lox = Fluid(name = "LOx", density=1141.7, quality = 1.0)
     n2 = Fluid(name = "Nitrogen Gas", density=51.75, quality = 1.0)
 
-    test_dir = '../data/berkeley/'
+    test_dir = './data/berkeley/'
 
     top_endcap = lambda y: np.sqrt(0.0775 ** 2 - (y - 0.692300000000001) ** 2)
     bottom_endcap = lambda y: np.sqrt(0.0775 ** 2 - (0.0775 - y) ** 2)
-    tank_geometry = {(0, 0.0559): bottom_endcap, (.0559, 0.7139): lambda y: 0.0744, (0.7139, 0.7698): top_endcap}
+    tank_geometry = TankGeometry({(0, 0.0559): bottom_endcap, (.0559, 0.7139): lambda y: 0.0744, (0.7139, 0.7698): top_endcap})
 
     ullage_data = pd.read_csv(os.path.abspath(test_dir+'loxUllage.csv')).to_numpy()
-    ullageTank = UllageBasedTank("Ullage Tank", tank_geometry,
-                                 gas=n2, liquid=lox, ullage=ullage_data)
+    levelTank = LevelBasedTank("Ullage Tank", tank_geometry,
+                                 gas=n2, liquid=lox, liquid_height=ullage_data)
 
     mass_data = pd.read_csv(test_dir+'loxMass.csv').to_numpy()
     mass_flow_rate_data = pd.read_csv(test_dir+'loxMFR.csv').to_numpy()
@@ -153,16 +154,16 @@ def test_ullage_based_motor():
                 curr_ind += 1
         return result_larger_source, result_smaller_source
 
-    assert np.allclose(ullageTank.liquidHeight().getSource(), ullage_data)
+    assert np.allclose(levelTank.liquidHeight, ullage_data)
 
-    calculated_mass = ullageTank.liquidMass().getSource()
+    calculated_mass = levelTank.liquidMass.getSource()
     calculated_mass, mass_data = align_time_series(calculated_mass, mass_data)
     assert np.allclose(calculated_mass, mass_data, rtol=1, atol=2)
     # Function(calculated_mass).plot1D()
     # Function(mass_data).plot1D()
 
 
-    calculated_mfr, test_mfr = align_time_series(ullageTank.netMassFlowRate().getSource(), mass_flow_rate_data)
+    calculated_mfr, test_mfr = align_time_series(levelTank.netMassFlowRate.getSource(), mass_flow_rate_data)
     # assert np.allclose(calculated_mfr, test_mfr)
     # Function(calculated_mfr).plot1D()
     # Function(test_mfr).plot1D()
@@ -176,45 +177,57 @@ def test_mfr_tank_basic():
 
     def test_nmfr():
         nmfr = lambda x: liquid_mass_flow_rate_in + gas_mass_flow_rate_in - liquid_mass_flow_rate_out - gas_mass_flow_rate_out
-        test(t.netMassFlowRate(), nmfr)
+        test(t.netMassFlowRate, nmfr)
 
     def test_mass():
         m = lambda x: (initial_liquid_mass + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x) + \
             (initial_gas_mass + (gas_mass_flow_rate_in - gas_mass_flow_rate_out) * x)
-        lm = t.mass()
+        lm = t.mass
         test(lm, m)
 
     def test_liquid_height():
         alv = lambda x: (initial_liquid_mass + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x) / lox.density
         alh = lambda x: alv(x) / (np.pi)
-        tlh = t.liquidHeight()
+        tlh = t.liquidHeight
         test(tlh, alh)
 
     def test_com():
-        alv = lambda x: (initial_liquid_mass + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x) / lox.density
-        alh = lambda x: alv(x) / (np.pi)
-        alm = lambda x: (initial_liquid_mass + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x)
-        agm = lambda x: (initial_gas_mass + (gas_mass_flow_rate_in - gas_mass_flow_rate_out) * x)
+        liquid_mass = lambda x: (initial_liquid_mass + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x) # liquid mass
+        liquid_volume = lambda x: liquid_mass(x) / lox.density #liquid volume
+        liquid_height = lambda x: liquid_volume(x) / (np.pi) # liquid height
+        gas_mass = lambda x: (initial_gas_mass + (gas_mass_flow_rate_in - gas_mass_flow_rate_out) * x) # gas mass
+        gas_volume = lambda x: gas_mass(x) / n2.density
+        gas_height = lambda x: gas_volume(x) / np.pi + liquid_height(x)
 
-        alcom = lambda x: alh(x) / 2
-        agcom = lambda x: (5 - alh(x)) / 2 + alh(x)
-        acom = lambda x: (alm(x) * alcom(x) + agm(x) * agcom(x)) / (alm(x) + agm(x))
+        liquid_com = lambda x: liquid_height(x) / 2 # liquid com
+        gas_com = lambda x: (gas_height(x) - liquid_height(x)) / 2 + liquid_height(x) # gas com
+        acom = lambda x: (liquid_mass(x) * liquid_com(x) + gas_mass(x) * gas_com(x)) / (liquid_mass(x) + gas_mass(x))
 
         tcom = t.centerOfMass
+
         test(tcom, acom)
 
     def test_inertia():
-        alv = lambda x: (initial_liquid_mass + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x) / lox.density
-        alh = lambda x: alv(x) / (np.pi)
-        m = lambda x: (initial_liquid_mass + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x) + \
-            (initial_gas_mass + (gas_mass_flow_rate_in - gas_mass_flow_rate_out) * x)
-        r = 1
-        ixy = lambda x: (1/12)*m(x)*(3*r**2 + alh(x) **2)
-        iz = lambda x: (m(x) * r**2)/2
-        test(Function(lambda x: t.inertiaTensor(x)[0]), ixy, tol=1e-1)
-        test(Function(lambda x: t.inertiaTensor(x)[1]), iz, tol=1e-1)
+        liquid_mass = lambda x: (initial_liquid_mass + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x) # liquid mass
+        liquid_volume = lambda x: liquid_mass(x) / lox.density #liquid volume
+        liquid_height = lambda x: liquid_volume(x) / (np.pi) # liquid height
+        gas_mass = lambda x: (initial_gas_mass + (gas_mass_flow_rate_in - gas_mass_flow_rate_out) * x) # gas mass
+        gas_volume = lambda x: gas_mass(x) / n2.density
+        gas_height = lambda x: gas_volume(x) / np.pi + liquid_height(x)
 
-    tank_radius_function = {(0, 5): 1}
+        liquid_com = lambda x: liquid_height(x) / 2 # liquid com
+        gas_com = lambda x: (gas_height(x) - liquid_height(x)) / 2 + liquid_height(x) # gas com
+        acom = lambda x: (liquid_mass(x) * liquid_com(x) + gas_mass(x) * gas_com(x)) / (liquid_mass(x) + gas_mass(x))
+
+        r = 1
+        ixy_gas = lambda x: 1/4 * gas_mass(x) * r**2 + 1/12 * gas_mass(x) * (gas_height(x) - liquid_height(x))**2 + gas_mass(x) * (gas_com(x) - acom(x))**2
+        ixy_liq = lambda x: 1/4 * liquid_mass(x) * r**2 + 1/12 * liquid_mass(x) * (liquid_height(x) - t.structure.bottom)**2 + liquid_mass(x) * (liquid_com(x) - acom(x))**2
+        ixy = lambda x: ixy_gas(x) + ixy_liq(x)
+        test(t.gasInertiaTensor, ixy_gas, tol=1e-3)
+        test(t.liquidInertiaTensor, ixy_liq, tol=1e-3)
+        test(t.inertiaTensor, ixy, tol=1e-3)
+
+    tank_radius_function = TankGeometry({(0, 5): 1})
     lox = Fluid(name = "LOx", density = 1141, quality = 1.0) #Placeholder quality value
     n2 = Fluid(name = "Nitrogen Gas", density = 51.75, quality = 1.0) #Placeholder quality value; density value may be estimate
     initial_liquid_mass = 5
