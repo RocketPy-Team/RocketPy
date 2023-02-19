@@ -2147,7 +2147,7 @@ class Function:
     def integral(self, a, b, numerical=False):
         """Evaluate a definite integral of a 1-D Function in the interval
         from a to b.
-
+    def findOptimalInput(self, val, start=0, tol=1e-4):
         Parameters
         ----------
         a : float
@@ -2161,9 +2161,11 @@ class Function:
             Currently, only available for spline and linear interpolation. If
             unavailable, calculate numerically anyways.
 
-        Returns
-        -------
-        ans : float
+        return optimize.root(
+            lambda x: self.getValue(x) - val,
+            start,
+            tol=tol,
+        ).x
             Evaluated integral.
         """
         if self.__interpolation__ == "spline" and numerical is False:
