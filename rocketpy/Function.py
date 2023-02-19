@@ -2110,7 +2110,7 @@ class Function:
                 return Function(lambda x: (self.getValue(x) - other(x)))
 
     def __rsub__(self, other):
-        """Subtracts a Function object from 'other' and returns a new Function
+    def inverseFunction(self, approxFunc=None, tol=1e-4):
         object which gives the result of the subtraction. Only implemented for
         1D domains.
 
@@ -2140,8 +2140,12 @@ class Function:
                 return Function(source, inputs, outputs, interpolation)
             else:
                 return Function(lambda x: (other - self.getValue(x)))
+            if approxFunc:
+                source = lambda x: self.findOptimalInput(x, approxFunc(x), tol)
+            else:
+                source = lambda x: self.findOptimalInput(x, tol=tol)
         # Or if it is just a callable
-        elif callable(other):
+                source,
             return Function(lambda x: (other(x) - self.getValue(x)))
 
     def integral(self, a, b, numerical=False):
@@ -2157,9 +2161,53 @@ class Function:
         numerical : bool
             If True, forces the definite integral to be evaluated numerically.
             The current numerical method used is scipy.integrate.quad.
-            If False, try to calculate using interpolation information.
-            Currently, only available for spline and linear interpolation. If
-            unavailable, calculate numerically anyways.
+    def average(self, lower, upper):
+        """
+        Returns the average of the function.
+
+        Returns
+        -------
+        result : float
+            The average of the function.
+        """
+        return self.integral(lower, upper) / (upper - lower)
+
+    def averageFunction(self, lower=None):
+        """
+        Returns a Function object representing the average of the Function object.
+
+        Parameters
+        ----------
+        lower : float
+            Lower limit of the new domain. Only required if the Function's source is a callable instead of a list of points.
+
+        Returns
+        -------
+        result : Function
+            The average of the Function object.
+        """
+        if isinstance(self.source, np.ndarray):
+            if lower is None:
+                lower = self.source[0, 0]
+            upper = self.source[-1, 0]
+            xData = np.linspace(lower, upper, 100)
+            yData = np.zeros(100)
+            yData[0] = self.source[:, 1][0]
+            for i in range(1, 100):
+                yData[i] = self.average(lower, xData[i])
+            return Function(
+                np.concatenate(([xData], [yData])).transpose(),
+                inputs=self.__inputs__,
+                outputs=[o + " Average" for o in self.__outputs__],
+            )
+        else:
+            if lower is None:
+                lower = 0
+            return Function(
+                lambda x: self.average(lower, x),
+                inputs=self.__inputs__,
+                outputs=[o + " Average" for o in self.__outputs__],
+            )
 
         return optimize.root(
             lambda x: self.getValue(x) - val,
