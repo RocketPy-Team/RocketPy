@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod, abstractproperty
 
 
 class AeroSurfaces:
-    """Class used to hold multiple aerodynamic surfaces and their positions."""
+    """Class used to hold multiple aerodynamic surfaces."""
 
     def __init__(self):
         self._aeroSurfaces = []
@@ -25,16 +25,24 @@ class AeroSurfaces:
                 self._aeroSurfaces.remove(aeroSurface)
 
     def pop(self, index=-1):
-        return self._aerosurfaces.pop(index)
-    
+        return self._aeroSurfaces.pop(index)
+
     def __repr__(self):
-        return self._aeroSurfaces.__str__
+        if len(self._aeroSurfaces) == 1:
+            return self._aeroSurfaces[0].__repr__()
+        return self._aeroSurfaces.__repr__()
 
     def __len__(self):
         return len(self._aeroSurfaces)
 
     def __getitem__(self, index):
         return self._aeroSurfaces[index]
+
+    def __getattr__(self, name):
+        if len(self._aeroSurfaces) == 1:
+            attr = getattr(self._aeroSurfaces[0], name)
+            return attr
+        return getattr(self._aeroSurfaces, name)
 
     def __iter__(self):
         return iter(self._aeroSurfaces)
@@ -78,7 +86,13 @@ class NoseCone:
     """
 
     def __init__(
-        self, length, kind, position, baseRadius=None, rocketRadius=None, name="Nose Cone"
+        self,
+        length,
+        kind,
+        position,
+        baseRadius=None,
+        rocketRadius=None,
+        name="Nose Cone",
     ):
         """Initializes the nose cone. It is used to define the nose cone
         length, kind, center of pressure and lift coefficient curve.
@@ -284,7 +298,7 @@ class NoseCone:
         -------
         None
         """
-        self.geometricalInfo()        
+        self.geometricalInfo()
         self.aerodynamicInfo()
 
         return None
@@ -1642,7 +1656,9 @@ class Tail:
 
     """
 
-    def __init__(self, topRadius, bottomRadius, length, position, rocketRadius, name="Tail"):
+    def __init__(
+        self, topRadius, bottomRadius, length, position, rocketRadius, name="Tail"
+    ):
         """Initializes the tail object by computing and storing the most
         important values.
 
