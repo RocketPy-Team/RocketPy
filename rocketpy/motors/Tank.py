@@ -16,8 +16,8 @@ class Tank(ABC):
         self.gas = gas
         self.liquid = liquid
 
+    @property
     @abstractmethod
-    @funcify_method("time (s)", "mass (kg)")
     def mass(self):
         """
         Returns the total mass of liquid and gases inside the tank as a
@@ -30,8 +30,8 @@ class Tank(ABC):
         """
         pass
 
+    @property
     @abstractmethod
-    @funcify_method("time (s)", "mass flow rate (kg/s)")
     def netMassFlowRate(self):
         """
         Returns the net mass flow rate of the tank as a function of time.
@@ -45,8 +45,8 @@ class Tank(ABC):
         """
         pass
 
+    @property
     @abstractmethod
-    @funcify_method("time (s)", "liquid volume (m^3)")
     def liquidVolume(self):
         """
         Returns the volume of the liquid as a function of time.
@@ -58,8 +58,8 @@ class Tank(ABC):
         """
         pass
 
+    @property
     @abstractmethod
-    @funcify_method("time (s)", "gas volume (m³)")
     def gasVolume(self):
         """
         Returns the volume of the gas as a function of time.
@@ -71,8 +71,8 @@ class Tank(ABC):
         """
         pass
 
+    @property
     @abstractmethod
-    @funcify_method("time (s)", "liquid height (m)")
     def liquidHeight(self):
         """
         Returns the liquid level as a function of time. This
@@ -86,8 +86,8 @@ class Tank(ABC):
         """
         pass
 
+    @property
     @abstractmethod
-    @funcify_method("time (s)", "gas height (m)")
     def gasHeight(self):
         """
         Returns the gas level as a function of time. This
@@ -101,8 +101,8 @@ class Tank(ABC):
         """
         pass
 
+    @property
     @abstractmethod
-    @funcify_method("time (s)", "liquid mass (kg)")
     def liquidMass(self):
         """
         Returns the mass of the liquid as a function of time.
@@ -114,8 +114,8 @@ class Tank(ABC):
         """
         pass
 
+    @property
     @abstractmethod
-    @funcify_method("time (s)", "gas mass (kg)")
     def gasMass(self):
         """
         Returns the mass of the gas as a function of time.
@@ -145,9 +145,12 @@ class Tank(ABC):
             mass_integrand = Function(
                 lambda h: h * self.liquid.density * self.structure.area(h)
             )
-            return mass_integrand.integral(
-                self.structure.bottom, self.liquidHeight(t)
-            ) / self.mass(t)
+            try:
+                return mass_integrand.integral(
+                    self.structure.bottom, self.liquidHeight(t)
+                ) / self.liquidMass(t)
+            except ZeroDivisionError:
+                return self.structure.bottom
 
         return evaluate_liquid_com
 
@@ -169,9 +172,12 @@ class Tank(ABC):
             mass_integrand = Function(
                 lambda h: h * self.gas.density * self.structure.area(h)
             )
-            return mass_integrand.integral(
-                self.liquidHeight(t), self.gasHeight(t)
-            ) / self.mass(t)
+            try:
+                return mass_integrand.integral(
+                    self.liquidHeight(t), self.gasHeight(t)
+                ) / self.gasMass(t)
+            except ZeroDivisionError:
+                return self.structure.bottom
 
         return evaluate_gas_com
 
@@ -347,15 +353,12 @@ class MassFlowRateBasedTank(Tank):
 
     @funcify_method("time (s)", "height (m)")
     def liquidHeight(self):
-        liquid_volume = self.liquidVolume
-        inverse_volume = self.structure.inverse_volume
-        return inverse_volume.compose(liquid_volume)
+        return self.structure.inverse_volume.compose(self.liquidVolume)
 
     @funcify_method("time (s)", "height (m)")
     def gasHeight(self):
         fluid_volume = self.gasVolume + self.liquidVolume
-        inverse_volume = self.structure.inverse_volume
-        return inverse_volume.compose(fluid_volume)
+        return self.structure.inverse_volume.compose(fluid_volume)
 
 
 class UllageBasedTank(Tank):
@@ -396,15 +399,12 @@ class UllageBasedTank(Tank):
 
     @funcify_method("time (s)", "height (m)")
     def liquidHeight(self):
-        liquid_volume = self.liquidVolume
-        inverse_volume = self.structure.volume.inverseFunction()
-        return inverse_volume.compose(liquid_volume)
+        return self.structure.inverse_volume.compose(self.liquidVolume)
 
     @funcify_method("time (s)", "height (m)")
     def gasHeight(self):
         fluid_volume = self.gasVolume + self.liquidVolume
-        inverse_volume = self.structure.volume.inverseFunction()
-        return inverse_volume.compose(fluid_volume)
+        return self.structure.inverse_volume.compose(fluid_volume)
 
 
 class LevelBasedTank(Tank):
@@ -452,8 +452,7 @@ class LevelBasedTank(Tank):
     @funcify_method("time (s)", "height (m)")
     def gasHeight(self):
         fluid_volume = self.gasVolume + self.liquidVolume
-        inverse_volume = self.structure.volume.inverseFunction()
-        return inverse_volume.compose(fluid_volume)
+        return self.structure.inverse_volume.compose(fluid_volume)
 
 
 class MassBasedTank(Tank):
@@ -496,12 +495,9 @@ class MassBasedTank(Tank):
 
     @funcify_method("time (s)", "height (m)")
     def liquidHeight(self):
-        liquid_volume = self.liquidVolume
-        inverse_volume = self.structure.volume.inverseFunction()
-        return inverse_volume.compose(liquid_volume)
+        return self.structure.inverse_volume.compose(self.liquidVolume)
 
     @funcify_method("time (s)", "height (m)")
     def gasHeight(self):
         fluid_volume = self.gasVolume + self.liquidVolume
-        inverse_volume = self.structure.volume.inverseFunction()
-        return inverse_volume.compose(fluid_volume)
+        return self.structure.inverse_volume.compose(fluid_volume)
