@@ -2230,20 +2230,16 @@ class Function:
             lambda x: np.abs(self.getValue(x) - val), 0, ftol=1e-6, disp=False
         )
 
-    def compose(self, func, lower=None, upper=None, datapoints=100):
+    def compose(self, func):
         """
-        Returns a Function object which is the result of inputing a function into a
-        function (i.e. f(g(x))). The domain will become the domain of the input function
-        and the range will become the range of the original function.
+        Returns a Function object which is the result of inputing a function into a function
+        (i.e. f(g(x))). The domain will become the domain of the input function and the range
+        will become the range of the original function.
 
         Parameters
         ----------
         func : Function
             The function to be inputed into the function.
-        lower : float
-            Lower limit of the new domain.
-        upper : float
-            Upper limit of the new domain.
 
         Returns
         -------
@@ -2254,45 +2250,8 @@ class Function:
         if not isinstance(func, Function):
             raise TypeError("Input must be a Function object.")
 
-        # Checks to make sure lower bound is given
-        # If not it will start at the higher of the two lower bounds
-        if lower is None:
-            if isinstance(self.source, np.ndarray):
-                lower = self.source[0, 0]
-            if isinstance(func.source, np.ndarray):
-                lower = (
-                    func.source[0, 0]
-                    if lower is None
-                    else max(lower, func.source[0, 0])
-                )
-            if lower is None:
-                raise ValueError(
-                    "If Functions.source is a <class 'function'>, must provide bounds"
-                )
-
-        # Checks to make sure upper bound is given
-        # If not it will end at the lower of the two upper bounds
-        if upper is None:
-            if isinstance(self.source, np.ndarray):
-                upper = self.source[-1, 0]
-            if isinstance(func.source, np.ndarray):
-                upper = (
-                    func.source[-1, 0]
-                    if upper is None
-                    else min(upper, func.source[-1, 0])
-                )
-            if upper is None:
-                raise ValueError(
-                    "If Functions.source is a <class 'function'>, must provide bounds"
-                )
-
-        # Create a new Function object
-        xData = np.linspace(lower, upper, datapoints)
-        yData = np.zeros(datapoints)
-        for i in range(datapoints):
-            yData[i] = self.getValue(func.getValue(xData[i]))
         return Function(
-            np.concatenate(([xData], [yData])).T,
+            lambda x: self(func(x)),
             inputs=func.__inputs__,
             outputs=self.__outputs__,
             interpolation=self.__interpolation__,
