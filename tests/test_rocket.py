@@ -11,7 +11,7 @@ from rocketpy.AeroSurfaces import NoseCone
 def test_rocket(mock_show):
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burnOutTime=3.9,
         grainNumber=5,
         grainSeparation=5 / 1000,
         grainDensity=1815,
@@ -99,7 +99,7 @@ def test_rocket(mock_show):
 def test_coordinate_system_orientation(mock_show):
     motor_nozzleToCombustionChamber = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burnOutTime=3.9,
         grainNumber=5,
         grainSeparation=5 / 1000,
         grainDensity=1815,
@@ -116,7 +116,7 @@ def test_coordinate_system_orientation(mock_show):
 
     motor_combustionChamberToNozzle = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burnOutTime=3.9,
         grainNumber=5,
         grainSeparation=5 / 1000,
         grainDensity=1815,
@@ -186,7 +186,7 @@ def test_coordinate_system_orientation(mock_show):
 def test_elliptical_fins(mock_show):
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burnOutTime=3.9,
         grainNumber=5,
         grainSeparation=5 / 1000,
         grainDensity=1815,
@@ -266,7 +266,7 @@ def test_elliptical_fins(mock_show):
 def test_airfoil(mock_show):
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burnOutTime=3.9,
         grainNumber=5,
         grainSeparation=5 / 1000,
         grainDensity=1815,
