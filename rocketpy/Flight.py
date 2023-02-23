@@ -6,6 +6,7 @@ __author__ = (
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
+import inspect
 import math
 import time
 import warnings
@@ -557,7 +558,7 @@ class Flight:
             Default is 90, which points in the x direction.
         initialSolution : array, Flight, optional
             Initial solution array to be used. Format is
-            initialSolution = []
+            initialSolution = [
                 self.tInitial,
                 xInit, yInit, zInit,
                 vxInit, vyInit, vzInit,
@@ -2480,7 +2481,7 @@ class Flight:
             Air density at each time step
         self.dynamicViscosity_list: list
             Dynamic viscosity at each time step
-        elf_list._speedOfSound: list
+        self_list._speedOfSound: list
             Speed of sound at each time step
         self.windVelocityX_list: list
             Wind velocity in x direction at each time step
