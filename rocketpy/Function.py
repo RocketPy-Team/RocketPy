@@ -2226,9 +2226,53 @@ class Function:
         result : ndarray
             The value of the input which gives the output closest to val.
         """
-        return optimize.fmin(
-            lambda x: np.abs(self.getValue(x) - val), 0, ftol=1e-6, disp=False
-        )
+    def average(self, lower, upper):
+        """
+        Returns the average of the function.
+
+        Returns
+        -------
+        result : float
+            The average of the function.
+        """
+        return self.integral(lower, upper) / (upper - lower)
+
+    def averageFunction(self, lower=None):
+        """
+        Returns a Function object representing the average of the Function object.
+
+        Parameters
+        ----------
+        lower : float
+            Lower limit of the new domain. Only required if the Function's source is a callable instead of a list of points.
+
+        Returns
+        -------
+        result : Function
+            The average of the Function object.
+        """
+        if isinstance(self.source, np.ndarray):
+            if lower is None:
+                lower = self.source[0, 0]
+            upper = self.source[-1, 0]
+            xData = np.linspace(lower, upper, 100)
+            yData = np.zeros(100)
+            yData[0] = self.source[:, 1][0]
+            for i in range(1, 100):
+                yData[i] = self.average(lower, xData[i])
+            return Function(
+                np.concatenate(([xData], [yData])).transpose(),
+                inputs=self.__inputs__,
+                outputs=[o + " Average" for o in self.__outputs__],
+            )
+        else:
+            if lower is None:
+                lower = 0
+            return Function(
+                lambda x: self.average(lower, x),
+                inputs=self.__inputs__,
+                outputs=[o + " Average" for o in self.__outputs__],
+            )
 
     def compose(self, func):
         """
