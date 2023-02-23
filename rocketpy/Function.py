@@ -580,7 +580,7 @@ class Function:
             return ans if len(ans) > 1 else ans[0]
         # Returns value for spline, akima or linear interpolation function type
         elif self.__interpolation__ in ["spline", "akima", "linear"]:
-            if isinstance(args[0], (int, float, complex)):
+            if isinstance(args[0], (int, float, complex, np.integer)):
                 args = [list(args)]
             x = [arg for arg in args[0]]
             xData = self.source[:, 0]
@@ -1004,6 +1004,7 @@ class Function:
         forceData=False,
         forcePoints=False,
         returnObject=False,
+        equalAxis=False,
     ):
         """Plot 1-Dimensional Function, from a lower limit to an upper limit,
         by sampling the Function several times in the interval. The title of
@@ -1066,6 +1067,8 @@ class Function:
         # Plots function
         if forcePoints:
             plt.scatter(x, y, marker="o")
+        if equalAxis:
+            plt.axis("equal")
         plt.plot(x, y)
         # Turn on grid and set title and axis
         plt.grid(True)
@@ -2056,131 +2059,70 @@ class Function:
             Ys = np.diff(self.source[:, 1]) / np.diff(self.source[:, 0])
             Xs = self.source[:-1, 0] + np.diff(self.source[:, 0]) / 2
             source = np.concatenate(([Xs], [Ys])).transpose()
-
             # Retrieve inputs, outputs and interpolation
             inputs = self.__inputs__[:]
             outputs = "d(" + self.__outputs__[0] + ")/d(" + inputs[0] + ")"
             outputs = "(" + outputs + ")"
             interpolation = "linear"
-
             # Create new Function object
             return Function(source, inputs, outputs, interpolation)
         else:
             return Function(lambda x: self.differentiate(x))
 
-    def integralFunction(self, lower=None):
-        """Returns a Function object representing the integral of the Function
-        object.
+    def integralFunction(self, lower=None, upper=None, datapoints=100):
+        """Returns a Function object representing the integral of the Function object.
 
         Parameters
         ----------
         lower : scalar, optional
-            The lower integration limit. If the Function is given by a dataset
-            of points the default value is the start of the dataset. If the
-            Function is defined by a callable, then this parameter must be
-            given.
+            The lower limit of the interval in which the function is to be
+            plotted. If the Function is given by a dataset, the default
+            value is the start of the dataset.
+        upper : scalar, optional
+            The upper limit of the interval in which the function is to be
+            plotted. If the Function is given by a dataset, the default
+            value is the end of the dataset.
+        datapoints : int, optional
+            The number of points in which the integral will be evaluated for
+            plotting it, which draws lines between each evaluated point.
+            The default value is 100.
 
         Returns
         -------
         result : Function
-            The integral function of the Function object. Note that the domain
-            of the integral function is the same as the domain of the original
-            Function object.
-        """
-        if callable(self.source):
-            return Function(lambda x: self.integral(lower, x))
-
-        # Not callable, i.e., defined by a dataset of points
-        lower = lower if lower is not None else self.source[0, 0]
-        xData = self.source[:, 0]
-        yData = [self.integral(lower, x) for x in xData]
-
-        return Function(
-            np.concatenate(([xData], [yData])).transpose(),
-            inputs=self.__inputs__,
-            outputs=[o + " Integral" for o in self.__outputs__],
-        )
-
-    def isBijective(self):
-        """Checks whether the Function is bijective. Only applicable to Functions whose source is a list of points, raises an error otherwise.
-
-        Returns
-        -------
-        result : bool
-            True if the Function is bijective, False otherwise.
+            The integral of the Function object.
         """
         if isinstance(self.source, np.ndarray):
-            xDataDistinct = set(self.source[:, 0])
-            yDataDistinct = set(self.source[:, 1])
-            distinctMap = set(zip(xDataDistinct, yDataDistinct))
-            return len(distinctMap) == len(xDataDistinct) == len(yDataDistinct)
+            lower = self.source[0, 0] if lower is None else lower
+            upper = self.source[-1, 0] if upper is None else upper
+            xData = np.linspace(lower, upper, datapoints)
+            yData = np.zeros(datapoints)
+            for i in range(datapoints):
+                yData[i] = self.integral(lower, xData[i])
+            return Function(
+                np.concatenate(([xData], [yData])).transpose(),
+                inputs=self.__inputs__,
+                outputs=[o + " Integral" for o in self.__outputs__],
+            )
         else:
-            raise TypeError(
-                "Only Functions whose source is a list of points can be checked for bijectivity."
+            lower = 0 if lower is None else lower
+            return Function(
+                lambda x: self.integral(lower, x),
+                inputs=self.__inputs__,
+                outputs=[o + " Integral" for o in self.__outputs__],
             )
 
-    def isStrictlyBijective(self):
-        """Checks whether the Function is "strictly" bijective.
-        Only applicable to Functions whose source is a list of points,raises an
-        error otherwise.
-
-        Notes
-        -----
-        By "strictly" bijective, this implementation considers the
-        list-of-points-defined Function bijective between each consecutive pair
-        of points. Therefore, the Function may be flagged as not bijective even
-        if the mapping between the set of points which define the Function is
-        bijective.
-
-        Returns
-        -------
-        result : bool
-            True if the Function is "strictly" bijective, False otherwise.
-
-        Examples
-        --------
-        >>> f = Function([[0, 0], [1, 1], [2, 4]])
-        >>> f.isBijective()
-        True
-        >>> f.isStrictlyBijective()
-        True
-
-        >>> f = Function([[-1, 1], [0, 0], [1, 1], [2, 4]])
-        >>> f.isBijective()
-        False
-        >>> f.isStrictlyBijective()
-        False
-
-        A Function which is not "strictly" bijective, but is bijective, can be
-        constructed as x^2 defined at -1, 0 and 2.
-
-        >>> f = Function([[-1, 1], [0, 0], [2, 4]])
-        >>> f.isBijective()
-        True
-        >>> f.isStrictlyBijective()
-        False
+    def inverseFunction(self, approxFunc=None, tol=1e-4):
         """
-        if isinstance(self.source, np.ndarray):
-            # Assuming domain is sorted, range must also be
-            yData = self.source[:, 1]
-            # Both ascending and descending order means Function is bijective
-            yDataDiff = np.diff(yData)
-            return np.all(yDataDiff >= 0) or np.all(yDataDiff <= 0)
-        else:
-            raise TypeError(
-                "Only Functions whose source is a list of points can be checked for bijectivity."
-            )
+        Returns the inverse of the Function. The inverse function of F is a function that undoes the operation of F. The
+        inverse of F exists if and only if F is bijective. Makes the domain the range and the range the domain.
 
-    def inverseFunction(self):
-        """
-        Returns the inverse of the Function. The inverse function of F is a function
-        that undoes the operation of F. The inverse of F exists if and only if F is
-        bijective. Makes the domain the range and the range the domain.
-
-        If the Function is given by a list of points, its bijectivity is checked and an
-        error is raised if it is not bijective.
-        If the Function is given by a function, its bijectivity is not checked and may
-        lead to innacuracies outside of its bijective region.
+        Parameters
+        ----------
+        lower : float
+            Lower limit of the new domain. Only required if the Function's source is a callable instead of a list of points.
+        upper : float
+            Upper limit of the new domain. Only required if the Function's source is a callable instead of a list of points.
 
         Returns
         -------
@@ -2188,33 +2130,32 @@ class Function:
             A Function whose domain and range have been inverted.
         """
         if isinstance(self.source, np.ndarray):
-            if self.isStrictlyBijective():
-                # Swap the columns
-                source = np.concatenate(
-                    ([self.source[:, 1]], [self.source[:, 0]])
-                ).transpose()
+            # Swap the columns
+            source = np.concatenate(
+                ([self.source[:, 1]], [self.source[:, 0]])
+            ).transpose()
 
-                return Function(
-                    source,
-                    inputs=self.__outputs__,
-                    outputs=self.__inputs__,
-                    interpolation=self.__interpolation__,
-                )
-            else:
-                raise ValueError(
-                    "Function is not bijective, so it does not have an inverse."
-                )
-        else:
             return Function(
-                lambda x: self.findInput(x),
+                source,
+                inputs=self.__outputs__,
+                outputs=self.__inputs__,
+                interpolation=self.__interpolation__,
+            )
+        else:
+            if approxFunc:
+                source = lambda x: self.findInput(x, approxFunc(x), tol)
+            else:
+                source = lambda x: self.findInput(x, tol=tol)
+            return Function(
+                source,
                 inputs=self.__outputs__,
                 outputs=self.__inputs__,
                 interpolation=self.__interpolation__,
             )
 
-    def findInput(self, val):
+    def findInput(self, val, start=0, tol=1e-4):
         """
-        Finds the input for a given output.
+        Finds the optimal input for a given output.
 
         Parameters
         ----------
@@ -2226,6 +2167,12 @@ class Function:
         result : ndarray
             The value of the input which gives the output closest to val.
         """
+        return optimize.root(
+            lambda x: self.getValue(x) - val,
+            start,
+            tol=tol,
+        ).x
+
     def average(self, lower, upper):
         """
         Returns the average of the function.
@@ -2314,10 +2261,9 @@ class PiecewiseFunction(Function):
         datapoints=50,
     ):
         """
-        Creates a piecewise function from a dictionary of functions. The keys of the
-        dictionary must be tuples that represent the domain of the function. The domains
-        must be disjoint. The piecewise function will be evaluated at datapoints points
-        to create Function object.
+        Creates a piecewise function from a dictionary of functions. The keys of the dictionary
+        must be tuples that represent the domain of the function. The domains must be disjoint.
+        The piecewise function will be evaluated at datapoints points to create Function object.
 
         Parameters
         ----------
@@ -2338,12 +2284,10 @@ class PiecewiseFunction(Function):
         # Check if source is a dictionary
         if not isinstance(source, dict):
             raise TypeError("source must be a dictionary")
-
         # Check if all keys are tuples
         for key in source.keys():
             if not isinstance(key, tuple):
                 raise TypeError("keys of source must be tuples")
-
         # Check if all domains are disjoint
         for key1 in source.keys():
             for key2 in source.keys():
