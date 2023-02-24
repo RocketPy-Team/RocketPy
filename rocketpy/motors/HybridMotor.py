@@ -8,10 +8,10 @@ import numpy as np
 from scipy import integrate
 
 from rocketpy.Function import Function
-from rocketpy.motors import Motor
+from rocketpy.motors import SolidMotor, LiquidMotor
 
 
-class HybridMotor(Motor):
+class HybridMotor(SolidMotor, LiquidMotor):
     """Class to specify characteristics and useful operations for Hybrid
     motors.
 
@@ -245,49 +245,6 @@ class HybridMotor(Motor):
         self.evaluateInertia()
         self.evaluateCenterOfMass()
 
-    @property
-    def exhaustVelocity(self):
-        """Calculates and returns exhaust velocity by assuming it
-        as a constant. The formula used is total impulse/propellant
-        initial mass. The value is also stored in
-        self.exhaustVelocity.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        self.exhaustVelocity : float
-            Constant gas exhaust velocity of the motor.
-        """
-        return self.totalImpulse / self.propellantInitialMass
-
-    def evaluateMassDot(self):
-        """Calculates and returns the time derivative of propellant
-        mass by assuming constant exhaust velocity. The formula used
-        is the opposite of thrust divided by exhaust velocity. The
-        result is a function of time, object of the Function class,
-        which is stored in self.massDot.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        self.massDot : Function
-            Time derivative of total propellant mass as a function
-            of time.
-        """
-        # Create mass dot Function
-        self.massDot = self.thrust / (-self.exhaustVelocity)
-        self.massDot.setOutputs("Mass Dot (kg/s)")
-        self.massDot.setExtrapolation("zero")
-
-        # Return Function
-        return self.massDot
-
     def evaluateCenterOfMass(self):
         """Calculates and returns the time derivative of motor center of mass.
         The formulas used are the Bernoulli equation, law of the ideal gases and Boyle's law.
@@ -303,141 +260,7 @@ class HybridMotor(Motor):
             Position of the center of mass as a function
             of time.
         """
-
-        self.zCM = 0
-
-        return self.zCM
-
-    def evaluateGeometry(self):
-        """Calculates grain inner radius and grain height as a
-        function of time by assuming that every propellant mass
-        burnt is exhausted. In order to do that, a system of
-        differential equations is solved using scipy.integrate.
-        odeint. Furthermore, the function calculates burn area,
-        burn rate and Kn as a function of time using the previous
-        results. All functions are stored as objects of the class
-        Function in self.grainInnerRadius, self.grainHeight, self.
-        burnArea, self.burnRate and self.Kn.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        geometry : list of Functions
-            First element is the Function representing the inner
-            radius of a grain as a function of time. Second
-            argument is the Function representing the height of a
-            grain as a function of time.
-        """
-        # Define initial conditions for integration
-        y0 = [self.grainInitialInnerRadius, self.grainInitialHeight]
-
-        # Define time mesh
-        t = self.massDot.source[:, 0]
-
-        density = self.grainDensity
-        rO = self.grainOuterRadius
-
-        # Define system of differential equations
-        def geometryDot(y, t):
-            grainMassDot = self.massDot(t) / self.grainNumber
-            rI, h = y
-            rIDot = (
-                -0.5 * grainMassDot / (density * np.pi * (rO**2 - rI**2 + rI * h))
-            )
-            hDot = 1.0 * grainMassDot / (density * np.pi * (rO**2 - rI**2 + rI * h))
-            return [rIDot, hDot]
-
-        # Solve the system of differential equations
-        sol = integrate.odeint(geometryDot, y0, t)
-
-        # Write down functions for innerRadius and height
-        self.grainInnerRadius = Function(
-            np.concatenate(([t], [sol[:, 0]])).transpose().tolist(),
-            "Time (s)",
-            "Grain Inner Radius (m)",
-            self.interpolate,
-            "constant",
-        )
-        self.grainHeight = Function(
-            np.concatenate(([t], [sol[:, 1]])).transpose().tolist(),
-            "Time (s)",
-            "Grain Height (m)",
-            self.interpolate,
-            "constant",
-        )
-
-        # Create functions describing burn rate, Kn and burn area
-        self.evaluateBurnArea()
-        self.evaluateKn()
-        self.evaluateBurnRate()
-
-        return [self.grainInnerRadius, self.grainHeight]
-
-    def evaluateBurnArea(self):
-        """Calculates the BurnArea of the grain for
-        each time. Assuming that the grains are cylindrical
-        BATES grains.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        burnArea : Function
-        Function representing the burn area progression with the time.
-        """
-        self.burnArea = (
-            2
-            * np.pi
-            * (
-                self.grainOuterRadius**2
-                - self.grainInnerRadius**2
-                + self.grainInnerRadius * self.grainHeight
-            )
-            * self.grainNumber
-        )
-        self.burnArea.setOutputs("Burn Area (m2)")
-        return self.burnArea
-
-    def evaluateBurnRate(self):
-        """Calculates the BurnRate with respect to time.
-        This evaluation assumes that it was already
-        calculated the massDot, burnArea timeseries.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        burnRate : Function
-        Rate of progression of the inner radius during the combustion.
-        """
-        self.burnRate = (-1) * self.massDot / (self.burnArea * self.grainDensity)
-        self.burnRate.setOutputs("Burn Rate (m/s)")
-        return self.burnRate
-
-    def evaluateKn(self):
-        KnSource = (
-            np.concatenate(
-                (
-                    [self.grainInnerRadius.source[:, 1]],
-                    [self.burnArea.source[:, 1] / self.throatArea],
-                )
-            ).transpose()
-        ).tolist()
-        self.Kn = Function(
-            KnSource,
-            "Grain Inner Radius (m)",
-            "Kn (m2/m2)",
-            self.interpolate,
-            "constant",
-        )
-        return self.Kn
+        ...
 
     def evaluateInertia(self):
         """Calculates propellant inertia I, relative to directions
@@ -460,59 +283,7 @@ class HybridMotor(Motor):
             inertia Z.
         """
 
-        # Inertia I
-        # Calculate inertia I for each grain
-        grainMass = self.mass / self.grainNumber
-        grainMassDot = self.massDot / self.grainNumber
-        grainNumber = self.grainNumber
-        grainInertiaI = grainMass * (
-            (1 / 4) * (self.grainOuterRadius**2 + self.grainInnerRadius**2)
-            + (1 / 12) * self.grainHeight**2
-        )
-
-        # Calculate each grain's distance d to propellant center of mass
-        initialValue = (grainNumber - 1) / 2
-        d = np.linspace(-initialValue, initialValue, grainNumber)
-        d = d * (self.grainInitialHeight + self.grainSeparation)
-
-        # Calculate inertia for all grains
-        self.inertiaI = grainNumber * grainInertiaI + grainMass * np.sum(d**2)
-        self.inertiaI.setOutputs("Propellant Inertia I (kg*m2)")
-
-        # Inertia I Dot
-        # Calculate each grain's inertia I dot
-        grainInertiaIDot = (
-            grainMassDot
-            * (
-                (1 / 4) * (self.grainOuterRadius**2 + self.grainInnerRadius**2)
-                + (1 / 12) * self.grainHeight**2
-            )
-            + grainMass
-            * ((1 / 2) * self.grainInnerRadius - (1 / 3) * self.grainHeight)
-            * self.burnRate
-        )
-
-        # Calculate inertia I dot for all grains
-        self.inertiaIDot = grainNumber * grainInertiaIDot + grainMassDot * np.sum(
-            d**2
-        )
-        self.inertiaIDot.setOutputs("Propellant Inertia I Dot (kg*m2/s)")
-
-        # Inertia Z
-        self.inertiaZ = (
-            (1 / 2.0)
-            * self.mass
-            * (self.grainOuterRadius**2 + self.grainInnerRadius**2)
-        )
-        self.inertiaZ.setOutputs("Propellant Inertia Z (kg*m2)")
-
-        # Inertia Z Dot
-        self.inertiaZDot = (1 / 2.0) * self.massDot * (
-            self.grainOuterRadius**2 + self.grainInnerRadius**2
-        ) + self.mass * self.grainInnerRadius * self.burnRate
-        self.inertiaZDot.setOutputs("Propellant Inertia Z Dot (kg*m2/s)")
-
-        return [self.inertiaI, self.inertiaZ]
+        ...
 
     def allInfo(self):
         pass

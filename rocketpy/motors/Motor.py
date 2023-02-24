@@ -5,7 +5,7 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 import re
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 
 import numpy as np
 
@@ -50,7 +50,7 @@ class Motor(ABC):
             Total propellant initial mass in kg.
         Motor.mass : Function
             Propellant total mass in kg as a function of time.
-        Motor.massDot : Function
+        Motor.massFlowRate : Function
             Time derivative of propellant total mass in kg/s as a function
             of time.
         Motor.inertiaI : Function
@@ -160,18 +160,6 @@ class Motor(ABC):
             if thrustSource[-3:] == "eng":
                 # Import content
                 comments, desc, points = self.importEng(thrustSource)
-                # Process description and points
-                # diameter = float(desc[1])/1000
-                # height = float(desc[2])/1000
-                # mass = float(desc[4])
-                # nozzleRadius = diameter/4
-                # throatRadius = diameter/8
-                # grainNumber = grainNumber
-                # grainVolume = height*np.pi*((diameter/2)**2 -(diameter/4)**2)
-                # grainDensity = mass/grainVolume
-                # grainOuterRadius = diameter/2
-                # grainInitialInnerRadius = diameter/4
-                # grainInitialHeight = height
                 thrustSource = points
                 self.burnOutTime = points[-1][0]
 
@@ -194,7 +182,7 @@ class Motor(ABC):
         self.throatRadius = throatRadius
 
         # Other quantities that will be computed
-        self.massDot = None
+        self.massFlowRate = None
         self.mass = None
         self.inertiaI = None
         self.inertiaIDot = None
@@ -266,7 +254,8 @@ class Motor(ABC):
         # Return reshaped curve
         return self.thrust
 
-    def evaluateTotalImpulse(self):
+    @property
+    def totalImpulse(self):
         """Calculates and returns total impulse by numerical
         integration of the thrust curve in SI units. The value is
         also stored in self.totalImpulse.
@@ -286,7 +275,8 @@ class Motor(ABC):
         # Return total impulse
         return self.totalImpulse
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def exhaustVelocity(self):
         """Calculates and returns exhaust velocity by assuming it
         as a constant. The formula used is total impulse/propellant
@@ -304,13 +294,14 @@ class Motor(ABC):
         """
         pass
 
+    @property
     @abstractmethod
-    def evaluateMassDot(self):
+    def massFlowRate(self):
         """Calculates and returns the time derivative of propellant
         mass by assuming constant exhaust velocity. The formula used
         is the opposite of thrust divided by exhaust velocity. The
         result is a function of time, object of the Function class,
-        which is stored in self.massDot.
+        which is stored in self.massFlowRate.
 
         Parameters
         ----------
@@ -318,14 +309,15 @@ class Motor(ABC):
 
         Returns
         -------
-        self.massDot : Function
-            Time derivative of total propellant mas as a function
+        self.massFlowRate : Function
+            Time derivative of total propellant mass a function
             of time.
         """
         pass
 
+    @property
     @abstractmethod
-    def evaluateCenterOfMass(self):
+    def centerOfMass(self):
         """Calculates and returns the time derivative of motor center of mass.
         The result is a function of time, object of the Function class, which is stored in self.zCM.
 
@@ -341,11 +333,13 @@ class Motor(ABC):
         """
 
         pass
-
+    
+    @property
+    @abstractmethod
     def evaluateMass(self):
         """Calculates and returns the total propellant mass curve by
-        numerically integrating the MassDot curve, calculated in
-        evaluateMassDot. Numerical integration is done with the
+        numerically integrating the massFlowRate curve, calculated in
+        evaluatemassFlowRate. Numerical integration is done with the
         Trapezoidal Rule, giving the same result as scipy.integrate.
         odeint but 100x faster. The result is a function of time,
         object of the class Function, which is stored in self.mass.
@@ -359,37 +353,39 @@ class Motor(ABC):
         self.mass : Function
             Total propellant mass as a function of time.
         """
-        # Retrieve mass dot curve data
-        t = self.massDot.source[:, 0]
-        ydot = self.massDot.source[:, 1]
+        pass
+        # # Retrieve mass dot curve data
+        # t = self.massFlowRate.source[:, 0]
+        # ydot = self.massFlowRate.source[:, 1]
 
-        # Set initial conditions
-        T = [0]
-        y = [self.propellantInitialMass]
+        # # Set initial conditions
+        # T = [0]
+        # y = [self.propellantInitialMass]
 
-        # Solve for each time point
-        for i in range(1, len(t)):
-            T += [t[i]]
-            y += [y[i - 1] + 0.5 * (t[i] - t[i - 1]) * (ydot[i] + ydot[i - 1])]
+        # # Solve for each time point
+        # for i in range(1, len(t)):
+        #     T += [t[i]]
+        #     y += [y[i - 1] + 0.5 * (t[i] - t[i - 1]) * (ydot[i] + ydot[i - 1])]
 
-        # Create Function
-        self.mass = Function(
-            np.concatenate(([T], [y])).transpose(),
-            "Time (s)",
-            "Propellant Total Mass (kg)",
-            self.interpolate,
-            "constant",
-        )
+        # # Create Function
+        # self.mass = Function(
+        #     np.concatenate(([T], [y])).transpose(),
+        #     "Time (s)",
+        #     "Propellant Total Mass (kg)",
+        #     self.interpolate,
+        #     "constant",
+        # )
 
-        # Return Mass Function
-        return self.mass
+        # # Return Mass Function
+        # return self.mass
 
     @property
     def throatArea(self):
         return np.pi * self.throatRadius**2
 
+    @property
     @abstractmethod
-    def evaluateInertia(self):
+    def inertiaTensor(self):
         """Calculates propellant inertia I, relative to directions
         perpendicular to the rocket body axis and its time derivative
         as a function of time. Also calculates propellant inertia Z,
@@ -409,7 +405,6 @@ class Motor(ABC):
             while the second argument is the Function representing
             inertia Z.
         """
-
         pass
 
     def importEng(self, fileName):
@@ -563,16 +558,16 @@ class Motor(ABC):
         print("Nozzle Radius: " + str(self.nozzleRadius) + " m")
         print("Nozzle Throat Radius: " + str(self.throatRadius) + " m")
 
-        # Print grain details
-        print("\nGrain Details")
-        print("Number of Grains: " + str(self.grainNumber))
-        print("Grain Spacing: " + str(self.grainSeparation) + " m")
-        print("Grain Density: " + str(self.grainDensity) + " kg/m3")
-        print("Grain Outer Radius: " + str(self.grainOuterRadius) + " m")
-        print("Grain Inner Radius: " + str(self.grainInitialInnerRadius) + " m")
-        print("Grain Height: " + str(self.grainInitialHeight) + " m")
-        print("Grain Volume: " + "{:.3f}".format(self.grainInitialVolume) + " m3")
-        print("Grain Mass: " + "{:.3f}".format(self.grainInitialMass) + " kg")
+        # # Print grain details
+        # print("\nGrain Details")
+        # print("Number of Grains: " + str(self.grainNumber))
+        # print("Grain Spacing: " + str(self.grainSeparation) + " m")
+        # print("Grain Density: " + str(self.grainDensity) + " kg/m3")
+        # print("Grain Outer Radius: " + str(self.grainOuterRadius) + " m")
+        # print("Grain Inner Radius: " + str(self.grainInitialInnerRadius) + " m")
+        # print("Grain Height: " + str(self.grainInitialHeight) + " m")
+        # print("Grain Volume: " + "{:.3f}".format(self.grainInitialVolume) + " m3")
+        # print("Grain Mass: " + "{:.3f}".format(self.grainInitialMass) + " kg")
 
         # Print motor details
         print("\nMotor Details")
@@ -601,7 +596,7 @@ class Motor(ABC):
         print("\nPlots")
         self.thrust()
         self.mass()
-        self.massDot()
+        self.massFlowRate()
         self.grainInnerRadius()
         self.grainHeight()
         self.burnRate()

@@ -6,8 +6,9 @@ __license__ = "MIT"
 
 import numpy as np
 from scipy import integrate
+from functools import cached_property
 
-from rocketpy.Function import Function
+from rocketpy.Function import Function, funcify_method
 from rocketpy.motors import Motor
 
 
@@ -225,7 +226,8 @@ class SolidMotor(Motor):
         """
         return self.totalImpulse / self.propellantInitialMass
 
-    def evaluateMassDot(self):
+    @funcify_method("time (s)", "Mass Dot (kg/s)", extrapolation="zero")
+    def massDot(self):
         """Calculates and returns the time derivative of propellant
         mass by assuming constant exhaust velocity. The formula used
         is the opposite of thrust divided by exhaust velocity. The
@@ -242,15 +244,11 @@ class SolidMotor(Motor):
             Time derivative of total propellant mas as a function
             of time.
         """
-        # Create mass dot Function
-        self.massDot = self.thrust / (-self.exhaustVelocity)
-        self.massDot.setOutputs("Mass Dot (kg/s)")
-        self.massDot.setExtrapolation("zero")
+        # Mass dot Function
+        return self.thrust / (-self.exhaustVelocity)
 
-        # Return Function
-        return self.massDot
-
-    def evaluateCenterOfMass(self):
+    @funcify_method("time (s)", "Mass (kg)", extrapolation="zero")
+    def centerOfMass(self):
         """Calculates and returns the time derivative of motor center of mass.
         The result is a function of time, object of the Function class, which is stored in self.zCM.
 
@@ -337,7 +335,8 @@ class SolidMotor(Motor):
 
         return [self.grainInnerRadius, self.grainHeight]
 
-    def evaluateBurnArea(self):
+    @funcify_method("time (s)", "Burn Area (m²)", extrapolation="zero")
+    def burnArea(self):
         """Calculates the BurnArea of the grain for
         each time. Assuming that the grains are cylindrical
         BATES grains.
@@ -351,7 +350,7 @@ class SolidMotor(Motor):
         burnArea : Function
         Function representing the burn area progression with the time.
         """
-        self.burnArea = (
+        burnArea = (
             2
             * np.pi
             * (
@@ -361,10 +360,10 @@ class SolidMotor(Motor):
             )
             * self.grainNumber
         )
-        self.burnArea.setOutputs("Burn Area (m2)")
-        return self.burnArea
+        return burnArea
 
-    def evaluateBurnRate(self):
+    @funcify_method("time (s)", "Burn Rate (m/s)", extrapolation="zero")
+    def burnRate(self):
         """Calculates the BurnRate with respect to time.
         This evaluation assumes that it was already
         calculated the massDot, burnArea timeseries.
@@ -378,11 +377,10 @@ class SolidMotor(Motor):
         burnRate : Function
         Rate of progression of the inner radius during the combustion.
         """
-        self.burnRate = (-1) * self.massDot / (self.burnArea * self.grainDensity)
-        self.burnRate.setOutputs("Burn Rate (m/s)")
-        return self.burnRate
-
-    def evaluateKn(self):
+        return -1 * self.massDot / (self.burnArea * self.grainDensity)
+    
+    @cached_property
+    def Kn(self):
         KnSource = (
             np.concatenate(
                 (
@@ -391,16 +389,17 @@ class SolidMotor(Motor):
                 )
             ).transpose()
         ).tolist()
-        self.Kn = Function(
+        Kn = Function(
             KnSource,
             "Grain Inner Radius (m)",
             "Kn (m2/m2)",
             self.interpolate,
             "constant",
         )
-        return self.Kn
+        return Kn
 
-    def evaluateInertia(self):
+    @cached_property
+    def inertiaTensor(self):
         """Calculates propellant inertia I, relative to directions
         perpendicular to the rocket body axis and its time derivative
         as a function of time. Also calculates propellant inertia Z,
@@ -473,7 +472,7 @@ class SolidMotor(Motor):
         ) + self.mass * self.grainInnerRadius * self.burnRate
         self.inertiaZDot.setOutputs("Propellant Inertia Z Dot (kg*m2/s)")
 
-        return [self.inertiaI, self.inertiaZ]
+        return self.inertiaI, self.inertiaI, self.inertiaZ
 
     def allInfo(self):
         """Prints out all data and graphs available about the Motor.

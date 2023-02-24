@@ -4,6 +4,8 @@ __author__ = "Giovani Hidalgo Ceotto, Oscar Mauricio Prada Ramirez, João Lemes 
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
+from functools import cached_property
+
 from rocketpy.motors import Motor
 
 
@@ -68,7 +70,8 @@ class LiquidMotor(Motor):
         )
         self.positioned_tanks = []
 
-    def evaluateMassFlowRate(self):
+    @cached_property
+    def massFlowRate(self):
         """Evaluates the mass flow rate of the motor as the sum of each tank
         mass flow rate.
 
@@ -83,8 +86,9 @@ class LiquidMotor(Motor):
             massFlowRate += positioned_tank.get("tank").netMassFlowRate
 
         return massFlowRate
-
-    def evaluateCenterOfMass(self):
+    
+    @cached_property
+    def centerOfMass(self):
         """Evaluates the center of mass of the motor from each tank center of
         mass and positioning. The center of mass height is measured relative
         to the motor nozzle.
@@ -105,7 +109,8 @@ class LiquidMotor(Motor):
 
         return massBalance / totalMass
 
-    def evaluateInertiaTensor(self):
+    @cached_property
+    def inertiaTensor(self):
         """Evaluates the principal moment of inertia of the motor from each tank
         by the parallel axis theorem. The moment of inertia is measured relative
         to the motor center of mass with the z-axis being the motor symmetry axis
