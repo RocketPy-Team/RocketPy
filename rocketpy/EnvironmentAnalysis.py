@@ -637,7 +637,6 @@ class EnvironmentAnalysis:
 
         # Loop through time and save all values
         for timeIndex, timeNum in enumerate(timeNumArray):
-
             dateString, hourString, dateTime = self.__timeNumToDateString(
                 timeNum, timeNumArray.units, calendar="gregorian"
             )
@@ -820,7 +819,6 @@ class EnvironmentAnalysis:
 
         # Loop through time and save all values
         for timeIndex, timeNum in enumerate(timeNumArray):
-
             dateString, hourString, dateTime = self.__timeNumToDateString(
                 timeNum, timeNumArray.units, calendar="gregorian"
             )
@@ -2138,7 +2136,7 @@ class EnvironmentAnalysis:
         gs = fig.add_gridspec(nrows, ncols, hspace=0, wspace=0, left=0.12)
         axs = gs.subplots(sharex=True, sharey=True)
         x_min, x_max, y_min, y_max = 0, 0, 0, 0
-        for (i, j) in [(i, j) for i in range(nrows) for j in range(ncols)]:
+        for i, j in [(i, j) for i in range(nrows) for j in range(ncols)]:
             hour = hours[i * ncols + j]
             ax = axs[i, j]
             ax.set_title(f"{float(hour):05.2f}".replace(".", ":"), y=0.8)
@@ -2300,7 +2298,7 @@ class EnvironmentAnalysis:
         gs = fig.add_gridspec(nrows, ncols, hspace=0, wspace=0, left=0.12)
         axs = gs.subplots(sharex=True, sharey=True)
         x_min, x_max, y_min, y_max = 0, 0, 0, 0
-        for (i, j) in [(i, j) for i in range(nrows) for j in range(ncols)]:
+        for i, j in [(i, j) for i in range(nrows) for j in range(ncols)]:
             hour = hours[i * ncols + j]
             ax = axs[i, j]
             ax.set_title(f"{float(hour):05.2f}".replace(".", ":"), y=0.8)
@@ -2344,7 +2342,7 @@ class EnvironmentAnalysis:
         )
 
         if windSpeedLimit:
-            for (i, j) in [(i, j) for i in range(nrows) for j in range(ncols)]:
+            for i, j in [(i, j) for i in range(nrows) for j in range(ncols)]:
                 # Clear Sky Range Altitude Limits j]
                 ax = axs[i, j]
                 ax.vlines(
@@ -2677,7 +2675,7 @@ class EnvironmentAnalysis:
         gs = fig.add_gridspec(nrows, ncols, hspace=0, wspace=0, left=0.12)
         axs = gs.subplots(sharex=True, sharey=True)
         x_min, x_max, y_min, y_max = 0, 0, np.inf, 0
-        for (i, j) in [(i, j) for i in range(nrows) for j in range(ncols)]:
+        for i, j in [(i, j) for i in range(nrows) for j in range(ncols)]:
             hour = hours[i * ncols + j]
             ax = axs[i, j]
             ax.plot(*self.average_wind_profile_at_given_hour[hour], "r-")
@@ -2710,7 +2708,7 @@ class EnvironmentAnalysis:
         )
 
         if clear_range_limits:
-            for (i, j) in [(i, j) for i in range(nrows) for j in range(ncols)]:
+            for i, j in [(i, j) for i in range(nrows) for j in range(ncols)]:
                 # Clear Sky Range Altitude Limits
                 ax = axs[i, j]
                 ax.fill_between(
@@ -2819,7 +2817,7 @@ class EnvironmentAnalysis:
         gs = fig.add_gridspec(nrows, ncols, hspace=0, wspace=0, left=0.12)
         axs = gs.subplots(sharex=True, sharey=True)
         x_min, x_max, y_min, y_max = 0, 0, np.inf, 0
-        for (i, j) in [(i, j) for i in range(nrows) for j in range(ncols)]:
+        for i, j in [(i, j) for i in range(nrows) for j in range(ncols)]:
             hour = hours[i * ncols + j]
             ax = axs[i, j]
             ax.plot(*self.average_wind_heading_profile_at_given_hour[hour], "r-")
@@ -2844,7 +2842,7 @@ class EnvironmentAnalysis:
         )
 
         if clear_range_limits:
-            for (i, j) in [(i, j) for i in range(nrows) for j in range(ncols)]:
+            for i, j in [(i, j) for i in range(nrows) for j in range(ncols)]:
                 # Clear Sky range limits
                 ax = axs[i, j]
                 ax.fill_between(

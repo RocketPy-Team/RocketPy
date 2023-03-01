@@ -20,6 +20,7 @@ from .AeroSurfacesData import (
 )
 from .Rocket import Rocket
 
+
 # TODO: make a special validator for power on and off factor since they need to have the nominal
 # value inputted
 class RocketData(BaseModel):

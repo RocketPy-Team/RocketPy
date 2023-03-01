@@ -153,7 +153,6 @@ class Compare:
                         raise AttributeError(f"Invalid attribute {y_attributes[i]}.")
 
         for i, subplot in enumerate(ax):
-
             # Set the labels for the x and y axis
             subplot.set_xlabel(x_labels[i])
             subplot.set_ylabel(y_labels[i])
