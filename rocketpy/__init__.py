@@ -34,18 +34,14 @@ from .utilities import *
 from .plots import *
 from .prints import *
 
-from .EnvironmentData import EnvironmentData, EnvironmentDataByEnvironment
-from .SolidMotorData import SolidMotorData, SolidMotorDataByMotor
-from .RocketData import RocketData, RocketDataByRocket
+from .EnvironmentData import EnvironmentData
+from .SolidMotorData import SolidMotorData
+from .RocketData import RocketData
 from .AeroSurfacesData import (
     NoseConeData,
-    NoseConeDataByNoseCone,
     TrapezoidalFinsData,
-    TrapezoidalFinsDataByTrapezoidalFins,
     EllipticalFinsData,
-    EllipticalFinsDataByEllipticalFins,
     TailData,
-    TailDataByTail,
 )
 from .FlightData import FlightData
-from .ParachuteData import ParachuteData, ParachuteDataByParachute
+from .ParachuteData import ParachuteData

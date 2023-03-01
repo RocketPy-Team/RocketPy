@@ -16,51 +16,6 @@ from .AeroSurfaces import EllipticalFins, NoseCone, Tail, TrapezoidalFins
 
 
 class NoseConeData(BaseModel):
-    length: Any
-    kind: List[StrictStr]
-    position: Any
-    baseRadius: Any = (None, 0)
-    rocketRadius: Any = (None, 0)
-    name: StrictStr = "NoseCone"
-
-    @root_validator(skip_on_failure=True)
-    def val_basic(cls, values):
-        """Validates inputs that can be either tuples or lists.
-        Tuples can have either 2 or 3 items. First two must be either float or int,
-        representing the nominal value and standard deviation. Third item must be
-        a string containing the name of a numpy.random distribuition function"""
-
-        validate_fields = ["length", "position", "baseRadius", "rocketRadius"]
-        for field in validate_fields:
-            v = values[field]
-            # checks if tuple
-            if isinstance(v, tuple):
-                # checks if first two items are valid
-                assert isinstance(v[0], (int, float)) and isinstance(
-                    v[1], (int, float)
-                ), f"\nField '{field}': \n\tFirst two items of tuple must be either an int or float \n\tFirst item refers to nominal value, and the second to the standard deviation"
-                # extra check for third item if passed
-                if len(v) == 3:
-                    assert isinstance(
-                        v[2], str
-                    ), f"\nField '{field}': \n\tThird item of tuple must be either a string \n\tThe third item must be a string containing the name of a numpy.random distribuition function"
-                # all good, sets inputs
-                values[field] = v
-            elif isinstance(v, list):
-                # guarantee all values are valid (ints or floats)
-                assert all(
-                    isinstance(item, (int, float)) for item in v
-                ), f"\nField '{field}': \n\tItems in list must be either ints or floats"
-                # all good, sets inputs
-                values[field] = v
-            else:
-                raise ValueError(
-                    f"\nField '{field}': \n\tMust be either a tuple or list"
-                )
-        return values
-
-
-class NoseConeDataByNoseCone(BaseModel):
     nosecone: NoseCone = Field(..., repr=False)
     length: Any = 0
     kind: List[Union[StrictStr, None]] = []
@@ -149,65 +104,6 @@ class NoseConeDataByNoseCone(BaseModel):
 
 
 class TrapezoidalFinsData(BaseModel):
-    n: List[StrictInt]
-    rootChord: Any
-    tipChord: Any
-    span: Any
-    position: Any
-    rocketRadius: Any
-    cantAngle: Any = (0, 0)
-    sweepLength: Any = (None, 0)
-    sweepAngle: Any = (None, 0)
-    airfoil: List[Union[Tuple[FilePath, StrictStr], None]] = [None]
-    name: List[StrictStr] = ["Fins"]
-
-    @root_validator(skip_on_failure=True)
-    def val_basic(cls, values):
-        """Validates inputs that can be either tuples or lists.
-        Tuples can have either 2 or 3 items. First two must be either float or int,
-        representing the nominal value and standard deviation. Third item must be
-        a string containing the name of a numpy.random distribuition function"""
-
-        validate_fields = [
-            "rootChord",
-            "tipChord",
-            "span",
-            "position",
-            "rocketRadius",
-            "cantAngle",
-            "sweepLength",
-            "sweepAngle",
-        ]
-        for field in validate_fields:
-            v = values[field]
-            # checks if tuple
-            if isinstance(v, tuple):
-                # checks if first two items are valid
-                assert isinstance(v[0], (int, float)) and isinstance(
-                    v[1], (int, float)
-                ), f"\nField '{field}': \n\tFirst two items of tuple must be either an int or float \n\tFirst item refers to nominal value, and the second to the standard deviation"
-                # extra check for third item if passed
-                if len(v) == 3:
-                    assert isinstance(
-                        v[2], str
-                    ), f"\nField '{field}': \n\tThird item of tuple must be either a string \n\tThe third item must be a string containing the name of a numpy.random distribuition function"
-                # all good, sets inputs
-                values[field] = v
-            elif isinstance(v, list):
-                # guarantee all values are valid (ints or floats)
-                assert all(
-                    isinstance(item, (int, float)) for item in v
-                ), f"\nField '{field}': \n\tItems in list must be either ints or floats"
-                # all good, sets inputs
-                values[field] = v
-            else:
-                raise ValueError(
-                    f"\nField '{field}': \n\tMust be either a tuple or list"
-                )
-        return values
-
-
-class TrapezoidalFinsDataByTrapezoidalFins(BaseModel):
     trapezoidalFins: TrapezoidalFins = Field(..., repr=False)
     n: List[StrictInt] = []
     rootChord: Any = 0
@@ -310,60 +206,6 @@ class TrapezoidalFinsDataByTrapezoidalFins(BaseModel):
 
 
 class EllipticalFinsData(BaseModel):
-    n: Any
-    rootChord: Any
-    span: Any
-    position: Any
-    rocketRadius: Any
-    cantAngle: Any = (0, 0)
-    airfoil: List[Union[Tuple[FilePath, StrictStr], None]] = [None]
-    name: List[StrictStr] = ["Fins"]
-
-    @root_validator(skip_on_failure=True)
-    def val_basic(cls, values):
-        """Validates inputs that can be either tuples or lists.
-        Tuples can have either 2 or 3 items. First two must be either float or int,
-        representing the nominal value and standard deviation. Third item must be
-        a string containing the name of a numpy.random distribuition function"""
-
-        validate_fields = [
-            "n",
-            "rootChord",
-            "span",
-            "position",
-            "rocketRadius",
-            "cantAngle",
-        ]
-        for field in validate_fields:
-            v = values[field]
-            # checks if tuple
-            if isinstance(v, tuple):
-                # checks if first two items are valid
-                assert isinstance(v[0], (int, float)) and isinstance(
-                    v[1], (int, float)
-                ), f"\nField '{field}': \n\tFirst two items of tuple must be either an int or float \n\tFirst item refers to nominal value, and the second to the standard deviation"
-                # extra check for third item if passed
-                if len(v) == 3:
-                    assert isinstance(
-                        v[2], str
-                    ), f"\nField '{field}': \n\tThird item of tuple must be either a string \n\tThe third item must be a string containing the name of a numpy.random distribuition function"
-                # all good, sets inputs
-                values[field] = v
-            elif isinstance(v, list):
-                # guarantee all values are valid (ints or floats)
-                assert all(
-                    isinstance(item, (int, float)) for item in v
-                ), f"\nField '{field}': \n\tItems in list must be either ints or floats"
-                # all good, sets inputs
-                values[field] = v
-            else:
-                raise ValueError(
-                    f"\nField '{field}': \n\tMust be either a tuple or list"
-                )
-        return values
-
-
-class EllipticalFinsDataByEllipticalFins(BaseModel):
     ellipticalFins: EllipticalFins = Field(..., repr=False)
     n: Any = 0
     rootChord: Any = 0
@@ -460,57 +302,6 @@ class EllipticalFinsDataByEllipticalFins(BaseModel):
 
 
 class TailData(BaseModel):
-    topRadius: Any
-    bottomRadius: Any
-    length: Any
-    position: Any
-    rocketRadius: Any
-    name: List[StrictStr] = ["Tail"]
-
-    @root_validator(skip_on_failure=True)
-    def val_basic(cls, values):
-        """Validates inputs that can be either tuples or lists.
-        Tuples can have either 2 or 3 items. First two must be either float or int,
-        representing the nominal value and standard deviation. Third item must be
-        a string containing the name of a numpy.random distribuition function"""
-
-        validate_fields = [
-            "topRadius",
-            "bottomRadius",
-            "length",
-            "position",
-            "rocketRadius",
-        ]
-        for field in validate_fields:
-            v = values[field]
-            # checks if tuple
-            if isinstance(v, tuple):
-                # checks if first two items are valid
-                assert isinstance(v[0], (int, float)) and isinstance(
-                    v[1], (int, float)
-                ), f"\nField '{field}': \n\tFirst two items of tuple must be either an int or float \n\tFirst item refers to nominal value, and the second to the standard deviation"
-                # extra check for third item if passed
-                if len(v) == 3:
-                    assert isinstance(
-                        v[2], str
-                    ), f"\nField '{field}': \n\tThird item of tuple must be either a string \n\tThe third item must be a string containing the name of a numpy.random distribuition function"
-                # all good, sets inputs
-                values[field] = v
-            elif isinstance(v, list):
-                # guarantee all values are valid (ints or floats)
-                assert all(
-                    isinstance(item, (int, float)) for item in v
-                ), f"\nField '{field}': \n\tItems in list must be either ints or floats"
-                # all good, sets inputs
-                values[field] = v
-            else:
-                raise ValueError(
-                    f"\nField '{field}': \n\tMust be either a tuple or list"
-                )
-        return values
-
-
-class TailDataByTail(BaseModel):
     tail: Tail = Field(..., repr=False)
     topRadius: Any = 0
     bottomRadius: Any = 0

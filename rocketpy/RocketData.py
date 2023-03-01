@@ -10,152 +10,19 @@ from pydantic import (
     validator,
 )
 
-from .ParachuteData import ParachuteData, ParachuteDataByParachute
+from .ParachuteData import ParachuteData
 
 from .AeroSurfacesData import (
     EllipticalFinsData,
-    EllipticalFinsDataByEllipticalFins,
     NoseConeData,
-    NoseConeDataByNoseCone,
     TailData,
-    TailDataByTail,
     TrapezoidalFinsData,
-    TrapezoidalFinsDataByTrapezoidalFins,
 )
 from .Rocket import Rocket
 
-
+# TODO: make a special validator for power on and off factor since they need to have the nominal
+# value inputted
 class RocketData(BaseModel):
-    radius: Any
-    mass: Any
-    inertiaI: Any
-    inertiaZ: Any
-    powerOffDrag: List[FilePath]
-    powerOnDrag: List[FilePath]
-    centerOfDryMassPosition: Any = (0, 0)
-    coordinateSystemOrientation: List[StrictStr] = ["tailToNose"]
-    powerOffDragFactor: Any
-    powerOnDragFactor: Any
-    _nosecones: list = PrivateAttr()
-    _fins: list = PrivateAttr()
-    _tails: list = PrivateAttr()
-    _parachutes: list = PrivateAttr()
-    _railButtons: list = PrivateAttr()
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self._nosecones = []
-        self._fins = []
-        self._tails = []
-        self._parachutes = []
-        self._railButtons = []
-
-    @property
-    def nosecones(self):
-        return self._nosecones
-
-    @property
-    def fins(self):
-        return self._fins
-
-    @property
-    def tails(self):
-        return self._tails
-
-    @property
-    def parachutes(self):
-        return self._parachutes
-
-    @property
-    def railButtons(self):
-        return self._railButtons
-
-    @root_validator(skip_on_failure=True)
-    def val_basic(cls, values):
-        """Validates inputs that can be either tuples or lists.
-        Tuples can have either 2 or 3 items. First two must be either float or int,
-        representing the nominal value and standard deviation. Third item must be
-        a string containing the name of a numpy.random distribuition function"""
-
-        validate_fields = [
-            "radius",
-            "mass",
-            "inertiaI",
-            "inertiaZ",
-            "powerOffDragFactor",
-            "powerOnDragFactor",
-            "centerOfDryMassPosition",
-        ]
-        for field in validate_fields:
-            v = values[field]
-            # checks if tuple
-            if isinstance(v, tuple):
-                # checks if first two items are valid
-                assert isinstance(v[0], (int, float)) and isinstance(
-                    v[1], (int, float)
-                ), f"\nField '{field}': \n\tFirst two items of tuple must be either an int or float \n\tFirst item refers to nominal value, and the second to the standard deviation"
-                # extra check for third item if passed
-                if len(v) == 3:
-                    assert isinstance(
-                        v[2], str
-                    ), f"\nField '{field}': \n\tThird item of tuple must be either a string \n\tThe third item must be a string containing the name of a numpy.random distribuition function"
-                # all good, sets inputs
-                values[field] = v
-            elif isinstance(v, list):
-                # guarantee all values are valid (ints or floats)
-                assert all(
-                    isinstance(item, (int, float)) for item in v
-                ), f"\nField '{field}': \n\tItems in list must be either ints or floats"
-                # all good, sets inputs
-                values[field] = v
-            else:
-                raise ValueError(
-                    f"\nField '{field}': \n\tMust be either a tuple or list"
-                )
-        return values
-
-    def addNose(self, nosecone):
-        # checks if input is a noseconeData type
-        if not isinstance(nosecone, (NoseConeData, NoseConeDataByNoseCone)):
-            raise TypeError("nosecone must be of NoseConeData type")
-        return self.nosecones.append(nosecone)
-
-    def addTrapezoidalFins(self, trapezoildalFins):
-        # checks if input is a noseconeData type
-        if not isinstance(
-            trapezoildalFins,
-            (TrapezoidalFinsData, TrapezoidalFinsDataByTrapezoidalFins),
-        ):
-            raise TypeError("trapezoildalFins must be of TrapezoidalFinsData type")
-        return self.fins.append(trapezoildalFins)
-
-    def addEllipticalFins(self, ellipticalFins):
-        # checks if input is a noseconeData type
-        if not isinstance(
-            ellipticalFins, (EllipticalFinsData, EllipticalFinsDataByEllipticalFins)
-        ):
-            raise TypeError("ellipticalFins must be of EllipticalFinData type")
-        return self.fins.append(ellipticalFins)
-
-    def addTail(self, tail):
-        # checks if input is a noseconeData type
-        if not isinstance(tail, (TailData, TailDataByTail)):
-            raise TypeError("tail must be of TailDataData type")
-        return self.tails.append(tail)
-
-    def addParachute(self, parachute):
-        # checks if input is a noseconeData type
-        if not isinstance(parachute, (ParachuteData, ParachuteDataByParachute)):
-            raise TypeError("parachute must be of ParachuteData type")
-        return self.parachutes.append(parachute)
-
-    def addRailButtons(self, position1, position2, angle):
-        # TODO: transform rail buttons into data classes
-        # TODO: currently does not vary anything just for testing
-        self._railButtons = [position1, position2, angle]
-
-
-class RocketDataByRocket(BaseModel):
     rocket: Rocket = Field(..., repr=False)
     radius: Any = 0
     mass: Any = 0
@@ -283,36 +150,31 @@ class RocketDataByRocket(BaseModel):
 
     def addNose(self, nosecone):
         # checks if input is a noseconeData type
-        if not isinstance(nosecone, (NoseConeData, NoseConeDataByNoseCone)):
+        if not isinstance(nosecone, NoseConeData):
             raise TypeError("nosecone must be of NoseConeData type")
         return self.nosecones.append(nosecone)
 
     def addTrapezoidalFins(self, trapezoildalFins):
         # checks if input is a noseconeData type
-        if not isinstance(
-            trapezoildalFins,
-            (TrapezoidalFinsData, TrapezoidalFinsDataByTrapezoidalFins),
-        ):
+        if not isinstance(trapezoildalFins, TrapezoidalFinsData):
             raise TypeError("trapezoildalFins must be of NoseConeData type")
         return self.fins.append(trapezoildalFins)
 
     def addEllipticalFins(self, ellipticalFins):
         # checks if input is a noseconeData type
-        if not isinstance(
-            ellipticalFins, (EllipticalFinsData, EllipticalFinsDataByEllipticalFins)
-        ):
+        if not isinstance(ellipticalFins, EllipticalFinsData):
             raise TypeError("ellipticalFins must be of NoseConeData type")
         return self.fins.append(ellipticalFins)
 
     def addTail(self, tail):
         # checks if input is a noseconeData type
-        if not isinstance(tail, (TailData, TailDataByTail)):
+        if not isinstance(tail, TailData):
             raise TypeError("nosecone must be of NoseConeData type")
         return self.tails.append(tail)
 
     def addParachute(self, parachute):
         # checks if input is a noseconeData type
-        if not isinstance(parachute, (ParachuteData, ParachuteDataByParachute)):
+        if not isinstance(parachute, ParachuteData):
             raise TypeError("parachute must be of ParachuteData type")
         return self.parachutes.append(parachute)
 
