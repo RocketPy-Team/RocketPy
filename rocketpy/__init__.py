@@ -24,11 +24,28 @@ __status__ = "Production"
 from .Environment import Environment
 from .EnvironmentAnalysis import EnvironmentAnalysis
 
-from .Dispersion import Dispersion
+# from .Dispersion import Dispersion
 from .Flight import Flight
 from .Function import Function
 from .Motor import HybridMotor, SolidMotor
 from .Rocket import Rocket
+from .AeroSurfaces import NoseCone, TrapezoidalFins, EllipticalFins, Tail
 from .utilities import *
 from .plots import *
 from .prints import *
+
+from .EnvironmentData import EnvironmentData, EnvironmentDataByEnvironment
+from .SolidMotorData import SolidMotorData, SolidMotorDataByMotor
+from .RocketData import RocketData, RocketDataByRocket
+from .AeroSurfacesData import (
+    NoseConeData,
+    NoseConeDataByNoseCone,
+    TrapezoidalFinsData,
+    TrapezoidalFinsDataByTrapezoidalFins,
+    EllipticalFinsData,
+    EllipticalFinsDataByEllipticalFins,
+    TailData,
+    TailDataByTail,
+)
+from .FlightData import FlightData
+from .ParachuteData import ParachuteData, ParachuteDataByParachute
