@@ -97,95 +97,10 @@ class Dispersion:
         # Save and initialize parameters
         self.filename = filename.split(".")[0]
 
-        # Initialize variables to be used in the analysis in case of missing inputs
-        self.inputs_dict = {
-            "environment": {
-                "railLength": "required",
-                "gravity": 9.80665,
-                "date": None,
-                "latitude": 0,
-                "longitude": 0,
-                "elevation": 0,
-                "datum": "WGS84",
-                "timeZone": "UTC",
-            },
-            "solidmotor": {
-                "thrust": "required",
-                "burnOutTime": "required",
-                "totalImpulse": 0,
-                "grainNumber": "required",
-                "grainDensity": "required",
-                "grainOuterRadius": "required",
-                "grainInitialInnerRadius": "required",
-                "grainInitialHeight": "required",
-                "grainSeparation": 0,
-                "nozzleRadius": 0.0335,
-                "throatRadius": 0.0114,
-                "grainsCenterOfMassPosition": "required",
-                "nozzlePosition": 0,
-                "coordinateSystemOrientation": "nozzleToCombustionChamber",
-            },
-            "rocket": {
-                "mass": "required",
-                "radius": "required",
-                "inertiaI": "required",
-                "inertiaZ": "required",
-                "powerOffDrag": "required",
-                "powerOnDrag": "required",
-                "centerOfDryMassPosition": 0,
-                "coordinateSystemOrientation": "tailToNose",
-                "powerOffDragFactor": 1,
-                "powerOnDragFactor": 1,
-                "motorPosition": "required",
-            },
-            "nose": {
-                "length": "required",
-                "kind": "Von Karman",
-                "position": "required",
-                "name": "NoseCone",
-            },
-            "fins": {
-                "n": "required",
-                "rootChord": "required",
-                "tipChord": "required",
-                "span": "required",
-                "position": "required",
-                "cantAngle": 0,
-                "rocketRadius": None,
-                "airfoil": None,
-            },
-            "tail": {
-                "topRadius": "required",
-                "bottomRadius": "required",
-                "length": "required",
-                "position": "required",
-            },
-            "railbuttons": {
-                "positionFirstRailButton": "required",
-                "positionSecondRailButton": "required",
-                "railButtonAngularPosition": 45,
-            },
-            "parachute": {
-                "CdS": "required",
-                "trigger": "required",
-                "samplingRate": "required",
-                "lag": "required",
-                "noise": (0, 0, 0),
-            },
-            "flight": {
-                "inclination": 80,
-                "heading": 90,
-                "initialSolution": None,
-                "terminateOnApogee": False,
-                "maxTime": 600,
-                "maxTimeStep": np.inf,
-                "minTimeStep": 0,
-                "rtol": 1e-6,
-                "atol": 6 * [1e-3] + 4 * [1e-6] + 3 * [1e-3],
-                "timeOvershoot": True,
-                "verbose": False,
-            },
-        }
+        self.environmentData = environmentData
+        self.motorData = motorData
+        self.rocketData = rocketData
+        self.flightData = flightData
 
         self.standard_output = (
             "apogee",
@@ -202,7 +117,147 @@ class Dispersion:
             "outOfRailStaticMargin",
             "outOfRailTime",
             "outOfRailVelocity",
-            "numberOfEvents",
+            "maxSpeed",
+            "maxMachNumber",
+            "maxAcceleration",
+            "frontalSurfaceWind",
+            "lateralSurfaceWind",
+        )
+        # List of every acceptable export
+        # TODO: I thnik this should just be left in the documentation and does not
+        # need to be used in the code
+        self.exportable_list = [
+            "inclination",
+            "heading",
+            "effective1RL",
+            "effective2RL",
+            "outOfRailTime",
+            "outOfRailTimeIndex",
+            "outOfRailState",
+            "outOfRailVelocity",
+            "railButton1NormalForce",
+            "maxRailButton1NormalForce",
+            "railButton1ShearForce",
+            "maxRailButton1ShearForce",
+            "railButton2NormalForce",
+            "maxRailButton2NormalForce",
+            "railButton2ShearForce",
+            "maxRailButton2ShearForce",
+            "outOfRailStaticMargin",
+            "apogeeState",
+            "apogeeTime",
+            "apogeeX",
+            "apogeeY",
+            "apogee",
+            "xImpact",
+            "yImpact",
+            "zImpact",
+            "impactVelocity",
+            "impactState",
+            "parachuteEvents",
+            "M1",
+            "M2",
+            "M3",
+            "time",
+            "vx",
+            "vy",
+            "vz",
+            "windVelocityX",
+            "streamVelocityX",
+            "windVelocityY",
+            "streamVelocityY",
+            "streamVelocityZ",
+            "freestreamSpeed",
+            "speedOfSound",
+            "MachNumber",
+            "R1",
+            "R2",
+            "R3",
+            "density",
+            "dynamicViscosity",
+            "ReynoldsNumber",
+            "ax",
+            "ay",
+            "az",
+            "acceleration",
+            "aerodynamicBendingMoment",
+            "aerodynamicDrag",
+            "aerodynamicLift",
+            "aerodynamicSpinMoment",
+            "alpha1",
+            "alpha2",
+            "alpha3",
+            "e0",
+            "e1",
+            "e2",
+            "e3",
+            "attitudeVectorX",
+            "attitudeVectorY",
+            "attitudeVectorZ",
+            "angleOfAttack",
+            "apogeeFreestreamSpeed",
+            "attitudeAngle",
+            "x",
+            "y",
+            "z",
+            "speed",
+            "dragPower",
+            "dynamicPressure",
+            "staticMargin",
+            "finalStaticMargin",
+            "frontalSurfaceWind",
+            "horizontalSpeed",
+            "initialStaticMargin",
+            "w1",
+            "w2",
+            "w3",
+            "rotationalEnergy",
+            "translationalEnergy",
+            "kineticEnergy",
+            "lateralAttitudeAngle",
+            "lateralSurfaceWind",
+            "latitude",
+            "longitude",
+            "maxAcceleration",
+            "maxAccelerationTime",
+            "maxDynamicPressureTime",
+            "maxDynamicPressure",
+            "maxMachNumberTime",
+            "maxMachNumber",
+            "maxReynoldsNumberTime",
+            "maxReynoldsNumber",
+            "maxSpeedTime",
+            "maxSpeed",
+            "pressure",
+            "totalPressure",
+            "maxTotalPressureTime",
+            "maxTotalPressure",
+            "pathAngle",
+            "phi",
+            "theta",
+            "psi",
+            "potentialEnergy",
+            "thrustPower",
+            "totalEnergy",
+            "tFinal",
+            "solution",
+        ]
+        
+        self.standard_output = (
+            "apogee",
+            "apogeeTime",
+            "apogeeX",
+            "apogeeY",
+            "apogeeFreestreamSpeed",
+            "tFinal",
+            "xImpact",
+            "yImpact",
+            "impactVelocity",
+            "initialStaticMargin",
+            "finalStaticMargin",
+            "outOfRailStaticMargin",
+            "outOfRailTime",
+            "outOfRailVelocity",
             "maxSpeed",
             "maxMachNumber",
             "maxAcceleration",
@@ -958,92 +1013,167 @@ class Dispersion:
             # Yield a flight setting
             yield flight_setting
 
+    def __check_export_list(self, export_list):
+        """Check if export list is valid or if it is None. In case it is
+        None, export all possible attributes.
+
+        Parameters
+        ----------
+        export_list : list
+            List of strings with the names of the attributes to be exported
+
+        Returns
+        -------
+        export_list
+        """
+
+        if export_list:
+            for attr in export_list:
+                if not isinstance(attr, str):
+                    raise TypeError("Variables must be strings.")
+
+                # Checks if attribute is not valid
+                if attr not in self.export_list:
+                    raise ValueError(
+                        "Attribute can not be exported. Check export_list."
+                    )
+        else:
+            export_list = self.exportable_list
+
+        return export_list
+
     def __export_flight_data(
         self,
-        setting,
+        flight_setting,
         flight,
         exec_time,
-        inputs_log,
-        outputs_log,
-        export_list,
-        save_parachute_data=False,
+        dispersion_input_file,
+        dispersion_output_file,
     ):
         """Saves flight results in a .txt
 
         Parameters
         ----------
-        setting : dict
+        flight_setting : dict
             The flight setting used in the simulation.
         flight : Flight
             The flight object.
         exec_time : float
             The execution time of the simulation.
-        inputs_log : str
+        dispersion_input_file : str
             The name of the file containing all the inputs for the simulation.
-        outputs_log : str
+        dispersion_output_file : str
             The name of the file containing all the outputs for the simulation.
-        save_parachute_data : bool, optional
-            If True, saves the parachute data, by default False
-        export_list : list or tuple, optional
-            List of variables to be saved, by default None. If None, use a
-            default list of variables.
 
         Returns
         -------
-        inputs_log : str
-            The new string with the inputs of the simulation setting.
-        outputs_log : str
-            The new string with the outputs of the simulation setting.
+        None
         """
-        m = map(getattr, [flight] * len(export_list), export_list)
-        results = dict(zip(export_list, m))
-        results["executionTime"] = exec_time
+        # TODO: This method is called at every loop of the dispersion
+        # so all the for loops are slowing down de dispersion
+        # find a more efficient way to save attributes
 
-        # Sometimes we want to skip the parachute data to save time
-        if save_parachute_data:
+        # TODO: Add a way to save more than just flight attributes, i.e. rocket, motor...
+
+        # Get list of selected flight attributes
+        attributes_list = list(set(dir(flight)).intersection(self.export_list))
+        flight_result = {}
+        for var in self.export_list:
+            # First, capture the flight data that are saved in the flight object
+            if var in attributes_list:
+                # Check if Function. If so, get source
+                if isinstance(getattr(flight, var), Function):
+                    flight_result[str(var)] = getattr(flight, var).getSource()
+                else:
+                    flight_result[str(var)] = getattr(flight, var)
+
+            # Second, capture data that needs to be calculated
+            elif var == "executionTime":
+                flight_result[str(var)] = exec_time
+            elif var == "numberOfEvents":
+                flight_result[str(var)] = len(flight.parachuteEvents)
+            else:
+                raise ValueError(f"Variable {var} could not be found.")
+
+        # Take care of parachute results
+        # TODO: this always gets saved... must be parametrized
         for trigger_time, parachute in flight.parachuteEvents:
-                # TODO: These should be better implemented in Flight events, avoiding
-                # making any calculations here
-                results[parachute.name + "_triggerTime"] = trigger_time
-                results[parachute.name + "_inflatedTime"] = trigger_time + parachute.lag
-                results[parachute.name + "_inflatedVelocity"] = flight.speed(
+            flight_result[parachute.name + "_triggerTime"] = trigger_time
+            flight_result[parachute.name + "_inflatedTime"] = (
                 trigger_time + parachute.lag
             )
-                results[parachute.name + "_inflatedAltitude"] = (
-                    flight.z(trigger_time + parachute.lag) - flight.env.elevation
+            flight_result[parachute.name + "_inflatedVelocity"] = flight.speed(
+                trigger_time + parachute.lag
             )
 
-        # Remove the powerOffDrag item from setting
-        setting.pop("powerOffDrag", None)
-        setting.pop("powerOnDrag", None)
-        setting.pop("date", None)
-        setting.pop("thrust", None)
-        # TODO: Find a way to pop the parachute trigger functions
+        # TODO: maybe we should not have any Function object in flight_setting,
+        #       only have their source and make this check before the dispersion loop
+        # Check if attr is Function. If so, get source
+        for key, value in flight_setting.items():
+            if isinstance(value, Function):
+                flight_setting[key] = value.getSource()
 
-        inputs_log += str(setting) + "\n"
-        outputs_log += str(results) + "\n"
+        dispersion_input_file.write(str(flight_setting) + "\n")
+        dispersion_output_file.write(str(flight_result) + "\n")
 
-        return inputs_log, outputs_log
+        return None
 
-    def __export_flight_data_error(self, setting, errors_log):
+    def __export_flight_data_error(self, flight_setting, dispersion_error_file):
         """Saves flight error in a .txt
 
         Parameters
         ----------
-        setting : dict
+        flight_setting : dict
             The flight setting used in the simulation.
-        errors_log : str
+        dispersion_error_file : str
             The name of the file containing all the errors for the simulation.
 
         Returns
         -------
-        errors_log : str
-            The new string with the flight setting error saved.
+        None
         """
+        # Check if attr is Function. If so, get source
+        for key, value in flight_setting.items():
+            if isinstance(value, Function):
+                flight_setting[key] = value.getSource()
 
-        errors_log += str(setting) + "\n"
+        dispersion_error_file.write(str(flight_setting) + "\n")
 
-        return errors_log
+        return None
+
+    def construct_dispersion_dict(
+        self, envData, motorData, rocketData, flightData, disp_dict
+    ):
+        """Construct dispersion dicitonary in the correct format from inputted data classes"""
+
+        datas = [envData, motorData, rocketData, flightData]
+        for data in datas:
+            # TODO: Add nosecone, fins, tail, parachute and rail buttons interpretation here
+
+            for field in data.__annotations__.keys():
+                value = getattr(data, field)
+                # if value is tuple
+                if isinstance(value, tuple):
+                    # checks if dist_func name was passed
+                    if isinstance(value[-1], str):
+                        # try to get numpy.random dist func
+                        try:
+                            dist_func = self.__get_distribution(value[-1])
+                        except:
+                            raise ValueError(
+                                f"Cannot set distribuition function from {field} : {value}"
+                                + "\nPlease check if name passed in the string is a valid numpy.random distribuition function"
+                            )
+                    # if not sets default dist func
+                    else:
+                        dist_func = normal
+
+                    # saves in the disp dict in the format (nom_val,std,dist_func)
+                    disp_dict[field] = (value[0], value[1], dist_func)
+
+                # else if value is list, save as is
+                elif isinstance(value, list):
+                    disp_dict[field] = value
 
     def run_dispersion(
         self,
@@ -1100,15 +1230,10 @@ class Dispersion:
             desired attributes are on the dispersion_dictionary.
         distribution_type : str, optional
             The probability distribution function to be used in the analysis,
-            by default "normal". Options are any numpy.random distributions
+            by default "normal". Options are any numpy.ramdom distributions
         export_list : list, optional
             A list containing the name of the attributes to be saved on the dispersion
-            outputs file. The default list is: ["apogee", "apogeeTime", "apogeeX",
-            "apogeeY", "apogeeFreestreamSpeed", "tFinal", "xImpact", "yImpact",
-            "impactVelocity", "initialStaticMargin", "finalStaticMargin",
-            "outOfRailStaticMargin", "outOfRailTime", "outOfRailVelocity",
-            "numberOfEvents", "maxSpeed", "maxMachNumber", "maxAcceleration",
-            "frontalSurfaceWind", "lateralSurfaceWind", "maxTotalPressure"]
+            outputs file. See Examples for all possible attribues
         append : bool, optional
             If True, the results will be appended to the existing files. If False,
             the files will be overwritten. By default False.
@@ -1116,14 +1241,6 @@ class Dispersion:
         Returns
         -------
         None
-
-        Examples
-        --------
-
-        >>> # Example of a dispersion_dictionary
-        >>> dispersion_dictionary = {
-        # TODO: Continue this docs
-
         """
 
         # Saving the arguments as attributes
@@ -1178,10 +1295,8 @@ class Dispersion:
             print("No export list provided, using default list instead.")
             export_list = self.standard_output
 
-        # Creates a copy of each object
-        env_dispersion = self.environment
-        motor_dispersion = self.motor
-        rocket_dispersion = self.rocket
+        # Checks export_list
+        self.export_list = self.__check_export_list(export_list)
 
         # Initialize counter and timer
         i = 0
@@ -1215,7 +1330,7 @@ class Dispersion:
             # TODO: add hybrid and liquid motor option
             motor_dispersion = SolidMotor(
                 thrustSource=setting["thrust"],
-                burnOut=setting["burnOutTime"],
+                burnOutTime=setting["burnOutTime"],
                 grainNumber=setting["grainNumber"],
                 grainDensity=setting["grainDensity"],
                 grainOuterRadius=setting["grainOuterRadius"],
@@ -1320,25 +1435,21 @@ class Dispersion:
                     verbose=setting["verbose"],
                 )
 
-                inputs_log, outputs_log = self.__export_flight_data(
-                    setting=setting,
-                    flight=disp_flight,
-                    exec_time=process_time() - start_time,
-                    inputs_log=inputs_log,
-                    outputs_log=outputs_log,
-                    save_parachute_data=save_parachute_data,
-                    export_list=export_list,
+                self.__export_flight_data(
+                    flight_setting=setting,
+                    flight=dispersion_flight,
+                    exec_time=process_time() - self.start_time,
+                    dispersion_input_file=dispersion_input_file,
+                    dispersion_output_file=dispersion_output_file,
                 )
-            except (TypeError, ValueError, KeyError, AttributeError) as error:
-                print(f"Error on iteration {i}: {error}")
-                errors_log = self.__export_flight_data_error(setting, errors_log)
-            except KeyboardInterrupt:
-                print("Keyboard Interrupt, file saved.")
-                errors_log = self.__export_flight_data_error(setting, errors_log)
-                self.__save_logs(inputs_log, outputs_log, errors_log)
-                break
+            except Exception as E:
+                print(E)
+                print(traceback.format_exc())
+                self.__export_flight_data_error(setting, dispersion_error_file)
 
-            # Update progress bar. Only works on jupyter notebook
+            # Register time
+            # checks if out was defined
+            # out only gets defined when using a jupyter notebook
             if out:
                 out.update(
                     f"Current iteration: {i:06d} | Average Time per Iteration: "
@@ -1347,47 +1458,23 @@ class Dispersion:
                 )
 
         # Clean the house once all the simulations were already done
+
+        ## Print and save total time
         final_string = (
-            f"Completed {i} iterations. Total CPU time: "
-            f"{process_time() - initial_cpu_time:.1f} s. Total wall time: "
-            f"{time() - initial_wall_time:.1f} s"
+            f"Completed {i} iterations successfully. Total CPU time: "
+            f"{process_time() - initial_cpu_time} s. Total wall time: "
+            f"{time() - initial_wall_time} s"
         )
         if out:
             out.update(final_string)
-        inputs_log = inputs_log + final_string + "\n"
-        outputs_log = outputs_log + final_string + "\n"
-        errors_log = errors_log + final_string + "\n"
-        self.__save_logs(inputs_log, outputs_log, errors_log)
+        dispersion_input_file.write(final_string + "\n")
+        dispersion_output_file.write(final_string + "\n")
+        dispersion_error_file.write(final_string + "\n")
 
-        return None
-
-    def __save_logs(self, inputs_log, outputs_log, errors_log):
-        """Save logs to files.
-
-        Parameters
-        ----------
-        inputs_log : str
-            String containing all inputs.
-        outputs_log : str
-            String containing all outputs.
-        errors_log : str
-            String containing all errors.
-
-        Returns
-        -------
-        None
-        """
-        # Save inputs
-        with open(self.filename + ".disp_inputs.txt", "w", encoding="utf-8") as file:
-            file.write(inputs_log)
-
-        # Save outputs
-        with open(self.filename + ".disp_outputs.txt", "w", encoding="utf-8") as file:
-            file.write(outputs_log)
-
-        # Save errors
-        with open(self.filename + ".disp_errors.txt", "w", encoding="utf-8") as file:
-            file.write(errors_log)
+        ## Close files
+        dispersion_input_file.close()
+        dispersion_output_file.close()
+        dispersion_error_file.close()
 
         return None
 
@@ -1675,7 +1762,7 @@ class Dispersion:
             try:
                 from imageio import imread
 
-            img = imread(image)
+                img = imread(image)
             except ImportError:
                 print(
                     "The 'imageio' package could not be. Please install it to add background images."
