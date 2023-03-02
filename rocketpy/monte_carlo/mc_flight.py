@@ -1,16 +1,11 @@
-from typing import List, Tuple, Union, Any
+from typing import Any, List, Tuple, Union
 
-from pydantic import (
-    BaseModel,
-    StrictFloat,
-    StrictInt,
-    root_validator,
-)
+from pydantic import BaseModel, StrictFloat, StrictInt, root_validator
 
-from .Flight import Flight
+from ..Flight import Flight
 
 
-class FlightData(BaseModel):
+class McFlight(BaseModel):
     inclination: Any
     heading: Any
     initialSolution: Union[
@@ -42,7 +37,7 @@ class FlightData(BaseModel):
         """Validates inputs that can be either tuples or lists.
         Tuples can have either 2 or 3 items. First two must be either float or int,
         representing the nominal value and standard deviation. Third item must be
-        a string containing the name of a numpy.random distribuition function"""
+        a string containing the name of a numpy.random distribution function"""
 
         validate_fields = ["inclination", "heading"]
         for field in validate_fields:
@@ -57,7 +52,7 @@ class FlightData(BaseModel):
                 if len(v) == 3:
                     assert isinstance(
                         v[2], str
-                    ), f"\nField '{field}': \n\tThird item of tuple must be either a string \n\tThe third item must be a string containing the name of a numpy.random distribuition function"
+                    ), f"\nField '{field}': \n\tThird item of tuple must be either a string \n\tThe third item must be a string containing the name of a numpy.random distribution function"
                 # all good, sets inputs
                 values[field] = v
             elif isinstance(v, list):
