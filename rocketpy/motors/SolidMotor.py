@@ -103,6 +103,7 @@ class SolidMotor(Motor):
         self,
         thrustSource,
         burnOut,
+        chamberPosition,
         grainNumber,
         grainDensity,
         grainOuterRadius,
@@ -131,6 +132,10 @@ class SolidMotor(Motor):
             Function. See help(Function). Thrust units are Newtons.
         burnOut : int, float
             Motor burn out time in seconds.
+        chamberPosition : int, float
+            Motor's chamber position in meters, relative to the rocket's
+            nozzle. The chamber is supposed cylindrical and its reference
+            point is its geometric center (i.e. half of its height).
         grainNumber : int
             Number of solid grains
         grainDensity : int, float
@@ -176,7 +181,9 @@ class SolidMotor(Motor):
             reshapeThrustCurve,
             interpolationMethod,
         )
-        # Define motor attributes
+        
+        # Combustion chamber parameters
+        self.chamberPosition = chamberPosition
         # Grain parameters
         self.grainNumber = grainNumber
         self.grainSeparation = grainSeparation
@@ -185,13 +192,6 @@ class SolidMotor(Motor):
         self.grainInitialInnerRadius = grainInitialInnerRadius
         self.grainInitialHeight = grainInitialHeight
 
-        # Other quantities that will be computed
-        self.grainInnerRadius = None
-        self.grainHeight = None
-        self.burnArea = None
-        self.burnRate = None
-        self.Kn = None
-
         # Grains initial geometrical parameters
         self.grainInitialVolume = (
             self.grainInitialHeight
@@ -199,35 +199,26 @@ class SolidMotor(Motor):
             * (self.grainOuterRadius**2 - self.grainInitialInnerRadius**2)
         )
         self.grainInitialMass = self.grainDensity * self.grainInitialVolume
-        self.propellantInitialMass = self.grainNumber * self.grainInitialMass
 
-        # Dynamic quantities
-        self.evaluateMassDot()
-        self.evaluateMass()
         self.evaluateGeometry()
-        self.evaluateInertia()
-        self.evaluateCenterOfMass()
+
+    @cached_property
+    def mass(self):
+        return self.grainVolume * self.grainDensity
+
+    @cached_property
+    def grainVolume(self):
+        cross_section_area = np.pi * (
+            self.grainOuterRadius**2 - self.grainInnerRadius**2
+        )
+        return cross_section_area * self.grainHeight
 
     @property
-    def exhaustVelocity(self):
-        """Calculates and returns exhaust velocity by assuming it
-        as a constant. The formula used is total impulse/propellant
-        initial mass. The value is also stored in
-        self.exhaustVelocity.
+    def propellantInitialMass(self):
+        return self.grainNumber * self.grainInitialMass
 
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        self.exhaustVelocity : float
-            Constant gas exhaust velocity of the motor.
-        """
-        return self.totalImpulse / self.propellantInitialMass
-
-    @funcify_method("time (s)", "Mass Dot (kg/s)", extrapolation="zero")
-    def massDot(self):
+    @property
+    def massFlowRate(self):
         """Calculates and returns the time derivative of propellant
         mass by assuming constant exhaust velocity. The formula used
         is the opposite of thrust divided by exhaust velocity. The
@@ -244,13 +235,25 @@ class SolidMotor(Motor):
             Time derivative of total propellant mas as a function
             of time.
         """
-        # Mass dot Function
-        return self.thrust / (-self.exhaustVelocity)
+        try:
+            return self._massFlowRate
+        except AttributeError:
+            self._massFlowRate = self.massDot
+            return self._massFlowRate
+
+    @massFlowRate.setter
+    def massFlowRate(self, value):
+        value.setExtrapolation("zero")
+        self._massFlowRate = value
+        self.evaluateGeometry()
 
     @funcify_method("time (s)", "Mass (kg)", extrapolation="zero")
     def centerOfMass(self):
         """Calculates and returns the time derivative of motor center of mass.
-        The result is a function of time, object of the Function class, which is stored in self.zCM.
+        The result is a function of time, object of the Function class, which 
+        is stored in self.zCM. The burn is assumed to be uniform along the
+        grain, therefore the center of mass is fixed at the chamber's geometric
+        center.
 
         Parameters
         ----------
@@ -263,7 +266,7 @@ class SolidMotor(Motor):
             of time.
         """
 
-        self.zCM = 0
+        self.zCM = self.chamberPosition
 
         return self.zCM
 
@@ -294,48 +297,50 @@ class SolidMotor(Motor):
         y0 = [self.grainInitialInnerRadius, self.grainInitialHeight]
 
         # Define time mesh
-        t = self.massDot.source[:, 0]
+        t = self.thrust.source[:, 0]
+        t_span = (t[0], t[-1])
 
         density = self.grainDensity
         rO = self.grainOuterRadius
 
         # Define system of differential equations
-        def geometryDot(y, t):
-            grainMassDot = self.massDot(t) / self.grainNumber
+        def geometryDot(t, y):
+            grainMassDot = self.massFlowRate(t) / self.grainNumber
             rI, h = y
             rIDot = (
                 -0.5 * grainMassDot / (density * np.pi * (rO**2 - rI**2 + rI * h))
             )
             hDot = 1.0 * grainMassDot / (density * np.pi * (rO**2 - rI**2 + rI * h))
             return [rIDot, hDot]
+        
+        def terminateBurn(t, y):
+            end_function = (self.grainOuterRadius - y[0]) * y[1]
+            return end_function
+        
+        terminateBurn.terminal = True
 
         # Solve the system of differential equations
-        sol = integrate.odeint(geometryDot, y0, t)
+        sol = integrate.solve_ivp(geometryDot, t_span, y0, t_eval=t, events=terminateBurn)
 
         # Write down functions for innerRadius and height
         self.grainInnerRadius = Function(
-            np.concatenate(([t], [sol[:, 0]])).transpose().tolist(),
+            np.concatenate(([sol.t], [sol.y[0]])).transpose().tolist(),
             "Time (s)",
             "Grain Inner Radius (m)",
             self.interpolate,
             "constant",
         )
         self.grainHeight = Function(
-            np.concatenate(([t], [sol[:, 1]])).transpose().tolist(),
+            np.concatenate(([sol.t], [sol.y[1]])).transpose().tolist(),
             "Time (s)",
             "Grain Height (m)",
             self.interpolate,
             "constant",
         )
 
-        # Create functions describing burn rate, Kn and burn area
-        self.evaluateBurnArea()
-        self.evaluateKn()
-        self.evaluateBurnRate()
-
         return [self.grainInnerRadius, self.grainHeight]
 
-    @funcify_method("time (s)", "Burn Area (m²)", extrapolation="zero")
+    @cached_property
     def burnArea(self):
         """Calculates the BurnArea of the grain for
         each time. Assuming that the grains are cylindrical
@@ -362,7 +367,7 @@ class SolidMotor(Motor):
         )
         return burnArea
 
-    @funcify_method("time (s)", "Burn Rate (m/s)", extrapolation="zero")
+    @cached_property
     def burnRate(self):
         """Calculates the BurnRate with respect to time.
         This evaluation assumes that it was already
@@ -377,8 +382,8 @@ class SolidMotor(Motor):
         burnRate : Function
         Rate of progression of the inner radius during the combustion.
         """
-        return -1 * self.massDot / (self.burnArea * self.grainDensity)
-    
+        return -1 * self.massFlowRate / (self.burnArea * self.grainDensity)
+
     @cached_property
     def Kn(self):
         KnSource = (
@@ -400,30 +405,29 @@ class SolidMotor(Motor):
 
     @cached_property
     def inertiaTensor(self):
-        """Calculates propellant inertia I, relative to directions
-        perpendicular to the rocket body axis and its time derivative
-        as a function of time. Also calculates propellant inertia Z,
-        relative to the axial direction, and its time derivative as a
-        function of time. Products of inertia are assumed null due to
-        symmetry. The four functions are stored as an object of the
-        Function class.
+        """Calculates the propellant principal moment of inertia relative
+        to the tank center of mass. The z-axis correspond to the motor axis
+        of symmetry while the x and y axes complete the right-handed coordinate
+        system. The time derivatives of the products of inertia are also
+        evaluated.
+        Products of inertia are assumed null due to symmetry. 
 
         Parameters
         ----------
-        None
+        t : float
+            Time in seconds.
 
         Returns
         -------
-        list of Functions
-            The first argument is the Function representing inertia I,
-            while the second argument is the Function representing
-            inertia Z.
+        tuple (of Functions)
+            The two first arguments are equivalent and represent inertia Ix,
+            and Iy. The third argument is inertia Iz.
         """
 
         # Inertia I
         # Calculate inertia I for each grain
         grainMass = self.mass / self.grainNumber
-        grainMassDot = self.massDot / self.grainNumber
+        grainMassDot = self.massFlowRate / self.grainNumber
         grainNumber = self.grainNumber
         grainInertiaI = grainMass * (
             (1 / 4) * (self.grainOuterRadius**2 + self.grainInnerRadius**2)
@@ -467,7 +471,7 @@ class SolidMotor(Motor):
         self.inertiaZ.setOutputs("Propellant Inertia Z (kg*m2)")
 
         # Inertia Z Dot
-        self.inertiaZDot = (1 / 2.0) * self.massDot * (
+        self.inertiaZDot = (1 / 2.0) * self.massFlowRate * (
             self.grainOuterRadius**2 + self.grainInnerRadius**2
         ) + self.mass * self.grainInnerRadius * self.burnRate
         self.inertiaZDot.setOutputs("Propellant Inertia Z Dot (kg*m2/s)")
@@ -528,15 +532,15 @@ class SolidMotor(Motor):
         print("\nPlots")
         self.thrust()
         self.mass()
-        self.massDot()
+        self.massFlowRate()
         self.grainInnerRadius()
         self.grainHeight()
         self.burnRate()
         self.burnArea()
         self.Kn()
-        self.inertiaI()
+        self.inertiaTensor[0]()
+        self.inertiaTensor[2]()
         self.inertiaIDot()
-        self.inertiaZ()
         self.inertiaZDot()
 
         return None
