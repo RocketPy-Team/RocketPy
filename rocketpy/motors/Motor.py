@@ -548,8 +548,7 @@ class Motor(ABC):
         pass
     
 
-        return None
-class GenericMotor:
+class GenericMotor(Motor):
     def __init__(
         self,
         thrustSource,
@@ -559,4 +558,11 @@ class GenericMotor:
         reshapeThrustCurve=False,
         interpolationMethod="linear", 
     ):
-        Ellipsis
+        super().__init__(
+            thrustSource,
+            burnOut,
+            nozzleRadius,
+            throatRadius,
+            reshapeThrustCurve,
+            interpolationMethod,
+            )
