@@ -549,3 +549,14 @@ class Motor(ABC):
     
 
         return None
+class GenericMotor:
+    def __init__(
+        self,
+        thrustSource,
+        burnOut,
+        nozzleRadius=0.0335,
+        throatRadius=0.0114,
+        reshapeThrustCurve=False,
+        interpolationMethod="linear", 
+    ):
+        Ellipsis
