@@ -6,10 +6,11 @@ __license__ = "MIT"
 
 import re
 from abc import ABC, abstractmethod
+from functools import cached_property
 
 import numpy as np
 
-from rocketpy.Function import Function
+from rocketpy.Function import Function, funcify_method
 
 
 class Motor(ABC):
@@ -174,7 +175,7 @@ class Motor(ABC):
         if reshapeThrustCurve:
             self.reshapeThrustCurve(*reshapeThrustCurve)
         else:
-            self.evaluateTotalImpulse()
+            self.totalImpulse
 
         # Define motor attributes
         # Grain and nozzle parameters
@@ -182,15 +183,6 @@ class Motor(ABC):
         self.throatRadius = throatRadius
 
         # Other quantities that will be computed
-        self.massFlowRate = None
-        self.mass = None
-        self.inertiaI = None
-        self.inertiaIDot = None
-        self.inertiaZ = None
-        self.inertiaZDot = None
-        self.maxThrust = None
-        self.maxThrustTime = None
-        self.averageThrust = None
 
         # Compute quantities
         # Thrust information - maximum and average
@@ -198,8 +190,6 @@ class Motor(ABC):
         maxThrustIndex = np.argmax(self.thrust.source[:, 1])
         self.maxThrustTime = self.thrust.source[maxThrustIndex, 0]
         self.averageThrust = self.totalImpulse / self.burnOutTime
-
-        self.propellantInitialMass = None
 
     def reshapeThrustCurve(
         self, burnTime, totalImpulse, oldTotalImpulse=None, startAtZero=True
@@ -244,7 +234,7 @@ class Motor(ABC):
 
         # Reshape thrust - set total impulse
         if oldTotalImpulse is None:
-            oldTotalImpulse = self.evaluateTotalImpulse()
+            oldTotalImpulse = self.totalImpulse
         self.thrust.source[:, 1] = (totalImpulse / oldTotalImpulse) * thrustArray
         self.thrust.setInterpolation(self.interpolate)
 
@@ -254,7 +244,7 @@ class Motor(ABC):
         # Return reshaped curve
         return self.thrust
 
-    @property
+    @cached_property
     def totalImpulse(self):
         """Calculates and returns total impulse by numerical
         integration of the thrust curve in SI units. The value is
@@ -277,6 +267,10 @@ class Motor(ABC):
 
     @property
     @abstractmethod
+    def propellantInitialMass(self):
+        pass
+
+    @property
     def exhaustVelocity(self):
         """Calculates and returns exhaust velocity by assuming it
         as a constant. The formula used is total impulse/propellant
@@ -292,11 +286,10 @@ class Motor(ABC):
         self.exhaustVelocity : float
             Constant gas exhaust velocity of the motor.
         """
-        pass
+        return self.totalImpulse / self.propellantInitialMass
 
-    @property
-    @abstractmethod
-    def massFlowRate(self):
+    @funcify_method("time (s)", "mass dot (kg/s)", extrapolation="zero")
+    def massDot(self):
         """Calculates and returns the time derivative of propellant
         mass by assuming constant exhaust velocity. The formula used
         is the opposite of thrust divided by exhaust velocity. The
@@ -313,7 +306,7 @@ class Motor(ABC):
             Time derivative of total propellant mass a function
             of time.
         """
-        pass
+        return -1 * self.thrust / self.exhaustVelocity
 
     @property
     @abstractmethod
@@ -333,10 +326,9 @@ class Motor(ABC):
         """
 
         pass
-    
+
     @property
-    @abstractmethod
-    def evaluateMass(self):
+    def mass(self):
         """Calculates and returns the total propellant mass curve by
         numerically integrating the massFlowRate curve, calculated in
         evaluatemassFlowRate. Numerical integration is done with the
@@ -353,31 +345,30 @@ class Motor(ABC):
         self.mass : Function
             Total propellant mass as a function of time.
         """
-        pass
-        # # Retrieve mass dot curve data
-        # t = self.massFlowRate.source[:, 0]
-        # ydot = self.massFlowRate.source[:, 1]
+        # Retrieve mass dot curve data
+        t = self.massFlowRate.source[:, 0]
+        ydot = self.massFlowRate.source[:, 1]
 
-        # # Set initial conditions
-        # T = [0]
-        # y = [self.propellantInitialMass]
+        # Set initial conditions
+        T = [0]
+        y = [self.propellantInitialMass]
 
-        # # Solve for each time point
-        # for i in range(1, len(t)):
-        #     T += [t[i]]
-        #     y += [y[i - 1] + 0.5 * (t[i] - t[i - 1]) * (ydot[i] + ydot[i - 1])]
+        # Solve for each time point
+        for i in range(1, len(t)):
+            T += [t[i]]
+            y += [y[i - 1] + 0.5 * (t[i] - t[i - 1]) * (ydot[i] + ydot[i - 1])]
 
-        # # Create Function
-        # self.mass = Function(
-        #     np.concatenate(([T], [y])).transpose(),
-        #     "Time (s)",
-        #     "Propellant Total Mass (kg)",
-        #     self.interpolate,
-        #     "constant",
-        # )
+        # Create Function
+        self.mass = Function(
+            np.concatenate(([T], [y])).transpose(),
+            "Time (s)",
+            "Propellant Total Mass (kg)",
+            self.interpolate,
+            "constant",
+        )
 
-        # # Return Mass Function
-        # return self.mass
+        # Return Mass Function
+        return self.mass
 
     @property
     def throatArea(self):
@@ -542,6 +533,7 @@ class Motor(ABC):
 
         return None
 
+    @abstractmethod
     def allInfo(self):
         """Prints out all data and graphs available about the Motor.
 
@@ -553,58 +545,7 @@ class Motor(ABC):
         ------
         None
         """
-        # Print nozzle details
-        print("Nozzle Details")
-        print("Nozzle Radius: " + str(self.nozzleRadius) + " m")
-        print("Nozzle Throat Radius: " + str(self.throatRadius) + " m")
-
-        # # Print grain details
-        # print("\nGrain Details")
-        # print("Number of Grains: " + str(self.grainNumber))
-        # print("Grain Spacing: " + str(self.grainSeparation) + " m")
-        # print("Grain Density: " + str(self.grainDensity) + " kg/m3")
-        # print("Grain Outer Radius: " + str(self.grainOuterRadius) + " m")
-        # print("Grain Inner Radius: " + str(self.grainInitialInnerRadius) + " m")
-        # print("Grain Height: " + str(self.grainInitialHeight) + " m")
-        # print("Grain Volume: " + "{:.3f}".format(self.grainInitialVolume) + " m3")
-        # print("Grain Mass: " + "{:.3f}".format(self.grainInitialMass) + " kg")
-
-        # Print motor details
-        print("\nMotor Details")
-        print("Total Burning Time: " + str(self.burnOutTime) + " s")
-        print(
-            "Total Propellant Mass: "
-            + "{:.3f}".format(self.propellantInitialMass)
-            + " kg"
-        )
-        print(
-            "Propellant Exhaust Velocity: "
-            + "{:.3f}".format(self.exhaustVelocity)
-            + " m/s"
-        )
-        print("Average Thrust: " + "{:.3f}".format(self.averageThrust) + " N")
-        print(
-            "Maximum Thrust: "
-            + str(self.maxThrust)
-            + " N at "
-            + str(self.maxThrustTime)
-            + " s after ignition."
-        )
-        print("Total Impulse: " + "{:.3f}".format(self.totalImpulse) + " Ns")
-
-        # Show plots
-        print("\nPlots")
-        self.thrust()
-        self.mass()
-        self.massFlowRate()
-        self.grainInnerRadius()
-        self.grainHeight()
-        self.burnRate()
-        self.burnArea()
-        self.Kn()
-        self.inertiaI()
-        self.inertiaIDot()
-        self.inertiaZ()
-        self.inertiaZDot()
+        pass
+    
 
         return None
