@@ -7,6 +7,7 @@ __license__ = "MIT"
 from abc import ABC, abstractmethod
 
 from rocketpy.Function import Function, funcify_method
+from rocketpy.utilities import except_negative
 
 
 class Tank(ABC):
@@ -192,10 +193,13 @@ class Tank(ABC):
         Function
             Center of mass of the tank's fluids as a function of time.
         """
-        return (
-            self.liquidCenterOfMass * self.liquidMass
-            + self.gasCenterOfMass * self.gasMass
-        ) / (self.mass)
+        try:
+            return (
+                self.liquidCenterOfMass * self.liquidMass
+                + self.gasCenterOfMass * self.gasMass
+            ) / (self.mass)
+        except ZeroDivisionError:
+            return self.structure.bottom
 
     @funcify_method("time (s)", "inertia tensor of liquid (kg*m^2)")
     def liquidInertiaTensor(self):
@@ -226,7 +230,7 @@ class Tank(ABC):
         Ix += self.liquidMass * (self.liquidCenterOfMass - self.centerOfMass) ** 2
         return Ix
 
-    @funcify_method("time (s)", "inertia tensor of liquid (kg*m^2)")
+    @funcify_method("time (s)", "inertia tensor of gas (kg*m^2)")
     def gasInertiaTensor(self):
         """
         Returns the inertia tensor of the gas portion of the tank
@@ -318,28 +322,30 @@ class MassFlowRateBasedTank(Tank):
         )
 
     @funcify_method("time (s)", "mass (kg)")
-    def mass(self):
-        return self.liquidMass + self.gasMass
+    def mass(self, t):
+        return self.liquidMass(t) + self.gasMass(t)
 
     @funcify_method("time (s)", "mass (kg)")
-    def liquidMass(self):
-        liquid_flow = self.netLiquidFlowRate.integralFunction()
+    @except_negative
+    def liquidMass(self, t):
+        liquid_flow = self.netLiquidFlowRate.integral(0, t)
         return self.initial_liquid_mass + liquid_flow
 
     @funcify_method("time (s)", "mass (kg)")
-    def gasMass(self):
-        gas_flow = self.netGasFlowRate.integralFunction()
+    @except_negative
+    def gasMass(self, t):
+        gas_flow = self.netGasFlowRate.integral(0, t)
         return self.initial_gas_mass + gas_flow
 
-    @funcify_method("time (s)", "liquid mass flow rate (kg/s)")
+    @funcify_method("time (s)", "liquid mass flow rate (kg/s)", extrapolation="zero")
     def netLiquidFlowRate(self):
         return self.liquid_mass_flow_rate_in - self.liquid_mass_flow_rate_out
 
-    @funcify_method("time (s)", "gas mass flow rate (kg/s)")
+    @funcify_method("time (s)", "gas mass flow rate (kg/s)", extrapolation="zero")
     def netGasFlowRate(self):
         return self.gas_mass_flow_rate_in - self.gas_mass_flow_rate_out
 
-    @funcify_method("time (s)", "mass flow rate (kg/s)")
+    @funcify_method("time (s)", "mass flow rate (kg/s)", extrapolation="zero")
     def netMassFlowRate(self):
         return self.netLiquidFlowRate + self.netGasFlowRate
 
@@ -356,9 +362,14 @@ class MassFlowRateBasedTank(Tank):
         return self.structure.inverse_volume.compose(self.liquidVolume)
 
     @funcify_method("time (s)", "height (m)")
-    def gasHeight(self):
+    def gasHeight(self, t):
         fluid_volume = self.gasVolume + self.liquidVolume
-        return self.structure.inverse_volume.compose(fluid_volume)
+        gasHeight = self.structure.inverse_volume(fluid_volume(t))
+        if gasHeight <= self.structure.top:
+            return gasHeight
+        else:
+            raise ValueError(f"The tank {self.name}, is overfilled" 
+                             f"with gas height {gasHeight} at time {t}")
 
 
 class UllageBasedTank(Tank):
@@ -390,21 +401,29 @@ class UllageBasedTank(Tank):
         return self.ullage
 
     @funcify_method("time (s)", "mass (kg)")
-    def gasMass(self):
-        return self.gasVolume * self.gas.density
+    @except_negative
+    def gasMass(self, t):
+        return self.gasVolume(t) * self.gas.density
 
     @funcify_method("time (s)", "mass (kg)")
-    def liquidMass(self):
-        return self.liquidVolume * self.liquid.density
+    @except_negative
+    def liquidMass(self, t):
+        return self.liquidVolume(t) * self.liquid.density
 
     @funcify_method("time (s)", "height (m)")
     def liquidHeight(self):
         return self.structure.inverse_volume.compose(self.liquidVolume)
 
     @funcify_method("time (s)", "height (m)")
-    def gasHeight(self):
+    def gasHeight(self, t):
         fluid_volume = self.gasVolume + self.liquidVolume
-        return self.structure.inverse_volume.compose(fluid_volume)
+        gasHeight = self.structure.inverse_volume(fluid_volume(t))
+        if gasHeight <= self.structure.top:
+            return gasHeight
+        else:
+            raise ValueError(f"The tank {self.name}, is overfilled" 
+                             f"with gas height {gasHeight} at time {t}")
+
 
 
 class LevelBasedTank(Tank):
@@ -442,17 +461,24 @@ class LevelBasedTank(Tank):
         return self.liquid_height
 
     @funcify_method("time (s)", "mass (kg)")
-    def gasMass(self):
-        return self.gasVolume * self.gas.density
+    @except_negative
+    def gasMass(self, t):
+        return self.gasVolume(t) * self.gas.density
 
     @funcify_method("time (s)", "mass (kg)")
-    def liquidMass(self):
-        return self.liquidVolume * self.liquid.density
+    @except_negative
+    def liquidMass(self, t):
+        return self.liquidVolume(t) * self.liquid.density
 
     @funcify_method("time (s)", "height (m)")
-    def gasHeight(self):
+    def gasHeight(self, t):
         fluid_volume = self.gasVolume + self.liquidVolume
-        return self.structure.inverse_volume.compose(fluid_volume)
+        gasHeight = self.structure.inverse_volume(fluid_volume(t))
+        if gasHeight <= self.structure.top:
+            return gasHeight
+        else:
+            raise ValueError(f"The tank {self.name}, is overfilled" 
+                             f"with gas height {gasHeight} at time {t}")
 
 
 class MassBasedTank(Tank):
@@ -478,11 +504,13 @@ class MassBasedTank(Tank):
         return self.mass.derivativeFunction()
 
     @funcify_method("time (s)", "mass (kg)")
-    def liquidMass(self):
+    @except_negative
+    def liquidMass(self, t):
         return self.liquid_mass
 
     @funcify_method("time (s)", "mass (kg)")
-    def gasMass(self):
+    @except_negative
+    def gasMass(self, t):
         return self.gas_mass
 
     @funcify_method("time (s)", "volume (m³)")
@@ -498,6 +526,11 @@ class MassBasedTank(Tank):
         return self.structure.inverse_volume.compose(self.liquidVolume)
 
     @funcify_method("time (s)", "height (m)")
-    def gasHeight(self):
+    def gasHeight(self, t):
         fluid_volume = self.gasVolume + self.liquidVolume
-        return self.structure.inverse_volume.compose(fluid_volume)
+        gasHeight = self.structure.inverse_volume(fluid_volume(t))
+        if gasHeight <= self.structure.top:
+            return gasHeight
+        else:
+            raise ValueError(f"The tank {self.name}, is overfilled" 
+                             f"with gas height {gasHeight} at time {t}")

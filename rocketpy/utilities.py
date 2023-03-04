@@ -13,6 +13,16 @@ from .Environment import Environment
 from .Function import Function
 
 
+def except_negative(method):
+    def negative_checker(instance, *args):
+        value = method(instance, *args)
+        if value < 0:
+            raise ValueError(f"Impossible negative value of {value} in" 
+                             f"{method.__name__} (f{method})"
+                             f"with arguments {args}")
+        return value
+    return negative_checker
+
 # TODO: Needs tests
 def compute_CdS_from_drop_test(
     terminal_velocity, rocket_mass, air_density=1.225, g=9.80665
