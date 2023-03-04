@@ -4,9 +4,11 @@ __author__ = "Giovani Hidalgo Ceotto, Oscar Mauricio Prada Ramirez, João Lemes 
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
+import numpy as np
 from functools import cached_property
 
 from rocketpy.motors import Motor
+from rocketpy.Function import funcify_method, Function
 
 
 class LiquidMotor(Motor):
@@ -70,32 +72,74 @@ class LiquidMotor(Motor):
         )
         self.positioned_tanks = []
 
+    @funcify_method("time (s)", "mass (kg)")
+    def mass(self):
+        """Evaluates the mass of the motor as the sum of each tank mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        Function
+            Mass of the motor, in kg.
+        """
+        totalMass = Function(0)
+
+        for positioned_tank in self.positioned_tanks:
+            totalMass += positioned_tank.get("tank").mass
+
+        return totalMass
+
     @cached_property
-    def massFlowRate(self):
-        """Evaluates the mass flow rate of the motor as the sum of each tank
-        mass flow rate.
+    def propellantInitialMass(self):
+        """Property to store the initial mass of the propellant.
 
         Returns
         -------
         float
+            Initial mass of the propellant, in kg.
+        """
+        return self.mass(0)
+
+    @funcify_method("time (s)", "mass flow rate (kg/s)", extrapolation="zero")
+    def massFlowRate(self):
+        """Evaluates the mass flow rate of the motor as the sum of each tank 
+        mass flow rate.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        Function
             Mass flow rate of the motor, in kg/s.
         """
-        massFlowRate = 0
+        massFlowRate = Function(0)
 
         for positioned_tank in self.positioned_tanks:
             massFlowRate += positioned_tank.get("tank").netMassFlowRate
 
         return massFlowRate
-    
-    @cached_property
+
+    @funcify_method("time (s)", "center of mass (m)")
     def centerOfMass(self):
-        """Evaluates the center of mass of the motor from each tank center of
-        mass and positioning. The center of mass height is measured relative
-        to the motor nozzle.
+        """Evaluates the center of mass of the motor from each tank 
+        center of mass and positioning. The center of mass height is 
+        measured relative to the motor nozzle.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
 
         Returns
         -------
-        float
+        Function
             Center of mass of the motor, in meters.
         """
         totalMass = 0
@@ -111,29 +155,39 @@ class LiquidMotor(Motor):
 
     @cached_property
     def inertiaTensor(self):
-        """Evaluates the principal moment of inertia of the motor from each tank
+        """Evaluates the principal moment of inertia of the motor from each tank 
         by the parallel axis theorem. The moment of inertia is measured relative
         to the motor center of mass with the z-axis being the motor symmetry axis
         and the x and y axes completing the right-handed coordinate system.
 
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
         Returns
         -------
-        tuple
+        tuple (of Functions)
             Pricipal moment of inertia tensor of the motor, in kg*m^2.
         """
-        inertia_x = inertia_y = inertia_z = 0
-        centerOfMass = self.evaluateCenterOfMass()
+        self.inertiaI = self.inertiaZ = Function(0)
+        centerOfMass = self.centerOfMass
 
         for positioned_tank in self.positioned_tanks:
             tank = positioned_tank.get("tank")
             tankPosition = positioned_tank.get("position")
-            inertia_x += (
+            self.inertiaI += (
                 tank.inertiaTensor
                 + tank.mass * (tankPosition + tank.centerOfMass - centerOfMass) ** 2
             )
-            inertia_y = inertia_x
 
-        return inertia_x, inertia_y, inertia_z
+        # Set naming convention
+        self.inertiaI.setInputs("time (s)")
+        self.inertiaZ.setInputs("time (s)")
+        self.inertiaI.setOutputs("inertia y (kg*m^2)")
+        self.inertiaZ.setOutputs("inertia z (kg*m^2)")
+            
+        return self.inertiaI, self.inertiaI, self.inertiaZ
 
     def addTank(self, tank, position):
         """Adds a tank to the rocket motor.
@@ -144,7 +198,10 @@ class LiquidMotor(Motor):
             Tank object to be added to the rocket motor.
         position : float
             Position of the tank relative to the motor nozzle, in meters.
-            Should be a positive value. The position is measured from the
-            nozzle tip to the tank lowest point (including caps).
+            The position is measured from the nozzle tip to the tank 
+            geometry reference zero point.
         """
         self.positioned_tanks.append({"tank": tank, "position": position})
+
+    def allInfo(self):
+        ...
