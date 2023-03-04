@@ -150,7 +150,7 @@ class TankGeometry:
         """
         return self.volume(self.top)
 
-    @funcify_method("volume (m³)", "height (m)", extrapolation="constant")
+    @funcify_method("volume (m³)", "height (m)", extrapolation="natural")
     def inverse_volume(self):
         """
         The height of the tank as a function of volume.
