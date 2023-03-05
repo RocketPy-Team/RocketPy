@@ -22,10 +22,9 @@ __email__ = "ghceotto@gmail.com"
 __status__ = "Production"
 
 from .AeroSurfaces import EllipticalFins, NoseCone, Tail, TrapezoidalFins
+from .Dispersion import Dispersion
 from .Environment import Environment
 from .EnvironmentAnalysis import EnvironmentAnalysis
-
-# from .Dispersion import Dispersion
 from .Flight import Flight
 from .Function import Function
 from .monte_carlo import (
