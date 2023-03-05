@@ -5,7 +5,6 @@ __license__ = "MIT"
 
 import math
 import traceback
-import types
 from time import process_time, time
 
 import matplotlib.pyplot as plt
@@ -15,14 +14,13 @@ from IPython.display import display
 from matplotlib.patches import Ellipse
 from numpy.random import *
 
-from rocketpy.utilities import invertedHaversine
-
 from .AeroSurfaces import EllipticalFins, NoseCone, Tail, TrapezoidalFins
 from .Environment import Environment
 from .Flight import Flight
 from .Function import Function
 from .Motor import SolidMotor
 from .Rocket import Rocket
+from .tools import _get_distribution, invertedHaversine
 
 
 class Dispersion:
