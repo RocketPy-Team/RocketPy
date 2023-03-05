@@ -32,6 +32,12 @@ class Dispersion:
     ----------
     filename : string
         The name of the file containing the data to be used in the analysis.
+    environment : Environment or McEnvironment
+        The environment in which the rocket will be launched.
+    rocket : Rocket
+        The rocket to be launched.
+    flight : Flight
+        The flight conditions of the rocket.
 
     Attributes
     ---------- # TODO: finish documentation
@@ -76,16 +82,12 @@ class Dispersion:
     def __init__(
         self,
         filename,
-        environmentData,
-        motorData,
-        rocketData,
-        flightData,
-        noseData=None,
-        finSetData=None,
-        tailData=None,
-        parachuteData=None,
+        environment,
+        rocket,
+        flight,
     ):
-        """
+        """Constructor of the Dispersion class.
+
         Parameters
         ----------
         filename: string
@@ -94,6 +96,12 @@ class Dispersion:
             When analyzing the results of a previous simulation, this parameter
             shall be the .txt filename containing the outputs of a previous ran
             dispersion analysis.
+        environment: Environment or McEnvironment
+            The environment in which the rocket will be launched.
+        rocket: Rocket
+            The rocket to be launched.
+        flight: Flight
+            The flight conditions of the rocket.
 
         Returns
         -------
@@ -103,12 +111,86 @@ class Dispersion:
         # Save and initialize parameters
         self.filename = filename.split(".")[0]
 
-        self.environmentData = environmentData
-        self.motorData = motorData
-        self.rocketData = rocketData
-        self.flightData = flightData
+        self.environment = environment
+        self.rocket = rocket
+        self.flight = flight
+        self.motors = rocket.motors
+        self.parachutes = rocket.parachutes
+        self.nosecones = rocket.nosecones
+        self.fins = rocket.fins
+        self.tails = rocket.tails
 
-        self.standard_output = (
+        # TODO: Initialize variables so they can be accessed by MATLAB
+
+        return None
+
+    def __yield_flight_setting(self, dispersion_dictionary, number_of_simulations):
+        """Yields a flight setting for the simulation
+
+        Parameters
+        ----------
+        dispersion_dictionary : dict
+            The dictionary with the parameters to be analyzed. This includes the
+            mean and standard deviation of the parameters.
+        number_of_simulations : int
+            Number of simulations desired, must be non negative.
+            This is needed when running a new simulation. Default is zero.
+
+        Yields
+        ------
+        setting: dict
+            A dictionary with the flight setting for one simulation.
+        """
+
+        for _ in range(number_of_simulations):
+            setting = {}
+            for class_name, data in dispersion_dictionary.items():
+                setting[class_name] = {}
+                for key, value in data.items():
+                    if isinstance(value, dict):
+                        setting[class_name][key] = {}
+                        for (sub_key, sub_value) in value.items():
+                            if isinstance(sub_value, tuple):
+                                try:
+                                    setting[class_name][key][sub_key] = sub_value[-1](
+                                        sub_value[0], sub_value[1]
+                                    )
+                                except TypeError:
+                                    # Got the sweepLength or sweepAngle
+                                    setting[class_name][key][sub_key] = sub_value[0]
+                            else:
+                                # else is list
+                                # setting[class_name][key][sub_key] = choice(sub_value)
+                                # The choice() doesn't work when you have Functions
+                                setting[class_name][key][sub_key] = sub_value[
+                                    randint(0, len(sub_value) - 1)
+                                    if len(sub_value) > 1
+                                    else 0
+                                ]
+                    elif isinstance(value, tuple):
+                        setting[class_name][key] = value[-1](value[0], value[1])
+                    else:
+                        # else is list
+                        setting[class_name][key] = value[
+                            randint(0, len(value) - 1) if len(value) > 1 else 0
+                        ]
+
+            yield setting
+
+    def __check_export_list(self, export_list):
+        """Check if export list is valid or if it is None. In case it is
+        None, export a standard list of parameters.
+
+        Parameters
+        ----------
+        export_list : list
+            List of strings with the names of the attributes to be exported
+
+        Returns
+        -------
+        export_list
+        """
+        standard_output = (
             "apogee",
             "apogeeTime",
             "apogeeX",
@@ -129,10 +211,7 @@ class Dispersion:
             "frontalSurfaceWind",
             "lateralSurfaceWind",
         )
-        # List of every acceptable export
-        # TODO: I thnik this should just be left in the documentation and does not
-        # need to be used in the code
-        self.exportable_list = [
+        exportables = (
             "inclination",
             "heading",
             "effective1RL",
@@ -161,69 +240,11 @@ class Dispersion:
             "impactVelocity",
             "impactState",
             "parachuteEvents",
-            "M1",
-            "M2",
-            "M3",
-            "time",
-            "vx",
-            "vy",
-            "vz",
-            "windVelocityX",
-            "streamVelocityX",
-            "windVelocityY",
-            "streamVelocityY",
-            "streamVelocityZ",
-            "freestreamSpeed",
-            "speedOfSound",
-            "MachNumber",
-            "R1",
-            "R2",
-            "R3",
-            "density",
-            "dynamicViscosity",
-            "ReynoldsNumber",
-            "ax",
-            "ay",
-            "az",
-            "acceleration",
-            "aerodynamicBendingMoment",
-            "aerodynamicDrag",
-            "aerodynamicLift",
-            "aerodynamicSpinMoment",
-            "alpha1",
-            "alpha2",
-            "alpha3",
-            "e0",
-            "e1",
-            "e2",
-            "e3",
-            "attitudeVectorX",
-            "attitudeVectorY",
-            "attitudeVectorZ",
-            "angleOfAttack",
             "apogeeFreestreamSpeed",
-            "attitudeAngle",
-            "x",
-            "y",
-            "z",
-            "speed",
-            "dragPower",
-            "dynamicPressure",
-            "staticMargin",
             "finalStaticMargin",
             "frontalSurfaceWind",
-            "horizontalSpeed",
             "initialStaticMargin",
-            "w1",
-            "w2",
-            "w3",
-            "rotationalEnergy",
-            "translationalEnergy",
-            "kineticEnergy",
-            "lateralAttitudeAngle",
             "lateralSurfaceWind",
-            "latitude",
-            "longitude",
             "maxAcceleration",
             "maxAccelerationTime",
             "maxDynamicPressureTime",
@@ -234,191 +255,20 @@ class Dispersion:
             "maxReynoldsNumber",
             "maxSpeedTime",
             "maxSpeed",
-            "pressure",
-            "totalPressure",
             "maxTotalPressureTime",
             "maxTotalPressure",
-            "pathAngle",
-            "phi",
-            "theta",
-            "psi",
-            "potentialEnergy",
-            "thrustPower",
-            "totalEnergy",
             "tFinal",
-            "solution",
-        ]
-        # Initialize variables so they can be accessed by MATLAB
-        self.dispersion_results = {}
-        self.dispersion_dictionary = {}
-        self.nose_names = []
-        self.finSet_names = []
-        self.tail_names = []
-        self.parachute_names = []
-        self.distributionFunc = None
-        self.distribution_type = None
-        self.environment = None
-        self.flight = None
-        self.motor = None
-        self.rocket = None
-        self.rocket_dispersion = None
-        self.number_of_simulations = 0
-        self.num_of_loaded_sims = 0
-        self.start_time = 0
-
-        return None
-
-    def __get_distribution(self, distribution_type):
-        """Sets the distribution function to be used in the analysis.
-
-        Parameters
-        ----------
-        distribution_type : string
-            The type of distribution to be used in the analysis. It can be
-            'uniform', 'normal', 'lognormal', etc.
-
-        Returns
-        -------
-        np.random distribution function
-            The distribution function to be used in the analysis.
-        """
-        if distribution_type == "normal" or distribution_type == None:
-            return normal
-        elif distribution_type == "beta":
-            return beta
-        elif distribution_type == "binomial":
-            return binomial
-        elif distribution_type == "chisquare":
-            return chisquare
-        elif distribution_type == "dirichlet":
-            return dirichlet
-        elif distribution_type == "exponential":
-            return exponential
-        elif distribution_type == "f":
-            return f
-        elif distribution_type == "gamma":
-            return gamma
-        elif distribution_type == "geometric":
-            return geometric
-        elif distribution_type == "gumbel":
-            return gumbel
-        elif distribution_type == "hypergeometric":
-            return hypergeometric
-        elif distribution_type == "laplace":
-            return laplace
-        elif distribution_type == "logistic":
-            return logistic
-        elif distribution_type == "lognormal":
-            return lognormal
-        elif distribution_type == "logseries":
-            return logseries
-        elif distribution_type == "multinomial":
-            return multinomial
-        elif distribution_type == "multivariate_normal":
-            return multivariate_normal
-        elif distribution_type == "negative_binomial":
-            return negative_binomial
-        elif distribution_type == "noncentral_chisquare":
-            return noncentral_chisquare
-        elif distribution_type == "noncentral_f":
-            return noncentral_f
-        elif distribution_type == "pareto":
-            return pareto
-        elif distribution_type == "poisson":
-            return poisson
-        elif distribution_type == "power":
-            return power
-        elif distribution_type == "rayleigh":
-            return rayleigh
-        elif distribution_type == "standard_cauchy":
-            return standard_cauchy
-        elif distribution_type == "standard_exponential":
-            return standard_exponential
-        elif distribution_type == "standard_gamma":
-            return standard_gamma
-        elif distribution_type == "standard_normal":
-            return standard_normal
-        elif distribution_type == "standard_t":
-            return standard_t
-        elif distribution_type == "triangular":
-            return triangular
-        elif distribution_type == "uneliform":
-            return uniform
-        elif distribution_type == "vonmises":
-            return vonmises
-        elif distribution_type == "wald":
-            return wald
-        elif distribution_type == "weibull":
-            return weibull
-        elif distribution_type == "zipf":
-            return zipf
-        else:
-            raise ValueError(
-                "Distribution type not recognized. Please use a valid distribution type."
-            )
-
-    def __yield_flight_setting(self, dispersion_dictionary, number_of_simulations):
-        """Yields a flight setting for the simulation
-
-        Parameters
-        ----------
-        dispersion_dictionary : dict
-            The dictionary with the parameters to be analyzed. This includes the
-            mean and standard deviation of the parameters.
-        number_of_simulations : int
-            Number of simulations desired, must be non negative.
-            This is needed when running a new simulation. Default is zero.
-
-        Yields
-        ------
-        flight_setting: dict
-            A dictionary with the flight setting for one simulation.
-
-        """
-
-        for _ in range(number_of_simulations):
-            # Generate a flight setting
-            flight_setting = {}
-            for parameter_key, parameter_value in dispersion_dictionary.items():
-                if type(parameter_value) is tuple:
-                    # gets distribuition function from parameter_value[-1]
-                    flight_setting[parameter_key] = parameter_value[-1](
-                        parameter_value[0], parameter_value[1]
-                    )
-                else:  # else is list
-                    flight_setting[parameter_key] = choice(parameter_value)
-
-            # Yield a flight setting
-            yield flight_setting
-
-    def __check_export_list(self, export_list):
-        """Check if export list is valid or if it is None. In case it is
-        None, export all possible attributes.
-
-        Parameters
-        ----------
-        export_list : list
-            List of strings with the names of the attributes to be exported
-
-        Returns
-        -------
-        export_list
-        """
-
+        )
         if export_list:
-            for attr in export_list:
-                if not isinstance(attr, str):
-                    raise TypeError("Variables must be strings.")
+            # Check if all the items are strings
+            if not all(isinstance(attr, str) for attr in export_list):
+                raise TypeError("All attributes of export_list must be strings.")
 
-                # Checks if attribute is not valid
-                if attr not in self.export_list:
-                    raise ValueError(
-                        "Attribute can not be exported. Check export_list."
-                    )
+            # Get the intersection of the exportables and the export_list
+            return tuple(set(export_list).intersection(exportables))
+
         else:
-            export_list = self.exportable_list
-
-        return export_list
+            return standard_output
 
     def __export_flight_data(
         self,
@@ -718,50 +568,15 @@ class Dispersion:
     ):
         """Runs the dispersion simulation and saves all data. For the simulation to be run
         all classes must be defined. This can happen either trough the dispersion_dictionary
-        or by inputing objects
+        or by inputting objects
 
         Parameters
         ----------
         number_of_simulations : int
             Number of simulations to be run, must be non negative.
-        dispersion_dictionary : dict
-            The dictionary with the parameters to be analyzed. The keys must be the
-            names of the attributes that will be used in the dispersion simulation.
-            The values can either be a tuple, containing the nominal values of that
-            parameter and its standard deviation, a list, containing the possible
-            values to be randomly chosen in each simulation, or a single value (int
-            or float), being the standard deviation of that parameter. See example
-            for further explanations.
-        environment : Environment, optional
-            Environment object that will be used in the simulations. Default is None.
-            If none, environment must be defined via passing its attributes in the
-            dispersion_dictionary. Arguments related to environment will only vary
-            according to the distribution method if the standard deviation for the
-            desired attributes are on the dispersion_dictionary.
-        flight : Flight, optional
-            Flight object that will be used in the simulations. Default is None.
-            If none, Flight must be defined via passing its attributes in the
-            dispersion_dictionary. Arguments related to Flight will only vary
-            according to the distribution method if the standard deviation for the
-            desired attributes are on the dispersion_dictionary.
-        motor : Motor, optional
-            Motor object that will be used in the simulations. Default is None.
-            If none, Motor must be defined via passing its attributes in the
-            dispersion_dictionary. Arguments related to Motor will only vary
-            according to the distribution method if the standard deviation for the
-            desired attributes are on the dispersion_dictionary.
-        rocket : Rocket, optional
-            Rocket object that will be used in the simulations. Default is None.
-            If none, Rocket must be defined via passing its attributes in the
-            dispersion_dictionary. Arguments related to Rocket will only vary
-            according to the distribution method if the standard deviation for the
-            desired attributes are on the dispersion_dictionary.
-        distribution_type : str, optional
-            The probability distribution function to be used in the analysis,
-            by default "normal". Options are any numpy.ramdom distributions
         export_list : list, optional
             A list containing the name of the attributes to be saved on the dispersion
-            outputs file. See Examples for all possible attribues
+            outputs file. See Examples for all possible attributes
         append : bool, optional
             If True, the results will be appended to the existing files. If False,
             the files will be overwritten. By default False.
@@ -804,6 +619,12 @@ class Dispersion:
         # Begin display when running in notebook
         out = display("Starting", display_id=True)
 
+        env_dispersion = (
+            self.environment
+            if isinstance(self.environment, Environment)
+            else self.environment.__dict__["environment"]
+        )
+
         # Iterate over flight settings, start the flight simulations
         for setting in self.__yield_flight_setting(
             self.dispersion_dictionary, self.number_of_simulations
@@ -811,126 +632,145 @@ class Dispersion:
             self.start_time = process_time()
             i += 1
 
-            # TODO: resolve environment definitions here. Currently does not work
-            #       because no env is previously defined
-
             # Apply environment parameters variations on each iteration if possible
-            # env_dispersion.railLength = setting["railLength"]
-            # env_dispersion.gravity = setting["gravity"]
-            # env_dispersion.date = setting["date"]
-            # env_dispersion.latitude = setting["latitude"]
-            # env_dispersion.longitude = setting["longitude"]
-            # env_dispersion.elevation = setting["elevation"]
+            env_dispersion.railLength = setting["environment"]["railLength"]
             # if env_dispersion.atmosphericModelType in ["Ensemble", "Reanalysis"]:
-            #     env_dispersion.selectEnsembleMember(setting["ensembleMember"])
+            #     env_dispersion.selectEnsembleMember(setting["environment"]["ensembleMember"])
+            # TODO: allow varying ensembleMember, or use windXFactor and windYFactor
 
             # Apply motor parameters variations on each iteration if possible
             # TODO: add hybrid and liquid motor option
+            # TODO: only a single motor is supported. Future version should support more.
+            # TODO: the burnOutTime should no longer be an arg, see issue #309
             motor_dispersion = SolidMotor(
-                thrustSource=setting["thrust"],
-                burnOutTime=setting["burnOutTime"],
-                grainNumber=setting["grainNumber"],
-                grainDensity=setting["grainDensity"],
-                grainOuterRadius=setting["grainOuterRadius"],
-                grainInitialInnerRadius=setting["grainInitialInnerRadius"],
-                grainInitialHeight=setting["grainInitialHeight"],
-                grainSeparation=setting["grainSeparation"],
-                nozzleRadius=setting["nozzleRadius"],
-                throatRadius=setting["throatRadius"],
-                reshapeThrustCurve=(setting["burnOutTime"], setting["totalImpulse"]),
-                grainsCenterOfMassPosition=setting["grainsCenterOfMassPosition"],
-                nozzlePosition=setting["nozzlePosition"],
+                thrustSource=setting["motors"][0]["thrustSource"],
+                burnOutTime=setting["motors"][0]["burnOutTime"],
+                grainsCenterOfMassPosition=setting["motors"][0][
+                    "grainsCenterOfMassPosition"
+                ],
+                grainNumber=setting["motors"][0]["grainNumber"],
+                grainDensity=setting["motors"][0]["grainDensity"],
+                grainOuterRadius=setting["motors"][0]["grainOuterRadius"],
+                grainInitialInnerRadius=setting["motors"][0]["grainInitialInnerRadius"],
+                grainInitialHeight=setting["motors"][0]["grainInitialHeight"],
+                grainSeparation=setting["motors"][0]["grainSeparation"],
+                nozzleRadius=setting["motors"][0]["nozzleRadius"],
+                nozzlePosition=setting["motors"][0]["nozzlePosition"],
+                throatRadius=setting["motors"][0]["throatRadius"],
+                reshapeThrustCurve=(
+                    setting["motors"][0]["burnOutTime"],
+                    setting["motors"][0]["totalImpulse"],
+                ),
+                # interpolationMethod="linear",
+                # coordinateSystemOrientation=setting["motors"][0][
+                #     "coordinateSystemOrientation"
+                # ],
             )
 
             # Apply rocket parameters variations on each iteration if possible
             rocket_dispersion = Rocket(
-                mass=setting["mass"],
-                inertiaI=setting["inertiaI"],
-                inertiaZ=setting["inertiaZ"],
-                radius=setting["radius"],
-                powerOffDrag=setting["powerOffDrag"],
-                powerOnDrag=setting["powerOnDrag"],
-                centerOfDryMassPosition=setting["centerOfDryMassPosition"],
+                radius=setting["rocket"]["radius"],
+                mass=setting["rocket"]["mass"],
+                inertiaI=setting["rocket"]["inertiaI"],
+                inertiaZ=setting["rocket"]["inertiaZ"],
+                powerOffDrag=setting["rocket"]["powerOffDrag"],
+                powerOnDrag=setting["rocket"]["powerOnDrag"],
+                centerOfDryMassPosition=setting["rocket"]["centerOfDryMassPosition"],
+                # coordinateSystemOrientation=setting["rocket"][
+                #     "coordinateSystemOrientation"
+                # ],
             )
 
             # Edit rocket drag
-            rocket_dispersion.powerOffDrag *= setting["powerOffDragFactor"]
-            rocket_dispersion.powerOnDrag *= setting["powerOnDragFactor"]
+            rocket_dispersion.powerOffDrag *= setting["rocket"]["powerOffDragFactor"]
+            rocket_dispersion.powerOnDrag *= setting["rocket"]["powerOnDragFactor"]
 
             # Add Motor
             rocket_dispersion.addMotor(
-                motor_dispersion, position=setting["motorPosition"]
+                motor_dispersion, position=setting["motors"][0]["position"]
             )
 
             # Nose
-            for nose in self.nose_names:
+            for nose in setting["nosecones"].keys():
                 rocket_dispersion.addNose(
-                    length=setting[f"nose_{nose}_length"],
-                    kind=setting[f"nose_{nose}_kind"],
-                    position=setting[f"nose_{nose}_position"],
+                    kind=setting["nosecones"][nose]["kind"],
+                    length=setting["nosecones"][nose]["length"],
+                    position=setting["nosecones"][nose]["position"],
                     name=nose,
                 )
 
             # Fins
-            for finSet in self.finSet_names:
-                # TODO: Allow elliptical fins
-                rocket_dispersion.addTrapezoidalFins(
-                    n=setting[f"finSet_{finSet}_n"],
-                    rootChord=setting[f"finSet_{finSet}_rootChord"],
-                    tipChord=setting[f"finSet_{finSet}_tipChord"],
-                    span=setting[f"finSet_{finSet}_span"],
-                    position=setting[f"finSet_{finSet}_position"],
-                    airfoil=setting[f"finSet_{finSet}_airfoil"],
-                    name=finSet,
-                )
+            for fin in setting["fins"].keys():
+                if "sweepAngle" in setting["fins"][fin].keys():
+                    # means that it is trapezoidal
+                    rocket_dispersion.addTrapezoidalFins(
+                        n=setting["fins"][fin]["n"],
+                        rootChord=setting["fins"][fin]["rootChord"],
+                        tipChord=setting["fins"][fin]["tipChord"],
+                        span=setting["fins"][fin]["span"],
+                        position=setting["fins"][fin]["position"],
+                        cantAngle=setting["fins"][fin]["cantAngle"],
+                        sweepLength=setting["fins"][fin]["sweepLength"],
+                        sweepAngle=setting["fins"][fin]["sweepAngle"],
+                        radius=setting["fins"][fin]["rocketRadius"],
+                        airfoil=setting["fins"][fin]["airfoil"],
+                        name=fin,
+                    )
+                else:
+                    rocket_dispersion.addEllipticalFins(
+                        n=setting["fins"][fin]["n"],
+                        rootChord=setting["fins"][fin]["rootChord"],
+                        span=setting["fins"][fin]["span"],
+                        position=setting["fins"][fin]["position"],
+                        cantAngle=setting["fins"][fin]["cantAngle"],
+                        radius=setting["fins"][fin]["radius"],
+                        airfoil=setting["fins"][fin]["airfoil"],
+                        name=fin,
+                    )
 
             # Tail
-            for tail in self.tail_names:
+            for tail in setting["tails"].keys():
                 rocket_dispersion.addTail(
-                    topRadius=setting[f"tail_{tail}_topRadius"],
-                    bottomRadius=setting[f"tail_{tail}_bottomRadius"],
-                    length=setting[f"tail_{tail}_length"],
-                    position=setting[f"tail_{tail}_position"],
-                    radius=None,
-                    name="Tail",
+                    length=setting["tails"][tail]["length"],
+                    position=setting["tails"][tail]["position"],
+                    topRadius=setting["tails"][tail]["topRadius"],
+                    bottomRadius=setting["tails"][tail]["bottomRadius"],
+                    # radius=setting["tails"][tail]["radius"],
+                    # TODO: understand if we need vary this radius argument
+                    name=tail,
                 )
 
             # Add parachutes
             rocket_dispersion.parachutes = []  # Remove existing parachutes
-            for name in self.parachute_names:
+            for chute in setting["parachutes"].keys():
                 rocket_dispersion.addParachute(
-                    name=name,
-                    CdS=setting["parachute_" + name + "_CdS"],
-                    trigger=setting["parachute_" + name + "_trigger"],
-                    samplingRate=setting["parachute_" + name + "_samplingRate"],
-                    lag=setting["parachute_" + name + "_lag"],
-                    noise=setting["parachute_" + name + "_noise"],
+                    name=chute,
+                    CdS=setting["parachutes"][chute]["CdS"],
+                    trigger=setting["parachutes"][chute]["trigger"],
+                    samplingRate=setting["parachutes"][chute]["samplingRate"],
+                    lag=setting["parachutes"][chute]["lag"],
+                    noise=setting["parachutes"][chute]["noise"],
                 )
 
-            rocket_dispersion.setRailButtons(
-                position=[
-                    setting["positionFirstRailButton"],
-                    setting["positionSecondRailButton"],
-                ],
-                angularPosition=setting["railButtonAngularPosition"],
-            )
+            # TODO: Fix rail buttons definition
+            # rocket_dispersion.setRailButtons()
 
             # Run trajectory simulation
             try:
                 # TODO: Add initialSolution flight option
                 dispersion_flight = Flight(
                     rocket=rocket_dispersion,
-                    # environment=env_dispersion,
-                    inclination=setting["inclination"],
-                    heading=setting["heading"],
-                    terminateOnApogee=setting["terminateOnApogee"],
-                    maxTime=setting["maxTime"],
-                    maxTimeStep=setting["maxTimeStep"],
-                    minTimeStep=setting["minTimeStep"],
-                    rtol=setting["rtol"],
-                    atol=setting["atol"],
-                    timeOvershoot=setting["timeOvershoot"],
-                    verbose=setting["verbose"],
+                    environment=env_dispersion,
+                    inclination=setting["flight"]["inclination"],
+                    heading=setting["flight"]["heading"],
+                    # terminateOnApogee=setting["flight"]["terminateOnApogee"],
+                    # maxTime=setting["flight"]["maxTime"],
+                    # maxTimeStep=setting["flight"]["maxTimeStep"],
+                    # minTimeStep=setting["flight"]["minTimeStep"],
+                    # rtol=setting["flight"]["rtol"],
+                    # atol=setting["flight"]["atol"],
+                    # timeOvershoot=setting["flight"]["timeOvershoot"],
+                    # verbose=setting["flight"]["verbose"],
                 )
 
                 self.__export_flight_data(
@@ -1003,13 +843,13 @@ class Dispersion:
             # Evaluate results and store them
             flight_result = eval(line)
             # Append to the list
-            for parameter_key, parameter_value in flight_result.items():
-                if parameter_key not in dispersion_results.keys():
+            for key, value in flight_result.items():
+                if key not in dispersion_results.keys():
                     # Create a new list to store the parameter
-                    dispersion_results[parameter_key] = [parameter_value]
+                    dispersion_results[key] = [value]
                 else:
                     # Append the parameter value to the list
-                    dispersion_results[parameter_key].append(parameter_value)
+                    dispersion_results[key].append(value)
 
         # Close data file
         file.close()
