@@ -106,7 +106,7 @@ class LiquidMotor(Motor):
 
     @funcify_method("time (s)", "mass flow rate (kg/s)", extrapolation="zero")
     def massFlowRate(self):
-        """Evaluates the mass flow rate of the motor as the sum of each tank 
+        """Evaluates the mass flow rate of the motor as the sum of each tank
         mass flow rate.
 
         Parameters
@@ -128,8 +128,8 @@ class LiquidMotor(Motor):
 
     @funcify_method("time (s)", "center of mass (m)")
     def centerOfMass(self):
-        """Evaluates the center of mass of the motor from each tank 
-        center of mass and positioning. The center of mass height is 
+        """Evaluates the center of mass of the motor from each tank
+        center of mass and positioning. The center of mass height is
         measured relative to the motor nozzle.
 
         Parameters
@@ -155,7 +155,7 @@ class LiquidMotor(Motor):
 
     @cached_property
     def inertiaTensor(self):
-        """Evaluates the principal moment of inertia of the motor from each tank 
+        """Evaluates the principal moment of inertia of the motor from each tank
         by the parallel axis theorem. The moment of inertia is measured relative
         to the motor center of mass with the z-axis being the motor symmetry axis
         and the x and y axes completing the right-handed coordinate system.
@@ -186,7 +186,7 @@ class LiquidMotor(Motor):
         self.inertiaZ.setInputs("time (s)")
         self.inertiaI.setOutputs("inertia y (kg*m^2)")
         self.inertiaZ.setOutputs("inertia z (kg*m^2)")
-            
+
         return self.inertiaI, self.inertiaI, self.inertiaZ
 
     def addTank(self, tank, position):
@@ -198,7 +198,7 @@ class LiquidMotor(Motor):
             Tank object to be added to the rocket motor.
         position : float
             Position of the tank relative to the motor nozzle, in meters.
-            The position is measured from the nozzle tip to the tank 
+            The position is measured from the nozzle tip to the tank
             geometry reference zero point.
         """
         self.positioned_tanks.append({"tank": tank, "position": position})

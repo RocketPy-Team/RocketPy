@@ -181,7 +181,7 @@ class SolidMotor(Motor):
             reshapeThrustCurve,
             interpolationMethod,
         )
-        
+
         # Combustion chamber parameters
         self.chamberPosition = chamberPosition
         # Grain parameters
@@ -250,7 +250,7 @@ class SolidMotor(Motor):
     @funcify_method("time (s)", "Mass (kg)", extrapolation="zero")
     def centerOfMass(self):
         """Calculates and returns the time derivative of motor center of mass.
-        The result is a function of time, object of the Function class, which 
+        The result is a function of time, object of the Function class, which
         is stored in self.zCM. The burn is assumed to be uniform along the
         grain, therefore the center of mass is fixed at the chamber's geometric
         center.
@@ -312,15 +312,17 @@ class SolidMotor(Motor):
             )
             hDot = 1.0 * grainMassDot / (density * np.pi * (rO**2 - rI**2 + rI * h))
             return [rIDot, hDot]
-        
+
         def terminateBurn(t, y):
             end_function = (self.grainOuterRadius - y[0]) * y[1]
             return end_function
-        
+
         terminateBurn.terminal = True
 
         # Solve the system of differential equations
-        sol = integrate.solve_ivp(geometryDot, t_span, y0, t_eval=t, events=terminateBurn)
+        sol = integrate.solve_ivp(
+            geometryDot, t_span, y0, t_eval=t, events=terminateBurn
+        )
 
         # Write down functions for innerRadius and height
         self.grainInnerRadius = Function(
@@ -410,7 +412,7 @@ class SolidMotor(Motor):
         of symmetry while the x and y axes complete the right-handed coordinate
         system. The time derivatives of the products of inertia are also
         evaluated.
-        Products of inertia are assumed null due to symmetry. 
+        Products of inertia are assumed null due to symmetry.
 
         Parameters
         ----------

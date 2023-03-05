@@ -368,8 +368,10 @@ class MassFlowRateBasedTank(Tank):
         if gasHeight <= self.structure.top:
             return gasHeight
         else:
-            raise ValueError(f"The tank {self.name}, is overfilled" 
-                             f"with gas height {gasHeight} at time {t}")
+            raise ValueError(
+                f"The tank {self.name}, is overfilled"
+                f"with gas height {gasHeight} at time {t}"
+            )
 
 
 class UllageBasedTank(Tank):
@@ -421,9 +423,10 @@ class UllageBasedTank(Tank):
         if gasHeight <= self.structure.top:
             return gasHeight
         else:
-            raise ValueError(f"The tank {self.name}, is overfilled" 
-                             f"with gas height {gasHeight} at time {t}")
-
+            raise ValueError(
+                f"The tank {self.name}, is overfilled"
+                f"with gas height {gasHeight} at time {t}"
+            )
 
 
 class LevelBasedTank(Tank):
@@ -477,8 +480,10 @@ class LevelBasedTank(Tank):
         if gasHeight <= self.structure.top:
             return gasHeight
         else:
-            raise ValueError(f"The tank {self.name}, is overfilled" 
-                             f"with gas height {gasHeight} at time {t}")
+            raise ValueError(
+                f"The tank {self.name}, is overfilled"
+                f"with gas height {gasHeight} at time {t}"
+            )
 
 
 class MassBasedTank(Tank):
@@ -532,5 +537,7 @@ class MassBasedTank(Tank):
         if gasHeight <= self.structure.top:
             return gasHeight
         else:
-            raise ValueError(f"The tank {self.name}, is overfilled" 
-                             f"with gas height {gasHeight} at time {t}")
+            raise ValueError(
+                f"The tank {self.name}, is overfilled"
+                f"with gas height {gasHeight} at time {t}"
+            )

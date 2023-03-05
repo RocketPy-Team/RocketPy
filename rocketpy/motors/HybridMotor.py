@@ -262,7 +262,7 @@ class HybridMotor(Motor):
         of symmetry while the x and y axes complete the right-handed coordinate
         system. The time derivatives of the products of inertia are also
         evaluated.
-        Products of inertia are assumed null due to symmetry. 
+        Products of inertia are assumed null due to symmetry.
 
         Parameters
         ----------
@@ -275,14 +275,22 @@ class HybridMotor(Motor):
             The two first arguments are equivalent and represent inertia Ix,
             and Iy. The third argument is inertia Iz.
         """
-        solidCorrection = self.solid.mass * (self.solid.centerOfMass - self.centerOfMass) ** 2
-        liquidCorrection = self.liquid.mass * (self.liquid.centerOfMass - self.centerOfMass) ** 2
-        
+        solidCorrection = (
+            self.solid.mass * (self.solid.centerOfMass - self.centerOfMass) ** 2
+        )
+        liquidCorrection = (
+            self.liquid.mass * (self.liquid.centerOfMass - self.centerOfMass) ** 2
+        )
+
         solidInertia = self.solid.inertiaTensor
         liquidInertia = self.liquid.inertiaTensor
 
-        self.InertiaI = solidInertia[0] + solidCorrection + liquidInertia[0] + liquidCorrection
-        self.InertiaZ = solidInertia[2] + solidCorrection + liquidInertia[2] + liquidCorrection
+        self.InertiaI = (
+            solidInertia[0] + solidCorrection + liquidInertia[0] + liquidCorrection
+        )
+        self.InertiaZ = (
+            solidInertia[2] + solidCorrection + liquidInertia[2] + liquidCorrection
+        )
 
         # Set naming convention
         self.InertiaI.setInputs("time (s)")
@@ -291,8 +299,6 @@ class HybridMotor(Motor):
         self.InertiaZ.setOutputs("inertia z (kg*m^2)")
 
         return self.InertiaI, self.InertiaI, self.InertiaZ
-        
-
 
     def allInfo(self):
         """Prints out all data and graphs available about the Motor.
@@ -360,4 +366,3 @@ class HybridMotor(Motor):
         self.inertiaZDot()
 
         return None
-

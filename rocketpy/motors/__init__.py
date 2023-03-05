@@ -1,4 +1,4 @@
-from .Motor import Motor
+from .Motor import Motor, GenericMotor
 from .Fluid import Fluid
 from .SolidMotor import SolidMotor
 from .LiquidMotor import LiquidMotor
