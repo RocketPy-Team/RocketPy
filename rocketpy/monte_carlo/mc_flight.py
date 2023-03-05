@@ -6,6 +6,24 @@ from ..Flight import Flight
 
 
 class McFlight(BaseModel):
+    """TODO: Add description
+
+    Parameters
+    ----------
+    BaseModel : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+
+    Raises
+    ------
+    ValueError
+        _description_
+    """
+
     inclination: Any
     heading: Any
     initialSolution: Union[

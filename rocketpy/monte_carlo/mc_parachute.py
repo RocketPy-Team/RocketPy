@@ -6,6 +6,24 @@ from ..Parachute import Parachute
 
 
 class McParachute(BaseModel):
+    """TODO: Add description
+
+    Parameters
+    ----------
+    BaseModel : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+
+    Raises
+    ------
+    ValueError
+        _description_
+    """
+
     parachute: Parachute = Field(..., repr=False)
     CdS: Any = 0
     trigger: List[Union[Callable, None]] = []
@@ -39,8 +57,6 @@ class McParachute(BaseModel):
         If a tuple with a nominal value and a standard deviation is passed, then it
         will take priority over the rocket object attribute's value. A third item
         can also be added to the tuple specifying the distribution function"""
-        # TODO: add a way to check if the strings referring to the distribution func
-        # are valid names for numpy.random functions
 
         validate_fields = ["CdS", "trigger", "samplingRate", "lag", "name", "noise"]
         for field in validate_fields:

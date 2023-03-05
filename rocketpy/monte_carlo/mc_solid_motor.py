@@ -6,6 +6,24 @@ from ..Motor import SolidMotor
 
 
 class McSolidMotor(BaseModel):
+    """_summary_
+
+    Parameters
+    ----------
+    BaseModel : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+
+    Raises
+    ------
+    ValueError
+        _description_
+    """
+
     solidMotor: SolidMotor = Field(..., repr=False)
     thrustSource: List[Union[FilePath, None]] = []
     burnOutTime: Any = 0
@@ -20,6 +38,8 @@ class McSolidMotor(BaseModel):
     nozzleRadius: Any = 0
     nozzlePosition: Any = 0
     throatRadius: Any = 0
+    # TODO: why coordinateSystemOrientation is not included in this class?
+    position: Any = 0
 
     class Config:
         arbitrary_types_allowed = True
@@ -37,8 +57,6 @@ class McSolidMotor(BaseModel):
         If a tuple with a nominal value and a standard deviation is passed, then it
         will take priority over the rocket object attribute's value. A third item
         can also be added to the tuple specifying the distribution function"""
-        # TODO: add a way to check if the strings referring to the distribution func
-        # are valid names for numpy.random functions
 
         validate_fields = [
             "thrustSource",
@@ -54,6 +72,7 @@ class McSolidMotor(BaseModel):
             "nozzlePosition",
             "throatRadius",
             "totalImpulse",
+            "position",
         ]
         for field in validate_fields:
             v = values[field]

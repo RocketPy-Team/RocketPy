@@ -6,7 +6,7 @@ from ..Environment import Environment
 
 
 class McEnvironment(BaseModel):
-    """Class that holds that about an environment to be used in the Dispersion class.
+    """Holds information about an Environment to be used in the Dispersion class.
 
     Parameters
     ----------
@@ -16,7 +16,7 @@ class McEnvironment(BaseModel):
         Length in which the rocket will be attached to the rail, only moving along a fixed
         direction, that is, the line parallel to the rail. Should be given as an int or
         float, or a tuple. If int or float, the value passed will be used to construct a
-        tuple where the first item is the values of the railLenght used in the environment
+        tuple where the first item is the values of the railLength used in the environment
         object, and the second item is the value passed. This value represents the
         standard deviation to be used in the Dispersion. If a tuple is passed, the first
         item must be the standard deviation and the second must be a string containing the
@@ -26,14 +26,14 @@ class McEnvironment(BaseModel):
         Array of length 4, stating (year, month, day, hour (UTC)) of rocket launch.
         Must be given if a Forecast, Reanalysis or Ensemble, will be set as an
         atmospheric model. Should be given as a list of these arrays of length 4.
-        Each item of the list will be ramdonly chosen in each iteration of the dispersion.
+        Each item of the list will be randomly chosen in each iteration of the dispersion.
     elevation : int, float, tuple, optional
         Elevation of launch site measured as height above sea level in meters.
         Alternatively, can be set as 'Open-Elevation' which uses the Open-Elevation API
         to find elevation data. For this option, latitude and longitude must also be
         specified. Default value is 0. Should be given as an int or
         float, or a tuple. If int or float, the value passed will be used to construct a
-        tuple where the first item is the values of the railLenght used in the environment
+        tuple where the first item is the values of the railLength used in the environment
         object, and the second item is the value passed. This value represents the
         standard deviation to be used in the Dispersion. If a tuple is passed, the first
         item must be the standard deviation and the second must be a string containing the
@@ -43,7 +43,7 @@ class McEnvironment(BaseModel):
         Surface gravitational acceleration. Positive values point the acceleration down.
         Default value is 9.80665. Should be given as an int or
         float, or a tuple. If int or float, the value passed will be used to construct a
-        tuple where the first item is the values of the railLenght used in the environment
+        tuple where the first item is the values of the railLength used in the environment
         object, and the second item is the value passed. This value represents the
         standard deviation to be used in the Dispersion. If a tuple is passed, the first
         item must be the standard deviation and the second must be a string containing the
@@ -54,7 +54,7 @@ class McEnvironment(BaseModel):
         given if a Forecast, Reanalysis or Ensemble will be used as an atmospheric model
         or if Open-Elevation will be used to compute elevation. Should be given as an int or
         float, or a tuple. If int or float, the value passed will be used to construct a
-        tuple where the first item is the values of the railLenght used in the environment
+        tuple where the first item is the values of the railLength used in the environment
         object, and the second item is the value passed. This value represents the
         standard deviation to be used in the Dispersion. If a tuple is passed, the first
         item must be the standard deviation and the second must be a string containing the
@@ -65,7 +65,7 @@ class McEnvironment(BaseModel):
         Must be given if a Forecast, Reanalysis or Ensemble will be used as an atmospheric
         model or if Open-Elevation will be used to compute elevation. Should be given as an int or
         float, or a tuple. If int or float, the value passed will be used to construct a
-        tuple where the first item is the values of the railLenght used in the environment
+        tuple where the first item is the values of the railLength used in the environment
         object, and the second item is the value passed. This value represents the
         standard deviation to be used in the Dispersion. If a tuple is passed, the first
         item must be the standard deviation and the second must be a string containing the
@@ -75,12 +75,19 @@ class McEnvironment(BaseModel):
         The desired reference ellipsoidal model, the following options are available:
         "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default is "SIRGAS2000", then
         this model will be used if the user make some typing mistake. Should be given as
-        a list of strings. Each item of the list will be ramdonly chosen in each iteration
+        a list of strings. Each item of the list will be randomly chosen in each iteration
         of the dispersion.
     timeZone : list, optional
         Name of the time zone. To see all time zones, import pytz and run. Should be given
-        as a list of strings. Each item of the list will be ramdonly chosen in each
+        as a list of strings. Each item of the list will be randomly chosen in each
         iteration of the dispersion.
+
+    TODO: it seems you are copying documentation from the Environment class. This is
+    not a good practice. You should only document the parameters that are specific to
+    this class. The rest should be documented in the Environment class. If you want to
+    document the parameters that are related to other classes, you can refer them here.
+    For example, you can type 'see rocketpy.Environment for more information'.
+    Examples: https://osmnx.readthedocs.io/en/stable/osmnx.html#osmnx.stats.basic_stats
     """
 
     environment: Environment = Field(..., repr=False)
@@ -109,8 +116,6 @@ class McEnvironment(BaseModel):
         If a tuple with a nominal value and a standard deviation is passed, then it
         will take priority over the rocket object attribute's value. A third item
         can also be added to the tuple specifying the distribution function"""
-        # TODO: add a way to check if the strings referring to the distribution func
-        # are valid names for numpy.random functions
 
         validate_fields = [
             "railLength",

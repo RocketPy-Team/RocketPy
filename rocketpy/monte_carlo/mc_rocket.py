@@ -2,9 +2,12 @@ from typing import Any, List, Tuple, Union
 
 from pydantic import BaseModel, Field, FilePath, PrivateAttr, root_validator
 
+from ..AeroSurfaces import EllipticalFins, NoseCone, Tail, TrapezoidalFins
+from ..Parachute import Parachute
 from ..Rocket import Rocket
 from .mc_aero_surfaces import McEllipticalFins, McNoseCone, McTail, McTrapezoidalFins
 from .mc_parachute import McParachute
+from .mc_solid_motor import McSolidMotor
 
 
 # TODO: make a special validator for power on and off factor since they need to have the nominal
@@ -20,6 +23,9 @@ class McRocket(BaseModel):
     centerOfDryMassPosition: Any = 0
     powerOffDragFactor: Any = 0
     powerOnDragFactor: Any = 0
+    # TODO: why coord sys orientation is not included in this class?
+    # coordinateSystemOrientation = ??
+    _motors: list = PrivateAttr()
     _nosecones: list = PrivateAttr()
     _fins: list = PrivateAttr()
     _tails: list = PrivateAttr()
@@ -31,11 +37,16 @@ class McRocket(BaseModel):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self._motors = []
         self._nosecones = []
         self._fins = []
         self._tails = []
         self._parachutes = []
         self._railButtons = []
+
+    @property
+    def motors(self):
+        return self._motors
 
     @property
     def nosecones(self):
@@ -135,23 +146,31 @@ class McRocket(BaseModel):
                 )
         return values
 
-    def addNose(self, nosecone):
-        # checks if input is a McNoseCone type
-        if not isinstance(nosecone, McNoseCone):
-            raise TypeError("nosecone must be of McNoseCone type")
-        return self.nosecones.append(nosecone)
+    def addMotor(self, motor):
+        # checks if input is a McSolidMotor type
+        if not isinstance(motor, McSolidMotor):
+            raise TypeError("motor must be of McMotor type")
+        return self.motors.append(motor)
 
-    def addTrapezoidalFins(self, trapezoidalFins):
+    def addNose(self, nose):
+        # checks if input is a McNoseCone or NoseCone type
+        if not isinstance(nose, (McNoseCone, NoseCone)):
+            raise TypeError(
+                "nosecone must be of rocketpy.monte_carlo.McNoseCone or rocketpy.NoseCone type"
+            )
+        return self.nosecones.append(nose)
+
+    def addTrapezoidalFins(self, fins):
         # checks if input is a McNoseCone type
-        if not isinstance(trapezoidalFins, McTrapezoidalFins):
+        if not isinstance(fins, McTrapezoidalFins):
             raise TypeError("trapezoidalFins must be of McNoseCone type")
-        return self.fins.append(trapezoidalFins)
+        return self.fins.append(fins)
 
-    def addEllipticalFins(self, ellipticalFins):
+    def addEllipticalFins(self, fins):
         # checks if input is a McNoseCone type
-        if not isinstance(ellipticalFins, McEllipticalFins):
+        if not isinstance(fins, McEllipticalFins):
             raise TypeError("ellipticalFins must be of McNoseCone type")
-        return self.fins.append(ellipticalFins)
+        return self.fins.append(fins)
 
     def addTail(self, tail):
         # checks if input is a McNoseCone type
@@ -169,3 +188,20 @@ class McRocket(BaseModel):
         # TODO: transform rail buttons into data classes
         # TODO: currently does not vary anything just for testing
         self.railButtons = [position1, position2, angle]
+
+
+class McButtons(BaseModel):
+    """Class for the rail buttons"""
+
+    position1: float
+    position2: float
+    angle: float
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.position1 = kwargs["position1"]
+        self.position2 = kwargs["position2"]
+        self.angle = kwargs["angle"]

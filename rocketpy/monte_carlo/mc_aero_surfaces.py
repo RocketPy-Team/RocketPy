@@ -1,3 +1,5 @@
+# TODO: add heading and description of the file here, as usual in RocketPy
+
 from typing import Any, List, Tuple, Union
 
 from pydantic import BaseModel, Field, FilePath, StrictInt, StrictStr, root_validator
@@ -6,21 +8,41 @@ from ..AeroSurfaces import EllipticalFins, NoseCone, Tail, TrapezoidalFins
 
 
 class McNoseCone(BaseModel):
+    """TODO: add docstring here, maybe with some examples
+
+    Parameters
+    ----------
+    BaseModel : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+
+    Raises
+    ------
+    ValueError
+        _description_
+    """
+
     nosecone: NoseCone = Field(..., repr=False)
     length: Any = 0
     kind: List[Union[StrictStr, None]] = []
     position: Any = 0
-    baseRadius: Any = 0
-    rocketRadius: Any = 0
+    baseRadius: Any = 0  # TODO: is this really necessary?
+    rocketRadius: Any = 0  # TODO: is this really necessary?
     name: List[StrictStr] = []
+    # TODO: question: how can we document the above code lines? Why are they here?
 
     class Config:
         arbitrary_types_allowed = True
+        # TODO: please comment WHY this step is necessary
 
     @root_validator(skip_on_failure=True)
     def set_attr(cls, values):
         """Validates inputs that can be either tuples, lists, ints or floats and
-        saves them in the format (nom_val,std) or (nom_val,std,'dist_func').
+        saves them in the format (mean, std) or (mean, std,'dist_func').
         Lists are saved as they are inputted.
         Inputs can be given as floats or ints, referring to the standard deviation.
         In this case, the nominal value of that attribute will come from the rocket
@@ -29,9 +51,18 @@ class McNoseCone(BaseModel):
         the name a numpy.random distribution function can be passed.
         If a tuple with a nominal value and a standard deviation is passed, then it
         will take priority over the rocket object attribute's value. A third item
-        can also be added to the tuple specifying the distribution function"""
-        # TODO: add a way to check if the strings referring to the distribution func
-        # are valid names for numpy.random functions
+        can also be added to the tuple specifying the distribution function
+
+        Returns
+        -------
+        _type_
+            _description_
+
+        Raises
+        ------
+        ValueError
+            _description_
+        """
 
         validate_fields = [
             "length",
@@ -48,13 +79,13 @@ class McNoseCone(BaseModel):
                 # checks if first item is valid
                 assert isinstance(
                     v[0], (int, float)
-                ), f"\nField '{field}': \n\tFirst item of tuple must be either an int or float"
-                # if len is two can either be (nom_val,std) or (std,'dist_func')
+                ), f"Field '{field}': \tFirst item of tuple must be either an int or float"
+                # if len == 1, it can either be (nom_val,std) or (std,'dist_func')
                 if len(v) == 2:
                     # checks if second value is either string or int/float
                     assert isinstance(
                         v[1], (int, float, str)
-                    ), f"\nField '{field}': \n\tSecond item of tuple must be either an int, float or string \n  If the first value refers to the nominal value of {field}, then the second item's value should be the desired standard deviation \n  If the first value is the standard deviation, then the second item's value should be a string containing a name of a numpy.random distribution function"
+                    ), f"Field '{field}': Second item of tuple must be either an int, float or string. If the first value refers to the nominal value of {field}, then the second item's value should be the desired standard deviation. If the first value is the standard deviation, then the second item's value should be a string containing a name of a numpy.random distribution function"
                     # if second item is not str, then (nom_val, std)
                     if not isinstance(v[1], str):
                         values[field] = v
@@ -65,10 +96,10 @@ class McNoseCone(BaseModel):
                 if len(v) == 3:
                     assert isinstance(
                         v[1], (int, float)
-                    ), f"\nField '{field}': \n\tSecond item of tuple must be either an int or float \n  The second item should be the standard deviation to be used in the simulation"
+                    ), f"Field '{field}': second item of tuple must be either an int or float. The second item should be the standard deviation to be used in the simulation"
                     assert isinstance(
                         v[2], str
-                    ), f"\nField '{field}': \n\tThird item of tuple must be a string \n  The string should contain the name of a valid numpy.random distribution function"
+                    ), f"Field '{field}': \tThird item of tuple must be a string. The string should contain the name of a valid numpy.random distribution function"
                     values[field] = v
             elif isinstance(v, list):
                 # checks if input list is empty, meaning nothing was inputted
@@ -79,7 +110,7 @@ class McNoseCone(BaseModel):
                     # guarantee all values are valid (ints or floats)
                     assert all(
                         isinstance(item, (int, float)) for item in v
-                    ), f"\nField '{field}': \n\tItems in list must be either ints or floats"
+                    ), f"Field '{field}': items in list must be either ints or floats"
                     # all good, sets inputs
                     values[field] = v
             elif isinstance(v, (int, float)):
@@ -88,12 +119,30 @@ class McNoseCone(BaseModel):
                 values[field] = (getattr(values["nosecone"], field), v)
             else:
                 raise ValueError(
-                    f"\nField '{field}': \n\tMust be either a tuple, list, int or float"
+                    f"The field '{field}' must be a tuple, list, int or float"
                 )
         return values
 
 
 class McTrapezoidalFins(BaseModel):
+    """TODO: add docstring here, maybe with some examples
+
+    Parameters
+    ----------
+    BaseModel : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+
+    Raises
+    ------
+    ValueError
+        _description_
+    """
+
     trapezoidalFins: TrapezoidalFins = Field(..., repr=False)
     n: List[StrictInt] = []
     rootChord: Any = 0
@@ -146,13 +195,13 @@ class McTrapezoidalFins(BaseModel):
                 # checks if first item is valid
                 assert isinstance(
                     v[0], (int, float)
-                ), f"\nField '{field}': \n\tFirst item of tuple must be either an int or float"
+                ), f"Field '{field}': \tFirst item of tuple must be either an int or float"
                 # if len is two can either be (nom_val,std) or (std,'dist_func')
                 if len(v) == 2:
                     # checks if second value is either string or int/float
                     assert isinstance(
                         v[1], (int, float, str)
-                    ), f"\nField '{field}': \n\tSecond item of tuple must be either an int, float or string \n  If the first value refers to the nominal value of {field}, then the second item's value should be the desired standard deviation \n  If the first value is the standard deviation, then the second item's value should be a string containing a name of a numpy.random distribution function"
+                    ), f"Field '{field}': \tSecond item of tuple must be either an int, float or string   If the first value refers to the nominal value of {field}, then the second item's value should be the desired standard deviation   If the first value is the standard deviation, then the second item's value should be a string containing a name of a numpy.random distribution function"
                     # if second item is not str, then (nom_val, std)
                     if not isinstance(v[1], str):
                         values[field] = v
@@ -167,10 +216,10 @@ class McTrapezoidalFins(BaseModel):
                 if len(v) == 3:
                     assert isinstance(
                         v[1], (int, float)
-                    ), f"\nField '{field}': \n\tSecond item of tuple must be either an int or float \n  The second item should be the standard deviation to be used in the simulation"
+                    ), f"Field '{field}': \tSecond item of tuple must be either an int or float   The second item should be the standard deviation to be used in the simulation"
                     assert isinstance(
                         v[2], str
-                    ), f"\nField '{field}': \n\tThird item of tuple must be a string \n  The string should contain the name of a valid numpy.random distribution function"
+                    ), f"Field '{field}': \tThird item of tuple must be a string   The string should contain the name of a valid numpy.random distribution function"
                     values[field] = v
             elif isinstance(v, list):
                 # checks if input list is empty, meaning nothing was inputted
@@ -181,7 +230,7 @@ class McTrapezoidalFins(BaseModel):
                     # guarantee all values are valid (ints or floats)
                     assert all(
                         isinstance(item, (int, float)) for item in v
-                    ), f"\nField '{field}': \n\tItems in list must be either ints or floats"
+                    ), f"Field '{field}': \tItems in list must be either ints or floats"
                     # all good, sets inputs
                     values[field] = v
             elif isinstance(v, (int, float)):
@@ -190,12 +239,30 @@ class McTrapezoidalFins(BaseModel):
                 values[field] = (getattr(values["trapezoidalFins"], field), v)
             else:
                 raise ValueError(
-                    f"\nField '{field}': \n\tMust be either a tuple, list, int or float"
+                    f"Field '{field}': \tMust be either a tuple, list, int or float"
                 )
         return values
 
 
 class McEllipticalFins(BaseModel):
+    """TODO: add docstring here, maybe with some examples
+
+    Parameters
+    ----------
+    BaseModel : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+
+    Raises
+    ------
+    ValueError
+        _description_
+    """
+
     ellipticalFins: EllipticalFins = Field(..., repr=False)
     n: Any = 0
     rootChord: Any = 0
@@ -242,13 +309,13 @@ class McEllipticalFins(BaseModel):
                 # checks if first item is valid
                 assert isinstance(
                     v[0], (int, float)
-                ), f"\nField '{field}': \n\tFirst item of tuple must be either an int or float"
+                ), f"Field '{field}': \tFirst item of tuple must be either an int or float"
                 # if len is two can either be (nom_val,std) or (std,'dist_func')
                 if len(v) == 2:
                     # checks if second value is either string or int/float
                     assert isinstance(
                         v[1], (int, float, str)
-                    ), f"\nField '{field}': \n\tSecond item of tuple must be either an int, float or string \n  If the first value refers to the nominal value of {field}, then the second item's value should be the desired standard deviation \n  If the first value is the standard deviation, then the second item's value should be a string containing a name of a numpy.random distribution function"
+                    ), f"Field '{field}': \tSecond item of tuple must be either an int, float or string   If the first value refers to the nominal value of {field}, then the second item's value should be the desired standard deviation   If the first value is the standard deviation, then the second item's value should be a string containing a name of a numpy.random distribution function"
                     # if second item is not str, then (nom_val, std)
                     if not isinstance(v[1], str):
                         values[field] = v
@@ -263,10 +330,10 @@ class McEllipticalFins(BaseModel):
                 if len(v) == 3:
                     assert isinstance(
                         v[1], (int, float)
-                    ), f"\nField '{field}': \n\tSecond item of tuple must be either an int or float \n  The second item should be the standard deviation to be used in the simulation"
+                    ), f"Field '{field}': \tSecond item of tuple must be either an int or float   The second item should be the standard deviation to be used in the simulation"
                     assert isinstance(
                         v[2], str
-                    ), f"\nField '{field}': \n\tThird item of tuple must be a string \n  The string should contain the name of a valid numpy.random distribution function"
+                    ), f"Field '{field}': \tThird item of tuple must be a string   The string should contain the name of a valid numpy.random distribution function"
                     values[field] = v
             elif isinstance(v, list):
                 # checks if input list is empty, meaning nothing was inputted
@@ -277,7 +344,7 @@ class McEllipticalFins(BaseModel):
                     # guarantee all values are valid (ints or floats)
                     assert all(
                         isinstance(item, (int, float)) for item in v
-                    ), f"\nField '{field}': \n\tItems in list must be either ints or floats"
+                    ), f"Field '{field}': \tItems in list must be either ints or floats"
                     # all good, sets inputs
                     values[field] = v
             elif isinstance(v, (int, float)):
@@ -286,12 +353,30 @@ class McEllipticalFins(BaseModel):
                 values[field] = (getattr(values["ellipticalFins"], field), v)
             else:
                 raise ValueError(
-                    f"\nField '{field}': \n\tMust be either a tuple, list, int or float"
+                    f"Field '{field}': \tMust be either a tuple, list, int or float"
                 )
         return values
 
 
 class McTail(BaseModel):
+    """TODO: add docstring
+
+    Parameters
+    ----------
+    BaseModel : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+
+    Raises
+    ------
+    ValueError
+        _description_
+    """
+
     tail: Tail = Field(..., repr=False)
     topRadius: Any = 0
     bottomRadius: Any = 0
@@ -334,13 +419,13 @@ class McTail(BaseModel):
                 # checks if first item is valid
                 assert isinstance(
                     v[0], (int, float)
-                ), f"\nField '{field}': \n\tFirst item of tuple must be either an int or float"
+                ), f"Field '{field}': \tFirst item of tuple must be either an int or float"
                 # if len is two can either be (nom_val,std) or (std,'dist_func')
                 if len(v) == 2:
                     # checks if second value is either string or int/float
                     assert isinstance(
                         v[1], (int, float, str)
-                    ), f"\nField '{field}': \n\tSecond item of tuple must be either an int, float or string \n  If the first value refers to the nominal value of {field}, then the second item's value should be the desired standard deviation \n  If the first value is the standard deviation, then the second item's value should be a string containing a name of a numpy.random distribution function"
+                    ), f"Field '{field}': \tSecond item of tuple must be either an int, float or string   If the first value refers to the nominal value of {field}, then the second item's value should be the desired standard deviation   If the first value is the standard deviation, then the second item's value should be a string containing a name of a numpy.random distribution function"
                     # if second item is not str, then (nom_val, std)
                     if not isinstance(v[1], str):
                         values[field] = v
@@ -351,10 +436,10 @@ class McTail(BaseModel):
                 if len(v) == 3:
                     assert isinstance(
                         v[1], (int, float)
-                    ), f"\nField '{field}': \n\tSecond item of tuple must be either an int or float \n  The second item should be the standard deviation to be used in the simulation"
+                    ), f"Field '{field}': \tSecond item of tuple must be either an int or float   The second item should be the standard deviation to be used in the simulation"
                     assert isinstance(
                         v[2], str
-                    ), f"\nField '{field}': \n\tThird item of tuple must be a string \n  The string should contain the name of a valid numpy.random distribution function"
+                    ), f"Field '{field}': \tThird item of tuple must be a string   The string should contain the name of a valid numpy.random distribution function"
                     values[field] = v
             elif isinstance(v, list):
                 # checks if input list is empty, meaning nothing was inputted
@@ -365,7 +450,7 @@ class McTail(BaseModel):
                     # guarantee all values are valid (ints or floats)
                     assert all(
                         isinstance(item, (int, float)) for item in v
-                    ), f"\nField '{field}': \n\tItems in list must be either ints or floats"
+                    ), f"Field '{field}': \tItems in list must be either ints or floats"
                     # all good, sets inputs
                     values[field] = v
             elif isinstance(v, (int, float)):
@@ -374,6 +459,6 @@ class McTail(BaseModel):
                 values[field] = (getattr(values["tail"], field), v)
             else:
                 raise ValueError(
-                    f"\nField '{field}': \n\tMust be either a tuple, list, int or float"
+                    f"Field '{field}': \tMust be either a tuple, list, int or float"
                 )
         return values
