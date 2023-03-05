@@ -1,6 +1,6 @@
 # In this file we define functions that are used in the rocketpy package.
-# Note that these functions can not depend on any other rocketpy module. 
-# If they depend on another module, they should be moved to that module or to 
+# Note that these functions can not depend on any other rocketpy module.
+# If they depend on another module, they should be moved to that module or to
 # the utilities module.
 
 _NOT_FOUND = object()

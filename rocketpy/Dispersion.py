@@ -149,7 +149,7 @@ class Dispersion:
                 for key, value in data.items():
                     if isinstance(value, dict):
                         setting[class_name][key] = {}
-                        for (sub_key, sub_value) in value.items():
+                        for sub_key, sub_value in value.items():
                             if isinstance(sub_value, tuple):
                                 try:
                                     setting[class_name][key][sub_key] = sub_value[-1](

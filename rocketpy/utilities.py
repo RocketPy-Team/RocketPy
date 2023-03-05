@@ -5,7 +5,7 @@ __license__ = "MIT"
 
 # This file contains functions that are useful for different things, depend
 # on other rocketpy modules but are not used in the main classes. If the function
-# needs to be used in other rocketpy classes, use the tools.py file. 
+# needs to be used in other rocketpy classes, use the tools.py file.
 
 import traceback
 import warnings
