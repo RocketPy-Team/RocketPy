@@ -519,39 +519,196 @@ class Dispersion:
 
         return None
 
-    def construct_dispersion_dict(
-        self, envData, motorData, rocketData, flightData, disp_dict
+    @staticmethod
+    def build_dispersion_dict(
+        env,
+        rocket,
+        motors,
+        flight,
+        nosecones=None,
+        fins=None,
+        tails=None,
+        parachutes=None,
+        buttons=None,
     ):
-        """Construct dispersion dicitonary in the correct format from inputted data classes"""
+        """Creates a dictionary to be used in the dispersion analysis. As a
+        static method, it can be used without instantiating a Dispersion object.
 
-        datas = [envData, motorData, rocketData, flightData]
-        for data in datas:
-            # TODO: Add nosecone, fins, tail, parachute and rail buttons interpretation here
+        Parameters
+        ----------
+        env : rocketpy.monte_carlo.McEnvironment or rocketpy.Environment
+            An environment object to be used in the simulations. Only a single
+            object is supported.
+            # TODO: verify what happens if we use Environment instead of McEnvironment
+        rocket : rocketpy.monte_carlo.McRocket or rocketpy.Rocket
+            A rocket object to be used in the simulations. Only a single object
+            is supported. The rocket object doesn't need to have a motor, aerodynamic
+            surfaces or parachutes attached. Indeed, all those components will be
+            ignored when creating the dictionary, since they can be defined in
+            the other arguments of this method.
+        motors : Motor, McMotor or list of McMotor
+            A motor object to be used in the simulations. In case of having more
+            than one motor, the user must pass a list of McMotor objects.
+        flight : Flight or McFlight
+            A flight object to be used in the simulations. Only a single object
+            is supported.
+        nosecones : McNoseCone or list of McNoseCone, optional
+            A nosecone object to be used in the simulations. In case of having more
+            than one nosecone, the user must pass a list of McNoseCone objects.
+        fins : McTrapezoidalFins, McEllipticalFins or list of them, optional
+            A fin object to be used in the simulations. In case of having more
+            than one fin, the user must pass a list of McFin objects.
+        tails : Tail, McTail or list of McTail, optional
+            A tail object to be used in the simulations. In case of having more
+            than one tail, the user must pass a list of McTail objects.
+        parachutes : Parachute, McParachute or list of McParachute, optional
+            A parachute object to be used in the simulations. In case of having more
+            than one parachute, the user must pass a list of McParachute objects.
+        buttons : McButton, optional
+            A button object to be used in the simulations. Only a single object
+            is supported.
 
-            for field in data.__annotations__.keys():
-                value = getattr(data, field)
-                # if value is tuple
-                if isinstance(value, tuple):
-                    # checks if dist_func name was passed
-                    if isinstance(value[-1], str):
-                        # try to get numpy.random dist func
-                        try:
-                            dist_func = self.__get_distribution(value[-1])
-                        except:
-                            raise ValueError(
-                                f"Cannot set distribuition function from {field} : {value}"
-                                + "\nPlease check if name passed in the string is a valid numpy.random distribuition function"
-                            )
-                    # if not sets default dist func
-                    else:
-                        dist_func = normal
+        Returns
+        -------
+        mc_dict : dict
+            A dictionary containing all the information needed to run a dispersion
+            analysis. This dictionary has the following structure:
+            mc_dict = {
+                "environment": {
+                    "railLength": (mean, std, np.random.func),
+                    "date": [mean],
+                },
+                "rocket": {
+                    'radius': (mean, std, np.random.func),
+                    'mass': (mean, std, np.random.func),
+                    'inertiaI': (mean, std, np.random.func)
+                    },
+                "motors": {},
+                "flight": {},
+                "nosecones": {},
+                "fins": {},
+                "tails": {},
+                "parachutes": {
+                    "0": {
+                        "CdS": (mean, std, np.random.func),
+                        "lag": (mean, std, np.random.func),
+                        ...
+                    },
+                    "1": {...}
+                },
+                "buttons": {},
+            }
 
-                    # saves in the disp dict in the format (nom_val,std,dist_func)
-                    disp_dict[field] = (value[0], value[1], dist_func)
+        Examples
+        --------
+        >>> mc_env = McEnvironment(...)
+        >>> mc_motor = McSolidMotor(...)
+        >>> mc_rocket = McRocket(...)
+        >>> mc_nose = McNoseCone(...)
+        >>> mc_fins1 = McTrapezoidalFins(...)
+        >>> mc_fins2 = McTrapezoidalFins(...)
+        >>> mc_flight = McFlight(...)
+        >>> mc_dict = Dispersion.build_dispersion_dict(
+        >>>     mc_env, mc_rocket, mc_motor, mc_flight, mc_nose, [mc_fins1, mc_fins2]
+        >>> )
 
-                # else if value is list, save as is
-                elif isinstance(value, list):
-                    disp_dict[field] = value
+        """
+
+        mc_dict = {}
+        structure = {
+            "environment": env,
+            "rocket": rocket,
+            "motors": motors,
+            "flight": flight,
+            "nosecones": nosecones,
+            "fins": fins,
+            "tails": tails,
+            "parachutes": parachutes,
+            "buttons": buttons,
+        }
+
+        for name, data in structure.items():
+            if data is None:
+                continue
+            mc_dict[name] = {}
+            # Lists are special, for instance: parachutes = [McParachute(), McParachute()]
+            # therefore we need to iterate over the list
+            if isinstance(data, list):
+                for i, item in enumerate(data):
+                    mc_dict[name][i] = {}
+                    for field in item.__annotations__.keys():
+                        value = getattr(item, field)
+                        # Avoid undesired fields (private and name)
+                        if field[0] == "_":
+                            continue
+                        mc_dict[name][i][field] = Dispersion._create_mc_tuple(value)
+            else:
+                for field in data.__annotations__.keys():
+                    value = getattr(data, field)
+                    if field[0] == "_":
+                        continue
+                    mc_dict[name][field] = Dispersion._create_mc_tuple(value)
+
+        # pop any value that is None, even if it is a value of sub dictionary
+        mc_dict = Dispersion._pop_none(mc_dict)
+
+        return mc_dict
+
+    @staticmethod
+    def _create_mc_tuple(value):
+        """Receives a value provided by a McXxxxx object and returns a tuple
+        containing the mean, standard deviation and a np.random function to be
+        used in the simulation. There are two possible cases:
+        1. The value is a list: simply return the list
+        2. The value is a tuple: return a tuple containing the mean, std and
+        a np.random function. The default distribution is normal, but it can
+        be changed by adding a string to the end of the tuple. For example:
+        (mean, std, 'uniform') will return a tuple with the mean, std and
+        np.random.uniform function.
+
+        Parameters
+        ----------
+        value : tuple or list
+            The value to be converted to a monte carlo tuple
+
+        Returns
+        -------
+        tuple
+            Mean, standard deviation and np.random function
+        """
+        if isinstance(value, list):
+            return value
+        elif isinstance(value, tuple):
+            # the normal distribution is considered the default
+            dist_func = (
+                _get_distribution(value[-1])
+                if isinstance(value[-1], str)
+                else np.random.normal
+            )
+            return (value[0], value[1], dist_func)
+
+    @staticmethod
+    def _pop_none(dictionary):
+        """Removes all the keys that have a value of None. This is useful
+        when the user wants to run a simulation with a subset of the
+        available parameters.
+
+        Parameters
+        ----------
+        dictionary : dict
+            The dictionary to be cleaned
+
+        Returns
+        -------
+        dict
+            The cleaned dictionary
+        """
+        for key, value in dictionary.copy().items():
+            if value is None:
+                dictionary.pop(key)
+            elif isinstance(value, dict):
+                Dispersion._pop_none(value)
+        return dictionary
 
     def run_dispersion(
         self,
@@ -618,13 +775,16 @@ class Dispersion:
         self.number_of_simulations = number_of_simulations
 
         # Creates dispersion dictionary
-        self.dispersion_dictionary = {}
-        self.construct_dispersion_dict(
-            self.environmentData,
-            self.motorData,
-            self.rocketData,
-            self.flightData,
-            self.dispersion_dictionary,
+        self.dispersion_dictionary = self.build_dispersion_dict(
+            env=self.environment,
+            rocket=self.rocket,
+            motors=self.motors,
+            flight=self.flight,
+            nosecones=self.nosecones,
+            fins=self.fins,
+            tails=self.tails,
+            parachutes=self.parachutes,
+            buttons=None,
         )
 
         # Create data files for inputs, outputs and error logging
