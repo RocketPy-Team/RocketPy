@@ -1420,9 +1420,9 @@ class Flight:
         vyB = a12 * vx + a22 * vy + a32 * vz
         vzB = a13 * vx + a23 * vy + a33 * vz
         # Calculate lift and moment for each component of the rocket
-        for aeroSurface in self.rocket.aerodynamicSurfaces:
+        for aeroSurface, position in self.rocket.aerodynamicSurfaces:
             compCp = (
-                aeroSurface.position - self.rocket.centerOfDryMassPosition
+                position - self.rocket.centerOfDryMassPosition
             ) * self.rocket._csys - aeroSurface.cpz
             surfaceRadius = aeroSurface.rocketRadius
             referenceArea = np.pi * surfaceRadius**2
