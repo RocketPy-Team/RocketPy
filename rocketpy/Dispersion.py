@@ -260,114 +260,102 @@ class Dispersion:
             "tFinal",
         )
         if export_list:
-            # Check if all the items are strings
-            if not all(isinstance(attr, str) for attr in export_list):
-                raise TypeError("All attributes of export_list must be strings.")
+            for attr in export_list:
+                if not isinstance(attr, str):
+                    raise TypeError("Variables must be strings.")
 
-            # Get the intersection of the exportables and the export_list
-            return tuple(set(export_list).intersection(exportables))
-
+                # Checks if attribute is not valid
+                if attr not in self.export_list:
+                    raise ValueError(
+                        "Attribute can not be exported. Check export_list."
+                    )
         else:
-            return standard_output
+            export_list = self.exportable_list
+
+        return export_list
 
     def __export_flight_data(
         self,
-        flight_setting,
+        setting,
         flight,
         exec_time,
-        dispersion_input_file,
-        dispersion_output_file,
+        inputs_log,
+        outputs_log,
+        export_list,
+        save_parachute_data=False,
     ):
         """Saves flight results in a .txt
-
         Parameters
         ----------
-        flight_setting : dict
+        setting : dict
             The flight setting used in the simulation.
         flight : Flight
             The flight object.
         exec_time : float
             The execution time of the simulation.
-        dispersion_input_file : str
+        inputs_log : str
             The name of the file containing all the inputs for the simulation.
-        dispersion_output_file : str
+        outputs_log : str
             The name of the file containing all the outputs for the simulation.
-
+        save_parachute_data : bool, optional
+            If True, saves the parachute data, by default False
+        export_list : list or tuple, optional
+            List of variables to be saved, by default None. If None, use a
+            default list of variables.
         Returns
         -------
-        None
+        inputs_log : str
+            The new string with the inputs of the simulation setting.
+        outputs_log : str
+            The new string with the outputs of the simulation setting.
         """
-        # TODO: This method is called at every loop of the dispersion
-        # so all the for loops are slowing down de dispersion
-        # find a more efficient way to save attributes
+        m = map(getattr, [flight] * len(export_list), export_list)
+        results = dict(zip(export_list, m))
+        results["executionTime"] = exec_time
 
-        # TODO: Add a way to save more than just flight attributes, i.e. rocket, motor...
+        # Sometimes we want to skip the parachute data to save time
+        if save_parachute_data:
+            for trigger_time, parachute in flight.parachuteEvents:
+                # TODO: These should be better implemented in Flight events, avoiding
+                # making any calculations here
+                results[parachute.name + "_triggerTime"] = trigger_time
+                results[parachute.name + "_inflatedTime"] = trigger_time + parachute.lag
+                results[parachute.name + "_inflatedVelocity"] = flight.speed(
+                    trigger_time + parachute.lag
+                )
+                results[parachute.name + "_inflatedAltitude"] = (
+                    flight.z(trigger_time + parachute.lag) - flight.env.elevation
+                )
 
-        # Get list of selected flight attributes
-        attributes_list = list(set(dir(flight)).intersection(self.export_list))
-        flight_result = {}
-        for var in self.export_list:
-            # First, capture the flight data that are saved in the flight object
-            if var in attributes_list:
-                # Check if Function. If so, get source
-                if isinstance(getattr(flight, var), Function):
-                    flight_result[str(var)] = getattr(flight, var).getSource()
-                else:
-                    flight_result[str(var)] = getattr(flight, var)
+        # Remove the powerOffDrag item from setting
+        setting.pop("powerOffDrag", None)
+        setting.pop("powerOnDrag", None)
+        setting.pop("date", None)
+        setting.pop("thrust", None)
+        # TODO: Find a way to pop the parachute trigger functions
 
-            # Second, capture data that needs to be calculated
-            elif var == "executionTime":
-                flight_result[str(var)] = exec_time
-            elif var == "numberOfEvents":
-                flight_result[str(var)] = len(flight.parachuteEvents)
-            else:
-                raise ValueError(f"Variable {var} could not be found.")
+        inputs_log += str(setting) + "\n"
+        outputs_log += str(results) + "\n"
 
-        # Take care of parachute results
-        # TODO: this always gets saved... must be parametrized
-        for trigger_time, parachute in flight.parachuteEvents:
-            flight_result[parachute.name + "_triggerTime"] = trigger_time
-            flight_result[parachute.name + "_inflatedTime"] = (
-                trigger_time + parachute.lag
-            )
-            flight_result[parachute.name + "_inflatedVelocity"] = flight.speed(
-                trigger_time + parachute.lag
-            )
+        return inputs_log, outputs_log
 
-        # TODO: maybe we should not have any Function object in flight_setting,
-        #       only have their source and make this check before the dispersion loop
-        # Check if attr is Function. If so, get source
-        for key, value in flight_setting.items():
-            if isinstance(value, Function):
-                flight_setting[key] = value.getSource()
-
-        dispersion_input_file.write(str(flight_setting) + "\n")
-        dispersion_output_file.write(str(flight_result) + "\n")
-
-        return None
-
-    def __export_flight_data_error(self, flight_setting, dispersion_error_file):
+    def __export_flight_data_error(self, setting, errors_log):
         """Saves flight error in a .txt
-
         Parameters
         ----------
-        flight_setting : dict
+        setting : dict
             The flight setting used in the simulation.
-        dispersion_error_file : str
+        errors_log : str
             The name of the file containing all the errors for the simulation.
-
         Returns
         -------
-        None
+        errors_log : str
+            The new string with the flight setting error saved.
         """
-        # Check if attr is Function. If so, get source
-        for key, value in flight_setting.items():
-            if isinstance(value, Function):
-                flight_setting[key] = value.getSource()
 
-        dispersion_error_file.write(str(flight_setting) + "\n")
+        errors_log += str(setting) + "\n"
 
-        return None
+        return errors_log
 
     @staticmethod
     def build_dispersion_dict(
@@ -565,6 +553,7 @@ class Dispersion:
         number_of_simulations,
         export_list=None,
         append=False,
+        save_parachute_data=False,
     ):
         """Runs the dispersion simulation and saves all data. For the simulation to be run
         all classes must be defined. This can happen either trough the dispersion_dictionary
@@ -602,14 +591,31 @@ class Dispersion:
             buttons=None,
         )
 
-        # Create data files for inputs, outputs and error logging
+        # Create data strings for inputs, outputs and error logging
         open_mode = "a" if append else "w"
-        dispersion_error_file = open(f"{self.filename}.disp_errors.txt", open_mode)
-        dispersion_input_file = open(f"{self.filename}.disp_inputs.txt", open_mode)
-        dispersion_output_file = open(f"{self.filename}.disp_outputs.txt", open_mode)
+        if open_mode == "a":
+            with open(
+                f"{self.filename}.disp_errors.txt", open_mode, encoding="utf-8"
+            ) as f:
+                errors_log = f
+            with open(
+                f"{self.filename}.disp_inputs.txt", open_mode, encoding="utf-8"
+            ) as f:
+                inputs_log = f
+            with open(
+                f"{self.filename}.disp_outputs.txt", open_mode, encoding="utf-8"
+            ) as f:
+                outputs_log = f
+        else:
+            errors_log = inputs_log = outputs_log = str()
 
-        # Checks export_list
-        self.export_list = self.__check_export_list(export_list)
+        # Use a default export list if none is provided
+        if export_list is None:
+            print("No export list provided, using default list instead.")
+            export_list = self.standard_output
+        else:
+            # Checks export_list
+            self.export_list = self.__check_export_list(export_list)
 
         # Initialize counter and timer
         i = 0
@@ -629,7 +635,7 @@ class Dispersion:
         for setting in self.__yield_flight_setting(
             self.dispersion_dictionary, self.number_of_simulations
         ):
-            self.start_time = process_time()
+            start_time = process_time()
             i += 1
 
             # Apply environment parameters variations on each iteration if possible
@@ -773,21 +779,25 @@ class Dispersion:
                     # verbose=setting["flight"]["verbose"],
                 )
 
-                self.__export_flight_data(
-                    flight_setting=setting,
+                inputs_log, outputs_log = self.__export_flight_data(
+                    setting=setting,
                     flight=dispersion_flight,
-                    exec_time=process_time() - self.start_time,
-                    dispersion_input_file=dispersion_input_file,
-                    dispersion_output_file=dispersion_output_file,
+                    exec_time=process_time() - start_time,
+                    inputs_log=inputs_log,
+                    outputs_log=outputs_log,
+                    save_parachute_data=save_parachute_data,
+                    export_list=export_list,
                 )
-            except Exception as E:
-                print(E)
-                print(traceback.format_exc())
-                self.__export_flight_data_error(setting, dispersion_error_file)
+            except (TypeError, ValueError, KeyError, AttributeError) as error:
+                print(f"Error on iteration {i}: {error}")
+                errors_log = self.__export_flight_data_error(setting, errors_log)
+            except KeyboardInterrupt:
+                print("Keyboard Interrupt, file saved.")
+                errors_log = self.__export_flight_data_error(setting, errors_log)
+                self.__save_logs(inputs_log, outputs_log, errors_log)
+                break
 
-            # Register time
-            # checks if out was defined
-            # out only gets defined when using a jupyter notebook
+            # Update progress bar. Only works on jupyter notebook
             if out:
                 out.update(
                     f"Current iteration: {i:06d} | Average Time per Iteration: "
@@ -799,20 +809,44 @@ class Dispersion:
 
         ## Print and save total time
         final_string = (
-            f"Completed {i} iterations successfully. Total CPU time: "
-            f"{process_time() - initial_cpu_time} s. Total wall time: "
-            f"{time() - initial_wall_time} s"
+            f"Completed {i} iterations. Total CPU time: "
+            f"{process_time() - initial_cpu_time:.1f} s. Total wall time: "
+            f"{time() - initial_wall_time:.1f} s"
         )
         if out:
             out.update(final_string)
-        dispersion_input_file.write(final_string + "\n")
-        dispersion_output_file.write(final_string + "\n")
-        dispersion_error_file.write(final_string + "\n")
+        inputs_log = inputs_log + final_string + "\n"
+        outputs_log = outputs_log + final_string + "\n"
+        errors_log = errors_log + final_string + "\n"
+        self.__save_logs(inputs_log, outputs_log, errors_log)
 
-        ## Close files
-        dispersion_input_file.close()
-        dispersion_output_file.close()
-        dispersion_error_file.close()
+        return None
+
+    def __save_logs(self, inputs_log, outputs_log, errors_log):
+        """Save logs to files.
+        Parameters
+        ----------
+        inputs_log : str
+            String containing all inputs.
+        outputs_log : str
+            String containing all outputs.
+        errors_log : str
+            String containing all errors.
+        Returns
+        -------
+        None
+        """
+        # Save inputs
+        with open(self.filename + ".disp_inputs.txt", "w", encoding="utf-8") as file:
+            file.write(inputs_log)
+
+        # Save outputs
+        with open(self.filename + ".disp_outputs.txt", "w", encoding="utf-8") as file:
+            file.write(outputs_log)
+
+        # Save errors
+        with open(self.filename + ".disp_errors.txt", "w", encoding="utf-8") as file:
+            file.write(errors_log)
 
         return None
 
