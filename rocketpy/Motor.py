@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod, abstractproperty
 
 import numpy as np
 from scipy import integrate
+import warnings
 
 from .Function import Function
 
@@ -113,7 +114,7 @@ class Motor(ABC):
     def __init__(
         self,
         thrustSource,
-        burnOut,
+        burn_time = None,
         nozzleRadius=0.0335,
         nozzlePosition=0,
         throatRadius=0.0114,
@@ -136,8 +137,16 @@ class Motor(ABC):
             specify time in seconds, while the second column specifies thrust.
             Arrays may also be specified, following rules set by the class
             Function. See help(Function). Thrust units are Newtons.
-        burnOut : int, float
-            Motor burn out time in seconds.
+        burn_time: float, tuple of float, optional
+            Motor's burn time.
+            If a float is given, the burn time is assumed to be between 0 and the
+            given float, in seconds.
+            If a tuple of float is given, the burn time is assumed to be between
+            the first and second elements of the tuple, in seconds.
+            If not specified, automatically sourced as the range between the first- and
+            last-time step of the motor's thrust curve. This can only be used if the 
+            motor's thrust is defined by a list of points, such as a .csv file, a .eng 
+            file or a Function instance whose source is a list.
         nozzleRadius : int, float, optional
             Motor's nozzle outlet radius in meters. Used to calculate Kn curve.
             Optional if the Kn curve is not interesting. Its value does not impact
@@ -183,10 +192,6 @@ class Motor(ABC):
         elif coordinateSystemOrientation == "combustionChamberToNozzle":
             self._csys = -1
 
-        # Thrust parameters
-        self.interpolate = interpolationMethod
-        self.burnOutTime = burnOut
-
         # Check if thrustSource is csv, eng, function or other
         if isinstance(thrustSource, str):
             # Determine if csv or eng
@@ -205,15 +210,57 @@ class Motor(ABC):
                 # grainOuterRadius = diameter/2
                 # grainInitialInnerRadius = diameter/4
                 # grainInitialHeight = height
-                thrustSource = points
+                self.thrustSource = points
                 self.burnOutTime = points[-1][0]
+        else:
+            self.thrustSource = thrustSource
+
+        # Thrust parameters
+        self.interpolate = interpolationMethod
+        if burn_time is None:
+            if callable(self.thrustSource) or isinstance(self.thrustSource, (int, float)):
+                raise ValueError(
+                    "When using a float or callable as thrust source a burnout time must be specified."
+                    )
+        else:
+            if not callable(self.thrustSource) and not isinstance(self.thrustSource, (int, float)):
+                if isinstance(burn_time, (int,float)):
+                    i = 0
+                    maxTime = self.thrustSource[0][0]
+                    while maxTime <= burn_time:
+                        i +=1
+                        maxTime = self.thrustSource[i][0]
+                    self.thrustSource = self.thrustSource[0:(i)]
+                    self.burnOutTime = self.thrustSource[-1][0]
+
+                else:
+                    i = 0
+                    minTime = self.thrustSource[0][0]
+                    while minTime < burn_time[0]:
+                        i +=1
+                        minTime = self.thrustSource[i][0]
+                    j = i
+                    maxTime = self.thrustSource[j][0]
+                    while maxTime <= burn_time[1]:
+                        j +=1
+                        maxTime = self.thrustSource[j][0]
+                    self.thrustSource = self.thrustSource[(i):(j)]
+                    for i in range(len(self.thrustSource)):
+                        self.thrustSource[i][0] = self.thrustSource[i][0] - minTime
+                    self.burnOutTime = self.thrustSource[-1][0]
+            else:
+                if isinstance(burn_time, (int,float)):
+                    self.burnOutTime = burn_time
+                else:
+                    self.burnOutTime = burn_time[1] - burn_time[0]
+    
 
         # Create thrust function
         self.thrust = Function(
-            thrustSource, "Time (s)", "Thrust (N)", self.interpolate, "zero"
+            self.thrustSource, "Time (s)", "Thrust (N)", self.interpolate, "zero"
         )
-        if callable(thrustSource) or isinstance(thrustSource, (int, float)):
-            self.thrust.setDiscrete(0, burnOut, 50, self.interpolate, "zero")
+        if callable(self.thrustSource) or isinstance(self.thrustSource, (int, float)):
+            self.thrust.setDiscrete(0, self.burnOutTime, 50, self.interpolate, "zero")
 
         # Reshape curve and calculate impulse
         if reshapeThrustCurve:
@@ -248,7 +295,7 @@ class Motor(ABC):
         self.propellantInitialMass = None
 
     def reshapeThrustCurve(
-        self, burnTime, totalImpulse, oldTotalImpulse=None, startAtZero=True
+        self, burnOutTime, totalImpulse, oldTotalImpulse=None, startAtZero=True
     ):
         """Transforms the thrust curve supplied by changing its total
         burn time and/or its total impulse, without altering the
@@ -257,7 +304,7 @@ class Motor(ABC):
 
         Parameters
         ----------
-        burnTime : float
+        burnOutTime : float
             New desired burn out time in seconds.
         totalImpulse : float
             New desired total impulse.
@@ -283,9 +330,9 @@ class Motor(ABC):
         if startAtZero and timeArray[0] != 0:
             timeArray = timeArray - timeArray[0]
 
-        # Reshape time - set burn time to burnTime
-        self.thrust.source[:, 0] = (burnTime / timeArray[-1]) * timeArray
-        self.burnOutTime = burnTime
+        # Reshape time - set burn time to burnOutTime
+        self.thrust.source[:, 0] = (burnOutTime / timeArray[-1]) * timeArray
+        self.burnOutTime = burnOutTime
         self.thrust.setInterpolation(self.interpolate)
 
         # Reshape thrust - set total impulse
@@ -758,13 +805,13 @@ class SolidMotor(Motor):
     def __init__(
         self,
         thrustSource,
-        burnOut,
         grainsCenterOfMassPosition,
         grainNumber,
         grainDensity,
         grainOuterRadius,
         grainInitialInnerRadius,
         grainInitialHeight,
+        burn_time = None,
         grainSeparation=0,
         nozzleRadius=0.0335,
         nozzlePosition=0,
@@ -788,8 +835,16 @@ class SolidMotor(Motor):
             specify time in seconds, while the second column specifies thrust.
             Arrays may also be specified, following rules set by the class
             Function. See help(Function). Thrust units are Newtons.
-        burnOut : int, float
-            Motor burn out time in seconds.
+        burn_time: float, tuple of float, optional
+            Motor's burn time.
+            If a float is given, the burn time is assumed to be between 0 and the
+            given float, in seconds.
+            If a tuple of float is given, the burn time is assumed to be between
+            the first and second elements of the tuple, in seconds.
+            If not specified, automatically sourced as the range between the first- and
+            last-time step of the motor's thrust curve. This can only be used if the 
+            motor's thrust is defined by a list of points, such as a .csv file, a .eng 
+            file or a Function instance whose source is a list.
         grainsCenterOfMassPosition : float
             Position of the center of mass of the grains in meters. More specifically,
             the coordinate of the center of mass specified in the motor's coordinate
@@ -846,7 +901,7 @@ class SolidMotor(Motor):
         """
         super().__init__(
             thrustSource,
-            burnOut,
+            burn_time,
             nozzleRadius,
             nozzlePosition,
             throatRadius,
@@ -1223,8 +1278,6 @@ class SolidMotor(Motor):
         self.inertiaZDot()
 
         return None
-
-
 class HybridMotor(Motor):
     """Class to specify characteristics and useful operations for Hybrid
     motors.
@@ -1325,7 +1378,6 @@ class HybridMotor(Motor):
     def __init__(
         self,
         thrustSource,
-        burnOut,
         grainNumber,
         grainDensity,
         grainOuterRadius,
@@ -1339,6 +1391,7 @@ class HybridMotor(Motor):
         oxidizerInitialVolume,
         distanceGrainToTank,
         injectorArea,
+        burn_time = None,
         grainSeparation=0,
         nozzleRadius=0.0335,
         nozzlePosition=0,
@@ -1362,8 +1415,16 @@ class HybridMotor(Motor):
             specify time in seconds, while the second column specifies thrust.
             Arrays may also be specified, following rules set by the class
             Function. See help(Function). Thrust units are Newtons.
-        burnOut : int, float
-            Motor burn out time in seconds.
+        burn_time: float, tuple of float, optional
+            Motor's burn time.
+            If a float is given, the burn time is assumed to be between 0 and the
+            given float, in seconds.
+            If a tuple of float is given, the burn time is assumed to be between
+            the first and second elements of the tuple, in seconds.
+            If not specified, automatically sourced as the range between the first- and
+            last-time step of the motor's thrust curve. This can only be used if the 
+            motor's thrust is defined by a list of points, such as a .csv file, a .eng 
+            file or a Function instance whose source is a list.
         grainNumber : int
             Number of solid grains
         grainDensity : int, float
@@ -1432,7 +1493,7 @@ class HybridMotor(Motor):
         """
         super().__init__(
             thrustSource,
-            burnOut,
+            burn_time,
             nozzleRadius,
             nozzlePosition,
             throatRadius,
