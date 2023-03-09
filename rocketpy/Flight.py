@@ -1240,7 +1240,7 @@ class Flight:
         R3 = -0.5 * rho * (freestreamSpeed**2) * self.rocket.area * (dragCoeff)
 
         # Calculate Linear acceleration
-        a3 = (R3 + Thrust) / M - (e0**2 - e1**2 - e2**2 + e3**2) * self.env.g
+        a3 = (R3 + Thrust) / M - (e0**2 - e1**2 - e2**2 + e3**2) * self.env.g(z)
         if a3 > 0:
             ax = 2 * (e1 * e3 + e0 * e2) * a3
             ay = 2 * (e2 * e3 - e0 * e1) * a3
@@ -1488,7 +1488,8 @@ class Flight:
             (R3 - b * Mt * (alpha2 - omega1 * omega3) + Thrust) / M,
         ]
         ax, ay, az = np.dot(K, L)
-        az -= self.env.g  # Include gravity
+        az -= self.env.g(z)  # Include gravity
+        print(az)
 
         # Create uDot
         uDot = [
@@ -2096,7 +2097,7 @@ class Flight:
         totalMass = deepcopy(self.rocket.totalMass)
         totalMass.setDiscreteBasedOnModel(self.z)
         # TODO: change calculation method to account for variable gravity
-        potentialEnergy = totalMass * self.env.g * self.z
+        potentialEnergy = totalMass * self.env.g(self.z)
         return potentialEnergy
 
     # Total Mechanical Energy

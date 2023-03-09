@@ -18,6 +18,7 @@ import numpy.ma as ma
 import pytz
 import requests
 from collections import namedtuple
+from rocketpy.Function import funcify_method
 
 from .plots.environment_plots import _EnvironmentPlots
 from .prints.environment_prints import _EnvironmentPrints
@@ -357,8 +358,14 @@ class Environment:
         # Save launch rail length
         self.rL = railLength
 
-        # Save gravity value
-        self.g = gravity
+        # Initialize Earth geometry
+        self.ellipsoid = self.setEarthGeometry(datum)
+
+        # Stardard gravity
+        self.standard_g = 9.80665
+
+        # Set gravity model
+        self.g = self.setGravityModel(gravity)
 
         # Save datum
         self.datum = datum
@@ -369,10 +376,7 @@ class Environment:
         else:
             self.date = None
             self.localDate = None
-            self.timeZone = None
-
-        # Initialize Earth geometry
-        self.ellipsoid = self.setEarthGeometry(datum)
+            self.timeZone = None        
 
         # Initialize constants
         self.earthRadius = 6.3781 * (10**6)
@@ -480,6 +484,33 @@ class Environment:
             )
 
         # Return None
+
+    def setGravityModel(self, gravity):
+        if gravity == "variable":
+            return self.somiglianaGravity
+        else:
+            return Function(gravity, "height (m)", "gravity (m/s²)")
+    
+    @funcify_method("height (m)", "gravity (m/s²)")
+    def somiglianaGravity(self, height):
+        a = 6378137.0  # semi_major_axis
+        f = 1 / 298.257223563  # flattening_factor
+        m_rot = 3.449786506841e-3  # rotation_factor
+        g_e = 9.7803253359  # normal gravity at equator
+        k_somgl = 1.931852652458e-3  # normal gravity formula const.
+        first_ecc_sqrd = 6.694379990141e-3  # square of first eccentricity
+
+        gravity_somgl = g_e * (
+            (1 + k_somgl * (np.sin(self.lat)) ** 2)
+            / (np.sqrt(1 - first_ecc_sqrd * (np.sin(self.lat)) ** 2))
+        )
+        height_correction = (
+            1
+            - 2 / a * (1 + f + m_rot - 2 * f * (np.sin(self.lat)) ** 2) * height
+            + 3 * height**2 / a**2
+        )
+
+        return gravity_somgl * height_correction
 
     def setElevation(self, elevation="Open-Elevation"):
         """Set elevation of launch site given user input or using the
@@ -2861,10 +2892,10 @@ class Environment:
 
             # Compute presure
             if B != 0:
-                P = Pb * (1 + (B / Tb) * (H - Hb)) ** (-g / (B * R))
+                P = Pb * (1 + (B / Tb) * (H - Hb)) ** (-g(h) / (B * R))
             else:
                 T = Tb + B * (H - Hb)
-                P = Pb * np.exp(-(H - Hb) * (g / (R * T)))
+                P = Pb * np.exp(-(H - Hb) * (g(h) / (R * T)))
 
             # Return answer
             return P
