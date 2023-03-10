@@ -114,7 +114,7 @@ class Motor(ABC):
     def __init__(
         self,
         thrustSource,
-        burn_time = None,
+        burn_time=None,
         nozzleRadius=0.0335,
         nozzlePosition=0,
         throatRadius=0.0114,
@@ -144,8 +144,8 @@ class Motor(ABC):
             If a tuple of float is given, the burn time is assumed to be between
             the first and second elements of the tuple, in seconds.
             If not specified, automatically sourced as the range between the first- and
-            last-time step of the motor's thrust curve. This can only be used if the 
-            motor's thrust is defined by a list of points, such as a .csv file, a .eng 
+            last-time step of the motor's thrust curve. This can only be used if the
+            motor's thrust is defined by a list of points, such as a .csv file, a .eng
             file or a Function instance whose source is a list.
         nozzleRadius : int, float, optional
             Motor's nozzle outlet radius in meters. Used to calculate Kn curve.
@@ -218,17 +218,21 @@ class Motor(ABC):
         # Thrust parameters
         self.interpolate = interpolationMethod
         if burn_time is None:
-            if callable(self.thrustSource) or isinstance(self.thrustSource, (int, float)):
+            if callable(self.thrustSource) or isinstance(
+                self.thrustSource, (int, float)
+            ):
                 raise ValueError(
                     "When using a float or callable as thrust source a burnout time must be specified."
-                    )
+                )
         else:
-            if not callable(self.thrustSource) and not isinstance(self.thrustSource, (int, float)):
-                if isinstance(burn_time, (int,float)):
+            if not callable(self.thrustSource) and not isinstance(
+                self.thrustSource, (int, float)
+            ):
+                if isinstance(burn_time, (int, float)):
                     i = 0
                     maxTime = self.thrustSource[0][0]
                     while maxTime <= burn_time:
-                        i +=1
+                        i += 1
                         maxTime = self.thrustSource[i][0]
                     self.thrustSource = self.thrustSource[0:(i)]
                     self.burnOutTime = self.thrustSource[-1][0]
@@ -237,23 +241,22 @@ class Motor(ABC):
                     i = 0
                     minTime = self.thrustSource[0][0]
                     while minTime < burn_time[0]:
-                        i +=1
+                        i += 1
                         minTime = self.thrustSource[i][0]
                     j = i
                     maxTime = self.thrustSource[j][0]
                     while maxTime <= burn_time[1]:
-                        j +=1
+                        j += 1
                         maxTime = self.thrustSource[j][0]
                     self.thrustSource = self.thrustSource[(i):(j)]
                     for i in range(len(self.thrustSource)):
                         self.thrustSource[i][0] = self.thrustSource[i][0] - minTime
                     self.burnOutTime = self.thrustSource[-1][0]
             else:
-                if isinstance(burn_time, (int,float)):
+                if isinstance(burn_time, (int, float)):
                     self.burnOutTime = burn_time
                 else:
                     self.burnOutTime = burn_time[1] - burn_time[0]
-    
 
         # Create thrust function
         self.thrust = Function(
@@ -811,7 +814,7 @@ class SolidMotor(Motor):
         grainOuterRadius,
         grainInitialInnerRadius,
         grainInitialHeight,
-        burn_time = None,
+        burn_time=None,
         grainSeparation=0,
         nozzleRadius=0.0335,
         nozzlePosition=0,
@@ -842,8 +845,8 @@ class SolidMotor(Motor):
             If a tuple of float is given, the burn time is assumed to be between
             the first and second elements of the tuple, in seconds.
             If not specified, automatically sourced as the range between the first- and
-            last-time step of the motor's thrust curve. This can only be used if the 
-            motor's thrust is defined by a list of points, such as a .csv file, a .eng 
+            last-time step of the motor's thrust curve. This can only be used if the
+            motor's thrust is defined by a list of points, such as a .csv file, a .eng
             file or a Function instance whose source is a list.
         grainsCenterOfMassPosition : float
             Position of the center of mass of the grains in meters. More specifically,
@@ -1278,6 +1281,8 @@ class SolidMotor(Motor):
         self.inertiaZDot()
 
         return None
+
+
 class HybridMotor(Motor):
     """Class to specify characteristics and useful operations for Hybrid
     motors.
@@ -1391,7 +1396,7 @@ class HybridMotor(Motor):
         oxidizerInitialVolume,
         distanceGrainToTank,
         injectorArea,
-        burn_time = None,
+        burn_time=None,
         grainSeparation=0,
         nozzleRadius=0.0335,
         nozzlePosition=0,
@@ -1422,8 +1427,8 @@ class HybridMotor(Motor):
             If a tuple of float is given, the burn time is assumed to be between
             the first and second elements of the tuple, in seconds.
             If not specified, automatically sourced as the range between the first- and
-            last-time step of the motor's thrust curve. This can only be used if the 
-            motor's thrust is defined by a list of points, such as a .csv file, a .eng 
+            last-time step of the motor's thrust curve. This can only be used if the
+            motor's thrust is defined by a list of points, such as a .csv file, a .eng
             file or a Function instance whose source is a list.
         grainNumber : int
             Number of solid grains
