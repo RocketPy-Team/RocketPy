@@ -2,7 +2,15 @@
 
 from typing import Any, List, Tuple, Union
 
-from pydantic import BaseModel, Field, FilePath, StrictInt, StrictStr, root_validator
+from pydantic import (
+    BaseModel,
+    Extra,
+    Field,
+    FilePath,
+    StrictInt,
+    StrictStr,
+    root_validator,
+)
 
 from ..AeroSurfaces import EllipticalFins, NoseCone, Tail, TrapezoidalFins
 
@@ -29,7 +37,6 @@ class McNoseCone(BaseModel):
     nosecone: NoseCone = Field(..., repr=False)
     length: Any = 0
     kind: List[Union[StrictStr, None]] = []
-    position: Any = 0
     baseRadius: Any = 0  # TODO: is this really necessary?
     rocketRadius: Any = 0  # TODO: is this really necessary?
     name: List[StrictStr] = []
@@ -37,6 +44,7 @@ class McNoseCone(BaseModel):
 
     class Config:
         arbitrary_types_allowed = True
+        extra = Extra.allow
         # TODO: please comment WHY this step is necessary
 
     @root_validator(skip_on_failure=True)
@@ -67,7 +75,6 @@ class McNoseCone(BaseModel):
         validate_fields = [
             "length",
             "kind",
-            "position",
             "baseRadius",
             "rocketRadius",
             "name",
@@ -148,7 +155,6 @@ class McTrapezoidalFins(BaseModel):
     rootChord: Any = 0
     tipChord: Any = 0
     span: Any = 0
-    position: Any = 0
     rocketRadius: Any = 0
     cantAngle: Any = 0
     sweepLength: Any = 0
@@ -158,6 +164,7 @@ class McTrapezoidalFins(BaseModel):
 
     class Config:
         arbitrary_types_allowed = True
+        extra = Extra.allow
 
     @root_validator(skip_on_failure=True)
     def set_attr(cls, values):
@@ -180,7 +187,6 @@ class McTrapezoidalFins(BaseModel):
             "rootChord",
             "tipChord",
             "span",
-            "position",
             "rocketRadius",
             "cantAngle",
             "sweepLength",
@@ -267,7 +273,6 @@ class McEllipticalFins(BaseModel):
     n: Any = 0
     rootChord: Any = 0
     span: Any = 0
-    position: Any = 0
     rocketRadius: Any = 0
     cantAngle: Any = 0
     airfoil: List[Union[Tuple[FilePath, StrictStr], None]] = []
@@ -275,6 +280,7 @@ class McEllipticalFins(BaseModel):
 
     class Config:
         arbitrary_types_allowed = True
+        extra = Extra.allow
 
     @root_validator(skip_on_failure=True)
     def set_attr(cls, values):
@@ -296,7 +302,6 @@ class McEllipticalFins(BaseModel):
             "n",
             "rootChord",
             "span",
-            "position",
             "rocketRadius",
             "cantAngle",
             "airfoil",
@@ -381,12 +386,12 @@ class McTail(BaseModel):
     topRadius: Any = 0
     bottomRadius: Any = 0
     length: Any = 0
-    position: Any = 0
     rocketRadius: Any = 0
     name: List[StrictStr] = []
 
     class Config:
         arbitrary_types_allowed = True
+        extra = Extra.allow
 
     @root_validator(skip_on_failure=True)
     def set_attr(cls, values):
@@ -408,7 +413,6 @@ class McTail(BaseModel):
             "topRadius",
             "bottomRadius",
             "length",
-            "position",
             "rocketRadius",
             "name",
         ]

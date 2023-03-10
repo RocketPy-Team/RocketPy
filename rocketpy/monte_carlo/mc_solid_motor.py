@@ -1,6 +1,14 @@
 from typing import Any, List, Tuple, Union
 
-from pydantic import BaseModel, Field, FilePath, StrictFloat, StrictInt, root_validator
+from pydantic import (
+    BaseModel,
+    Extra,
+    Field,
+    FilePath,
+    StrictFloat,
+    StrictInt,
+    root_validator,
+)
 
 from ..Motor import SolidMotor
 
@@ -39,10 +47,10 @@ class McSolidMotor(BaseModel):
     nozzlePosition: Any = 0
     throatRadius: Any = 0
     # TODO: why coordinateSystemOrientation is not included in this class?
-    position: Any = 0
 
     class Config:
         arbitrary_types_allowed = True
+        extra = Extra.allow
 
     @root_validator(skip_on_failure=True)
     def set_attr(cls, values):
@@ -72,7 +80,6 @@ class McSolidMotor(BaseModel):
             "nozzlePosition",
             "throatRadius",
             "totalImpulse",
-            "position",
         ]
         for field in validate_fields:
             v = values[field]
@@ -87,7 +94,7 @@ class McSolidMotor(BaseModel):
                     # checks if second value is either string or int/float
                     assert isinstance(
                         v[1], (int, float, str)
-                    ), f"\nField '{field}': \n\tSecond item of tuple must be either an int, float or string \n  If the first value refers to the nominal value of {field}, then the second item's value should be the desired standard deviation \n  If the first value is the standard deviation, then the second item's value should be a string containing a name of a numpy.random distribution function"
+                    ), f"\nField '{field}': \n\tSecond item of tuple must be either an int, float or string \n\tIf the first value refers to the nominal value of {field}, then the second item's value should be the desired standard deviation \n\tIf the first value is the standard deviation, then the second item's value should be a string containing a name of a numpy.random distribution function"
                     # if second item is not str, then (nom_val, std)
                     if not isinstance(v[1], str):
                         values[field] = v
@@ -102,10 +109,10 @@ class McSolidMotor(BaseModel):
                 if len(v) == 3:
                     assert isinstance(
                         v[1], (int, float)
-                    ), f"\nField '{field}': \n\tSecond item of tuple must be either an int or float \n  The second item should be the standard deviation to be used in the simulation"
+                    ), f"\nField '{field}': \n\tSecond item of tuple must be either an int or float \n\tThe second item should be the standard deviation to be used in the simulation"
                     assert isinstance(
                         v[2], str
-                    ), f"\nField '{field}': \n\tThird item of tuple must be a string \n  The string should contain the name of a valid numpy.random distribution function"
+                    ), f"\nField '{field}': \n\tThird item of tuple must be a string \n\tThe string should contain the name of a valid numpy.random distribution function"
                     values[field] = v
             elif isinstance(v, list):
                 # checks if input list is empty, meaning nothing was inputted
