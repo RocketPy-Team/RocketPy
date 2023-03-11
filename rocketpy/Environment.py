@@ -376,10 +376,10 @@ class Environment:
         else:
             self.date = None
             self.localDate = None
-            self.timeZone = None        
+            self.timeZone = None
 
         # Initialize constants
-        self.earthRadius = 6.3781 * (10**6)
+        self.earthRadius = 6.3781 * (10 ** 6)
         self.airGasConstant = 287.05287  # in J/K/Kg
 
         # Initialize plots and prints objects
@@ -490,7 +490,7 @@ class Environment:
             return self.somiglianaGravity
         else:
             return Function(gravity, "height (m)", "gravity (m/s²)")
-    
+
     @funcify_method("height (m)", "gravity (m/s²)")
     def somiglianaGravity(self, height):
         a = 6378137.0  # semi_major_axis
@@ -507,7 +507,7 @@ class Environment:
         height_correction = (
             1
             - 2 / a * (1 + f + m_rot - 2 * f * (np.sin(self.lat)) ** 2) * height
-            + 3 * height**2 / a**2
+            + 3 * height ** 2 / a ** 2
         )
 
         return gravity_somgl * height_correction
@@ -1542,7 +1542,7 @@ class Environment:
         )
 
         # Determine wind speed, heading and direction
-        windSpeedArray = np.sqrt(windUArray**2 + windVArray**2)
+        windSpeedArray = np.sqrt(windUArray ** 2 + windVArray ** 2)
         windHeadingArray = np.arctan2(windUArray, windVArray) * (180 / np.pi) % 360
         windDirectionArray = (windHeadingArray - 180) % 360
 
@@ -2182,7 +2182,7 @@ class Environment:
         windV = ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
 
         # Determine wind speed, heading and direction
-        windSpeed = np.sqrt(windU**2 + windV**2)
+        windSpeed = np.sqrt(windU ** 2 + windV ** 2)
         windHeading = np.arctan2(windU, windV) * (180 / np.pi) % 360
         windDirection = (windHeading - 180) % 360
 
@@ -2525,7 +2525,8 @@ class Environment:
                     [paramDictionary[inverseDictionary[dim]] for dim in dimensions]
                 )
                 geopotentials = (
-                    weatherData.variables[dictionary["geopotential"]][params] / self.standard_g
+                    weatherData.variables[dictionary["geopotential"]][params]
+                    / self.standard_g
                 )
             except:
                 raise ValueError(
@@ -2599,7 +2600,7 @@ class Environment:
         windV = ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
 
         # Determine wind speed, heading and direction
-        windSpeed = np.sqrt(windU**2 + windV**2)
+        windSpeed = np.sqrt(windU ** 2 + windV ** 2)
         windHeading = np.arctan2(windU, windV) * (180 / np.pi) % 360
         windDirection = (windHeading - 180) % 360
 
@@ -3335,7 +3336,7 @@ class Environment:
 
         # Evaluate reference parameters
         K0 = 1 - 1 / 2500
-        e2 = 2 * flattening - flattening**2
+        e2 = 2 * flattening - flattening ** 2
         e2lin = e2 / (1 - e2)
 
         # Evaluate auxiliary parameters
@@ -3358,9 +3359,9 @@ class Environment:
 
         # Evaluate new auxiliary parameters
         J = (1 - t + c) * ag * ag * ag / 6
-        K = (5 - 18 * t + t * t + 72 * c - 58 * e2lin) * (ag**5) / 120
+        K = (5 - 18 * t + t * t + 72 * c - 58 * e2lin) * (ag ** 5) / 120
         L = (5 - t + 9 * c + 4 * c * c) * ag * ag * ag * ag / 24
-        M = (61 - 58 * t + t * t + 600 * c - 330 * e2lin) * (ag**6) / 720
+        M = (61 - 58 * t + t * t + 600 * c - 330 * e2lin) * (ag ** 6) / 720
 
         # Evaluate the final coordinates
         x = 500000 + K0 * n * (ag + J + K)
@@ -3417,7 +3418,7 @@ class Environment:
 
         # Calculate reference values
         K0 = 1 - 1 / 2500
-        e2 = 2 * flattening - flattening**2
+        e2 = 2 * flattening - flattening ** 2
         e2lin = e2 / (1 - e2)
         e1 = (1 - (1 - e2) ** 0.5) / (1 + (1 - e2) ** 0.5)
 
@@ -3441,20 +3442,20 @@ class Environment:
         t1 = np.tan(lat1) ** 2
         n1 = semiMajorAxis / ((1 - e2 * (np.sin(lat1) ** 2)) ** 0.5)
         quoc = (1 - e2 * np.sin(lat1) * np.sin(lat1)) ** 3
-        r1 = semiMajorAxis * (1 - e2) / (quoc**0.5)
+        r1 = semiMajorAxis * (1 - e2) / (quoc ** 0.5)
         d = (x - 500000) / (n1 * K0)
 
         # Calculate other auxiliary values
         I = (5 + 3 * t1 + 10 * c1 - 4 * c1 * c1 - 9 * e2lin) * d * d * d * d / 24
         J = (
             (61 + 90 * t1 + 298 * c1 + 45 * t1 * t1 - 252 * e2lin - 3 * c1 * c1)
-            * (d**6)
+            * (d ** 6)
             / 720
         )
         K = d - (1 + 2 * t1 + c1) * d * d * d / 6
         L = (
             (5 - 2 * c1 + 28 * t1 - 3 * c1 * c1 + 8 * e2lin + 24 * t1 * t1)
-            * (d**5)
+            * (d ** 5)
             / 120
         )
 
@@ -3501,8 +3502,8 @@ class Environment:
         # Calculate the Earth Radius in meters
         eRadius = np.sqrt(
             (
-                (np.cos(lat) * (semiMajorAxis**2)) ** 2
-                + (np.sin(lat) * (semiMinorAxis**2)) ** 2
+                (np.cos(lat) * (semiMajorAxis ** 2)) ** 2
+                + (np.sin(lat) * (semiMinorAxis ** 2)) ** 2
             )
             / ((np.cos(lat) * semiMajorAxis) ** 2 + (np.sin(lat) * semiMinorAxis) ** 2)
         )
