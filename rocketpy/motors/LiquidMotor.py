@@ -204,4 +204,49 @@ class LiquidMotor(Motor):
         self.positioned_tanks.append({"tank": tank, "position": position})
 
     def allInfo(self):
-        ...
+        """Prints out all data and graphs available about the Motor.
+
+        Parameters
+        ----------
+        None
+
+        Return
+        ------
+        None
+        """
+        # Print nozzle details
+        print("Nozzle Details")
+        print("Nozzle Radius: " + str(self.nozzleRadius) + " m")
+        print("Nozzle Throat Radius: " + str(self.throatRadius) + " m")
+
+        # Print motor details
+        print("\nMotor Details")
+        print("Total Burning Time: " + str(self.burnOutTime) + " s")
+        print(
+            "Total Propellant Mass: "
+            + "{:.3f}".format(self.propellantInitialMass)
+            + " kg"
+        )
+        print(
+            "Propellant Exhaust Velocity: "
+            + "{:.3f}".format(self.exhaustVelocity)
+            + " m/s"
+        )
+        print("Average Thrust: " + "{:.3f}".format(self.averageThrust) + " N")
+        print(
+            "Maximum Thrust: "
+            + str(self.maxThrust)
+            + " N at "
+            + str(self.maxThrustTime)
+            + " s after ignition."
+        )
+        print("Total Impulse: " + "{:.3f}".format(self.totalImpulse) + " Ns")
+
+        # Show plots
+        print("\nPlots")
+        self.thrust.plot(0, self.burnOutTime)
+        self.mass.plot(0, self.burnOutTime)
+        self.massFlowRate.plot(0, self.burnOutTime)
+        self.centerOfMass.plot(0, self.burnOutTime, samples=50)
+        self.inertiaTensor[0].plot(0, self.burnOutTime, samples=50)
+        self.inertiaTensor[2].plot(0, self.burnOutTime, samples=50)

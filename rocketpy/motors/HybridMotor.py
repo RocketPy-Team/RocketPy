@@ -42,6 +42,8 @@ class HybridMotor(Motor):
             Inner radius of each grain in meters as a function of time.
         Motor.grainHeight : Function
             Height of each grain in meters as a function of time.
+        Motor.chamberPosition: float
+            Position of the chamber in meters.
 
         Mass and moment of inertia attributes:
         Motor.grainInitialMass : float
@@ -132,6 +134,10 @@ class HybridMotor(Motor):
             Function. See help(Function). Thrust units are Newtons.
         burnOut : int, float
             Motor burn out time in seconds.
+        chamberPosition : int, float
+            Motor's chamber position in meters, relative to the rocket's
+            nozzle. The chamber is supposed cylindrical and its reference
+            point is its geometric center (i.e. half of its height).
         grainNumber : int
             Number of solid grains
         grainDensity : int, float
@@ -161,13 +167,13 @@ class HybridMotor(Motor):
         grainSeparation : int, float, optional
             Distance between grains, in meters. Default is 0.
         nozzleRadius : int, float, optional
-            Motor's nozzle outlet radius in meters. Used to calculate Kn curve.
-            Optional if the Kn curve is not interesting. Its value does not impact
-            trajectory simulation.
-        throatRadius : int, float, optional
-            Motor's nozzle throat radius in meters. Its value has very low
+            Motor's nozzle outlet radius in meters. Its value has very low
             impact in trajectory simulation, only useful to analyze
             dynamic instabilities, therefore it is optional.
+        throatRadius : int, float, optional
+            Motor's nozzle throat radius in meters. Used to calculate Kn curve.
+            Optional if the Kn curve is not interesting. Its value does not impact
+            trajectory simulation.
         reshapeThrustCurve : boolean, tuple, optional
             If False, the original thrust curve supplied is not altered. If a
             tuple is given, whose first parameter is a new burn out time and
@@ -217,20 +223,53 @@ class HybridMotor(Motor):
             interpolationMethod,
         )
 
-    def addTank(self, tank, position):
-        self.liquid.addTank(tank, position)
-        self.solid.massFlowRate = self.massDot - self.liquid.massFlowRate
-
-    @cached_property
-    def propellantInitialMass(self):
-        return self.solid.propellantInitialMass + self.liquid.propellantInitialMass
-
     @funcify_method
     def mass(self):
+        """Evaluates the total propellant mass of the motor as the sum
+        of each tank mass and the grains mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        Function
+            Total propellant mass of the motor, in kg.
+        """
         return self.solid.mass + self.liquid.mass
 
     @cached_property
+    def propellantInitialMass(self):
+        """Returns the initial propellant mass of the motor
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        float
+            Initial propellant mass of the motor, in kg.
+        """
+        return self.solid.propellantInitialMass + self.liquid.propellantInitialMass
+
+    @cached_property
     def massFlowRate(self):
+        """Evaluates the mass flow rate of the motor as the sum of each tank
+        mass flow rate and the grains mass flow rate.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        Function
+            Mass flow rate of the motor, in kg/s.
+        """
         return self.solid.massFlowRate + self.liquid.massFlowRate
 
     @cached_property
@@ -300,6 +339,24 @@ class HybridMotor(Motor):
 
         return self.InertiaI, self.InertiaI, self.InertiaZ
 
+    def addTank(self, tank, position):
+        """Adds a tank to the motor.
+
+        Parameters
+        ----------
+        tank : Tank
+            Tank object to be added to the motor.
+        position : float
+            Position of the tank relative to the nozzle exit. The
+            tank reference point is its tank_geometry zero point.
+
+        Returns
+        -------
+        None
+        """
+        self.liquid.addTank(tank, position)
+        self.solid.massFlowRate = self.massDot - self.liquid.massFlowRate
+
     def allInfo(self):
         """Prints out all data and graphs available about the Motor.
 
@@ -318,14 +375,14 @@ class HybridMotor(Motor):
 
         # Print grain details
         print("\nGrain Details")
-        print("Number of Grains: " + str(self.grainNumber))
-        print("Grain Spacing: " + str(self.grainSeparation) + " m")
-        print("Grain Density: " + str(self.grainDensity) + " kg/m3")
-        print("Grain Outer Radius: " + str(self.grainOuterRadius) + " m")
-        print("Grain Inner Radius: " + str(self.grainInitialInnerRadius) + " m")
-        print("Grain Height: " + str(self.grainInitialHeight) + " m")
-        print("Grain Volume: " + "{:.3f}".format(self.grainInitialVolume) + " m3")
-        print("Grain Mass: " + "{:.3f}".format(self.grainInitialMass) + " kg")
+        print("Number of Grains: " + str(self.solid.grainNumber))
+        print("Grain Spacing: " + str(self.solid.grainSeparation) + " m")
+        print("Grain Density: " + str(self.solid.grainDensity) + " kg/m3")
+        print("Grain Outer Radius: " + str(self.solid.grainOuterRadius) + " m")
+        print("Grain Inner Radius: " + str(self.solid.grainInitialInnerRadius) + " m")
+        print("Grain Height: " + str(self.solid.grainInitialHeight) + " m")
+        print("Grain Volume: " + "{:.3f}".format(self.solid.grainInitialVolume) + " m3")
+        print("Grain Mass: " + "{:.3f}".format(self.solid.grainInitialMass) + " kg")
 
         # Print motor details
         print("\nMotor Details")
@@ -352,17 +409,16 @@ class HybridMotor(Motor):
 
         # Show plots
         print("\nPlots")
-        self.thrust()
-        self.mass()
-        self.massFlowRate()
-        self.grainInnerRadius()
-        self.grainHeight()
-        self.burnRate()
-        self.burnArea()
-        self.Kn()
-        self.inertiaI()
-        self.InertiaZ()
-        self.inertiaIDot()
-        self.inertiaZDot()
+        self.thrust.plot(0, self.burnOutTime)
+        self.mass.plot(0, self.burnOutTime)
+        self.massFlowRate.plot(0, self.burnOutTime)
+        self.solid.grainInnerRadius.plot(0, self.burnOutTime)
+        self.solid.grainHeight.plot(0, self.burnOutTime)
+        self.solid.burnRate.plot(0, self.burnOutTime)
+        self.solid.burnArea.plot(0, self.burnOutTime)
+        self.solid.Kn.plot(0, self.burnOutTime)
+        self.centerOfMass.plot(0, self.burnOutTime, samples=50)
+        self.inertiaTensor[0].plot(0, self.burnOutTime, samples=50)
+        self.inertiaTensor[2].plot(0, self.burnOutTime, samples=50)
 
         return None

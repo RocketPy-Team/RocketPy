@@ -42,6 +42,8 @@ class SolidMotor(Motor):
             Inner radius of each grain in meters as a function of time.
         Motor.grainHeight : Function
             Height of each grain in meters as a function of time.
+        Motor.chamberPosition: float
+            Position of the chamber in meters.
 
         Mass and moment of inertia attributes:
         Motor.grainInitialMass : float
@@ -149,13 +151,13 @@ class SolidMotor(Motor):
         grainSeparation : int, float, optional
             Distance between grains, in meters. Default is 0.
         nozzleRadius : int, float, optional
-            Motor's nozzle outlet radius in meters. Used to calculate Kn curve.
-            Optional if the Kn curve is not interesting. Its value does not impact
-            trajectory simulation.
-        throatRadius : int, float, optional
-            Motor's nozzle throat radius in meters. Its value has very low
+            Motor's nozzle outlet radius in meters. Its value has very low
             impact in trajectory simulation, only useful to analyze
             dynamic instabilities, therefore it is optional.
+        throatRadius : int, float, optional
+            Motor's nozzle throat radius in meters. Used to calculate Kn curve.
+            Optional if the Kn curve is not interesting. Its value does not impact
+            trajectory simulation.
         reshapeThrustCurve : boolean, tuple, optional
             If False, the original thrust curve supplied is not altered. If a
             tuple is given, whose first parameter is a new burn out time and
@@ -202,12 +204,39 @@ class SolidMotor(Motor):
 
         self.evaluateGeometry()
 
-    @cached_property
+    @funcify_method("time (s)", "mass (kg)")
     def mass(self):
-        return self.grainVolume * self.grainDensity
+        """Evaluates the total propellant mass as a function of
+        time.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        Function
+            Mass of the motor, in kg.
+        """
+        return self.grainVolume * self.grainDensity * self.grainNumber
 
     @cached_property
     def grainVolume(self):
+        """Evaluates the total propellant volume as a function of
+        time. The propellant is assumed to be a cylindrical Bates
+        grain under uniform burn.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        Function
+            Propellant volume as a function of time.
+        """
         cross_section_area = np.pi * (
             self.grainOuterRadius**2 - self.grainInnerRadius**2
         )
@@ -215,6 +244,17 @@ class SolidMotor(Motor):
 
     @property
     def propellantInitialMass(self):
+        """Returns the initial propellant mass.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        float
+            Initial propellant mass in kg.
+        """
         return self.grainNumber * self.grainInitialMass
 
     @property
@@ -227,7 +267,8 @@ class SolidMotor(Motor):
 
         Parameters
         ----------
-        None
+        t : float
+            Time in seconds.
 
         Returns
         -------
@@ -243,6 +284,17 @@ class SolidMotor(Motor):
 
     @massFlowRate.setter
     def massFlowRate(self, value):
+        """Sets the mass flow rate of the motor.
+
+        Parameters
+        ----------
+        value : Function
+            Mass flow rate in kg/s.
+
+        Returns
+        -------
+        None
+        """
         value.setExtrapolation("zero")
         self._massFlowRate = value
         self.evaluateGeometry()
@@ -257,7 +309,8 @@ class SolidMotor(Motor):
 
         Parameters
         ----------
-        None
+        t : float
+            Time in seconds.
 
         Returns
         -------
@@ -350,7 +403,8 @@ class SolidMotor(Motor):
 
         Parameters
         ----------
-        None
+        t : float
+            Time in seconds.
 
         Returns
         -------
@@ -377,7 +431,8 @@ class SolidMotor(Motor):
 
         Parameters
         ----------
-        None
+        t : float
+            Time in seconds.
 
         Returns
         -------
@@ -388,6 +443,14 @@ class SolidMotor(Motor):
 
     @cached_property
     def Kn(self):
+        """Calculates the motor Kn as a function of time. Defined
+        as burnArea divided by the nozzle throat cross sectional area.
+
+        Returns
+        -------
+        Kn : Function of Inner Radius and Kn
+            Kn as a function of time.
+        """
         KnSource = (
             np.concatenate(
                 (
