@@ -24,6 +24,7 @@ class Function:
         outputs=["Scalar"],
         interpolation=None,
         extrapolation=None,
+        title=None,
     ):
         """Convert source into a Function, to be used more naturally.
         Set inputs, outputs, domain dimension, interpolation and extrapolation
@@ -58,6 +59,8 @@ class Function:
             which returns the value of the function at the edge of the interval,
             and 'zero', which returns zero for all points outside of source
             range. Default for 1-D functions is constant.
+        title : string, optional
+            Title to be displayed in the plots' figures. If none, the title will be constructed using the inputs and outputs arguments in the form "{inputs} x {outputs}".
 
         Returns
         -------
@@ -73,6 +76,22 @@ class Function:
         self.last_interval = 0
         # Set source
         self.setSource(source)
+        #  Set function title
+        if title:
+            self.setTitle(title)
+        else:
+            if self.__domDim__ == 1:
+                self.setTitle(
+                    self.__outputs__[0].title() + " x " + self.__inputs__[0].title()
+                )
+            elif self.__domDim__ == 2:
+                self.setTitle(
+                    self.__outputs__[0].title()
+                    + " x "
+                    + self.__inputs__[0].title()
+                    + " x "
+                    + self.__inputs__[1].title()
+                )
         # Return
         return None
 
@@ -152,7 +171,7 @@ class Function:
             temp = 1 * source
 
             def source(x):
-                return 0 * x + temp
+                return temp
 
         # Handle callable source or number source
         if callable(source):
@@ -249,7 +268,7 @@ class Function:
             Options are 'natural', which keeps interpolation, 'constant',
             which returns the value of the function at the edge of the interval,
             and 'zero', which returns zero for all points outside of source
-            range. Default is 'zero'.
+            range. Default is 'constant'.
 
         Returns
         -------
@@ -1188,6 +1207,9 @@ class Function:
             + ")"
         )
 
+    def setTitle(self, title):
+        self.title = title
+
     def plot(self, *args, **kwargs):
         """Call Function.plot1D if Function is 1-Dimensional or call
         Function.plot2D if Function is 2-Dimensional and forward arguments
@@ -1276,7 +1298,7 @@ class Function:
         plt.plot(x, y)
         # Turn on grid and set title and axis
         plt.grid(True)
-        plt.title(self.__outputs__[0].title() + " x " + self.__inputs__[0].title())
+        plt.title(self.title)
         plt.xlabel(self.__inputs__[0].title())
         plt.ylabel(self.__outputs__[0].title())
         plt.show()
@@ -1385,13 +1407,7 @@ class Function:
             plt.clabel(CS, inline=1, fontsize=10)
         # axes.contourf(meshX, meshY, z, zdir='x', offset=xMin, cmap=cm.coolwarm)
         # axes.contourf(meshX, meshY, z, zdir='y', offset=yMax, cmap=cm.coolwarm)
-        plt.title(
-            self.__outputs__[0].title()
-            + " x "
-            + self.__inputs__[0].title()
-            + " x "
-            + self.__inputs__[1].title()
-        )
+        plt.title(self.title)
         axes.set_xlabel(self.__inputs__[0].title())
         axes.set_ylabel(self.__inputs__[1].title())
         axes.set_zlabel(self.__outputs__[0].title())
@@ -2165,8 +2181,12 @@ class Function:
         ans : float
             Evaluated integral.
         """
+        # Guarantee a < b
+        integrationSign = np.sign(b - a)
+        if integrationSign == -1:
+            a, b = b, a
+        # Different implementations depending on interpolation
         if self.__interpolation__ == "spline" and numerical is False:
-            # Integrate using spline coefficients
             xData = self.source[:, 0]
             yData = self.source[:, 1]
             coeffs = self.__splineCoefficients__
@@ -2227,11 +2247,31 @@ class Function:
                     # self.__extrapolation__ = 'zero'
                     pass
         elif self.__interpolation__ == "linear" and numerical is False:
-            return np.trapz(self.source[:, 1], x=self.source[:, 0])
+            # Integrate from a to b using np.trapz
+            xData = self.source[:, 0]
+            yData = self.source[:, 1]
+            # Get data in interval
+            xIntegrationData = xData[(xData >= a) & (xData <= b)]
+            yIntegrationData = yData[(xData >= a) & (xData <= b)]
+            # Add integration limits to data
+            if self.__extrapolation__ == "zero":
+                if a >= xData[0]:
+                    xIntegrationData = np.concatenate(([a], xIntegrationData))
+                    yIntegrationData = np.concatenate(([self(a)], yIntegrationData))
+                if b <= xData[-1]:
+                    xIntegrationData = np.concatenate((xIntegrationData, [b]))
+                    yIntegrationData = np.concatenate((yIntegrationData, [self(b)]))
+            else:
+                xIntegrationData = np.concatenate(([a], xIntegrationData))
+                yIntegrationData = np.concatenate(([self(a)], yIntegrationData))
+                xIntegrationData = np.concatenate((xIntegrationData, [b]))
+                yIntegrationData = np.concatenate((yIntegrationData, [self(b)]))
+            # Integrate using np.trapz
+            ans = np.trapz(yIntegrationData, xIntegrationData)
         else:
             # Integrate numerically
             ans, _ = integrate.quad(self, a, b, epsabs=0.1, limit=10000)
-        return ans
+        return integrationSign * ans
 
     # Not implemented
     def differentiate(self, x, dx=1e-6):

@@ -16,7 +16,7 @@
 
 # RocketPy
 
-RocketPy is the next-generation trajectory simulation solution for High-Power Rocketry. The code is written as a [Python](http://www.python.org) library and allows for a complete 6 degrees of freedom simulation of a rocket's flight trajectory, including high fidelity variable mass effects as well as descent under parachutes. Weather conditions, such as wind profile, can be imported from sophisticated datasets, allowing for realistic scenarios. Furthermore, the implementation facilitates complex simulations, such as multi-stage rockets, design and trajectory optimization and dispersion analysis.
+RocketPy is the next-generation trajectory simulation solution for High-Power Rocketry. The code is written as a [Python](http://www.python.org) library and allows for a complete 6 degrees of freedom simulation of a rocket's flight trajectory, including high-fidelity variable mass effects as well as descent under parachutes. Weather conditions, such as wind profiles, can be imported from sophisticated datasets, allowing for realistic scenarios. Furthermore, the implementation facilitates complex simulations, such as multi-stage rockets, design and trajectory optimization and dispersion analysis.
 
 <br>
 
@@ -78,7 +78,7 @@ RocketPy is the next-generation trajectory simulation solution for High-Power Ro
 <summary>Flexible and modular</summary>
 <ul>
   <li>Straightforward engineering analysis (e.g. apogee and lifting off speed as a function of mass)</li>
-  <li>Non-standard flights (e.g. parachute drop test from helicopter)</li>
+  <li>Non-standard flights (e.g. parachute drop test from a helicopter)</li>
   <li>Multi-stage rockets</li>
   <li>Custom continuous and discrete control laws</li>
   <li>Create new classes (e.g. other types of motors)</li>
@@ -125,7 +125,7 @@ Check out documentation details using the links below:
 
 # Join Our Community!
 
-RocketPy is growing fast! Many university groups and rocket hobbyist have already started using it. The number of stars and forks for this repository is skyrocketing. And this is all thanks to a great community of users, engineers, developers, marketing specialists, and everyone interested in helping.
+RocketPy is growing fast! Many university groups and rocket hobbyists have already started using it. The number of stars and forks for this repository is skyrocketing. And this is all thanks to a great community of users, engineers, developers, marketing specialists, and everyone interested in helping.
 
 If you want to be a part of this and make RocketPy your own, join our [Discord](https://discord.gg/b6xYnNh) server today!
 
@@ -133,7 +133,7 @@ If you want to be a part of this and make RocketPy your own, join our [Discord](
 
 # Previewing
 
-You can preview RocketPy's main functionalities by browsing through a sample notebook in [Google Colab](https://colab.research.google.com/github/RocketPy-Team/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb).  No installation required!
+You can preview RocketPy's main functionalities by browsing through a sample notebook in [Google Colab](https://colab.research.google.com/github/RocketPy-Team/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb). No installation is required!
 
 When you are ready to run RocketPy locally, you can read the *Getting Started* section!
 
@@ -229,24 +229,36 @@ A sample code to create a Rocket is:
 
 ```python
 Calisto = Rocket(
-    motor=Pro75M1670,
-    radius=127/2000,
-    mass=19.197-2.956,
+    radius=127 / 2000,
+    mass=19.197 - 2.956,
     inertiaI=6.60,
     inertiaZ=0.0351,
-    distanceRocketNozzle=-1.255,
-    distanceRocketPropellant=-0.85704,
-    powerOffDrag='../data/calisto/powerOffDragCurve.csv',
-    powerOnDrag='../data/calisto/powerOnDragCurve.csv'
+    powerOffDrag="../../data/calisto/powerOffDragCurve.csv",
+    powerOnDrag="../../data/calisto/powerOnDragCurve.csv",
+    centerOfDryMassPosition=0,
+    coordinateSystemOrientation="tailToNose",
 )
 
 Calisto.setRailButtons([0.2, -0.5])
 
-NoseCone = Calisto.addNose(length=0.55829, kind="vonKarman", distanceToCM=0.71971)
+Calisto.addMotor(Pro75M1670, position=-1.255)
 
-FinSet = Calisto.addTrapezoildalFins(4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956)
+NoseCone = Calisto.addNose(length=0.55829, kind="vonKarman", position=0.71971 + 0.55829)
 
-Tail = Calisto.addTail(topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656)
+FinSet = Calisto.addTrapezoidalFins(
+    n=4,
+    rootChord=0.120,
+    tipChord=0.040,
+    span=0.100,
+    position=-1.04956,
+    cantAngle=0,
+    radius=None,
+    airfoil=None,
+)
+
+Tail = Calisto.addTail(
+    topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
+)
 ```
 
 You may want to add parachutes to your rocket as well:
@@ -297,9 +309,9 @@ To see all available results, use:
 TestFlight.allInfo()
 ```
 
-Here is just a quick taste of what RocketPy is able to calculate. There are hundred of plots and data points computed by RocketPy to enhance your analyses.
+Here is just a quick taste of what RocketPy is able to calculate. There are hundreds of plots and data points computed by RocketPy to enhance your analyses.
 
-![6-DOF Trajectory Plot](docs/static/rocketpy_example_trajectory.svg)
+![6-DOF Trajectory Plot](https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/rocketpy_example_trajectory.svg)
 
 <br>
 
@@ -317,13 +329,14 @@ See a [detailed list of contributors](https://github.com/RocketPy-Team/RocketPy/
 
 ## Supporting RocketPy and Contributing
 
-The easiest way to help RocketPy is to demonstrate your support by starring our repository! ![GitHub Repo stars](https://img.shields.io/github/stars/RocketPy-Team/RocketPy?style=social)
+The easiest way to help RocketPy is to demonstrate your support by starring our repository!
+[![starcharts stargazers over time](https://starchart.cc/rocketpy-team/rocketpy.svg)](https://starchart.cc/rocketpy-team/rocketpy)
 
-<br>
+You can also become a [sponsor](https://github.com/sponsors/RocketPy-Team) and help us financially to keep the project going.
 
 If you are actively using RocketPy in one of your projects, reaching out to our core team via [Discord](https://discord.gg/b6xYnNh) and providing feedback can help improve RocketPy a lot!
 
-And if you are interested in going one step further, please read [CONTRIBUTING.md](https://github.com/RocketPy-Team/RocketPy/blob/master/CONTRIBUTING.md) for details on our code of conduct and learn more on how you can contribute with the development of this next-gen trajectory simulation solution for rocketry.
+And if you are interested in going one step further, please read [CONTRIBUTING.md](https://github.com/RocketPy-Team/RocketPy/blob/master/CONTRIBUTING.md) for details on our code of conduct and learn more about how you can contribute to the development of this next-gen trajectory simulation solution for rocketry.
 
 <br>
 
@@ -335,4 +348,4 @@ This project is licensed under the MIT License - see the [LICENSE.md](https://gi
 
 ## Release Notes
 
-Want to know which bugs have been fixed and new features of each version? Check out the [release notes](https://github.com/RocketPy-Team/RocketPy/releases).
+Want to know which bugs have been fixed and the new features of each version? Check out the [release notes](https://github.com/RocketPy-Team/RocketPy/releases).

@@ -24,7 +24,7 @@ copyright = "2020, RocketPy Team"
 author = "Giovani Hidalgo Ceotto"
 
 # The full version, including alpha/beta/rc tags
-release = "0.12.1"
+release = "0.13.0"
 
 
 # -- General configuration ---------------------------------------------------

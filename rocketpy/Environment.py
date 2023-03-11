@@ -12,7 +12,6 @@ import re
 import warnings
 from datetime import datetime, timedelta
 
-import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
 import pytz
@@ -613,7 +612,7 @@ class Environment:
 
         return None
 
-    def getElevationFromTopograghicProfile(self, lat, lon):
+    def getElevationFromTopographicProfile(self, lat, lon):
         """Function which receives as inputs the coordinates of a point and finds its
         elevation in the provided Topographic Profile
 
@@ -3058,12 +3057,9 @@ class Environment:
         None
         """
 
-        # All prints
         self.prints.all()
-
-        # Plot graphs
-        print("\n\nAtmospheric Model Plots")
-        self.plots.atmospheric_model()
+        self.plots.info()
+        return None
 
     def allInfo(self):
         """Prints out all data and graphs available about the Environment.
@@ -3082,7 +3078,7 @@ class Environment:
 
         return None
 
-    def allPlotInfoReturned(self):
+    def allPlotInfoReturned(self) -> dict:
         """Returns a dictionary with all plot information available about the Environment.
 
         Parameters
@@ -3194,9 +3190,10 @@ class Environment:
         return info
 
     def exportEnvironment(self, filename="environment"):
-        """Export important attributes of Environment class so it can be used
-        again in further siulations by using the customAtmosphere atmospheric
-        model.
+        """Export important attributes of Environment class to a .json file,
+        saving all the information needed to recreate the same environment using
+        customAtmosphere.
+
         Parameters
         ----------
         filename
@@ -3206,9 +3203,13 @@ class Environment:
         None
         """
 
-        # TODO: in the future, allow the user to select which format will be used (json, csv, etc.). Default must be JSON.
-        # TODO: add self.exportEnvDictionary to the documentation
-        # TODO: find a way to documennt the workaround I've used on ma.getdata(self...
+        try:
+            atmosphericModelFile = self.atmosphericModelFile
+            atmosphericModelDict = self.atmosphericModelDict
+        except AttributeError:
+            atmosphericModelFile = ""
+            atmosphericModelDict = ""
+
         self.exportEnvDictionary = {
             "railLength": self.rL,
             "gravity": self.g(self.elevation),
@@ -3220,8 +3221,8 @@ class Environment:
             "timeZone": self.timeZone,
             "maxExpectedHeight": float(self.maxExpectedHeight),
             "atmosphericModelType": self.atmosphericModelType,
-            "atmosphericModelFile": self.atmosphericModelFile,
-            "atmosphericModelDict": self.atmosphericModelDict,
+            "atmosphericModelFile": atmosphericModelFile,
+            "atmosphericModelDict": atmosphericModelDict,
             "atmosphericModelPressureProfile": ma.getdata(
                 self.pressure.getSource()
             ).tolist(),
@@ -3401,9 +3402,9 @@ class Environment:
         Returns
         -------
         lat: float
-            latitude of the analysed point
+            latitude of the analyzed point
         lon: float
-            latitude of the analysed point
+            latitude of the analyzed point
         """
 
         if hemis == "N":

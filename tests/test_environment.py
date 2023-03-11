@@ -1,9 +1,12 @@
 import datetime
+import os
 from unittest.mock import patch
 
+import numpy as np
 import pytest
 import pytz
-from rocketpy import Environment, Flight, Rocket, SolidMotor
+
+from rocketpy import Environment
 
 
 def test_env_set_date(example_env):
@@ -44,7 +47,7 @@ def test_set_topographic_profile(example_env):
         dictionary="netCDF4",
     )
     assert (
-        example_env.getElevationFromTopograghicProfile(example_env.lat, example_env.lon)
+        example_env.getElevationFromTopographicProfile(example_env.lat, example_env.lon)
         == 1565
     )
 
@@ -52,8 +55,10 @@ def test_set_topographic_profile(example_env):
 @patch("matplotlib.pyplot.show")
 def test_standard_atmosphere(mock_show, example_env):
     example_env.setAtmosphericModel(type="StandardAtmosphere")
+    assert example_env.info() == None
     assert example_env.allInfo() == None
     assert example_env.pressure(0) == 101325.0
+    assert example_env.prints.printEarthDetails() == None
 
 
 @patch("matplotlib.pyplot.show")
@@ -140,6 +145,42 @@ def test_gefs_atmosphere(mock_show, example_env_robust):
     assert example_env_robust.allInfo() == None
 
 
+@patch("matplotlib.pyplot.show")
+def test_info_returns(mock_show, example_env):
+    returned_plots = example_env.allPlotInfoReturned()
+    returned_infos = example_env.allInfoReturned()
+    expected_info = {
+        "grav": 9.80665,
+        "launch_rail_length": 5,
+        "elevation": 0,
+        "modelType": "StandardAtmosphere",
+        "modelTypeMaxExpectedHeight": 80000,
+        "windSpeed": 0,
+        "windDirection": 0,
+        "windHeading": 0,
+        "surfacePressure": 1013.25,
+        "surfaceTemperature": 288.15,
+        "surfaceAirDensity": 1.225000018124288,
+        "surfaceSpeedOfSound": 340.293988026089,
+        "lat": 0,
+        "lon": 0,
+    }
+    expected_plots_keys = [
+        "grid",
+        "windSpeed",
+        "windDirection",
+        "speedOfSound",
+        "density",
+        "windVelX",
+        "windVelY",
+        "pressure",
+        "temperature",
+    ]
+    assert list(returned_infos.keys()) == list(expected_info.keys())
+    assert list(returned_infos.values()) == list(expected_info.values())
+    assert list(returned_plots.keys()) == expected_plots_keys
+
+
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_cmc_atmosphere(mock_show, example_env_robust):
@@ -183,3 +224,16 @@ def test_hiresw_ensemble_atmosphere(mock_show, example_env_robust):
         dictionary=HIRESW_dictionary,
     )
     assert example_env_robust.allInfo() == None
+
+
+def test_export_environment(example_env_robust):
+    assert example_env_robust.exportEnvironment(filename="environment") == None
+    os.remove("environment.json")
+
+
+def test_utmToGeodesic(example_env_robust):
+    lat, lon = example_env_robust.utmToGeodesic(
+        x=315468.64, y=3651938.65, utmZone=13, hemis="N", datum="WGS84"
+    )
+    assert np.isclose(lat, 32.99025, atol=1e-5) == True
+    assert np.isclose(lon, -106.9750, atol=1e-5) == True
