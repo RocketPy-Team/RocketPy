@@ -2102,7 +2102,7 @@ class Environment:
                     weatherData.variables[dictionary["geopotential"]][
                         timeIndex, :, (latIndex - 1, latIndex), (lonIndex - 1, lonIndex)
                     ]
-                    / self.g
+                    / self.standard_g
                 )
             except:
                 raise ValueError(
@@ -2525,7 +2525,7 @@ class Environment:
                     [paramDictionary[inverseDictionary[dim]] for dim in dimensions]
                 )
                 geopotentials = (
-                    weatherData.variables[dictionary["geopotential"]][params] / self.g
+                    weatherData.variables[dictionary["geopotential"]][params] / self.standard_g
                 )
             except:
                 raise ValueError(
@@ -3210,7 +3210,7 @@ class Environment:
         # TODO: find a way to documennt the workaround I've used on ma.getdata(self...
         self.exportEnvDictionary = {
             "railLength": self.rL,
-            "gravity": self.g,
+            "gravity": self.g(self.elevation),
             "date": [self.date.year, self.date.month, self.date.day, self.date.hour],
             "latitude": self.lat,
             "longitude": self.lon,
