@@ -5,10 +5,13 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 import bisect
+import datetime
+import json
 import warnings
 from collections import defaultdict
 
 import ipywidgets as widgets
+import jsonpickle
 import matplotlib.ticker as mtick
 import netCDF4
 import numpy as np
@@ -19,8 +22,8 @@ from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.animation import PillowWriter as ImageWriter
 from scipy import stats
-from timezonefinder import TimezoneFinder
 from windrose import WindroseAxes
+from rocketpy.Environment import Environment
 
 from rocketpy.Function import Function
 from rocketpy.units import convert_units
@@ -29,18 +32,51 @@ from rocketpy.units import convert_units
 class EnvironmentAnalysis:
     """Class for analyzing the environment.
 
-    List of ideas suggested by Logan:
-        - average max/min temperature
-        - record max/min temperature
-        - average max wind gust
-        - record max wind gust
-        - plot of wind gust distribution (should be Weibull)
-        - animation of who wind gust distribution evolves over average day
-        - temperature progression throughout the day at some fine interval (ex: 10 min) with 1, 2, 3, sigma contours (sketch below)
-        - average, 1, 2, 3 sigma wind profile from 0 - 35,000 ft AGL
+    List of properties currently implemented:
+        - average max/min temperature at surface level
+        - record max/min temperature at surface level
+        - temperature progression throughout the day
+        - temperature profile over an average day
+        - average max wind gust at surface level
+        - record max wind gust at surface level
+        - average, 1, 2, 3 sigma wind profile
         - average day wind rose
         - animation of how average wind rose evolves throughout an average day
         - animation of how wind profile evolves throughout an average day
+        - pressure profile over an average day
+        - wind velocity x profile over average day
+        - wind velocity y profile over average day
+        - wind speed profile over an average day
+        - average max surface 100m wind speed
+        - average max surface 10m wind speed
+        - average min surface 100m wind speed
+        - average min surface 10m wind speed
+        - average sustained surface100m wind along day
+        - average sustained surface10m wind along day
+        - maximum surface 10m wind speed
+        - average cloud base height
+        - percentage of days with no cloud coverage
+        - percentage of days with precipitation
+
+    You can also visualize all those attributes by exploring some of the methods:
+        - plot of wind gust distribution (should be Weibull)
+        - plot wind profile over average day
+        - plot sustained surface wind speed distribution over average day
+        - plot wind gust distribution over average day
+        - plot average day wind rose all hours
+        - plot average day wind rose specific hour
+        - plot average pressure profile
+        - plot average surface10m wind speed along day
+        - plot average sustained surface100m wind speed along day
+        - plot average temperature along day
+        - plot average wind speed profile
+        - plot surface10m wind speed distribution
+        - animate wind profile over average day
+        - animate sustained surface wind speed distribution over average day
+        - animate wind gust distribution over average day
+        - animate average wind rose
+        - animation of who wind gust distribution evolves over average day
+        - allInfo
 
     All items listed are relevant to either
         1. participant safety
@@ -48,10 +84,14 @@ class EnvironmentAnalysis:
         3. rocket performance
 
     How does this class work?
-    - The class is initialized with a start date and end date.
+    - The class is initialized with a start_date, end_date, start_hour and end_hour.
     - The class then parses the weather data from the start date to the end date.
+    Always parsing the data from start_hour to end_hour.
     - The class then calculates the average max/min temperature, average max wind gust, and average day wind rose.
-    - The class then plots the average max/min temperature, average max wind gust, and average day wind rose.
+    - The class then allows for plotting the average max/min temperature, average max wind gust, and average day wind rose.
+
+    Remaining TODOs:
+    - Make 'windSpeedLimit' a dynamic/flexible variable
     """
 
     def __init__(
@@ -66,6 +106,9 @@ class EnvironmentAnalysis:
         pressureLevelDataFile=None,
         timezone=None,
         unit_system="metric",
+        forecast_date=None,
+        forecast_args=None,
+        maxExpectedAltitude=None,
     ):
         """Constructor for the EnvironmentAnalysis class.
         Parameters
@@ -100,11 +143,24 @@ class EnvironmentAnalysis:
         unit_system : str, optional
             Unit system to be used when displaying results.
             Options are: SI, metric, imperial. Default is metric.
+        forecast_date : datetime.date, optional
+            Date for the forecast models. It will be requested the environment forecast
+            for multiple hours within that specified date.
+        forecast_args : dictionary, optional
+            Arguments for setting the forecast on the Environment class. With this argument
+            it is possible to change the forecast model being used.
+        maxExpectedAltitude : float, optional
+            Maximum expected altitude for your analysis. This is used to calculate
+            plot limits from pressure level data profiles. If None is set, the
+            maximum altitude will be calculated from the pressure level data.
+            Default is None.
         Returns
         -------
         None
         """
-        warnings.warn("Please notice this class is still under development")
+        warnings.warn(
+            "Please notice this class is still under development, and some features may not work as expected as they were not exhaustively tested yet. In case of having any trouble, please raise an issue at https://github.com/RocketPy-Team/RocketPy/issues"
+        )
 
         # Save inputs
         self.start_date = start_date
@@ -116,6 +172,8 @@ class EnvironmentAnalysis:
         self.surfaceDataFile = surfaceDataFile
         self.pressureLevelDataFile = pressureLevelDataFile
         self.preferred_timezone = timezone
+        self.unit_system = unit_system
+        self.maxExpectedAltitude = maxExpectedAltitude
 
         # Manage units and timezones
         self.__init_data_parsing_units()
@@ -140,14 +198,10 @@ class EnvironmentAnalysis:
         self.maximum_wind_gust = 0
         self.wind_gust_distribution = None
         self.average_temperature_along_day = Function(0)
-        self.average_temperature_along_day_1_sigma = Function(0)
-        self.average_temperature_along_day_2_sigma = Function(0)
-        self.average_temperature_along_day_3_sigma = Function(0)
         self.average_wind_profile = Function(0)
-        self.average_wind_profile_1_sigma = Function(0)
-        self.average_wind_profile_2_sigma = Function(0)
-        self.average_wind_profile_3_sigma = Function(0)
         self.average_wind_profile_at_given_hour = None
+        self.average_wind_heading_profile = Function(0)
+        self.average_wind_heading_profile_at_given_hour = Function(0)
 
         self.max_wind_speed = None
         self.min_wind_speed = None
@@ -156,6 +210,30 @@ class EnvironmentAnalysis:
 
         # Run calculations
         self.process_data()
+
+        # Processing forecast
+        self.forecast = None
+        if forecast_date:
+            self.forecast = {}
+            hours = list(self.pressureLevelDataDict.values())[0].keys()
+            for hour in hours:
+                hour_datetime = datetime.datetime(
+                    year=forecast_date.year,
+                    month=forecast_date.month,
+                    day=forecast_date.day,
+                    hour=int(hour),
+                )
+
+                Env = Environment(
+                    railLength=5,
+                    date=hour_datetime,
+                    latitude=self.latitude,
+                    longitude=self.longitude,
+                    elevation=self.elevation,
+                )
+                forecast_args = forecast_args or {"type": "Forecast", "file": "GFS"}
+                Env.setAtmosphericModel(**forecast_args)
+                self.forecast[hour] = Env
 
     def __bilinear_interpolation(self, x, y, x1, x2, y1, y2, z11, z12, z21, z22):
         """
@@ -342,6 +420,16 @@ class EnvironmentAnalysis:
 
     def __find_preferred_timezone(self):
         if self.preferred_timezone is None:
+            try:
+                import timezonefinder as TimezoneFinder
+            except ImportError:
+                raise ImportError(
+                    "The timezonefinder package is required to automatically "
+                    + "determine local timezone based on lat,lon coordinates. "
+                    + "Please specify the desired timezone using the `timezone` "
+                    + "argument when initializing the EnvironmentAnalysis class "
+                    + "or install timezonefinder with `pip install timezonefinder`."
+                )
             # Use local timezone based on lat lon pair
             tf = TimezoneFinder()
             self.preferred_timezone = pytz.timezone(
@@ -483,8 +571,7 @@ class EnvironmentAnalysis:
         Parse pressure level data from a weather file.
 
         Sources of information:
-        - https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels-preliminary-back-extension?tab=overview
-        -
+        - https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-pressure-levels?tab=form
 
         Must get the following variables from a ERA5 file:
         - Geopotential
@@ -535,6 +622,11 @@ class EnvironmentAnalysis:
         pressureLevelArray = pressureLevelData.variables["level"]
         lonArray = pressureLevelData.variables["longitude"]
         latArray = pressureLevelData.variables["latitude"]
+        # Determine latitude and longitude range for pressure level file
+        self.pressureLevelInitLat = latArray[0]
+        self.pressureLevelEndLat = latArray[-1]
+        self.pressureLevelInitLon = lonArray[0]
+        self.pressureLevelEndLon = lonArray[-1]
 
         # Find index needed for latitude and longitude for specified location
         lonIndex = self.__getNearestIndex(lonArray, self.longitude)
@@ -545,7 +637,6 @@ class EnvironmentAnalysis:
 
         # Loop through time and save all values
         for timeIndex, timeNum in enumerate(timeNumArray):
-
             dateString, hourString, dateTime = self.__timeNumToDateString(
                 timeNum, timeNumArray.units, calendar="gregorian"
             )
@@ -584,9 +675,9 @@ class EnvironmentAnalysis:
                 variablePointsArray = np.array([heightAboveSeaLevelArray, valueArray]).T
                 variableFunction = Function(
                     variablePointsArray,
-                    inputs="Height Above Ground Level (m)",
+                    inputs="Height Above Ground Level (m)",  # TODO: Check if it is really AGL or ASL here, see 3 lines above
                     outputs=key,
-                    interpolation="linear",
+                    extrapolation="constant",
                 )
                 self.pressureLevelDataDict[dateString][hourString][
                     key
@@ -600,7 +691,7 @@ class EnvironmentAnalysis:
                 pressurePointsArray,
                 inputs="Height Above Sea Level (m)",
                 outputs="Pressure (Pa)",
-                interpolation="linear",
+                extrapolation="constant",
             )
             self.pressureLevelDataDict[dateString][hourString][
                 "pressure"
@@ -632,7 +723,7 @@ class EnvironmentAnalysis:
                 windSpeedPointsArray,
                 inputs="Height Above Sea Level (m)",
                 outputs="Wind Speed (m/s)",
-                interpolation="linear",
+                extrapolation="constant",
             )
             self.pressureLevelDataDict[dateString][hourString][
                 "windSpeed"
@@ -650,7 +741,7 @@ class EnvironmentAnalysis:
                 windHeadingPointsArray,
                 inputs="Height Above Sea Level (m)",
                 outputs="Wind Heading (Deg True)",
-                interpolation="linear",
+                extrapolation="constant",
             )
             self.pressureLevelDataDict[dateString][hourString][
                 "windHeading"
@@ -665,7 +756,7 @@ class EnvironmentAnalysis:
                 windDirectionPointsArray,
                 inputs="Height Above Sea Level (m)",
                 outputs="Wind Direction (Deg True)",
-                interpolation="linear",
+                extrapolation="constant",
             )
             self.pressureLevelDataDict[dateString][hourString][
                 "windDirection"
@@ -677,9 +768,10 @@ class EnvironmentAnalysis:
         """
         Parse surface data from a weather file.
         Currently only supports files from ECMWF.
+        You can download a file from the following website: https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels?tab=form
 
         Must get the following variables:
-        - surface elevation: self.elevation = float
+        - surface elevation: self.elevation = float  # Select 'Geopotential'
         - 2m temperature: surfaceTemperature = float
         - Surface pressure: surfacePressure = float
         - 10m u-component of wind: surface10mWindVelocityX = float
@@ -712,6 +804,11 @@ class EnvironmentAnalysis:
         timeNumArray = surfaceData.variables["time"]
         lonArray = surfaceData.variables["longitude"]
         latArray = surfaceData.variables["latitude"]
+        # Determine latitude and longitude range for surface level file
+        self.singleLevelInitLat = latArray[0]
+        self.singleLevelEndLat = latArray[-1]
+        self.singleLevelInitLon = lonArray[0]
+        self.singleLevelEndLon = lonArray[-1]
 
         # Find index needed for latitude and longitude for specified location
         lonIndex = self.__getNearestIndex(lonArray, self.longitude)
@@ -722,7 +819,6 @@ class EnvironmentAnalysis:
 
         # Loop through time and save all values
         for timeIndex, timeNum in enumerate(timeNumArray):
-
             dateString, hourString, dateTime = self.__timeNumToDateString(
                 timeNum, timeNumArray.units, calendar="gregorian"
             )
@@ -1188,7 +1284,7 @@ class EnvironmentAnalysis:
 
         return None
 
-    def plot_surface10m_wind_speed_distribution(self, SAcup_wind_constraints=False):
+    def plot_surface10m_wind_speed_distribution(self, windSpeedLimit=False):
         """Get all values of sustained surface wind speed (for every date and hour available)
         and plot a single distribution. Expected result is a Weibull distribution.
         """
@@ -1223,15 +1319,15 @@ class EnvironmentAnalysis:
             label="Weibull Distribution",
         )
 
-        if SAcup_wind_constraints:
+        if windSpeedLimit:
             plt.vlines(
                 convert_units(20, "mph", self.unit_system["wind_speed"]),
                 0,
                 0.3,
                 "g",
                 (0, (15, 5, 2, 5)),
-                label="SAcup wind speed constraints",
-            )  # Plot SAcup wind speed constraints
+                label="Wind Speed Limit",
+            )  # Plot Wind Speed Limit
 
         # Label plot
         plt.ylabel("Probability")
@@ -1350,9 +1446,7 @@ class EnvironmentAnalysis:
             self.average_surface10m_wind_speed_sigmas_at_given_hour,
         )
 
-    def plot_average_surface10m_wind_speed_along_day(
-        self, SAcup_wind_constraints=False
-    ):
+    def plot_average_surface10m_wind_speed_along_day(self, windSpeedLimit=False):
         """Plots average surface wind speed progression throughout the day, including
         sigma contours."""
 
@@ -1407,15 +1501,15 @@ class EnvironmentAnalysis:
             lambda x, pos: "{0:02.0f}:{1:02.0f}".format(*divmod(x * 60, 60))
         )
         plt.autoscale(enable=True, axis="x", tight=True)
-        if SAcup_wind_constraints:
+        if windSpeedLimit:
             plt.hlines(
                 convert_units(20, "mph", self.unit_system["wind_speed"]),
                 min(hours),
                 max(hours),
                 "g",
                 (0, (15, 5, 2, 5)),
-                label="SAcup wind speed constraints",
-            )  # Plot SAcup wind speed constraints
+                label="Wind Speed Limit",
+            )  # Plot Wind Speed Limit
         plt.xlabel("Time (hours)")
         plt.ylabel(f"Surface Wind Speed ({self.unit_system['wind_speed']})")
         plt.title("Average Sustained Surface Wind Speed Along Day")
@@ -1513,7 +1607,7 @@ class EnvironmentAnalysis:
         plt.legend()
         plt.show()
 
-    def plot_average_wind_speed_profile(self, SAcup_altitude_constraints=False):
+    def plot_average_wind_speed_profile(self, clear_range_limits=False):
         """Average wind speed for all datetimes available."""
         altitude_list = np.linspace(*self.altitude_AGL_range, 100)
         wind_speed_profiles = [
@@ -1551,16 +1645,14 @@ class EnvironmentAnalysis:
             "b--",
             alpha=0.5,
         )
-        # plt.plot(np.percentile(wind_speed_profiles, 50-49.8, axis=0, method='weibull'), altitude_list, 'b--', alpha=0.25)
-        # plt.plot(np.percentile(wind_speed_profiles, 50+49.8, axis=0, method='weibull'), altitude_list, 'b--', alpha=0.25)
         for wind_speed_profile in wind_speed_profiles:
             plt.plot(wind_speed_profile, altitude_list, "gray", alpha=0.01)
 
         plt.autoscale(enable=True, axis="x", tight=True)
         plt.autoscale(enable=True, axis="y", tight=True)
 
-        if SAcup_altitude_constraints:
-            # SA Cup altitude constraints region
+        if clear_range_limits:
+            # Clear Sky Range Altitude Limits
             print(plt)
             xmin, xmax, ymin, ymax = plt.axis()
             plt.fill_between(
@@ -1582,7 +1674,101 @@ class EnvironmentAnalysis:
 
         plt.xlabel(f"Wind speed ({self.unit_system['wind_speed']})")
         plt.ylabel(f"Altitude AGL ({self.unit_system['length']})")
-        plt.title("Average Wind Speed Profile")
+        plt.xlim(0, 360)
+        plt.title("Average Wind speed Profile")
+        plt.legend()
+        plt.xlim(0, max(np.percentile(wind_speed_profiles, 50 + 49.85, axis=0)))
+        plt.show()
+
+    def plot_average_wind_heading_profile(self, clear_range_limits=False):
+        """Average wind heading for all datetimes available."""
+        altitude_list = np.linspace(*self.altitude_AGL_range, 100)
+
+        wind_X_profiles = [
+            dayDict[hour]["windVelocityX"](altitude_list)
+            for dayDict in self.pressureLevelDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        self.average_wind_X_profile = np.mean(wind_X_profiles, axis=0)
+
+        wind_Y_profiles = [
+            dayDict[hour]["windVelocityY"](altitude_list)
+            for dayDict in self.pressureLevelDataDict.values()
+            for hour in dayDict.keys()
+        ]
+        self.average_wind_Y_profile = np.mean(wind_Y_profiles, axis=0)
+
+        wind_heading_profiles = (
+            np.arctan2(wind_X_profiles, wind_Y_profiles) * 180 / np.pi % 360
+        )
+        self.average_wind_heading_profile = (
+            np.arctan2(self.average_wind_X_profile, self.average_wind_Y_profile)
+            * 180
+            / np.pi
+            % 360
+        )
+
+        # TODO: Add plot for wind X and wind Y profiles
+        # Plot
+        plt.figure()
+        plt.plot(self.average_wind_heading_profile, altitude_list, "r", label="$\\mu$")
+        # plt.plot(
+        #     np.percentile(wind_heading_profiles, 50 - 34.1, axis=0),
+        #     altitude_list,
+        #     "b--",
+        #     alpha=1,
+        #     label="$\\mu \\pm \\sigma$",
+        # )
+        # plt.plot(
+        #     np.percentile(wind_heading_profiles, 50 + 34.1, axis=0),
+        #     altitude_list,
+        #     "b--",
+        #     alpha=1,
+        # )
+        # plt.plot(
+        #     np.percentile(wind_heading_profiles, 50 - 47.4, axis=0),
+        #     altitude_list,
+        #     "b--",
+        #     alpha=0.5,
+        #     label="$\\mu \\pm 2\\sigma$",
+        # )
+        # plt.plot(
+        #     np.percentile(wind_heading_profiles, 50 + 47.7, axis=0),
+        #     altitude_list,
+        #     "b--",
+        #     alpha=0.5,
+        # )
+        # for wind_heading_profile in wind_heading_profiles:
+        #     plt.plot(wind_heading_profile, altitude_list, "gray", alpha=0.01)
+
+        plt.autoscale(enable=True, axis="x", tight=True)
+        plt.autoscale(enable=True, axis="y", tight=True)
+
+        if clear_range_limits:
+            # Clear Sky Range Altitude Limits
+            print(plt)
+            xmin, xmax, ymin, ymax = plt.axis()
+            plt.fill_between(
+                [xmin, xmax],
+                0.7 * convert_units(10000, "ft", self.unit_system["length"]),
+                1.3 * convert_units(10000, "ft", self.unit_system["length"]),
+                color="g",
+                alpha=0.2,
+                label=f"10,000 {self.unit_system['length']} ± 30%",
+            )
+            plt.fill_between(
+                [xmin, xmax],
+                0.7 * convert_units(30000, "ft", self.unit_system["length"]),
+                1.3 * convert_units(30000, "ft", self.unit_system["length"]),
+                color="g",
+                alpha=0.2,
+                label=f"30,000 {self.unit_system['length']} ± 30%",
+            )
+
+        plt.xlabel(f"Wind heading ({self.unit_system['angle']})")
+        plt.ylabel(f"Altitude AGL ({self.unit_system['length']})")
+        plt.xlim(0, 360)
+        plt.title("Average Wind heading Profile")
         plt.legend()
         plt.show()
 
@@ -1642,7 +1828,7 @@ class EnvironmentAnalysis:
         self.wind_speed_per_hour = windSpeed
         self.wind_direction_per_hour = windDir
 
-    def plot_average_pressure_profile(self, SAcup_altitude_constraints=False):
+    def plot_average_pressure_profile(self, clear_range_limits=False):
         """Average wind speed for all datetimes available."""
         altitude_list = np.linspace(*self.altitude_AGL_range, 100)
         pressure_profiles = [
@@ -1680,16 +1866,14 @@ class EnvironmentAnalysis:
             "b--",
             alpha=0.5,
         )
-        # plt.plot(np.percentile(pressure_profiles, 50-49.8, axis=0, method='weibull'), altitude_list, 'b--', alpha=0.25)
-        # plt.plot(np.percentile(pressure_profiles, 50+49.8, axis=0, method='weibull'), altitude_list, 'b--', alpha=0.25)
         for pressure_profile in pressure_profiles:
             plt.plot(pressure_profile, altitude_list, "gray", alpha=0.01)
 
         plt.autoscale(enable=True, axis="x", tight=True)
         plt.autoscale(enable=True, axis="y", tight=True)
 
-        if SAcup_altitude_constraints:
-            # SA Cup altitude constraints region
+        if clear_range_limits:
+            # Clear Sky Range Altitude Limits
             print(plt)
             xmin, xmax, ymin, ymax = plt.axis()
             plt.fill_between(
@@ -1713,6 +1897,7 @@ class EnvironmentAnalysis:
         plt.ylabel(f"Altitude AGL ({self.unit_system['length']})")
         plt.title("Average Pressure Profile")
         plt.legend()
+        plt.xlim(0, max(np.percentile(pressure_profiles, 50 + 49.85, axis=0)))
         plt.show()
 
     @staticmethod
@@ -1781,7 +1966,7 @@ class EnvironmentAnalysis:
         plt.show()
 
     def plot_average_day_wind_rose_all_hours(self):
-        """Plot windroses for all hours of a day, in a grid like plot."""
+        """Plot wind roses for all hours of a day, in a grid like plot."""
         # Get days and hours
         days = list(self.surfaceDataDict.keys())
         hours = list(self.surfaceDataDict[days[0]].keys())
@@ -1856,11 +2041,12 @@ class EnvironmentAnalysis:
         plt.show()
 
     def animate_average_wind_rose(self, figsize=(8, 8), filename="wind_rose.gif"):
-        """Animates the wind_rose of an average day. The inputs of a wind_rose are the location of the
-        place where we want to analyze, (x,y,z). The data is assembled by hour, which means, the windrose
-        of a specific hour is generated by bringing together the data of all of the days available for that
-        specific hour. It's possible to change the size of the gif using the parameter figsize, which is the
-        height and width in inches.
+        """Animates the wind_rose of an average day. The inputs of a wind_rose
+        are the location of the place where we want to analyze, (x,y,z). The data
+        is assembled by hour, which means, the windrose of a specific hour is
+        generated by bringing together the data of all of the days available for
+        that specific hour. It's possible to change the size of the gif using the
+        parameter figsize, which is the height and width in inches.
 
         Parameters
         ----------
@@ -1937,12 +2123,12 @@ class EnvironmentAnalysis:
 
         # Create grid of plots for each hour
         hours = list(list(self.pressureLevelDataDict.values())[0].keys())
-        ncols, nrows = self._find_two_closest_integer_factors(len(hours))
+        nrows, ncols = self._find_two_closest_integer_factors(len(hours))
         fig = plt.figure(figsize=(ncols * 2, nrows * 2.2))
         gs = fig.add_gridspec(nrows, ncols, hspace=0, wspace=0, left=0.12)
         axs = gs.subplots(sharex=True, sharey=True)
         x_min, x_max, y_min, y_max = 0, 0, 0, 0
-        for (i, j) in [(i, j) for i in range(nrows) for j in range(ncols)]:
+        for i, j in [(i, j) for i in range(nrows) for j in range(ncols)]:
             hour = hours[i * ncols + j]
             ax = axs[i, j]
             ax.set_title(f"{float(hour):05.2f}".replace(".", ":"), y=0.8)
@@ -2040,7 +2226,7 @@ class EnvironmentAnalysis:
             ax.set_ylabel("Probability")
             ax.set_title("Wind Gust Distribution")
             # ax.grid(True)
-            return ln, *bar_container.patches, tx
+            return (ln, *bar_container.patches, tx)
 
         # Define function which sets each animation frame
         def update(frame):
@@ -2056,7 +2242,7 @@ class EnvironmentAnalysis:
             ln.set_data(xdata, ydata)
             # Update hour text
             tx.set_text(f"{float(frame[0]):05.2f}".replace(".", ":"))
-            return ln, *bar_container.patches, tx
+            return (ln, *bar_container.patches, tx)
 
         for frame in wind_gusts_at_given_hour.items():
             update(frame)
@@ -2073,7 +2259,7 @@ class EnvironmentAnalysis:
         return HTML(animation.to_jshtml())
 
     def plot_sustained_surface_wind_speed_distribution_over_average_day(
-        self, SAcup_wind_constraints=False
+        self, windSpeedLimit=False
     ):
         """Plots shown in the animation of how the sustained surface wind speed distribution varies throughout the day."""
         # Gather animation data
@@ -2102,7 +2288,7 @@ class EnvironmentAnalysis:
         gs = fig.add_gridspec(nrows, ncols, hspace=0, wspace=0, left=0.12)
         axs = gs.subplots(sharex=True, sharey=True)
         x_min, x_max, y_min, y_max = 0, 0, 0, 0
-        for (i, j) in [(i, j) for i in range(nrows) for j in range(ncols)]:
+        for i, j in [(i, j) for i in range(nrows) for j in range(ncols)]:
             hour = hours[i * ncols + j]
             ax = axs[i, j]
             ax.set_title(f"{float(hour):05.2f}".replace(".", ":"), y=0.8)
@@ -2145,9 +2331,9 @@ class EnvironmentAnalysis:
             mtick.MaxNLocator(integer=True, nbins=4, prune="lower")
         )
 
-        if SAcup_wind_constraints:
-            for (i, j) in [(i, j) for i in range(nrows) for j in range(ncols)]:
-                # SA Cup altitude constraints region
+        if windSpeedLimit:
+            for i, j in [(i, j) for i in range(nrows) for j in range(ncols)]:
+                # Clear Sky Range Altitude Limits j]
                 ax = axs[i, j]
                 ax.vlines(
                     convert_units(20, "mph", self.unit_system["wind_speed"]),
@@ -2155,7 +2341,7 @@ class EnvironmentAnalysis:
                     ax.get_ylim()[1],
                     "g",
                     (0, (15, 5, 2, 5)),
-                    label="SA Cup Wind Constraints",
+                    label="Wind Speed Limits",
                 )
 
         # Set title and axis labels for entire figure
@@ -2169,8 +2355,8 @@ class EnvironmentAnalysis:
         plt.show()
 
     def animate_sustained_surface_wind_speed_distribution_over_average_day(
-        self, SAcup_wind_constraints=False
-    ):  # TODO: getting weird results
+        self, windSpeedLimit=False
+    ):  # TODO: getting weird results since the 0.3 on y axis is not parametrized
         """Animation of how the sustained surface wind speed distribution varies throughout the day."""
         # Gather animation data
         surface_wind_speeds_at_given_hour = {}
@@ -2233,17 +2419,17 @@ class EnvironmentAnalysis:
             ax.set_title("Sustained Surface Wind Distribution")
             # ax.grid(True)
 
-            if SAcup_wind_constraints:
+            if windSpeedLimit:
                 ax.vlines(
                     convert_units(20, "mph", self.unit_system["wind_speed"]),
                     0,
                     0.3,  # TODO: parametrize
                     "g",
                     (0, (15, 5, 2, 5)),
-                    label="SAcup wind speed constraints",
-                )  # Plot SAcup wind speed constraints
+                    label="Wind Speed Limit",
+                )  # Plot Wind Speed Limit
 
-            return ln, *bar_container.patches, tx
+            return (ln, *bar_container.patches, tx)
 
         # Define function which sets each animation frame
         def update(frame):
@@ -2261,7 +2447,7 @@ class EnvironmentAnalysis:
             ln.set_data(xdata, ydata)
             # Update hour text
             tx.set_text(f"{float(frame[0]):05.2f}".replace(".", ":"))
-            return ln, *bar_container.patches, tx
+            return (ln, *bar_container.patches, tx)
 
         for frame in surface_wind_speeds_at_given_hour.items():
             update(frame)
@@ -2280,15 +2466,84 @@ class EnvironmentAnalysis:
     @property
     def altitude_AGL_range(self):
         min_altitude = 0
-        max_altitudes = [
-            np.max(dayDict[hour]["windSpeed"].source[-1, 0])
-            for dayDict in self.pressureLevelDataDict.values()
-            for hour in dayDict.keys()
-        ]
-        max_altitude = np.min(max_altitudes)
+        if self.maxExpectedAltitude == None:
+            max_altitudes = [
+                np.max(dayDict[hour]["windSpeed"].source[-1, 0])
+                for dayDict in self.pressureLevelDataDict.values()
+                for hour in dayDict.keys()
+            ]
+            max_altitude = np.min(max_altitudes)
+        else:
+            max_altitude = self.maxExpectedAltitude
         return min_altitude, max_altitude
 
-    def process_wind_profile_over_average_day(self):
+    def process_temperature_profile_over_average_day(self):
+        """Compute the average temperature profile for each available hour of a day, over all
+        days in the dataset."""
+        altitude_list = np.linspace(*self.altitude_AGL_range, 100)
+
+        average_temperature_profile_at_given_hour = {}
+        self.max_average_temperature_at_altitude = 0
+        hours = list(self.pressureLevelDataDict.values())[0].keys()
+        for hour in hours:
+            temperature_values_for_this_hour = []
+            for dayDict in self.pressureLevelDataDict.values():
+                try:
+                    temperature_values_for_this_hour += [
+                        dayDict[hour]["temperature"](altitude_list)
+                    ]
+                except KeyError:
+                    # Some day does not have data for the desired hour
+                    # No need to worry, just average over the other days
+                    pass
+            mean_temperature_values_for_this_hour = np.mean(
+                temperature_values_for_this_hour, axis=0
+            )
+            average_temperature_profile_at_given_hour[hour] = [
+                mean_temperature_values_for_this_hour,
+                altitude_list,
+            ]
+            max_temperature = np.max(mean_temperature_values_for_this_hour)
+            if max_temperature >= self.max_average_temperature_at_altitude:
+                self.max_average_temperature_at_altitude = max_temperature
+        self.average_temperature_profile_at_given_hour = (
+            average_temperature_profile_at_given_hour
+        )
+
+    def process_pressure_profile_over_average_day(self):
+        """Compute the average pressure profile for each available hour of a day, over all
+        days in the dataset."""
+        altitude_list = np.linspace(*self.altitude_AGL_range, 100)
+
+        average_pressure_profile_at_given_hour = {}
+        self.max_average_pressure_at_altitude = 0
+        hours = list(self.pressureLevelDataDict.values())[0].keys()
+        for hour in hours:
+            pressure_values_for_this_hour = []
+            for dayDict in self.pressureLevelDataDict.values():
+                try:
+                    pressure_values_for_this_hour += [
+                        dayDict[hour]["pressure"](altitude_list)
+                    ]
+                except KeyError:
+                    # Some day does not have data for the desired hour
+                    # No need to worry, just average over the other days
+                    pass
+            mean_pressure_values_for_this_hour = np.mean(
+                pressure_values_for_this_hour, axis=0
+            )
+            average_pressure_profile_at_given_hour[hour] = [
+                mean_pressure_values_for_this_hour,
+                altitude_list,
+            ]
+            max_pressure = np.max(mean_pressure_values_for_this_hour)
+            if max_pressure >= self.max_average_pressure_at_altitude:
+                self.max_average_pressure_at_altitude = max_pressure
+        self.average_pressure_profile_at_given_hour = (
+            average_pressure_profile_at_given_hour
+        )
+
+    def process_wind_speed_profile_over_average_day(self):
         """Compute the average wind profile for each available hour of a day, over all
         days in the dataset."""
         altitude_list = np.linspace(*self.altitude_AGL_range, 100)
@@ -2296,6 +2551,9 @@ class EnvironmentAnalysis:
         average_wind_profile_at_given_hour = {}
         self.max_average_wind_at_altitude = 0
         hours = list(self.pressureLevelDataDict.values())[0].keys()
+
+        # days = list(self.surfaceDataDict.keys())
+        # hours = list(self.surfaceDataDict[days[0]].keys())
         for hour in hours:
             wind_speed_values_for_this_hour = []
             for dayDict in self.pressureLevelDataDict.values():
@@ -2319,9 +2577,75 @@ class EnvironmentAnalysis:
                 self.max_average_wind_at_altitude = max_wind
         self.average_wind_profile_at_given_hour = average_wind_profile_at_given_hour
 
-    def plot_wind_profile_over_average_day(self, SAcup_altitude_constraints=False):
+    def process_wind_velocity_x_profile_over_average_day(self):
+        """Compute the average windVelocityX profile for each available hour of a day, over all
+        days in the dataset."""
+        altitude_list = np.linspace(*self.altitude_AGL_range, 100)
+
+        average_windVelocityX_profile_at_given_hour = {}
+        self.max_average_windVelocityX_at_altitude = 0
+        hours = list(self.pressureLevelDataDict.values())[0].keys()
+        for hour in hours:
+            windVelocityX_values_for_this_hour = []
+            for dayDict in self.pressureLevelDataDict.values():
+                try:
+                    windVelocityX_values_for_this_hour += [
+                        dayDict[hour]["windVelocityX"](altitude_list)
+                    ]
+                except KeyError:
+                    # Some day does not have data for the desired hour
+                    # No need to worry, just average over the other days
+                    pass
+            mean_windVelocityX_values_for_this_hour = np.mean(
+                windVelocityX_values_for_this_hour, axis=0
+            )
+            average_windVelocityX_profile_at_given_hour[hour] = [
+                mean_windVelocityX_values_for_this_hour,
+                altitude_list,
+            ]
+            max_windVelocityX = np.max(mean_windVelocityX_values_for_this_hour)
+            if max_windVelocityX >= self.max_average_windVelocityX_at_altitude:
+                self.max_average_windVelocityX_at_altitude = max_windVelocityX
+        self.average_windVelocityX_profile_at_given_hour = (
+            average_windVelocityX_profile_at_given_hour
+        )
+
+    def process_wind_velocity_y_profile_over_average_day(self):
+        """Compute the average windVelocityY profile for each available hour of a day, over all
+        days in the dataset."""
+        altitude_list = np.linspace(*self.altitude_AGL_range, 100)
+
+        average_windVelocityY_profile_at_given_hour = {}
+        self.max_average_windVelocityY_at_altitude = 0
+        hours = list(self.pressureLevelDataDict.values())[0].keys()
+        for hour in hours:
+            windVelocityY_values_for_this_hour = []
+            for dayDict in self.pressureLevelDataDict.values():
+                try:
+                    windVelocityY_values_for_this_hour += [
+                        dayDict[hour]["windVelocityY"](altitude_list)
+                    ]
+                except KeyError:
+                    # Some day does not have data for the desired hour
+                    # No need to worry, just average over the other days
+                    pass
+            mean_windVelocityY_values_for_this_hour = np.mean(
+                windVelocityY_values_for_this_hour, axis=0
+            )
+            average_windVelocityY_profile_at_given_hour[hour] = [
+                mean_windVelocityY_values_for_this_hour,
+                altitude_list,
+            ]
+            max_windVelocityY = np.max(mean_windVelocityY_values_for_this_hour)
+            if max_windVelocityY >= self.max_average_windVelocityY_at_altitude:
+                self.max_average_windVelocityY_at_altitude = max_windVelocityY
+        self.average_windVelocityY_profile_at_given_hour = (
+            average_windVelocityY_profile_at_given_hour
+        )
+
+    def plot_wind_profile_over_average_day(self, clear_range_limits=False):
         """Creates a grid of plots with the wind profile over the average day."""
-        self.process_wind_profile_over_average_day()
+        self.process_wind_speed_profile_over_average_day()
 
         # Create grid of plots for each hour
         hours = list(list(self.pressureLevelDataDict.values())[0].keys())
@@ -2330,7 +2654,7 @@ class EnvironmentAnalysis:
         gs = fig.add_gridspec(nrows, ncols, hspace=0, wspace=0, left=0.12)
         axs = gs.subplots(sharex=True, sharey=True)
         x_min, x_max, y_min, y_max = 0, 0, np.inf, 0
-        for (i, j) in [(i, j) for i in range(nrows) for j in range(ncols)]:
+        for i, j in [(i, j) for i in range(nrows) for j in range(ncols)]:
             hour = hours[i * ncols + j]
             ax = axs[i, j]
             ax.plot(*self.average_wind_profile_at_given_hour[hour], "r-")
@@ -2341,6 +2665,15 @@ class EnvironmentAnalysis:
             x_max = current_x_max if current_x_max > x_max else x_max
             y_max = current_y_max if current_y_max > y_max else y_max
             y_min = current_y_min if current_y_min < y_min else y_min
+
+            if self.forecast:
+                forecast = self.forecast
+                y = self.average_wind_profile_at_given_hour[hour][1]
+                x = forecast[hour].windSpeed.getValue(y) * convert_units(
+                    1, "m/s", self.unit_system["wind_speed"]
+                )
+                ax.plot(x, y, "b--")
+
             ax.label_outer()
             ax.grid()
         # Set x and y limits for the last axis. Since axes are shared, set to all
@@ -2353,9 +2686,9 @@ class EnvironmentAnalysis:
             mtick.MaxNLocator(integer=True, nbins=4, prune="lower")
         )
 
-        if SAcup_altitude_constraints:
-            for (i, j) in [(i, j) for i in range(nrows) for j in range(ncols)]:
-                # SA Cup altitude constraints region
+        if clear_range_limits:
+            for i, j in [(i, j) for i in range(nrows) for j in range(ncols)]:
+                # Clear Sky Range Altitude Limits
                 ax = axs[i, j]
                 ax.fill_between(
                     [x_min, x_max],
@@ -2380,9 +2713,139 @@ class EnvironmentAnalysis:
         fig.supylabel(f"Altitude AGL ({self.unit_system['length']})")
         plt.show()
 
-    def animate_wind_profile_over_average_day(self, SAcup_altitude_constraints=False):
+    def process_wind_heading_profile_over_average_day(self):
+        """Compute the average wind velocities (both X and Y components) profile for each available hour of a day, over all days in the dataset."""
+        altitude_list = np.linspace(*self.altitude_AGL_range, 100)
+        average_wind_velocity_X_profile_at_given_hour = {}
+        average_wind_velocity_Y_profile_at_given_hour = {}
+        average_wind_heading_profile_at_given_hour = {}
+        self.max_average_wind_velocity_X_at_altitude = 0
+        self.max_average_wind_velocity_Y_at_altitude = 0
+
+        hours = list(self.pressureLevelDataDict.values())[0].keys()
+        for hour in hours:
+            wind_velocity_X_values_for_this_hour = []
+            wind_velocity_Y_values_for_this_hour = []
+            for dayDict in self.pressureLevelDataDict.values():
+                try:
+                    wind_velocity_X_values_for_this_hour += [
+                        dayDict[hour]["windVelocityX"](altitude_list)
+                    ]
+                    wind_velocity_Y_values_for_this_hour += [
+                        dayDict[hour]["windVelocityY"](altitude_list)
+                    ]
+                except KeyError:
+                    # Some day does not have data for the desired hour
+                    # No need to worry, just average over the other days
+                    pass
+            # Compute the average wind velocity profile for this hour
+            mean_wind_velocity_X_values_for_this_hour = np.mean(
+                wind_velocity_X_values_for_this_hour, axis=0
+            )
+            mean_wind_velocity_Y_values_for_this_hour = np.mean(
+                wind_velocity_Y_values_for_this_hour, axis=0
+            )
+            # Store the ... wind velocity at each altitude
+            average_wind_velocity_X_profile_at_given_hour[hour] = [
+                mean_wind_velocity_X_values_for_this_hour,
+                altitude_list,
+            ]
+            average_wind_velocity_Y_profile_at_given_hour[hour] = [
+                mean_wind_velocity_Y_values_for_this_hour,
+                altitude_list,
+            ]
+            average_wind_heading_profile_at_given_hour[hour] = [
+                np.arctan2(
+                    mean_wind_velocity_X_values_for_this_hour,
+                    mean_wind_velocity_Y_values_for_this_hour,
+                )
+                * (180 / np.pi)
+                % 360,
+                altitude_list,
+            ]
+            # Store the maximum wind velocity at each altitude
+            max_wind_X = np.max(mean_wind_velocity_X_values_for_this_hour)
+            if max_wind_X >= self.max_average_wind_velocity_X_at_altitude:
+                self.max_average_wind_X_at_altitude = max_wind_X
+            max_wind_Y = np.max(mean_wind_velocity_Y_values_for_this_hour)
+            if max_wind_Y >= self.max_average_wind_velocity_Y_at_altitude:
+                self.max_average_wind_Y_at_altitude = max_wind_Y
+        # Store the average wind velocity profiles for each hour
+        self.average_wind_velocity_X_profile_at_given_hour = (
+            average_wind_velocity_X_profile_at_given_hour
+        )
+        self.average_wind_velocity_Y_profile_at_given_hour = (
+            average_wind_velocity_Y_profile_at_given_hour
+        )
+        self.average_wind_heading_profile_at_given_hour = (
+            average_wind_heading_profile_at_given_hour
+        )
+
+    def plot_wind_heading_profile_over_average_day(self, clear_range_limits=False):
+        """Creates a grid of plots with the wind heading profile over the average day."""
+        self.process_wind_heading_profile_over_average_day()
+
+        # Create grid of plots for each hour
+        hours = list(list(self.pressureLevelDataDict.values())[0].keys())
+        ncols, nrows = self._find_two_closest_integer_factors(len(hours))
+        fig = plt.figure(figsize=(ncols * 2, nrows * 2.2))
+        gs = fig.add_gridspec(nrows, ncols, hspace=0, wspace=0, left=0.12)
+        axs = gs.subplots(sharex=True, sharey=True)
+        x_min, x_max, y_min, y_max = 0, 0, np.inf, 0
+        for i, j in [(i, j) for i in range(nrows) for j in range(ncols)]:
+            hour = hours[i * ncols + j]
+            ax = axs[i, j]
+            ax.plot(*self.average_wind_heading_profile_at_given_hour[hour], "r-")
+            ax.set_title(f"{float(hour):05.2f}".replace(".", ":"), y=0.8)
+            ax.autoscale(enable=True, axis="y", tight=True)
+            current_x_max = ax.get_xlim()[1]
+            current_y_min, current_y_max = ax.get_ylim()
+            x_max = current_x_max if current_x_max > x_max else x_max
+            y_max = current_y_max if current_y_max > y_max else y_max
+            y_min = current_y_min if current_y_min < y_min else y_min
+            ax.label_outer()
+            ax.grid()
+        # Set x and y limits for the last axis. Since axes are shared, set to all
+        # ax.set_xlim(x_min, x_max)
+        ax.set_xlim(0, 360)
+        ax.set_ylim(y_min, y_max)
+        ax.xaxis.set_major_locator(
+            mtick.MaxNLocator(integer=True, nbins=5, prune="lower")
+        )
+        ax.yaxis.set_major_locator(
+            mtick.MaxNLocator(integer=True, nbins=4, prune="lower")
+        )
+
+        if clear_range_limits:
+            for i, j in [(i, j) for i in range(nrows) for j in range(ncols)]:
+                # Clear Sky range limits
+                ax = axs[i, j]
+                ax.fill_between(
+                    [x_min, x_max],
+                    0.7 * convert_units(10000, "ft", self.unit_system["length"]),
+                    1.3 * convert_units(10000, "ft", self.unit_system["length"]),
+                    color="g",
+                    alpha=0.2,
+                    label=f"10,000 {self.unit_system['length']} ± 30%",
+                )
+                ax.fill_between(
+                    [x_min, x_max],
+                    0.7 * convert_units(30000, "ft", self.unit_system["length"]),
+                    1.3 * convert_units(30000, "ft", self.unit_system["length"]),
+                    color="g",
+                    alpha=0.2,
+                    label=f"30,000 {self.unit_system['length']} ± 30%",
+                )
+
+        # Set title and axis labels for entire figure
+        fig.suptitle("Average Wind Heading Profile")
+        fig.supxlabel(f"Wind heading ({self.unit_system['angle']})")
+        fig.supylabel(f"Altitude AGL ({self.unit_system['length']})")
+        plt.show()
+
+    def animate_wind_profile_over_average_day(self, clear_range_limits=False):
         """Animation of how wind profile evolves throughout an average day."""
-        self.process_wind_profile_over_average_day()
+        self.process_wind_speed_profile_over_average_day()
 
         # Create animation
         fig, ax = plt.subplots(dpi=200)
@@ -2426,8 +2889,77 @@ class EnvironmentAnalysis:
             blit=True,
         )
 
-        if SAcup_altitude_constraints:
-            # SA Cup altitude constraints region
+        if clear_range_limits:
+            # Clear sky range limits
+            ax.fill_between(
+                [0, self.max_average_wind_at_altitude + 5],
+                0.7 * convert_units(10000, "ft", self.unit_system["length"]),
+                1.3 * convert_units(10000, "ft", self.unit_system["length"]),
+                color="g",
+                alpha=0.2,
+                label=f"10,000 {self.unit_system['length']} ± 30%",
+            )
+            ax.fill_between(
+                [0, self.max_average_wind_at_altitude + 5],
+                0.7 * convert_units(30000, "ft", self.unit_system["length"]),
+                1.3 * convert_units(30000, "ft", self.unit_system["length"]),
+                color="g",
+                alpha=0.2,
+                label=f"30,000 {self.unit_system['length']} ± 30%",
+            )
+            fig.legend(loc="upper right")
+
+        plt.close(fig)
+        return HTML(animation.to_jshtml())
+
+    def animate_wind_heading_profile_over_average_day(self, clear_range_limits=False):
+        """Animation of how wind heading profile evolves throughout an average day."""
+        self.process_wind_heading_profile_over_average_day()
+
+        # Create animation
+        fig, ax = plt.subplots(dpi=200)
+        # Initialize animation artists: curve and hour text
+        (ln,) = plt.plot([], [], "r-")
+        tx = plt.text(
+            x=0.95,
+            y=0.95,
+            s="",
+            verticalalignment="top",
+            horizontalalignment="right",
+            transform=ax.transAxes,
+            fontsize=24,
+        )
+        # Define function to initialize animation
+
+        def init():
+            altitude_list = np.linspace(*self.altitude_AGL_range, 100)
+            ax.set_xlim(0, 360)
+            ax.set_ylim(*self.altitude_AGL_range)
+            ax.set_xlabel(f"Wind Heading ({self.unit_system['angle']})")
+            ax.set_ylabel(f"Altitude AGL ({self.unit_system['length']})")
+            ax.set_title("Average Wind Heading Profile")
+            ax.grid(True)
+            return ln, tx
+
+        # Define function which sets each animation frame
+        def update(frame):
+            xdata = frame[1][0]
+            ydata = frame[1][1]
+            ln.set_data(xdata, ydata)
+            tx.set_text(f"{float(frame[0]):05.2f}".replace(".", ":"))
+            return ln, tx
+
+        animation = FuncAnimation(
+            fig,
+            update,
+            frames=self.average_wind_heading_profile_at_given_hour.items(),
+            interval=1000,
+            init_func=init,
+            blit=True,
+        )
+
+        if clear_range_limits:
+            # Clear sjy range limits
             ax.fill_between(
                 [0, self.max_average_wind_at_altitude + 5],
                 0.7 * convert_units(10000, "ft", self.unit_system["length"]),
@@ -2450,7 +2982,58 @@ class EnvironmentAnalysis:
         return HTML(animation.to_jshtml())
 
     def allInfo(self):
-        print("Pressure Information")
+        print("Dataset Information: ")
+        print(
+            "Time Period: From ", self.start_date, " to ", self.end_date
+        )  # TODO: Improve Timezone
+        print(
+            "Available hours: From ", self.start_hour, " to ", self.end_hour
+        )  # TODO: Improve Timezone
+        print("Surface Data File Path: ", self.surfaceDataFile)
+        print(
+            "Latitude Range: From ",
+            self.singleLevelInitLat,
+            "° To ",
+            self.singleLevelEndLat,
+            "°",
+        )
+        print(
+            "Longitude Range: From ",
+            self.singleLevelInitLon,
+            "° To ",
+            self.singleLevelEndLon,
+            "°",
+        )
+        print("Pressure Data File Path: ", self.pressureLevelDataFile)
+        print(
+            "Latitude Range: From ",
+            self.pressureLevelInitLat,
+            "° To ",
+            self.pressureLevelEndLat,
+            "°",
+        )
+        print(
+            "Longitude Range: From ",
+            self.pressureLevelInitLon,
+            "° To ",
+            self.pressureLevelEndLon,
+            "°",
+        )
+
+        # Print launch site details
+        print("\nLaunch Site Details")
+        print("Launch Site Latitude: {:.5f}°".format(self.latitude))
+        print("Launch Site Longitude: {:.5f}°".format(self.longitude))
+        print(
+            "Surface Elevation (from surface data file): ", self.elevation
+        )  # TODO: Improve units
+        print(
+            "Max Expected Altitude: ",
+            self.maxExpectedAltitude,
+            " ",
+            self.unit_system["length"],
+        )
+        print("\nPressure Information")
         print(
             f"Average Surface Pressure: {self.average_surface_pressure:.2f} ± {self.std_surface_pressure:.2f} {self.unit_system['pressure']}"
         )
@@ -2463,10 +3046,8 @@ class EnvironmentAnalysis:
         print(
             f"Average Pressure at {convert_units(30000, 'ft', self.current_units['height_ASL']):.0f} {self.current_units['height_ASL']}: {self.average_pressure_at_30000ft:.2f} ± {self.std_pressure_at_1000ft:.2f} {self.unit_system['pressure']}"
         )
-        print()
-
         print(
-            f"Sustained Surface Wind Speed Information ({convert_units(10, 'm', self.unit_system['length']):.0f} {self.unit_system['length']} above ground)"
+            f"\nSustained Surface Wind Speed Information ({convert_units(10, 'm', self.unit_system['length']):.0f} {self.unit_system['length']} above ground)"
         )
         print(
             f"Historical Maximum Wind Speed: {self.record_max_surface_10m_wind_speed:.2f} {self.unit_system['wind_speed']}"
@@ -2480,10 +3061,8 @@ class EnvironmentAnalysis:
         print(
             f"Average Daily Minimum Wind Speed: {self.average_min_surface_10m_wind_speed:.2f} {self.unit_system['wind_speed']}"
         )
-        print()
-
         print(
-            f"Elevated Wind Speed Information ({convert_units(100, 'm', self.unit_system['length']):.0f} {self.unit_system['length']} above ground)"
+            f"\nElevated Wind Speed Information ({convert_units(100, 'm', self.unit_system['length']):.0f} {self.unit_system['length']} above ground)"
         )
         print(
             f"Historical Maximum Wind Speed: {self.record_max_surface_100m_wind_speed:.2f} {self.unit_system['wind_speed']}"
@@ -2497,18 +3076,14 @@ class EnvironmentAnalysis:
         print(
             f"Average Daily Minimum Wind Speed: {self.average_min_surface_100m_wind_speed:.2f} {self.unit_system['wind_speed']}"
         )
-        print()
-
-        print("Wind Gust Information")
+        print("\nWind Gust Information")
         print(
             f"Historical Maximum Wind Gust: {self.max_wind_gust:.2f} {self.unit_system['wind_speed']}"
         )
         print(
             f"Average Daily Maximum Wind Gust: {self.average_max_wind_gust:.2f} {self.unit_system['wind_speed']}"
         )
-        print()
-
-        print("Temperature Information")
+        print("\nTemperature Information")
         print(
             f"Historical Maximum Temperature: {self.record_max_temperature:.2f} {self.unit_system['temperature']}"
         )
@@ -2521,9 +3096,7 @@ class EnvironmentAnalysis:
         print(
             f"Average Daily Minimum Temperature: {self.average_min_temperature:.2f} {self.unit_system['temperature']}"
         )
-        print()
-
-        print("Precipitation Information")
+        print("\nPrecipitation Information")
         print(
             f"Percentage of Days with Precipitation: {100*self.percentage_of_days_with_precipitation:.1f}%"
         )
@@ -2533,9 +3106,7 @@ class EnvironmentAnalysis:
         print(
             f"Average Precipitation: {np.mean(self.precipitation_per_day):.1f} {self.unit_system['precipitation']}"
         )
-        print()
-
-        print("Cloud Base Height Information")
+        print("\nCloud Base Height Information")
         print(
             f"Average Cloud Base Height: {self.mean_cloud_base_height:.2f} {self.unit_system['length']}"
         )
@@ -2545,3 +3116,132 @@ class EnvironmentAnalysis:
         print(
             f"Percentage of Days Without Clouds: {100*self.percentage_of_days_with_no_cloud_coverage:.1f} %"
         )
+
+    def exportMeanProfiles(self, filename="export_env_analysis"):
+        """
+        Exports the mean profiles of the weather data to a file in order to it
+        be used as inputs on Environment Class by using the CustomAtmosphere
+        model.
+
+        Parameters
+        ----------
+        filename : str, optional
+            Name of the file where to be saved, by default "EnvAnalysisDict"
+
+        Returns
+        -------
+        None
+        """
+
+        self.process_temperature_profile_over_average_day()
+        self.process_pressure_profile_over_average_day()
+        self.process_wind_velocity_x_profile_over_average_day()
+        self.process_wind_velocity_y_profile_over_average_day()
+
+        organized_temperature_dict = {}
+        organized_pressure_dict = {}
+        organized_windX_dict = {}
+        organized_windY_dict = {}
+
+        for hour in self.average_temperature_profile_at_given_hour.keys():
+            organized_temperature_dict[hour] = np.column_stack(
+                (
+                    self.average_temperature_profile_at_given_hour[hour][1],
+                    self.average_temperature_profile_at_given_hour[hour][0],
+                )
+            ).tolist()
+            organized_pressure_dict[hour] = np.column_stack(
+                (
+                    self.average_pressure_profile_at_given_hour[hour][1],
+                    self.average_pressure_profile_at_given_hour[hour][0],
+                )
+            ).tolist()
+            organized_windX_dict[hour] = np.column_stack(
+                (
+                    self.average_windVelocityX_profile_at_given_hour[hour][1],
+                    self.average_windVelocityX_profile_at_given_hour[hour][0],
+                )
+            ).tolist()
+            organized_windY_dict[hour] = np.column_stack(
+                (
+                    self.average_windVelocityY_profile_at_given_hour[hour][1],
+                    self.average_windVelocityY_profile_at_given_hour[hour][0],
+                )
+            ).tolist()
+
+        self.exportEnvAnalDict = {
+            "start_date": self.start_date,
+            "end_date": self.end_date,
+            "start_hour": self.start_hour,
+            "end_hour": self.end_hour,
+            "latitude": self.latitude,
+            "longitude": self.longitude,
+            "elevation": self.elevation,
+            "timeZone": self.preferred_timezone,
+            "unit_system": self.unit_system,
+            "surfaceDataFile": self.surfaceDataFile,
+            "pressureLevelDataFile": self.pressureLevelDataFile,
+            "atmosphericModelPressureProfile": organized_pressure_dict,
+            "atmosphericModelTemperatureProfile": organized_temperature_dict,
+            "atmosphericModelWindVelocityXProfile": organized_windX_dict,
+            "atmosphericModelWindVelocityYProfile": organized_windY_dict,
+        }
+
+        # Convert to json
+        f = open(filename + ".json", "w")
+
+        # write json object to file
+        f.write(
+            json.dumps(self.exportEnvAnalDict, sort_keys=False, indent=4, default=str)
+        )
+
+        # close file
+        f.close()
+        print(
+            "Your Environment Analysis file was saved, check it out: "
+            + filename
+            + ".json"
+        )
+        print(
+            "You can use it in the future by using the customAtmosphere atmospheric model."
+        )
+
+        return None
+
+    @classmethod
+    def load(self, filename="EnvAnalysisDict"):
+        """Load a previously saved Environment Analysis file.
+        Example: EnvA = EnvironmentAnalysis.load("filename").
+
+        Parameters
+        ----------
+        filename : str, optional
+            Name of the previous saved file, by default "EnvAnalysisDict"
+
+        Returns
+        -------
+        EnvironmentAnalysis object
+
+        """
+        encoded_class = open(filename).read()
+        return jsonpickle.decode(encoded_class)
+
+    def save(self, filename="EnvAnalysisDict"):
+        """Save the Environment Analysis object to a file so it can be used later.
+
+        Parameters
+        ----------
+        filename : str, optional
+            Name of the file where to be saved, by default "EnvAnalysisDict"
+
+        Returns
+        -------
+        None
+        """
+        encoded_class = jsonpickle.encode(self)
+        file = open(filename, "w")
+        file.write(encoded_class)
+        file.close()
+        print("Your Environment Analysis file was saved, check it out: " + filename)
+
+        return None
