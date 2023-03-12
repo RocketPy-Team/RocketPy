@@ -1,6 +1,6 @@
 from typing import Any, List, Tuple, Union
 
-from pydantic import Field, StrictStr
+from pydantic import Field, StrictFloat, StrictInt, StrictStr, root_validator, validator
 
 from ..Environment import Environment
 from .DispersionModel import DispersionModel
@@ -98,5 +98,22 @@ class McEnvironment(DispersionModel):
     gravity: Any = 0
     latitude: Any = 0
     longitude: Any = 0
+    ensembleMember: List[StrictInt] = []
+    windXFactor: Any = (1, 0)
+    windYFactor: Any = (1, 0)
     datum: List[Union[StrictStr, None]] = []
     timeZone: List[Union[StrictStr, None]] = []
+
+    @validator("ensembleMember")
+    def val_ensemble(cls, v, values):
+        """Validator for ensembleMember argument. Checks if environment has the correct
+        atmospheric model type and if the list does not overflow the ensemble members."""
+        if v:
+            assert values["environment"].atmosphericModelType in [
+                "Ensemble",
+                "Reanalysis",
+            ], f"\tEnvironment with {values['environment'].atmosphericModelType} does not have emsemble members"
+            assert (
+                max(v) < values["environment"].numEnsembleMembers and min(v) >= 0
+            ), f"\tPlease choose ensembleMember from 0 to {values['environment'].numEnsembleMembers - 1}"
+        return v
