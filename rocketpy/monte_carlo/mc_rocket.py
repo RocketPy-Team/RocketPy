@@ -22,8 +22,8 @@ class McRocket(DispersionModel):
     powerOffDrag: List[Union[FilePath, None]] = []
     powerOnDrag: List[Union[FilePath, None]] = []
     centerOfDryMassPosition: Any = 0
-    powerOffDragFactor: Any = 0
-    powerOnDragFactor: Any = 0
+    powerOffDragFactor: Any = (1, 0)
+    powerOnDragFactor: Any = (1, 0)
     # TODO: why coord sys orientation is not included in this class?
     # coordinateSystemOrientation = ??
     _motors: list = PrivateAttr()

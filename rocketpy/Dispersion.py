@@ -640,14 +640,17 @@ class Dispersion:
 
             # Apply environment parameters variations on each iteration if possible
             env_dispersion.railLength = setting["environment"]["railLength"]
-            # if env_dispersion.atmosphericModelType in ["Ensemble", "Reanalysis"]:
-            #     env_dispersion.selectEnsembleMember(setting["environment"]["ensembleMember"])
-            # TODO: allow varying ensembleMember, or use windXFactor and windYFactor
+            env_dispersion.windVelocityX *= setting["environment"]["windXFactor"]
+            env_dispersion.windVelocityY *= setting["environment"]["windYFactor"]
+            if setting["environment"]["ensembleMember"]:
+                env_dispersion.selectEnsembleMember(
+                    setting["environment"]["ensembleMember"]
+                )
+            # TODO: allow varying windXFactor and windYFactor
 
             # Apply motor parameters variations on each iteration if possible
             # TODO: add hybrid and liquid motor option
             # TODO: only a single motor is supported. Future version should support more.
-            # TODO: the burnOutTime should no longer be an arg, see issue #309
             motor_dispersion = SolidMotor(
                 thrustSource=setting["motors"][0]["thrustSource"],
                 burnOutTime=setting["motors"][0]["burnOutTime"],

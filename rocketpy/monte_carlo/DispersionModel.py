@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Extra, root_validator
+from pydantic import BaseModel, Extra, root_validator, validator
 
 
 class DispersionModel(BaseModel):
@@ -42,8 +42,17 @@ class DispersionModel(BaseModel):
         obj_name = list(cls.__fields__.keys())[0]
 
         # defines a list of fields that must not be validated
-        # to be used as special exceptions
-        exception_list = ["initialSolution", "terminateOnApogee"]
+        # special exception for fiedls that should not be validated
+        # or that have their own validator
+        exception_list = [
+            "initialSolution",
+            "terminateOnApogee",
+            "ensembleMember",
+            "windXFactor",
+            "windYFactor",
+            "powerOffDragFactor",
+            "powerOnDragFactor",
+        ]
 
         # create list with name of the fields that need validation
         # which are all fields except the one refering to the object
@@ -59,13 +68,13 @@ class DispersionModel(BaseModel):
                 # checks if first item is valid
                 assert isinstance(
                     v[0], (int, float)
-                ), f"\nField '{field}': \n\tFirst item of tuple must be either an int or float"
+                ), f"\nField '{field}' \n\tFirst item of tuple must be either an int or float"
                 # if len is two can either be (nom_val,std) or (std,'dist_func')
                 if len(v) == 2:
                     # checks if second value is either string or int/float
                     assert isinstance(
                         v[1], (int, float, str)
-                    ), f"\nField '{field}': \n\tSecond item of tuple must be either an int, float or string \n\tIf the first value refers to the nominal value of {field}, then the second item's value should be the desired standard deviation \n\tIf the first value is the standard deviation, then the second item's value should be a string containing a name of a numpy.random distribution function"
+                    ), f"\nField '{field}' \n\tSecond item of tuple must be either an int, float or string \n\tIf the first value refers to the nominal value of {field}, then the second item's value should be the desired standard deviation \n\tIf the first value is the standard deviation, then the second item's value should be a string containing a name of a numpy.random distribution function"
                     # if second item is not str, then (nom_val, std)
                     if not isinstance(v[1], str):
                         values[field] = v
@@ -80,10 +89,10 @@ class DispersionModel(BaseModel):
                 if len(v) == 3:
                     assert isinstance(
                         v[1], (int, float)
-                    ), f"\nField '{field}': \n\tSecond item of tuple must be either an int or float \n\tThe second item should be the standard deviation to be used in the simulation"
+                    ), f"\nField '{field}' \n\tSecond item of tuple must be either an int or float \n\tThe second item should be the standard deviation to be used in the simulation"
                     assert isinstance(
                         v[2], str
-                    ), f"\nField '{field}': \n\tThird item of tuple must be a string \n\tThe string should contain the name of a valid numpy.random distribution function"
+                    ), f"\nField '{field}' \n\tThird item of tuple must be a string \n\tThe string should contain the name of a valid numpy.random distribution function"
                     values[field] = v
             elif isinstance(v, list):
                 # checks if input list is empty, meaning nothing was inputted
@@ -94,7 +103,7 @@ class DispersionModel(BaseModel):
                     # guarantee all values are valid (ints or floats)
                     assert all(
                         isinstance(item, (int, float)) for item in v
-                    ), f"\nField '{field}': \n\tItems in list must be either ints or floats"
+                    ), f"\nField '{field}' \n\tItems in list must be either ints or floats"
                     # all good, sets inputs
                     values[field] = v
             elif isinstance(v, (int, float)):
@@ -103,6 +112,40 @@ class DispersionModel(BaseModel):
                 values[field] = (getattr(values[obj_name], field), v)
             else:
                 raise ValueError(
-                    f"\nField '{field}': \n\tMust be either a tuple, list, int or float"
+                    f"\nField '{field}' \n\tMust be either a tuple, list, int or float"
                 )
         return values
+
+    @validator(
+        "windXFactor",
+        "windYFactor",
+        "powerOffDragFactor",
+        "powerOnDragFactor",
+        check_fields=False,
+    )
+    def val_factors(cls, v):
+        """Validator for factor arguments. Checks if input is in a valid format.
+        Factors can only be tuples of two or three items, or lists."""
+
+        # checks if tuple
+        if isinstance(v, tuple):
+            # checks if first and second items are valid
+            assert isinstance(v[0], (int, float)) and isinstance(
+                v[1], (int, float)
+            ), f"\tFirst and second items of Factors tuple must be either an int or float"
+            # if len is three, then (nom_val, std, 'dist_func')
+            if len(v) == 3:
+                assert isinstance(
+                    v[2], str
+                ), f"\tThird item of tuple must be a string \n\tThe string should contain the name of a valid numpy.random distribution function"
+                return v
+            return v
+        elif isinstance(v, list):
+            # guarantee all values are valid (ints or floats)
+            assert all(
+                isinstance(item, (int, float)) for item in v
+            ), f"\tItems in list must be either ints or floats"
+            # all good, sets inputs
+            return v
+        else:
+            raise ValueError(f"\tMust be either a tuple or list")
