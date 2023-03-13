@@ -25,7 +25,7 @@ class McSolidMotor(DispersionModel):
         _description_
     """
 
-    solidMotor: SolidMotor = Field(..., repr=False)
+    solidMotor: SolidMotor = Field(..., repr=False, exclude=True)
     thrustSource: List[Union[FilePath, None]] = []
     burnOutTime: Any = 0
     grainsCenterOfMassPosition: Any = 0

@@ -91,7 +91,7 @@ class McEnvironment(DispersionModel):
     Examples: https://osmnx.readthedocs.io/en/stable/osmnx.html#osmnx.stats.basic_stats
     """
 
-    environment: Environment = Field(..., repr=False)
+    environment: Environment = Field(..., repr=False, exclude=True)
     railLength: Any = 0
     date: List[Union[Tuple[int, int, int, int], None]] = []
     elevation: Any = 0

@@ -14,7 +14,7 @@ from .mc_solid_motor import McSolidMotor
 # TODO: make a special validator for power on and off factor since they need to have the nominal
 # value inputted
 class McRocket(DispersionModel):
-    rocket: Rocket = Field(..., repr=False)
+    rocket: Rocket = Field(..., repr=False, exclude=True)
     radius: Any = 0
     mass: Any = 0
     inertiaI: Any = 0

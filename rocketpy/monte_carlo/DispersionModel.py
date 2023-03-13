@@ -24,6 +24,9 @@ class DispersionModel(BaseModel):
         arbitrary_types_allowed = True
         extra = Extra.allow
 
+    # TODO: find a way to validate if distribuition_function string is the name
+    # of a valid np.random function
+    # Currently the error is only raised in get_distribuition in tools.py
     @root_validator(skip_on_failure=True)
     def set_attr(cls, values):
         """Validates inputs that can be either tuples, lists, ints or floats and

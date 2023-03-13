@@ -1,6 +1,6 @@
 from typing import Any, Tuple, Union
 
-from pydantic import StrictFloat, StrictInt
+from pydantic import Field, StrictFloat, StrictInt
 
 from ..Flight import Flight
 from .DispersionModel import DispersionModel
@@ -25,8 +25,9 @@ class McFlight(DispersionModel):
         _description_
     """
 
-    inclination: Any
-    heading: Any
+    flight: Flight = Field(..., repr=False, exclude=True)
+    inclination: Any = 0
+    heading: Any = 0
     initialSolution: Union[
         Flight,
         Tuple[

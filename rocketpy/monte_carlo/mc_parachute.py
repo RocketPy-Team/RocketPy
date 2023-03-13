@@ -25,7 +25,7 @@ class McParachute(DispersionModel):
         _description_
     """
 
-    parachute: Parachute = Field(..., repr=False)
+    parachute: Parachute = Field(..., repr=False, exclude=True)
     CdS: Any = 0
     trigger: List[Union[Callable, None]] = []
     samplingRate: Any = 0
