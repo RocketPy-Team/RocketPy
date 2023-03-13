@@ -35,12 +35,13 @@ class cached_property:
         return val
 
 
-def _get_distribution(self, distr):
+# TODO: discuss if this is in the right place
+def get_distribution(distribuition_function_name):
     """Sets the distribution function to be used in the dispersion analysis.
 
     Parameters
     ----------
-    distr : string
+    distribuition_function_name : string
         The type of distribution to be used in the analysis. It can be
         'uniform', 'normal', 'lognormal', etc.
 
@@ -87,10 +88,10 @@ def _get_distribution(self, distr):
         "zipf": zipf,
     }
     try:
-        return distributions[distr]
+        return distributions[distribuition_function_name]
     except KeyError:
         raise ValueError(
-            f"Distribution {distr} not found, please use a np.random distribution."
+            f"Distribution function '{distribuition_function_name}' not found, please use a np.random distribution."
         )
 
 

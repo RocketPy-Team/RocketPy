@@ -13,6 +13,7 @@ import simplekml
 from IPython.display import display
 from matplotlib.patches import Ellipse
 from numpy.random import *
+from random import choice
 
 from .AeroSurfaces import EllipticalFins, NoseCone, Tail, TrapezoidalFins
 from .Environment import Environment
@@ -20,7 +21,7 @@ from .Flight import Flight
 from .Function import Function
 from .Motor import SolidMotor
 from .Rocket import Rocket
-from .tools import _get_distribution, invertedHaversine
+from .tools import get_distribution, invertedHaversine
 
 
 class Dispersion:
@@ -147,7 +148,13 @@ class Dispersion:
             for class_name, data in dispersion_dictionary.items():
                 setting[class_name] = {}
                 for key, value in data.items():
-                    if isinstance(value, dict):
+                    if isinstance(value, tuple):
+                        setting[class_name][key] = value[-1](value[0], value[1])
+                    elif isinstance(value, list):
+                        # checks if list is empty
+                        setting[class_name][key] = choice(value) if value else value
+                    else:
+                        # else is dictionary
                         setting[class_name][key] = {}
                         for sub_key, sub_value in value.items():
                             if isinstance(sub_value, tuple):
@@ -155,25 +162,16 @@ class Dispersion:
                                     setting[class_name][key][sub_key] = sub_value[-1](
                                         sub_value[0], sub_value[1]
                                     )
-                                except TypeError:
+                                except TypeError:  # TODO: ????????????????
                                     # Got the sweepLength or sweepAngle
                                     setting[class_name][key][sub_key] = sub_value[0]
                             else:
                                 # else is list
                                 # setting[class_name][key][sub_key] = choice(sub_value)
                                 # The choice() doesn't work when you have Functions
-                                setting[class_name][key][sub_key] = sub_value[
-                                    randint(0, len(sub_value) - 1)
-                                    if len(sub_value) > 1
-                                    else 0
-                                ]
-                    elif isinstance(value, tuple):
-                        setting[class_name][key] = value[-1](value[0], value[1])
-                    else:
-                        # else is list
-                        setting[class_name][key] = value[
-                            randint(0, len(value) - 1) if len(value) > 1 else 0
-                        ]
+                                setting[class_name][key][sub_key] = (
+                                    choice(sub_value) if sub_value else sub_value
+                                )
 
             yield setting
 
@@ -262,15 +260,15 @@ class Dispersion:
         if export_list:
             for attr in export_list:
                 if not isinstance(attr, str):
-                    raise TypeError("Variables must be strings.")
+                    raise TypeError("Variables in export_list must be strings.")
 
                 # Checks if attribute is not valid
-                if attr not in self.export_list:
+                if attr not in exportables:
                     raise ValueError(
                         "Attribute can not be exported. Check export_list."
                     )
         else:
-            export_list = self.exportable_list
+            export_list = standard_output
 
         return export_list
 
@@ -357,17 +355,8 @@ class Dispersion:
 
         return errors_log
 
-    @staticmethod
     def build_dispersion_dict(
-        env,
-        rocket,
-        motors,
-        flight,
-        nosecones=None,
-        fins=None,
-        tails=None,
-        parachutes=None,
-        buttons=None,
+        self,
     ):
         """Creates a dictionary to be used in the dispersion analysis. As a
         static method, it can be used without instantiating a Dispersion object.
@@ -427,12 +416,12 @@ class Dispersion:
                 "fins": {},
                 "tails": {},
                 "parachutes": {
-                    "0": {
+                    0: {
                         "CdS": (mean, std, np.random.func),
                         "lag": (mean, std, np.random.func),
                         ...
                     },
-                    "1": {...}
+                    1: {...}
                 },
                 "buttons": {},
             }
@@ -452,51 +441,42 @@ class Dispersion:
 
         """
 
-        mc_dict = {}
-        structure = {
-            "environment": env,
-            "rocket": rocket,
-            "motors": motors,
-            "flight": flight,
-            "nosecones": nosecones,
-            "fins": fins,
-            "tails": tails,
-            "parachutes": parachutes,
-            "buttons": buttons,
+        mc_dict = {
+            "environment": self.environment.dict(),
+            "rocket": self.rocket.dict(),
+            "flight": self.flight.dict(),
+            "motors": {i: motor.dict() for i, motor in enumerate(self.motors)},
+            "nosecones": {
+                i: nosecone.dict() for i, nosecone in enumerate(self.nosecones)
+            },
+            "fins": {i: fin.dict() for i, fin in enumerate(self.fins)},
+            "tails": {i: tail.dict() for i, tail in enumerate(self.tails)},
+            "parachutes": {
+                i: parachute.dict() for i, parachute in enumerate(self.parachutes)
+            },
+            "buttons": {},
         }
 
-        for name, data in structure.items():
-            if data is None:
-                continue
-            mc_dict[name] = {}
-            # Lists are special, for instance: parachutes = [McParachute(), McParachute()]
-            # therefore we need to iterate over the list
-            if isinstance(data, list):
-                for i, item in enumerate(data):
-                    mc_dict[name][i] = {}
-                    for field in item.__annotations__.keys():
-                        value = getattr(item, field)
-                        # Avoid undesired fields (private and name)
-                        if field[0] == "_":
-                            continue
-                        mc_dict[name][i][field] = Dispersion._create_mc_tuple(value)
+        for name, data in mc_dict.items():
+            # Checks if first key of dict is a number
+            # for instance: parachutes : {0: McParachute.dict(), 1: McParachute}
+            # therefore we need to iterate over the dicts
+            if 0 in data.keys():
+                for sub_data in data.values():
+                    for field, value in sub_data.items():
+                        sub_data[field] = self.__convert_field(value)
             else:
-                for field in data.__annotations__.keys():
-                    value = getattr(data, field)
-                    if field[0] == "_":
-                        continue
-                    mc_dict[name][field] = Dispersion._create_mc_tuple(value)
+                for field, value in data.items():
+                    data[field] = self.__convert_field(value)
 
         # pop any value that is None, even if it is a value of sub dictionary
-        mc_dict = Dispersion._pop_none(mc_dict)
+        mc_dict = self.__pop_none(mc_dict)
 
         return mc_dict
 
-    @staticmethod
-    def _create_mc_tuple(value):
-        """Receives a value provided by a McXxxxx object and returns a tuple
-        containing the mean, standard deviation and a np.random function to be
-        used in the simulation. There are two possible cases:
+    def __convert_field(self, value):
+        """Receives a value provided by a McXxxxx and returns it in a form that
+        can be used in run_dispersion. There are two possible cases:
         1. The value is a list: simply return the list
         2. The value is a tuple: return a tuple containing the mean, std and
         a np.random function. The default distribution is normal, but it can
@@ -519,14 +499,14 @@ class Dispersion:
         elif isinstance(value, tuple):
             # the normal distribution is considered the default
             dist_func = (
-                _get_distribution(value[-1])
+                get_distribution(value[-1])
                 if isinstance(value[-1], str)
                 else np.random.normal
             )
             return (value[0], value[1], dist_func)
+            # TODO: test every distribuition function
 
-    @staticmethod
-    def _pop_none(dictionary):
+    def __pop_none(self, dictionary):
         """Removes all the keys that have a value of None. This is useful
         when the user wants to run a simulation with a subset of the
         available parameters.
@@ -545,7 +525,7 @@ class Dispersion:
             if value is None:
                 dictionary.pop(key)
             elif isinstance(value, dict):
-                Dispersion._pop_none(value)
+                self.__pop_none(value)
         return dictionary
 
     def run_dispersion(
@@ -579,17 +559,7 @@ class Dispersion:
         self.number_of_simulations = number_of_simulations
 
         # Creates dispersion dictionary
-        self.dispersion_dictionary = self.build_dispersion_dict(
-            env=self.environment,
-            rocket=self.rocket,
-            motors=self.motors,
-            flight=self.flight,
-            nosecones=self.nosecones,
-            fins=self.fins,
-            tails=self.tails,
-            parachutes=self.parachutes,
-            buttons=None,
-        )
+        self.dispersion_dictionary = self.build_dispersion_dict()
 
         # Create data strings for inputs, outputs and error logging
         open_mode = "a" if append else "w"
@@ -612,7 +582,7 @@ class Dispersion:
         # Use a default export list if none is provided
         if export_list is None:
             print("No export list provided, using default list instead.")
-            export_list = self.standard_output
+            export_list = self.__check_export_list(None)
         else:
             # Checks export_list
             self.export_list = self.__check_export_list(export_list)
@@ -646,7 +616,6 @@ class Dispersion:
                 env_dispersion.selectEnsembleMember(
                     setting["environment"]["ensembleMember"]
                 )
-            # TODO: allow varying windXFactor and windYFactor
 
             # Apply motor parameters variations on each iteration if possible
             # TODO: add hybrid and liquid motor option
