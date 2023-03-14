@@ -20,8 +20,19 @@ class HybridMotor(Motor):
     ----------
 
         Geometrical attributes:
+        Motor.coordinateSystemOrientation : str
+            Orientation of the motor's coordinate system. The coordinate system
+            is defined by the motor's axis of symmetry. The origin of the
+            coordinate system  may be placed anywhere along such axis, such as
+            at the nozzle area, and must be kept the same for all other
+            positions specified. Options are "nozzleToCombustionChamber" and
+            "combustionChamberToNozzle".
         Motor.nozzleRadius : float
             Radius of motor nozzle outlet in meters.
+        Motor.nozzlePosition : float
+            Motor's nozzle outlet position in meters, specified in the motor's
+            coordinate system. See `Motor.coordinateSystemOrientation` for
+            more information.
         Motor.throatRadius : float
             Radius of motor nozzle throat in meters.
         Motor.grainNumber : int
@@ -42,8 +53,6 @@ class HybridMotor(Motor):
             Inner radius of each grain in meters as a function of time.
         Motor.grainHeight : Function
             Height of each grain in meters as a function of time.
-        Motor.chamberPosition: float
-            Position of the chamber in meters.
 
         Mass and moment of inertia attributes:
         Motor.grainInitialMass : float
@@ -105,17 +114,18 @@ class HybridMotor(Motor):
         self,
         thrustSource,
         burnOut,
-        chamberPosition,
         grainNumber,
         grainDensity,
         grainOuterRadius,
         grainInitialInnerRadius,
         grainInitialHeight,
-        grainSeparation=0,
-        nozzleRadius=0.0335,
+        grainSeparation,
+        nozzleRadius,
+        nozzlePosition,
         throatRadius=0.0114,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
+        coordinateSystemOrientation="nozzleToCombustionChamber",
     ):
         """Initialize Motor class, process thrust curve and geometrical
         parameters and store results.
@@ -134,10 +144,6 @@ class HybridMotor(Motor):
             Function. See help(Function). Thrust units are Newtons.
         burnOut : int, float
             Motor burn out time in seconds.
-        chamberPosition : int, float
-            Motor's chamber position in meters, relative to the rocket's
-            nozzle. The chamber is supposed cylindrical and its reference
-            point is its geometric center (i.e. half of its height).
         grainNumber : int
             Number of solid grains
         grainDensity : int, float
@@ -148,32 +154,20 @@ class HybridMotor(Motor):
             Solid grain initial inner radius in meters.
         grainInitialHeight : int, float
             Solid grain initial height in meters.
-        oxidizerTankRadius :
-            Oxidizer Tank inner radius.
-        oxidizerTankHeight :
-            Oxidizer Tank Height.
-        oxidizerInitialPressure :
-            Initial pressure of the oxidizer tank, could be equal to the pressure of the source cylinder in atm.
-        oxidizerDensity :
-            Oxidizer theoretical density in liquid state, for N2O is equal to 1.98 (Kg/m^3).
-        oxidizerMolarMass :
-            Oxidizer molar mass, for the N2O is equal to 44.01 (g/mol).
-        oxidizerInitialVolume :
-            Initial volume of oxidizer charged in the tank.
-        distanceGrainToTank :
-            Distance between the solid grain center of mass and the base of the oxidizer tank.
-        injectorArea :
-            injector outlet area.
         grainSeparation : int, float, optional
             Distance between grains, in meters. Default is 0.
         nozzleRadius : int, float, optional
-            Motor's nozzle outlet radius in meters. Its value has very low
-            impact in trajectory simulation, only useful to analyze
-            dynamic instabilities, therefore it is optional.
+            Motor's nozzle outlet radius in meters.
+        nozzlePosition : int, float, optional
+            Motor's nozzle outlet position in meters. More specifically, the
+            coordinate of the nozzle outlet specified in the motor's coordinate
+            system. See `Motor.coordinateSystemOrientation` for more
+            information. Default is 0, in which case the origin of the motor's
+            coordinate system is placed at the motor's nozzle outlet.
         throatRadius : int, float, optional
             Motor's nozzle throat radius in meters. Used to calculate Kn curve.
-            Optional if the Kn curve is not interesting. Its value does not impact
-            trajectory simulation.
+            Optional if the Kn curve is not interesting. Its value does not
+            impact trajectory simulation.
         reshapeThrustCurve : boolean, tuple, optional
             If False, the original thrust curve supplied is not altered. If a
             tuple is given, whose first parameter is a new burn out time and
@@ -186,6 +180,13 @@ class HybridMotor(Motor):
             Method of interpolation to be used in case thrust curve is given
             by data set in .csv or .eng, or as an array. Options are 'spline'
             'akima' and 'linear'. Default is "linear".
+        coordinateSystemOrientation : string, optional
+            Orientation of the motor's coordinate system. The coordinate system
+            is defined by the motor's axis of symmetry. The origin of the
+            coordinate system  may be placed anywhere along such axis, such as
+            at the nozzle area, and must be kept the same for all other
+            positions specified. Options are "nozzleToCombustionChamber" and
+            "combustionChamberToNozzle". Default is "nozzleToCombustionChamber".
 
         Returns
         -------
@@ -195,6 +196,7 @@ class HybridMotor(Motor):
             thrustSource,
             burnOut,
             nozzleRadius,
+            nozzlePosition,
             throatRadius,
             reshapeThrustCurve,
             interpolationMethod,
@@ -203,6 +205,7 @@ class HybridMotor(Motor):
             thrustSource,
             burnOut,
             nozzleRadius,
+            nozzlePosition,
             throatRadius,
             reshapeThrustCurve,
             interpolationMethod,
@@ -210,7 +213,6 @@ class HybridMotor(Motor):
         self.solid = SolidMotor(
             thrustSource,
             burnOut,
-            chamberPosition,
             grainNumber,
             grainDensity,
             grainOuterRadius,
@@ -218,12 +220,13 @@ class HybridMotor(Motor):
             grainInitialHeight,
             grainSeparation,
             nozzleRadius,
+            nozzlePosition,
             throatRadius,
             reshapeThrustCurve,
             interpolationMethod,
         )
 
-    @funcify_method
+    @funcify_method("time (s)", "mass (kg)")
     def mass(self):
         """Evaluates the total propellant mass of the motor as the sum
         of each tank mass and the grains mass.
@@ -272,11 +275,12 @@ class HybridMotor(Motor):
         """
         return self.solid.massFlowRate + self.liquid.massFlowRate
 
-    @cached_property
+    @funcify_method("time (s)", "center of mass (m)")
     def centerOfMass(self):
         """Calculates and returns the time derivative of motor center of mass.
-        The formulas used are the Bernoulli equation, law of the ideal gases and Boyle's law.
-        The result is a function of time, object of the Function class, which is stored in self.zCM.
+        The formulas used are the Bernoulli equation, law of the ideal gases and
+        Boyle's law. The result is a function of time, object of the
+        Function class.
 
         Parameters
         ----------
@@ -284,9 +288,8 @@ class HybridMotor(Motor):
 
         Returns
         -------
-        zCM : Function
-            Position of the center of mass as a function
-            of time.
+        Function
+            Position of the center of mass as a function of time.
         """
         massBalance = (
             self.solid.mass * self.solid.centerOfMass

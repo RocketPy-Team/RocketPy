@@ -20,12 +20,26 @@ class SolidMotor(Motor):
     ----------
 
         Geometrical attributes:
+        Motor.coordinateSystemOrientation : str
+            Orientation of the motor's coordinate system. The coordinate system
+            is defined by the motor's axis of symmetry. The origin of the
+            coordinate system  may be placed anywhere along such axis, such as at the
+            nozzle area, and must be kept the same for all other positions specified.
+            Options are "nozzleToCombustionChamber" and "combustionChamberToNozzle".
         Motor.nozzleRadius : float
             Radius of motor nozzle outlet in meters.
+        Motor.nozzlePosition : float
+            Motor's nozzle outlet position in meters. More specifically, the coordinate
+            of the nozzle outlet specified in the motor's coordinate system.
+            See `Motor.coordinateSystemOrientation` for more information.
         Motor.throatRadius : float
             Radius of motor nozzle throat in meters.
         Motor.grainNumber : int
             Number of solid grains.
+        Motor.grainsCenterOfMassPosition : float
+            Position of the center of mass of the grains in meters. More specifically,
+            the coordinate of the center of mass specified in the motor's coordinate
+            system. See `Motor.coordinateSystemOrientation` for more information.
         Motor.grainSeparation : float
             Distance between two grains in meters.
         Motor.grainDensity : float
@@ -42,10 +56,13 @@ class SolidMotor(Motor):
             Inner radius of each grain in meters as a function of time.
         Motor.grainHeight : Function
             Height of each grain in meters as a function of time.
-        Motor.chamberPosition: float
-            Position of the chamber in meters.
 
         Mass and moment of inertia attributes:
+        Motor.centerOfMass : Function
+            Position of the center of mass in meters as a function of time. Constant for
+            solid motors, as the grains are assumed to be fixed.
+            See `Motor.coordinateSystemOrientation` for more information regarding
+            the motor's coordinate system
         Motor.grainInitialMass : float
             Initial mass of each grain in kg.
         Motor.propellantInitialMass : float
@@ -105,7 +122,7 @@ class SolidMotor(Motor):
         self,
         thrustSource,
         burnOut,
-        chamberPosition,
+        grainsCenterOfMassPosition,
         grainNumber,
         grainDensity,
         grainOuterRadius,
@@ -113,9 +130,11 @@ class SolidMotor(Motor):
         grainInitialHeight,
         grainSeparation=0,
         nozzleRadius=0.0335,
+        nozzlePosition=0,
         throatRadius=0.0114,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
+        coordinateSystemOrientation="nozzleToCombustionChamber",
     ):
         """Initialize Motor class, process thrust curve and geometrical
         parameters and store results.
@@ -134,10 +153,10 @@ class SolidMotor(Motor):
             Function. See help(Function). Thrust units are Newtons.
         burnOut : int, float
             Motor burn out time in seconds.
-        chamberPosition : int, float
-            Motor's chamber position in meters, relative to the rocket's
-            nozzle. The chamber is supposed cylindrical and its reference
-            point is its geometric center (i.e. half of its height).
+        grainsCenterOfMassPosition : float
+            Position of the center of mass of the grains in meters. More specifically,
+            the coordinate of the center of mass specified in the motor's coordinate
+            system. See `Motor.coordinateSystemOrientation` for more information.
         grainNumber : int
             Number of solid grains
         grainDensity : int, float
@@ -154,6 +173,11 @@ class SolidMotor(Motor):
             Motor's nozzle outlet radius in meters. Its value has very low
             impact in trajectory simulation, only useful to analyze
             dynamic instabilities, therefore it is optional.
+        nozzlePosition : int, float, optional
+            Motor's nozzle outlet position in meters, in the motor's coordinate
+            system. See `Motor.coordinateSystemOrientation` for details.
+            Default is 0, in which case the origin of the coordinate system
+            is placed at the motor's nozzle outlet.
         throatRadius : int, float, optional
             Motor's nozzle throat radius in meters. Used to calculate Kn curve.
             Optional if the Kn curve is not interesting. Its value does not impact
@@ -170,6 +194,13 @@ class SolidMotor(Motor):
             Method of interpolation to be used in case thrust curve is given
             by data set in .csv or .eng, or as an array. Options are 'spline'
             'akima' and 'linear'. Default is "linear".
+        coordinateSystemOrientation : string, optional
+            Orientation of the motor's coordinate system. The coordinate system
+            is defined by the motor's axis of symmetry. The origin of the
+            coordinate system  may be placed anywhere along such axis, such as
+            at the nozzle area, and must be kept the same for all other
+            positions specified. Options are "nozzleToCombustionChamber" and
+            "combustionChamberToNozzle". Default is "nozzleToCombustionChamber".
 
         Returns
         -------
@@ -179,14 +210,15 @@ class SolidMotor(Motor):
             thrustSource,
             burnOut,
             nozzleRadius,
+            nozzlePosition,
             throatRadius,
             reshapeThrustCurve,
             interpolationMethod,
+            coordinateSystemOrientation,
         )
-
-        # Combustion chamber parameters
-        self.chamberPosition = chamberPosition
+        # Define motor attributes
         # Grain parameters
+        self.grainsCenterOfMassPosition = grainsCenterOfMassPosition
         self.grainNumber = grainNumber
         self.grainSeparation = grainSeparation
         self.grainDensity = grainDensity
@@ -206,8 +238,7 @@ class SolidMotor(Motor):
 
     @funcify_method("time (s)", "mass (kg)")
     def mass(self):
-        """Evaluates the total propellant mass as a function of
-        time.
+        """Evaluates the total propellant mass as a function of time.
 
         Parameters
         ----------
@@ -221,11 +252,11 @@ class SolidMotor(Motor):
         """
         return self.grainVolume * self.grainDensity * self.grainNumber
 
-    @cached_property
+    @funcify_method("time (s)", "grain volume (m³)")
     def grainVolume(self):
-        """Evaluates the total propellant volume as a function of
-        time. The propellant is assumed to be a cylindrical Bates
-        grain under uniform burn.
+        """Evaluates the total propellant volume as a function of time. The
+        propellant is assumed to be a cylindrical Bates grain under uniform
+        burn.
 
         Parameters
         ----------
@@ -259,11 +290,10 @@ class SolidMotor(Motor):
 
     @property
     def massFlowRate(self):
-        """Calculates and returns the time derivative of propellant
-        mass by assuming constant exhaust velocity. The formula used
-        is the opposite of thrust divided by exhaust velocity. The
-        result is a function of time, object of the Function class,
-        which is stored in self.massDot.
+        """Calculates and returns the time derivative of propellant mass by
+        assuming constant exhaust velocity. The formula used is the opposite of
+        thrust divided by exhaust velocity. The result is a function of time,
+        object of the Function class, which is stored in self.massDot.
 
         Parameters
         ----------
@@ -273,8 +303,7 @@ class SolidMotor(Motor):
         Returns
         -------
         self.massDot : Function
-            Time derivative of total propellant mas as a function
-            of time.
+            Time derivative of total propellant mas as a function of time.
         """
         try:
             return self._massFlowRate
@@ -299,13 +328,12 @@ class SolidMotor(Motor):
         self._massFlowRate = value
         self.evaluateGeometry()
 
-    @funcify_method("time (s)", "Mass (kg)", extrapolation="zero")
+    @funcify_method("time (s)", "center of mass (m)")
     def centerOfMass(self):
         """Calculates and returns the time derivative of motor center of mass.
-        The result is a function of time, object of the Function class, which
-        is stored in self.zCM. The burn is assumed to be uniform along the
-        grain, therefore the center of mass is fixed at the chamber's geometric
-        center.
+        The result is a function of time, object of the Function class.
+        The burn is assumed to be uniform along the grain, therefore the center
+        of mass is fixed at the chamber's geometric center.
 
         Parameters
         ----------
@@ -314,25 +342,21 @@ class SolidMotor(Motor):
 
         Returns
         -------
-        zCM : Function
+        Function
             Position of the center of mass as a function
             of time.
         """
-
-        self.zCM = self.chamberPosition
-
-        return self.zCM
+        return self.grainsCenterOfMassPosition
 
     def evaluateGeometry(self):
-        """Calculates grain inner radius and grain height as a
-        function of time by assuming that every propellant mass
-        burnt is exhausted. In order to do that, a system of
-        differential equations is solved using scipy.integrate.
-        odeint. Furthermore, the function calculates burn area,
-        burn rate and Kn as a function of time using the previous
-        results. All functions are stored as objects of the class
-        Function in self.grainInnerRadius, self.grainHeight, self.
-        burnArea, self.burnRate and self.Kn.
+        """Calculates grain inner radius and grain height as a function of time
+        by assuming that every propellant mass burnt is exhausted. In order to
+        do that, a system of differential equations is solved using
+        scipy.integrate.odeint. Furthermore, the function calculates burn area,
+        burn rate and Kn as a function of time using the previous results.
+        All functions are stored as objects of the class Function in
+        self.grainInnerRadius, self.grainHeight, self.burnArea, self.burnRate
+        and self.Kn.
 
         Parameters
         ----------
@@ -341,10 +365,9 @@ class SolidMotor(Motor):
         Returns
         -------
         geometry : list of Functions
-            First element is the Function representing the inner
-            radius of a grain as a function of time. Second
-            argument is the Function representing the height of a
-            grain as a function of time.
+            First element is the Function representing the inner radius of a
+            grain as a function of time. Second argument is the Function
+            representing the height of a grain as a function of time.
         """
         # Define initial conditions for integration
         y0 = [self.grainInitialInnerRadius, self.grainInitialHeight]
@@ -395,11 +418,10 @@ class SolidMotor(Motor):
 
         return [self.grainInnerRadius, self.grainHeight]
 
-    @cached_property
+    @funcify_method("time (s)", "burn area (m²)")
     def burnArea(self):
-        """Calculates the BurnArea of the grain for
-        each time. Assuming that the grains are cylindrical
-        BATES grains.
+        """Calculates the BurnArea of the grain for each time. Assuming that the
+        grains are cylindrical BATES grains.
 
         Parameters
         ----------
@@ -409,7 +431,7 @@ class SolidMotor(Motor):
         Returns
         -------
         burnArea : Function
-        Function representing the burn area progression with the time.
+            Function representing the burn area progression with the time.
         """
         burnArea = (
             2
@@ -423,11 +445,10 @@ class SolidMotor(Motor):
         )
         return burnArea
 
-    @cached_property
+    @funcify_method("time (s)", "burn rate (m/s)")
     def burnRate(self):
-        """Calculates the BurnRate with respect to time.
-        This evaluation assumes that it was already
-        calculated the massDot, burnArea timeseries.
+        """Calculates the BurnRate with respect to time. This evaluation assumes
+        that it was already calculated the massDot, burnArea time series.
 
         Parameters
         ----------

@@ -29,3 +29,5 @@ from .motors import HybridMotor, SolidMotor, LiquidMotor, Fluid
 from .motors import Tank, MassFlowRateBasedTank, UllageBasedTank, MassBasedTank
 from .Rocket import Rocket
 from .utilities import *
+from .plots import *
+from .prints import *

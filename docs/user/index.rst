@@ -15,5 +15,7 @@ Welcome to RocketPy's user documentation!
    ../notebooks/dispersion_analysis/dispersion_analysis.ipynb
    ../notebooks/topography_usage.ipynb
    ../notebooks/utilities_usage.ipynb
+   ../notebooks/compare_flights_usage.ipynb
+   ../notebooks/deployable_payload_example.ipynb
    ../matlab/matlab.rst
 

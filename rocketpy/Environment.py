@@ -12,11 +12,13 @@ import re
 import warnings
 from datetime import datetime, timedelta
 
-import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
 import pytz
 import requests
+
+from .plots.environment_plots import _EnvironmentPlots
+from .prints.environment_prints import _EnvironmentPrints
 
 try:
     import netCDF4
@@ -371,6 +373,9 @@ class Environment:
         self.earthRadius = 6.3781 * (10**6)
         self.airGasConstant = 287.05287  # in J/K/Kg
 
+        # Initialize plots and prints objects
+        self.prints = _EnvironmentPrints(self)
+
         # Initialize atmosphere
         self.setAtmosphericModel("StandardAtmosphere")
 
@@ -395,6 +400,9 @@ class Environment:
 
         # Recalculate Earth Radius
         self.earthRadius = self.calculateEarthRadius(self.lat, self.datum)  # in m
+
+        # Initialize plots and prints object
+        self.plots = _EnvironmentPlots(self)
 
         return None
 
@@ -3012,126 +3020,10 @@ class Environment:
         ------
         None
         """
-        # Print launch site details
-        print("Launch Site Details")
-        print("\nLaunch Rail Length:", self.rL, " m")
-        time_format = "%Y-%m-%d %H:%M:%S"
-        if self.date != None and "UTC" not in self.timeZone:
-            print(
-                "Launch Date:",
-                self.date.strftime(time_format),
-                "UTC |",
-                self.localDate.strftime(time_format),
-                self.timeZone,
-            )
-        elif self.date != None:
-            print("Launch Date:", self.date.strftime(time_format), "UTC")
-        if self.lat != None and self.lon != None:
-            print("Launch Site Latitude: {:.5f}°".format(self.lat))
-            print("Launch Site Longitude: {:.5f}°".format(self.lon))
-        print("Reference Datum: " + self.datum)
-        print(
-            "Launch Site UTM coordinates: {:.2f} ".format(self.initialEast)
-            + self.initialEW
-            + "    {:.2f} ".format(self.initialNorth)
-            + self.initialHemisphere
-        )
-        print("Launch Site UTM zone:", str(self.initialUtmZone) + self.initialUtmLetter)
-        print("Launch Site Surface Elevation: {:.1f} m".format(self.elevation))
 
-        # Print atmospheric model details
-        print("\n\nAtmospheric Model Details")
-        modelType = self.atmosphericModelType
-        print("\nAtmospheric Model Type:", modelType)
-        print(
-            modelType
-            + " Maximum Height: {:.3f} km".format(self.maxExpectedHeight / 1000)
-        )
-        if modelType in ["Forecast", "Reanalysis", "Ensemble"]:
-            # Determine time period
-            initDate = self.atmosphericModelInitDate
-            endDate = self.atmosphericModelEndDate
-            interval = self.atmosphericModelInterval
-            print(modelType + " Time Period: From ", initDate, " to ", endDate, " UTC")
-            print(modelType + " Hour Interval:", interval, " hrs")
-            # Determine latitude and longitude range
-            initLat = self.atmosphericModelInitLat
-            endLat = self.atmosphericModelEndLat
-            initLon = self.atmosphericModelInitLon
-            endLon = self.atmosphericModelEndLon
-            print(modelType + " Latitude Range: From ", initLat, "° To ", endLat, "°")
-            print(modelType + " Longitude Range: From ", initLon, "° To ", endLon, "°")
-        if modelType == "Ensemble":
-            print("Number of Ensemble Members:", self.numEnsembleMembers)
-            print("Selected Ensemble Member:", self.ensembleMember, " (Starts from 0)")
-
-        # Print atmospheric conditions
-        print("\n\nSurface Atmospheric Conditions")
-        print("\nSurface Wind Speed: {:.2f} m/s".format(self.windSpeed(self.elevation)))
-        print(
-            "Surface Wind Direction: {:.2f}°".format(self.windDirection(self.elevation))
-        )
-        print("Surface Wind Heading: {:.2f}°".format(self.windHeading(self.elevation)))
-        print(
-            "Surface Pressure: {:.2f} hPa".format(self.pressure(self.elevation) / 100)
-        )
-        print("Surface Temperature: {:.2f} K".format(self.temperature(self.elevation)))
-        print("Surface Air Density: {:.3f} kg/m³".format(self.density(self.elevation)))
-        print(
-            "Surface Speed of Sound: {:.2f} m/s".format(
-                self.speedOfSound(self.elevation)
-            )
-        )
-
-        # Plot graphs
-        print("\n\nAtmospheric Model Plots")
-        # Create height grid
-        grid = np.linspace(self.elevation, self.maxExpectedHeight)
-
-        # Create figure
-        plt.figure(figsize=(9, 4.5))
-
-        # Create wind speed and wind direction subplot
-        ax1 = plt.subplot(121)
-        ax1.plot(
-            [self.windSpeed(i) for i in grid], grid, "#ff7f0e", label="Speed of Sound"
-        )
-        ax1.set_xlabel("Wind Speed (m/s)", color="#ff7f0e")
-        ax1.tick_params("x", colors="#ff7f0e")
-        ax1up = ax1.twiny()
-        ax1up.plot(
-            [self.windDirection(i) for i in grid],
-            grid,
-            color="#1f77b4",
-            label="Density",
-        )
-        ax1up.set_xlabel("Wind Direction (°)", color="#1f77b4")
-        ax1up.tick_params("x", colors="#1f77b4")
-        ax1up.set_xlim(0, 360)
-        ax1.set_ylabel("Height Above Sea Level (m)")
-        ax1.grid(True)
-
-        # Create density and speed of sound subplot
-        ax2 = plt.subplot(122)
-        ax2.plot(
-            [self.speedOfSound(i) for i in grid],
-            grid,
-            "#ff7f0e",
-            label="Speed of Sound",
-        )
-        ax2.set_xlabel("Speed of Sound (m/s)", color="#ff7f0e")
-        ax2.tick_params("x", colors="#ff7f0e")
-        ax2up = ax2.twiny()
-        ax2up.plot(
-            [self.density(i) for i in grid], grid, color="#1f77b4", label="Density"
-        )
-        ax2up.set_xlabel("Density (kg/m³)", color="#1f77b4")
-        ax2up.tick_params("x", colors="#1f77b4")
-        ax2.set_ylabel("Height Above Sea Level (m)")
-        ax2.grid(True)
-
-        plt.subplots_adjust(wspace=0.5)
-        plt.show()
+        self.prints.all()
+        self.plots.info()
+        return None
 
     def allInfo(self):
         """Prints out all data and graphs available about the Environment.
@@ -3144,237 +3036,13 @@ class Environment:
         ------
         None
         """
-        # Print gravity details
-        print("Gravity Details")
-        print("\nAcceleration of Gravity: " + str(self.g) + " m/s²")
 
-        # Print launch site details
-        print("\n\nLaunch Site Details")
-        print("\nLaunch Rail Length:", self.rL, " m")
-        time_format = "%Y-%m-%d %H:%M:%S"
-        if self.date != None and "UTC" not in self.timeZone:
-            print(
-                "Launch Date:",
-                self.date.strftime(time_format),
-                "UTC |",
-                self.localDate.strftime(time_format),
-                self.timeZone,
-            )
-        elif self.date != None:
-            print("Launch Date:", self.date.strftime(time_format), "UTC")
-        if self.lat != None and self.lon != None:
-            print("Launch Site Latitude: {:.5f}°".format(self.lat))
-            print("Launch Site Longitude: {:.5f}°".format(self.lon))
-        print("Launch Site Surface Elevation: {:.1f} m".format(self.elevation))
-
-        # Print atmospheric model details
-        print("\n\nAtmospheric Model Details")
-        modelType = self.atmosphericModelType
-        print("\nAtmospheric Model Type:", modelType)
-        print(
-            modelType
-            + " Maximum Height: {:.3f} km".format(self.maxExpectedHeight / 1000)
-        )
-        if modelType in ["Forecast", "Reanalysis", "Ensemble"]:
-            # Determine time period
-            initDate = self.atmosphericModelInitDate
-            endDate = self.atmosphericModelEndDate
-            interval = self.atmosphericModelInterval
-            print(modelType + " Time Period: From ", initDate, " to ", endDate, " UTC")
-            print(modelType + " Hour Interval:", interval, " hrs")
-            # Determine latitude and longitude range
-            initLat = self.atmosphericModelInitLat
-            endLat = self.atmosphericModelEndLat
-            initLon = self.atmosphericModelInitLon
-            endLon = self.atmosphericModelEndLon
-            print(modelType + " Latitude Range: From ", initLat, "° To ", endLat, "°")
-            print(modelType + " Longitude Range: From ", initLon, "° To ", endLon, "°")
-        if modelType == "Ensemble":
-            print("Number of Ensemble Members:", self.numEnsembleMembers)
-            print("Selected Ensemble Member:", self.ensembleMember, " (Starts from 0)")
-
-        # Print atmospheric conditions
-        print("\n\nSurface Atmospheric Conditions")
-        print("\nSurface Wind Speed: {:.2f} m/s".format(self.windSpeed(self.elevation)))
-        print(
-            "Surface Wind Direction: {:.2f}°".format(self.windDirection(self.elevation))
-        )
-        print("Surface Wind Heading: {:.2f}°".format(self.windHeading(self.elevation)))
-        print(
-            "Surface Pressure: {:.2f} hPa".format(self.pressure(self.elevation) / 100)
-        )
-        print("Surface Temperature: {:.2f} K".format(self.temperature(self.elevation)))
-        print("Surface Air Density: {:.3f} kg/m³".format(self.density(self.elevation)))
-        print(
-            "Surface Speed of Sound: {:.2f} m/s".format(
-                self.speedOfSound(self.elevation)
-            )
-        )
-
-        # Plot graphs
-        print("\n\nAtmospheric Model Plots")
-        # Create height grid
-        grid = np.linspace(self.elevation, self.maxExpectedHeight)
-
-        # Create figure
-        plt.figure(figsize=(9, 9))
-
-        # Create wind speed and wind direction subplot
-        ax1 = plt.subplot(221)
-        ax1.plot(
-            [self.windSpeed(i) for i in grid], grid, "#ff7f0e", label="Speed of Sound"
-        )
-        ax1.set_xlabel("Wind Speed (m/s)", color="#ff7f0e")
-        ax1.tick_params("x", colors="#ff7f0e")
-        ax1up = ax1.twiny()
-        ax1up.plot(
-            [self.windDirection(i) for i in grid],
-            grid,
-            color="#1f77b4",
-            label="Density",
-        )
-        ax1up.set_xlabel("Wind Direction (°)", color="#1f77b4")
-        ax1up.tick_params("x", colors="#1f77b4")
-        ax1up.set_xlim(0, 360)
-        ax1.set_ylabel("Height Above Sea Level (m)")
-        ax1.grid(True)
-
-        # Create density and speed of sound subplot
-        ax2 = plt.subplot(222)
-        ax2.plot(
-            [self.speedOfSound(i) for i in grid],
-            grid,
-            "#ff7f0e",
-            label="Speed of Sound",
-        )
-        ax2.set_xlabel("Speed of Sound (m/s)", color="#ff7f0e")
-        ax2.tick_params("x", colors="#ff7f0e")
-        ax2up = ax2.twiny()
-        ax2up.plot(
-            [self.density(i) for i in grid], grid, color="#1f77b4", label="Density"
-        )
-        ax2up.set_xlabel("Density (kg/m³)", color="#1f77b4")
-        ax2up.tick_params("x", colors="#1f77b4")
-        ax2.set_ylabel("Height Above Sea Level (m)")
-        ax2.grid(True)
-
-        # Create wind u and wind v subplot
-        ax3 = plt.subplot(223)
-        ax3.plot([self.windVelocityX(i) for i in grid], grid, label="Wind U")
-        ax3.plot([self.windVelocityY(i) for i in grid], grid, label="Wind V")
-        ax3.legend(loc="best").set_draggable(True)
-        ax3.set_ylabel("Height Above Sea Level (m)")
-        ax3.set_xlabel("Wind Speed (m/s)")
-        ax3.grid(True)
-
-        # Create pressure and temperature subplot
-        ax4 = plt.subplot(224)
-        ax4.plot(
-            [self.pressure(i) / 100 for i in grid], grid, "#ff7f0e", label="Pressure"
-        )
-        ax4.set_xlabel("Pressure (hPa)", color="#ff7f0e")
-        ax4.tick_params("x", colors="#ff7f0e")
-        ax4up = ax4.twiny()
-        ax4up.plot(
-            [self.temperature(i) for i in grid],
-            grid,
-            color="#1f77b4",
-            label="Temperature",
-        )
-        ax4up.set_xlabel("Temperature (K)", color="#1f77b4")
-        ax4up.tick_params("x", colors="#1f77b4")
-        ax4.set_ylabel("Height Above Sea Level (m)")
-        ax4.grid(True)
-
-        plt.subplots_adjust(wspace=0.5, hspace=0.3)
-        plt.show()
-
-        # Plot ensemble member comparison
-        if self.atmosphericModelType != "Ensemble":
-            return None
-
-        print("\n\nEnsemble Members Comparison")
-        currentMember = self.ensembleMember
-
-        # Create figure
-        plt.figure(figsize=(9, 13.5))
-
-        # Create wind u subplot
-        ax5 = plt.subplot(321)
-        for i in range(self.numEnsembleMembers):
-            self.selectEnsembleMember(i)
-            ax5.plot([self.windVelocityX(i) for i in grid], grid, label=i)
-        # ax5.legend(loc='best').set_draggable(True)
-        ax5.set_ylabel("Height Above Sea Level (m)")
-        ax5.set_xlabel("Wind Speed (m/s)")
-        ax5.set_title("Wind U - Ensemble Members")
-        ax5.grid(True)
-
-        # Create wind v subplot
-        ax6 = plt.subplot(322)
-        for i in range(self.numEnsembleMembers):
-            self.selectEnsembleMember(i)
-            ax6.plot([self.windVelocityY(i) for i in grid], grid, label=i)
-        # ax6.legend(loc='best').set_draggable(True)
-        ax6.set_ylabel("Height Above Sea Level (m)")
-        ax6.set_xlabel("Wind Speed (m/s)")
-        ax6.set_title("Wind V - Ensemble Members")
-        ax6.grid(True)
-
-        # Create wind speed subplot
-        ax7 = plt.subplot(323)
-        for i in range(self.numEnsembleMembers):
-            self.selectEnsembleMember(i)
-            ax7.plot([self.windSpeed(i) for i in grid], grid, label=i)
-        # ax7.legend(loc='best').set_draggable(True)
-        ax7.set_ylabel("Height Above Sea Level (m)")
-        ax7.set_xlabel("Wind Speed (m/s)")
-        ax7.set_title("Wind Speed Magnitude - Ensemble Members")
-        ax7.grid(True)
-
-        # Create wind direction subplot
-        ax8 = plt.subplot(324)
-        for i in range(self.numEnsembleMembers):
-            self.selectEnsembleMember(i)
-            ax8.plot([self.windDirection(i) for i in grid], grid, label=i)
-        # ax8.legend(loc='best').set_draggable(True)
-        ax8.set_ylabel("Height Above Sea Level (m)")
-        ax8.set_xlabel("Degrees True (°)")
-        ax8.set_title("Wind Direction - Ensemble Members")
-        ax8.grid(True)
-
-        # Create pressure subplot
-        ax9 = plt.subplot(325)
-        for i in range(self.numEnsembleMembers):
-            self.selectEnsembleMember(i)
-            ax9.plot([self.pressure(i) for i in grid], grid, label=i)
-        # ax9.legend(loc='best').set_draggable(True)
-        ax9.set_ylabel("Height Above Sea Level (m)")
-        ax9.set_xlabel("Pressure (P)")
-        ax9.set_title("Pressure - Ensemble Members")
-        ax9.grid(True)
-
-        # Create temperature subplot
-        ax10 = plt.subplot(326)
-        for i in range(self.numEnsembleMembers):
-            self.selectEnsembleMember(i)
-            ax10.plot([self.temperature(i) for i in grid], grid, label=i)
-        # ax10.legend(loc='best').set_draggable(True)
-        ax10.set_ylabel("Height Above Sea Level (m)")
-        ax10.set_xlabel("Temperature (K)")
-        ax10.set_title("Temperature - Ensemble Members")
-        ax10.grid(True)
-
-        # Display plot
-        plt.subplots_adjust(wspace=0.5, hspace=0.3)
-        plt.show()
-
-        # Clean up
-        self.selectEnsembleMember(currentMember)
+        self.prints.all()
+        self.plots.all()
 
         return None
 
-    def allPlotInfoReturned(self):
+    def allPlotInfoReturned(self) -> dict:
         """Returns a dictionary with all plot information available about the Environment.
 
         Parameters
@@ -3486,9 +3154,10 @@ class Environment:
         return info
 
     def exportEnvironment(self, filename="environment"):
-        """Export important attributes of Environment class so it can be used
-        again in further siulations by using the customAtmosphere atmospheric
-        model.
+        """Export important attributes of Environment class to a .json file,
+        saving all the information needed to recreate the same environment using
+        customAtmosphere.
+
         Parameters
         ----------
         filename
@@ -3498,9 +3167,13 @@ class Environment:
         None
         """
 
-        # TODO: in the future, allow the user to select which format will be used (json, csv, etc.). Default must be JSON.
-        # TODO: add self.exportEnvDictionary to the documentation
-        # TODO: find a way to documennt the workaround I've used on ma.getdata(self...
+        try:
+            atmosphericModelFile = self.atmosphericModelFile
+            atmosphericModelDict = self.atmosphericModelDict
+        except AttributeError:
+            atmosphericModelFile = ""
+            atmosphericModelDict = ""
+
         self.exportEnvDictionary = {
             "railLength": self.rL,
             "gravity": self.g,
@@ -3512,8 +3185,8 @@ class Environment:
             "timeZone": self.timeZone,
             "maxExpectedHeight": float(self.maxExpectedHeight),
             "atmosphericModelType": self.atmosphericModelType,
-            "atmosphericModelFile": self.atmosphericModelFile,
-            "atmosphericModelDict": self.atmosphericModelDict,
+            "atmosphericModelFile": atmosphericModelFile,
+            "atmosphericModelDict": atmosphericModelDict,
             "atmosphericModelPressureProfile": ma.getdata(
                 self.pressure.getSource()
             ).tolist(),
@@ -3693,7 +3366,7 @@ class Environment:
         hemis : string
             Equals to "S" for southern hemisphere and "N" for Northern hemisphere
         datum : string
-            The desired reference ellipsoide model, the following options are
+            The desired reference ellipsoid model, the following options are
             available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
             is "SIRGAS2000", then this model will be used if the user make some
             typing mistake
@@ -3701,9 +3374,9 @@ class Environment:
         Returns
         -------
         lat: float
-            latitude of the analysed point
+            latitude of the analyzed point
         lon: float
-            latitude of the analysed point
+            latitude of the analyzed point
         """
 
         if hemis == "N":
@@ -3873,24 +3546,3 @@ class Environment:
         # ))
 
         return deg, min, sec
-
-    def printEarthDetails(self):
-        """[UNDER CONSTRUCTION]
-        Function to print information about the Earth Model used in the
-        Environment Class
-
-        """
-        # Print launch site details
-        # print("Launch Site Details")
-        # print("Launch Site Latitude: {:.5f}°".format(self.lat))
-        # print("Launch Site Longitude: {:.5f}°".format(self.lon))
-        # print("Reference Datum: " + self.datum)
-        # print("Launch Site UTM coordinates: {:.2f} ".format(self.initialEast)
-        #    + self.initialEW + "    {:.2f} ".format(self.initialNorth) + self.initialHemisphere
-        # )
-        # print("Launch Site UTM zone number:", self.initialUtmZone)
-        # print("Launch Site Surface Elevation: {:.1f} m".format(self.elevation))
-        print("Earth Radius at Launch site: {:.1f} m".format(self.earthRadius))
-        print("Gravity acceleration at launch site: Still not implemented :(")
-
-        return None
