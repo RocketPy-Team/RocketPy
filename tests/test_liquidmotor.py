@@ -159,7 +159,6 @@ def test_mass_based_motor():
 
 # @curtisjhu
 def test_ullage_based_motor():
-
     lox = Fluid(name="LOx", density=1141.7, quality=1.0)
     n2 = Fluid(name="Nitrogen Gas", density=51.75, quality=1.0)
 
