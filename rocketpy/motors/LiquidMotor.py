@@ -13,14 +13,14 @@ from rocketpy.Function import funcify_method, Function
 
 class LiquidMotor(Motor):
     """Class to specify characteristics and useful operations for Liquid
-    motors.
-    """
+    motors."""
 
     def __init__(
         self,
         thrustSource,
         burnOut,
         nozzleRadius,
+        nozzlePosition,
         throatRadius,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
@@ -45,6 +45,10 @@ class LiquidMotor(Motor):
         nozzleRadius : int, float, optional
             Motor's nozzle outlet radius in meters. Its value does not impact
             trajectory simulation.
+        nozzlePosition : float
+            Motor's nozzle outlet position in meters, specified in the motor's
+            coordinate system. See `Motor.coordinateSystemOrientation` for
+            more information.
         throatRadius : int, float, optional
             Motor's nozzle throat radius in meters. Its value has very low
             impact in trajectory simulation, only useful to analyze
@@ -66,6 +70,7 @@ class LiquidMotor(Motor):
             thrustSource,
             burnOut,
             nozzleRadius,
+            nozzlePosition,
             throatRadius,
             reshapeThrustCurve,
             interpolationMethod,
@@ -128,9 +133,9 @@ class LiquidMotor(Motor):
 
     @funcify_method("time (s)", "center of mass (m)")
     def centerOfMass(self):
-        """Evaluates the center of mass of the motor from each tank
-        center of mass and positioning. The center of mass height is
-        measured relative to the motor nozzle.
+        """Evaluates the center of mass of the motor from each tank center of
+        mass and positioning. The center of mass height is measured relative to
+        the motor nozzle.
 
         Parameters
         ----------
@@ -155,10 +160,11 @@ class LiquidMotor(Motor):
 
     @cached_property
     def inertiaTensor(self):
-        """Evaluates the principal moment of inertia of the motor from each tank
-        by the parallel axis theorem. The moment of inertia is measured relative
-        to the motor center of mass with the z-axis being the motor symmetry axis
-        and the x and y axes completing the right-handed coordinate system.
+        """Evaluates the principal moment of inertia of the motor from each
+        tank by the parallel axis theorem. The moment of inertia is measured
+        relative to the motor center of mass with the z-axis being the motor
+        symmetry axis and the x and y axes completing the right-handed
+        coordinate system.
 
         Parameters
         ----------
