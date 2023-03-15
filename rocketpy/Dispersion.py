@@ -592,14 +592,18 @@ class Dispersion:
         initial_wall_time = time()
         initial_cpu_time = process_time()
 
-        # Begin display when running in notebook
-        out = display("Starting", display_id=True)
+        # Begin display
+        print("Starting", end="\r")
 
+        # Initialize initial environment and gets original wind data
         env_dispersion = (
             self.environment
             if isinstance(self.environment, Environment)
             else self.environment.__dict__["environment"]
         )
+        # Saving original wind profiles
+        windX = env_dispersion.windVelocityX
+        windY = env_dispersion.windVelocityY
 
         # Iterate over flight settings, start the flight simulations
         for setting in self.__yield_flight_setting(
@@ -610,8 +614,9 @@ class Dispersion:
 
             # Apply environment parameters variations on each iteration if possible
             env_dispersion.railLength = setting["environment"]["railLength"]
-            env_dispersion.windVelocityX *= setting["environment"]["windXFactor"]
-            env_dispersion.windVelocityY *= setting["environment"]["windYFactor"]
+            # TODO:
+            env_dispersion.windVelocityX = windX * setting["environment"]["windXFactor"]
+            env_dispersion.windVelocityY = windY * setting["environment"]["windYFactor"]
             if setting["environment"]["ensembleMember"]:
                 env_dispersion.selectEnsembleMember(
                     setting["environment"]["ensembleMember"]
@@ -769,15 +774,14 @@ class Dispersion:
                 self.__save_logs(inputs_log, outputs_log, errors_log)
                 break
 
-            # Update progress bar. Only works on jupyter notebook
-            if out:
-                out.update(
-                    f"Current iteration: {i:06d} | Average Time per Iteration: "
-                    f"{(process_time() - initial_cpu_time)/i:2.6f} s | Estimated time"
-                    f" left: {int((number_of_simulations - i)*((process_time() - initial_cpu_time)/i))} s"
-                )
-
-        # Clean the house once all the simulations were already done
+            # spaces after the last 's' are necessary to fix a bug in jupyter print
+            # with end='\r'
+            print(
+                f"Current iteration: {i:06d} | Average Time per Iteration: "
+                f"{(process_time() - initial_cpu_time)/i:2.6f} s | Estimated time"
+                f" left: {int((number_of_simulations - i)*((process_time() - initial_cpu_time)/i))} s      ",
+                end="\r",
+            )
 
         ## Print and save total time
         final_string = (
@@ -785,8 +789,7 @@ class Dispersion:
             f"{process_time() - initial_cpu_time:.1f} s. Total wall time: "
             f"{time() - initial_wall_time:.1f} s"
         )
-        if out:
-            out.update(final_string)
+        print(final_string, end="\r")
         inputs_log = inputs_log + final_string + "\n"
         outputs_log = outputs_log + final_string + "\n"
         errors_log = errors_log + final_string + "\n"
