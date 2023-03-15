@@ -114,14 +114,15 @@ class HybridMotor(Motor):
         self,
         thrustSource,
         burnOut,
+        grainsCenterOfMassPosition,
         grainNumber,
         grainDensity,
         grainOuterRadius,
         grainInitialInnerRadius,
         grainInitialHeight,
-        grainSeparation,
-        nozzleRadius,
-        nozzlePosition,
+        grainSeparation=0,
+        nozzleRadius=0.0335,
+        nozzlePosition=0,
         throatRadius=0.0114,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
@@ -164,10 +165,6 @@ class HybridMotor(Motor):
             system. See `Motor.coordinateSystemOrientation` for more
             information. Default is 0, in which case the origin of the motor's
             coordinate system is placed at the motor's nozzle outlet.
-        throatRadius : int, float, optional
-            Motor's nozzle throat radius in meters. Used to calculate Kn curve.
-            Optional if the Kn curve is not interesting. Its value does not
-            impact trajectory simulation.
         reshapeThrustCurve : boolean, tuple, optional
             If False, the original thrust curve supplied is not altered. If a
             tuple is given, whose first parameter is a new burn out time and
@@ -197,22 +194,23 @@ class HybridMotor(Motor):
             burnOut,
             nozzleRadius,
             nozzlePosition,
-            throatRadius,
             reshapeThrustCurve,
             interpolationMethod,
+            coordinateSystemOrientation,
         )
         self.liquid = LiquidMotor(
             thrustSource,
             burnOut,
             nozzleRadius,
             nozzlePosition,
-            throatRadius,
             reshapeThrustCurve,
             interpolationMethod,
+            coordinateSystemOrientation,
         )
         self.solid = SolidMotor(
             thrustSource,
             burnOut,
+            grainsCenterOfMassPosition,
             grainNumber,
             grainDensity,
             grainOuterRadius,
@@ -224,6 +222,7 @@ class HybridMotor(Motor):
             throatRadius,
             reshapeThrustCurve,
             interpolationMethod,
+            coordinateSystemOrientation,
         )
 
     @funcify_method("time (s)", "mass (kg)")
@@ -374,7 +373,7 @@ class HybridMotor(Motor):
         # Print nozzle details
         print("Nozzle Details")
         print("Nozzle Radius: " + str(self.nozzleRadius) + " m")
-        print("Nozzle Throat Radius: " + str(self.throatRadius) + " m")
+        print("Nozzle Throat Radius: " + str(self.solid.throatRadius) + " m")
 
         # Print grain details
         print("\nGrain Details")

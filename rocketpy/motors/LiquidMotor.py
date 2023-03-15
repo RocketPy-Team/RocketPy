@@ -19,11 +19,11 @@ class LiquidMotor(Motor):
         self,
         thrustSource,
         burnOut,
-        nozzleRadius,
-        nozzlePosition,
-        throatRadius,
+        nozzleRadius=0.0335,
+        nozzlePosition=0,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
+        coordinateSystemOrientation="nozzleToCombustionChamber",
     ):
         """Initialize Motor class, process thrust curve and geometrical
         parameters and store results.
@@ -49,10 +49,6 @@ class LiquidMotor(Motor):
             Motor's nozzle outlet position in meters, specified in the motor's
             coordinate system. See `Motor.coordinateSystemOrientation` for
             more information.
-        throatRadius : int, float, optional
-            Motor's nozzle throat radius in meters. Its value has very low
-            impact in trajectory simulation, only useful to analyze
-            dynamic instabilities, therefore it is optional.
         reshapeThrustCurve : boolean, tuple, optional
             If False, the original thrust curve supplied is not altered. If a
             tuple is given, whose first parameter is a new burn out time and
@@ -71,10 +67,11 @@ class LiquidMotor(Motor):
             burnOut,
             nozzleRadius,
             nozzlePosition,
-            throatRadius,
             reshapeThrustCurve,
             interpolationMethod,
+            coordinateSystemOrientation,
         )
+
         self.positioned_tanks = []
 
     @funcify_method("time (s)", "mass (kg)")
@@ -223,7 +220,6 @@ class LiquidMotor(Motor):
         # Print nozzle details
         print("Nozzle Details")
         print("Nozzle Radius: " + str(self.nozzleRadius) + " m")
-        print("Nozzle Throat Radius: " + str(self.throatRadius) + " m")
 
         # Print motor details
         print("\nMotor Details")

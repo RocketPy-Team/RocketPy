@@ -15,7 +15,7 @@ from .Function import Function
 from .Parachute import Parachute
 from .AeroSurfaces import AeroSurfaces
 from .AeroSurfaces import NoseCone, TrapezoidalFins, EllipticalFins, Tail
-from .Motor import EmptyMotor
+from .motors.Motor import EmptyMotor
 
 from .prints.rocket_prints import _RocketPrints
 from .plots.rocket_plots import _RocketPlots
