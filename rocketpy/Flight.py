@@ -743,9 +743,16 @@ class Flight:
                         # Remove parachute from flight parachutes
                         self.parachutes.remove(parachute)
                         # Create flight phase for time after detection and before inflation
-                        self.flightPhases.addPhase(
-                            node.t, phase.derivative, clear=True, index=phase_index + 1
-                        )
+                        # Must only be created if parachute has any lag
+                        i = 1
+                        if parachute.lag != 0:
+                            self.flightPhases.addPhase(
+                                node.t,
+                                phase.derivative,
+                                clear=True,
+                                index=phase_index + i,
+                            )
+                            i += 1
                         # Create flight phase for time after inflation
                         callbacks = [
                             lambda self, parachuteCdS=parachute.CdS: setattr(
@@ -757,7 +764,7 @@ class Flight:
                             self.uDotParachute,
                             callbacks,
                             clear=False,
-                            index=phase_index + 2,
+                            index=phase_index + i,
                         )
                         # Prepare to leave loops and start new flight phase
                         phase.timeNodes.flushAfter(node_index)
@@ -1034,12 +1041,16 @@ class Flight:
                                         # Remove parachute from flight parachutes
                                         self.parachutes.remove(parachute)
                                         # Create flight phase for time after detection and before inflation
-                                        self.flightPhases.addPhase(
-                                            overshootableNode.t,
-                                            phase.derivative,
-                                            clear=True,
-                                            index=phase_index + 1,
-                                        )
+                                        # Must only be created if parachute has any lag
+                                        i = 1
+                                        if parachute.lag != 0:
+                                            self.flightPhases.addPhase(
+                                                overshootableNode.t,
+                                                phase.derivative,
+                                                clear=True,
+                                                index=phase_index + i,
+                                            )
+                                            i += 1
                                         # Create flight phase for time after inflation
                                         callbacks = [
                                             lambda self, parachuteCdS=parachute.CdS: setattr(
@@ -1051,7 +1062,7 @@ class Flight:
                                             self.uDotParachute,
                                             callbacks,
                                             clear=False,
-                                            index=phase_index + 2,
+                                            index=phase_index + i,
                                         )
                                         # Rollback history
                                         self.t = overshootableNode.t
