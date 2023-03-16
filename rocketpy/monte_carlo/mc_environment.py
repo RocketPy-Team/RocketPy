@@ -107,7 +107,8 @@ class McEnvironment(DispersionModel):
     @validator("ensembleMember")
     def val_ensemble(cls, v, values):
         """Validator for ensembleMember argument. Checks if environment has the correct
-        atmospheric model type and if the list does not overflow the ensemble members."""
+        atmospheric model type and if the list does not overflow the ensemble members.
+        """
         if v:
             assert values["environment"].atmosphericModelType in [
                 "Ensemble",
