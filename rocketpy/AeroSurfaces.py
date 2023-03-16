@@ -85,7 +85,8 @@ class NoseCone:
         length : float
             Nose cone length. Has units of length and must be given in meters.
         kind : string
-            Nose cone kind. Can be "conical", "ogive" or "lvhaack".
+            Nose cone kind. Can be "conical", "ogive", "elliptical", "tangent",
+            "von karman", "parabolic" or "lvhaack".
         baseRadius : float, optional
             Nose cone base radius. Has units of length and must be given in meters.
             If not given, the ratio between baseRadius and rocketRadius will be
@@ -162,8 +163,19 @@ class NoseCone:
             self.k = 0.466
         elif value == "lvhaack":
             self.k = 0.563
+        elif value == "tangent":
+            rho = (self.baseRadius**2 + self.length**2) / (2 * self.baseRadius)
+            volume = np.pi * (
+                self.length * rho**2
+                - (self.length**3) / 3
+                - (rho - self.baseRadius) * rho**2 * np.arcsin(self.length / rho)
+            )
+            area = np.pi * self.baseRadius**2
+            self.k = 1 - volume / (area * self.length)
+        elif value == "elliptical":
+            self.k = 1 / 3
         else:
-            self.k = 0.5
+            self.k = 0.5  # Parabolic and Von Karman
         self.evaluateCenterOfPressure()
 
     def evaluateGeometricalParameters(self):
