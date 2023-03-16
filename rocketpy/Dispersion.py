@@ -3,8 +3,10 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 
+import ast
 import math
 import traceback
+from random import choice
 from time import process_time, time
 
 import matplotlib.pyplot as plt
@@ -13,7 +15,6 @@ import simplekml
 from IPython.display import display
 from matplotlib.patches import Ellipse
 from numpy.random import *
-from random import choice
 
 from .AeroSurfaces import EllipticalFins, NoseCone, Tail, TrapezoidalFins
 from .Environment import Environment
@@ -22,6 +23,11 @@ from .Function import Function
 from .Motor import SolidMotor
 from .Rocket import Rocket
 from .tools import get_distribution, invertedHaversine
+
+try:
+    from functools import cached_property
+except ImportError:
+    from .tools import cached_property
 
 
 class Dispersion:
@@ -111,6 +117,7 @@ class Dispersion:
 
         # Save and initialize parameters
         self.filename = filename.split(".")[0]
+        # TODO try to import a file with the filename in init
 
         self.environment = environment
         self.rocket = rocket
@@ -268,6 +275,8 @@ class Dispersion:
                         "Attribute can not be exported. Check export_list."
                     )
         else:
+            # TODO: idk if this print is really necessary, it is a bit annoying
+            print("No export list provided, using default list instead.")
             export_list = standard_output
 
         return export_list
@@ -277,10 +286,6 @@ class Dispersion:
         setting,
         flight,
         exec_time,
-        inputs_log,
-        outputs_log,
-        export_list,
-        save_parachute_data=False,
     ):
         """Saves flight results in a .txt
         Parameters
@@ -307,53 +312,16 @@ class Dispersion:
         outputs_log : str
             The new string with the outputs of the simulation setting.
         """
-        m = map(getattr, [flight] * len(export_list), export_list)
-        results = dict(zip(export_list, m))
+        # Construct the dict with the results from the flight
+        m = map(getattr, [flight] * len(self.export_list), self.export_list)
+        results = dict(zip(self.export_list, m))
         results["executionTime"] = exec_time
 
-        # Sometimes we want to skip the parachute data to save time
-        if save_parachute_data:
-            for trigger_time, parachute in flight.parachuteEvents:
-                # TODO: These should be better implemented in Flight events, avoiding
-                # making any calculations here
-                results[parachute.name + "_triggerTime"] = trigger_time
-                results[parachute.name + "_inflatedTime"] = trigger_time + parachute.lag
-                results[parachute.name + "_inflatedVelocity"] = flight.speed(
-                    trigger_time + parachute.lag
-                )
-                results[parachute.name + "_inflatedAltitude"] = (
-                    flight.z(trigger_time + parachute.lag) - flight.env.elevation
-                )
+        # Write flight setting and results to file
+        self.dispersion_input_file.write(f"{setting}\n")
+        self.dispersion_output_file.write(f"{flight}\n")
 
-        # Remove the powerOffDrag item from setting
-        setting.pop("powerOffDrag", None)
-        setting.pop("powerOnDrag", None)
-        setting.pop("date", None)
-        setting.pop("thrust", None)
-        # TODO: Find a way to pop the parachute trigger functions
-
-        inputs_log += str(setting) + "\n"
-        outputs_log += str(results) + "\n"
-
-        return inputs_log, outputs_log
-
-    def __export_flight_data_error(self, setting, errors_log):
-        """Saves flight error in a .txt
-        Parameters
-        ----------
-        setting : dict
-            The flight setting used in the simulation.
-        errors_log : str
-            The name of the file containing all the errors for the simulation.
-        Returns
-        -------
-        errors_log : str
-            The new string with the flight setting error saved.
-        """
-
-        errors_log += str(setting) + "\n"
-
-        return errors_log
+        return None
 
     def build_dispersion_dict(
         self,
@@ -533,7 +501,6 @@ class Dispersion:
         number_of_simulations,
         export_list=None,
         append=False,
-        save_parachute_data=False,
     ):
         """Runs the dispersion simulation and saves all data. For the simulation to be run
         all classes must be defined. This can happen either trough the dispersion_dictionary
@@ -561,31 +528,48 @@ class Dispersion:
         # Creates dispersion dictionary
         self.dispersion_dictionary = self.build_dispersion_dict()
 
-        # Create data strings for inputs, outputs and error logging
-        open_mode = "a" if append else "w"
-        if open_mode == "a":
-            with open(
-                f"{self.filename}.disp_errors.txt", open_mode, encoding="utf-8"
-            ) as f:
-                errors_log = f
-            with open(
-                f"{self.filename}.disp_inputs.txt", open_mode, encoding="utf-8"
-            ) as f:
-                inputs_log = f
-            with open(
-                f"{self.filename}.disp_outputs.txt", open_mode, encoding="utf-8"
-            ) as f:
-                outputs_log = f
+        # Create data files for inputs, outputs and error logging
+        if append:
+            self.dispersion_error_file = open(
+                f"{self.filename}.disp_errors.txt", "a", encoding="utf-8"
+            )
+            self.dispersion_input_file = open(
+                f"{self.filename}.disp_inputs.txt", "a", encoding="utf-8"
+            )
+            self.dispersion_output_file = open(
+                f"{self.filename}.disp_outputs.txt", "a", encoding="utf-8"
+            )
         else:
-            errors_log = inputs_log = outputs_log = str()
+            self.dispersion_error_file = open(
+                f"{self.filename}.disp_errors.txt", "w", encoding="utf-8"
+            )
+            self.dispersion_input_file = open(
+                f"{self.filename}.disp_inputs.txt", "w", encoding="utf-8"
+            )
+            self.dispersion_output_file = open(
+                f"{self.filename}.disp_outputs.txt", "w", encoding="utf-8"
+            )
 
-        # Use a default export list if none is provided
-        if export_list is None:
-            print("No export list provided, using default list instead.")
-            export_list = self.__check_export_list(None)
-        else:
-            # Checks export_list
-            self.export_list = self.__check_export_list(export_list)
+        # Create data strings for inputs, outputs and error logging
+        # open_mode = "a" if append else "w"
+        # if open_mode == "a":
+        #     with open(
+        #         f"{self.filename}.disp_errors.txt", open_mode, encoding="utf-8"
+        #     ) as f:
+        #         errors_log = f.read()
+        #     with open(
+        #         f"{self.filename}.disp_inputs.txt", open_mode, encoding="utf-8"
+        #     ) as f:
+        #         inputs_log = f.read()
+        #     with open(
+        #         f"{self.filename}.disp_outputs.txt", open_mode, encoding="utf-8"
+        #     ) as f:
+        #         outputs_log = f.read()
+        # else:
+        #     errors_log = inputs_log = outputs_log = str()
+
+        # Checks export_list
+        self.export_list = self.__check_export_list(export_list)
 
         # Initialize counter and timer
         i = 0
@@ -614,7 +598,6 @@ class Dispersion:
 
             # Apply environment parameters variations on each iteration if possible
             env_dispersion.railLength = setting["environment"]["railLength"]
-            # TODO:
             env_dispersion.windVelocityX = windX * setting["environment"]["windXFactor"]
             env_dispersion.windVelocityY = windY * setting["environment"]["windYFactor"]
             if setting["environment"]["ensembleMember"]:
@@ -731,13 +714,18 @@ class Dispersion:
                     CdS=setting["parachutes"][chute]["CdS"],
                     trigger=setting["parachutes"][chute]["trigger"],
                     samplingRate=setting["parachutes"][chute]["samplingRate"],
-                    lag=setting["parachutes"][chute]["lag"],
+                    # TODO: check if this if else is problematic
+                    lag=setting["parachutes"][chute]["lag"]
+                    if setting["parachutes"][chute]["lag"] >= 0
+                    else 0,
                     noise=setting["parachutes"][chute]["noise"],
                 )
 
             # TODO: Fix rail buttons definition
             # rocket_dispersion.setRailButtons()
 
+            # TODO: add try except to detect errors only on the flight simu
+            # TODO: and add a try except to detect errors only when saving
             # Run trajectory simulation
             try:
                 # TODO: Add initialSolution flight option
@@ -756,26 +744,20 @@ class Dispersion:
                     # verbose=setting["flight"]["verbose"],
                 )
 
-                inputs_log, outputs_log = self.__export_flight_data(
+                self.__export_flight_data(
                     setting=setting,
                     flight=dispersion_flight,
                     exec_time=process_time() - start_time,
-                    inputs_log=inputs_log,
-                    outputs_log=outputs_log,
-                    save_parachute_data=save_parachute_data,
-                    export_list=export_list,
                 )
             except (TypeError, ValueError, KeyError, AttributeError) as error:
-                print(f"Error on iteration {i}: {error}")
-                errors_log = self.__export_flight_data_error(setting, errors_log)
+                print(f"Error on iteration {i}: {error}\n")
+                self.dispersion_error_file.write(f"{setting}\n")
             except KeyboardInterrupt:
                 print("Keyboard Interrupt, file saved.")
-                errors_log = self.__export_flight_data_error(setting, errors_log)
-                self.__save_logs(inputs_log, outputs_log, errors_log)
+                self.dispersion_error_file.write(f"{setting}\n")
                 break
 
-            # spaces after the last 's' are necessary to fix a bug in jupyter print
-            # with end='\r'
+            # spaces after the last 's' are necessary to fix a bug with end='\r'
             print(
                 f"Current iteration: {i:06d} | Average Time per Iteration: "
                 f"{(process_time() - initial_cpu_time)/i:2.6f} s | Estimated time"
@@ -790,40 +772,58 @@ class Dispersion:
             f"{time() - initial_wall_time:.1f} s"
         )
         print(final_string, end="\r")
-        inputs_log = inputs_log + final_string + "\n"
-        outputs_log = outputs_log + final_string + "\n"
-        errors_log = errors_log + final_string + "\n"
-        self.__save_logs(inputs_log, outputs_log, errors_log)
 
         return None
 
-    def __save_logs(self, inputs_log, outputs_log, errors_log):
-        """Save logs to files.
-        Parameters
-        ----------
-        inputs_log : str
-            String containing all inputs.
-        outputs_log : str
-            String containing all outputs.
-        errors_log : str
-            String containing all errors.
-        Returns
-        -------
-        None
-        """
-        # Save inputs
-        with open(self.filename + ".disp_inputs.txt", "w", encoding="utf-8") as file:
-            file.write(inputs_log)
+    @cached_property
+    def inputs_log(self):
+        """Save inputs_log log from a file into an attribute for easy access"""
+        inputs_log = []
+        # Loop through each line in the file
+        for line in self.dispersion_input_file:
+            # Skip comments lines
+            if line[0] != "{":
+                continue
+            # Try to convert the line to a dictionary
+            d = ast.literal_eval(line)
+            # If successful, append the dictionary to the list
+            inputs_log.append(d)
 
-        # Save outputs
-        with open(self.filename + ".disp_outputs.txt", "w", encoding="utf-8") as file:
-            file.write(outputs_log)
+        return inputs_log
 
-        # Save errors
-        with open(self.filename + ".disp_errors.txt", "w", encoding="utf-8") as file:
-            file.write(errors_log)
+    @cached_property
+    def outputs_log(self):
+        """Save outputs_log log from a file into an attribute for easy access"""
+        outputs_log = []
+        # Loop through each line in the file
+        for line in self.dispersion_output_file:
+            try:
+                # Try to convert the line to a dictionary
+                d = ast.literal_eval(line)
+                # If successful, append the dictionary to the list
+                outputs_log.append(d)
+            except (SyntaxError, ValueError):
+                # If ast.literal_eval() raises an exception,
+                # skip the line and continue to the next one
+                continue
+        return outputs_log
 
-        return None
+    @cached_property
+    def errors_log(self):
+        """Save errors_log log from a file into an attribute for easy access"""
+        errors_log = []
+        # Loop through each line in the file
+        for line in self.dispersion_error_file:
+            try:
+                # Try to convert the line to a dictionary
+                d = ast.literal_eval(line)
+                # If successful, append the dictionary to the list
+                errors_log.append(d)
+            except (SyntaxError, ValueError):
+                # If ast.literal_eval() raises an exception,
+                # skip the line and continue to the next one
+                continue
+        return errors_log
 
     def import_results(self, variables=None):
         """Import dispersion results from .txt file and save it into a dictionary.
