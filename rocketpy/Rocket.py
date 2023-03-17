@@ -414,7 +414,7 @@ class Rocket:
 
     def evaluateMomentOfInertia(self):
         """Calculates and returns the rocket's moment of inertia tensor giving
-        the rocket's coordinate system translated to have the instantaneous 
+        the rocket's coordinate system translated to have the instantaneous
         center of mass as the origin. The moment of inertia is calculated by
         summing the moment of inertia of the rocket without propellant and the
         moment of inertia of the propellant, considering the parallel axis
@@ -455,43 +455,53 @@ class Rocket:
         Ixy_prop, Ixz_prop, Iyz_prop = motor.Ixy, motor.Ixz, motor.Iyz
 
         # Get masses
-        propMass = self.motor.mass # Propellant mass as a function of time
-        dryMass = self.mass # Constant rocket dry mass without propellant
+        propMass = self.motor.mass  # Propellant mass as a function of time
+        dryMass = self.mass  # Constant rocket dry mass without propellant
 
         # Compute axes distances
         csys = self._csys
-        dry_dz = (self.centerOfMass - self.centerOfDryMassPosition)*csys
+        dry_dz = (self.centerOfMass - self.centerOfDryMassPosition) * csys
         dry_dx = dry_dy = 0
-        prop_dz = (self.centerOfMass - self.centerOfPropellantPosition)*csys
+        prop_dz = (self.centerOfMass - self.centerOfPropellantPosition) * csys
         prop_dx = prop_dy = 0
 
         # Construct inertia tensors (0s due to symmetry, avoid repetitive calcs)
-        dryMassInertiaTensor = np.array([
-            [Ixx_rocket, Ixy_rocket, Ixz_rocket],
-            [         0, Iyy_rocket, Iyz_rocket],
-            [         0,          0, Izz_rocket],
-        ])
-        
-        propMassInertiaTensor = np.array([
-            [Ixx_prop, Ixy_prop, Ixz_prop],
-            [       0, Iyy_prop, Iyz_prop],
-            [       0,        0, Izz_prop],
-        ])
+        dryMassInertiaTensor = np.array(
+            [
+                [Ixx_rocket, Ixy_rocket, Ixz_rocket],
+                [0, Iyy_rocket, Iyz_rocket],
+                [0, 0, Izz_rocket],
+            ]
+        )
+
+        propMassInertiaTensor = np.array(
+            [
+                [Ixx_prop, Ixy_prop, Ixz_prop],
+                [0, Iyy_prop, Iyz_prop],
+                [0, 0, Izz_prop],
+            ]
+        )
 
         # Construct Huygens operators (0s due to symmetry, avoid repetitive calcs)
         dryMassHuygensOperator = (dry_dx**2 + dry_dy**2 + dry_dz**2) * np.eye(3)
-        dryMassHuygensOperator -= np.array([
-            [dry_dx*dry_dx, dry_dx*dry_dy, dry_dx*dry_dz],
-            [            0, dry_dy*dry_dy, dry_dy*dry_dz],
-            [            0,             0, dry_dz*dry_dz],
-        ])
+        dryMassHuygensOperator -= np.array(
+            [
+                [dry_dx * dry_dx, dry_dx * dry_dy, dry_dx * dry_dz],
+                [0, dry_dy * dry_dy, dry_dy * dry_dz],
+                [0, 0, dry_dz * dry_dz],
+            ]
+        )
         dryMassHuygensOperator *= dryMass
-        propMassHuygensOperator = (prop_dx**2 + prop_dy**2 + prop_dz**2) * np.eye(3)
-        propMassHuygensOperator -= np.array([
-            [prop_dx*prop_dx, prop_dx*prop_dy, prop_dx*prop_dz],
-            [              0, prop_dy*prop_dy, prop_dy*prop_dz],
-            [              0,               0, prop_dz*prop_dz],
-        ])
+        propMassHuygensOperator = (prop_dx**2 + prop_dy**2 + prop_dz**2) * np.eye(
+            3
+        )
+        propMassHuygensOperator -= np.array(
+            [
+                [prop_dx * prop_dx, prop_dx * prop_dy, prop_dx * prop_dz],
+                [0, prop_dy * prop_dy, prop_dy * prop_dz],
+                [0, 0, prop_dz * prop_dz],
+            ]
+        )
         propMassHuygensOperator *= propMass
 
         # Evaluate resulting inertia tensor
@@ -500,18 +510,18 @@ class Rocket:
 
         # Deconstruct tensor into components
         self.Ixx = self.inertiaTensor[0, 0]
-        self.Iyy = self.inertiaTensor[1, 1] 
-        self.Izz = self.inertiaTensor[2, 2] 
+        self.Iyy = self.inertiaTensor[1, 1]
+        self.Izz = self.inertiaTensor[2, 2]
         self.Ixy = self.inertiaTensor[0, 1]
-        self.Ixz = self.inertiaTensor[0, 2] 
-        self.Iyz = self.inertiaTensor[1, 2] 
+        self.Ixz = self.inertiaTensor[0, 2]
+        self.Iyz = self.inertiaTensor[1, 2]
 
         # Return moment of inertia
         return self.Ixx, self.Iyy, self.Izz, self.Ixy, self.Ixz, self.Iyz
 
     def evaluateMomentOfInertiaOpt(self):
         """Calculates and returns the rocket's moment of inertia tensor giving
-        the rocket's coordinate system translated to have the instantaneous 
+        the rocket's coordinate system translated to have the instantaneous
         center of mass as the origin. The moment of inertia is calculated by
         summing the moment of inertia of the rocket without propellant and the
         moment of inertia of the propellant, considering the parallel axis
@@ -547,17 +557,27 @@ class Rocket:
         Ixy_rocket = Ixz_rocket = Iyz_rocket = 0
 
         # Get masses
-        propMass = self.motor.mass # Propellant mass as a function of time
-        dryMass = self.mass # Constant rocket dry mass without propellant
+        propMass = self.motor.mass  # Propellant mass as a function of time
+        dryMass = self.mass  # Constant rocket dry mass without propellant
 
         # Compute axes distances
         csys = self._csys
-        dry_dz = (self.centerOfMass - self.centerOfDryMassPosition)*csys
-        prop_dz = (self.centerOfMass - self.centerOfPropellantPosition)*csys
+        dry_dz = (self.centerOfMass - self.centerOfDryMassPosition) * csys
+        prop_dz = (self.centerOfMass - self.centerOfPropellantPosition) * csys
 
         # Deconstruct tensor into components
-        self.Ixx = Ixx_rocket + self.motor.Ixx + dryMass * dry_dz**2 + propMass * prop_dz**2
-        self.Iyy = Iyy_rocket + self.motor.Iyy + dryMass * dry_dz**2 + propMass * prop_dz**2
+        self.Ixx = (
+            Ixx_rocket
+            + self.motor.Ixx
+            + dryMass * dry_dz**2
+            + propMass * prop_dz**2
+        )
+        self.Iyy = (
+            Iyy_rocket
+            + self.motor.Iyy
+            + dryMass * dry_dz**2
+            + propMass * prop_dz**2
+        )
         self.Izz = Izz_rocket + self.motor.Izz
         self.Ixy = Ixy_rocket + self.motor.Ixy
         self.Ixz = Ixz_rocket + self.motor.Ixz

@@ -636,4 +636,3 @@ class SolidMotor(Motor):
         self.inertiaZDot()
 
         return None
-    
