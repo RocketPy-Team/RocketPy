@@ -131,7 +131,7 @@ class SolidMotor(Motor):
         grainSeparation,
         nozzleRadius,
         nozzlePosition=0,
-        throatRadius=0.0114,
+        throatRadius=0.01,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
         coordinateSystemOrientation="nozzleToCombustionChamber",
