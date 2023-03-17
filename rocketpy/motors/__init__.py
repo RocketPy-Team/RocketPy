@@ -1,4 +1,4 @@
-from .Motor import Motor, GenericMotor
+from .Motor import Motor, GenericMotor, EmptyMotor
 from .Fluid import Fluid
 from .Tank import Tank, MassFlowRateBasedTank, UllageBasedTank, MassBasedTank
 from .SolidMotor import SolidMotor

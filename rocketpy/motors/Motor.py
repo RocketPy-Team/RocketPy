@@ -53,7 +53,7 @@ class Motor(ABC):
         Motor.inertiaZ : Function
             Propellant moment of inertia in kg*meter^2 with respect to axis of
             cylindrical symmetry of each grain, given as a function of time.
-        Motor.inertiaDot : Function
+        Motor.inertiaZDot : Function
             Time derivative of inertiaZ given in kg*meter^2/s as a function
             of time.
 
@@ -172,7 +172,6 @@ class Motor(ABC):
             self.reshapeThrustCurve(*reshapeThrustCurve)
 
         # Compute thrust metrics
-        # Thrust information - maximum and average
         self.maxThrust = np.amax(self.thrust.source[:, 1])
         maxThrustIndex = np.argmax(self.thrust.source[:, 1])
         self.maxThrustTime = self.thrust.source[maxThrustIndex, 0]

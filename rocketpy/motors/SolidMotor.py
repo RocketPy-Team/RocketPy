@@ -128,8 +128,8 @@ class SolidMotor(Motor):
         grainOuterRadius,
         grainInitialInnerRadius,
         grainInitialHeight,
-        grainSeparation=0,
-        nozzleRadius=0.0335,
+        grainSeparation,
+        nozzleRadius,
         nozzlePosition=0,
         throatRadius=0.0114,
         reshapeThrustCurve=False,
@@ -167,12 +167,10 @@ class SolidMotor(Motor):
             Solid grain initial inner radius in meters.
         grainInitialHeight : int, float
             Solid grain initial height in meters.
-        grainSeparation : int, float, optional
-            Distance between grains, in meters. Default is 0.
-        nozzleRadius : int, float, optional
-            Motor's nozzle outlet radius in meters. Its value has very low
-            impact in trajectory simulation, only useful to analyze
-            dynamic instabilities, therefore it is optional.
+        grainSeparation : int, float
+            Distance between grains, in meters.
+        nozzleRadius : int, float
+            Motor's nozzle outlet radius in meters.
         nozzlePosition : int, float, optional
             Motor's nozzle outlet position in meters, in the motor's coordinate
             system. See `Motor.coordinateSystemOrientation` for details.
@@ -564,6 +562,12 @@ class SolidMotor(Motor):
         ) + self.mass * self.grainInnerRadius * self.burnRate
         self.inertiaZDot.setOutputs("Propellant Inertia Z Dot (kg*m2/s)")
 
+        # Stores the inertia tensor components
+        self.Ixx = self.inertiaI
+        self.Iyy = self.inertiaI
+        self.Izz = self.inertiaZ
+        self.Ixy = self.Ixz = self.Iyz = 0
+
         return self.inertiaI, self.inertiaI, self.inertiaZ
 
     def allInfo(self):
@@ -632,3 +636,4 @@ class SolidMotor(Motor):
         self.inertiaZDot()
 
         return None
+    

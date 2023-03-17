@@ -9,7 +9,6 @@ __license__ = "MIT"
 import math
 import time
 import warnings
-
 from copy import deepcopy
 
 import matplotlib.pyplot as plt
@@ -1543,6 +1542,264 @@ class Flight:
 
         return uDot
 
+    def uDotGeneralized(self, t, u, postProcessing=False):
+        """Calculates derivative of u state vector with respect to time
+        when rocket is flying in 6 DOF motion, during ascent out of rail
+        and descent without parachute.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds
+        u : list
+            State vector defined by u = [x, y, z, vx, vy, vz, q0, q1,
+            q2, q3, omega1, omega2, omega3].
+        postProcessing : bool, optional
+            If True, adds flight data information directly to self
+            variables such as self.attackAngle. Default is False.
+
+        Returns
+        -------
+        uDot : list
+            State vector defined by uDot = [vx, vy, vz, ax, ay, az,
+            e0Dot, e1Dot, e2Dot, e3Dot, alpha1, alpha2, alpha3].
+        """
+        # Unpack state vector
+        x, y, z, vx, vy, vz, q0, q1, q2, q3, omega1, omega2, omega3 = u
+
+        # Compute quaternion derivatives
+        q0d = 0.5 * (-omega1 * q1 - omega2 * q2 - omega3 * q3)
+        q1d = 0.5 * (omega1 * q0 + omega3 * q2 - omega2 * q3)
+        q2d = 0.5 * (omega2 * q0 - omega3 * q1 + omega1 * q3)
+        q3d = 0.5 * (omega3 * q0 + omega2 * q1 - omega1 * q2)
+
+        # Load mass and inertia properties
+        M = self.rocket.mass + self.rocket.motor.mass.getValueOpt(t)
+        md = self.rocket.motor.massDot.getValueOpt(t)
+        mdd = self.rocket.motor.massDot.differentiate(t, dx=1e-6)
+        # TODO: implement self.rocket.IXX
+        Ixx = self.rocket.Ixx.getValueOpt(t)
+        Iyy = self.rocket.Iyy.getValueOpt(t)
+        Izz = self.rocket.Izz.getValueOpt(t)
+        Ixy = self.rocket.Ixy.getValueOpt(t)
+        Izx = self.rocket.Izx.getValueOpt(t)
+        Iyz = self.rocket.Iyz.getValueOpt(t)
+        Ixxd = self.rocket.Ixx.differentiate(t, dx=1e-6)
+        Iyyd = self.rocket.Iyy.differentiate(t, dx=1e-6)
+        Izzd = self.rocket.Izz.differentiate(t, dx=1e-6)
+        Ixyd = self.rocket.Ixy.differentiate(t, dx=1e-6)
+        Iyzd = self.rocket.Iyz.differentiate(t, dx=1e-6)
+        Izxd = self.rocket.Izx.differentiate(t, dx=1e-6)
+
+        # Load nozzle data
+        r_noz_scalar = (
+            self.rocket.distanceRocketNozzle
+        )  # TODO: Make sure value is negative
+        S_noz_zz = self.rocket.motor.nozzleRadius**2
+        S_noz_xx = 0.5 * S_noz_zz
+        S_noz_yy = S_noz_xx
+        S_noz_xy = 0
+        S_noz_yz = 0
+        S_noz_zx = 0
+
+        # Load center of mass data
+        r_cm_scalar = self.rocket.centerOfMass.getValueOpt(
+            t
+        )  # TODO: Make sure value is negative
+        r_cmd = self.rocket.centerOfMass.differentiate(t, dx=1e-6)
+        r_cmdd = self.rocket.centerOfMass.differentiate(t, order=2, dx=1e-6)
+
+        # Compute forces and moments
+        g = self.env.g
+        Thrust = self.rocket.motor.thrust.getValueOpt(t)
+        R1, R2, R3 = 0, 0, 0
+        M1, M2, M3 = 0, 0, 0
+        ## Compute aerodynamics forces and moments
+        windVelocityX = self.env.windVelocityX.getValueOpt(z)
+        windVelocityY = self.env.windVelocityY.getValueOpt(z)
+        freestreamSpeed = (
+            (windVelocityX - vx) ** 2 + (windVelocityY - vy) ** 2 + (vz) ** 2
+        ) ** 0.5
+        freestreamMach = freestreamSpeed / self.env.speedOfSound.getValueOpt(z)
+        ### Drag Force
+        if t < self.rocket.motor.burnOutTime:
+            dragCoeff = self.rocket.powerOnDrag.getValueOpt(freestreamMach)
+        else:
+            dragCoeff = self.rocket.powerOffDrag.getValueOpt(freestreamMach)
+        rho = self.env.density.getValueOpt(z)
+        R3 = -0.5 * rho * (freestreamSpeed**2) * self.rocket.area * (dragCoeff)
+        ### Off center moments
+        M1 += self.rocket.cpEccentricityY * R3
+        M2 -= self.rocket.cpEccentricityX * R3
+        M1 += self.rocket.thrustEccentricityX * Thrust
+        M2 -= self.rocket.thrustEccentricityY * Thrust
+        ### Get rocket velocity in body frame
+        a11 = 1 - 2 * (q2**2 + q3**2)
+        a12 = 2 * (q1 * q2 - q0 * q3)
+        a13 = 2 * (q1 * q3 + q0 * q2)
+        a21 = 2 * (q1 * q2 + q0 * q3)
+        a22 = 1 - 2 * (q1**2 + q3**2)
+        a23 = 2 * (q2 * q3 - q0 * q1)
+        a31 = 2 * (q1 * q3 - q0 * q2)
+        a32 = 2 * (q2 * q3 + q0 * q1)
+        a33 = 1 - 2 * (q1**2 + q2**2)
+        vxB = a11 * vx + a21 * vy + a31 * vz
+        vyB = a12 * vx + a22 * vy + a32 * vz
+        vzB = a13 * vx + a23 * vy + a33 * vz
+        ### Calculate lift and moment for each component of the rocket
+        for aerodynamicSurface in self.rocket.aerodynamicSurfaces:
+            compCp = aerodynamicSurface["cp"][2]
+            # Component absolute velocity in body frame
+            compVxB = vxB + compCp * omega2
+            compVyB = vyB - compCp * omega1
+            compVzB = vzB
+            # Wind velocity at component
+            compZ = z + compCp
+            compWindVx = self.env.windVelocityX.getValueOpt(compZ)
+            compWindVy = self.env.windVelocityY.getValueOpt(compZ)
+            # Component freestream velocity in body frame
+            compWindVxB = a11 * compWindVx + a21 * compWindVy
+            compWindVyB = a12 * compWindVx + a22 * compWindVy
+            compWindVzB = a13 * compWindVx + a23 * compWindVy
+            compStreamVxB = compWindVxB - compVxB
+            compStreamVyB = compWindVyB - compVyB
+            compStreamVzB = compWindVzB - compVzB
+            compStreamSpeed = (
+                compStreamVxB**2 + compStreamVyB**2 + compStreamVzB**2
+            ) ** 0.5
+            # Component attack angle and lift force
+            compAttackAngle = 0
+            compLift, compLiftXB, compLiftYB = 0, 0, 0
+            if compStreamVxB**2 + compStreamVyB**2 != 0:
+                # Normalize component stream velocity in body frame
+                compStreamVzBn = compStreamVzB / compStreamSpeed
+                if -1 * compStreamVzBn < 1:
+                    compAttackAngle = np.arccos(-compStreamVzBn)
+                    cLift = aerodynamicSurface["cl"](compAttackAngle, freestreamMach)
+                    # Component lift force magnitude
+                    compLift = (
+                        0.5 * rho * (compStreamSpeed**2) * self.rocket.area * cLift
+                    )
+                    # Component lift force components
+                    liftDirNorm = (compStreamVxB**2 + compStreamVyB**2) ** 0.5
+                    compLiftXB = compLift * (compStreamVxB / liftDirNorm)
+                    compLiftYB = compLift * (compStreamVyB / liftDirNorm)
+                    # Add to total lift force
+                    R1 += compLiftXB
+                    R2 += compLiftYB
+                    # Add to total moment
+                    M1 -= (compCp + a) * compLiftYB
+                    M2 += (compCp + a) * compLiftXB
+            # Calculates Roll Moment
+            if aerodynamicSurface["name"] == "Fins":
+                Clfdelta, Cldomega, cantAngleRad = aerodynamicSurface["roll parameters"]
+                M3f = (
+                    (1 / 2 * rho * freestreamSpeed**2)
+                    * self.rocket.area
+                    * 2
+                    * self.rocket.radius
+                    * Clfdelta(freestreamMach)
+                    * cantAngleRad
+                )
+                M3d = (
+                    (1 / 2 * rho * freestreamSpeed)
+                    * self.rocket.area
+                    * (2 * self.rocket.radius) ** 2
+                    * Cldomega(freestreamMach)
+                    * omega3
+                    / 2
+                )
+                M3 += M3f - M3d
+
+        # Compute matrices
+        A_matrix = AA.autofunc_c(
+            M, r_cm_scalar, q0, q1, q2, q3, Ixx, Iyy, Izz, Ixy, Izx, Iyz
+        )
+        b_vector = bb.autofunc_c(
+            q0,
+            q1,
+            q2,
+            q3,
+            omega1,
+            omega2,
+            omega3,
+            q0d,
+            q1d,
+            q2d,
+            q3d,
+            M,
+            md,
+            mdd,
+            r_cm_scalar,
+            r_cmd,
+            r_cmdd,
+            r_noz_scalar,
+            R3,
+            R1,
+            R2,
+            Thrust,
+            Ixx,
+            Iyy,
+            Izz,
+            Ixy,
+            Iyz,
+            Izx,
+            Ixxd,
+            Iyyd,
+            Izzd,
+            Ixyd,
+            Iyzd,
+            Izxd,
+            Mx,
+            My,
+            Mz,
+            g,
+            S_noz_xx,
+            S_noz_yy,
+            S_noz_zz,
+            S_noz_xy,
+            S_noz_yz,
+            S_noz_zx,
+        )
+
+        # Solve linear system to compute state vector derivatives
+        ax, ay, az, alpha1, alpha2, alpha3 = np.linalg.solve(A_matrix, b_vector)
+
+        # Return state vector derivatives
+        uDot = [
+            vx,
+            vy,
+            vz,
+            ax,
+            ay,
+            az,
+            q0d,
+            q1d,
+            q2d,
+            q3d,
+            alpha1,
+            alpha2,
+            alpha3,
+        ]
+
+        if postProcessing:
+            # Dynamics variables
+            self.R1.append([t, R1])
+            self.R2.append([t, R2])
+            self.R3.append([t, R3])
+            self.M1.append([t, M1])
+            self.M2.append([t, M2])
+            self.M3.append([t, M3])
+            # Atmospheric Conditions
+            self.windVelocityX.append([t, self.env.windVelocityX(z)])
+            self.windVelocityY.append([t, self.env.windVelocityY(z)])
+            self.density.append([t, self.env.density(z)])
+            self.dynamicViscosity.append([t, self.env.dynamicViscosity(z)])
+            self.pressure.append([t, self.env.pressure(z)])
+            self.speedOfSound.append([t, self.env.speedOfSound(z)])
+
+        return uDot
+
     def uDotParachute(self, t, u, postProcessing=False):
         """Calculates derivative of u state vector with respect to time
         when rocket is flying under parachute. A 3 DOF approximation is
@@ -2069,7 +2326,7 @@ class Flight:
 
     # Energy
     # Kinetic Energy
-    @funcify_method("Time (s)", "Rotational Kinetic Energy (J)", "spline", "zero")
+    @funcify_method("Time (s)", "Rotational Kinetic Energy (J)")
     def rotationalEnergy(self):
         # b = -self.rocket.distanceRocketPropellant
         b = (
@@ -2089,6 +2346,7 @@ class Flight:
         rotationalEnergy = 0.5 * (
             I1 * self.w1**2 + I2 * self.w2**2 + I3 * self.w3**2
         )
+        rotationalEnergy.setDiscreteBasedOnModel(self.w1)
         return rotationalEnergy
 
     @funcify_method("Time (s)", "Translational Kinetic Energy (J)", "spline", "zero")

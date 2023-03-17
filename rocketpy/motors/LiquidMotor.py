@@ -19,7 +19,7 @@ class LiquidMotor(Motor):
         self,
         thrustSource,
         burnOut,
-        nozzleRadius=0.0335,
+        nozzleRadius,
         nozzlePosition=0,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
@@ -42,9 +42,8 @@ class LiquidMotor(Motor):
             Function. See help(Function). Thrust units are Newtons.
         burnOut : int, float
             Motor burn out time in seconds.
-        nozzleRadius : int, float, optional
-            Motor's nozzle outlet radius in meters. Its value does not impact
-            trajectory simulation.
+        nozzleRadius : int, float
+            Motor's nozzle outlet radius in meters.
         nozzlePosition : float
             Motor's nozzle outlet position in meters, specified in the motor's
             coordinate system. See `Motor.coordinateSystemOrientation` for
@@ -61,6 +60,13 @@ class LiquidMotor(Motor):
             Method of interpolation to be used in case thrust curve is given
             by data set in .csv or .eng, or as an array. Options are 'spline'
             'akima' and 'linear'. Default is "linear".
+        coordinateSystemOrientation : string, optional
+            Orientation of the motor's coordinate system. The coordinate system
+            is defined by the motor's axis of symmetry. The origin of the
+            coordinate system  may be placed anywhere along such axis, such as at the
+            nozzle area, and must be kept the same for all other positions specified.
+            Options are "nozzleToCombustionChamber" and "combustionChamberToNozzle".
+            Default is "nozzleToCombustionChamber".
         """
         super().__init__(
             thrustSource,
