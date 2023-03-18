@@ -197,7 +197,6 @@ class Tank(ABC):
             self.liquidCenterOfMass * self.liquidMass
             + self.gasCenterOfMass * self.gasMass
         ) / (self.mass)
-   
 
     @funcify_method("time (s)", "inertia tensor of liquid (kg*m^2)")
     def liquidInertiaTensor(self):
