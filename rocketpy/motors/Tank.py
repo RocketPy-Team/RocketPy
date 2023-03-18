@@ -146,11 +146,11 @@ class Tank(ABC):
             mass_integrand = Function(
                 lambda h: h * self.liquid.density * self.structure.area(h)
             )
-            try:
+            if self.liquidMass(t) > 1e-6:
                 return mass_integrand.integral(
                     self.structure.bottom, self.liquidHeight(t)
                 ) / self.liquidMass(t)
-            except ZeroDivisionError:
+            else:
                 return self.structure.bottom
 
         return evaluate_liquid_com
@@ -173,11 +173,11 @@ class Tank(ABC):
             mass_integrand = Function(
                 lambda h: h * self.gas.density * self.structure.area(h)
             )
-            try:
+            if self.gasMass(t) > 1e-6:
                 return mass_integrand.integral(
                     self.liquidHeight(t), self.gasHeight(t)
                 ) / self.gasMass(t)
-            except ZeroDivisionError:
+            else:
                 return self.structure.bottom
 
         return evaluate_gas_com
@@ -193,13 +193,11 @@ class Tank(ABC):
         Function
             Center of mass of the tank's fluids as a function of time.
         """
-        try:
-            return (
-                self.liquidCenterOfMass * self.liquidMass
-                + self.gasCenterOfMass * self.gasMass
-            ) / (self.mass)
-        except ZeroDivisionError:
-            return self.structure.bottom
+        return (
+            self.liquidCenterOfMass * self.liquidMass
+            + self.gasCenterOfMass * self.gasMass
+        ) / (self.mass)
+   
 
     @funcify_method("time (s)", "inertia tensor of liquid (kg*m^2)")
     def liquidInertiaTensor(self):

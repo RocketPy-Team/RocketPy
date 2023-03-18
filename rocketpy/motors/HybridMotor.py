@@ -257,7 +257,7 @@ class HybridMotor(Motor):
         """
         return self.solid.propellantInitialMass + self.liquid.propellantInitialMass
 
-    @cached_property
+    @funcify_method("time (s)", "mass flow rate (kg/s)", extrapolation="zero")
     def massFlowRate(self):
         """Evaluates the mass flow rate of the motor as the sum of each tank
         mass flow rate and the grains mass flow rate.
@@ -334,10 +334,8 @@ class HybridMotor(Motor):
         )
 
         # Set naming convention
-        self.InertiaI.setInputs("time (s)")
-        self.InertiaZ.setInputs("time (s)")
-        self.InertiaI.setOutputs("inertia y (kg*m^2)")
-        self.InertiaZ.setOutputs("inertia z (kg*m^2)")
+        self.InertiaI.reset("time (s)", "inertia y (kg*m^2)")
+        self.InertiaZ.reset("time (s)", "inertia z (kg*m^2)")
 
         return self.InertiaI, self.InertiaI, self.InertiaZ
 
@@ -416,7 +414,7 @@ class HybridMotor(Motor):
         self.massFlowRate.plot(0, self.burnOutTime)
         self.solid.grainInnerRadius.plot(0, self.burnOutTime)
         self.solid.grainHeight.plot(0, self.burnOutTime)
-        self.solid.burnRate.plot(0, self.burnOutTime)
+        self.solid.burnRate.plot(0, self.solid.grainBurnOut)
         self.solid.burnArea.plot(0, self.burnOutTime)
         self.solid.Kn.plot(0, self.burnOutTime)
         self.centerOfMass.plot(0, self.burnOutTime, samples=50)

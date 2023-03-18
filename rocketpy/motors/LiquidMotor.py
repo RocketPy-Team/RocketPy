@@ -191,10 +191,8 @@ class LiquidMotor(Motor):
             )
 
         # Set naming convention
-        self.inertiaI.setInputs("time (s)")
-        self.inertiaZ.setInputs("time (s)")
-        self.inertiaI.setOutputs("inertia y (kg*m^2)")
-        self.inertiaZ.setOutputs("inertia z (kg*m^2)")
+        self.inertiaI.reset("time (s)", "inertia y (kg*m^2)")
+        self.inertiaZ.reset("time (s)", "inertia z (kg*m^2)")
 
         return self.inertiaI, self.inertiaI, self.inertiaZ
 

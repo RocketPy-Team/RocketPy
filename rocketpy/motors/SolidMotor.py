@@ -324,8 +324,7 @@ class SolidMotor(Motor):
         -------
         None
         """
-        value.setExtrapolation("zero")
-        self._massFlowRate = value
+        self._massFlowRate = value.reset("time (s)", "mass flow rate (kg/s)")
         self.evaluateGeometry()
 
     @funcify_method("time (s)", "center of mass (m)")
@@ -400,6 +399,8 @@ class SolidMotor(Motor):
             geometryDot, t_span, y0, t_eval=t, events=terminateBurn
         )
 
+        self.grainBurnOut = sol.t[-1]
+
         # Write down functions for innerRadius and height
         self.grainInnerRadius = Function(
             np.concatenate(([sol.t], [sol.y[0]])).transpose().tolist(),
@@ -459,7 +460,7 @@ class SolidMotor(Motor):
         Returns
         -------
         burnRate : Function
-        Rate of progression of the inner radius during the combustion.
+            Rate of progression of the inner radius during the combustion.
         """
         return -1 * self.massFlowRate / (self.burnArea * self.grainDensity)
 
@@ -627,7 +628,7 @@ class SolidMotor(Motor):
         self.massFlowRate()
         self.grainInnerRadius()
         self.grainHeight()
-        self.burnRate()
+        self.burnRate.plot(0, self.grainBurnOut)
         self.burnArea()
         self.Kn()
         self.inertiaTensor[0]()
