@@ -211,59 +211,67 @@ class Motor(ABC):
                 # grainInitialInnerRadius = diameter/4
                 # grainInitialHeight = height
                 self.thrustSource = points
-                self.burnOutTime = points[-1][0]
         else:
             self.thrustSource = thrustSource
 
         # Thrust parameters
         self.interpolate = interpolationMethod
+
+        # Create thrust function
+        self.thrust = Function(
+            self.thrustSource, "Time (s)", "Thrust (N)", self.interpolate, "zero"
+        )
+
+        # set burn period
         if burn_time is None:
+            # if thrustCurve is callabe or constant
             if callable(self.thrustSource) or isinstance(
                 self.thrustSource, (int, float)
             ):
                 raise ValueError(
                     "When using a float or callable as thrust source a burnout time must be specified."
                 )
+            # if it is a list o file
+            self.burnOutTime = self.thrustSource[-1][0]
         else:
-            if not callable(self.thrustSource) and not isinstance(
+            # if thrustCurve is callabe or constant
+            if callable(self.thrustSource) or isinstance(
                 self.thrustSource, (int, float)
             ):
                 if isinstance(burn_time, (int, float)):
-                    i = 0
-                    maxTime = self.thrustSource[0][0]
-                    while maxTime <= burn_time:
-                        i += 1
-                        maxTime = self.thrustSource[i][0]
-                    self.thrustSource = self.thrustSource[0:(i)]
-                    self.burnOutTime = self.thrustSource[-1][0]
+                    burn_time = (0, burn_time)
+                elif not isinstance(burn_time, tuple):
+                    raise TypeError(
+                        "'burn_time' argument must be either an int, float or tuple of floats"
+                    )
 
-                else:
-                    i = 0
-                    minTime = self.thrustSource[0][0]
-                    while minTime < burn_time[0]:
-                        i += 1
-                        minTime = self.thrustSource[i][0]
-                    j = i
-                    maxTime = self.thrustSource[j][0]
-                    while maxTime <= burn_time[1]:
-                        j += 1
-                        maxTime = self.thrustSource[j][0]
-                    self.thrustSource = self.thrustSource[(i):(j)]
-                    for i in range(len(self.thrustSource)):
-                        self.thrustSource[i][0] = self.thrustSource[i][0] - minTime
-                    self.burnOutTime = self.thrustSource[-1][0]
+            # if thrustCurve is a file or lists of points
             else:
                 if isinstance(burn_time, (int, float)):
-                    self.burnOutTime = burn_time
-                else:
-                    self.burnOutTime = burn_time[1] - burn_time[0]
+                    burn_time = (0, burn_time)
+                elif not isinstance(burn_time, tuple):
+                    raise TypeError(
+                        "'burn_time' argument must be either an int, float or tuple of floats"
+                    )
 
-        # Create thrust function
-        self.thrust = Function(
-            self.thrustSource, "Time (s)", "Thrust (N)", self.interpolate, "zero"
-        )
-        if callable(self.thrustSource) or isinstance(self.thrustSource, (int, float)):
-            self.thrust.setDiscrete(0, self.burnOutTime, 50, self.interpolate, "zero")
+                # checks if burn_time[1] is bigger than thrust curve time
+                if burn_time[1] > self.thrustSource[-1][0]:
+                    burn_time = (burn_time[0], self.thrustSource[-1][0])
+                    warnings.warn(
+                        "burn_time argument is bigger than thrustSource maximum time."
+                        + f"\nUsing thrustSource boudary maximum time instead: {burn_time[1]} s"
+                        + "\nIf you want to change the burn out time of the curve please use the 'reshapeThrustCurve' argument."
+                    )
+            # sets burn out in thrust curve
+            self.thrust.setDiscrete(
+                lower=burn_time[0],
+                upper=burn_time[1],
+                samples=50,
+                interpolation=self.interpolate,
+                extrapolation="zero",
+            )
+
+            self.burnOutTime = burn_time[1] - burn_time[0]
 
         # Reshape curve and calculate impulse
         if reshapeThrustCurve:
