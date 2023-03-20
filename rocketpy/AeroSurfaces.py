@@ -34,10 +34,10 @@ class AeroSurfaces:
     def pop(self, index=-1):
         return self._aeroSurfaces.pop(index)
 
-    def __repr__(self):
+    def __str__(self):
         if len(self._aeroSurfaces) == 1:
-            return self._aeroSurfaces[0].__repr__()
-        return self._aeroSurfaces.__repr__()
+            return self._aeroSurfaces[0].__str__()
+        return self._aeroSurfaces.__str__()
 
     def __len__(self):
         return len(self._aeroSurfaces)
@@ -190,6 +190,11 @@ class NoseCone:
             self.k = 0.5
         self.evaluateCenterOfPressure()
 
+    def __str__(self):
+        rep = f"NoseCone Object. Name: {self.name}, kind: {self.kind}"
+
+        return rep
+    
     def evaluateGeometricalParameters(self):
         """Calculates and returns nose cone's radius ratio.
 
@@ -524,6 +529,10 @@ class Fins(ABC):
         self.evaluateLiftCoefficient()
         self.evaluateRollParameters()
 
+    @abstractmethod
+    def __str__(self):
+        pass
+    
     @abstractmethod
     def evaluateCenterOfPressure(self):
         """Calculates and returns the fin set's center of pressure position in local
@@ -1075,6 +1084,11 @@ class TrapezoidalFins(Fins):
         self.evaluateLiftCoefficient()
         self.evaluateRollParameters()
 
+    def __str__(self):
+        rep = f"TrapezoidalFins Object. Name: {self.name}"
+
+        return rep
+
     def evaluateCenterOfPressure(self):
         """Calculates and returns the center of pressure of the fin set in local
         coordinates. The center of pressure position is saved and stored as a tuple.
@@ -1430,6 +1444,12 @@ class EllipticalFins(Fins):
         self.evaluateRollParameters()
 
         return None
+    
+    def __str__(self):
+        rep = f"EllipticalFins Object. Name: {self.name}"
+
+        return rep
+
 
     def evaluateCenterOfPressure(self):
         """Calculates and returns the center of pressure of the fin set in local
@@ -1737,6 +1757,11 @@ class Tail:
     def rocketRadius(self, value):
         self._rocketRadius = value
         self.evaluateLiftCoefficient()
+
+    def __str__(self):
+        rep = f"Tail Object. Name: {self.name}"
+
+        return rep
 
     def evaluateGeometricalParameters(self):
         """Calculates and returns tail's slant length and surface area.
