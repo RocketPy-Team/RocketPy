@@ -41,6 +41,8 @@ except ImportError:
 # TODO: create a method that recreates each flight from inputs_log
 # and saves it in an attribute that is a list
 
+# TODO: Create evolution plots to analyze convergence
+
 
 class Dispersion:
 
@@ -148,6 +150,159 @@ class Dispersion:
 
         return None
 
+    # getters and setters for dispersion input/output/error files
+    @property
+    def dispersion_input_file(self):
+        # try is for when the file has not been opened yet
+        try:
+            # Resets cursor position to the beggining of the file
+            self._dispersion_input_file.seek(0)
+            return self._dispersion_input_file
+        except:
+            return self._dispersion_input_file
+
+    @dispersion_input_file.setter
+    def dispersion_input_file(self, value):
+        self._dispersion_input_file = value
+        return self._dispersion_input_file
+
+    @property
+    def dispersion_output_file(self):
+        # try is for when the file has not been opened yet
+        try:
+            # Resets cursor position to the beggining of the file
+            self._dispersion_output_file.seek(0)
+            return self._dispersion_output_file
+        except:
+            return self._dispersion_output_file
+
+    @dispersion_output_file.setter
+    def dispersion_output_file(self, value):
+        self._dispersion_output_file = value
+        return self._dispersion_output_file
+
+    @property
+    def dispersion_error_file(self):
+        # try is for when the file has not been opened yet
+        try:
+            # Resets cursor position to the beggining of the file
+            self._dispersion_error_file.seek(0)
+            return self._dispersion_error_file
+        except:
+            return self._dispersion_error_file
+
+    @dispersion_error_file.setter
+    def dispersion_error_file(self, value):
+        self._dispersion_error_file = value
+        return self._dispersion_error_file
+
+    # cached properties
+    @cached_property
+    def inputs_log(self):
+        """Save inputs_log log from a file into an attribute for easy access"""
+        # TODO: this currently does not work because of parachute trigger function
+        # TODO: add pickle package to deal with this and also Function objects
+        inputs_log = []
+        # Loop through each line in the file
+        for line in self.dispersion_input_file:
+            # Skip comments lines
+            if line[0] != "{":
+                continue
+            # Try to convert the line to a dictionary
+            d = ast.literal_eval(line)
+            # If successful, append the dictionary to the list
+            inputs_log.append(d)
+
+        return inputs_log
+
+    @cached_property
+    def outputs_log(self):
+        """Save outputs_log log from a file into an attribute for easy access"""
+        outputs_log = []
+        # Loop through each line in the file
+        for line in self.dispersion_output_file:
+            # Skip comments lines
+            if line[0] != "{":
+                continue
+            # Try to convert the line to a dictionary
+            d = ast.literal_eval(line)
+            # If successful, append the dictionary to the list
+            outputs_log.append(d)
+
+        return outputs_log
+
+    @cached_property
+    def errors_log(self):
+        """Save errors_log log from a file into an attribute for easy access"""
+        errors_log = []
+        # Loop through each line in the file
+        for line in self.dispersion_output_file:
+            # Skip comments lines
+            if line[0] != "{":
+                continue
+            # Try to convert the line to a dictionary
+            d = ast.literal_eval(line)
+            # If successful, append the dictionary to the list
+            errors_log.append(d)
+
+        return errors_log
+
+    @cached_property
+    def num_of_loaded_sims(self):
+        # Calculate the number of flights simulated
+        num_of_loaded_sims = 0
+
+        # Loop through each line in the file
+        for line in self.dispersion_output_file:
+            # Skip comments lines
+            if line[0] != "{":
+                continue
+
+            num_of_loaded_sims += 1
+
+        return num_of_loaded_sims
+
+    @cached_property
+    def dispersion_results(self):
+        """Dipersion results organized in a dictionary where the keys are the
+        names of the saved attributes, and the values are a list with all the
+        result number of the respectitive attribute"""
+
+        dispersion_result = {}
+        for result in self.outputs_log:
+            for key, value in result.items():
+                if key in dispersion_result.keys():
+                    dispersion_result[key].append(value)
+                else:
+                    dispersion_result[key] = [value]
+        return dispersion_result
+
+    @cached_property
+    def processed_dispersion_results(self):
+        """Save the mean and standard deviation of each parameter available
+        in the results dictionary. Create class attributes for each parameter.
+
+        Parameters
+        ----------
+        variables : list, optional
+            List of variables to be processed. If None, all variables will be
+            processed. The default is None. Example: ['outOfRailTime', 'apogeeTime']
+
+        Returns
+        -------
+        None
+        """
+        processed_dispersion_results = {}
+        for result in self.dispersion_results.keys():
+            mean = np.mean(self.dispersion_results[result])
+            stdev = np.std(self.dispersion_results[result])
+            setattr(
+                self, result, (mean, stdev)
+            )  # TODO: i dont know if this is still necessary since everything is saved in processed_dispersion_results
+            processed_dispersion_results[result] = (mean, stdev)
+        return processed_dispersion_results
+
+    # methods for running dispersion analysis
     def __yield_flight_setting(self, dispersion_dictionary, number_of_simulations):
         """Yields a flight setting for the simulation
 
@@ -210,153 +365,59 @@ class Dispersion:
 
             yield setting
 
-    def __check_export_list(self, export_list):
-        """Check if export list is valid or if it is None. In case it is
-        None, export a standard list of parameters.
+    def __convert_field(self, value):
+        """Receives a value provided by a McXxxxx and returns it in a form that
+        can be used in run_dispersion. There are two possible cases:
+        1. The value is a list: simply return the list
+        2. The value is a tuple: return a tuple containing the mean, std and
+        a np.random function. The default distribution is normal, but it can
+        be changed by adding a string to the end of the tuple. For example:
+        (mean, std, 'uniform') will return a tuple with the mean, std and
+        np.random.uniform function.
 
         Parameters
         ----------
-        export_list : list
-            List of strings with the names of the attributes to be exported
+        value : tuple or list
+            The value to be converted to a monte carlo tuple
 
         Returns
         -------
-        export_list
+        tuple
+            Mean, standard deviation and np.random function
         """
-        standard_output = (
-            "apogee",
-            "apogeeTime",
-            "apogeeX",
-            "apogeeY",
-            "apogeeFreestreamSpeed",
-            "tFinal",
-            "xImpact",
-            "yImpact",
-            "impactVelocity",
-            "initialStaticMargin",
-            "finalStaticMargin",
-            "outOfRailStaticMargin",
-            "outOfRailTime",
-            "outOfRailVelocity",
-            "maxSpeed",
-            "maxMachNumber",
-            "maxAcceleration",
-            "frontalSurfaceWind",
-            "lateralSurfaceWind",
-        )
-        exportables = (
-            "inclination",
-            "heading",
-            "effective1RL",
-            "effective2RL",
-            "outOfRailTime",
-            "outOfRailTimeIndex",
-            "outOfRailState",
-            "outOfRailVelocity",
-            "railButton1NormalForce",
-            "maxRailButton1NormalForce",
-            "railButton1ShearForce",
-            "maxRailButton1ShearForce",
-            "railButton2NormalForce",
-            "maxRailButton2NormalForce",
-            "railButton2ShearForce",
-            "maxRailButton2ShearForce",
-            "outOfRailStaticMargin",
-            "apogeeState",
-            "apogeeTime",
-            "apogeeX",
-            "apogeeY",
-            "apogee",
-            "xImpact",
-            "yImpact",
-            "zImpact",
-            "impactVelocity",
-            "impactState",
-            "parachuteEvents",
-            "apogeeFreestreamSpeed",
-            "finalStaticMargin",
-            "frontalSurfaceWind",
-            "initialStaticMargin",
-            "lateralSurfaceWind",
-            "maxAcceleration",
-            "maxAccelerationTime",
-            "maxDynamicPressureTime",
-            "maxDynamicPressure",
-            "maxMachNumberTime",
-            "maxMachNumber",
-            "maxReynoldsNumberTime",
-            "maxReynoldsNumber",
-            "maxSpeedTime",
-            "maxSpeed",
-            "maxTotalPressureTime",
-            "maxTotalPressure",
-            "tFinal",
-        )
-        if export_list:
-            for attr in export_list:
-                if not isinstance(attr, str):
-                    raise TypeError("Variables in export_list must be strings.")
+        if isinstance(value, list):
+            return value
+        elif isinstance(value, tuple):
+            # the normal distribution is considered the default
+            dist_func = (
+                get_distribution(value[-1])
+                if isinstance(value[-1], str)
+                else np.random.normal
+            )
+            return (value[0], value[1], dist_func)
+            # TODO: test every distribuition function
 
-                # Checks if attribute is not valid
-                if attr not in exportables:
-                    raise ValueError(
-                        "Attribute can not be exported. Check export_list."
-                    )
-        else:
-            # TODO: idk if this print is really necessary, it is a bit annoying
-            print("No export list provided, using default list instead.")
-            export_list = standard_output
+    def __pop_none(self, dictionary):
+        """Removes all the keys that have a value of None. This is useful
+        when the user wants to run a simulation with a subset of the
+        available parameters.
 
-        return export_list
-
-    def __export_flight_data(
-        self,
-        setting,
-        flight,
-        input_file,
-        output_file,
-        exec_time,
-    ):
-        """Saves flight results in a .txt
         Parameters
         ----------
-        setting : dict
-            The flight setting used in the simulation.
-        flight : Flight
-            The flight object.
-        exec_time : float
-            The execution time of the simulation.
-        inputs_log : str
-            The name of the file containing all the inputs for the simulation.
-        outputs_log : str
-            The name of the file containing all the outputs for the simulation.
-        save_parachute_data : bool, optional
-            If True, saves the parachute data, by default False
-        export_list : list or tuple, optional
-            List of variables to be saved, by default None. If None, use a
-            default list of variables.
+        dictionary : dict
+            The dictionary to be cleaned
+
         Returns
         -------
-        inputs_log : str
-            The new string with the inputs of the simulation setting.
-        outputs_log : str
-            The new string with the outputs of the simulation setting.
+        dict
+            The cleaned dictionary
         """
-        # Construct the dict with the results from the flight
-        results = {}
-        for export_item in self.export_list:
-            # if attribute is function, get source
-            # TODO: check if there is a better way to do this
-            if isinstance(getattr(flight, export_item), Function):
-                results[export_item] = list(getattr(flight, export_item).source)
-            else:
-                results[export_item] = getattr(flight, export_item)
-
-        # Write flight setting and results to file
-        input_file.write(f"{setting}\n")
-        output_file.write(f"{results}\n")
-
-        return None
+        for key, value in dictionary.copy().items():
+            if value is None:
+                dictionary.pop(key)
+            elif isinstance(value, dict):
+                self.__pop_none(value)
+        return dictionary
 
     def build_dispersion_dict(
         self,
@@ -476,60 +537,6 @@ class Dispersion:
         mc_dict = self.__pop_none(mc_dict)
 
         return mc_dict
-
-    def __convert_field(self, value):
-        """Receives a value provided by a McXxxxx and returns it in a form that
-        can be used in run_dispersion. There are two possible cases:
-        1. The value is a list: simply return the list
-        2. The value is a tuple: return a tuple containing the mean, std and
-        a np.random function. The default distribution is normal, but it can
-        be changed by adding a string to the end of the tuple. For example:
-        (mean, std, 'uniform') will return a tuple with the mean, std and
-        np.random.uniform function.
-
-        Parameters
-        ----------
-        value : tuple or list
-            The value to be converted to a monte carlo tuple
-
-        Returns
-        -------
-        tuple
-            Mean, standard deviation and np.random function
-        """
-        if isinstance(value, list):
-            return value
-        elif isinstance(value, tuple):
-            # the normal distribution is considered the default
-            dist_func = (
-                get_distribution(value[-1])
-                if isinstance(value[-1], str)
-                else np.random.normal
-            )
-            return (value[0], value[1], dist_func)
-            # TODO: test every distribuition function
-
-    def __pop_none(self, dictionary):
-        """Removes all the keys that have a value of None. This is useful
-        when the user wants to run a simulation with a subset of the
-        available parameters.
-
-        Parameters
-        ----------
-        dictionary : dict
-            The dictionary to be cleaned
-
-        Returns
-        -------
-        dict
-            The cleaned dictionary
-        """
-        for key, value in dictionary.copy().items():
-            if value is None:
-                dictionary.pop(key)
-            elif isinstance(value, dict):
-                self.__pop_none(value)
-        return dictionary
 
     def run_dispersion(
         self,
@@ -803,158 +810,156 @@ class Dispersion:
         )
         return None
 
-    @property
-    def dispersion_input_file(self):
-        # try is for when the file has not been opened yet
-        try:
-            # Resets cursor position to the beggining of the file
-            self._dispersion_input_file.seek(0)
-            return self._dispersion_input_file
-        except:
-            return self._dispersion_input_file
-
-    @dispersion_input_file.setter
-    def dispersion_input_file(self, value):
-        self._dispersion_input_file = value
-        return self._dispersion_input_file
-
-    @property
-    def dispersion_output_file(self):
-        # try is for when the file has not been opened yet
-        try:
-            # Resets cursor position to the beggining of the file
-            self._dispersion_output_file.seek(0)
-            return self._dispersion_output_file
-        except:
-            return self._dispersion_output_file
-
-    @dispersion_output_file.setter
-    def dispersion_output_file(self, value):
-        self._dispersion_output_file = value
-        return self._dispersion_output_file
-
-    @property
-    def dispersion_error_file(self):
-        # try is for when the file has not been opened yet
-        try:
-            # Resets cursor position to the beggining of the file
-            self._dispersion_error_file.seek(0)
-            return self._dispersion_error_file
-        except:
-            return self._dispersion_error_file
-
-    @dispersion_error_file.setter
-    def dispersion_error_file(self, value):
-        self._dispersion_error_file = value
-        return self._dispersion_error_file
-
-    @cached_property
-    def inputs_log(self):
-        """Save inputs_log log from a file into an attribute for easy access"""
-        # TODO: this currently does not work because of parachute trigger function
-        # TODO: add pickle package to deal with this and also Function objects
-        inputs_log = []
-        # Loop through each line in the file
-        for line in self.dispersion_input_file:
-            # Skip comments lines
-            if line[0] != "{":
-                continue
-            # Try to convert the line to a dictionary
-            d = ast.literal_eval(line)
-            # If successful, append the dictionary to the list
-            inputs_log.append(d)
-
-        return inputs_log
-
-    @cached_property
-    def outputs_log(self):
-        """Save outputs_log log from a file into an attribute for easy access"""
-        outputs_log = []
-        # Loop through each line in the file
-        for line in self.dispersion_output_file:
-            # Skip comments lines
-            if line[0] != "{":
-                continue
-            # Try to convert the line to a dictionary
-            d = ast.literal_eval(line)
-            # If successful, append the dictionary to the list
-            outputs_log.append(d)
-
-        return outputs_log
-
-    @cached_property
-    def errors_log(self):
-        """Save errors_log log from a file into an attribute for easy access"""
-        errors_log = []
-        # Loop through each line in the file
-        for line in self.dispersion_output_file:
-            # Skip comments lines
-            if line[0] != "{":
-                continue
-            # Try to convert the line to a dictionary
-            d = ast.literal_eval(line)
-            # If successful, append the dictionary to the list
-            errors_log.append(d)
-
-        return errors_log
-
-    @cached_property
-    def num_of_loaded_sims(self):
-        # Calculate the number of flights simulated
-        num_of_loaded_sims = 0
-
-        # Loop through each line in the file
-        for line in self.dispersion_output_file:
-            # Skip comments lines
-            if line[0] != "{":
-                continue
-
-            num_of_loaded_sims += 1
-
-        return num_of_loaded_sims
-
-    @cached_property
-    def dispersion_results(self):
-        """Dipersion results organized in a dictionary where the keys are the
-        names of the saved attributes, and the values are a list with all the
-        result number of the respectitive attribute"""
-
-        dispersion_result = {}
-        for result in self.outputs_log:
-            for key, value in result.items():
-                if key in dispersion_result.keys():
-                    dispersion_result[key].append(value)
-                else:
-                    dispersion_result[key] = [value]
-        return dispersion_result
-
-    @cached_property
-    def processed_dispersion_results(self):
-        """Save the mean and standard deviation of each parameter available
-        in the results dictionary. Create class attributes for each parameter.
+    # methods for exporting data
+    def __check_export_list(self, export_list):
+        """Check if export list is valid or if it is None. In case it is
+        None, export a standard list of parameters.
 
         Parameters
         ----------
-        variables : list, optional
-            List of variables to be processed. If None, all variables will be
-            processed. The default is None. Example: ['outOfRailTime', 'apogeeTime']
+        export_list : list
+            List of strings with the names of the attributes to be exported
 
         Returns
         -------
-        None
+        export_list
         """
-        processed_dispersion_results = {}
-        for result in self.dispersion_results.keys():
-            mean = np.mean(self.dispersion_results[result])
-            stdev = np.std(self.dispersion_results[result])
-            setattr(
-                self, result, (mean, stdev)
-            )  # TODO: i dont know if this is still necessary since everything is saved in processed_dispersion_results
-            processed_dispersion_results[result] = (mean, stdev)
-        return processed_dispersion_results
+        standard_output = (
+            "apogee",
+            "apogeeTime",
+            "apogeeX",
+            "apogeeY",
+            "apogeeFreestreamSpeed",
+            "tFinal",
+            "xImpact",
+            "yImpact",
+            "impactVelocity",
+            "initialStaticMargin",
+            "finalStaticMargin",
+            "outOfRailStaticMargin",
+            "outOfRailTime",
+            "outOfRailVelocity",
+            "maxSpeed",
+            "maxMachNumber",
+            "maxAcceleration",
+            "frontalSurfaceWind",
+            "lateralSurfaceWind",
+        )
+        exportables = (
+            "inclination",
+            "heading",
+            "effective1RL",
+            "effective2RL",
+            "outOfRailTime",
+            "outOfRailTimeIndex",
+            "outOfRailState",
+            "outOfRailVelocity",
+            "railButton1NormalForce",
+            "maxRailButton1NormalForce",
+            "railButton1ShearForce",
+            "maxRailButton1ShearForce",
+            "railButton2NormalForce",
+            "maxRailButton2NormalForce",
+            "railButton2ShearForce",
+            "maxRailButton2ShearForce",
+            "outOfRailStaticMargin",
+            "apogeeState",
+            "apogeeTime",
+            "apogeeX",
+            "apogeeY",
+            "apogee",
+            "xImpact",
+            "yImpact",
+            "zImpact",
+            "impactVelocity",
+            "impactState",
+            "parachuteEvents",
+            "apogeeFreestreamSpeed",
+            "finalStaticMargin",
+            "frontalSurfaceWind",
+            "initialStaticMargin",
+            "lateralSurfaceWind",
+            "maxAcceleration",
+            "maxAccelerationTime",
+            "maxDynamicPressureTime",
+            "maxDynamicPressure",
+            "maxMachNumberTime",
+            "maxMachNumber",
+            "maxReynoldsNumberTime",
+            "maxReynoldsNumber",
+            "maxSpeedTime",
+            "maxSpeed",
+            "maxTotalPressureTime",
+            "maxTotalPressure",
+            "tFinal",
+        )
+        if export_list:
+            for attr in export_list:
+                if not isinstance(attr, str):
+                    raise TypeError("Variables in export_list must be strings.")
 
-    # TODO: this is importing inputs, outputs and errors, maybe it should not be
-    # like this?
+                # Checks if attribute is not valid
+                if attr not in exportables:
+                    raise ValueError(
+                        "Attribute can not be exported. Check export_list."
+                    )
+        else:
+            # TODO: idk if this print is really necessary, it is a bit annoying
+            print("No export list provided, using default list instead.")
+            export_list = standard_output
+
+        return export_list
+
+    def __export_flight_data(
+        self,
+        setting,
+        flight,
+        input_file,
+        output_file,
+        exec_time,
+    ):
+        """Saves flight results in a .txt
+        Parameters
+        ----------
+        setting : dict
+            The flight setting used in the simulation.
+        flight : Flight
+            The flight object.
+        exec_time : float
+            The execution time of the simulation.
+        inputs_log : str
+            The name of the file containing all the inputs for the simulation.
+        outputs_log : str
+            The name of the file containing all the outputs for the simulation.
+        save_parachute_data : bool, optional
+            If True, saves the parachute data, by default False
+        export_list : list or tuple, optional
+            List of variables to be saved, by default None. If None, use a
+            default list of variables.
+        Returns
+        -------
+        inputs_log : str
+            The new string with the inputs of the simulation setting.
+        outputs_log : str
+            The new string with the outputs of the simulation setting.
+        """
+        # Construct the dict with the results from the flight
+        results = {}
+        for export_item in self.export_list:
+            # if attribute is function, get source
+            # TODO: check if there is a better way to do this
+            if isinstance(getattr(flight, export_item), Function):
+                results[export_item] = list(getattr(flight, export_item).source)
+            else:
+                results[export_item] = getattr(flight, export_item)
+
+        # Write flight setting and results to file
+        input_file.write(f"{setting}\n")
+        output_file.write(f"{results}\n")
+
+        return None
+
+    # methods for importing data
     def import_results(self, filename=None, variables=None):
         """Import dispersion results from .txt file and save it into a dictionary.
 
@@ -987,51 +992,7 @@ class Dispersion:
 
         return None
 
-    def print_results(self):
-        """Print the mean and standard deviation of each parameter in the results
-        dictionary or of the variables passed as argument.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-
-        """
-        print("{:<25} {:<25} {:<25}".format("Parameter", "Value", "Standard Deviation"))
-        print("-" * 75)
-        for key, value in self.processed_dispersion_results.items():
-            print("{:<25} {:<25} {:<25}".format(key, value[0], value[1]))
-
-        return None
-
-    def plot_results(self):
-        """Plot the results of the dispersion analysis.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        for key in self.dispersion_results.keys():
-            plt.figure()
-            plt.hist(
-                self.dispersion_results[key],
-            )
-            plt.title("Histogram of " + key)
-            # plt.xlabel("Time (s)")
-            plt.ylabel("Number of Occurrences")
-            plt.show()
-
-        return None
-
-    # TODO: Create evolution plots to analyze convergence
-
+    # methods for ellipses
     def __createEllipses(self, dispersion_results):
         """A function to create apogee and impact ellipses from the dispersion
         results.
@@ -1398,6 +1359,50 @@ class Dispersion:
             )
 
         kml.save(filename)
+        return None
+
+    # methods for printing and plotting results
+    def print_results(self):
+        """Print the mean and standard deviation of each parameter in the results
+        dictionary or of the variables passed as argument.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+
+        """
+        print("{:<25} {:<25} {:<25}".format("Parameter", "Value", "Standard Deviation"))
+        print("-" * 75)
+        for key, value in self.processed_dispersion_results.items():
+            print("{:<25} {:<25} {:<25}".format(key, value[0], value[1]))
+
+        return None
+
+    def plot_results(self):
+        """Plot the results of the dispersion analysis.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        for key in self.dispersion_results.keys():
+            plt.figure()
+            plt.hist(
+                self.dispersion_results[key],
+            )
+            plt.title("Histogram of " + key)
+            # plt.xlabel("Time (s)")
+            plt.ylabel("Number of Occurrences")
+            plt.show()
+
         return None
 
     def info(self):
