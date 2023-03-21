@@ -29,6 +29,17 @@ try:
 except ImportError:
     from .tools import cached_property
 
+# TODO: should the saved files be changed to csv?
+# TODO: implement export results to csv function
+
+# TODO: How to save Functions? With jsonpickle? Save just the source?
+
+# TODO: check if Dispersion.flight_list is slowing down the simulation. If it is
+# than only save outputs and create method mentioned in the todo aboves
+# OR
+# TODO: create a method that recreates each flight from inputs_log
+# and saves it in an attribute that is a list
+
 
 class Dispersion:
 
@@ -778,6 +789,8 @@ class Dispersion:
     @cached_property
     def inputs_log(self):
         """Save inputs_log log from a file into an attribute for easy access"""
+        # TODO: this currently does not work because of parachute trigger function
+        # TODO: add pickle package to deal with this and also Function objects
         inputs_log = []
         # Loop through each line in the file
         for line in self.dispersion_input_file:

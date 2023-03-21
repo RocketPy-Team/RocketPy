@@ -148,8 +148,6 @@ class McRocket(DispersionModel):
                 f"\nposition: \n\tMust be either a tuple, list, int or float"
             )
 
-    # TODO: Should position be optional here? The _validate_position could be much simpler
-    # if it was not. But then the user would need to input positions more than once...
     def addMotor(self, motor, position=[]):
         # checks if input is a McSolidMotor type
         if not isinstance(motor, McSolidMotor):

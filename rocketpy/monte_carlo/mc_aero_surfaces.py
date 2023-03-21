@@ -30,8 +30,8 @@ class McNoseCone(DispersionModel):
     nosecone: NoseCone = Field(..., repr=False, exclude=True)
     length: Any = 0
     kind: List[Union[StrictStr, None]] = []
-    baseRadius: Any = 0  # TODO: is this really necessary?
-    rocketRadius: Any = 0  # TODO: is this really necessary?
+    baseRadius: Any = 0
+    rocketRadius: Any = 0
     name: List[StrictStr] = []
     # TODO: question: how can we document the above code lines? Why are they here?
 
