@@ -140,6 +140,10 @@ class Dispersion:
         self.fins = rocket.fins
         self.tails = rocket.tails
 
+        self.flight_list = []
+        self._dispersion_input_file = ""
+        self._dispersion_output_file = ""
+        self._dispersion_error_file = ""
         # TODO: Initialize variables so they can be accessed by MATLAB
 
         return None
@@ -172,6 +176,11 @@ class Dispersion:
                     elif isinstance(value, list):
                         # checks if list is empty
                         setting[class_name][key] = choice(value) if value else value
+                        # if Function, get source
+                        if isinstance(setting[class_name][key], Function):
+                            setting[class_name][key] = list(
+                                setting[class_name][key].source
+                            )
                     else:
                         # else is dictionary
                         setting[class_name][key] = {}
@@ -191,6 +200,13 @@ class Dispersion:
                                 setting[class_name][key][sub_key] = (
                                     choice(sub_value) if sub_value else sub_value
                                 )
+                                # if Function, get source
+                                if isinstance(
+                                    setting[class_name][key][sub_key], Function
+                                ):
+                                    setting[class_name][key][sub_key] = list(
+                                        setting[class_name][key][sub_key].source
+                                    )
 
             yield setting
 
@@ -297,6 +313,8 @@ class Dispersion:
         self,
         setting,
         flight,
+        input_file,
+        output_file,
         exec_time,
     ):
         """Saves flight results in a .txt
@@ -325,13 +343,18 @@ class Dispersion:
             The new string with the outputs of the simulation setting.
         """
         # Construct the dict with the results from the flight
-        m = map(getattr, [flight] * len(self.export_list), self.export_list)
-        results = dict(zip(self.export_list, m))
-        results["executionTime"] = exec_time
+        results = {}
+        for export_item in self.export_list:
+            # if attribute is function, get source
+            # TODO: check if there is a better way to do this
+            if isinstance(getattr(flight, export_item), Function):
+                results[export_item] = list(getattr(flight, export_item).source)
+            else:
+                results[export_item] = getattr(flight, export_item)
 
         # Write flight setting and results to file
-        self.dispersion_input_file.write(f"{setting}\n")
-        self.dispersion_output_file.write(f"{flight}\n")
+        input_file.write(f"{setting}\n")
+        output_file.write(f"{results}\n")
 
         return None
 
@@ -541,44 +564,16 @@ class Dispersion:
         self.dispersion_dictionary = self.build_dispersion_dict()
 
         # Create data files for inputs, outputs and error logging
-        if append:
-            self.dispersion_error_file = open(
-                f"{self.filename}.disp_errors.txt", "a", encoding="utf-8"
-            )
-            self.dispersion_input_file = open(
-                f"{self.filename}.disp_inputs.txt", "a", encoding="utf-8"
-            )
-            self.dispersion_output_file = open(
-                f"{self.filename}.disp_outputs.txt", "a", encoding="utf-8"
-            )
-        else:
-            self.dispersion_error_file = open(
-                f"{self.filename}.disp_errors.txt", "w", encoding="utf-8"
-            )
-            self.dispersion_input_file = open(
-                f"{self.filename}.disp_inputs.txt", "w", encoding="utf-8"
-            )
-            self.dispersion_output_file = open(
-                f"{self.filename}.disp_outputs.txt", "w", encoding="utf-8"
-            )
-
-        # Create data strings for inputs, outputs and error logging
-        # open_mode = "a" if append else "w"
-        # if open_mode == "a":
-        #     with open(
-        #         f"{self.filename}.disp_errors.txt", open_mode, encoding="utf-8"
-        #     ) as f:
-        #         errors_log = f.read()
-        #     with open(
-        #         f"{self.filename}.disp_inputs.txt", open_mode, encoding="utf-8"
-        #     ) as f:
-        #         inputs_log = f.read()
-        #     with open(
-        #         f"{self.filename}.disp_outputs.txt", open_mode, encoding="utf-8"
-        #     ) as f:
-        #         outputs_log = f.read()
-        # else:
-        #     errors_log = inputs_log = outputs_log = str()
+        open_mode = "a" if append else "w"
+        dispersion_input_file = open(
+            f"{self.filename}.disp_inputs.txt", open_mode, encoding="utf-8"
+        )
+        dispersion_output_file = open(
+            f"{self.filename}.disp_outputs.txt", open_mode, encoding="utf-8"
+        )
+        dispersion_error_file = open(
+            f"{self.filename}.disp_errors.txt", open_mode, encoding="utf-8"
+        )
 
         # Checks export_list
         self.export_list = self.__check_export_list(export_list)
@@ -756,17 +751,23 @@ class Dispersion:
                     # verbose=setting["flight"]["verbose"],
                 )
 
+                # Saves flight in flight list
+                self.flight_list.append(dispersion_flight)
+
+                # Export inputs and outputs to file
                 self.__export_flight_data(
                     setting=setting,
                     flight=dispersion_flight,
+                    input_file=dispersion_input_file,
+                    output_file=dispersion_output_file,
                     exec_time=process_time() - start_time,
                 )
             except (TypeError, ValueError, KeyError, AttributeError) as error:
                 print(f"Error on iteration {i}: {error}\n")
-                self.dispersion_error_file.write(f"{setting}\n")
+                dispersion_error_file.write(f"{setting}\n")
             except KeyboardInterrupt:
                 print("Keyboard Interrupt, file saved.")
-                self.dispersion_error_file.write(f"{setting}\n")
+                dispersion_error_file.write(f"{setting}\n")
                 break
 
             # spaces after the last 's' are necessary to fix a bug with end='\r'
@@ -785,7 +786,67 @@ class Dispersion:
         )
         print(final_string, end="\r")
 
+        # close files to guarantee saving
+        dispersion_input_file.close()
+        dispersion_output_file.close()
+        dispersion_error_file.close()
+
+        # save the opened files on self as read only
+        self.dispersion_input_file = open(
+            f"{self.filename}.disp_inputs.txt", "r"  # , encoding="utf-8"
+        )
+        self.dispersion_output_file = open(
+            f"{self.filename}.disp_outputs.txt", "r"  # , encoding="utf-8"
+        )
+        self.dispersion_error_file = open(
+            f"{self.filename}.disp_errors.txt", "r"  # , encoding="utf-8"
+        )
         return None
+
+    @property
+    def dispersion_input_file(self):
+        # try is for when the file has not been opened yet
+        try:
+            # Resets cursor position to the beggining of the file
+            self._dispersion_input_file.seek(0)
+            return self._dispersion_input_file
+        except:
+            return self._dispersion_input_file
+
+    @dispersion_input_file.setter
+    def dispersion_input_file(self, value):
+        self._dispersion_input_file = value
+        return self._dispersion_input_file
+
+    @property
+    def dispersion_output_file(self):
+        # try is for when the file has not been opened yet
+        try:
+            # Resets cursor position to the beggining of the file
+            self._dispersion_output_file.seek(0)
+            return self._dispersion_output_file
+        except:
+            return self._dispersion_output_file
+
+    @dispersion_output_file.setter
+    def dispersion_output_file(self, value):
+        self._dispersion_output_file = value
+        return self._dispersion_output_file
+
+    @property
+    def dispersion_error_file(self):
+        # try is for when the file has not been opened yet
+        try:
+            # Resets cursor position to the beggining of the file
+            self._dispersion_error_file.seek(0)
+            return self._dispersion_error_file
+        except:
+            return self._dispersion_error_file
+
+    @dispersion_error_file.setter
+    def dispersion_error_file(self, value):
+        self._dispersion_error_file = value
+        return self._dispersion_error_file
 
     @cached_property
     def inputs_log(self):
@@ -811,15 +872,14 @@ class Dispersion:
         outputs_log = []
         # Loop through each line in the file
         for line in self.dispersion_output_file:
-            try:
-                # Try to convert the line to a dictionary
-                d = ast.literal_eval(line)
-                # If successful, append the dictionary to the list
-                outputs_log.append(d)
-            except (SyntaxError, ValueError):
-                # If ast.literal_eval() raises an exception,
-                # skip the line and continue to the next one
+            # Skip comments lines
+            if line[0] != "{":
                 continue
+            # Try to convert the line to a dictionary
+            d = ast.literal_eval(line)
+            # If successful, append the dictionary to the list
+            outputs_log.append(d)
+
         return outputs_log
 
     @cached_property
@@ -827,83 +887,49 @@ class Dispersion:
         """Save errors_log log from a file into an attribute for easy access"""
         errors_log = []
         # Loop through each line in the file
-        for line in self.dispersion_error_file:
-            try:
-                # Try to convert the line to a dictionary
-                d = ast.literal_eval(line)
-                # If successful, append the dictionary to the list
-                errors_log.append(d)
-            except (SyntaxError, ValueError):
-                # If ast.literal_eval() raises an exception,
-                # skip the line and continue to the next one
-                continue
-        return errors_log
-
-    def import_results(self, variables=None):
-        """Import dispersion results from .txt file and save it into a dictionary.
-
-        Parameters
-        ----------
-        variables : list of str, optional
-            List of variables to be imported. If None, all variables will be imported.
-
-        Returns
-        -------
-        None
-        """
-        # Initialize variable to store all results
-        dispersion_results = {}
-
-        # Get all dispersion results
-        # Open the file
-        file = open(self.filename.split(".")[0] + ".disp_outputs.txt", "r+")
-
-        # Read each line of the file and convert to dict
-        for line in file:
+        for line in self.dispersion_output_file:
             # Skip comments lines
             if line[0] != "{":
                 continue
-            # Evaluate results and store them
-            flight_result = eval(line)
-            # Append to the list
-            for key, value in flight_result.items():
-                if key not in dispersion_results.keys():
-                    # Create a new list to store the parameter
-                    dispersion_results[key] = [value]
-                else:
-                    # Append the parameter value to the list
-                    dispersion_results[key].append(value)
+            # Try to convert the line to a dictionary
+            d = ast.literal_eval(line)
+            # If successful, append the dictionary to the list
+            errors_log.append(d)
 
-        # Close data file
-        file.close()
+        return errors_log
 
+    @cached_property
+    def num_of_loaded_sims(self):
         # Calculate the number of flights simulated
-        len_dict = {key: len(value) for key, value in dispersion_results.items()}
-        if min(len_dict.values()) - max(len_dict.values()) > 1:
-            print(
-                "Warning: The number of simulations imported from the file is not "
-                "the same for all parameters. The number of simulations will be "
-                "set to the minimum number of simulations found."
-            )
-        self.num_of_loaded_sims = min(len_dict.values())
+        num_of_loaded_sims = 0
 
-        # Print the number of flights simulated
-        print(
-            f"A total of {self.num_of_loaded_sims} simulations were loaded from"
-            f" the following file: {self.filename.split('.')[0] + '.disp_outputs.txt'}"
-        )
+        # Loop through each line in the file
+        for line in self.dispersion_output_file:
+            # Skip comments lines
+            if line[0] != "{":
+                continue
 
-        # Save the results as an attribute of the class
-        self.dispersion_results = dispersion_results
+            num_of_loaded_sims += 1
 
-        # Process the results and save them as attributes of the class
-        self.__process_results(variables=variables)
+        return num_of_loaded_sims
 
-        return None
+    @cached_property
+    def dispersion_results(self):
+        """Dipersion results organized in a dictionary where the keys are the
+        names of the saved attributes, and the values are a list with all the
+        result number of the respectitive attribute"""
 
-    # Start the processing analysis
+        dispersion_result = {}
+        for result in self.outputs_log:
+            for key, value in result.items():
+                if key in dispersion_result.keys():
+                    dispersion_result[key].append(value)
+                else:
+                    dispersion_result[key] = [value]
+        return dispersion_result
 
-    def __process_results(self, variables=None):
+    @cached_property
+    def processed_dispersion_results(self):
         """Save the mean and standard deviation of each parameter available
         in the results dictionary. Create class attributes for each parameter.
 
@@ -917,79 +943,87 @@ class Dispersion:
         -------
         None
         """
-        if isinstance(variables, list):
-            for result in variables:
-                mean = np.mean(self.dispersion_results[result])
-                stdev = np.std(self.dispersion_results[result])
-                setattr(self, str(result), (mean, stdev))
-        else:
-            for result in self.dispersion_results.keys():
-                mean = np.mean(self.dispersion_results[result])
-                stdev = np.std(self.dispersion_results[result])
-                setattr(self, str(result), (mean, stdev))
+        processed_dispersion_results = {}
+        for result in self.dispersion_results.keys():
+            mean = np.mean(self.dispersion_results[result])
+            stdev = np.std(self.dispersion_results[result])
+            setattr(
+                self, result, (mean, stdev)
+            )  # TODO: i dont know if this is still necessary since everything is saved in processed_dispersion_results
+            processed_dispersion_results[result] = (mean, stdev)
+        return processed_dispersion_results
+
+    # TODO: this is importing inputs, outputs and errors, maybe it should not be
+    # like this?
+    def import_results(self, filename=None, variables=None):
+        """Import dispersion results from .txt file and save it into a dictionary.
+
+        Parameters
+        ----------
+        filename : str
+            Name or directory path to the file to be imported. If none, Dispersion
+            filename will be used
+        variables : list, optional
+            List of variables to be imported. If None, all variables will be imported.
+
+        Returns
+        -------
+        None
+        """
+        # select file to use
+        filepath = filename if filename else self.filename
+
+        self.dispersion_error_file = open(f"{filepath}.disp_errors.txt", "r+")
+        self.dispersion_input_file = open(f"{filepath}.disp_inputs.txt", "r+")
+        self.dispersion_output_file = open(f"{filepath}.disp_outputs.txt", "r+")
+
+        # Print the number of flights simulated
+        print(
+            f"A total of {self.num_of_loaded_sims} simulations results were loaded from"
+            f" the following file: {self.filename.split('.')[0] + '.disp_outputs.txt'}"
+        )
+        # Process the results and save them as attributes of the class
+        # self.__process_results(variables=variables)
+
         return None
 
-    # TODO: print as a table instead of prints
-    def print_results(self, variables=None):
+    def print_results(self):
         """Print the mean and standard deviation of each parameter in the results
         dictionary or of the variables passed as argument.
 
         Parameters
         ----------
-        variables : list, optional
-            List of variables to be processed. If None, all variables will be
-            processed. The default is None. Example: ['outOfRailTime', 'apogee']
+        None
 
         Returns
         -------
         None
 
-        Raises
-        ------
-        TypeError
-            If the variable passed as argument is not a string.
         """
-        # Check if the variables argument is a list, if not, use all variables
-        if not isinstance(variables, list):
-            variables = self.dispersion_results.keys()
-
-        # Check if the variables are strings
-        if not all(isinstance(var, str) for var in variables):
-            raise TypeError("The list of variables must be a list of strings.")
-
-        for var in variables:
-            tp = getattr(self, var)  # Get the tuple with the mean and stdev
-            print("{}: \u03BC = {:.3f}, \u03C3 = {:.3f}".format(var, tp[0], tp[1]))
+        print("{:<25} {:<25} {:<25}".format("Parameter", "Value", "Standard Deviation"))
+        print("-" * 75)
+        for key, value in self.processed_dispersion_results.items():
+            print("{:<25} {:<25} {:<25}".format(key, value[0], value[1]))
 
         return None
 
-    def plot_results(self, variables=None):
+    def plot_results(self):
         """Plot the results of the dispersion analysis.
 
         Parameters
         ----------
-        variables : list, optional
-            List of variables to be plotted. If None, all variables will be
-            plotted. The default is None. Example: ['outOfRailTime', 'apogee']
+        None
 
         Returns
         -------
         None
         """
-        # Check if the variables argument is a list, if not, use all variables
-        if not isinstance(variables, list):
-            variables = self.dispersion_results.keys()
-
-        # Check if the variables are strings
-        if not all(isinstance(var, str) for var in variables):
-            raise TypeError("The list of variables must be a list of strings.")
-
-        for var in variables:
+        for key in self.dispersion_results.keys():
             plt.figure()
             plt.hist(
-                self.dispersion_results[var],
+                self.dispersion_results[key],
             )
-            plt.title("Histogram of " + var)
+            plt.title("Histogram of " + key)
             # plt.xlabel("Time (s)")
             plt.ylabel("Number of Occurrences")
             plt.show()
