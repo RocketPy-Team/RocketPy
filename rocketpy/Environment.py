@@ -368,6 +368,7 @@ class Environment:
             self.setDate(date, timeZone)
         else:
             self.date = None
+            self.datetime_date = None
             self.localDate = None
             self.timeZone = None
 
@@ -439,8 +440,9 @@ class Environment:
             localDate = date
         if localDate.tzinfo == None:
             localDate = tz.localize(localDate)
+        self.date = date
         self.localDate = localDate
-        self.date = self.localDate.astimezone(pytz.UTC)
+        self.datetime_date = self.localDate.astimezone(pytz.UTC)
 
         # Update atmospheric conditions if atmosphere type is Forecast,
         # Reanalysis or Ensemble
@@ -1483,7 +1485,7 @@ class Environment:
         # Determine time index from model
         timeArray = np.array(response["data"]["hours"])
         timeUnits = "milliseconds since 1970-01-01 00:00:00"
-        launchTimeInUnits = netCDF4.date2num(self.date, timeUnits)
+        launchTimeInUnits = netCDF4.date2num(self.datetime_date, timeUnits)
         # Find the index of the closest time in timeArray to the launch time
         timeIndex = (np.abs(timeArray - launchTimeInUnits)).argmin()
 
@@ -1948,7 +1950,7 @@ class Environment:
         None
         """
         # Check if date, lat and lon are known
-        if self.date is None:
+        if self.datetime_date is None:
             raise TypeError(
                 "Please specify Date (array-like) when "
                 "initializing this Environment. "
@@ -1973,11 +1975,11 @@ class Environment:
 
         # Find time index
         timeIndex = netCDF4.date2index(
-            self.date, timeArray, calendar="gregorian", select="nearest"
+            self.datetime_date, timeArray, calendar="gregorian", select="nearest"
         )
         # Convert times do dates and numbers
         inputTimeNum = netCDF4.date2num(
-            self.date, timeArray.units, calendar="gregorian"
+            self.datetime_date, timeArray.units, calendar="gregorian"
         )
         fileTimeNum = timeArray[timeIndex]
         fileTimeDate = netCDF4.num2date(
@@ -2345,7 +2347,7 @@ class Environment:
         None
         """
         # Check if date, lat and lon are known
-        if self.date is None:
+        if self.datetime_date is None:
             raise TypeError(
                 "Please specify Date (array-like) when "
                 "initializing this Environment. "
@@ -2370,11 +2372,11 @@ class Environment:
 
         # Find time index
         timeIndex = netCDF4.date2index(
-            self.date, timeArray, calendar="gregorian", select="nearest"
+            self.datetime_date, timeArray, calendar="gregorian", select="nearest"
         )
         # Convert times do dates and numbers
         inputTimeNum = netCDF4.date2num(
-            self.date, timeArray.units, calendar="gregorian"
+            self.datetime_date, timeArray.units, calendar="gregorian"
         )
         fileTimeNum = timeArray[timeIndex]
         fileTimeDate = netCDF4.num2date(
@@ -3196,8 +3198,8 @@ class Environment:
             surfaceAirDensity=self.density(self.elevation),
             surfaceSpeedOfSound=self.speedOfSound(self.elevation),
         )
-        if self.date != None:
-            info["launch_date"] = self.date.strftime("%Y-%d-%m %H:%M:%S")
+        if self.datetime_date != None:
+            info["launch_date"] = self.datetime_date.strftime("%Y-%d-%m %H:%M:%S")
         if self.latitude != None and self.longitude != None:
             info["lat"] = self.latitude
             info["lon"] = self.longitude
@@ -3240,7 +3242,12 @@ class Environment:
         self.exportEnvDictionary = {
             "railLength": self.railLength,
             "gravity": self.gravity,
-            "date": [self.date.year, self.date.month, self.date.day, self.date.hour],
+            "date": [
+                self.datetime_date.year,
+                self.datetime_date.month,
+                self.datetime_date.day,
+                self.datetime_date.hour,
+            ],
             "latitude": self.latitude,
             "longitude": self.longitude,
             "elevation": self.elevation,
