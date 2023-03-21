@@ -5,8 +5,6 @@ __license__ = "MIT"
 
 import ast
 import math
-import traceback
-from random import choice
 from time import process_time, time
 
 import matplotlib.pyplot as plt
@@ -15,6 +13,9 @@ import simplekml
 from IPython.display import display
 from matplotlib.patches import Ellipse
 from numpy.random import *
+from random import (
+    choice,
+)  # TODO: choice must be imported from random. numpy choice does not work propperly
 
 from .AeroSurfaces import EllipticalFins, NoseCone, Tail, TrapezoidalFins
 from .Environment import Environment
@@ -32,7 +33,7 @@ except ImportError:
 # TODO: should the saved files be changed to csv?
 # TODO: implement export results to csv function
 
-# TODO: How to save Functions? With jsonpickle? Save just the source?
+# TODO: How to save Functions? With pickle? Save just the source?
 
 # TODO: check if Dispersion.flight_list is slowing down the simulation. If it is
 # than only save outputs and create method mentioned in the todo aboves
