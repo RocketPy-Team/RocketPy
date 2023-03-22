@@ -39,4 +39,3 @@ class McSolidMotor(DispersionModel):
     nozzleRadius: Any = 0
     nozzlePosition: Any = 0
     throatRadius: Any = 0
-    # TODO: why coordinateSystemOrientation is not included in this class?

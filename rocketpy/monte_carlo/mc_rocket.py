@@ -11,8 +11,6 @@ from .mc_parachute import McParachute
 from .mc_solid_motor import McSolidMotor
 
 
-# TODO: make a special validator for power on and off factor since they need to have the nominal
-# value inputted
 class McRocket(DispersionModel):
     rocket: Rocket = Field(..., repr=False, exclude=True)
     radius: Any = 0
@@ -24,8 +22,6 @@ class McRocket(DispersionModel):
     centerOfDryMassPosition: Any = 0
     powerOffDragFactor: Any = (1, 0)
     powerOnDragFactor: Any = (1, 0)
-    # TODO: why coord sys orientation is not included in this class?
-    # coordinateSystemOrientation = ??
     _motors: list = PrivateAttr()
     _nosecones: list = PrivateAttr()
     _fins: list = PrivateAttr()

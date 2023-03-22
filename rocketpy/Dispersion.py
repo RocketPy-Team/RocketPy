@@ -738,8 +738,6 @@ class Dispersion:
             # TODO: Fix rail buttons definition
             # rocket_dispersion.setRailButtons()
 
-            # TODO: add try except to detect errors only on the flight simu
-            # TODO: and add a try except to detect errors only when saving
             # Run trajectory simulation
             try:
                 # TODO: Add initialSolution flight option
