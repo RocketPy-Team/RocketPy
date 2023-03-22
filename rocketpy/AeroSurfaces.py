@@ -280,7 +280,7 @@ class NoseCone:
         -------
         None
         """
-        print("Nose Cone Geometric Information of Nose: {}".format(self.name))
+        print(f"\nGeometric Information of {self.name}")
         print("-------------------------------")
         if self.position:
             print(f"Position: {self.position:.3f} m")
@@ -303,7 +303,7 @@ class NoseCone:
         -------
         None
         """
-        print(f"Nose Cone Aerodynamic Information of Nose: {self.name}")
+        print(f"\nAerodynamic Information of {self.name}")
         print("-------------------------------")
         print(f"Center of Pressure Position in Local Coordinates: {self.cp} m")
         print(f"Lift Coefficient Slope: {self.clalpha:.3f} 1/rad")
@@ -769,7 +769,7 @@ class Fins(ABC):
         None
         """
 
-        print("\n\nGeometrical Parameters\n")
+        print("\nGeometrical Parameters\n")
         if isinstance(self, TrapezoidalFins):
             print("Fin Type: Trapezoidal")
             print("Tip Chord: {:.3f} m".format(self.tipChord))
@@ -802,7 +802,7 @@ class Fins(ABC):
         ------
         None
         """
-        print("\n\nAerodynamic Information")
+        print("\nAerodynamic Information")
         print("----------------")
         print("Lift Interference Factor: {:.3f} m".format(self.liftInterferenceFactor))
         print(
@@ -810,15 +810,21 @@ class Fins(ABC):
                 self.cpx, self.cpy, self.cpz
             )
         )
+        print()
         print(
             "Lift Coefficient derivative as a Function of Alpha and Mach for Single Fin"
         )
+        print()
         self.clalphaSingleFin()
+        print()
         print(
             "Lift Coefficient derivative as a Function of Alpha and Mach for the Fin Set"
         )
+        print()
         self.clalphaMultipleFins()
+        print()
         print("Lift Coefficient as a Function of Alpha and Mach for the Fin Set")
+        print()
         self.cl()
 
         return None
@@ -1878,7 +1884,8 @@ class Tail:
         None
         """
 
-        print(f"\nTail name: {self.name}")
+        print(f"\nGeometric Information of {self.name}")
+        print("-------------------------------")
         if self.position:
             print(f"Tail Position: {self.position:.3f} m")
         print(f"Tail Top Radius: {self.topRadius:.3f} m")
@@ -1891,7 +1898,8 @@ class Tail:
         return None
 
     def aerodynamicInfo(self):
-        print(f"\nTail name: {self.name}")
+        print(f"\nAerodynamic Information of {self.name}")
+        print("-------------------------------")
         print(f"Tail Center of Pressure Position in Local Coordinates: {self.cp} m")
         print(f"Tail Lift Coefficient Slope: {self.clalpha:.3f} 1/rad")
         print("Tail Lift Coefficient as a function of Alpha and Mach:")
