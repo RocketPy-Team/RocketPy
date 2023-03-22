@@ -34,10 +34,10 @@ class AeroSurfaces:
     def pop(self, index=-1):
         return self._aeroSurfaces.pop(index)
 
-    def __str__(self):
+    def __repr__(self):
         if len(self._aeroSurfaces) == 1:
-            return self._aeroSurfaces[0].__str__()
-        return self._aeroSurfaces.__str__()
+            return self._aeroSurfaces[0].__repr__()
+        return self._aeroSurfaces.__repr__()
 
     def __len__(self):
         return len(self._aeroSurfaces)
@@ -190,8 +190,8 @@ class NoseCone:
             self.k = 0.5
         self.evaluateCenterOfPressure()
 
-    def __str__(self):
-        rep = f"NoseCone Object. Name: {self.name}, kind: {self.kind}"
+    def __repr__(self):
+        rep = f"NoseCone Object -> Name: {self.name}, kind: {self.kind}"
 
         return rep
 
@@ -528,10 +528,6 @@ class Fins(ABC):
         self.evaluateCenterOfPressure()
         self.evaluateLiftCoefficient()
         self.evaluateRollParameters()
-
-    @abstractmethod
-    def __str__(self):
-        pass
 
     @abstractmethod
     def evaluateCenterOfPressure(self):
@@ -1084,8 +1080,8 @@ class TrapezoidalFins(Fins):
         self.evaluateLiftCoefficient()
         self.evaluateRollParameters()
 
-    def __str__(self):
-        rep = f"TrapezoidalFins Object. Name: {self.name}"
+    def __repr__(self):
+        rep = f"TrapezoidalFins Object -> Name: {self.name}"
 
         return rep
 
@@ -1445,8 +1441,8 @@ class EllipticalFins(Fins):
 
         return None
 
-    def __str__(self):
-        rep = f"EllipticalFins Object. Name: {self.name}"
+    def __repr__(self):
+        rep = f"EllipticalFins Object -> Name: {self.name}"
 
         return rep
 
@@ -1757,8 +1753,8 @@ class Tail:
         self._rocketRadius = value
         self.evaluateLiftCoefficient()
 
-    def __str__(self):
-        rep = f"Tail Object. Name: {self.name}"
+    def __repr__(self):
+        rep = f"Tail Object -> Name: {self.name}"
 
         return rep
 
