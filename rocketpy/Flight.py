@@ -2574,11 +2574,13 @@ class Flight:
 
         # Distance from Rail Button 1 (upper) to CM
         D1 = (
-            self.rocket.railButtons.position[0] - self.rocket.centerOfDryMassPosition
+            self.rocket.railButtons.upper_button_position
+            - self.rocket.centerOfDryMassPosition
         ) * self.rocket._csys
         # Distance from Rail Button 2 (lower) to CM
         D2 = (
-            self.rocket.railButtons.position[1] - self.rocket.centerOfDryMassPosition
+            self.rocket.railButtons.lower_button_position
+            - self.rocket.centerOfDryMassPosition
         ) * self.rocket._csys
         F11 = (self.R1 * D2 - self.M2) / (D1 + D2)
         F11.setOutputs("Upper button force direction 1 (m)")

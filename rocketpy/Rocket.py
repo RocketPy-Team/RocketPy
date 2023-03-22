@@ -14,7 +14,7 @@ import numpy as np
 from .Function import Function
 from .Parachute import Parachute
 from .AeroSurfaces import AeroSurfaces
-from .AeroSurfaces import NoseCone, TrapezoidalFins, EllipticalFins, Tail
+from .AeroSurfaces import NoseCone, TrapezoidalFins, EllipticalFins, Tail, RailButtons
 from .Motor import EmptyMotor
 
 from .prints.rocket_prints import _RocketPrints
@@ -818,7 +818,7 @@ class Rocket:
         if self._csys * position[0] < self._csys * position[1]:
             position.reverse()
         # Save important attributes
-        self.railButtons = self.railButtonPair(position, angularPosition)
+        self.railButtons = RailButtons(*position, angularPosition)
 
         # Saving in a special format just for dispersion class
         self.positionFirstRailButton = position[0]
@@ -984,6 +984,3 @@ class Rocket:
             )
             self.aerodynamicSurfaces.append([positionVector, chordVector])
         return None
-
-    # Variables
-    railButtonPair = namedtuple("railButtonPair", "position angularPosition")

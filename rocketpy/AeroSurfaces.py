@@ -1851,3 +1851,16 @@ class Tail:
         self.aerodynamicInfo()
 
         return None
+
+
+class RailButtons:
+    """Simple class to hold rail button pair information"""
+
+    def __init__(self, upper_button_position, lower_button_position, angularPosition):
+        self.upper_button_position = upper_button_position
+        self.lower_button_position = lower_button_position
+        self.angularPosition = angularPosition
+
+    def __repr__(self):
+        rep = f"Rail buttons pair at positions {self.upper_button_position} m and {self.lower_button_position} m"
+        return rep

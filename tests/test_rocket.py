@@ -595,4 +595,6 @@ def test_add_cp_eccentricity_assert_properties_set(rocket):
 
 def test_set_rail_button_assert_distance_reverse(rocket):
     rocket.setRailButtons([-0.5, 0.2])
-    assert rocket.railButtons == ([0.2, -0.5], 45)
+    assert rocket.railButtons.upper_button_position == 0.2
+    assert rocket.railButtons.lower_button_position == -0.5
+    assert rocket.railButtons.angularPosition == 45
