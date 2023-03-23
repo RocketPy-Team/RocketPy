@@ -137,10 +137,11 @@ class Dispersion:
         self.rocket = rocket
         self.flight = flight
         self.motors = rocket.motors
-        self.parachutes = rocket.parachutes
         self.nosecones = rocket.nosecones
         self.fins = rocket.fins
         self.tails = rocket.tails
+        self.parachutes = rocket.parachutes
+        self.rail_buttons = rocket.rail_buttons
 
         self.flight_list = []
         self._dispersion_input_file = ""
@@ -518,7 +519,9 @@ class Dispersion:
             "parachutes": {
                 i: parachute.dict() for i, parachute in enumerate(self.parachutes)
             },
-            "buttons": {},
+            "rail_buttons": {
+                i: buttons.dict() for i, buttons in enumerate(self.rail_buttons)
+            },
         }
 
         for name, data in mc_dict.items():
@@ -720,8 +723,18 @@ class Dispersion:
                     name=tail,
                 )
 
+            # Rail Buttons
+            for rail_buttons in setting["rail_buttons"].keys():
+                rocket_dispersion.setRailButtons(
+                    position=[
+                        setting["rail_buttons"][rail_buttons]["upper_button_position"],
+                        setting["rail_buttons"][rail_buttons]["lower_button_position"],
+                    ],
+                    angularPosition=setting["rail_buttons"][rail_buttons][
+                        "angular_position"
+                    ],
+                )
             # Add parachutes
-            rocket_dispersion.parachutes = []  # Remove existing parachutes
             for chute in setting["parachutes"].keys():
                 rocket_dispersion.addParachute(
                     name=chute,

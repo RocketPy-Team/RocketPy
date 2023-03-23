@@ -6,7 +6,13 @@ from ..AeroSurfaces import EllipticalFins, NoseCone, Tail, TrapezoidalFins
 from ..Parachute import Parachute
 from ..Rocket import Rocket
 from .DispersionModel import DispersionModel
-from .mc_aero_surfaces import McEllipticalFins, McNoseCone, McTail, McTrapezoidalFins
+from .mc_aero_surfaces import (
+    McEllipticalFins,
+    McNoseCone,
+    McRailButtons,
+    McTail,
+    McTrapezoidalFins,
+)
 from .mc_parachute import McParachute
 from .mc_solid_motor import McSolidMotor
 
@@ -27,7 +33,7 @@ class McRocket(DispersionModel):
     _fins: list = PrivateAttr()
     _tails: list = PrivateAttr()
     _parachutes: list = PrivateAttr()
-    _railButtons: list = PrivateAttr()
+    _rail_buttons: list = PrivateAttr()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -36,7 +42,7 @@ class McRocket(DispersionModel):
         self._fins = []
         self._tails = []
         self._parachutes = []
-        self._railButtons = []
+        self._rail_buttons = []
 
     @property
     def motors(self):
@@ -59,8 +65,8 @@ class McRocket(DispersionModel):
         return self._parachutes
 
     @property
-    def railButtons(self):
-        return self._railButtons
+    def rail_buttons(self):
+        return self._rail_buttons
 
     def _validate_position(self, position, obj, attr_name):
         """Checks if 'position' argument was correctly inputted in the 'add' methods.
@@ -198,29 +204,15 @@ class McRocket(DispersionModel):
         return self.tails.append(tail)
 
     def addParachute(self, parachute):
-        # checks if input is a McNoseCone type
+        # checks if input is a McParachute type
         if not isinstance(parachute, McParachute):
             raise TypeError("parachute must be of McParachute type")
         return self.parachutes.append(parachute)
 
-    def addRailButtons(self, position1, position2, angle):
-        # TODO: transform rail buttons into data classes
-        # TODO: currently does not vary anything just for testing
-        self.railButtons = [position1, position2, angle]
-
-
-class McButtons(BaseModel):
-    """Class for the rail buttons"""
-
-    position1: float
-    position2: float
-    angle: float
-
-    class Config:
-        arbitrary_types_allowed = True
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.position1 = kwargs["position1"]
-        self.position2 = kwargs["position2"]
-        self.angle = kwargs["angle"]
+    def addRailButtons(
+        self,
+        rail_buttons,
+    ):
+        if not isinstance(rail_buttons, McRailButtons):
+            raise TypeError("rail_buttons must be of McRailButtons type")
+        return self.rail_buttons.append(rail_buttons)

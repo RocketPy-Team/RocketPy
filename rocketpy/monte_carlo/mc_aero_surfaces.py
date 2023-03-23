@@ -4,7 +4,7 @@ from typing import Any, List, Tuple, Union
 
 from pydantic import Field, FilePath, StrictInt, StrictStr
 
-from ..AeroSurfaces import EllipticalFins, NoseCone, Tail, TrapezoidalFins
+from ..AeroSurfaces import EllipticalFins, NoseCone, RailButtons, Tail, TrapezoidalFins
 from .DispersionModel import DispersionModel
 
 
@@ -122,3 +122,28 @@ class McTail(DispersionModel):
     length: Any = 0
     rocketRadius: Any = 0
     name: List[StrictStr] = []
+
+
+class McRailButtons(DispersionModel):
+    """TODO: add docstring
+
+    Parameters
+    ----------
+    DispersionModel : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+
+    Raises
+    ------
+    ValueError
+        _description_
+    """
+
+    rail_buttons: RailButtons = Field(..., repr=False, exclude=True)
+    upper_button_position: Any = 0
+    lower_button_position: Any = 0
+    angular_position: Any = 0

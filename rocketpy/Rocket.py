@@ -825,7 +825,7 @@ class Rocket:
         self.positionSecondRailButton = position[1]
         self.railButtonAngularPosition = angularPosition
 
-        return None
+        return self.railButtons
 
     def addCMEccentricity(self, x, y):
         """Moves line of action of aerodynamic and thrust forces by
