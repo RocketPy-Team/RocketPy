@@ -108,7 +108,8 @@ class NoseCone:
         length : float
             Nose cone length. Has units of length and must be given in meters.
         kind : string
-            Nose cone kind. Can be "conical", "ogive" or "lvhaack".
+            Nose cone kind. Can be "conical", "ogive", "elliptical", "tangent",
+            "von karman", "parabolic" or "lvhaack".
         baseRadius : float, optional
             Nose cone base radius. Has units of length and must be given in meters.
             If not given, the ratio between baseRadius and rocketRadius will be
@@ -186,12 +187,28 @@ class NoseCone:
             self.k = 0.466
         elif value == "lvhaack":
             self.k = 0.563
+        elif value == "tangent":
+            rho = (self.baseRadius**2 + self.length**2) / (2 * self.baseRadius)
+            volume = np.pi * (
+                self.length * rho**2
+                - (self.length**3) / 3
+                - (rho - self.baseRadius) * rho**2 * np.arcsin(self.length / rho)
+            )
+            area = np.pi * self.baseRadius**2
+            self.k = 1 - volume / (area * self.length)
+        elif value == "elliptical":
+            self.k = 1 / 3
         else:
-            self.k = 0.5
+            self.k = 0.5  # Parabolic and Von Karman
         self.evaluateCenterOfPressure()
 
+    def __repr__(self):
+        rep = f"NoseCone Object -> Name: {self.name}, kind: {self.kind}"
+
+        return rep
+
     def evaluateGeometricalParameters(self):
-        """Calculates and returns nose cone's radius ratio.
+        """Calculates and saves nose cone's radius ratio.
 
         Parameters
         ----------
@@ -230,6 +247,7 @@ class NoseCone:
             ["Alpha (rad)", "Mach"],
             "Cl",
         )
+        return self.cl
 
     def evaluateCenterOfPressure(self):
         """Calculates and returns the center of pressure of the nose cone in local
@@ -262,7 +280,7 @@ class NoseCone:
         -------
         None
         """
-        print("Nose Cone Geometric Information of Nose: {}".format(self.name))
+        print(f"\nGeometric Information of {self.name}")
         print("-------------------------------")
         if self.position:
             print(f"Position: {self.position:.3f} m")
@@ -285,7 +303,7 @@ class NoseCone:
         -------
         None
         """
-        print(f"Nose Cone Aerodynamic Information of Nose: {self.name}")
+        print(f"\nAerodynamic Information of {self.name}")
         print("-------------------------------")
         print(f"Center of Pressure Position in Local Coordinates: {self.cp} m")
         print(f"Lift Coefficient Slope: {self.clalpha:.3f} 1/rad")
@@ -543,7 +561,7 @@ class Fins(ABC):
 
     @abstractmethod
     def evaluateGeometricalParameters(self):
-        """Calculates and returns fin set's geometrical parameters such as the
+        """Calculates and saves fin set's geometrical parameters such as the
         fins' area, aspect ratio and parameters for roll movement.
 
         Parameters
@@ -582,13 +600,13 @@ class Fins(ABC):
         else:
             # Defines clalpha2D as the derivative of the
             # lift coefficient curve for a specific airfoil
-            airfoilCl = Function(
+            self.airfoilCl = Function(
                 self.airfoil[0],
                 interpolation="linear",
             )
 
             # Differentiating at x = 0 to get cl_alpha
-            clalpha2D_Mach0 = airfoilCl.differentiate(x=1e-3, dx=1e-3)
+            clalpha2D_Mach0 = self.airfoilCl.differentiate(x=1e-3, dx=1e-3)
 
             # Convert to radians if needed
             if self.airfoil[1] == "degrees":
@@ -751,7 +769,7 @@ class Fins(ABC):
         None
         """
 
-        print("\n\nGeometrical Parameters\n")
+        print("\nGeometrical Parameters\n")
         if isinstance(self, TrapezoidalFins):
             print("Fin Type: Trapezoidal")
             print("Tip Chord: {:.3f} m".format(self.tipChord))
@@ -762,8 +780,8 @@ class Fins(ABC):
         if self.position:
             print("Position: {:.3f} m".format(self.position))
         print("Cant Angle: {:.3f} °".format(self.cantAngle))
-        print("Longitudinal Section Area: {:.3f} m".format(self.Af))
-        print("Aspect Ratio: {:.3f} m".format(self.AR))
+        print("Longitudinal Section Area: {:.3f} m²".format(self.Af))
+        print("Aspect Ratio: {:.3f} ".format(self.AR))
         print("Gamma_c: {:.3f} m".format(self.gamma_c))
         print("Mean Aerodynamic Chord: {:.3f} m".format(self.Yma))
         print(
@@ -784,7 +802,7 @@ class Fins(ABC):
         ------
         None
         """
-        print("\n\nAerodynamic Information")
+        print("\nAerodynamic Information")
         print("----------------")
         print("Lift Interference Factor: {:.3f} m".format(self.liftInterferenceFactor))
         print(
@@ -792,15 +810,21 @@ class Fins(ABC):
                 self.cpx, self.cpy, self.cpz
             )
         )
+        print()
         print(
             "Lift Coefficient derivative as a Function of Alpha and Mach for Single Fin"
         )
+        print()
         self.clalphaSingleFin()
+        print()
         print(
             "Lift Coefficient derivative as a Function of Alpha and Mach for the Fin Set"
         )
+        print()
         self.clalphaMultipleFins()
+        print()
         print("Lift Coefficient as a Function of Alpha and Mach for the Fin Set")
+        print()
         self.cl()
 
         return None
@@ -834,9 +858,33 @@ class Fins(ABC):
                 self.rollForcingInterferenceFactor
             )
         )
-
+        # lacks a title for the plot
         self.rollParameters[0]()
+        # lacks a title for the plot
         self.rollParameters[1]()
+
+        return None
+
+    def airfoilInfo(self):
+        """Prints out airfoil related information of the
+        fin set.
+
+        Parameters
+        ----------
+        None
+
+        Return
+        ------
+        None
+        """
+        if self.airfoil is not None:
+            print("\n\nAerodynamic Information\n")
+            print(
+                "Airfoil's Lift Curve as a Function of Alpha ({}))".format(
+                    self.airfoil[1]
+                )
+            )
+            self.airfoilCl.plot1D()
 
         return None
 
@@ -864,6 +912,7 @@ class Fins(ABC):
         self.geometricalInfo()
         self.aerodynamicInfo()
         self.rollInfo()
+        self.airfoilInfo()
 
         return None
 
@@ -1075,6 +1124,11 @@ class TrapezoidalFins(Fins):
         self.evaluateLiftCoefficient()
         self.evaluateRollParameters()
 
+    def __repr__(self):
+        rep = f"TrapezoidalFins Object -> Name: {self.name}"
+
+        return rep
+
     def evaluateCenterOfPressure(self):
         """Calculates and returns the center of pressure of the fin set in local
         coordinates. The center of pressure position is saved and stored as a tuple.
@@ -1210,7 +1264,7 @@ class TrapezoidalFins(Fins):
         return None
 
     def evaluateGeometricalParameters(self):
-        """Calculates and returns fin set's geometrical parameters such as the
+        """Calculates and saves fin set's geometrical parameters such as the
         fins' area, aspect ratio and parameters for roll movement.
 
         Parameters
@@ -1431,6 +1485,11 @@ class EllipticalFins(Fins):
 
         return None
 
+    def __repr__(self):
+        rep = f"EllipticalFins Object -> Name: {self.name}"
+
+        return rep
+
     def evaluateCenterOfPressure(self):
         """Calculates and returns the center of pressure of the fin set in local
         coordinates. The center of pressure position is saved and stored as a tuple.
@@ -1450,7 +1509,7 @@ class EllipticalFins(Fins):
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
-        return self
+        return self.cp
 
     def draw(self):
         """Draw the fin shape along with some important information.
@@ -1525,7 +1584,7 @@ class EllipticalFins(Fins):
         return None
 
     def evaluateGeometricalParameters(self):
-        """Calculates and returns fin set's geometrical parameters such as the
+        """Calculates and saves fin set's geometrical parameters such as the
         fins' area, aspect ratio and parameters for roll movement.
 
         Parameters
@@ -1619,7 +1678,7 @@ class Tail:
     downwards (top -> bottom). Origin located at top of the tail (generally the portion
     closest to the rocket's nose).
 
-    Parameters
+    Attributes
     ----------
     Tail.topRadius : int, float
         Radius of the top of the tail. The top radius is defined as the radius
@@ -1634,9 +1693,6 @@ class Tail:
         The reference rocket radius used for lift coefficient normalization in meters.
     Tail.name : str
         Name of the tail. Default is 'Tail'.
-
-    Attributes
-    ----------
     Tail.cpx : int, float
         x local coordinate of the center of pressure of the tail.
     Tail.cpy : int, float
@@ -1738,8 +1794,13 @@ class Tail:
         self._rocketRadius = value
         self.evaluateLiftCoefficient()
 
+    def __repr__(self):
+        rep = f"Tail Object -> Name: {self.name}"
+
+        return rep
+
     def evaluateGeometricalParameters(self):
-        """Calculates and returns tail's slant length and surface area.
+        """Calculates and saves tail's slant length and surface area.
 
         Parameters
         ----------
@@ -1792,6 +1853,7 @@ class Tail:
     def evaluateCenterOfPressure(self):
         """Calculates and returns the center of pressure of the tail in local
         coordinates. The center of pressure position is saved and stored as a tuple.
+
         Parameters
         ----------
         None
@@ -1810,6 +1872,7 @@ class Tail:
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
+        return self.cp
 
     def geometricalInfo(self):
         """Prints out all the geometric information of the tail.
@@ -1819,7 +1882,8 @@ class Tail:
         None
         """
 
-        print(f"\nTail name: {self.name}")
+        print(f"\nGeometric Information of {self.name}")
+        print("-------------------------------")
         if self.position:
             print(f"Tail Position: {self.position:.3f} m")
         print(f"Tail Top Radius: {self.topRadius:.3f} m")
@@ -1827,12 +1891,13 @@ class Tail:
         print(f"Tail Length: {self.length:.3f} m")
         print(f"Reference Radius: {2*self.rocketRadius:.3f} m")
         print(f"Tail Slant Length: {self.slantLength:.3f} m")
-        print(f"Tail Surface Area: {self.surfaceArea:.6f} m^2")
+        print(f"Tail Surface Area: {self.surfaceArea:.6f} m²")
 
         return None
 
     def aerodynamicInfo(self):
-        print(f"\nTail name: {self.name}")
+        print(f"\nAerodynamic Information of {self.name}")
+        print("-------------------------------")
         print(f"Tail Center of Pressure Position in Local Coordinates: {self.cp} m")
         print(f"Tail Lift Coefficient Slope: {self.clalpha:.3f} 1/rad")
         print("Tail Lift Coefficient as a function of Alpha and Mach:")
@@ -1854,12 +1919,51 @@ class Tail:
 
 
 class RailButtons:
-    """Simple class to hold rail button pair information"""
+    """Class that defines a generic rail button.
+
+    Attributes
+    ----------
+    RailButtons.upper_button_position : int, float
+        Position of the upper rail button in meters. The upper button is the one
+        closest to the nose cone and furthest from the tail. The coordinate system
+        used is the same as the Rocket that the buttons will be a part of.
+    RailButtons.lower_button_position : int, float
+        Position of the lower rail button in meters. The lower button is the one
+        closest to the nose cone and furthest from the tail. The coordinate system
+        used is the same as the Rocket that the buttons will be a part of.
+    RailButtons.angular_position : int, float
+        Angular position of the rail buttons in degrees measured
+        as the rotation around the symmetry axis of the rocket
+        relative to one of the other principal axis.
+    """
 
     def __init__(self, upper_button_position, lower_button_position, angular_position):
+        """Initializes RailButtons Class.
+
+        Parameters
+        ----------
+        upper_button_position : int, float
+            Position of the upper rail button in meters. The upper button is the one
+            closest to the nose cone and furthest from the tail. The coordinate system
+            used is the same as the Rocket that the buttons will be a part of.
+        lower_button_position : int, float
+            Position of the lower rail button in meters. The lower button is the one
+            closest to the nose cone and furthest from the tail. The coordinate system
+            used is the same as the Rocket that the buttons will be a part of.
+        angular_position : int, float, optional
+            Angular position of the rail buttons in degrees measured
+            as the rotation around the symmetry axis of the rocket
+            relative to one of the other principal axis.
+
+        Returns
+        -------
+        None
+
+        """
         self.upper_button_position = upper_button_position
         self.lower_button_position = lower_button_position
         self.angular_position = angular_position
+        return None
 
     def __repr__(self):
         rep = f"Rail buttons pair at positions {self.upper_button_position} m and {self.lower_button_position} m"
