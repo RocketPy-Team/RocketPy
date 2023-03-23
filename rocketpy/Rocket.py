@@ -14,7 +14,7 @@ import numpy as np
 from .Function import Function
 from .Parachute import Parachute
 from .AeroSurfaces import AeroSurfaces
-from .AeroSurfaces import NoseCone, TrapezoidalFins, EllipticalFins, Tail
+from .AeroSurfaces import NoseCone, TrapezoidalFins, EllipticalFins, Tail, RailButtons
 from .Motor import EmptyMotor
 
 from .prints.rocket_prints import _RocketPrints
@@ -209,14 +209,12 @@ class Rocket:
         # Parachute data initialization
         self.parachutes = []
 
-        # Rail button data initialization
-        self.railButtons = None
-
         # Aerodynamic data initialization
         self.aerodynamicSurfaces = AeroSurfaces()
         self.nosecone = AeroSurfaces()
         self.fins = AeroSurfaces()
         self.tail = AeroSurfaces()
+        self.rail_buttons = AeroSurfaces()
         self.cpPosition = 0
         self.staticMargin = Function(
             lambda x: 0, inputs="Time (s)", outputs="Static Margin (c)"
@@ -787,7 +785,7 @@ class Rocket:
         # Return self
         return self.parachutes[-1]
 
-    def setRailButtons(self, position, angularPosition=45):
+    def setRailButtons(self, position, angular_position=45):
         """Adds rail buttons to the rocket, allowing for the
         calculation of forces exerted by them when the rocket is
         sliding in the launch rail. Furthermore, rail buttons are
@@ -803,7 +801,7 @@ class Rocket:
             in the rocket coordinate system
             The order does not matter. All values should be in meters.
             See `Rocket.coordinateSystemOrientation` for more information.
-        angularPosition : float
+        angular_position : float
             Angular position of the rail buttons in degrees measured
             as the rotation around the symmetry axis of the rocket
             relative to one of the other principal axis.
@@ -812,15 +810,16 @@ class Rocket:
 
         Returns
         -------
-        None
+        rail_buttons : RailButtons
+            RailButtons object created
         """
         # Place top most rail button as the first element of the list
         if self._csys * position[0] < self._csys * position[1]:
             position.reverse()
         # Save important attributes
-        self.railButtons = self.railButtonPair(position, angularPosition)
+        self.rail_buttons.append(RailButtons(*position, angular_position))
 
-        return None
+        return self.rail_buttons
 
     def addCMEccentricity(self, x, y):
         """Moves line of action of aerodynamic and thrust forces by
@@ -979,6 +978,3 @@ class Rocket:
             )
             self.aerodynamicSurfaces.append([positionVector, chordVector])
         return None
-
-    # Variables
-    railButtonPair = namedtuple("railButtonPair", "position angularPosition")
