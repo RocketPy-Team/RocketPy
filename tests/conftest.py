@@ -63,7 +63,6 @@ def rocket(solid_motor):
 
 @pytest.fixture
 def flight(rocket, example_env):
-
     rocket.setRailButtons([0.2, -0.5])
 
     NoseCone = rocket.addNose(
