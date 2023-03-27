@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="rocketpy",
-    version="0.12.1",
+    version="0.13.0",
     install_requires=[
         "numpy>=1.0",
         "scipy>=1.0",
@@ -15,9 +15,12 @@ setuptools.setup(
         "ipywidgets>=7.6.3",
         "requests",
         "pytz",
-        "timezonefinder",
         "simplekml",
+        "jsonpickle",
     ],
+    extras_require={
+        "timezonefinder": ["timezonefinder"],
+    },
     maintainer="RocketPy Developers",
     author="Giovani Hidalgo Ceotto",
     author_email="ghceotto@gmail.com",
@@ -31,5 +34,5 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.6",
+    python_requires=">=3.7",
 )

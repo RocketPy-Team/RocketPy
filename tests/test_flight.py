@@ -1,4 +1,5 @@
 import datetime
+import os
 from unittest.mock import patch
 
 import matplotlib as plt
@@ -7,6 +8,7 @@ import pytest
 from scipy import optimize
 
 from rocketpy import Environment, Flight, Function, Rocket, SolidMotor
+from rocketpy.AeroSurfaces import AeroSurfaces
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
@@ -31,21 +33,21 @@ def setup_rocket_with_given_static_margin(rocket, static_margin):
         Rocket with the given static margin.
     """
 
-    def compute_static_margin_error_given_distance(distanceToCM, static_margin, rocket):
-        rocket.aerodynamicSurfaces = []
-        rocket.addNose(length=0.5, kind="vonKarman", distanceToCM=1.0)
+    def compute_static_margin_error_given_distance(position, static_margin, rocket):
+        rocket.aerodynamicSurfaces = AeroSurfaces()
+        rocket.addNose(length=0.5, kind="vonKarman", position=1.0 + 0.5)
         rocket.addTrapezoidalFins(
             4,
             span=0.100,
             rootChord=0.100,
             tipChord=0.100,
-            distanceToCM=distanceToCM,
+            position=position,
         )
         rocket.addTail(
             topRadius=0.0635,
             bottomRadius=0.0435,
             length=0.060,
-            distanceToCM=-1.194656,
+            position=-1.194656,
         )
         return rocket.staticMargin(0) - static_margin
 
@@ -76,6 +78,7 @@ def test_flight(mock_show):
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
         burnOut=3.9,
+        grainsCenterOfMassPosition=-0.85704,
         grainNumber=5,
         grainSeparation=5 / 1000,
         grainDensity=1815,
@@ -85,30 +88,31 @@ def test_flight(mock_show):
         nozzleRadius=33 / 1000,
         throatRadius=11 / 1000,
         interpolationMethod="linear",
+        nozzlePosition=-1.255,
+        coordinateSystemOrientation="nozzleToCombustionChamber",
     )
 
     test_rocket = Rocket(
-        motor=test_motor,
         radius=127 / 2000,
         mass=19.197 - 2.956,
         inertiaI=6.60,
         inertiaZ=0.0351,
-        distanceRocketNozzle=-1.255,
-        distanceRocketPropellant=-0.85704,
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
 
     test_rocket.setRailButtons([0.2, -0.5])
 
+    test_rocket.addMotor(test_motor, position=-1.255)
+
     NoseCone = test_rocket.addNose(
-        length=0.55829, kind="vonKarman", distanceToCM=0.71971
+        length=0.55829, kind="vonKarman", position=0.71971 + 0.558291
     )
     FinSet = test_rocket.addTrapezoidalFins(
-        4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
+        4, span=0.100, rootChord=0.120, tipChord=0.040, position=-1.04956
     )
     Tail = test_rocket.addTail(
-        topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656
+        topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
     )
 
     def drogueTrigger(p, y):
@@ -165,6 +169,7 @@ def test_initial_solution(mock_show):
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
         burnOut=3.9,
+        grainsCenterOfMassPosition=-0.85704,
         grainNumber=5,
         grainSeparation=5 / 1000,
         grainDensity=1815,
@@ -174,30 +179,31 @@ def test_initial_solution(mock_show):
         nozzleRadius=33 / 1000,
         throatRadius=11 / 1000,
         interpolationMethod="linear",
+        nozzlePosition=-1.255,
+        coordinateSystemOrientation="nozzleToCombustionChamber",
     )
 
     test_rocket = Rocket(
-        motor=test_motor,
         radius=127 / 2000,
         mass=19.197 - 2.956,
         inertiaI=6.60,
         inertiaZ=0.0351,
-        distanceRocketNozzle=-1.255,
-        distanceRocketPropellant=-0.85704,
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
 
     test_rocket.setRailButtons([0.2, -0.5])
 
+    test_rocket.addMotor(test_motor, position=-1.255)
+
     NoseCone = test_rocket.addNose(
-        length=0.55829, kind="vonKarman", distanceToCM=0.71971
+        length=0.55829, kind="vonKarman", position=0.71971 + 0.558291
     )
     FinSet = test_rocket.addTrapezoidalFins(
-        4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
+        4, span=0.100, rootChord=0.120, tipChord=0.040, position=-1.04956
     )
     Tail = test_rocket.addTail(
-        topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656
+        topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
     )
 
     def drogueTrigger(p, y):
@@ -289,6 +295,7 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
     DummyMotor = SolidMotor(
         thrustSource=1e-300,
         burnOut=1e-10,
+        grainsCenterOfMassPosition=-0.85704,
         grainNumber=5,
         grainSeparation=5 / 1000,
         grainDensity=1e-300,
@@ -297,21 +304,21 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
         grainInitialHeight=120 / 1000,
         nozzleRadius=33 / 1000,
         throatRadius=11 / 1000,
+        nozzlePosition=-1.255,
     )
 
     # Create a rocket with ZERO drag and HUGE mass to keep the rocket's speed constant
     DummyRocket = Rocket(
-        motor=DummyMotor,
         radius=127 / 2000,
         mass=1e16,
         inertiaI=1,
         inertiaZ=0.0351,
-        distanceRocketNozzle=-1.255,
-        distanceRocketPropellant=-0.85704,
         powerOffDrag=0,
         powerOnDrag=0,
     )
     DummyRocket.setRailButtons([0.2, -0.5])
+    DummyRocket.addMotor(DummyMotor, position=-1.255)
+
     setup_rocket_with_given_static_margin(DummyRocket, static_margin)
 
     # Simulate
@@ -363,6 +370,7 @@ def test_rolling_flight(mock_show):
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
         burnOut=3.9,
+        grainsCenterOfMassPosition=-0.85704,
         grainNumber=5,
         grainSeparation=5 / 1000,
         grainDensity=1815,
@@ -372,35 +380,31 @@ def test_rolling_flight(mock_show):
         nozzleRadius=33 / 1000,
         throatRadius=11 / 1000,
         interpolationMethod="linear",
+        nozzlePosition=-1.255,
+        coordinateSystemOrientation="nozzleToCombustionChamber",
     )
 
     test_rocket = Rocket(
-        motor=test_motor,
         radius=127 / 2000,
         mass=19.197 - 2.956,
         inertiaI=6.60,
         inertiaZ=0.0351,
-        distanceRocketNozzle=-1.255,
-        distanceRocketPropellant=-0.85704,
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
 
     test_rocket.setRailButtons([0.2, -0.5])
 
+    test_rocket.addMotor(test_motor, position=-1.255)
+
     NoseCone = test_rocket.addNose(
-        length=0.55829, kind="vonKarman", distanceToCM=0.71971
+        length=0.55829, kind="vonKarman", position=0.71971 + 0.558291
     )
     FinSet = test_rocket.addTrapezoidalFins(
-        4,
-        span=0.100,
-        rootChord=0.120,
-        tipChord=0.040,
-        distanceToCM=-1.04956,
-        cantAngle=0.5,
+        4, span=0.100, rootChord=0.120, tipChord=0.040, position=-1.04956, cantAngle=0.5
     )
     Tail = test_rocket.addTail(
-        topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656
+        topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
     )
 
     def drogueTrigger(p, y):
@@ -452,8 +456,9 @@ def test_export_data():
     )
 
     test_motor = SolidMotor(
-        thrustSource=1000,
+        thrustSource="data/motors/Cesaroni_M1670.eng",
         burnOut=3.9,
+        grainsCenterOfMassPosition=-0.85704,
         grainNumber=5,
         grainSeparation=5 / 1000,
         grainDensity=1815,
@@ -463,27 +468,28 @@ def test_export_data():
         nozzleRadius=33 / 1000,
         throatRadius=11 / 1000,
         interpolationMethod="linear",
+        nozzlePosition=-1.255,
+        coordinateSystemOrientation="nozzleToCombustionChamber",
     )
 
     test_rocket = Rocket(
-        motor=test_motor,
         radius=127 / 2000,
         mass=19.197 - 2.956,
         inertiaI=6.60,
         inertiaZ=0.0351,
-        distanceRocketNozzle=-1.255,
-        distanceRocketPropellant=-0.85704,
         powerOffDrag=0.5,
         powerOnDrag=0.5,
     )
 
     test_rocket.setRailButtons([0.2, -0.5])
 
+    test_rocket.addMotor(test_motor, position=-1.255)
+
     NoseCone = test_rocket.addNose(
-        length=0.55829, kind="vonKarman", distanceToCM=0.71971
+        length=0.55829, kind="vonKarman", position=0.71971 + 0.558291
     )
     FinSet = test_rocket.addTrapezoidalFins(
-        4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
+        4, span=0.100, rootChord=0.120, tipChord=0.040, position=-1.04956
     )
 
     test_flight = Flight(
@@ -502,6 +508,10 @@ def test_export_data():
 
     test_1 = np.loadtxt("test_export_data_1.csv", delimiter=",")
     test_2 = np.loadtxt("test_export_data_2.csv", delimiter=",")
+
+    # Delete files
+    os.remove("test_export_data_1.csv")
+    os.remove("test_export_data_2.csv")
 
     # Check if basic exported content matches data
     assert np.allclose(test_flight.x[:, 0], test_1[:, 0], atol=1e-5) == True
@@ -544,8 +554,9 @@ def test_export_KML():
     )
 
     test_motor = SolidMotor(
-        thrustSource=1000,
-        burnOut=1,
+        thrustSource="data/motors/Cesaroni_M1670.eng",
+        burnOut=3.9,
+        grainsCenterOfMassPosition=-0.85704,
         grainNumber=5,
         grainSeparation=5 / 1000,
         grainDensity=1815,
@@ -555,27 +566,28 @@ def test_export_KML():
         nozzleRadius=33 / 1000,
         throatRadius=11 / 1000,
         interpolationMethod="linear",
+        nozzlePosition=-1.255,
+        coordinateSystemOrientation="nozzleToCombustionChamber",
     )
 
     test_rocket = Rocket(
-        motor=test_motor,
         radius=127 / 2000,
         mass=19.197 - 2.956,
         inertiaI=6.60,
         inertiaZ=0.0351,
-        distanceRocketNozzle=-1.255,
-        distanceRocketPropellant=-0.85704,
         powerOffDrag=0.5,
         powerOnDrag=0.5,
     )
 
     test_rocket.setRailButtons([0.2, -0.5])
 
+    test_rocket.addMotor(test_motor, position=-1.255)
+
     NoseCone = test_rocket.addNose(
-        length=0.55829, kind="vonKarman", distanceToCM=0.71971
+        length=0.55829, kind="vonKarman", position=0.71971 + 0.558291
     )
     FinSet = test_rocket.addTrapezoidalFins(
-        4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
+        4, span=0.100, rootChord=0.120, tipChord=0.040, position=-1.04956
     )
 
     test_flight = Flight(
@@ -589,6 +601,7 @@ def test_export_KML():
 
     # Load exported files and fixtures and compare them
     test_1 = open("test_export_data_1.kml", "r")
+
     for row in test_1:
         if row[:29] == "                <coordinates>":
             r = row[29:-15]
@@ -603,6 +616,10 @@ def test_export_KML():
         lon.append(float(coords[i]))
         lat.append(float(coords[i + 1]))
         z.append(float(coords[i + 2]))
+
+    # Delete temporary test file
+    test_1.close()
+    os.remove("test_export_data_1.kml")
 
     assert np.allclose(test_flight.latitude[:, 1], lat, atol=1e-3) == True
     assert np.allclose(test_flight.longitude[:, 1], lon, atol=1e-3) == True
@@ -620,38 +637,43 @@ def test_latlon_conversions(mock_show):
     )
 
     test_motor = SolidMotor(
-        thrustSource=1545.218,
+        thrustSource="data/motors/Cesaroni_M1670.eng",
         burnOut=3.9,
+        grainsCenterOfMassPosition=-0.85704,
         grainNumber=5,
         grainSeparation=5 / 1000,
         grainDensity=1815,
         grainOuterRadius=33 / 1000,
         grainInitialInnerRadius=15 / 1000,
         grainInitialHeight=120 / 1000,
+        nozzleRadius=33 / 1000,
+        throatRadius=11 / 1000,
+        interpolationMethod="linear",
+        nozzlePosition=-1.255,
+        coordinateSystemOrientation="nozzleToCombustionChamber",
     )
 
     test_rocket = Rocket(
-        motor=test_motor,
         radius=127 / 2000,
         mass=19.197 - 2.956,
         inertiaI=6.60,
         inertiaZ=0.0351,
-        distanceRocketNozzle=-1.255,
-        distanceRocketPropellant=-0.85704,
         powerOffDrag=0.5,
         powerOnDrag=0.5,
     )
 
     test_rocket.setRailButtons([0.2, -0.5])
 
+    test_rocket.addMotor(test_motor, position=-1.255)
+
     NoseCone = test_rocket.addNose(
-        length=0.55829, kind="vonKarman", distanceToCM=0.71971
+        length=0.55829, kind="vonKarman", position=0.71971 + 0.558291
     )
     FinSet = test_rocket.addTrapezoidalFins(
-        4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
+        4, span=0.100, rootChord=0.120, tipChord=0.040, position=-1.04956
     )
     Tail = test_rocket.addTail(
-        topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656
+        topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
     )
 
     def drogueTrigger(p, y):
@@ -700,38 +722,43 @@ def test_latlon_conversions(mock_show):
 def test_latlon_conversions2(mock_show):
     "additional tests to capture incorrect behaviors during lat/lon conversions"
     test_motor = SolidMotor(
-        thrustSource=1000,
-        burnOut=3,
+        thrustSource="data/motors/Cesaroni_M1670.eng",
+        burnOut=3.9,
+        grainsCenterOfMassPosition=-0.85704,
         grainNumber=5,
         grainSeparation=5 / 1000,
         grainDensity=1815,
         grainOuterRadius=33 / 1000,
         grainInitialInnerRadius=15 / 1000,
         grainInitialHeight=120 / 1000,
+        nozzleRadius=33 / 1000,
+        throatRadius=11 / 1000,
+        interpolationMethod="linear",
+        nozzlePosition=-1.255,
+        coordinateSystemOrientation="nozzleToCombustionChamber",
     )
 
     test_rocket = Rocket(
-        motor=test_motor,
         radius=127 / 2000,
         mass=19.197 - 2.956,
         inertiaI=6.60,
         inertiaZ=0.0351,
-        distanceRocketNozzle=-1.255,
-        distanceRocketPropellant=-0.85704,
         powerOffDrag=0.5,
         powerOnDrag=0.5,
     )
 
     test_rocket.setRailButtons([0.2, -0.5])
 
+    test_rocket.addMotor(test_motor, position=-1.255)
+
     NoseCone = test_rocket.addNose(
-        length=0.55829, kind="vonKarman", distanceToCM=0.71971
+        length=0.55829, kind="vonKarman", position=0.71971 + 0.558291
     )
     FinSet = test_rocket.addTrapezoidalFins(
-        4, span=0.100, rootChord=0.120, tipChord=0.040, distanceToCM=-1.04956
+        4, span=0.100, rootChord=0.120, tipChord=0.040, position=-1.04956
     )
     Tail = test_rocket.addTail(
-        topRadius=0.0635, bottomRadius=0.0435, length=0.060, distanceToCM=-1.194656
+        topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
     )
 
     test_env = Environment(
@@ -747,5 +774,5 @@ def test_latlon_conversions2(mock_show):
 
     test_flight.postProcess()
 
-    assert test_flight.longitude(test_flight.tFinal) == 0
+    assert abs(test_flight.longitude(test_flight.tFinal) - 0) < 1e-12
     assert test_flight.latitude(test_flight.tFinal) > 0
