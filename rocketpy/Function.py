@@ -1986,7 +1986,11 @@ class Function:
         ans : float
             Evaluated integral.
         """
-        if self.__interpolation__ == "spline" and numerical is False:
+        if self.__interpolation__ == "linear" and not numerical:
+            Xs = np.linspace(a, b, int((b - a) * 5))
+            Ys = self.getValue(Xs)
+            ans = np.trapz(Ys, x=Xs)
+        elif self.__interpolation__ == "spline" and not numerical:
             # Integrate using spline coefficients
             xData = self.xArray
             yData = self.yArray
@@ -2047,8 +2051,9 @@ class Function:
                 else:
                     # self.__extrapolation__ = 'zero'
                     pass
-        elif self.__interpolation__ == "linear" and numerical is False:
-            return np.trapz(self.yArray, x=self.xArray)
+        else:
+            # Integrate numerically
+            ans, _ = integrate.quad(self, a, b, epsabs=0.01, limit=10000)
         return ans
 
     def differentiate(self, x, dx=1e-6):
@@ -2080,18 +2085,21 @@ class Function:
         # Check if Function object source is array
         if isinstance(self.source, np.ndarray):
             # Operate on grid values
-            Ys = np.diff(self.source[:, 1]) / np.diff(self.source[:, 0])
-            Xs = self.source[:-1, 0] + np.diff(self.source[:, 0]) / 2
-            source = np.concatenate(([Xs], [Ys])).transpose()
+            Ys = np.diff(self.yArray) / np.diff(self.xArray)
+            Xs = self.source[:-1, 0] + np.diff(self.xArray) / 2
+            source = np.column_stack((Xs, Ys))
             # Retrieve inputs, outputs and interpolation
             inputs = self.__inputs__[:]
-            outputs = "d(" + self.__outputs__[0] + ")/d(" + inputs[0] + ")"
-            outputs = "(" + outputs + ")"
+            outputs = f"d({self.__outputs__[0]})/d({inputs[0]})"
             interpolation = "linear"
-            # Create new Function object
-            return Function(source, inputs, outputs, interpolation)
         else:
-            return Function(lambda x: self.differentiate(x))
+            source = lambda x: self.differentiate(x)
+            inputs = self.__inputs__[:]
+            outputs = f"d({self.__outputs__[0]})/d({inputs[0]})"
+            interpolation = "linear"
+
+        # Create new Function object
+        return Function(source, inputs, outputs, interpolation)
 
     def integralFunction(self, lower=None, upper=None, datapoints=100):
         """Returns a Function object representing the integral of the Function object.
@@ -2124,7 +2132,7 @@ class Function:
             for i in range(datapoints):
                 yData[i] = self.integral(lower, xData[i])
             return Function(
-                np.concatenate(([xData], [yData])).transpose(),
+                np.column_stack((xData, yData)),
                 inputs=self.__inputs__,
                 outputs=[o + " Integral" for o in self.__outputs__],
             )
@@ -2155,27 +2163,18 @@ class Function:
         """
         if isinstance(self.source, np.ndarray):
             # Swap the columns
-            source = np.concatenate(
-                ([self.source[:, 1]], [self.source[:, 0]])
-            ).transpose()
-
-            return Function(
-                source,
-                inputs=self.__outputs__,
-                outputs=self.__inputs__,
-                interpolation=self.__interpolation__,
-            )
+            source = np.flip(self.source, axis=1)
         else:
             if approxFunc:
-                source = lambda x: self.findInput(x, approxFunc(x), tol)
+                source = lambda x: self.findInput(x, approxFunc(x), tol=tol)
             else:
                 source = lambda x: self.findInput(x, tol=tol)
-            return Function(
-                source,
-                inputs=self.__outputs__,
-                outputs=self.__inputs__,
-                interpolation=self.__interpolation__,
-            )
+        return Function(
+            source,
+            inputs=self.__outputs__,
+            outputs=self.__inputs__,
+            interpolation=self.__interpolation__,
+        )
 
     def findInput(self, val, start=0, tol=1e-4):
         """
@@ -2195,7 +2194,7 @@ class Function:
             lambda x: self.getValue(x) - val,
             start,
             tol=tol,
-        ).x
+        ).x[0]
 
     def average(self, lower, upper):
         """
@@ -2215,7 +2214,8 @@ class Function:
         Parameters
         ----------
         lower : float
-            Lower limit of the new domain. Only required if the Function's source is a callable instead of a list of points.
+            Lower limit of the new domain. Only required if the Function's source
+            is a callable instead of a list of points.
 
         Returns
         -------
