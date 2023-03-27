@@ -2069,7 +2069,7 @@ class Function:
 
         Returns
         -------
-        ans : float
+        result : float
             Evaluated derivative.
         """
         return (self.getValue(x + dx) - self.getValue(x - dx)) / (2 * dx)
@@ -2108,11 +2108,11 @@ class Function:
         ----------
         lower : scalar, optional
             The lower limit of the interval in which the function is to be
-            plotted. If the Function is given by a dataset, the default
+            evaluated at. If the Function is given by a dataset, the default
             value is the start of the dataset.
         upper : scalar, optional
             The upper limit of the interval in which the function is to be
-            plotted. If the Function is given by a dataset, the default
+            evaluated at. If the Function is given by a dataset, the default
             value is the end of the dataset.
         datapoints : int, optional
             The number of points in which the integral will be evaluated for
@@ -2146,15 +2146,19 @@ class Function:
 
     def inverseFunction(self, approxFunc=None, tol=1e-4):
         """
-        Returns the inverse of the Function. The inverse function of F is a function that undoes the operation of F. The
-        inverse of F exists if and only if F is bijective. Makes the domain the range and the range the domain.
+        Returns the inverse of the Function. The inverse function of F is a
+        function that undoes the operation of F. The inverse of F exists if
+        and only if F is bijective. Makes the domain the range and the range
+        the domain.
 
         Parameters
         ----------
         lower : float
-            Lower limit of the new domain. Only required if the Function's source is a callable instead of a list of points.
+            Lower limit of the new domain. Only required if the Function's
+            source is a callable instead of a list of points.
         upper : float
-            Upper limit of the new domain. Only required if the Function's source is a callable instead of a list of points.
+            Upper limit of the new domain. Only required if the Function's
+            source is a callable instead of a list of points.
 
         Returns
         -------
@@ -2166,9 +2170,9 @@ class Function:
             source = np.flip(self.source, axis=1)
         else:
             if approxFunc:
-                source = lambda x: self.findInput(x, approxFunc(x), tol=tol)
+                source = lambda x: self.findInput(x, start=approxFunc(x), tol=tol)
             else:
-                source = lambda x: self.findInput(x, tol=tol)
+                source = lambda x: self.findInput(x, start=0, tol=tol)
         return Function(
             source,
             inputs=self.__outputs__,
@@ -2176,13 +2180,13 @@ class Function:
             interpolation=self.__interpolation__,
         )
 
-    def findInput(self, val, start=0, tol=1e-4):
+    def findInput(self, val, start, tol=1e-4):
         """
         Finds the optimal input for a given output.
 
         Parameters
         ----------
-        val : float
+        val : int, float
             The value of the output.
 
         Returns
