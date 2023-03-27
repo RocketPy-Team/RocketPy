@@ -2574,6 +2574,7 @@ class PiecewiseFunction(Function):
             extrapolation=extrapolation,
         )
 
+
 def funcify_method(*args, **kwargs):
     """Decorator factory to wrap methods as Function objects and save them as cached
     properties.
