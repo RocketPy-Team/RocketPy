@@ -944,6 +944,17 @@ class Function:
         """
         return len(self.source)
 
+    def __bool__(self):
+        """Returns true if self exists. This is to avoid getting into __len__
+        method in boolean statements.
+
+        Returns
+        -------
+        bool : bool
+            Always True.
+        """
+        return True
+
     # Define all presentation methods
     def __call__(self, *args):
         """Plot the Function if no argument is given. If an
