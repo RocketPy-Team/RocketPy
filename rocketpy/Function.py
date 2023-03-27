@@ -2188,6 +2188,10 @@ class Function:
         ----------
         val : int, float
             The value of the output.
+        start : int, float
+            Initial guess of the output.
+        tol : int, float
+            Tolerance for termination.
 
         Returns
         -------
@@ -2203,6 +2207,13 @@ class Function:
     def average(self, lower, upper):
         """
         Returns the average of the function.
+
+        Parameters
+        ----------
+        lower : float
+            Lower point of the region that the average will be calculated at.
+        upper : float
+            Upper point of the region that the average will be calculated at.
 
         Returns
         -------
