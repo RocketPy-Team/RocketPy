@@ -16,7 +16,7 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __copyright__ = "Copyright 20XX, Projeto Jupiter"
 __credits__ = ["Matheus Marques Araujo", "Rodrigo Schmitt", "Guilherme Tavares"]
 __license__ = "MIT"
-__version__ = "0.12.1"
+__version__ = "0.13.0"
 __maintainer__ = "Giovani Hidalgo Ceotto"
 __email__ = "ghceotto@gmail.com"
 __status__ = "Production"
@@ -28,3 +28,5 @@ from .Function import Function
 from .Motor import HybridMotor, SolidMotor
 from .Rocket import Rocket
 from .utilities import *
+from .plots import *
+from .prints import *

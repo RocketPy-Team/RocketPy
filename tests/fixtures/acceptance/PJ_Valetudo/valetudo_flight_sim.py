@@ -77,6 +77,7 @@ Env.railLength = analysis_parameters.get("railLength")[0]
 Keron = SolidMotor(
     thrustSource="tests/fixtures/acceptance/PJ_Valetudo/valetudo_motor_Keron.csv",
     burnOut=5.274,
+    grainsCenterOfMassPosition=analysis_parameters.get("distanceRocketPropellant")[0],
     reshapeThrustCurve=(
         analysis_parameters.get("burnOut")[0],
         analysis_parameters.get("impulse")[0],
@@ -90,6 +91,7 @@ Keron = SolidMotor(
     grainInitialInnerRadius=analysis_parameters.get("grainInitialInnerRadius")[0],
     grainInitialHeight=analysis_parameters.get("grainInitialHeight")[0],
     interpolationMethod="linear",
+    nozzlePosition=analysis_parameters.get("distanceRocketNozzle")[0],
 )
 
 # Create rocket
@@ -99,24 +101,24 @@ Valetudo = Rocket(
     mass=analysis_parameters.get("rocketMass")[0],
     inertiaI=analysis_parameters.get("inertiaI")[0],
     inertiaZ=analysis_parameters.get("inertiaZ")[0],
-    distanceRocketNozzle=analysis_parameters.get("distanceRocketNozzle")[0],
-    distanceRocketPropellant=analysis_parameters.get("distanceRocketPropellant")[0],
     powerOffDrag="tests/fixtures/acceptance/PJ_Valetudo/valetudo_drag_power_off.csv",
     powerOnDrag="tests/fixtures/acceptance/PJ_Valetudo/valetudo_drag_power_on.csv",
 )
 Valetudo.powerOffDrag *= analysis_parameters.get("powerOffDrag")[0]
 Valetudo.powerOnDrag *= analysis_parameters.get("powerOnDrag")[0]
+Valetudo.addMotor(Keron, analysis_parameters.get("distanceRocketNozzle")[0])
 NoseCone = Valetudo.addNose(
     length=analysis_parameters.get("noseLength")[0],
     kind="vonKarman",
-    distanceToCM=analysis_parameters.get("noseDistanceToCM")[0],
+    position=analysis_parameters.get("noseDistanceToCM")[0]
+    + analysis_parameters.get("noseLength")[0],
 )
 FinSet = Valetudo.addTrapezoidalFins(
     n=3,
     rootChord=analysis_parameters.get("finRootChord")[0],
     tipChord=analysis_parameters.get("finTipChord")[0],
     span=analysis_parameters.get("finSpan")[0],
-    distanceToCM=analysis_parameters.get("finDistanceToCM")[0],
+    position=analysis_parameters.get("finDistanceToCM")[0],
 )
 Valetudo.setRailButtons([0.224, -0.93], 30)
 
