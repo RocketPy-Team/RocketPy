@@ -2317,15 +2317,13 @@ class Function:
             # Retrieve inputs, outputs and interpolation
             inputs = self.__inputs__[:]
             outputs = f"d({self.__outputs__[0]})/d({inputs[0]})"
-            interpolation = "linear"
         else:
             source = lambda x: self.differentiate(x)
             inputs = self.__inputs__[:]
             outputs = f"d({self.__outputs__[0]})/d({inputs[0]})"
-            interpolation = "linear"
 
         # Create new Function object
-        return Function(source, inputs, outputs, interpolation)
+        return Function(source, inputs, outputs, self.__interpolation__)
 
     def integralFunction(self, lower=None, upper=None, datapoints=100):
         """Returns a Function object representing the integral of the Function object.
@@ -2486,7 +2484,7 @@ class Function:
                 outputs=[o + " Average" for o in self.__outputs__],
             )
 
-    def compose(self, func):
+    def compose(self, func, extrapolate=False):
         """
         Returns a Function object which is the result of inputing a function into a function
         (i.e. f(g(x))). The domain will become the domain of the input function and the range
@@ -2506,13 +2504,30 @@ class Function:
         if not isinstance(func, Function):
             raise TypeError("Input must be a Function object.")
 
-        return Function(
-            lambda x: self(func(x)),
-            inputs=func.__inputs__,
-            outputs=self.__outputs__,
-            interpolation=self.__interpolation__,
-            extrapolation=self.__extrapolation__,
-        )
+        # Perform bounds check for composition
+        if not extrapolate:
+            if func.ymin < self.xmin and func.ymax > self.xmax:
+                raise ValueError(
+                    f"Input Function image {func.ymin, func.ymax} must be within "
+                    f"the domain of the Function {self.xmin, self.xmax}."
+                )
+
+        if isinstance(self.source, np.ndarray):
+            return Function(
+                np.concatenate(([func.xArray], [self(func.yArray)])).T,
+                inputs=func.__inputs__,
+                outputs=self.__outputs__,
+                interpolation=self.__interpolation__,
+                extrapolation=self.__extrapolation__,
+            )
+        else:
+            return Function(
+                lambda x: self(func(x)),
+                inputs=func.__inputs__,
+                outputs=self.__outputs__,
+                interpolation=self.__interpolation__,
+                extrapolation=self.__extrapolation__,
+            )
 
 
 class PiecewiseFunction(Function):
