@@ -537,7 +537,7 @@ class Rocket:
         -------
         float
             Total inertia tensor 12 component at time t.
-        
+
         Notes
         -----
         The e_1 direction is assumed to be the direction perpendicular to the
@@ -558,17 +558,17 @@ class Rocket:
         """Inertia tensor 13 component, which corresponds to the inertia
         relative to the e_1 and e_3 axes, centered at the instantaneous center
         of mass.
-        
+
         Parameters
         ----------
         t : float
             Time in seconds.
-            
+
         Returns
         -------
         float
             Total inertia tensor 13 component at time t.
-        
+
         Notes
         -----
         The e_1 direction is assumed to be the direction perpendicular to the
@@ -576,7 +576,7 @@ class Rocket:
         The e_3 direction is assumed to be the axial direction of the rocket.
         RocketPy follows the definition of the inertia tensor as in [1], which
         includes the minus sign for all products of inertia.
-        
+
         References
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
@@ -588,17 +588,17 @@ class Rocket:
         """Inertia tensor 23 component, which corresponds to the inertia
         relative to the e_2 and e_3 axes, centered at the instantaneous center
         of mass.
-        
+
         Parameters
         ----------
         t : float
             Time in seconds.
-            
+
         Returns
         -------
         float
             Total inertia tensor 23 component at time t.
-        
+
         Notes
         -----
         The e_2 direction is assumed to be the direction perpendicular to the
@@ -606,7 +606,7 @@ class Rocket:
         The e_3 direction is assumed to be the axial direction of the rocket.
         RocketPy follows the definition of the inertia tensor as in [1], which
         includes the minus sign for all products of inertia.
-        
+
         References
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
