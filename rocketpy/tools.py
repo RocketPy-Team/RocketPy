@@ -8,7 +8,6 @@ _NOT_FOUND = object()
 import math
 
 import numpy as np
-from numpy.random import *
 
 
 class cached_property:
@@ -36,12 +35,12 @@ class cached_property:
 
 
 # TODO: discuss if this is in the right place
-def get_distribution(distribuition_function_name):
+def get_distribution(distribution_function_name):
     """Sets the distribution function to be used in the dispersion analysis.
 
     Parameters
     ----------
-    distribuition_function_name : string
+    distribution_function_name : string
         The type of distribution to be used in the analysis. It can be
         'uniform', 'normal', 'lognormal', etc.
 
@@ -51,47 +50,26 @@ def get_distribution(distribuition_function_name):
         The distribution function to be used in the analysis.
     """
     distributions = {
-        "normal": normal,
-        "beta": beta,
-        "binomial": binomial,
-        "chisquare": chisquare,
-        "dirichlet": dirichlet,
-        "exponential": exponential,
-        "f": f,
-        "gamma": gamma,
-        "geometric": geometric,
-        "gumbel": gumbel,
-        "hypergeometric": hypergeometric,
-        "laplace": laplace,
-        "logistic": logistic,
-        "lognormal": lognormal,
-        "logseries": logseries,
-        "multinomial": multinomial,
-        "multivariate_normal": multivariate_normal,
-        "negative_binomial": negative_binomial,
-        "noncentral_chisquare": noncentral_chisquare,
-        "noncentral_f": noncentral_f,
-        "pareto": pareto,
-        "poisson": poisson,
-        "power": power,
-        "rayleigh": rayleigh,
-        "standard_cauchy": standard_cauchy,
-        "standard_exponential": standard_exponential,
-        "standard_gamma": standard_gamma,
-        "standard_normal": standard_normal,
-        "standard_t": standard_t,
-        "triangular": triangular,
-        "uneliform": uniform,
-        "vonmises": vonmises,
-        "wald": wald,
-        "weibull": weibull,
-        "zipf": zipf,
+        "normal": np.random.normal,
+        "beta": np.random.beta,
+        "binomial": np.random.binomial,
+        "chisquare": np.random.chisquare,
+        "exponential": np.random.exponential,
+        "geometric": np.random.geometric,
+        "logistic": np.random.logistic,
+        "lognormal": np.random.lognormal,
+        "poisson": np.random.poisson,
+        "power": np.random.power,
+        "uniform": np.random.uniform,
+        "wald": np.random.wald,
+        "weibull": np.random.weibull,
+        "zipf": np.random.zipf,
     }
     try:
-        return distributions[distribuition_function_name]
+        return distributions[distribution_function_name]
     except KeyError:
         raise ValueError(
-            f"Distribution function '{distribuition_function_name}' not found, please use a np.random distribution."
+            f"Distribution function '{distribution_function_name}' not found, please use a np.random distribution."
         )
 
 

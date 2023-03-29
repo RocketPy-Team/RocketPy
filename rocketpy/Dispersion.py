@@ -5,6 +5,7 @@ __license__ = "MIT"
 
 import ast
 import math
+from random import choice
 from time import process_time, time
 
 import matplotlib.pyplot as plt
@@ -12,10 +13,6 @@ import numpy as np
 import simplekml
 from IPython.display import display
 from matplotlib.patches import Ellipse
-from numpy.random import *
-from random import (
-    choice,
-)  # TODO: choice must be imported from random. numpy choice does not work propperly
 
 from .AeroSurfaces import EllipticalFins, NoseCone, Tail, TrapezoidalFins
 from .Environment import Environment
@@ -396,7 +393,6 @@ class Dispersion:
                 else np.random.normal
             )
             return (value[0], value[1], dist_func)
-            # TODO: test every distribuition function
 
     def __pop_none(self, dictionary):
         """Removes all the keys that have a value of None. This is useful
@@ -915,8 +911,7 @@ class Dispersion:
                         "Attribute can not be exported. Check export_list."
                     )
         else:
-            # TODO: idk if this print is really necessary, it is a bit annoying
-            print("No export list provided, using default list instead.")
+            # No export list provided, using default list instead.
             export_list = standard_output
 
         return export_list
