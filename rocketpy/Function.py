@@ -2505,14 +2505,14 @@ class Function:
             raise TypeError("Input must be a Function object.")
 
         if isinstance(self.source, np.ndarray):
-             # Perform bounds check for composition
+            # Perform bounds check for composition
             if not extrapolate:
                 if func.ymin < self.xmin and func.ymax > self.xmax:
                     raise ValueError(
                         f"Input Function image {func.ymin, func.ymax} must be within "
                         f"the domain of the Function {self.xmin, self.xmax}."
                     )
-                
+
             return Function(
                 np.concatenate(([func.xArray], [self(func.yArray)])).T,
                 inputs=func.__inputs__,
