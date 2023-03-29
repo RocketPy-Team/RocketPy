@@ -489,7 +489,7 @@ class Function:
         if self.__domDim__ == 1:
             Xs = np.linspace(lower, upper, samples)
             Ys = self.getValue(Xs.tolist()) if oneByOne else self.getValue(Xs)
-            self.source = np.concatenate(([Xs], [Ys])).transpose()
+            self.setSource(np.concatenate(([Xs], [Ys])).transpose())
             self.setInterpolation(interpolation)
             self.setExtrapolation(extrapolation)
         elif self.__domDim__ == 2:
@@ -504,7 +504,7 @@ class Function:
             mesh = [[Xs[i], Ys[i]] for i in range(len(Xs))]
             # Evaluate function at all mesh nodes and convert it to matrix
             Zs = np.array(self.getValue(mesh))
-            self.source = np.concatenate(([Xs], [Ys], [Zs])).transpose()
+            self.setSource(np.concatenate(([Xs], [Ys], [Zs])).transpose())
             self.__interpolation__ = "shepard"
         return self
 
@@ -588,7 +588,7 @@ class Function:
         if self.__domDim__ == 1:
             Xs = modelFunction.source[:, 0]
             Ys = self.getValue(Xs.tolist()) if oneByOne else self.getValue(Xs)
-            self.source = np.concatenate(([Xs], [Ys])).transpose()
+            self.setSource(np.concatenate(([Xs], [Ys])).transpose())
         elif self.__domDim__ == 2:
             # Create nodes to evaluate function
             Xs = modelFunction.source[:, 0]
@@ -598,7 +598,7 @@ class Function:
             mesh = [[Xs[i], Ys[i]] for i in range(len(Xs))]
             # Evaluate function at all mesh nodes and convert it to matrix
             Zs = np.array(self.getValue(mesh))
-            self.source = np.concatenate(([Xs], [Ys], [Zs])).transpose()
+            self.setSource(np.concatenate(([Xs], [Ys], [Zs])).transpose())
 
         self.setInterpolation(modelFunction.__interpolation__)
         self.setExtrapolation(modelFunction.__extrapolation__)
@@ -2504,15 +2504,15 @@ class Function:
         if not isinstance(func, Function):
             raise TypeError("Input must be a Function object.")
 
-        # Perform bounds check for composition
-        if not extrapolate:
-            if func.ymin < self.xmin and func.ymax > self.xmax:
-                raise ValueError(
-                    f"Input Function image {func.ymin, func.ymax} must be within "
-                    f"the domain of the Function {self.xmin, self.xmax}."
-                )
-
         if isinstance(self.source, np.ndarray):
+             # Perform bounds check for composition
+            if not extrapolate:
+                if func.ymin < self.xmin and func.ymax > self.xmax:
+                    raise ValueError(
+                        f"Input Function image {func.ymin, func.ymax} must be within "
+                        f"the domain of the Function {self.xmin, self.xmax}."
+                    )
+                
             return Function(
                 np.concatenate(([func.xArray], [self(func.yArray)])).T,
                 inputs=func.__inputs__,
