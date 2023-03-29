@@ -196,6 +196,113 @@ class LiquidMotor(Motor):
 
         return self.inertiaI, self.inertiaI, self.inertiaZ
 
+    @funcify_method("time (s)", "Inertia I_11 (kg m²)")
+    def I_11(self):
+        """Inertia tensor 11 component, which corresponds to the inertia
+        relative to the e_1 axis, centered at the instantaneous center of mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        float
+            Propellant inertia tensor 11 component at time t.
+
+        Notes
+        -----
+        The e_1 direction is assumed to be the direction perpendicular to the
+        motor body axis.
+        The propellant shape is assumed symmetrical around the axial direction,
+        e_3. This, I_11 and I_22 are equal.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        """
+        I_11 = Function(0)
+        centerOfMass = self.centerOfMass
+
+        for positioned_tank in self.positioned_tanks:
+            tank = positioned_tank.get("tank")
+            tankPosition = positioned_tank.get("position")
+            I_11 += (
+                tank.inertiaTensor
+                + tank.mass * (tankPosition + tank.centerOfMass - centerOfMass) ** 2
+            )
+
+        return I_11
+
+    @funcify_method("time (s)", "Inertia I_22 (kg m²)")
+    def I_22(self):
+        """Inertia tensor 22 component, which corresponds to the inertia
+        relative to the e_2 axis, centered at the instantaneous center of mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        float
+            Propellant inertia tensor 22 component at time t.
+
+        Notes
+        -----
+        The e_2 direction is assumed to be the direction perpendicular to the
+        motor body axis and to the e_1 axis.
+        The propellant shape is assumed symmetrical around the axial direction,
+        e_3. This, I_11 and I_22 are equal.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        """
+        return self.I_11
+
+    @funcify_method("time (s)", "Inertia I_33 (kg m²)")
+    def I_33(self):
+        """Inertia tensor 33 component, which corresponds to the inertia
+        relative to the e_3 axis, centered at the instantaneous center of mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        float
+            Propellant inertia tensor 33 component at time t.
+
+        Notes
+        -----
+        The e_3 direction is assumed to be the direction parallel to the motor
+        body axis.
+        The propellant is assumed as an inviscid liquid, and thus does not
+        rotate around the e_3 axis. Therefore, I_33 is equal to zero.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        """
+        return 0
+
+    @funcify_method("time (s)", "Inertia I_12 (kg m²)")
+    def I_12(self):
+        return 0
+
+    @funcify_method("time (s)", "Inertia I_13 (kg m²)")
+    def I_13(self):
+        return 0
+
+    @funcify_method("time (s)", "Inertia I_23 (kg m²)")
+    def I_23(self):
+        return 0
+
     def addTank(self, tank, position):
         """Adds a tank to the rocket motor.
 

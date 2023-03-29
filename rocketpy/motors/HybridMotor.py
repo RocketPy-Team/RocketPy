@@ -339,6 +339,108 @@ class HybridMotor(Motor):
 
         return self.InertiaI, self.InertiaI, self.InertiaZ
 
+    @funcify_method("time (s)", "Inertia I_11 (kg m²)")
+    def I_11(self):
+        """Inertia tensor 11 component, which corresponds to the inertia
+        relative to the e_1 axis, centered at the instantaneous center of mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        float
+            Propellant inertia tensor 11 component at time t.
+
+        Notes
+        -----
+        The e_1 direction is assumed to be the direction perpendicular to the
+        motor body axis.
+        Due to symmetry, the inertia tensor 22 component is equal to the
+        inertia tensor 11 component.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        """
+        solidCorrection = (
+            self.solid.mass * (self.solid.centerOfMass - self.centerOfMass) ** 2
+        )
+        liquidCorrection = (
+            self.liquid.mass * (self.liquid.centerOfMass - self.centerOfMass) ** 2
+        )
+
+        I_11 = self.solid.I_11 + solidCorrection + self.liquid.I_11 + liquidCorrection
+        return I_11
+
+    @funcify_method("time (s)", "Inertia I_22 (kg m²)")
+    def I_22(self):
+        """Inertia tensor 22 component, which corresponds to the inertia
+        relative to the e_2 axis, centered at the instantaneous center of mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        float
+            Propellant inertia tensor 22 component at time t.
+
+        Notes
+        -----
+        The e_2 direction is assumed to be the direction perpendicular to the
+        motor body axis and to the e_1 axis.
+        Due to symmetry, the inertia tensor 22 component is equal to the
+        inertia tensor 11 component.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        """
+        return self.I_11
+
+    @funcify_method("time (s)", "Inertia I_33 (kg m²)")
+    def I_33(self):
+        """Inertia tensor 33 component, which corresponds to the inertia
+        relative to the e_3 axis, centered at the instantaneous center of mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        float
+            Propellant inertia tensor 33 component at time t.
+
+        Notes
+        -----
+        The e_3 direction is assumed to be the direction parallel to the motor
+        body axis.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        """
+        return self.solid.I_33 + self.liquid.I_33
+
+    @funcify_method("time (s)", "Inertia I_12 (kg m²)")
+    def I_12(self):
+        return 0
+
+    @funcify_method("time (s)", "Inertia I_13 (kg m²)")
+    def I_13(self):
+        return 0
+
+    @funcify_method("time (s)", "Inertia I_23 (kg m²)")
+    def I_23(self):
+        return 0
+
     def addTank(self, tank, position):
         """Adds a tank to the motor.
 

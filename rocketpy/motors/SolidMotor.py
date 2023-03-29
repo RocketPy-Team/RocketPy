@@ -571,6 +571,121 @@ class SolidMotor(Motor):
 
         return self.inertiaI, self.inertiaI, self.inertiaZ
 
+    @funcify_method("time (s)", "Inertia I_11 (kg m²)")
+    def I_11(self):
+        """Inertia tensor 11 component, which corresponds to the inertia
+        relative to the e_1 axis, centered at the instantaneous center of mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        float
+            Propellant inertia tensor 11 component at time t.
+
+        Notes
+        -----
+        The e_1 direction is assumed to be the direction perpendicular to the
+        motor body axis.
+        Due to symmetry, the inertia tensor 22 component is equal to the
+        inertia tensor 11 component.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        """
+        grainMass = self.mass / self.grainNumber
+        grainMassDot = self.massFlowRate / self.grainNumber
+        grainNumber = self.grainNumber
+        grainInertia11 = grainMass * (
+            (1 / 4) * (self.grainOuterRadius**2 + self.grainInnerRadius**2)
+            + (1 / 12) * self.grainHeight**2
+        )
+
+        # Calculate each grain's distance d to propellant center of mass
+        initialValue = (grainNumber - 1) / 2
+        d = np.linspace(-initialValue, initialValue, grainNumber)
+        d = d * (self.grainInitialHeight + self.grainSeparation)
+
+        # Calculate inertia for all grains
+        I_11 = grainNumber * grainInertia11 + grainMass * np.sum(d**2)
+
+        return I_11
+
+    @funcify_method("time (s)", "Inertia I_22 (kg m²)")
+    def I_22(self):
+        """Inertia tensor 22 component, which corresponds to the inertia
+        relative to the e_2 axis, centered at the instantaneous center of mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        float
+            Propellant inertia tensor 22 component at time t.
+
+        Notes
+        -----
+        The e_2 direction is assumed to be the direction perpendicular to the
+        motor body axis and to the e_1 axis.
+        Due to symmetry, the inertia tensor 22 component is equal to the
+        inertia tensor 11 component.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        """
+        return self.I_11
+
+    @funcify_method("time (s)", "Inertia I_33 (kg m²)")
+    def I_33(self):
+        """Inertia tensor 33 component, which corresponds to the inertia
+        relative to the e_3 axis, centered at the instantaneous center of mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        float
+            Propellant inertia tensor 33 component at time t.
+
+        Notes
+        -----
+        The e_3 direction is assumed to be the direction parallel to the motor
+        body axis.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        """
+        I_33 = (
+            (1 / 2.0)
+            * self.mass
+            * (self.grainOuterRadius**2 + self.grainInnerRadius**2)
+        )
+        return I_33
+
+    @funcify_method("time (s)", "Inertia I_12 (kg m²)")
+    def I_12(self):
+        return 0
+
+    @funcify_method("time (s)", "Inertia I_13 (kg m²)")
+    def I_13(self):
+        return 0
+
+    @funcify_method("time (s)", "Inertia I_23 (kg m²)")
+    def I_23(self):
+        return 0
+
     def allInfo(self):
         """Prints out all data and graphs available about the Motor.
 

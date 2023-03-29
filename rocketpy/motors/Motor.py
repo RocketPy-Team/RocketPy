@@ -354,6 +354,183 @@ class Motor(ABC):
         """
         pass
 
+    @property
+    @abstractmethod
+    def I_11(self, t):
+        """Inertia tensor 11 component, which corresponds to the inertia
+        relative to the e_1 axis, centered at the instantaneous center of mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        float
+            Propellant inertia tensor 11 component at time t.
+
+        Notes
+        -----
+        The e_1 direction is assumed to be the direction perpendicular to the
+        motor body axis.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def I_22(self):
+        """Inertia tensor 22 component, which corresponds to the inertia
+        relative to the e_2 axis, centered at the instantaneous center of mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        float
+            Propellant inertia tensor 22 component at time t.
+
+        Notes
+        -----
+        The e_2 direction is assumed to be the direction perpendicular to the
+        motor body axis, and perpendicular to e_1.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def I_33(self):
+        """Inertia tensor 33 component, which corresponds to the inertia
+        relative to the e_3 axis, centered at the instantaneous center of mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        float
+            Propellant inertia tensor 33 component at time t.
+
+        Notes
+        -----
+        The e_3 direction is assumed to be the axial direction of the rocket
+        motor.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def I_12(self):
+        """Inertia tensor 12 component, which corresponds to the product of
+        inertia relative to axes e_1 and e_2, centered at the instantaneous
+        center of mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        float
+            Propellant inertia tensor 12 component at time t.
+
+        Notes
+        -----
+        The e_1 direction is assumed to be the direction perpendicular to the
+        motor body axis.
+        The e_2 direction is assumed to be the direction perpendicular to the
+        motor body axis, and perpendicular to e_1.
+        RocketPy follows the definition of the inertia tensor as in [1], which
+        includes the minus sign for all products of inertia.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def I_13(self):
+        """Inertia tensor 13 component, which corresponds to the product of
+        inertia relative to the axes e_1 and e_3, centered at the instantaneous
+        center of mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        float
+            Propellant inertia tensor 13 component at time t.
+
+        Notes
+        -----
+        The e_1 direction is assumed to be the direction perpendicular to the
+        motor body axis.
+        The e_3 direction is assumed to be the axial direction of the rocket
+        motor.
+        RocketPy follows the definition of the inertia tensor as in [1], which
+        includes the minus sign for all products of inertia.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def I_23(self):
+        """Inertia tensor 23 component, which corresponds to the product of
+        inertia relative the axes e_2 and e_3, centered at the instantaneous
+        center of mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        float
+            Propellant inertia tensor 23 component at time t.
+
+        Notes
+        -----
+        The e_2 direction is assumed to be the direction perpendicular to the
+        motor body axis, and perpendicular to e_1.
+        The e_3 direction is assumed to be the axial direction of the rocket
+        motor.
+        RocketPy follows the definition of the inertia tensor as in [1], which
+        includes the minus sign for all products of inertia.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia
+        """
+        pass
+
     def importEng(self, fileName):
         """Read content from .eng file and process it, in order to return the
         comments, description and data points.
@@ -570,7 +747,7 @@ class GenericMotor(Motor):
         """Calculates the inertia tensor of the motor with respect to the fixed
         estimated center of mass. The propellant is assumed of cylindrical
         shape whose centroid is the chamber position. For a more accurate
-        evaluation,use the classes SolidMotor, LiquidMotor or HybridMotor.
+        evaluation, use the classes SolidMotor, LiquidMotor or HybridMotor.
 
         Parameters
         ----------
@@ -593,6 +770,105 @@ class GenericMotor(Motor):
         self.inertiaZ.setOutputs("inertia z (kg*m^2)")
 
         return self.inertiaI, self.inertiaI, self.inertiaZ
+
+    @funcify_method("time (s)", "Inertia I_11 (kg m²)")
+    def I_11(self):
+        """Inertia tensor 11 component, which corresponds to the inertia
+        relative to the e_1 axis, centered at the instantaneous center of mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        float
+            Propellant inertia tensor 11 component at time t.
+
+        Notes
+        -----
+        The e_1 direction is assumed to be the direction perpendicular to the
+        motor body axis.
+        The propellant is assumed of cylindrical shape whose centroid is the
+        chamber position. For a more accurate evaluation, use the classes
+        SolidMotor, LiquidMotor or HybridMotor.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        """
+        return self.mass * (3 * self.chamberRadius**2 + self.chamberHeight**2) / 12
+
+    @funcify_method("time (s)", "Inertia I_22 (kg m²)")
+    def I_22(self):
+        """Inertia tensor 22 component, which corresponds to the inertia
+        relative to the e_2 axis, centered at the instantaneous center of mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        float
+            Propellant inertia tensor 22 component at time t.
+
+        Notes
+        -----
+        The e_2 direction is assumed to be the direction perpendicular to the
+        motor body axis and to the e_1 axis.
+        The propellant is assumed of cylindrical shape whose centroid is the
+        chamber position. For a more accurate evaluation, use the classes
+        SolidMotor, LiquidMotor or HybridMotor.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        """
+        return self.I_11
+
+    @funcify_method("time (s)", "Inertia I_33 (kg m²)")
+    def I_33(self):
+        """Inertia tensor 33 component, which corresponds to the inertia
+        relative to the e_3 axis, centered at the instantaneous center of mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        float
+            Propellant inertia tensor 33 component at time t.
+
+        Notes
+        -----
+        The e_3 direction is assumed to be the direction parallel to the motor
+        body axis.
+        The propellant is assumed of cylindrical shape whose centroid is the
+        chamber position. For a more accurate evaluation, use the classes
+        SolidMotor, LiquidMotor or HybridMotor.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        """
+        return self.mass * self.chamberRadius**2 / 2
+
+    @funcify_method("time (s)", "Inertia I_12 (kg m²)")
+    def I_12(self):
+        return 0
+
+    @funcify_method("time (s)", "Inertia I_13 (kg m²)")
+    def I_13(self):
+        return 0
+
+    @funcify_method("time (s)", "Inertia I_23 (kg m²)")
+    def I_23(self):
+        return 0
 
     def allInfo(self):
         """Prints out all data and graphs available about the Motor.

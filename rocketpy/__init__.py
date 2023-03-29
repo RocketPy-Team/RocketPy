@@ -25,7 +25,8 @@ from .Environment import Environment
 from .EnvironmentAnalysis import EnvironmentAnalysis
 from .Flight import Flight
 from .Function import Function
-from .motors import HybridMotor, SolidMotor, LiquidMotor, Fluid
+from .motors import HybridMotor, SolidMotor, LiquidMotor, GenericMotor
+from .motors import EmptyMotor, Fluid
 from .motors import Tank, MassFlowRateBasedTank, UllageBasedTank, MassBasedTank
 from .Rocket import Rocket
 from .utilities import *
