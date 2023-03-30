@@ -198,7 +198,7 @@ class Rocket:
         # Define rocket geometrical parameters in SI units
         self.centerOfDryMassPosition = centerOfDryMassPosition
         self.radius = radius
-        self.area = np.pi * self.radius ** 2
+        self.area = np.pi * self.radius**2
 
         # Eccentricity data initialization
         self.cpEccentricityX = 0
