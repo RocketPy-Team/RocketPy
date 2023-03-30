@@ -1309,10 +1309,10 @@ class Flight:
             # Motor burning
             # Retrieve important motor quantities
             # Inertias
-            Tz = self.rocket.motor.inertiaZ.getValueOpt(t)
-            Ti = self.rocket.motor.inertiaI.getValueOpt(t)
-            TzDot = self.rocket.motor.inertiaZDot.getValueOpt(t)
-            TiDot = self.rocket.motor.inertiaIDot.getValueOpt(t)
+            Tz = self.rocket.motor.I_33.getValueOpt(t)
+            Ti = self.rocket.motor.I_11.getValueOpt(t)
+            TzDot = self.rocket.motor.I_33.differentiate(t, dx=1e-6)
+            TiDot = self.rocket.motor.I_11.differentiate(t, dx=1e-6)
             # Mass
             MtDot = self.rocket.motor.massDot.getValueOpt(t)
             Mt = self.rocket.motor.mass.getValueOpt(t)
@@ -1333,8 +1333,8 @@ class Flight:
 
         # Retrieve important quantities
         # Inertias
-        Rz = self.rocket.inertiaZ
-        Ri = self.rocket.inertiaI
+        Rz = self.rocket.dry_I_33
+        Ri = self.rocket.dry_I_11
         # Mass
         Mr = self.rocket.mass
         M = Mt + Mr
@@ -1568,35 +1568,52 @@ class Flight:
         x, y, z, vx, vy, vz, q0, q1, q2, q3, omega1, omega2, omega3 = u
 
         # Compute quaternion derivatives
-        q0d = 0.5 * (-omega1 * q1 - omega2 * q2 - omega3 * q3)
-        q1d = 0.5 * (omega1 * q0 + omega3 * q2 - omega2 * q3)
-        q2d = 0.5 * (omega2 * q0 - omega3 * q1 + omega1 * q3)
-        q3d = 0.5 * (omega3 * q0 + omega2 * q1 - omega1 * q2)
+        q_0_d = 0.5 * (-omega1 * q1 - omega2 * q2 - omega3 * q3)
+        q_1_d = 0.5 * (omega1 * q0 + omega3 * q2 - omega2 * q3)
+        q_2_d = 0.5 * (omega2 * q0 - omega3 * q1 + omega1 * q3)
+        q_3_d = 0.5 * (omega3 * q0 + omega2 * q1 - omega1 * q2)
 
         # Load mass and inertia properties
-        M = self.rocket.mass + self.rocket.motor.mass.getValueOpt(t)
-        md = self.rocket.motor.massDot.getValueOpt(t)
-        mdd = self.rocket.motor.massDot.differentiate(t, dx=1e-6)
-        # TODO: implement self.rocket.IXX
-        Ixx = self.rocket.Ixx.getValueOpt(t)
-        Iyy = self.rocket.Iyy.getValueOpt(t)
-        Izz = self.rocket.Izz.getValueOpt(t)
-        Ixy = self.rocket.Ixy.getValueOpt(t)
-        Izx = self.rocket.Izx.getValueOpt(t)
-        Iyz = self.rocket.Iyz.getValueOpt(t)
-        Ixxd = self.rocket.Ixx.differentiate(t, dx=1e-6)
-        Iyyd = self.rocket.Iyy.differentiate(t, dx=1e-6)
-        Izzd = self.rocket.Izz.differentiate(t, dx=1e-6)
-        Ixyd = self.rocket.Ixy.differentiate(t, dx=1e-6)
-        Iyzd = self.rocket.Iyz.differentiate(t, dx=1e-6)
-        Izxd = self.rocket.Izx.differentiate(t, dx=1e-6)
+        dry_mass = self.rocket.mass
+        propellant_mass = self.rocket.motor.mass.getValueOpt(t)
+        total_mass = dry_mass + propellant_mass
+        reduced_mass = (dry_mass * propellant_mass) / (dry_mass + propellant_mass)
+        m_d = self.rocket.motor.massDot.getValueOpt(t)
+        m_dd = self.rocket.motor.massDot.differentiate(t, dx=1e-6)
+        I_11 = self.rocket.I_11.getValueOpt(t)
+        I_22 = self.rocket.I_22.getValueOpt(t)
+        I_33 = self.rocket.I_33.getValueOpt(t)
+        I_12 = self.rocket.I_12.getValueOpt(t)
+        I_13 = self.rocket.I_13.getValueOpt(t)
+        I_23 = self.rocket.I_23.getValueOpt(t)
+        I_11_d = self.rocket.I_11.differentiate(t, dx=1e-6)
+        I_22_d = self.rocket.I_22.differentiate(t, dx=1e-6)
+        I_33_d = self.rocket.I_33.differentiate(t, dx=1e-6)
+        I_12_d = self.rocket.I_12.differentiate(t, dx=1e-6)
+        I_13_d = self.rocket.I_13.differentiate(t, dx=1e-6)
+        I_23_d = self.rocket.I_23.differentiate(t, dx=1e-6)
 
+        # Geometry
+        # b = -self.rocket.distanceRocketPropellant
+        b = (
+            -(
+                self.rocket.centerOfPropellantPosition(0)
+                - self.rocket.centerOfDryMassPosition
+            )
+            * self.rocket._csys
+        )
+        # c = -self.rocket.distanceRocketNozzle
+        c = (
+            -(self.rocket.motorPosition - self.rocket.centerOfDryMassPosition)
+            * self.rocket._csys
+        )
+        a = b * propellant_mass / total_mass
         # Load nozzle data
         r_noz_scalar = (
             self.rocket.distanceRocketNozzle
         )  # TODO: Make sure value is negative
-        S_noz_zz = self.rocket.motor.nozzleRadius**2
-        S_noz_xx = 0.5 * S_noz_zz
+        S_noz_zz = 0.5 * self.rocket.motor.nozzleRadius**2
+        S_noz_xx = 0.5 * S_noz_zz + 0.25 * c**2
         S_noz_yy = S_noz_xx
         S_noz_xy = 0
         S_noz_yz = 0
@@ -1606,8 +1623,8 @@ class Flight:
         r_cm_scalar = self.rocket.centerOfMass.getValueOpt(
             t
         )  # TODO: Make sure value is negative
-        r_cmd = self.rocket.centerOfMass.differentiate(t, dx=1e-6)
-        r_cmdd = self.rocket.centerOfMass.differentiate(t, order=2, dx=1e-6)
+        r_cm_d = self.rocket.centerOfMass.differentiate(t, dx=1e-6)
+        r_cm_dd = self.rocket.centerOfMass.differentiate(t, order=2, dx=1e-6)
 
         # Compute forces and moments
         g = self.env.g
@@ -1713,7 +1730,7 @@ class Flight:
 
         # Compute matrices
         A_matrix = AA.autofunc_c(
-            M, r_cm_scalar, q0, q1, q2, q3, Ixx, Iyy, Izz, Ixy, Izx, Iyz
+            total_mass, r_cm_scalar, q0, q1, q2, q3, I_11, I_22, I_33, I_12, I_23, I_13
         )
         b_vector = bb.autofunc_c(
             q0,
@@ -1723,36 +1740,36 @@ class Flight:
             omega1,
             omega2,
             omega3,
-            q0d,
-            q1d,
-            q2d,
-            q3d,
-            M,
-            md,
-            mdd,
+            q_0_d,
+            q_1_d,
+            q_2_d,
+            q_3_d,
+            total_mass,
+            m_d,
+            m_dd,
             r_cm_scalar,
-            r_cmd,
-            r_cmdd,
+            r_cm_d,
+            r_cm_dd,
             r_noz_scalar,
             R3,
             R1,
             R2,
             Thrust,
-            Ixx,
-            Iyy,
-            Izz,
-            Ixy,
-            Iyz,
-            Izx,
-            Ixxd,
-            Iyyd,
-            Izzd,
-            Ixyd,
-            Iyzd,
-            Izxd,
-            Mx,
-            My,
-            Mz,
+            I_11,
+            I_22,
+            I_33,
+            I_12,
+            I_23,
+            I_13,
+            I_11_d,
+            I_22_d,
+            I_33_d,
+            I_12_d,
+            I_23_d,
+            I_13_d,
+            M1,
+            M2,
+            M3,
             g,
             S_noz_xx,
             S_noz_yy,
@@ -1773,10 +1790,10 @@ class Flight:
             ax,
             ay,
             az,
-            q0d,
-            q1d,
-            q2d,
-            q3d,
+            q_0_d,
+            q_1_d,
+            q_2_d,
+            q_3_d,
             alpha1,
             alpha2,
             alpha3,
@@ -2334,10 +2351,10 @@ class Flight:
             * self.rocket._csys
         )
         mu = self.rocket.reducedMass
-        Rz = self.rocket.inertiaZ
-        Ri = self.rocket.inertiaI
-        Tz = self.rocket.motor.inertiaZ
-        Ti = self.rocket.motor.inertiaI
+        Rz = self.rocket.dry_I_33
+        Ri = self.rocket.dry_I_11
+        Tz = self.rocket.motor.I_33
+        Ti = self.rocket.motor.I_11
         I1, I2, I3 = (Ri + Ti + mu * b**2), (Ri + Ti + mu * b**2), (Rz + Tz)
         # Redefine I1, I2 and I3 time grid to allow for efficient Function algebra
         I1.setDiscreteBasedOnModel(self.w1)
