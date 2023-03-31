@@ -2212,12 +2212,12 @@ class Function:
         ans : float
             Evaluated integral.
         """
-        if self.__interpolation__ == "linear" and not numerical:
-            Xs = np.linspace(a, b, int((b - a) * 5))
-            Ys = self.getValue(Xs)
-            ans = np.trapz(Ys, x=Xs)
-        elif self.__interpolation__ == "spline" and not numerical:
-            # Integrate using spline coefficients
+        # Guarantee a < b
+        integrationSign = np.sign(b - a)
+        if integrationSign == -1:
+            a, b = b, a
+        # Different implementations depending on interpolation
+        if self.__interpolation__ == "spline" and numerical is False:
             xData = self.xArray
             yData = self.yArray
             coeffs = self.__splineCoefficients__
@@ -2277,10 +2277,32 @@ class Function:
                 else:
                     # self.__extrapolation__ = 'zero'
                     pass
+        elif self.__interpolation__ == "linear" and numerical is False:
+            # Integrate from a to b using np.trapz
+            # Get data in interval
+            xIntegrationData = self.xArray[(self.xArray >= a) & (self.xArray <= b)]
+            yIntegrationData = self.yArray[(self.xArray >= a) & (self.xArray <= b)]
+            # Add integration limits to data
+            if self.__extrapolation__ == "zero":
+                if a >= xData[0]:
+                    xIntegrationData = np.concatenate(([a], xIntegrationData, [b]))
+                    yIntegrationData = np.concatenate(
+                        ([self(a)], yIntegrationData, [self(b)])
+                    )
+                else:
+                    xIntegrationData = np.concatenate((xIntegrationData, [b]))
+                    yIntegrationData = np.concatenate((yIntegrationData, [self(b)]))
+            else:
+                xIntegrationData = np.concatenate(([a], xIntegrationData, [b]))
+                yIntegrationData = np.concatenate(
+                    ([self(a)], yIntegrationData, [self(b)])
+                )
+            # Integrate using np.trapz
+            ans = np.trapz(yIntegrationData, xIntegrationData)
         else:
             # Integrate numerically
-            ans, _ = integrate.quad(self, a, b, epsabs=0.01, limit=10000)
-        return ans
+            ans, _ = integrate.quad(self, a, b, epsabs=0.001, limit=10000)
+        return integrationSign * ans
 
     def differentiate(self, x, dx=1e-6):
         """Evaluates the derivative of a 1-D Function at x with a step size of dx.
