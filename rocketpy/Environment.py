@@ -299,7 +299,7 @@ class Environment:
     def __init__(
         self,
         railLength,
-        gravity=9.80665,
+        gravity=None,
         date=None,
         latitude=0,
         longitude=0,
@@ -357,32 +357,10 @@ class Environment:
         # Save launch rail length
         self.rL = railLength
 
-        # Initialize Earth geometry
-        self.ellipsoid = self.setEarthGeometry(datum)
-
-        # Stardard gravity
-        self.standard_g = 9.80665
-
-        # Set gravity model
-        self.g = self.setGravityModel(gravity)
-
-        # Save datum
-        self.datum = datum
-
-        # Save date
-        if date != None:
-            self.setDate(date, timeZone)
-        else:
-            self.date = None
-            self.localDate = None
-            self.timeZone = None
-
         # Initialize constants
         self.earthRadius = 6.3781 * (10**6)
         self.airGasConstant = 287.05287  # in J/K/Kg
-
-        # Initialize plots and prints objects
-        self.prints = _EnvironmentPrints(self)
+        self.standard_g = 9.80665
 
         # Initialize atmosphere
         self.setAtmosphericModel("StandardAtmosphere")
@@ -392,6 +370,24 @@ class Environment:
             self.setLocation(latitude, longitude)
         else:
             self.lat, self.lon = None, None
+
+        # Save date
+        if date != None:
+            self.setDate(date, timeZone)
+        else:
+            self.date = None
+            self.localDate = None
+            self.timeZone = None
+
+        # Initialize Earth geometry and save datum
+        self.datum = datum
+        self.ellipsoid = self.setEarthGeometry(datum)
+
+        # Set gravity model
+        self.g = self.setGravityModel(gravity)
+
+        # Initialize plots and prints objects
+        self.prints = _EnvironmentPrints(self)
 
         # Store launch site coordinates referenced to UTM projection system
         if self.lat > -80 and self.lat < 84:
@@ -485,7 +481,7 @@ class Environment:
         # Return None
 
     def setGravityModel(self, gravity):
-        if gravity == "variable":
+        if gravity is None:
             return self.somiglianaGravity
         else:
             return Function(gravity, "height (m)", "gravity (m/s²)")
@@ -499,17 +495,19 @@ class Environment:
         k_somgl = 1.931852652458e-3  # normal gravity formula const.
         first_ecc_sqrd = 6.694379990141e-3  # square of first eccentricity
 
+        # Compute quantities
+        sin_lat_sqrd = (np.sin(self.lat * np.pi / 180)) ** 2
+
         gravity_somgl = g_e * (
-            (1 + k_somgl * (np.sin(self.lat)) ** 2)
-            / (np.sqrt(1 - first_ecc_sqrd * (np.sin(self.lat)) ** 2))
+            (1 + k_somgl * sin_lat_sqrd) / (np.sqrt(1 - first_ecc_sqrd * sin_lat_sqrd))
         )
         height_correction = (
             1
-            - 2 / a * (1 + f + m_rot - 2 * f * (np.sin(self.lat)) ** 2) * height
+            - height * 2 / a * (1 + f + m_rot - 2 * f * sin_lat_sqrd)
             + 3 * height**2 / a**2
         )
 
-        return gravity_somgl * height_correction
+        return height_correction * gravity_somgl
 
     def setElevation(self, elevation="Open-Elevation"):
         """Set elevation of launch site given user input or using the
@@ -2867,7 +2865,7 @@ class Environment:
         )
 
         # Get gravity and R
-        g = self.g
+        g = self.standard_g
         R = self.airGasConstant
 
         # Create function to compute pressure profile
@@ -2892,10 +2890,10 @@ class Environment:
 
             # Compute presure
             if B != 0:
-                P = Pb * (1 + (B / Tb) * (H - Hb)) ** (-g(h) / (B * R))
+                P = Pb * (1 + (B / Tb) * (H - Hb)) ** (-g / (B * R))
             else:
                 T = Tb + B * (H - Hb)
-                P = Pb * np.exp(-(H - Hb) * (g(h) / (R * T)))
+                P = Pb * np.exp(-(H - Hb) * (g / (R * T)))
 
             # Return answer
             return P
@@ -3264,7 +3262,9 @@ class Environment:
         try:
             return ellipsoid[datum]
         except KeyError:
-            return ellipsoid["SIRGAS2000"]
+            raise AttributeError(
+                f"The reference system {datum} for Earth geometry " "is not recognized."
+            )
 
     # Auxiliary functions - Geodesic Coordinates
     def geodesicToUtm(self, lat, lon):
