@@ -150,7 +150,7 @@ def test_info_returns(mock_show, example_env):
     returned_plots = example_env.allPlotInfoReturned()
     returned_infos = example_env.allInfoReturned()
     expected_info = {
-        "grav": 9.80665,
+        "grav": example_env.g,
         "launch_rail_length": 5,
         "elevation": 0,
         "modelType": "StandardAtmosphere",
