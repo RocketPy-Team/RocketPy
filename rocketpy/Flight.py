@@ -1779,7 +1779,7 @@ class Flight:
     @funcify_method("Time (s)", "Dynamic Viscosity (Pa s)", "spline", "constant")
     def dynamicViscosity(self):
         """Air dynamic viscosity felt by the rocket as a rocketpy.Function of time."""
-        return self.retrieve_temporary_values_arrays[7]
+        return self.retrieve_temporary_values_arrays[8]
 
     @funcify_method("Time (s)", "Speed of Sound (m/s)", "spline", "constant")
     def speedOfSound(self):
