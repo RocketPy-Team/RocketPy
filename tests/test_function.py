@@ -134,7 +134,7 @@ def test_extrapolation_methods(linear_func):
     assert np.isclose(linear_func.getValue(-1), -1, atol=1e-6)
 
 
-def test_integral(linear_func):
+def test_integral_linear_interpolation(linear_func):
     """Test the integral method of the Function class.
 
     Parameters
@@ -144,3 +144,25 @@ def test_integral(linear_func):
     """
     # Test integral
     assert np.isclose(linear_func.integral(0, 1), 0.5, atol=1e-6)
+
+
+@pytest.mark.parametrize("a", [-1, 0, 0.5, 1, 2, 2.5, 3.5, 4, 5])
+@pytest.mark.parametrize("b", [-1, 0, 0.5, 1, 2, 2.5, 3.5, 4, 5])
+def test_integral_spline_interpolation(spline_func, a, b):
+    """Test the integral method of the Function class.
+
+    Parameters
+    ----------
+    spline_func : rocketpy.Function
+        A Function object created from a list of values.
+    a : float
+        Lower limit of the integral.
+    b : float
+        Upper limit of the integral.
+    """
+    # Test integral
+    assert np.isclose(
+        spline_func.integral(a, b, numerical=False),
+        spline_func.integral(a, b, numerical=True),
+        atol=1e-3,
+    )
