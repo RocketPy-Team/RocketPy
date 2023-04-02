@@ -2225,10 +2225,17 @@ class Function:
             # Check to see if interval starts before point data
             if a < xData[0]:
                 if self.__extrapolation__ == "constant":
-                    ans += yData[0] * (xData[0] - a)
+                    ans += yData[0] * (min(xData[0], b) - a)
                 elif self.__extrapolation__ == "natural":
                     c = coeffs[:, 0]
-                    subB = a - xData[0]  # subA = 0
+                    subB = a - xData[0]
+                    subA = min(b, xData[0]) - xData[0]
+                    ans += (
+                        (c[3] * subA**4) / 4
+                        + (c[2] * subA**3 / 3)
+                        + (c[1] * subA**2 / 2)
+                        + c[0] * subA
+                    )
                     ans -= (
                         (c[3] * subB**4) / 4
                         + (c[2] * subB**3 / 3)
@@ -2271,10 +2278,10 @@ class Function:
             # Check to see if interval ends after point data
             if b > xData[-1]:
                 if self.__extrapolation__ == "constant":
-                    ans += yData[-1] * (b - xData[-1])
+                    ans += yData[-1] * (b - max(xData[-1], a))
                 elif self.__extrapolation__ == "natural":
                     c = coeffs[:, -1]
-                    subA = xData[-1] - xData[-2]
+                    subA = max(xData[-1], a) - xData[-2]
                     subB = b - xData[-2]
                     ans -= (
                         (c[3] * subA**4) / 4
