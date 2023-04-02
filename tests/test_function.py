@@ -134,7 +134,9 @@ def test_extrapolation_methods(linear_func):
     assert np.isclose(linear_func.getValue(-1), -1, atol=1e-6)
 
 
-def test_integral_linear_interpolation(linear_func):
+@pytest.mark.parametrize("a", [-1, 0, 0.5, 1, 2, 2.5, 3.5, 4, 5])
+@pytest.mark.parametrize("b", [-1, 0, 0.5, 1, 2, 2.5, 3.5, 4, 5])
+def test_integral_linear_interpolation(linearly_interpolated_func, a, b):
     """Test the integral method of the Function class.
 
     Parameters
@@ -143,12 +145,17 @@ def test_integral_linear_interpolation(linear_func):
         A Function object created from a list of values.
     """
     # Test integral
-    assert np.isclose(linear_func.integral(0, 1), 0.5, atol=1e-6)
+    assert np.isclose(
+        linearly_interpolated_func.integral(a, b, numerical=False),
+        linearly_interpolated_func.integral(a, b, numerical=True),
+        atol=1e-3,
+    )
 
 
-@pytest.mark.parametrize("a", [-1, 0, 0.5, 1, 2, 2.5, 3.5, 4, 5])
-@pytest.mark.parametrize("b", [-1, 0, 0.5, 1, 2, 2.5, 3.5, 4, 5])
-def test_integral_spline_interpolation(spline_func, a, b):
+@pytest.mark.parametrize("func", ["linear_func", "spline_interpolated_func"])
+@pytest.mark.parametrize("a", [-1, -0.5, 0, 0.5, 1, 2, 2.5, 3.5, 4, 5])
+@pytest.mark.parametrize("b", [-1, -0.5, 0, 0.5, 1, 2, 2.5, 3.5, 4, 5])
+def test_integral_spline_interpolation(request, func, a, b):
     """Test the integral method of the Function class.
 
     Parameters
@@ -161,8 +168,10 @@ def test_integral_spline_interpolation(spline_func, a, b):
         Upper limit of the integral.
     """
     # Test integral
+    # Get the function from the fixture
+    func = request.getfixturevalue(func)
     assert np.isclose(
-        spline_func.integral(a, b, numerical=False),
-        spline_func.integral(a, b, numerical=True),
+        func.integral(a, b, numerical=False),
+        func.integral(a, b, numerical=True),
         atol=1e-3,
     )
