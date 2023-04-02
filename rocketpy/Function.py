@@ -2238,20 +2238,34 @@ class Function:
                 else:
                     # self.__extrapolation__ = 'zero'
                     pass
+
             # Integrate in subintervals between Xs of given data up to b
-            i = 0
+            i = max(np.searchsorted(xData, a, side="left") - 1, 0)
             while i < len(xData) - 1 and xData[i] < b:
-                if b < xData[i + 1]:
-                    subB = b - xData[i]  # subA = 0
+                if xData[i] <= a <= xData[i + 1] and xData[i] <= b <= xData[i + 1]:
+                    subA = a - xData[i]
+                    subB = b - xData[i]
+                elif xData[i] <= a <= xData[i + 1]:
+                    subA = a - xData[i]
+                    subB = xData[i + 1] - xData[i]
+                elif b <= xData[i + 1]:
+                    subA = 0
+                    subB = b - xData[i]
                 else:
-                    subB = xData[i + 1] - xData[i]  # subA = 0
+                    subA = 0
+                    subB = xData[i + 1] - xData[i]
                 c = coeffs[:, i]
-                subB = xData[i + 1] - xData[i]  # subA = 0
                 ans += (
                     (c[3] * subB**4) / 4
                     + (c[2] * subB**3 / 3)
                     + (c[1] * subB**2 / 2)
                     + c[0] * subB
+                )
+                ans -= (
+                    (c[3] * subA**4) / 4
+                    + (c[2] * subA**3 / 3)
+                    + (c[1] * subA**2 / 2)
+                    + c[0] * subA
                 )
                 i += 1
             # Check to see if interval ends after point data
