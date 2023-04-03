@@ -817,9 +817,10 @@ class Rocket:
         if self._csys * position[0] < self._csys * position[1]:
             position.reverse()
         # Save important attributes
-        self.rail_buttons.append(RailButtons(*position, angular_position))
+        rB = RailButtons(*position, angular_position)
+        self.rail_buttons.append(rB)
 
-        return self.rail_buttons
+        return rB
 
     def addCMEccentricity(self, x, y):
         """Moves line of action of aerodynamic and thrust forces by

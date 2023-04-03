@@ -728,7 +728,7 @@ class Dispersion:
                         setting["rail_buttons"][rail_buttons]["upper_button_position"],
                         setting["rail_buttons"][rail_buttons]["lower_button_position"],
                     ],
-                    angularPosition=setting["rail_buttons"][rail_buttons][
+                    angular_position=setting["rail_buttons"][rail_buttons][
                         "angular_position"
                     ],
                 )
