@@ -1505,7 +1505,6 @@ class Flight:
         ]
         ax, ay, az = np.dot(K, L)
         az -= self.env.g(z)  # Include gravity
-        print(az)
 
         # Create uDot
         uDot = [
@@ -2116,8 +2115,8 @@ class Flight:
         totalMass = deepcopy(self.rocket.totalMass)
         totalMass.setDiscreteBasedOnModel(self.z)
         # TODO: change calculation method to account for variable gravity
-        potentialEnergy = totalMass * self.env.g(self.z)
-        return potentialEnergy
+        potentialEnergy = totalMass.source[:, 1] * self.env.g(self.z.source[:, 1])
+        return np.column_stack((self.z.source[:, 0], potentialEnergy))
 
     # Total Mechanical Energy
     @funcify_method("Time (s)", "Mechanical Energy (J)", "spline", "constant")
