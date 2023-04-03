@@ -32,9 +32,6 @@ except ImportError:
 
 # TODO: How to save Functions? With pickle? Save just the source?
 
-# TODO: check if Dispersion.flight_list is slowing down the simulation. If it is
-# than only save outputs and create method mentioned in the todo aboves
-# OR
 # TODO: create a method that recreates each flight from inputs_log
 # and saves it in an attribute that is a list
 
@@ -140,7 +137,6 @@ class Dispersion:
         self.parachutes = rocket.parachutes
         self.rail_buttons = rocket.rail_buttons
 
-        self.flight_list = []
         self._dispersion_input_file = ""
         self._dispersion_output_file = ""
         self._dispersion_error_file = ""
@@ -764,9 +760,6 @@ class Dispersion:
                     # timeOvershoot=setting["flight"]["timeOvershoot"],
                     # verbose=setting["flight"]["verbose"],
                 )
-
-                # Saves flight in flight list
-                self.flight_list.append(dispersion_flight)
 
                 # Export inputs and outputs to file
                 self.__export_flight_data(
