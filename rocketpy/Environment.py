@@ -319,9 +319,10 @@ class Environment:
             Length in which the rocket will be attached to the rail, only
             moving along a fixed direction, that is, the line parallel to the
             rail.
-        gravity : scalar, optional
+        gravity : int, float, callable, string, array, optional
             Surface gravitational acceleration. Positive values point the
-            acceleration down. Default value is 9.80665.
+            acceleration down. If None, the Somigliana formula is used to
+            compute the gravity at the launch site as a function of height.
         date : array, optional
             Array of length 4, stating (year, month, day, hour (UTC))
             of rocket launch. Must be given if a Forecast, Reanalysis
@@ -481,13 +482,42 @@ class Environment:
         # Return None
 
     def setGravityModel(self, gravity):
+        """Sets the gravity model to be used in the simulation based
+        on the guver user input to the gravity parameter.
+
+        Parameters
+        ----------
+        gravity : None or Function source
+
+        Returns
+        -------
+        Function
+            Function object representing the gravity model.
+        """
         if gravity is None:
-            return self.somiglianaGravity
+            return self.somiglianaGravity.setDiscrete(0, self.maxExpectedHeight, 100)
         else:
-            return Function(gravity, "height (m)", "gravity (m/s²)")
+            return Function(gravity, "height (m)", "gravity (m/s²)").setDiscrete(
+                0, self.maxExpectedHeight, 100
+            )
 
     @funcify_method("height (m)", "gravity (m/s²)")
     def somiglianaGravity(self, height):
+        """Computes the gravity acceleration with the Somigliana formula.
+        An height correction is applied to the normal gravity that is
+        accurate for heights used in aviation. The formula is based on the
+        WGS84 ellipsoid, but is accurate for other reference ellipsoids.
+
+        Parameters
+        ----------
+        height : float
+            Height above the reference ellipsoid in meters.
+
+        Returns
+        -------
+        Function
+            Function object representing the gravity model.
+        """
         a = 6378137.0  # semi_major_axis
         f = 1 / 298.257223563  # flattening_factor
         m_rot = 3.449786506841e-3  # rotation_factor
@@ -3252,6 +3282,19 @@ class Environment:
         return None
 
     def setEarthGeometry(self, datum):
+        """Sets the Earth geometry for the Environment class based on the
+        datum provided.
+
+        Parameters
+        ----------
+        datum: str
+            The datum to be used for the Earth geometry.
+
+        Returns
+        -------
+        earthGeometry: namedtuple
+            The namedtuple containing the Earth geometry.
+        """
         geodesy = namedtuple("earthGeometry", "semiMajorAxis flattening")
         ellipsoid = {
             "SIRGAS2000": geodesy(6378137.0, 1 / 298.257223563),
