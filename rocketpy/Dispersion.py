@@ -321,7 +321,13 @@ class Dispersion:
                 setting[class_name] = {}
                 for key, value in data.items():
                     if isinstance(value, tuple):
-                        setting[class_name][key] = value[-1](value[0], value[1])
+                        # TODO: it is weird to use dist functions that dont accept stds. But it is functional
+                        # try: dist functions that has nom value and std
+                        try:
+                            setting[class_name][key] = value[-1](value[0], value[1])
+                        # except: dist functions that only gets nom value
+                        except:
+                            setting[class_name][key] = value[-1](value[0])
                     elif isinstance(value, list):
                         # checks if list is empty
                         setting[class_name][key] = choice(value) if value else value

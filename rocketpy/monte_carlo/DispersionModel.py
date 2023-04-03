@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Extra, root_validator, validator
+from ..tools import get_distribution
 
 
 class DispersionModel(BaseModel):
@@ -59,6 +60,7 @@ class DispersionModel(BaseModel):
 
         # create list with name of the fields that need validation
         # which are all fields except the one refering to the object
+        # and except the ones in exception_list
         validate_fields = [
             field_name
             for field_name, field_type in cls.__fields__.items()
@@ -81,8 +83,11 @@ class DispersionModel(BaseModel):
                     # if second item is not str, then (nom_val, std)
                     if not isinstance(v[1], str):
                         values[field] = v
-                    # if second item is str, then (nom_val, std, str)
+                    # if second item is str, then (nom_val, std, 'dist_func')
                     else:
+                        # check if 'dist_func' is a valid name
+                        get_distribution(v[1])
+                        # saves values
                         values[field] = (
                             getattr(values[obj_name], field),
                             v[0],
@@ -96,6 +101,8 @@ class DispersionModel(BaseModel):
                     assert isinstance(
                         v[2], str
                     ), f"\nField '{field}' \n\tThird item of tuple must be a string \n\tThe string should contain the name of a valid numpy.random distribution function"
+                    # check if 'dist_func' is a valid name
+                    get_distribution(v[2])
                     values[field] = v
             elif isinstance(v, list):
                 # checks if input list is empty, meaning nothing was inputted
@@ -141,6 +148,8 @@ class DispersionModel(BaseModel):
                 assert isinstance(
                     v[2], str
                 ), f"\tThird item of tuple must be a string \n\tThe string should contain the name of a valid numpy.random distribution function"
+                # check if 'dist_func' is a valid name
+                get_distribution(v[2])
                 return v
             return v
         elif isinstance(v, list):

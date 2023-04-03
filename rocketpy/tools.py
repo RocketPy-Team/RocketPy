@@ -34,7 +34,6 @@ class cached_property:
         return val
 
 
-# TODO: discuss if this is in the right place
 def get_distribution(distribution_function_name):
     """Sets the distribution function to be used in the dispersion analysis.
 
@@ -51,25 +50,37 @@ def get_distribution(distribution_function_name):
     """
     distributions = {
         "normal": np.random.normal,
-        "beta": np.random.beta,
         "binomial": np.random.binomial,
         "chisquare": np.random.chisquare,
         "exponential": np.random.exponential,
-        "geometric": np.random.geometric,
+        "gamma": np.random.gamma,
+        "gumbel": np.random.gumbel,
+        "laplace": np.random.laplace,
         "logistic": np.random.logistic,
-        "lognormal": np.random.lognormal,
         "poisson": np.random.poisson,
-        "power": np.random.power,
         "uniform": np.random.uniform,
         "wald": np.random.wald,
         "weibull": np.random.weibull,
-        "zipf": np.random.zipf,
     }
     try:
         return distributions[distribution_function_name]
     except KeyError:
         raise ValueError(
-            f"Distribution function '{distribution_function_name}' not found, please use a np.random distribution."
+            f"Distribution function '{distribution_function_name}' not found, "
+            + "please use one of the following np.random distribution function:"
+            + '\n\t"normal"'
+            + '\n\t"binomial"'
+            + '\n\t"chisquare"'
+            + '\n\t"exponential"'
+            + '\n\t"geometric"'
+            + '\n\t"gamma"'
+            + '\n\t"gumbel"'
+            + '\n\t"laplace"'
+            + '\n\t"logistic"'
+            + '\n\t"poisson"'
+            + '\n\t"uniform"'
+            + '\n\t"wald"'
+            + '\n\t"weibull"\n'
         )
 
 
