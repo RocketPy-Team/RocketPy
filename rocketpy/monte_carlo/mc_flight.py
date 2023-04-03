@@ -25,7 +25,7 @@ class McFlight(DispersionModel):
         _description_
     """
 
-    flight: Flight = Field(..., repr=False, exclude=True)
+    flight: Flight = Field(..., exclude=True)
     inclination: Any = 0
     heading: Any = 0
     initialSolution: Union[

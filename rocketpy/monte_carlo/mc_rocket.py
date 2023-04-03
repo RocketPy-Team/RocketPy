@@ -18,7 +18,7 @@ from .mc_solid_motor import McSolidMotor
 
 
 class McRocket(DispersionModel):
-    rocket: Rocket = Field(..., repr=False, exclude=True)
+    rocket: Rocket = Field(..., exclude=True)
     radius: Any = 0
     mass: Any = 0
     inertiaI: Any = 0

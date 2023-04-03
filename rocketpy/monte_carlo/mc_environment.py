@@ -6,6 +6,9 @@ from ..Environment import Environment
 from .DispersionModel import DispersionModel
 
 
+# TODO: name suggestions: `DispersionEnvironment`, `DispEnvironment`, EnvironmentDispersion`, EnvironmentDisp` or `EnvironmentData`
+
+
 class McEnvironment(DispersionModel):
     """Holds information about an Environment to be used in the Dispersion class.
 
@@ -91,7 +94,7 @@ class McEnvironment(DispersionModel):
     Examples: https://osmnx.readthedocs.io/en/stable/osmnx.html#osmnx.stats.basic_stats
     """
 
-    environment: Environment = Field(..., repr=False, exclude=True)
+    environment: Environment = Field(..., exclude=True)
     railLength: Any = 0
     date: List[Union[Tuple[int, int, int, int], None]] = []
     elevation: Any = 0

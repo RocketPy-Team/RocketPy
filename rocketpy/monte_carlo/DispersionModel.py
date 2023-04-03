@@ -25,6 +25,16 @@ class DispersionModel(BaseModel):
         arbitrary_types_allowed = True
         extra = Extra.allow
 
+    def __repr__(self):
+        field_values = "\n\t"
+        field_values += "\t".join(
+            [
+                f"{field_name}={getattr(self, field_name)!r}\n"
+                for field_name in self.__fields__
+            ]
+        )
+        return f"{self.__class__.__name__}({field_values})\n"
+
     # TODO: find a way to validate if distribuition_function string is the name
     # of a valid np.random function
     # Currently the error is only raised in get_distribuition in tools.py

@@ -27,7 +27,7 @@ class McNoseCone(DispersionModel):
         _description_
     """
 
-    nosecone: NoseCone = Field(..., repr=False, exclude=True)
+    nosecone: NoseCone = Field(..., exclude=True)
     length: Any = 0
     kind: List[Union[StrictStr, None]] = []
     baseRadius: Any = 0
@@ -55,7 +55,7 @@ class McTrapezoidalFins(DispersionModel):
         _description_
     """
 
-    trapezoidalFins: TrapezoidalFins = Field(..., repr=False, exclude=True)
+    trapezoidalFins: TrapezoidalFins = Field(..., exclude=True)
     n: List[StrictInt] = []
     rootChord: Any = 0
     tipChord: Any = 0
@@ -87,7 +87,7 @@ class McEllipticalFins(DispersionModel):
         _description_
     """
 
-    ellipticalFins: EllipticalFins = Field(..., repr=False, exclude=True)
+    ellipticalFins: EllipticalFins = Field(..., exclude=True)
     n: Any = 0
     rootChord: Any = 0
     span: Any = 0
@@ -116,7 +116,7 @@ class McTail(DispersionModel):
         _description_
     """
 
-    tail: Tail = Field(..., repr=False, exclude=True)
+    tail: Tail = Field(..., exclude=True)
     topRadius: Any = 0
     bottomRadius: Any = 0
     length: Any = 0
@@ -143,7 +143,7 @@ class McRailButtons(DispersionModel):
         _description_
     """
 
-    rail_buttons: RailButtons = Field(..., repr=False, exclude=True)
+    rail_buttons: RailButtons = Field(..., exclude=True)
     upper_button_position: Any = 0
     lower_button_position: Any = 0
     angular_position: Any = 0
