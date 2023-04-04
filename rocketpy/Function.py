@@ -2420,12 +2420,16 @@ class Function:
 
         Parameters
         ----------
-        lower : float
-            Lower limit of the new domain. Only required if the Function's
-            source is a callable instead of a list of points.
-        upper : float
-            Upper limit of the new domain. Only required if the Function's
-            source is a callable instead of a list of points.
+        approxFunc : callable, optional
+            A function that approximates the inverse of the Function. This
+            function is used to find the starting guesses for the inverse
+            root finding algorithm. This is better used when the inverse
+            in complex but has a simple approximation.
+            The default is None in which case the starting point is zero.
+
+        tol : float, optional
+            The tolerance for the inverse root finding algorithm. The default
+            is 1e-4.
 
         Returns
         -------
