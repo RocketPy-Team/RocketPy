@@ -2529,14 +2529,20 @@ class Function:
 
     def compose(self, func, extrapolate=False):
         """
-        Returns a Function object which is the result of inputing a function into a function
-        (i.e. f(g(x))). The domain will become the domain of the input function and the range
-        will become the range of the original function.
+        Returns a Function object which is the result of inputing a function
+        into a function (i.e. f(g(x))). The domain will become the domain of
+        the input function and the range will become the range of the original
+        function.
 
         Parameters
         ----------
         func : Function
             The function to be inputed into the function.
+
+        extrapolate : bool, optional
+            Whether or not to extrapolate the function if the input function's
+            range is outside of the original function's domain. The default is
+            False.
 
         Returns
         -------
@@ -2547,7 +2553,7 @@ class Function:
         if not isinstance(func, Function):
             raise TypeError("Input must be a Function object.")
 
-        if isinstance(self.source, np.ndarray):
+        if isinstance(self.source, np.ndarray) and isinstance(func.source, np.ndarray):
             # Perform bounds check for composition
             if not extrapolate:
                 if func.ymin < self.xmin and func.ymax > self.xmax:
