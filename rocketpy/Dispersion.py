@@ -124,7 +124,7 @@ class Dispersion:
         """
 
         # Save and initialize parameters
-        self.filename = filename.split(".")[0]
+        self.filename = filename
         # TODO try to import a file with the filename in init
 
         self.environment = environment
@@ -137,9 +137,21 @@ class Dispersion:
         self.parachutes = rocket.parachutes
         self.rail_buttons = rocket.rail_buttons
 
-        self._dispersion_input_file = ""
-        self._dispersion_output_file = ""
-        self._dispersion_error_file = ""
+        try:
+            self.import_inputs()
+        except:
+            self._dispersion_input_file = ""
+
+        try:
+            self.import_outputs()
+        except:
+            self._dispersion_output_file = ""
+
+        try:
+            self.import_errors()
+        except:
+            self._dispersion_error_file = ""
+
         # TODO: Initialize variables so they can be accessed by MATLAB
 
         return None
@@ -957,6 +969,94 @@ class Dispersion:
         return None
 
     # methods for importing data
+    def import_outputs(self, filename=None):
+        """Import dispersion results from .txt file and save it into a dictionary.
+
+        Parameters
+        ----------
+        filename : str
+            Name or directory path to the file to be imported. If none, Dispersion
+            filename will be used
+
+        Returns
+        -------
+        None
+        """
+        # select file to use
+        filepath = filename if filename else self.filename
+
+        try:
+            self.dispersion_output_file = open(filepath, "r+")
+            # Print the number of flights simulated
+            print(
+                f"A total of {self.num_of_loaded_sims} simulations results were loaded from"
+                f" the following output file: {filepath}\n"
+            )
+        except:
+            self.dispersion_output_file = open(f"{filepath}.disp_outputs.txt", "r+")
+            # Print the number of flights simulated
+            print(
+                f"A total of {self.num_of_loaded_sims} simulations results were loaded from"
+                f" the following output file: {filepath}.disp_outputs.txt\n"
+            )
+        return None
+
+    def import_inputs(self, filename=None):
+        """Import dispersion results from .txt file and save it into a dictionary.
+
+        Parameters
+        ----------
+        filename : str
+            Name or directory path to the file to be imported. If none, Dispersion
+            filename will be used
+
+        Returns
+        -------
+        None
+        """
+        # select file to use
+        filepath = filename if filename else self.filename
+
+        try:
+            self.dispersion_output_file = open(filepath, "r+")
+            # Print the number of flights simulated
+            print(f"The following input file was imported: {filepath}\n")
+        except:
+            self.dispersion_output_file = open(f"{filepath}.disp_inputs.txt", "r+")
+            # Print the number of flights simulated
+            print(
+                f"The following input file was imported: {filepath}.disp_inputs.txt\n"
+            )
+        return None
+
+    def import_errors(self, filename=None):
+        """Import dispersion results from .txt file and save it into a dictionary.
+
+        Parameters
+        ----------
+        filename : str
+            Name or directory path to the file to be imported. If none, Dispersion
+            filename will be used
+
+        Returns
+        -------
+        None
+        """
+        # select file to use
+        filepath = filename if filename else self.filename
+
+        try:
+            self.dispersion_output_file = open(filepath, "r+")
+            # Print the number of flights simulated
+            print(f"The following error file was imported: {filepath}\n")
+        except:
+            self.dispersion_output_file = open(f"{filepath}.disp_errors.txt", "r+")
+            # Print the number of flights simulated
+            print(
+                f"The following error file was imported: {filepath}.disp_errors.txt\n"
+            )
+        return None
+
     def import_results(self, filename=None, variables=None):
         """Import dispersion results from .txt file and save it into a dictionary.
 
@@ -975,17 +1075,9 @@ class Dispersion:
         # select file to use
         filepath = filename if filename else self.filename
 
-        self.dispersion_error_file = open(f"{filepath}.disp_errors.txt", "r+")
-        self.dispersion_input_file = open(f"{filepath}.disp_inputs.txt", "r+")
-        self.dispersion_output_file = open(f"{filepath}.disp_outputs.txt", "r+")
-
-        # Print the number of flights simulated
-        print(
-            f"A total of {self.num_of_loaded_sims} simulations results were loaded from"
-            f" the following file: {self.filename.split('.')[0] + '.disp_outputs.txt'}"
-        )
-        # Process the results and save them as attributes of the class
-        # self.__process_results(variables=variables)
+        self.import_outputs(filename=filepath)
+        self.import_inputs(filename=filepath)
+        self.import_errors(filename=filepath)
 
         return None
 
