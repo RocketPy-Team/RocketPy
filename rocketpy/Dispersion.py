@@ -199,7 +199,11 @@ class Dispersion:
         inputs_log = []
         # Loop through each line in the file
         for line in self.dispersion_input_file:
-            # Skip comments lines
+            # swap "<" and ">" to \"
+            # this is a way to interpret the trigger functions
+            line = line.replace("<", "'")
+            line = line.replace(">", "'")
+            # # Skip comments lines
             if line[0] != "{":
                 continue
             # Try to convert the line to a dictionary
@@ -331,11 +335,6 @@ class Dispersion:
                     elif isinstance(value, list):
                         # checks if list is empty
                         setting[class_name][key] = choice(value) if value else value
-                        # if Function, get source
-                        if isinstance(setting[class_name][key], Function):
-                            setting[class_name][key] = list(
-                                setting[class_name][key].source
-                            )
                     else:
                         # else is dictionary
                         setting[class_name][key] = {}
@@ -355,13 +354,6 @@ class Dispersion:
                                 setting[class_name][key][sub_key] = (
                                     choice(sub_value) if sub_value else sub_value
                                 )
-                                # if Function, get source
-                                if isinstance(
-                                    setting[class_name][key][sub_key], Function
-                                ):
-                                    setting[class_name][key][sub_key] = list(
-                                        setting[class_name][key][sub_key].source
-                                    )
 
             yield setting
 

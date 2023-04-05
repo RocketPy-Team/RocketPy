@@ -1178,7 +1178,7 @@ class Function:
     def __repr__(self):
         "Return a string representation of the Function"
         return (
-            "Function from R"
+            "'Function from R"
             + str(self.__domDim__)
             + " to R"
             + str(self.__imgDim__)
@@ -1186,7 +1186,7 @@ class Function:
             + ", ".join(self.__inputs__)
             + ") → ("
             + ", ".join(self.__outputs__)
-            + ")"
+            + ")'"
         )
 
     def plot(self, *args, **kwargs):
