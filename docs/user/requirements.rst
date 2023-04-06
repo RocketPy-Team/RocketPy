@@ -21,7 +21,7 @@ The following packages are needed in order to run RocketPy:
 - Numpy >= 1.0
 - Scipy >= 1.0
 - Matplotlib >= 3.0
-- netCDF4 >= 1.4
+- netCDF4 >= 1.6.2
 - windrose >= 1.6.8
 - requests
 - pytz
@@ -43,7 +43,7 @@ The packages needed can be installed via ``pip`` by running the following lines 
     pip install "numpy>=1.0" 
     pip install "scipy>=1.0"
     pip install "matplotlib>=3.0"
-    pip install "netCDF4>=1.4"
+    pip install "netCDF4>=1.6.2"
     pip install "windrose >= 1.6.8"
     pip install "ipywidgets>=7.6.3"
     pip install requests
@@ -61,7 +61,7 @@ To update Scipy and install netCDF4 using Conda, the following code is used:
 .. code-block:: shell
 
     conda install "scipy>=1.0"
-    conda install -c anaconda "netcdf4>=1.4"
+    conda install -c anaconda "netcdf4>=1.6.2"
 
 
 Optional Packages

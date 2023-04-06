@@ -10,7 +10,7 @@ setuptools.setup(
         "numpy>=1.0",
         "scipy>=1.0",
         "matplotlib>=3.0",
-        "netCDF4>=1.4,<1.6",
+        "netCDF4>=1.6.2",
         "windrose>=1.6.8",
         "ipywidgets>=7.6.3",
         "requests",
