@@ -1414,7 +1414,6 @@ class Tail:
         return None
 
     def aerodynamicInfo(self):
-
         print(f"\nTail name: {self.name}")
         print(f"Tail Center of Pressure: {self.cp}")
         print(f"Tail Lift Coefficient Slope: {self.clalpha}")
