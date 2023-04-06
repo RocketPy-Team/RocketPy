@@ -214,6 +214,9 @@ class Rocket:
 
         # Aerodynamic data initialization
         self.aerodynamicSurfaces = AeroSurfaces()
+        self.nosecone = AeroSurfaces()
+        self.fins = AeroSurfaces()
+        self.tail = AeroSurfaces()
         self.cpPosition = 0
         self.staticMargin = Function(
             lambda x: 0, inputs="Time (s)", outputs="Static Margin (c)"
@@ -481,9 +484,12 @@ class Rocket:
 
         # Create new tail as an object of the Tail class
         tail = Tail(topRadius, bottomRadius, length, radius, name)
+        # Saves position on object for practicality
+        tail.position = position
 
-        # Add tail to aerodynamic surfaces list
+        # Add tail to aerodynamic surfaces and tail list
         self.aerodynamicSurfaces.append(aeroSurface=tail, position=position)
+        self.tail.append(tail)
 
         # Refresh static margin calculation
         self.evaluateStaticMargin()
@@ -519,9 +525,12 @@ class Rocket:
         """
         # Create a nose as an object of NoseCone class
         nose = NoseCone(length, kind, self.radius, self.radius, name)
+        # Saves position on object for practicality
+        nose.position = position
 
         # Add nose to the list of aerodynamic surfaces
         self.aerodynamicSurfaces.append(aeroSurface=nose, position=position)
+        self.nosecone.append(nose)
 
         # Refresh static margin calculation
         self.evaluateStaticMargin()
@@ -630,9 +639,12 @@ class Rocket:
             airfoil,
             name,
         )
+        # Saves position on object for practicality
+        finSet.position = position
 
         # Add fin set to the list of aerodynamic surfaces
         self.aerodynamicSurfaces.append(aeroSurface=finSet, position=position)
+        self.fins.append(finSet)
 
         # Refresh static margin calculation
         self.evaluateStaticMargin()
@@ -670,7 +682,7 @@ class Rocket:
             Fin set position relative to the rocket's coordinate system.
             By fin set position, understand the point belonging to the root chord which
             is highest in the rocket coordinate system (i.e. generally the point closest
-            to the nose cone tip).AeroSurfaces
+            to the nose cone tip).
             See `Rocket.coordinateSystemOrientation` for more information.
         cantAngle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
@@ -703,9 +715,12 @@ class Rocket:
 
         # Create a fin set as an object of EllipticalFins class
         finSet = EllipticalFins(n, rootChord, span, radius, cantAngle, airfoil, name)
+        # Saves position on object for practicality
+        finSet.position = position
 
         # Add fin set to the list of aerodynamic surfaces
         self.aerodynamicSurfaces.append(aeroSurface=finSet, position=position)
+        self.fins.append(finSet)
 
         # Refresh static margin calculation
         self.evaluateStaticMargin()
@@ -733,14 +748,16 @@ class Rocket:
             times its CdS coefficient. Has units of area and must be
             given in squared meters.
         trigger : function, float, string
-            Float with height in which the parachute is ejected, or the string
-            "apogee" or a function which defines if the parachute ejection system is
-            to be triggered. It must take as input the freestream
-            pressure in pascal and the state vector of the simulation,
-            which is defined by [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz].
-            It will be called according to the sampling rate given next.
-            It should return True if the parachute ejection system is
-            to be triggered and False otherwise.
+            Trigger for the parachute deployment. Can be a float with the height
+            in which the parachute is ejected (ejction happens after apogee); or
+            the string "apogee", for ejection at apogee.
+            Can also be a function which defines if the parachute ejection
+            system is to be triggered. It must take as input the freestream
+            pressure in pascal and the state vector of the simulation, which is
+            defined by [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz].
+            The trigger will be called according to the sampling rate given next.
+            It should return True if the parachute ejection system is to be
+            triggered and False otherwise.
         samplingRate : float, optional
             Sampling rate in which the trigger function works. It is used to
             simulate the refresh rate of onboard sensors such as barometers.
