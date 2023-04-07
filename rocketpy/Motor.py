@@ -192,86 +192,60 @@ class Motor(ABC):
         elif coordinateSystemOrientation == "combustionChamberToNozzle":
             self._csys = -1
 
-        # Check if thrustSource is csv, eng, function or other
         if isinstance(thrustSource, str):
-            # Determine if csv or eng
             if thrustSource[-3:] == "eng":
-                # Import content
                 comments, desc, points = self.importEng(thrustSource)
-                # Process description and points
-                # diameter = float(desc[1])/1000
-                # height = float(desc[2])/1000
-                # mass = float(desc[4])
-                # nozzleRadius = diameter/4
-                # throatRadius = diameter/8
-                # grainNumber = grainNumber
-                # grainVolume = height*np.pi*((diameter/2)**2 -(diameter/4)**2)
-                # grainDensity = mass/grainVolume
-                # grainOuterRadius = diameter/2
-                # grainInitialInnerRadius = diameter/4
-                # grainInitialHeight = height
-                self.thrustSource = points
-        else:
-            self.thrustSource = thrustSource
+                thrustSource = points
 
         # Thrust parameters
         self.interpolate = interpolationMethod
+        burn_time = [0, burn_time] if isinstance(burn_time, (int, float)) else burn_time
 
         # Create thrust function
         self.thrust = Function(
-            self.thrustSource, "Time (s)", "Thrust (N)", self.interpolate, "zero"
+            thrustSource, "Time (s)", "Thrust (N)", self.interpolate, "zero"
         )
 
-        # set burn period
-        if burn_time is None:
-            # if thrustCurve is callabe or constant
-            if callable(self.thrustSource) or isinstance(
-                self.thrustSource, (int, float)
-            ):
-                raise ValueError(
-                    "When using a float or callable as thrust source a burnout time must be specified."
-                )
-            # if it is a list o file
-            self.burnOutTime = self.thrustSource[-1][0]
-        else:
-            # if thrustCurve is callabe or constant
-            if callable(self.thrustSource) or isinstance(
-                self.thrustSource, (int, float)
-            ):
-                if isinstance(burn_time, (int, float)):
-                    burn_time = (0, burn_time)
-                elif not isinstance(burn_time, tuple):
-                    raise TypeError(
-                        "'burn_time' argument must be either an int, float or tuple of floats"
-                    )
+        if callable(self.thrust.source):
+            try:
+                burn_time = list(burn_time)
+                burn_time = [0] + burn_time if len(burn_time) == 1 else burn_time
 
-            # if thrustCurve is a file or lists of points
-            else:
-                if isinstance(burn_time, (int, float)):
-                    burn_time = (0, burn_time)
-                elif not isinstance(burn_time, tuple):
-                    raise TypeError(
-                        "'burn_time' argument must be either an int, float or tuple of floats"
-                    )
+                # sets burn out in thrust curve
+                self.thrust.setDiscrete(
+                    lower=burn_time[0],
+                    upper=burn_time[1],
+                    samples=50,
+                    interpolation=self.interpolate,
+                    extrapolation="zero",
+                )
+            except TypeError:
+                raise ValueError(
+                    "When using a float or callable as thrust source a burnout "
+                    "time must be specified."
+                )
+        else:
+            try:
+                burn_time = list(burn_time)
+                burn_time = [0] + burn_time if len(burn_time) == 1 else burn_time
 
                 # checks if burn_time[1] is bigger than thrust curve time
-                if burn_time[1] > self.thrustSource[-1][0]:
-                    burn_time = (burn_time[0], self.thrustSource[-1][0])
+                if burn_time[1] > self.thrust.source[:, 0][-1]:
+                    burn_time = (burn_time[0], self.thrust.source[:, 0][-1])
                     warnings.warn(
-                        "burn_time argument is bigger than thrustSource maximum time."
-                        + f"\nUsing thrustSource boudary maximum time instead: {burn_time[1]} s"
-                        + "\nIf you want to change the burn out time of the curve please use the 'reshapeThrustCurve' argument."
+                        "burn_time argument is bigger than thrustSource "
+                        "maximum time.\n"
+                        "Using thrustSource boudary maximum time instead: "
+                        f"{burn_time[1]} s\n"
+                        "If you want to change the burn out time of the curve "
+                        "please use the 'reshapeThrustCurve' argument."
                     )
-            # sets burn out in thrust curve
-            self.thrust.setDiscrete(
-                lower=burn_time[0],
-                upper=burn_time[1],
-                samples=50,
-                interpolation=self.interpolate,
-                extrapolation="zero",
-            )
+            except TypeError:
+                burn_time = (self.thrust.source[:, 0][0], self.thrust.source[:, 0][-1])
 
-            self.burnOutTime = burn_time[1] - burn_time[0]
+        self.burn_time = burn_time
+
+        self.burnOutTime = burn_time[1]
 
         # Reshape curve and calculate impulse
         if reshapeThrustCurve:
@@ -344,6 +318,7 @@ class Motor(ABC):
         # Reshape time - set burn time to burnOutTime
         self.thrust.source[:, 0] = (burnOutTime / timeArray[-1]) * timeArray
         self.burnOutTime = burnOutTime
+        self.burn_time = (self.thrust.source[:, 0][0], self.thrust.source[:, 0][-1])
         self.thrust.setInterpolation(self.interpolate)
 
         # Reshape thrust - set total impulse
@@ -373,7 +348,7 @@ class Motor(ABC):
             Motor total impulse in Ns.
         """
         # Calculate total impulse
-        self.totalImpulse = self.thrust.integral(0, self.burnOutTime)
+        self.totalImpulse = self.thrust.integral(*self.burn_time)
 
         # Return total impulse
         return self.totalImpulse
@@ -456,7 +431,7 @@ class Motor(ABC):
         ydot = self.massDot.source[:, 1]
 
         # Set initial conditions
-        T = [0]
+        T = [t[0]]
         y = [self.propellantInitialMass]
 
         # Solve for each time point
