@@ -73,7 +73,7 @@ def test_bella_lui_rocket_data_asserts_acceptance():
     # Motor Information
     K828FJ = SolidMotor(
         thrustSource="tests/fixtures/acceptance/EPFL_Bella_Lui/bella_lui_motor_AeroTech_K828FJ.eng",
-        burnOut=parameters.get("burnOut")[0],
+        burn_time=parameters.get("burnOut")[0],
         grainsCenterOfMassPosition=parameters.get("distanceRocketPropellant")[0],
         grainNumber=3,
         grainSeparation=parameters.get("grainSeparation")[0],

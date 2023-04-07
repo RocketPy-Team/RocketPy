@@ -85,7 +85,7 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     # Motor Information
     L1395 = SolidMotor(
         thrustSource="tests/fixtures/acceptance/NDRT_2020/ndrt_2020_motor_Cesaroni_4895L1395-P.eng",
-        burnOut=parameters.get("burnOut")[0],
+        burn_time=parameters.get("burnOut")[0],
         grainsCenterOfMassPosition=parameters.get("distanceRocketPropellant")[0],
         grainNumber=5,
         grainSeparation=parameters.get("grainSeparation")[0],
