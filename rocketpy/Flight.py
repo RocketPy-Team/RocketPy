@@ -2115,8 +2115,8 @@ class Flight:
         totalMass = deepcopy(self.rocket.totalMass)
         totalMass.setDiscreteBasedOnModel(self.z)
         # TODO: change calculation method to account for variable gravity
-        potentialEnergy = totalMass.source[:, 1] * self.env.g(self.z.source[:, 1])
-        return np.column_stack((self.z.source[:, 0], potentialEnergy))
+        potentialEnergy = totalMass * self.env.g.compose(self.z)
+        return potentialEnergy
 
     # Total Mechanical Energy
     @funcify_method("Time (s)", "Mechanical Energy (J)", "spline", "constant")
