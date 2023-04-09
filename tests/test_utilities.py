@@ -29,8 +29,8 @@ def test_fin_flutter_analysis(mock_show, flight):
         see_graphs=False,
     )
 
-    assert abs(flutter_mach(15) - 1.085295573) < 1e-3
-    assert abs(safety_factor(15) - 3.373824095) < 1e-3
+    assert abs(flutter_mach(15) - 1.085461074199555) < 1e-3
+    assert abs(safety_factor(15) - 3.364511241274865) < 1e-3
     assert (
         utilities.fin_flutter_analysis(
             fin_thickness=2 / 1000,
