@@ -724,9 +724,14 @@ class Flight:
                         # Remove parachute from flight parachutes
                         self.parachutes.remove(parachute)
                         # Create flight phase for time after detection and before inflation
-                        self.flightPhases.addPhase(
-                            node.t, phase.derivative, clear=True, index=phase_index + 1
-                        )
+                        # Must only be created if parachute has any lag
+                        if parachute.lag != 0:
+                            self.flightPhases.addPhase(
+                                node.t,
+                                phase.derivative,
+                                clear=True,
+                                index=phase_index + 1,
+                            )
                         # Create flight phase for time after inflation
                         callbacks = [
                             lambda self, parachuteCdS=parachute.CdS: setattr(
@@ -3034,6 +3039,7 @@ class Flight:
                     print(
                         "This may be caused by more than when parachute being triggered simultaneously."
                     )
+                    print("Or by having a negative parachute lag.")
                     self.add(flightPhase, -2)
             # Handle inserting into intermediary position
             else:
@@ -3050,6 +3056,7 @@ class Flight:
                     print(
                         "This may be caused by more than when parachute being triggered simultaneously."
                     )
+                    print("Or by having a negative parachute lag.")
                     self.add(flightPhase, index - 1)
                 elif flightPhase.t == previousPhase.t:
                     print(
