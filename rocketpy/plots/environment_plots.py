@@ -192,7 +192,7 @@ class _EnvironmentPlots:
 
         # Create gravity model subplot
         ax = plt.subplot(111)
-        ax.plot(self.grid, [self.environment.g(i) for i in self.grid])
+        ax.plot(self.grid, [self.environment.gravity(i) for i in self.grid])
         ax.set_ylabel("Gravity (m/s²)")
         ax.set_xlabel("Height Above Sea Level (m)")
         ax.grid(True)

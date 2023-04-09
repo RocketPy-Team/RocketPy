@@ -45,7 +45,7 @@ class _EnvironmentPrints:
         print("\nGravity Details\n")
         print(
             "Acceleration of Gravity at Lauch Site: "
-            + str(self.environment.g(self.environment.elevation))
+            + str(self.environment.gravity(self.environment.elevation))
             + " m/s²"
         )
 

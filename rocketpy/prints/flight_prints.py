@@ -356,7 +356,9 @@ class _FlightPrints:
         print(
             "Maximum Gs: {:.3f} g at {:.2f} s".format(
                 self.flight.maxAcceleration
-                / self.flight.env.g(self.flight.z(self.flight.maxAccelerationTime)),
+                / self.flight.env.gravity(
+                    self.flight.z(self.flight.maxAccelerationTime)
+                ),
                 self.flight.maxAccelerationTime,
             )
         )

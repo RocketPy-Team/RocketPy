@@ -62,7 +62,7 @@ class Environment:
         Gravity and Launch Rail Length:
         Environment.rl : float
             Launch rail length in meters.
-        Environment.g : float
+        Environment.gravity : float
             Positive value of gravitational acceleration in m/s^2.
 
         Coordinates and Date:
@@ -385,7 +385,7 @@ class Environment:
         self.ellipsoid = self.setEarthGeometry(datum)
 
         # Set gravity model
-        self.g = self.setGravityModel(gravity)
+        self.gravity = self.setGravityModel(gravity)
 
         # Initialize plots and prints objects
         self.prints = _EnvironmentPrints(self)
@@ -3184,7 +3184,7 @@ class Environment:
 
         # Dictionary creation, if not commented follows the SI
         info = dict(
-            grav=self.g,
+            grav=self.gravity,
             launch_rail_length=self.rL,
             elevation=self.elevation,
             modelType=self.atmosphericModelType,
@@ -3240,7 +3240,7 @@ class Environment:
 
         self.exportEnvDictionary = {
             "railLength": self.rL,
-            "gravity": self.g(self.elevation),
+            "gravity": self.gravity(self.elevation),
             "date": [self.date.year, self.date.month, self.date.day, self.date.hour],
             "latitude": self.lat,
             "longitude": self.lon,
