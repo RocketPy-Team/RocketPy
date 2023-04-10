@@ -13,6 +13,7 @@ jobs:
           - windows-latest
         python-version:
           - 3.7
+          - 3.11.3
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
