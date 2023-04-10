@@ -149,7 +149,6 @@ def test_gefs_atmosphere(mock_show, example_env_robust):
 
 @patch("matplotlib.pyplot.show")
 def test_info_returns(mock_show, example_env):
-
     returned_plots = example_env.allPlotInfoReturned()
     returned_infos = example_env.allInfoReturned()
     expected_info = {

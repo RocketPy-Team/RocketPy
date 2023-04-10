@@ -3,7 +3,14 @@ import datetime
 import numericalunits
 import pytest
 
-from rocketpy import Environment, EnvironmentAnalysis, Function, Rocket, SolidMotor
+from rocketpy import (
+    Environment,
+    EnvironmentAnalysis,
+    Function,
+    Rocket,
+    SolidMotor,
+    Flight,
+)
 
 
 def pytest_addoption(parser):
@@ -52,6 +59,31 @@ def rocket(solid_motor):
     )
     example_rocket.addMotor(solid_motor, position=-1.255)
     return example_rocket
+
+
+@pytest.fixture
+def flight(rocket, example_env):
+
+    rocket.setRailButtons([0.2, -0.5])
+
+    NoseCone = rocket.addNose(
+        length=0.55829, kind="vonKarman", position=1.278, name="NoseCone"
+    )
+    FinSet = rocket.addTrapezoidalFins(
+        4, span=0.100, rootChord=0.120, tipChord=0.040, position=-1.04956
+    )
+    Tail = rocket.addTail(
+        topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
+    )
+
+    flight = Flight(
+        environment=example_env,
+        rocket=rocket,
+        inclination=85,
+        heading=90,
+        terminateOnApogee=True,
+    )
+    return flight
 
 
 @pytest.fixture
@@ -188,25 +220,3 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         if "slow" in item.keywords:
             item.add_marker(skip_slow)
-
-
-@pytest.fixture
-def example_env():
-    Env = Environment(railLength=5, datum="WGS84")
-    return Env
-
-
-@pytest.fixture
-def example_env_robust():
-    Env = Environment(
-        railLength=5,
-        latitude=32.990254,
-        longitude=-106.974998,
-        elevation=1400,
-        datum="WGS84",
-    )
-    tomorrow = datetime.date.today() + datetime.timedelta(days=1)
-    Env.setDate(
-        (tomorrow.year, tomorrow.month, tomorrow.day, 12)
-    )  # Hour given in UT/C time
-    return Env

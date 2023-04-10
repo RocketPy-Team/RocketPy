@@ -10,7 +10,6 @@ import re
 import warnings
 from datetime import datetime, timedelta
 
-import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
 import pytz
@@ -3034,58 +3033,8 @@ class Environment:
         None
         """
 
-        # All prints
         self.prints.all()
-
-        # Plot graphs
-        print("\n\nAtmospheric Model Plots")
-        # Create height grid
-        grid = np.linspace(self.elevation, self.maxExpectedHeight)
-
-        # Create figure
-        plt.figure(figsize=(9, 4.5))
-
-        # Create wind speed and wind direction subplot
-        ax1 = plt.subplot(121)
-        ax1.plot(
-            [self.windSpeed(i) for i in grid], grid, "#ff7f0e", label="Speed of Sound"
-        )
-        ax1.set_xlabel("Wind Speed (m/s)", color="#ff7f0e")
-        ax1.tick_params("x", colors="#ff7f0e")
-        ax1up = ax1.twiny()
-        ax1up.plot(
-            [self.windDirection(i) for i in grid],
-            grid,
-            color="#1f77b4",
-            label="Density",
-        )
-        ax1up.set_xlabel("Wind Direction (°)", color="#1f77b4")
-        ax1up.tick_params("x", colors="#1f77b4")
-        ax1up.set_xlim(0, 360)
-        ax1.set_ylabel("Height Above Sea Level (m)")
-        ax1.grid(True)
-
-        # Create density and speed of sound subplot
-        ax2 = plt.subplot(122)
-        ax2.plot(
-            [self.speedOfSound(i) for i in grid],
-            grid,
-            "#ff7f0e",
-            label="Speed of Sound",
-        )
-        ax2.set_xlabel("Speed of Sound (m/s)", color="#ff7f0e")
-        ax2.tick_params("x", colors="#ff7f0e")
-        ax2up = ax2.twiny()
-        ax2up.plot(
-            [self.density(i) for i in grid], grid, color="#1f77b4", label="Density"
-        )
-        ax2up.set_xlabel("Density (kg/m³)", color="#1f77b4")
-        ax2up.tick_params("x", colors="#1f77b4")
-        ax2.set_ylabel("Height Above Sea Level (m)")
-        ax2.grid(True)
-
-        plt.subplots_adjust(wspace=0.5)
-        plt.show()
+        self.plots.info()
         return None
 
     def allInfo(self):

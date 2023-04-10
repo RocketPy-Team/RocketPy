@@ -1,4 +1,4 @@
-__author__ = " "
+__author__ = "Mateus Stano Junqueira"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
@@ -8,7 +8,7 @@ class _RocketPrints:
 
     Attributes
     ----------
-    _RocketPrints.environment : rocket
+    _RocketPrints.rocket : rocket
         Rocket object that will be used for the prints.
 
     """
@@ -18,8 +18,8 @@ class _RocketPrints:
 
         Parameters
         ----------
-        environment: Environment
-            Instance of the Environment class.
+        rocket: rocketpy.rocket
+            Instance of the rocket class.
 
         Returns
         -------
@@ -158,22 +158,8 @@ class _RocketPrints:
         None
         """
         for chute in self.rocket.parachutes:
-            print("\n" + chute.name.title() + " Parachute\n")
-            print("CdS Coefficient: " + str(chute.CdS) + " m2")
-            if chute.trigger.__name__ == "<lambda>":
-                line = self.rocket.getsourcelines(chute.trigger)[0][0]
-                print(
-                    "Ejection signal trigger: "
-                    + line.split("lambda ")[1].split(",")[0].split("\n")[0]
-                )
-            else:
-                print("Ejection signal trigger: " + chute.trigger.__name__)
-            print("Ejection system refresh rate: " + str(chute.samplingRate) + " Hz.")
-            print(
-                "Time between ejection signal is triggered and the "
-                "parachute is fully opened: " + str(chute.lag) + " s"
-            )
-            return None
+            chute.allInfo()
+        return None
 
     def all(self):
         """Prints all print methods about the Environment.

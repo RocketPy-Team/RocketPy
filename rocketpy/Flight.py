@@ -511,16 +511,6 @@ class Flight:
             Defined as the minimum angle between the attitude vector and
             the freestream velocity vector. Can be called or accessed as
             array.
-
-        Fin Flutter Analysis:
-        Flight.flutterMachNumber: Function
-            The freestream velocity at which begins flutter phenomenon in
-            rocket's fins. It's expressed as a function of the air pressure
-            experienced  for the rocket. Can be called or accessed as array.
-        Flight.difference: Function
-            Difference between flutterMachNumber and machNumber, as a function of time.
-        Flight.safetyFactor: Function
-            Ratio between the flutterMachNumber and machNumber, as a function of time.
     """
 
     def __init__(
@@ -1074,9 +1064,6 @@ class Flight:
         """Initialize post-process variables."""
         # Initialize all variables calculated after initialization.
         # Important to do so that MATLAB® can access them
-        self.flutterMachNumber = Function(0)
-        self.difference = Function(0)
-        self.safetyFactor = Function(0)
         self._drift = Function(0)
         self._bearing = Function(0)
         self._latitude = Function(0)
@@ -2697,160 +2684,6 @@ class Flight:
                 stallAngle, wV
             )
         )
-
-        return None
-
-    def calculateFinFlutterAnalysis(self, finThickness, shearModulus):
-        """Calculate, create and plot the Fin Flutter velocity, based on the
-        pressure profile provided by Atmospheric model selected. It considers the
-        Flutter Boundary Equation that is based on a calculation published in
-        NACA Technical Paper 4197.
-        Be careful, these results are only estimates of a real problem and may
-        not be useful for fins made from non-isotropic materials. These results
-        should not be used as a way to fully prove the safety of any rocket's fins.
-        IMPORTANT: This function works if only a single set of fins is added.
-
-        Parameters
-        ----------
-        finThickness : float
-            The fin thickness, in meters
-        shearModulus : float
-            Shear Modulus of fins' material, must be given in Pascal
-
-        Return
-        ------
-        None
-        """
-
-        s = (self.rocket.tipChord + self.rocket.rootChord) * self.rocket.span / 2
-        ar = self.rocket.span * self.rocket.span / s
-        la = self.rocket.tipChord / self.rocket.rootChord
-
-        # Calculate the Fin Flutter Mach Number
-        self.flutterMachNumber = (
-            (shearModulus * 2 * (ar + 2) * (finThickness / self.rocket.rootChord) ** 3)
-            / (1.337 * (ar**3) * (la + 1) * self.pressure)
-        ) ** 0.5
-
-        # Calculate difference between Fin Flutter Mach Number and the Rocket Speed
-        self.difference = self.flutterMachNumber - self.MachNumber
-
-        # Calculate a safety factor for flutter
-        self.safetyFactor = self.flutterMachNumber / self.MachNumber
-
-        # Calculate the minimum Fin Flutter Mach Number and Velocity
-        # Calculate the time and height of minimum Fin Flutter Mach Number
-        minflutterMachNumberTimeIndex = np.argmin(self.flutterMachNumber[:, 1])
-        minflutterMachNumber = self.flutterMachNumber[minflutterMachNumberTimeIndex, 1]
-        minMFTime = self.flutterMachNumber[minflutterMachNumberTimeIndex, 0]
-        minMFHeight = self.z(minMFTime) - self.env.elevation
-        minMFVelocity = minflutterMachNumber * self.env.speedOfSound(minMFHeight)
-
-        # Calculate minimum difference between Fin Flutter Mach Number and the Rocket Speed
-        # Calculate the time and height of the difference ...
-        minDifferenceTimeIndex = np.argmin(self.difference[:, 1])
-        minDif = self.difference[minDifferenceTimeIndex, 1]
-        minDifTime = self.difference[minDifferenceTimeIndex, 0]
-        minDifHeight = self.z(minDifTime) - self.env.elevation
-        minDifVelocity = minDif * self.env.speedOfSound(minDifHeight)
-
-        # Calculate the minimum Fin Flutter Safety factor
-        # Calculate the time and height of minimum Fin Flutter Safety factor
-        minSFTimeIndex = np.argmin(self.safetyFactor[:, 1])
-        minSF = self.safetyFactor[minSFTimeIndex, 1]
-        minSFTime = self.safetyFactor[minSFTimeIndex, 0]
-        minSFHeight = self.z(minSFTime) - self.env.elevation
-
-        # Print fin's geometric parameters
-        print("Fin's geometric parameters")
-        print("Surface area (S): {:.4f} m2".format(s))
-        print("Aspect ratio (AR): {:.3f}".format(ar))
-        print("TipChord/RootChord = \u03BB = {:.3f}".format(la))
-        print("Fin Thickness: {:.5f} m".format(finThickness))
-
-        # Print fin's material properties
-        print("\n\nFin's material properties")
-        print("Shear Modulus (G): {:.3e} Pa".format(shearModulus))
-
-        # Print a summary of the Fin Flutter Analysis
-        print("\n\nFin Flutter Analysis")
-        print(
-            "Minimum Fin Flutter Velocity: {:.3f} m/s at {:.2f} s".format(
-                minMFVelocity, minMFTime
-            )
-        )
-        print("Minimum Fin Flutter Mach Number: {:.3f} ".format(minflutterMachNumber))
-        # print(
-        #    "Altitude of minimum Fin Flutter Velocity: {:.3f} m (AGL)".format(
-        #        minMFHeight
-        #    )
-        # )
-        print(
-            "Minimum of (Fin Flutter Mach Number - Rocket Speed): {:.3f} m/s at {:.2f} s".format(
-                minDifVelocity, minDifTime
-            )
-        )
-        print(
-            "Minimum of (Fin Flutter Mach Number - Rocket Speed): {:.3f} Mach at {:.2f} s".format(
-                minDif, minDifTime
-            )
-        )
-        # print(
-        #    "Altitude of minimum (Fin Flutter Mach Number - Rocket Speed): {:.3f} m (AGL)".format(
-        #        minDifHeight
-        #    )
-        # )
-        print(
-            "Minimum Fin Flutter Safety Factor: {:.3f} at {:.2f} s".format(
-                minSF, minSFTime
-            )
-        )
-        print(
-            "Altitude of minimum Fin Flutter Safety Factor: {:.3f} m (AGL)\n\n".format(
-                minSFHeight
-            )
-        )
-
-        # Create plots
-        fig12 = plt.figure(figsize=(6, 9))
-        ax1 = plt.subplot(311)
-        ax1.plot()
-        ax1.plot(
-            self.flutterMachNumber[:, 0],
-            self.flutterMachNumber[:, 1],
-            label="Fin flutter Mach Number",
-        )
-        ax1.plot(
-            self.MachNumber[:, 0],
-            self.MachNumber[:, 1],
-            label="Rocket Freestream Speed",
-        )
-        ax1.set_xlim(0, self.apogeeTime if self.apogeeTime != 0.0 else self.tFinal)
-        ax1.set_title("Fin Flutter Mach Number x Time(s)")
-        ax1.set_xlabel("Time (s)")
-        ax1.set_ylabel("Mach")
-        ax1.legend()
-        ax1.grid(True)
-
-        ax2 = plt.subplot(312)
-        ax2.plot(self.difference[:, 0], self.difference[:, 1])
-        ax2.set_xlim(0, self.apogeeTime if self.apogeeTime != 0.0 else self.tFinal)
-        ax2.set_title("Mach flutter - Freestream velocity")
-        ax2.set_xlabel("Time (s)")
-        ax2.set_ylabel("Mach")
-        ax2.grid()
-
-        ax3 = plt.subplot(313)
-        ax3.plot(self.safetyFactor[:, 0], self.safetyFactor[:, 1])
-        ax3.set_xlim(self.outOfRailTime, self.apogeeTime)
-        ax3.set_ylim(0, 6)
-        ax3.set_title("Fin Flutter Safety Factor")
-        ax3.set_xlabel("Time (s)")
-        ax3.set_ylabel("Safety Factor")
-        ax3.grid()
-
-        plt.subplots_adjust(hspace=0.5)
-        plt.show()
 
         return None
 
