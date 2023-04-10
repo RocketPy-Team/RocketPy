@@ -1,3 +1,4 @@
+import os
 import sys
 import setuptools
 
@@ -10,7 +11,7 @@ netCDF4_requirement = "netCDF4>=1.6.2"
 if sys.version_info[0] == 3 and sys.version_info[1] == 7:
     # Support for Python 3.7
     netCDF4_requirement = "netCDF4>=1.4,<1.6"
-if "google.colab" in sys.modules:
+if os.getenv("COLAB_RELEASE_TAG"):
     # Support for Google Colab
     netCDF4_requirement = "netCDF4>=1.4,<1.6"
 
