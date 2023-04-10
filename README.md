@@ -264,11 +264,11 @@ Tail = Calisto.addTail(
 You may want to add parachutes to your rocket as well:
 
 ```python
-def drogueTrigger(p, y):
+def drogueTrigger(p, y, h):
     return True if y[5] < 0 else False
 
-def mainTrigger(p, y):
-    return True if y[5] < 0 and y[2] < 800 else False
+def mainTrigger(p, y, h):
+    return True if y[5] < 0 and h < 800 else False
 
 Main = Calisto.addParachute('Main',
                             CdS=10.0,

@@ -115,17 +115,17 @@ def test_flight(mock_show):
         topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
     )
 
-    def drogueTrigger(p, y):
+    def drogueTrigger(p, y, h):
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate drogue when vz < 0 m/s.
         return True if y[5] < 0 else False
 
-    def mainTrigger(p, y):
+    def mainTrigger(p, y, h):
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate main when vz < 0 m/s and z < 800 m.
-        return True if y[5] < 0 and y[2] < 800 else False
+        return True if y[5] < 0 and h < 800 else False
 
     Main = test_rocket.addParachute(
         "Main",
@@ -206,17 +206,17 @@ def test_initial_solution(mock_show):
         topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
     )
 
-    def drogueTrigger(p, y):
+    def drogueTrigger(p, y, h):
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate drogue when vz < 0 m/s.
         return True if y[5] < 0 else False
 
-    def mainTrigger(p, y):
+    def mainTrigger(p, y, h):
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate main when vz < 0 m/s and z < 800 m.
-        return True if y[5] < 0 and y[2] < 800 else False
+        return True if y[5] < 0 and h < 800 else False
 
     Main = test_rocket.addParachute(
         "Main",
@@ -407,17 +407,17 @@ def test_rolling_flight(mock_show):
         topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
     )
 
-    def drogueTrigger(p, y):
+    def drogueTrigger(p, y, h):
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate drogue when vz < 0 m/s.
         return True if y[5] < 0 else False
 
-    def mainTrigger(p, y):
+    def mainTrigger(p, y, h):
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate main when vz < 0 m/s and z < 800 m.
-        return True if y[5] < 0 and y[2] < 800 else False
+        return True if y[5] < 0 and h < 800 else False
 
     Main = test_rocket.addParachute(
         "Main",
@@ -676,17 +676,17 @@ def test_latlon_conversions(mock_show):
         topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
     )
 
-    def drogueTrigger(p, y):
+    def drogueTrigger(p, y, h):
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate drogue when vz < 0 m/s.
         return True if y[5] < 0 else False
 
-    def mainTrigger(p, y):
+    def mainTrigger(p, y, h):
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate main when vz < 0 m/s and z < 800 m.
-        return True if y[5] < 0 and y[2] < 800 else False
+        return True if y[5] < 0 and h < 800 else False
 
     Main = test_rocket.addParachute(
         "Main",

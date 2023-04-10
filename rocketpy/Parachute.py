@@ -72,7 +72,7 @@ class Parachute:
         self,
         name,
         CdS,
-        Trigger,
+        trigger,
         samplingRate,
         lag,
         noise=(0, 0, 0),
@@ -102,6 +102,7 @@ class Parachute:
         """
         self.name = name
         self.CdS = CdS
+        self.trigger = trigger
         self.samplingRate = samplingRate
         self.lag = lag
         self.noiseSignal = [[-1e-6, np.random.normal(noise[0], noise[1])]]
@@ -122,19 +123,20 @@ class Parachute:
         self.prints = _ParachutePrints(self)
 
         # evaluate the trigger
-        if callable(Trigger):
-            self.trigger = Trigger
-        elif isinstance(Trigger, (int, float)):
-            # Trigger is interpreted as the absolute height at which the parachute will be ejected
-            def triggerfunc(p, y):
+        if callable(trigger):
+            self.trigger = trigger
+        elif isinstance(trigger, (int, float)):
+            # trigger is interpreted as the absolute height at which the parachute will be ejected
+            def triggerfunc(p, y, h):
                 # p = pressure
                 # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
-                return True if y[5] < 0 and y[2] < Trigger else False
+                return True if y[5] < 0 and h < trigger else False
 
             self.trigger = triggerfunc
-        elif Trigger == "apogee":
 
-            def triggerfunc(p, y):
+        elif trigger == "apogee":
+            # trigger for apogee
+            def triggerfunc(p, y, h):
                 # p = pressure
                 # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
                 return True if y[5] < 0 else False

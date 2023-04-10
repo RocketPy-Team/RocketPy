@@ -754,7 +754,8 @@ class Rocket:
             Can also be a function which defines if the parachute ejection
             system is to be triggered. It must take as input the freestream
             pressure in pascal and the state vector of the simulation, which is
-            defined by [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz].
+            defined by [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz],
+            and the height in meters (above ground level).
             The trigger will be called according to the sampling rate given next.
             It should return True if the parachute ejection system is to be
             triggered and False otherwise.

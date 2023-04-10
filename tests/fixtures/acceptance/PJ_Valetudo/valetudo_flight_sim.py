@@ -126,7 +126,7 @@ Valetudo.setRailButtons([0.224, -0.93], 30)
 sisRecDrogue = SisRec.SisRecSt(0.8998194205245451, 0.2)
 
 
-def drogueTrigger(p, y):
+def drogueTrigger(p, y, h):
     return True if sisRecDrogue.update(p / 100000) == 2 else False
 
 
