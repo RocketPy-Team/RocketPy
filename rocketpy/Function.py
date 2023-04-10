@@ -9,7 +9,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import integrate, linalg
+from scipy import integrate, linalg, optimize
 
 
 class Function:
@@ -207,6 +207,13 @@ class Function:
             # Do things if domDim is 1
             if self.__domDim__ == 1:
                 source = source[source[:, 0].argsort()]
+
+                self.xArray = source[:, 0]
+                self.xmin, self.xmax = self.xArray[0], self.xArray[-1]
+
+                self.yArray = source[:, 1]
+                self.ymin, self.ymax = self.yArray[0], self.yArray[-1]
+
                 # Finally set data source as source
                 self.source = source
                 # Set default interpolation for point source if it hasn't
@@ -217,6 +224,15 @@ class Function:
                     self.setInterpolation(self.__interpolation__)
             # Do things if function is multivariate
             else:
+                self.xArray = source[:, 0]
+                self.xmin, self.xmax = self.xArray[0], self.xArray[-1]
+
+                self.yArray = source[:, 1]
+                self.ymin, self.ymax = self.yArray[0], self.yArray[-1]
+
+                self.zArray = source[:, 2]
+                self.zmin, self.zmax = self.zArray[0], self.zArray[-1]
+
                 # Finally set data source as source
                 self.source = source
                 if self.__interpolation__ is None:
@@ -291,9 +307,9 @@ class Function:
         self : Function
         """
         # Retrieve general info
-        xData = self.source[:, 0]
-        yData = self.source[:, 1]
-        xmin, xmax = xData[0], xData[-1]
+        xData = self.xArray
+        yData = self.yArray
+        xmin, xmax = self.xmin, self.xmax
         if self.__extrapolation__ == "zero":
             extrapolation = 0  # Extrapolation is zero
         elif self.__extrapolation__ == "natural":
@@ -474,7 +490,7 @@ class Function:
         if self.__domDim__ == 1:
             Xs = np.linspace(lower, upper, samples)
             Ys = self.getValue(Xs.tolist()) if oneByOne else self.getValue(Xs)
-            self.source = np.concatenate(([Xs], [Ys])).transpose()
+            self.setSource(np.concatenate(([Xs], [Ys])).transpose())
             self.setInterpolation(interpolation)
             self.setExtrapolation(extrapolation)
         elif self.__domDim__ == 2:
@@ -489,7 +505,7 @@ class Function:
             mesh = [[Xs[i], Ys[i]] for i in range(len(Xs))]
             # Evaluate function at all mesh nodes and convert it to matrix
             Zs = np.array(self.getValue(mesh))
-            self.source = np.concatenate(([Xs], [Ys], [Zs])).transpose()
+            self.setSource(np.concatenate(([Xs], [Ys], [Zs])).transpose())
             self.__interpolation__ = "shepard"
         return self
 
@@ -573,7 +589,7 @@ class Function:
         if self.__domDim__ == 1:
             Xs = modelFunction.source[:, 0]
             Ys = self.getValue(Xs.tolist()) if oneByOne else self.getValue(Xs)
-            self.source = np.concatenate(([Xs], [Ys])).transpose()
+            self.setSource(np.concatenate(([Xs], [Ys])).transpose())
         elif self.__domDim__ == 2:
             # Create nodes to evaluate function
             Xs = modelFunction.source[:, 0]
@@ -583,7 +599,7 @@ class Function:
             mesh = [[Xs[i], Ys[i]] for i in range(len(Xs))]
             # Evaluate function at all mesh nodes and convert it to matrix
             Zs = np.array(self.getValue(mesh))
-            self.source = np.concatenate(([Xs], [Ys], [Zs])).transpose()
+            self.setSource(np.concatenate(([Xs], [Ys], [Zs])).transpose())
 
         self.setInterpolation(modelFunction.__interpolation__)
         self.setExtrapolation(modelFunction.__extrapolation__)
@@ -736,9 +752,9 @@ class Function:
             if isinstance(args[0], (int, float)):
                 args = [list(args)]
             x = np.array(args[0])
-            xData = self.source[:, 0]
-            yData = self.source[:, 1]
-            xmin, xmax = xData[0], xData[-1]
+            xData = self.xArray
+            yData = self.yArray
+            xmin, xmax = self.xmin, self.xmax
             coeffs = self.__polynomialCoefficients__
             A = np.zeros((len(args[0]), coeffs.shape[0]))
             for i in range(coeffs.shape[0]):
@@ -753,13 +769,13 @@ class Function:
             return ans if len(ans) > 1 else ans[0]
         # Returns value for spline, akima or linear interpolation function type
         elif self.__interpolation__ in ["spline", "akima", "linear"]:
-            if isinstance(args[0], (int, float, complex)):
+            if isinstance(args[0], (int, float, complex, np.integer)):
                 args = [list(args)]
             x = [arg for arg in args[0]]
-            xData = self.source[:, 0]
-            yData = self.source[:, 1]
+            xData = self.xArray
+            yData = self.yArray
             xIntervals = np.searchsorted(xData, x)
-            xmin, xmax = xData[0], xData[-1]
+            xmin, xmax = self.xmin, self.xmax
             if self.__interpolation__ == "spline":
                 coeffs = self.__splineCoefficients__
                 for i in range(len(x)):
@@ -857,9 +873,9 @@ class Function:
 
         # Interpolated Function
         # Retrieve general info
-        xData = self.source[:, 0]
-        yData = self.source[:, 1]
-        xmin, xmax = xData[0], xData[-1]
+        xData = self.xArray
+        yData = self.yArray
+        xmin, xmax = self.xmin, self.xmax
         if self.__extrapolation__ == "zero":
             extrapolation = 0  # Extrapolation is zero
         elif self.__extrapolation__ == "natural":
@@ -1007,8 +1023,8 @@ class Function:
         # Returns value for spline, akima or linear interpolation function type
         elif self.__interpolation__ in ["spline", "akima", "linear"]:
             x = args[0]
-            xData = self.source[:, 0]
-            yData = self.source[:, 1]
+            xData = self.xArray
+            yData = self.yArray
             # Hunt in intervals near the last interval which was used.
             xInterval = self.last_interval
             if xData[xInterval - 1] <= x <= xData[xInterval]:
@@ -1017,7 +1033,7 @@ class Function:
                 xInterval = np.searchsorted(xData, x)
                 self.last_interval = xInterval if xInterval < len(xData) else 0
             # Interval found... keep going
-            xmin, xmax = xData[0], xData[-1]
+            xmin, xmax = self.xmin, self.xmax
             if self.__interpolation__ == "spline":
                 coeffs = self.__splineCoefficients__
                 if x == xmin or x == xmax:
@@ -1100,6 +1116,17 @@ class Function:
             Length of Function.source.
         """
         return len(self.source)
+
+    def __bool__(self):
+        """Returns true if self exists. This is to avoid getting into __len__
+        method in boolean statements.
+
+        Returns
+        -------
+        bool : bool
+            Always True.
+        """
+        return True
 
     # Define all conversion methods
     def toFrequencyDomain(self, lower, upper, samplingFrequency, removeDC=True):
@@ -1234,6 +1261,7 @@ class Function:
         forceData=False,
         forcePoints=False,
         returnObject=False,
+        equalAxis=False,
     ):
         """Plot 1-Dimensional Function, from a lower limit to an upper limit,
         by sampling the Function several times in the interval. The title of
@@ -1278,8 +1306,8 @@ class Function:
             upper = 10 if upper is None else upper
         else:
             # Determine boundaries
-            xData = self.source[:, 0]
-            xmin, xmax = xData[0], xData[-1]
+            xData = self.xArray
+            xmin, xmax = self.xmin, self.xmax
             lower = xmin if lower is None else lower
             upper = xmax if upper is None else upper
             # Plot data points if forceData = True
@@ -1296,6 +1324,8 @@ class Function:
         # Plots function
         if forcePoints:
             plt.scatter(x, y, marker="o")
+        if equalAxis:
+            plt.axis("equal")
         plt.plot(x, y)
         # Turn on grid and set title and axis
         plt.grid(True)
@@ -1363,8 +1393,8 @@ class Function:
             upper = 2 * [upper] if isinstance(upper, (int, float)) else upper
         else:
             # Determine boundaries
-            xData = self.source[:, 0]
-            yData = self.source[:, 1]
+            xData = self.xArray
+            yData = self.yArray
             xMin, xMax = xData.min(), xData.max()
             yMin, yMax = yData.min(), yData.max()
             lower = [xMin, yMin] if lower is None else lower
@@ -1557,8 +1587,8 @@ class Function:
         # Find the degree of the polynomial interpolation
         degree = self.source.shape[0] - 1
         # Get x and y values for all supplied points.
-        x = self.source[:, 0]
-        y = self.source[:, 1]
+        x = self.xArray
+        y = self.yArray
         # Check if interpolation requires large numbers
         if np.amax(x) ** degree > 1e308:
             print(
@@ -1577,8 +1607,8 @@ class Function:
     def __interpolateSpline__(self):
         """Calculate natural spline coefficients that fit the data exactly."""
         # Get x and y values for all supplied points
-        x = self.source[:, 0]
-        y = self.source[:, 1]
+        x = self.xArray
+        y = self.yArray
         mdim = len(x)
         h = [x[i + 1] - x[i] for i in range(0, mdim - 1)]
         # Initialize the matrix
@@ -1607,8 +1637,8 @@ class Function:
     def __interpolateAkima__(self):
         """Calculate akima spline coefficients that fit the data exactly"""
         # Get x and y values for all supplied points
-        x = self.source[:, 0]
-        y = self.source[:, 1]
+        x = self.xArray
+        y = self.yArray
         # Estimate derivatives at each point
         d = [0] * len(x)
         d[0] = (y[1] - y[0]) / (x[1] - x[0])
@@ -1678,7 +1708,7 @@ class Function:
                 and isinstance(self.source, np.ndarray)
                 and self.__interpolation__ == other.__interpolation__
                 and self.__inputs__ == other.__inputs__
-                and np.array_equal(self.source[:, 0], other.source[:, 0])
+                and np.array_equal(self.xArray, other.xArray)
             ):
                 # Operate on grid values
                 with np.errstate(divide="ignore"):
@@ -1701,8 +1731,8 @@ class Function:
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
-                    Ys = self.source[:, 1] / other
-                    Xs = self.source[:, 0]
+                    Ys = self.yArray / other
+                    Xs = self.xArray
                     source = np.concatenate(([Xs], [Ys])).transpose()
                     # Retrieve inputs, outputs and interpolation
                     inputs = self.__inputs__[:]
@@ -1736,8 +1766,8 @@ class Function:
         if isinstance(other, (float, int, complex)):
             if isinstance(self.source, np.ndarray):
                 # Operate on grid values
-                Ys = other / self.source[:, 1]
-                Xs = self.source[:, 0]
+                Ys = other / self.yArray
+                Xs = self.xArray
                 source = np.concatenate(([Xs], [Ys])).transpose()
                 # Retrieve inputs, outputs and interpolation
                 inputs = self.__inputs__[:]
@@ -1782,11 +1812,12 @@ class Function:
                 and isinstance(self.source, np.ndarray)
                 and self.__interpolation__ == other.__interpolation__
                 and self.__inputs__ == other.__inputs__
-                and np.array_equal(self.source[:, 0], other.source[:, 0])
+                and np.any(self.xArray - other.xArray) == False
+                and np.array_equal(self.xArray, other.xArray)
             ):
                 # Operate on grid values
-                Ys = self.source[:, 1] ** other.source[:, 1]
-                Xs = self.source[:, 0]
+                Ys = self.yArray**other.yArray
+                Xs = self.xArray
                 source = np.concatenate(([Xs], [Ys])).transpose()
                 # Retrieve inputs, outputs and interpolation
                 inputs = self.__inputs__[:]
@@ -1803,8 +1834,8 @@ class Function:
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
-                    Ys = self.source[:, 1] ** other
-                    Xs = self.source[:, 0]
+                    Ys = self.yArray**other
+                    Xs = self.xArray
                     source = np.concatenate(([Xs], [Ys])).transpose()
                     # Retrieve inputs, outputs and interpolation
                     inputs = self.__inputs__[:]
@@ -1838,8 +1869,8 @@ class Function:
         if isinstance(other, (float, int, complex)):
             if isinstance(self.source, np.ndarray):
                 # Operate on grid values
-                Ys = other ** self.source[:, 1]
-                Xs = self.source[:, 0]
+                Ys = other**self.yArray
+                Xs = self.xArray
                 source = np.concatenate(([Xs], [Ys])).transpose()
                 # Retrieve inputs, outputs and interpolation
                 inputs = self.__inputs__[:]
@@ -1884,11 +1915,11 @@ class Function:
                 and isinstance(self.source, np.ndarray)
                 and self.__interpolation__ == other.__interpolation__
                 and self.__inputs__ == other.__inputs__
-                and np.array_equal(self.source[:, 0], other.source[:, 0])
+                and np.array_equal(self.xArray, other.xArray)
             ):
                 # Operate on grid values
-                Ys = self.source[:, 1] * other.source[:, 1]
-                Xs = self.source[:, 0]
+                Ys = self.yArray * other.yArray
+                Xs = self.xArray
                 source = np.concatenate(([Xs], [Ys])).transpose()
                 # Retrieve inputs, outputs and interpolation
                 inputs = self.__inputs__[:]
@@ -1905,8 +1936,8 @@ class Function:
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
-                    Ys = self.source[:, 1] * other
-                    Xs = self.source[:, 0]
+                    Ys = self.yArray * other
+                    Xs = self.xArray
                     source = np.concatenate(([Xs], [Ys])).transpose()
                     # Retrieve inputs, outputs and interpolation
                     inputs = self.__inputs__[:]
@@ -1940,8 +1971,8 @@ class Function:
         if isinstance(other, (float, int, complex)):
             if isinstance(self.source, np.ndarray):
                 # Operate on grid values
-                Ys = other * self.source[:, 1]
-                Xs = self.source[:, 0]
+                Ys = other * self.yArray
+                Xs = self.xArray
                 source = np.concatenate(([Xs], [Ys])).transpose()
                 # Retrieve inputs, outputs and interpolation
                 inputs = self.__inputs__[:]
@@ -1986,11 +2017,11 @@ class Function:
                 and isinstance(self.source, np.ndarray)
                 and self.__interpolation__ == other.__interpolation__
                 and self.__inputs__ == other.__inputs__
-                and np.array_equal(self.source[:, 0], other.source[:, 0])
+                and np.array_equal(self.xArray, other.xArray)
             ):
                 # Operate on grid values
-                Ys = self.source[:, 1] + other.source[:, 1]
-                Xs = self.source[:, 0]
+                Ys = self.yArray + other.yArray
+                Xs = self.xArray
                 source = np.concatenate(([Xs], [Ys])).transpose()
                 # Retrieve inputs, outputs and interpolation
                 inputs = self.__inputs__[:]
@@ -2007,8 +2038,8 @@ class Function:
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
-                    Ys = self.source[:, 1] + other
-                    Xs = self.source[:, 0]
+                    Ys = self.yArray + other
+                    Xs = self.xArray
                     source = np.concatenate(([Xs], [Ys])).transpose()
                     # Retrieve inputs, outputs and interpolation
                     inputs = self.__inputs__[:]
@@ -2042,8 +2073,8 @@ class Function:
         if isinstance(other, (float, int, complex)):
             if isinstance(self.source, np.ndarray):
                 # Operate on grid values
-                Ys = other + self.source[:, 1]
-                Xs = self.source[:, 0]
+                Ys = other + self.yArray
+                Xs = self.xArray
                 source = np.concatenate(([Xs], [Ys])).transpose()
                 # Retrieve inputs, outputs and interpolation
                 inputs = self.__inputs__[:]
@@ -2088,11 +2119,11 @@ class Function:
                 and isinstance(self.source, np.ndarray)
                 and self.__interpolation__ == other.__interpolation__
                 and self.__inputs__ == other.__inputs__
-                and np.array_equal(self.source[:, 0], other.source[:, 0])
+                and np.array_equal(self.xArray, other.xArray)
             ):
                 # Operate on grid values
-                Ys = self.source[:, 1] - other.source[:, 1]
-                Xs = self.source[:, 0]
+                Ys = self.yArray - other.yArray
+                Xs = self.xArray
                 source = np.concatenate(([Xs], [Ys])).transpose()
                 # Retrieve inputs, outputs and interpolation
                 inputs = self.__inputs__[:]
@@ -2109,8 +2140,8 @@ class Function:
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
-                    Ys = self.source[:, 1] - other
-                    Xs = self.source[:, 0]
+                    Ys = self.yArray - other
+                    Xs = self.xArray
                     source = np.concatenate(([Xs], [Ys])).transpose()
                     # Retrieve inputs, outputs and interpolation
                     inputs = self.__inputs__[:]
@@ -2144,8 +2175,8 @@ class Function:
         if isinstance(other, (float, int, complex)):
             if isinstance(self.source, np.ndarray):
                 # Operate on grid values
-                Ys = other - self.source[:, 1]
-                Xs = self.source[:, 0]
+                Ys = other - self.yArray
+                Xs = self.xArray
                 source = np.concatenate(([Xs], [Ys])).transpose()
                 # Retrieve inputs, outputs and interpolation
                 inputs = self.__inputs__[:]
@@ -2188,17 +2219,24 @@ class Function:
             a, b = b, a
         # Different implementations depending on interpolation
         if self.__interpolation__ == "spline" and numerical is False:
-            xData = self.source[:, 0]
-            yData = self.source[:, 1]
+            xData = self.xArray
+            yData = self.yArray
             coeffs = self.__splineCoefficients__
             ans = 0
             # Check to see if interval starts before point data
             if a < xData[0]:
                 if self.__extrapolation__ == "constant":
-                    ans += yData[0] * (xData[0] - a)
+                    ans += yData[0] * (min(xData[0], b) - a)
                 elif self.__extrapolation__ == "natural":
                     c = coeffs[:, 0]
-                    subB = a - xData[0]  # subA = 0
+                    subB = a - xData[0]
+                    subA = min(b, xData[0]) - xData[0]
+                    ans += (
+                        (c[3] * subA**4) / 4
+                        + (c[2] * subA**3 / 3)
+                        + (c[1] * subA**2 / 2)
+                        + c[0] * subA
+                    )
                     ans -= (
                         (c[3] * subB**4) / 4
                         + (c[2] * subB**3 / 3)
@@ -2208,29 +2246,43 @@ class Function:
                 else:
                     # self.__extrapolation__ = 'zero'
                     pass
+
             # Integrate in subintervals between Xs of given data up to b
-            i = 0
+            i = max(np.searchsorted(xData, a, side="left") - 1, 0)
             while i < len(xData) - 1 and xData[i] < b:
-                if b < xData[i + 1]:
-                    subB = b - xData[i]  # subA = 0
+                if xData[i] <= a <= xData[i + 1] and xData[i] <= b <= xData[i + 1]:
+                    subA = a - xData[i]
+                    subB = b - xData[i]
+                elif xData[i] <= a <= xData[i + 1]:
+                    subA = a - xData[i]
+                    subB = xData[i + 1] - xData[i]
+                elif b <= xData[i + 1]:
+                    subA = 0
+                    subB = b - xData[i]
                 else:
-                    subB = xData[i + 1] - xData[i]  # subA = 0
+                    subA = 0
+                    subB = xData[i + 1] - xData[i]
                 c = coeffs[:, i]
-                subB = xData[i + 1] - xData[i]  # subA = 0
                 ans += (
                     (c[3] * subB**4) / 4
                     + (c[2] * subB**3 / 3)
                     + (c[1] * subB**2 / 2)
                     + c[0] * subB
                 )
+                ans -= (
+                    (c[3] * subA**4) / 4
+                    + (c[2] * subA**3 / 3)
+                    + (c[1] * subA**2 / 2)
+                    + c[0] * subA
+                )
                 i += 1
             # Check to see if interval ends after point data
             if b > xData[-1]:
                 if self.__extrapolation__ == "constant":
-                    ans += yData[-1] * (b - xData[-1])
+                    ans += yData[-1] * (b - max(xData[-1], a))
                 elif self.__extrapolation__ == "natural":
                     c = coeffs[:, -1]
-                    subA = xData[-1] - xData[-2]
+                    subA = max(xData[-1], a) - xData[-2]
                     subB = b - xData[-2]
                     ans -= (
                         (c[3] * subA**4) / 4
@@ -2249,8 +2301,8 @@ class Function:
                     pass
         elif self.__interpolation__ == "linear" and numerical is False:
             # Integrate from a to b using np.trapz
-            xData = self.source[:, 0]
-            yData = self.source[:, 1]
+            xData = self.xArray
+            yData = self.yArray
             # Get data in interval
             xIntegrationData = xData[(xData >= a) & (xData <= b)]
             yIntegrationData = yData[(xData >= a) & (xData <= b)]
@@ -2271,15 +2323,426 @@ class Function:
             ans = np.trapz(yIntegrationData, xIntegrationData)
         else:
             # Integrate numerically
-            ans, _ = integrate.quad(self, a, b, epsabs=0.1, limit=10000)
+            ans, _ = integrate.quad(self, a, b, epsabs=0.001, limit=10000)
         return integrationSign * ans
 
-    # Not implemented
-    def differentiate(self, x, dx=1e-6):
-        return (self.getValue(x + dx) - self.getValue(x - dx)) / (2 * dx)
-        # h = (10)**-300
-        # z = x + h*1j
-        # return self(z).imag/h
+    def differentiate(self, x, dx=1e-6, order=1):
+        """Differentiate a Function object at a given point.
+
+        Parameters
+        ----------
+        x : float
+            Point at which to differentiate.
+        dx : float
+            Step size to use for numerical differentiation.
+        order : int
+            Order of differentiation.
+
+        Returns
+        -------
+        ans : float
+            Evaluated derivative.
+        """
+        if order == 1:
+            return (self.getValue(x + dx) - self.getValue(x - dx)) / (2 * dx)
+        elif order == 2:
+            return (
+                self.getValue(x + dx) - 2 * self.getValue(x) + self.getValue(x - dx)
+            ) / dx**2
+
+    def derivativeFunction(self):
+        """Returns a Function object which gives the derivative of the Function object.
+
+        Returns
+        -------
+        result : Function
+            A Function object which gives the derivative of self.
+        """
+        # Check if Function object source is array
+        if isinstance(self.source, np.ndarray):
+            # Operate on grid values
+            Ys = np.diff(self.yArray) / np.diff(self.xArray)
+            Xs = self.source[:-1, 0] + np.diff(self.xArray) / 2
+            source = np.column_stack((Xs, Ys))
+            # Retrieve inputs, outputs and interpolation
+            inputs = self.__inputs__[:]
+            outputs = f"d({self.__outputs__[0]})/d({inputs[0]})"
+        else:
+            source = lambda x: self.differentiate(x)
+            inputs = self.__inputs__[:]
+            outputs = f"d({self.__outputs__[0]})/d({inputs[0]})"
+
+        # Create new Function object
+        return Function(source, inputs, outputs, self.__interpolation__)
+
+    def integralFunction(self, lower=None, upper=None, datapoints=100):
+        """Returns a Function object representing the integral of the Function object.
+
+        Parameters
+        ----------
+        lower : scalar, optional
+            The lower limit of the interval in which the function is to be
+            evaluated at. If the Function is given by a dataset, the default
+            value is the start of the dataset.
+        upper : scalar, optional
+            The upper limit of the interval in which the function is to be
+            evaluated at. If the Function is given by a dataset, the default
+            value is the end of the dataset.
+        datapoints : int, optional
+            The number of points in which the integral will be evaluated for
+            plotting it, which draws lines between each evaluated point.
+            The default value is 100.
+
+        Returns
+        -------
+        result : Function
+            The integral of the Function object.
+        """
+        if isinstance(self.source, np.ndarray):
+            lower = self.source[0, 0] if lower is None else lower
+            upper = self.source[-1, 0] if upper is None else upper
+            xData = np.linspace(lower, upper, datapoints)
+            yData = np.zeros(datapoints)
+            for i in range(datapoints):
+                yData[i] = self.integral(lower, xData[i])
+            return Function(
+                np.column_stack((xData, yData)),
+                inputs=self.__inputs__,
+                outputs=[o + " Integral" for o in self.__outputs__],
+            )
+        else:
+            lower = 0 if lower is None else lower
+            return Function(
+                lambda x: self.integral(lower, x),
+                inputs=self.__inputs__,
+                outputs=[o + " Integral" for o in self.__outputs__],
+            )
+
+    def isBijective(self):
+        """Checks whether the Function is bijective. Only applicable to
+        Functions whose source is a list of points, raises an error otherwise.
+
+        Returns
+        -------
+        result : bool
+            True if the Function is bijective, False otherwise.
+        """
+        if isinstance(self.source, np.ndarray):
+            xDataDistinct = set(self.xArray)
+            yDataDistinct = set(self.yArray)
+            distinctMap = set(zip(xDataDistinct, yDataDistinct))
+            return len(distinctMap) == len(xDataDistinct) == len(yDataDistinct)
+        else:
+            raise TypeError(
+                "Only Functions whose source is a list of points can be "
+                "checked for bijectivity."
+            )
+
+    def isStrictlyBijective(self):
+        """Checks whether the Function is "strictly" bijective.
+        Only applicable to Functions whose source is a list of points,
+        raises an error otherwise.
+
+        Notes
+        -----
+        By "strictly" bijective, this implementation considers the
+        list-of-points-defined Function bijective between each consecutive pair
+        of points. Therefore, the Function may be flagged as not bijective even
+        if the mapping between the set of points which define the Function is
+        bijective.
+
+        Returns
+        -------
+        result : bool
+            True if the Function is "strictly" bijective, False otherwise.
+
+        Examples
+        --------
+        >>> f = Function([[0, 0], [1, 1], [2, 4]])
+        >>> f.isBijective()
+        True
+        >>> f.isStrictlyBijective()
+        True
+
+        >>> f = Function([[-1, 1], [0, 0], [1, 1], [2, 4]])
+        >>> f.isBijective()
+        False
+        >>> f.isStrictlyBijective()
+        False
+
+        A Function which is not "strictly" bijective, but is bijective, can be
+        constructed as x^2 defined at -1, 0 and 2.
+
+        >>> f = Function([[-1, 1], [0, 0], [2, 4]])
+        >>> f.isBijective()
+        True
+        >>> f.isStrictlyBijective()
+        False
+        """
+        if isinstance(self.source, np.ndarray):
+            # Assuming domain is sorted, range must also be
+            yData = self.yArray
+            # Both ascending and descending order means Function is bijective
+            yDataDiff = np.diff(yData)
+            return np.all(yDataDiff >= 0) or np.all(yDataDiff <= 0)
+        else:
+            raise TypeError(
+                "Only Functions whose source is a list of points can be "
+                "checked for bijectivity."
+            )
+
+    def inverseFunction(self, approxFunc=None, tol=1e-4):
+        """
+        Returns the inverse of the Function. The inverse function of F is a
+        function that undoes the operation of F. The inverse of F exists if
+        and only if F is bijective. Makes the domain the range and the range
+        the domain.
+
+        If the Function is given by a list of points, its bijectivity is
+        checked and an error is raised if it is not bijective.
+        If the Function is given by a function, its bijection is not
+        checked and may lead to innacuracies outside of its bijective region.
+
+        Parameters
+        ----------
+        approxFunc : callable, optional
+            A function that approximates the inverse of the Function. This
+            function is used to find the starting guesses for the inverse
+            root finding algorithm. This is better used when the inverse
+            in complex but has a simple approximation or when the root
+            finding algorithm performs poorly due to default start point.
+            The default is None in which case the starting point is zero.
+
+        tol : float, optional
+            The tolerance for the inverse root finding algorithm. The default
+            is 1e-4.
+
+        Returns
+        -------
+        result : Function
+            A Function whose domain and range have been inverted.
+        """
+        if isinstance(self.source, np.ndarray):
+            if self.isStrictlyBijective():
+                # Swap the columns
+                source = np.flip(self.source, axis=1)
+            else:
+                raise ValueError(
+                    "Function is not bijective, so it does not have an inverse."
+                )
+        else:
+            if approxFunc is not None:
+                source = lambda x: self.findInput(x, start=approxFunc(x), tol=tol)
+            else:
+                source = lambda x: self.findInput(x, start=0, tol=tol)
+        return Function(
+            source,
+            inputs=self.__outputs__,
+            outputs=self.__inputs__,
+            interpolation=self.__interpolation__,
+        )
+
+    def findInput(self, val, start, tol=1e-4):
+        """
+        Finds the optimal input for a given output.
+
+        Parameters
+        ----------
+        val : int, float
+            The value of the output.
+        start : int, float
+            Initial guess of the output.
+        tol : int, float
+            Tolerance for termination.
+
+        Returns
+        -------
+        result : ndarray
+            The value of the input which gives the output closest to val.
+        """
+        return optimize.root(
+            lambda x: self.getValue(x) - val,
+            start,
+            tol=tol,
+        ).x[0]
+
+    def average(self, lower, upper):
+        """
+        Returns the average of the function.
+
+        Parameters
+        ----------
+        lower : float
+            Lower point of the region that the average will be calculated at.
+        upper : float
+            Upper point of the region that the average will be calculated at.
+
+        Returns
+        -------
+        result : float
+            The average of the function.
+        """
+        return self.integral(lower, upper) / (upper - lower)
+
+    def averageFunction(self, lower=None):
+        """
+        Returns a Function object representing the average of the Function object.
+
+        Parameters
+        ----------
+        lower : float
+            Lower limit of the new domain. Only required if the Function's source
+            is a callable instead of a list of points.
+
+        Returns
+        -------
+        result : Function
+            The average of the Function object.
+        """
+        if isinstance(self.source, np.ndarray):
+            if lower is None:
+                lower = self.source[0, 0]
+            upper = self.source[-1, 0]
+            xData = np.linspace(lower, upper, 100)
+            yData = np.zeros(100)
+            yData[0] = self.source[:, 1][0]
+            for i in range(1, 100):
+                yData[i] = self.average(lower, xData[i])
+            return Function(
+                np.concatenate(([xData], [yData])).transpose(),
+                inputs=self.__inputs__,
+                outputs=[o + " Average" for o in self.__outputs__],
+            )
+        else:
+            if lower is None:
+                lower = 0
+            return Function(
+                lambda x: self.average(lower, x),
+                inputs=self.__inputs__,
+                outputs=[o + " Average" for o in self.__outputs__],
+            )
+
+    def compose(self, func, extrapolate=False):
+        """
+        Returns a Function object which is the result of inputing a function
+        into a function (i.e. f(g(x))). The domain will become the domain of
+        the input function and the range will become the range of the original
+        function.
+
+        Parameters
+        ----------
+        func : Function
+            The function to be inputed into the function.
+
+        extrapolate : bool, optional
+            Whether or not to extrapolate the function if the input function's
+            range is outside of the original function's domain. The default is
+            False.
+
+        Returns
+        -------
+        result : Function
+            The result of inputing the function into the function.
+        """
+        # Check if the input is a function
+        if not isinstance(func, Function):
+            raise TypeError("Input must be a Function object.")
+
+        if isinstance(self.source, np.ndarray) and isinstance(func.source, np.ndarray):
+            # Perform bounds check for composition
+            if not extrapolate:
+                if func.ymin < self.xmin and func.ymax > self.xmax:
+                    raise ValueError(
+                        f"Input Function image {func.ymin, func.ymax} must be within "
+                        f"the domain of the Function {self.xmin, self.xmax}."
+                    )
+
+            return Function(
+                np.concatenate(([func.xArray], [self(func.yArray)])).T,
+                inputs=func.__inputs__,
+                outputs=self.__outputs__,
+                interpolation=self.__interpolation__,
+                extrapolation=self.__extrapolation__,
+            )
+        else:
+            return Function(
+                lambda x: self(func(x)),
+                inputs=func.__inputs__,
+                outputs=self.__outputs__,
+                interpolation=self.__interpolation__,
+                extrapolation=self.__extrapolation__,
+            )
+
+
+class PiecewiseFunction(Function):
+    def __new__(
+        cls,
+        source,
+        inputs=["Scalar"],
+        outputs=["Scalar"],
+        interpolation="akima",
+        extrapolation=None,
+        datapoints=50,
+    ):
+        """
+        Creates a piecewise function from a dictionary of functions. The keys of the dictionary
+        must be tuples that represent the domain of the function. The domains must be disjoint.
+        The piecewise function will be evaluated at datapoints points to create Function object.
+
+        Parameters
+        ----------
+        source: dictionary
+            A dictionary of Function objects, where the keys are the domains.
+        inputs : list
+            A list of strings that represent the inputs of the function.
+        outputs: list
+            A list of strings that represent the outputs of the function.
+        interpolation: str
+            The type of interpolation to use. The default value is 'akima'.
+        extrapolation: str
+            The type of extrapolation to use. The default value is None.
+        datapoints: int
+            The number of points in which the piecewise function will be
+            evaluated to create a base function. The default value is 100.
+        """
+        # Check if source is a dictionary
+        if not isinstance(source, dict):
+            raise TypeError("source must be a dictionary")
+        # Check if all keys are tuples
+        for key in source.keys():
+            if not isinstance(key, tuple):
+                raise TypeError("keys of source must be tuples")
+        # Check if all domains are disjoint
+        for key1 in source.keys():
+            for key2 in source.keys():
+                if key1 != key2:
+                    if key1[0] < key2[1] and key1[1] > key2[0]:
+                        raise ValueError("domains must be disjoint")
+
+        # Crate Function
+        def calcOutput(func, inputs):
+            o = np.zeros(len(inputs))
+            for j in range(len(inputs)):
+                o[j] = func.getValue(inputs[j])
+            return o
+
+        inputData = []
+        outputData = []
+        for key in sorted(source.keys()):
+            i = np.linspace(key[0], key[1], datapoints)
+            i = i[~np.in1d(i, inputData)]
+            inputData = np.concatenate((inputData, i))
+
+            f = Function(source[key])
+            outputData = np.concatenate((outputData, calcOutput(f, i)))
+
+        return Function(
+            np.concatenate(([inputData], [outputData])).T,
+            inputs=inputs,
+            outputs=outputs,
+            interpolation=interpolation,
+            extrapolation=extrapolation,
+        )
 
 
 def funcify_method(*args, **kwargs):

@@ -63,7 +63,6 @@ def rocket(solid_motor):
 
 @pytest.fixture
 def flight(rocket, example_env):
-
     rocket.setRailButtons([0.2, -0.5])
 
     NoseCone = rocket.addNose(
@@ -197,6 +196,38 @@ def linear_func():
     """
     return Function(
         [[0, 0], [1, 1], [2, 2], [3, 3]],
+    )
+
+
+@pytest.fixture
+def linearly_interpolated_func():
+    """Create a linearly interpolated function based on a list of points.
+
+    Returns
+    -------
+    Function
+        Piece-wise linearly interpolated, with constant extrapolation
+    """
+    return Function(
+        [[0, 0], [1, 7], [2, -3], [3, -1], [4, 3]],
+        interpolation="spline",
+        extrapolation="constant",
+    )
+
+
+@pytest.fixture
+def spline_interpolated_func():
+    """Create a spline interpolated function based on a list of points.
+
+    Returns
+    -------
+    Function
+        Spline interpolated, with natural extrapolation
+    """
+    return Function(
+        [[0, 0], [1, 7], [2, -3], [3, -1], [4, 3]],
+        interpolation="spline",
+        extrapolation="natural",
     )
 
 

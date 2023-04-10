@@ -483,10 +483,12 @@ class Rocket:
         radius = self.radius if radius is None else radius
 
         # Create new tail as an object of the Tail class
-        tail = Tail(topRadius, bottomRadius, length, position, radius, name)
+        tail = Tail(topRadius, bottomRadius, length, radius, name)
+        # Saves position on object for practicality
+        tail.position = position
 
         # Add tail to aerodynamic surfaces and tail list
-        self.aerodynamicSurfaces.append(tail)
+        self.aerodynamicSurfaces.append(aeroSurface=tail, position=position)
         self.tail.append(tail)
 
         # Refresh static margin calculation
@@ -522,10 +524,12 @@ class Rocket:
             Nose cone object created.
         """
         # Create a nose as an object of NoseCone class
-        nose = NoseCone(length, kind, position, self.radius, self.radius, name)
+        nose = NoseCone(length, kind, self.radius, self.radius, name)
+        # Saves position on object for practicality
+        nose.position = position
 
         # Add nose to the list of aerodynamic surfaces
-        self.aerodynamicSurfaces.append(nose)
+        self.aerodynamicSurfaces.append(aeroSurface=nose, position=position)
         self.nosecone.append(nose)
 
         # Refresh static margin calculation
@@ -636,9 +640,11 @@ class Rocket:
             airfoil,
             name,
         )
+        # Saves position on object for practicality
+        finSet.position = position
 
         # Add fin set to the list of aerodynamic surfaces
-        self.aerodynamicSurfaces.append(finSet)
+        self.aerodynamicSurfaces.append(aeroSurface=finSet, position=position)
         self.fins.append(finSet)
 
         # Refresh static margin calculation
@@ -709,12 +715,12 @@ class Rocket:
         radius = radius if radius is not None else self.radius
 
         # Create a fin set as an object of EllipticalFins class
-        finSet = EllipticalFins(
-            n, rootChord, span, position, radius, cantAngle, airfoil, name
-        )
+        finSet = EllipticalFins(n, rootChord, span, radius, cantAngle, airfoil, name)
+        # Saves position on object for practicality
+        finSet.position = position
 
         # Add fin set to the list of aerodynamic surfaces
-        self.aerodynamicSurfaces.append(finSet)
+        self.aerodynamicSurfaces.append(aeroSurface=finSet, position=position)
         self.fins.append(finSet)
 
         # Refresh static margin calculation

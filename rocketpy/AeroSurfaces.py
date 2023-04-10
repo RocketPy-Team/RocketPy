@@ -11,18 +11,25 @@ from abc import ABC, abstractmethod, abstractproperty
 
 
 class AeroSurfaces:
-    """Class used to hold multiple aerodynamic surfaces."""
+    """Class used to hold one or more aerodynamic surfaces."""
 
     def __init__(self):
         self._aeroSurfaces = []
 
-    def append(self, aeroSurface):
-        self._aeroSurfaces.append(aeroSurface)
+    def append(self, aeroSurface, position=None):
+        if position:
+            self._aeroSurfaces.append((aeroSurface, position))
+        else:
+            self._aeroSurfaces.append(aeroSurface)
 
     def remove(self, aeroSurface):
         for surface in self._aeroSurfaces:
-            if surface == aeroSurface:
-                self._aeroSurfaces.remove(aeroSurface)
+            if isinstance(surface, tuple):
+                if surface[0] == aeroSurface:
+                    self._aeroSurfaces.remove((surface[0], surface[1]))
+            else:
+                if surface == aeroSurface:
+                    self._aeroSurfaces.remove(surface)
 
     def pop(self, index=-1):
         return self._aeroSurfaces.pop(index)
@@ -89,7 +96,6 @@ class NoseCone:
         self,
         length,
         kind,
-        position,
         baseRadius=None,
         rocketRadius=None,
         name="Nose Cone",
@@ -102,7 +108,8 @@ class NoseCone:
         length : float
             Nose cone length. Has units of length and must be given in meters.
         kind : string
-            Nose cone kind. Can be "conical", "ogive" or "lvhaack".
+            Nose cone kind. Can be "conical", "ogive", "elliptical", "tangent",
+            "von karman", "parabolic" or "lvhaack".
         baseRadius : float, optional
             Nose cone base radius. Has units of length and must be given in meters.
             If not given, the ratio between baseRadius and rocketRadius will be
@@ -121,13 +128,13 @@ class NoseCone:
         """
         self.cpy = 0
         self.cpx = 0
+        self.position = None  # in relation to rocket
 
         self._rocketRadius = rocketRadius
         self._baseRadius = baseRadius
         self._length = length
         self.kind = kind
         self.name = name
-        self.position = position
 
         self.evaluateGeometricalParameters()
         self.evaluateLiftCoefficient()
@@ -180,12 +187,28 @@ class NoseCone:
             self.k = 0.466
         elif value == "lvhaack":
             self.k = 0.563
+        elif value == "tangent":
+            rho = (self.baseRadius**2 + self.length**2) / (2 * self.baseRadius)
+            volume = np.pi * (
+                self.length * rho**2
+                - (self.length**3) / 3
+                - (rho - self.baseRadius) * rho**2 * np.arcsin(self.length / rho)
+            )
+            area = np.pi * self.baseRadius**2
+            self.k = 1 - volume / (area * self.length)
+        elif value == "elliptical":
+            self.k = 1 / 3
         else:
-            self.k = 0.5
+            self.k = 0.5  # Parabolic and Von Karman
         self.evaluateCenterOfPressure()
 
+    def __repr__(self):
+        rep = f"NoseCone Object -> Name: {self.name}, kind: {self.kind}"
+
+        return rep
+
     def evaluateGeometricalParameters(self):
-        """Calculates and returns nose cone's radius ratio.
+        """Calculates and saves nose cone's radius ratio.
 
         Parameters
         ----------
@@ -224,6 +247,7 @@ class NoseCone:
             ["Alpha (rad)", "Mach"],
             "Cl",
         )
+        return self.cl
 
     def evaluateCenterOfPressure(self):
         """Calculates and returns the center of pressure of the nose cone in local
@@ -256,9 +280,10 @@ class NoseCone:
         -------
         None
         """
-        print("Nose Cone Geometric Information of Nose: {}".format(self.name))
+        print(f"\nGeometric Information of {self.name}")
         print("-------------------------------")
-        print(f"Position: {self.position:.3f} m")
+        if self.position:
+            print(f"Position: {self.position:.3f} m")
         print(f"Length: {self.length:.3f} m")
         print(f"Kind: {self.kind}")
         print(f"Base Radius: {self.baseRadius:.3f} m")
@@ -278,7 +303,7 @@ class NoseCone:
         -------
         None
         """
-        print(f"Nose Cone Aerodynamic Information of Nose: {self.name}")
+        print(f"\nAerodynamic Information of {self.name}")
         print("-------------------------------")
         print(f"Center of Pressure Position in Local Coordinates: {self.cp} m")
         print(f"Lift Coefficient Slope: {self.clalpha:.3f} 1/rad")
@@ -443,6 +468,7 @@ class Fins(ABC):
         self.position = position
         self.d = d
         self.Aref = Aref  # Reference area
+        self.position = None  # in relation to rocket
 
         return None
 
@@ -537,7 +563,7 @@ class Fins(ABC):
 
     @abstractmethod
     def evaluateGeometricalParameters(self):
-        """Calculates and returns fin set's geometrical parameters such as the
+        """Calculates and saves fin set's geometrical parameters such as the
         fins' area, aspect ratio and parameters for roll movement.
 
         Parameters
@@ -576,13 +602,13 @@ class Fins(ABC):
         else:
             # Defines clalpha2D as the derivative of the
             # lift coefficient curve for a specific airfoil
-            airfoilCl = Function(
+            self.airfoilCl = Function(
                 self.airfoil[0],
                 interpolation="linear",
             )
 
             # Differentiating at x = 0 to get cl_alpha
-            clalpha2D_Mach0 = airfoilCl.differentiate(x=1e-3, dx=1e-3)
+            clalpha2D_Mach0 = self.airfoilCl.differentiate(x=1e-3, dx=1e-3)
 
             # Convert to radians if needed
             if self.airfoil[1] == "degrees":
@@ -745,7 +771,7 @@ class Fins(ABC):
         None
         """
 
-        print("\n\nGeometrical Parameters\n")
+        print("\nGeometrical Parameters\n")
         if isinstance(self, TrapezoidalFins):
             print("Fin Type: Trapezoidal")
             print("Tip Chord: {:.3f} m".format(self.tipChord))
@@ -753,10 +779,11 @@ class Fins(ABC):
             print("Fin Type: Elliptical")
         print("Root Chord: {:.3f} m".format(self.rootChord))
         print("Span: {:.3f} m".format(self.span))
-        print("Position: {:.3f} m".format(self.position))
+        if self.position:
+            print("Position: {:.3f} m".format(self.position))
         print("Cant Angle: {:.3f} °".format(self.cantAngle))
-        print("Longitudinal Section Area: {:.3f} m".format(self.Af))
-        print("Aspect Ratio: {:.3f} m".format(self.AR))
+        print("Longitudinal Section Area: {:.3f} m²".format(self.Af))
+        print("Aspect Ratio: {:.3f} ".format(self.AR))
         print("Gamma_c: {:.3f} m".format(self.gamma_c))
         print("Mean Aerodynamic Chord: {:.3f} m".format(self.Yma))
         print(
@@ -777,7 +804,7 @@ class Fins(ABC):
         ------
         None
         """
-        print("\n\nAerodynamic Information")
+        print("\nAerodynamic Information")
         print("----------------")
         print("Lift Interference Factor: {:.3f} m".format(self.liftInterferenceFactor))
         print(
@@ -785,15 +812,21 @@ class Fins(ABC):
                 self.cpx, self.cpy, self.cpz
             )
         )
+        print()
         print(
             "Lift Coefficient derivative as a Function of Alpha and Mach for Single Fin"
         )
+        print()
         self.clalphaSingleFin()
+        print()
         print(
             "Lift Coefficient derivative as a Function of Alpha and Mach for the Fin Set"
         )
+        print()
         self.clalphaMultipleFins()
+        print()
         print("Lift Coefficient as a Function of Alpha and Mach for the Fin Set")
+        print()
         self.cl()
 
         return None
@@ -827,9 +860,33 @@ class Fins(ABC):
                 self.rollForcingInterferenceFactor
             )
         )
-
+        # lacks a title for the plot
         self.rollParameters[0]()
+        # lacks a title for the plot
         self.rollParameters[1]()
+
+        return None
+
+    def airfoilInfo(self):
+        """Prints out airfoil related information of the
+        fin set.
+
+        Parameters
+        ----------
+        None
+
+        Return
+        ------
+        None
+        """
+        if self.airfoil is not None:
+            print("\n\nAerodynamic Information\n")
+            print(
+                "Airfoil's Lift Curve as a Function of Alpha ({}))".format(
+                    self.airfoil[1]
+                )
+            )
+            self.airfoilCl.plot1D()
 
         return None
 
@@ -857,6 +914,7 @@ class Fins(ABC):
         self.geometricalInfo()
         self.aerodynamicInfo()
         self.rollInfo()
+        self.airfoilInfo()
 
         return None
 
@@ -1027,7 +1085,6 @@ class TrapezoidalFins(Fins):
         self._tipChord = tipChord
         self._sweepLength = sweepLength
         self._sweepAngle = sweepAngle
-
         self.evaluateGeometricalParameters()
         self.evaluateCenterOfPressure()
         self.evaluateLiftCoefficient()
@@ -1069,6 +1126,11 @@ class TrapezoidalFins(Fins):
         self.evaluateCenterOfPressure()
         self.evaluateLiftCoefficient()
         self.evaluateRollParameters()
+
+    def __repr__(self):
+        rep = f"TrapezoidalFins Object -> Name: {self.name}"
+
+        return rep
 
     def evaluateCenterOfPressure(self):
         """Calculates and returns the center of pressure of the fin set in local
@@ -1205,7 +1267,7 @@ class TrapezoidalFins(Fins):
         return None
 
     def evaluateGeometricalParameters(self):
-        """Calculates and returns fin set's geometrical parameters such as the
+        """Calculates and saves fin set's geometrical parameters such as the
         fins' area, aspect ratio and parameters for roll movement.
 
         Parameters
@@ -1316,7 +1378,7 @@ class EllipticalFins(Fins):
         Fins.Aref : float
             Reference area of the rocket.
         Fins.Af : float
-            Area of the longtudinal section of each fin in the set.
+            Area of the longitudinal section of each fin in the set.
         Fins.AR : float
             Aspect ratio of each fin in the set.
         Fins.gamma_c : float
@@ -1428,6 +1490,11 @@ class EllipticalFins(Fins):
 
         return None
 
+    def __repr__(self):
+        rep = f"EllipticalFins Object -> Name: {self.name}"
+
+        return rep
+
     def evaluateCenterOfPressure(self):
         """Calculates and returns the center of pressure of the fin set in local
         coordinates. The center of pressure position is saved and stored as a tuple.
@@ -1447,7 +1514,7 @@ class EllipticalFins(Fins):
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
-        return self
+        return self.cp
 
     def draw(self):
         """Draw the fin shape along with some important information.
@@ -1522,7 +1589,7 @@ class EllipticalFins(Fins):
         return None
 
     def evaluateGeometricalParameters(self):
-        """Calculates and returns fin set's geometrical parameters such as the
+        """Calculates and saves fin set's geometrical parameters such as the
         fins' area, aspect ratio and parameters for roll movement.
 
         Parameters
@@ -1687,8 +1754,7 @@ class Tail:
         self._length = length
         self._rocketRadius = rocketRadius
         self.name = name
-        self.position = position
-        # Calculate ratio between top and bottom radius
+        self.position = None  # in relation to rocket
 
         # Calculate geometrical parameters
         self.evaluateGeometricalParameters()
@@ -1738,8 +1804,13 @@ class Tail:
         self._rocketRadius = value
         self.evaluateLiftCoefficient()
 
+    def __repr__(self):
+        rep = f"Tail Object -> Name: {self.name}"
+
+        return rep
+
     def evaluateGeometricalParameters(self):
-        """Calculates and returns tail's slant length and surface area.
+        """Calculates and saves tail's slant length and surface area.
 
         Parameters
         ----------
@@ -1810,6 +1881,7 @@ class Tail:
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
+        return self.cp
 
     def geometricalInfo(self):
         """Prints out all the geometric information of the tail.
@@ -1819,19 +1891,22 @@ class Tail:
         None
         """
 
-        print(f"\nTail name: {self.name}")
-        print(f"Tail Position: {self.position:.3f} m")
+        print(f"\nGeometric Information of {self.name}")
+        print("-------------------------------")
+        if self.position:
+            print(f"Tail Position: {self.position:.3f} m")
         print(f"Tail Top Radius: {self.topRadius:.3f} m")
         print(f"Tail Bottom Radius: {self.bottomRadius:.3f} m")
         print(f"Tail Length: {self.length:.3f} m")
         print(f"Reference Radius: {2*self.rocketRadius:.3f} m")
         print(f"Tail Slant Length: {self.slantLength:.3f} m")
-        print(f"Tail Surface Area: {self.surfaceArea:.6f} m^2")
+        print(f"Tail Surface Area: {self.surfaceArea:.6f} m²")
 
         return None
 
     def aerodynamicInfo(self):
-        print(f"\nTail name: {self.name}")
+        print(f"\nAerodynamic Information of {self.name}")
+        print("-------------------------------")
         print(f"Tail Center of Pressure Position in Local Coordinates: {self.cp} m")
         print(f"Tail Lift Coefficient Slope: {self.clalpha:.3f} 1/rad")
         print("Tail Lift Coefficient as a function of Alpha and Mach:")
