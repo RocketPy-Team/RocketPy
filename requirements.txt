@@ -1,7 +1,8 @@
 numpy>=1.0
 scipy>=1.0
 matplotlib>=3.0
-netCDF4>=1.6.2
+netCDF4>=1.4,<1.6; python_version == "3.7"
+netCDF4>=1.6.2; python_version != "3.7"
 windrose>=1.6.8
 ipywidgets>=7.6.3
 requests

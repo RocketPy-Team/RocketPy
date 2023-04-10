@@ -1,7 +1,18 @@
+import sys
 import setuptools
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
+
+
+# Manage different netCDF4 versions depending on system version and Google Colab
+netCDF4_requirement = "netCDF4>=1.6.2"
+if sys.version_info[0] == 3 and sys.version_info[1] == 7:
+    # Support for Python 3.7
+    netCDF4_requirement = "netCDF4>=1.4,<1.6"
+if "google.colab" in sys.modules:
+    # Support for Google Colab
+    netCDF4_requirement = "netCDF4>=1.4,<1.6"
 
 setuptools.setup(
     name="rocketpy",
@@ -10,7 +21,7 @@ setuptools.setup(
         "numpy>=1.0",
         "scipy>=1.0",
         "matplotlib>=3.0",
-        "netCDF4>=1.6.2",
+        netCDF4_requirement,
         "windrose>=1.6.8",
         "ipywidgets>=7.6.3",
         "requests",
