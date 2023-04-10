@@ -214,6 +214,9 @@ class Rocket:
 
         # Aerodynamic data initialization
         self.aerodynamicSurfaces = AeroSurfaces()
+        self.nosecone = AeroSurfaces()
+        self.fins = AeroSurfaces()
+        self.tail = AeroSurfaces()
         self.cpPosition = 0
         self.staticMargin = Function(
             lambda x: 0, inputs="Time (s)", outputs="Static Margin (c)"
@@ -387,14 +390,14 @@ class Rocket:
 
         # Calculate total lift coefficient derivative and center of pressure
         if len(self.aerodynamicSurfaces) > 0:
-            for aeroSurface, position in self.aerodynamicSurfaces:
+            for aeroSurface in self.aerodynamicSurfaces:
                 self.totalLiftCoeffDer += Function(
                     lambda alpha: aeroSurface.cl(alpha, 0)
                 ).differentiate(x=1e-2, dx=1e-3)
                 self.cpPosition += Function(
                     lambda alpha: aeroSurface.cl(alpha, 0)
                 ).differentiate(x=1e-2, dx=1e-3) * (
-                    position - self._csys * aeroSurface.cpz
+                    aeroSurface.position - self._csys * aeroSurface.cpz
                 )
             self.cpPosition /= self.totalLiftCoeffDer
 
@@ -480,10 +483,11 @@ class Rocket:
         radius = self.radius if radius is None else radius
 
         # Create new tail as an object of the Tail class
-        tail = Tail(topRadius, bottomRadius, length, radius, name)
+        tail = Tail(topRadius, bottomRadius, length, position, radius, name)
 
-        # Add tail to aerodynamic surfaces list
-        self.aerodynamicSurfaces.append(aeroSurface=tail, position=position)
+        # Add tail to aerodynamic surfaces and tail list
+        self.aerodynamicSurfaces.append(tail)
+        self.tail.append(tail)
 
         # Refresh static margin calculation
         self.evaluateStaticMargin()
@@ -491,7 +495,7 @@ class Rocket:
         # Return self
         return tail
 
-    def addNose(self, length, kind, position, name="NoseCone"):
+    def addNose(self, length, kind, position, name="Nose Cone"):
         """Creates a nose cone, storing its parameters as part of the
         aerodynamicSurfaces list. Its parameters are the axial position
         along the rocket and its derivative of the coefficient of lift
@@ -510,7 +514,7 @@ class Rocket:
             Nose cone tip coordinate relative to the rocket's coordinate system.
             See `Rocket.coordinateSystemOrientation` for more information.
         name : string
-            Nose cone name. Default is "NoseCone".
+            Nose cone name. Default is "Nose Cone".
 
         Returns
         -------
@@ -518,10 +522,11 @@ class Rocket:
             Nose cone object created.
         """
         # Create a nose as an object of NoseCone class
-        nose = NoseCone(length, kind, self.radius, self.radius, name)
+        nose = NoseCone(length, kind, position, self.radius, self.radius, name)
 
         # Add nose to the list of aerodynamic surfaces
-        self.aerodynamicSurfaces.append(aeroSurface=nose, position=position)
+        self.aerodynamicSurfaces.append(nose)
+        self.nosecone.append(nose)
 
         # Refresh static margin calculation
         self.evaluateStaticMargin()
@@ -613,6 +618,7 @@ class Rocket:
         finSet : TrapezoidalFins
             Fin set object created.
         """
+
         # Modify radius if not given, use rocket radius, otherwise use given.
         radius = radius if radius is not None else self.radius
 
@@ -622,6 +628,7 @@ class Rocket:
             rootChord,
             tipChord,
             span,
+            position,
             radius,
             cantAngle,
             sweepLength,
@@ -631,7 +638,8 @@ class Rocket:
         )
 
         # Add fin set to the list of aerodynamic surfaces
-        self.aerodynamicSurfaces.append(aeroSurface=finSet, position=position)
+        self.aerodynamicSurfaces.append(finSet)
+        self.fins.append(finSet)
 
         # Refresh static margin calculation
         self.evaluateStaticMargin()
@@ -701,10 +709,13 @@ class Rocket:
         radius = radius if radius is not None else self.radius
 
         # Create a fin set as an object of EllipticalFins class
-        finSet = EllipticalFins(n, rootChord, span, radius, cantAngle, airfoil, name)
+        finSet = EllipticalFins(
+            n, rootChord, span, position, radius, cantAngle, airfoil, name
+        )
 
         # Add fin set to the list of aerodynamic surfaces
-        self.aerodynamicSurfaces.append(aeroSurface=finSet, position=position)
+        self.aerodynamicSurfaces.append(finSet)
+        self.fins.append(finSet)
 
         # Refresh static margin calculation
         self.evaluateStaticMargin()
@@ -895,44 +906,6 @@ class Rocket:
 
         # Return self
         return self
-
-    def get_parachute_by_name(self, name):
-        """Returns parachute object by name.
-
-        Parameters
-        ----------
-        name : str
-            Name of the parachute.
-
-        Returns
-        -------
-        parachute : Parachute
-            Parachute object with the given name.
-        """
-        for parachute in self.parachutes:
-            if parachute.name == name:
-                return parachute
-        raise ValueError("No parachute with name {} found.".format(name))
-
-    def get_aero_surface_by_name(self, name):
-        """Returns aero surface object by name.
-
-        Parameters
-        ----------
-        name : str
-            Name of the aerodynamic surface.
-
-        Returns
-        -------
-        surface : AeroSurface
-            AeroSurface object with the given name.
-        position: float, int
-            AeroSurface object's position.
-        """
-        for surface, position in self.aerodynamicSurfaces:
-            if surface.name == name:
-                return surface, position
-        raise ValueError("No aerodynamic surface with name {} found.".format(name))
 
     def info(self):
         """Prints out a summary of the data and graphs available about

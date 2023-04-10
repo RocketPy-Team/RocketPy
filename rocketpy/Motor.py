@@ -113,7 +113,7 @@ class Motor(ABC):
     def __init__(
         self,
         thrustSource,
-        burnOut,
+        burnOutTime,
         nozzleRadius=0.0335,
         nozzlePosition=0,
         throatRadius=0.0114,
@@ -136,7 +136,7 @@ class Motor(ABC):
             specify time in seconds, while the second column specifies thrust.
             Arrays may also be specified, following rules set by the class
             Function. See help(Function). Thrust units are Newtons.
-        burnOut : int, float
+        burnOutTime : int, float
             Motor burn out time in seconds.
         nozzleRadius : int, float, optional
             Motor's nozzle outlet radius in meters. Used to calculate Kn curve.
@@ -185,7 +185,7 @@ class Motor(ABC):
 
         # Thrust parameters
         self.interpolate = interpolationMethod
-        self.burnOutTime = burnOut
+        self.burnOutTime = burnOutTime
         self.thrustSource = thrustSource
 
         # Check if thrustSource is csv, eng, function or other
@@ -214,7 +214,7 @@ class Motor(ABC):
             thrustSource, "Time (s)", "Thrust (N)", self.interpolate, "zero"
         )
         if callable(thrustSource) or isinstance(thrustSource, (int, float)):
-            self.thrust.setDiscrete(0, burnOut, 50, self.interpolate, "zero")
+            self.thrust.setDiscrete(0, burnOutTime, 50, self.interpolate, "zero")
 
         # Reshape curve and calculate impulse
         if reshapeThrustCurve:
@@ -759,7 +759,7 @@ class SolidMotor(Motor):
     def __init__(
         self,
         thrustSource,
-        burnOut,
+        burnOutTime,
         grainsCenterOfMassPosition,
         grainNumber,
         grainDensity,
@@ -789,7 +789,7 @@ class SolidMotor(Motor):
             specify time in seconds, while the second column specifies thrust.
             Arrays may also be specified, following rules set by the class
             Function. See help(Function). Thrust units are Newtons.
-        burnOut : int, float
+        burnOutTime : int, float
             Motor burn out time in seconds.
         grainsCenterOfMassPosition : float
             Position of the center of mass of the grains in meters. More specifically,
@@ -847,7 +847,7 @@ class SolidMotor(Motor):
         """
         super().__init__(
             thrustSource,
-            burnOut,
+            burnOutTime,
             nozzleRadius,
             nozzlePosition,
             throatRadius,
@@ -1326,7 +1326,7 @@ class HybridMotor(Motor):
     def __init__(
         self,
         thrustSource,
-        burnOut,
+        burnOutTime,
         grainNumber,
         grainDensity,
         grainOuterRadius,
@@ -1363,7 +1363,7 @@ class HybridMotor(Motor):
             specify time in seconds, while the second column specifies thrust.
             Arrays may also be specified, following rules set by the class
             Function. See help(Function). Thrust units are Newtons.
-        burnOut : int, float
+        burnOutTime : int, float
             Motor burn out time in seconds.
         grainNumber : int
             Number of solid grains
@@ -1433,7 +1433,7 @@ class HybridMotor(Motor):
         """
         super().__init__(
             thrustSource,
-            burnOut,
+            burnOutTime,
             nozzleRadius,
             nozzlePosition,
             throatRadius,

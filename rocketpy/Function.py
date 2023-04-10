@@ -5,6 +5,7 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 from inspect import signature
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -147,8 +148,8 @@ class Function:
         -------
         self : Function
         """
-        # Import CSV if source is a string and convert values to ndarray
-        if isinstance(source, str):
+        # Import CSV if source is a string or Path and convert values to ndarray
+        if isinstance(source, (str, Path)):
             # Read file and check for headers
             f = open(source, "r")
             firstLine = f.readline()

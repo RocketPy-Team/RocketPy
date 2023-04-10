@@ -6,6 +6,7 @@ __author__ = (
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
+import inspect
 import math
 import time
 import warnings
@@ -547,7 +548,7 @@ class Flight:
             Default is 90, which points in the x direction.
         initialSolution : array, Flight, optional
             Initial solution array to be used. Format is
-            initialSolution = []
+            initialSolution = [
                 self.tInitial,
                 xInit, yInit, zInit,
                 vxInit, vyInit, vzInit,
@@ -1403,9 +1404,9 @@ class Flight:
         vyB = a12 * vx + a22 * vy + a32 * vz
         vzB = a13 * vx + a23 * vy + a33 * vz
         # Calculate lift and moment for each component of the rocket
-        for aeroSurface, position in self.rocket.aerodynamicSurfaces:
+        for aeroSurface in self.rocket.aerodynamicSurfaces:
             compCp = (
-                position - self.rocket.centerOfDryMassPosition
+                aeroSurface.position - self.rocket.centerOfDryMassPosition
             ) * self.rocket._csys - aeroSurface.cpz
             surfaceRadius = aeroSurface.rocketRadius
             referenceArea = np.pi * surfaceRadius**2
@@ -2467,7 +2468,7 @@ class Flight:
             Air density at each time step
         self.dynamicViscosity_list: list
             Dynamic viscosity at each time step
-        elf_list._speedOfSound: list
+        self_list._speedOfSound: list
             Speed of sound at each time step
         self.windVelocityX_list: list
             Wind velocity in x direction at each time step

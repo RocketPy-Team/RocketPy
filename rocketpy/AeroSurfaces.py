@@ -11,27 +11,38 @@ from abc import ABC, abstractmethod, abstractproperty
 
 
 class AeroSurfaces:
-    """Class used to hold multiple aerodynamic surfaces and their positions."""
+    """Class used to hold multiple aerodynamic surfaces."""
 
     def __init__(self):
         self._aeroSurfaces = []
 
-    def append(self, aeroSurface, position):
-        self._aeroSurfaces.append((aeroSurface, position))
+    def append(self, aeroSurface):
+        self._aeroSurfaces.append(aeroSurface)
 
     def remove(self, aeroSurface):
-        for surface, position in self._aeroSurfaces:
+        for surface in self._aeroSurfaces:
             if surface == aeroSurface:
-                self._aeroSurfaces.remove((aeroSurface, position))
+                self._aeroSurfaces.remove(aeroSurface)
 
     def pop(self, index=-1):
-        return self._aerosurfaces.pop(index)
+        return self._aeroSurfaces.pop(index)
+
+    def __repr__(self):
+        if len(self._aeroSurfaces) == 1:
+            return self._aeroSurfaces[0].__repr__()
+        return self._aeroSurfaces.__repr__()
 
     def __len__(self):
         return len(self._aeroSurfaces)
 
     def __getitem__(self, index):
         return self._aeroSurfaces[index]
+
+    def __getattr__(self, name):
+        if len(self._aeroSurfaces) == 1:
+            attr = getattr(self._aeroSurfaces[0], name)
+            return attr
+        return getattr(self._aeroSurfaces, name)
 
     def __iter__(self):
         return iter(self._aeroSurfaces)
@@ -75,7 +86,13 @@ class NoseCone:
     """
 
     def __init__(
-        self, length, kind, baseRadius=None, rocketRadius=None, name="NoseCone"
+        self,
+        length,
+        kind,
+        position,
+        baseRadius=None,
+        rocketRadius=None,
+        name="Nose Cone",
     ):
         """Initializes the nose cone. It is used to define the nose cone
         length, kind, center of pressure and lift coefficient curve.
@@ -102,34 +119,104 @@ class NoseCone:
         -------
         None
         """
-        self.length = length
+        self.cpy = 0
+        self.cpx = 0
+
+        self._rocketRadius = rocketRadius
+        self._baseRadius = baseRadius
+        self._length = length
         self.kind = kind
         self.name = name
-        self.baseRadius = baseRadius
-        self.rocketRadius = rocketRadius
+        self.position = position
 
+        self.evaluateGeometricalParameters()
+        self.evaluateLiftCoefficient()
+        self.evaluateCenterOfPressure()
+        # # Store values
+        # nose = {"cp": (0, 0, self.cpz), "cl": self.cl, "name": name}
+
+        return None
+
+    @property
+    def rocketRadius(self):
+        return self._rocketRadius
+
+    @rocketRadius.setter
+    def rocketRadius(self, value):
+        self._rocketRadius = value
+        self.evaluateGeometricalParameters()
+        self.evaluateLiftCoefficient()
+
+    @property
+    def baseRadius(self):
+        return self._baseRadius
+
+    @baseRadius.setter
+    def baseRadius(self, value):
+        self._baseRadius = value
+        self.evaluateGeometricalParameters()
+        self.evaluateLiftCoefficient()
+
+    @property
+    def length(self):
+        return self._length
+
+    @length.setter
+    def length(self, value):
+        self._length = value
+        self.evaluateCenterOfPressure()
+
+    @property
+    def kind(self):
+        return self._kind
+
+    @kind.setter
+    def kind(self, value):
+        # Analyze type
+        self._kind = value
+        if value == "conical":
+            self.k = 2 / 3
+        elif value == "ogive":
+            self.k = 0.466
+        elif value == "lvhaack":
+            self.k = 0.563
+        else:
+            self.k = 0.5
+        self.evaluateCenterOfPressure()
+
+    def evaluateGeometricalParameters(self):
+        """Calculates and returns nose cone's radius ratio.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
         if self.baseRadius is None or self.rocketRadius is None:
             self.radiusRatio = 1
         else:
             self.radiusRatio = self.baseRadius / self.rocketRadius
 
-        # Analyze type
-        if self.kind == "conical":
-            self.k = 2 / 3
-        elif self.kind == "ogive":
-            self.k = 0.466
-        elif self.kind == "lvhaack":
-            self.k = 0.563
-        else:
-            self.k = 0.5
+    def evaluateLiftCoefficient(self):
+        """Calculates and returns nose cone's lift coefficient.
+        The lift coefficient is saved and returned. This function
+        also calculates and saves its lift coefficient derivative.
 
-        # Calculate cp position in local coordinates
-        # Local coordinate origin is found at the tip of the nose cone
-        self.cpz = self.k * length
-        self.cpy = 0
-        self.cpx = 0
-        self.cp = (self.cpx, self.cpy, self.cpz)
+        Parameters
+        ----------
+        None
 
+        Returns
+        -------
+        self.cl : Function
+            Function of the angle of attack (Alpha) and the mach number
+            (Mach) expressing the lift coefficient of the nose cone. The inputs
+            are the angle of attack (in radians) and the mach number.
+            The output is the lift coefficient of the nose cone.
+        """
         # Calculate clalpha
         self.clalpha = 2 * self.radiusRatio**2
         self.cl = Function(
@@ -137,12 +224,28 @@ class NoseCone:
             ["Alpha (rad)", "Mach"],
             "Cl",
         )
-        # # Store values
-        # nose = {"cp": (0, 0, self.cpz), "cl": self.cl, "name": name}
 
-        return None
+    def evaluateCenterOfPressure(self):
+        """Calculates and returns the center of pressure of the nose cone in local
+        coordinates. The center of pressure position is saved and stored as a tuple.
+        Local coordinate origin is found at the tip of the nose cone.
+        Parameters
+        ----------
+        None
 
-    def geometricInfo(self):
+        Returns
+        -------
+        self.cp : tuple
+            Tuple containing cpx, cpy, cpz.
+        """
+
+        self.cpz = self.k * self.length
+        self.cpy = 0
+        self.cpx = 0
+        self.cp = (self.cpx, self.cpy, self.cpz)
+        return self.cp
+
+    def geometricalInfo(self):
         """Prints out all the geometric information of the nose cone.
 
         Parameters
@@ -155,6 +258,7 @@ class NoseCone:
         """
         print("Nose Cone Geometric Information of Nose: {}".format(self.name))
         print("-------------------------------")
+        print(f"Position: {self.position:.3f} m")
         print(f"Length: {self.length:.3f} m")
         print(f"Kind: {self.kind}")
         print(f"Base Radius: {self.baseRadius:.3f} m")
@@ -194,7 +298,7 @@ class NoseCone:
         -------
         None
         """
-        self.geometricInfo()
+        self.geometricalInfo()
         self.aerodynamicInfo()
 
         return None
@@ -281,6 +385,7 @@ class Fins(ABC):
         n,
         rootChord,
         span,
+        position,
         rocketRadius,
         cantAngle=0,
         airfoil=None,
@@ -288,12 +393,10 @@ class Fins(ABC):
     ):
         """Initialize Fins class.
 
-
         Parameters
         ----------
         n : int
             Number of fins, from 2 to infinity.
-
         rootChord : int, float
             Fin root chord in meters.
         span : int, float
@@ -303,7 +406,6 @@ class Fins(ABC):
         cantAngle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
-
         airfoil : tuple, optional
             Default is null, in which case fins will be treated as flat plates.
             Otherwise, if tuple, fins will be considered as airfoils. The
@@ -331,19 +433,90 @@ class Fins(ABC):
         Aref = np.pi * rocketRadius**2  # Reference area
 
         # Store values
-        self.n = n
-        self.rocketRadius = rocketRadius
-
-        self.airfoil = airfoil
-        self.cantAngle = cantAngle
-        self.rootChord = rootChord
-
-        self.span = span
+        self._n = n
+        self._rocketRadius = rocketRadius
+        self._airfoil = airfoil
+        self._cantAngle = cantAngle
+        self._rootChord = rootChord
+        self._span = span
         self.name = name
+        self.position = position
         self.d = d
         self.Aref = Aref  # Reference area
 
         return None
+
+    @property
+    def n(self):
+        return self._n
+
+    @n.setter
+    def n(self, value):
+        self._n = value
+        self.evaluateGeometricalParameters()
+        self.evaluateCenterOfPressure()
+        self.evaluateLiftCoefficient()
+        self.evaluateRollParameters()
+
+    @property
+    def rootChord(self):
+        return self._rootChord
+
+    @rootChord.setter
+    def rootChord(self, value):
+        self._rootChord = value
+        self.evaluateGeometricalParameters()
+        self.evaluateCenterOfPressure()
+        self.evaluateLiftCoefficient()
+        self.evaluateRollParameters()
+
+    @property
+    def span(self):
+        return self._span
+
+    @span.setter
+    def span(self, value):
+        self._span = value
+        self.evaluateGeometricalParameters()
+        self.evaluateCenterOfPressure()
+        self.evaluateLiftCoefficient()
+        self.evaluateRollParameters()
+
+    @property
+    def rocketRadius(self):
+        return self._rocketRadius
+
+    @rocketRadius.setter
+    def rocketRadius(self, value):
+        self._rocketRadius = value
+        self.evaluateGeometricalParameters()
+        self.evaluateCenterOfPressure()
+        self.evaluateLiftCoefficient()
+        self.evaluateRollParameters()
+
+    @property
+    def cantAngle(self):
+        return self._cantAngle
+
+    @cantAngle.setter
+    def cantAngle(self, value):
+        self._cantAngle = value
+        self.evaluateGeometricalParameters()
+        self.evaluateCenterOfPressure()
+        self.evaluateLiftCoefficient()
+        self.evaluateRollParameters()
+
+    @property
+    def airfoil(self):
+        return self._airfoil
+
+    @airfoil.setter
+    def airfoil(self, value):
+        self._airfoil = value
+        self.evaluateGeometricalParameters()
+        self.evaluateCenterOfPressure()
+        self.evaluateLiftCoefficient()
+        self.evaluateRollParameters()
 
     @abstractmethod
     def evaluateCenterOfPressure(self):
@@ -358,6 +531,22 @@ class Fins(ABC):
         -------
         self.cp : tuple
             Tuple containing cpx, cpy, cpz.
+        """
+
+        pass
+
+    @abstractmethod
+    def evaluateGeometricalParameters(self):
+        """Calculates and returns fin set's geometrical parameters such as the
+        fins' area, aspect ratio and parameters for roll movement.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
         """
 
         pass
@@ -384,7 +573,6 @@ class Fins(ABC):
         if not self.airfoil:
             # Defines clalpha2D as 2*pi for planar fins
             clalpha2D = Function(lambda mach: 2 * np.pi / self.__beta(mach))
-
         else:
             # Defines clalpha2D as the derivative of the
             # lift coefficient curve for a specific airfoil
@@ -563,9 +751,9 @@ class Fins(ABC):
             print("Tip Chord: {:.3f} m".format(self.tipChord))
         else:
             print("Fin Type: Elliptical")
-
         print("Root Chord: {:.3f} m".format(self.rootChord))
         print("Span: {:.3f} m".format(self.span))
+        print("Position: {:.3f} m".format(self.position))
         print("Cant Angle: {:.3f} °".format(self.cantAngle))
         print("Longitudinal Section Area: {:.3f} m".format(self.Af))
         print("Aspect Ratio: {:.3f} m".format(self.AR))
@@ -754,6 +942,7 @@ class TrapezoidalFins(Fins):
         rootChord,
         tipChord,
         span,
+        position,
         rocketRadius,
         cantAngle=0,
         sweepLength=None,
@@ -817,6 +1006,7 @@ class TrapezoidalFins(Fins):
             n,
             rootChord,
             span,
+            position,
             rocketRadius,
             cantAngle,
             airfoil,
@@ -834,61 +1024,48 @@ class TrapezoidalFins(Fins):
             # Sweep length is given
             pass
 
-        Yr = rootChord + tipChord
-        Af = Yr * span / 2  # Fin area
-        AR = 2 * span**2 / Af  # Fin aspect ratio
-        gamma_c = np.arctan((sweepLength + 0.5 * tipChord - 0.5 * rootChord) / (span))
-        Yma = (
-            (span / 3) * (rootChord + 2 * tipChord) / Yr
-        )  # Span wise coord of mean aero chord
+        self._tipChord = tipChord
+        self._sweepLength = sweepLength
+        self._sweepAngle = sweepAngle
 
-        # Fin–body interference correction parameters
-        tau = (span + rocketRadius) / rocketRadius
-        liftInterferenceFactor = 1 + 1 / tau
-        λ = tipChord / rootChord
+        self.evaluateGeometricalParameters()
+        self.evaluateCenterOfPressure()
+        self.evaluateLiftCoefficient()
+        self.evaluateRollParameters()
 
-        # Parameters for Roll Moment.
-        # Documented at: https://github.com/RocketPy-Team/RocketPy/blob/master/docs/technical/aerodynamics/Roll_Equations.pdf
-        rollGeometricalConstant = (
-            (rootChord + 3 * tipChord) * span**3
-            + 4 * (rootChord + 2 * tipChord) * rocketRadius * span**2
-            + 6 * (rootChord + tipChord) * span * rocketRadius**2
-        ) / 12
+    @property
+    def tipChord(self):
+        return self._tipChord
 
-        rollDampingInterferenceFactor = 1 + (
-            ((tau - λ) / (tau)) - ((1 - λ) / (tau - 1)) * np.log(tau)
-        ) / (
-            ((tau + 1) * (tau - λ)) / (2) - ((1 - λ) * (tau**3 - 1)) / (3 * (tau - 1))
-        )
-        rollForcingInterferenceFactor = (1 / np.pi**2) * (
-            (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
-            + ((np.pi * (tau**2 + 1) ** 2) / (tau**2 * (tau - 1) ** 2))
-            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
-            - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
-            + ((tau**2 + 1) ** 2)
-            / (tau**2 * (tau - 1) ** 2)
-            * (np.arcsin((tau**2 - 1) / (tau**2 + 1))) ** 2
-            - (4 * (tau + 1))
-            / (tau * (tau - 1))
-            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
-            + (8 / (tau - 1) ** 2) * np.log((tau**2 + 1) / (2 * tau))
-        )
+    @tipChord.setter
+    def tipChord(self, value):
+        self._tipChord = value
+        self.evaluateGeometricalParameters()
+        self.evaluateCenterOfPressure()
+        self.evaluateLiftCoefficient()
+        self.evaluateRollParameters()
 
-        self.tipChord = tipChord
-        self.sweepLength = sweepLength
-        self.sweepAngle = sweepAngle
-        self.Yr = Yr
-        self.Af = Af  # Fin area
-        self.AR = AR  # Aspect Ratio
-        self.gamma_c = gamma_c  # Mid chord angle
-        self.Yma = Yma  # Span wise coord of mean aero chord
-        self.rollGeometricalConstant = rollGeometricalConstant
-        self.tau = tau
-        self.liftInterferenceFactor = liftInterferenceFactor
-        self.λ = λ
-        self.rollDampingInterferenceFactor = rollDampingInterferenceFactor
-        self.rollForcingInterferenceFactor = rollForcingInterferenceFactor
+    @property
+    def sweepAngle(self):
+        return self._sweepAngle
 
+    @sweepAngle.setter
+    def sweepAngle(self, value):
+        self._sweepAngle = value
+        self._sweepLength = np.tan(value * np.pi / 180) * self.span
+        self.evaluateGeometricalParameters()
+        self.evaluateCenterOfPressure()
+        self.evaluateLiftCoefficient()
+        self.evaluateRollParameters()
+
+    @property
+    def sweepLength(self):
+        return self._sweepLength
+
+    @sweepLength.setter
+    def sweepLength(self, value):
+        self._sweepLength = value
+        self.evaluateGeometricalParameters()
         self.evaluateCenterOfPressure()
         self.evaluateLiftCoefficient()
         self.evaluateRollParameters()
@@ -918,7 +1095,6 @@ class TrapezoidalFins(Fins):
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
-
         return self.cp
 
     def draw(self):
@@ -992,7 +1168,7 @@ class TrapezoidalFins(Fins):
         )
 
         # Plotting
-        fig3 = plt.figure(figsize=(4, 4))
+        fig3 = plt.figure(figsize=(7, 4))
         with plt.style.context("bmh"):
             ax1 = fig3.add_subplot(111)
 
@@ -1023,9 +1199,81 @@ class TrapezoidalFins(Fins):
         ax1.set_title("Trapezoidal Fin")
         ax1.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
 
+        plt.tight_layout()
         plt.show()
 
         return None
+
+    def evaluateGeometricalParameters(self):
+        """Calculates and returns fin set's geometrical parameters such as the
+        fins' area, aspect ratio and parameters for roll movement.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+
+        Yr = self.rootChord + self.tipChord
+        Af = Yr * self.span / 2  # Fin area
+        AR = 2 * self.span**2 / Af  # Fin aspect ratio
+        gamma_c = np.arctan(
+            (self.sweepLength + 0.5 * self.tipChord - 0.5 * self.rootChord)
+            / (self.span)
+        )
+        Yma = (
+            (self.span / 3) * (self.rootChord + 2 * self.tipChord) / Yr
+        )  # Span wise coord of mean aero chord
+
+        # Fin–body interference correction parameters
+        tau = (self.span + self.rocketRadius) / self.rocketRadius
+        liftInterferenceFactor = 1 + 1 / tau
+        λ = self.tipChord / self.rootChord
+
+        # Parameters for Roll Moment.
+        # Documented at: https://github.com/RocketPy-Team/RocketPy/blob/master/docs/technical/aerodynamics/Roll_Equations.pdf
+        rollGeometricalConstant = (
+            (self.rootChord + 3 * self.tipChord) * self.span**3
+            + 4
+            * (self.rootChord + 2 * self.tipChord)
+            * self.rocketRadius
+            * self.span**2
+            + 6 * (self.rootChord + self.tipChord) * self.span * self.rocketRadius**2
+        ) / 12
+        rollDampingInterferenceFactor = 1 + (
+            ((tau - λ) / (tau)) - ((1 - λ) / (tau - 1)) * np.log(tau)
+        ) / (
+            ((tau + 1) * (tau - λ)) / (2) - ((1 - λ) * (tau**3 - 1)) / (3 * (tau - 1))
+        )
+        rollForcingInterferenceFactor = (1 / np.pi**2) * (
+            (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
+            + ((np.pi * (tau**2 + 1) ** 2) / (tau**2 * (tau - 1) ** 2))
+            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
+            - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
+            + ((tau**2 + 1) ** 2)
+            / (tau**2 * (tau - 1) ** 2)
+            * (np.arcsin((tau**2 - 1) / (tau**2 + 1))) ** 2
+            - (4 * (tau + 1))
+            / (tau * (tau - 1))
+            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
+            + (8 / (tau - 1) ** 2) * np.log((tau**2 + 1) / (2 * tau))
+        )
+
+        # Store values
+        self.Yr = Yr
+        self.Af = Af  # Fin area
+        self.AR = AR  # Aspect Ratio
+        self.gamma_c = gamma_c  # Mid chord angle
+        self.Yma = Yma  # Span wise coord of mean aero chord
+        self.rollGeometricalConstant = rollGeometricalConstant
+        self.tau = tau
+        self.liftInterferenceFactor = liftInterferenceFactor
+        self.λ = λ
+        self.rollDampingInterferenceFactor = rollDampingInterferenceFactor
+        self.rollForcingInterferenceFactor = rollForcingInterferenceFactor
 
 
 class EllipticalFins(Fins):
@@ -1106,6 +1354,7 @@ class EllipticalFins(Fins):
         n,
         rootChord,
         span,
+        position,
         rocketRadius,
         cantAngle=0,
         airfoil=None,
@@ -1113,11 +1362,9 @@ class EllipticalFins(Fins):
     ):
         """Initialize EllipticalFins class.
 
-
         Parameters
         ----------
         n : int
-
             Number of fins, from 2 to infinity.
         rootChord : int, float
             Fin root chord in meters.
@@ -1158,95 +1405,23 @@ class EllipticalFins(Fins):
         name : str
             Name of fin set.
 
-
         Returns
         -------
         None
-
         """
 
         super().__init__(
             n,
             rootChord,
             span,
+            position,
             rocketRadius,
             cantAngle,
             airfoil,
             name,
         )
 
-        # Compute auxiliary geometrical parameters
-        Af = (np.pi * rootChord / 2 * span) / 2  # Fin area
-        gamma_c = 0  # Zero for elliptical fins
-        AR = 2 * span**2 / Af  # Fin aspect ratio
-        Yma = (
-            span / (3 * np.pi) * np.sqrt(9 * np.pi**2 - 64)
-        )  # Span wise coord of mean aero chord
-        rollGeometricalConstant = (
-            rootChord
-            * span
-            * (
-                3 * np.pi * span**2
-                + 32 * rocketRadius * span
-                + 12 * np.pi * rocketRadius**2
-            )
-            / 48
-        )
-
-        # Fin–body interference correction parameters
-        tau = (span + rocketRadius) / rocketRadius
-        liftInterferenceFactor = 1 + 1 / tau
-        rollDampingInterferenceFactor = 1 + (
-            (rocketRadius**2)
-            * (
-                2
-                * (rocketRadius**2)
-                * np.sqrt(span**2 - rocketRadius**2)
-                * np.log(
-                    (2 * span * np.sqrt(span**2 - rocketRadius**2) + 2 * span**2)
-                    / rocketRadius
-                )
-                - 2
-                * (rocketRadius**2)
-                * np.sqrt(span**2 - rocketRadius**2)
-                * np.log(2 * span)
-                + 2 * span**3
-                - np.pi * rocketRadius * span**2
-                - 2 * (rocketRadius**2) * span
-                + np.pi * rocketRadius**3
-            )
-        ) / (
-            2
-            * (span**2)
-            * (span / 3 + np.pi * rocketRadius / 4)
-            * (span**2 - rocketRadius**2)
-        )
-
-        rollForcingInterferenceFactor = (1 / np.pi**2) * (
-            (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
-            + ((np.pi * (tau**2 + 1) ** 2) / (tau**2 * (tau - 1) ** 2))
-            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
-            - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
-            + ((tau**2 + 1) ** 2)
-            / (tau**2 * (tau - 1) ** 2)
-            * (np.arcsin((tau**2 - 1) / (tau**2 + 1))) ** 2
-            - (4 * (tau + 1))
-            / (tau * (tau - 1))
-            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
-            + (8 / (tau - 1) ** 2) * np.log((tau**2 + 1) / (2 * tau))
-        )
-
-        # Store values
-        self.Af = Af  # Fin area
-        self.AR = AR  # Fin aspect ratio
-        self.gamma_c = gamma_c  # Mid chord angle
-        self.Yma = Yma  # Span wise coord of mean aero chord
-        self.rollGeometricalConstant = rollGeometricalConstant
-        self.tau = tau
-        self.liftInterferenceFactor = liftInterferenceFactor
-        self.rollDampingInterferenceFactor = rollDampingInterferenceFactor
-        self.rollForcingInterferenceFactor = rollForcingInterferenceFactor
-
+        self.evaluateGeometricalParameters()
         self.evaluateCenterOfPressure()
         self.evaluateLiftCoefficient()
         self.evaluateRollParameters()
@@ -1322,7 +1497,7 @@ class EllipticalFins(Fins):
         cp_point = [self.cpz, self.Yma]
 
         # Plotting
-        fig3 = plt.figure(figsize=(4, 4))
+        fig3 = plt.figure(figsize=(7, 4))
         with plt.style.context("bmh"):
             ax1 = fig3.add_subplot(111)
         ax1.add_patch(el)
@@ -1341,9 +1516,97 @@ class EllipticalFins(Fins):
         ax1.set_title("Elliptical Fin")
         ax1.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
 
+        plt.tight_layout()
         plt.show()
 
         return None
+
+    def evaluateGeometricalParameters(self):
+        """Calculates and returns fin set's geometrical parameters such as the
+        fins' area, aspect ratio and parameters for roll movement.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+
+        # Compute auxiliary geometrical parameters
+        Af = (np.pi * self.rootChord / 2 * self.span) / 2  # Fin area
+        gamma_c = 0  # Zero for elliptical fins
+        AR = 2 * self.span**2 / Af  # Fin aspect ratio
+        Yma = (
+            self.span / (3 * np.pi) * np.sqrt(9 * np.pi**2 - 64)
+        )  # Span wise coord of mean aero chord
+        rollGeometricalConstant = (
+            self.rootChord
+            * self.span
+            * (
+                3 * np.pi * self.span**2
+                + 32 * self.rocketRadius * self.span
+                + 12 * np.pi * self.rocketRadius**2
+            )
+            / 48
+        )
+
+        # Fin–body interference correction parameters
+        tau = (self.span + self.rocketRadius) / self.rocketRadius
+        liftInterferenceFactor = 1 + 1 / tau
+        rollDampingInterferenceFactor = 1 + (
+            (self.rocketRadius**2)
+            * (
+                2
+                * (self.rocketRadius**2)
+                * np.sqrt(self.span**2 - self.rocketRadius**2)
+                * np.log(
+                    (
+                        2 * self.span * np.sqrt(self.span**2 - self.rocketRadius**2)
+                        + 2 * self.span**2
+                    )
+                    / self.rocketRadius
+                )
+                - 2
+                * (self.rocketRadius**2)
+                * np.sqrt(self.span**2 - self.rocketRadius**2)
+                * np.log(2 * self.span)
+                + 2 * self.span**3
+                - np.pi * self.rocketRadius * self.span**2
+                - 2 * (self.rocketRadius**2) * self.span
+                + np.pi * self.rocketRadius**3
+            )
+        ) / (
+            2
+            * (self.span**2)
+            * (self.span / 3 + np.pi * self.rocketRadius / 4)
+            * (self.span**2 - self.rocketRadius**2)
+        )
+        rollForcingInterferenceFactor = (1 / np.pi**2) * (
+            (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
+            + ((np.pi * (tau**2 + 1) ** 2) / (tau**2 * (tau - 1) ** 2))
+            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
+            - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
+            + ((tau**2 + 1) ** 2)
+            / (tau**2 * (tau - 1) ** 2)
+            * (np.arcsin((tau**2 - 1) / (tau**2 + 1))) ** 2
+            - (4 * (tau + 1))
+            / (tau * (tau - 1))
+            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
+            + (8 / (tau - 1) ** 2) * np.log((tau**2 + 1) / (2 * tau))
+        )
+
+        # Store values
+        self.Af = Af  # Fin area
+        self.AR = AR  # Fin aspect ratio
+        self.gamma_c = gamma_c  # Mid chord angle
+        self.Yma = Yma  # Span wise coord of mean aero chord
+        self.rollGeometricalConstant = rollGeometricalConstant
+        self.tau = tau
+        self.liftInterferenceFactor = liftInterferenceFactor
+        self.rollDampingInterferenceFactor = rollDampingInterferenceFactor
+        self.rollForcingInterferenceFactor = rollForcingInterferenceFactor
 
 
 class Tail:
@@ -1391,10 +1654,11 @@ class Tail:
     Tail.surfaceArea : float
         Surface area of the tail. Has the unit of meters squared.
 
-
     """
 
-    def __init__(self, topRadius, bottomRadius, length, rocketRadius, name="Tail"):
+    def __init__(
+        self, topRadius, bottomRadius, length, position, rocketRadius, name="Tail"
+    ):
         """Initializes the tail object by computing and storing the most
         important values.
 
@@ -1418,14 +1682,73 @@ class Tail:
         """
 
         # Store arguments as attributes
-        self.topRadius = topRadius
-        self.bottomRadius = bottomRadius
-        self.length = length
+        self._topRadius = topRadius
+        self._bottomRadius = bottomRadius
+        self._length = length
+        self._rocketRadius = rocketRadius
         self.name = name
-        self.rocketRadius = rocketRadius
-
+        self.position = position
         # Calculate ratio between top and bottom radius
 
+        # Calculate geometrical parameters
+        self.evaluateGeometricalParameters()
+        self.evaluateLiftCoefficient()
+        self.evaluateCenterOfPressure()
+
+        return None
+
+    @property
+    def topRadius(self):
+        return self._topRadius
+
+    @topRadius.setter
+    def topRadius(self, value):
+        self._topRadius = value
+        self.evaluateGeometricalParameters()
+        self.evaluateLiftCoefficient()
+        self.evaluateCenterOfPressure()
+
+    @property
+    def bottomRadius(self):
+        return self._bottomRadius
+
+    @bottomRadius.setter
+    def bottomRadius(self, value):
+        self._bottomRadius = value
+        self.evaluateGeometricalParameters()
+        self.evaluateLiftCoefficient()
+        self.evaluateCenterOfPressure()
+
+    @property
+    def length(self):
+        return self._length
+
+    @length.setter
+    def length(self, value):
+        self._length = value
+        self.evaluateGeometricalParameters()
+        self.evaluateCenterOfPressure()
+
+    @property
+    def rocketRadius(self):
+        return self._rocketRadius
+
+    @rocketRadius.setter
+    def rocketRadius(self, value):
+        self._rocketRadius = value
+        self.evaluateLiftCoefficient()
+
+    def evaluateGeometricalParameters(self):
+        """Calculates and returns tail's slant length and surface area.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
         # Calculate tail slant length
         self.slantLength = np.sqrt(
             (self.length) ** 2 + (self.topRadius - self.bottomRadius) ** 2
@@ -1435,31 +1758,60 @@ class Tail:
             np.pi * self.slantLength * (self.topRadius + self.bottomRadius)
         )
 
-        # Calculate cp position in local coordinates
-        r = topRadius / bottomRadius
-        cpz = (length / 3) * (1 + (1 - r) / (1 - r**2))
+    def evaluateLiftCoefficient(self):
+        """Calculates and returns tail's lift coefficient.
+        The lift coefficient is saved and returned. This function
+        also calculates and saves its lift coefficient derivative.
 
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        self.cl : Function
+            Function of the angle of attack (Alpha) and the mach number
+            (Mach) expressing the lift coefficient of the tail. The inputs
+            are the angle of attack (in radians) and the mach number.
+            The output is the lift coefficient of the tail.
+        """
         # Calculate clalpha
         clalpha = 2 * (
-            (bottomRadius / rocketRadius) ** 2 - (topRadius / rocketRadius) ** 2
+            (self.bottomRadius / self.rocketRadius) ** 2
+            - (self.topRadius / self.rocketRadius) ** 2
         )
         cl = Function(
             lambda alpha, mach: clalpha * alpha,
             ["Alpha (rad)", "Mach"],
             "Cl",
         )
+        self.cl = cl
+        self.clalpha = clalpha
+        return self.cl
+
+    def evaluateCenterOfPressure(self):
+        """Calculates and returns the center of pressure of the tail in local
+        coordinates. The center of pressure position is saved and stored as a tuple.
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        self.cp : tuple
+            Tuple containing cpx, cpy, cpz.
+        """
+        # Calculate cp position in local coordinates
+        r = self.topRadius / self.bottomRadius
+        cpz = (self.length / 3) * (1 + (1 - r) / (1 - r**2))
 
         # Store values as class attributes
         self.cpx = 0
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
-        self.cl = cl
-        self.clalpha = clalpha
 
-        return None
-
-    def geometricInfo(self):
+    def geometricalInfo(self):
         """Prints out all the geometric information of the tail.
 
         Returns
@@ -1468,6 +1820,7 @@ class Tail:
         """
 
         print(f"\nTail name: {self.name}")
+        print(f"Tail Position: {self.position:.3f} m")
         print(f"Tail Top Radius: {self.topRadius:.3f} m")
         print(f"Tail Bottom Radius: {self.bottomRadius:.3f} m")
         print(f"Tail Length: {self.length:.3f} m")
@@ -1493,7 +1846,7 @@ class Tail:
         -------
         None
         """
-        self.geometricInfo()
+        self.geometricalInfo()
         self.aerodynamicInfo()
 
         return None

@@ -452,7 +452,7 @@ def create_dispersion_dictionary(filename):
             attribute_class; parameter_name; mean_value; standard_deviation;
             environment; ensembleMember; [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];;
             motor; impulse; 1415.15; 35.3;
-            motor; burnOut; 5.274; 1;
+            motor; burnOutTime; 5.274; 1;
             motor; nozzleRadius; 0.021642; 0.0005;
             motor; throatRadius; 0.008; 0.0005;
             motor; grainSeparation; 0.006; 0.001;
@@ -469,7 +469,7 @@ def create_dispersion_dictionary(filename):
                 },
                 'motor': {
                     'impulse': (1415.15, 35.3),
-                    'burnOut': (5.274, 1),
+                    'burnOutTime': (5.274, 1),
                     'nozzleRadius': (0.021642, 0.0005),
                     'throatRadius': (0.008, 0.0005),
                     'grainSeparation': (0.006, 0.001),
