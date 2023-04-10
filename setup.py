@@ -16,7 +16,7 @@ if "google.colab" in sys.modules:
 
 setuptools.setup(
     name="rocketpy",
-    version="0.13.0",
+    version="0.13.1",
     install_requires=[
         "numpy>=1.0",
         "scipy>=1.0",
