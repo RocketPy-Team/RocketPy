@@ -724,9 +724,14 @@ class Flight:
                         # Remove parachute from flight parachutes
                         self.parachutes.remove(parachute)
                         # Create flight phase for time after detection and before inflation
-                        self.flightPhases.addPhase(
-                            node.t, phase.derivative, clear=True, index=phase_index + 1
-                        )
+                        # Must only be created if parachute has any lag
+                        if parachute.lag != 0:
+                            self.flightPhases.addPhase(
+                                node.t,
+                                phase.derivative,
+                                clear=True,
+                                index=phase_index + 1,
+                            )
                         # Create flight phase for time after inflation
                         callbacks = [
                             lambda self, parachuteCdS=parachute.CdS: setattr(
@@ -1779,7 +1784,7 @@ class Flight:
     @funcify_method("Time (s)", "Dynamic Viscosity (Pa s)", "spline", "constant")
     def dynamicViscosity(self):
         """Air dynamic viscosity felt by the rocket as a rocketpy.Function of time."""
-        return self.retrieve_temporary_values_arrays[7]
+        return self.retrieve_temporary_values_arrays[8]
 
     @funcify_method("Time (s)", "Speed of Sound (m/s)", "spline", "constant")
     def speedOfSound(self):
@@ -3034,6 +3039,7 @@ class Flight:
                     print(
                         "This may be caused by more than when parachute being triggered simultaneously."
                     )
+                    print("Or by having a negative parachute lag.")
                     self.add(flightPhase, -2)
             # Handle inserting into intermediary position
             else:
@@ -3050,6 +3056,7 @@ class Flight:
                     print(
                         "This may be caused by more than when parachute being triggered simultaneously."
                     )
+                    print("Or by having a negative parachute lag.")
                     self.add(flightPhase, index - 1)
                 elif flightPhase.t == previousPhase.t:
                     print(
