@@ -1001,17 +1001,17 @@ class Dispersion:
 
         # Sometimes we want to skip the parachute data to save time
         if save_parachute_data:
-        for trigger_time, parachute in flight.parachuteEvents:
+            for trigger_time, parachute in flight.parachuteEvents:
                 # TODO: These should be better implemented in Flight events, avoiding
                 # making any calculations here
                 results[parachute.name + "_triggerTime"] = trigger_time
                 results[parachute.name + "_inflatedTime"] = trigger_time + parachute.lag
                 results[parachute.name + "_inflatedVelocity"] = flight.speed(
-                trigger_time + parachute.lag
-            )
+                    trigger_time + parachute.lag
+                )
                 results[parachute.name + "_inflatedAltitude"] = (
                     flight.z(trigger_time + parachute.lag) - flight.env.elevation
-            )
+                )
 
         # Remove the powerOffDrag item from setting
         setting.pop("powerOffDrag", None)
@@ -1322,8 +1322,8 @@ class Dispersion:
 
                 inputs_log, outputs_log = self.__export_flight_data(
                     setting=setting,
-                    flight=disp_flight,
-                    exec_time=process_time() - start_time,
+                    flight=dispersion_flight,
+                    exec_time=process_time() - initial_wall_time,
                     inputs_log=inputs_log,
                     outputs_log=outputs_log,
                     save_parachute_data=save_parachute_data,
@@ -1675,7 +1675,7 @@ class Dispersion:
             try:
                 from imageio import imread
 
-            img = imread(image)
+                img = imread(image)
             except ImportError:
                 print(
                     "The 'imageio' package could not be. Please install it to add background images."
