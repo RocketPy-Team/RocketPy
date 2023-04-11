@@ -236,7 +236,7 @@ class SolidMotor(Motor):
 
         self.evaluateGeometry()
 
-    @funcify_method("time (s)", "mass (kg)")
+    @funcify_method("Time (s)", "mass (kg)")
     def mass(self):
         """Evaluates the total propellant mass as a function of time.
 
@@ -252,7 +252,7 @@ class SolidMotor(Motor):
         """
         return self.grainVolume * self.grainDensity * self.grainNumber
 
-    @funcify_method("time (s)", "grain volume (m³)")
+    @funcify_method("Time (s)", "grain volume (m³)")
     def grainVolume(self):
         """Evaluates the total propellant volume as a function of time. The
         propellant is assumed to be a cylindrical Bates grain under uniform
@@ -324,10 +324,10 @@ class SolidMotor(Motor):
         -------
         None
         """
-        self._massFlowRate = value.reset("time (s)", "mass flow rate (kg/s)")
+        self._massFlowRate = value.reset("Time (s)", "mass flow rate (kg/s)")
         self.evaluateGeometry()
 
-    @funcify_method("time (s)", "center of mass (m)")
+    @funcify_method("Time (s)", "center of mass (m)")
     def centerOfMass(self):
         """Calculates and returns the time derivative of motor center of mass.
         The result is a function of time, object of the Function class. The
@@ -419,7 +419,7 @@ class SolidMotor(Motor):
 
         return [self.grainInnerRadius, self.grainHeight]
 
-    @funcify_method("time (s)", "burn area (m²)")
+    @funcify_method("Time (s)", "burn area (m²)")
     def burnArea(self):
         """Calculates the BurnArea of the grain for each time. Assuming that
         the grains are cylindrical BATES grains.
@@ -446,7 +446,7 @@ class SolidMotor(Motor):
         )
         return burnArea
 
-    @funcify_method("time (s)", "burn rate (m/s)")
+    @funcify_method("Time (s)", "burn rate (m/s)")
     def burnRate(self):
         """Calculates the BurnRate with respect to time. This evaluation
         assumes that it was already calculated the massDot, burnArea time
@@ -571,7 +571,7 @@ class SolidMotor(Motor):
 
         return self.inertiaI, self.inertiaI, self.inertiaZ
 
-    @funcify_method("time (s)", "Inertia I_11 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
     def I_11(self):
         """Inertia tensor 11 component, which corresponds to the inertia
         relative to the e_1 axis, centered at the instantaneous center of mass.
@@ -615,7 +615,7 @@ class SolidMotor(Motor):
 
         return I_11
 
-    @funcify_method("time (s)", "Inertia I_22 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_22 (kg m²)")
     def I_22(self):
         """Inertia tensor 22 component, which corresponds to the inertia
         relative to the e_2 axis, centered at the instantaneous center of mass.
@@ -643,7 +643,7 @@ class SolidMotor(Motor):
         """
         return self.I_11
 
-    @funcify_method("time (s)", "Inertia I_33 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_33 (kg m²)")
     def I_33(self):
         """Inertia tensor 33 component, which corresponds to the inertia
         relative to the e_3 axis, centered at the instantaneous center of mass.
@@ -674,15 +674,15 @@ class SolidMotor(Motor):
         )
         return I_33
 
-    @funcify_method("time (s)", "Inertia I_12 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_12 (kg m²)")
     def I_12(self):
         return 0
 
-    @funcify_method("time (s)", "Inertia I_13 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_13 (kg m²)")
     def I_13(self):
         return 0
 
-    @funcify_method("time (s)", "Inertia I_23 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_23 (kg m²)")
     def I_23(self):
         return 0
 

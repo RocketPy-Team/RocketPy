@@ -225,7 +225,7 @@ class HybridMotor(Motor):
             coordinateSystemOrientation,
         )
 
-    @funcify_method("time (s)", "mass (kg)")
+    @funcify_method("Time (s)", "mass (kg)")
     def mass(self):
         """Evaluates the total propellant mass of the motor as the sum
         of each tank mass and the grains mass.
@@ -257,7 +257,7 @@ class HybridMotor(Motor):
         """
         return self.solid.propellantInitialMass + self.liquid.propellantInitialMass
 
-    @funcify_method("time (s)", "mass flow rate (kg/s)", extrapolation="zero")
+    @funcify_method("Time (s)", "mass flow rate (kg/s)", extrapolation="zero")
     def massFlowRate(self):
         """Evaluates the mass flow rate of the motor as the sum of each tank
         mass flow rate and the grains mass flow rate.
@@ -274,7 +274,7 @@ class HybridMotor(Motor):
         """
         return self.solid.massFlowRate + self.liquid.massFlowRate
 
-    @funcify_method("time (s)", "center of mass (m)")
+    @funcify_method("Time (s)", "center of mass (m)")
     def centerOfMass(self):
         """Calculates and returns the time derivative of motor center of mass.
         The formulas used are the Bernoulli equation, law of the ideal gases and
@@ -334,12 +334,12 @@ class HybridMotor(Motor):
         )
 
         # Set naming convention
-        self.InertiaI.reset("time (s)", "inertia y (kg*m^2)")
-        self.InertiaZ.reset("time (s)", "inertia z (kg*m^2)")
+        self.InertiaI.reset("Time (s)", "inertia y (kg*m^2)")
+        self.InertiaZ.reset("Time (s)", "inertia z (kg*m^2)")
 
         return self.InertiaI, self.InertiaI, self.InertiaZ
 
-    @funcify_method("time (s)", "Inertia I_11 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
     def I_11(self):
         """Inertia tensor 11 component, which corresponds to the inertia
         relative to the e_1 axis, centered at the instantaneous center of mass.
@@ -375,7 +375,7 @@ class HybridMotor(Motor):
         I_11 = self.solid.I_11 + solidCorrection + self.liquid.I_11 + liquidCorrection
         return I_11
 
-    @funcify_method("time (s)", "Inertia I_22 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_22 (kg m²)")
     def I_22(self):
         """Inertia tensor 22 component, which corresponds to the inertia
         relative to the e_2 axis, centered at the instantaneous center of mass.
@@ -403,7 +403,7 @@ class HybridMotor(Motor):
         """
         return self.I_11
 
-    @funcify_method("time (s)", "Inertia I_33 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_33 (kg m²)")
     def I_33(self):
         """Inertia tensor 33 component, which corresponds to the inertia
         relative to the e_3 axis, centered at the instantaneous center of mass.
@@ -429,15 +429,15 @@ class HybridMotor(Motor):
         """
         return self.solid.I_33 + self.liquid.I_33
 
-    @funcify_method("time (s)", "Inertia I_12 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_12 (kg m²)")
     def I_12(self):
         return 0
 
-    @funcify_method("time (s)", "Inertia I_13 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_13 (kg m²)")
     def I_13(self):
         return 0
 
-    @funcify_method("time (s)", "Inertia I_23 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_23 (kg m²)")
     def I_23(self):
         return 0
 

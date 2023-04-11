@@ -278,7 +278,7 @@ class Motor(ABC):
         """
         pass
 
-    @funcify_method("time (s)", "mass dot (kg/s)", extrapolation="zero")
+    @funcify_method("Time (s)", "mass dot (kg/s)", extrapolation="zero")
     def massDot(self):
         """Time derivative of propellant mass. Assumes constant exhaust
         velocity. The formula used is the opposite of thrust divided by exhaust
@@ -725,7 +725,7 @@ class GenericMotor(Motor):
         """
         return self.propellantInitialMass
 
-    @funcify_method("time (s)", "center of mass (m)")
+    @funcify_method("Time (s)", "center of mass (m)")
     def centerOfMass(self):
         """Estimates the Center of Mass of the motor as fixed in the chamber
         position. For a more accurate evaluation, use the classes SolidMotor,
@@ -764,14 +764,14 @@ class GenericMotor(Motor):
         self.inertiaZ = self.mass * self.chamberRadius**2 / 2
 
         # Set naming convention
-        self.inertiaI.setInputs("time (s)")
-        self.inertiaZ.setInputs("time (s)")
+        self.inertiaI.setInputs("Time (s)")
+        self.inertiaZ.setInputs("Time (s)")
         self.inertiaI.setOutputs("inertia y (kg*m^2)")
         self.inertiaZ.setOutputs("inertia z (kg*m^2)")
 
         return self.inertiaI, self.inertiaI, self.inertiaZ
 
-    @funcify_method("time (s)", "Inertia I_11 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
     def I_11(self):
         """Inertia tensor 11 component, which corresponds to the inertia
         relative to the e_1 axis, centered at the instantaneous center of mass.
@@ -800,7 +800,7 @@ class GenericMotor(Motor):
         """
         return self.mass * (3 * self.chamberRadius**2 + self.chamberHeight**2) / 12
 
-    @funcify_method("time (s)", "Inertia I_22 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_22 (kg m²)")
     def I_22(self):
         """Inertia tensor 22 component, which corresponds to the inertia
         relative to the e_2 axis, centered at the instantaneous center of mass.
@@ -829,7 +829,7 @@ class GenericMotor(Motor):
         """
         return self.I_11
 
-    @funcify_method("time (s)", "Inertia I_33 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_33 (kg m²)")
     def I_33(self):
         """Inertia tensor 33 component, which corresponds to the inertia
         relative to the e_3 axis, centered at the instantaneous center of mass.
@@ -858,15 +858,15 @@ class GenericMotor(Motor):
         """
         return self.mass * self.chamberRadius**2 / 2
 
-    @funcify_method("time (s)", "Inertia I_12 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_12 (kg m²)")
     def I_12(self):
         return 0
 
-    @funcify_method("time (s)", "Inertia I_13 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_13 (kg m²)")
     def I_13(self):
         return 0
 
-    @funcify_method("time (s)", "Inertia I_23 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_23 (kg m²)")
     def I_23(self):
         return 0
 

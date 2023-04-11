@@ -80,7 +80,7 @@ class LiquidMotor(Motor):
 
         self.positioned_tanks = []
 
-    @funcify_method("time (s)", "mass (kg)")
+    @funcify_method("Time (s)", "mass (kg)")
     def mass(self):
         """Evaluates the mass of the motor as the sum of each tank mass.
 
@@ -112,7 +112,7 @@ class LiquidMotor(Motor):
         """
         return self.mass(0)
 
-    @funcify_method("time (s)", "mass flow rate (kg/s)", extrapolation="zero")
+    @funcify_method("Time (s)", "mass flow rate (kg/s)", extrapolation="zero")
     def massFlowRate(self):
         """Evaluates the mass flow rate of the motor as the sum of each tank
         mass flow rate.
@@ -134,7 +134,7 @@ class LiquidMotor(Motor):
 
         return massFlowRate
 
-    @funcify_method("time (s)", "center of mass (m)")
+    @funcify_method("Time (s)", "center of mass (m)")
     def centerOfMass(self):
         """Evaluates the center of mass of the motor from each tank center of
         mass and positioning. The center of mass height is measured relative to
@@ -191,12 +191,12 @@ class LiquidMotor(Motor):
             )
 
         # Set naming convention
-        self.inertiaI.reset("time (s)", "inertia y (kg*m^2)")
-        self.inertiaZ.reset("time (s)", "inertia z (kg*m^2)")
+        self.inertiaI.reset("Time (s)", "inertia y (kg*m^2)")
+        self.inertiaZ.reset("Time (s)", "inertia z (kg*m^2)")
 
         return self.inertiaI, self.inertiaI, self.inertiaZ
 
-    @funcify_method("time (s)", "Inertia I_11 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
     def I_11(self):
         """Inertia tensor 11 component, which corresponds to the inertia
         relative to the e_1 axis, centered at the instantaneous center of mass.
@@ -235,7 +235,7 @@ class LiquidMotor(Motor):
 
         return I_11
 
-    @funcify_method("time (s)", "Inertia I_22 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_22 (kg m²)")
     def I_22(self):
         """Inertia tensor 22 component, which corresponds to the inertia
         relative to the e_2 axis, centered at the instantaneous center of mass.
@@ -263,7 +263,7 @@ class LiquidMotor(Motor):
         """
         return self.I_11
 
-    @funcify_method("time (s)", "Inertia I_33 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_33 (kg m²)")
     def I_33(self):
         """Inertia tensor 33 component, which corresponds to the inertia
         relative to the e_3 axis, centered at the instantaneous center of mass.
@@ -291,15 +291,15 @@ class LiquidMotor(Motor):
         """
         return 0
 
-    @funcify_method("time (s)", "Inertia I_12 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_12 (kg m²)")
     def I_12(self):
         return 0
 
-    @funcify_method("time (s)", "Inertia I_13 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_13 (kg m²)")
     def I_13(self):
         return 0
 
-    @funcify_method("time (s)", "Inertia I_23 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_23 (kg m²)")
     def I_23(self):
         return 0
 

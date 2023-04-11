@@ -414,7 +414,7 @@ class Rocket:
         # Return self
         return self
 
-    @funcify_method("time (s)", "Inertia I_11 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
     def I_11(self):
         """Inertia tensor 11 component, which corresponds to the inertia
         relative to the e_1 axis, centered at the instantaneous center of mass.
@@ -455,7 +455,7 @@ class Rocket:
             + prop_mass * prop_dz**2
         )
 
-    @funcify_method("time (s)", "Inertia I_22 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_22 (kg m²)")
     def I_22(self):
         """Inertia tensor 22 component, which corresponds to the inertia
         relative to the e_2 axis, centered at the instantaneous center of mass.
@@ -496,7 +496,7 @@ class Rocket:
             + prop_mass * prop_dz**2
         )
 
-    @funcify_method("time (s)", "Inertia I_33 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_33 (kg m²)")
     def I_33(self):
         """Inertia tensor 33 component, which corresponds to the inertia
         relative to the e_3 axis, centered at the instantaneous center of mass.
@@ -522,7 +522,7 @@ class Rocket:
         """
         return self.dry_I_33 + self.motor.I_33
 
-    @funcify_method("time (s)", "Inertia I_12 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_12 (kg m²)")
     def I_12(self):
         """Inertia tensor 12 component, which corresponds to the inertia
         relative to the e_1 and e_2 axes, centered at the instantaneous center
@@ -553,7 +553,7 @@ class Rocket:
         """
         return self.dry_I_12 + self.motor.I_12
 
-    @funcify_method("time (s)", "Inertia I_13 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_13 (kg m²)")
     def I_13(self):
         """Inertia tensor 13 component, which corresponds to the inertia
         relative to the e_1 and e_3 axes, centered at the instantaneous center
@@ -583,7 +583,7 @@ class Rocket:
         """
         return self.dry_I_13 + self.motor.I_13
 
-    @funcify_method("time (s)", "Inertia I_23 (kg m²)")
+    @funcify_method("Time (s)", "Inertia I_23 (kg m²)")
     def I_23(self):
         """Inertia tensor 23 component, which corresponds to the inertia
         relative to the e_2 and e_3 axes, centered at the instantaneous center
