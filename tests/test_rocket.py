@@ -29,8 +29,7 @@ def test_rocket(mock_show):
     test_rocket = Rocket(
         radius=127 / 2000,
         mass=19.197 - 2.956,
-        inertiaI=6.60,
-        inertiaZ=0.0351,
+        inertia=(6.60, 6.60, 0.0351),
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
         centerOfDryMassPosition=0,
@@ -134,8 +133,7 @@ def test_coordinate_system_orientation(mock_show):
     rocket_tail_to_nose = Rocket(
         radius=127 / 2000,
         mass=19.197 - 2.956,
-        inertiaI=6.60,
-        inertiaZ=0.0351,
+        inertia=(6.60, 6.60, 0.0351),
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
         centerOfDryMassPosition=0,
@@ -156,8 +154,7 @@ def test_coordinate_system_orientation(mock_show):
     rocket_nose_to_tail = Rocket(
         radius=127 / 2000,
         mass=19.197 - 2.956,
-        inertiaI=6.60,
-        inertiaZ=0.0351,
+        inertia=(6.60, 6.60, 0.0351),
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
         centerOfDryMassPosition=0,
@@ -204,8 +201,7 @@ def test_elliptical_fins(mock_show):
     test_rocket = Rocket(
         radius=127 / 2000,
         mass=19.197 - 2.956,
-        inertiaI=6.60,
-        inertiaZ=0.0351,
+        inertia=(6.60, 6.60, 0.0351),
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
         centerOfDryMassPosition=0,
@@ -284,8 +280,7 @@ def test_airfoil(mock_show):
     test_rocket = Rocket(
         radius=127 / 2000,
         mass=19.197 - 2.956,
-        inertiaI=6.60,
-        inertiaZ=0.0351,
+        inertia=(6.60, 6.60, 0.0351),
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
         centerOfDryMassPosition=0,

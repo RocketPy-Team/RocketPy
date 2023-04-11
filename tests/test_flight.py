@@ -95,8 +95,7 @@ def test_flight(mock_show):
     test_rocket = Rocket(
         radius=127 / 2000,
         mass=19.197 - 2.956,
-        inertiaI=6.60,
-        inertiaZ=0.0351,
+        inertia=(6.60, 6.60, 0.0351),
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
@@ -186,8 +185,7 @@ def test_initial_solution(mock_show):
     test_rocket = Rocket(
         radius=127 / 2000,
         mass=19.197 - 2.956,
-        inertiaI=6.60,
-        inertiaZ=0.0351,
+        inertia=(6.60, 6.60, 0.0351),
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
@@ -311,8 +309,7 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
     DummyRocket = Rocket(
         radius=127 / 2000,
         mass=1e16,
-        inertiaI=1,
-        inertiaZ=0.0351,
+        inertia=(1, 1, 0.0351),
         powerOffDrag=0,
         powerOnDrag=0,
     )
@@ -387,8 +384,7 @@ def test_rolling_flight(mock_show):
     test_rocket = Rocket(
         radius=127 / 2000,
         mass=19.197 - 2.956,
-        inertiaI=6.60,
-        inertiaZ=0.0351,
+        inertia=(6.60, 6.60, 0.0351),
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
@@ -475,8 +471,7 @@ def test_export_data():
     test_rocket = Rocket(
         radius=127 / 2000,
         mass=19.197 - 2.956,
-        inertiaI=6.60,
-        inertiaZ=0.0351,
+        inertia=(6.60, 6.60, 0.0351),
         powerOffDrag=0.5,
         powerOnDrag=0.5,
     )
@@ -573,8 +568,7 @@ def test_export_KML():
     test_rocket = Rocket(
         radius=127 / 2000,
         mass=19.197 - 2.956,
-        inertiaI=6.60,
-        inertiaZ=0.0351,
+        inertia=(6.60, 6.60, 0.0351),
         powerOffDrag=0.5,
         powerOnDrag=0.5,
     )
@@ -656,8 +650,7 @@ def test_latlon_conversions(mock_show):
     test_rocket = Rocket(
         radius=127 / 2000,
         mass=19.197 - 2.956,
-        inertiaI=6.60,
-        inertiaZ=0.0351,
+        inertia=(6.60, 6.60, 0.0351),
         powerOffDrag=0.5,
         powerOnDrag=0.5,
     )
@@ -741,8 +734,7 @@ def test_latlon_conversions2(mock_show):
     test_rocket = Rocket(
         radius=127 / 2000,
         mass=19.197 - 2.956,
-        inertiaI=6.60,
-        inertiaZ=0.0351,
+        inertia=(6.60, 6.60, 0.0351),
         powerOffDrag=0.5,
         powerOnDrag=0.5,
     )

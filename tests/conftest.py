@@ -50,8 +50,7 @@ def rocket(solid_motor):
     example_rocket = Rocket(
         radius=127 / 2000,
         mass=19.197 - 2.956,
-        inertiaI=6.60,
-        inertiaZ=0.0351,
+        inertia=(6.60, 6.60, 0.0351),
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
         centerOfDryMassPosition=0,
@@ -121,8 +120,7 @@ def dimensionless_rocket(kg, m, dimensionless_solid_motor):
     example_rocket = Rocket(
         radius=127 / 2000 * m,
         mass=(19.197 - 2.956) * kg,
-        inertiaI=6.60 * (kg * m**2),
-        inertiaZ=0.0351 * (kg * m**2),
+        inertia=(6.60 * (kg * m**2), 6.60 * (kg * m**2), 0.0351 * (kg * m**2)),
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
         centerOfDryMassPosition=0 * m,
