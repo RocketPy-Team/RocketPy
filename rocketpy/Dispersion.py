@@ -78,7 +78,6 @@ class Dispersion:
         self,
         filename,
     ):
-
         """
         Parameters
         ----------
