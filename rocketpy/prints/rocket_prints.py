@@ -45,8 +45,12 @@ class _RocketPrints:
         print(
             "Rocket Mass: {:.3f} kg (With Propellant)".format(self.rocket.totalMass(0))
         )
-        print("Rocket Inertia I: {:.3f} kg*m2".format(self.rocket.dry_I_11))
-        print("Rocket Inertia Z: {:.3f} kg*m2".format(self.rocket.dry_I_33))
+        print("Rocket Inertia 11: {:.3f} kg*m2".format(self.rocket.dry_I_11))
+        print("Rocket Inertia 22: {:.3f} kg*m2".format(self.rocket.dry_I_22))
+        print("Rocket Inertia 33: {:.3f} kg*m2".format(self.rocket.dry_I_33))
+        print("Rocket Inertia 12: {:.3f} kg*m2".format(self.rocket.dry_I_12))
+        print("Rocket Inertia 13: {:.3f} kg*m2".format(self.rocket.dry_I_13))
+        print("Rocket Inertia 23: {:.3f} kg*m2".format(self.rocket.dry_I_23))
 
         return None
 
