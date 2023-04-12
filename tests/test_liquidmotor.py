@@ -320,7 +320,7 @@ def test_mfr_tank_basic():
         )
         ixy_liq = (
             lambda x: 1 / 4 * liquid_mass(x) * r**2
-            + 1 / 12 * liquid_mass(x) * (liquid_height(x) - t.structure.bottom) ** 2
+            + 1 / 12 * liquid_mass(x) * (liquid_height(x) - t.geometry.bottom) ** 2
             + liquid_mass(x) * (liquid_com(x) - acom(x)) ** 2
         )
         ixy = lambda x: ixy_gas(x) + ixy_liq(x)
