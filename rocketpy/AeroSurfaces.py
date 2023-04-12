@@ -247,7 +247,7 @@ class NoseCone:
             ["Alpha (rad)", "Mach"],
             "Cl",
         )
-        return self.cl
+        return None
 
     def evaluateCenterOfPressure(self):
         """Calculates and returns the center of pressure of the nose cone in local
@@ -410,7 +410,6 @@ class Fins(ABC):
         n,
         rootChord,
         span,
-        position,
         rocketRadius,
         cantAngle=0,
         airfoil=None,
@@ -465,7 +464,6 @@ class Fins(ABC):
         self._rootChord = rootChord
         self._span = span
         self.name = name
-        self.position = position
         self.d = d
         self.Aref = Aref  # Reference area
         self.position = None  # in relation to rocket
@@ -652,7 +650,7 @@ class Fins(ABC):
             "Lift coefficient",
         )
 
-        return self.cl
+        return None
 
     def evaluateRollParameters(self):
         """Calculates and returns the finset's roll coefficients.
@@ -1000,7 +998,6 @@ class TrapezoidalFins(Fins):
         rootChord,
         tipChord,
         span,
-        position,
         rocketRadius,
         cantAngle=0,
         sweepLength=None,
@@ -1064,7 +1061,6 @@ class TrapezoidalFins(Fins):
             n,
             rootChord,
             span,
-            position,
             rocketRadius,
             cantAngle,
             airfoil,
@@ -1416,7 +1412,6 @@ class EllipticalFins(Fins):
         n,
         rootChord,
         span,
-        position,
         rocketRadius,
         cantAngle=0,
         airfoil=None,
@@ -1476,7 +1471,6 @@ class EllipticalFins(Fins):
             n,
             rootChord,
             span,
-            position,
             rocketRadius,
             cantAngle,
             airfoil,
@@ -1723,9 +1717,7 @@ class Tail:
 
     """
 
-    def __init__(
-        self, topRadius, bottomRadius, length, position, rocketRadius, name="Tail"
-    ):
+    def __init__(self, topRadius, bottomRadius, length, rocketRadius, name="Tail"):
         """Initializes the tail object by computing and storing the most
         important values.
 
@@ -1858,7 +1850,7 @@ class Tail:
         )
         self.cl = cl
         self.clalpha = clalpha
-        return self.cl
+        return None
 
     def evaluateCenterOfPressure(self):
         """Calculates and returns the center of pressure of the tail in local

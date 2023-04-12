@@ -390,14 +390,14 @@ class Rocket:
 
         # Calculate total lift coefficient derivative and center of pressure
         if len(self.aerodynamicSurfaces) > 0:
-            for aeroSurface in self.aerodynamicSurfaces:
+            for aeroSurface, position in self.aerodynamicSurfaces:
                 self.totalLiftCoeffDer += Function(
                     lambda alpha: aeroSurface.cl(alpha, 0)
                 ).differentiate(x=1e-2, dx=1e-3)
                 self.cpPosition += Function(
                     lambda alpha: aeroSurface.cl(alpha, 0)
                 ).differentiate(x=1e-2, dx=1e-3) * (
-                    aeroSurface.position - self._csys * aeroSurface.cpz
+                    position - self._csys * aeroSurface.cpz
                 )
             self.cpPosition /= self.totalLiftCoeffDer
 
@@ -632,7 +632,6 @@ class Rocket:
             rootChord,
             tipChord,
             span,
-            position,
             radius,
             cantAngle,
             sweepLength,
