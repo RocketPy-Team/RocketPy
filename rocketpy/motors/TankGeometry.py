@@ -164,7 +164,7 @@ class TankGeometry:
             lambda v: v / (np.pi * self.average_radius**2),
         )
 
-    def add_geometry(self, domain, function):
+    def add_geometry(self, domain, radius_function):
         """
         Adds a new geometry to the tank. The geometry is defined by a Function
         source, and a domain where it is valid.
@@ -174,10 +174,10 @@ class TankGeometry:
         domain : tuple
             Tuple containing the lower and upper bounds of the domain where the
             radius is valid.
-        function : Function,
+        radius_function : Function, callable
             Function that defines the radius of the tank as a function of height.
         """
-        self._geometry[domain] = Function(function)
+        self._geometry[domain] = Function(radius_function)
         self.radius = PiecewiseFunction(self._geometry, "height (m)", "radius (m)")
 
 
