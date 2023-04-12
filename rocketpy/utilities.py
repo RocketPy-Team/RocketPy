@@ -21,8 +21,8 @@ def except_negative(method):
         if value < 0:
             raise ValueError(
                 f"Impossible negative value of {value} in"
-                f"{method.__name__} (f{method})"
-                f"with arguments {args}"
+                f" {method.__name__} (f{method})"
+                f" with arguments {args}"
             )
         return value
 
