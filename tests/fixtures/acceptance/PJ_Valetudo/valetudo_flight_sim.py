@@ -99,7 +99,11 @@ Valetudo = Rocket(
     motor=Keron,
     radius=analysis_parameters.get("radius")[0],
     mass=analysis_parameters.get("rocketMass")[0],
-    inertia=(parameters.get("inertiaI")[0], parameters.get("inertiaI")[0], parameters.get("inertiaZ")[0]),
+    inertia=(
+        parameters.get("inertiaI")[0],
+        parameters.get("inertiaI")[0],
+        parameters.get("inertiaZ")[0],
+    ),
     powerOffDrag="tests/fixtures/acceptance/PJ_Valetudo/valetudo_drag_power_off.csv",
     powerOnDrag="tests/fixtures/acceptance/PJ_Valetudo/valetudo_drag_power_on.csv",
 )
