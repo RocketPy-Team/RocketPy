@@ -393,7 +393,7 @@ class UllageBasedTank(Tank):
 
     @funcify_method("Time (s)", "volume (m³)")
     def liquidVolume(self):
-        return self.structure.total_volume.item - self.ullage
+        return -1 * (self.ullage - self.geometry.total_volume)
 
     @funcify_method("Time (s)", "volume (m³)")
     def gasVolume(self):
