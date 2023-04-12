@@ -414,16 +414,8 @@ class UllageBasedTank(Tank):
         return self.structure.inverse_volume.compose(self.liquidVolume)
 
     @funcify_method("Time (s)", "height (m)")
-    def gasHeight(self, t):
-        fluid_volume = self.gasVolume + self.liquidVolume
-        gasHeight = self.structure.inverse_volume(fluid_volume(t))
-        if gasHeight <= self.structure.top:
-            return gasHeight
-        else:
-            raise ValueError(
-                f"The tank {self.name}, is overfilled"
-                f"with gas height {gasHeight} at time {t}"
-            )
+    def gasHeight(self):
+        return self.geometry.top
 
 
 class LevelBasedTank(Tank):
@@ -472,15 +464,7 @@ class LevelBasedTank(Tank):
 
     @funcify_method("Time (s)", "height (m)")
     def gasHeight(self, t):
-        fluid_volume = self.gasVolume + self.liquidVolume
-        gasHeight = self.structure.inverse_volume(fluid_volume(t))
-        if gasHeight <= self.structure.top:
-            return gasHeight
-        else:
-            raise ValueError(
-                f"The tank {self.name}, is overfilled"
-                f"with gas height {gasHeight} at time {t}"
-            )
+        return self.geometry.top
 
 
 class MassBasedTank(Tank):
