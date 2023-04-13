@@ -108,13 +108,13 @@ def test_burn_area_asserts_extreme_values(solid_motor):
     assert np.allclose(solid_motor.burnArea.getSource()[-1][-1], final_burn_area)
 
 
-def test_evaluate_inertia_I_asserts_extreme_values(solid_motor):
+def test_evaluate_inertia_11_asserts_extreme_values(solid_motor):
     grain_vol = grainInitialHeight * (
         np.pi * (grainOuterRadius**2 - grainInitialInnerRadius**2)
     )
     grain_mass = grain_vol * grainDensity
 
-    grainInertiaI_initial = grain_mass * (
+    grainInertia_11_initial = grain_mass * (
         (1 / 4) * (grainOuterRadius**2 + grainInitialInnerRadius**2)
         + (1 / 12) * grainInitialHeight**2
     )
@@ -123,28 +123,28 @@ def test_evaluate_inertia_I_asserts_extreme_values(solid_motor):
     d = np.linspace(-initialValue, initialValue, grainNumber)
     d = d * (grainInitialHeight + grainSeparation)
 
-    inertiaI_initial = grainNumber * grainInertiaI_initial + grain_mass * np.sum(d**2)
+    inertia_11_initial = grainNumber * grainInertia_11_initial + grain_mass * np.sum(d**2)
 
     assert np.allclose(
-        solid_motor.inertiaI.getSource()[0][-1], inertiaI_initial, atol=0.01
+        solid_motor.I_11.getSource()[0][-1], inertia_11_initial, atol=0.01
     )
-    assert np.allclose(solid_motor.inertiaI.getSource()[-1][-1], 0, atol=1e-16)
+    assert np.allclose(solid_motor.I_11.getSource()[-1][-1], 0, atol=1e-16)
 
 
-def test_evaluate_inertia_Z_asserts_extreme_values(solid_motor):
+def test_evaluate_inertia_33_asserts_extreme_values(solid_motor):
     grain_vol = grainInitialHeight * (
         np.pi * (grainOuterRadius**2 - grainInitialInnerRadius**2)
     )
     grain_mass = grain_vol * grainDensity
 
-    grainInertiaZ_initial = (
+    grain_I_33_initial = (
         grain_mass * (1 / 2.0) * (grainInitialInnerRadius**2 + grainOuterRadius**2)
     )
 
     assert np.allclose(
-        solid_motor.inertiaZ.getSource()[0][-1], grainInertiaZ_initial, atol=0.01
+        solid_motor.I_33.getSource()[0][-1], grain_I_33_initial, atol=0.01
     )
-    assert np.allclose(solid_motor.inertiaZ.getSource()[-1][-1], 0, atol=1e-16)
+    assert np.allclose(solid_motor.I_33.getSource()[-1][-1], 0, atol=1e-16)
 
 
 def tests_import_eng_asserts_read_values_correctly(solid_motor):
