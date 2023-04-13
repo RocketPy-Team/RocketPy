@@ -123,7 +123,9 @@ def test_evaluate_inertia_11_asserts_extreme_values(solid_motor):
     d = np.linspace(-initialValue, initialValue, grainNumber)
     d = d * (grainInitialHeight + grainSeparation)
 
-    inertia_11_initial = grainNumber * grainInertia_11_initial + grain_mass * np.sum(d**2)
+    inertia_11_initial = grainNumber * grainInertia_11_initial + grain_mass * np.sum(
+        d**2
+    )
 
     assert np.allclose(
         solid_motor.I_11.getSource()[0][-1], inertia_11_initial, atol=0.01
