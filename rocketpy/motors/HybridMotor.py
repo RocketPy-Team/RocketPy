@@ -120,10 +120,10 @@ class HybridMotor(Motor):
         grainOuterRadius,
         grainInitialInnerRadius,
         grainInitialHeight,
-        grainSeparation=0,
-        nozzleRadius=0.0335,
+        grainSeparation,
+        nozzleRadius,
         nozzlePosition=0,
-        throatRadius=0.0114,
+        throatRadius=0.01,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
         coordinateSystemOrientation="nozzleToCombustionChamber",
@@ -155,16 +155,19 @@ class HybridMotor(Motor):
             Solid grain initial inner radius in meters.
         grainInitialHeight : int, float
             Solid grain initial height in meters.
-        grainSeparation : int, float, optional
-            Distance between grains, in meters. Default is 0.
-        nozzleRadius : int, float, optional
+        grainSeparation : int, float
+            Distance between grains, in meters.
+        nozzleRadius : int, float
             Motor's nozzle outlet radius in meters.
         nozzlePosition : int, float, optional
-            Motor's nozzle outlet position in meters. More specifically, the
-            coordinate of the nozzle outlet specified in the motor's coordinate
-            system. See `Motor.coordinateSystemOrientation` for more
-            information. Default is 0, in which case the origin of the motor's
-            coordinate system is placed at the motor's nozzle outlet.
+            Motor's nozzle outlet position in meters, in the motor's coordinate
+            system. See `Motor.coordinateSystemOrientation` for details.
+            Default is 0, in which case the origin of the coordinate system
+            is placed at the motor's nozzle outlet.
+        throatRadius : int, float, optional
+            Motor's nozzle throat radius in meters. Used to calculate Kn curve.
+            Optional if the Kn curve is not interesting. Its value does not
+            impact trajectory simulation.
         reshapeThrustCurve : boolean, tuple, optional
             If False, the original thrust curve supplied is not altered. If a
             tuple is given, whose first parameter is a new burn out time and
