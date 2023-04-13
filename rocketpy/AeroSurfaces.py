@@ -247,7 +247,7 @@ class NoseCone:
             ["Alpha (rad)", "Mach"],
             "Cl",
         )
-        return self.cl
+        return None
 
     def evaluateCenterOfPressure(self):
         """Calculates and returns the center of pressure of the nose cone in local
@@ -650,7 +650,7 @@ class Fins(ABC):
             "Lift coefficient",
         )
 
-        return self.cl
+        return None
 
     def evaluateRollParameters(self):
         """Calculates and returns the finset's roll coefficients.
@@ -1081,7 +1081,6 @@ class TrapezoidalFins(Fins):
         self._tipChord = tipChord
         self._sweepLength = sweepLength
         self._sweepAngle = sweepAngle
-
         self.evaluateGeometricalParameters()
         self.evaluateCenterOfPressure()
         self.evaluateLiftCoefficient()
@@ -1375,7 +1374,7 @@ class EllipticalFins(Fins):
         Fins.Aref : float
             Reference area of the rocket.
         Fins.Af : float
-            Area of the longtudinal section of each fin in the set.
+            Area of the longitudinal section of each fin in the set.
         Fins.AR : float
             Aspect ratio of each fin in the set.
         Fins.gamma_c : float
@@ -1848,7 +1847,7 @@ class Tail:
         )
         self.cl = cl
         self.clalpha = clalpha
-        return self.cl
+        return None
 
     def evaluateCenterOfPressure(self):
         """Calculates and returns the center of pressure of the tail in local

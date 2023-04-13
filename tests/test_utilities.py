@@ -1,10 +1,44 @@
-from rocketpy import utilities
+from unittest.mock import patch
+
 import numpy as np
+
+from rocketpy import utilities
 
 
 def test_compute_CdS_from_drop_test():
     assert (
         utilities.compute_CdS_from_drop_test(31.064, 18, 1.0476) == 0.3492311157844522
+    )
+
+
+@patch("matplotlib.pyplot.show")
+def test_fin_flutter_analysis(mock_show, flight):
+    """Tests the fin_flutter_analysis function. It tests the both options of
+    the see_graphs parameter.
+
+    Parameters
+    ----------
+    flight : rocketpy.Flight
+        A Flight object with a rocket with fins. This flight object was created
+        in the conftest.py file.
+    """
+    flutter_mach, safety_factor = utilities.fin_flutter_analysis(
+        fin_thickness=2 / 1000,
+        shear_modulus=10e9,
+        flight=flight,
+        see_graphs=False,
+    )
+
+    assert abs(flutter_mach(15) - 1.085295573) < 1e-3
+    assert abs(safety_factor(15) - 3.373824095) < 1e-3
+    assert (
+        utilities.fin_flutter_analysis(
+            fin_thickness=2 / 1000,
+            shear_modulus=10e9,
+            flight=flight,
+            see_graphs=True,
+        )
+        == None
     )
 
 

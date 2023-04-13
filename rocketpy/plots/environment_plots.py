@@ -1,4 +1,4 @@
-__author__ = "Mateus Stano Junqueira"
+__author__ = "Mateus Stano Junqueira, Guilherme Fernandes Alves"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
@@ -39,8 +39,146 @@ class _EnvironmentPlots:
 
         return None
 
+    def __wind(self, ax):
+        """Adds wind speed and wind direction graphs to the same axis.
+
+        Parameters
+        ----------
+        ax : matplotlib.pyplot.axis
+            Axis to add the graphs.
+
+        Returns
+        -------
+        ax : matplotlib.pyplot.axis
+            Axis with the graphs.
+        """
+        ax.plot(
+            [self.environment.windSpeed(i) for i in self.grid],
+            self.grid,
+            "#ff7f0e",
+            label="Wind Speed",
+        )
+        ax.set_xlabel("Wind Speed (m/s)", color="#ff7f0e")
+        ax.tick_params("x", colors="#ff7f0e")
+        axup = ax.twiny()
+        axup.plot(
+            [self.environment.windDirection(i) for i in self.grid],
+            self.grid,
+            color="#1f77b4",
+            label="Wind Direction",
+        )
+        axup.set_xlabel("Wind Direction (°)", color="#1f77b4")
+        axup.tick_params("x", colors="#1f77b4")
+        axup.set_xlim(0, 360)
+        ax.set_ylabel("Height Above Sea Level (m)")
+        ax.grid(True)
+
+        return ax
+
+    def __density_speed_of_sound(self, ax):
+        """Adds density and speed of sound graphs to the same axis.
+
+        Parameters
+        ----------
+        ax : matplotlib.pyplot.axis
+            Axis to add the graphs.
+
+        Returns
+        -------
+        ax : matplotlib.pyplot.axis
+            Axis with the graphs.
+        """
+        ax.plot(
+            [self.environment.speedOfSound(i) for i in self.grid],
+            self.grid,
+            "#ff7f0e",
+            label="Speed of Sound",
+        )
+        ax.set_xlabel("Speed of Sound (m/s)", color="#ff7f0e")
+        ax.tick_params("x", colors="#ff7f0e")
+        axup = ax.twiny()
+        axup.plot(
+            [self.environment.density(i) for i in self.grid],
+            self.grid,
+            color="#1f77b4",
+            label="Density",
+        )
+        axup.set_xlabel("Density (kg/m³)", color="#1f77b4")
+        axup.tick_params("x", colors="#1f77b4")
+        ax.set_ylabel("Height Above Sea Level (m)")
+        ax.grid(True)
+
+        return ax
+
+    def __wind_components(self, ax):
+        """Adds wind u and wind v graphs to the same axis.
+
+        Parameters
+        ----------
+        ax : matplotlib.pyplot.axis
+            Axis to add the graphs.
+
+        Returns
+        -------
+        ax : matplotlib.pyplot.axis
+            Axis with the graphs.
+        """
+        ax.plot(
+            [self.environment.windVelocityX(i) for i in self.grid],
+            self.grid,
+            label="Wind U",
+        )
+        ax.plot(
+            [self.environment.windVelocityY(i) for i in self.grid],
+            self.grid,
+            label="Wind V",
+        )
+        ax.legend(loc="best").set_draggable(True)
+        ax.set_ylabel("Height Above Sea Level (m)")
+        ax.set_xlabel("Wind Speed (m/s)")
+        ax.grid(True)
+
+        return ax
+
+    def __pressure_temperature(self, ax):
+        """Adds pressure and temperature graphs to the same axis.
+
+        Parameters
+        ----------
+        ax : matplotlib.pyplot.axis
+            Axis to add the graphs.
+
+        Returns
+        -------
+        ax : matplotlib.pyplot.axis
+            Axis with the graphs.
+        """
+        ax.plot(
+            [self.environment.pressure(i) / 100 for i in self.grid],
+            self.grid,
+            "#ff7f0e",
+            label="Pressure",
+        )
+        ax.set_xlabel("Pressure (hPa)", color="#ff7f0e")
+        ax.tick_params("x", colors="#ff7f0e")
+        axup = ax.twiny()
+        axup.plot(
+            [self.environment.temperature(i) for i in self.grid],
+            self.grid,
+            color="#1f77b4",
+            label="Temperature",
+        )
+        axup.set_xlabel("Temperature (K)", color="#1f77b4")
+        axup.tick_params("x", colors="#1f77b4")
+        ax.set_ylabel("Height Above Sea Level (m)")
+        ax.grid(True)
+
+        return ax
+
     def atmospheric_model(self):
-        """Plots all atmospheric model graphs available
+        """Plots all atmospheric model graphs available. This includes wind speed
+        and wind direction, density and speed of sound, wind u and wind v, and
+        pressure and temperature.
 
         Parameters
         ----------
@@ -56,87 +194,20 @@ class _EnvironmentPlots:
 
         # Create wind speed and wind direction subplot
         ax1 = plt.subplot(221)
-        ax1.plot(
-            [self.environment.windSpeed(i) for i in self.grid],
-            self.grid,
-            "#ff7f0e",
-            label="Speed of Sound",
-        )
-        ax1.set_xlabel("Wind Speed (m/s)", color="#ff7f0e")
-        ax1.tick_params("x", colors="#ff7f0e")
-        ax1up = ax1.twiny()
-        ax1up.plot(
-            [self.environment.windDirection(i) for i in self.grid],
-            self.grid,
-            color="#1f77b4",
-            label="Density",
-        )
-        ax1up.set_xlabel("Wind Direction (°)", color="#1f77b4")
-        ax1up.tick_params("x", colors="#1f77b4")
-        ax1up.set_xlim(0, 360)
-        ax1.set_ylabel("Height Above Sea Level (m)")
-        ax1.grid(True)
+        ax1 = self.__wind(ax1)
 
         # Create density and speed of sound subplot
         ax2 = plt.subplot(222)
-        ax2.plot(
-            [self.environment.speedOfSound(i) for i in self.grid],
-            self.grid,
-            "#ff7f0e",
-            label="Speed of Sound",
-        )
-        ax2.set_xlabel("Speed of Sound (m/s)", color="#ff7f0e")
-        ax2.tick_params("x", colors="#ff7f0e")
-        ax2up = ax2.twiny()
-        ax2up.plot(
-            [self.environment.density(i) for i in self.grid],
-            self.grid,
-            color="#1f77b4",
-            label="Density",
-        )
-        ax2up.set_xlabel("Density (kg/m³)", color="#1f77b4")
-        ax2up.tick_params("x", colors="#1f77b4")
-        ax2.set_ylabel("Height Above Sea Level (m)")
-        ax2.grid(True)
+        ax2 = self.__density_speed_of_sound(ax2)
 
         # Create wind u and wind v subplot
         ax3 = plt.subplot(223)
-        ax3.plot(
-            [self.environment.windVelocityX(i) for i in self.grid],
-            self.grid,
-            label="Wind U",
-        )
-        ax3.plot(
-            [self.environment.windVelocityY(i) for i in self.grid],
-            self.grid,
-            label="Wind V",
-        )
+        ax3 = self.__wind_components(ax3)
         ax3.legend(loc="best").set_draggable(True)
-        ax3.set_ylabel("Height Above Sea Level (m)")
-        ax3.set_xlabel("Wind Speed (m/s)")
-        ax3.grid(True)
 
         # Create pressure and temperature subplot
         ax4 = plt.subplot(224)
-        ax4.plot(
-            [self.environment.pressure(i) / 100 for i in self.grid],
-            self.grid,
-            "#ff7f0e",
-            label="Pressure",
-        )
-        ax4.set_xlabel("Pressure (hPa)", color="#ff7f0e")
-        ax4.tick_params("x", colors="#ff7f0e")
-        ax4up = ax4.twiny()
-        ax4up.plot(
-            [self.environment.temperature(i) for i in self.grid],
-            self.grid,
-            color="#1f77b4",
-            label="Temperature",
-        )
-        ax4up.set_xlabel("Temperature (K)", color="#1f77b4")
-        ax4up.tick_params("x", colors="#1f77b4")
-        ax4.set_ylabel("Height Above Sea Level (m)")
-        ax4.grid(True)
+        ax4 = self.__pressure_temperature(ax4)
 
         plt.subplots_adjust(wspace=0.5, hspace=0.3)
         plt.show()
@@ -144,7 +215,8 @@ class _EnvironmentPlots:
         return None
 
     def ensemble_member_comparison(self):
-        """Plots ensemble member comparisons.
+        """Plots ensemble member comparisons. It requires that the environment
+        model has been set as Ensemble.
 
         Parameters
         ----------
@@ -253,8 +325,33 @@ class _EnvironmentPlots:
 
         return None
 
+    def info(self):
+        """Plots a summary of the atmospheric model, including wind speed and
+        wind direction, density and speed of sound. This is important for the
+        Environment.info() method.
+
+        Returns
+        -------
+        None
+        """
+        print("\nAtmospheric Model Plots\n")
+        plt.figure(figsize=(9, 4.5))
+        # Create wind speed and wind direction subplot
+        ax1 = plt.subplot(121)
+        ax1 = self.__wind(ax1)
+
+        # Create density and speed of sound subplot
+        ax2 = plt.subplot(122)
+        ax2 = self.__density_speed_of_sound(ax2)
+
+        plt.subplots_adjust(wspace=0.5)
+        plt.show()
+        return None
+
     def all(self):
-        """Prints out all graphs available about the Environment.
+        """Prints out all graphs available about the Environment. This includes
+        a complete description of the atmospheric model and the ensemble members
+        comparison if the atmospheric model is an ensemble.
 
         Parameters
         ----------

@@ -421,7 +421,7 @@ class EnvironmentAnalysis:
     def __find_preferred_timezone(self):
         if self.preferred_timezone is None:
             try:
-                import timezonefinder as TimezoneFinder
+                from timezonefinder import TimezoneFinder
             except ImportError:
                 raise ImportError(
                     "The timezonefinder package is required to automatically "
