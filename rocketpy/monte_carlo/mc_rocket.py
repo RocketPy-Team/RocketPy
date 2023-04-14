@@ -160,9 +160,9 @@ class McRocket(DispersionModel):
             )
 
     def addMotor(self, motor, position=[]):
-        """Adds a motor to the McRocket model. The motor need to be of 
+        """Adds a motor to the McRocket model. The motor need to be of
         McSolidMotor type.
-        """        
+        """
         # checks if input is a McSolidMotor type
         if not isinstance(motor, McSolidMotor):
             raise TypeError("motor must be of McMotor type")
