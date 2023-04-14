@@ -63,7 +63,8 @@ class McTrapezoidalFins(DispersionModel):
     rocketRadius: Any = 0
     cantAngle: Any = 0
     sweepLength: Any = 0
-    sweepAngle: Any = 0
+    # The sweep angle is irrelevant for dispersion, use sweepLength instead
+    # sweepAngle: Any = 0
     airfoil: List[Union[Tuple[FilePath, StrictStr], None]] = []
     name: List[StrictStr] = []
 

@@ -352,13 +352,9 @@ class Dispersion:
                         setting[class_name][key] = {}
                         for sub_key, sub_value in value.items():
                             if isinstance(sub_value, tuple):
-                                try:
-                                    setting[class_name][key][sub_key] = sub_value[-1](
-                                        sub_value[0], sub_value[1]
-                                    )
-                                except TypeError:  # TODO: ????????????????
-                                    # Got the sweepLength or sweepAngle
-                                    setting[class_name][key][sub_key] = sub_value[0]
+                                setting[class_name][key][sub_key] = sub_value[-1](
+                                    sub_value[0], sub_value[1]
+                                )
                             else:
                                 # else is list
                                 # setting[class_name][key][sub_key] = choice(sub_value)
@@ -686,7 +682,7 @@ class Dispersion:
 
             # Fins
             for fin in setting["fins"].keys():
-                if "sweepAngle" in setting["fins"][fin].keys():
+                if "sweepLength" in setting["fins"][fin].keys():
                     # means that it is trapezoidal
                     rocket_dispersion.addTrapezoidalFins(
                         n=setting["fins"][fin]["n"],
@@ -696,7 +692,7 @@ class Dispersion:
                         position=setting["fins"][fin]["position"],
                         cantAngle=setting["fins"][fin]["cantAngle"],
                         sweepLength=setting["fins"][fin]["sweepLength"],
-                        sweepAngle=setting["fins"][fin]["sweepAngle"],
+                        # sweepAngle=setting["fins"][fin]["sweepAngle"],
                         radius=setting["fins"][fin]["rocketRadius"],
                         airfoil=setting["fins"][fin]["airfoil"],
                         name=fin,
