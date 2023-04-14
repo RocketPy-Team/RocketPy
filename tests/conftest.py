@@ -4,12 +4,24 @@ import numericalunits
 import pytest
 
 from rocketpy import (
+    Dispersion,
     Environment,
     EnvironmentAnalysis,
+    Flight,
     Function,
     Rocket,
     SolidMotor,
-    Flight,
+)
+from rocketpy.monte_carlo import (
+    McEnvironment,
+    McFlight,
+    McNoseCone,
+    McParachute,
+    McRailButtons,
+    McRocket,
+    McSolidMotor,
+    McTail,
+    McTrapezoidalFins,
 )
 
 
@@ -154,7 +166,6 @@ def example_env_robust():
     return Env
 
 
-# Create a simple object of the Environment Analysis class
 @pytest.fixture
 def env_analysis():
     """Create a simple object of the Environment Analysis class to be used in
@@ -241,6 +252,194 @@ def func_from_csv():
         extrapolation="linear",
     )
     return func
+
+
+@pytest.fixture
+def mc_env(example_env):
+    """Create an object to be used as the McEnvironment fixture in the tests.
+
+    Parameters
+    ----------
+    example_env : Environment
+        An object of the Environment class
+
+    Returns
+    -------
+    McEnvironment
+        An object of the McEnvironment class
+    """
+
+    # modify the environment to have a non-zero wind
+    example_env.windX = 3
+    example_env.windY = 4
+
+    return McEnvironment(
+        environment=example_env,
+        railLength=0.0005,
+        windXFactor=(1.0, 0.33, "normal"),
+        windYFactor=(1.0, 0.33, "normal"),
+    )
+
+
+@pytest.fixture
+def mc_solid_motor(solid_motor):
+    """Create an object to be used as the McSolidMotor fixture in the tests.
+
+    Parameters
+    ----------
+    solid_motor : SolidMotor
+        An object of the SolidMotor class
+
+    Returns
+    -------
+    McSolidMotor
+        An object of the McSolidMotor class
+    """
+    return McSolidMotor(
+        solidMotor=solid_motor,
+        burnOutTime=(3.9, 0.5),
+        grainsCenterOfMassPosition=0.001 / 10,
+        grainDensity=50,
+        grainSeparation=1 / 1000,
+        grainInitialHeight=1 / 1000,
+        grainInitialInnerRadius=0.1 / 1000,
+        grainOuterRadius=0,
+        totalImpulse=(3000, 30, "normal"),
+        nozzlePosition=0.001,
+    )
+
+
+@pytest.fixture
+def mc_rocket(rocket, mc_solid_motor):
+    """Create an object to be used as the McRocket fixture in the tests.
+
+    Parameters
+    ----------
+    example_rocket : Rocket
+        An object of the Rocket class
+
+    Returns
+    -------
+    McRocket
+        An object of the McRocket class
+    """
+
+    mc_rocket = McRocket(
+        rocket=rocket,
+        radius=0.001,
+        mass=0.001,
+        inertiaI=0.0300,
+        inertiaZ=0.0001,
+        powerOffDragFactor=(1, 0.033),
+        powerOnDragFactor=(1, 0.033),
+    )
+
+    nose_cone = rocket.addNose(
+        length=0.55829, kind="vonKarman", position=0.71971 + 0.558291
+    )
+
+    mc_nose_cone = McNoseCone(
+        nosecone=nose_cone,
+        length=0.001,
+    )
+
+    fin_set = rocket.addTrapezoidalFins(
+        4, span=0.100, rootChord=0.120, tipChord=0.040, position=-1.04956
+    )
+
+    mc_fin_set = McTrapezoidalFins(
+        trapezoidalFins=fin_set,
+        rootChord=0.0005,
+        tipChord=0.0005,
+        span=0.0005,
+    )
+
+    tail = rocket.addTail(
+        topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
+    )
+
+    mc_tail = McTail(tail=tail, bottomRadius=0.0005, length=0.001)
+
+    def mainTrigger(p, y):
+        # p = pressure
+        # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
+        # activate main when vz < 0 m/s and z < 800 m.
+        return True if y[5] < 0 and y[2] < 800 else False
+
+    main_chute = rocket.addParachute(
+        "Main",
+        CdS=10.0,
+        trigger=mainTrigger,
+        samplingRate=105,
+        lag=1.5,
+        noise=(0, 8.3, 0.5),
+    )
+
+    mc_main = McParachute(
+        parachute=main_chute,
+        CdS=0.07,
+        lag=0.3,
+    )
+
+    def drogueTrigger(p, y):
+        # p = pressure
+        # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
+        # activate drogue when vz < 0 m/s.
+        return True if y[5] < 0 else False
+
+    drogue_chute = rocket.addParachute(
+        "Drogue",
+        CdS=1.0,
+        trigger=drogueTrigger,
+        samplingRate=105,
+        lag=1.5,
+        noise=(0, 8.3, 0.5),
+    )
+
+    mc_drogue = McParachute(
+        parachute=drogue_chute,
+        CdS=0.07,
+    )
+    mc_rocket.addMotor(mc_solid_motor, position=0.001)
+    mc_rocket.addNose(mc_nose_cone, position=(1.134, 0.001))
+    mc_rocket.addTrapezoidalFins(mc_fin_set, position=(0.001, "normal"))
+    mc_rocket.addTail(mc_tail, position=(-1.194656, 0.001, "normal"))
+    # TODO: add rail buttons to be tested
+    mc_rocket.addParachute(mc_main)
+    mc_rocket.addParachute(mc_drogue)
+
+    return mc_rocket
+
+
+@pytest.fixture
+def mc_flight(flight):
+    """Create an object to be used as the McFlight fixture in the tests.
+
+    Parameters
+    ----------
+    example_flight : Flight
+        An object of the Flight class
+
+    Returns
+    -------
+    McFlight
+        An object of the McFlight class
+    """
+    return McFlight(
+        flight=flight,
+        inclination=(84.7, 1),
+        heading=(53, 2),
+    )
+
+
+@pytest.fixture
+def dispersion(mc_env, mc_rocket, mc_flight):
+    return Dispersion(
+        filename="test_dispersion_class",
+        environment=mc_env,
+        rocket=mc_rocket,
+        flight=mc_flight,
+    )
 
 
 def pytest_collection_modifyitems(config, items):
