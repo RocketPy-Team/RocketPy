@@ -35,12 +35,12 @@ def test_dispersion(mock_show, dispersion):
     )
     assert dispersion.errors_log == []
     assert len(dispersion.outputs_log) == 10
+    assert dispersion.plotEllipses(save=True) == None
 
     # Delete the test file
     # TODO: can't delete the files because they were not closed, bad practice!
     # os.remove("test_dispersion_class.disp_errors.txt")
     # os.remove("test_dispersion_class.disp_inputs.txt")
     # os.remove("test_dispersion_class.disp_outputs.txt")
-    os.remove("test_dispersion_class.pdf")
-    os.remove("test_dispersion_class.svg")
+    os.remove("test_dispersion_class.png")
     os.remove("test_dispersion_class.kml")
