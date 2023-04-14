@@ -1,4 +1,6 @@
-# TODO: add heading and description of the file here, as usual in RocketPy
+__author__ = "Mateus Stano Junqueira"
+__copyright__ = "Copyright 20XX, RocketPy Team"
+__license__ = "MIT"
 
 from typing import Any, List, Tuple, Union
 
@@ -9,23 +11,10 @@ from .DispersionModel import DispersionModel
 
 
 class McNoseCone(DispersionModel):
-    """TODO: add docstring here, maybe with some examples
-
-    Parameters
-    ----------
-    DispersionModel : _type_
-        _description_
-
-    Returns
-    -------
-    _type_
-        _description_
-
-    Raises
-    ------
-    ValueError
-        _description_
-    """
+    """Monte Carlo Nose cone class, used to validate the input parameters of the
+    nose cone, based on the pydantic library. It uses the DispersionModel class
+    as a base class, see its documentation for more information. The inputs
+    defined here correspond to the ones defined in the NoseCone class."""
 
     nosecone: NoseCone = Field(..., exclude=True)
     length: Any = 0
@@ -33,26 +22,13 @@ class McNoseCone(DispersionModel):
     baseRadius: Any = 0
     rocketRadius: Any = 0
     name: List[StrictStr] = []
-    # TODO: question: how can we document the above code lines? Why are they here?
 
 
 class McTrapezoidalFins(DispersionModel):
-    """TODO: add docstring here, maybe with some examples
-
-    Parameters
-    ----------
-    DispersionModel : _type_
-        _description_
-
-    Returns
-    -------
-    _type_
-        _description_
-
-    Raises
-    ------
-    ValueError
-        _description_
+    """Monte Carlo Trapezoidal fins class, used to validate the input parameters
+    of the trapezoidal fins, based on the pydantic library. It uses the
+    DispersionModel class as a base class, see its documentation for more
+    information.
     """
 
     trapezoidalFins: TrapezoidalFins = Field(..., exclude=True)
@@ -70,22 +46,10 @@ class McTrapezoidalFins(DispersionModel):
 
 
 class McEllipticalFins(DispersionModel):
-    """TODO: add docstring here, maybe with some examples
-
-    Parameters
-    ----------
-    DispersionModel : _type_
-        _description_
-
-    Returns
-    -------
-    _type_
-        _description_
-
-    Raises
-    ------
-    ValueError
-        _description_
+    """Monte Carlo Elliptical fins class, used to validate the input parameters
+    of the elliptical fins, based on the pydantic library. It uses the
+    DispersionModel class as a base class, see its documentation for more
+    information.
     """
 
     ellipticalFins: EllipticalFins = Field(..., exclude=True)
@@ -99,23 +63,9 @@ class McEllipticalFins(DispersionModel):
 
 
 class McTail(DispersionModel):
-    """TODO: add docstring
-
-    Parameters
-    ----------
-    DispersionModel : _type_
-        _description_
-
-    Returns
-    -------
-    _type_
-        _description_
-
-    Raises
-    ------
-    ValueError
-        _description_
-    """
+    """Monte Carlo Tail class, used to validate the input parameters of the tail
+    based on the pydantic library. It uses the DispersionModel class as a base
+    class, see its documentation for more information."""
 
     tail: Tail = Field(..., exclude=True)
     topRadius: Any = 0
@@ -126,22 +76,9 @@ class McTail(DispersionModel):
 
 
 class McRailButtons(DispersionModel):
-    """TODO: add docstring
-
-    Parameters
-    ----------
-    DispersionModel : _type_
-        _description_
-
-    Returns
-    -------
-    _type_
-        _description_
-
-    Raises
-    ------
-    ValueError
-        _description_
+    """Monte Carlo Rail buttons class, used to validate the input parameters of
+    the rail buttons, based on the pydantic library. It uses the DispersionModel
+    class as a base class, see its documentation for more information.
     """
 
     rail_buttons: RailButtons = Field(..., exclude=True)

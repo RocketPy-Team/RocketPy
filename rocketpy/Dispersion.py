@@ -11,10 +11,8 @@ from time import process_time, time
 import matplotlib.pyplot as plt
 import numpy as np
 import simplekml
-from IPython.display import display
 from matplotlib.patches import Ellipse
 
-from .AeroSurfaces import EllipticalFins, NoseCone, Tail, TrapezoidalFins
 from .Environment import Environment
 from .Flight import Flight
 from .Function import Function
@@ -27,9 +25,6 @@ try:
 except ImportError:
     from .tools import cached_property
 
-# TODO: should the saved files be changed to csv?
-# TODO: implement export results to csv function
-
 # TODO: How to save Functions? With pickle? Save just the source?
 
 # TODO: create a method that recreates each flight from inputs_log
@@ -39,59 +34,54 @@ except ImportError:
 
 
 class Dispersion:
-
-    """Monte Carlo analysis to predict probability distributions of the rocket's
-    landing point, apogee and other relevant information.
-
-    Parameters
-    ----------
-    filename : string
-        The name of the file containing the data to be used in the analysis.
-    environment : Environment or McEnvironment
-        The environment in which the rocket will be launched.
-    rocket : Rocket
-        The rocket to be launched.
-    flight : Flight
-        The flight conditions of the rocket.
+    """
+    This class is used to perform Monte Carlo analysis on the rocket's flight
+    trajectory. It is used to predict the probability distributions of the
+    rocket's landing point, apogee and other relevant information.
 
     Attributes
-    ---------- # TODO: finish documentation
-        Dispersion.filename : string
-            Directory and name of dispersion files. When running a new simulation,
-            this parameter represents the initial part of the export filenames
-            (e.g. 'filename.disp_outputs.txt'). When analyzing the results of a
-            previous simulation, this parameter shall be the .txt filename containing
-            the outputs of a previous ran dispersion analysis.
-        Dispersion.inputs_dict : dict
-            Contains information regarding the input arguments of the
-            classes. Its keys refers to each of the classes that must be defined during
-            the simulation. Its values are dictionaries where the keys are the input
-            arguments of each class and the values are either the string "required"
-            (meaning it is not an optional argument) or the default value if that argument
-            is optional.
-        Dispersion.dispersion_results : dict
-            Holds dispersion results.
-        Dispersion.dispersion_dictionary : dict
-            Contains inputs to run dispersion
-        Dispersion.nose_names = []
-        Dispersion.finSet_names = []
-        Dispersion.tail_names = []
-        Dispersion.parachute_names = []
-        Dispersion.distributionFunc = None
-        Dispersion.distribution_type = None
-        Dispersion.environment = None
-        Dispersion.flight = None
-        Dispersion.motor = None
-        Dispersion.rocket = None
-        Dispersion.rocket_dispersion = None
-        Dispersion.number_of_simulations = 0
-        Dispersion.num_of_loaded_sims = 0
-        Dispersion.start_time = 0
-
-        Dispersion.num_of_loaded_sims : int
-            The number of simulations loaded from the file.
-        Dispersion.num_of_sims : int
-            The number of simulations to be performed.
+    ----------
+    Dispersion.filename: string
+        When running a new simulation, this parameter represents the initial
+        part of the export filenames (e.g. 'filename.disp_outputs.txt'). When
+        analyzing the results of a previous simulation, this parameter shall be
+        the .txt filename containing the outputs of a previous ran dispersion
+        analysis.
+    Dispersion.environment: McEnvironment
+        The environment in which the rocket will be launched.
+    Dispersion.rocket: McRocket
+        The rocket to be launched.
+    Dispersion.flight: McFlight
+        The flight conditions of the rocket.
+    Dispersion.motors: list of McMotor
+        The motors to be used in the rocket during the Flight.
+    Dispersion.nosecones : list of McNosecone
+        The nosecones to be used in the rocket during the Flight.
+    Dispersion.fins : list of McTrapezoidalFins or McEllipticalFins
+        The fins to be used in the rocket during the Flight.
+    Dispersion.tails : list of McTail objects
+        The tails to be used in the rocket during the Flight.
+    Dispersion.parachutes :  list of McParachute objects
+        The parachutes to be used in the rocket during the Flight.
+    Dispersion.rail_buttons : list of McRailButtons objects
+        The rail buttons to be used in the rocket during the Flight. Usually
+        only one object will be present in this list.
+    Dispersion.num_of_loaded_sims : int
+        Number of simulations loaded from a previous dispersion analysis.
+    Dispersion.number_of_simulations : int
+        Number of simulations to be performed in the run_dispersion() method.
+    Dispersion.dispersion_dictionary : dict
+        Dictionary containing the parameters to be used in the Monte Carlo
+        simulations.
+    Dispersion.export_list : list
+        List of parameters to be exported from each flight in the Monte Carlo
+        loop.
+    Dispersion.dispersion_results : dict
+        A dictionary containing all the output parameters saved from the flight
+        simulations.
+    Dispersion.processed_dispersion_results : dict
+        Dictionary containing (mean, std. dev.) for each parameter available
+        in the dispersion dictionary.
     """
 
     def __init__(
@@ -111,11 +101,11 @@ class Dispersion:
             When analyzing the results of a previous simulation, this parameter
             shall be the .txt filename containing the outputs of a previous ran
             dispersion analysis.
-        environment: Environment or McEnvironment
+        environment: McEnvironment
             The environment in which the rocket will be launched.
-        rocket: Rocket
+        rocket: McRocket
             The rocket to be launched.
-        flight: Flight
+        flight: McFlight
             The flight conditions of the rocket.
 
         Returns
@@ -125,8 +115,6 @@ class Dispersion:
 
         # Save and initialize parameters
         self.filename = filename
-        # TODO try to import a file with the filename in init
-
         self.environment = environment
         self.rocket = rocket
         self.flight = flight
@@ -161,7 +149,7 @@ class Dispersion:
     def dispersion_input_file(self):
         # try is for when the file has not been opened yet
         try:
-            # Resets cursor position to the beggining of the file
+            # Resets cursor position to the beginning of the file
             self._dispersion_input_file.seek(0)
             return self._dispersion_input_file
         except:
@@ -176,7 +164,7 @@ class Dispersion:
     def dispersion_output_file(self):
         # try is for when the file has not been opened yet
         try:
-            # Resets cursor position to the beggining of the file
+            # Resets cursor position to the beginning of the file
             self._dispersion_output_file.seek(0)
             return self._dispersion_output_file
         except:
@@ -191,7 +179,7 @@ class Dispersion:
     def dispersion_error_file(self):
         # try is for when the file has not been opened yet
         try:
-            # Resets cursor position to the beggining of the file
+            # Resets cursor position to the beginning of the file
             self._dispersion_error_file.seek(0)
             return self._dispersion_error_file
         except:
@@ -246,7 +234,7 @@ class Dispersion:
         """Save errors_log log from a file into an attribute for easy access"""
         errors_log = []
         # Loop through each line in the file
-        for line in self.dispersion_output_file:
+        for line in self.dispersion_error_file:
             # Skip comments lines
             if line[0] != "{":
                 continue
@@ -274,9 +262,9 @@ class Dispersion:
 
     @cached_property
     def dispersion_results(self):
-        """Dipersion results organized in a dictionary where the keys are the
+        """Dispersion results organized in a dictionary where the keys are the
         names of the saved attributes, and the values are a list with all the
-        result number of the respectitive attribute"""
+        result number of the respective attribute"""
 
         dispersion_result = {}
         for result in self.outputs_log:
@@ -289,26 +277,23 @@ class Dispersion:
 
     @cached_property
     def processed_dispersion_results(self):
-        """Save the mean and standard deviation of each parameter available
-        in the results dictionary. Create class attributes for each parameter.
+        """Creates a dictionary with the mean and standard deviation of each
+        parameter available in the results
 
         Parameters
         ----------
-        variables : list, optional
-            List of variables to be processed. If None, all variables will be
-            processed. The default is None. Example: ['outOfRailTime', 'apogeeTime']
+        None
 
         Returns
         -------
-        None
+        processed_dispersion_results: dict
+            A dictionary with the mean and standard deviation of each parameter
+            available in the results dictionary.
         """
         processed_dispersion_results = {}
         for result in self.dispersion_results.keys():
             mean = np.mean(self.dispersion_results[result])
             stdev = np.std(self.dispersion_results[result])
-            setattr(
-                self, result, (mean, stdev)
-            )  # TODO: i dont know if this is still necessary since everything is saved in processed_dispersion_results
             processed_dispersion_results[result] = (mean, stdev)
         return processed_dispersion_results
 
@@ -337,15 +322,8 @@ class Dispersion:
                 setting[class_name] = {}
                 for key, value in data.items():
                     if isinstance(value, tuple):
-                        # TODO: it is weird to use dist functions that dont accept stds. But it is functional
-                        # try: dist functions that has nom value and std
-                        try:
-                            setting[class_name][key] = value[-1](value[0], value[1])
-                        # except: dist functions that only gets nom value
-                        except:
-                            setting[class_name][key] = value[-1](value[0])
+                        setting[class_name][key] = value[-1](value[0], value[1])
                     elif isinstance(value, list):
-                        # checks if list is empty
                         setting[class_name][key] = choice(value) if value else value
                     else:
                         # else is dictionary
@@ -408,7 +386,7 @@ class Dispersion:
 
         Returns
         -------
-        dict
+        dictionary
             The cleaned dictionary
         """
         for key, value in dictionary.copy().items():
@@ -426,37 +404,7 @@ class Dispersion:
 
         Parameters
         ----------
-        env : rocketpy.monte_carlo.McEnvironment or rocketpy.Environment
-            An environment object to be used in the simulations. Only a single
-            object is supported.
-            # TODO: verify what happens if we use Environment instead of McEnvironment
-        rocket : rocketpy.monte_carlo.McRocket or rocketpy.Rocket
-            A rocket object to be used in the simulations. Only a single object
-            is supported. The rocket object doesn't need to have a motor, aerodynamic
-            surfaces or parachutes attached. Indeed, all those components will be
-            ignored when creating the dictionary, since they can be defined in
-            the other arguments of this method.
-        motors : Motor, McMotor or list of McMotor
-            A motor object to be used in the simulations. In case of having more
-            than one motor, the user must pass a list of McMotor objects.
-        flight : Flight or McFlight
-            A flight object to be used in the simulations. Only a single object
-            is supported.
-        nosecones : McNoseCone or list of McNoseCone, optional
-            A nosecone object to be used in the simulations. In case of having more
-            than one nosecone, the user must pass a list of McNoseCone objects.
-        fins : McTrapezoidalFins, McEllipticalFins or list of them, optional
-            A fin object to be used in the simulations. In case of having more
-            than one fin, the user must pass a list of McFin objects.
-        tails : Tail, McTail or list of McTail, optional
-            A tail object to be used in the simulations. In case of having more
-            than one tail, the user must pass a list of McTail objects.
-        parachutes : Parachute, McParachute or list of McParachute, optional
-            A parachute object to be used in the simulations. In case of having more
-            than one parachute, the user must pass a list of McParachute objects.
-        buttons : McButton, optional
-            A button object to be used in the simulations. Only a single object
-            is supported.
+        None
 
         Returns
         -------
@@ -488,20 +436,6 @@ class Dispersion:
                 },
                 "buttons": {},
             }
-
-        Examples
-        --------
-        >>> mc_env = McEnvironment(...)
-        >>> mc_motor = McSolidMotor(...)
-        >>> mc_rocket = McRocket(...)
-        >>> mc_nose = McNoseCone(...)
-        >>> mc_fins1 = McTrapezoidalFins(...)
-        >>> mc_fins2 = McTrapezoidalFins(...)
-        >>> mc_flight = McFlight(...)
-        >>> mc_dict = Dispersion.build_dispersion_dict(
-        >>>     mc_env, mc_rocket, mc_motor, mc_flight, mc_nose, [mc_fins1, mc_fins2]
-        >>> )
-
         """
 
         mc_dict = {
@@ -522,7 +456,7 @@ class Dispersion:
             },
         }
 
-        for name, data in mc_dict.items():
+        for _, data in mc_dict.items():
             # Checks if first key of dict is a number
             # for instance: parachutes : {0: McParachute.dict(), 1: McParachute}
             # therefore we need to iterate over the dicts
@@ -739,14 +673,11 @@ class Dispersion:
                     CdS=setting["parachutes"][chute]["CdS"],
                     trigger=setting["parachutes"][chute]["trigger"],
                     samplingRate=setting["parachutes"][chute]["samplingRate"],
-                    # TODO: check if this if else is problematic
-                    lag=setting["parachutes"][chute]["lag"]
-                    if setting["parachutes"][chute]["lag"] >= 0
-                    else 0,
+                    lag=setting["parachutes"][chute]["lag"],
                     noise=setting["parachutes"][chute]["noise"],
                 )
 
-            # TODO: Fix rail buttons definition
+            # TODO: Fix rail buttons definition here
             # rocket_dispersion.setRailButtons()
 
             # Run trajectory simulation
@@ -757,14 +688,6 @@ class Dispersion:
                     environment=env_dispersion,
                     inclination=setting["flight"]["inclination"],
                     heading=setting["flight"]["heading"],
-                    # terminateOnApogee=setting["flight"]["terminateOnApogee"],
-                    # maxTime=setting["flight"]["maxTime"],
-                    # maxTimeStep=setting["flight"]["maxTimeStep"],
-                    # minTimeStep=setting["flight"]["minTimeStep"],
-                    # rtol=setting["flight"]["rtol"],
-                    # atol=setting["flight"]["atol"],
-                    # timeOvershoot=setting["flight"]["timeOvershoot"],
-                    # verbose=setting["flight"]["verbose"],
                 )
 
                 # Export inputs and outputs to file
@@ -773,7 +696,6 @@ class Dispersion:
                     flight=dispersion_flight,
                     input_file=dispersion_input_file,
                     output_file=dispersion_output_file,
-                    exec_time=process_time() - start_time,
                 )
             except (TypeError, ValueError, KeyError, AttributeError) as error:
                 print(f"Error on iteration {i}: {error}\n")
@@ -805,15 +727,9 @@ class Dispersion:
         dispersion_error_file.close()
 
         # save the opened files on self as read only
-        self.dispersion_input_file = open(
-            f"{self.filename}.disp_inputs.txt", "r"  # , encoding="utf-8"
-        )
-        self.dispersion_output_file = open(
-            f"{self.filename}.disp_outputs.txt", "r"  # , encoding="utf-8"
-        )
-        self.dispersion_error_file = open(
-            f"{self.filename}.disp_errors.txt", "r"  # , encoding="utf-8"
-        )
+        self.dispersion_input_file = open(f"{self.filename}.disp_inputs.txt", "r")
+        self.dispersion_output_file = open(f"{self.filename}.disp_outputs.txt", "r")
+        self.dispersion_error_file = open(f"{self.filename}.disp_errors.txt", "r")
         return None
 
     # methods for exporting data
@@ -921,7 +837,6 @@ class Dispersion:
         flight,
         input_file,
         output_file,
-        exec_time,
     ):
         """Saves flight results in a .txt
         Parameters
@@ -930,17 +845,10 @@ class Dispersion:
             The flight setting used in the simulation.
         flight : Flight
             The flight object.
-        exec_time : float
-            The execution time of the simulation.
-        inputs_log : str
+        input_file : str
             The name of the file containing all the inputs for the simulation.
-        outputs_log : str
+        output_file : str
             The name of the file containing all the outputs for the simulation.
-        save_parachute_data : bool, optional
-            If True, saves the parachute data, by default False
-        export_list : list or tuple, optional
-            List of variables to be saved, by default None. If None, use a
-            default list of variables.
         Returns
         -------
         inputs_log : str
@@ -1053,7 +961,7 @@ class Dispersion:
             )
         return None
 
-    def import_results(self, filename=None, variables=None):
+    def import_results(self, filename=None):
         """Import dispersion results from .txt file and save it into a dictionary.
 
         Parameters
@@ -1061,8 +969,6 @@ class Dispersion:
         filename : str
             Name or directory path to the file to be imported. If none, Dispersion
             filename will be used
-        variables : list, optional
-            List of variables to be imported. If None, all variables will be imported.
 
         Returns
         -------
@@ -1166,12 +1072,12 @@ class Dispersion:
 
     def plotEllipses(
         self,
-        dispersion_results,
         image=None,
         actual_landing_point=None,
         perimeterSize=3000,
         xlim=(-3000, 3000),
         ylim=(-3000, 3000),
+        save=False,
     ):
         """A function to plot the error ellipses for the apogee and impact
         points of the rocket. The function also plots the real landing point, if
@@ -1179,20 +1085,23 @@ class Dispersion:
 
         Parameters
         ----------
-        dispersion_results : dict
-            A dictionary containing the results of the dispersion analysis
         image : str, optional
             The path to the image to be used as the background
         actual_landing_point : tuple, optional
             A tuple containing the actual landing point of the rocket, if known.
             Useful when comparing the dispersion results with the actual landing.
-            Must be given in tuple format, such as (lat, lon). By default None. # TODO: Check the order
+            Must be given in tuple format, such as (x, y) in meters.
+            By default None.
         perimeterSize : int, optional
             The size of the perimeter to be plotted. The default is 3000.
         xlim : tuple, optional
             The limits of the x axis. The default is (-3000, 3000).
         ylim : tuple, optional
             The limits of the y axis. The default is (-3000, 3000).
+        save : bool
+            Whether save the output into a file or not. The default is False.
+            If True, the .show() method won't be called, and the image will be
+            saved with the same name as filename attribute, using a .png format.
 
         Returns
         -------
@@ -1205,7 +1114,7 @@ class Dispersion:
 
                 img = imread(image)
             except ImportError:
-                print(
+                raise ImportError(
                     "The 'imageio' package could not be. Please install it to add background images."
                 )
             except FileNotFoundError:
@@ -1220,7 +1129,7 @@ class Dispersion:
             apogeeY,
             impactX,
             impactY,
-        ) = self.__createEllipses(dispersion_results)
+        ) = self.__createEllipses(self.dispersion_results)
 
         # Create plot figure
         plt.figure(num=None, figsize=(8, 6), dpi=150, facecolor="w", edgecolor="k")
@@ -1288,9 +1197,10 @@ class Dispersion:
         plt.ylim(*ylim)
 
         # Save plot and show result
-        plt.savefig(str(self.filename) + ".pdf", bbox_inches="tight", pad_inches=0)
-        plt.savefig(str(self.filename) + ".svg", bbox_inches="tight", pad_inches=0)
-        plt.show()
+        if save:
+            plt.savefig(str(self.filename) + ".png", bbox_inches="tight", pad_inches=0)
+        else:
+            plt.show()
         return None
 
     def __prepareEllipses(self, ellipses, origin_lat, origin_lon, resolution=100):
@@ -1382,6 +1292,7 @@ class Dispersion:
             Number of points to be used to draw the ellipse. Default is 100.
         color : String
             Color of the ellipse. Default is 'ff0000ff', which is red.
+            Kml files use an 8 digit HEX color format, see its docs.
 
         Returns
         -------
@@ -1435,8 +1346,6 @@ class Dispersion:
             # Setting ellipse style
             mult_ell.tessellate = 1
             mult_ell.visibility = 1
-            # mult_ell.innerboundaryis = kml_data
-            # mult_ell.outerboundaryis = kml_data
             mult_ell.style.linestyle.color = color
             mult_ell.style.linestyle.width = 3
             mult_ell.style.polystyle.color = simplekml.Color.changealphaint(
@@ -1460,10 +1369,10 @@ class Dispersion:
         None
 
         """
-        print("{:<25} {:<25} {:<25}".format("Parameter", "Value", "Standard Deviation"))
-        print("-" * 75)
+        print("{:>25} {:>15} {:>15}".format("Parameter", "Mean", "Std. Dev."))
+        print("-" * 60)
         for key, value in self.processed_dispersion_results.items():
-            print("{:<25} {:<25} {:<25}".format(key, value[0], value[1]))
+            print("{:>25} {:>15.3f} {:>15.3f}".format(key, value[0], value[1]))
 
         return None
 
@@ -1484,7 +1393,6 @@ class Dispersion:
                 self.dispersion_results[key],
             )
             plt.title("Histogram of " + key)
-            # plt.xlabel("Time (s)")
             plt.ylabel("Number of Occurrences")
             plt.show()
 
@@ -1513,15 +1421,9 @@ class Dispersion:
         -------
         None
         """
-        dispersion_results = self.dispersion_results
-
-        print("Monte Carlo Simulation by RocketPy")
-        print("Data Source: ", self.filename)
-        print("Number of simulations: ", self.num_of_loaded_sims)
-        print("Results: ")
-        self.print_results()
+        self.info()
         print("Plotting results: ")
-        self.plotEllipses(dispersion_results=dispersion_results)
+        self.plotEllipses()
         self.plot_results()
 
         return None

@@ -1,3 +1,8 @@
+__author__ = "Mateus Stano Junqueira"
+__copyright__ = "Copyright 20XX, RocketPy Team"
+__license__ = "MIT"
+
+
 from typing import Any, Tuple, Union
 
 from pydantic import Field, StrictFloat, StrictInt
@@ -7,22 +12,11 @@ from .DispersionModel import DispersionModel
 
 
 class McFlight(DispersionModel):
-    """TODO: Add description
-
-    Parameters
-    ----------
-    BaseModel : _type_
-        _description_
-
-    Returns
-    -------
-    _type_
-        _description_
-
-    Raises
-    ------
-    ValueError
-        _description_
+    """Monte Carlo Flight class, used to validate the input parameters of the
+    flight to be used in the Dispersion class, based on the pydantic library. It
+    uses the DispersionModel class as a base class, see its documentation for
+    more information. The inputs defined here are the same as the ones defined
+    in the Flight class, see its documentation for more information.
     """
 
     flight: Flight = Field(..., exclude=True)

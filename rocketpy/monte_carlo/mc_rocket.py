@@ -1,9 +1,12 @@
+__author__ = "Mateus Stano Junqueira, Guilherme Fernandes Alves"
+__copyright__ = "Copyright 20XX, RocketPy Team"
+__license__ = "MIT"
+
 from typing import Any, List, Union
 
-from pydantic import BaseModel, Field, FilePath, PrivateAttr
+from pydantic import Field, FilePath, PrivateAttr
 
 from ..AeroSurfaces import EllipticalFins, NoseCone, Tail, TrapezoidalFins
-from ..Parachute import Parachute
 from ..Rocket import Rocket
 from .DispersionModel import DispersionModel
 from .mc_aero_surfaces import (
@@ -18,6 +21,12 @@ from .mc_solid_motor import McSolidMotor
 
 
 class McRocket(DispersionModel):
+    """Monte Carlo Rocket class, used to validate the input parameters of the
+    rocket, based on the pydantic library. It uses the DispersionModel class as a
+    base class, see its documentation for more information. The inputs defined
+    here correspond to the ones defined in the Rocket class.
+    """
+
     rocket: Rocket = Field(..., exclude=True)
     radius: Any = 0
     mass: Any = 0
@@ -82,7 +91,7 @@ class McRocket(DispersionModel):
                 # checks if second value is either string or int/float
                 assert isinstance(
                     position[1], (int, float, str)
-                ), f"\nposition: \n\tSecond item of tuple must be either an int, float or string \n\tIf the first value refers to the nominal value of 'position', then the second item's value should be the desired standard deviation \n\tIf the first value is the standard deviation, then the second item's value should be a string containing a name of a numpy.random distribution function"
+                ), f"position: second item of tuple must be an int, float or string. If the first value refers to the nominal value of 'position', then the item's second value should be the desired standard deviation. If the first value is the standard deviation, then the item's second value should be a string containing a name of a numpy.random distribution function"
                 # if second item is not str, then (nom_val, std)
                 if not isinstance(position[1], str):
                     return position
@@ -103,10 +112,10 @@ class McRocket(DispersionModel):
             if len(position) == 3:
                 assert isinstance(
                     position[1], (int, float)
-                ), f"\nposition: \n\tSecond item of tuple must be either an int or float \n\tThe second item should be the standard deviation to be used in the simulation"
+                ), f"position: second item of tuple must be either an int or float, representing the standard deviation to be used in the simulation"
                 assert isinstance(
                     position[2], str
-                ), f"\nposition: \n\tThird item of tuple must be a string \n\tThe string should contain the name of a valid numpy.random distribution function"
+                ), f"position: third item of tuple must be a string containing the name of a valid numpy.random distribution function"
                 return position
         elif isinstance(position, list):
             # checks if input list is empty, meaning nothing was inputted
@@ -120,7 +129,7 @@ class McRocket(DispersionModel):
                     nom_value = getattr(obj, attr_name)
                 except:
                     raise AttributeError(
-                        "Attribute 'position' not found. Position should be passed in the 'position' argument of the 'add' method."
+                        "Attribute 'position' not found, it should be passed in the 'position' argument of the 'add' method."
                     )
                 return [nom_value]
             else:
@@ -147,10 +156,13 @@ class McRocket(DispersionModel):
             return (nom_value, position)
         else:
             raise ValueError(
-                f"\nposition: \n\tMust be either a tuple, list, int or float"
+                f"The 'position' argument must be tuple, list, int or float"
             )
 
     def addMotor(self, motor, position=[]):
+        """Adds a motor to the McRocket model. The motor need to be of 
+        McSolidMotor type.
+        """        
         # checks if input is a McSolidMotor type
         if not isinstance(motor, McSolidMotor):
             raise TypeError("motor must be of McMotor type")
@@ -204,15 +216,49 @@ class McRocket(DispersionModel):
         return self.tails.append(tail)
 
     def addParachute(self, parachute):
+        """Method to add a parachute to the McRocket object.
+
+        Parameters
+        ----------
+        parachute : McParachute
+            The parachute to be added to the rocket. This must be a McParachute
+            type.
+
+        Returns
+        -------
+        ????
+
+        Raises
+        ------
+        TypeError
+            In case the input is not a McParachute type.
+        """
         # checks if input is a McParachute type
         if not isinstance(parachute, McParachute):
             raise TypeError("parachute must be of McParachute type")
-        return self.parachutes.append(parachute)
+        return self.parachutes.append(parachute)  # TODO: what is being returned?
 
     def addRailButtons(
         self,
         rail_buttons,
     ):
+        """Method to add rail buttons to the McRocket object.
+
+        Parameters
+        ----------
+        rail_buttons : McRailButtons
+            The rail buttons to be added to the rocket. This must be a
+            McRailButtons type.
+
+        Returns
+        -------
+        ????
+
+        Raises
+        ------
+        TypeError
+            In case the input is not a McRailButtons type.
+        """
         if not isinstance(rail_buttons, McRailButtons):
             raise TypeError("rail_buttons must be of McRailButtons type")
         return self.rail_buttons.append(rail_buttons)

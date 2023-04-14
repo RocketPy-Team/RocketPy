@@ -1,3 +1,7 @@
+__author__ = "Mateus Stano Junqueira"
+__copyright__ = "Copyright 20XX, RocketPy Team"
+__license__ = "MIT"
+
 from typing import Any, Callable, List, Tuple, Union
 
 from pydantic import Field, StrictFloat, StrictInt, StrictStr
@@ -7,22 +11,10 @@ from .DispersionModel import DispersionModel
 
 
 class McParachute(DispersionModel):
-    """TODO: Add description
-
-    Parameters
-    ----------
-    BaseModel : _type_
-        _description_
-
-    Returns
-    -------
-    _type_
-        _description_
-
-    Raises
-    ------
-    ValueError
-        _description_
+    """Monte Carlo Parachute class, used to validate the input parameters of the
+    parachute, based on the pydantic library. It uses the DispersionModel class
+    as a base class, see its documentation for more information. The inputs
+    defined here correspond to the ones defined in the Parachute class.
     """
 
     parachute: Parachute = Field(..., exclude=True)
