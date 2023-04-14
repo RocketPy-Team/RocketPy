@@ -17,6 +17,7 @@ setuptools.setup(
         "pytz",
         "simplekml",
         "jsonpickle",
+        "pydantic",
     ],
     extras_require={
         "timezonefinder": ["timezonefinder"],
