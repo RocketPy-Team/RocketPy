@@ -31,6 +31,6 @@ jobs:
     - name: Test with pytest
       run: |
         pytest
-        pytest -k 'test_gfs_atmosphere'
+        pytest -k 'test_gfs_atmosphere' --runslow
         cd rocketpy
         pytest --doctest-modules
