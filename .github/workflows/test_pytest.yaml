@@ -13,6 +13,7 @@ jobs:
           - windows-latest
         python-version:
           - 3.7
+          - 3.9
           - 3.11.3
     steps:
     - uses: actions/checkout@v2
@@ -30,5 +31,6 @@ jobs:
     - name: Test with pytest
       run: |
         pytest
+        pytest -k 'test_gfs_atmosphere'
         cd rocketpy
         pytest --doctest-modules
