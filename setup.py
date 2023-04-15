@@ -12,7 +12,7 @@ if sys.version_info[1] == 7:
     netCDF4_requirement = "netCDF4>=1.4,<1.6"
 
 # Check if running on a linux system
-elif sys.platform in ["linux", "darwin"]:
+elif sys.platform == "linux":
     if sys.version_info[1] < 11:
         # Support for Linux with Python < 3.11
         # Avoid problems due to netcdf4 issue linked below
