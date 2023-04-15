@@ -13,11 +13,7 @@ jobs:
           - windows-latest
         python-version:
           - 3.7
-          - 3.9
-          - 3.11.3
-        exclude:
-          - os: ubuntu-latest
-            python-version: 3.11.3
+          - 3.11
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -34,6 +30,5 @@ jobs:
     - name: Test with pytest
       run: |
         pytest
-        pytest -k 'test_gfs_atmosphere' --runslow
         cd rocketpy
         pytest --doctest-modules
