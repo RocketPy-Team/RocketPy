@@ -19,7 +19,7 @@ elif sys.platform in ["linux", "darwin"]:
         netCDF4_requirement = "netCDF4>=1.4,<1.6"
     else:
         # Support for Linux with Python >= 3.11
-        # Might have problems with openDAP in the Environment class due to 
+        # Might have problems with openDAP in the Environment class due to
         # https://github.com/Unidata/netcdf4-python/issues/1179
         netCDF4_requirement = "netCDF4>=1.6.2"
 
