@@ -28,9 +28,6 @@ class DispersionModel(BaseModel):
         )
         return f"{self.__class__.__name__}({field_values})\n"
 
-    # TODO: find a way to validate if distribution_function string is the name
-    # of a valid np.random function
-    # Currently the error is only raised in get_distribution in tools.py
     @root_validator(skip_on_failure=True)
     def set_attr(cls, values):
         """Validates inputs that can be either tuples, lists, ints or floats and

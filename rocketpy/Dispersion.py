@@ -194,8 +194,7 @@ class Dispersion:
     @cached_property
     def inputs_log(self):
         """Save inputs_log log from a file into an attribute for easy access"""
-        # TODO: this currently does not work because of parachute trigger function
-        # TODO: add pickle package to deal with this and also Function objects
+        # TODO: add pickle package to deal with parachute triggers and Function objects
         inputs_log = []
         # Loop through each line in the file
         for line in self.dispersion_input_file:
@@ -666,6 +665,7 @@ class Dispersion:
                         "angular_position"
                     ],
                 )
+
             # Add parachutes
             for chute in setting["parachutes"].keys():
                 rocket_dispersion.addParachute(
@@ -676,9 +676,6 @@ class Dispersion:
                     lag=setting["parachutes"][chute]["lag"],
                     noise=setting["parachutes"][chute]["noise"],
                 )
-
-            # TODO: Fix rail buttons definition here
-            # rocket_dispersion.setRailButtons()
 
             # Run trajectory simulation
             try:

@@ -11,6 +11,3 @@ from .mc_flight import McFlight
 from .mc_parachute import McParachute
 from .mc_rocket import McRocket
 from .mc_solid_motor import McSolidMotor
-
-# TODO: finish documentation of all the monte carlo classes
-# TODO: add __repr__ to all classes

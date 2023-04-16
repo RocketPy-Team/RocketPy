@@ -174,7 +174,7 @@ class Function:
             def source(x):
                 return temp
 
-        # Handle callable source or n   umber source
+        # Handle callable source or number source
         if callable(source):
             # Set source
             self.source = source
