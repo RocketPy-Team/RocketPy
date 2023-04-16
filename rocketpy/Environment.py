@@ -71,7 +71,7 @@ class Environment:
         Environment.lon : float
             Launch site longitude.
         Environment.datum: string
-            The desired reference ellipsoide model, the following options are
+            The desired reference ellipsoid model, the following options are
             available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
             is "SIRGAS2000", then this model will be used if the user make some
             typing mistake
@@ -105,7 +105,7 @@ class Environment:
         Environment.elevArray: array
             Two-dimensional Array containing the elevation information
         Environment.topographicProfileActivated: bool
-            True if the user already set a topographic plofile
+            True if the user already set a topographic profile
 
         Atmosphere Static Conditions:
         Environment.maxExpectedHeight : float
@@ -189,11 +189,11 @@ class Environment:
             Dictionary used to properly interpret netCDF and OPeNDAP
             files. Only defined for 'Forecast', 'Reanalysis', 'Ensemble'.
         Environment.atmosphericModelInitDate : datetime
-            Datetime object instance of first availabe date in netCDF
+            Datetime object instance of first available date in netCDF
             and OPeNDAP files when using 'Forecast', 'Reanalysis' or
             'Ensemble'.
         Environment.atmosphericModelEndDate : datetime
-            Datetime object instance of last availabe date in netCDF
+            Datetime object instance of last available date in netCDF
             and OPeNDAP files when using 'Forecast', 'Reanalysis' or
             'Ensemble'.
         Environment.atmosphericModelInterval : int
@@ -284,7 +284,7 @@ class Environment:
             Only defined when using Ensembles.
         Environment.windVEnsemble : array
             Only defined when using Ensembles.
-        Environment.windHeadingEnsemble : arrray
+        Environment.windHeadingEnsemble : array
             Only defined when using Ensembles.
         Environment.windDirectionEnsemble : array
             Only defined when using Ensembles.
@@ -344,7 +344,7 @@ class Environment:
             find elevation data. For this option, latitude and
             longitude must also be specified. Default value is 0.
         datum : string
-            The desired reference ellipsoide model, the following options are
+            The desired reference ellipsoid model, the following options are
             available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
             is "SIRGAS2000", then this model will be used if the user make some
             typing mistake.
@@ -483,7 +483,7 @@ class Environment:
 
     def setGravityModel(self, gravity):
         """Sets the gravity model to be used in the simulation based
-        on the guver user input to the gravity parameter.
+        on the given user input to the gravity parameter.
 
         Parameters
         ----------
@@ -583,7 +583,7 @@ class Environment:
                 self.elevation = results[0]["elevation"]
                 print("Elevation received:", self.elevation)
             except:
-                raise RuntimeError("Unabel to reach Open-Elevation API servers.")
+                raise RuntimeError("Unable to reach Open-Elevation API servers.")
         else:
             raise ValueError(
                 "Latitude and longitude must be set to use"
@@ -665,7 +665,7 @@ class Environment:
         """
         if self.topographicProfileActivated == False:
             print(
-                "You must define a Topographic profile first, please use the method Environment.setTopograghicProfile()"
+                "You must define a Topographic profile first, please use the method Environment.setTopographicProfile()"
             )
             return None
 
@@ -747,7 +747,7 @@ class Environment:
         Supported functionality includes using data from the
         International Standard Atmosphere, importing data from
         weather reanalysis, forecasts and ensemble forecasts,
-        importing data from upper air soundings and inputing
+        importing data from upper air soundings and inputting
         data as custom functions, arrays or csv files.
 
         Parameters
@@ -1512,7 +1512,7 @@ class Environment:
     def processWindyAtmosphere(self, model="ECMWF"):
         """Process data from Windy.com to retrieve atmospheric forecast data.
 
-        Paramaters
+        Parameters
         ----------
         model : string, optional
             The atmospheric model to use. Default is 'ECMWF'. Options are: 'ECMWF' for
@@ -1690,7 +1690,7 @@ class Environment:
                 "Invalid OUTPUT: specified. Make sure the output is Text: List."
             )
 
-        # Process Wyoming Souding by finding data table and station info
+        # Process Wyoming Sounding by finding data table and station info
         response_split_text = re.split("(<.{0,1}PRE>)", response.text)
         data_table = response_split_text[2]
         station_info = response_split_text[6]
@@ -2133,7 +2133,7 @@ class Environment:
                 )
             except:
                 raise ValueError(
-                    "Unable to read geopontential height"
+                    "Unable to read geopotential height"
                     " nor geopotential from file. At least"
                     " one of them is necessary. Check "
                     " file and dictionary."
@@ -2557,7 +2557,7 @@ class Environment:
                 )
             except:
                 raise ValueError(
-                    "Unable to read geopontential height"
+                    "Unable to read geopotential height"
                     " nor geopotential from file. At least"
                     " one of them is necessary. Check "
                     " file and dictionary."
@@ -2918,7 +2918,7 @@ class Environment:
             Pb = pressure[layer]
             B = beta[layer]
 
-            # Compute presure
+            # Compute pressure
             if B != 0:
                 P = Pb * (1 + (B / Tb) * (H - Hb)) ** (-g / (B * R))
             else:
@@ -3552,7 +3552,7 @@ class Environment:
             / ((np.cos(lat) * semiMajorAxis) ** 2 + (np.sin(lat) * semiMinorAxis) ** 2)
         )
 
-        # Convert latitude to degress
+        # Convert latitude to degrees
         lat = lat * 180 / np.pi
 
         return eRadius
