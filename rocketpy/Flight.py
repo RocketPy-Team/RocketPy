@@ -1570,38 +1570,39 @@ class Flight:
             State vector defined by uDot = [vx, vy, vz, ax, ay, az,
             e0Dot, e1Dot, e2Dot, e3Dot, alpha1, alpha2, alpha3].
         """
+
         def Dot(A, b):
             return [
                 A[0][0] * b[0] + A[0][1] * b[1] + A[0][2] * b[2],
                 A[1][0] * b[0] + A[1][1] * b[1] + A[1][2] * b[2],
                 A[2][0] * b[0] + A[2][1] * b[1] + A[2][2] * b[2],
             ]
-        
+
         def inverse(A):
             determinant = (
-                -A[0][0]*A[0][1]^2 +
-                A[0][0]^2*A[1][1] -
-                A[0][2]^2*A[1][1] +
-                2*A[0][1]*A[0][2]*A[1][2] -
-                A[0][0]* A[1][2]^2
+                -A[0][0] * A[0][1]
+                ^ 2 + A[0][0]
+                ^ 2 * A[1][1] - A[0][2]
+                ^ 2 * A[1][1] + 2 * A[0][1] * A[0][2] * A[1][2] - A[0][0] * A[1][2]
+                ^ 2
             )
-            inv_11 = A[0][0]*A[1][1] - A[1][2]^2
-            inv_12 = A[0][2]*A[1][2] - A[0][0]*A[0][1]
-            inv_13 = A[0][1]*A[1][2] - A[0][2]*A[1][1]
-            inv_22 = A[0][0]^2 - A[0][2]^2
-            inv_23 = A[0][1]*A[0][2] - A[0][0]*A[1][2]
-            inv_33 = A[0][0]*A[1][1] - A[0][1]^2
+            inv_11 = A[0][0] * A[1][1] - A[1][2] ^ 2
+            inv_12 = A[0][2] * A[1][2] - A[0][0] * A[0][1]
+            inv_13 = A[0][1] * A[1][2] - A[0][2] * A[1][1]
+            inv_22 = A[0][0] ^ 2 - A[0][2] ^ 2
+            inv_23 = A[0][1] * A[0][2] - A[0][0] * A[1][2]
+            inv_33 = A[0][0] * A[1][1] - A[0][1] ^ 2
             return [
                 [inv_11, inv_12, inv_13],
                 [inv_12, inv_22, inv_23],
                 [inv_13, inv_23, inv_33],
             ]
-        
+
         def cross(a, b):
             return [
-                a[1]*b[2] - a[2]*b[1],
-                a[2]*b[0] - a[0]*b[2],
-                a[0]*b[1] - a[1]*b[0]
+                a[1] * b[2] - a[2] * b[1],
+                a[2] * b[0] - a[0] * b[2],
+                a[0] * b[1] - a[1] * b[0],
             ]
 
         def list_sum(*args):
@@ -1610,7 +1611,7 @@ class Flight:
                 sum([a[1] for a in args]),
                 sum([a[2] for a in args]),
             ]
-        
+
         def op(a):
             return [-a[0], -a[1], -a[2]]
 
@@ -1651,7 +1652,7 @@ class Flight:
         I_CM = [
             [I_CM_11, I_CM_12, I_CM_13],
             [I_CM_12, I_CM_22, I_CM_23],
-            [I_CM_13, I_CM_23, I_CM_33]
+            [I_CM_13, I_CM_23, I_CM_33],
         ]
 
         r_CM = [0, 0, self.rocket.r_CM.getValueOpt(t)]
@@ -1746,34 +1747,44 @@ class Flight:
                 M3 += M3f - M3d
             except AttributeError:
                 pass
-        
-        body_g = Dot(K [0, 0, -M*self.env.g])
-        T00 = [M*r_CM[0], M*r_CM[1], M*r_CM[2]]
-        T03 = [0, 0, 2*self.rocket.massDot(t)*(self.rocket.nozzlePosition - r_CM) - 2*M*r_CM_dot]
-        T04 = self.rocket.motor.thrust(t) - M*r_CM_ddot - 2*self.rocket.massDot(t)*r_CM_dot + M_ddot*(self.rocket.nozzlePosition - r_CM)
-        T05 = self.rocket.massDot(t)*S_nozzle - I_dot
 
-        T20 = list_sum(cross(cross(omega, T00), omega), cross(omega, T03), T04, body_g, [R1, R2, R3])
-        T21 = list_sum(cross(Dot(I, omega), omega), Dot(T05, omega), cross(body_g, r_CM), [M1, M2, M3])
+        body_g = Dot(K[0, 0, -M * self.env.g])
+        T00 = [M * r_CM[0], M * r_CM[1], M * r_CM[2]]
+        T03 = [
+            0,
+            0,
+            2 * self.rocket.massDot(t) * (self.rocket.nozzlePosition - r_CM)
+            - 2 * M * r_CM_dot,
+        ]
+        T04 = (
+            self.rocket.motor.thrust(t)
+            - M * r_CM_ddot
+            - 2 * self.rocket.massDot(t) * r_CM_dot
+            + M_ddot * (self.rocket.nozzlePosition - r_CM)
+        )
+        T05 = self.rocket.massDot(t) * S_nozzle - I_dot
+
+        T20 = list_sum(
+            cross(cross(omega, T00), omega),
+            cross(omega, T03),
+            T04,
+            body_g,
+            [R1, R2, R3],
+        )
+        T21 = list_sum(
+            cross(Dot(I, omega), omega),
+            Dot(T05, omega),
+            cross(body_g, r_CM),
+            [M1, M2, M3],
+        )
 
         omega_dot = Dot(inverse(I_CM), list_sum(T21, cross(T20, r_CM)))
-        v_dot = list_sum([T20[0]/M, T20[1]/M, T20[2]/M], cross(omega_dot, r_CM))
+        v_dot = list_sum([T20[0] / M, T20[1] / M, T20[2] / M], cross(omega_dot, r_CM))
 
         # Create uDot
-        uDot = [
-            vx,
-            vy,
-            vz,
-            *vdot,
-            e0Dot,
-            e1Dot,
-            e2Dot,
-            e3Dot,
-            *omega_dot
-        ]
+        uDot = [vx, vy, vz, *vdot, e0Dot, e1Dot, e2Dot, e3Dot, *omega_dot]
 
         return uDot
-
 
     def uDotGeneralized(self, t, u, postProcessing=False):
         """Calculates derivative of u state vector with respect to time
