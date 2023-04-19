@@ -2349,6 +2349,39 @@ class Function:
             if isinstance(self.source, np.ndarray):
                 # Operate on grid values
                 Ys = other - self.yArray
+    def identityFunction(self):
+        """Returns a Function object that correspond to the identity mapping,
+        i.e. f(x) = x.
+        If the Function object is defined on an array, the identity Function
+        follows the same discretization, and has linear interpolation and
+        extrapolation.
+        If the Function is defined by a lambda, the identity Function is the
+        indentity map 'lambda x: x'.
+
+        Returns
+        -------
+        result : Function
+            A Function object that corresponds to the identity mapping.
+        """
+
+        # Check if Function object source is array
+        if isinstance(self.source, np.ndarray):
+            identity = Function(
+                [(-1, -1), (1, 1)],
+                inputs=self.__inputs__,
+                outputs=f"identity of {self.__outputs__}",
+                interpolation="linear",
+                extrapolation="linear",
+            )
+            return identity.setDiscreteBasedOnModel(self)
+
+        else:
+            return Function(
+                lambda x: x,
+                inputs=self.__inputs__,
+                outputs=f"identity of {self.__outputs__}",
+            )
+
                 Xs = self.xArray
                 source = np.concatenate(([Xs], [Ys])).transpose()
                 # Retrieve inputs, outputs and interpolation
