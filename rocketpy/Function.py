@@ -1676,6 +1676,34 @@ class Function:
                              2*yl + 2*yr)/(xl-xr)**3"""
         self.__akimaCoefficients__ = coeffs
 
+    def __neg__(self):
+        """Negates the Function objetive. The result has the same effect as
+        multiplying the Function by -1.
+        
+        Returns
+        -------
+        Function
+            The negated Function object.
+        """
+        if isinstance(self.source, np.ndarray):
+            neg_source = np.column_stack((self.xArray, -self.yArray))
+            return Function(
+                neg_source,
+                self.__inputs__,
+                self.__outputs__,
+                self.__interpolation__,
+                self.__extrapolation__,
+            )
+        else:
+            return Function(
+                lambda x: -self.source(x),
+                self.__inputs__,
+                self.__outputs__,
+                self.__interpolation__,
+                self.__extrapolation__,
+            )
+
+    def __ge__(self, other):
     # Define all possible algebraic operations
     def __truediv__(self, other):
         """Divides a Function object and returns a new Function object
