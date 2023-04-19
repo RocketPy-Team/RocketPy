@@ -1679,7 +1679,7 @@ class Function:
     def __neg__(self):
         """Negates the Function objetive. The result has the same effect as
         multiplying the Function by -1.
-        
+
         Returns
         -------
         Function
@@ -1704,20 +1704,20 @@ class Function:
             )
 
     def __ge__(self, other):
-        """Greater than or equal to comparison operator. It can be used to 
+        """Greater than or equal to comparison operator. It can be used to
         compare a Function object with a scalar or another Function object.
         This has the same effect as comparing numpy arrays.
 
-        Note that it only works for Functions if at least one of them is 
+        Note that it only works for Functions if at least one of them is
         defined by a set of points so that the bounds of the domain can be
-        set. 
+        set.
         If both are defined by a set of points, they must have the same
         discretization.
-        
+
         Parameters
         ----------
         other : scalar or Function
-        
+
         Returns
         -------
         numpy.ndarray of bool
@@ -1755,20 +1755,20 @@ class Function:
                     )
 
     def __le__(self, other):
-        """Less than or equal to comparison operator. It can be used to 
+        """Less than or equal to comparison operator. It can be used to
         compare a Function object with a scalar or another Function object.
         This has the same effect as comparing numpy arrays.
 
-        Note that it only works for Functions if at least one of them is 
+        Note that it only works for Functions if at least one of them is
         defined by a set of points so that the bounds of the domain can be
-        set. 
+        set.
         If both are defined by a set of points, they must have the same
         discretization.
-        
+
         Parameters
         ----------
         other : scalar or Function
-        
+
         Returns
         -------
         numpy.ndarray of bool
@@ -1806,20 +1806,20 @@ class Function:
                     )
 
     def __gt__(self, other):
-        """Greater than comparison operator. It can be used to compare a 
-        Function object with a scalar or another Function object. This has 
+        """Greater than comparison operator. It can be used to compare a
+        Function object with a scalar or another Function object. This has
         the same effect as comparing numpy arrays.
 
-        Note that it only works for Functions if at least one of them is 
+        Note that it only works for Functions if at least one of them is
         defined by a set of points so that the bounds of the domain can be
-        set. 
+        set.
         If both are defined by a set of points, they must have the same
         discretization.
-        
+
         Parameters
         ----------
         other : scalar or Function
-        
+
         Returns
         -------
         numpy.ndarray of bool
@@ -1828,20 +1828,20 @@ class Function:
         return ~self.__le__(other)
 
     def __lt__(self, other):
-        """Less than comparison operator. It can be used to compare a 
-        Function object with a scalar or another Function object. This has 
+        """Less than comparison operator. It can be used to compare a
+        Function object with a scalar or another Function object. This has
         the same effect as comparing numpy arrays.
 
-        Note that it only works for Functions if at least one of them is 
+        Note that it only works for Functions if at least one of them is
         defined by a set of points so that the bounds of the domain can be
-        set. 
+        set.
         If both are defined by a set of points, they must have the same
         discretization.
-        
+
         Parameters
         ----------
         other : scalar or Function
-        
+
         Returns
         -------
         numpy.ndarray of bool
