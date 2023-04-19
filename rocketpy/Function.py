@@ -1676,6 +1676,152 @@ class Function:
                              2*yl + 2*yr)/(xl-xr)**3"""
         self.__akimaCoefficients__ = coeffs
 
+    def __ge__(self, other):
+        """Greater than or equal to comparison operator. It can be used to 
+        compare a Function object with a scalar or another Function object.
+        This has the same effect as comparing numpy arrays.
+
+        Note that it only works for Functions if at least one of them is 
+        defined by a set of points so that the bounds of the domain can be
+        set. 
+        If both are defined by a set of points, they must have the same
+        discretization.
+        
+        Parameters
+        ----------
+        other : scalar or Function
+        
+        Returns
+        -------
+        numpy.ndarray of bool
+            The result of the comparison one by one.
+        """
+        otherIsFunction = isinstance(other, Function)
+
+        if isinstance(self.source, np.ndarray):
+            if otherIsFunction:
+                try:
+                    return self.yArray >= other.yArray
+                except AttributeError:
+                    # Other is lambda based Function
+                    return self.yArray >= other(self.xArray)
+                except ValueError:
+                    raise ValueError("Operands should have the same discretization.")
+            else:
+                # Other is not a Function
+                try:
+                    return self.yArray >= other
+                except TypeError:
+                    raise TypeError(
+                        "Comparison not supported between instances of "
+                        f"'Function' and '{type(other)}'"
+                    )
+        else:
+            # self is lambda based Function
+            if otherIsFunction:
+                try:
+                    return self(other.xArray) >= other.yArray
+                except AttributeError:
+                    raise TypeError(
+                        "Cannot compare lambda based Function with "
+                        "lambda based Function."
+                    )
+
+    def __le__(self, other):
+        """Less than or equal to comparison operator. It can be used to 
+        compare a Function object with a scalar or another Function object.
+        This has the same effect as comparing numpy arrays.
+
+        Note that it only works for Functions if at least one of them is 
+        defined by a set of points so that the bounds of the domain can be
+        set. 
+        If both are defined by a set of points, they must have the same
+        discretization.
+        
+        Parameters
+        ----------
+        other : scalar or Function
+        
+        Returns
+        -------
+        numpy.ndarray of bool
+            The result of the comparison one by one.
+        """
+        otherIsFunction = isinstance(other, Function)
+
+        if isinstance(self.source, np.ndarray):
+            if otherIsFunction:
+                try:
+                    return self.yArray <= other.yArray
+                except AttributeError:
+                    # Other is lambda based Function
+                    return self.yArray <= other(self.xArray)
+                except ValueError:
+                    raise ValueError("Operands should have the same discretization.")
+            else:
+                # Other is not a Function
+                try:
+                    return self.yArray <= other
+                except TypeError:
+                    raise TypeError(
+                        "Comparison not supported between instances of "
+                        f"'Function' and '{type(other)}'"
+                    )
+        else:
+            # self is lambda based Function
+            if otherIsFunction:
+                try:
+                    return self(other.xArray) <= other.yArray
+                except AttributeError:
+                    raise TypeError(
+                        "Cannot compare lambda based Function with "
+                        "lambda based Function."
+                    )
+
+    def __gt__(self, other):
+        """Greater than comparison operator. It can be used to compare a 
+        Function object with a scalar or another Function object. This has 
+        the same effect as comparing numpy arrays.
+
+        Note that it only works for Functions if at least one of them is 
+        defined by a set of points so that the bounds of the domain can be
+        set. 
+        If both are defined by a set of points, they must have the same
+        discretization.
+        
+        Parameters
+        ----------
+        other : scalar or Function
+        
+        Returns
+        -------
+        numpy.ndarray of bool
+            The result of the comparison one by one.
+        """
+        return ~self.__le__(other)
+
+    def __lt__(self, other):
+        """Less than comparison operator. It can be used to compare a 
+        Function object with a scalar or another Function object. This has 
+        the same effect as comparing numpy arrays.
+
+        Note that it only works for Functions if at least one of them is 
+        defined by a set of points so that the bounds of the domain can be
+        set. 
+        If both are defined by a set of points, they must have the same
+        discretization.
+        
+        Parameters
+        ----------
+        other : scalar or Function
+        
+        Returns
+        -------
+        numpy.ndarray of bool
+            The result of the comparison one by one.
+        """
+        return ~self.__ge__(other)
+
     def __neg__(self):
         """Negates the Function objetive. The result has the same effect as
         multiplying the Function by -1.
