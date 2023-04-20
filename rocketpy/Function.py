@@ -215,6 +215,9 @@ class Function:
 
                 # Finally set data source as source
                 self.source = source
+                # Update extrapolation method
+                if self.__extrapolation__ is None:
+                    self.setExtrapolation()
                 # Set default interpolation for point source if it hasn't
                 if self.__interpolation__ is None:
                     self.setInterpolation()
@@ -236,9 +239,6 @@ class Function:
                 self.source = source
                 if self.__interpolation__ is None:
                     self.setInterpolation("shepard")
-            # Update extrapolation method
-            if self.__extrapolation__ is None:
-                self.setExtrapolation()
         # Return self
         return self
 
@@ -313,8 +313,10 @@ class Function:
             extrapolation = 0  # Extrapolation is zero
         elif self.__extrapolation__ == "natural":
             extrapolation = 1  # Extrapolation is natural
-        else:
+        elif self.__extrapolation__ == "constant":
             extrapolation = 2  # Extrapolation is constant
+        else:
+            raise ValueError(f"Invalid extrapolation type {self.__extrapolation__}")
 
         # Crete method to interpolate this info for each interpolation type
         if self.__interpolation__ == "spline":
@@ -879,8 +881,10 @@ class Function:
             extrapolation = 0  # Extrapolation is zero
         elif self.__extrapolation__ == "natural":
             extrapolation = 1  # Extrapolation is natural
-        else:
+        elif self.__extrapolation__ == "constant":
             extrapolation = 2  # Extrapolation is constant
+        else:
+            raise ValueError(f"Invalid extrapolation type {self.__extrapolation__}")
 
         # Interpolate this info for each interpolation type
         # Spline
@@ -2449,7 +2453,7 @@ class Function:
                 inputs=self.__inputs__,
                 outputs=f"identity of {self.__outputs__}",
                 interpolation="linear",
-                extrapolation="linear",
+                extrapolation="natural",
             )
             return identity.setDiscreteBasedOnModel(self)
 
