@@ -66,7 +66,7 @@ def test_set_topographic_profile(example_env):
         dictionary="netCDF4",
     )
     assert (
-        example_env.getElevationFromTopograghicProfile(example_env.lat, example_env.lon)
+        example_env.getElevationFromTopographicProfile(example_env.lat, example_env.lon)
         == 1565
     )
 
