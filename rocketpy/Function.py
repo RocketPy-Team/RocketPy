@@ -1955,7 +1955,10 @@ class Function:
         result : Function
             A Function object which gives the result of self(x)-other(x).
         """
-        return self + (-other)
+        try:
+            return self + (-other)
+        except TypeError:
+            return Function(lambda x: (self.getValue(x) - other(x)))
 
     def __rsub__(self, other):
         """Subtracts a Function object from 'other' and returns a new Function
