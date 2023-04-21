@@ -215,6 +215,9 @@ class Function:
 
                 # Finally set data source as source
                 self.source = source
+                # Update extrapolation method
+                if self.__extrapolation__ is None:
+                    self.setExtrapolation()
                 # Set default interpolation for point source if it hasn't
                 if self.__interpolation__ is None:
                     self.setInterpolation()
@@ -236,9 +239,6 @@ class Function:
                 self.source = source
                 if self.__interpolation__ is None:
                     self.setInterpolation("shepard")
-            # Update extrapolation method
-            if self.__extrapolation__ is None:
-                self.setExtrapolation()
         # Return self
         return self
 
@@ -313,8 +313,10 @@ class Function:
             extrapolation = 0  # Extrapolation is zero
         elif self.__extrapolation__ == "natural":
             extrapolation = 1  # Extrapolation is natural
-        else:
+        elif self.__extrapolation__ == "constant":
             extrapolation = 2  # Extrapolation is constant
+        else:
+            raise ValueError(f"Invalid extrapolation type {self.__extrapolation__}")
 
         # Crete method to interpolate this info for each interpolation type
         if self.__interpolation__ == "spline":
@@ -879,8 +881,10 @@ class Function:
             extrapolation = 0  # Extrapolation is zero
         elif self.__extrapolation__ == "natural":
             extrapolation = 1  # Extrapolation is natural
-        else:
+        elif self.__extrapolation__ == "constant":
             extrapolation = 2  # Extrapolation is constant
+        else:
+            raise ValueError(f"Invalid extrapolation type {self.__extrapolation__}")
 
         # Interpolate this info for each interpolation type
         # Spline
@@ -1676,7 +1680,391 @@ class Function:
                              2*yl + 2*yr)/(xl-xr)**3"""
         self.__akimaCoefficients__ = coeffs
 
+    def __neg__(self):
+        """Negates the Function objetive. The result has the same effect as
+        multiplying the Function by -1.
+
+        Returns
+        -------
+        Function
+            The negated Function object.
+        """
+        if isinstance(self.source, np.ndarray):
+            neg_source = np.column_stack((self.xArray, -self.yArray))
+            return Function(
+                neg_source,
+                self.__inputs__,
+                self.__outputs__,
+                self.__interpolation__,
+                self.__extrapolation__,
+            )
+        else:
+            return Function(
+                lambda x: -self.source(x),
+                self.__inputs__,
+                self.__outputs__,
+                self.__interpolation__,
+                self.__extrapolation__,
+            )
+
+    def __ge__(self, other):
+        """Greater than or equal to comparison operator. It can be used to
+        compare a Function object with a scalar or another Function object.
+        This has the same effect as comparing numpy arrays.
+
+        Note that it only works for Functions if at least one of them is
+        defined by a set of points so that the bounds of the domain can be
+        set.
+        If both are defined by a set of points, they must have the same
+        discretization.
+
+        Parameters
+        ----------
+        other : scalar or Function
+
+        Returns
+        -------
+        numpy.ndarray of bool
+            The result of the comparison one by one.
+        """
+        otherIsFunction = isinstance(other, Function)
+
+        if isinstance(self.source, np.ndarray):
+            if otherIsFunction:
+                try:
+                    return self.yArray >= other.yArray
+                except AttributeError:
+                    # Other is lambda based Function
+                    return self.yArray >= other(self.xArray)
+                except ValueError:
+                    raise ValueError("Operands should have the same discretization.")
+            else:
+                # Other is not a Function
+                try:
+                    return self.yArray >= other
+                except TypeError:
+                    raise TypeError(
+                        "Comparison not supported between instances of "
+                        f"'Function' and '{type(other)}'"
+                    )
+        else:
+            # self is lambda based Function
+            if otherIsFunction:
+                try:
+                    return self(other.xArray) >= other.yArray
+                except AttributeError:
+                    raise TypeError(
+                        "Cannot compare lambda based Function with "
+                        "lambda based Function."
+                    )
+
+    def __le__(self, other):
+        """Less than or equal to comparison operator. It can be used to
+        compare a Function object with a scalar or another Function object.
+        This has the same effect as comparing numpy arrays.
+
+        Note that it only works for Functions if at least one of them is
+        defined by a set of points so that the bounds of the domain can be
+        set.
+        If both are defined by a set of points, they must have the same
+        discretization.
+
+        Parameters
+        ----------
+        other : scalar or Function
+
+        Returns
+        -------
+        numpy.ndarray of bool
+            The result of the comparison one by one.
+        """
+        otherIsFunction = isinstance(other, Function)
+
+        if isinstance(self.source, np.ndarray):
+            if otherIsFunction:
+                try:
+                    return self.yArray <= other.yArray
+                except AttributeError:
+                    # Other is lambda based Function
+                    return self.yArray <= other(self.xArray)
+                except ValueError:
+                    raise ValueError("Operands should have the same discretization.")
+            else:
+                # Other is not a Function
+                try:
+                    return self.yArray <= other
+                except TypeError:
+                    raise TypeError(
+                        "Comparison not supported between instances of "
+                        f"'Function' and '{type(other)}'"
+                    )
+        else:
+            # self is lambda based Function
+            if otherIsFunction:
+                try:
+                    return self(other.xArray) <= other.yArray
+                except AttributeError:
+                    raise TypeError(
+                        "Cannot compare lambda based Function with "
+                        "lambda based Function."
+                    )
+
+    def __gt__(self, other):
+        """Greater than comparison operator. It can be used to compare a
+        Function object with a scalar or another Function object. This has
+        the same effect as comparing numpy arrays.
+
+        Note that it only works for Functions if at least one of them is
+        defined by a set of points so that the bounds of the domain can be
+        set.
+        If both are defined by a set of points, they must have the same
+        discretization.
+
+        Parameters
+        ----------
+        other : scalar or Function
+
+        Returns
+        -------
+        numpy.ndarray of bool
+            The result of the comparison one by one.
+        """
+        return ~self.__le__(other)
+
+    def __lt__(self, other):
+        """Less than comparison operator. It can be used to compare a
+        Function object with a scalar or another Function object. This has
+        the same effect as comparing numpy arrays.
+
+        Note that it only works for Functions if at least one of them is
+        defined by a set of points so that the bounds of the domain can be
+        set.
+        If both are defined by a set of points, they must have the same
+        discretization.
+
+        Parameters
+        ----------
+        other : scalar or Function
+
+        Returns
+        -------
+        numpy.ndarray of bool
+            The result of the comparison one by one.
+        """
+        return ~self.__ge__(other)
+
     # Define all possible algebraic operations
+    def __add__(self, other):
+        """Sums a Function object and 'other', returns a new Function
+        object which gives the result of the sum. Only implemented for
+        1D domains.
+
+        Parameters
+        ----------
+        other : Function, int, float, callable
+            What self will be added to. If other and self are Function
+            objects which are based on interpolation, have the exact same
+            domain (are defined in the same grid points), have the same
+            interpolation method and have the same input name, then a
+            special implementation is used. This implementation is faster,
+            however behavior between grid points is only interpolated,
+            not calculated as it would be.
+
+        Returns
+        -------
+        result : Function
+            A Function object which gives the result of self(x)+other(x).
+        """
+        # If other is Function try...
+        try:
+            # Check if Function objects source is array or callable
+            # Check if Function objects have same interpolation and domain
+            if (
+                isinstance(other.source, np.ndarray)
+                and isinstance(self.source, np.ndarray)
+                and self.__interpolation__ == other.__interpolation__
+                and self.__inputs__ == other.__inputs__
+                and np.array_equal(self.xArray, other.xArray)
+            ):
+                # Operate on grid values
+                Ys = self.yArray + other.yArray
+                Xs = self.xArray
+                source = np.concatenate(([Xs], [Ys])).transpose()
+                # Retrieve inputs, outputs and interpolation
+                inputs = self.__inputs__[:]
+                outputs = self.__outputs__[0] + " + " + other.__outputs__[0]
+                outputs = "(" + outputs + ")"
+                interpolation = self.__interpolation__
+                # Create new Function object
+                return Function(source, inputs, outputs, interpolation)
+            else:
+                return Function(lambda x: (self.getValue(x) + other(x)))
+        # If other is Float except...
+        except AttributeError:
+            if isinstance(other, (float, int, complex)):
+                # Check if Function object source is array or callable
+                if isinstance(self.source, np.ndarray):
+                    # Operate on grid values
+                    Ys = self.yArray + other
+                    Xs = self.xArray
+                    source = np.concatenate(([Xs], [Ys])).transpose()
+                    # Retrieve inputs, outputs and interpolation
+                    inputs = self.__inputs__[:]
+                    outputs = self.__outputs__[0] + " + " + str(other)
+                    outputs = "(" + outputs + ")"
+                    interpolation = self.__interpolation__
+                    # Create new Function object
+                    return Function(source, inputs, outputs, interpolation)
+                else:
+                    return Function(lambda x: (self.getValue(x) + other))
+            # Or if it is just a callable
+            elif callable(other):
+                return Function(lambda x: (self.getValue(x) + other(x)))
+
+    def __radd__(self, other):
+        """Sums 'other' and a Function object and returns a new Function
+        object which gives the result of the sum. Only implemented for
+        1D domains.
+
+        Parameters
+        ----------
+        other : int, float, callable
+            What self will be added to.
+
+        Returns
+        -------
+        result : Function
+            A Function object which gives the result of other(x)/+self(x).
+        """
+        return self + other
+
+    def __sub__(self, other):
+        """Subtracts from a Function object and returns a new Function object
+        which gives the result of the subtraction. Only implemented for 1D
+        domains.
+
+        Parameters
+        ----------
+        other : Function, int, float, callable
+            What self will be subtracted by. If other and self are Function
+            objects which are based on interpolation, have the exact same
+            domain (are defined in the same grid points), have the same
+            interpolation method and have the same input name, then a
+            special implementation is used. This implementation is faster,
+            however behavior between grid points is only interpolated,
+            not calculated as it would be.
+
+        Returns
+        -------
+        result : Function
+            A Function object which gives the result of self(x)-other(x).
+        """
+        try:
+            return self + (-other)
+        except TypeError:
+            return Function(lambda x: (self.getValue(x) - other(x)))
+
+    def __rsub__(self, other):
+        """Subtracts a Function object from 'other' and returns a new Function
+        object which gives the result of the subtraction. Only implemented for
+        1D domains.
+
+        Parameters
+        ----------
+        other : int, float, callable
+            What self will subtract from.
+
+        Returns
+        -------
+        result : Function
+            A Function object which gives the result of other(x)-self(x).
+        """
+        return other + (-self)
+
+    def __mul__(self, other):
+        """Multiplies a Function object and returns a new Function object
+        which gives the result of the multiplication. Only implemented for 1D
+        domains.
+
+        Parameters
+        ----------
+        other : Function, int, float, callable
+            What self will be multiplied by. If other and self are Function
+            objects which are based on interpolation, have the exact same
+            domain (are defined in the same grid points), have the same
+            interpolation method and have the same input name, then a
+            special implementation is used. This implementation is faster,
+            however behavior between grid points is only interpolated,
+            not calculated as it would be.
+
+        Returns
+        -------
+        result : Function
+            A Function object which gives the result of self(x)*other(x).
+        """
+        # If other is Function try...
+        try:
+            # Check if Function objects source is array or callable
+            # Check if Function objects have same interpolation and domain
+            if (
+                isinstance(other.source, np.ndarray)
+                and isinstance(self.source, np.ndarray)
+                and self.__interpolation__ == other.__interpolation__
+                and self.__inputs__ == other.__inputs__
+                and np.array_equal(self.xArray, other.xArray)
+            ):
+                # Operate on grid values
+                Ys = self.yArray * other.yArray
+                Xs = self.xArray
+                source = np.concatenate(([Xs], [Ys])).transpose()
+                # Retrieve inputs, outputs and interpolation
+                inputs = self.__inputs__[:]
+                outputs = self.__outputs__[0] + "*" + other.__outputs__[0]
+                outputs = "(" + outputs + ")"
+                interpolation = self.__interpolation__
+                # Create new Function object
+                return Function(source, inputs, outputs, interpolation)
+            else:
+                return Function(lambda x: (self.getValue(x) * other(x)))
+        # If other is Float except...
+        except AttributeError:
+            if isinstance(other, (float, int, complex)):
+                # Check if Function object source is array or callable
+                if isinstance(self.source, np.ndarray):
+                    # Operate on grid values
+                    Ys = self.yArray * other
+                    Xs = self.xArray
+                    source = np.concatenate(([Xs], [Ys])).transpose()
+                    # Retrieve inputs, outputs and interpolation
+                    inputs = self.__inputs__[:]
+                    outputs = self.__outputs__[0] + "*" + str(other)
+                    outputs = "(" + outputs + ")"
+                    interpolation = self.__interpolation__
+                    # Create new Function object
+                    return Function(source, inputs, outputs, interpolation)
+                else:
+                    return Function(lambda x: (self.getValue(x) * other))
+            # Or if it is just a callable
+            elif callable(other):
+                return Function(lambda x: (self.getValue(x) * other(x)))
+
+    def __rmul__(self, other):
+        """Multiplies 'other' by a Function object and returns a new Function
+        object which gives the result of the multiplication. Only implemented for
+        1D domains.
+
+        Parameters
+        ----------
+        other : int, float, callable
+            What self will be multiplied by.
+
+        Returns
+        -------
+        result : Function
+            A Function object which gives the result of other(x)*self(x).
+        """
+        return self * other
+
     def __truediv__(self, other):
         """Divides a Function object and returns a new Function object
         which gives the result of the division. Only implemented for 1D
@@ -1747,7 +2135,7 @@ class Function:
                 return Function(lambda x: (self.getValueOpt2(x) / other(x)))
 
     def __rtruediv__(self, other):
-        """Devides 'other' by a Function object and returns a new Function
+        """Divides 'other' by a Function object and returns a new Function
         object which gives the result of the division. Only implemented for
         1D domains.
 
@@ -1883,312 +2271,6 @@ class Function:
         # Or if it is just a callable
         elif callable(other):
             return Function(lambda x: (other(x) ** self.getValue(x)))
-
-    def __mul__(self, other):
-        """Multiplies a Function object and returns a new Function object
-        which gives the result of the multiplication. Only implemented for 1D
-        domains.
-
-        Parameters
-        ----------
-        other : Function, int, float, callable
-            What self will be multiplied by. If other and self are Function
-            objects which are based on interpolation, have the exact same
-            domain (are defined in the same grid points), have the same
-            interpolation method and have the same input name, then a
-            special implementation is used. This implementation is faster,
-            however behavior between grid points is only interpolated,
-            not calculated as it would be.
-
-        Returns
-        -------
-        result : Function
-            A Function object which gives the result of self(x)*other(x).
-        """
-        # If other is Function try...
-        try:
-            # Check if Function objects source is array or callable
-            # Check if Function objects have same interpolation and domain
-            if (
-                isinstance(other.source, np.ndarray)
-                and isinstance(self.source, np.ndarray)
-                and self.__interpolation__ == other.__interpolation__
-                and self.__inputs__ == other.__inputs__
-                and np.array_equal(self.xArray, other.xArray)
-            ):
-                # Operate on grid values
-                Ys = self.yArray * other.yArray
-                Xs = self.xArray
-                source = np.concatenate(([Xs], [Ys])).transpose()
-                # Retrieve inputs, outputs and interpolation
-                inputs = self.__inputs__[:]
-                outputs = self.__outputs__[0] + "*" + other.__outputs__[0]
-                outputs = "(" + outputs + ")"
-                interpolation = self.__interpolation__
-                # Create new Function object
-                return Function(source, inputs, outputs, interpolation)
-            else:
-                return Function(lambda x: (self.getValue(x) * other(x)))
-        # If other is Float except...
-        except AttributeError:
-            if isinstance(other, (float, int, complex)):
-                # Check if Function object source is array or callable
-                if isinstance(self.source, np.ndarray):
-                    # Operate on grid values
-                    Ys = self.yArray * other
-                    Xs = self.xArray
-                    source = np.concatenate(([Xs], [Ys])).transpose()
-                    # Retrieve inputs, outputs and interpolation
-                    inputs = self.__inputs__[:]
-                    outputs = self.__outputs__[0] + "*" + str(other)
-                    outputs = "(" + outputs + ")"
-                    interpolation = self.__interpolation__
-                    # Create new Function object
-                    return Function(source, inputs, outputs, interpolation)
-                else:
-                    return Function(lambda x: (self.getValue(x) * other))
-            # Or if it is just a callable
-            elif callable(other):
-                return Function(lambda x: (self.getValue(x) * other(x)))
-
-    def __rmul__(self, other):
-        """Multiplies 'other' by a Function object and returns a new Function
-        object which gives the result of the multiplication. Only implemented for
-        1D domains.
-
-        Parameters
-        ----------
-        other : int, float, callable
-            What self will be multiplied by.
-
-        Returns
-        -------
-        result : Function
-            A Function object which gives the result of other(x)*self(x).
-        """
-        # Check if Function object source is array and other is float
-        if isinstance(other, (float, int, complex)):
-            if isinstance(self.source, np.ndarray):
-                # Operate on grid values
-                Ys = other * self.yArray
-                Xs = self.xArray
-                source = np.concatenate(([Xs], [Ys])).transpose()
-                # Retrieve inputs, outputs and interpolation
-                inputs = self.__inputs__[:]
-                outputs = str(other) + "*" + self.__outputs__[0]
-                outputs = "(" + outputs + ")"
-                interpolation = self.__interpolation__
-                # Create new Function object
-                return Function(source, inputs, outputs, interpolation)
-            else:
-                return Function(lambda x: (other * self.getValue(x)))
-        # Or if it is just a callable
-        elif callable(other):
-            return Function(lambda x: (other(x) * self.getValue(x)))
-
-    def __add__(self, other):
-        """Sums a Function object and 'other', returns a new Function
-        object which gives the result of the sum. Only implemented for
-        1D domains.
-
-        Parameters
-        ----------
-        other : Function, int, float, callable
-            What self will be added to. If other and self are Function
-            objects which are based on interpolation, have the exact same
-            domain (are defined in the same grid points), have the same
-            interpolation method and have the same input name, then a
-            special implementation is used. This implementation is faster,
-            however behavior between grid points is only interpolated,
-            not calculated as it would be.
-
-        Returns
-        -------
-        result : Function
-            A Function object which gives the result of self(x)+other(x).
-        """
-        # If other is Function try...
-        try:
-            # Check if Function objects source is array or callable
-            # Check if Function objects have same interpolation and domain
-            if (
-                isinstance(other.source, np.ndarray)
-                and isinstance(self.source, np.ndarray)
-                and self.__interpolation__ == other.__interpolation__
-                and self.__inputs__ == other.__inputs__
-                and np.array_equal(self.xArray, other.xArray)
-            ):
-                # Operate on grid values
-                Ys = self.yArray + other.yArray
-                Xs = self.xArray
-                source = np.concatenate(([Xs], [Ys])).transpose()
-                # Retrieve inputs, outputs and interpolation
-                inputs = self.__inputs__[:]
-                outputs = self.__outputs__[0] + " + " + other.__outputs__[0]
-                outputs = "(" + outputs + ")"
-                interpolation = self.__interpolation__
-                # Create new Function object
-                return Function(source, inputs, outputs, interpolation)
-            else:
-                return Function(lambda x: (self.getValue(x) + other(x)))
-        # If other is Float except...
-        except AttributeError:
-            if isinstance(other, (float, int, complex)):
-                # Check if Function object source is array or callable
-                if isinstance(self.source, np.ndarray):
-                    # Operate on grid values
-                    Ys = self.yArray + other
-                    Xs = self.xArray
-                    source = np.concatenate(([Xs], [Ys])).transpose()
-                    # Retrieve inputs, outputs and interpolation
-                    inputs = self.__inputs__[:]
-                    outputs = self.__outputs__[0] + " + " + str(other)
-                    outputs = "(" + outputs + ")"
-                    interpolation = self.__interpolation__
-                    # Create new Function object
-                    return Function(source, inputs, outputs, interpolation)
-                else:
-                    return Function(lambda x: (self.getValue(x) + other))
-            # Or if it is just a callable
-            elif callable(other):
-                return Function(lambda x: (self.getValue(x) + other(x)))
-
-    def __radd__(self, other):
-        """Sums 'other' and a Function object and returns a new Function
-        object which gives the result of the sum. Only implemented for
-        1D domains.
-
-        Parameters
-        ----------
-        other : int, float, callable
-            What self will be added to.
-
-        Returns
-        -------
-        result : Function
-            A Function object which gives the result of other(x)/+self(x).
-        """
-        # Check if Function object source is array and other is float
-        if isinstance(other, (float, int, complex)):
-            if isinstance(self.source, np.ndarray):
-                # Operate on grid values
-                Ys = other + self.yArray
-                Xs = self.xArray
-                source = np.concatenate(([Xs], [Ys])).transpose()
-                # Retrieve inputs, outputs and interpolation
-                inputs = self.__inputs__[:]
-                outputs = str(other) + " + " + self.__outputs__[0]
-                outputs = "(" + outputs + ")"
-                interpolation = self.__interpolation__
-                # Create new Function object
-                return Function(source, inputs, outputs, interpolation)
-            else:
-                return Function(lambda x: (other + self.getValue(x)))
-        # Or if it is just a callable
-        elif callable(other):
-            return Function(lambda x: (other(x) + self.getValue(x)))
-
-    def __sub__(self, other):
-        """Subtracts from a Function object and returns a new Function object
-        which gives the result of the subtraction. Only implemented for 1D
-        domains.
-
-        Parameters
-        ----------
-        other : Function, int, float, callable
-            What self will be subtracted by. If other and self are Function
-            objects which are based on interpolation, have the exact same
-            domain (are defined in the same grid points), have the same
-            interpolation method and have the same input name, then a
-            special implementation is used. This implementation is faster,
-            however behavior between grid points is only interpolated,
-            not calculated as it would be.
-
-        Returns
-        -------
-        result : Function
-            A Function object which gives the result of self(x)-other(x).
-        """
-        # If other is Function try...
-        try:
-            # Check if Function objects source is array or callable
-            # Check if Function objects have same interpolation and domain
-            if (
-                isinstance(other.source, np.ndarray)
-                and isinstance(self.source, np.ndarray)
-                and self.__interpolation__ == other.__interpolation__
-                and self.__inputs__ == other.__inputs__
-                and np.array_equal(self.xArray, other.xArray)
-            ):
-                # Operate on grid values
-                Ys = self.yArray - other.yArray
-                Xs = self.xArray
-                source = np.concatenate(([Xs], [Ys])).transpose()
-                # Retrieve inputs, outputs and interpolation
-                inputs = self.__inputs__[:]
-                outputs = self.__outputs__[0] + " - " + other.__outputs__[0]
-                outputs = "(" + outputs + ")"
-                interpolation = self.__interpolation__
-                # Create new Function object
-                return Function(source, inputs, outputs, interpolation)
-            else:
-                return Function(lambda x: (self.getValue(x) - other(x)))
-        # If other is Float except...
-        except AttributeError:
-            if isinstance(other, (float, int, complex)):
-                # Check if Function object source is array or callable
-                if isinstance(self.source, np.ndarray):
-                    # Operate on grid values
-                    Ys = self.yArray - other
-                    Xs = self.xArray
-                    source = np.concatenate(([Xs], [Ys])).transpose()
-                    # Retrieve inputs, outputs and interpolation
-                    inputs = self.__inputs__[:]
-                    outputs = self.__outputs__[0] + " - " + str(other)
-                    outputs = "(" + outputs + ")"
-                    interpolation = self.__interpolation__
-                    # Create new Function object
-                    return Function(source, inputs, outputs, interpolation)
-                else:
-                    return Function(lambda x: (self.getValue(x) - other))
-            # Or if it is just a callable
-            elif callable(other):
-                return Function(lambda x: (self.getValue(x) - other(x)))
-
-    def __rsub__(self, other):
-        """Subtracts a Function object from 'other' and returns a new Function
-        object which gives the result of the subtraction. Only implemented for
-        1D domains.
-
-        Parameters
-        ----------
-        other : int, float, callable
-            What self will subtract from.
-
-        Returns
-        -------
-        result : Function
-            A Function object which gives the result of other(x)-self(x).
-        """
-        # Check if Function object source is array and other is float
-        if isinstance(other, (float, int, complex)):
-            if isinstance(self.source, np.ndarray):
-                # Operate on grid values
-                Ys = other - self.yArray
-                Xs = self.xArray
-                source = np.concatenate(([Xs], [Ys])).transpose()
-                # Retrieve inputs, outputs and interpolation
-                inputs = self.__inputs__[:]
-                outputs = str(other) + " - " + self.__outputs__[0]
-                outputs = "(" + outputs + ")"
-                interpolation = self.__interpolation__
-                # Create new Function object
-                return Function(source, inputs, outputs, interpolation)
-            else:
-                return Function(lambda x: (other - self.getValue(x)))
-        # Or if it is just a callable
-        elif callable(other):
-            return Function(lambda x: (other(x) - self.getValue(x)))
 
     def integral(self, a, b, numerical=False):
         """Evaluate a definite integral of a 1-D Function in the interval
@@ -2348,6 +2430,39 @@ class Function:
             return (
                 self.getValue(x + dx) - 2 * self.getValue(x) + self.getValue(x - dx)
             ) / dx**2
+
+    def identityFunction(self):
+        """Returns a Function object that correspond to the identity mapping,
+        i.e. f(x) = x.
+        If the Function object is defined on an array, the identity Function
+        follows the same discretization, and has linear interpolation and
+        extrapolation.
+        If the Function is defined by a lambda, the identity Function is the
+        indentity map 'lambda x: x'.
+
+        Returns
+        -------
+        result : Function
+            A Function object that corresponds to the identity mapping.
+        """
+
+        # Check if Function object source is array
+        if isinstance(self.source, np.ndarray):
+            identity = Function(
+                [(-1, -1), (1, 1)],
+                inputs=self.__inputs__,
+                outputs=f"identity of {self.__outputs__}",
+                interpolation="linear",
+                extrapolation="natural",
+            )
+            return identity.setDiscreteBasedOnModel(self)
+
+        else:
+            return Function(
+                lambda x: x,
+                inputs=self.__inputs__,
+                outputs=f"identity of {self.__outputs__}",
+            )
 
     def derivativeFunction(self):
         """Returns a Function object which gives the derivative of the Function object.
