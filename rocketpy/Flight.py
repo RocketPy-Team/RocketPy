@@ -2117,7 +2117,8 @@ class Flight:
     # Potential Energy
     @funcify_method("Time (s)", "Potential Energy (J)", "spline", "constant")
     def potentialEnergy(self):
-        """Potential energy as a rocketpy.Function of time."""
+        """Potential energy as a rocketpy.Function of time in relation to sea
+        level."""
         # Constants
         GM = 3.986004418e14
         # Redefine totalMass time grid to allow for efficient Function algebra
