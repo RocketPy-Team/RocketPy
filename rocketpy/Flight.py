@@ -2124,7 +2124,11 @@ class Flight:
         # Redefine totalMass time grid to allow for efficient Function algebra
         totalMass = deepcopy(self.rocket.totalMass)
         totalMass.setDiscreteBasedOnModel(self.z)
-        potentialEnergy = GM * totalMass / self.env.earthRadius * (1 / self.z - 1)
+        potentialEnergy = (
+            GM
+            * totalMass
+            * (1 / (self.z + self.env.earthRadius) - 1 / self.env.earthRadius)
+        )
         return potentialEnergy
 
     # Total Mechanical Energy
