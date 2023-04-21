@@ -2118,10 +2118,12 @@ class Flight:
     @funcify_method("Time (s)", "Potential Energy (J)", "spline", "constant")
     def potentialEnergy(self):
         """Potential energy as a rocketpy.Function of time."""
+        # Constants
+        GM = 3.986004418e14
         # Redefine totalMass time grid to allow for efficient Function algebra
         totalMass = deepcopy(self.rocket.totalMass)
         totalMass.setDiscreteBasedOnModel(self.z)
-        potentialEnergy = totalMass * self.env.gravity.compose(self.z) * self.z
+        potentialEnergy = GM * totalMass / self.env.earthRadius * (1 / self.z - 1)
         return potentialEnergy
 
     # Total Mechanical Energy
