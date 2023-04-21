@@ -224,7 +224,7 @@ After having the trigger functions defined, the parachute must be added to the r
     )
 
 Simulating the flight
---------------------
+---------------------
 
 Finally, the flight can be simulated with the provided data.
 The rocket and environment classes are supplied as inputs, as well as the rail inclination and heading angle.
