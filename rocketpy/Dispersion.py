@@ -124,158 +124,140 @@ class Dispersion:
         self.tails = rocket.tails
         self.parachutes = rocket.parachutes
         self.rail_buttons = rocket.rail_buttons
+        self.export_list = []
+        self.inputs_log = []
+        self.outputs_log = []
+        self.errors_log = []
+        self.num_of_loaded_sims = 0
+        self.results = {}
+        self.processed_results = {}
 
         try:
             self.import_inputs()
-        except:
-            self._dispersion_input_file = ""
+        except FileNotFoundError:
+            self._input_file = f"{filename}.disp_inputs.txt"
 
         try:
             self.import_outputs()
-        except:
-            self._dispersion_output_file = ""
+        except FileNotFoundError:
+            self._output_file = f"{filename}.disp_outputs.txt"
 
         try:
             self.import_errors()
-        except:
-            self._dispersion_error_file = ""
+        except FileNotFoundError:
+            self._error_file = f"{filename}.disp_errors.txt"
 
         # TODO: Initialize variables so they can be accessed by MATLAB
-
         return None
 
     # getters and setters for dispersion input/output/error files
     @property
-    def dispersion_input_file(self):
-        # try is for when the file has not been opened yet
-        try:
-            # Resets cursor position to the beginning of the file
-            self._dispersion_input_file.seek(0)
-            return self._dispersion_input_file
-        except:
-            return self._dispersion_input_file
+    def input_file(self):
+        return self._input_file
 
-    @dispersion_input_file.setter
-    def dispersion_input_file(self, value):
-        self._dispersion_input_file = value
-        return self._dispersion_input_file
+    @input_file.setter
+    def input_file(self, value):
+        self._input_file = value
+        self.set_inputs_log()
 
     @property
-    def dispersion_output_file(self):
-        # try is for when the file has not been opened yet
-        try:
-            # Resets cursor position to the beginning of the file
-            self._dispersion_output_file.seek(0)
-            return self._dispersion_output_file
-        except:
-            return self._dispersion_output_file
+    def output_file(self):
+        return self._output_file
 
-    @dispersion_output_file.setter
-    def dispersion_output_file(self, value):
-        self._dispersion_output_file = value
-        return self._dispersion_output_file
+    @output_file.setter
+    def output_file(self, value):
+        self._output_file = value
+        self.set_outputs_log()
+        self.set_num_of_loaded_sims()
+        self.set_results()
+        self.set_processed_results()
 
     @property
-    def dispersion_error_file(self):
-        # try is for when the file has not been opened yet
-        try:
-            # Resets cursor position to the beginning of the file
-            self._dispersion_error_file.seek(0)
-            return self._dispersion_error_file
-        except:
-            return self._dispersion_error_file
+    def error_file(self):
+        return self._error_file
 
-    @dispersion_error_file.setter
-    def dispersion_error_file(self, value):
-        self._dispersion_error_file = value
-        return self._dispersion_error_file
+    @error_file.setter
+    def error_file(self, value):
+        self._error_file = value
+        self.set_errors_log()
 
-    # cached properties
-    @cached_property
-    def inputs_log(self):
-        """Save inputs_log log from a file into an attribute for easy access"""
+    # setters for post simulation attributes
+    def set_inputs_log(self):
+        """Save inputs_log from a file into an attribute for easy access"""
         # TODO: add pickle package to deal with parachute triggers and Function objects
-        inputs_log = []
+        self.inputs_log = []
+        with open(self.input_file, mode="r", encoding="utf-8") as disp_inputs:
+            # Loop through each line in the file
+            for line in disp_inputs:
+                # swap "<" and ">" to "'"
+                # this is done to interpret the trigger functions
+                line = line.replace("<", "'")
+                line = line.replace(">", "'")
+                # # Skip comments lines
+                if line[0] != "{":
+                    continue
+                # Try to convert the line to a dictionary
+                d = ast.literal_eval(line)
+                # If successful, append the dictionary to the list
+                self.inputs_log.append(d)
+        return None
+
+    def set_outputs_log(self):
+        """Save outputs_log from a file into an attribute for easy access"""
+        self.outputs_log = []
         # Loop through each line in the file
-        for line in self.dispersion_input_file:
-            # swap "<" and ">" to \"
-            # this is a way to interpret the trigger functions
-            line = line.replace("<", "'")
-            line = line.replace(">", "'")
-            # # Skip comments lines
-            if line[0] != "{":
-                continue
-            # Try to convert the line to a dictionary
-            d = ast.literal_eval(line)
-            # If successful, append the dictionary to the list
-            inputs_log.append(d)
+        with open(self.output_file, mode="r", encoding="utf-8") as disp_outputs:
+            for line in disp_outputs:
+                # Skip comments lines
+                if line[0] != "{":
+                    continue
+                # Try to convert the line to a dictionary
+                d = ast.literal_eval(line)
+                # If successful, append the dictionary to the list
+                self.outputs_log.append(d)
+        return None
 
-        return inputs_log
-
-    @cached_property
-    def outputs_log(self):
-        """Save outputs_log log from a file into an attribute for easy access"""
-        outputs_log = []
-        # Loop through each line in the file
-        for line in self.dispersion_output_file:
-            # Skip comments lines
-            if line[0] != "{":
-                continue
-            # Try to convert the line to a dictionary
-            d = ast.literal_eval(line)
-            # If successful, append the dictionary to the list
-            outputs_log.append(d)
-
-        return outputs_log
-
-    @cached_property
-    def errors_log(self):
+    def set_errors_log(self):
         """Save errors_log log from a file into an attribute for easy access"""
-        errors_log = []
+        self.errors_log = []
         # Loop through each line in the file
-        for line in self.dispersion_error_file:
-            # Skip comments lines
-            if line[0] != "{":
-                continue
-            # Try to convert the line to a dictionary
-            d = ast.literal_eval(line)
-            # If successful, append the dictionary to the list
-            errors_log.append(d)
+        with open(self.error_file, mode="r", encoding="utf-8") as disp_errors:
+            for line in disp_errors:
+                # Skip comments lines
+                if line[0] != "{":
+                    continue
+                # Try to convert the line to a dictionary
+                d = ast.literal_eval(line)
+                # If successful, append the dictionary to the list
+                self.errors_log.append(d)
+        return None
 
-        return errors_log
-
-    @cached_property
-    def num_of_loaded_sims(self):
+    def set_num_of_loaded_sims(self):
         # Calculate the number of flights simulated
-        num_of_loaded_sims = 0
-
+        self.num_of_loaded_sims = 0
         # Loop through each line in the file
-        for line in self.dispersion_output_file:
-            # Skip comments lines
-            if line[0] != "{":
-                continue
+        with open(self.output_file, mode="r", encoding="utf-8") as disp_outputs:
+            for line in disp_outputs:
+                # Skip comments lines
+                if line[0] != "{":
+                    continue
+                self.num_of_loaded_sims += 1
+        return None
 
-            num_of_loaded_sims += 1
-
-        return num_of_loaded_sims
-
-    @cached_property
-    def dispersion_results(self):
+    def set_results(self):
         """Dispersion results organized in a dictionary where the keys are the
         names of the saved attributes, and the values are a list with all the
         result number of the respective attribute"""
-
-        dispersion_result = {}
+        self.results = {}
         for result in self.outputs_log:
             for key, value in result.items():
-                if key in dispersion_result.keys():
-                    dispersion_result[key].append(value)
+                if key in self.results.keys():
+                    self.results[key].append(value)
                 else:
-                    dispersion_result[key] = [value]
-        return dispersion_result
+                    self.results[key] = [value]
+        return None
 
-    @cached_property
-    def processed_dispersion_results(self):
+    def set_processed_results(self):
         """Creates a dictionary with the mean and standard deviation of each
         parameter available in the results
 
@@ -285,16 +267,16 @@ class Dispersion:
 
         Returns
         -------
-        processed_dispersion_results: dict
+        processed_results: dict
             A dictionary with the mean and standard deviation of each parameter
             available in the results dictionary.
         """
-        processed_dispersion_results = {}
-        for result in self.dispersion_results.keys():
-            mean = np.mean(self.dispersion_results[result])
-            stdev = np.std(self.dispersion_results[result])
-            processed_dispersion_results[result] = (mean, stdev)
-        return processed_dispersion_results
+        self.processed_results = {}
+        for result in self.results.keys():
+            mean = np.mean(self.results[result])
+            stdev = np.std(self.results[result])
+            self.processed_results[result] = (mean, stdev)
+        return None
 
     # methods for running dispersion analysis
     def __yield_flight_setting(self, dispersion_dictionary, number_of_simulations):
@@ -506,21 +488,15 @@ class Dispersion:
 
         # Create data files for inputs, outputs and error logging
         open_mode = "a" if append else "w"
-        dispersion_input_file = open(
-            f"{self.filename}.disp_inputs.txt", open_mode, encoding="utf-8"
-        )
-        dispersion_output_file = open(
-            f"{self.filename}.disp_outputs.txt", open_mode, encoding="utf-8"
-        )
-        dispersion_error_file = open(
-            f"{self.filename}.disp_errors.txt", open_mode, encoding="utf-8"
-        )
+        input_file = open(self._input_file, open_mode, encoding="utf-8")
+        output_file = open(self._output_file, open_mode, encoding="utf-8")
+        error_file = open(self._error_file, open_mode, encoding="utf-8")
 
         # Checks export_list
         self.export_list = self.__check_export_list(export_list)
 
         # Initialize counter and timer
-        i = 0
+        i = self.num_of_loaded_sims
         initial_wall_time = time()
         initial_cpu_time = process_time()
 
@@ -691,15 +667,15 @@ class Dispersion:
                 self.__export_flight_data(
                     setting=setting,
                     flight=dispersion_flight,
-                    input_file=dispersion_input_file,
-                    output_file=dispersion_output_file,
+                    input_file=input_file,
+                    output_file=output_file,
                 )
             except (TypeError, ValueError, KeyError, AttributeError) as error:
                 print(f"Error on iteration {i}: {error}\n")
-                dispersion_error_file.write(f"{setting}\n")
+                error_file.write(f"{setting}\n")
             except KeyboardInterrupt:
                 print("Keyboard Interrupt, file saved.")
-                dispersion_error_file.write(f"{setting}\n")
+                error_file.write(f"{setting}\n")
                 break
 
             # spaces after the last 's' are necessary to fix a bug with end='\r'
@@ -719,14 +695,15 @@ class Dispersion:
         print(final_string, end="\r")
 
         # close files to guarantee saving
-        dispersion_input_file.close()
-        dispersion_output_file.close()
-        dispersion_error_file.close()
+        input_file.close()
+        output_file.close()
+        error_file.close()
 
-        # save the opened files on self as read only
-        self.dispersion_input_file = open(f"{self.filename}.disp_inputs.txt", "r")
-        self.dispersion_output_file = open(f"{self.filename}.disp_outputs.txt", "r")
-        self.dispersion_error_file = open(f"{self.filename}.disp_errors.txt", "r")
+        # resave the files on self and calculate post simulation attributes
+        self.input_file = f"{self.filename}.disp_inputs.txt"
+        self.output_file = f"{self.filename}.disp_outputs.txt"
+        self.error_file = f"{self.filename}.disp_errors.txt"
+
         return None
 
     # methods for exporting data
@@ -887,19 +864,21 @@ class Dispersion:
         filepath = filename if filename else self.filename
 
         try:
-            self.dispersion_output_file = open(filepath, "r+")
-            # Print the number of flights simulated
-            print(
-                f"A total of {self.num_of_loaded_sims} simulations results were loaded from"
-                f" the following output file: {filepath}\n"
-            )
-        except:
-            self.dispersion_output_file = open(f"{filepath}.disp_outputs.txt", "r+")
-            # Print the number of flights simulated
-            print(
-                f"A total of {self.num_of_loaded_sims} simulations results were loaded from"
-                f" the following output file: {filepath}.disp_outputs.txt\n"
-            )
+            with open(f"{filepath}.disp_outputs.txt", "r+", encoding="utf-8"):
+                self.output_file = f"{filepath}.disp_outputs.txt"
+                # Print the number of flights simulated
+                print(
+                    f"A total of {self.num_of_loaded_sims} simulations results were loaded from"
+                    f" the following output file: {filepath}.disp_outputs.txt\n"
+                )
+        except FileNotFoundError:
+            with open(filepath, "r+", encoding="utf-8"):
+                self.output_file = filepath
+                # Print the number of flights simulated
+                print(
+                    f"A total of {self.num_of_loaded_sims} simulations results were loaded from"
+                    f" the following output file: {filepath}\n"
+                )
         return None
 
     def import_inputs(self, filename=None):
@@ -919,15 +898,17 @@ class Dispersion:
         filepath = filename if filename else self.filename
 
         try:
-            self.dispersion_output_file = open(filepath, "r+")
-            # Print the number of flights simulated
-            print(f"The following input file was imported: {filepath}\n")
-        except:
-            self.dispersion_output_file = open(f"{filepath}.disp_inputs.txt", "r+")
-            # Print the number of flights simulated
-            print(
-                f"The following input file was imported: {filepath}.disp_inputs.txt\n"
-            )
+            with open(f"{filepath}.disp_inputs.txt", "r+", encoding="utf-8"):
+                self.input_file = f"{filepath}.disp_inputs.txt"
+                # Print the number of flights simulated
+                print(
+                    f"The following input file was imported: {filepath}.disp_inputs.txt\n"
+                )
+        except FileNotFoundError:
+            with open(filepath, "r+", encoding="utf-8"):
+                self.input_file = filepath
+                # Print the number of flights simulated
+                print(f"The following input file was imported: {filepath}\n")
         return None
 
     def import_errors(self, filename=None):
@@ -947,15 +928,17 @@ class Dispersion:
         filepath = filename if filename else self.filename
 
         try:
-            self.dispersion_output_file = open(filepath, "r+")
-            # Print the number of flights simulated
-            print(f"The following error file was imported: {filepath}\n")
-        except:
-            self.dispersion_output_file = open(f"{filepath}.disp_errors.txt", "r+")
-            # Print the number of flights simulated
-            print(
-                f"The following error file was imported: {filepath}.disp_errors.txt\n"
-            )
+            with open(f"{filepath}.disp_errors.txt", "r+", encoding="utf-8"):
+                self.error_file = f"{filepath}.disp_errors.txt"
+                # Print the number of flights simulated
+                print(
+                    f"The following error file was imported: {filepath}.disp_errors.txt\n"
+                )
+        except FileNotFoundError:
+            with open(filepath, "r+", encoding="utf-8"):
+                self.error_file = filepath
+                # Print the number of flights simulated
+                print(f"The following error file was imported: {filepath}\n")
         return None
 
     def import_results(self, filename=None):
@@ -981,13 +964,13 @@ class Dispersion:
         return None
 
     # methods for ellipses
-    def __createEllipses(self, dispersion_results):
+    def __createEllipses(self, results):
         """A function to create apogee and impact ellipses from the dispersion
         results.
 
         Parameters
         ----------
-        dispersion_results : dict
+        results : dict
             A dictionary containing the results of the dispersion analysis.
 
         Returns
@@ -1008,15 +991,15 @@ class Dispersion:
 
         # Retrieve dispersion data por apogee and impact XY position
         try:
-            apogeeX = np.array(dispersion_results["apogeeX"])
-            apogeeY = np.array(dispersion_results["apogeeY"])
+            apogeeX = np.array(results["apogeeX"])
+            apogeeY = np.array(results["apogeeY"])
         except KeyError:
             print("No apogee data found.")
             apogeeX = np.array([])
             apogeeY = np.array([])
         try:
-            impactX = np.array(dispersion_results["xImpact"])
-            impactY = np.array(dispersion_results["yImpact"])
+            impactX = np.array(results["xImpact"])
+            impactY = np.array(results["yImpact"])
         except KeyError:
             print("No impact data found.")
             impactX = np.array([])
@@ -1126,7 +1109,7 @@ class Dispersion:
             apogeeY,
             impactX,
             impactY,
-        ) = self.__createEllipses(self.dispersion_results)
+        ) = self.__createEllipses(self.results)
 
         # Create plot figure
         plt.figure(num=None, figsize=(8, 6), dpi=150, facecolor="w", edgecolor="k")
@@ -1273,7 +1256,7 @@ class Dispersion:
         """Generates a KML file with the ellipses on the impact point.
         Parameters
         ----------
-        dispersion_results : dict
+        results : dict
             Contains dispersion results from the Monte Carlo simulation.
         filename : String
             Name to the KML exported file.
@@ -1303,7 +1286,7 @@ class Dispersion:
             _,
             _,
             _,
-        ) = self.__createEllipses(self.dispersion_results)
+        ) = self.__createEllipses(self.results)
         outputs = []
 
         if type == "all" or type == "impact":
@@ -1368,7 +1351,7 @@ class Dispersion:
         """
         print("{:>25} {:>15} {:>15}".format("Parameter", "Mean", "Std. Dev."))
         print("-" * 60)
-        for key, value in self.processed_dispersion_results.items():
+        for key, value in self.processed_results.items():
             print("{:>25} {:>15.3f} {:>15.3f}".format(key, value[0], value[1]))
 
         return None
@@ -1384,10 +1367,10 @@ class Dispersion:
         -------
         None
         """
-        for key in self.dispersion_results.keys():
+        for key in self.results.keys():
             plt.figure()
             plt.hist(
-                self.dispersion_results[key],
+                self.results[key],
             )
             plt.title("Histogram of " + key)
             plt.ylabel("Number of Occurrences")
