@@ -213,8 +213,19 @@ class Dispersion:
             for line in disp_inputs:
                 # swap "<" and ">" to "'"
                 # this is done to interpret the trigger functions
-                line = line.replace("<", "'")
-                line = line.replace(">", "'")
+                # Find the index of the first and last occurrences of '<' and '>'
+                first_lt_index = line.find("<")
+                last_gt_index = line.rfind(">")
+                if first_lt_index != -1 and last_gt_index != -1:
+                    # Replace the first '<' and last '>' with double quotes
+                    line = (
+                        line[:first_lt_index]
+                        + '"'
+                        + line[first_lt_index + 1 : last_gt_index]
+                        + '"'
+                        + line[last_gt_index + 1 :]
+                    )
+
                 # # Skip comments lines
                 if line[0] != "{":
                     continue

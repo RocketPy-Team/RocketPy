@@ -334,6 +334,10 @@ def mc_rocket(rocket, mc_solid_motor):
         powerOnDragFactor=(1, 0.033),
     )
 
+    rail_buttons = rocket.setRailButtons([0.2, -0.5])
+
+    mc_rail_button = McRailButtons(rail_buttons=rail_buttons)
+
     nose_cone = rocket.addNose(
         length=0.55829, kind="vonKarman", position=0.71971 + 0.558291
     )
@@ -404,7 +408,7 @@ def mc_rocket(rocket, mc_solid_motor):
     mc_rocket.addNose(mc_nose_cone, position=(1.134, 0.001))
     mc_rocket.addTrapezoidalFins(mc_fin_set, position=(0.001, "normal"))
     mc_rocket.addTail(mc_tail, position=(-1.194656, 0.001, "normal"))
-    # TODO: add rail buttons to be tested
+    mc_rocket.addRailButtons(mc_rail_button)
     mc_rocket.addParachute(mc_main)
     mc_rocket.addParachute(mc_drogue)
 
@@ -412,7 +416,7 @@ def mc_rocket(rocket, mc_solid_motor):
 
 
 @pytest.fixture
-def mc_flight(flight):
+def mc_flight(rocket, example_env):
     """Create an object to be used as the McFlight fixture in the tests.
 
     Parameters
@@ -425,6 +429,15 @@ def mc_flight(flight):
     McFlight
         An object of the McFlight class
     """
+    # creates flight
+    flight = Flight(
+        environment=example_env,
+        rocket=rocket,
+        inclination=85,
+        heading=90,
+        terminateOnApogee=False,
+    )
+
     return McFlight(
         flight=flight,
         inclination=(84.7, 1),
