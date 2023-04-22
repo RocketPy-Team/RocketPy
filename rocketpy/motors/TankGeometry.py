@@ -164,6 +164,64 @@ class TankGeometry:
             lambda v: v / (np.pi * self.average_radius**2),
         )
 
+    @funcify_method("height (m)", "balance (m⁴)")
+    def balance(self):
+        """
+        The volume balance of the tank as a function of height.
+
+        Returns
+        -------
+        Function
+            Tank centroid as a function of height.
+        """
+        height = self.area.identityFunction()
+        return (height * self.area).integralFunction()
+
+    @funcify_method("height (m)", "volume of inertia (m⁵)")
+    def Ix_volume(self):
+        """
+        The volume of inertia of the tank with respect to
+        the x-axis as a function of height. The x direction is
+        assumed to be perpendicular to the motor body axis.
+
+        Returns
+        -------
+        Function
+            Tank volume of inertia as a function of height.
+        """
+        height2 = self.radius.identityFunction() ** 2
+        return (self.area * (height2 + self.radius**2 / 4)).integralFunction()
+
+    @funcify_method("height (m)", "volume of inertia (m⁵)")
+    def Iy_volume(self):
+        """
+        The volume of inertia of the tank with respect to
+        the y-axis as a function of height. The y direction is
+        assumed to be perpendicular to the motor body axis.
+
+        Due to symmetry, this is the same as the Ix_volume.
+
+        Returns
+        -------
+        Function
+            Tank volume of inertia as a function of height.
+        """
+        return self.Ix_volume
+
+    @funcify_method("height (m)", "volume of inertia (m⁵)")
+    def Iz_volume(self):
+        """
+        The volume of inertia of the tank with respect to
+        the z-axis as a function of height. The z direction is
+        assumed to be parallel to the motor body axis.
+
+        Returns
+        -------
+        Function
+            Tank volume of inertia as a function of height.
+        """
+        return (self.area * self.radius**2).integralFunction() / 2
+
     def add_geometry(self, domain, radius_function):
         """
         Adds a new geometry to the tank. The geometry is defined by a Function
