@@ -17,7 +17,11 @@ class McParachute(DispersionModel):
     defined here correspond to the ones defined in the Parachute class.
     """
 
-    parachute: Parachute = Field(..., exclude=True)
+    # Field(...) means it is a required field
+    # Fields with typing Any must have the standard dispersion form of tuple or
+    # list. This is checked in the DispersionModel root_validator
+    # Fields with any typing that is not Any have special requirements
+    parachute: Parachute = Field(...)
     CdS: Any = 0
     trigger: List[Union[Callable, None]] = []
     samplingRate: Any = 0

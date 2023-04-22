@@ -16,7 +16,11 @@ class McNoseCone(DispersionModel):
     as a base class, see its documentation for more information. The inputs
     defined here correspond to the ones defined in the NoseCone class."""
 
-    nosecone: NoseCone = Field(..., exclude=True)
+    # Field(...) means it is a required field
+    # Fields with typing Any must have the standard dispersion form of tuple or
+    # list. This is checked in the DispersionModel root_validator
+    # Fields with any typing that is not Any have special requirements
+    nosecone: NoseCone = Field(...)
     length: Any = 0
     kind: List[Union[StrictStr, None]] = []
     baseRadius: Any = 0
@@ -31,7 +35,7 @@ class McTrapezoidalFins(DispersionModel):
     information.
     """
 
-    trapezoidalFins: TrapezoidalFins = Field(..., exclude=True)
+    trapezoidalFins: TrapezoidalFins = Field(...)
     n: List[StrictInt] = []
     rootChord: Any = 0
     tipChord: Any = 0
@@ -52,7 +56,7 @@ class McEllipticalFins(DispersionModel):
     information.
     """
 
-    ellipticalFins: EllipticalFins = Field(..., exclude=True)
+    ellipticalFins: EllipticalFins = Field(...)
     n: Any = 0
     rootChord: Any = 0
     span: Any = 0
@@ -67,7 +71,7 @@ class McTail(DispersionModel):
     based on the pydantic library. It uses the DispersionModel class as a base
     class, see its documentation for more information."""
 
-    tail: Tail = Field(..., exclude=True)
+    tail: Tail = Field(...)
     topRadius: Any = 0
     bottomRadius: Any = 0
     length: Any = 0
@@ -81,7 +85,7 @@ class McRailButtons(DispersionModel):
     class as a base class, see its documentation for more information.
     """
 
-    rail_buttons: RailButtons = Field(..., exclude=True)
+    rail_buttons: RailButtons = Field(...)
     upper_button_position: Any = 0
     lower_button_position: Any = 0
     angular_position: Any = 0

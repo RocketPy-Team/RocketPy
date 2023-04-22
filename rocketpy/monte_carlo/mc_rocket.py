@@ -27,7 +27,11 @@ class McRocket(DispersionModel):
     here correspond to the ones defined in the Rocket class.
     """
 
-    rocket: Rocket = Field(..., exclude=True)
+    # Field(...) means it is a required field
+    # Fields with typing Any must have the standard dispersion form of tuple or
+    # list. This is checked in the DispersionModel root_validator
+    # Fields with any typing that is not Any have special requirements
+    rocket: Rocket = Field(...)
     radius: Any = 0
     mass: Any = 0
     inertiaI: Any = 0
@@ -37,6 +41,7 @@ class McRocket(DispersionModel):
     centerOfDryMassPosition: Any = 0
     powerOffDragFactor: Any = (1, 0)
     powerOnDragFactor: Any = (1, 0)
+    # Private attributes for the add methods
     _motors: list = PrivateAttr()
     _nosecones: list = PrivateAttr()
     _fins: list = PrivateAttr()
@@ -45,6 +50,7 @@ class McRocket(DispersionModel):
     _rail_buttons: list = PrivateAttr()
 
     def __init__(self, **kwargs):
+        """Initializes private attributes and calls DispersionModel __init__"""
         super().__init__(**kwargs)
         self._motors = []
         self._nosecones = []
@@ -53,6 +59,7 @@ class McRocket(DispersionModel):
         self._parachutes = []
         self._rail_buttons = []
 
+    # getters for attributes of the add methods
     @property
     def motors(self):
         return self._motors
@@ -78,8 +85,8 @@ class McRocket(DispersionModel):
         return self._rail_buttons
 
     def _validate_position(self, position, obj, attr_name):
-        """Checks if 'position' argument was correctly inputted in the 'add' methods.
-        The logic is the same as in the set_attr root validator."""
+        """Checks if 'position' argument was correctly inputted in the 'add'
+        methods. The logic is the same as in the set_attr root validator."""
         # checks if tuple
         if isinstance(position, tuple):
             # checks if first item is valid
@@ -160,16 +167,72 @@ class McRocket(DispersionModel):
             )
 
     def addMotor(self, motor, position=[]):
-        """Adds a motor to the McRocket model. The motor need to be of
-        McSolidMotor type.
+        """Adds a motor to the McRocket object.
+
+        Parameters
+        ----------
+        motor : McSolidMotor
+            The motor to be added to the rocket. Must be a McSolidMotor type.
+        position : int, float, tuple, list, optional
+            Position of the motor in relation to rocket's coordinate system.
+            If float or int, refers to the standard deviation. In this case,
+            the nominal value of that attribute will come from the motor object
+            passed. If the distribution function needs to be specified, then a
+            tuple with the standard deviation as the first item, and the string
+            containing the name a numpy.random distribution function can be
+            passed e.g. (std, "dist_function").
+            If a tuple with a nominal value and a standard deviation is passed,
+            then it will take priority over the motor object attribute's value.
+            A third item can also be added to the tuple specifying the
+            distribution function e.g. (nom_value, std, "dist_function").
+            If a list is passed, the code will chose a random item of the list
+            in each simulation of the dispersion.
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        TypeError
+            In case motor is not a McSolidMotor type.
         """
         # checks if input is a McSolidMotor type
         if not isinstance(motor, McSolidMotor):
             raise TypeError("motor must be of McMotor type")
         motor.position = self._validate_position(position, self.rocket, "motorPosition")
-        return self.motors.append(motor)
+        self.motors.append(motor)
+        return None
 
     def addNose(self, nose, position=[]):
+        """Adds a nose cone to the McRocket object.
+
+        Parameters
+        ----------
+        nose : McNoseCone
+            The nose cone to be added to the rocket. Must be a McNoseCone type.
+        position : int, float, tuple, list, optional
+            Position of the nose cone in relation to rocket's coordinate system.
+            If float or int, refers to the standard deviation. In this case,
+            the nominal value of that attribute will come from the nose cone object
+            passed. If the distribution function needs to be specified, then a
+            tuple with the standard deviation as the first item, and the string
+            containing the name a numpy.random distribution function can be
+            passed e.g. (std, "dist_function").
+            If a tuple with a nominal value and a standard deviation is passed,
+            then it will take priority over the nose cone object attribute's value.
+            A third item can also be added to the tuple specifying the
+            distribution function e.g. (nom_value, std, "dist_function").
+            If a list is passed, the code will chose a random item of the list
+            in each simulation of the dispersion.
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        TypeError
+            In case nose is not a McNoseCone type.
+        """
         # checks if input is a McNoseCone or NoseCone type
         if not isinstance(nose, (McNoseCone, NoseCone)):
             raise TypeError(
@@ -179,9 +242,39 @@ class McRocket(DispersionModel):
             # create McNoseCone
             nose = McNoseCone(nosecone=nose)
         nose.position = self._validate_position(position, nose.nosecone, "position")
-        return self.nosecones.append(nose)
+        self.nosecones.append(nose)
+        return None
 
     def addTrapezoidalFins(self, fins, position=[]):
+        """Adds a trapezoidal fin set to the McRocket object.
+
+        Parameters
+        ----------
+        fins : McTrapezoidalFins
+            The trapezoidal fin set to be added to the rocket. Must be a McTrapezoidalFins type.
+        position : int, float, tuple, list, optional
+            Position of the trapezoidal fin set in relation to rocket's coordinate system.
+            If float or int, refers to the standard deviation. In this case,
+            the nominal value of that attribute will come from the trapezoidal fin set object
+            passed. If the distribution function needs to be specified, then a
+            tuple with the standard deviation as the first item, and the string
+            containing the name a numpy.random distribution function can be
+            passed e.g. (std, "dist_function").
+            If a tuple with a nominal value and a standard deviation is passed,
+            then it will take priority over the trapezoidal fin set object attribute's value.
+            A third item can also be added to the tuple specifying the
+            distribution function e.g. (nom_value, std, "dist_function").
+            If a list is passed, the code will chose a random item of the list
+            in each simulation of the dispersion.
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        TypeError
+            In case fins is not a McTrapezoidalFins type.
+        """
         # checks if input is a McTrapezoidalFins type
         if not isinstance(fins, (McTrapezoidalFins, TrapezoidalFins)):
             raise TypeError("fins must be of McTrapezoidalFins type")
@@ -191,9 +284,39 @@ class McRocket(DispersionModel):
         fins.position = self._validate_position(
             position, fins.trapezoidalFins, "position"
         )
-        return self.fins.append(fins)
+        self.fins.append(fins)
+        return None
 
     def addEllipticalFins(self, fins, position=[]):
+        """Adds a elliptical fin set to the McRocket object.
+
+        Parameters
+        ----------
+        fins : McEllipticalFins
+            The elliptical fin set to be added to the rocket. Must be a McEllipticalFins type.
+        position : int, float, tuple, list, optional
+            Position of the elliptical fin set in relation to rocket's coordinate system.
+            If float or int, refers to the standard deviation. In this case,
+            the nominal value of that attribute will come from the elliptical fin set object
+            passed. If the distribution function needs to be specified, then a
+            tuple with the standard deviation as the first item, and the string
+            containing the name a numpy.random distribution function can be
+            passed e.g. (std, "dist_function").
+            If a tuple with a nominal value and a standard deviation is passed,
+            then it will take priority over the elliptical fin set object attribute's value.
+            A third item can also be added to the tuple specifying the
+            distribution function e.g. (nom_value, std, "dist_function").
+            If a list is passed, the code will chose a random item of the list
+            in each simulation of the dispersion.
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        TypeError
+            In case fins is not a McEllipticalFins type.
+        """
         # checks if input is a McEllipticalFins type
         if not isinstance(fins, (McEllipticalFins, EllipticalFins)):
             raise TypeError("fins must be of McEllipticalFins type")
@@ -203,9 +326,39 @@ class McRocket(DispersionModel):
         fins.position = self._validate_position(
             position, fins.ellipticalFins, "position"
         )
-        return self.fins.append(fins)
+        self.fins.append(fins)
+        return None
 
     def addTail(self, tail, position=[]):
+        """Adds a tail to the McRocket object.
+
+        Parameters
+        ----------
+        tail : McTail
+            The tail to be added to the rocket. Must be a McTail type.
+        position : int, float, tuple, list, optional
+            Position of the tail in relation to rocket's coordinate system.
+            If float or int, refers to the standard deviation. In this case,
+            the nominal value of that attribute will come from the tail object
+            passed. If the distribution function needs to be specified, then a
+            tuple with the standard deviation as the first item, and the string
+            containing the name a numpy.random distribution function can be
+            passed e.g. (std, "dist_function").
+            If a tuple with a nominal value and a standard deviation is passed,
+            then it will take priority over the tail object attribute's value.
+            A third item can also be added to the tuple specifying the
+            distribution function e.g. (nom_value, std, "dist_function").
+            If a list is passed, the code will chose a random item of the list
+            in each simulation of the dispersion.
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        TypeError
+            In case tail is not a McTail type.
+        """
         # checks if input is a McTail type
         if not isinstance(tail, (McTail, Tail)):
             raise TypeError("tail must be of McTail type")
@@ -213,10 +366,11 @@ class McRocket(DispersionModel):
             # create McTail
             tail = McTail(tail=tail)
         tail.position = self._validate_position(position, tail.tail, "position")
-        return self.tails.append(tail)
+        self.tails.append(tail)
+        return None
 
     def addParachute(self, parachute):
-        """Method to add a parachute to the McRocket object.
+        """Adds a parachute to the McRocket object.
 
         Parameters
         ----------
@@ -226,7 +380,7 @@ class McRocket(DispersionModel):
 
         Returns
         -------
-        ????
+        None
 
         Raises
         ------
@@ -236,7 +390,8 @@ class McRocket(DispersionModel):
         # checks if input is a McParachute type
         if not isinstance(parachute, McParachute):
             raise TypeError("parachute must be of McParachute type")
-        return self.parachutes.append(parachute)  # TODO: what is being returned?
+        self.parachutes.append(parachute)
+        return None
 
     def addRailButtons(
         self,
@@ -252,7 +407,7 @@ class McRocket(DispersionModel):
 
         Returns
         -------
-        ????
+        None
 
         Raises
         ------
@@ -261,4 +416,5 @@ class McRocket(DispersionModel):
         """
         if not isinstance(rail_buttons, McRailButtons):
             raise TypeError("rail_buttons must be of McRailButtons type")
-        return self.rail_buttons.append(rail_buttons)
+        self.rail_buttons.append(rail_buttons)
+        return None

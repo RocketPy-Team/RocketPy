@@ -15,7 +15,10 @@ class DispersionModel(BaseModel):
     class Config:
         """Configures pydantic to allow arbitrary types and extra fields."""
 
+        # Allows fields to be checked if they are of RocketPy classes types
         arbitrary_types_allowed = True
+        # Allows the dataclass to contain additional fields that are not
+        # defined in the class. Specially useful in McRocket
         extra = Extra.allow
 
     def __repr__(self):

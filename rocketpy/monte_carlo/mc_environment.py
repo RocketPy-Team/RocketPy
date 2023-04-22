@@ -17,11 +17,14 @@ class McEnvironment(DispersionModel):
     to be used in the Dispersion class based on the pydantic class. It uses the
     DispersionModel as a base model, see its docs for more information. The
     inputs defined here are the same as the ones defined in the Environment, see
-    its docs for more information.
-
+    its docs for more information. Only environment field is required.
     """
 
-    environment: Environment = Field(..., exclude=True)
+    # Field(...) means it is a required field
+    # Fields with typing Any must have the standard dispersion form of tuple or
+    # list. This is checked in the DispersionModel root_validator
+    # Fields with any typing that is not Any have special requirements
+    environment: Environment = Field(...)
     railLength: Any = 0
     date: List[Union[Tuple[int, int, int, int], None]] = []
     elevation: Any = 0

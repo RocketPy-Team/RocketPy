@@ -17,7 +17,11 @@ class McSolidMotor(DispersionModel):
     inputs defined here correspond to the ones defined in the SolidMotor class.
     """
 
-    solidMotor: SolidMotor = Field(..., exclude=True)
+    # Field(...) means it is a required field
+    # Fields with typing Any must have the standard dispersion form of tuple or
+    # list. This is checked in the DispersionModel root_validator
+    # Fields with any typing that is not Any have special requirements
+    solidMotor: SolidMotor = Field(...)
     thrustSource: List[Union[FilePath, None]] = []
     burnOutTime: Any = 0
     grainsCenterOfMassPosition: Any = 0
