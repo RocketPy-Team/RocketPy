@@ -643,9 +643,9 @@ class Function:
         >>> v.getInputs(), v.getOutputs()
         (['t'], ['v'])
         >>> kinetic_energy
-        Function from R1 to R1 : (x) → (Scalar)
+        'Function from R1 to R1 : (x) → (Scalar)'
         >>> kinetic_energy.reset(inputs='t', outputs='Kinetic Energy');
-        Function from R1 to R1 : (t) → (Kinetic Energy)
+        'Function from R1 to R1 : (t) → (Kinetic Energy)'
 
         Returns
         -------
@@ -2774,7 +2774,7 @@ def funcify_method(*args, **kwargs):
     ...         return lambda x: x**2
     >>> example = Example()
     >>> example.f
-    Function from R1 to R1 : (x) → (y)
+    'Function from R1 to R1 : (x) → (y)'
 
     Normal algebra can be performed afterwards:
 
@@ -2793,7 +2793,7 @@ def funcify_method(*args, **kwargs):
     ...         return g / f
     >>> example = Example()
     >>> example.cube
-    Function from R1 to R1 : (x) → (x**3)
+    'Function from R1 to R1 : (x) → (x**3)'
 
     3. Method which is itself a valid rocketpy.Function source argument.
 
@@ -2803,7 +2803,7 @@ def funcify_method(*args, **kwargs):
     ...         return x**2
     >>> example = Example()
     >>> example.f
-    Function from R1 to R1 : (x) → (f(x))
+    'Function from R1 to R1 : (x) → (f(x))'
 
     In order to reset the cache, just delete de attribute from the instance:
 
@@ -2812,7 +2812,7 @@ def funcify_method(*args, **kwargs):
     Once it is requested again, it will be re-created as a new Function object:
 
     >>> example.f
-    Function from R1 to R1 : (x) → (f(x))
+    'Function from R1 to R1 : (x) → (f(x))'
     """
     func = None
     if len(args) == 1 and callable(args[0]):
