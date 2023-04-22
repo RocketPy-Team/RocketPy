@@ -66,8 +66,6 @@ class Dispersion:
     Dispersion.rail_buttons : list of McRailButtons objects
         The rail buttons to be used in the rocket during the Flight. Usually
         only one object will be present in this list.
-    Dispersion.num_of_loaded_sims : int
-        Number of simulations loaded from a previous dispersion analysis.
     Dispersion.number_of_simulations : int
         Number of simulations to be performed in the run_dispersion() method.
     Dispersion.dispersion_dictionary : dict
@@ -76,10 +74,27 @@ class Dispersion:
     Dispersion.export_list : list
         List of parameters to be exported from each flight in the Monte Carlo
         loop.
-    Dispersion.dispersion_results : dict
+    Dispersion.input_file : str
+        String containing the filepath of the input file created during the
+        simulation or that was imported.
+    Dispersion.output_file : str
+        String containing the filepath of the output file created during the
+        simulation or that was imported.
+    Dispersion.error_file : str
+        String containing the filepath of the error file created during the
+        simulation or that was imported.
+    Dispersion.inputs_log : list
+        List in which each item is a line of the input_file.
+    Dispersion.outputs_log : list
+        List in which each item is a line of the output_file.
+    Dispersion.errors_log : list
+        List in which each item is a line of the error_file.
+    Dispersion.num_of_loaded_sims : int
+        Number of simulations loaded from output_file being currently used.
+    Dispersion.results : dict
         A dictionary containing all the output parameters saved from the flight
         simulations.
-    Dispersion.processed_dispersion_results : dict
+    Dispersion.processed_results : dict
         Dictionary containing (mean, std. dev.) for each parameter available
         in the dispersion dictionary.
     """
@@ -153,19 +168,24 @@ class Dispersion:
     # getters and setters for dispersion input/output/error files
     @property
     def input_file(self):
+        """String containing the filepath of the input file"""
         return self._input_file
 
     @input_file.setter
     def input_file(self, value):
+        """Setter for input_file. Sets/updates inputs_log."""
         self._input_file = value
         self.set_inputs_log()
 
     @property
     def output_file(self):
+        """String containing the filepath of the output file"""
         return self._output_file
 
     @output_file.setter
     def output_file(self, value):
+        """Setter for input_file. Sets/updates outputs_log, num_of_loaded_sims,
+        results, and processed_results."""
         self._output_file = value
         self.set_outputs_log()
         self.set_num_of_loaded_sims()
@@ -174,16 +194,18 @@ class Dispersion:
 
     @property
     def error_file(self):
+        """String containing the filepath of the error file"""
         return self._error_file
 
     @error_file.setter
     def error_file(self, value):
+        """Setter for input_file. Sets/updates inputs_log."""
         self._error_file = value
         self.set_errors_log()
 
     # setters for post simulation attributes
     def set_inputs_log(self):
-        """Save inputs_log from a file into an attribute for easy access"""
+        """Sets inputs_log from a file into an attribute for easy access"""
         # TODO: add pickle package to deal with parachute triggers and Function objects
         self.inputs_log = []
         with open(self.input_file, mode="r", encoding="utf-8") as disp_inputs:
@@ -203,7 +225,7 @@ class Dispersion:
         return None
 
     def set_outputs_log(self):
-        """Save outputs_log from a file into an attribute for easy access"""
+        """Sets outputs_log from a file into an attribute for easy access"""
         self.outputs_log = []
         # Loop through each line in the file
         with open(self.output_file, mode="r", encoding="utf-8") as disp_outputs:
@@ -218,7 +240,7 @@ class Dispersion:
         return None
 
     def set_errors_log(self):
-        """Save errors_log log from a file into an attribute for easy access"""
+        """Sets errors_log log from a file into an attribute for easy access"""
         self.errors_log = []
         # Loop through each line in the file
         with open(self.error_file, mode="r", encoding="utf-8") as disp_errors:
@@ -233,6 +255,7 @@ class Dispersion:
         return None
 
     def set_num_of_loaded_sims(self):
+        """Number of simulations loaded from output_file being currently used."""
         # Calculate the number of flights simulated
         self.num_of_loaded_sims = 0
         # Loop through each line in the file
@@ -267,9 +290,7 @@ class Dispersion:
 
         Returns
         -------
-        processed_results: dict
-            A dictionary with the mean and standard deviation of each parameter
-            available in the results dictionary.
+        None
         """
         self.processed_results = {}
         for result in self.results.keys():
