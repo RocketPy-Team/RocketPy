@@ -5,6 +5,8 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 from inspect import signature
+from copy import copy
+from functools import cached_property
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -135,7 +137,7 @@ class Function:
 
         Parameters
         ----------
-        source : function, scalar, ndarray, string
+        source : function, scalar, ndarray, string, Function
             The actual function. If type is function, it will be called for
             evaluation. If type is int or float, it will be treated as a
             constant function. If ndarray, its points will be used for
@@ -143,11 +145,14 @@ class Function:
             (x2, y2, z2), ...] where x0 and y0 are inputs and z0 is output. If
             string, imports file named by the string and treats it as csv.
             The file is converted into ndarray and should not have headers.
+            If the source is a Function, its source will be copied and another
+            Function will be created following the new inputs and outputs.
 
         Returns
         -------
         self : Function
         """
+        # If the source is a Function
         if isinstance(source, Function):
             source = source.getSource()
         # Import CSV if source is a string and convert values to ndarray
@@ -247,10 +252,24 @@ class Function:
 
     @cached_property
     def min(self):
+        """Get the minimum value of the Function yArray.
+        Raises an error if the Function is lambda based.
+
+        Returns
+        -------
+        minimum: float.
+        """
         return self.yArray.min()
 
     @cached_property
     def max(self):
+        """Get the maximum value of the Function yArray.
+        Raises an error if the Function is lambda based.
+
+        Returns
+        -------
+        maximum: float.
+        """
         return self.yArray.max()
 
     def setInterpolation(self, method="spline"):
@@ -2282,6 +2301,23 @@ class Function:
         # Or if it is just a callable
         elif callable(other):
             return Function(lambda x: (other(x) ** self.getValue(x)))
+
+    def __matmul__(self, other):
+        """Operator @ as an alias for composition. Therefore, this
+        method is a shorthand for self.compose(other). See self.compose
+        for more information.
+
+        Parameters
+        ----------
+        other : Function
+            Function object to be composed with self.
+
+        Returns
+        -------
+        result : Function
+            A Function object which gives the result of self(other(x)).
+        """
+        return self.compose(other)
 
     def integral(self, a, b, numerical=False):
         """Evaluate a definite integral of a 1-D Function in the interval
