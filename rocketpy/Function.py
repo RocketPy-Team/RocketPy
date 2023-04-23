@@ -8,6 +8,7 @@ from inspect import signature
 
 import matplotlib.pyplot as plt
 import numpy as np
+from functools import cached_property
 from scipy import integrate, linalg, optimize
 
 
@@ -147,6 +148,8 @@ class Function:
         -------
         self : Function
         """
+        if isinstance(source, Function):
+            source = source.getSource()
         # Import CSV if source is a string and convert values to ndarray
         if isinstance(source, str):
             # Read file and check for headers
@@ -241,6 +244,14 @@ class Function:
                     self.setInterpolation("shepard")
         # Return self
         return self
+
+    @cached_property
+    def min(self):
+        return self.yArray.min()
+
+    @cached_property
+    def max(self):
+        return self.yArray.max()
 
     def setInterpolation(self, method="spline"):
         """Set interpolation method and process data is method requires.
@@ -1882,8 +1893,8 @@ class Function:
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
-                and self.__interpolation__ == other.__interpolation__
-                and self.__inputs__ == other.__inputs__
+                # and self.__interpolation__ == other.__interpolation__
+                # and self.__inputs__ == other.__inputs__
                 and np.array_equal(self.xArray, other.xArray)
             ):
                 # Operate on grid values
@@ -2009,8 +2020,8 @@ class Function:
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
-                and self.__interpolation__ == other.__interpolation__
-                and self.__inputs__ == other.__inputs__
+                # and self.__interpolation__ == other.__interpolation__
+                # and self.__inputs__ == other.__inputs__
                 and np.array_equal(self.xArray, other.xArray)
             ):
                 # Operate on grid values
@@ -2093,8 +2104,8 @@ class Function:
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
-                and self.__interpolation__ == other.__interpolation__
-                and self.__inputs__ == other.__inputs__
+                # and self.__interpolation__ == other.__interpolation__
+                # and self.__inputs__ == other.__inputs__
                 and np.array_equal(self.xArray, other.xArray)
             ):
                 # Operate on grid values
@@ -2197,8 +2208,8 @@ class Function:
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
-                and self.__interpolation__ == other.__interpolation__
-                and self.__inputs__ == other.__inputs__
+                # and self.__interpolation__ == other.__interpolation__
+                # and self.__inputs__ == other.__inputs__
                 and np.any(self.xArray - other.xArray) == False
                 and np.array_equal(self.xArray, other.xArray)
             ):
@@ -2794,9 +2805,9 @@ class PiecewiseFunction(Function):
         source,
         inputs=["Scalar"],
         outputs=["Scalar"],
-        interpolation="akima",
+        interpolation="spline",
         extrapolation=None,
-        datapoints=50,
+        datapoints=100,
     ):
         """
         Creates a piecewise function from a dictionary of functions. The keys of the dictionary
@@ -2962,11 +2973,11 @@ def funcify_method(*args, **kwargs):
                     # Handle methods which are the source themselves
                     source = lambda *_: self.func(instance, *_)
                     val = Function(source, *args, **kwargs)
-                except Exception:
-                    raise Exception(
-                        "Could not create Function object from method "
-                        f"{self.func.__name__}."
-                    )
+                # except Exception:
+                #     raise Exception(
+                #         "Could not create Function object from method "
+                #         f"{self.func.__name__}."
+                #     )
 
                 val.__doc__ = self.__doc__
                 cache[self.attrname] = val
