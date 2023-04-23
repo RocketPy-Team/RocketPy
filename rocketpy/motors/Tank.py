@@ -141,8 +141,15 @@ class Tank(ABC):
             function of time.
         """
         balance = self.geometry.balance(self.geometry.bottom, self.liquidHeight.max)
-        liquid_balance = balance.compose(self.liquidHeight)
-        return liquid_balance / self.liquidVolume
+        liquid_balance = balance @ self.liquidHeight
+        centroid = liquid_balance / self.liquidVolume
+
+        # Check for zero liquid volume
+        bound_volume = self.liquidVolume < 1e-4 * self.geometry.total_volume
+        if bound_volume.any():
+            centroid.yArray[bound_volume] = self.geometry.bottom
+
+        return centroid
 
     @funcify_method("Time (s)", "center of mass of gas (m)")
     def gasCenterOfMass(self):
@@ -158,9 +165,16 @@ class Tank(ABC):
             function of time.
         """
         balance = self.geometry.balance(self.geometry.bottom, self.gasHeight.max)
-        upper_balance = balance.compose(self.gasHeight)
-        lower_balance = balance.compose(self.liquidHeight)
-        return (upper_balance - lower_balance) / self.gasVolume
+        upper_balance = balance @ self.gasHeight
+        lower_balance = balance @ self.liquidHeight
+        centroid = (upper_balance - lower_balance) / self.gasVolume
+
+        # Check for zero gas volume
+        bound_volume = self.gasVolume < 1e-4 * self.geometry.total_volume
+        if bound_volume.any():
+            centroid.yArray[bound_volume] = self.liquidHeight.yArray[bound_volume]
+
+        return centroid
 
     @funcify_method("Time (s)", "center of mass (m)")
     def centerOfMass(self):
@@ -173,10 +187,17 @@ class Tank(ABC):
         Function
             Center of mass of the tank's fluids as a function of time.
         """
-        return (
+        centerOfMass = (
             self.liquidCenterOfMass * self.liquidMass
             + self.gasCenterOfMass * self.gasMass
         ) / (self.mass)
+
+        # Check for zero mass
+        bound_mass = self.mass < 0.001 * self.geometry.total_volume * self.gas.density
+        if bound_mass.any():
+            centerOfMass.yArray[bound_mass] = self.geometry.bottom
+
+        return centerOfMass
 
     @funcify_method("Time (s)", "inertia tensor of liquid (kg*m^2)")
     def liquidInertiaTensor(self):
@@ -192,7 +213,7 @@ class Tank(ABC):
             function of time.
         """
         Ix_volume = self.geometry.Ix_volume(self.geometry.bottom, self.liquidHeight.max)
-        Ix_volume = Ix_volume.compose(self.liquidHeight)
+        Ix_volume = Ix_volume @ self.liquidHeight
 
         # Steiner theorem to account for center of mass
         Ix_volume -= self.liquidVolume * self.liquidCenterOfMass**2
@@ -216,8 +237,8 @@ class Tank(ABC):
             function of time.
         """
         Ix_volume = self.geometry.Ix_volume(self.geometry.bottom, self.gasHeight.max)
-        lower_inertia_volume = Ix_volume.compose(self.liquidHeight)
-        upper_inertia_volume = Ix_volume.compose(self.gasHeight)
+        lower_inertia_volume = Ix_volume @ self.liquidHeight
+        upper_inertia_volume = Ix_volume @ self.gasHeight
         inertia_volume = upper_inertia_volume - lower_inertia_volume
 
         # Steiner theorem to account for center of mass
@@ -488,10 +509,6 @@ class MassBasedTank(Tank):
     def gasHeight(self):
         fluid_volume = self.gasVolume + self.liquidVolume
         gasHeight = self.geometry.inverse_volume.compose(fluid_volume)
-        # if gasHeight <= self.geometry.top:
+        if (gasHeight > self.geometry.top).any():
+            raise ValueError(f"The tank {self.name} is overfilled.")
         return gasHeight
-        # else:
-        #     raise ValueError(
-        #         f"The tank {self.name}, is overfilled"
-        #         f"with gas height {gasHeight} at time {t}"
-        #     )
