@@ -53,10 +53,12 @@ def test_mass_based_motor():
     real_tank_lox = MassBasedTank(
         name="Real Tank",
         geometry=real_geometry,
+        flux_time=(0, 10),
         liquid_mass=lox_masses,
         gas_mass=gas_masses,
         liquid=lox,
         gas=n2,
+        discretize=None,
     )
 
     # Generate tank geometry {radius: height, ...}
@@ -66,10 +68,12 @@ def test_mass_based_motor():
     example_tank_lox = MassBasedTank(
         name="Example Tank",
         geometry=example_geometry,
+        flux_time=(0, 10),
         liquid_mass=example_liquid_masses,
         gas_mass=example_gas_masses,
         liquid=lox,
         gas=n2,
+        discretize=None,
     )
 
     initial_liquid_mass = 5
@@ -183,9 +187,11 @@ def test_ullage_based_motor():
     levelTank = LevelBasedTank(
         name="Ullage Tank",
         geometry=tank_geometry,
+        flux_time=(0, 10),
         gas=n2,
         liquid=lox,
         liquid_height=ullage_data,
+        discretize=None,
     )
 
     mass_data = pd.read_csv(test_dir + "loxMass.csv").to_numpy()
@@ -297,11 +303,6 @@ def test_mfr_tank_basic():
         )
 
         tcom = t.centerOfMass
-        print("commmmm")
-        print([t.liquidCenterOfMass(i) for i in range(5)])
-        print([liquid_com(i) for i in range(5)])
-        print([t.gasCenterOfMass(i) for i in range(5)])
-        print([gas_com(i) for i in range(5)])
         test(tcom, acom)
 
     def test_inertia():
@@ -356,6 +357,7 @@ def test_mfr_tank_basic():
     t = MassFlowRateBasedTank(
         name="Test Tank",
         geometry=tank_radius_function,
+        flux_time=(0, 10),
         initial_liquid_mass=initial_liquid_mass,
         initial_gas_mass=initial_gas_mass,
         liquid_mass_flow_rate_in=Function(0.1).setDiscrete(0, 10, 1000),
@@ -364,6 +366,7 @@ def test_mfr_tank_basic():
         gas_mass_flow_rate_out=Function(0.02).setDiscrete(0, 10, 1000),
         liquid=lox,
         gas=n2,
+        discretize=None,
     )
 
     test_nmfr()

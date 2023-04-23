@@ -10,11 +10,37 @@ from rocketpy.Function import Function, funcify_method
 
 
 class Tank(ABC):
-    def __init__(self, name, geometry, gas, liquid=0):
+    """Abstract Tank class that defines a tank object for a rocket motor, so
+    that it evaluates useful properties of the tank and its fluids, such as
+    mass, volume, fluid flow rate, center of mass, etc.
+    """
+
+    def __init__(self, name, geometry, flux_time, gas, liquid, discretize=100):
+        """Initialize Tank class.
+
+        Parameters
+        ----------
+        name : str
+            Name of the tank.
+        geometry : TankGeometry
+            Geometry of the tank.
+        flux_time : tuple
+            Tuple containing start and final times of the tank flux.
+        gas : Fluid
+            Gas inside the tank as a Fluid object.
+        liquid : Fluid
+            Liquid inside the tank as a Fluid object.
+        discretize : int, optional
+            Number of points to discretize fluid inputs. If the input
+            already has a apropriate discretization, this parameter
+            must be set to None. The default is 100.
+        """
         self.name = name
         self.geometry = geometry
+        self.flux_time = flux_time
         self.gas = gas
         self.liquid = liquid
+        self.discretize = discretize
 
     @property
     @abstractmethod
@@ -268,6 +294,7 @@ class MassFlowRateBasedTank(Tank):
         self,
         name,
         geometry,
+        flux_time,
         liquid,
         gas,
         initial_liquid_mass,
@@ -276,11 +303,13 @@ class MassFlowRateBasedTank(Tank):
         gas_mass_flow_rate_in,
         liquid_mass_flow_rate_out,
         gas_mass_flow_rate_out,
+        discretize=100,
     ):
-        super().__init__(name, geometry, gas, liquid)
+        super().__init__(name, geometry, flux_time, gas, liquid, discretize)
         self.initial_liquid_mass = initial_liquid_mass
         self.initial_gas_mass = initial_gas_mass
 
+        # Define flow rates
         self.liquid_mass_flow_rate_in = Function(
             liquid_mass_flow_rate_in,
             inputs="Time",
@@ -309,6 +338,9 @@ class MassFlowRateBasedTank(Tank):
             interpolation="linear",
             extrapolation="zero",
         )
+
+        # Discretize input flow if needed
+        self.discretize_flow() if discretize else None
 
     @funcify_method("Time (s)", "mass (kg)")
     def mass(self):
@@ -362,19 +394,33 @@ class MassFlowRateBasedTank(Tank):
             raise ValueError(f"The tank {self.name} is overfilled.")
         return gasHeight
 
+    def discretize_flow(self):
+        self.liquid_mass_flow_rate_in.setDiscrete(*self.flux_time, self.discretize)
+        self.gas_mass_flow_rate_in.setDiscrete(*self.flux_time, self.discretize)
+        self.liquid_mass_flow_rate_out.setDiscrete(*self.flux_time, self.discretize)
+        self.gas_mass_flow_rate_out.setDiscrete(*self.flux_time, self.discretize)
+
 
 class UllageBasedTank(Tank):
     def __init__(
         self,
         name,
         geometry,
+        flux_time,
         liquid,
         gas,
         ullage,
+        discretize=100,
     ):
-        super().__init__(name, geometry, gas, liquid)
+        super().__init__(name, geometry, flux_time, gas, liquid, discretize)
+
+        # Define ullage
         self.ullage = Function(ullage, "Time (s)", "Volume (m³)", "linear")
 
+        # Discretize input if needed
+        self.discretize_ullage() if discretize else None
+
+        # Check if the ullage is within bounds
         if (self.ullage > self.geometry.total_volume).any() or (self.ullage < 0).any():
             raise ValueError("The ullage volume is out of bounds.")
 
@@ -410,21 +456,32 @@ class UllageBasedTank(Tank):
     def gasHeight(self):
         return self.geometry.top
 
+    def discretize_ullage(self):
+        self.ullage.setDiscrete(*self.flux_time, self.discretize)
+
 
 class LevelBasedTank(Tank):
     def __init__(
         self,
         name,
         geometry,
+        flux_time,
         liquid,
         gas,
         liquid_height,
+        discretize=100,
     ):
-        super().__init__(name, geometry, gas, liquid)
+        super().__init__(name, geometry, flux_time, gas, liquid, discretize)
+
+        # Define liquid height
         self.liquid_height = Function(
             liquid_height, "Time (s)", "volume (m³)", "linear"
         )
 
+        # Discretize input if needed
+        self.discretize_liquid_height() if discretize else None
+
+        # Check if the liquid level is within bounds
         if (self.liquid_height > self.geometry.top).any() or (
             self.liquid_height < self.geometry.bottom
         ).any():
@@ -462,20 +519,30 @@ class LevelBasedTank(Tank):
     def gasHeight(self):
         return self.geometry.top
 
+    def discretize_liquid_height(self):
+        self.liquid_height.setDiscrete(*self.flux_time, self.discretize)
+
 
 class MassBasedTank(Tank):
     def __init__(
         self,
         name,
         geometry,
+        flux_time,
         liquid,
         gas,
         liquid_mass,
         gas_mass,
+        discretize=100,
     ):
-        super().__init__(name, geometry, gas, liquid)
+        super().__init__(name, geometry, flux_time, gas, liquid, discretize)
+
+        # Define fluid masses
         self.liquid_mass = Function(liquid_mass, "Time (s)", "mass (kg)", "linear")
         self.gas_mass = Function(gas_mass, "Time (s)", "mass (kg)", "linear")
+
+        # Discretize input if needed
+        self.discretize_masses() if discretize else None
 
     @funcify_method("Time (s)", "mass (kg)")
     def mass(self):
@@ -512,3 +579,7 @@ class MassBasedTank(Tank):
         if (gasHeight > self.geometry.top).any():
             raise ValueError(f"The tank {self.name} is overfilled.")
         return gasHeight
+
+    def discretize_masses(self):
+        self.liquid_mass.setDiscrete(*self.flux_time, self.discretize)
+        self.gas_mass.setDiscrete(*self.flux_time, self.discretize)
