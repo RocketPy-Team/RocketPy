@@ -7,7 +7,6 @@ __license__ = "MIT"
 from abc import ABC, abstractmethod
 
 from rocketpy.Function import Function, funcify_method
-from rocketpy.utilities import except_negative
 
 
 class Tank(ABC):
@@ -141,19 +140,9 @@ class Tank(ABC):
             Center of mass of the liquid portion of the tank as a
             function of time.
         """
-
-        def evaluate_liquid_com(t):
-            mass_integrand = Function(
-                lambda h: h * self.liquid.density * self.geometry.area(h)
-            )
-            if self.liquidMass(t) > 1e-6:
-                return mass_integrand.integral(
-                    self.geometry.bottom, self.liquidHeight(t)
-                ) / self.liquidMass(t)
-            else:
-                return self.geometry.bottom
-
-        return evaluate_liquid_com
+        balance = self.geometry.balance(self.geometry.bottom, self.liquidHeight.max)
+        liquid_balance = balance.compose(self.liquidHeight)
+        return liquid_balance / self.liquidVolume
 
     @funcify_method("Time (s)", "center of mass of gas (m)")
     def gasCenterOfMass(self):
@@ -168,19 +157,10 @@ class Tank(ABC):
             Center of mass of the gas portion of the tank as a
             function of time.
         """
-
-        def evaluate_gas_com(t):
-            mass_integrand = Function(
-                lambda h: h * self.gas.density * self.geometry.area(h)
-            )
-            if self.gasMass(t) > 1e-6:
-                return mass_integrand.integral(
-                    self.liquidHeight(t), self.gasHeight(t)
-                ) / self.gasMass(t)
-            else:
-                return self.geometry.bottom
-
-        return evaluate_gas_com
+        balance = self.geometry.balance(self.geometry.bottom, self.gasHeight.max)
+        upper_balance = balance.compose(self.gasHeight)
+        lower_balance = balance.compose(self.liquidHeight)
+        return (upper_balance - lower_balance) / self.gasVolume
 
     @funcify_method("Time (s)", "center of mass (m)")
     def centerOfMass(self):
@@ -211,21 +191,16 @@ class Tank(ABC):
             Inertia tensor of the liquid portion of the tank as a
             function of time.
         """
-
-        def evaluate_liquid_inertia(t):
-            d_inertia = Function(
-                lambda h: self.liquid.density
-                * self.geometry.area(h)
-                * (h**2 + self.geometry.radius(h) ** 2 / 4)
-            )
-            return d_inertia.integral(self.geometry.bottom, self.liquidHeight(t))
-
-        Ix = Function(evaluate_liquid_inertia)
+        Ix_volume = self.geometry.Ix_volume(self.geometry.bottom, self.liquidHeight.max)
+        Ix_volume = Ix_volume.compose(self.liquidHeight)
 
         # Steiner theorem to account for center of mass
-        Ix -= self.liquidMass * self.liquidCenterOfMass**2
-        Ix += self.liquidMass * (self.liquidCenterOfMass - self.centerOfMass) ** 2
-        return Ix
+        Ix_volume -= self.liquidVolume * self.liquidCenterOfMass**2
+        Ix_volume += (
+            self.liquidVolume * (self.liquidCenterOfMass - self.centerOfMass) ** 2
+        )
+
+        return self.liquid.density * Ix_volume
 
     @funcify_method("Time (s)", "inertia tensor of gas (kg*m^2)")
     def gasInertiaTensor(self):
@@ -240,22 +215,18 @@ class Tank(ABC):
             Inertia tensor of the gas portion of the tank as a
             function of time.
         """
-
-        def evaluate_gas_inertia(t):
-            d_inertia = Function(
-                lambda h: self.gas.density
-                * self.geometry.area(h)
-                * (h**2 + self.geometry.radius(h) ** 2 / 4)
-            )
-            inertiaint = d_inertia.integral(self.liquidHeight(t), self.gasHeight(t))
-            return inertiaint
-
-        Ix = Function(evaluate_gas_inertia)
+        Ix_volume = self.geometry.Ix_volume(self.geometry.bottom, self.gasHeight.max)
+        lower_inertia_volume = Ix_volume.compose(self.liquidHeight)
+        upper_inertia_volume = Ix_volume.compose(self.gasHeight)
+        inertia_volume = upper_inertia_volume - lower_inertia_volume
 
         # Steiner theorem to account for center of mass
-        Ix -= self.gasMass * self.gasCenterOfMass**2
-        Ix += self.gasMass * (self.gasCenterOfMass - self.centerOfMass) ** 2
-        return Ix
+        inertia_volume -= self.gasVolume * self.gasCenterOfMass**2
+        inertia_volume += (
+            self.gasVolume * (self.gasCenterOfMass - self.centerOfMass) ** 2
+        )
+
+        return self.gas.density * inertia_volume
 
     @funcify_method("Time (s)", "inertia tensor (kg*m^2)")
     def inertiaTensor(self):
@@ -319,20 +290,24 @@ class MassFlowRateBasedTank(Tank):
         )
 
     @funcify_method("Time (s)", "mass (kg)")
-    def mass(self, t):
-        return self.liquidMass(t) + self.gasMass(t)
+    def mass(self):
+        return self.liquidMass + self.gasMass
 
     @funcify_method("Time (s)", "mass (kg)")
-    @except_negative
-    def liquidMass(self, t):
-        liquid_flow = self.netLiquidFlowRate.integral(0, t)
-        return self.initial_liquid_mass + liquid_flow
+    def liquidMass(self):
+        liquid_flow = self.netLiquidFlowRate.integralFunction()
+        liquidMass = self.initial_liquid_mass + liquid_flow
+        if (liquidMass < 0).any():
+            raise ValueError(f"The tank {self.name} is underfilled.")
+        return liquidMass
 
     @funcify_method("Time (s)", "mass (kg)")
-    @except_negative
-    def gasMass(self, t):
-        gas_flow = self.netGasFlowRate.integral(0, t)
-        return self.initial_gas_mass + gas_flow
+    def gasMass(self):
+        gas_flow = self.netGasFlowRate.integralFunction()
+        gasMass = self.initial_gas_mass + gas_flow
+        if (gasMass < 0).any():
+            raise ValueError(f"The tank {self.name} is underfilled.")
+        return gasMass
 
     @funcify_method("Time (s)", "liquid mass flow rate (kg/s)", extrapolation="zero")
     def netLiquidFlowRate(self):
@@ -359,16 +334,12 @@ class MassFlowRateBasedTank(Tank):
         return self.geometry.inverse_volume.compose(self.liquidVolume)
 
     @funcify_method("Time (s)", "height (m)")
-    def gasHeight(self, t):
+    def gasHeight(self):
         fluid_volume = self.gasVolume + self.liquidVolume
-        gasHeight = self.geometry.inverse_volume(fluid_volume(t))
-        if gasHeight <= self.geometry.top:
-            return gasHeight
-        else:
-            raise ValueError(
-                f"The tank {self.name}, is overfilled"
-                f"with gas height {gasHeight} at time {t}"
-            )
+        gasHeight = self.geometry.inverse_volume.compose(fluid_volume)
+        if (gasHeight > self.geometry.top).any():
+            raise ValueError(f"The tank {self.name} is overfilled.")
+        return gasHeight
 
 
 class UllageBasedTank(Tank):
@@ -381,7 +352,10 @@ class UllageBasedTank(Tank):
         ullage,
     ):
         super().__init__(name, geometry, gas, liquid)
-        self.ullage = Function(ullage, "Time", "Volume", "linear", "constant")
+        self.ullage = Function(ullage, "Time (s)", "Volume (m³)", "linear")
+
+        if (self.ullage > self.geometry.total_volume).any() or (self.ullage < 0).any():
+            raise ValueError("The ullage volume is out of bounds.")
 
     @funcify_method("Time (s)", "mass (kg)")
     def mass(self):
@@ -393,21 +367,19 @@ class UllageBasedTank(Tank):
 
     @funcify_method("Time (s)", "volume (m³)")
     def liquidVolume(self):
-        return -1 * (self.ullage - self.geometry.total_volume)
+        return -(self.ullage - self.geometry.total_volume)
 
     @funcify_method("Time (s)", "volume (m³)")
     def gasVolume(self):
         return self.ullage
 
     @funcify_method("Time (s)", "mass (kg)")
-    @except_negative
-    def gasMass(self, t):
-        return self.gasVolume(t) * self.gas.density
+    def gasMass(self):
+        return self.gasVolume * self.gas.density
 
     @funcify_method("Time (s)", "mass (kg)")
-    @except_negative
-    def liquidMass(self, t):
-        return self.liquidVolume(t) * self.liquid.density
+    def liquidMass(self):
+        return self.liquidVolume * self.liquid.density
 
     @funcify_method("Time (s)", "height (m)")
     def liquidHeight(self):
@@ -429,8 +401,13 @@ class LevelBasedTank(Tank):
     ):
         super().__init__(name, geometry, gas, liquid)
         self.liquid_height = Function(
-            liquid_height, "Time", "Volume", "linear", "constant"
+            liquid_height, "Time (s)", "volume (m³)", "linear"
         )
+
+        if (self.liquid_height > self.geometry.top).any() or (
+            self.liquid_height < self.geometry.bottom
+        ).any():
+            raise ValueError("The liquid level is out of bounds.")
 
     @funcify_method("Time (s)", "mass (kg)")
     def mass(self):
@@ -453,17 +430,15 @@ class LevelBasedTank(Tank):
         return self.liquid_height
 
     @funcify_method("Time (s)", "mass (kg)")
-    @except_negative
-    def gasMass(self, t):
-        return self.gasVolume(t) * self.gas.density
+    def gasMass(self):
+        return self.gasVolume * self.gas.density
 
     @funcify_method("Time (s)", "mass (kg)")
-    @except_negative
-    def liquidMass(self, t):
-        return self.liquidVolume(t) * self.liquid.density
+    def liquidMass(self):
+        return self.liquidVolume * self.liquid.density
 
     @funcify_method("Time (s)", "height (m)")
-    def gasHeight(self, t):
+    def gasHeight(self):
         return self.geometry.top
 
 
@@ -478,8 +453,8 @@ class MassBasedTank(Tank):
         gas_mass,
     ):
         super().__init__(name, geometry, gas, liquid)
-        self.liquid_mass = Function(liquid_mass, "Time", "Mass", "linear", "constant")
-        self.gas_mass = Function(gas_mass, "Time", "Mass", "linear", "constant")
+        self.liquid_mass = Function(liquid_mass, "Time (s)", "mass (kg)", "linear")
+        self.gas_mass = Function(gas_mass, "Time (s)", "mass (kg)", "linear")
 
     @funcify_method("Time (s)", "mass (kg)")
     def mass(self):
@@ -490,13 +465,11 @@ class MassBasedTank(Tank):
         return self.mass.derivativeFunction()
 
     @funcify_method("Time (s)", "mass (kg)")
-    @except_negative
-    def liquidMass(self, t):
+    def liquidMass(self):
         return self.liquid_mass
 
     @funcify_method("Time (s)", "mass (kg)")
-    @except_negative
-    def gasMass(self, t):
+    def gasMass(self):
         return self.gas_mass
 
     @funcify_method("Time (s)", "volume (m³)")
@@ -512,13 +485,13 @@ class MassBasedTank(Tank):
         return self.geometry.inverse_volume.compose(self.liquidVolume)
 
     @funcify_method("Time (s)", "height (m)")
-    def gasHeight(self, t):
+    def gasHeight(self):
         fluid_volume = self.gasVolume + self.liquidVolume
-        gasHeight = self.geometry.inverse_volume(fluid_volume(t))
-        if gasHeight <= self.geometry.top:
-            return gasHeight
-        else:
-            raise ValueError(
-                f"The tank {self.name}, is overfilled"
-                f"with gas height {gasHeight} at time {t}"
-            )
+        gasHeight = self.geometry.inverse_volume.compose(fluid_volume)
+        # if gasHeight <= self.geometry.top:
+        return gasHeight
+        # else:
+        #     raise ValueError(
+        #         f"The tank {self.name}, is overfilled"
+        #         f"with gas height {gasHeight} at time {t}"
+        #     )

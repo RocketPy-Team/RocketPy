@@ -2,7 +2,7 @@ import numpy as np
 
 from rocketpy import Function
 from rocketpy.Function import PiecewiseFunction, funcify_method
-from functools import cached_property
+from functools import cached_property, cache
 
 
 class TankGeometry:
@@ -164,8 +164,8 @@ class TankGeometry:
             lambda v: v / (np.pi * self.average_radius**2),
         )
 
-    @funcify_method("height (m)", "balance (m⁴)")
-    def balance(self):
+    @cache
+    def balance(self, lower, upper):
         """
         The volume balance of the tank as a function of height.
 
@@ -175,10 +175,16 @@ class TankGeometry:
             Tank centroid as a function of height.
         """
         height = self.area.identityFunction()
-        return (height * self.area).integralFunction()
+        balance = (height * self.area).integralFunction(lower, upper)
 
-    @funcify_method("height (m)", "volume of inertia (m⁵)")
-    def Ix_volume(self):
+        # Correct naming
+        balance.setInputs("height (m)")
+        balance.setOutputs("balance (m⁴)")
+
+        return balance
+
+    @cache
+    def Ix_volume(self, lower, upper):
         """
         The volume of inertia of the tank with respect to
         the x-axis as a function of height. The x direction is
@@ -190,10 +196,18 @@ class TankGeometry:
             Tank volume of inertia as a function of height.
         """
         height2 = self.radius.identityFunction() ** 2
-        return (self.area * (height2 + self.radius**2 / 4)).integralFunction()
+        inertia = (self.area * (height2 + self.radius**2 / 4)).integralFunction(
+            lower, upper
+        )
 
-    @funcify_method("height (m)", "volume of inertia (m⁵)")
-    def Iy_volume(self):
+        # Correct naming
+        inertia.setInputs("height (m)")
+        inertia.setOutputs("volume of inertia (m⁵)")
+
+        return inertia
+
+    @cache
+    def Iy_volume(self, lower, upper):
         """
         The volume of inertia of the tank with respect to
         the y-axis as a function of height. The y direction is
@@ -206,10 +220,10 @@ class TankGeometry:
         Function
             Tank volume of inertia as a function of height.
         """
-        return self.Ix_volume
+        return self.Ix_volume(lower, upper)
 
-    @funcify_method("height (m)", "volume of inertia (m⁵)")
-    def Iz_volume(self):
+    @cache
+    def Iz_volume(self, lower, upper):
         """
         The volume of inertia of the tank with respect to
         the z-axis as a function of height. The z direction is
@@ -220,7 +234,7 @@ class TankGeometry:
         Function
             Tank volume of inertia as a function of height.
         """
-        return (self.area * self.radius**2).integralFunction() / 2
+        return (self.area * self.radius**2).integralFunction(lower, upper) / 2
 
     def add_geometry(self, domain, radius_function):
         """
