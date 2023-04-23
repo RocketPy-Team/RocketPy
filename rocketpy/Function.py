@@ -2272,6 +2272,23 @@ class Function:
         elif callable(other):
             return Function(lambda x: (other(x) ** self.getValue(x)))
 
+    def __matmul__(self, other):
+        """Operator @ as an alias for composition. Therefore, this
+        method is a shorthand for self.compose(other). See self.compose
+        for more information.
+
+        Parameters
+        ----------
+        other : Function
+            Function object to be composed with self.
+
+        Returns
+        -------
+        result : Function
+            A Function object which gives the result of self(other(x)).
+        """
+        return self.compose(other)
+
     def integral(self, a, b, numerical=False):
         """Evaluate a definite integral of a 1-D Function in the interval
         from a to b.
