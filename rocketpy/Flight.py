@@ -2269,7 +2269,7 @@ class Flight:
         if self.outOfRailTimeIndex == 0:
             return 0
         else:
-            return np.max(self.railButton1NormalForce)
+            return self.railButton1NormalForce.max
 
     @cached_property
     def maxRailButton1ShearForce(self):
@@ -2281,7 +2281,7 @@ class Flight:
         if self.outOfRailTimeIndex == 0:
             return 0
         else:
-            return np.max(self.railButton1ShearForce)
+            return self.railButton1ShearForce.max
 
     @cached_property
     def maxRailButton2NormalForce(self):
@@ -2293,7 +2293,7 @@ class Flight:
         if self.outOfRailTimeIndex == 0:
             return 0
         else:
-            return np.max(self.railButton2NormalForce)
+            return self.railButton2NormalForce.max
 
     @cached_property
     def maxRailButton2ShearForce(self):
@@ -2305,7 +2305,7 @@ class Flight:
         if self.outOfRailTimeIndex == 0:
             return 0
         else:
-            return np.max(self.railButton2ShearForce)
+            return self.railButton2ShearForce.max
 
     @funcify_method(
         "Time (s)", "Horizontal Distance to Launch Point (m)", "spline", "constant"
