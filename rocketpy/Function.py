@@ -6,6 +6,7 @@ __license__ = "MIT"
 
 from inspect import signature
 from copy import copy
+from functools import cached_property
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -247,6 +248,28 @@ class Function:
                     self.setInterpolation("shepard")
         # Return self
         return self
+
+    @cached_property
+    def min(self):
+        """Get the minimum value of the Function yArray.
+        Raises an error if the Function is lambda based.
+
+        Returns
+        -------
+        minimum: float.
+        """
+        return self.yArray.min()
+
+    @cached_property
+    def max(self):
+        """Get the maximum value of the Function yArray.
+        Raises an error if the Function is lambda based.
+
+        Returns
+        -------
+        maximum: float.
+        """
+        return self.yArray.max()
 
     def setInterpolation(self, method="spline"):
         """Set interpolation method and process data is method requires.
