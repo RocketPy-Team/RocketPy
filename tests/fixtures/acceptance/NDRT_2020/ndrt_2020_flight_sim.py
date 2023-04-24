@@ -96,8 +96,11 @@ L1395 = SolidMotor(
 NDRT2020 = Rocket(
     radius=parameters.get("radius")[0],
     mass=parameters.get("rocketMass")[0],
-    inertiaI=parameters.get("inertiaI")[0],
-    inertiaZ=parameters.get("inertiaZ")[0],
+    inertia=(
+        parameters.get("inertiaI")[0],
+        parameters.get("inertiaI")[0],
+        parameters.get("inertiaZ")[0],
+    ),
     powerOffDrag=parameters.get("dragCoefficient")[0],
     powerOnDrag=parameters.get("dragCoefficient")[0],
 )

@@ -50,8 +50,7 @@ def rocket(solid_motor):
     example_rocket = Rocket(
         radius=127 / 2000,
         mass=19.197 - 2.956,
-        inertiaI=6.60,
-        inertiaZ=0.0351,
+        inertia=(6.60, 6.60, 0.0351),
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
         centerOfDryMassPosition=0,
@@ -121,8 +120,7 @@ def dimensionless_rocket(kg, m, dimensionless_solid_motor):
     example_rocket = Rocket(
         radius=127 / 2000 * m,
         mass=(19.197 - 2.956) * kg,
-        inertiaI=6.60 * (kg * m**2),
-        inertiaZ=0.0351 * (kg * m**2),
+        inertia=(6.60 * (kg * m**2), 6.60 * (kg * m**2), 0.0351 * (kg * m**2)),
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
         centerOfDryMassPosition=0 * m,
@@ -196,6 +194,38 @@ def linear_func():
     """
     return Function(
         [[0, 0], [1, 1], [2, 2], [3, 3]],
+    )
+
+
+@pytest.fixture
+def linearly_interpolated_func():
+    """Create a linearly interpolated function based on a list of points.
+
+    Returns
+    -------
+    Function
+        Piece-wise linearly interpolated, with constant extrapolation
+    """
+    return Function(
+        [[0, 0], [1, 7], [2, -3], [3, -1], [4, 3]],
+        interpolation="spline",
+        extrapolation="constant",
+    )
+
+
+@pytest.fixture
+def spline_interpolated_func():
+    """Create a spline interpolated function based on a list of points.
+
+    Returns
+    -------
+    Function
+        Spline interpolated, with natural extrapolation
+    """
+    return Function(
+        [[0, 0], [1, 7], [2, -3], [3, -1], [4, 3]],
+        interpolation="spline",
+        extrapolation="natural",
     )
 
 

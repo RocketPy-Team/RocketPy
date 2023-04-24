@@ -5,13 +5,12 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 import re
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
+from functools import cached_property
 
 import numpy as np
-from scipy import integrate
-import warnings
 
-from .Function import Function
+from rocketpy.Function import Function, funcify_method
 
 
 class Motor(ABC):
@@ -25,44 +24,23 @@ class Motor(ABC):
         Motor.coordinateSystemOrientation : str
             Orientation of the motor's coordinate system. The coordinate system
             is defined by the motor's axis of symmetry. The origin of the
-            coordinate system  may be placed anywhere along such axis, such as at the
-            nozzle area, and must be kept the same for all other positions specified.
-            Options are "nozzleToCombustionChamber" and "combustionChamberToNozzle".
+            coordinate system  may be placed anywhere along such axis, such as
+            at the nozzle area, and must be kept the same for all other
+            positions specified. Options are "nozzleToCombustionChamber" and
+            "combustionChamberToNozzle".
         Motor.nozzleRadius : float
             Radius of motor nozzle outlet in meters.
         Motor.nozzlePosition : float
-            Motor's nozzle outlet position in meters. More specifically, the coordinate
-            of the nozzle outlet specified in the motor's coordinate system.
-            See `Motor.coordinateSystemOrientation` for more information.
-        Motor.throatRadius : float
-            Radius of motor nozzle throat in meters.
-        Motor.grainNumber : int
-            Number of solid grains.
-        Motor.grainSeparation : float
-            Distance between two grains in meters.
-        Motor.grainDensity : float
-            Density of each grain in kg/meters cubed.
-        Motor.grainOuterRadius : float
-            Outer radius of each grain in meters.
-        Motor.grainInitialInnerRadius : float
-            Initial inner radius of each grain in meters.
-        Motor.grainInitialHeight : float
-            Initial height of each grain in meters.
-        Motor.grainInitialVolume : float
-            Initial volume of each grain in meters cubed.
-        Motor.grainInnerRadius : Function
-            Inner radius of each grain in meters as a function of time.
-        Motor.grainHeight : Function
-            Height of each grain in meters as a function of time.
+            Motor's nozzle outlet position in meters, specified in the motor's
+            coordinate system. See `Motor.coordinateSystemOrientation` for
+            more information.
 
         Mass and moment of inertia attributes:
-        Motor.grainInitialMass : float
-            Initial mass of each grain in kg.
         Motor.propellantInitialMass : float
             Total propellant initial mass in kg.
         Motor.mass : Function
             Propellant total mass in kg as a function of time.
-        Motor.massDot : Function
+        Motor.massFlowRate : Function
             Time derivative of propellant total mass in kg/s as a function
             of time.
         Motor.inertiaI : Function
@@ -96,15 +74,6 @@ class Motor(ABC):
             curve.
         Motor.exhaustVelocity : float
             Propulsion gases exhaust velocity, assumed constant, in m/s.
-        Motor.burnArea : Function
-            Total burn area considering all grains, made out of inner
-            cylindrical burn area and grain top and bottom faces. Expressed
-            in meters squared as a function of time.
-        Motor.Kn : Function
-            Motor Kn as a function of time. Defined as burnArea divided by
-            nozzle throat cross sectional area. Has no units.
-        Motor.burnRate : Function
-            Propellant burn rate in meter/second as a function of time.
         Motor.interpolate : string
             Method of interpolation used in case thrust curve is given
             by data set in .csv or .eng, or as an array. Options are 'spline'
@@ -148,14 +117,11 @@ class Motor(ABC):
             motor's thrust is defined by a list of points, such as a .csv file, a .eng
             file or a Function instance whose source is a list.
         nozzleRadius : int, float, optional
-            Motor's nozzle outlet radius in meters. Used to calculate Kn curve.
-            Optional if the Kn curve is not interesting. Its value does not impact
-            trajectory simulation.
+            Motor's nozzle outlet radius in meters.
         nozzlePosition : int, float, optional
-            Motor's nozzle outlet position in meters. More specifically, the coordinate
-            of the nozzle outlet specified in the motor's coordinate system.
-            See `Motor.coordinateSystemOrientation` for more information.
-            Default is 0, in which case the origin of the motor's coordinate system
+            Motor's nozzle outlet position in meters, in the motor's coordinate
+            system. See `Motor.coordinateSystemOrientation` for details.
+            Default is 0, in which case the origin of the coordinate system
             is placed at the motor's nozzle outlet.
         throatRadius : int, float, optional
             Motor's nozzle throat radius in meters. Its value has very low
@@ -176,10 +142,10 @@ class Motor(ABC):
         coordinateSystemOrientation : string, optional
             Orientation of the motor's coordinate system. The coordinate system
             is defined by the motor's axis of symmetry. The origin of the
-            coordinate system  may be placed anywhere along such axis, such as at the
-            nozzle area, and must be kept the same for all other positions specified.
-            Options are "nozzleToCombustionChamber" and "combustionChamberToNozzle".
-            Default is "nozzleToCombustionChamber".
+            coordinate system  may be placed anywhere along such axis, such as
+            at the nozzle area, and must be kept the same for all other
+            positions specified. Options are "nozzleToCombustionChamber" and
+            "combustionChamberToNozzle". Default is "nozzleToCombustionChamber".
 
         Returns
         -------
@@ -333,10 +299,10 @@ class Motor(ABC):
         # Return reshaped curve
         return self.thrust
 
-    def evaluateTotalImpulse(self):
-        """Calculates and returns total impulse by numerical
-        integration of the thrust curve in SI units. The value is
-        also stored in self.totalImpulse.
+    @cached_property
+    def totalImpulse(self):
+        """Calculates and returns total impulse by numerical integration of the
+        thrust curve in SI units.
 
         Parameters
         ----------
@@ -369,101 +335,87 @@ class Motor(ABC):
         self.exhaustVelocity : float
             Constant gas exhaust velocity of the motor.
         """
-        pass
-
-    @abstractmethod
-    def evaluateMassDot(self):
-        """Calculates and returns the time derivative of propellant
-        mass by assuming constant exhaust velocity. The formula used
-        is the opposite of thrust divided by exhaust velocity. The
-        result is a function of time, object of the Function class,
-        which is stored in self.massDot.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        self.massDot : Function
-            Time derivative of total propellant mas as a function
-            of time.
-        """
-        pass
-
-    @abstractmethod
-    def evaluateCenterOfMass(self):
-        """Calculates and returns the time derivative of motor center of mass.
-        The result is a function of time, object of the Function class, which is stored in self.zCM.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        zCM : Function
-            Position of the center of mass as a function
-            of time.
-        """
-
-        pass
-
-    def evaluateMass(self):
-        """Calculates and returns the total propellant mass curve by
-        numerically integrating the MassDot curve, calculated in
-        evaluateMassDot. Numerical integration is done with the
-        Trapezoidal Rule, giving the same result as scipy.integrate.
-        odeint but 100x faster. The result is a function of time,
-        object of the class Function, which is stored in self.mass.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        self.mass : Function
-            Total propellant mass as a function of time.
-        """
-        # Retrieve mass dot curve data
-        t = self.massDot.source[:, 0]
-        ydot = self.massDot.source[:, 1]
-
-        # Set initial conditions
-        T = [t[0]]
-        y = [self.propellantInitialMass]
-
-        # Solve for each time point
-        for i in range(1, len(t)):
-            T += [t[i]]
-            y += [y[i - 1] + 0.5 * (t[i] - t[i - 1]) * (ydot[i] + ydot[i - 1])]
-
-        # Create Function
-        self.mass = Function(
-            np.concatenate(([T], [y])).transpose(),
-            "Time (s)",
-            "Propellant Total Mass (kg)",
-            self.interpolate,
-            "constant",
-        )
-
-        # Return Mass Function
-        return self.mass
+        return self.totalImpulse / self.propellantInitialMass
 
     @property
-    def throatArea(self):
-        return np.pi * self.throatRadius**2
-
     @abstractmethod
-    def evaluateInertia(self):
+    def mass(self):
+        """Total propellant mass as a Function of time.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        Function
+            Total propellant mass as a function of time.
+        """
+        pass
+
+    @funcify_method("Time (s)", "mass dot (kg/s)", extrapolation="zero")
+    def massDot(self):
+        """Time derivative of propellant mass. Assumes constant exhaust
+        velocity. The formula used is the opposite of thrust divided by exhaust
+        velocity. The result is a function of time, object of the Function
+        class, which is stored in self.massFlowRate.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        Function
+            Time derivative of total propellant mass a function of time.
+        """
+        return -1 * self.thrust / self.exhaustVelocity
+
+    @property
+    @abstractmethod
+    def propellantInitialMass(self):
+        """Propellant initial mass in kg.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        float
+            Propellant initial mass in kg.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def centerOfMass(self):
+        """Position of the center of mass as a function of time. The position
+        is specified as a scalar, relative to the motor's coordinate system.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        Function
+            Position of the center of mass as a function of time.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def inertiaTensor(self):
         """Calculates propellant inertia I, relative to directions
-        perpendicular to the rocket body axis and its time derivative
-        as a function of time. Also calculates propellant inertia Z,
-        relative to the axial direction, and its time derivative as a
-        function of time. Products of inertia are assumed null due to
-        symmetry. The four functions are stored as an object of the
-        Function class.
+        perpendicular to the rocket body axis and its time derivative as a
+        function of time. Also calculates propellant inertia Z, relative to the
+        axial direction, and its time derivative as a function of time.
+        Products of inertia are assumed null due to symmetry. The four
+        functions are stored as an object of the Function class.
 
         Parameters
         ----------
@@ -476,12 +428,188 @@ class Motor(ABC):
             while the second argument is the Function representing
             inertia Z.
         """
+        pass
 
+    @property
+    @abstractmethod
+    def I_11(self, t):
+        """Inertia tensor 11 component, which corresponds to the inertia
+        relative to the e_1 axis, centered at the instantaneous center of mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        float
+            Propellant inertia tensor 11 component at time t.
+
+        Notes
+        -----
+        The e_1 direction is assumed to be the direction perpendicular to the
+        motor body axis.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def I_22(self):
+        """Inertia tensor 22 component, which corresponds to the inertia
+        relative to the e_2 axis, centered at the instantaneous center of mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        float
+            Propellant inertia tensor 22 component at time t.
+
+        Notes
+        -----
+        The e_2 direction is assumed to be the direction perpendicular to the
+        motor body axis, and perpendicular to e_1.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def I_33(self):
+        """Inertia tensor 33 component, which corresponds to the inertia
+        relative to the e_3 axis, centered at the instantaneous center of mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        float
+            Propellant inertia tensor 33 component at time t.
+
+        Notes
+        -----
+        The e_3 direction is assumed to be the axial direction of the rocket
+        motor.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def I_12(self):
+        """Inertia tensor 12 component, which corresponds to the product of
+        inertia relative to axes e_1 and e_2, centered at the instantaneous
+        center of mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        float
+            Propellant inertia tensor 12 component at time t.
+
+        Notes
+        -----
+        The e_1 direction is assumed to be the direction perpendicular to the
+        motor body axis.
+        The e_2 direction is assumed to be the direction perpendicular to the
+        motor body axis, and perpendicular to e_1.
+        RocketPy follows the definition of the inertia tensor as in [1], which
+        includes the minus sign for all products of inertia.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def I_13(self):
+        """Inertia tensor 13 component, which corresponds to the product of
+        inertia relative to the axes e_1 and e_3, centered at the instantaneous
+        center of mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        float
+            Propellant inertia tensor 13 component at time t.
+
+        Notes
+        -----
+        The e_1 direction is assumed to be the direction perpendicular to the
+        motor body axis.
+        The e_3 direction is assumed to be the axial direction of the rocket
+        motor.
+        RocketPy follows the definition of the inertia tensor as in [1], which
+        includes the minus sign for all products of inertia.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def I_23(self):
+        """Inertia tensor 23 component, which corresponds to the product of
+        inertia relative the axes e_2 and e_3, centered at the instantaneous
+        center of mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        float
+            Propellant inertia tensor 23 component at time t.
+
+        Notes
+        -----
+        The e_2 direction is assumed to be the direction perpendicular to the
+        motor body axis, and perpendicular to e_1.
+        The e_3 direction is assumed to be the axial direction of the rocket
+        motor.
+        RocketPy follows the definition of the inertia tensor as in [1], which
+        includes the minus sign for all products of inertia.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia
+        """
         pass
 
     def importEng(self, fileName):
-        """Read content from .eng file and process it, in order to
-        return the comments, description and data points.
+        """Read content from .eng file and process it, in order to return the
+        comments, description and data points.
 
         Parameters
         ----------
@@ -574,8 +702,8 @@ class Motor(ABC):
         return None
 
     def info(self):
-        """Prints out a summary of the data and graphs available about
-        the Motor.
+        """Prints out a summary of the data and graphs available about the
+        Motor.
 
         Parameters
         ----------
@@ -614,6 +742,7 @@ class Motor(ABC):
 
         return None
 
+    @abstractmethod
     def allInfo(self):
         """Prints out all data and graphs available about the Motor.
 
@@ -625,22 +754,208 @@ class Motor(ABC):
         ------
         None
         """
-        # Print nozzle details
-        print("Nozzle Details")
-        print("Nozzle Radius: " + str(self.nozzleRadius) + " m")
-        print("Nozzle Throat Radius: " + str(self.throatRadius) + " m")
+        pass
 
-        # Print grain details
-        print("\nGrain Details")
-        print("Number of Grains: " + str(self.grainNumber))
-        print("Grain Spacing: " + str(self.grainSeparation) + " m")
-        print("Grain Density: " + str(self.grainDensity) + " kg/m3")
-        print("Grain Outer Radius: " + str(self.grainOuterRadius) + " m")
-        print("Grain Inner Radius: " + str(self.grainInitialInnerRadius) + " m")
-        print("Grain Height: " + str(self.grainInitialHeight) + " m")
-        print("Grain Volume: " + "{:.3f}".format(self.grainInitialVolume) + " m3")
-        print("Grain Mass: " + "{:.3f}".format(self.grainInitialMass) + " kg")
 
+class GenericMotor(Motor):
+    def __init__(
+        self,
+        thrustSource,
+        burnOut,
+        chamberRadius,
+        chamberHeight,
+        chamberPosition,
+        propellantInitialMass,
+        nozzleRadius,
+        throatRadius=1,
+        reshapeThrustCurve=False,
+        interpolationMethod="linear",
+    ):
+        super().__init__(
+            thrustSource,
+            burnOut,
+            nozzleRadius,
+            throatRadius,
+            reshapeThrustCurve,
+            interpolationMethod,
+        )
+
+        self.chamberRadius = chamberRadius
+        self.chamberHeight = chamberHeight
+        self.chamberPosition = chamberPosition
+        self.propellantInitialMass = propellantInitialMass
+
+    @cached_property
+    def propellantInitialMass(self):
+        """Calculates the initial mass of the propellant.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        float
+            Initial mass of the propellant.
+        """
+        return self.propellantInitialMass
+
+    @funcify_method("Time (s)", "center of mass (m)")
+    def centerOfMass(self):
+        """Estimates the Center of Mass of the motor as fixed in the chamber
+        position. For a more accurate evaluation, use the classes SolidMotor,
+        LiquidMotor or HybridMotor.
+
+        Parameters
+        ----------
+        Time : float
+
+        Returns
+        -------
+        Function
+            Function representing the center of mass of the motor.
+        """
+        return self.chamberPosition
+
+    @cached_property
+    def inertiaTensor(self):
+        """Calculates the inertia tensor of the motor with respect to the fixed
+        estimated center of mass. The propellant is assumed of cylindrical
+        shape whose centroid is the chamber position. For a more accurate
+        evaluation, use the classes SolidMotor, LiquidMotor or HybridMotor.
+
+        Parameters
+        ----------
+        Time : float
+
+        Returns
+        -------
+        Function
+            Function representing the inertia tensor of the motor.
+        """
+        self.inertiaI = (
+            self.mass * (3 * self.chamberRadius**2 + self.chamberHeight**2) / 12
+        )
+        self.inertiaZ = self.mass * self.chamberRadius**2 / 2
+
+        # Set naming convention
+        self.inertiaI.setInputs("Time (s)")
+        self.inertiaZ.setInputs("Time (s)")
+        self.inertiaI.setOutputs("inertia y (kg*m^2)")
+        self.inertiaZ.setOutputs("inertia z (kg*m^2)")
+
+        return self.inertiaI, self.inertiaI, self.inertiaZ
+
+    @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
+    def I_11(self):
+        """Inertia tensor 11 component, which corresponds to the inertia
+        relative to the e_1 axis, centered at the instantaneous center of mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        float
+            Propellant inertia tensor 11 component at time t.
+
+        Notes
+        -----
+        The e_1 direction is assumed to be the direction perpendicular to the
+        motor body axis.
+        The propellant is assumed of cylindrical shape whose centroid is the
+        chamber position. For a more accurate evaluation, use the classes
+        SolidMotor, LiquidMotor or HybridMotor.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        """
+        return self.mass * (3 * self.chamberRadius**2 + self.chamberHeight**2) / 12
+
+    @funcify_method("Time (s)", "Inertia I_22 (kg m²)")
+    def I_22(self):
+        """Inertia tensor 22 component, which corresponds to the inertia
+        relative to the e_2 axis, centered at the instantaneous center of mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        float
+            Propellant inertia tensor 22 component at time t.
+
+        Notes
+        -----
+        The e_2 direction is assumed to be the direction perpendicular to the
+        motor body axis and to the e_1 axis.
+        The propellant is assumed of cylindrical shape whose centroid is the
+        chamber position. For a more accurate evaluation, use the classes
+        SolidMotor, LiquidMotor or HybridMotor.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        """
+        return self.I_11
+
+    @funcify_method("Time (s)", "Inertia I_33 (kg m²)")
+    def I_33(self):
+        """Inertia tensor 33 component, which corresponds to the inertia
+        relative to the e_3 axis, centered at the instantaneous center of mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        float
+            Propellant inertia tensor 33 component at time t.
+
+        Notes
+        -----
+        The e_3 direction is assumed to be the direction parallel to the motor
+        body axis.
+        The propellant is assumed of cylindrical shape whose centroid is the
+        chamber position. For a more accurate evaluation, use the classes
+        SolidMotor, LiquidMotor or HybridMotor.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        """
+        return self.mass * self.chamberRadius**2 / 2
+
+    @funcify_method("Time (s)", "Inertia I_12 (kg m²)")
+    def I_12(self):
+        return 0
+
+    @funcify_method("Time (s)", "Inertia I_13 (kg m²)")
+    def I_13(self):
+        return 0
+
+    @funcify_method("Time (s)", "Inertia I_23 (kg m²)")
+    def I_23(self):
+        return 0
+
+    def allInfo(self):
+        """Prints out all data and graphs available about the Motor.
+
+        Parameters
+        ----------
+        None
+
+        Return
+        ------
+        None
+        """
         # Print motor details
         print("\nMotor Details")
         print("Total Burning Time: " + str(self.burnOutTime) + " s")
@@ -668,18 +983,9 @@ class Motor(ABC):
         print("\nPlots")
         self.thrust()
         self.mass()
-        self.massDot()
-        self.grainInnerRadius()
-        self.grainHeight()
-        self.burnRate()
-        self.burnArea()
-        self.Kn()
-        self.inertiaI()
-        self.inertiaIDot()
-        self.inertiaZ()
-        self.inertiaZDot()
-
-        return None
+        self.centerOfMass()
+        self.inertiaTensor[0]()
+        self.inertiaTensor[2]()
 
 
 class EmptyMotor:

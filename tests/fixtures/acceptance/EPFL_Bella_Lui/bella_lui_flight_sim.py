@@ -86,8 +86,11 @@ K828FJ = SolidMotor(
 BellaLui = Rocket(
     radius=parameters.get("radius")[0],
     mass=parameters.get("rocketMass")[0],
-    inertiaI=parameters.get("inertiaI")[0],
-    inertiaZ=parameters.get("inertiaZ")[0],
+    inertia=(
+        parameters.get("inertiaI")[0],
+        parameters.get("inertiaI")[0],
+        parameters.get("inertiaZ")[0],
+    ),
     powerOffDrag=0.43,
     powerOnDrag=0.43,
 )
