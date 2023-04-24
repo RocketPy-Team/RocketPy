@@ -49,7 +49,8 @@ def test_initialize_motor_asserts_dynamic_values(solid_motor):
     assert solid_motor.burn_time[1] == burn_time
     assert solid_motor.totalImpulse == solid_motor.thrust.integral(0, burn_time)
     assert (
-        solid_motor.averageThrust == solid_motor.thrust.integral(0, burn_time) / burn_time
+        solid_motor.averageThrust
+        == solid_motor.thrust.integral(0, burn_time) / burn_time
     )
     assert solid_motor.grainInitialVolume == grain_vol
     assert solid_motor.grainInitialMass == grain_mass

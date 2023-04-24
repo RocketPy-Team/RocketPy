@@ -404,7 +404,11 @@ class SolidMotor(Motor):
 
         # Solve the system of differential equations
         sol = integrate.solve_ivp(
-            geometryDot, t_span, y0, t_eval=t, events=terminateBurn,
+            geometryDot,
+            t_span,
+            y0,
+            t_eval=t,
+            events=terminateBurn,
         )
 
         self.grainBurnOut = sol.t[-1]
