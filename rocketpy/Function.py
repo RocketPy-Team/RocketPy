@@ -631,8 +631,8 @@ class Function:
             Zs = np.array(self.getValue(mesh))
             self.setSource(np.concatenate(([Xs], [Ys], [Zs])).transpose())
 
-        self.setInterpolation(modelFunction.__interpolation__)
-        self.setExtrapolation(modelFunction.__extrapolation__)
+        self.setInterpolation(self.__interpolation__)
+        self.setExtrapolation(self.__extrapolation__)
         return self
 
     def reset(
@@ -1892,12 +1892,12 @@ class Function:
         ----------
         other : Function, int, float, callable
             What self will be added to. If other and self are Function
-            objects which are based on interpolation, have the exact same
-            domain (are defined in the same grid points), have the same
-            interpolation method and have the same input name, then a
-            special implementation is used. This implementation is faster,
-            however behavior between grid points is only interpolated,
-            not calculated as it would be.
+            objects which are based on a list of points, have the exact same
+            domain (are defined in the same grid points) and have the same
+            dimension, then a special implementation is used.
+            This implementation is faster, however behavior between grid
+            points is only interpolated, not calculated as it would be;
+            the resultant Function has the same interpolation as self.
 
         Returns
         -------
@@ -1911,8 +1911,7 @@ class Function:
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
-                and self.__interpolation__ == other.__interpolation__
-                and self.__inputs__ == other.__inputs__
+                and self.__domDim__ == other.__domDim__
                 and np.array_equal(self.xArray, other.xArray)
             ):
                 # Operate on grid values
@@ -1976,12 +1975,12 @@ class Function:
         ----------
         other : Function, int, float, callable
             What self will be subtracted by. If other and self are Function
-            objects which are based on interpolation, have the exact same
-            domain (are defined in the same grid points), have the same
-            interpolation method and have the same input name, then a
-            special implementation is used. This implementation is faster,
-            however behavior between grid points is only interpolated,
-            not calculated as it would be.
+            objects which are based on a list of points, have the exact same
+            domain (are defined in the same grid points) and have the same
+            dimension, then a special implementation is used.
+            This implementation is faster, however behavior between grid
+            points is only interpolated, not calculated as it would be;
+            the resultant Function has the same interpolation as self.
 
         Returns
         -------
@@ -2019,12 +2018,12 @@ class Function:
         ----------
         other : Function, int, float, callable
             What self will be multiplied by. If other and self are Function
-            objects which are based on interpolation, have the exact same
-            domain (are defined in the same grid points), have the same
-            interpolation method and have the same input name, then a
-            special implementation is used. This implementation is faster,
-            however behavior between grid points is only interpolated,
-            not calculated as it would be.
+            objects which are based on a list of points, have the exact same
+            domain (are defined in the same grid points) and have the same
+            dimension, then a special implementation is used.
+            This implementation is faster, however behavior between grid
+            points is only interpolated, not calculated as it would be;
+            the resultant Function has the same interpolation as self.
 
         Returns
         -------
@@ -2038,8 +2037,7 @@ class Function:
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
-                and self.__interpolation__ == other.__interpolation__
-                and self.__inputs__ == other.__inputs__
+                and self.__domDim__ == other.__domDim__
                 and np.array_equal(self.xArray, other.xArray)
             ):
                 # Operate on grid values
@@ -2103,12 +2101,12 @@ class Function:
         ----------
         other : Function, int, float, callable
             What self will be divided by. If other and self are Function
-            objects which are based on interpolation, have the exact same
-            domain (are defined in the same grid points), have the same
-            interpolation method and have the same input name, then a
-            special implementation is used. This implementation is faster,
-            however behavior between grid points is only interpolated,
-            not calculated as it would be.
+            objects which are based on a list of points, have the exact same
+            domain (are defined in the same grid points) and have the same
+            dimension, then a special implementation is used.
+            This implementation is faster, however behavior between grid
+            points is only interpolated, not calculated as it would be;
+            the resultant Function has the same interpolation as self.
 
         Returns
         -------
@@ -2122,8 +2120,7 @@ class Function:
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
-                and self.__interpolation__ == other.__interpolation__
-                and self.__inputs__ == other.__inputs__
+                and self.__domDim__ == other.__domDim__
                 and np.array_equal(self.xArray, other.xArray)
             ):
                 # Operate on grid values
@@ -2207,12 +2204,12 @@ class Function:
         ----------
         other : Function, int, float, callable
             What self will be raised to. If other and self are Function
-            objects which are based on interpolation, have the exact same
-            domain (are defined in the same grid points), have the same
-            interpolation method and have the same input name, then a
-            special implementation is used. This implementation is faster,
-            however behavior between grid points is only interpolated,
-            not calculated as it would be.
+            objects which are based on a list of points, have the exact same
+            domain (are defined in the same grid points) and have the same
+            dimension, then a special implementation is used.
+            This implementation is faster, however behavior between grid
+            points is only interpolated, not calculated as it would be;
+            the resultant Function has the same interpolation as self.
 
         Returns
         -------
@@ -2226,8 +2223,7 @@ class Function:
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
-                and self.__interpolation__ == other.__interpolation__
-                and self.__inputs__ == other.__inputs__
+                and self.__domDim__ == other.__domDim__
                 and np.any(self.xArray - other.xArray) == False
                 and np.array_equal(self.xArray, other.xArray)
             ):
