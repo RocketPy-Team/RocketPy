@@ -113,16 +113,17 @@ class HybridMotor(Motor):
     def __init__(
         self,
         thrustSource,
+        grainsCenterOfMassPosition,
         grainNumber,
         grainDensity,
         grainOuterRadius,
         grainInitialInnerRadius,
         grainInitialHeight,
+        grainSeparation,
+        nozzleRadius,
         burn_time=None,
-        grainSeparation=0,
-        nozzleRadius=0.0335,
         nozzlePosition=0,
-        throatRadius=0.0114,
+        throatRadius=0.01,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
         coordinateSystemOrientation="nozzleToCombustionChamber",
@@ -201,8 +202,8 @@ class HybridMotor(Motor):
         """
         super().__init__(
             thrustSource,
-            burn_time,
             nozzleRadius,
+            burn_time,
             nozzlePosition,
             reshapeThrustCurve,
             interpolationMethod,
@@ -210,8 +211,8 @@ class HybridMotor(Motor):
         )
         self.liquid = LiquidMotor(
             thrustSource,
-            burn_time,
             nozzleRadius,
+            burn_time,
             nozzlePosition,
             reshapeThrustCurve,
             interpolationMethod,
@@ -219,7 +220,6 @@ class HybridMotor(Motor):
         )
         self.solid = SolidMotor(
             thrustSource,
-            burn_time,
             grainsCenterOfMassPosition,
             grainNumber,
             grainDensity,
@@ -228,6 +228,7 @@ class HybridMotor(Motor):
             grainInitialHeight,
             grainSeparation,
             nozzleRadius,
+            burn_time,
             nozzlePosition,
             throatRadius,
             reshapeThrustCurve,
@@ -498,7 +499,7 @@ class HybridMotor(Motor):
 
         # Print motor details
         print("\nMotor Details")
-        print("Total Burning Time: " + str(self.burnOutTime) + " s")
+        print("Total Burning Time: " + str(self.burnDuration) + " s")
         print(
             "Total Propellant Mass: "
             + "{:.3f}".format(self.propellantInitialMass)
@@ -521,16 +522,16 @@ class HybridMotor(Motor):
 
         # Show plots
         print("\nPlots")
-        self.thrust.plot(0, self.burnOutTime)
-        self.mass.plot(0, self.burnOutTime)
-        self.massFlowRate.plot(0, self.burnOutTime)
-        self.solid.grainInnerRadius.plot(0, self.burnOutTime)
-        self.solid.grainHeight.plot(0, self.burnOutTime)
+        self.thrust.plot(*self.burn_time)
+        self.mass.plot(*self.burn_time)
+        self.massFlowRate.plot(*self.burn_time)
+        self.solid.grainInnerRadius.plot(*self.burn_time)
+        self.solid.grainHeight.plot(*self.burn_time)
         self.solid.burnRate.plot(0, self.solid.grainBurnOut)
-        self.solid.burnArea.plot(0, self.burnOutTime)
-        self.solid.Kn.plot(0, self.burnOutTime)
-        self.centerOfMass.plot(0, self.burnOutTime, samples=50)
-        self.inertiaTensor[0].plot(0, self.burnOutTime, samples=50)
-        self.inertiaTensor[2].plot(0, self.burnOutTime, samples=50)
+        self.solid.burnArea.plot(*self.burn_time)
+        self.solid.Kn.plot(*self.burn_time)
+        self.centerOfMass.plot(*self.burn_time, samples=50)
+        self.inertiaTensor[0].plot(*self.burn_time, samples=50)
+        self.inertiaTensor[2].plot(*self.burn_time, samples=50)
 
         return None

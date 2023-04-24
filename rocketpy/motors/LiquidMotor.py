@@ -18,8 +18,8 @@ class LiquidMotor(Motor):
     def __init__(
         self,
         thrustSource,
-        burnOut,
         nozzleRadius,
+        burn_time=None,
         nozzlePosition=0,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
@@ -70,8 +70,8 @@ class LiquidMotor(Motor):
         """
         super().__init__(
             thrustSource,
-            burnOut,
             nozzleRadius,
+            burn_time,
             nozzlePosition,
             reshapeThrustCurve,
             interpolationMethod,
@@ -334,7 +334,7 @@ class LiquidMotor(Motor):
 
         # Print motor details
         print("\nMotor Details")
-        print("Total Burning Time: " + str(self.burnOutTime) + " s")
+        print("Total Burning Time: " + str(self.burnDuration) + " s")
         print(
             "Total Propellant Mass: "
             + "{:.3f}".format(self.propellantInitialMass)
@@ -357,9 +357,9 @@ class LiquidMotor(Motor):
 
         # Show plots
         print("\nPlots")
-        self.thrust.plot(0, self.burnOutTime)
-        self.mass.plot(0, self.burnOutTime)
-        self.massFlowRate.plot(0, self.burnOutTime)
-        self.centerOfMass.plot(0, self.burnOutTime, samples=50)
-        self.inertiaTensor[0].plot(0, self.burnOutTime, samples=50)
-        self.inertiaTensor[2].plot(0, self.burnOutTime, samples=50)
+        self.thrust.plot(*self.burn_time)
+        self.mass.plot(*self.burn_time)
+        self.massFlowRate.plot(*self.burn_time)
+        self.centerOfMass.plot(*self.burn_time, samples=50)
+        self.inertiaTensor[0].plot(*self.burn_time, samples=50)
+        self.inertiaTensor[2].plot(*self.burn_time, samples=50)

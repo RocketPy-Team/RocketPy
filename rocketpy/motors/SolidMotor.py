@@ -127,11 +127,11 @@ class SolidMotor(Motor):
         grainOuterRadius,
         grainInitialInnerRadius,
         grainInitialHeight,
+        grainSeparation,
+        nozzleRadius,
         burn_time=None,
-        grainSeparation=0,
-        nozzleRadius=0.0335,
         nozzlePosition=0,
-        throatRadius=0.0114,
+        throatRadius=0.01,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
         coordinateSystemOrientation="nozzleToCombustionChamber",
@@ -214,10 +214,9 @@ class SolidMotor(Motor):
         """
         super().__init__(
             thrustSource,
-            burn_time,
             nozzleRadius,
+            burn_time,
             nozzlePosition,
-            throatRadius,
             reshapeThrustCurve,
             interpolationMethod,
             coordinateSystemOrientation,
@@ -382,6 +381,7 @@ class SolidMotor(Motor):
 
         # Define time mesh
         t = self.massDot.source[:, 0]
+        t_span = t[0], t[-1]
 
         density = self.grainDensity
         rO = self.grainOuterRadius
@@ -404,7 +404,7 @@ class SolidMotor(Motor):
 
         # Solve the system of differential equations
         sol = integrate.solve_ivp(
-            geometryDot, t_span, y0, t_eval=t, events=terminateBurn
+            geometryDot, t_span, y0, t_eval=t, events=terminateBurn,
         )
 
         self.grainBurnOut = sol.t[-1]
@@ -723,7 +723,7 @@ class SolidMotor(Motor):
 
         # Print motor details
         print("\nMotor Details")
-        print("Total Burning Time: " + str(self.burnOutTime) + " s")
+        print("Total Burning Time: " + str(self.burnDuration) + " s")
         print(
             "Total Propellant Mass: "
             + "{:.3f}".format(self.propellantInitialMass)
@@ -751,7 +751,7 @@ class SolidMotor(Motor):
         self.massFlowRate()
         self.grainInnerRadius()
         self.grainHeight()
-        self.burnRate.plot(0, self.grainBurnOut)
+        self.burnRate.plot(self.burn_time[0], self.grainBurnOut)
         self.burnArea()
         self.Kn()
         self.inertiaTensor[0]()
