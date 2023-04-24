@@ -6,7 +6,11 @@ __license__ = "MIT"
 
 from inspect import signature
 from copy import copy
-from functools import cached_property
+
+try:
+    from functools import cached_property
+except ImportError:
+    from .tools import cached_property
 
 import matplotlib.pyplot as plt
 import numpy as np
