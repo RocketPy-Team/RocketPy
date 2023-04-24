@@ -6,7 +6,11 @@ __license__ = "MIT"
 
 from inspect import signature
 from copy import copy
-from functools import cached_property
+
+try:
+    from functools import cached_property
+except ImportError:
+    from .tools import cached_property
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -216,10 +220,10 @@ class Function:
                 source = source[source[:, 0].argsort()]
 
                 self.xArray = source[:, 0]
-                self.xmin, self.xmax = self.xArray[0], self.xArray[-1]
+                self.xinitial, self.xfinal = self.xArray[0], self.xArray[-1]
 
                 self.yArray = source[:, 1]
-                self.ymin, self.ymax = self.yArray[0], self.yArray[-1]
+                self.yinitial, self.yfinal = self.yArray[0], self.yArray[-1]
 
                 # Finally set data source as source
                 self.source = source
@@ -235,13 +239,13 @@ class Function:
             # Do things if function is multivariate
             else:
                 self.xArray = source[:, 0]
-                self.xmin, self.xmax = self.xArray[0], self.xArray[-1]
+                self.xinitial, self.xfinal = self.xArray[0], self.xArray[-1]
 
                 self.yArray = source[:, 1]
-                self.ymin, self.ymax = self.yArray[0], self.yArray[-1]
+                self.yinitial, self.yfinal = self.yArray[0], self.yArray[-1]
 
                 self.zArray = source[:, 2]
-                self.zmin, self.zmax = self.zArray[0], self.zArray[-1]
+                self.zinitial, self.zfinal = self.zArray[0], self.zArray[-1]
 
                 # Finally set data source as source
                 self.source = source
@@ -338,7 +342,7 @@ class Function:
         # Retrieve general info
         xData = self.xArray
         yData = self.yArray
-        xmin, xmax = self.xmin, self.xmax
+        xmin, xmax = self.xinitial, self.xfinal
         if self.__extrapolation__ == "zero":
             extrapolation = 0  # Extrapolation is zero
         elif self.__extrapolation__ == "natural":
@@ -632,8 +636,8 @@ class Function:
             Zs = np.array(self.getValue(mesh))
             self.setSource(np.concatenate(([Xs], [Ys], [Zs])).transpose())
 
-        self.setInterpolation(modelFunction.__interpolation__)
-        self.setExtrapolation(modelFunction.__extrapolation__)
+        self.setInterpolation(self.__interpolation__)
+        self.setExtrapolation(self.__extrapolation__)
         return self
 
     def reset(
@@ -785,7 +789,7 @@ class Function:
             x = np.array(args[0])
             xData = self.xArray
             yData = self.yArray
-            xmin, xmax = self.xmin, self.xmax
+            xmin, xmax = self.xinitial, self.xfinal
             coeffs = self.__polynomialCoefficients__
             A = np.zeros((len(args[0]), coeffs.shape[0]))
             for i in range(coeffs.shape[0]):
@@ -806,7 +810,7 @@ class Function:
             xData = self.xArray
             yData = self.yArray
             xIntervals = np.searchsorted(xData, x)
-            xmin, xmax = self.xmin, self.xmax
+            xmin, xmax = self.xinitial, self.xfinal
             if self.__interpolation__ == "spline":
                 coeffs = self.__splineCoefficients__
                 for i in range(len(x)):
@@ -906,7 +910,7 @@ class Function:
         # Retrieve general info
         xData = self.xArray
         yData = self.yArray
-        xmin, xmax = self.xmin, self.xmax
+        xmin, xmax = self.xinitial, self.xfinal
         if self.__extrapolation__ == "zero":
             extrapolation = 0  # Extrapolation is zero
         elif self.__extrapolation__ == "natural":
@@ -1066,7 +1070,7 @@ class Function:
                 xInterval = np.searchsorted(xData, x)
                 self.last_interval = xInterval if xInterval < len(xData) else 0
             # Interval found... keep going
-            xmin, xmax = self.xmin, self.xmax
+            xmin, xmax = self.xinitial, self.xfinal
             if self.__interpolation__ == "spline":
                 coeffs = self.__splineCoefficients__
                 if x == xmin or x == xmax:
@@ -1340,7 +1344,7 @@ class Function:
         else:
             # Determine boundaries
             xData = self.xArray
-            xmin, xmax = self.xmin, self.xmax
+            xmin, xmax = self.xinitial, self.xfinal
             lower = xmin if lower is None else lower
             upper = xmax if upper is None else upper
             # Plot data points if forceData = True
@@ -1893,12 +1897,12 @@ class Function:
         ----------
         other : Function, int, float, callable
             What self will be added to. If other and self are Function
-            objects which are based on interpolation, have the exact same
-            domain (are defined in the same grid points), have the same
-            interpolation method and have the same input name, then a
-            special implementation is used. This implementation is faster,
-            however behavior between grid points is only interpolated,
-            not calculated as it would be.
+            objects which are based on a list of points, have the exact same
+            domain (are defined in the same grid points) and have the same
+            dimension, then a special implementation is used.
+            This implementation is faster, however behavior between grid
+            points is only interpolated, not calculated as it would be;
+            the resultant Function has the same interpolation as self.
 
         Returns
         -------
@@ -1912,8 +1916,7 @@ class Function:
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
-                # and self.__interpolation__ == other.__interpolation__
-                # and self.__inputs__ == other.__inputs__
+                and self.__domDim__ == other.__domDim__
                 and np.array_equal(self.xArray, other.xArray)
             ):
                 # Operate on grid values
@@ -1977,12 +1980,12 @@ class Function:
         ----------
         other : Function, int, float, callable
             What self will be subtracted by. If other and self are Function
-            objects which are based on interpolation, have the exact same
-            domain (are defined in the same grid points), have the same
-            interpolation method and have the same input name, then a
-            special implementation is used. This implementation is faster,
-            however behavior between grid points is only interpolated,
-            not calculated as it would be.
+            objects which are based on a list of points, have the exact same
+            domain (are defined in the same grid points) and have the same
+            dimension, then a special implementation is used.
+            This implementation is faster, however behavior between grid
+            points is only interpolated, not calculated as it would be;
+            the resultant Function has the same interpolation as self.
 
         Returns
         -------
@@ -2020,12 +2023,12 @@ class Function:
         ----------
         other : Function, int, float, callable
             What self will be multiplied by. If other and self are Function
-            objects which are based on interpolation, have the exact same
-            domain (are defined in the same grid points), have the same
-            interpolation method and have the same input name, then a
-            special implementation is used. This implementation is faster,
-            however behavior between grid points is only interpolated,
-            not calculated as it would be.
+            objects which are based on a list of points, have the exact same
+            domain (are defined in the same grid points) and have the same
+            dimension, then a special implementation is used.
+            This implementation is faster, however behavior between grid
+            points is only interpolated, not calculated as it would be;
+            the resultant Function has the same interpolation as self.
 
         Returns
         -------
@@ -2039,8 +2042,7 @@ class Function:
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
-                # and self.__interpolation__ == other.__interpolation__
-                # and self.__inputs__ == other.__inputs__
+                and self.__domDim__ == other.__domDim__
                 and np.array_equal(self.xArray, other.xArray)
             ):
                 # Operate on grid values
@@ -2104,12 +2106,12 @@ class Function:
         ----------
         other : Function, int, float, callable
             What self will be divided by. If other and self are Function
-            objects which are based on interpolation, have the exact same
-            domain (are defined in the same grid points), have the same
-            interpolation method and have the same input name, then a
-            special implementation is used. This implementation is faster,
-            however behavior between grid points is only interpolated,
-            not calculated as it would be.
+            objects which are based on a list of points, have the exact same
+            domain (are defined in the same grid points) and have the same
+            dimension, then a special implementation is used.
+            This implementation is faster, however behavior between grid
+            points is only interpolated, not calculated as it would be;
+            the resultant Function has the same interpolation as self.
 
         Returns
         -------
@@ -2123,8 +2125,7 @@ class Function:
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
-                # and self.__interpolation__ == other.__interpolation__
-                # and self.__inputs__ == other.__inputs__
+                and self.__domDim__ == other.__domDim__
                 and np.array_equal(self.xArray, other.xArray)
             ):
                 # Operate on grid values
@@ -2208,12 +2209,12 @@ class Function:
         ----------
         other : Function, int, float, callable
             What self will be raised to. If other and self are Function
-            objects which are based on interpolation, have the exact same
-            domain (are defined in the same grid points), have the same
-            interpolation method and have the same input name, then a
-            special implementation is used. This implementation is faster,
-            however behavior between grid points is only interpolated,
-            not calculated as it would be.
+            objects which are based on a list of points, have the exact same
+            domain (are defined in the same grid points) and have the same
+            dimension, then a special implementation is used.
+            This implementation is faster, however behavior between grid
+            points is only interpolated, not calculated as it would be;
+            the resultant Function has the same interpolation as self.
 
         Returns
         -------
@@ -2227,8 +2228,7 @@ class Function:
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
-                # and self.__interpolation__ == other.__interpolation__
-                # and self.__inputs__ == other.__inputs__
+                and self.__domDim__ == other.__domDim__
                 and np.any(self.xArray - other.xArray) == False
                 and np.array_equal(self.xArray, other.xArray)
             ):
@@ -2812,10 +2812,10 @@ class Function:
         if isinstance(self.source, np.ndarray) and isinstance(func.source, np.ndarray):
             # Perform bounds check for composition
             if not extrapolate:
-                if func.ymin < self.xmin and func.ymax > self.xmax:
+                if func.min < self.xinitial and func.max > self.xfinal:
                     raise ValueError(
-                        f"Input Function image {func.ymin, func.ymax} must be within "
-                        f"the domain of the Function {self.xmin, self.xmax}."
+                        f"Input Function image {func.min, func.max} must be within "
+                        f"the domain of the Function {self.xinitial, self.xfinal}."
                     )
 
             return Function(
