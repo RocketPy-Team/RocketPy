@@ -215,10 +215,10 @@ class Function:
                 source = source[source[:, 0].argsort()]
 
                 self.xArray = source[:, 0]
-                self.xmin, self.xmax = self.xArray[0], self.xArray[-1]
+                self.xinitial, self.xfinal = self.xArray[0], self.xArray[-1]
 
                 self.yArray = source[:, 1]
-                self.ymin, self.ymax = self.yArray[0], self.yArray[-1]
+                self.yinitial, self.yfinal = self.yArray[0], self.yArray[-1]
 
                 # Finally set data source as source
                 self.source = source
@@ -234,13 +234,13 @@ class Function:
             # Do things if function is multivariate
             else:
                 self.xArray = source[:, 0]
-                self.xmin, self.xmax = self.xArray[0], self.xArray[-1]
+                self.xinitial, self.xfinal = self.xArray[0], self.xArray[-1]
 
                 self.yArray = source[:, 1]
-                self.ymin, self.ymax = self.yArray[0], self.yArray[-1]
+                self.yinitial, self.yfinal = self.yArray[0], self.yArray[-1]
 
                 self.zArray = source[:, 2]
-                self.zmin, self.zmax = self.zArray[0], self.zArray[-1]
+                self.zinitial, self.zfinal = self.zArray[0], self.zArray[-1]
 
                 # Finally set data source as source
                 self.source = source
@@ -337,7 +337,7 @@ class Function:
         # Retrieve general info
         xData = self.xArray
         yData = self.yArray
-        xmin, xmax = self.xmin, self.xmax
+        xmin, xmax = self.xinitial, self.xfinal
         if self.__extrapolation__ == "zero":
             extrapolation = 0  # Extrapolation is zero
         elif self.__extrapolation__ == "natural":
@@ -784,7 +784,7 @@ class Function:
             x = np.array(args[0])
             xData = self.xArray
             yData = self.yArray
-            xmin, xmax = self.xmin, self.xmax
+            xmin, xmax = self.xinitial, self.xfinal
             coeffs = self.__polynomialCoefficients__
             A = np.zeros((len(args[0]), coeffs.shape[0]))
             for i in range(coeffs.shape[0]):
@@ -805,7 +805,7 @@ class Function:
             xData = self.xArray
             yData = self.yArray
             xIntervals = np.searchsorted(xData, x)
-            xmin, xmax = self.xmin, self.xmax
+            xmin, xmax = self.xinitial, self.xfinal
             if self.__interpolation__ == "spline":
                 coeffs = self.__splineCoefficients__
                 for i in range(len(x)):
@@ -905,7 +905,7 @@ class Function:
         # Retrieve general info
         xData = self.xArray
         yData = self.yArray
-        xmin, xmax = self.xmin, self.xmax
+        xmin, xmax = self.xinitial, self.xfinal
         if self.__extrapolation__ == "zero":
             extrapolation = 0  # Extrapolation is zero
         elif self.__extrapolation__ == "natural":
@@ -1065,7 +1065,7 @@ class Function:
                 xInterval = np.searchsorted(xData, x)
                 self.last_interval = xInterval if xInterval < len(xData) else 0
             # Interval found... keep going
-            xmin, xmax = self.xmin, self.xmax
+            xmin, xmax = self.xinitial, self.xfinal
             if self.__interpolation__ == "spline":
                 coeffs = self.__splineCoefficients__
                 if x == xmin or x == xmax:
@@ -1339,7 +1339,7 @@ class Function:
         else:
             # Determine boundaries
             xData = self.xArray
-            xmin, xmax = self.xmin, self.xmax
+            xmin, xmax = self.xinitial, self.xfinal
             lower = xmin if lower is None else lower
             upper = xmax if upper is None else upper
             # Plot data points if forceData = True
@@ -2811,10 +2811,10 @@ class Function:
         if isinstance(self.source, np.ndarray) and isinstance(func.source, np.ndarray):
             # Perform bounds check for composition
             if not extrapolate:
-                if func.ymin < self.xmin and func.ymax > self.xmax:
+                if func.min < self.xinitial and func.max > self.xfinal:
                     raise ValueError(
-                        f"Input Function image {func.ymin, func.ymax} must be within "
-                        f"the domain of the Function {self.xmin, self.xmax}."
+                        f"Input Function image {func.min, func.max} must be within "
+                        f"the domain of the Function {self.xinitial, self.xfinal}."
                     )
 
             return Function(
