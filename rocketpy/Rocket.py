@@ -13,7 +13,6 @@ import numpy as np
 
 from .Function import Function
 from .Parachute import Parachute
-from .AeroSurfaces import AeroSurfaces
 from .AeroSurfaces import NoseCone, TrapezoidalFins, EllipticalFins, Tail
 from .Motor import EmptyMotor
 
@@ -213,10 +212,10 @@ class Rocket:
         self.railButtons = None
 
         # Aerodynamic data initialization
-        self.aerodynamicSurfaces = AeroSurfaces()
-        self.nosecone = AeroSurfaces()
-        self.fins = AeroSurfaces()
-        self.tail = AeroSurfaces()
+        self.aerodynamicSurfaces = []
+        self._nosecone = []
+        self._fins = []
+        self._tail = []
         self.cpPosition = 0
         self.staticMargin = Function(
             lambda x: 0, inputs="Time (s)", outputs="Static Margin (c)"
@@ -261,6 +260,27 @@ class Rocket:
         self.plots = _RocketPlots(self)
 
         return None
+
+    @property
+    def nosecone(self):
+        if len(self._nosecone) == 1:
+            return self._nosecone[0]
+        else:
+            return self._nosecone
+
+    @property
+    def fins(self):
+        if len(self._fins) == 1:
+            return self._fins[0]
+        else:
+            return self._fins
+
+    @property
+    def tail(self):
+        if len(self._tail) == 1:
+            return self._tail[0]
+        else:
+            return self._tail
 
     def evaluateTotalMass(self):
         """Calculates and returns the rocket's total mass. The total
@@ -391,12 +411,8 @@ class Rocket:
         # Calculate total lift coefficient derivative and center of pressure
         if len(self.aerodynamicSurfaces) > 0:
             for aeroSurface, position in self.aerodynamicSurfaces:
-                self.totalLiftCoeffDer += Function(
-                    lambda alpha: aeroSurface.cl(alpha, 0)
-                ).differentiate(x=1e-2, dx=1e-3)
-                self.cpPosition += Function(
-                    lambda alpha: aeroSurface.cl(alpha, 0)
-                ).differentiate(x=1e-2, dx=1e-3) * (
+                self.totalLiftCoeffDer += aeroSurface.clalpha(0)
+                self.cpPosition += aeroSurface.clalpha(0) * (
                     position - self._csys * aeroSurface.cpz
                 )
             self.cpPosition /= self.totalLiftCoeffDer
@@ -411,9 +427,7 @@ class Rocket:
         self.staticMargin.setDiscrete(
             lower=0, upper=self.motor.burnOutTime, samples=200
         )
-
-        # Return self
-        return self
+        return None
 
     def addMotor(self, motor, position):
         """Adds a motor to the rocket.
@@ -446,6 +460,29 @@ class Rocket:
         self.evaluateCenterOfMass()
         self.evaluateReducedMass()
         self.evaluateThrustToWeight()
+        self.evaluateStaticMargin()
+        return None
+
+    def addSurface(self, surface, position):
+        """Adds an aerodynamic surface to the rocket. The aerodynamic surface
+        must be an instance of a class that inherits from the AerodynamicSurface"""
+        self.aerodynamicSurfaces.append((surface, position))
+        surface.position = position
+        if isinstance(surface, NoseCone):
+            self._nosecone.append(surface)
+        elif isinstance(surface, (TrapezoidalFins, EllipticalFins)):
+            self._fins.append(surface)
+        elif isinstance(surface, Tail):
+            self._tail.append(surface)
+        self.evaluateStaticMargin()
+        return None
+
+    def addSurfaces(self, surfaces, positions):
+        """Adds multiple aerodynamic surfaces to the rocket. The aerodynamic surfaces
+        must be instances of classes that inherit from the AerodynamicSurface"""
+        for surface, position in zip(surfaces, positions):
+            self.addSurface(surface, position)
+            surface.position = position
         self.evaluateStaticMargin()
         return None
 
@@ -484,15 +521,9 @@ class Rocket:
 
         # Create new tail as an object of the Tail class
         tail = Tail(topRadius, bottomRadius, length, radius, name)
-        # Saves position on object for practicality
-        tail.position = position
 
-        # Add tail to aerodynamic surfaces and tail list
-        self.aerodynamicSurfaces.append(aeroSurface=tail, position=position)
-        self.tail.append(tail)
-
-        # Refresh static margin calculation
-        self.evaluateStaticMargin()
+        # Add tail to aerodynamic surfaces
+        self.addSurface(tail, position)
 
         # Return self
         return tail
@@ -525,15 +556,9 @@ class Rocket:
         """
         # Create a nose as an object of NoseCone class
         nose = NoseCone(length, kind, self.radius, self.radius, name)
-        # Saves position on object for practicality
-        nose.position = position
 
         # Add nose to the list of aerodynamic surfaces
-        self.aerodynamicSurfaces.append(aeroSurface=nose, position=position)
-        self.nosecone.append(nose)
-
-        # Refresh static margin calculation
-        self.evaluateStaticMargin()
+        self.addSurface(nose, position)
 
         # Return self
         return nose
@@ -639,15 +664,9 @@ class Rocket:
             airfoil,
             name,
         )
-        # Saves position on object for practicality
-        finSet.position = position
 
         # Add fin set to the list of aerodynamic surfaces
-        self.aerodynamicSurfaces.append(aeroSurface=finSet, position=position)
-        self.fins.append(finSet)
-
-        # Refresh static margin calculation
-        self.evaluateStaticMargin()
+        self.addSurface(finSet, position)
 
         # Return the created aerodynamic surface
         return finSet
@@ -715,15 +734,9 @@ class Rocket:
 
         # Create a fin set as an object of EllipticalFins class
         finSet = EllipticalFins(n, rootChord, span, radius, cantAngle, airfoil, name)
-        # Saves position on object for practicality
-        finSet.position = position
 
         # Add fin set to the list of aerodynamic surfaces
-        self.aerodynamicSurfaces.append(aeroSurface=finSet, position=position)
-        self.fins.append(finSet)
-
-        # Refresh static margin calculation
-        self.evaluateStaticMargin()
+        self.addSurface(finSet, position)
 
         # Return self
         return finSet
