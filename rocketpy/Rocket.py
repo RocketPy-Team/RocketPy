@@ -465,7 +465,22 @@ class Rocket:
 
     def addSurface(self, surface, position):
         """Adds an aerodynamic surface to the rocket. The aerodynamic surface
-        must be an instance of a class that inherits from the AerodynamicSurface"""
+        must be an instance of a class that inherits from the AerodynamicSurface
+
+        Parameters
+        ----------
+        surface : AerodynamicSurface, NoseCone, TrapezoidalFins, EllipticalFins, Tail
+            Aerodynamic surface to be added to the rocket. See AerodynamicSurface class
+            for more information.
+        position : int, float
+            Position, in m, of the aerodynamic surface's center of pressure relative to
+            the user defined rocket coordinate system. See `Rocket.coordinateSystemOrientation`
+            for more information regarding the rocket's coordinate system.
+
+        Returns
+        -------
+        None
+        """
         self.aerodynamicSurfaces.append((surface, position))
         surface.position = position
         if isinstance(surface, NoseCone):
@@ -479,7 +494,22 @@ class Rocket:
 
     def addSurfaces(self, surfaces, positions):
         """Adds multiple aerodynamic surfaces to the rocket. The aerodynamic surfaces
-        must be instances of classes that inherit from the AerodynamicSurface"""
+        must be instances of classes that inherit from the AerodynamicSurface
+
+        Parameters
+        ----------
+        surfaces : list of AerodynamicSurface, NoseCone, TrapezoidalFins, EllipticalFins, Tail
+            List of aerodynamic surfaces to be added to the rocket. See AerodynamicSurface class
+            for more information.
+        positions : list of int, float
+            List of positions, in m, of the aerodynamic surfaces' center of pressure relative to
+            the user defined rocket coordinate system. See `Rocket.coordinateSystemOrientation`
+            for more information regarding the rocket's coordinate system.
+
+        Returns
+        -------
+        None
+        """
         for surface, position in zip(surfaces, positions):
             self.addSurface(surface, position)
             surface.position = position
