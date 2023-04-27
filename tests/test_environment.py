@@ -150,7 +150,7 @@ def test_info_returns(mock_show, example_env):
     returned_plots = example_env.allPlotInfoReturned()
     returned_infos = example_env.allInfoReturned()
     expected_info = {
-        "grav": 9.80665,
+        "grav": example_env.gravity,
         "launch_rail_length": 5,
         "elevation": 0,
         "modelType": "StandardAtmosphere",
@@ -233,7 +233,7 @@ def test_export_environment(example_env_robust):
 
 def test_utmToGeodesic(example_env_robust):
     lat, lon = example_env_robust.utmToGeodesic(
-        x=315468.64, y=3651938.65, utmZone=13, hemis="N", datum="WGS84"
+        x=315468.64, y=3651938.65, utmZone=13, hemis="N"
     )
     assert np.isclose(lat, 32.99025, atol=1e-5) == True
     assert np.isclose(lon, -106.9750, atol=1e-5) == True
