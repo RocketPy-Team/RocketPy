@@ -6,7 +6,6 @@ __author__ = (
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
-import inspect
 import math
 import time
 import warnings

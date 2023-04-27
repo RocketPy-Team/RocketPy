@@ -247,7 +247,7 @@ class NoseCone:
             ["Alpha (rad)", "Mach"],
             "Cl",
         )
-        return None
+        return self.cl
 
     def evaluateCenterOfPressure(self):
         """Calculates and returns the center of pressure of the nose cone in local
@@ -650,7 +650,7 @@ class Fins(ABC):
             "Lift coefficient",
         )
 
-        return None
+        return self.cl
 
     def evaluateRollParameters(self):
         """Calculates and returns the finset's roll coefficients.
@@ -1847,7 +1847,7 @@ class Tail:
         )
         self.cl = cl
         self.clalpha = clalpha
-        return None
+        return self.cl
 
     def evaluateCenterOfPressure(self):
         """Calculates and returns the center of pressure of the tail in local
