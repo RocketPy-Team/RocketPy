@@ -59,21 +59,28 @@ class _EnvironmentPrints:
         None
         """
         print("\nLaunch Site Details\n")
-        print("Launch Rail Length:", self.environment.rL, " m")
+        print("Launch Rail Length:", self.environment.railLength, " m")
         time_format = "%Y-%m-%d %H:%M:%S"
-        if self.environment.date != None and "UTC" not in self.environment.timeZone:
+        if (
+            self.environment.datetime_date != None
+            and "UTC" not in self.environment.timeZone
+        ):
             print(
                 "Launch Date:",
-                self.environment.date.strftime(time_format),
+                self.environment.datetime_date.strftime(time_format),
                 "UTC |",
                 self.environment.localDate.strftime(time_format),
                 self.environment.timeZone,
             )
-        elif self.environment.date != None:
-            print("Launch Date:", self.environment.date.strftime(time_format), "UTC")
-        if self.environment.lat != None and self.environment.lon != None:
-            print("Launch Site Latitude: {:.5f}°".format(self.environment.lat))
-            print("Launch Site Longitude: {:.5f}°".format(self.environment.lon))
+        elif self.environment.datetime_date != None:
+            print(
+                "Launch Date:",
+                self.environment.datetime_date.strftime(time_format),
+                "UTC",
+            )
+        if self.environment.latitude != None and self.environment.longitude != None:
+            print("Launch Site Latitude: {:.5f}°".format(self.environment.latitude))
+            print("Launch Site Longitude: {:.5f}°".format(self.environment.longitude))
         print("Reference Datum: " + self.environment.datum)
         print(
             "Launch Site UTM coordinates: {:.2f} ".format(self.environment.initialEast)
@@ -193,8 +200,8 @@ class _EnvironmentPrints:
         """
         # Print launch site details
         # print("Launch Site Details")
-        # print("Launch Site Latitude: {:.5f}°".format(self.environment.lat))
-        # print("Launch Site Longitude: {:.5f}°".format(self.environment.lon))
+        # print("Launch Site Latitude: {:.5f}°".format(self.environment.latitude))
+        # print("Launch Site Longitude: {:.5f}°".format(self.environment.longitude))
         # print("Reference Datum: " + self.environment.datum)
         # print("Launch Site UTM coordinates: {:.2f} ".format(self.environment.initialEast)
         #    + self.environment.initialEW + "    {:.2f} ".format(self.environment.initialNorth) + self.environment.initialHemisphere
