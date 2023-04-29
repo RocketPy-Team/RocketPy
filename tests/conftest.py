@@ -408,7 +408,7 @@ def mc_rocket(rocket, mc_solid_motor):
     mc_rocket.addNose(mc_nose_cone, position=(1.134, 0.001))
     mc_rocket.addTrapezoidalFins(mc_fin_set, position=(0.001, "normal"))
     mc_rocket.addTail(mc_tail, position=(-1.194656, 0.001, "normal"))
-    mc_rocket.addRailButtons(mc_rail_button)
+    mc_rocket.setRailButtons(mc_rail_button)
     mc_rocket.addParachute(mc_main)
     mc_rocket.addParachute(mc_drogue)
 
