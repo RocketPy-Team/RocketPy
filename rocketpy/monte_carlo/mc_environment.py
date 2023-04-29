@@ -20,11 +20,12 @@ class McEnvironment(DispersionModel):
     its docs for more information. Only environment field is required.
     """
 
-    # Field(...) means it is a required field
+    # Field(...) means it is a required field, exclude=True removes it from the
+    # self.dict() method, which is used to convert the class to a dictionary
     # Fields with typing Any must have the standard dispersion form of tuple or
-    # list. This is checked in the DispersionModel root_validator
-    # Fields with any typing that is not Any have special requirements
-    environment: Environment = Field(...)
+    # list. This is checked in the DispersionModel @root_validator
+    # Fields with typing that is not Any have special requirements
+    environment: Environment = Field(..., exclude=True)
     railLength: Any = 0
     date: List[Union[Tuple[int, int, int, int], None]] = []
     elevation: Any = 0

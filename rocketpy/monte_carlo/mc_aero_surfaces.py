@@ -16,11 +16,12 @@ class McNoseCone(DispersionModel):
     as a base class, see its documentation for more information. The inputs
     defined here correspond to the ones defined in the NoseCone class."""
 
-    # Field(...) means it is a required field
+    # Field(...) means it is a required field, exclude=True removes it from the
+    # self.dict() method, which is used to convert the class to a dictionary
     # Fields with typing Any must have the standard dispersion form of tuple or
-    # list. This is checked in the DispersionModel root_validator
-    # Fields with any typing that is not Any have special requirements
-    nosecone: NoseCone = Field(...)
+    # list. This is checked in the DispersionModel @root_validator
+    # Fields with typing that is not Any have special requirements
+    nosecone: NoseCone = Field(..., exclude=True)
     length: Any = 0
     kind: List[Union[StrictStr, None]] = []
     baseRadius: Any = 0
@@ -35,7 +36,7 @@ class McTrapezoidalFins(DispersionModel):
     information.
     """
 
-    trapezoidalFins: TrapezoidalFins = Field(...)
+    trapezoidalFins: TrapezoidalFins = Field(..., exclude=True)
     n: List[StrictInt] = []
     rootChord: Any = 0
     tipChord: Any = 0
@@ -56,7 +57,7 @@ class McEllipticalFins(DispersionModel):
     information.
     """
 
-    ellipticalFins: EllipticalFins = Field(...)
+    ellipticalFins: EllipticalFins = Field(..., exclude=True)
     n: Any = 0
     rootChord: Any = 0
     span: Any = 0
@@ -71,7 +72,7 @@ class McTail(DispersionModel):
     based on the pydantic library. It uses the DispersionModel class as a base
     class, see its documentation for more information."""
 
-    tail: Tail = Field(...)
+    tail: Tail = Field(..., exclude=True)
     topRadius: Any = 0
     bottomRadius: Any = 0
     length: Any = 0
@@ -85,7 +86,7 @@ class McRailButtons(DispersionModel):
     class as a base class, see its documentation for more information.
     """
 
-    rail_buttons: RailButtons = Field(...)
+    rail_buttons: RailButtons = Field(..., exclude=True)
     upper_button_position: Any = 0
     lower_button_position: Any = 0
     angular_position: Any = 0

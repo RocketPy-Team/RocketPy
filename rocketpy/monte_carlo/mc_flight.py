@@ -19,11 +19,12 @@ class McFlight(DispersionModel):
     in the Flight class, see its documentation for more information.
     """
 
-    # Field(...) means it is a required field
+    # Field(...) means it is a required field, exclude=True removes it from the
+    # self.dict() method, which is used to convert the class to a dictionary
     # Fields with typing Any must have the standard dispersion form of tuple or
-    # list. This is checked in the DispersionModel root_validator
-    # Fields with any typing that is not Any have special requirements
-    flight: Flight = Field(...)
+    # list. This is checked in the DispersionModel @root_validator
+    # Fields with typing that is not Any have special requirements
+    flight: Flight = Field(..., exclude=True)
     inclination: Any = 0
     heading: Any = 0
     initialSolution: Union[
