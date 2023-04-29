@@ -6,6 +6,8 @@ from typing import Any, List, Union
 
 from pydantic import Field, FilePath, PrivateAttr
 
+from rocketpy.tools import get_distribution
+
 from ..AeroSurfaces import EllipticalFins, NoseCone, Tail, TrapezoidalFins
 from ..Rocket import Rocket
 from .DispersionModel import DispersionModel
@@ -48,7 +50,7 @@ class McRocket(DispersionModel):
     _fins: list = PrivateAttr()
     _tails: list = PrivateAttr()
     _parachutes: list = PrivateAttr()
-    _rail_buttons: list = PrivateAttr()
+    _rail_buttons: McRailButtons = PrivateAttr()
 
     def __init__(self, **kwargs):
         """Initializes private attributes and calls DispersionModel __init__"""
@@ -58,7 +60,7 @@ class McRocket(DispersionModel):
         self._fins = []
         self._tails = []
         self._parachutes = []
-        self._rail_buttons = []
+        self._rail_buttons = None
 
     # getters for attributes of the add methods
     @property
@@ -90,6 +92,11 @@ class McRocket(DispersionModel):
         methods. The logic is the same as in the set_attr root validator."""
         # checks if tuple
         if isinstance(position, tuple):
+            # checks if tuple has acceptable length
+            assert len(position) in [
+                2,
+                3,
+            ], f"\nposition: \n\tTuple must have length 2 or 3"
             # checks if first item is valid
             assert isinstance(
                 position[0], (int, float)
@@ -102,7 +109,7 @@ class McRocket(DispersionModel):
                 ), f"position: second item of tuple must be an int, float or string. If the first value refers to the nominal value of 'position', then the item's second value should be the desired standard deviation. If the first value is the standard deviation, then the item's second value should be a string containing a name of a numpy.random distribution function"
                 # if second item is not str, then (nom_val, std)
                 if not isinstance(position[1], str):
-                    return position
+                    return (position[0], position[1], get_distribution("normal"))
                 # if second item is str, then (nom_val, std, str)
                 else:
                     # tries to get position from object
@@ -115,7 +122,7 @@ class McRocket(DispersionModel):
                         raise AttributeError(
                             "Attribute 'position' not found. Position should be passed in the 'position' argument of the 'add' method."
                         )
-                    return (nom_value, position[0], position[1])
+                    return (nom_value, position[0], get_distribution(position[1]))
             # if len is three, then (nom_val, std, 'dist_func')
             if len(position) == 3:
                 assert isinstance(
@@ -124,7 +131,7 @@ class McRocket(DispersionModel):
                 assert isinstance(
                     position[2], str
                 ), f"position: third item of tuple must be a string containing the name of a valid numpy.random distribution function"
-                return position
+                return (position[0], position[1], get_distribution(position[2]))
         elif isinstance(position, list):
             # checks if input list is empty, meaning nothing was inputted
             # and values should be gotten from class
@@ -161,7 +168,7 @@ class McRocket(DispersionModel):
                 raise AttributeError(
                     "Attribute 'position' not found. Position should be passed in the 'position' argument of the 'add' method."
                 )
-            return (nom_value, position)
+            return (nom_value, position, get_distribution("normal"))
         else:
             raise ValueError(
                 f"The 'position' argument must be tuple, list, int or float"
@@ -394,11 +401,11 @@ class McRocket(DispersionModel):
         self.parachutes.append(parachute)
         return None
 
-    def addRailButtons(
+    def setRailButtons(
         self,
         rail_buttons,
     ):
-        """Method to add rail buttons to the McRocket object.
+        """Set rail buttons to the McRocket object.
 
         Parameters
         ----------
@@ -417,5 +424,5 @@ class McRocket(DispersionModel):
         """
         if not isinstance(rail_buttons, McRailButtons):
             raise TypeError("rail_buttons must be of McRailButtons type")
-        self.rail_buttons.append(rail_buttons)
+        self.rail_buttons = rail_buttons
         return None

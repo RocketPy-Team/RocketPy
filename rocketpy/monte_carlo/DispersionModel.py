@@ -81,6 +81,11 @@ class DispersionModel(BaseModel):
             v = values[field]
             # checks if tuple
             if isinstance(v, tuple):
+                # checks if tuple has acceptable length
+                assert len(v) in [
+                    2,
+                    3,
+                ], f"Field '{field}': tuple must have length 2 or 3"
                 # checks if first item is valid
                 assert isinstance(
                     v[0], (int, float)
@@ -91,18 +96,18 @@ class DispersionModel(BaseModel):
                     assert isinstance(
                         v[1], (int, float, str)
                     ), f"Field '{field}': second item of tuple must be an int, float or string. tIf the first value refers to the nominal value of {field}, then the item's second value should be the desired standard deviation. If the first value is the standard deviation, then the second item's value should be a string containing a name of a numpy.random distribution function"
-                    # if second item is not str, then (nom_val, std)
+                    # if second item is not str, then (nom_val, std, "normal")
                     if not isinstance(v[1], str):
-                        values[field] = v
+                        values[field] = (v[0], v[1], get_distribution("normal"))
                     # if second item is str, then (nom_val, std, 'dist_func')
                     else:
                         # check if 'dist_func' is a valid name
-                        get_distribution(v[1])
+                        dist_func = get_distribution(v[1])
                         # saves values
                         values[field] = (
                             getattr(values[obj_name], field),
                             v[0],
-                            v[1],
+                            dist_func,
                         )
                 # if len is three, then (nom_val, std, 'dist_func')
                 if len(v) == 3:
@@ -113,8 +118,8 @@ class DispersionModel(BaseModel):
                         v[2], str
                     ), f"Field '{field}': Third item of tuple must be a string containing the name of a valid numpy.random distribution function"
                     # check if 'dist_func' is a valid name
-                    get_distribution(v[2])
-                    values[field] = v
+                    dist_func = get_distribution(v[2])
+                    values[field] = (v[0], v[1], dist_func)
             elif isinstance(v, list):
                 # checks if input list is empty, meaning nothing was inputted
                 # and values should be gotten from class
@@ -129,8 +134,12 @@ class DispersionModel(BaseModel):
                     values[field] = v
             elif isinstance(v, (int, float)):
                 # not list or tuple, must be an int or float
-                # get attr and returns (nom_value, std)
-                values[field] = (getattr(values[obj_name], field), v)
+                # get attr and returns (nom_value, std, "normal")
+                values[field] = (
+                    getattr(values[obj_name], field),
+                    v,
+                    get_distribution("normal"),
+                )
             else:
                 raise ValueError(f"Field '{field}' must be a tuple, list, int or float")
         return values
@@ -141,6 +150,7 @@ class DispersionModel(BaseModel):
         "powerOffDragFactor",
         "powerOnDragFactor",
         check_fields=False,
+        always=True,
     )
     def val_factors(cls, v):
         """Validator for factor arguments. Checks if input is in a valid format.
@@ -156,18 +166,23 @@ class DispersionModel(BaseModel):
 
         # checks if tuple
         if isinstance(v, tuple):
+            # checks if tuple has acceptable length
+            assert len(v) in [2, 3], f"Factors tuple must have length 2 or 3"
             # checks if first and second items are valid
             assert isinstance(v[0], (int, float)) and isinstance(
                 v[1], (int, float)
             ), f"First and second items of Factors tuple must be either an int or float"
+            # len is two, then (nom_val, std, "normal")
+            if len(v) == 2:
+                return (v[0], v[1], get_distribution("normal"))
             # if len is three, then (nom_val, std, 'dist_func')
             if len(v) == 3:
                 assert isinstance(
                     v[2], str
                 ), f"Third item of tuple must be a string containing the name of a valid numpy.random distribution function"
-                get_distribution(v[2])
-                return v
-            return v
+                # check if 'dist_func' is a valid name
+                dist_func = get_distribution(v[2])
+                return (v[0], v[1], dist_func)
         elif isinstance(v, list):
             # guarantee all values are valid (ints or floats)
             assert all(
