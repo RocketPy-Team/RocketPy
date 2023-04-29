@@ -564,7 +564,7 @@ class Function:
         interpolations.
 
         >>> g.setDiscreteBasedOnModel(f)
-        Function from R1 to R1 : (Scalar) → (Scalar)
+        'Function from R1 to R1 : (Scalar) → (Scalar)'
         >>> h = f * g
         >>> h.source
         array([[ 0.,  0.],
