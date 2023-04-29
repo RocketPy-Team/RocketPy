@@ -311,181 +311,6 @@ class Dispersion:
         return None
 
     # methods for running dispersion analysis
-    def __yield_flight_setting(self, dispersion_dictionary, number_of_simulations):
-        """Yields a flight setting for the simulation
-
-        Parameters
-        ----------
-        dispersion_dictionary : dict
-            The dictionary with the parameters to be analyzed. This includes the
-            mean and standard deviation of the parameters.
-        number_of_simulations : int
-            Number of simulations desired, must be non negative.
-            This is needed when running a new simulation. Default is zero.
-
-        Yields
-        ------
-        setting: dict
-            A dictionary with the flight setting for one simulation.
-        """
-
-        for _ in range(number_of_simulations):
-            setting = {}
-            for class_name, data in dispersion_dictionary.items():
-                setting[class_name] = {}
-                for key, value in data.items():
-                    if isinstance(value, tuple):
-                        setting[class_name][key] = value[-1](value[0], value[1])
-                    elif isinstance(value, list):
-                        setting[class_name][key] = choice(value) if value else value
-                    else:
-                        # else is dictionary
-                        setting[class_name][key] = {}
-                        for sub_key, sub_value in value.items():
-                            if isinstance(sub_value, tuple):
-                                setting[class_name][key][sub_key] = sub_value[-1](
-                                    sub_value[0], sub_value[1]
-                                )
-                            else:
-                                # else is list
-                                # setting[class_name][key][sub_key] = choice(sub_value)
-                                # The choice() doesn't work when you have Functions
-                                setting[class_name][key][sub_key] = (
-                                    choice(sub_value) if sub_value else sub_value
-                                )
-
-            yield setting
-
-    def __convert_field(self, value):
-        """Receives a value provided by a McXxxxx and returns it in a form that
-        can be used in run_dispersion. There are two possible cases:
-        1. The value is a list: simply return the list
-        2. The value is a tuple: return a tuple containing the mean, std and
-        a np.random function. The default distribution is normal, but it can
-        be changed by adding a string to the end of the tuple. For example:
-        (mean, std, 'uniform') will return a tuple with the mean, std and
-        np.random.uniform function.
-
-        Parameters
-        ----------
-        value : tuple or list
-            The value to be converted to a monte carlo tuple
-
-        Returns
-        -------
-        tuple
-            Mean, standard deviation and np.random function
-        """
-        if isinstance(value, list):
-            return value
-        elif isinstance(value, tuple):
-            # the normal distribution is considered the default
-            dist_func = (
-                get_distribution(value[-1])
-                if isinstance(value[-1], str)
-                else np.random.normal
-            )
-            return (value[0], value[1], dist_func)
-
-    def __pop_none(self, dictionary):
-        """Removes all the keys that have a value of None. This is useful
-        when the user wants to run a simulation with a subset of the
-        available parameters.
-
-        Parameters
-        ----------
-        dictionary : dict
-            The dictionary to be cleaned
-
-        Returns
-        -------
-        dictionary
-            The cleaned dictionary
-        """
-        for key, value in dictionary.copy().items():
-            if value is None:
-                dictionary.pop(key)
-            elif isinstance(value, dict):
-                self.__pop_none(value)
-        return dictionary
-
-    def build_dispersion_dict(
-        self,
-    ):
-        """Creates a dictionary to be used in the dispersion analysis. As a
-        static method, it can be used without instantiating a Dispersion object.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        mc_dict : dict
-            A dictionary containing all the information needed to run a dispersion
-            analysis. This dictionary has the following structure:
-            mc_dict = {
-                "environment": {
-                    "railLength": (mean, std, np.random.func),
-                    "date": [mean],
-                },
-                "rocket": {
-                    'radius': (mean, std, np.random.func),
-                    'mass': (mean, std, np.random.func),
-                    'inertiaI': (mean, std, np.random.func)
-                    },
-                "motors": {},
-                "flight": {},
-                "nosecones": {},
-                "fins": {},
-                "tails": {},
-                "parachutes": {
-                    0: {
-                        "CdS": (mean, std, np.random.func),
-                        "lag": (mean, std, np.random.func),
-                        ...
-                    },
-                    1: {...}
-                },
-                "buttons": {},
-            }
-        """
-
-        mc_dict = {
-            "environment": self.environment.dict(),
-            "rocket": self.rocket.dict(),
-            "flight": self.flight.dict(),
-            "motors": {i: motor.dict() for i, motor in enumerate(self.motors)},
-            "nosecones": {
-                i: nosecone.dict() for i, nosecone in enumerate(self.nosecones)
-            },
-            "fins": {i: fin.dict() for i, fin in enumerate(self.fins)},
-            "tails": {i: tail.dict() for i, tail in enumerate(self.tails)},
-            "parachutes": {
-                i: parachute.dict() for i, parachute in enumerate(self.parachutes)
-            },
-            "rail_buttons": {
-                i: buttons.dict() for i, buttons in enumerate(self.rail_buttons)
-            },
-        }
-
-        for _, data in mc_dict.items():
-            # Checks if first key of dict is a number
-            # for instance: parachutes : {0: McParachute.dict(), 1: McParachute}
-            # therefore we need to iterate over the dicts
-            if 0 in data.keys():
-                for sub_data in data.values():
-                    for field, value in sub_data.items():
-                        sub_data[field] = self.__convert_field(value)
-            else:
-                for field, value in data.items():
-                    data[field] = self.__convert_field(value)
-
-        # pop any value that is None, even if it is a value of sub dictionary
-        mc_dict = self.__pop_none(mc_dict)
-
-        return mc_dict
-
     def run_dispersion(
         self,
         number_of_simulations,
@@ -515,9 +340,6 @@ class Dispersion:
         # Saving the arguments as attributes
         self.number_of_simulations = number_of_simulations
 
-        # Creates dispersion dictionary
-        self.dispersion_dictionary = self.build_dispersion_dict()
-
         # Create data files for inputs, outputs and error logging
         open_mode = "a" if append else "w"
         input_file = open(self._input_file, open_mode, encoding="utf-8")
@@ -528,186 +350,69 @@ class Dispersion:
         self.export_list = self.__check_export_list(export_list)
 
         # Initialize counter and timer
-        i = self.num_of_loaded_sims
+        i = self.num_of_loaded_sims if append else 0
         initial_wall_time = time()
         initial_cpu_time = process_time()
 
         # Begin display
         print("Starting", end="\r")
 
-        # Initialize initial environment and gets original wind data
-        env_dispersion = (
-            self.environment
-            if isinstance(self.environment, Environment)
-            else self.environment.__dict__["environment"]
-        )
-        # Saving original wind profiles
-        windX = env_dispersion.windVelocityX
-        windY = env_dispersion.windVelocityY
-
-        # Iterate over flight settings, start the flight simulations
-        for setting in self.__yield_flight_setting(
-            self.dispersion_dictionary, self.number_of_simulations
-        ):
+        # Start the flight simulations
+        for _ in range(number_of_simulations):
             start_time = process_time()
             i += 1
 
-            # Apply environment parameters variations on each iteration if possible
-            env_dispersion.railLength = setting["environment"]["railLength"]
-            env_dispersion.windVelocityX = windX * setting["environment"]["windXFactor"]
-            env_dispersion.windVelocityY = windY * setting["environment"]["windYFactor"]
-            if setting["environment"]["ensembleMember"]:
-                env_dispersion.selectEnsembleMember(
-                    setting["environment"]["ensembleMember"]
-                )
-
-            # Apply motor parameters variations on each iteration if possible
-            # TODO: add hybrid and liquid motor option
-            # TODO: only a single motor is supported. Future version should support more.
-            motor_dispersion = SolidMotor(
-                thrustSource=setting["motors"][0]["thrustSource"],
-                burnOutTime=setting["motors"][0]["burnOutTime"],
-                grainsCenterOfMassPosition=setting["motors"][0][
-                    "grainsCenterOfMassPosition"
-                ],
-                grainNumber=setting["motors"][0]["grainNumber"],
-                grainDensity=setting["motors"][0]["grainDensity"],
-                grainOuterRadius=setting["motors"][0]["grainOuterRadius"],
-                grainInitialInnerRadius=setting["motors"][0]["grainInitialInnerRadius"],
-                grainInitialHeight=setting["motors"][0]["grainInitialHeight"],
-                grainSeparation=setting["motors"][0]["grainSeparation"],
-                nozzleRadius=setting["motors"][0]["nozzleRadius"],
-                nozzlePosition=setting["motors"][0]["nozzlePosition"],
-                throatRadius=setting["motors"][0]["throatRadius"],
-                reshapeThrustCurve=(
-                    setting["motors"][0]["burnOutTime"],
-                    setting["motors"][0]["totalImpulse"],
-                ),
-                # interpolationMethod="linear",
-                # coordinateSystemOrientation=setting["motors"][0][
-                #     "coordinateSystemOrientation"
-                # ],
-            )
-
-            # Apply rocket parameters variations on each iteration if possible
-            rocket_dispersion = Rocket(
-                radius=setting["rocket"]["radius"],
-                mass=setting["rocket"]["mass"],
-                inertiaI=setting["rocket"]["inertiaI"],
-                inertiaZ=setting["rocket"]["inertiaZ"],
-                powerOffDrag=setting["rocket"]["powerOffDrag"],
-                powerOnDrag=setting["rocket"]["powerOnDrag"],
-                centerOfDryMassPosition=setting["rocket"]["centerOfDryMassPosition"],
-                # coordinateSystemOrientation=setting["rocket"][
-                #     "coordinateSystemOrientation"
-                # ],
-            )
-
-            # Edit rocket drag
-            rocket_dispersion.powerOffDrag *= setting["rocket"]["powerOffDragFactor"]
-            rocket_dispersion.powerOnDrag *= setting["rocket"]["powerOnDragFactor"]
-
-            # Add Motor
-            rocket_dispersion.addMotor(
-                motor_dispersion, position=setting["motors"][0]["position"]
-            )
-
-            # Nose
-            for nose in setting["nosecones"].keys():
-                rocket_dispersion.addNose(
-                    kind=setting["nosecones"][nose]["kind"],
-                    length=setting["nosecones"][nose]["length"],
-                    position=setting["nosecones"][nose]["position"],
-                    name=nose,
-                )
-
-            # Fins
-            for fin in setting["fins"].keys():
-                if "sweepLength" in setting["fins"][fin].keys():
-                    # means that it is trapezoidal
-                    rocket_dispersion.addTrapezoidalFins(
-                        n=setting["fins"][fin]["n"],
-                        rootChord=setting["fins"][fin]["rootChord"],
-                        tipChord=setting["fins"][fin]["tipChord"],
-                        span=setting["fins"][fin]["span"],
-                        position=setting["fins"][fin]["position"],
-                        cantAngle=setting["fins"][fin]["cantAngle"],
-                        sweepLength=setting["fins"][fin]["sweepLength"],
-                        # sweepAngle=setting["fins"][fin]["sweepAngle"],
-                        radius=setting["fins"][fin]["rocketRadius"],
-                        airfoil=setting["fins"][fin]["airfoil"],
-                        name=fin,
-                    )
-                else:
-                    rocket_dispersion.addEllipticalFins(
-                        n=setting["fins"][fin]["n"],
-                        rootChord=setting["fins"][fin]["rootChord"],
-                        span=setting["fins"][fin]["span"],
-                        position=setting["fins"][fin]["position"],
-                        cantAngle=setting["fins"][fin]["cantAngle"],
-                        radius=setting["fins"][fin]["radius"],
-                        airfoil=setting["fins"][fin]["airfoil"],
-                        name=fin,
-                    )
-
-            # Tail
-            for tail in setting["tails"].keys():
-                rocket_dispersion.addTail(
-                    length=setting["tails"][tail]["length"],
-                    position=setting["tails"][tail]["position"],
-                    topRadius=setting["tails"][tail]["topRadius"],
-                    bottomRadius=setting["tails"][tail]["bottomRadius"],
-                    # radius=setting["tails"][tail]["radius"],
-                    # TODO: understand if we need vary this radius argument
-                    name=tail,
-                )
-
-            # Rail Buttons
-            for rail_buttons in setting["rail_buttons"].keys():
-                rocket_dispersion.setRailButtons(
-                    position=[
-                        setting["rail_buttons"][rail_buttons]["upper_button_position"],
-                        setting["rail_buttons"][rail_buttons]["lower_button_position"],
-                    ],
-                    angular_position=setting["rail_buttons"][rail_buttons][
-                        "angular_position"
-                    ],
-                )
-
-            # Add parachutes
-            for chute in setting["parachutes"].keys():
-                rocket_dispersion.addParachute(
-                    name=chute,
-                    CdS=setting["parachutes"][chute]["CdS"],
-                    trigger=setting["parachutes"][chute]["trigger"],
-                    samplingRate=setting["parachutes"][chute]["samplingRate"],
-                    lag=setting["parachutes"][chute]["lag"],
-                    noise=setting["parachutes"][chute]["noise"],
-                )
-
             # Run trajectory simulation
             try:
-                # TODO: Add initialSolution flight option
                 dispersion_flight = Flight(
-                    rocket=rocket_dispersion,
-                    environment=env_dispersion,
-                    inclination=setting["flight"]["inclination"],
-                    heading=setting["flight"]["heading"],
+                    rocket=self.rocket.create_object(),
+                    environment=self.environment.create_object(),
+                    inclination=self.flight.rnd_inclination(),
+                    heading=self.flight.rnd_heading(),
+                    initialSolution=self.flight.initialSolution,
+                    terminateOnApogee=self.flight.terminateOnApogee,
                 )
 
+                # create inputs dictionary
+                inputs_dict = dict(
+                    item
+                    for d in [
+                        self.environment.last_rnd_dict,
+                        self.rocket.last_rnd_dict,
+                        self.flight.last_rnd_dict,
+                    ]
+                    for item in d.items()
+                )
+                if self.rocket.motors:
+                    for motor in self.rocket.motors:
+                        inputs_dict.update(motor.last_rnd_dict)
+                if self.rocket.nosecones:
+                    for nosecone in self.rocket.nosecones:
+                        inputs_dict.update(nosecone.last_rnd_dict)
+                if self.rocket.fins:
+                    for fin in self.rocket.fins:
+                        inputs_dict.update(fin.last_rnd_dict)
+                if self.rocket.tails:
+                    for tail in self.rocket.tails:
+                        inputs_dict.update(tail.last_rnd_dict)
+                if self.rocket.parachutes:
+                    for parachute in self.rocket.parachutes:
+                        inputs_dict.update(parachute.last_rnd_dict)
+                if self.rocket.rail_buttons:
+                    inputs_dict.update(self.rocket.rail_buttons.last_rnd_dict)
                 # Export inputs and outputs to file
                 self.__export_flight_data(
-                    setting=setting,
+                    setting=inputs_dict,
                     flight=dispersion_flight,
                     input_file=input_file,
                     output_file=output_file,
                 )
             except (TypeError, ValueError, KeyError, AttributeError) as error:
                 print(f"Error on iteration {i}: {error}\n")
-                error_file.write(f"{setting}\n")
+                error_file.write(f"{inputs_dict}\n")
             except KeyboardInterrupt:
                 print("Keyboard Interrupt, file saved.")
-                error_file.write(f"{setting}\n")
+                error_file.write(f"{inputs_dict}\n")
                 break
 
             # spaces after the last 's' are necessary to fix a bug with end='\r'
