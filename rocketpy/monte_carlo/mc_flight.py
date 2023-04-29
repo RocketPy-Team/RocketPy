@@ -47,3 +47,48 @@ class McFlight(DispersionModel):
         ],
     ] = None
     terminateOnApogee: bool = False
+
+    def rnd_inclination(self):
+        """Creates a random inclination
+
+        Returns
+        -------
+        inclination : float
+            Random inclination
+        """
+        gen_dict = next(self.dict_generator())
+        return gen_dict["inclination"]
+
+    def rnd_heading(self):
+        """Creates a random heading
+
+        Returns
+        -------
+        heading : float
+            Random heading
+        """
+        gen_dict = next(self.dict_generator())
+        return gen_dict["heading"]
+
+    def create_object(self):
+        """Creates a Flight object from the randomly generated input arguments.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        obj : Flight
+            Flight object with the randomly generated input arguments.
+        """
+        gen_dict = next(self.dict_generator())
+        obj = Flight(
+            environment=self.flight.env,
+            rocket=self.flight.rocket,
+            inclination=gen_dict["inclination"],
+            heading=gen_dict["heading"],
+            initialSolution=self.initialSolution,
+            terminateOnApogee=self.terminateOnApogee,
+        )
+        return obj

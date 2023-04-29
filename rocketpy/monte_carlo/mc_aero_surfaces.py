@@ -28,6 +28,30 @@ class McNoseCone(DispersionModel):
     rocketRadius: Any = 0
     name: List[StrictStr] = []
 
+    def create_object(self):
+        """Creates a NoseCone object from the randomly generated input arguments.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        obj : NoseCone
+            NoseCone object with the randomly generated input arguments.
+        """
+        gen_dict = next(self.dict_generator())
+        obj = NoseCone(
+            length=gen_dict["length"],
+            kind=gen_dict["kind"],
+            baseRadius=gen_dict["baseRadius"],
+            rocketRadius=gen_dict["rocketRadius"],
+            name=gen_dict["name"],
+        )
+        if "position" in gen_dict:
+            obj.position = gen_dict["position"]
+        return obj
+
 
 class McTrapezoidalFins(DispersionModel):
     """Monte Carlo Trapezoidal fins class, used to validate the input parameters
@@ -49,6 +73,34 @@ class McTrapezoidalFins(DispersionModel):
     airfoil: List[Union[Tuple[FilePath, StrictStr], None]] = []
     name: List[StrictStr] = []
 
+    def create_object(self):
+        """Creates a TrapezoidalFins object from the randomly generated input arguments.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        obj : TrapezoidalFins
+            TrapezoidalFins object with the randomly generated input arguments.
+        """
+        gen_dict = next(self.dict_generator())
+        obj = TrapezoidalFins(
+            n=gen_dict["n"],
+            rootChord=gen_dict["rootChord"],
+            tipChord=gen_dict["tipChord"],
+            span=gen_dict["span"],
+            rocketRadius=gen_dict["rocketRadius"],
+            cantAngle=gen_dict["cantAngle"],
+            sweepLength=gen_dict["sweepLength"],
+            airfoil=gen_dict["airfoil"],
+            name=gen_dict["name"],
+        )
+        if "position" in gen_dict:
+            obj.position = gen_dict["position"]
+        return obj
+
 
 class McEllipticalFins(DispersionModel):
     """Monte Carlo Elliptical fins class, used to validate the input parameters
@@ -66,6 +118,32 @@ class McEllipticalFins(DispersionModel):
     airfoil: List[Union[Tuple[FilePath, StrictStr], None]] = []
     name: List[StrictStr] = []
 
+    def create_object(self):
+        """Creates a EllipticalFins object from the randomly generated input arguments.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        obj : EllipticalFins
+            EllipticalFins object with the randomly generated input arguments.
+        """
+        gen_dict = next(self.dict_generator())
+        obj = EllipticalFins(
+            n=gen_dict["n"],
+            rootChord=gen_dict["rootChord"],
+            span=gen_dict["span"],
+            rocketRadius=gen_dict["rocketRadius"],
+            cantAngle=gen_dict["cantAngle"],
+            airfoil=gen_dict["airfoil"],
+            name=gen_dict["name"],
+        )
+        if "position" in gen_dict:
+            obj.position = gen_dict["position"]
+        return obj
+
 
 class McTail(DispersionModel):
     """Monte Carlo Tail class, used to validate the input parameters of the tail
@@ -79,6 +157,30 @@ class McTail(DispersionModel):
     rocketRadius: Any = 0
     name: List[StrictStr] = []
 
+    def create_object(self):
+        """Creates a Tail object from the randomly generated input arguments.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        obj : Tail
+            Tail object with the randomly generated input arguments.
+        """
+        gen_dict = next(self.dict_generator())
+        obj = Tail(
+            topRadius=gen_dict["topRadius"],
+            bottomRadius=gen_dict["bottomRadius"],
+            length=gen_dict["length"],
+            rocketRadius=gen_dict["rocketRadius"],
+            name=gen_dict["name"],
+        )
+        if "position" in gen_dict:
+            obj.position = gen_dict["position"]
+        return obj
+
 
 class McRailButtons(DispersionModel):
     """Monte Carlo Rail buttons class, used to validate the input parameters of
@@ -90,3 +192,23 @@ class McRailButtons(DispersionModel):
     upper_button_position: Any = 0
     lower_button_position: Any = 0
     angular_position: Any = 0
+
+    def create_object(self):
+        """Creates a RailButtons object from the randomly generated input arguments.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        obj : RailButtons
+            RailButtons object with the randomly generated input arguments.
+        """
+        gen_dict = next(self.dict_generator())
+        obj = RailButtons(
+            upper_button_position=gen_dict["upper_button_position"],
+            lower_button_position=gen_dict["lower_button_position"],
+            angular_position=gen_dict["angular_position"],
+        )
+        return obj

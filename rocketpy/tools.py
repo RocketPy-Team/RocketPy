@@ -60,7 +60,6 @@ def get_distribution(distribution_function_name):
         "poisson": np.random.poisson,
         "uniform": np.random.uniform,
         "wald": np.random.wald,
-        "weibull": np.random.weibull,
     }
     try:
         return distributions[distribution_function_name]
@@ -79,8 +78,7 @@ def get_distribution(distribution_function_name):
             + '\n\t"logistic"'
             + '\n\t"poisson"'
             + '\n\t"uniform"'
-            + '\n\t"wald"'
-            + '\n\t"weibull"\n'
+            + '\n\t"wald"\n'
         )
 
 

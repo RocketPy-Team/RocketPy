@@ -860,7 +860,7 @@ class Rocket:
             position.reverse()
         # Save important attributes
         rail_buttons = RailButtons(*position, angular_position)
-        self.rail_buttons.append(rail_buttons)
+        self.rail_buttons = rail_buttons
 
         return rail_buttons
 

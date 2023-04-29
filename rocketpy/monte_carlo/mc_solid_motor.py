@@ -36,3 +36,35 @@ class McSolidMotor(DispersionModel):
     nozzleRadius: Any = 0
     nozzlePosition: Any = 0
     throatRadius: Any = 0
+
+    def create_object(self):
+        """Creates a SolidMotor object from the randomly generated input arguments.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        obj : SolidMotor
+            SolidMotor object with the randomly generated input arguments.
+        """
+        gen_dict = next(self.dict_generator())
+        obj = SolidMotor(
+            throatRadius=gen_dict["throatRadius"],
+            burnOutTime=gen_dict["burnOutTime"],
+            grainNumber=gen_dict["grainNumber"],
+            grainDensity=gen_dict["grainDensity"],
+            grainOuterRadius=gen_dict["grainOuterRadius"],
+            grainInitialInnerRadius=gen_dict["grainInitialInnerRadius"],
+            grainInitialHeight=gen_dict["grainInitialHeight"],
+            grainSeparation=gen_dict["grainSeparation"],
+            nozzleRadius=gen_dict["nozzleRadius"],
+            nozzlePosition=gen_dict["nozzlePosition"],
+            thrustSource=gen_dict["thrustSource"],
+            grainsCenterOfMassPosition=gen_dict["grainsCenterOfMassPosition"],
+            reshapeThrustCurve=(gen_dict["burnOutTime"], gen_dict["totalImpulse"]),
+        )
+        if "position" in gen_dict:
+            obj.position = gen_dict["position"]
+        return obj

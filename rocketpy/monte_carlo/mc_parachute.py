@@ -38,3 +38,26 @@ class McParachute(DispersionModel):
             None,
         ]
     ] = []
+
+    def create_object(self):
+        """Creates a Parachute object from the randomly generated input arguments.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        obj : Parachute
+            Parachute object with the randomly generated input arguments.
+        """
+        gen_dict = next(self.dict_generator())
+        obj = Parachute(
+            CdS=gen_dict["CdS"],
+            Trigger=gen_dict["trigger"],
+            samplingRate=gen_dict["samplingRate"],
+            lag=gen_dict["lag"],
+            name=gen_dict["name"],
+            noise=gen_dict["noise"],
+        )
+        return obj

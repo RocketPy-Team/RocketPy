@@ -426,3 +426,72 @@ class McRocket(DispersionModel):
             raise TypeError("rail_buttons must be of McRailButtons type")
         self.rail_buttons = rail_buttons
         return None
+
+    def create_object(self):
+        """Creates a Rocket object from the randomly generated input arguments.
+        If the rocket has motors, nosecones, fins or tails, they will be added
+        accordingly.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        obj : Rocket
+            Rocket object with the randomly generated input arguments.
+        """
+        gen_dict = next(self.dict_generator())
+        obj = Rocket(
+            radius=gen_dict["radius"],
+            mass=gen_dict["mass"],
+            inertiaI=gen_dict["inertiaI"],
+            inertiaZ=gen_dict["inertiaZ"],
+            powerOffDrag=gen_dict["powerOffDrag"],
+            powerOnDrag=gen_dict["powerOnDrag"],
+            centerOfDryMassPosition=0,
+            coordinateSystemOrientation="tailToNose",
+        )
+        obj.powerOffDrag *= gen_dict["powerOffDragFactor"]
+        obj.powerOnDrag *= gen_dict["powerOnDragFactor"]
+
+        if self.motors:
+            for motor in self.motors:
+                m = motor.create_object()
+                obj.addMotor(m, m.position)
+
+        if self.nosecones:
+            for nosecone in self.nosecones:
+                nose = nosecone.create_object()
+                obj.addSurface(nose, nose.position)
+
+        if self.fins:
+            for fin in self.fins:
+                f = fin.create_object()
+                obj.addSurface(f, f.position)
+
+        if self.tails:
+            for tail in self.tails:
+                t = tail.create_object()
+                obj.addSurface(t, t.position)
+
+        if self.parachutes:
+            for parachute in self.parachutes:
+                p = parachute.create_object()
+                obj.addParachute(
+                    name=p.name,
+                    CdS=p.CdS,
+                    trigger=p.trigger,
+                    samplingRate=p.samplingRate,
+                    lag=p.lag,
+                    noise=p.noise,
+                )
+
+        if self.rail_buttons:
+            r = self.rail_buttons.create_object()
+            obj.setRailButtons(
+                position=(r.upper_button_position, r.lower_button_position),
+                angular_position=r.angular_position,
+            )
+
+        return obj

@@ -192,3 +192,26 @@ class DispersionModel(BaseModel):
             return v
         else:
             raise ValueError(f"Must be either a tuple or list")
+
+    def dict_generator(self):
+        """Generates a dictionary with the randomized values of the object's
+        arguments and saves it in self.last_rnd_dict. Dictionary is keys are
+        the object's arguments and values are the randomized values.
+
+        Parameters
+        ----------
+        None
+
+        Yields
+        ------
+        gen_dict : dict
+            Dictionary with randomized values of the object's arguments.
+        """
+        gen_dict = {}
+        for arg, value in self.dict().items():
+            if isinstance(value, tuple):
+                gen_dict[arg] = value[-1](value[0], value[1])
+            elif isinstance(value, list):
+                gen_dict[arg] = choice(value) if value else value
+        self.last_rnd_dict = gen_dict
+        yield gen_dict
