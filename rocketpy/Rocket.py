@@ -213,9 +213,9 @@ class Rocket:
 
         # Aerodynamic data initialization
         self.aerodynamicSurfaces = []
-        self._nosecone = []
-        self._fins = []
-        self._tail = []
+        self.nosecone = []
+        self.fins = []
+        self.tail = []
         self.cpPosition = 0
         self.staticMargin = Function(
             lambda x: 0, inputs="Time (s)", outputs="Static Margin (c)"
@@ -260,27 +260,6 @@ class Rocket:
         self.plots = _RocketPlots(self)
 
         return None
-
-    @property
-    def nosecone(self):
-        if len(self._nosecone) == 1:
-            return self._nosecone[0]
-        else:
-            return self._nosecone
-
-    @property
-    def fins(self):
-        if len(self._fins) == 1:
-            return self._fins[0]
-        else:
-            return self._fins
-
-    @property
-    def tail(self):
-        if len(self._tail) == 1:
-            return self._tail[0]
-        else:
-            return self._tail
 
     def evaluateTotalMass(self):
         """Calculates and returns the rocket's total mass. The total
@@ -484,11 +463,11 @@ class Rocket:
         self.aerodynamicSurfaces.append((surface, position))
         surface.position = position
         if isinstance(surface, NoseCone):
-            self._nosecone.append(surface)
+            self.nosecone.append(surface)
         elif isinstance(surface, (TrapezoidalFins, EllipticalFins)):
-            self._fins.append(surface)
+            self.fins.append(surface)
         elif isinstance(surface, Tail):
-            self._tail.append(surface)
+            self.tail.append(surface)
         self.evaluateStaticMargin()
         return None
 
