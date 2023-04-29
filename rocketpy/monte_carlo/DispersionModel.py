@@ -3,7 +3,10 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 
+from random import choice
+
 from pydantic import BaseModel, Extra, root_validator, validator
+
 from ..tools import get_distribution
 
 
@@ -21,15 +24,20 @@ class DispersionModel(BaseModel):
         # defined in the class. Specially useful in McRocket
         extra = Extra.allow
 
+    def __str__(self):
+        s = ""
+        for key, value in self.__dict__.items():
+            if isinstance(value, tuple):
+                # Format the tuple as a string with the mean and standard deviation.
+                value_str = f"{value[0]:.5f} ± {value[1]:.5f} (numpy.random.{value[2].__name__})"
+            else:
+                # Otherwise, just use the default string representation of the value.
+                value_str = str(value)
+            s += f"{key}: {value_str}\n"
+        return s.strip()
+
     def __repr__(self):
-        field_values = "\n\t"
-        field_values += "\t".join(
-            [
-                f"{field_name}={getattr(self, field_name)!r}\n"
-                for field_name in self.__fields__
-            ]
-        )
-        return f"{self.__class__.__name__}({field_values})\n"
+        return self.__str__()
 
     @root_validator(skip_on_failure=True)
     def set_attr(cls, values):
