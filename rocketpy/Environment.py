@@ -370,7 +370,7 @@ class Environment:
         if latitude != None and longitude != None:
             self.setLocation(latitude, longitude)
         else:
-            self.lat, self.lon = None, None
+            self.latitude, self.longitude = None, None
 
         # Save date
         if date != None:
@@ -404,7 +404,7 @@ class Environment:
 
         # Store launch site coordinates referenced to UTM projection system
         if self.latitude > -80 and self.latitude < 84:
-            convert = self.geodesicToUtm(self.latitude, self.longitude, self.datum)
+            convert = self.geodesicToUtm(self.latitude, self.longitude)
 
             self.initialNorth = convert[1]
             self.initialEast = convert[0]
@@ -418,7 +418,7 @@ class Environment:
         self.setElevation(elevation)
 
         # Recalculate Earth Radius
-        self.earthRadius = self.calculateEarthRadius(self.latitude, self.datum)  # in m
+        self.earthRadius = self.calculateEarthRadius(self.latitude)  # in m
 
         # Initialize plots and prints object
         self.plots = _EnvironmentPlots(self)
@@ -541,7 +541,7 @@ class Environment:
         first_ecc_sqrd = 6.694379990141e-3  # square of first eccentricity
 
         # Compute quantities
-        sin_lat_sqrd = (np.sin(self.lat * np.pi / 180)) ** 2
+        sin_lat_sqrd = (np.sin(self.latitude * np.pi / 180)) ** 2
 
         gravity_somgl = g_e * (
             (1 + k_somgl * sin_lat_sqrd) / (np.sqrt(1 - first_ecc_sqrd * sin_lat_sqrd))
