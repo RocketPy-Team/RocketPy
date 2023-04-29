@@ -3268,7 +3268,6 @@ class Environment:
             ],
             "latitude": self.latitude,
             "longitude": self.longitude,
-
             "elevation": self.elevation,
             "datum": self.datum,
             "timeZone": self.timeZone,
