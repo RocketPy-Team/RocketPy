@@ -10,52 +10,80 @@ from .Function import Function
 from abc import ABC, abstractmethod, abstractproperty
 
 
-class AeroSurfaces:
-    """Class used to hold one or more aerodynamic surfaces."""
+class AeroSurfaces(ABC):
+    """Abstract class used to define aerodynamic surfaces."""
 
-    def __init__(self):
-        self._aeroSurfaces = []
+    def __init__(self, name):
+        self.cpx = 0
+        self.cpy = 0
+        self.cpz = 0
+        self.position = None  # in relation to rocket
+        self.name = name
+        return None
 
-    def append(self, aeroSurface, position=None):
-        if position:
-            self._aeroSurfaces.append((aeroSurface, position))
-        else:
-            self._aeroSurfaces.append(aeroSurface)
+    @abstractmethod
+    def evaluateCenterOfPressure(self):
+        """Evaluates the center of pressure of the aerodynamic surface in local
+        coordinates.
 
-    def remove(self, aeroSurface):
-        for surface in self._aeroSurfaces:
-            if isinstance(surface, tuple):
-                if surface[0] == aeroSurface:
-                    self._aeroSurfaces.remove((surface[0], surface[1]))
-            else:
-                if surface == aeroSurface:
-                    self._aeroSurfaces.remove(surface)
+        Returns
+        -------
+        None
+        """
+        pass
 
-    def pop(self, index=-1):
-        return self._aeroSurfaces.pop(index)
+    @abstractmethod
+    def evaluateLiftCoefficient(self):
+        """Evaluates the lift coefficient curve of the aerodynamic surface.
 
-    def __repr__(self):
-        if len(self._aeroSurfaces) == 1:
-            return self._aeroSurfaces[0].__repr__()
-        return self._aeroSurfaces.__repr__()
+        Returns
+        -------
+        None
+        """
+        pass
 
-    def __len__(self):
-        return len(self._aeroSurfaces)
+    @abstractmethod
+    def evaluateGeometricalParameters(self):
+        """Evaluates the geometrical parameters of the aerodynamic surface.
 
-    def __getitem__(self, index):
-        return self._aeroSurfaces[index]
+        Returns
+        -------
+        None
+        """
+        pass
 
-    def __getattr__(self, name):
-        if len(self._aeroSurfaces) == 1:
-            attr = getattr(self._aeroSurfaces[0], name)
-            return attr
-        return getattr(self._aeroSurfaces, name)
+    @abstractmethod
+    def geometricalInfo(self):
+        """Returns the geometrical info of the aerodynamic surface.
 
-    def __iter__(self):
-        return iter(self._aeroSurfaces)
+        Returns
+        -------
+        None
+        """
+        pass
+
+    @abstractmethod
+    def aerodynamicInfo(self):
+        """Returns the aerodynamic info of the aerodynamic surface.
+
+        Returns
+        -------
+        None
+        """
+        pass
+
+    @abstractmethod
+    def allInfo(self):
+        """Returns all info of the aerodynamic surface.
+
+        Returns
+        -------
+        None
+        """
+        pass
 
 
-class NoseCone:
+class NoseCone(AeroSurfaces):
     """Keeps nose cone information.
 
     Local coordinate system: Z axis along the longitudinal axis of symmetry, positive
@@ -126,21 +154,16 @@ class NoseCone:
         -------
         None
         """
-        self.cpy = 0
-        self.cpx = 0
-        self.position = None  # in relation to rocket
+        super().__init__(name)
 
         self._rocketRadius = rocketRadius
         self._baseRadius = baseRadius
         self._length = length
         self.kind = kind
-        self.name = name
 
         self.evaluateGeometricalParameters()
         self.evaluateLiftCoefficient()
         self.evaluateCenterOfPressure()
-        # # Store values
-        # nose = {"cp": (0, 0, self.cpz), "cl": self.cl, "name": name}
 
         return None
 
@@ -234,20 +257,20 @@ class NoseCone:
 
         Returns
         -------
-        self.cl : Function
-            Function of the angle of attack (Alpha) and the mach number
-            (Mach) expressing the lift coefficient of the nose cone. The inputs
-            are the angle of attack (in radians) and the mach number.
-            The output is the lift coefficient of the nose cone.
+        None
         """
         # Calculate clalpha
-        self.clalpha = 2 * self.radiusRatio**2
+        self.clalpha = Function(
+            lambda mach: 2 * self.radiusRatio**2,
+            "Mach",
+            f"Lift coefficient derivative for {self.name}",
+        )
         self.cl = Function(
-            lambda alpha, mach: self.clalpha * alpha,
+            lambda alpha, mach: self.clalpha(mach) * alpha,
             ["Alpha (rad)", "Mach"],
             "Cl",
         )
-        return self.cl
+        return None
 
     def evaluateCenterOfPressure(self):
         """Calculates and returns the center of pressure of the nose cone in local
@@ -306,7 +329,7 @@ class NoseCone:
         print(f"\nAerodynamic Information of {self.name}")
         print("-------------------------------")
         print(f"Center of Pressure Position in Local Coordinates: {self.cp} m")
-        print(f"Lift Coefficient Slope: {self.clalpha:.3f} 1/rad")
+        print(f"Lift Coefficient Slope: {self.clalpha(0):.3f} 1/rad")
         print("Lift Coefficient as a Function of Alpha and Mach:")
         self.cl()
 
@@ -329,7 +352,7 @@ class NoseCone:
         return None
 
 
-class Fins(ABC):
+class Fins(AeroSurfaces, ABC):
     """Abstract class that holds common methods for the fin classes.
     Cannot be instantiated.
 
@@ -403,6 +426,9 @@ class Fins(ABC):
         the Mach number. Returns the lift coefficient.
     Fins.clalpha : float
         Lift coefficient slope. Has units of 1/rad.
+    Fins.rollParameters : list
+        List containing the roll moment lift coefficient, the roll moment damping
+        coefficient and the cant angle in radians.
     """
 
     def __init__(
@@ -452,6 +478,8 @@ class Fins(ABC):
         None
         """
 
+        super().__init__(name)
+
         # Compute auxiliary geometrical parameters
         d = 2 * rocketRadius
         Aref = np.pi * rocketRadius**2  # Reference area
@@ -466,7 +494,6 @@ class Fins(ABC):
         self.name = name
         self.d = d
         self.Aref = Aref  # Reference area
-        self.position = None  # in relation to rocket
 
         return None
 
@@ -542,39 +569,6 @@ class Fins(ABC):
         self.evaluateLiftCoefficient()
         self.evaluateRollParameters()
 
-    @abstractmethod
-    def evaluateCenterOfPressure(self):
-        """Calculates and returns the fin set's center of pressure position in local
-        coordinates. The center of pressure position is saved and stored as a tuple.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        self.cp : tuple
-            Tuple containing cpx, cpy, cpz.
-        """
-
-        pass
-
-    @abstractmethod
-    def evaluateGeometricalParameters(self):
-        """Calculates and saves fin set's geometrical parameters such as the
-        fins' area, aspect ratio and parameters for roll movement.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-
-        pass
-
     def evaluateLiftCoefficient(self):
         """Calculates and returns the finset's lift coefficient.
         The lift coefficient is saved and returned. This function
@@ -588,11 +582,7 @@ class Fins(ABC):
 
         Returns
         -------
-        self.cl : Function
-            Function of the angle of attack (Alpha) and the mach number
-            (Mach) expressing the lift coefficient of the fin set. The inputs
-            are the angle of attack (in radians) and the mach number.
-            The output is the lift coefficient of the fin set.
+        None
         """
         if not self.airfoil:
             # Defines clalpha2D as 2*pi for planar fins
@@ -1125,7 +1115,6 @@ class TrapezoidalFins(Fins):
 
     def __repr__(self):
         rep = f"TrapezoidalFins Object -> Name: {self.name}"
-
         return rep
 
     def evaluateCenterOfPressure(self):
@@ -1138,8 +1127,7 @@ class TrapezoidalFins(Fins):
 
         Returns
         -------
-        self.cp : tuple
-            Tuple containing cpx, cpy, cpz.
+        None
         """
         # Center of pressure position in local coordinates
         cpz = (self.sweepLength / 3) * (
@@ -1153,7 +1141,7 @@ class TrapezoidalFins(Fins):
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
-        return self.cp
+        return None
 
     def draw(self):
         """Draw the fin shape along with some important
@@ -1499,8 +1487,7 @@ class EllipticalFins(Fins):
 
         Returns
         -------
-        self.cp : tuple
-            Tuple containing cpx, cpy, cpz.
+        None
         """
         # Center of pressure position in local coordinates
         cpz = 0.288 * self.rootChord
@@ -1508,7 +1495,7 @@ class EllipticalFins(Fins):
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
-        return self.cp
+        return None
 
     def draw(self):
         """Draw the fin shape along with some important information.
@@ -1670,7 +1657,7 @@ class EllipticalFins(Fins):
         self.rollForcingInterferenceFactor = rollForcingInterferenceFactor
 
 
-class Tail:
+class Tail(AeroSurfaces):
     """Class that defines a tail. Currently only accepts conical tails.
 
     Local coordinate system: Z axis along the longitudinal axis of symmetry, positive
@@ -1736,14 +1723,13 @@ class Tail:
         -------
         None
         """
+        super().__init__(name)
 
         # Store arguments as attributes
         self._topRadius = topRadius
         self._bottomRadius = bottomRadius
         self._length = length
         self._rocketRadius = rocketRadius
-        self.name = name
-        self.position = None  # in relation to rocket
 
         # Calculate geometrical parameters
         self.evaluateGeometricalParameters()
@@ -1829,25 +1815,24 @@ class Tail:
 
         Returns
         -------
-        self.cl : Function
-            Function of the angle of attack (Alpha) and the mach number
-            (Mach) expressing the lift coefficient of the tail. The inputs
-            are the angle of attack (in radians) and the mach number.
-            The output is the lift coefficient of the tail.
+        None
         """
         # Calculate clalpha
-        clalpha = 2 * (
-            (self.bottomRadius / self.rocketRadius) ** 2
-            - (self.topRadius / self.rocketRadius) ** 2
+        self.clalpha = Function(
+            lambda mach: 2
+            * (
+                (self.bottomRadius / self.rocketRadius) ** 2
+                - (self.topRadius / self.rocketRadius) ** 2
+            ),
+            "Mach",
+            f"Lift coefficient derivative for {self.name}",
         )
-        cl = Function(
-            lambda alpha, mach: clalpha * alpha,
+        self.cl = Function(
+            lambda alpha, mach: self.clalpha(mach) * alpha,
             ["Alpha (rad)", "Mach"],
             "Cl",
         )
-        self.cl = cl
-        self.clalpha = clalpha
-        return self.cl
+        return None
 
     def evaluateCenterOfPressure(self):
         """Calculates and returns the center of pressure of the tail in local
@@ -1859,8 +1844,7 @@ class Tail:
 
         Returns
         -------
-        self.cp : tuple
-            Tuple containing cpx, cpy, cpz.
+        None
         """
         # Calculate cp position in local coordinates
         r = self.topRadius / self.bottomRadius
@@ -1871,7 +1855,7 @@ class Tail:
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
-        return self.cp
+        return None
 
     def geometricalInfo(self):
         """Prints out all the geometric information of the tail.
@@ -1898,7 +1882,7 @@ class Tail:
         print(f"\nAerodynamic Information of {self.name}")
         print("-------------------------------")
         print(f"Tail Center of Pressure Position in Local Coordinates: {self.cp} m")
-        print(f"Tail Lift Coefficient Slope: {self.clalpha:.3f} 1/rad")
+        print(f"Tail Lift Coefficient Slope: {self.clalpha(0):.3f} 1/rad")
         print("Tail Lift Coefficient as a function of Alpha and Mach:")
         self.cl()
 

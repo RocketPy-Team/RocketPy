@@ -106,22 +106,13 @@ class _RocketPrints:
         print("\nAerodynamics Lift Coefficient Derivatives\n")
         for aerodynamicSurface in self.rocket.aerodynamicSurfaces:
             name = aerodynamicSurface[0].name
-            try:
-                print(
-                    name
-                    + " Lift Coefficient Derivative: {:.3f}".format(
-                        aerodynamicSurface[0].clalpha(0)
-                    )
-                    + "/rad"
+            print(
+                name
+                + " Lift Coefficient Derivative: {:.3f}".format(
+                    aerodynamicSurface[0].clalpha(0)
                 )
-            except:
-                print(
-                    name
-                    + " Lift Coefficient Derivative: {:.3f}".format(
-                        aerodynamicSurface[0].clalpha
-                    )
-                    + "/rad"
-                )
+                + "/rad"
+            )
 
         print("\nAerodynamics Center of Pressure\n")
         for aerodynamicSurface in self.rocket.aerodynamicSurfaces:
