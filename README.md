@@ -250,7 +250,7 @@ Calisto.addTrapezoidalFins(
     position=-1.04956,
     cantAngle=0,
     radius=None,
-    airfoil=None,
+    airfoil=None
 )
 Calisto.addTail(
     topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
