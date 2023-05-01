@@ -290,7 +290,7 @@ To actually create a Flight object, use:
 test_flight = Flight(rocket=Calisto, environment=Env, inclination=85, heading=0)
 ```
 
-Once the TestFlight object is created, your simulation is done! Use the following code to get a summary of the results:
+Once the Flight object is created, your simulation is done! Use the following code to get a summary of the results:
 
 ```python
 test_flight.info()
