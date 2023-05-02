@@ -21,6 +21,7 @@ __maintainer__ = "Giovani Hidalgo Ceotto"
 __email__ = "ghceotto@gmail.com"
 __status__ = "Production"
 
+from .AeroSurfaces import EllipticalFins, NoseCone, RailButtons, Tail, TrapezoidalFins
 from .Environment import Environment
 from .EnvironmentAnalysis import EnvironmentAnalysis
 from .Flight import Flight

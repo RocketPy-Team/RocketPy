@@ -1665,7 +1665,7 @@ class Tail(AeroSurfaces):
     downwards (top -> bottom). Origin located at top of the tail (generally the portion
     closest to the rocket's nose).
 
-    Parameters
+    Attributes
     ----------
     Tail.topRadius : int, float
         Radius of the top of the tail. The top radius is defined as the radius
@@ -1680,9 +1680,6 @@ class Tail(AeroSurfaces):
         The reference rocket radius used for lift coefficient normalization in meters.
     Tail.name : str
         Name of the tail. Default is 'Tail'.
-
-    Attributes
-    ----------
     Tail.cpx : int, float
         x local coordinate of the center of pressure of the tail.
     Tail.cpy : int, float
@@ -1841,6 +1838,7 @@ class Tail(AeroSurfaces):
     def evaluateCenterOfPressure(self):
         """Calculates and returns the center of pressure of the tail in local
         coordinates. The center of pressure position is saved and stored as a tuple.
+
         Parameters
         ----------
         None
@@ -1902,3 +1900,55 @@ class Tail(AeroSurfaces):
         self.aerodynamicInfo()
 
         return None
+
+
+class RailButtons:
+    """Class that defines a generic rail button.
+
+    Attributes
+    ----------
+    RailButtons.upper_button_position : int, float
+        Position of the upper rail button in meters. The upper button is the one
+        closest to the nose cone and furthest from the tail. The coordinate system
+        used is the same as the Rocket that the buttons will be a part of.
+    RailButtons.lower_button_position : int, float
+        Position of the lower rail button in meters. The lower button is the one
+        closest to the nose cone and furthest from the tail. The coordinate system
+        used is the same as the Rocket that the buttons will be a part of.
+    RailButtons.angular_position : int, float
+        Angular position of the rail buttons in degrees measured
+        as the rotation around the symmetry axis of the rocket
+        relative to one of the other principal axis.
+    """
+
+    def __init__(self, upper_button_position, lower_button_position, angular_position):
+        """Initializes RailButtons Class.
+
+        Parameters
+        ----------
+        upper_button_position : int, float
+            Position of the upper rail button in meters. The upper button is the one
+            closest to the nose cone and furthest from the tail. The coordinate system
+            used is the same as the Rocket that the buttons will be a part of.
+        lower_button_position : int, float
+            Position of the lower rail button in meters. The lower button is the one
+            closest to the nose cone and furthest from the tail. The coordinate system
+            used is the same as the Rocket that the buttons will be a part of.
+        angular_position : int, float, optional
+            Angular position of the rail buttons in degrees measured
+            as the rotation around the symmetry axis of the rocket
+            relative to one of the other principal axis.
+
+        Returns
+        -------
+        None
+
+        """
+        self.upper_button_position = upper_button_position
+        self.lower_button_position = lower_button_position
+        self.angular_position = angular_position
+        return None
+
+    def __repr__(self):
+        rep = f"Rail buttons pair at positions {self.upper_button_position} m and {self.lower_button_position} m"
+        return rep
