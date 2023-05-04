@@ -14,8 +14,8 @@ plt.rcParams.update({"figure.max_open_warning": 0})
 
 
 @pytest.mark.slow
-def test_allInfo(env_analysis):
-    """Test the EnvironmentAnalysis.allInfo() method, which already invokes
+def test_allinfo(env_analysis):
+    """Test the EnvironmentAnalysis.allinfo() method, which already invokes
     several other methods. It is a good way to test the whole class in a first view.
     However, if it fails, it is hard to know which method is failing.
 
@@ -28,7 +28,7 @@ def test_allInfo(env_analysis):
     -------
     None
     """
-    assert env_analysis.allInfo() == None
+    assert env_analysis.allinfo() == None
 
 
 @pytest.mark.slow
@@ -164,12 +164,12 @@ def test_exports(env_analysis):
         A simple object of the EnvironmentAnalysis class.
     """
 
-    assert env_analysis.exportMeanProfiles() == None
+    assert env_analysis.export_mean_profiles() == None
     assert env_analysis.save("EnvAnalysisDict") == None
 
     env2 = copy.deepcopy(env_analysis)
     env2.load("EnvAnalysisDict")
-    assert env2.allInfo() == None
+    assert env2.allinfo() == None
 
     # Delete file created by save method
     os.remove("EnvAnalysisDict")

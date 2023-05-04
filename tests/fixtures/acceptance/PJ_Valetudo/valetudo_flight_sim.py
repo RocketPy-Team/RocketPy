@@ -17,40 +17,40 @@ else:
 # Defining all parameters
 analysis_parameters = {
     # Mass Details
-    "rocketMass": (8.257, 0.001),
+    "rocket_mass": (8.257, 0.001),
     # Propulsion Details
     "impulse": (1415.15, 35.3),
-    "burnOut": (5.274, 1),
-    "nozzleRadius": (21.642 / 1000, 0.5 / 1000),
-    "throatRadius": (8 / 1000, 0.5 / 1000),
-    "grainSeparation": (6 / 1000, 1 / 1000),
-    "grainDensity": (1707, 50),
-    "grainOuterRadius": (21.4 / 1000, 0.375 / 1000),
-    "grainInitialInnerRadius": (9.65 / 1000, 0.375 / 1000),
-    "grainInitialHeight": (120 / 1000, 1 / 1000),
+    "burn_out": (5.274, 1),
+    "nozzle_radius": (21.642 / 1000, 0.5 / 1000),
+    "throat_radius": (8 / 1000, 0.5 / 1000),
+    "grain_separation": (6 / 1000, 1 / 1000),
+    "grain_density": (1707, 50),
+    "grain_outer_radius": (21.4 / 1000, 0.375 / 1000),
+    "grain_initial_inner_radius": (9.65 / 1000, 0.375 / 1000),
+    "grain_initial_height": (120 / 1000, 1 / 1000),
     # Aerodynamic Details
-    "inertiaI": (3.675, 0.03675),
-    "inertiaZ": (0.007, 0.00007),
+    "inertia_i": (3.675, 0.03675),
+    "inertia_z": (0.007, 0.00007),
     "radius": (40.45 / 1000, 0.001),
-    "distanceRocketNozzle": (-1.024, 0.001),
-    "distanceRocketPropellant": (-0.571, 0.001),
-    "powerOffDrag": (0.9081 / 1.05, 0.033),
-    "powerOnDrag": (0.9081 / 1.05, 0.033),
-    "noseLength": (0.274, 0.001),
-    "noseDistanceToCM": (1.134, 0.001),
-    "finSpan": (0.077, 0.0005),
-    "finRootChord": (0.058, 0.0005),
-    "finTipChord": (0.018, 0.0005),
-    "finDistanceToCM": (-0.906, 0.001),
+    "distance_rocket_nozzle": (-1.024, 0.001),
+    "distance_rocket_propellant": (-0.571, 0.001),
+    "power_off_drag": (0.9081 / 1.05, 0.033),
+    "power_on_drag": (0.9081 / 1.05, 0.033),
+    "nose_length": (0.274, 0.001),
+    "nose_distance_to_cm": (1.134, 0.001),
+    "fin_span": (0.077, 0.0005),
+    "fin_root_chord": (0.058, 0.0005),
+    "fin_tip_chord": (0.018, 0.0005),
+    "fin_distance_to_cm": (-0.906, 0.001),
     # Launch and Environment Details
-    "windDirection": (0, 2),
-    "windSpeed": (1, 0.033),
+    "wind_direction": (0, 2),
+    "wind_speed": (1, 0.033),
     "inclination": (84.7, 1),
     "heading": (53, 2),
-    "railLength": (5.7, 0.0005),
-    # "ensembleMember": list(range(10)),
+    "rail_length": (5.7, 0.0005),
+    # "ensemble_member": list(range(10)),
     # Parachute Details
-    "CdSDrogue": (0.349 * 1.3, 0.07),
+    "CdS_drogue": (0.349 * 1.3, 0.07),
     "lag_rec": (1, 0.5),
     # Electronic Systems Details
     "lag_se": (0.73, 0.16),
@@ -58,98 +58,100 @@ analysis_parameters = {
 
 # Environment conditions
 Env = Environment(
-    railLength=5.7,
+    rail_length=5.7,
     gravity=9.8,
     date=(2019, 8, 10, 21),
     latitude=-23.363611,
     longitude=-48.011389,
 )
-Env.setElevation(668)
-Env.maxExpectedHeight = 1500
-Env.setAtmosphericModel(
+Env.set_elevation(668)
+Env.max_expected_height = 1500
+Env.set_atmospheric_model(
     type="Reanalysis",
     file="tests/fixtures/acceptance/PJ_Valetudo/valetudo_weather_data_ERA5.nc",
     dictionary="ECMWF",
 )
-Env.railLength = analysis_parameters.get("railLength")[0]
+Env.rail_length = analysis_parameters.get("rail_length")[0]
 
 # Create motor
 Keron = SolidMotor(
-    thrustSource="tests/fixtures/acceptance/PJ_Valetudo/valetudo_motor_Keron.csv",
-    burnOut=5.274,
-    grainsCenterOfMassPosition=analysis_parameters.get("distanceRocketPropellant")[0],
-    reshapeThrustCurve=(
-        analysis_parameters.get("burnOut")[0],
+    thrust_source="tests/fixtures/acceptance/PJ_Valetudo/valetudo_motor_Keron.csv",
+    burn_out=5.274,
+    grains_center_of_mass_position=analysis_parameters.get(
+        "distance_rocket_propellant"
+    )[0],
+    reshape_thrust_curve=(
+        analysis_parameters.get("burn_out")[0],
         analysis_parameters.get("impulse")[0],
     ),
-    nozzleRadius=analysis_parameters.get("nozzleRadius")[0],
-    throatRadius=analysis_parameters.get("throatRadius")[0],
-    grainNumber=6,
-    grainSeparation=analysis_parameters.get("grainSeparation")[0],
-    grainDensity=analysis_parameters.get("grainDensity")[0],
-    grainOuterRadius=analysis_parameters.get("grainOuterRadius")[0],
-    grainInitialInnerRadius=analysis_parameters.get("grainInitialInnerRadius")[0],
-    grainInitialHeight=analysis_parameters.get("grainInitialHeight")[0],
-    interpolationMethod="linear",
-    nozzlePosition=analysis_parameters.get("distanceRocketNozzle")[0],
+    nozzle_radius=analysis_parameters.get("nozzle_radius")[0],
+    throat_radius=analysis_parameters.get("throat_radius")[0],
+    grain_number=6,
+    grain_separation=analysis_parameters.get("grain_separation")[0],
+    grain_density=analysis_parameters.get("grain_density")[0],
+    grain_outer_radius=analysis_parameters.get("grain_outer_radius")[0],
+    grain_initial_inner_radius=analysis_parameters.get("grain_initial_inner_radius")[0],
+    grain_initial_height=analysis_parameters.get("grain_initial_height")[0],
+    interpolation_method="linear",
+    nozzle_position=analysis_parameters.get("distance_rocket_nozzle")[0],
 )
 
 # Create rocket
 Valetudo = Rocket(
     motor=Keron,
     radius=analysis_parameters.get("radius")[0],
-    mass=analysis_parameters.get("rocketMass")[0],
-    inertiaI=analysis_parameters.get("inertiaI")[0],
-    inertiaZ=analysis_parameters.get("inertiaZ")[0],
-    powerOffDrag="tests/fixtures/acceptance/PJ_Valetudo/valetudo_drag_power_off.csv",
-    powerOnDrag="tests/fixtures/acceptance/PJ_Valetudo/valetudo_drag_power_on.csv",
+    mass=analysis_parameters.get("rocket_mass")[0],
+    inertia_i=analysis_parameters.get("inertia_i")[0],
+    inertia_z=analysis_parameters.get("inertia_z")[0],
+    power_off_drag="tests/fixtures/acceptance/PJ_Valetudo/valetudo_drag_power_off.csv",
+    power_on_drag="tests/fixtures/acceptance/PJ_Valetudo/valetudo_drag_power_on.csv",
 )
-Valetudo.powerOffDrag *= analysis_parameters.get("powerOffDrag")[0]
-Valetudo.powerOnDrag *= analysis_parameters.get("powerOnDrag")[0]
-Valetudo.addMotor(Keron, analysis_parameters.get("distanceRocketNozzle")[0])
-NoseCone = Valetudo.addNose(
-    length=analysis_parameters.get("noseLength")[0],
+Valetudo.power_off_drag *= analysis_parameters.get("power_off_drag")[0]
+Valetudo.power_on_drag *= analysis_parameters.get("power_on_drag")[0]
+Valetudo.add_motor(Keron, analysis_parameters.get("distance_rocket_nozzle")[0])
+nosecone = Valetudo.add_nose(
+    length=analysis_parameters.get("nose_length")[0],
     kind="vonKarman",
-    position=analysis_parameters.get("noseDistanceToCM")[0]
-    + analysis_parameters.get("noseLength")[0],
+    position=analysis_parameters.get("nose_distance_to_cm")[0]
+    + analysis_parameters.get("nose_length")[0],
 )
-FinSet = Valetudo.addTrapezoidalFins(
+finset = Valetudo.add_trapezoidal_fins(
     n=3,
-    rootChord=analysis_parameters.get("finRootChord")[0],
-    tipChord=analysis_parameters.get("finTipChord")[0],
-    span=analysis_parameters.get("finSpan")[0],
-    position=analysis_parameters.get("finDistanceToCM")[0],
+    root_chord=analysis_parameters.get("fin_root_chord")[0],
+    tip_chord=analysis_parameters.get("fin_tip_chord")[0],
+    span=analysis_parameters.get("fin_span")[0],
+    position=analysis_parameters.get("fin_distance_to_cm")[0],
 )
-Valetudo.setRailButtons([0.224, -0.93], 30)
+Valetudo.set_rail_buttons([0.224, -0.93], 30)
 
 # Set up parachutes
-sisRecDrogue = SisRec.SisRecSt(0.8998194205245451, 0.2)
+sis_rec_drogue = SisRec.SisRecSt(0.8998194205245451, 0.2)
 
 
 def drogueTrigger(p, y):
-    return True if sisRecDrogue.update(p / 100000) == 2 else False
+    return True if sis_rec_drogue.update(p / 100000) == 2 else False
 
 
-Drogue = Valetudo.addParachute(
+drogue = Valetudo.add_parachute(
     "Drogue",
-    CdS=analysis_parameters["CdSDrogue"][0],
+    CdS=analysis_parameters["CdS_drogue"][0],
     trigger=drogueTrigger,
-    samplingRate=105,
+    sampling_rate=105,
     lag=analysis_parameters["lag_rec"][0] + analysis_parameters["lag_se"][0],
     noise=(0, 8.3, 0.5),
 )
 # Prepare parachutes
-sisRecDrogue.reset()
-sisRecDrogue.enable()
+sis_rec_drogue.reset()
+sis_rec_drogue.enable()
 
 TestFlight = Flight(
     rocket=Valetudo,
     environment=Env,
     inclination=analysis_parameters.get("inclination")[0],
     heading=analysis_parameters.get("heading")[0],
-    maxTime=600,
+    max_time=600,
 )
-TestFlight.postProcess()
+TestFlight.post_process()
 
 # Print summary
 TestFlight.info()
