@@ -8,7 +8,6 @@ import pytest
 from scipy import optimize
 
 from rocketpy import Environment, Flight, Function, Rocket, SolidMotor
-from rocketpy.AeroSurfaces import AeroSurfaces
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
@@ -34,7 +33,7 @@ def setup_rocket_with_given_static_margin(rocket, static_margin):
     """
 
     def compute_static_margin_error_given_distance(position, static_margin, rocket):
-        rocket.aerodynamicSurfaces = AeroSurfaces()
+        rocket.aerodynamicSurfaces = []
         rocket.addNose(length=0.5, kind="vonKarman", position=1.0 + 0.5)
         rocket.addTrapezoidalFins(
             4,

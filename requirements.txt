@@ -10,3 +10,4 @@ timezonefinder
 simplekml
 imageio
 jsonpickle
+pydantic

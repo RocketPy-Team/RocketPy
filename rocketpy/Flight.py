@@ -6,7 +6,6 @@ __author__ = (
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
-import inspect
 import math
 import time
 import warnings
@@ -618,16 +617,6 @@ class Flight:
         self.verbose = verbose
         self.name = name
 
-        # Modifying Rail Length for a better out of rail condition
-        upperButtonPosition, lowerButtonPosition = self.rocket.railButtons.position
-        nozzlePosition = self.rocket.motorPosition
-        self.effective1RL = self.env.railLength - abs(
-            nozzlePosition - upperButtonPosition
-        )  # TODO: check if this is right with the merge
-        self.effective2RL = self.env.railLength - abs(
-            nozzlePosition - lowerButtonPosition
-        )  # TODO: check if this is right with the merge
-
         # Flight initialization
         self.__init_post_process_variables()
         self.__init_solution_monitors()
@@ -749,7 +738,7 @@ class Flight:
                             self.uDotParachute,
                             callbacks,
                             clear=False,
-                            index=phase_index + 2,
+                            index=phase_index + i,
                         )
                         # Prepare to leave loops and start new flight phase
                         phase.timeNodes.flushAfter(node_index)
@@ -1026,12 +1015,16 @@ class Flight:
                                         # Remove parachute from flight parachutes
                                         self.parachutes.remove(parachute)
                                         # Create flight phase for time after detection and before inflation
-                                        self.flightPhases.addPhase(
-                                            overshootableNode.t,
-                                            phase.derivative,
-                                            clear=True,
-                                            index=phase_index + 1,
-                                        )
+                                        # Must only be created if parachute has any lag
+                                        i = 1
+                                        if parachute.lag != 0:
+                                            self.flightPhases.addPhase(
+                                                overshootableNode.t,
+                                                phase.derivative,
+                                                clear=True,
+                                                index=phase_index + i,
+                                            )
+                                            i += 1
                                         # Create flight phase for time after inflation
                                         callbacks = [
                                             lambda self, parachuteCdS=parachute.CdS: setattr(
@@ -1043,7 +1036,7 @@ class Flight:
                                             self.uDotParachute,
                                             callbacks,
                                             clear=False,
-                                            index=phase_index + 2,
+                                            index=phase_index + i,
                                         )
                                         # Rollback history
                                         self.t = overshootableNode.t
@@ -1167,7 +1160,7 @@ class Flight:
             self.rocket.motorPosition - self.rocket.centerOfDryMassPosition
         ) * self.rocket._csys  # Kinda works for single nozzle
         try:
-            upperRButton = max(self.rocket.railButtons[0])
+            upperRButton = self.rocket.rail_buttons.upper_button_position
         except AttributeError:  # If there is no rail button
             upperRButton = nozzle
         effective1RL = self.env.railLength - abs(nozzle - upperRButton)
@@ -1181,7 +1174,7 @@ class Flight:
             self.rocket.motorPosition - self.rocket.centerOfDryMassPosition
         ) * self.rocket._csys
         try:
-            lowerRButton = min(self.rocket.railButtons[0])
+            lowerRButton = self.rocket.rail_buttons.lower_button_position
         except AttributeError:
             lowerRButton = nozzle
         effective2RL = self.env.railLength - abs(nozzle - lowerRButton)
@@ -2244,7 +2237,7 @@ class Flight:
             F11, F12 = self.calculate_rail_button_forces[0:2]
         else:
             F11, F12 = self.calculate_rail_button_forces()[0:2]
-        alpha = self.rocket.railButtons.angularPosition * (np.pi / 180)
+        alpha = self.rocket.rail_buttons.angular_position * (np.pi / 180)
         return F11 * np.cos(alpha) + F12 * np.sin(alpha)
 
     @funcify_method("Time (s)", "Upper Rail Button Shear Force (N)", "spline", "zero")
@@ -2254,7 +2247,7 @@ class Flight:
             F11, F12 = self.calculate_rail_button_forces[0:2]
         else:
             F11, F12 = self.calculate_rail_button_forces()[0:2]
-        alpha = self.rocket.railButtons.angularPosition * (
+        alpha = self.rocket.rail_buttons.angular_position * (
             np.pi / 180
         )  # Rail buttons angular position
         return F11 * -np.sin(alpha) + F12 * np.cos(alpha)
@@ -2266,7 +2259,7 @@ class Flight:
             F21, F22 = self.calculate_rail_button_forces[2:4]
         else:
             F21, F22 = self.calculate_rail_button_forces()[2:4]
-        alpha = self.rocket.railButtons.angularPosition * (np.pi / 180)
+        alpha = self.rocket.rail_buttons.angular_position * (np.pi / 180)
         return F21 * np.cos(alpha) + F22 * np.sin(alpha)
 
     @funcify_method("Time (s)", "Lower Rail Button Shear Force (N)", "spline", "zero")
@@ -2276,7 +2269,7 @@ class Flight:
             F21, F22 = self.calculate_rail_button_forces[2:4]
         else:
             F21, F22 = self.calculate_rail_button_forces()[2:4]
-        alpha = self.rocket.railButtons.angularPosition * (np.pi / 180)
+        alpha = self.rocket.rail_buttons.angular_position * (np.pi / 180)
         return F21 * -np.sin(alpha) + F22 * np.cos(alpha)
 
     @cached_property
@@ -2545,7 +2538,7 @@ class Flight:
         F22: Function
             Rail Button 2 force in the 2 direction
         """
-        if self.rocket.railButtons is None:
+        if self.rocket.rail_buttons is None:
             warnings.warn(
                 "Trying to calculate rail button forces without rail buttons defined."
             )
@@ -2557,11 +2550,13 @@ class Flight:
 
         # Distance from Rail Button 1 (upper) to CM
         D1 = (
-            self.rocket.railButtons.position[0] - self.rocket.centerOfDryMassPosition
+            self.rocket.rail_buttons.upper_button_position
+            - self.rocket.centerOfDryMassPosition
         ) * self.rocket._csys
         # Distance from Rail Button 2 (lower) to CM
         D2 = (
-            self.rocket.railButtons.position[1] - self.rocket.centerOfDryMassPosition
+            self.rocket.rail_buttons.lower_button_position
+            - self.rocket.centerOfDryMassPosition
         ) * self.rocket._csys
         F11 = (self.R1 * D2 - self.M2) / (D1 + D2)
         F11.setOutputs("Upper button force direction 1 (m)")
