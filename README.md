@@ -185,14 +185,14 @@ A sample code is:
 
 ```python
 Env = Environment(
-    railLength=5.2,
+    rail_length=5.2,
     latitude=32.990254,
     longitude=-106.974998,
     elevation=1400,
     date=(2020, 3, 4, 12) # Tomorrow's date in year, month, day, hour UTC format
 ) 
 
-Env.setAtmosphericModel(type='Forecast', file='GFS')
+Env.set_atmospheric_model(type='Forecast', file='GFS')
 ```
 
 This can be followed up by starting a Solid Motor object. To get help on it, just use:
@@ -205,17 +205,17 @@ A sample Motor object can be created by the following code:
 
 ```python
 Pro75M1670 = SolidMotor(
-    thrustSource="../data/motors/Cesaroni_M1670.eng",
-    burnOut=3.9,
-    grainNumber=5,
-    grainSeparation=5/1000,
-    grainDensity=1815,
-    grainOuterRadius=33/1000,
-    grainInitialInnerRadius=15/1000,
-    grainInitialHeight=120/1000,
-    nozzleRadius=33/1000,
-    throatRadius=11/1000,
-    interpolationMethod='linear'
+    thrust_source="../data/motors/Cesaroni_M1670.eng",
+    burn_out=3.9,
+    grain_number=5,
+    grain_separation=5/1000,
+    grain_density=1815,
+    grain_outer_radius=33/1000,
+    grain_initial_inner_radius=15/1000,
+    grain_initial_height=120/1000,
+    nozzle_radius=33/1000,
+    throat_radius=11/1000,
+    interpolation_method='linear'
 )
 ```
 
@@ -231,56 +231,56 @@ A sample code to create a Rocket is:
 Calisto = Rocket(
     radius=127 / 2000,
     mass=19.197 - 2.956,
-    inertiaI=6.60,
-    inertiaZ=0.0351,
-    powerOffDrag="../../data/calisto/powerOffDragCurve.csv",
-    powerOnDrag="../../data/calisto/powerOnDragCurve.csv",
-    centerOfDryMassPosition=0,
-    coordinateSystemOrientation="tailToNose",
+    inertia_i=6.60,
+    inertia_z=0.0351,
+    power_off_drag="../../data/calisto/powerOffDragCurve.csv",
+    power_on_drag="../../data/calisto/powerOnDragCurve.csv",
+    center_of_dry_mass_position=0,
+    coordinate_system_orientation="tailToNose",
 )
 
-Calisto.setRailButtons([0.2, -0.5])
+Calisto.set_rail_buttons([0.2, -0.5])
 
-Calisto.addMotor(Pro75M1670, position=-1.255)
+Calisto.add_motor(Pro75M1670, position=-1.255)
 
-NoseCone = Calisto.addNose(length=0.55829, kind="vonKarman", position=0.71971 + 0.55829)
+nosecone = Calisto.add_nose(length=0.55829, kind="vonKarman", position=0.71971 + 0.55829)
 
-FinSet = Calisto.addTrapezoidalFins(
+finset = Calisto.add_trapezoidal_fins(
     n=4,
-    rootChord=0.120,
-    tipChord=0.040,
+    root_chord=0.120,
+    tip_chord=0.040,
     span=0.100,
     position=-1.04956,
-    cantAngle=0,
+    cant_angle=0,
     radius=None,
     airfoil=None,
 )
 
-Tail = Calisto.addTail(
-    topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
+tail = Calisto.add_tail(
+    top_radius=0.0635, bottom_radius=0.0435, length=0.060, position=-1.194656
 )
 ```
 
 You may want to add parachutes to your rocket as well:
 
 ```python
-def drogueTrigger(p, y):
+def drogue_trigger(p, y):
     return True if y[5] < 0 else False
 
-def mainTrigger(p, y):
+def main_trigger(p, y):
     return True if y[5] < 0 and y[2] < 800 else False
 
-Main = Calisto.addParachute('Main',
+Main = Calisto.add_parachute('Main',
                             CdS=10.0,
-                            trigger=mainTrigger, 
-                            samplingRate=105,
+                            trigger=main_trigger, 
+                            sampling_rate=105,
                             lag=1.5,
                             noise=(0, 8.3, 0.5))
 
-Drogue = Calisto.addParachute('Drogue',
+Drogue = Calisto.add_parachute('Drogue',
                               CdS=1.0,
-                              trigger=drogueTrigger, 
-                              samplingRate=105,
+                              trigger=drogue_trigger, 
+                              sampling_rate=105,
                               lag=1.5,
                               noise=(0, 8.3, 0.5))
 ```
@@ -306,7 +306,7 @@ TestFlight.info()
 To see all available results, use:
 
 ```python
-TestFlight.allInfo()
+TestFlight.allinfo()
 ```
 
 Here is just a quick taste of what RocketPy is able to calculate. There are hundreds of plots and data points computed by RocketPy to enhance your analyses.

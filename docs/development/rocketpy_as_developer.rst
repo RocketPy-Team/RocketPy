@@ -92,7 +92,7 @@ It contains information about the local pressure profile, temperature, speed of 
 
 .. code-block:: python
 
-    Env = Environment(railLength=5.2, latitude=32.990254, longitude=-106.974998, elevation=1400)
+    Env = Environment(rail_length=5.2, latitude=32.990254, longitude=-106.974998, elevation=1400)
 
 RocketPy can use local files via the Ensemble method or meteorological forecasts through OpenDAP protocol. 
 To work with environment files, it will be very important ensuring tha that you have the netCDF4 library installed.
@@ -102,17 +102,17 @@ Assuming we are using forecast, first we set the simulated data with:
 
     import datetime
     tomorrow = datetime.date.today() + datetime.timedelta(days=1)
-    Env.setDate((tomorrow.year, tomorrow.month, tomorrow.day, 12))  # Hour given in UTC time
+    Env.set_date((tomorrow.year, tomorrow.month, tomorrow.day, 12))  # Hour given in UTC time
 
 Then we set the atmospheric model, in this case, GFS forecast:
 
 .. code-block:: python
 
-    Env.setAtmosphericModel(type="Forecast", file="GFS")
+    Env.set_atmospheric_model(type="Forecast", file="GFS")
 
 Weather forecast data can be visualized through two info methods.
 
-``Env.info()`` or ``Env.allInfo()``
+``Env.info()`` or ``Env.allinfo()``
 
 Creating the motor that boosts the rocket
 -----------------------------------------
@@ -124,22 +124,22 @@ The motor class contains information about the thrust curve and uses some geomet
 .. code-block:: python
 
     Pro75M1670 = SolidMotor(
-        thrustSource="../data/motors/Cesaroni_M1670.eng", #copy here the path to the thrust source file
-        burnOut=3.9,
-        grainNumber=5,
-        grainSeparation=5 / 1000,
-        grainDensity=1815,
-        grainOuterRadius=33 / 1000,
-        grainInitialInnerRadius=15 / 1000,
-        grainInitialHeight=120 / 1000,
-        nozzleRadius=33 / 1000,
-        throatRadius=11 / 1000,
-        interpolationMethod="linear",
+        thrust_source="../data/motors/Cesaroni_M1670.eng", #copy here the path to the thrust source file
+        burn_out=3.9,
+        grain_number=5,
+        grain_separation=5 / 1000,
+        grain_density=1815,
+        grain_outer_radius=33 / 1000,
+        grain_initial_inner_radius=15 / 1000,
+        grain_initial_height=120 / 1000,
+        nozzle_radius=33 / 1000,
+        throat_radius=11 / 1000,
+        interpolation_method="linear",
     )
 
 Motor data can be visualized through the following methods:
 
-``Pro75M1670.info()`` or ``Pro75M1670.allInfo()``
+``Pro75M1670.info()`` or ``Pro75M1670.allinfo()``
 
 
 Creating the rocket
@@ -153,21 +153,21 @@ The first step is to initialize the class with the vital data:
     Calisto = Rocket(
         radius=127 / 2000,
         mass=19.197 - 2.956,
-        inertiaI=6.60,
-        inertiaZ=0.0351,
-        powerOffDrag="../../data/calisto/powerOffDragCurve.csv",
-        powerOnDrag="../../data/calisto/powerOnDragCurve.csv",
-        centerOfDryMassPosition=0,
-        coordinateSystemOrientation="tailToNose",
+        inertia_i=6.60,
+        inertia_z=0.0351,
+        power_off_drag="../../data/calisto/powerOffDragCurve.csv",
+        power_on_drag="../../data/calisto/powerOnDragCurve.csv",
+        center_of_dry_mass_position=0,
+        coordinate_system_orientation="tailToNose",
     )
 
-    Calisto.addMotor(Pro75M1670, position=-1.255)
+    Calisto.add_motor(Pro75M1670, position=-1.255)
 
 Then the rail buttons must be set:
 
 .. code-block:: python
     
-    Calisto.setRailButtons([0.2, -0.5])
+    Calisto.set_rail_buttons([0.2, -0.5])
 
 In sequence, the aerodynamic surfaces must be set.
 If a lift curve for the fin set is not specified, it is assumed that they behave according to a linearized model with a coefficient calculated with Barrowman's theory.
@@ -175,21 +175,21 @@ In the example, a nosecone, one fin set and one tail were added, but each case c
 
 .. code-block:: python
 
-    NoseCone = Calisto.addNose(length=0.55829, kind="vonKarman", position=0.71971 + 0.55829)
+    nosecone = Calisto.add_nose(length=0.55829, kind="vonKarman", position=0.71971 + 0.55829)
 
-    FinSet = Calisto.addTrapezoidalFins(
+    finset = Calisto.add_trapezoidal_fins(
         n=4,
-        rootChord=0.120,
-        tipChord=0.040,
+        root_chord=0.120,
+        tip_chord=0.040,
         span=0.100,
         position=-1.04956,
-        cantAngle=0,
+        cant_angle=0,
         radius=None,
         airfoil=None,
     )
 
-    Tail = Calisto.addTail(
-        topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
+    tail = Calisto.addTail(
+        top_radius=0.0635, bottom_radius=0.0435, length=0.060, position=-1.194656
     )
 
 If you are considering the parachutes in the simulation, they also have to be added to the rocket object.
@@ -200,14 +200,14 @@ For example:
 
 .. code-block:: python
 
-    def drogueTrigger(p, y):
+    def drogue_trigger(p, y):
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate drogue when vz < 0 m/s.
         return True if y[5] < 0 else False
 
 
-    def mainTrigger(p, y):
+    def main_trigger(p, y):
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate main when vz < 0 m/s and z < 800 + 1400 m (+1400 due to surface elevation).
@@ -220,8 +220,8 @@ After having the trigger functions defined, the parachute must be added to the r
     Main = Calisto.addParachute(
         "Main",
         CdS=10.0,
-        trigger=mainTrigger,
-        samplingRate=105,
+        trigger=main_trigger,
+        sampling_rate=105,
         lag=1.5,
         noise=(0, 8.3, 0.5),
     )
@@ -229,8 +229,8 @@ After having the trigger functions defined, the parachute must be added to the r
     Drogue = Calisto.addParachute(
         "Drogue",
         CdS=1.0,
-        trigger=drogueTrigger,
-        samplingRate=105,
+        trigger=drogue_trigger,
+        sampling_rate=105,
         lag=1.5,
         noise=(0, 8.3, 0.5),
     )
@@ -247,7 +247,7 @@ The rocket and environment classes are supplied as inputs, as well as the rail i
 
 Flight data can be retrieved through:
 
-``TestFlight.info()`` or ``TestFlight.allInfo()``
+``TestFlight.info()`` or ``TestFlight.allinfo()``
 
 This function plots a comprehensive amount of flight data and graphs but, if you want to access one specific variable, for example Z position, this may be achieved by `TestFlight.z`.
 If you insert `TestFlight.z()` the graph of the function will be plotted.
