@@ -389,10 +389,10 @@ class Rocket:
 
         # Calculate total lift coefficient derivative and center of pressure
         if len(self.aerodynamicSurfaces) > 0:
-            for aeroSurface, position in self.aerodynamicSurfaces:
-                self.totalLiftCoeffDer += aeroSurface.clalpha(0)
-                self.cpPosition += aeroSurface.clalpha(0) * (
-                    position - self._csys * aeroSurface.cpz
+            for surface in self.aerodynamicSurfaces:
+                self.totalLiftCoeffDer += surface.clalpha(0)
+                self.cpPosition += surface.clalpha(0) * (
+                    surface.position - self._csys * surface.cpz
                 )
             self.cpPosition /= self.totalLiftCoeffDer
 
@@ -460,7 +460,7 @@ class Rocket:
         -------
         None
         """
-        self.aerodynamicSurfaces.append((surface, position))
+        self.aerodynamicSurfaces.append(surface)
         surface.position = position
         if isinstance(surface, NoseCone):
             self.nosecone.append(surface)
@@ -489,7 +489,7 @@ class Rocket:
         -------
         None
         """
-        for surface, position in zip(surfaces, positions):
+        for surface, position in zip(surfaces):
             self.addSurface(surface, position)
             surface.position = position
         self.evaluateStaticMargin()
