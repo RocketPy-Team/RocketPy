@@ -37,7 +37,8 @@ class Compare:
         # check if all items in object_list are the same type
         if not all(isinstance(obj, type(object_list[0])) for obj in object_list[1:]):
             warnings.warn(
-                "Trying to compare objects of different classes. Make sure are items in the list are of the same type."
+                "Trying to compare objects of different classes. Make sure are "
+                + "items in the list are of the same type."
             )
 
         self.object_list = object_list
@@ -58,23 +59,24 @@ class Compare:
         y_lim,
         x_attributes=None,
     ):
-        """Creates a figure to compare the results of multiple objects of the same type.
+        """Creates a figure to compare the results of multiple objects of the
+        same type.
 
         Parameters
         ----------
         y_attributes : list
-            The attributes of the class to be plotted as the vertical coordinates
-            of the data points. The attributes must be a list of strings. Each string
-            must be a valid attribute of the object's class, i.e., should point to a
-            attribute of the object's class that is a Function object or a numpy array.
-            For example ["x", "y", "z"].
+            The attributes of the class to be plotted as the vertical
+            coordinates of the data points. The attributes must be a list of
+            strings. Each string must be a valid attribute of the object's
+            class, i.e., should point to a attribute of the object's class that
+            is a Function object or a numpy array. For example ["x", "y", "z"].
         n_rows : int
             The number of rows of the figure.
         n_cols : int
             The number of columns of the figure.
         figsize : tuple
-            The standard matplotlib size of the figure, where the tuple means (width, height).
-            For example (7, 10).
+            The standard matplotlib size of the figure, where the tuple means
+            (width, height). For example (7, 10).
         legend : bool
             Whether to show the legend or not.
         title : str
@@ -86,18 +88,19 @@ class Compare:
             A list of strings of the y labels of each subplot.
             For example ["x (m)", "y (m)", "z (m)"].
         x_lim : tuple
-            A tuple where the first item represents the x axis lower limit and second item,
-            the x axis upper limit. If set to None, will be calculated automatically by
-            matplotlib.
+            A tuple where the first item represents the x axis lower limit and
+            second item, the x axis upper limit. If set to None, will be
+            calculated automatically by matplotlib.
         y_lim : tuple
-            A tuple where the first item represents the y axis lower limit and second item,
-            the y axis upper limit. If set to None, will be calculated automatically by
-            matplotlib.
+            A tuple where the first item represents the y axis lower limit and
+            second item, the y axis upper limit. If set to None, will be
+            calculated automatically by matplotlib.
         x_attributes : list
-            The attributes of the class to be plotted as the horizontal coordinates
-            of the data points. The attributes must be a list of strings. Each string
-            must be a valid attribute of the object's class, i.e., should point to a
-            attribute of the object's class that is a Function object or a numpy array.
+            The attributes of the class to be plotted as the horizontal
+            coordinates of the data points. The attributes must be a list of
+            strings. Each string must be a valid attribute of the object's
+            class, i.e., should point to a attribute of the object's class that
+            is a Function object or a numpy array.
             For example ["time", "time", "time"].
 
         Returns

@@ -13,7 +13,7 @@ class _RocketPrints:
 
     """
 
-    def __init__(self, rocket) -> None:
+    def __init__(self, rocket):
         """Initializes _EnvironmentPrints class
 
         Parameters
@@ -43,10 +43,10 @@ class _RocketPrints:
         print("\nInertia Details\n")
         print("Rocket Mass: {:.3f} kg (No Propellant)".format(self.rocket.mass))
         print(
-            "Rocket Mass: {:.3f} kg (With Propellant)".format(self.rocket.totalMass(0))
+            "Rocket Mass: {:.3f} kg (With Propellant)".format(self.rocket.total_mass(0))
         )
-        print("Rocket Inertia I: {:.3f} kg*m2".format(self.rocket.inertiaI))
-        print("Rocket Inertia Z: {:.3f} kg*m2".format(self.rocket.inertiaZ))
+        print("Rocket Inertia I: {:.3f} kg*m2".format(self.rocket.inertia_i))
+        print("Rocket Inertia Z: {:.3f} kg*m2".format(self.rocket.inertia_z))
 
         return None
 
@@ -68,22 +68,27 @@ class _RocketPrints:
         print(
             "Rocket Center of Dry Mass - Nozzle Exit Distance: "
             + "{:.3f} m".format(
-                abs(self.rocket.centerOfDryMassPosition - self.rocket.motorPosition)
+                abs(
+                    self.rocket.center_of_dry_mass_position - self.rocket.motor_position
+                )
             )
         )
         print(
             "Rocket Center of Dry Mass - Center of Propellant Mass: "
             + "{:.3f} m".format(
                 abs(
-                    self.rocket.centerOfPropellantPosition(0)
-                    - self.rocket.centerOfDryMassPosition
+                    self.rocket.center_of_propellant_position(0)
+                    - self.rocket.center_of_dry_mass_position
                 )
             )
         )
         print(
             "Rocket Center of Mass - Rocket Loaded Center of Mass: "
             + "{:.3f} m".format(
-                abs(self.rocket.centerOfMass(0) - self.rocket.centerOfDryMassPosition)
+                abs(
+                    self.rocket.center_of_mass(0)
+                    - self.rocket.center_of_dry_mass_position
+                )
             )
         )
 
@@ -104,34 +109,36 @@ class _RocketPrints:
         None
         """
         print("\nAerodynamics Lift Coefficient Derivatives\n")
-        for aerodynamicSurface in self.rocket.aerodynamicSurfaces:
-            name = aerodynamicSurface[0].name
+        for aerodynamic_surface in self.rocket.aerodynamic_surfaces:
+            name = aerodynamic_surface[0].name
             print(
                 name
                 + " Lift Coefficient Derivative: {:.3f}".format(
-                    aerodynamicSurface[0].clalpha(0)
+                    aerodynamic_surface[0].clalpha(0)
                 )
                 + "/rad"
             )
 
         print("\nAerodynamics Center of Pressure\n")
-        for aerodynamicSurface in self.rocket.aerodynamicSurfaces:
-            name = aerodynamicSurface[0].name
-            cpz = aerodynamicSurface[0].cp[2]
+        for aerodynamic_surface in self.rocket.aerodynamic_surfaces:
+            name = aerodynamic_surface[0].name
+            cpz = aerodynamic_surface[0].cp[2]
             print(name + " Center of Pressure to CM: {:.3f}".format(cpz) + " m")
         print(
             "Distance - Center of Pressure to CM: "
-            + "{:.3f}".format(self.rocket.cpPosition)
+            + "{:.3f}".format(self.rocket.cp_position)
             + " m"
         )
         print(
             "Initial Static Margin: "
-            + "{:.3f}".format(self.rocket.staticMargin(0))
+            + "{:.3f}".format(self.rocket.static_margin(0))
             + " c"
         )
         print(
             "Final Static Margin: "
-            + "{:.3f}".format(self.rocket.staticMargin(self.rocket.motor.burnOutTime))
+            + "{:.3f}".format(
+                self.rocket.static_margin(self.rocket.motor.burn_out_time)
+            )
             + " c"
         )
 
@@ -149,7 +156,7 @@ class _RocketPrints:
         None
         """
         for chute in self.rocket.parachutes:
-            chute.allInfo()
+            chute.allinfo()
         return None
 
     def all(self):
