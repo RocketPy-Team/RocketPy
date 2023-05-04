@@ -54,13 +54,13 @@ class Environment:
     ----------
 
         Constants
-        Environment.earthRadius : float
+        Environment.earth_radius : float
             Value of Earth's Radius = 6.3781e6 m.
-        Environment.airGasConstant : float
+        Environment.air_gas_constant : float
             Value of Air's Gas Constant = 287.05287 J/K/Kg
 
         Gravity and Launch Rail Length:
-        Environment.railLength : float
+        Environment.rail_length : float
             Launch rail length in meters.
         Environment.gravity : float
             Positive value of gravitational acceleration in m/s^2.
@@ -75,54 +75,54 @@ class Environment:
             available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
             is "SIRGAS2000", then this model will be used if the user make some
             typing mistake
-        Environment.initialEast: float
+        Environment.initial_east: float
             Launch site East UTM coordinate
-        Environment.initialNorth:  float
+        Environment.initial_north:  float
             Launch site North UTM coordinate
-        Environment.initialUtmZone: int
+        Environment.initial_utm_zone: int
             Launch site UTM zone number
-        Environment.initialUtmLetter: string
+        Environment.initial_utm_letter: string
             Launch site UTM letter, to keep the latitude band and describe the
             UTM Zone
-        Environment.initialHemisphere: string
+        Environment.initial_hemisphere: string
             Launch site S/N hemisphere
-        Environment.initialEW: string
+        Environment.initial_ew: string
             Launch site E/W hemisphere
         Environment.elevation : float
             Launch site elevation.
         Environment.date : datetime
             Date time of launch in UTC.
-        Environment.localDate : datetime
-                    Date time of launch in the local time zone, defined by Environment.timeZone.
-        Environment.timeZone : string
+        Environment.local_date : datetime
+                    Date time of launch in the local time zone, defined by Environment.timezone.
+        Environment.timezone : string
                     Local time zone specification. See pytz for time zone info.
 
         Topographic information:
-        Environment.elevLonArray: array
+        Environment.elev_lon_array: array
             Unidimensional array containing the longitude coordinates
-        Environment.elevLatArray: array
+        Environment.elev_lat_array: array
             Unidimensional array containing the latitude coordinates
-        Environment.elevArray: array
+        Environment.elev_array: array
             Two-dimensional Array containing the elevation information
-        Environment.topographicProfileActivated: bool
+        Environment.topographic_profile_activated: bool
             True if the user already set a topographic profile
 
         Atmosphere Static Conditions:
-        Environment.maxExpectedHeight : float
+        Environment.max_expected_height : float
             Maximum altitude in meters to keep weather data.
             Used especially for plotting range.
             Can be altered as desired.
-        Environment.pressureISA : Function
+        Environment.pressure_ISA : Function
             Air pressure in Pa as a function of altitude as defined
             by the International Standard Atmosphere ISO 2533.
-            Only defined after load Environment.loadInternationalStandardAtmosphere
+            Only defined after load Environment.load_international_standard_atmosphere
             has been called.
             Can be accessed as regular array, or called
             as a function. See Function for more information.
-        Environment.temperatureISA : Function
+        Environment.temperature_ISA : Function
             Air temperature in K as a function of altitude  as defined
             by the International Standard Atmosphere ISO 2533.
-            Only defined after load Environment.loadInternationalStandardAtmosphere
+            Only defined after load Environment.load_international_standard_atmosphere
             has been called.
             Can be accessed as regular array, or called
             as a function. See Function for more information.
@@ -134,7 +134,7 @@ class Environment:
             Air temperature in K as a function of altitude.
             Can be accessed as regular array, or called
             as a function. See Function for more information.
-        Environment.speedOfSound : Function
+        Environment.speed_of_sound : Function
             Speed of sound in air in m/s as a function of altitude.
             Can be accessed as regular array, or called
             as a function. See Function for more information.
@@ -142,102 +142,102 @@ class Environment:
             Air density in kg/m³ as a function of altitude.
             Can be accessed as regular array, or called
             as a function. See Function for more information.
-        Environment.dynamicViscosity : Function
+        Environment.dynamic_viscosity : Function
             Air dynamic viscosity in Pa s as a function of altitude.
             Can be accessed as regular array, or called
             as a function. See Function for more information.
 
         Atmosphere Wind Conditions:
-        Environment.windSpeed : Function
+        Environment.wind_speed : Function
             Wind speed in m/s as a function of altitude.
             Can be accessed as regular array, or called
             as a function. See Function for more information.
-        Environment.windDirection : Function
+        Environment.wind_direction : Function
             Wind direction (from which the wind blows)
             in degrees relative to north (positive clockwise)
             as a function of altitude.
             Can be accessed as regular array, or called
             as a function. See Function for more information.
-        Environment.windHeading : Function
+        Environment.wind_heading : Function
             Wind heading (direction towards which the wind blows)
             in degrees relative to north (positive clockwise)
             as a function of altitude.
             Can be accessed as regular array, or called
             as a function. See Function for more information.
-        Environment.windVelocityX : Function
+        Environment.wind_velocity_x : Function
             Wind U, or X (east) component of wind velocity in m/s as a function of
             altitude.
             Can be accessed as regular array, or called
             as a function. See Function for more information.
-        Environment.windVelocityY : Function
+        Environment.wind_velocity_y : Function
             Wind V, or Y (east) component of wind velocity in m/s as a function of
             altitude.
             Can be accessed as regular array, or called
             as a function. See Function for more information.
 
         Atmospheric Model Details
-        Environment.atmosphericModelType : string
+        Environment.atmospheric_model_type : string
             Describes the atmospheric model which is being used.
             Can only assume the following values: 'StandardAtmosphere',
             'CustomAtmosphere', 'WyomingSounding', 'NOAARucSounding',
             'Forecast', 'Reanalysis', 'Ensemble'.
-        Environment.atmosphericModelFile : string
+        Environment.atmospheric_model_file : string
             Address of the file used for the atmospheric model being used.
             Only defined for 'WyomingSounding', 'NOAARucSounding',
             'Forecast', 'Reanalysis', 'Ensemble'
-        Environment.atmosphericModelDict : dictionary
+        Environment.atmospheric_model_dict : dictionary
             Dictionary used to properly interpret netCDF and OPeNDAP
             files. Only defined for 'Forecast', 'Reanalysis', 'Ensemble'.
-        Environment.atmosphericModelInitDate : datetime
+        Environment.atmospheric_model_init_date : datetime
             Datetime object instance of first available date in netCDF
             and OPeNDAP files when using 'Forecast', 'Reanalysis' or
             'Ensemble'.
-        Environment.atmosphericModelEndDate : datetime
+        Environment.atmospheric_model_end_date : datetime
             Datetime object instance of last available date in netCDF
             and OPeNDAP files when using 'Forecast', 'Reanalysis' or
             'Ensemble'.
-        Environment.atmosphericModelInterval : int
+        Environment.atmospheric_model_interval : int
             Hour step between weather condition used in netCDF and
             OPeNDAP files when using 'Forecast', 'Reanalysis' or
             'Ensemble'.
-        Environment.atmosphericModelInitLat : float
+        Environment.atmospheric_model_init_lat : float
             Latitude of vertex just before the launch site in netCDF
             and OPeNDAP files when using 'Forecast', 'Reanalysis' or
             'Ensemble'.
-        Environment.atmosphericModelEndLat : float
+        Environment.atmospheric_model_end_lat : float
             Latitude of vertex just after the launch site in netCDF
             and OPeNDAP files when using 'Forecast', 'Reanalysis' or
             'Ensemble'.
-        Environment.atmosphericModelInitLon : float
+        Environment.atmospheric_model_init_lon : float
             Longitude of vertex just before the launch site in netCDF
             and OPeNDAP files when using 'Forecast', 'Reanalysis' or
             'Ensemble'.
-        Environment.atmosphericModelEndLon : float
+        Environment.atmospheric_model_end_lon : float
             Longitude of vertex just after the launch site in netCDF
             and OPeNDAP files when using 'Forecast', 'Reanalysis' or
             'Ensemble'.
 
         Atmospheric Model Storage
-        Environment.latArray : array
+        Environment.lat_array : array
             Defined if netCDF or OPeNDAP file is used, for Forecasts,
             Reanalysis and Ensembles. 2x2 matrix for each pressure level of latitudes
             corresponding to the vertices of the grid cell which surrounds
             the launch site.
-        Environment.lonArray : array
+        Environment.lon_array : array
             Defined if netCDF or OPeNDAP file is used, for Forecasts,
             Reanalysis and Ensembles. 2x2 matrix for each pressure level of longitudes
             corresponding to the vertices of the grid cell which surrounds
             the launch site.
-        Environment.lonIndex : int
+        Environment.lon_index : int
             Defined if netCDF or OPeNDAP file is used, for Forecasts,
             Reanalysis and Ensembles. Index to a grid longitude which
-            is just over the launch site longitude, while lonIndex - 1
+            is just over the launch site longitude, while lon_index - 1
             points to a grid longitude which is just under the launch
             site longitude.
-        Environment.latIndex : int
+        Environment.lat_index : int
             Defined if netCDF or OPeNDAP file is used, for Forecasts,
             Reanalysis and Ensembles. Index to a grid latitude which
-            is just over the launch site latitude, while lonIndex - 1
+            is just over the launch site latitude, while lon_index - 1
             points to a grid latitude which is just under the launch
             site latitude.
         Environment.geopotentials : array
@@ -245,12 +245,12 @@ class Environment:
             Reanalysis and Ensembles. 2x2 matrix for each pressure level of geopotential heights
             corresponding to the vertices of the grid cell which surrounds
             the launch site.
-        Environment.windUs : array
+        Environment.wind_us : array
             Defined if netCDF or OPeNDAP file is used, for Forecasts,
             Reanalysis and Ensembles. 2x2 matrix for each pressure level of wind U (east) component
             corresponding to the vertices of the grid cell which surrounds
             the launch site.
-        Environment.windVs : array
+        Environment.wind_vs : array
             Defined if netCDF or OPeNDAP file is used, for Forecasts,
             Reanalysis and Ensembles. 2x2 matrix for each pressure level of wind V (north) component
             corresponding to the vertices of the grid cell which surrounds
@@ -264,7 +264,7 @@ class Environment:
             Reanalysis and Ensembles. 2x2 matrix for each pressure level of temperatures
             corresponding to the vertices of the grid cell which surrounds
             the launch site.
-        Environment.timeArray : array
+        Environment.time_array : array
             Defined if netCDF or OPeNDAP file is used, for Forecasts,
             Reanalysis and Ensembles. Array of dates available in the
             file.
@@ -274,48 +274,48 @@ class Environment:
            corresponding to launch site location.
 
         Atmospheric Model Ensemble Specific Data
-        Environment.levelEnsemble : array
+        Environment.level_ensemble : array
             Only defined when using Ensembles.
-        Environment.heightEnsemble : array
+        Environment.height_ensemble : array
             Only defined when using Ensembles.
-        Environment.temperatureEnsemble : array
+        Environment.temperature_ensemble : array
             Only defined when using Ensembles.
-        Environment.windUEnsemble : array
+        Environment.wind_u_ensemble : array
             Only defined when using Ensembles.
-        Environment.windVEnsemble : array
+        Environment.wind_v_ensemble : array
             Only defined when using Ensembles.
-        Environment.windHeadingEnsemble : array
+        Environment.wind_heading_ensemble : array
             Only defined when using Ensembles.
-        Environment.windDirectionEnsemble : array
+        Environment.wind_direction_ensemble : array
             Only defined when using Ensembles.
-        Environment.windSpeedEnsemble : array
+        Environment.wind_speed_ensemble : array
             Only defined when using Ensembles.
-        Environment.numEnsembleMembers : int
+        Environment.num_ensemble_members : int
             Number of ensemble members. Only defined when using Ensembles.
-        Environment.ensembleMember : int
+        Environment.ensemble_member : int
             Current selected ensemble member. Only defined when using Ensembles.
     """
 
     def __init__(
         self,
-        railLength,
+        rail_length,
         gravity=None,
         date=None,
         latitude=0,
         longitude=0,
         elevation=0,
         datum="SIRGAS2000",
-        timeZone="UTC",
+        timezone="UTC",
     ):
         """Initialize Environment class, saving launch rail length,
         launch date, location coordinates and elevation. Note that
         by default the standard atmosphere is loaded until another
-        atmospheric model is used. See Environment.setAtmosphericModel
+        atmospheric model is used. See Environment.set_atmospheric_model
         for details.
 
         Parameters
         ----------
-        railLength : scalar
+        rail_length : scalar
             Length in which the rocket will be attached to the rail, only
             moving along a fixed direction, that is, the line parallel to the
             rail.
@@ -348,7 +348,7 @@ class Environment:
             available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
             is "SIRGAS2000", then this model will be used if the user make some
             typing mistake.
-        timeZone : string, optional
+        timezone : string, optional
             Name of the time zone. To see all time zones, import pytz and run
 
         Returns
@@ -356,76 +356,76 @@ class Environment:
         None
         """
         # Save launch rail length
-        self.railLength = railLength
+        self.rail_length = rail_length
 
         # Initialize constants
-        self.earthRadius = 6.3781 * (10**6)
-        self.airGasConstant = 287.05287  # in J/K/Kg
+        self.earth_radius = 6.3781 * (10**6)
+        self.air_gas_constant = 287.05287  # in J/K/Kg
         self.standard_g = 9.80665
 
         # Initialize atmosphere
-        self.setAtmosphericModel("StandardAtmosphere")
+        self.set_atmospheric_model("StandardAtmosphere")
 
         # Save latitude and longitude
         if latitude != None and longitude != None:
-            self.setLocation(latitude, longitude)
+            self.set_location(latitude, longitude)
         else:
             self.latitude, self.longitude = None, None
 
         # Save date
         if date != None:
-            self.setDate(date, timeZone)
+            self.set_date(date, timezone)
         else:
             self.date = None
             self.datetime_date = None
-            self.localDate = None
-            self.timeZone = None
+            self.local_date = None
+            self.timezone = None
 
         # Initialize Earth geometry and save datum
         self.datum = datum
-        self.ellipsoid = self.setEarthGeometry(datum)
+        self.ellipsoid = self.set_earth_geometry(datum)
 
         # Set gravity model
-        self.gravity = self.setGravityModel(gravity)
+        self.gravity = self.set_gravity_model(gravity)
 
         # Initialize plots and prints objects
         self.prints = _EnvironmentPrints(self)
 
         # Initialize atmosphere
-        self.setAtmosphericModel("StandardAtmosphere")
+        self.set_atmospheric_model("StandardAtmosphere")
 
         # Save latitude and longitude
         self.latitude = latitude
         self.longitude = longitude
         if latitude != None and longitude != None:
-            self.setLocation(latitude, longitude)
+            self.set_location(latitude, longitude)
         else:
             self.latitude, self.longitude = None, None
 
         # Store launch site coordinates referenced to UTM projection system
         if self.latitude > -80 and self.latitude < 84:
-            convert = self.geodesicToUtm(self.latitude, self.longitude)
+            convert = self.geodesic_to_utm(self.latitude, self.longitude)
 
-            self.initialNorth = convert[1]
-            self.initialEast = convert[0]
-            self.initialUtmZone = convert[2]
-            self.initialUtmLetter = convert[3]
-            self.initialHemisphere = convert[4]
-            self.initialEW = convert[5]
+            self.initial_north = convert[1]
+            self.initial_east = convert[0]
+            self.initial_utm_zone = convert[2]
+            self.initial_utm_letter = convert[3]
+            self.initial_hemisphere = convert[4]
+            self.initial_ew = convert[5]
 
         # Save elevation
         self.elevation = elevation
-        self.setElevation(elevation)
+        self.set_elevation(elevation)
 
         # Recalculate Earth Radius
-        self.earthRadius = self.calculateEarthRadius(self.latitude)  # in m
+        self.earth_radius = self.calculate_earth_radius(self.latitude)  # in m
 
         # Initialize plots and prints object
         self.plots = _EnvironmentPlots(self)
 
         return None
 
-    def setDate(self, date, timeZone="UTC"):
+    def set_date(self, date, timezone="UTC"):
         """Set date and time of launch and update weather conditions if
         date dependent atmospheric model is used.
 
@@ -433,7 +433,7 @@ class Environment:
         ----------
         date : Datetime
             Datetime object specifying launch date and time.
-        timeZone : string, optional
+        timezone : string, optional
             Name of the time zone. To see all time zones, import pytz and run
         print(pytz.all_timezones). Default time zone is "UTC".
 
@@ -442,31 +442,31 @@ class Environment:
         None
         """
         # Store date and configure time zone
-        self.timeZone = timeZone
-        tz = pytz.timezone(self.timeZone)
+        self.timezone = timezone
+        tz = pytz.timezone(self.timezone)
         if type(date) != datetime:
-            localDate = datetime(*date)
+            local_date = datetime(*date)
         else:
-            localDate = date
-        if localDate.tzinfo == None:
-            localDate = tz.localize(localDate)
+            local_date = date
+        if local_date.tzinfo == None:
+            local_date = tz.localize(local_date)
         self.date = date
-        self.localDate = localDate
-        self.datetime_date = self.localDate.astimezone(pytz.UTC)
+        self.local_date = local_date
+        self.datetime_date = self.local_date.astimezone(pytz.UTC)
 
         # Update atmospheric conditions if atmosphere type is Forecast,
         # Reanalysis or Ensemble
         try:
-            if self.atmosphericModelType in ["Forecast", "Reanalysis", "Ensemble"]:
-                self.setAtmosphericModel(
-                    self.atmosphericModelFile, self.atmosphericModelDict
+            if self.atmospheric_model_type in ["Forecast", "Reanalysis", "Ensemble"]:
+                self.set_atmospheric_model(
+                    self.atmospheric_model_file, self.atmospheric_model_dict
                 )
         except AttributeError:
             pass
 
         return None
 
-    def setLocation(self, latitude, longitude):
+    def set_location(self, latitude, longitude):
         """Set latitude and longitude of launch and update atmospheric
         conditions if location dependent model is being used.
 
@@ -489,14 +489,14 @@ class Environment:
 
         # Update atmospheric conditions if atmosphere type is Forecast,
         # Reanalysis or Ensemble
-        if self.atmosphericModelType in ["Forecast", "Reanalysis", "Ensemble"]:
-            self.setAtmosphericModel(
-                self.atmosphericModelFile, self.atmosphericModelDict
+        if self.atmospheric_model_type in ["Forecast", "Reanalysis", "Ensemble"]:
+            self.set_atmospheric_model(
+                self.atmospheric_model_file, self.atmospheric_model_dict
             )
 
         # Return None
 
-    def setGravityModel(self, gravity):
+    def set_gravity_model(self, gravity):
         """Sets the gravity model to be used in the simulation based
         on the given user input to the gravity parameter.
 
@@ -510,14 +510,16 @@ class Environment:
             Function object representing the gravity model.
         """
         if gravity is None:
-            return self.somiglianaGravity.setDiscrete(0, self.maxExpectedHeight, 100)
+            return self.somigliana_gravity.set_discrete(
+                0, self.max_expected_height, 100
+            )
         else:
-            return Function(gravity, "height (m)", "gravity (m/s²)").setDiscrete(
-                0, self.maxExpectedHeight, 100
+            return Function(gravity, "height (m)", "gravity (m/s²)").set_discrete(
+                0, self.max_expected_height, 100
             )
 
     @funcify_method("height (m)", "gravity (m/s²)")
-    def somiglianaGravity(self, height):
+    def somigliana_gravity(self, height):
         """Computes the gravity acceleration with the Somigliana formula.
         An height correction is applied to the normal gravity that is
         accurate for heights used in aviation. The formula is based on the
@@ -554,7 +556,7 @@ class Environment:
 
         return height_correction * gravity_somgl
 
-    def setElevation(self, elevation="Open-Elevation"):
+    def set_elevation(self, elevation="Open-Elevation"):
         """Set elevation of launch site given user input or using the
         Open-Elevation API.
 
@@ -566,7 +568,7 @@ class Environment:
             Alternatively, can be set as 'Open-Elevation' which uses
             the Open-Elevation API to find elevation data. For this
             option, latitude and longitude must have already been
-            specified. See Environment.setLocation for more details.
+            specified. See Environment.set_location for more details.
 
         Return
         ------
@@ -602,11 +604,11 @@ class Environment:
         else:
             raise ValueError(
                 "Latitude and longitude must be set to use"
-                " Open-Elevation API. See Environment.setLocation."
+                " Open-Elevation API. See Environment.set_location."
             )
 
     @requires_netCDF4
-    def setTopographicProfile(self, type, file, dictionary="netCDF4", crs=None):
+    def set_topographic_profile(self, type, file, dictionary="netCDF4", crs=None):
         """[UNDER CONSTRUCTION] Defines the Topographic profile, importing data
         from previous downloaded files. Mainly data from the Shuttle Radar
         Topography Mission (SRTM) and NASA Digital Elevation Model will be used
@@ -635,29 +637,29 @@ class Environment:
         if type == "NASADEM_HGT":
             if dictionary == "netCDF4":
                 rootgrp = netCDF4.Dataset(file, "r", format="NETCDF4")
-                self.elevLonArray = rootgrp.variables["lon"][:].tolist()
-                self.elevLatArray = rootgrp.variables["lat"][:].tolist()
-                self.elevArray = rootgrp.variables["NASADEM_HGT"][:].tolist()
+                self.elev_lon_array = rootgrp.variables["lon"][:].tolist()
+                self.elev_lat_array = rootgrp.variables["lat"][:].tolist()
+                self.elev_array = rootgrp.variables["NASADEM_HGT"][:].tolist()
                 # crsArray = rootgrp.variables['crs'][:].tolist().
-                self.topographicProfileActivated = True
+                self.topographic_profile_activated = True
 
                 print("Region covered by the Topographical file: ")
                 print(
                     "Latitude from {:.6f}° to {:.6f}°".format(
-                        self.elevLatArray[-1], self.elevLatArray[0]
+                        self.elev_lat_array[-1], self.elev_lat_array[0]
                     )
                 )
                 print(
                     "Longitude from {:.6f}° to {:.6f}°".format(
-                        self.elevLonArray[0], self.elevLonArray[-1]
+                        self.elev_lon_array[0], self.elev_lon_array[-1]
                     )
                 )
 
         return None
 
-    def getElevationFromTopographicProfile(self, lat, lon):
-        """Function which receives as inputs the coordinates of a point and finds its
-        elevation in the provided Topographic Profile
+    def get_elevation_from_topographic_profile(self, lat, lon):
+        """Function which receives as inputs the coordinates of a point and
+        finds its elevation in the provided Topographic Profile.
 
         Parameters
         ----------
@@ -678,77 +680,77 @@ class Environment:
         ValueError
             [description]
         """
-        if self.topographicProfileActivated == False:
+        if self.topographic_profile_activated == False:
             print(
-                "You must define a Topographic profile first, please use the method Environment.setTopographicProfile()"
+                "You must define a Topographic profile first, please use the method Environment.set_topographic_profile()"
             )
             return None
 
         # Find latitude index
         # Check if reversed or sorted
-        if self.elevLatArray[0] < self.elevLatArray[-1]:
-            # Deal with sorted self.elevLatArray
-            latIndex = bisect.bisect(self.elevLatArray, lat)
+        if self.elev_lat_array[0] < self.elev_lat_array[-1]:
+            # Deal with sorted self.elev_lat_array
+            lat_index = bisect.bisect(self.elev_lat_array, lat)
         else:
-            # Deal with reversed self.elevLatArray
-            self.elevLatArray.reverse()
-            latIndex = len(self.elevLatArray) - bisect.bisect_left(
-                self.elevLatArray, lat
+            # Deal with reversed self.elev_lat_array
+            self.elev_lat_array.reverse()
+            lat_index = len(self.elev_lat_array) - bisect.bisect_left(
+                self.elev_lat_array, lat
             )
-            self.elevLatArray.reverse()
+            self.elev_lat_array.reverse()
         # Take care of latitude value equal to maximum longitude in the grid
         if (
-            latIndex == len(self.elevLatArray)
-            and self.elevLatArray[latIndex - 1] == lat
+            lat_index == len(self.elev_lat_array)
+            and self.elev_lat_array[lat_index - 1] == lat
         ):
-            latIndex = latIndex - 1
+            lat_index = lat_index - 1
         # Check if latitude value is inside the grid
-        if latIndex == 0 or latIndex == len(self.elevLatArray):
+        if lat_index == 0 or lat_index == len(self.elev_lat_array):
             raise ValueError(
                 "Latitude {:f} not inside region covered by file, which is from {:f} to {:f}.".format(
-                    lat, self.elevLatArray[0], self.elevLatArray[-1]
+                    lat, self.elev_lat_array[0], self.elev_lat_array[-1]
                 )
             )
 
         # Find longitude index
         # Determine if file uses -180 to 180 or 0 to 360
-        if self.elevLonArray[0] < 0 or self.elevLonArray[-1] < 0:
+        if self.elev_lon_array[0] < 0 or self.elev_lon_array[-1] < 0:
             # Convert input to -180 - 180
             lon = lon if lon < 180 else -180 + lon % 180
         else:
             # Convert input to 0 - 360
             lon = lon % 360
         # Check if reversed or sorted
-        if self.elevLonArray[0] < self.elevLonArray[-1]:
-            # Deal with sorted self.elevLonArray
-            lonIndex = bisect.bisect(self.elevLonArray, lon)
+        if self.elev_lon_array[0] < self.elev_lon_array[-1]:
+            # Deal with sorted self.elev_lon_array
+            lon_index = bisect.bisect(self.elev_lon_array, lon)
         else:
-            # Deal with reversed self.elevLonArray
-            self.elevLonArray.reverse()
-            lonIndex = len(self.elevLonArray) - bisect.bisect_left(
-                self.elevLonArray, lon
+            # Deal with reversed self.elev_lon_array
+            self.elev_lon_array.reverse()
+            lon_index = len(self.elev_lon_array) - bisect.bisect_left(
+                self.elev_lon_array, lon
             )
-            self.elevLonArray.reverse()
+            self.elev_lon_array.reverse()
         # Take care of longitude value equal to maximum longitude in the grid
         if (
-            lonIndex == len(self.elevLonArray)
-            and self.elevLonArray[lonIndex - 1] == lon
+            lon_index == len(self.elev_lon_array)
+            and self.elev_lon_array[lon_index - 1] == lon
         ):
-            lonIndex = lonIndex - 1
+            lon_index = lon_index - 1
         # Check if longitude value is inside the grid
-        if lonIndex == 0 or lonIndex == len(self.elevLonArray):
+        if lon_index == 0 or lon_index == len(self.elev_lon_array):
             raise ValueError(
                 "Longitude {:f} not inside region covered by file, which is from {:f} to {:f}.".format(
-                    lon, self.elevLonArray[0], self.elevLonArray[-1]
+                    lon, self.elev_lon_array[0], self.elev_lon_array[-1]
                 )
             )
 
         # Get the elevation
-        elevation = self.elevArray[latIndex][lonIndex]
+        elevation = self.elev_array[lat_index][lon_index]
 
         return elevation
 
-    def setAtmosphericModel(
+    def set_atmospheric_model(
         self,
         type,
         file=None,
@@ -982,19 +984,19 @@ class Environment:
         None
         """
         # Save atmospheric model type
-        self.atmosphericModelType = type
+        self.atmospheric_model_type = type
 
         # Handle each case
         if type == "StandardAtmosphere":
-            self.processStandardAtmosphere()
+            self.process_standard_atmosphere()
         elif type == "WyomingSounding":
-            self.processWyomingSounding(file)
+            self.process_wyoming_sounding(file)
             # Save file
-            self.atmosphericModelFile = file
+            self.atmospheric_model_file = file
         elif type == "NOAARucSounding":
-            self.processNOAARUCSounding(file)
+            self.process_noaaruc_sounding(file)
             # Save file
-            self.atmosphericModelFile = file
+            self.atmospheric_model_file = file
         elif type == "Forecast" or type == "Reanalysis":
             # Process default forecasts if requested
             if file == "GFS":
@@ -1012,22 +1014,22 @@ class Environment:
                     "v_wind": "vgrdprs",
                 }
                 # Attempt to get latest forecast
-                timeAttempt = datetime.utcnow()
+                time_attempt = datetime.utcnow()
                 success = False
-                attemptCount = 0
-                while not success and attemptCount < 10:
-                    timeAttempt -= timedelta(hours=6 * attemptCount)
+                attempt_count = 0
+                while not success and attempt_count < 10:
+                    time_attempt -= timedelta(hours=6 * attempt_count)
                     file = "https://nomads.ncep.noaa.gov/dods/gfs_0p25/gfs{:04d}{:02d}{:02d}/gfs_0p25_{:02d}z".format(
-                        timeAttempt.year,
-                        timeAttempt.month,
-                        timeAttempt.day,
-                        6 * (timeAttempt.hour // 6),
+                        time_attempt.year,
+                        time_attempt.month,
+                        time_attempt.day,
+                        6 * (time_attempt.hour // 6),
                     )
                     try:
-                        self.processForecastReanalysis(file, dictionary)
+                        self.process_forecast_reanalysis(file, dictionary)
                         success = True
                     except OSError:
-                        attemptCount += 1
+                        attempt_count += 1
                 if not success:
                     raise RuntimeError(
                         "Unable to load latest weather data for GFS through " + file
@@ -1047,22 +1049,22 @@ class Environment:
                     "v_wind": "vgrdprs",
                 }
                 # Attempt to get latest forecast
-                timeAttempt = datetime.utcnow()
+                time_attempt = datetime.utcnow()
                 success = False
-                attemptCount = 0
-                while not success and attemptCount < 10:
-                    timeAttempt -= timedelta(hours=6 * attemptCount)
+                attempt_count = 0
+                while not success and attempt_count < 10:
+                    time_attempt -= timedelta(hours=6 * attempt_count)
                     file = "https://nomads.ncep.noaa.gov/dods/gfs_0p25_parafv3/gfs{:04d}{:02d}{:02d}/gfs_0p25_parafv3_{:02d}z".format(
-                        timeAttempt.year,
-                        timeAttempt.month,
-                        timeAttempt.day,
-                        6 * (timeAttempt.hour // 6),
+                        time_attempt.year,
+                        time_attempt.month,
+                        time_attempt.day,
+                        6 * (time_attempt.hour // 6),
                     )
                     try:
-                        self.processForecastReanalysis(file, dictionary)
+                        self.process_forecast_reanalysis(file, dictionary)
                         success = True
                     except OSError:
-                        attemptCount += 1
+                        attempt_count += 1
                 if not success:
                     raise RuntimeError(
                         "Unable to load latest weather data for FV3 through " + file
@@ -1082,22 +1084,22 @@ class Environment:
                     "v_wind": "vgrdprs",
                 }
                 # Attempt to get latest forecast
-                timeAttempt = datetime.utcnow()
+                time_attempt = datetime.utcnow()
                 success = False
-                attemptCount = 0
-                while not success and attemptCount < 10:
-                    timeAttempt -= timedelta(hours=6 * attemptCount)
+                attempt_count = 0
+                while not success and attempt_count < 10:
+                    time_attempt -= timedelta(hours=6 * attempt_count)
                     file = "https://nomads.ncep.noaa.gov/dods/nam/nam{:04d}{:02d}{:02d}/nam_conusnest_{:02d}z".format(
-                        timeAttempt.year,
-                        timeAttempt.month,
-                        timeAttempt.day,
-                        6 * (timeAttempt.hour // 6),
+                        time_attempt.year,
+                        time_attempt.month,
+                        time_attempt.day,
+                        6 * (time_attempt.hour // 6),
                     )
                     try:
-                        self.processForecastReanalysis(file, dictionary)
+                        self.process_forecast_reanalysis(file, dictionary)
                         success = True
                     except OSError:
-                        attemptCount += 1
+                        attempt_count += 1
                 if not success:
                     raise RuntimeError(
                         "Unable to load latest weather data for NAM through " + file
@@ -1117,22 +1119,22 @@ class Environment:
                     "v_wind": "vgrdprs",
                 }
                 # Attempt to get latest forecast
-                timeAttempt = datetime.utcnow()
+                time_attempt = datetime.utcnow()
                 success = False
-                attemptCount = 0
-                while not success and attemptCount < 10:
-                    timeAttempt -= timedelta(hours=1 * attemptCount)
+                attempt_count = 0
+                while not success and attempt_count < 10:
+                    time_attempt -= timedelta(hours=1 * attempt_count)
                     file = "https://nomads.ncep.noaa.gov/dods/rap/rap{:04d}{:02d}{:02d}/rap_{:02d}z".format(
-                        timeAttempt.year,
-                        timeAttempt.month,
-                        timeAttempt.day,
-                        timeAttempt.hour,
+                        time_attempt.year,
+                        time_attempt.month,
+                        time_attempt.day,
+                        time_attempt.hour,
                     )
                     try:
-                        self.processForecastReanalysis(file, dictionary)
+                        self.process_forecast_reanalysis(file, dictionary)
                         success = True
                     except OSError:
-                        attemptCount += 1
+                        attempt_count += 1
                 if not success:
                     raise RuntimeError(
                         "Unable to load latest weather data for RAP through " + file
@@ -1171,10 +1173,10 @@ class Environment:
                         "Please specify a dictionary or choose a default one such as ECMWF or NOAA."
                     )
                 # Process forecast or reanalysis
-                self.processForecastReanalysis(file, dictionary)
+                self.process_forecast_reanalysis(file, dictionary)
             # Save dictionary and file
-            self.atmosphericModelFile = file
-            self.atmosphericModelDict = dictionary
+            self.atmospheric_model_file = file
+            self.atmospheric_model_dict = dictionary
         elif type == "Ensemble":
             # Process default forecasts if requested
             if file == "GEFS":
@@ -1193,22 +1195,22 @@ class Environment:
                     "v_wind": "vgrdprs",
                 }
                 # Attempt to get latest forecast
-                timeAttempt = datetime.utcnow()
+                time_attempt = datetime.utcnow()
                 success = False
-                attemptCount = 0
-                while not success and attemptCount < 10:
-                    timeAttempt -= timedelta(hours=6 * attemptCount)
+                attempt_count = 0
+                while not success and attempt_count < 10:
+                    time_attempt -= timedelta(hours=6 * attempt_count)
                     file = "https://nomads.ncep.noaa.gov/dods/gens_bc/gens{:04d}{:02d}{:02d}/gep_all_{:02d}z".format(
-                        timeAttempt.year,
-                        timeAttempt.month,
-                        timeAttempt.day,
-                        6 * (timeAttempt.hour // 6),
+                        time_attempt.year,
+                        time_attempt.month,
+                        time_attempt.day,
+                        6 * (time_attempt.hour // 6),
                     )
                     try:
-                        self.processEnsemble(file, dictionary)
+                        self.process_ensemble(file, dictionary)
                         success = True
                     except OSError:
-                        attemptCount += 1
+                        attempt_count += 1
                 if not success:
                     raise RuntimeError(
                         "Unable to load latest weather data for GEFS through " + file
@@ -1229,22 +1231,22 @@ class Environment:
                     "v_wind": "vgrdprs",
                 }
                 # Attempt to get latest forecast
-                timeAttempt = datetime.utcnow()
+                time_attempt = datetime.utcnow()
                 success = False
-                attemptCount = 0
-                while not success and attemptCount < 10:
-                    timeAttempt -= timedelta(hours=12 * attemptCount)
+                attempt_count = 0
+                while not success and attempt_count < 10:
+                    time_attempt -= timedelta(hours=12 * attempt_count)
                     file = "https://nomads.ncep.noaa.gov/dods/cmcens/cmcens{:04d}{:02d}{:02d}/cmcens_all_{:02d}z".format(
-                        timeAttempt.year,
-                        timeAttempt.month,
-                        timeAttempt.day,
-                        12 * (timeAttempt.hour // 12),
+                        time_attempt.year,
+                        time_attempt.month,
+                        time_attempt.day,
+                        12 * (time_attempt.hour // 12),
                     )
                     try:
-                        self.processEnsemble(file, dictionary)
+                        self.process_ensemble(file, dictionary)
                         success = True
                     except OSError:
-                        attemptCount += 1
+                        attempt_count += 1
                 if not success:
                     raise RuntimeError(
                         "Unable to load latest weather data for CMC through " + file
@@ -1281,29 +1283,29 @@ class Environment:
                         "v_wind": "vgrdprs",
                     }
                 # Process forecast or reanalysis
-                self.processEnsemble(file, dictionary)
+                self.process_ensemble(file, dictionary)
             # Save dictionary and file
-            self.atmosphericModelFile = file
-            self.atmosphericModelDict = dictionary
+            self.atmospheric_model_file = file
+            self.atmospheric_model_dict = dictionary
         elif type == "CustomAtmosphere":
-            self.processCustomAtmosphere(pressure, temperature, wind_u, wind_v)
+            self.process_custom_atmosphere(pressure, temperature, wind_u, wind_v)
         elif type == "Windy":
-            self.processWindyAtmosphere(file)
+            self.process_windy_atmosphere(file)
         else:
             raise ValueError("Unknown model type.")
 
         # Calculate air density
-        self.calculateDensityProfile()
+        self.calculate_density_profile()
 
         # Calculate speed of sound
-        self.calculateSpeedOfSoundProfile()
+        self.calculate_speed_of_sound_profile()
 
         # Update dynamic viscosity
-        self.calculateDynamicViscosity()
+        self.calculate_dynamic_viscosity()
 
         return None
 
-    def processStandardAtmosphere(self):
+    def process_standard_atmosphere(self):
         """Sets pressure and temperature profiles corresponding to the
         International Standard Atmosphere defined by ISO 2533 and
         ranging from -2 km to 80 km of altitude above sea level. Note
@@ -1318,36 +1320,36 @@ class Environment:
         None
         """
         # Load international standard atmosphere
-        self.loadInternationalStandardAtmosphere()
+        self.load_international_standard_atmosphere()
 
         # Save temperature, pressure and wind profiles
-        self.pressure = self.pressureISA
-        self.temperature = self.temperatureISA
-        self.windDirection = Function(
+        self.pressure = self.pressure_ISA
+        self.temperature = self.temperature_ISA
+        self.wind_direction = Function(
             0,
             inputs="Height Above Sea Level (m)",
             outputs="Wind Direction (Deg True)",
             interpolation="linear",
         )
-        self.windHeading = Function(
+        self.wind_heading = Function(
             0,
             inputs="Height Above Sea Level (m)",
             outputs="Wind Heading (Deg True)",
             interpolation="linear",
         )
-        self.windSpeed = Function(
+        self.wind_speed = Function(
             0,
             inputs="Height Above Sea Level (m)",
             outputs="Wind Speed (m/s)",
             interpolation="linear",
         )
-        self.windVelocityX = Function(
+        self.wind_velocity_x = Function(
             0,
             inputs="Height Above Sea Level (m)",
             outputs="Wind Velocity X (m/s)",
             interpolation="linear",
         )
-        self.windVelocityY = Function(
+        self.wind_velocity_y = Function(
             0,
             inputs="Height Above Sea Level (m)",
             outputs="Wind Velocity Y (m/s)",
@@ -1355,11 +1357,11 @@ class Environment:
         )
 
         # Set maximum expected height
-        self.maxExpectedHeight = 80000
+        self.max_expected_height = 80000
 
         return None
 
-    def processCustomAtmosphere(
+    def process_custom_atmosphere(
         self, pressure=None, temperature=None, wind_u=0, wind_v=0
     ):
         """Import pressure, temperature and wind profile given by user.
@@ -1434,12 +1436,12 @@ class Environment:
         None
         """
         # Initialize an estimate of the maximum expected atmospheric model height
-        maxExpectedHeight = 1000
+        max_expected_height = 1000
 
         # Save pressure profile
         if pressure is None:
             # Use standard atmosphere
-            self.pressure = self.pressureISA
+            self.pressure = self.pressure_ISA
         else:
             # Use custom input
             self.pressure = Function(
@@ -1450,12 +1452,12 @@ class Environment:
             )
             # Check maximum height of custom pressure input
             if not callable(self.pressure.source):
-                maxExpectedHeight = max(self.pressure[-1, 0], maxExpectedHeight)
+                max_expected_height = max(self.pressure[-1, 0], max_expected_height)
 
         # Save temperature profile
         if temperature is None:
             # Use standard atmosphere
-            self.temperature = self.temperatureISA
+            self.temperature = self.temperature_ISA
         else:
             self.temperature = Function(
                 temperature,
@@ -1465,74 +1467,74 @@ class Environment:
             )
             # Check maximum height of custom temperature input
             if not callable(self.temperature.source):
-                maxExpectedHeight = max(self.temperature[-1, 0], maxExpectedHeight)
+                max_expected_height = max(self.temperature[-1, 0], max_expected_height)
 
         # Save wind profile
-        self.windVelocityX = Function(
+        self.wind_velocity_x = Function(
             wind_u,
             inputs="Height Above Sea Level (m)",
             outputs="Wind Velocity X (m/s)",
             interpolation="linear",
         )
-        self.windVelocityY = Function(
+        self.wind_velocity_y = Function(
             wind_v,
             inputs="Height Above Sea Level (m)",
             outputs="Wind Velocity Y (m/s)",
             interpolation="linear",
         )
         # Check maximum height of custom wind input
-        if not callable(self.windVelocityX.source):
-            maxExpectedHeight = max(self.windVelocityX[-1, 0], maxExpectedHeight)
-        if not callable(self.windVelocityY.source):
-            maxExpectedHeight = max(self.windVelocityY[-1, 0], maxExpectedHeight)
+        if not callable(self.wind_velocity_x.source):
+            max_expected_height = max(self.wind_velocity_x[-1, 0], max_expected_height)
+        if not callable(self.wind_velocity_y.source):
+            max_expected_height = max(self.wind_velocity_y[-1, 0], max_expected_height)
 
         # Compute wind profile direction and heading
-        windHeading = (
-            lambda h: np.arctan2(self.windVelocityX(h), self.windVelocityY(h))
+        wind_heading = (
+            lambda h: np.arctan2(self.wind_velocity_x(h), self.wind_velocity_y(h))
             * (180 / np.pi)
             % 360
         )
-        self.windHeading = Function(
-            windHeading,
+        self.wind_heading = Function(
+            wind_heading,
             inputs="Height Above Sea Level (m)",
             outputs="Wind Heading (Deg True)",
             interpolation="linear",
         )
 
-        def windDirection(h):
-            return (windHeading(h) - 180) % 360
+        def wind_direction(h):
+            return (wind_heading(h) - 180) % 360
 
-        self.windDirection = Function(
-            windDirection,
+        self.wind_direction = Function(
+            wind_direction,
             inputs="Height Above Sea Level (m)",
             outputs="Wind Direction (Deg True)",
             interpolation="linear",
         )
 
-        def windSpeed(h):
-            return np.sqrt(self.windVelocityX(h) ** 2 + self.windVelocityY(h) ** 2)
+        def wind_speed(h):
+            return np.sqrt(self.wind_velocity_x(h) ** 2 + self.wind_velocity_y(h) ** 2)
 
-        self.windSpeed = Function(
-            windSpeed,
+        self.wind_speed = Function(
+            wind_speed,
             inputs="Height Above Sea Level (m)",
             outputs="Wind Speed (m/s)",
             interpolation="linear",
         )
 
         # Save maximum expected height
-        self.maxExpectedHeight = maxExpectedHeight
+        self.max_expected_height = max_expected_height
 
         return None
 
-    def processWindyAtmosphere(self, model="ECMWF"):
+    def process_windy_atmosphere(self, model="ECMWF"):
         """Process data from Windy.com to retrieve atmospheric forecast data.
 
         Parameters
         ----------
         model : string, optional
-            The atmospheric model to use. Default is 'ECMWF'. Options are: 'ECMWF' for
-            the ECMWF-HRES model, 'GFS' for the GFS model, 'ICON' for the ICON-Global
-            model or 'ICONEU' for the ICON-EU model.
+            The atmospheric model to use. Default is 'ECMWF'. Options are:
+            'ECMWF' for the ECMWF-HRES model, 'GFS' for the GFS model, 'ICON'
+            for the ICON-Global model or 'ICONEU' for the ICON-EU model.
         """
 
         # Process the model string
@@ -1551,54 +1553,56 @@ class Environment:
             raise
 
         # Determine time index from model
-        timeArray = np.array(response["data"]["hours"])
-        timeUnits = "milliseconds since 1970-01-01 00:00:00"
-        launchTimeInUnits = netCDF4.date2num(self.datetime_date, timeUnits)
-        # Find the index of the closest time in timeArray to the launch time
-        timeIndex = (np.abs(timeArray - launchTimeInUnits)).argmin()
+        time_array = np.array(response["data"]["hours"])
+        time_units = "milliseconds since 1970-01-01 00:00:00"
+        launch_time_in_units = netCDF4.date2num(self.datetime_date, time_units)
+        # Find the index of the closest time in time_array to the launch time
+        time_index = (np.abs(time_array - launch_time_in_units)).argmin()
 
         # Define available pressure levels
-        pressureLevels = np.array(
+        pressure_levels = np.array(
             [1000, 950, 925, 900, 850, 800, 700, 600, 500, 400, 300, 250, 200, 150]
         )
 
         # Process geopotential height array
-        geopotentialHeightArray = np.array(
-            [response["data"][f"gh-{pL}h"][timeIndex] for pL in pressureLevels]
+        geopotential_height_array = np.array(
+            [response["data"][f"gh-{pL}h"][time_index] for pL in pressure_levels]
         )
         # Convert geopotential height to geometric altitude (ASL)
-        R = self.earthRadius
-        altitudeArray = R * geopotentialHeightArray / (R - geopotentialHeightArray)
+        R = self.earth_radius
+        altitude_array = R * geopotential_height_array / (R - geopotential_height_array)
 
         # Process temperature array (in Kelvin)
-        temperatureArray = np.array(
-            [response["data"][f"temp-{pL}h"][timeIndex] for pL in pressureLevels]
+        temperature_array = np.array(
+            [response["data"][f"temp-{pL}h"][time_index] for pL in pressure_levels]
         )
 
         # Process wind-u and wind-v array (in m/s)
-        windUArray = np.array(
-            [response["data"][f"wind_u-{pL}h"][timeIndex] for pL in pressureLevels]
+        wind_u_array = np.array(
+            [response["data"][f"wind_u-{pL}h"][time_index] for pL in pressure_levels]
         )
-        windVArray = np.array(
-            [response["data"][f"wind_v-{pL}h"][timeIndex] for pL in pressureLevels]
+        wind_v_array = np.array(
+            [response["data"][f"wind_v-{pL}h"][time_index] for pL in pressure_levels]
         )
 
         # Determine wind speed, heading and direction
-        windSpeedArray = np.sqrt(windUArray**2 + windVArray**2)
-        windHeadingArray = np.arctan2(windUArray, windVArray) * (180 / np.pi) % 360
-        windDirectionArray = (windHeadingArray - 180) % 360
+        wind_speed_array = np.sqrt(wind_u_array**2 + wind_v_array**2)
+        wind_heading_array = (
+            np.arctan2(wind_u_array, wind_v_array) * (180 / np.pi) % 360
+        )
+        wind_direction_array = (wind_heading_array - 180) % 360
 
         # Combine all data into big array
         data_array = np.ma.column_stack(
             [
-                100 * pressureLevels,  # Convert hPa to Pa
-                altitudeArray,
-                temperatureArray,
-                windUArray,
-                windVArray,
-                windHeadingArray,
-                windDirectionArray,
-                windSpeedArray,
+                100 * pressure_levels,  # Convert hPa to Pa
+                altitude_array,
+                temperature_array,
+                wind_u_array,
+                wind_v_array,
+                wind_heading_array,
+                wind_direction_array,
+                wind_speed_array,
             ]
         )
 
@@ -1615,31 +1619,31 @@ class Environment:
             outputs="Temperature (K)",
             interpolation="linear",
         )
-        self.windDirection = Function(
+        self.wind_direction = Function(
             data_array[:, (1, 6)],
             inputs="Height Above Sea Level (m)",
             outputs="Wind Direction (Deg True)",
             interpolation="linear",
         )
-        self.windHeading = Function(
+        self.wind_heading = Function(
             data_array[:, (1, 5)],
             inputs="Height Above Sea Level (m)",
             outputs="Wind Heading (Deg True)",
             interpolation="linear",
         )
-        self.windSpeed = Function(
+        self.wind_speed = Function(
             data_array[:, (1, 7)],
             inputs="Height Above Sea Level (m)",
             outputs="Wind Speed (m/s)",
             interpolation="linear",
         )
-        self.windVelocityX = Function(
+        self.wind_velocity_x = Function(
             data_array[:, (1, 3)],
             inputs="Height Above Sea Level (m)",
             outputs="Wind Velocity X (m/s)",
             interpolation="linear",
         )
-        self.windVelocityY = Function(
+        self.wind_velocity_y = Function(
             data_array[:, (1, 4)],
             inputs="Height Above Sea Level (m)",
             outputs="Wind Velocity Y (m/s)",
@@ -1647,32 +1651,36 @@ class Environment:
         )
 
         # Save maximum expected height
-        self.maxExpectedHeight = max(altitudeArray[0], altitudeArray[-1])
+        self.max_expected_height = max(altitude_array[0], altitude_array[-1])
 
         # Get elevation data from file
         self.elevation = response["header"]["elevation"]
 
         # Compute info data
-        self.atmosphericModelInitDate = netCDF4.num2date(timeArray[0], units=timeUnits)
-        self.atmosphericModelEndDate = netCDF4.num2date(timeArray[-1], units=timeUnits)
-        self.atmosphericModelInterval = netCDF4.num2date(
-            (timeArray[-1] - timeArray[0]) / (len(timeArray) - 1), units=timeUnits
+        self.atmospheric_model_init_date = netCDF4.num2date(
+            time_array[0], units=time_units
+        )
+        self.atmospheric_model_end_date = netCDF4.num2date(
+            time_array[-1], units=time_units
+        )
+        self.atmospheric_model_interval = netCDF4.num2date(
+            (time_array[-1] - time_array[0]) / (len(time_array) - 1), units=time_units
         ).hour
-        self.atmosphericModelInitLat = self.latitude
-        self.atmosphericModelEndLat = self.latitude
-        self.atmosphericModelInitLon = self.longitude
-        self.atmosphericModelEndLon = self.longitude
+        self.atmospheric_model_init_lat = self.latitude
+        self.atmospheric_model_end_lat = self.latitude
+        self.atmospheric_model_init_lon = self.longitude
+        self.atmospheric_model_end_lon = self.longitude
 
         # Save debugging data
-        self.geopotentials = geopotentialHeightArray
-        self.windUs = windUArray
-        self.windVs = windVArray
-        self.levels = pressureLevels
-        self.temperatures = temperatureArray
-        self.timeArray = timeArray
-        self.height = altitudeArray
+        self.geopotentials = geopotential_height_array
+        self.wind_us = wind_u_array
+        self.wind_vs = wind_v_array
+        self.levels = pressure_levels
+        self.temperatures = temperature_array
+        self.time_array = time_array
+        self.height = altitude_array
 
-    def processWyomingSounding(self, file):
+    def process_wyoming_sounding(self, file):
         """Import and process the upper air sounding data from Wyoming
         Upper Air Soundings database given by the url in file. Sets
         pressure, temperature, wind-u, wind-v profiles and surface elevation.
@@ -1749,35 +1757,35 @@ class Environment:
         data_array[:, 4] = data_array[:, 7] * np.cos(data_array[:, 5] * np.pi / 180)
 
         # Convert geopotential height to geometric height
-        R = self.earthRadius
+        R = self.earth_radius
         data_array[:, 1] = R * data_array[:, 1] / (R - data_array[:, 1])
 
         # Save atmospheric data
-        self.windDirection = Function(
+        self.wind_direction = Function(
             data_array[:, (1, 6)],
             inputs="Height Above Sea Level (m)",
             outputs="Wind Direction (Deg True)",
             interpolation="linear",
         )
-        self.windHeading = Function(
+        self.wind_heading = Function(
             data_array[:, (1, 5)],
             inputs="Height Above Sea Level (m)",
             outputs="Wind Heading (Deg True)",
             interpolation="linear",
         )
-        self.windSpeed = Function(
+        self.wind_speed = Function(
             data_array[:, (1, 7)],
             inputs="Height Above Sea Level (m)",
             outputs="Wind Speed (m/s)",
             interpolation="linear",
         )
-        self.windVelocityX = Function(
+        self.wind_velocity_x = Function(
             data_array[:, (1, 3)],
             inputs="Height Above Sea Level (m)",
             outputs="Wind Velocity X (m/s)",
             interpolation="linear",
         )
-        self.windVelocityY = Function(
+        self.wind_velocity_y = Function(
             data_array[:, (1, 4)],
             inputs="Height Above Sea Level (m)",
             outputs="Wind Velocity Y (m/s)",
@@ -1793,11 +1801,11 @@ class Environment:
         )
 
         # Save maximum expected height
-        self.maxExpectedHeight = data_array[-1, 1]
+        self.max_expected_height = data_array[-1, 1]
 
         return None
 
-    def processNOAARUCSounding(self, file):
+    def process_noaaruc_sounding(self, file):
         """Import and process the upper air sounding data from NOAA
         Ruc Soundings database (https://rucsoundings.noaa.gov/) given as
         ASCII GSD format pages passed by its url to the file parameter. Sets
@@ -1874,8 +1882,8 @@ class Environment:
         temperature_array = np.array(temperature_array)
 
         # Extract wind speed and direction as a function of height
-        windSpeed_array = []
-        windDirection_array = []
+        wind_speed_array = []
+        wind_direction_array = []
         for line in lines:
             # Split line into columns
             columns = re.split(" +", line)[1:]
@@ -1888,10 +1896,10 @@ class Environment:
                     # Check if values exist
                     if max(columns) != 99999:
                         # Save value
-                        windDirection_array.append(columns[[0, 1]])
-                        windSpeed_array.append(columns[[0, 2]])
-        windSpeed_array = np.array(windSpeed_array)
-        windDirection_array = np.array(windDirection_array)
+                        wind_direction_array.append(columns[[0, 1]])
+                        wind_speed_array.append(columns[[0, 2]])
+        wind_speed_array = np.array(wind_speed_array)
+        wind_direction_array = np.array(wind_direction_array)
 
         # Converts 10*hPa to Pa and save values
         pressure_array[:, 1] = 10 * pressure_array[:, 1]
@@ -1914,59 +1922,59 @@ class Environment:
         )
 
         # Process wind-u and wind-v
-        windSpeed_array[:, 1] = (
-            windSpeed_array[:, 1] * 1.852 / 3.6
+        wind_speed_array[:, 1] = (
+            wind_speed_array[:, 1] * 1.852 / 3.6
         )  # Converts Knots to m/s
-        windHeading_array = windDirection_array[:, :] * 1
+        windHeading_array = wind_direction_array[:, :] * 1
         windHeading_array[:, 1] = (
-            windDirection_array[:, 1] + 180
+            wind_direction_array[:, 1] + 180
         ) % 360  # Convert wind direction to wind heading
-        windU = windSpeed_array[:, :] * 1
-        windV = windSpeed_array[:, :] * 1
-        windU[:, 1] = windSpeed_array[:, 1] * np.sin(
+        wind_u = wind_speed_array[:, :] * 1
+        wind_v = wind_speed_array[:, :] * 1
+        wind_u[:, 1] = wind_speed_array[:, 1] * np.sin(
             windHeading_array[:, 1] * np.pi / 180
         )
-        windV[:, 1] = windSpeed_array[:, 1] * np.cos(
+        wind_v[:, 1] = wind_speed_array[:, 1] * np.cos(
             windHeading_array[:, 1] * np.pi / 180
         )
 
         # Save wind data
-        self.windDirection = Function(
-            windDirection_array,
+        self.wind_direction = Function(
+            wind_direction_array,
             inputs="Height Above Sea Level (m)",
             outputs="Wind Direction (Deg True)",
             interpolation="linear",
         )
-        self.windHeading = Function(
+        self.wind_heading = Function(
             windHeading_array,
             inputs="Height Above Sea Level (m)",
             outputs="Wind Heading (Deg True)",
             interpolation="linear",
         )
-        self.windSpeed = Function(
-            windSpeed_array,
+        self.wind_speed = Function(
+            wind_speed_array,
             inputs="Height Above Sea Level (m)",
             outputs="Wind Speed (m/s)",
             interpolation="linear",
         )
-        self.windVelocityX = Function(
-            windU,
+        self.wind_velocity_x = Function(
+            wind_u,
             inputs="Height Above Sea Level (m)",
             outputs="Wind Velocity X (m/s)",
             interpolation="linear",
         )
-        self.windVelocityY = Function(
-            windV,
+        self.wind_velocity_y = Function(
+            wind_v,
             inputs="Height Above Sea Level (m)",
             outputs="Wind Velocity Y (m/s)",
             interpolation="linear",
         )
 
         # Save maximum expected height
-        self.maxExpectedHeight = pressure_array[-1, 0]
+        self.max_expected_height = pressure_array[-1, 0]
 
     @requires_netCDF4
-    def processForecastReanalysis(self, file, dictionary):
+    def process_forecast_reanalysis(self, file, dictionary):
         """Import and process atmospheric data from weather forecasts
         and reanalysis given as netCDF or OPeNDAP files.
         Sets pressure, temperature, wind-u and wind-v
@@ -2022,7 +2030,7 @@ class Environment:
             raise TypeError(
                 "Please specify Date (array-like) when "
                 "initializing this Environment. "
-                "Alternatively, use the Environment.setDate"
+                "Alternatively, use the Environment.set_date"
                 " method."
             )
         if self.latitude is None:
@@ -2030,53 +2038,53 @@ class Environment:
                 "Please specify Location (lat, lon). when "
                 "initializing this Environment. "
                 "Alternatively, use the Environment."
-                "setLocation method."
+                "set_location method."
             )
 
         # Read weather file
-        weatherData = netCDF4.Dataset(file)
+        weather_data = netCDF4.Dataset(file)
 
         # Get time, latitude and longitude data from file
-        timeArray = weatherData.variables[dictionary["time"]]
-        lonArray = weatherData.variables[dictionary["longitude"]][:].tolist()
-        latArray = weatherData.variables[dictionary["latitude"]][:].tolist()
+        time_array = weather_data.variables[dictionary["time"]]
+        lon_array = weather_data.variables[dictionary["longitude"]][:].tolist()
+        lat_array = weather_data.variables[dictionary["latitude"]][:].tolist()
 
         # Find time index
-        timeIndex = netCDF4.date2index(
-            self.datetime_date, timeArray, calendar="gregorian", select="nearest"
+        time_index = netCDF4.date2index(
+            self.datetime_date, time_array, calendar="gregorian", select="nearest"
         )
         # Convert times do dates and numbers
-        inputTimeNum = netCDF4.date2num(
-            self.datetime_date, timeArray.units, calendar="gregorian"
+        input_time_num = netCDF4.date2num(
+            self.datetime_date, time_array.units, calendar="gregorian"
         )
-        fileTimeNum = timeArray[timeIndex]
-        fileTimeDate = netCDF4.num2date(
-            timeArray[timeIndex], timeArray.units, calendar="gregorian"
+        file_time_num = time_array[time_index]
+        file_time_date = netCDF4.num2date(
+            time_array[time_index], time_array.units, calendar="gregorian"
         )
         # Check if time is inside range supplied by file
-        if timeIndex == 0 and inputTimeNum < fileTimeNum:
+        if time_index == 0 and input_time_num < file_time_num:
             raise ValueError(
                 "Chosen launch time is not available in the provided file, which starts at {:}.".format(
-                    fileTimeDate
+                    file_time_date
                 )
             )
-        elif timeIndex == len(timeArray) - 1 and inputTimeNum > fileTimeNum:
+        elif time_index == len(time_array) - 1 and input_time_num > file_time_num:
             raise ValueError(
                 "Chosen launch time is not available in the provided file, which ends at {:}.".format(
-                    fileTimeDate
+                    file_time_date
                 )
             )
         # Check if time is exactly equal to one in the file
-        if inputTimeNum != fileTimeNum:
+        if input_time_num != file_time_num:
             warnings.warn(
                 "Exact chosen launch time is not available in the provided file, using {:} UTC instead.".format(
-                    fileTimeDate
+                    file_time_date
                 )
             )
 
         # Find longitude index
         # Determine if file uses -180 to 180 or 0 to 360
-        if lonArray[0] < 0 or lonArray[-1] < 0:
+        if lon_array[0] < 0 or lon_array[-1] < 0:
             # Convert input to -180 - 180
             lon = (
                 self.longitude if self.longitude < 180 else -180 + self.longitude % 180
@@ -2085,50 +2093,50 @@ class Environment:
             # Convert input to 0 - 360
             lon = self.longitude % 360
         # Check if reversed or sorted
-        if lonArray[0] < lonArray[-1]:
-            # Deal with sorted lonArray
-            lonIndex = bisect.bisect(lonArray, lon)
+        if lon_array[0] < lon_array[-1]:
+            # Deal with sorted lon_array
+            lon_index = bisect.bisect(lon_array, lon)
         else:
-            # Deal with reversed lonArray
-            lonArray.reverse()
-            lonIndex = len(lonArray) - bisect.bisect_left(lonArray, lon)
-            lonArray.reverse()
+            # Deal with reversed lon_array
+            lon_array.reverse()
+            lon_index = len(lon_array) - bisect.bisect_left(lon_array, lon)
+            lon_array.reverse()
         # Take care of longitude value equal to maximum longitude in the grid
-        if lonIndex == len(lonArray) and lonArray[lonIndex - 1] == lon:
-            lonIndex = lonIndex - 1
+        if lon_index == len(lon_array) and lon_array[lon_index - 1] == lon:
+            lon_index = lon_index - 1
         # Check if longitude value is inside the grid
-        if lonIndex == 0 or lonIndex == len(lonArray):
+        if lon_index == 0 or lon_index == len(lon_array):
             raise ValueError(
                 "Longitude {:f} not inside region covered by file, which is from {:f} to {:f}.".format(
-                    lon, lonArray[0], lonArray[-1]
+                    lon, lon_array[0], lon_array[-1]
                 )
             )
 
         # Find latitude index
         # Check if reversed or sorted
-        if latArray[0] < latArray[-1]:
-            # Deal with sorted latArray
-            latIndex = bisect.bisect(latArray, self.latitude)
+        if lat_array[0] < lat_array[-1]:
+            # Deal with sorted lat_array
+            lat_index = bisect.bisect(lat_array, self.latitude)
         else:
-            # Deal with reversed latArray
-            latArray.reverse()
-            latIndex = len(latArray) - bisect.bisect_left(latArray, self.latitude)
-            latArray.reverse()
+            # Deal with reversed lat_array
+            lat_array.reverse()
+            lat_index = len(lat_array) - bisect.bisect_left(lat_array, self.latitude)
+            lat_array.reverse()
         # Take care of latitude value equal to maximum longitude in the grid
-        if latIndex == len(latArray) and latArray[latIndex - 1] == self.latitude:
-            latIndex = latIndex - 1
+        if lat_index == len(lat_array) and lat_array[lat_index - 1] == self.latitude:
+            lat_index = lat_index - 1
         # Check if latitude value is inside the grid
-        if latIndex == 0 or latIndex == len(latArray):
+        if lat_index == 0 or lat_index == len(lat_array):
             raise ValueError(
                 "Latitude {:f} not inside region covered by file, which is from {:f} to {:f}.".format(
-                    self.latitude, latArray[0], latArray[-1]
+                    self.latitude, lat_array[0], lat_array[-1]
                 )
             )
 
         # Get pressure level data from file
         try:
             levels = (
-                100 * weatherData.variables[dictionary["level"]][:]
+                100 * weather_data.variables[dictionary["level"]][:]
             )  # Convert mbar to Pa
         except:
             raise ValueError(
@@ -2137,14 +2145,17 @@ class Environment:
 
         # Get geopotential data from file
         try:
-            geopotentials = weatherData.variables[dictionary["geopotential_height"]][
-                timeIndex, :, (latIndex - 1, latIndex), (lonIndex - 1, lonIndex)
+            geopotentials = weather_data.variables[dictionary["geopotential_height"]][
+                time_index, :, (lat_index - 1, lat_index), (lon_index - 1, lon_index)
             ]
         except:
             try:
                 geopotentials = (
-                    weatherData.variables[dictionary["geopotential"]][
-                        timeIndex, :, (latIndex - 1, latIndex), (lonIndex - 1, lonIndex)
+                    weather_data.variables[dictionary["geopotential"]][
+                        time_index,
+                        :,
+                        (lat_index - 1, lat_index),
+                        (lon_index - 1, lon_index),
                     ]
                     / self.standard_g
                 )
@@ -2158,8 +2169,8 @@ class Environment:
 
         # Get temperature from file
         try:
-            temperatures = weatherData.variables[dictionary["temperature"]][
-                timeIndex, :, (latIndex - 1, latIndex), (lonIndex - 1, lonIndex)
+            temperatures = weather_data.variables[dictionary["temperature"]][
+                time_index, :, (lat_index - 1, lat_index), (lon_index - 1, lon_index)
             ]
         except:
             raise ValueError(
@@ -2168,16 +2179,16 @@ class Environment:
 
         # Get wind data from file
         try:
-            windUs = weatherData.variables[dictionary["u_wind"]][
-                timeIndex, :, (latIndex - 1, latIndex), (lonIndex - 1, lonIndex)
+            wind_us = weather_data.variables[dictionary["u_wind"]][
+                time_index, :, (lat_index - 1, lat_index), (lon_index - 1, lon_index)
             ]
         except:
             raise ValueError(
                 "Unable to read wind-u component. Check file and dictionary."
             )
         try:
-            windVs = weatherData.variables[dictionary["v_wind"]][
-                timeIndex, :, (latIndex - 1, latIndex), (lonIndex - 1, lonIndex)
+            wind_vs = weather_data.variables[dictionary["v_wind"]][
+                time_index, :, (lat_index - 1, lat_index), (lon_index - 1, lon_index)
             ]
         except:
             raise ValueError(
@@ -2186,8 +2197,8 @@ class Environment:
 
         # Prepare for bilinear interpolation
         x, y = self.latitude, lon
-        x1, y1 = latArray[latIndex - 1], lonArray[lonIndex - 1]
-        x2, y2 = latArray[latIndex], lonArray[lonIndex]
+        x1, y1 = lat_array[lat_index - 1], lon_array[lon_index - 1]
+        x2, y2 = lat_array[lat_index], lon_array[lon_index]
 
         # Determine geopotential in lat, lon
         f_x1_y1 = geopotentials[:, 0, 0]
@@ -2208,30 +2219,30 @@ class Environment:
         temperature = ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
 
         # Determine wind u in lat, lon
-        f_x1_y1 = windUs[:, 0, 0]
-        f_x1_y2 = windUs[:, 0, 1]
-        f_x2_y1 = windUs[:, 1, 0]
-        f_x2_y2 = windUs[:, 1, 1]
+        f_x1_y1 = wind_us[:, 0, 0]
+        f_x1_y2 = wind_us[:, 0, 1]
+        f_x2_y1 = wind_us[:, 1, 0]
+        f_x2_y2 = wind_us[:, 1, 1]
         f_x_y1 = ((x2 - x) / (x2 - x1)) * f_x1_y1 + ((x - x1) / (x2 - x1)) * f_x2_y1
         f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + ((x - x1) / (x2 - x1)) * f_x2_y2
-        windU = ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
+        wind_u = ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
 
         # Determine wind v in lat, lon
-        f_x1_y1 = windVs[:, 0, 0]
-        f_x1_y2 = windVs[:, 0, 1]
-        f_x2_y1 = windVs[:, 1, 0]
-        f_x2_y2 = windVs[:, 1, 1]
+        f_x1_y1 = wind_vs[:, 0, 0]
+        f_x1_y2 = wind_vs[:, 0, 1]
+        f_x2_y1 = wind_vs[:, 1, 0]
+        f_x2_y2 = wind_vs[:, 1, 1]
         f_x_y1 = ((x2 - x) / (x2 - x1)) * f_x1_y1 + ((x - x1) / (x2 - x1)) * f_x2_y1
         f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + ((x - x1) / (x2 - x1)) * f_x2_y2
-        windV = ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
+        wind_v = ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
 
         # Determine wind speed, heading and direction
-        windSpeed = np.sqrt(windU**2 + windV**2)
-        windHeading = np.arctan2(windU, windV) * (180 / np.pi) % 360
-        windDirection = (windHeading - 180) % 360
+        wind_speed = np.sqrt(wind_u**2 + wind_v**2)
+        wind_heading = np.arctan2(wind_u, wind_v) * (180 / np.pi) % 360
+        wind_direction = (wind_heading - 180) % 360
 
         # Convert geopotential height to geometric height
-        R = self.earthRadius
+        R = self.earth_radius
         height = R * height / (R - height)
 
         # Combine all data into big array
@@ -2240,11 +2251,11 @@ class Environment:
                 levels,
                 height,
                 temperature,
-                windU,
-                windV,
-                windHeading,
-                windDirection,
-                windSpeed,
+                wind_u,
+                wind_v,
+                wind_heading,
+                wind_direction,
+                wind_speed,
             ]
         )
 
@@ -2267,31 +2278,31 @@ class Environment:
             outputs="Temperature (K)",
             interpolation="linear",
         )
-        self.windDirection = Function(
+        self.wind_direction = Function(
             data_array[:, (1, 6)],
             inputs="Height Above Sea Level (m)",
             outputs="Wind Direction (Deg True)",
             interpolation="linear",
         )
-        self.windHeading = Function(
+        self.wind_heading = Function(
             data_array[:, (1, 5)],
             inputs="Height Above Sea Level (m)",
             outputs="Wind Heading (Deg True)",
             interpolation="linear",
         )
-        self.windSpeed = Function(
+        self.wind_speed = Function(
             data_array[:, (1, 7)],
             inputs="Height Above Sea Level (m)",
             outputs="Wind Speed (m/s)",
             interpolation="linear",
         )
-        self.windVelocityX = Function(
+        self.wind_velocity_x = Function(
             data_array[:, (1, 3)],
             inputs="Height Above Sea Level (m)",
             outputs="Wind Velocity X (m/s)",
             interpolation="linear",
         )
-        self.windVelocityY = Function(
+        self.wind_velocity_y = Function(
             data_array[:, (1, 4)],
             inputs="Height Above Sea Level (m)",
             outputs="Wind Velocity Y (m/s)",
@@ -2299,14 +2310,14 @@ class Environment:
         )
 
         # Save maximum expected height
-        self.maxExpectedHeight = max(height[0], height[-1])
+        self.max_expected_height = max(height[0], height[-1])
 
         # Get elevation data from file
         if dictionary["surface_geopotential_height"] is not None:
             try:
-                elevations = weatherData.variables[
+                elevations = weather_data.variables[
                     dictionary["surface_geopotential_height"]
-                ][timeIndex, (latIndex - 1, latIndex), (lonIndex - 1, lonIndex)]
+                ][time_index, (lat_index - 1, lat_index), (lon_index - 1, lon_index)]
                 f_x1_y1 = elevations[0, 0]
                 f_x1_y2 = elevations[0, 1]
                 f_x2_y1 = elevations[1, 0]
@@ -2326,42 +2337,42 @@ class Environment:
                 )
 
         # Compute info data
-        self.atmosphericModelInitDate = netCDF4.num2date(
-            timeArray[0], timeArray.units, calendar="gregorian"
+        self.atmospheric_model_init_date = netCDF4.num2date(
+            time_array[0], time_array.units, calendar="gregorian"
         )
-        self.atmosphericModelEndDate = netCDF4.num2date(
-            timeArray[-1], timeArray.units, calendar="gregorian"
+        self.atmospheric_model_end_date = netCDF4.num2date(
+            time_array[-1], time_array.units, calendar="gregorian"
         )
-        self.atmosphericModelInterval = netCDF4.num2date(
-            (timeArray[-1] - timeArray[0]) / (len(timeArray) - 1),
-            timeArray.units,
+        self.atmospheric_model_interval = netCDF4.num2date(
+            (time_array[-1] - time_array[0]) / (len(time_array) - 1),
+            time_array.units,
             calendar="gregorian",
         ).hour
-        self.atmosphericModelInitLat = latArray[0]
-        self.atmosphericModelEndLat = latArray[-1]
-        self.atmosphericModelInitLon = lonArray[0]
-        self.atmosphericModelEndLon = lonArray[-1]
+        self.atmospheric_model_init_lat = lat_array[0]
+        self.atmospheric_model_end_lat = lat_array[-1]
+        self.atmospheric_model_init_lon = lon_array[0]
+        self.atmospheric_model_end_lon = lon_array[-1]
 
         # Save debugging data
-        self.latArray = latArray
-        self.lonArray = lonArray
-        self.lonIndex = lonIndex
-        self.latIndex = latIndex
+        self.lat_array = lat_array
+        self.lon_array = lon_array
+        self.lon_index = lon_index
+        self.lat_index = lat_index
         self.geopotentials = geopotentials
-        self.windUs = windUs
-        self.windVs = windVs
+        self.wind_us = wind_us
+        self.wind_vs = wind_vs
         self.levels = levels
         self.temperatures = temperatures
-        self.timeArray = timeArray
+        self.time_array = time_array
         self.height = height
 
         # Close weather data
-        weatherData.close()
+        weather_data.close()
 
         return None
 
     @requires_netCDF4
-    def processEnsemble(self, file, dictionary):
+    def process_ensemble(self, file, dictionary):
         """Import and process atmospheric data from weather ensembles
         given as netCDF or OPeNDAP files.
         Sets pressure, temperature, wind-u and wind-v
@@ -2419,7 +2430,7 @@ class Environment:
             raise TypeError(
                 "Please specify Date (array-like) when "
                 "initializing this Environment. "
-                "Alternatively, use the Environment.setDate"
+                "Alternatively, use the Environment.set_date"
                 " method."
             )
         if self.latitude is None:
@@ -2427,53 +2438,53 @@ class Environment:
                 "Please specify Location (lat, lon). when "
                 "initializing this Environment. "
                 "Alternatively, use the Environment."
-                "setLocation method."
+                "set_location method."
             )
 
         # Read weather file
-        weatherData = netCDF4.Dataset(file)
+        weather_data = netCDF4.Dataset(file)
 
         # Get time, latitude and longitude data from file
-        timeArray = weatherData.variables[dictionary["time"]]
-        lonArray = weatherData.variables[dictionary["longitude"]][:].tolist()
-        latArray = weatherData.variables[dictionary["latitude"]][:].tolist()
+        time_array = weather_data.variables[dictionary["time"]]
+        lon_array = weather_data.variables[dictionary["longitude"]][:].tolist()
+        lat_array = weather_data.variables[dictionary["latitude"]][:].tolist()
 
         # Find time index
-        timeIndex = netCDF4.date2index(
-            self.datetime_date, timeArray, calendar="gregorian", select="nearest"
+        time_index = netCDF4.date2index(
+            self.datetime_date, time_array, calendar="gregorian", select="nearest"
         )
         # Convert times do dates and numbers
-        inputTimeNum = netCDF4.date2num(
-            self.datetime_date, timeArray.units, calendar="gregorian"
+        input_time_num = netCDF4.date2num(
+            self.datetime_date, time_array.units, calendar="gregorian"
         )
-        fileTimeNum = timeArray[timeIndex]
-        fileTimeDate = netCDF4.num2date(
-            timeArray[timeIndex], timeArray.units, calendar="gregorian"
+        file_time_num = time_array[time_index]
+        file_time_date = netCDF4.num2date(
+            time_array[time_index], time_array.units, calendar="gregorian"
         )
         # Check if time is inside range supplied by file
-        if timeIndex == 0 and inputTimeNum < fileTimeNum:
+        if time_index == 0 and input_time_num < file_time_num:
             raise ValueError(
                 "Chosen launch time is not available in the provided file, which starts at {:}.".format(
-                    fileTimeDate
+                    file_time_date
                 )
             )
-        elif timeIndex == len(timeArray) - 1 and inputTimeNum > fileTimeNum:
+        elif time_index == len(time_array) - 1 and input_time_num > file_time_num:
             raise ValueError(
                 "Chosen launch time is not available in the provided file, which ends at {:}.".format(
-                    fileTimeDate
+                    file_time_date
                 )
             )
         # Check if time is exactly equal to one in the file
-        if inputTimeNum != fileTimeNum:
+        if input_time_num != file_time_num:
             warnings.warn(
                 "Exact chosen launch time is not available in the provided file, using {:} UTC instead.".format(
-                    fileTimeDate
+                    file_time_date
                 )
             )
 
         # Find longitude index
         # Determine if file uses -180 to 180 or 0 to 360
-        if lonArray[0] < 0 or lonArray[-1] < 0:
+        if lon_array[0] < 0 or lon_array[-1] < 0:
             # Convert input to -180 - 180
             lon = (
                 self.longitude if self.longitude < 180 else -180 + self.longitude % 180
@@ -2482,49 +2493,49 @@ class Environment:
             # Convert input to 0 - 360
             lon = self.longitude % 360
         # Check if reversed or sorted
-        if lonArray[0] < lonArray[-1]:
-            # Deal with sorted lonArray
-            lonIndex = bisect.bisect(lonArray, lon)
+        if lon_array[0] < lon_array[-1]:
+            # Deal with sorted lon_array
+            lon_index = bisect.bisect(lon_array, lon)
         else:
-            # Deal with reversed lonArray
-            lonArray.reverse()
-            lonIndex = len(lonArray) - bisect.bisect_left(lonArray, lon)
-            lonArray.reverse()
+            # Deal with reversed lon_array
+            lon_array.reverse()
+            lon_index = len(lon_array) - bisect.bisect_left(lon_array, lon)
+            lon_array.reverse()
         # Take care of longitude value equal to maximum longitude in the grid
-        if lonIndex == len(lonArray) and lonArray[lonIndex - 1] == lon:
-            lonIndex = lonIndex - 1
+        if lon_index == len(lon_array) and lon_array[lon_index - 1] == lon:
+            lon_index = lon_index - 1
         # Check if longitude value is inside the grid
-        if lonIndex == 0 or lonIndex == len(lonArray):
+        if lon_index == 0 or lon_index == len(lon_array):
             raise ValueError(
                 "Longitude {:f} not inside region covered by file, which is from {:f} to {:f}.".format(
-                    lon, lonArray[0], lonArray[-1]
+                    lon, lon_array[0], lon_array[-1]
                 )
             )
 
         # Find latitude index
         # Check if reversed or sorted
-        if latArray[0] < latArray[-1]:
-            # Deal with sorted latArray
-            latIndex = bisect.bisect(latArray, self.latitude)
+        if lat_array[0] < lat_array[-1]:
+            # Deal with sorted lat_array
+            lat_index = bisect.bisect(lat_array, self.latitude)
         else:
-            # Deal with reversed latArray
-            latArray.reverse()
-            latIndex = len(latArray) - bisect.bisect_left(latArray, self.latitude)
-            latArray.reverse()
+            # Deal with reversed lat_array
+            lat_array.reverse()
+            lat_index = len(lat_array) - bisect.bisect_left(lat_array, self.latitude)
+            lat_array.reverse()
         # Take care of latitude value equal to maximum longitude in the grid
-        if latIndex == len(latArray) and latArray[latIndex - 1] == self.latitude:
-            latIndex = latIndex - 1
+        if lat_index == len(lat_array) and lat_array[lat_index - 1] == self.latitude:
+            lat_index = lat_index - 1
         # Check if latitude value is inside the grid
-        if latIndex == 0 or latIndex == len(latArray):
+        if lat_index == 0 or lat_index == len(lat_array):
             raise ValueError(
                 "Latitude {:f} not inside region covered by file, which is from {:f} to {:f}.".format(
-                    self.latitude, latArray[0], latArray[-1]
+                    self.latitude, lat_array[0], lat_array[-1]
                 )
             )
 
         # Get ensemble data from file
         try:
-            numMembers = len(weatherData.variables[dictionary["ensemble"]][:])
+            numMembers = len(weather_data.variables[dictionary["ensemble"]][:])
         except:
             raise ValueError(
                 "Unable to read ensemble data from file. Check file and dictionary."
@@ -2533,7 +2544,7 @@ class Environment:
         # Get pressure level data from file
         try:
             levels = (
-                100 * weatherData.variables[dictionary["level"]][:]
+                100 * weather_data.variables[dictionary["level"]][:]
             )  # Convert mbar to Pa
         except:
             raise ValueError(
@@ -2541,37 +2552,37 @@ class Environment:
             )
 
         ##
-        inverseDictionary = {v: k for k, v in dictionary.items()}
-        paramDictionary = {
-            "time": timeIndex,
+        inverse_dictionary = {v: k for k, v in dictionary.items()}
+        param_dictionary = {
+            "time": time_index,
             "ensemble": range(numMembers),
             "level": range(len(levels)),
-            "latitude": (latIndex - 1, latIndex),
-            "longitude": (lonIndex - 1, lonIndex),
+            "latitude": (lat_index - 1, lat_index),
+            "longitude": (lon_index - 1, lon_index),
         }
         ##
 
         # Get geopotential data from file
         try:
-            dimensions = weatherData.variables[
+            dimensions = weather_data.variables[
                 dictionary["geopotential_height"]
             ].dimensions[:]
             params = tuple(
-                [paramDictionary[inverseDictionary[dim]] for dim in dimensions]
+                [param_dictionary[inverse_dictionary[dim]] for dim in dimensions]
             )
-            geopotentials = weatherData.variables[dictionary["geopotential_height"]][
+            geopotentials = weather_data.variables[dictionary["geopotential_height"]][
                 params
             ]
         except:
             try:
-                dimensions = weatherData.variables[
+                dimensions = weather_data.variables[
                     dictionary["geopotential"]
                 ].dimensions[:]
                 params = tuple(
-                    [paramDictionary[inverseDictionary[dim]] for dim in dimensions]
+                    [param_dictionary[inverse_dictionary[dim]] for dim in dimensions]
                 )
                 geopotentials = (
-                    weatherData.variables[dictionary["geopotential"]][params]
+                    weather_data.variables[dictionary["geopotential"]][params]
                     / self.standard_g
                 )
             except:
@@ -2584,7 +2595,7 @@ class Environment:
 
         # Get temperature from file
         try:
-            temperatures = weatherData.variables[dictionary["temperature"]][params]
+            temperatures = weather_data.variables[dictionary["temperature"]][params]
         except:
             raise ValueError(
                 "Unable to read temperature from file. Check file and dictionary."
@@ -2592,13 +2603,13 @@ class Environment:
 
         # Get wind data from file
         try:
-            windUs = weatherData.variables[dictionary["u_wind"]][params]
+            wind_us = weather_data.variables[dictionary["u_wind"]][params]
         except:
             raise ValueError(
                 "Unable to read wind-u component. Check file and dictionary."
             )
         try:
-            windVs = weatherData.variables[dictionary["v_wind"]][params]
+            wind_vs = weather_data.variables[dictionary["v_wind"]][params]
         except:
             raise ValueError(
                 "Unable to read wind-v component. Check file and dictionary."
@@ -2606,8 +2617,8 @@ class Environment:
 
         # Prepare for bilinear interpolation
         x, y = self.latitude, lon
-        x1, y1 = latArray[latIndex - 1], lonArray[lonIndex - 1]
-        x2, y2 = latArray[latIndex], lonArray[lonIndex]
+        x1, y1 = lat_array[lat_index - 1], lon_array[lon_index - 1]
+        x2, y2 = lat_array[lat_index], lon_array[lon_index]
 
         # Determine geopotential in lat, lon
         f_x1_y1 = geopotentials[:, :, 0, 0]
@@ -2628,52 +2639,52 @@ class Environment:
         temperature = ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
 
         # Determine wind u in lat, lon
-        f_x1_y1 = windUs[:, :, 0, 0]
-        f_x1_y2 = windUs[:, :, 0, 1]
-        f_x2_y1 = windUs[:, :, 1, 0]
-        f_x2_y2 = windUs[:, :, 1, 1]
+        f_x1_y1 = wind_us[:, :, 0, 0]
+        f_x1_y2 = wind_us[:, :, 0, 1]
+        f_x2_y1 = wind_us[:, :, 1, 0]
+        f_x2_y2 = wind_us[:, :, 1, 1]
         f_x_y1 = ((x2 - x) / (x2 - x1)) * f_x1_y1 + ((x - x1) / (x2 - x1)) * f_x2_y1
         f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + ((x - x1) / (x2 - x1)) * f_x2_y2
-        windU = ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
+        wind_u = ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
 
         # Determine wind v in lat, lon
-        f_x1_y1 = windVs[:, :, 0, 0]
-        f_x1_y2 = windVs[:, :, 0, 1]
-        f_x2_y1 = windVs[:, :, 1, 0]
-        f_x2_y2 = windVs[:, :, 1, 1]
+        f_x1_y1 = wind_vs[:, :, 0, 0]
+        f_x1_y2 = wind_vs[:, :, 0, 1]
+        f_x2_y1 = wind_vs[:, :, 1, 0]
+        f_x2_y2 = wind_vs[:, :, 1, 1]
         f_x_y1 = ((x2 - x) / (x2 - x1)) * f_x1_y1 + ((x - x1) / (x2 - x1)) * f_x2_y1
         f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + ((x - x1) / (x2 - x1)) * f_x2_y2
-        windV = ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
+        wind_v = ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
 
         # Determine wind speed, heading and direction
-        windSpeed = np.sqrt(windU**2 + windV**2)
-        windHeading = np.arctan2(windU, windV) * (180 / np.pi) % 360
-        windDirection = (windHeading - 180) % 360
+        wind_speed = np.sqrt(wind_u**2 + wind_v**2)
+        wind_heading = np.arctan2(wind_u, wind_v) * (180 / np.pi) % 360
+        wind_direction = (wind_heading - 180) % 360
 
         # Convert geopotential height to geometric height
-        R = self.earthRadius
+        R = self.earth_radius
         height = R * height / (R - height)
 
         # Save ensemble data
-        self.levelEnsemble = levels
-        self.heightEnsemble = height
-        self.temperatureEnsemble = temperature
-        self.windUEnsemble = windU
-        self.windVEnsemble = windV
-        self.windHeadingEnsemble = windHeading
-        self.windDirectionEnsemble = windDirection
-        self.windSpeedEnsemble = windSpeed
-        self.numEnsembleMembers = numMembers
+        self.level_ensemble = levels
+        self.height_ensemble = height
+        self.temperature_ensemble = temperature
+        self.wind_u_ensemble = wind_u
+        self.wind_v_ensemble = wind_v
+        self.wind_heading_ensemble = wind_heading
+        self.wind_direction_ensemble = wind_direction
+        self.wind_speed_ensemble = wind_speed
+        self.num_ensemble_members = numMembers
 
         # Activate default ensemble
-        self.selectEnsembleMember()
+        self.select_ensemble_member()
 
         # Get elevation data from file
         if dictionary["surface_geopotential_height"] is not None:
             try:
-                elevations = weatherData.variables[
+                elevations = weather_data.variables[
                     dictionary["surface_geopotential_height"]
-                ][timeIndex, (latIndex - 1, latIndex), (lonIndex - 1, lonIndex)]
+                ][time_index, (lat_index - 1, lat_index), (lon_index - 1, lon_index)]
                 f_x1_y1 = elevations[0, 0]
                 f_x1_y2 = elevations[0, 1]
                 f_x2_y1 = elevations[1, 0]
@@ -2693,41 +2704,41 @@ class Environment:
                 )
 
         # Compute info data
-        self.atmosphericModelInitDate = netCDF4.num2date(
-            timeArray[0], timeArray.units, calendar="gregorian"
+        self.atmospheric_model_init_date = netCDF4.num2date(
+            time_array[0], time_array.units, calendar="gregorian"
         )
-        self.atmosphericModelEndDate = netCDF4.num2date(
-            timeArray[-1], timeArray.units, calendar="gregorian"
+        self.atmospheric_model_end_date = netCDF4.num2date(
+            time_array[-1], time_array.units, calendar="gregorian"
         )
-        self.atmosphericModelInterval = netCDF4.num2date(
-            (timeArray[-1] - timeArray[0]) / (len(timeArray) - 1),
-            timeArray.units,
+        self.atmospheric_model_interval = netCDF4.num2date(
+            (time_array[-1] - time_array[0]) / (len(time_array) - 1),
+            time_array.units,
             calendar="gregorian",
         ).hour
-        self.atmosphericModelInitLat = latArray[0]
-        self.atmosphericModelEndLat = latArray[-1]
-        self.atmosphericModelInitLon = lonArray[0]
-        self.atmosphericModelEndLon = lonArray[-1]
+        self.atmospheric_model_init_lat = lat_array[0]
+        self.atmospheric_model_end_lat = lat_array[-1]
+        self.atmospheric_model_init_lon = lon_array[0]
+        self.atmospheric_model_end_lon = lon_array[-1]
 
         # Save debugging data
-        self.latArray = latArray
-        self.lonArray = lonArray
-        self.lonIndex = lonIndex
-        self.latIndex = latIndex
+        self.lat_array = lat_array
+        self.lon_array = lon_array
+        self.lon_index = lon_index
+        self.lat_index = lat_index
         self.geopotentials = geopotentials
-        self.windUs = windUs
-        self.windVs = windVs
+        self.wind_us = wind_us
+        self.wind_vs = wind_vs
         self.levels = levels
         self.temperatures = temperatures
-        self.timeArray = timeArray
+        self.time_array = time_array
         self.height = height
 
         # Close weather data
-        weatherData.close()
+        weather_data.close()
 
         return None
 
-    def selectEnsembleMember(self, member=0):
+    def select_ensemble_member(self, member=0):
         """Activates ensemble member, meaning that all atmospheric
         variables read from the Environment instance will correspond
         to the desired ensemble member.
@@ -2742,22 +2753,22 @@ class Environment:
         None
         """
         # Verify ensemble member
-        if member >= self.numEnsembleMembers:
+        if member >= self.num_ensemble_members:
             raise ValueError(
                 "Please choose member from 0 to {:d}".format(
-                    self.numEnsembleMembers - 1
+                    self.num_ensemble_members - 1
                 )
             )
 
         # Read ensemble member
-        levels = self.levelEnsemble[:]
-        height = self.heightEnsemble[member, :]
-        temperature = self.temperatureEnsemble[member, :]
-        windU = self.windUEnsemble[member, :]
-        windV = self.windVEnsemble[member, :]
-        windHeading = self.windHeadingEnsemble[member, :]
-        windDirection = self.windDirectionEnsemble[member, :]
-        windSpeed = self.windSpeedEnsemble[member, :]
+        levels = self.level_ensemble[:]
+        height = self.height_ensemble[member, :]
+        temperature = self.temperature_ensemble[member, :]
+        wind_u = self.wind_u_ensemble[member, :]
+        wind_v = self.wind_v_ensemble[member, :]
+        wind_heading = self.wind_heading_ensemble[member, :]
+        wind_direction = self.wind_direction_ensemble[member, :]
+        wind_speed = self.wind_speed_ensemble[member, :]
 
         # Combine all data into big array
         data_array = np.ma.column_stack(
@@ -2765,11 +2776,11 @@ class Environment:
                 levels,
                 height,
                 temperature,
-                windU,
-                windV,
-                windHeading,
-                windDirection,
-                windSpeed,
+                wind_u,
+                wind_v,
+                wind_heading,
+                wind_direction,
+                wind_speed,
             ]
         )
 
@@ -2793,31 +2804,31 @@ class Environment:
             outputs="Temperature (K)",
             interpolation="linear",
         )
-        self.windDirection = Function(
+        self.wind_direction = Function(
             data_array[:, (1, 6)],
             inputs="Height Above Sea Level (m)",
             outputs="Wind Direction (Deg True)",
             interpolation="linear",
         )
-        self.windHeading = Function(
+        self.wind_heading = Function(
             data_array[:, (1, 5)],
             inputs="Height Above Sea Level (m)",
             outputs="Wind Heading (Deg True)",
             interpolation="linear",
         )
-        self.windSpeed = Function(
+        self.wind_speed = Function(
             data_array[:, (1, 7)],
             inputs="Height Above Sea Level (m)",
             outputs="Wind Speed (m/s)",
             interpolation="linear",
         )
-        self.windVelocityX = Function(
+        self.wind_velocity_x = Function(
             data_array[:, (1, 3)],
             inputs="Height Above Sea Level (m)",
             outputs="Wind Velocity X (m/s)",
             interpolation="linear",
         )
-        self.windVelocityY = Function(
+        self.wind_velocity_y = Function(
             data_array[:, (1, 4)],
             inputs="Height Above Sea Level (m)",
             outputs="Wind Velocity Y (m/s)",
@@ -2825,26 +2836,26 @@ class Environment:
         )
 
         # Save maximum expected height
-        self.maxExpectedHeight = max(height[0], height[-1])
+        self.max_expected_height = max(height[0], height[-1])
 
         # Save ensemble member
-        self.ensembleMember = member
+        self.ensemble_member = member
 
         # Update air density
-        self.calculateDensityProfile()
+        self.calculate_density_profile()
 
         # Update speed of sound
-        self.calculateSpeedOfSoundProfile()
+        self.calculate_speed_of_sound_profile()
 
         # Update dynamic viscosity
-        self.calculateDynamicViscosity()
+        self.calculate_dynamic_viscosity()
 
         return None
 
-    def loadInternationalStandardAtmosphere(self):
+    def load_international_standard_atmosphere(self):
         """Defines the pressure and temperature profile functions set
         by ISO 2533 for the International Standard atmosphere and saves
-        them as self.pressureISA and self.temperatureISA.
+        them as self.pressure_ISA and self.temperature_ISA.
 
         Parameters
         ---------
@@ -2901,12 +2912,12 @@ class Environment:
         ]  # in Pa
 
         # Convert geopotential height to geometric height
-        ER = self.earthRadius
+        ER = self.earth_radius
         height = [ER * H / (ER - H) for H in geopotential_height]
         height = geopotential_height
 
         # Save international standard atmosphere temperature profile
-        self.temperatureISA = Function(
+        self.temperature_ISA = Function(
             np.column_stack([height, temperature]),
             inputs="Height Above Sea Level (m)",
             outputs="Temperature (K)",
@@ -2915,7 +2926,7 @@ class Environment:
 
         # Get gravity and R
         g = self.standard_g
-        R = self.airGasConstant
+        R = self.air_gas_constant
 
         # Create function to compute pressure profile
         def pressure_function(h):
@@ -2948,7 +2959,7 @@ class Environment:
             return P
 
         # Save international standard atmosphere pressure profile
-        self.pressureISA = Function(
+        self.pressure_ISA = Function(
             pressure_function,
             inputs="Height Above Sea Level (m)",
             outputs="Pressure (Pa)",
@@ -2956,7 +2967,7 @@ class Environment:
 
         return None
 
-    def calculateDensityProfile(self):
+    def calculate_density_profile(self):
         """Compute the density of the atmosphere as a function of
         height by using the formula rho = P/(RT). This function is
         automatically called whenever a new atmospheric model is set.
@@ -2971,21 +2982,21 @@ class Environment:
         """
         # Retrieve pressure P, gas constant R and temperature T
         P = self.pressure
-        R = self.airGasConstant
+        R = self.air_gas_constant
         T = self.temperature
 
         # Compute density using P/RT
         D = P / (R * T)
 
         # Set new output for the calculated density
-        D.setOutputs("Air Density (kg/m³)")
+        D.set_outputs("Air Density (kg/m³)")
 
         # Save calculated density
         self.density = D
 
         return None
 
-    def calculateSpeedOfSoundProfile(self):
+    def calculate_speed_of_sound_profile(self):
         """Compute the speed of sound in the atmosphere as a function
         of height by using the formula a = sqrt(gamma*R*T). This
         function is automatically called whenever a new atmospheric
@@ -3000,7 +3011,7 @@ class Environment:
         None
         """
         # Retrieve gas constant R and temperature T
-        R = self.airGasConstant
+        R = self.air_gas_constant
         T = self.temperature
         G = 1.4
 
@@ -3008,17 +3019,18 @@ class Environment:
         a = (G * R * T) ** 0.5
 
         # Set new output for the calculated speed of sound
-        a.setOutputs("Speed of Sound (m/s)")
+        a.set_outputs("Speed of Sound (m/s)")
 
         # Save calculated speed of sound
-        self.speedOfSound = a
+        self.speed_of_sound = a
 
         return None
 
-    def calculateDynamicViscosity(self):
+    def calculate_dynamic_viscosity(self):
         """Compute the dynamic viscosity of the atmosphere as a function of
         height by using the formula given in ISO 2533 u = B*T^(1.5)/(T+S).
-        This function is automatically called whenever a new atmospheric model is set.
+        This function is automatically called whenever a new atmospheric model
+        is set.
 
         Parameters
         ----------
@@ -3037,24 +3049,24 @@ class Environment:
         u = (B * T ** (1.5)) / (T + S)
 
         # Set new output for the calculated density
-        u.setOutputs("Dynamic Viscosity (Pa s)")
+        u.set_outputs("Dynamic Viscosity (Pa s)")
 
         # Save calculated density
-        self.dynamicViscosity = u
+        self.dynamic_viscosity = u
 
         return None
 
-    def addWindGust(self, windGustX, windGustY):
+    def add_wind_gust(self, wind_gust_x, wind_gust_y):
         """Adds a function to the current stored wind profile, in order to
         simulate a wind gust.
 
         Parameters
         ----------
-        windGustX : float, callable
+        wind_gust_x : float, callable
             Callable, function of altitude, which will be added to the
             x velocity of the current stored wind profile. If float is given,
             it will be considered as a constant function in altitude.
-        windGustY : float, callable
+        wind_gust_y : float, callable
             Callable, function of altitude, which will be added to the
             y velocity of the current stored wind profile. If float is given,
             it will be considered as a constant function in altitude.
@@ -3063,27 +3075,28 @@ class Environment:
         -------
         None
         """
-        # Recalculate windVelocityX and windVelocityY
-        self.windVelocityX = self.windVelocityX + windGustX
-        self.windVelocityY = self.windVelocityY + windGustY
+        # Recalculate wind_velocity_x and wind_velocity_y
+        self.wind_velocity_x = self.wind_velocity_x + wind_gust_x
+        self.wind_velocity_y = self.wind_velocity_y + wind_gust_y
 
-        # Reset windVelocityX and windVelocityY details
-        self.windVelocityX.setInputs("Height (m)")
-        self.windVelocityX.setOutputs("Wind Velocity X (m/s)")
-        self.windVelocityY.setInputs("Height (m)")
-        self.windVelocityY.setOutputs("Wind Velocity Y (m/s)")
+        # Reset wind_velocity_x and wind_velocity_y details
+        self.wind_velocity_x.set_inputs("Height (m)")
+        self.wind_velocity_x.set_outputs("Wind Velocity X (m/s)")
+        self.wind_velocity_y.set_inputs("Height (m)")
+        self.wind_velocity_y.set_outputs("Wind Velocity Y (m/s)")
 
         # Reset wind heading and velocity magnitude
-        self.windHeading = Function(
+        self.wind_heading = Function(
             lambda h: (180 / np.pi)
-            * np.arctan2(self.windVelocityX(h), self.windVelocityY(h))
+            * np.arctan2(self.wind_velocity_x(h), self.wind_velocity_y(h))
             % 360,
             "Height (m)",
             "Wind Heading (degrees)",
             extrapolation="constant",
         )
-        self.windSpeed = Function(
-            lambda h: (self.windVelocityX(h) ** 2 + self.windVelocityY(h) ** 2) ** 0.5,
+        self.wind_speed = Function(
+            lambda h: (self.wind_velocity_x(h) ** 2 + self.wind_velocity_y(h) ** 2)
+            ** 0.5,
             "Height (m)",
             "Wind Speed (m/s)",
             extrapolation="constant",
@@ -3108,7 +3121,7 @@ class Environment:
         self.plots.info()
         return None
 
-    def allInfo(self):
+    def allinfo(self):
         """Prints out all data and graphs available about the Environment.
 
         Parameters
@@ -3125,7 +3138,7 @@ class Environment:
 
         return None
 
-    def allPlotInfoReturned(self) -> dict:
+    def all_plot_info_returned(self):
         """Returns a dictionary with all plot information available about the Environment.
 
         Parameters
@@ -3137,58 +3150,58 @@ class Environment:
         plotInfo : Dict
             Dict of data relevant to plot externally
         """
-        grid = np.linspace(self.elevation, self.maxExpectedHeight)
+        grid = np.linspace(self.elevation, self.max_expected_height)
         plotInfo = dict(
             grid=[i for i in grid],
-            windSpeed=[self.windSpeed(i) for i in grid],
-            windDirection=[self.windDirection(i) for i in grid],
-            speedOfSound=[self.speedOfSound(i) for i in grid],
+            windSpeed=[self.wind_speed(i) for i in grid],
+            windDirection=[self.wind_direction(i) for i in grid],
+            speedOfSound=[self.speed_of_sound(i) for i in grid],
             density=[self.density(i) for i in grid],
-            windVelX=[self.windVelocityX(i) for i in grid],
-            windVelY=[self.windVelocityY(i) for i in grid],
+            windVelX=[self.wind_velocity_x(i) for i in grid],
+            windVelY=[self.wind_velocity_y(i) for i in grid],
             pressure=[self.pressure(i) / 100 for i in grid],
             temperature=[self.temperature(i) for i in grid],
         )
-        if self.atmosphericModelType != "Ensemble":
+        if self.atmospheric_model_type != "Ensemble":
             return plotInfo
-        currentMember = self.ensembleMember
+        currentMember = self.ensemble_member
         # List for each ensemble
         plotInfo["ensembleWindVelocityX"] = []
-        for i in range(self.numEnsembleMembers):
-            self.selectEnsembleMember(i)
+        for i in range(self.num_ensemble_members):
+            self.select_ensemble_member(i)
             plotInfo["ensembleWindVelocityX"].append(
-                [self.windVelocityX(i) for i in grid]
+                [self.wind_velocity_x(i) for i in grid]
             )
         plotInfo["ensembleWindVelocityY"] = []
-        for i in range(self.numEnsembleMembers):
-            self.selectEnsembleMember(i)
+        for i in range(self.num_ensemble_members):
+            self.select_ensemble_member(i)
             plotInfo["ensembleWindVelocityY"].append(
-                [self.windVelocityY(i) for i in grid]
+                [self.wind_velocity_y(i) for i in grid]
             )
         plotInfo["ensembleWindSpeed"] = []
-        for i in range(self.numEnsembleMembers):
-            self.selectEnsembleMember(i)
-            plotInfo["ensembleWindSpeed"].append([self.windSpeed(i) for i in grid])
+        for i in range(self.num_ensemble_members):
+            self.select_ensemble_member(i)
+            plotInfo["ensembleWindSpeed"].append([self.wind_speed(i) for i in grid])
         plotInfo["ensembleWindDirection"] = []
-        for i in range(self.numEnsembleMembers):
-            self.selectEnsembleMember(i)
+        for i in range(self.num_ensemble_members):
+            self.select_ensemble_member(i)
             plotInfo["ensembleWindDirection"].append(
-                [self.windDirection(i) for i in grid]
+                [self.wind_direction(i) for i in grid]
             )
         plotInfo["ensemblePressure"] = []
-        for i in range(self.numEnsembleMembers):
-            self.selectEnsembleMember(i)
+        for i in range(self.num_ensemble_members):
+            self.select_ensemble_member(i)
             plotInfo["ensemblePressure"].append([self.pressure(i) for i in grid])
         plotInfo["ensembleTemperature"] = []
-        for i in range(self.numEnsembleMembers):
-            self.selectEnsembleMember(i)
+        for i in range(self.num_ensemble_members):
+            self.select_ensemble_member(i)
             plotInfo["ensembleTemperature"].append([self.temperature(i) for i in grid])
 
         # Clean up
-        self.selectEnsembleMember(currentMember)
+        self.select_ensemble_member(currentMember)
         return plotInfo
 
-    def allInfoReturned(self):
+    def all_info_returned(self):
         """Returns as dicts all data available about the Environment.
 
         Parameters
@@ -3204,17 +3217,17 @@ class Environment:
         # Dictionary creation, if not commented follows the SI
         info = dict(
             grav=self.gravity,
-            launch_rail_length=self.railLength,
+            launch_rail_length=self.rail_length,
             elevation=self.elevation,
-            modelType=self.atmosphericModelType,
-            modelTypeMaxExpectedHeight=self.maxExpectedHeight,
-            windSpeed=self.windSpeed(self.elevation),
-            windDirection=self.windDirection(self.elevation),
-            windHeading=self.windHeading(self.elevation),
+            modelType=self.atmospheric_model_type,
+            modelTypeMaxExpectedHeight=self.max_expected_height,
+            windSpeed=self.wind_speed(self.elevation),
+            windDirection=self.wind_direction(self.elevation),
+            windHeading=self.wind_heading(self.elevation),
             surfacePressure=self.pressure(self.elevation) / 100,  # in hPa
             surfaceTemperature=self.temperature(self.elevation),
             surfaceAirDensity=self.density(self.elevation),
-            surfaceSpeedOfSound=self.speedOfSound(self.elevation),
+            surfaceSpeedOfSound=self.speed_of_sound(self.elevation),
         )
         if self.datetime_date != None:
             info["launch_date"] = self.datetime_date.strftime("%Y-%d-%m %H:%M:%S")
@@ -3222,21 +3235,21 @@ class Environment:
             info["lat"] = self.latitude
             info["lon"] = self.longitude
         if info["modelType"] in ["Forecast", "Reanalysis", "Ensemble"]:
-            info["initDate"] = self.atmosphericModelInitDate.strftime(
+            info["initDate"] = self.atmospheric_model_init_date.strftime(
                 "%Y-%d-%m %H:%M:%S"
             )
-            info["endDate"] = self.atmosphericModelEndDate.strftime("%Y-%d-%m %H:%M:%S")
-            info["interval"] = self.atmosphericModelInterval
-            info["initLat"] = self.atmosphericModelInitLat
-            info["endLat"] = self.atmosphericModelEndLat
-            info["initLon"] = self.atmosphericModelInitLon
-            info["endLon"] = self.atmosphericModelEndLon
+            info["endDate"] = self.atmospheric_model_end_date.strftime("%Y-%d-%m %H:%M:%S")
+            info["interval"] = self.atmospheric_model_interval
+            info["initLat"] = self.atmospheric_model_init_lat
+            info["endLat"] = self.atmospheric_model_end_lat
+            info["initLon"] = self.atmospheric_model_init_lon
+            info["endLon"] = self.atmospheric_model_end_lon
         if info["modelType"] == "Ensemble":
-            info["numEnsembleMembers"] = self.numEnsembleMembers
-            info["selectedEnsembleMember"] = self.ensembleMember
+            info["numEnsembleMembers"] = self.num_ensemble_members
+            info["selectedEnsembleMember"] = self.ensemble_member
         return info
 
-    def exportEnvironment(self, filename="environment"):
+    def export_environment(self, filename="environment"):
         """Export important attributes of Environment class to a .json file,
         saving all the information needed to recreate the same environment using
         customAtmosphere.
@@ -3251,14 +3264,14 @@ class Environment:
         """
 
         try:
-            atmosphericModelFile = self.atmosphericModelFile
-            atmosphericModelDict = self.atmosphericModelDict
+            atmospheric_model_file = self.atmospheric_model_file
+            atmospheric_model_dict = self.atmospheric_model_dict
         except AttributeError:
-            atmosphericModelFile = ""
-            atmosphericModelDict = ""
+            atmospheric_model_file = ""
+            atmospheric_model_dict = ""
 
         self.exportEnvDictionary = {
-            "railLength": self.railLength,
+            "rail_length": self.rail_length,
             "gravity": self.gravity(self.elevation),
             "date": [
                 self.datetime_date.year,
@@ -3270,22 +3283,22 @@ class Environment:
             "longitude": self.longitude,
             "elevation": self.elevation,
             "datum": self.datum,
-            "timeZone": self.timeZone,
-            "maxExpectedHeight": float(self.maxExpectedHeight),
-            "atmosphericModelType": self.atmosphericModelType,
-            "atmosphericModelFile": atmosphericModelFile,
-            "atmosphericModelDict": atmosphericModelDict,
+            "timezone": self.timezone,
+            "max_expected_height": float(self.max_expected_height),
+            "atmospheric_model_type": self.atmospheric_model_type,
+            "atmospheric_model_file": atmospheric_model_file,
+            "atmospheric_model_dict": atmospheric_model_dict,
             "atmosphericModelPressureProfile": ma.getdata(
-                self.pressure.getSource()
+                self.pressure.get_source()
             ).tolist(),
             "atmosphericModelTemperatureProfile": ma.getdata(
-                self.temperature.getSource()
+                self.temperature.get_source()
             ).tolist(),
             "atmosphericModelWindVelocityXProfile": ma.getdata(
-                self.windVelocityX.getSource()
+                self.wind_velocity_x.get_source()
             ).tolist(),
             "atmosphericModelWindVelocityYProfile": ma.getdata(
-                self.windVelocityY.getSource()
+                self.wind_velocity_y.get_source()
             ).tolist(),
         }
 
@@ -3305,7 +3318,7 @@ class Environment:
 
         return None
 
-    def setEarthGeometry(self, datum):
+    def set_earth_geometry(self, datum):
         """Sets the Earth geometry for the Environment class based on the
         datum provided.
 
@@ -3319,7 +3332,7 @@ class Environment:
         earthGeometry: namedtuple
             The namedtuple containing the Earth geometry.
         """
-        geodesy = namedtuple("earthGeometry", "semiMajorAxis flattening")
+        geodesy = namedtuple("earthGeometry", "semi_major_axis flattening")
         ellipsoid = {
             "SIRGAS2000": geodesy(6378137.0, 1 / 298.257223563),
             "SAD69": geodesy(6378160.0, 1 / 298.25),
@@ -3334,7 +3347,7 @@ class Environment:
             )
 
     # Auxiliary functions - Geodesic Coordinates
-    def geodesicToUtm(self, lat, lon):
+    def geodesic_to_utm(self, lat, lon):
         """Function which converts geodetic coordinates, i.e. lat/lon, to UTM
         projection coordinates. Can be used only for latitudes between -80.00°
         and 84.00°
@@ -3345,8 +3358,8 @@ class Environment:
             The latitude coordinates of the point of analysis, must be contained
             between -80.00° and 84.00°
         lon : float
-            The longitude coordinates of the point of analysis, must be contained
-            between -180.00° and 180.00°
+            The longitude coordinates of the point of analysis, must be
+            contained between -180.00° and 180.00°
 
         Returns
         -------
@@ -3354,12 +3367,12 @@ class Environment:
             East coordinate, always positive
         y:
             North coordinate, always positive
-        utmZone: int
-            The number of the UTM zone of the point of analysis, can vary between
-            1 and 60
-        utmLetter: string
-            The letter of the UTM zone of the point of analysis, can vary between
-            C and X, omitting the letters "I" and "O"
+        utmzone: int
+            The number of the UTM zone of the point of analysis, can vary
+            between 1 and 60
+        utm_letter: string
+            The letter of the UTM zone of the point of analysis, can vary
+            between C and X, omitting the letters "I" and "O"
         hemis: string
             Returns "S" for southern hemisphere and "N" for Northern hemisphere
         EW: string
@@ -3387,7 +3400,7 @@ class Environment:
 
         # Select the desired datum (i.e. the ellipsoid parameters)
         flattening = self.ellipsoid.flattening
-        semiMajorAxis = self.ellipsoid.semiMajorAxis
+        semi_major_axis = self.ellipsoid.semi_major_axis
 
         # Evaluate the hemisphere and determine the N coordinate at the Equator
         if lat < 0:
@@ -3419,11 +3432,11 @@ class Environment:
         I = (35 * B / 3072) * E
 
         # Evaluate other reference parameters
-        n = semiMajorAxis / ((1 - e2 * (np.sin(lat) ** 2)) ** 0.5)
+        n = semi_major_axis / ((1 - e2 * (np.sin(lat) ** 2)) ** 0.5)
         t = np.tan(lat) ** 2
         c = e2lin * (np.cos(lat) ** 2)
         ag = (lon - lon_mc) * np.cos(lat)
-        m = semiMajorAxis * (F - G + H - I)
+        m = semi_major_axis * (F - G + H - I)
 
         # Evaluate new auxiliary parameters
         J = (1 - t + c) * ag * ag * ag / 6
@@ -3441,15 +3454,15 @@ class Environment:
         lon_mc = lon_mc * 180 / np.pi
 
         # Calculate the UTM zone number
-        utmZone = int((lon_mc + 183) / 6)
+        utmzone = int((lon_mc + 183) / 6)
 
         # Calculate the UTM zone letter
         letters = "CDEFGHJKLMNPQRSTUVWXX"
-        utmLetter = letters[int(80 + lat) >> 3]
+        utm_letter = letters[int(80 + lat) >> 3]
 
-        return x, y, utmZone, utmLetter, hemis, EW
+        return x, y, utmzone, utm_letter, hemis, EW
 
-    def utmToGeodesic(self, x, y, utmZone, hemis):
+    def utm_to_geodesic(self, x, y, utmzone, hemis):
         """Function to convert UTM coordinates to geodesic coordinates
         (i.e. latitude and longitude). The latitude should be between -80°
         and 84°
@@ -3460,11 +3473,12 @@ class Environment:
             East UTM coordinate in meters
         y : float
             North UTM coordinate in meters
-        utmZone : int
-            The number of the UTM zone of the point of analysis, can vary between
-            1 and 60
+        utmzone : int
+            The number of the UTM zone of the point of analysis, can vary
+            between 1 and 60
         hemis : string
-            Equals to "S" for southern hemisphere and "N" for Northern hemisphere
+            Equals to "S" for southern hemisphere and "N" for Northern
+            hemisphere
 
         Returns
         -------
@@ -3478,11 +3492,11 @@ class Environment:
             y = y + 10000000
 
         # Calculate the Central Meridian from the UTM zone number
-        centralMeridian = utmZone * 6 - 183  # degrees
+        central_meridian = utmzone * 6 - 183  # degrees
 
         # Select the desired datum
         flattening = self.ellipsoid.flattening
-        semiMajorAxis = self.ellipsoid.semiMajorAxis
+        semi_major_axis = self.ellipsoid.semi_major_axis
 
         # Calculate reference values
         K0 = 1 - 1 / 2500
@@ -3498,7 +3512,7 @@ class Environment:
         E = e1 * D
 
         m = (y - 10000000) / K0
-        mi = m / (semiMajorAxis * (1 - e2 / 4 - 3 * A / 64 - 5 * B / 256))
+        mi = m / (semi_major_axis * (1 - e2 / 4 - 3 * A / 64 - 5 * B / 256))
 
         # Calculate other auxiliary values
         F = (3 * e1 / 2 - 27 * D / 32) * np.sin(2 * mi)
@@ -3508,9 +3522,9 @@ class Environment:
         lat1 = mi + F + G + H
         c1 = e2lin * (np.cos(lat1) ** 2)
         t1 = np.tan(lat1) ** 2
-        n1 = semiMajorAxis / ((1 - e2 * (np.sin(lat1) ** 2)) ** 0.5)
+        n1 = semi_major_axis / ((1 - e2 * (np.sin(lat1) ** 2)) ** 0.5)
         quoc = (1 - e2 * np.sin(lat1) * np.sin(lat1)) ** 3
-        r1 = semiMajorAxis * (1 - e2) / (quoc**0.5)
+        r1 = semi_major_axis * (1 - e2) / (quoc**0.5)
         d = (x - 500000) / (n1 * K0)
 
         # Calculate other auxiliary values
@@ -3529,7 +3543,7 @@ class Environment:
 
         # Finally calculate the coordinates in lat/lot
         lat = lat1 - (n1 * np.tan(lat1) / r1) * (d * d / 2 - I + J)
-        lon = centralMeridian * np.pi / 180 + (K + L) / np.cos(lat1)
+        lon = central_meridian * np.pi / 180 + (K + L) / np.cos(lat1)
 
         # Convert final lat/lon to Degrees
         lat = lat * 180 / np.pi
@@ -3537,14 +3551,14 @@ class Environment:
 
         return lat, lon
 
-    def calculateEarthRadius(self, lat):
+    def calculate_earth_radius(self, lat):
         """Simple function to calculate the Earth Radius at a specific latitude
         based on ellipsoidal reference model (datum). The earth radius here is
         assumed as the distance between the ellipsoid's center of gravity and a
         point on ellipsoid surface at the desired
         Pay attention: The ellipsoid is an approximation for the earth model and
-        will obviously output an estimate of the perfect distance between earth's
-        relief and its center of gravity.
+        will obviously output an estimate of the perfect distance between
+        earth's relief and its center of gravity.
 
         Parameters
         ----------
@@ -3558,30 +3572,33 @@ class Environment:
         """
         # Select the desired datum (i.e. the ellipsoid parameters)
         flattening = self.ellipsoid.flattening
-        semiMajorAxis = self.ellipsoid.semiMajorAxis
+        semi_major_axis = self.ellipsoid.semi_major_axis
 
         # Calculate the semi minor axis length
-        # semiMinorAxis = semiMajorAxis - semiMajorAxis*(flattening**(-1))
-        semiMinorAxis = semiMajorAxis * (1 - flattening)
+        # semi_minor_axis = semi_major_axis - semi_major_axis*(flattening**(-1))
+        semi_minor_axis = semi_major_axis * (1 - flattening)
 
         # Convert latitude to radians
         lat = lat * np.pi / 180
 
         # Calculate the Earth Radius in meters
-        eRadius = np.sqrt(
+        e_radius = np.sqrt(
             (
-                (np.cos(lat) * (semiMajorAxis**2)) ** 2
-                + (np.sin(lat) * (semiMinorAxis**2)) ** 2
+                (np.cos(lat) * (semi_major_axis**2)) ** 2
+                + (np.sin(lat) * (semi_minor_axis**2)) ** 2
             )
-            / ((np.cos(lat) * semiMajorAxis) ** 2 + (np.sin(lat) * semiMinorAxis) ** 2)
+            / (
+                (np.cos(lat) * semi_major_axis) ** 2
+                + (np.sin(lat) * semi_minor_axis) ** 2
+            )
         )
 
         # Convert latitude to degrees
         lat = lat * 180 / np.pi
 
-        return eRadius
+        return e_radius
 
-    def decimalDegressToArcSeconds(self, angle):
+    def decimal_degress_to_arc_seconds(self, angle):
         """Function to convert an angle in decimal degrees to deg/min/sec.
          Converts (°) to (° ' ")
 

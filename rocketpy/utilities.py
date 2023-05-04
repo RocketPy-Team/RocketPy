@@ -30,10 +30,11 @@ def compute_CdS_from_drop_test(
     rocket_mass : float
         Rocket's dry mass in kg.
     air_density : float, optional
-        Air density, in kg/m^3, right before the rocket lands. Default value is 1.225.
+        Air density, in kg/m^3, right before the rocket lands. Default value is
+        1.225.
     g : float, optional
-        Gravitational acceleration experienced by the rocket and parachute during
-        descent in m/s^2. Default value is the standard gravity, 9.80665.
+        Gravitational acceleration experienced by the rocket and parachute
+        during descent in m/s^2. Default value is the standard gravity, 9.80665.
 
     Returns
     -------
@@ -46,7 +47,7 @@ def compute_CdS_from_drop_test(
 
 
 # TODO: Needs tests
-def calculateEquilibriumAltitude(
+def calculate_equilibrium_altitude(
     rocket_mass,
     CdS,
     z0,
@@ -82,20 +83,20 @@ def calculateEquilibriumAltitude(
         True if you want to see time vs altitude and time vs speed graphs,
         False otherwise.
     g : float, optional
-        Gravitational acceleration experienced by the rocket and parachute during
-        descent in m/s^2. Default value is the standard gravity, 9.80665.
+        Gravitational acceleration experienced by the rocket and parachute
+        during descent in m/s^2. Default value is the standard gravity, 9.80665.
     estimated_final_time: float, optional
-        Estimative of how much time (in seconds) will spend until vertical terminal
-        velocity is reached. Must be positive. Default is 10. It can affect the final
-        result if the value is not high enough. Increase the estimative in case the
-        final solution is not founded.
+        Estimative of how much time (in seconds) will spend until vertical
+        terminal velocity is reached. Must be positive. Default is 10. It can
+        affect the final result if the value is not high enough. Increase the
+        estimative in case the final solution is not founded.
 
 
     Returns
     -------
-    altitudeFunction: Function
+    altitude_function: Function
         Altitude as a function of time. Always a Function object.
-    velocityFunction:
+    velocity_function:
         Vertical velocity as a function of time. Always a Function object.
     final_sol : dictionary
         Dictionary containing the values for time, altitude and speed of
@@ -131,7 +132,7 @@ def calculateEquilibriumAltitude(
 
     if env == None:
         environment = Environment(
-            railLength=5.0,
+            rail_length=5.0,
             latitude=0,
             longitude=0,
             elevation=1000,
@@ -182,14 +183,14 @@ def calculateEquilibriumAltitude(
             "velocity": us.y[1][constant_index],
         }
 
-    altitudeFunction = Function(
+    altitude_function = Function(
         source=np.array(list(zip(us.t, us.y[0])), dtype=np.float64),
         inputs="Time (s)",
         outputs="Altitude (m)",
         interpolation="linear",
     )
 
-    velocityFunction = Function(
+    velocity_function = Function(
         source=np.array(list(zip(us.t, us.y[1])), dtype=np.float64),
         inputs="Time (s)",
         outputs="Vertical Velocity (m/s)",
@@ -197,22 +198,22 @@ def calculateEquilibriumAltitude(
     )
 
     if see_graphs:
-        altitudeFunction()
-        velocityFunction()
+        altitude_function()
+        velocity_function()
 
-    return altitudeFunction, velocityFunction, final_sol
+    return altitude_function, velocity_function, final_sol
 
 
 def fin_flutter_analysis(
     fin_thickness, shear_modulus, flight, see_prints=True, see_graphs=True
 ):
     """Calculate and plot the Fin Flutter velocity using the pressure profile
-    provided by the selected atmospheric model. It considers the Flutter Boundary
-    Equation that published in NACA Technical Paper 4197.
+    provided by the selected atmospheric model. It considers the Flutter
+    Boundary Equation that published in NACA Technical Paper 4197.
     These results are only estimates of a real problem and may not be useful for
     fins made from non-isotropic materials.
-    Currently, this function works if only a single set of fins is added, otherwise
-    it will use the last set of fins added to the rocket.
+    Currently, this function works if only a single set of fins is added,
+    otherwise it will use the last set of fins added to the rocket.
 
     Parameters
     ----------
@@ -234,13 +235,13 @@ def fin_flutter_analysis(
     """
 
     # First, we need identify if there is at least a fin set in the rocket
-    for aero_surface, _ in flight.rocket.aerodynamicSurfaces:
+    for aero_surface, _ in flight.rocket.aerodynamic_surfaces:
         if isinstance(aero_surface, TrapezoidalFins):
             # s: surface area; ar: aspect ratio; la: lambda
-            root_chord = aero_surface.rootChord
-            s = (aero_surface.tipChord + root_chord) * aero_surface.span / 2
+            root_chord = aero_surface.root_chord
+            s = (aero_surface.tip_chord + root_chord) * aero_surface.span / 2
             ar = aero_surface.span * aero_surface.span / s
-            la = aero_surface.tipChord / root_chord
+            la = aero_surface.tip_chord / root_chord
 
     # This ensures that a fin set was found in the rocket, if not, break
     try:
@@ -297,7 +298,7 @@ def _flutter_safety_factor(flight, flutter_mach):
     safety_factor = [[t, 0] for t in flutter_mach[:, 0]]
     for i in range(len(flutter_mach)):
         try:
-            safety_factor[i][1] = flutter_mach[i][1] / flight.MachNumber[i][1]
+            safety_factor[i][1] = flutter_mach[i][1] / flight.mach_number[i][1]
         except ZeroDivisionError:
             safety_factor[i][1] = np.nan
 
@@ -324,11 +325,11 @@ def _flutter_plots(flight, flutter_mach, safety_factor):
     flight : rocketpy.Flight
         Flight object containing the rocket's flight data
     flutter_mach : rocketpy.Function
-        Function containing the Fin Flutter Mach Number, see fin_flutter_analysis
-        for more details.
+        Function containing the Fin Flutter Mach Number,
+        see fin_flutter_analysis for more details.
     safety_factor : rocketpy.Function
-        Function containing the Safety Factor for the fin flutter. See
-        fin_flutter_analysis for more details.
+        Function containing the Safety Factor for the fin flutter.
+        See fin_flutter_analysis for more details.
 
     Returns
     -------
@@ -342,11 +343,11 @@ def _flutter_plots(flight, flutter_mach, safety_factor):
         label="Fin flutter Mach Number",
     )
     ax1.plot(
-        flight.MachNumber[:, 0],
-        flight.MachNumber[:, 1],
+        flight.mach_number[:, 0],
+        flight.mach_number[:, 1],
         label="Rocket Freestream Speed",
     )
-    ax1.set_xlim(0, flight.apogeeTime if flight.apogeeTime != 0.0 else flight.tFinal)
+    ax1.set_xlim(0, flight.apogee_time if flight.apogee_time != 0.0 else flight.tFinal)
     ax1.set_title("Fin Flutter Mach Number x Time(s)")
     ax1.set_xlabel("Time (s)")
     ax1.set_ylabel("Mach")
@@ -355,7 +356,7 @@ def _flutter_plots(flight, flutter_mach, safety_factor):
 
     ax2 = plt.subplot(212)
     ax2.plot(safety_factor[:, 0], safety_factor[:, 1])
-    ax2.set_xlim(flight.outOfRailTime, flight.apogeeTime)
+    ax2.set_xlim(flight.out_of_rail_time, flight.apogee_time)
     ax2.set_ylim(0, 6)
     ax2.set_title("Fin Flutter Safety Factor")
     ax2.set_xlabel("Time (s)")
@@ -394,9 +395,9 @@ def _flutter_prints(
     la : float
         Fin lambda, defined as the tip_chord / root_chord ratio
     flutter_mach : rocketpy.Function
-        The Mach Number at which the fin flutter occurs, considering the variation
-        of the speed of sound with altitude. See fin_flutter_analysis for more
-        details.
+        The Mach Number at which the fin flutter occurs, considering the
+        variation of the speed of sound with altitude. See fin_flutter_analysis
+        for more details.
     safety_factor : rocketpy.Function
         The Safety Factor for the fin flutter. Defined as the Fin Flutter Mach
         Number divided by the Freestream Mach Number.
@@ -410,7 +411,7 @@ def _flutter_prints(
     time_index = np.argmin(flutter_mach[:, 1])
     time_min_mach = flutter_mach[time_index, 0]
     min_mach = flutter_mach[time_index, 1]
-    min_vel = min_mach * flight.speedOfSound(time_min_mach)
+    min_vel = min_mach * flight.speed_of_sound(time_min_mach)
 
     time_index = np.argmin(safety_factor[:, 1])
     time_min_sf = safety_factor[time_index, 0]
@@ -448,13 +449,13 @@ def create_dispersion_dictionary(filename):
         following structure:
 
             attribute_class; parameter_name; mean_value; standard_deviation;
-            environment; ensembleMember; [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];;
+            environment; ensemble_member; [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];;
             motor; impulse; 1415.15; 35.3;
-            motor; burnOut; 5.274; 1;
-            motor; nozzleRadius; 0.021642; 0.0005;
-            motor; throatRadius; 0.008; 0.0005;
-            motor; grainSeparation; 0.006; 0.001;
-            motor; grainDensity; 1707; 50;
+            motor; burn_out; 5.274; 1;
+            motor; nozzle_radius; 0.021642; 0.0005;
+            motor; throat_radius; 0.008; 0.0005;
+            motor; grain_separation; 0.006; 0.001;
+            motor; grain_density; 1707; 50;
 
     Returns
     -------
@@ -463,15 +464,15 @@ def create_dispersion_dictionary(filename):
         dictionary will follow the following structure:
             analysis_parameters = {
                 'environment': {
-                    'ensembleMember': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+                    'ensemble_member': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
                 },
                 'motor': {
                     'impulse': (1415.15, 35.3),
-                    'burnOut': (5.274, 1),
-                    'nozzleRadius': (0.021642, 0.0005),
-                    'throatRadius': (0.008, 0.0005),
-                    'grainSeparation': (0.006, 0.001),
-                    'grainDensity': (1707, 50),
+                    'burn_out': (5.274, 1),
+                    'nozzle_radius': (0.021642, 0.0005),
+                    'throat_radius': (0.008, 0.0005),
+                    'grain_separation': (0.006, 0.001),
+                    'grain_density': (1707, 50),
                     }
             }
     """
@@ -481,10 +482,11 @@ def create_dispersion_dictionary(filename):
         )
     except ValueError:
         warnings.warn(
-            f"Error caught: the recommended delimiter is ';'. If using ',' instead, be "
-            + "aware that some resources might not work as expected if your data "
-            + "set contains lists where the items are separated by commas. "
-            + "Please consider changing the delimiter to ';' if that is the case."
+            f"Error caught: the recommended delimiter is ';'. If using ',' "
+            + "instead, be aware that some resources might not work as "
+            + "expected if your data set contains lists where the items are "
+            + "separated by commas. Please consider changing the delimiter to "
+            + "';' if that is the case."
         )
         warnings.warn(traceback.format_exc())
         file = np.genfromtxt(
