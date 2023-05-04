@@ -3238,7 +3238,9 @@ class Environment:
             info["initDate"] = self.atmospheric_model_init_date.strftime(
                 "%Y-%d-%m %H:%M:%S"
             )
-            info["endDate"] = self.atmospheric_model_end_date.strftime("%Y-%d-%m %H:%M:%S")
+            info["endDate"] = self.atmospheric_model_end_date.strftime(
+                "%Y-%d-%m %H:%M:%S"
+            )
             info["interval"] = self.atmospheric_model_interval
             info["initLat"] = self.atmospheric_model_init_lat
             info["endLat"] = self.atmospheric_model_end_lat
