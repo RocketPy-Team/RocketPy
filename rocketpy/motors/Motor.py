@@ -7,6 +7,7 @@ __license__ = "MIT"
 import re
 import warnings
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from functools import cached_property
 
 import numpy as np
@@ -160,79 +161,30 @@ class Motor(ABC):
                 comments, desc, points = self.importEng(thrustSource)
                 thrustSource = points
 
-        # Thrust parameters
+        # Evaluate raw thrust source
         self.interpolate = interpolationMethod
-        burn_time = [0, burn_time] if isinstance(burn_time, (int, float)) else burn_time
-
-        # Create thrust function
-        thrust = Function(
+        self.thrustSource = thrustSource
+        self.thrust = Function(
             thrustSource, "Time (s)", "Thrust (N)", self.interpolate, "zero"
         )
 
-        # Evaluate burn time range from input
-        if callable(thrust.source):
-            try:
-                # burn_time is a list, tuple or None
-                burn_time = list(burn_time)
-                burn_time = [0] + burn_time if len(burn_time) == 1 else burn_time
-
-                # sets burn out in thrust curve
-                self.thrust = thrust.setDiscrete(
-                    lower=burn_time[0],
-                    upper=burn_time[1],
-                    samples=50,
-                    interpolation=self.interpolate,
-                    extrapolation="zero",
-                )
-            except TypeError:
-                raise ValueError(
-                    "When using a float or callable as thrust source a burnout "
-                    "time must be specified."
-                )
-        else:
-            try:
-                # burn_time is a list, tuple or None
-                burn_time = list(burn_time)
-                burn_time = [0] + burn_time if len(burn_time) == 1 else burn_time
-
-                # checks if burn_time[1] is bigger than thrust curve time
-                if burn_time[1] > thrust.xArray[-1]:
-                    burn_time = (burn_time[0], thrust.xArray[-1])
-                    warnings.warn(
-                        "burn_time argument is bigger than thrustSource "
-                        "maximum time.\n"
-                        "Using thrustSource boudary maximum time instead: "
-                        f"{burn_time[1]} s\n"
-                        "If you want to change the burn out time of the curve "
-                        "please use the 'reshapeThrustCurve' argument."
-                    )
-
-                # Clip thrust source input
-                bound_mask = np.logical_and(
-                    thrust.xArray >= burn_time[0],
-                    thrust.xArray <= burn_time[1],
-                )
-                thrust.xArray = thrust.xArray[bound_mask]
-                thrust.yArray = thrust.yArray[bound_mask]
-                self.thrust = Function(
-                    np.column_stack((thrust.xArray, thrust.yArray)),
-                    "Time (s)",
-                    "Thrust (N)",
-                    self.interpolate,
-                    "zero",
-                )
-
-            except TypeError:
-                burn_time = (thrust.xArray[0], thrust.xArray[-1])
-
-        # Set burn_time range and burnOutTime
+        # Handle burn_time input
         self.burn_time = burn_time
-        self.burnDuration = burn_time[1] - burn_time[0]
-        self.burnOutTime = burn_time[1]
 
-        # Reshape curve
+        if callable(self.thrust.source):
+            self.thrust.setDiscrete(*self.burn_time, 50, self.interpolate, "zero")
+                
+        # Reshape thrustSource if needed
         if reshapeThrustCurve:
+            # Overwrites burn_time and thrust
             self.reshapeThrustCurve(*reshapeThrustCurve)
+
+        # Post process thrust
+        self.thrust = self.clipThrust()
+
+        # Auxiliary quantities
+        self.burnDuration = self.burn_time[1] - self.burn_time[0]
+        self.burnOutTime = self.burn_time[1]
 
         # Define motor attributes
         self.nozzleRadius = nozzleRadius
@@ -243,6 +195,71 @@ class Motor(ABC):
         maxThrustIndex = np.argmax(self.thrust.yArray)
         self.maxThrustTime = self.thrust.source[maxThrustIndex, 0]
         self.averageThrust = self.totalImpulse / self.burnDuration
+
+    @property
+    def burn_time(self):
+        """Burn time range in seconds.
+
+        Returns
+        -------
+        tuple
+            Burn time range in seconds.
+        """
+        return self._burn_time
+
+    @burn_time.setter
+    def burn_time(self, burn_time):
+        """Sets burn time range in seconds.
+
+        Parameters
+        ----------
+        burn_time : float or two position array_like
+        """
+        if isinstance(burn_time, (int, float)):
+            self._burn_time = (0, burn_time)
+        elif isinstance(burn_time, (list, tuple)):
+            if len(burn_time) == 1:
+                self._burn_time = (0, burn_time[0])
+            elif len(burn_time) == 2:
+                self._burn_time = burn_time
+            else:
+                raise ValueError("burn_time must be a list or tuple of length 1 or 2.")
+        elif callable(self.thrust.source):
+            raise ValueError(
+                    "When using a float or callable as thrust source a burn_time "
+                    "range must be specified."
+                )
+        else:
+            self._burn_time = (self.thrust.xArray[0], self.thrust.xArray[-1])
+
+    def clipThrust(self):
+            # checks if burn_time[1] is bigger than thrust curve time
+            if self.burn_time[1] > self.thrust.xArray[-1]:
+                burn_time = (self.burn_time[0], self.thrust.xArray[-1])
+                warnings.warn(
+                    "burn_time argument is bigger than thrustSource "
+                    "maximum time.\n"
+                    "Using thrustSource boudary maximum time instead: "
+                    f"{self.thrust.xArray[-1]} s\n"
+                    "If you want to change the burn out time of the curve "
+                    "please use the 'reshapeThrustCurve' argument."
+                )
+
+            # Clip thrust input according to burn_time
+            bound_mask = np.logical_and(
+                self.thrust.xArray >= self.burn_time[0],
+                self.thrust.xArray <= self.burn_time[1],
+            )
+            clipped_source = self.thrust.source[bound_mask]
+
+            return Function(
+                clipped_source,
+                "Time (s)",
+                "Thrust (N)",
+                self.interpolate,
+                "zero",
+            )
+
 
     def reshapeThrustCurve(
         self, burnOutTime, totalImpulse, oldTotalImpulse=None, startAtZero=True
@@ -274,29 +291,27 @@ class Motor(ABC):
         None
         """
         # Retrieve current thrust curve data points
-        timeArray = self.thrust.xArray
-        thrustArray = self.thrust.yArray
+        timeArray, thrustArray = self.thrust.xArray, self.thrust.yArray
+
         # Move start to time = 0
         if startAtZero and timeArray[0] != 0:
             timeArray = timeArray - timeArray[0]
 
         # Reshape time - set burn time to burnOutTime
-        self.thrust.xArray = (burnOutTime / timeArray[-1]) * timeArray
+        self.thrust.source[:,0] = (burnOutTime / timeArray[-1]) * timeArray
         self.burnOutTime = burnOutTime
         self.burn_time = (self.thrust.xArray[0], self.thrust.xArray[-1])
         self.burnDuration = self.burn_time[1] - self.burn_time[0]
         self.thrust.setInterpolation(self.interpolate)
 
-        # Reshape thrust - set total impulse
+        # Get old total impulse
         if oldTotalImpulse is None:
-            oldTotalImpulse = self.totalImpulse
-        self.thrust.yArray = (totalImpulse / oldTotalImpulse) * thrustArray
+            oldTotalImpulse = self.thrust.integral(*self.burn_time)
+
+        # Reshape thrust
+        self.thrust.source[:,1] = (totalImpulse / oldTotalImpulse) * thrustArray
         self.thrust.setInterpolation(self.interpolate)
 
-        # Store total impulse
-        self.totalImpulse = totalImpulse
-
-        # Return reshaped curve
         return self.thrust
 
     @cached_property
