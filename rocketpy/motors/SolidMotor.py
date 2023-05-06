@@ -401,6 +401,7 @@ class SolidMotor(Motor):
             return end_function
 
         terminateBurn.terminal = True
+        terminateBurn.direction = -1
 
         # Solve the system of differential equations
         sol = integrate.solve_ivp(
@@ -409,6 +410,9 @@ class SolidMotor(Motor):
             y0,
             t_eval=t,
             events=terminateBurn,
+            method="LSODA",
+            atol=1e-10,
+            rtol=1e-8
         )
 
         self.grainBurnOut = sol.t[-1]
