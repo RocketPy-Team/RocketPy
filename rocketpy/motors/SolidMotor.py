@@ -412,7 +412,7 @@ class SolidMotor(Motor):
             events=terminateBurn,
             method="LSODA",
             atol=1e-10,
-            rtol=1e-8
+            rtol=1e-8,
         )
 
         self.grainBurnOut = sol.t[-1]

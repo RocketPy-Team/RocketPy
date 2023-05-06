@@ -106,7 +106,9 @@ def test_burn_area_asserts_extreme_values(solid_motor):
     )
 
     assert np.allclose(solid_motor.burnArea.getSource()[0][-1], initial_burn_area)
-    assert np.allclose(solid_motor.burnArea.getSource()[-1][-1], final_burn_area, atol=1e-6)
+    assert np.allclose(
+        solid_motor.burnArea.getSource()[-1][-1], final_burn_area, atol=1e-6
+    )
 
 
 def test_evaluate_inertia_11_asserts_extreme_values(solid_motor):
