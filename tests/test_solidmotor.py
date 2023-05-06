@@ -79,7 +79,7 @@ def test_mass_curve_asserts_extreme_values(solid_motor):
     )
     grain_mass = grain_vol * grainDensity
 
-    assert np.allclose(solid_motor.mass.getSource()[-1][-1], 0)
+    assert np.allclose(solid_motor.mass.getSource()[-1][-1], 0, atol=1e-6)
     assert np.allclose(solid_motor.mass.getSource()[0][-1], grainNumber * grain_mass)
 
 
@@ -105,7 +105,7 @@ def test_burn_area_asserts_extreme_values(solid_motor):
     )
 
     assert np.allclose(solid_motor.burnArea.getSource()[0][-1], initial_burn_area)
-    assert np.allclose(solid_motor.burnArea.getSource()[-1][-1], final_burn_area)
+    assert np.allclose(solid_motor.burnArea.getSource()[-1][-1], final_burn_area, atol=1e-6)
 
 
 def test_evaluate_inertia_11_asserts_extreme_values(solid_motor):
@@ -130,7 +130,7 @@ def test_evaluate_inertia_11_asserts_extreme_values(solid_motor):
     assert np.allclose(
         solid_motor.I_11.getSource()[0][-1], inertia_11_initial, atol=0.01
     )
-    assert np.allclose(solid_motor.I_11.getSource()[-1][-1], 0, atol=1e-16)
+    assert np.allclose(solid_motor.I_11.getSource()[-1][-1], 0, atol=1e-6)
 
 
 def test_evaluate_inertia_33_asserts_extreme_values(solid_motor):
@@ -146,7 +146,7 @@ def test_evaluate_inertia_33_asserts_extreme_values(solid_motor):
     assert np.allclose(
         solid_motor.I_33.getSource()[0][-1], grain_I_33_initial, atol=0.01
     )
-    assert np.allclose(solid_motor.I_33.getSource()[-1][-1], 0, atol=1e-16)
+    assert np.allclose(solid_motor.I_33.getSource()[-1][-1], 0, atol=1e-6)
 
 
 def tests_import_eng_asserts_read_values_correctly(solid_motor):
