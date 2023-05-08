@@ -5,6 +5,7 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 from inspect import signature
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -147,8 +148,8 @@ class Function:
         -------
         self : Function
         """
-        # Import CSV if source is a string and convert values to ndarray
-        if isinstance(source, str):
+        # Import CSV if source is a string or Path and convert values to ndarray
+        if isinstance(source, (str, Path)):
             # Read file and check for headers
             f = open(source, "r")
             firstLine = f.readline()
@@ -563,7 +564,7 @@ class Function:
         interpolations.
 
         >>> g.setDiscreteBasedOnModel(f)
-        Function from R1 to R1 : (Scalar) → (Scalar)
+        'Function from R1 to R1 : (Scalar) → (Scalar)'
         >>> h = f * g
         >>> h.source
         array([[ 0.,  0.],
@@ -642,9 +643,9 @@ class Function:
         >>> v.getInputs(), v.getOutputs()
         (['t'], ['v'])
         >>> kinetic_energy
-        Function from R1 to R1 : (x) → (Scalar)
+        'Function from R1 to R1 : (x) → (Scalar)'
         >>> kinetic_energy.reset(inputs='t', outputs='Kinetic Energy');
-        Function from R1 to R1 : (t) → (Kinetic Energy)
+        'Function from R1 to R1 : (t) → (Kinetic Energy)'
 
         Returns
         -------
@@ -1208,7 +1209,7 @@ class Function:
 
     def __str__(self):
         "Return a string representation of the Function"
-        return (
+        return str(
             "Function from R"
             + str(self.__domDim__)
             + " to R"
@@ -1222,7 +1223,7 @@ class Function:
 
     def __repr__(self):
         "Return a string representation of the Function"
-        return (
+        return repr(
             "Function from R"
             + str(self.__domDim__)
             + " to R"
@@ -2773,7 +2774,7 @@ def funcify_method(*args, **kwargs):
     ...         return lambda x: x**2
     >>> example = Example()
     >>> example.f
-    Function from R1 to R1 : (x) → (y)
+    'Function from R1 to R1 : (x) → (y)'
 
     Normal algebra can be performed afterwards:
 
@@ -2792,7 +2793,7 @@ def funcify_method(*args, **kwargs):
     ...         return g / f
     >>> example = Example()
     >>> example.cube
-    Function from R1 to R1 : (x) → (x**3)
+    'Function from R1 to R1 : (x) → (x**3)'
 
     3. Method which is itself a valid rocketpy.Function source argument.
 
@@ -2802,7 +2803,7 @@ def funcify_method(*args, **kwargs):
     ...         return x**2
     >>> example = Example()
     >>> example.f
-    Function from R1 to R1 : (x) → (f(x))
+    'Function from R1 to R1 : (x) → (f(x))'
 
     In order to reset the cache, just delete de attribute from the instance:
 
@@ -2811,7 +2812,7 @@ def funcify_method(*args, **kwargs):
     Once it is requested again, it will be re-created as a new Function object:
 
     >>> example.f
-    Function from R1 to R1 : (x) → (f(x))
+    'Function from R1 to R1 : (x) → (f(x))'
     """
     func = None
     if len(args) == 1 and callable(args[0]):
