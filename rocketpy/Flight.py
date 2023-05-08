@@ -619,8 +619,12 @@ class Flight:
         # Modifying Rail Length for a better out of rail condition
         upperButtonPosition, lowerButtonPosition = self.rocket.railButtons.position
         nozzlePosition = self.rocket.motorPosition
-        self.effective1RL = self.env.rL - abs(nozzlePosition - upperButtonPosition)
-        self.effective2RL = self.env.rL - abs(nozzlePosition - lowerButtonPosition)
+        self.effective1RL = self.env.railLength - abs(
+            nozzlePosition - upperButtonPosition
+        )
+        self.effective2RL = self.env.railLength - abs(
+            nozzlePosition - lowerButtonPosition
+        )
 
         # Flight initialization
         self.__init_post_process_variables()
@@ -1164,7 +1168,7 @@ class Flight:
             upperRButton = max(self.rocket.railButtons[0])
         except AttributeError:  # If there is no rail button
             upperRButton = nozzle
-        effective1RL = self.env.rL - abs(nozzle - upperRButton)
+        effective1RL = self.env.railLength - abs(nozzle - upperRButton)
 
         return effective1RL
 
@@ -1178,7 +1182,7 @@ class Flight:
             lowerRButton = min(self.rocket.railButtons[0])
         except AttributeError:
             lowerRButton = nozzle
-        effective2RL = self.env.rL - abs(nozzle - lowerRButton)
+        effective2RL = self.env.railLength - abs(nozzle - lowerRButton)
         return effective2RL
 
     @cached_property
@@ -2337,7 +2341,7 @@ class Flight:
     @funcify_method("Time (s)", "Latitude (°)", "linear", "constant")
     def latitude(self):
         """Rocket latitude coordinate, in degrees, as a rocketpy.Function of time."""
-        lat1 = np.deg2rad(self.env.lat)  # Launch lat point converted to radians
+        lat1 = np.deg2rad(self.env.latitude)  # Launch lat point converted to radians
 
         # Applies the haversine equation to find final lat/lon coordinates
         latitude = np.rad2deg(
@@ -2353,8 +2357,8 @@ class Flight:
     @funcify_method("Time (s)", "Longitude (°)", "linear", "constant")
     def longitude(self):
         """Rocket longitude coordinate, in degrees, as a rocketpy.Function of time."""
-        lat1 = np.deg2rad(self.env.lat)  # Launch lat point converted to radians
-        lon1 = np.deg2rad(self.env.lon)  # Launch lon point converted to radians
+        lat1 = np.deg2rad(self.env.latitude)  # Launch lat point converted to radians
+        lon1 = np.deg2rad(self.env.longitude)  # Launch lon point converted to radians
 
         # Applies the haversine equation to find final lat/lon coordinates
         longitude = np.rad2deg(
