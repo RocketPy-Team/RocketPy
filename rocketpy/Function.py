@@ -5,7 +5,6 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 from inspect import signature
-from copy import copy
 
 try:
     from functools import cached_property
