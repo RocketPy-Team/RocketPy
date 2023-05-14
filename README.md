@@ -192,7 +192,7 @@ Env = Environment(
     date=(2020, 3, 4, 12) # Tomorrow's date in year, month, day, hour UTC format
 ) 
 
-Env.setAtmosphericModel(type='StandardAtmosphere', file='GFS')
+Env.setAtmosphericModel(type='Forecast', file='GFS')
 ```
 
 This can be followed up by starting a Solid Motor object. To get help on it, just use:
@@ -241,7 +241,7 @@ Calisto = Rocket(
 )
 Calisto.setRailButtons([0.2, -0.5])
 Calisto.addMotor(Pro75M1670, position=-1.255)
-Calisto.addNose(length=0.55829, kind="vonKarman", position=0.71971 + 0.55829)
+Calisto.addNose(length=0.55829, kind="vonKarman", position=1.278)
 Calisto.addTrapezoidalFins(
     n=4,
     rootChord=0.120,
@@ -260,8 +260,11 @@ Calisto.addTail(
 You may want to add parachutes to your rocket as well:
 
 ```python
-drogueTrigger = lambda p, y : y[5] < 0
-mainTrigger = lambda p, y : y[5] < 0 and y[2] < 800
+def drogueTrigger(p, y):
+    return True if y[5] < 0 else False
+
+def mainTrigger(p, y):
+    return True if y[5] < 0 and y[2] < 800 else False
 
 Calisto.addParachute('Main',
                     CdS=10.0,
@@ -287,19 +290,19 @@ help(Flight)
 To actually create a Flight object, use:
 
 ```python
-test_flight = Flight(rocket=Calisto, environment=Env, inclination=85, heading=0)
+TestFlight = Flight(rocket=Calisto, environment=Env, inclination=85, heading=0)
 ```
 
 Once the Flight object is created, your simulation is done! Use the following code to get a summary of the results:
 
 ```python
-test_flight.info()
+TestFlight.info()
 ```
 
 To see all available results, use:
 
 ```python
-test_flight.allInfo()
+TestFlight.allInfo()
 ```
 
 Here is just a quick taste of what RocketPy is able to calculate. There are hundreds of plots and data points computed by RocketPy to enhance your analyses.
