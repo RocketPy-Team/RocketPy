@@ -725,7 +725,7 @@ class Flight:
                         )
                         - self.env.elevation
                     )
-                    if parachute.trigger(pressure + noise, self.ySol, hAGL):
+                    if parachute.trigger(pressure + noise, hAGL, self.ySol):
                         # print('\nEVENT DETECTED')
                         # print('Parachute Triggered')
                         # print('Name: ', parachute.name, ' | Lag: ', parachute.lag)
@@ -1029,7 +1029,7 @@ class Flight:
                                     )
 
                                     if parachute.trigger(
-                                        pressure + noise, overshootableNode.y, hAGL
+                                        pressure + noise, hAGL, overshootableNode.y
                                     ):
                                         # print('\nEVENT DETECTED')
                                         # print('Parachute Triggered')

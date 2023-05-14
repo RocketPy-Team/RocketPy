@@ -28,9 +28,9 @@ class Parachute:
     trigger : function
         Function which defines if the parachute ejection system is
         to be triggered. It must take as input the freestream
-        pressure in pascal, the state vector of the simulation,
-        which is defined by [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz],
-        and the height in meters (above ground level).
+        pressure in pascal, the height in meters (above ground level), and
+        the state vector of the simulation, which is defined by
+        [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz].
         It will be called according to the sampling rate given next.
         It should return True if the parachute ejection system is
         to be triggered and False otherwise.
@@ -86,9 +86,9 @@ class Parachute:
         trigger : function, float, string
             Function which defines if the parachute ejection system is
             to be triggered. It must take as input the freestream
-            pressure in pascal and the state vector of the simulation,
-            which is defined by [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz],
-            and the height in meters (above ground level).
+            pressure in pascal, the height in meters (above ground level), and
+            the state vector of the simulation, which is defined by
+            [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz].
             It will be called according to the sampling rate given next.
             It should return True if the parachute ejection system is
             to be triggered and False otherwise.
@@ -137,8 +137,9 @@ class Parachute:
             self.trigger = trigger
         elif isinstance(trigger, (int, float)):
             # trigger is interpreted as the absolute height at which the parachute will be ejected
-            def triggerfunc(p, y, h):
-                # p = pressure
+            def triggerfunc(p, h, y):
+                # p = pressure considering parachute noise signal
+                # h = height above ground level considering parachute noise signal
                 # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
                 return True if y[5] < 0 and h < trigger else False
 
@@ -146,8 +147,9 @@ class Parachute:
 
         elif trigger == "apogee":
             # trigger for apogee
-            def triggerfunc(p, y, h):
-                # p = pressure
+            def triggerfunc(p, h, y):
+                # p = pressure considering parachute noise signal
+                # h = height above ground level considering parachute noise signal
                 # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
                 return True if y[5] < 0 else False
 

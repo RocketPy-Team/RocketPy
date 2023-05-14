@@ -124,14 +124,14 @@ Transition = NDRT2020.addTail(
 
 
 # Parachute set-up
-def drogueTrigger(p, y, h):
+def drogueTrigger(p, h, y):
     # p = pressure
     # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
     # activate drogue when vz < 0 m/s.
     return True if y[5] < 0 else False
 
 
-def mainTrigger(p, y, h):
+def mainTrigger(p, h, y):
     # p = pressure
     # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
     # activate main when vz < 0 m/s and z < 167.64 m (AGL) or 550 ft (AGL)

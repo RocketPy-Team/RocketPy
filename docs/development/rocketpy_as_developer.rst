@@ -194,23 +194,27 @@ In the example, a nosecone, one fin set and one tail were added, but each case c
 
 If you are considering the parachutes in the simulation, they also have to be added to the rocket object.
 A trigger function must be supplied to trigger the parachutes.
-Currently, the pressure `(p)`, the state-space variables `(y)` and the height above ground level considering noise `(h)` are necessary inputs for the function.
+Currently, the pressure `(p)`, the height above ground level considering noise `(h)`, and the state-space variables `(y)` are necessary inputs for the function.
 The state-space contains information about the rocket's position and velocities (translation and rotation).
 For example:
 
 .. code-block:: python
 
-    def drogueTrigger(p, y, h):
-        # p = pressure
+    def drogueTrigger(p, h, y):
+        # p = pressure considering parachute noise signal
+        # h = height above ground level considering parachute noise signal
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
+
         # activate drogue when vz < 0 m/s.
         return True if y[5] < 0 else False
 
 
-    def mainTrigger(p, y, h):
-        # p = pressure
+    def mainTrigger(p, h, y):
+        # p = pressure considering parachute noise signal
+        # h = height above ground level considering parachute noise signal
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
-        # activate main when vz < 0 m/s and z < 800 + 1400 m (+1400 due to surface elevation).
+
+        # activate main when vz < 0 m/s and z < 800 m
         return True if y[5] < 0 and h < 800 else False
 
 After having the trigger functions defined, the parachute must be added to the rocket:

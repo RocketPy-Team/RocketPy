@@ -753,9 +753,9 @@ class Rocket:
             the string "apogee", for ejection at apogee.
             Can also be a function which defines if the parachute ejection
             system is to be triggered. It must take as input the freestream
-            pressure in pascal and the state vector of the simulation, which is
-            defined by [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz],
-            and the height in meters (above ground level).
+            pressure in pascal, the height in meters (above ground level), and
+            the state vector of the simulation, which is defined by
+            [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz].
             The trigger will be called according to the sampling rate given next.
             It should return True if the parachute ejection system is to be
             triggered and False otherwise.
