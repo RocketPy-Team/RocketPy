@@ -173,7 +173,7 @@ class Motor(ABC):
 
         if callable(self.thrust.source):
             self.thrust.setDiscrete(*self.burn_time, 50, self.interpolate, "zero")
-                
+
         # Reshape thrustSource if needed
         if reshapeThrustCurve:
             # Overwrites burn_time and thrust
@@ -226,43 +226,42 @@ class Motor(ABC):
                 raise ValueError("burn_time must be a list or tuple of length 1 or 2.")
         elif callable(self.thrust.source):
             raise ValueError(
-                    "When using a float or callable as thrust source a burn_time "
-                    "range must be specified."
-                )
+                "When using a float or callable as thrust source a burn_time "
+                "range must be specified."
+            )
         else:
             self._burn_time = (self.thrust.xArray[0], self.thrust.xArray[-1])
 
     def clipThrust(self):
-            # checks if burn_time[1] is bigger than thrust curve time
-            if self.burn_time[1] > self.thrust.xArray[-1]:
-                burn_time = (self.burn_time[0], self.thrust.xArray[-1])
-                warnings.warn(
-                    "burn_time argument is bigger than thrustSource "
-                    "maximum time.\n"
-                    "Using thrustSource boudary maximum time instead: "
-                    f"{self.thrust.xArray[-1]} s\n"
-                    "If you want to change the burn out time of the curve "
-                    "please use the 'reshapeThrustCurve' argument."
-                )
-
-            # Clip thrust input according to burn_time
-            bound_mask = np.logical_and(
-                self.thrust.xArray >= self.burn_time[0],
-                self.thrust.xArray <= self.burn_time[1],
-            )
-            clipped_source = self.thrust.source[bound_mask]
-
-            return Function(
-                clipped_source,
-                "Time (s)",
-                "Thrust (N)",
-                self.interpolate,
-                "zero",
+        # checks if burn_time[1] is bigger than thrust curve time
+        if self.burn_time[1] > self.thrust.xArray[-1]:
+            burn_time = (self.burn_time[0], self.thrust.xArray[-1])
+            warnings.warn(
+                "burn_time argument is bigger than thrustSource "
+                "maximum time.\n"
+                "Using thrustSource boudary maximum time instead: "
+                f"{self.thrust.xArray[-1]} s\n"
+                "If you want to change the burn out time of the curve "
+                "please use the 'reshapeThrustCurve' argument."
             )
 
+        # Clip thrust input according to burn_time
+        bound_mask = np.logical_and(
+            self.thrust.xArray >= self.burn_time[0],
+            self.thrust.xArray <= self.burn_time[1],
+        )
+        clipped_source = self.thrust.source[bound_mask]
+
+        return Function(
+            clipped_source,
+            "Time (s)",
+            "Thrust (N)",
+            self.interpolate,
+            "zero",
+        )
 
     def reshapeThrustCurve(
-        self, burnOutTime, totalImpulse, oldTotalImpulse=None, startAtZero=True
+        self, newBurnTime, totalImpulse, oldTotalImpulse=None, startAtZero=True
     ):
         """Transforms the thrust curve supplied by changing its total
         burn time and/or its total impulse, without altering the
@@ -271,8 +270,8 @@ class Motor(ABC):
 
         Parameters
         ----------
-        burnOutTime : float
-            New desired burn out time in seconds.
+        newBurnTime : float, tuple of float
+            New desired burn time in seconds.
         totalImpulse : float
             New desired total impulse.
         oldTotalImpulse : float, optional
@@ -298,10 +297,15 @@ class Motor(ABC):
             timeArray = timeArray - timeArray[0]
 
         # Reshape time - set burn time to burnOutTime
-        self.thrust.source[:,0] = (burnOutTime / timeArray[-1]) * timeArray
-        self.burnOutTime = burnOutTime
-        self.burn_time = (self.thrust.xArray[0], self.thrust.xArray[-1])
+        self.burn_time = newBurnTime
+        # Auxiliary quantities
         self.burnDuration = self.burn_time[1] - self.burn_time[0]
+        self.burnOutTime = self.burn_time[1]
+
+        # Rescale thrust source
+        self.thrust.source[:, 0] = (
+            self.burnDuration / (timeArray[-1] - timeArray[0])
+        ) * timeArray + self.burn_time[0]
         self.thrust.setInterpolation(self.interpolate)
 
         # Get old total impulse
@@ -309,7 +313,7 @@ class Motor(ABC):
             oldTotalImpulse = self.thrust.integral(*self.burn_time)
 
         # Reshape thrust
-        self.thrust.source[:,1] = (totalImpulse / oldTotalImpulse) * thrustArray
+        self.thrust.source[:, 1] = (totalImpulse / oldTotalImpulse) * thrustArray
         self.thrust.setInterpolation(self.interpolate)
 
         return self.thrust
