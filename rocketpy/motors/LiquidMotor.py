@@ -19,6 +19,7 @@ class LiquidMotor(Motor):
         self,
         thrustSource,
         burnOut,
+        dry_mass,
         nozzleRadius,
         nozzlePosition=0,
         reshapeThrustCurve=False,
@@ -71,6 +72,7 @@ class LiquidMotor(Motor):
         super().__init__(
             thrustSource,
             burnOut,
+            dry_mass,
             nozzleRadius,
             nozzlePosition,
             reshapeThrustCurve,
@@ -80,8 +82,8 @@ class LiquidMotor(Motor):
 
         self.positioned_tanks = []
 
-    @funcify_method("Time (s)", "mass (kg)")
-    def mass(self):
+    @funcify_method("Time (s)", "propellant mass (kg)")
+    def propellantMass(self):
         """Evaluates the mass of the motor as the sum of each tank mass.
 
         Parameters
@@ -110,7 +112,7 @@ class LiquidMotor(Motor):
         float
             Initial mass of the propellant, in kg.
         """
-        return self.mass(0)
+        return self.propellantMass(0)
 
     @funcify_method("Time (s)", "mass flow rate (kg/s)", extrapolation="zero")
     def massFlowRate(self):

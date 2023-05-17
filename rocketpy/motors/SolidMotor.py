@@ -122,6 +122,7 @@ class SolidMotor(Motor):
         self,
         thrustSource,
         burnOut,
+        dry_mass,
         grainsCenterOfMassPosition,
         grainNumber,
         grainDensity,
@@ -207,6 +208,7 @@ class SolidMotor(Motor):
         super().__init__(
             thrustSource,
             burnOut,
+            dry_mass,
             nozzleRadius,
             nozzlePosition,
             reshapeThrustCurve,
@@ -237,7 +239,7 @@ class SolidMotor(Motor):
         self.evaluateGeometry()
 
     @funcify_method("Time (s)", "mass (kg)")
-    def mass(self):
+    def propellantMass(self):
         """Evaluates the total propellant mass as a function of time.
 
         Parameters
@@ -308,7 +310,7 @@ class SolidMotor(Motor):
         try:
             return self._massFlowRate
         except AttributeError:
-            self._massFlowRate = self.massDot
+            self._massFlowRate = self.totalMassFlowRate
             return self._massFlowRate
 
     @massFlowRate.setter
@@ -324,7 +326,7 @@ class SolidMotor(Motor):
         -------
         None
         """
-        self._massFlowRate = value.reset("Time (s)", "mass flow rate (kg/s)")
+        self._massFlowRate = value.reset("Time (s)", "grain mass flow rate (kg/s)")
         self.evaluateGeometry()
 
     @funcify_method("Time (s)", "center of mass (m)")
@@ -513,7 +515,7 @@ class SolidMotor(Motor):
 
         # Inertia I
         # Calculate inertia I for each grain
-        grainMass = self.mass / self.grainNumber
+        grainMass = self.propellantMass / self.grainNumber
         grainMassDot = self.massFlowRate / self.grainNumber
         grainNumber = self.grainNumber
         grainInertiaI = grainMass * (
@@ -552,7 +554,7 @@ class SolidMotor(Motor):
         # Inertia Z
         self.inertiaZ = (
             (1 / 2.0)
-            * self.mass
+            * self.propellantMass
             * (self.grainOuterRadius**2 + self.grainInnerRadius**2)
         )
         self.inertiaZ.setOutputs("Propellant Inertia Z (kg*m2)")
@@ -560,7 +562,7 @@ class SolidMotor(Motor):
         # Inertia Z Dot
         self.inertiaZDot = (1 / 2.0) * self.massFlowRate * (
             self.grainOuterRadius**2 + self.grainInnerRadius**2
-        ) + self.mass * self.grainInnerRadius * self.burnRate
+        ) + self.propellantMass * self.grainInnerRadius * self.burnRate
         self.inertiaZDot.setOutputs("Propellant Inertia Z Dot (kg*m2/s)")
 
         # Stores the inertia tensor components
@@ -597,7 +599,7 @@ class SolidMotor(Motor):
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        grainMass = self.mass / self.grainNumber
+        grainMass = self.propellantMass / self.grainNumber
         grainMassDot = self.massFlowRate / self.grainNumber
         grainNumber = self.grainNumber
         grainInertia11 = grainMass * (
@@ -669,7 +671,7 @@ class SolidMotor(Motor):
         """
         I_33 = (
             (1 / 2.0)
-            * self.mass
+            * self.propellantMass
             * (self.grainOuterRadius**2 + self.grainInnerRadius**2)
         )
         return I_33
@@ -739,7 +741,7 @@ class SolidMotor(Motor):
         # Show plots
         print("\nPlots")
         self.thrust()
-        self.mass()
+        self.totalMass()
         self.massFlowRate()
         self.grainInnerRadius()
         self.grainHeight()

@@ -84,6 +84,7 @@ class Motor(ABC):
         self,
         thrustSource,
         burnOut,
+        dry_mass,
         nozzleRadius,
         nozzlePosition=0,
         reshapeThrustCurve=False,
@@ -146,6 +147,7 @@ class Motor(ABC):
             self._csys = -1
 
         # Motor parameters
+        self.dry_mass = dry_mass
         self.interpolate = interpolationMethod
         self.burnOutTime = burnOut
         self.nozzlePosition = nozzlePosition
@@ -260,10 +262,26 @@ class Motor(ABC):
             Constant gas exhaust velocity of the motor.
         """
         return self.totalImpulse / self.propellantInitialMass
+    
+    @funcify_method("Time (s)", "total mass (kg)")
+    def totalMass(self):
+        """Total mass of the motor as a Function of time.
+        Is defined as the propellant mass plus the dry mass.
+        
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+            
+        Returns
+        -------
+        Function
+            Total mass as a function of time.
+        """
+        return self.propellantMass + self.dry_mass
 
-    @property
-    @abstractmethod
-    def mass(self):
+    @funcify_method("Time (s)", "propellant mass (kg)")
+    def propellantMass(self):
         """Total propellant mass as a Function of time.
 
         Parameters
@@ -276,10 +294,10 @@ class Motor(ABC):
         Function
             Total propellant mass as a function of time.
         """
-        pass
+        return self.totalMassFlowRate.integralFunction() + self.propellantInitialMass
 
     @funcify_method("Time (s)", "mass dot (kg/s)", extrapolation="zero")
-    def massDot(self):
+    def totalMassFlowRate(self):
         """Time derivative of propellant mass. Assumes constant exhaust
         velocity. The formula used is the opposite of thrust divided by exhaust
         velocity. The result is a function of time, object of the Function

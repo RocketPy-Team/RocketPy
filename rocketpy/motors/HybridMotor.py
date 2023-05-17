@@ -114,6 +114,7 @@ class HybridMotor(Motor):
         self,
         thrustSource,
         burnOut,
+        dry_mass,
         grainsCenterOfMassPosition,
         grainNumber,
         grainDensity,
@@ -195,6 +196,7 @@ class HybridMotor(Motor):
         super().__init__(
             thrustSource,
             burnOut,
+            dry_mass,
             nozzleRadius,
             nozzlePosition,
             reshapeThrustCurve,
@@ -204,6 +206,7 @@ class HybridMotor(Motor):
         self.liquid = LiquidMotor(
             thrustSource,
             burnOut,
+            dry_mass,
             nozzleRadius,
             nozzlePosition,
             reshapeThrustCurve,
@@ -213,6 +216,7 @@ class HybridMotor(Motor):
         self.solid = SolidMotor(
             thrustSource,
             burnOut,
+            dry_mass,
             grainsCenterOfMassPosition,
             grainNumber,
             grainDensity,
@@ -229,7 +233,7 @@ class HybridMotor(Motor):
         )
 
     @funcify_method("Time (s)", "mass (kg)")
-    def mass(self):
+    def propellantMass(self):
         """Evaluates the total propellant mass of the motor as the sum
         of each tank mass and the grains mass.
 
@@ -243,7 +247,7 @@ class HybridMotor(Motor):
         Function
             Total propellant mass of the motor, in kg.
         """
-        return self.solid.mass + self.liquid.mass
+        return self.solid.propellantMass + self.liquid.propellantMass
 
     @cached_property
     def propellantInitialMass(self):
@@ -294,10 +298,10 @@ class HybridMotor(Motor):
             Position of the center of mass as a function of time.
         """
         massBalance = (
-            self.solid.mass * self.solid.centerOfMass
-            + self.liquid.mass * self.liquid.centerOfMass
+            self.solid.propellantMass * self.solid.centerOfMass
+            + self.liquid.propellantMass * self.liquid.centerOfMass
         )
-        return massBalance / self.mass
+        return massBalance / self.propellantMass
 
     @cached_property
     def inertiaTensor(self):
@@ -320,10 +324,10 @@ class HybridMotor(Motor):
             and Iy. The third argument is inertia Iz.
         """
         solidCorrection = (
-            self.solid.mass * (self.solid.centerOfMass - self.centerOfMass) ** 2
+            self.solid.propellantMass * (self.solid.centerOfMass - self.centerOfMass) ** 2
         )
         liquidCorrection = (
-            self.liquid.mass * (self.liquid.centerOfMass - self.centerOfMass) ** 2
+            self.liquid.propellantMass * (self.liquid.centerOfMass - self.centerOfMass) ** 2
         )
 
         solidInertia = self.solid.inertiaTensor
@@ -369,10 +373,10 @@ class HybridMotor(Motor):
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
         solidCorrection = (
-            self.solid.mass * (self.solid.centerOfMass - self.centerOfMass) ** 2
+            self.solid.propellantMass * (self.solid.centerOfMass - self.centerOfMass) ** 2
         )
         liquidCorrection = (
-            self.liquid.mass * (self.liquid.centerOfMass - self.centerOfMass) ** 2
+            self.liquid.propellantMass * (self.liquid.centerOfMass - self.centerOfMass) ** 2
         )
 
         I_11 = self.solid.I_11 + solidCorrection + self.liquid.I_11 + liquidCorrection
@@ -460,7 +464,7 @@ class HybridMotor(Motor):
         None
         """
         self.liquid.addTank(tank, position)
-        self.solid.massFlowRate = self.massDot - self.liquid.massFlowRate
+        self.solid.massFlowRate = self.totalMassFlowRate - self.liquid.massFlowRate
 
     def allInfo(self):
         """Prints out all data and graphs available about the Motor.
