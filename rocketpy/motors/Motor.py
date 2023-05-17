@@ -174,7 +174,6 @@ class Motor(ABC):
         if callable(self.thrust.source):
             self.thrust.setDiscrete(*self.burn_time, 50, self.interpolate, "zero")
 
-
         # Reshape thrustSource if needed
         if reshapeThrustCurve:
             # Overwrites burn_time and thrust
