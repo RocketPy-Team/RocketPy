@@ -175,6 +175,32 @@ class _EnvironmentPlots:
 
         return ax
 
+    def gravity_model(self):
+        """Plots the gravity model graph that represents the gravitational
+        acceleration as a function of height.
+
+        Parameters
+        ----------
+        None
+
+        Return
+        ------
+        None
+        """
+        # Create figure
+        plt.figure(figsize=(9, 9))
+
+        # Create gravity model subplot
+        ax = plt.subplot(111)
+        ax.plot(self.grid, [self.environment.gravity(i) for i in self.grid])
+        ax.set_ylabel("Gravity (m/s²)")
+        ax.set_xlabel("Height Above Sea Level (m)")
+        ax.grid(True)
+
+        plt.show()
+
+        return None
+
     def atmospheric_model(self):
         """Plots all atmospheric model graphs available. This includes wind speed
         and wind direction, density and speed of sound, wind u and wind v, and
@@ -363,6 +389,9 @@ class _EnvironmentPlots:
         """
 
         # Plot graphs
+        print("\n\nGravity Model Plots")
+        self.gravity_model()
+
         print("\n\nAtmospheric Model Plots")
         self.atmospheric_model()
 
