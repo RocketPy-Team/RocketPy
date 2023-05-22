@@ -296,25 +296,27 @@ class Motor(ABC):
         if startAtZero and timeArray[0] != 0:
             timeArray = timeArray - timeArray[0]
 
-        # Reshape time - set burn time to burnOutTime
+        # Reshape time - set burn time to newBurnTime
         self.burn_time = newBurnTime
-        # Auxiliary quantities
-        self.burnDuration = self.burn_time[1] - self.burn_time[0]
-        self.burnOutTime = self.burn_time[1]
 
-        # Rescale thrust source
-        self.thrust.source[:, 0] = (
-            self.burnDuration / (timeArray[-1] - timeArray[0])
+        # Compute old thrust based on new time discretization
+        newTimeArray = (
+            (self.burn_time[1] - self.burn_time[0]) / (timeArray[-1] - timeArray[0])
         ) * timeArray + self.burn_time[0]
-        self.thrust.setInterpolation(self.interpolate)
+        source = np.column_stack((newTimeArray, thrustArray))
+        thrust = Function(source, "Time (s)", "Thrust (N)", self.interpolate, "zero")
 
         # Get old total impulse
         if oldTotalImpulse is None:
-            oldTotalImpulse = self.thrust.integral(*self.burn_time)
+            oldTotalImpulse = thrust.integral(*self.burn_time)
 
-        # Reshape thrust
-        self.thrust.source[:, 1] = (totalImpulse / oldTotalImpulse) * thrustArray
-        self.thrust.setInterpolation(self.interpolate)
+        # Compute new thrust values
+        newThrustArray = (totalImpulse / oldTotalImpulse) * thrustArray
+        source = np.column_stack((newTimeArray, newThrustArray))
+        thrust = Function(source, "Time (s)", "Thrust (N)", self.interpolate, "zero")
+
+        # Set reshaped thrust curve
+        self.thrust = thrust
 
         return self.thrust
 
