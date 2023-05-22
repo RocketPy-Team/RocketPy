@@ -532,7 +532,7 @@ class HybridMotor(Motor):
         # Show plots
         print("\nPlots")
         self.thrust.plot(0, self.burnOutTime)
-        self.mass.plot(0, self.burnOutTime)
+        self.propellantMass.plot(0, self.burnOutTime)
         self.massFlowRate.plot(0, self.burnOutTime)
         self.solid.grainInnerRadius.plot(0, self.burnOutTime)
         self.solid.grainHeight.plot(0, self.burnOutTime)
