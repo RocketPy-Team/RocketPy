@@ -865,7 +865,9 @@ class Flight:
                             )
                         else:
                             self.flightPhases.addPhase(
-                                self.t, self.uDotVariableMassNumpyBased, index=phase_index + 1
+                                self.t,
+                                self.uDotVariableMassNumpyBased,
+                                index=phase_index + 1,
                             )
                         # Prepare to leave loops and start new flight phase
                         phase.timeNodes.flushAfter(node_index)
@@ -1554,9 +1556,9 @@ class Flight:
         return uDot
 
     def __transformationMatrices(self, e):
-        """Returns the transformation matrices to/from body frame from/to 
+        """Returns the transformation matrices to/from body frame from/to
         inertial frame, based on Euler parameters/quaternions.
-        
+
         Parameters
         ----------
         e : array-like
@@ -1590,7 +1592,7 @@ class Flight:
     def __computeDragForce(self, z, v):
         """Returns the drag force acting on the rocket given an altitude z and
         the rocket velocity vector v.
-        
+
         Parameters
         ----------
         z : float
@@ -1598,7 +1600,7 @@ class Flight:
         v : np.array
             Velocity vector vx, vy, vz in the inertial reference frame.
 
-            
+
         Returns
         -------
         float
@@ -1617,22 +1619,18 @@ class Flight:
     def __skew_symmetric_matrix(self, u):
         """Returns the skew symmetric matrix representation of the cross
         product of u with any vector.
-        
+
         Parameters
         ----------
         u : 3x1 array
             Array to be transformed into screw symmetric matrix
-        
+
         Returns
         -------
         3x3 np.array
             Screw symmetric matrix of u
         """
-        return np.array([
-            [    0, -u[2],  u[1]],
-            [ u[2],     0, -u[0]],
-            [-u[1],  u[0],     0]
-        ])
+        return np.array([[0, -u[2], u[1]], [u[2], 0, -u[0]], [-u[1], u[0], 0]])
 
     def uDotVariableMassNumpyBased(self, t, u, postProcessing=False):
         """Calculates derivative of u state vector with respect to time when the
@@ -1659,12 +1657,12 @@ class Flight:
         """
         # Retrieve integration data
         x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
-        
+
         # Create necessary vectors
-        r = np.array([x, y, z]) # CDM position vector
-        v = np.array([vx, vy, vz]) # CDM velocity vector
-        e = np.array([e0, e1, e2, e3]) # Euler parameters/quaternions
-        w = np.array([omega1, omega2, omega3]) # Angular velocity vector
+        r = np.array([x, y, z])  # CDM position vector
+        v = np.array([vx, vy, vz])  # CDM velocity vector
+        e = np.array([e0, e1, e2, e3])  # Euler parameters/quaternions
+        w = np.array([omega1, omega2, omega3])  # Angular velocity vector
 
         # Retrieve necessary quantities
         rho = self.env.density.getValueOpt(z)
@@ -1672,13 +1670,18 @@ class Flight:
         total_mass_dot = self.rocket.totalMass.differentiate(t)
         total_mass_ddot = self.rocket.totalMass.differentiate(t, order=2)
         ## CM position vector and time derivatives relative to CDM in body frame
-        r_CM_z = -1 * (
-            (
-                self.rocket.centerOfPropellantPosition
-                - self.rocket.centerOfDryMassPosition
+        r_CM_z = (
+            -1
+            * (
+                (
+                    self.rocket.centerOfPropellantPosition
+                    - self.rocket.centerOfDryMassPosition
+                )
+                * self.rocket._csys
             )
-            * self.rocket._csys
-        ) * self.rocket.motor.mass / total_mass
+            * self.rocket.motor.mass
+            / total_mass
+        )
         r_CM = np.array([0, 0, r_CM_z.getValueOpt(t)])
         r_CM_dot = np.array([0, 0, r_CM_z.differentiate(t)])
         r_CM_ddot = np.array([0, 0, r_CM_z.differentiate(t, order=2)])
@@ -1693,11 +1696,13 @@ class Flight:
         S_noz_12 = 0
         S_noz_13 = 0
         S_noz_23 = 0
-        S_nozzle = np.array([
-            [S_noz_11, S_noz_12, S_noz_13],
-            [S_noz_12, S_noz_22, S_noz_23],
-            [S_noz_13, S_noz_23, S_noz_33],
-        ])
+        S_nozzle = np.array(
+            [
+                [S_noz_11, S_noz_12, S_noz_13],
+                [S_noz_12, S_noz_22, S_noz_23],
+                [S_noz_13, S_noz_23, S_noz_33],
+            ]
+        )
         ## Inertia tensor
         I_11 = self.rocket.I_11.getValueOpt(t)
         I_12 = self.rocket.I_12.getValueOpt(t)
@@ -1705,11 +1710,13 @@ class Flight:
         I_22 = self.rocket.I_22.getValueOpt(t)
         I_23 = self.rocket.I_23.getValueOpt(t)
         I_33 = self.rocket.I_33.getValueOpt(t)
-        I = np.array([
-            [I_11, I_12, I_13],
-            [I_12, I_22, I_23],
-            [I_13, I_23, I_33],
-        ])
+        I = np.array(
+            [
+                [I_11, I_12, I_13],
+                [I_12, I_22, I_23],
+                [I_13, I_23, I_33],
+            ]
+        )
         ## Inertia tensor time derivative in the body frame
         I_11_dot = self.rocket.I_11.differentiate(t)
         I_12_dot = self.rocket.I_12.differentiate(t)
@@ -1717,11 +1724,13 @@ class Flight:
         I_22_dot = self.rocket.I_22.differentiate(t)
         I_23_dot = self.rocket.I_23.differentiate(t)
         I_33_dot = self.rocket.I_33.differentiate(t)
-        I_dot = np.array([
-            [I_11_dot, I_12_dot, I_13_dot],
-            [I_12_dot, I_22_dot, I_23_dot],
-            [I_13_dot, I_23_dot, I_33_dot],
-        ])
+        I_dot = np.array(
+            [
+                [I_11_dot, I_12_dot, I_13_dot],
+                [I_12_dot, I_22_dot, I_23_dot],
+                [I_13_dot, I_23_dot, I_33_dot],
+            ]
+        )
         ## Inertia tensor relative to CM
         r_CM_X = self.__skew_symmetric_matrix(r_CM)
         H = total_mass * np.dot(r_CM_X, -r_CM_X)
@@ -1735,7 +1744,7 @@ class Flight:
 
         ## Drag force
         R3 += self.__computeDragForce(z, v)
-        
+
         ## Off center moment
         M1 += self.rocket.cpEccentricityY * R3
         M2 -= self.rocket.cpEccentricityX * R3
@@ -1761,7 +1770,7 @@ class Flight:
             compStreamVelocity = compWindVB - compVB
             compStreamVxB, compStreamVyB, compStreamVzB = compStreamVelocity
             compStreamSpeed = np.linalg.norm(compStreamVelocity)
-            compStreamMach = compStreamSpeed/self.env.speedOfSound.getValueOpt(z)
+            compStreamMach = compStreamSpeed / self.env.speedOfSound.getValueOpt(z)
             # Component attack angle and lift force
             compAttackAngle = 0
             compLift, compLiftXB, compLiftYB = 0, 0, 0
@@ -1810,7 +1819,10 @@ class Flight:
 
         weightB = np.dot(Kt, np.array([0, 0, -total_mass * self.env.g]))
         T00 = total_mass * r_CM
-        T03 = 2*total_mass_dot*(np.array([0, 0, r_NOZ]) - r_CM) - 2*total_mass*r_CM_dot
+        T03 = (
+            2 * total_mass_dot * (np.array([0, 0, r_NOZ]) - r_CM)
+            - 2 * total_mass * r_CM_dot
+        )
         T04 = (
             self.rocket.motor.thrust(t) * np.array([0, 0, 1])
             - total_mass * r_CM_ddot
@@ -1820,25 +1832,25 @@ class Flight:
         T05 = total_mass_dot * S_nozzle - I_dot
 
         T20 = (
-            np.cross(np.cross(w, T00), w) +
-            np.cross(w, T03) +
-            T04 +
-            weightB +
-            np.array([R1, R2, R3])
+            np.cross(np.cross(w, T00), w)
+            + np.cross(w, T03)
+            + T04
+            + weightB
+            + np.array([R1, R2, R3])
         )
 
         T21 = (
-            np.cross(np.dot(I, w), w) +
-            np.dot(T05, w) +
-            np.cross(weightB, r_CM) +
-            np.array([M1, M2, M3])
+            np.cross(np.dot(I, w), w)
+            + np.dot(T05, w)
+            + np.cross(weightB, r_CM)
+            + np.array([M1, M2, M3])
         )
 
         # Angular velocity derivative
         w_dot = np.dot(np.linalg.inv(I_CM), (T21 + np.cross(T20, r_CM)).T).flatten()
 
         # Velocity vector derivative
-        v_dot = np.dot(K, T20/total_mass - np.cross(r_CM, w_dot))
+        v_dot = np.dot(K, T20 / total_mass - np.cross(r_CM, w_dot))
 
         # Euler parameters derivative
         e_dot = [
@@ -1899,12 +1911,12 @@ class Flight:
         """
         # Retrieve integration data
         x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
-        
+
         # Create necessary vectors
-        r = Vector([x, y, z]) # CDM position vector
-        v = Vector([vx, vy, vz]) # CDM velocity vector
-        e = Vector([e0, e1, e2, e3]) # Euler parameters/quaternions
-        w = Vector([omega1, omega2, omega3]) # Angular velocity vector
+        r = Vector([x, y, z])  # CDM position vector
+        v = Vector([vx, vy, vz])  # CDM velocity vector
+        e = Vector([e0, e1, e2, e3])  # Euler parameters/quaternions
+        w = Vector([omega1, omega2, omega3])  # Angular velocity vector
 
         # Retrieve necessary quantities
         rho = self.env.density.getValueOpt(z)
@@ -1912,13 +1924,18 @@ class Flight:
         total_mass_dot = self.rocket.totalMass.differentiate(t)
         total_mass_ddot = self.rocket.totalMass.differentiate(t, order=2)
         ## CM position vector and time derivatives relative to CDM in body frame
-        r_CM_z = -1 * (
-            (
-                self.rocket.centerOfPropellantPosition
-                - self.rocket.centerOfDryMassPosition
+        r_CM_z = (
+            -1
+            * (
+                (
+                    self.rocket.centerOfPropellantPosition
+                    - self.rocket.centerOfDryMassPosition
+                )
+                * self.rocket._csys
             )
-            * self.rocket._csys
-        ) * self.rocket.motor.mass / total_mass
+            * self.rocket.motor.mass
+            / total_mass
+        )
         r_CM = Vector([0, 0, r_CM_z.getValueOpt(t)])
         r_CM_dot = Vector([0, 0, r_CM_z.differentiate(t)])
         r_CM_ddot = Vector([0, 0, r_CM_z.differentiate(t, order=2)])
@@ -1933,11 +1950,13 @@ class Flight:
         S_noz_12 = 0
         S_noz_13 = 0
         S_noz_23 = 0
-        S_nozzle = Matrix([
-            [S_noz_11, S_noz_12, S_noz_13],
-            [S_noz_12, S_noz_22, S_noz_23],
-            [S_noz_13, S_noz_23, S_noz_33],
-        ])
+        S_nozzle = Matrix(
+            [
+                [S_noz_11, S_noz_12, S_noz_13],
+                [S_noz_12, S_noz_22, S_noz_23],
+                [S_noz_13, S_noz_23, S_noz_33],
+            ]
+        )
         ## Inertia tensor
         I_11 = self.rocket.I_11.getValueOpt(t)
         I_12 = self.rocket.I_12.getValueOpt(t)
@@ -1945,11 +1964,13 @@ class Flight:
         I_22 = self.rocket.I_22.getValueOpt(t)
         I_23 = self.rocket.I_23.getValueOpt(t)
         I_33 = self.rocket.I_33.getValueOpt(t)
-        I = Matrix([
-            [I_11, I_12, I_13],
-            [I_12, I_22, I_23],
-            [I_13, I_23, I_33],
-        ])
+        I = Matrix(
+            [
+                [I_11, I_12, I_13],
+                [I_12, I_22, I_23],
+                [I_13, I_23, I_33],
+            ]
+        )
         ## Inertia tensor time derivative in the body frame
         I_11_dot = self.rocket.I_11.differentiate(t)
         I_12_dot = self.rocket.I_12.differentiate(t)
@@ -1957,11 +1978,13 @@ class Flight:
         I_22_dot = self.rocket.I_22.differentiate(t)
         I_23_dot = self.rocket.I_23.differentiate(t)
         I_33_dot = self.rocket.I_33.differentiate(t)
-        I_dot = Matrix([
-            [I_11_dot, I_12_dot, I_13_dot],
-            [I_12_dot, I_22_dot, I_23_dot],
-            [I_13_dot, I_23_dot, I_33_dot],
-        ])
+        I_dot = Matrix(
+            [
+                [I_11_dot, I_12_dot, I_13_dot],
+                [I_12_dot, I_22_dot, I_23_dot],
+                [I_13_dot, I_23_dot, I_33_dot],
+            ]
+        )
         ## Inertia tensor relative to CM
         r_CM_X = self.cross_matrix(r_CM)
         H = total_mass * (r_CM_X @ -r_CM_X)
@@ -1975,7 +1998,7 @@ class Flight:
 
         ## Drag force
         R3 += self.__computeDragForce(z, v)
-        
+
         ## Off center moment
         M1 += self.rocket.cpEccentricityY * R3
         M2 -= self.rocket.cpEccentricityX * R3
@@ -2001,7 +2024,7 @@ class Flight:
             compStreamVelocity = compWindVB - compVB
             compStreamVxB, compStreamVyB, compStreamVzB = compStreamVelocity
             compStreamSpeed = abs(compStreamVelocity)
-            compStreamMach = compStreamSpeed/self.env.speedOfSound.getValueOpt(z)
+            compStreamMach = compStreamSpeed / self.env.speedOfSound.getValueOpt(z)
             # Component attack angle and lift force
             compAttackAngle = 0
             compLift, compLiftXB, compLiftYB = 0, 0, 0
@@ -2050,7 +2073,10 @@ class Flight:
 
         weightB = Kt @ [0, 0, -total_mass * self.env.g]
         T00 = total_mass * r_CM
-        T03 = 2*total_mass_dot*(Vector([0, 0, r_NOZ]) - r_CM) - 2*total_mass*r_CM_dot
+        T03 = (
+            2 * total_mass_dot * (Vector([0, 0, r_NOZ]) - r_CM)
+            - 2 * total_mass * r_CM_dot
+        )
         T04 = (
             self.rocket.motor.thrust(t) * Vector([0, 0, 1])
             - total_mass * r_CM_ddot
@@ -2059,26 +2085,15 @@ class Flight:
         )
         T05 = total_mass_dot * S_nozzle - I_dot
 
-        T20 = (
-            (w * T00) * w +
-            w * T03 +
-            T04 +
-            weightB +
-            Vector([R1, R2, R3])
-        )
+        T20 = (w * T00) * w + w * T03 + T04 + weightB + Vector([R1, R2, R3])
 
-        T21 = (
-            I @ w * w +
-            T05 @ w +
-            weightB * r_CM +
-            Vector([M1, M2, M3])
-        )
+        T21 = I @ w * w + T05 @ w + weightB * r_CM + Vector([M1, M2, M3])
 
         # Angular velocity derivative
         w_dot = I_CM.inverse @ ((T21 + T20) * r_CM)
 
         # Velocity vector derivative
-        v_dot = K * (T20/total_mass - (r_CM * w_dot))
+        v_dot = K * (T20 / total_mass - (r_CM * w_dot))
 
         # Euler parameters derivative
         e_dot = [
