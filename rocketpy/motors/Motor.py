@@ -36,13 +36,19 @@ class Motor(ABC):
             more information.
 
         Mass and moment of inertia attributes:
+        Motor.dry_mass : float
+            Total mass of the empty motor structure, including chambers
+            and tanks, that is the motor mass without propellant.
         Motor.propellantInitialMass : float
             Total propellant initial mass in kg.
-        Motor.mass : Function
-            Propellant total mass in kg as a function of time.
-        Motor.massFlowRate : Function
+        Motor.totalMass : Function
+            Total motor mass in kg as a function of time, defined as the sum
+            of propellant and dry mass.
+        Motor.propellantMass : Function
+            Total propellant mass in kg as a function of time.
+        Motor.totalMassFlowRate : Function
             Time derivative of propellant total mass in kg/s as a function
-            of time.
+            of time as obtained by the thrust source.
         Motor.inertiaI : Function
             Propellant moment of inertia in kg*meter^2 with respect to axis
             perpendicular to axis of cylindrical symmetry of each grain,
@@ -108,6 +114,9 @@ class Motor(ABC):
             Function. See help(Function). Thrust units are Newtons.
         burnOut : int, float
             Motor burn out time in seconds.
+        dry_mass : int, float
+            Total mass of the empty motor structure, including chambers
+            and tanks, that is the motor mass without propellant.
         nozzleRadius : int, float, optional
             Motor's nozzle outlet radius in meters.
         nozzlePosition : int, float, optional
@@ -262,17 +271,17 @@ class Motor(ABC):
             Constant gas exhaust velocity of the motor.
         """
         return self.totalImpulse / self.propellantInitialMass
-    
+
     @funcify_method("Time (s)", "total mass (kg)")
     def totalMass(self):
         """Total mass of the motor as a Function of time.
         Is defined as the propellant mass plus the dry mass.
-        
+
         Parameters
         ----------
         t : float
             Time in seconds.
-            
+
         Returns
         -------
         Function
@@ -705,6 +714,7 @@ class GenericMotor(Motor):
         self,
         thrustSource,
         burnOut,
+        dry_mass,
         chamberRadius,
         chamberHeight,
         chamberPosition,
@@ -717,6 +727,7 @@ class GenericMotor(Motor):
         super().__init__(
             thrustSource,
             burnOut,
+            dry_mass,
             nozzleRadius,
             throatRadius,
             reshapeThrustCurve,
@@ -939,10 +950,11 @@ class EmptyMotor:
     def __init__(self):
         """Initializes an empty motor with no mass and no thrust."""
         self._csys = 1
+        self.dry_mass = 0
         self.nozzleRadius = 0
         self.thrust = Function(0, "Time (s)", "Thrust (N)")
-        self.mass = Function(0, "Time (s)", "Mass (kg)")
-        self.massDot = Function(0, "Time (s)", "Mass Depletion Rate (kg/s)")
+        self.totalMass = Function(0, "Time (s)", "Mass (kg)")
+        self.totalMassFlowRate = Function(0, "Time (s)", "Mass Depletion Rate (kg/s)")
         self.burnOutTime = 1
         self.nozzlePosition = 0
         self.centerOfMass = Function(0, "Time (s)", "Mass (kg)")

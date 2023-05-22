@@ -57,13 +57,19 @@ class HybridMotor(Motor):
         Mass and moment of inertia attributes:
         Motor.grainInitialMass : float
             Initial mass of each grain in kg.
+        Motor.dry_mass : float
+            Total mass of the empty motor structure, including chambers
+            and tanks, that is the motor mass without propellant.
         Motor.propellantInitialMass : float
             Total propellant initial mass in kg.
-        Motor.mass : Function
-            Propellant total mass in kg as a function of time.
-        Motor.massDot : Function
+        Motor.totalMass : Function
+            Total motor mass in kg as a function of time, defined as the sum
+            of propellant and dry mass.
+        Motor.propellantMass : Function
+            Total propellant mass in kg as a function of time.
+        Motor.totalMassFlowRate : Function
             Time derivative of propellant total mass in kg/s as a function
-            of time.
+            of time as obtained by the thrust source.
         Motor.inertiaI : Function
             Propellant moment of inertia in kg*meter^2 with respect to axis
             perpendicular to axis of cylindrical symmetry of each grain,
@@ -146,6 +152,9 @@ class HybridMotor(Motor):
             Function. See help(Function). Thrust units are Newtons.
         burnOut : int, float
             Motor burn out time in seconds.
+        dry_mass : int, float
+            Total mass of the empty motor structure, including chambers
+            and tanks, that is the motor mass without propellant.
         grainNumber : int
             Number of solid grains
         grainDensity : int, float
@@ -324,10 +333,12 @@ class HybridMotor(Motor):
             and Iy. The third argument is inertia Iz.
         """
         solidCorrection = (
-            self.solid.propellantMass * (self.solid.centerOfMass - self.centerOfMass) ** 2
+            self.solid.propellantMass
+            * (self.solid.centerOfMass - self.centerOfMass) ** 2
         )
         liquidCorrection = (
-            self.liquid.propellantMass * (self.liquid.centerOfMass - self.centerOfMass) ** 2
+            self.liquid.propellantMass
+            * (self.liquid.centerOfMass - self.centerOfMass) ** 2
         )
 
         solidInertia = self.solid.inertiaTensor
@@ -373,10 +384,12 @@ class HybridMotor(Motor):
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
         solidCorrection = (
-            self.solid.propellantMass * (self.solid.centerOfMass - self.centerOfMass) ** 2
+            self.solid.propellantMass
+            * (self.solid.centerOfMass - self.centerOfMass) ** 2
         )
         liquidCorrection = (
-            self.liquid.propellantMass * (self.liquid.centerOfMass - self.centerOfMass) ** 2
+            self.liquid.propellantMass
+            * (self.liquid.centerOfMass - self.centerOfMass) ** 2
         )
 
         I_11 = self.solid.I_11 + solidCorrection + self.liquid.I_11 + liquidCorrection

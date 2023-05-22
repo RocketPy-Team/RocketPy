@@ -43,6 +43,9 @@ class LiquidMotor(Motor):
             Function. See help(Function). Thrust units are Newtons.
         burnOut : int, float
             Motor burn out time in seconds.
+        dry_mass : int, float
+            Total mass of the empty motor structure, including chambers
+            and tanks, that is the motor mass without propellant.
         nozzleRadius : int, float
             Motor's nozzle outlet radius in meters.
         nozzlePosition : float

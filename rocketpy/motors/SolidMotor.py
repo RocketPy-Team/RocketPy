@@ -65,13 +65,19 @@ class SolidMotor(Motor):
             regarding the motor's coordinate system
         Motor.grainInitialMass : float
             Initial mass of each grain in kg.
+        Motor.dry_mass : float
+            Total mass of the empty motor structure, including chambers
+            and tanks, that is the motor mass without propellant.
         Motor.propellantInitialMass : float
             Total propellant initial mass in kg.
-        Motor.mass : Function
-            Propellant total mass in kg as a function of time.
-        Motor.massDot : Function
+        Motor.totalMass : Function
+            Total motor mass in kg as a function of time, defined as the sum
+            of propellant and dry mass.
+        Motor.propellantMass : Function
+            Total propellant mass in kg as a function of time.
+        Motor.totalMassFlowRate : Function
             Time derivative of propellant total mass in kg/s as a function
-            of time.
+            of time as obtained by the thrust source.
         Motor.inertiaI : Function
             Propellant moment of inertia in kg*meter^2 with respect to axis
             perpendicular to axis of cylindrical symmetry of each grain,
