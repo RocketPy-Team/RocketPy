@@ -81,7 +81,9 @@ def test_mass_curve_asserts_extreme_values(solid_motor):
     grain_mass = grain_vol * grainDensity
 
     assert np.allclose(solid_motor.propellantMass.getSource()[-1][-1], 0)
-    assert np.allclose(solid_motor.propellantMass.getSource()[0][-1], grainNumber * grain_mass)
+    assert np.allclose(
+        solid_motor.propellantMass.getSource()[0][-1], grainNumber * grain_mass
+    )
 
 
 def test_burn_area_asserts_extreme_values(solid_motor):
