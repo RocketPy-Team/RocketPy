@@ -466,49 +466,35 @@ class Rocket:
         self.evaluateStaticMargin()
         return None
 
-    def addSurface(self, surface, position):
-        """Adds an aerodynamic surface to the rocket. The aerodynamic surface
-        must be an instance of a class that inherits from the AerodynamicSurface
-
-        Parameters
-        ----------
-        surface : AeroSurfaces, NoseCone, TrapezoidalFins, EllipticalFins, Tail
-            Aerodynamic surface to be added to the rocket. See AerodynamicSurface class
-            for more information.
-        position : int, float
-            Position, in m, of the aerodynamic surface's center of pressure relative to
-            the user defined rocket coordinate system. See `Rocket.coordinateSystemOrientation`
-            for more information regarding the rocket's coordinate system.
-
-        Returns
-        -------
-        None
-        """
-        self.aerodynamicSurfaces.add(surface, position)
-
-        self.evaluateStaticMargin()
-        return None
-
     def addSurfaces(self, surfaces, positions):
-        """Adds multiple aerodynamic surfaces to the rocket. The aerodynamic surfaces
-        must be instances of classes that inherit from the AerodynamicSurface
+        """Adds one or more aerodynamic surfaces to the rocket. The aerodynamic
+        surface must be an instance of a class that inherits from the
+        AerodynamicSurface
 
         Parameters
         ----------
-        surfaces : list of AeroSurfaces, NoseCone, TrapezoidalFins, EllipticalFins, Tail
-            List of aerodynamic surfaces to be added to the rocket. See AerodynamicSurface class
-            for more information.
-        positions : list of int, float
-            List of positions, in m, of the aerodynamic surfaces' center of pressure relative to
-            the user defined rocket coordinate system. See `Rocket.coordinateSystemOrientation`
-            for more information regarding the rocket's coordinate system.
+        surfaces : list, AeroSurfaces, NoseCone, TrapezoidalFins, EllipticalFins, Tail
+            Aerodynamic surface to be added to the rocket. Can be a list of
+            AeroSurfaces if more than one surface is to be added.
+            See AeroSurface class for more information.
+        positions : int, float, list
+            Position, in m, of the aerodynamic surface's center of pressure
+            relative to the user defined rocket coordinate system.
+            See `Rocket.coordinateSystemOrientation` for more information
+            regarding the rocket's coordinate system.
+            If a list is passed, will correspond to the position of each item
+            in the surfaces list.
 
         Returns
         -------
         None
         """
-        for surface, position in zip(surfaces, positions):
-            self.addSurface(surface, position)
+        try:
+            for surface, position in zip(surfaces, positions):
+                self.aerodynamicSurfaces.add(surface, position)
+        except:
+            self.aerodynamicSurfaces.add(surfaces, positions)
+
         self.evaluateStaticMargin()
         return None
 
@@ -549,7 +535,7 @@ class Rocket:
         tail = Tail(topRadius, bottomRadius, length, radius, name)
 
         # Add tail to aerodynamic surfaces
-        self.addSurface(tail, position)
+        self.addSurfaces(tail, position)
 
         # Return self
         return tail
@@ -584,7 +570,7 @@ class Rocket:
         nose = NoseCone(length, kind, self.radius, self.radius, name)
 
         # Add nose to the list of aerodynamic surfaces
-        self.addSurface(nose, position)
+        self.addSurfaces(nose, position)
 
         # Return self
         return nose
@@ -692,7 +678,7 @@ class Rocket:
         )
 
         # Add fin set to the list of aerodynamic surfaces
-        self.addSurface(finSet, position)
+        self.addSurfaces(finSet, position)
 
         # Return the created aerodynamic surface
         return finSet
@@ -762,7 +748,7 @@ class Rocket:
         finSet = EllipticalFins(n, rootChord, span, radius, cantAngle, airfoil, name)
 
         # Add fin set to the list of aerodynamic surfaces
-        self.addSurface(finSet, position)
+        self.addSurfaces(finSet, position)
 
         # Return self
         return finSet
