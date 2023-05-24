@@ -13,7 +13,15 @@ import numpy as np
 
 from .Function import Function
 from .Parachute import Parachute
-from .AeroSurfaces import NoseCone, TrapezoidalFins, EllipticalFins, Tail
+from .AeroSurfaces import (
+    AeroSurfaces,
+    Fins,
+    NoseCone,
+    TrapezoidalFins,
+    EllipticalFins,
+    Tail,
+)
+from .Components import Components
 from .Motor import EmptyMotor
 
 from .prints.rocket_prints import _RocketPrints
@@ -212,10 +220,10 @@ class Rocket:
         self.railButtons = None
 
         # Aerodynamic data initialization
-        self.aerodynamicSurfaces = []
-        self.nosecone = []
-        self.fins = []
-        self.tail = []
+        self.aerodynamicSurfaces = Components()
+        self._nosecones = []
+        self._fins = []
+        self._tails = []
         self.cpPosition = 0
         self.staticMargin = Function(
             lambda x: 0, inputs="Time (s)", outputs="Static Margin (c)"
@@ -239,6 +247,7 @@ class Rocket:
         self.cpPosition = 0  # Set by self.evaluateStaticMargin()
 
         # Create a, possibly, temporary empty motor
+        # self.motors = Components()  # currently unused since only one motor is supported
         self.addMotor(motor=EmptyMotor(), position=0)
 
         # Important dynamic inertial quantities
@@ -260,6 +269,21 @@ class Rocket:
         self.plots = _RocketPlots(self)
 
         return None
+
+    @property
+    def nosecones(self):
+        self._nosecones = self.aerodynamicSurfaces.get_by_type(NoseCone)
+        return self._nosecones
+
+    @property
+    def fins(self):
+        self._fins = self.aerodynamicSurfaces.get_by_type(Fins)
+        return self._fins
+
+    @property
+    def tails(self):
+        self._tails = self.aerodynamicSurfaces.get_by_type(Tail)
+        return self._tails
 
     def evaluateTotalMass(self):
         """Calculates and returns the rocket's total mass. The total
@@ -389,10 +413,10 @@ class Rocket:
 
         # Calculate total lift coefficient derivative and center of pressure
         if len(self.aerodynamicSurfaces) > 0:
-            for surface in self.aerodynamicSurfaces:
+            for surface, position in self.aerodynamicSurfaces:
                 self.totalLiftCoeffDer += surface.clalpha(0)
                 self.cpPosition += surface.clalpha(0) * (
-                    surface.position - self._csys * surface.cpz
+                    position - self._csys * surface.cpz
                 )
             self.cpPosition /= self.totalLiftCoeffDer
 
@@ -460,14 +484,8 @@ class Rocket:
         -------
         None
         """
-        self.aerodynamicSurfaces.append(surface)
-        surface.position = position
-        if isinstance(surface, NoseCone):
-            self.nosecone.append(surface)
-        elif isinstance(surface, (TrapezoidalFins, EllipticalFins)):
-            self.fins.append(surface)
-        elif isinstance(surface, Tail):
-            self.tail.append(surface)
+        self.aerodynamicSurfaces.add(surface, position)
+
         self.evaluateStaticMargin()
         return None
 
@@ -491,7 +509,6 @@ class Rocket:
         """
         for surface, position in zip(surfaces):
             self.addSurface(surface, position)
-            surface.position = position
         self.evaluateStaticMargin()
         return None
 
@@ -537,7 +554,7 @@ class Rocket:
         # Return self
         return tail
 
-    def addNose(self, length, kind, position, name="Nose Cone"):
+    def addNose(self, length, kind, position, name="Nosecone"):
         """Creates a nose cone, storing its parameters as part of the
         aerodynamicSurfaces list. Its parameters are the axial position
         along the rocket and its derivative of the coefficient of lift

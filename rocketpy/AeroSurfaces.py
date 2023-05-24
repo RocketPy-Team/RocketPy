@@ -2,12 +2,13 @@ __author__ = "Guilherme Fernandes Alves, Mateus Stano Junqueira"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
+from abc import ABC, abstractmethod
+
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Ellipse
 
 from .Function import Function
-from abc import ABC, abstractmethod, abstractproperty
 
 
 class AeroSurfaces(ABC):
@@ -224,11 +225,6 @@ class NoseCone(AeroSurfaces):
         else:
             self.k = 0.5  # Parabolic and Von Karman
         self.evaluateCenterOfPressure()
-
-    def __repr__(self):
-        rep = f"NoseCone Object -> Name: {self.name}, kind: {self.kind}"
-
-        return rep
 
     def evaluateGeometricalParameters(self):
         """Calculates and saves nose cone's radius ratio.
@@ -1114,10 +1110,6 @@ class TrapezoidalFins(Fins):
         self.evaluateLiftCoefficient()
         self.evaluateRollParameters()
 
-    def __repr__(self):
-        rep = f"TrapezoidalFins Object -> Name: {self.name}"
-        return rep
-
     def evaluateCenterOfPressure(self):
         """Calculates and returns the center of pressure of the fin set in local
         coordinates. The center of pressure position is saved and stored as a tuple.
@@ -1473,11 +1465,6 @@ class EllipticalFins(Fins):
 
         return None
 
-    def __repr__(self):
-        rep = f"EllipticalFins Object -> Name: {self.name}"
-
-        return rep
-
     def evaluateCenterOfPressure(self):
         """Calculates and returns the center of pressure of the fin set in local
         coordinates. The center of pressure position is saved and stored as a tuple.
@@ -1782,11 +1769,6 @@ class Tail(AeroSurfaces):
     def rocketRadius(self, value):
         self._rocketRadius = value
         self.evaluateLiftCoefficient()
-
-    def __repr__(self):
-        rep = f"Tail Object -> Name: {self.name}"
-
-        return rep
 
     def evaluateGeometricalParameters(self):
         """Calculates and saves tail's slant length and surface area.
