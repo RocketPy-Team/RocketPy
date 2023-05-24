@@ -472,7 +472,7 @@ class Rocket:
 
         Parameters
         ----------
-        surface : AerodynamicSurface, NoseCone, TrapezoidalFins, EllipticalFins, Tail
+        surface : AeroSurfaces, NoseCone, TrapezoidalFins, EllipticalFins, Tail
             Aerodynamic surface to be added to the rocket. See AerodynamicSurface class
             for more information.
         position : int, float
@@ -495,7 +495,7 @@ class Rocket:
 
         Parameters
         ----------
-        surfaces : list of AerodynamicSurface, NoseCone, TrapezoidalFins, EllipticalFins, Tail
+        surfaces : list of AeroSurfaces, NoseCone, TrapezoidalFins, EllipticalFins, Tail
             List of aerodynamic surfaces to be added to the rocket. See AerodynamicSurface class
             for more information.
         positions : list of int, float
@@ -507,7 +507,7 @@ class Rocket:
         -------
         None
         """
-        for surface, position in zip(surfaces):
+        for surface, position in zip(surfaces, positions):
             self.addSurface(surface, position)
         self.evaluateStaticMargin()
         return None
