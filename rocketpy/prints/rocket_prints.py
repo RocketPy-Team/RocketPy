@@ -108,9 +108,7 @@ class _RocketPrints:
             name = surface.name
             print(
                 name
-                + " Lift Coefficient Derivative: {:.3f}".format(
-                    surface.clalpha(0)
-                )
+                + " Lift Coefficient Derivative: {:.3f}".format(surface.clalpha(0))
                 + "/rad"
             )
 
