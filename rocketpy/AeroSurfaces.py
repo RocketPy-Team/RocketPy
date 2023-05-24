@@ -348,7 +348,7 @@ class NoseCone(AeroSurfaces):
         return None
 
 
-class Fins(AeroSurfaces, ABC):
+class Fins(AeroSurfaces):
     """Abstract class that holds common methods for the fin classes.
     Cannot be instantiated.
 
