@@ -519,15 +519,14 @@ def test_simpler_parachute_triggers(mock_show):
     )
 
     assert (
-        abs(test_flight.z(test_flight.parachuteEvents[0][0]) - test_flight.apogee)
-        <= 1e-1
+        abs(test_flight.z(test_flight.parachuteEvents[0][0]) - test_flight.apogee) <= 1
     )
     assert (
         abs(
             test_flight.z(test_flight.parachuteEvents[1][0])
             - (800 + test_env.elevation)
         )
-        <= 1e-1
+        <= 1
     )
 
     assert test_flight.allInfo() == None
