@@ -238,7 +238,7 @@ def func_from_csv():
         inputs=["Scalar"],
         outputs=["Scalar"],
         interpolation="linear",
-        extrapolation="linear",
+        extrapolation="natural",
     )
     return func
 
