@@ -716,7 +716,15 @@ class Flight:
                     noise = parachute.noiseFunction()
                     parachute.noiseSignal.append([node.t, noise])
                     parachute.noisyPressureSignal.append([node.t, pressure + noise])
-                    if parachute.trigger(pressure + noise, self.ySol):
+                    # Gets height above ground level considering noise
+                    hAGL = (
+                        self.env.pressure.findInput(
+                            pressure + noise,
+                            overshootableNode.y[2],
+                        )
+                        - self.env.elevation
+                    )
+                    if parachute.trigger(pressure + noise, hAGL, self.ySol):
                         # print('\nEVENT DETECTED')
                         # print('Parachute Triggered')
                         # print('Name: ', parachute.name, ' | Lag: ', parachute.lag)
@@ -1012,8 +1020,17 @@ class Flight:
                                     parachute.noisyPressureSignal.append(
                                         [overshootableNode.t, pressure + noise]
                                     )
+                                    # Gets height above ground level considering noise
+                                    hAGL = (
+                                        self.env.pressure.findInput(
+                                            pressure + noise,
+                                            overshootableNode.y[2],
+                                        )
+                                        - self.env.elevation
+                                    )
+
                                     if parachute.trigger(
-                                        pressure + noise, overshootableNode.y
+                                        pressure + noise, hAGL, overshootableNode.y
                                     ):
                                         # print('\nEVENT DETECTED')
                                         # print('Parachute Triggered')
