@@ -780,7 +780,7 @@ class GenericMotor(Motor):
     def __init__(
         self,
         thrustSource,
-        burnOut,
+        burn_time,
         chamberRadius,
         chamberHeight,
         chamberPosition,
@@ -792,7 +792,7 @@ class GenericMotor(Motor):
     ):
         super().__init__(
             thrustSource,
-            burnOut,
+            burn_time,
             nozzleRadius,
             throatRadius,
             reshapeThrustCurve,

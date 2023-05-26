@@ -27,7 +27,7 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
         "rocketMass": (23.321 - 2.475, 0.010),
         # Propulsion Details
         "impulse": (4895.050, 0.033 * 4895.050),
-        "burnOut": (3.51, 0.1),
+        "burn_time": (3.51, 0.1),
         "nozzleRadius": (49.5 / 2000, 0.001),
         "throatRadius": (21.5 / 2000, 0.001),
         "grainSeparation": (3 / 1000, 0.001),
@@ -85,7 +85,7 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     # Motor Information
     L1395 = SolidMotor(
         thrustSource="tests/fixtures/acceptance/NDRT_2020/ndrt_2020_motor_Cesaroni_4895L1395-P.eng",
-        burn_time=parameters.get("burnOut")[0],
+        burn_time=parameters.get("burn_time")[0],
         grainsCenterOfMassPosition=parameters.get("distanceRocketPropellant")[0],
         grainNumber=5,
         grainSeparation=parameters.get("grainSeparation")[0],
