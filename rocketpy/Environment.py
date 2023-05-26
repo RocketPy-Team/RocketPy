@@ -2903,7 +2903,6 @@ class Environment:
         # Convert geopotential height to geometric height
         ER = self.earthRadius
         height = [ER * H / (ER - H) for H in geopotential_height]
-        height = geopotential_height
 
         # Save international standard atmosphere temperature profile
         self.temperatureISA = Function(
@@ -2917,12 +2916,12 @@ class Environment:
         g = self.standard_g
         R = self.airGasConstant
 
-        # Create function to compute pressure profile
+        # Create function to compute pressure at a given geometric height
         def pressure_function(h):
             # Convert geometric to geopotential height
             H = ER * h / (ER + h)
-            H = h
 
+            # Check if height is within bounds, return extrapolated value if not
             if H < -2000:
                 return pressure[0]
             elif H > 80000:
@@ -3019,6 +3018,8 @@ class Environment:
         """Compute the dynamic viscosity of the atmosphere as a function of
         height by using the formula given in ISO 2533 u = B*T^(1.5)/(T+S).
         This function is automatically called whenever a new atmospheric model is set.
+        Warning: This equation is invalid for very high or very low temperatures
+        and under conditions occurring at altitudes above 90 km.
 
         Parameters
         ----------
