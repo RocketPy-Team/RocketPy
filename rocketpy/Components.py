@@ -35,11 +35,7 @@ class Components:
             for c in self._components
             if isinstance(c.component, component_type)
         ]
-        return (
-            component_type_list[0]
-            if len(component_type_list) == 1
-            else component_type_list
-        )
+        return component_type_list
 
     def remove(self, component):
         """Remove a component from the list of components"""
