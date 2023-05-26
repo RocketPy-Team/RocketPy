@@ -43,7 +43,7 @@ class _EnvironmentAnalysisPlots:
 
         return None
 
-    def plot_wind_gust_distribution(self):
+    def wind_gust_distribution(self):
         """Get all values of wind gust speed (for every date and hour available)
         and plot a single distribution. Expected result is a Weibull distribution.
         """
@@ -85,7 +85,7 @@ class _EnvironmentAnalysisPlots:
 
         return None
 
-    def plot_surface10m_wind_speed_distribution(self, windSpeedLimit=False):
+    def surface10m_wind_speed_distribution(self, windSpeedLimit=False):
         """Get all values of sustained surface wind speed (for every date and hour available)
         and plot a single distribution. Expected result is a Weibull distribution.
         """
@@ -143,7 +143,7 @@ class _EnvironmentAnalysisPlots:
 
         return None
 
-    def plot_average_temperature_along_day(self):
+    def average_temperature_along_day(self):
         """Plots average temperature progression throughout the day, including
         sigma contours."""
 
@@ -199,7 +199,7 @@ class _EnvironmentAnalysisPlots:
         plt.show()
         return None
 
-    def plot_average_surface10m_wind_speed_along_day(self, windSpeedLimit=False):
+    def average_surface10m_wind_speed_along_day(self, windSpeedLimit=False):
         """Plots average surface wind speed progression throughout the day, including
         sigma contours."""
 
@@ -276,7 +276,7 @@ class _EnvironmentAnalysisPlots:
         plt.show()
         return None
 
-    def plot_average_sustained_surface100m_wind_speed_along_day(self):
+    def average_sustained_surface100m_wind_speed_along_day(self):
         """Plots average surface wind speed progression throughout the day, including
         sigma contours."""
 
@@ -344,7 +344,7 @@ class _EnvironmentAnalysisPlots:
         plt.show()
         return None
 
-    def plot_average_wind_speed_profile(self, clear_range_limits=False):
+    def average_wind_speed_profile(self, clear_range_limits=False):
         """Average wind speed for all datetimes available."""
         altitude_list = np.linspace(*self.envAnalysis.altitude_AGL_range, 100)
         wind_speed_profiles = [
@@ -429,7 +429,7 @@ class _EnvironmentAnalysisPlots:
         plt.show()
         return None
 
-    def plot_average_wind_heading_profile(self, clear_range_limits=False):
+    def average_wind_heading_profile(self, clear_range_limits=False):
         """Average wind heading for all datetimes available."""
         altitude_list = np.linspace(*self.envAnalysis.altitude_AGL_range, 100)
 
@@ -534,7 +534,7 @@ class _EnvironmentAnalysisPlots:
         plt.show()
         return None
 
-    def plot_average_pressure_profile(self, clear_range_limits=False):
+    def average_pressure_profile(self, clear_range_limits=False):
         """Average wind speed for all datetimes available."""
         altitude_list = np.linspace(*self.envAnalysis.altitude_AGL_range, 100)
         pressure_profiles = [
@@ -655,7 +655,7 @@ class _EnvironmentAnalysisPlots:
         ax.yaxis.set_major_formatter(mtick.PercentFormatter(decimals=0))
         return ax
 
-    def plot_average_day_wind_rose_specific_hour(self, hour, fig=None):
+    def average_day_wind_rose_specific_hour(self, hour, fig=None):
         """Plot a specific hour of the average windrose
 
         Parameters
@@ -684,7 +684,7 @@ class _EnvironmentAnalysisPlots:
 
         return None
 
-    def plot_average_day_wind_rose_all_hours(self):
+    def average_day_wind_rose_all_hours(self):
         """Plot wind roses for all hours of a day, in a grid like plot."""
         # Get days and hours
         days = list(self.envAnalysis.surfaceDataDict.keys())
@@ -830,7 +830,7 @@ class _EnvironmentAnalysisPlots:
             height=fig_height,
         )
 
-    def plot_wind_gust_distribution_over_average_day(self):
+    def wind_gust_distribution_over_average_day(self):
         """Plots shown in the animation of how the wind gust distribution varies throughout the day."""
         # Gather animation data
         average_wind_gust_at_given_hour = {}
@@ -988,7 +988,7 @@ class _EnvironmentAnalysisPlots:
         plt.close(fig)
         return HTML(animation.to_jshtml())
 
-    def plot_sustained_surface_wind_speed_distribution_over_average_day(
+    def sustained_surface_wind_speed_distribution_over_average_day(
         self, windSpeedLimit=False
     ):
         """Plots shown in the animation of how the sustained surface wind speed distribution varies throughout the day."""
@@ -1206,7 +1206,7 @@ class _EnvironmentAnalysisPlots:
         plt.close(fig)
         return HTML(animation.to_jshtml())
 
-    def plot_wind_profile_over_average_day(self, clear_range_limits=False):
+    def wind_profile_over_average_day(self, clear_range_limits=False):
         """Creates a grid of plots with the wind profile over the average day."""
         self.envAnalysis.process_wind_speed_profile_over_average_day()
 
@@ -1290,7 +1290,7 @@ class _EnvironmentAnalysisPlots:
 
         return None
 
-    def plot_wind_heading_profile_over_average_day(self, clear_range_limits=False):
+    def wind_heading_profile_over_average_day(self, clear_range_limits=False):
         """Creates a grid of plots with the wind heading profile over the average day."""
         self.envAnalysis.process_wind_heading_profile_over_average_day()
 
@@ -1532,28 +1532,28 @@ class _EnvironmentAnalysisPlots:
         -------
         None
         """
-        self.plot_wind_gust_distribution()
-        self.plot_surface10m_wind_speed_distribution()
-        self.plot_average_temperature_along_day()
-        self.plot_average_surface10m_wind_speed_along_day()
-        self.plot_average_sustained_surface100m_wind_speed_along_day()
-        self.plot_average_wind_speed_profile()
-        self.plot_average_wind_heading_profile()
-        self.plot_average_pressure_profile()
-        self.plot_average_day_wind_rose_all_hours()
-        self.plot_wind_gust_distribution_over_average_day()
-        self.plot_sustained_surface_wind_speed_distribution_over_average_day()
-        self.plot_wind_profile_over_average_day()
-        self.plot_wind_heading_profile_over_average_day()
+        self.wind_gust_distribution()
+        self.surface10m_wind_speed_distribution()
+        self.average_temperature_along_day()
+        self.average_surface10m_wind_speed_along_day()
+        self.average_sustained_surface100m_wind_speed_along_day()
+        self.average_wind_speed_profile()
+        self.average_wind_heading_profile()
+        self.average_pressure_profile()
+        self.average_day_wind_rose_all_hours()
+        self.wind_gust_distribution_over_average_day()
+        self.sustained_surface_wind_speed_distribution_over_average_day()
+        self.wind_profile_over_average_day()
+        self.wind_heading_profile_over_average_day()
 
         return None
 
     def info(self):
         "Plots only the most important plots together"
-        self.plot_wind_gust_distribution()
-        self.plot_average_wind_speed_profile()
-        self.plot_wind_profile_over_average_day()
-        self.plot_wind_heading_profile_over_average_day()
+        self.wind_gust_distribution()
+        self.average_wind_speed_profile()
+        self.wind_profile_over_average_day()
+        self.wind_heading_profile_over_average_day()
 
         return None
 

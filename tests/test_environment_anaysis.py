@@ -50,11 +50,11 @@ def test_distribution_plots(mock_show, env_analysis):
     """
 
     # Check distribution plots
-    assert env_analysis.plots.plot_wind_gust_distribution() == None
-    assert env_analysis.plots.plot_surface10m_wind_speed_distribution() == None
-    assert env_analysis.plots.plot_wind_gust_distribution_over_average_day() == None
+    assert env_analysis.plots.wind_gust_distribution() == None
+    assert env_analysis.plots.surface10m_wind_speed_distribution() == None
+    assert env_analysis.plots.wind_gust_distribution_over_average_day() == None
     assert (
-        env_analysis.plots.plot_sustained_surface_wind_speed_distribution_over_average_day()
+        env_analysis.plots.sustained_surface_wind_speed_distribution_over_average_day()
         == None
     )
 
@@ -77,17 +77,14 @@ def test_average_plots(mock_show, env_analysis):
     None
     """
     # Check "average" plots
-    assert env_analysis.plots.plot_average_temperature_along_day() == None
+    assert env_analysis.plots.average_temperature_along_day() == None
+    assert env_analysis.plots.average_surface10m_wind_speed_along_day(False) == None
+    assert env_analysis.plots.average_surface10m_wind_speed_along_day(True) == None
     assert (
-        env_analysis.plots.plot_average_surface10m_wind_speed_along_day(False) == None
+        env_analysis.plots.average_sustained_surface100m_wind_speed_along_day() == None
     )
-    assert env_analysis.plots.plot_average_surface10m_wind_speed_along_day(True) == None
-    assert (
-        env_analysis.plots.plot_average_sustained_surface100m_wind_speed_along_day()
-        == None
-    )
-    assert env_analysis.plots.plot_average_day_wind_rose_all_hours() == None
-    assert env_analysis.plots.plot_average_day_wind_rose_specific_hour(12) == None
+    assert env_analysis.plots.average_day_wind_rose_all_hours() == None
+    assert env_analysis.plots.average_day_wind_rose_specific_hour(12) == None
 
 
 @pytest.mark.slow
@@ -106,32 +103,23 @@ def test_profile_plots(mock_show, env_analysis):
         A simple object of the EnvironmentAnalysis class.
     """
     # Check profile plots
-    assert env_analysis.plots.plot_wind_heading_profile_over_average_day() == None
+    assert env_analysis.plots.wind_heading_profile_over_average_day() == None
     assert (
-        env_analysis.plots.plot_average_wind_heading_profile(clear_range_limits=False)
+        env_analysis.plots.average_wind_heading_profile(clear_range_limits=False)
         == None
     )
     assert (
-        env_analysis.plots.plot_average_wind_heading_profile(clear_range_limits=True)
-        == None
+        env_analysis.plots.average_wind_heading_profile(clear_range_limits=True) == None
     )
     assert (
-        env_analysis.plots.plot_average_wind_speed_profile(clear_range_limits=False)
-        == None
+        env_analysis.plots.average_wind_speed_profile(clear_range_limits=False) == None
     )
     assert (
-        env_analysis.plots.plot_average_wind_speed_profile(clear_range_limits=True)
-        == None
+        env_analysis.plots.average_wind_speed_profile(clear_range_limits=True) == None
     )
-    assert (
-        env_analysis.plots.plot_average_pressure_profile(clear_range_limits=False)
-        == None
-    )
-    assert (
-        env_analysis.plots.plot_average_pressure_profile(clear_range_limits=True)
-        == None
-    )
-    assert env_analysis.plots.plot_wind_profile_over_average_day() == None
+    assert env_analysis.plots.average_pressure_profile(clear_range_limits=False) == None
+    assert env_analysis.plots.average_pressure_profile(clear_range_limits=True) == None
+    assert env_analysis.plots.wind_profile_over_average_day() == None
 
 
 @pytest.mark.slow
