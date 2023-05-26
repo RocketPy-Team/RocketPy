@@ -14,6 +14,10 @@ import numpy as np
 import numpy.ma as ma
 import pytz
 import requests
+from collections import namedtuple
+from rocketpy.Function import funcify_method
+
+from .Function import Function
 
 from .Function import Function
 
@@ -282,7 +286,7 @@ class Environment:
             Only defined when using Ensembles.
         Environment.windVEnsemble : array
             Only defined when using Ensembles.
-        Environment.windHeadingEnsemble : arrray
+        Environment.windHeadingEnsemble : array
             Only defined when using Ensembles.
         Environment.windDirectionEnsemble : array
             Only defined when using Ensembles.
@@ -297,7 +301,7 @@ class Environment:
     def __init__(
         self,
         railLength,
-        gravity=9.80665,
+        gravity=None,
         date=None,
         latitude=0,
         longitude=0,
@@ -317,9 +321,10 @@ class Environment:
             Length in which the rocket will be attached to the rail, only
             moving along a fixed direction, that is, the line parallel to the
             rail.
-        gravity : scalar, optional
+        gravity : int, float, callable, string, array, optional
             Surface gravitational acceleration. Positive values point the
-            acceleration down. Default value is 9.80665.
+            acceleration down. If None, the Somigliana formula is used to
+            compute the gravity at the launch site as a function of height.
         date : array, optional
             Array of length 4, stating (year, month, day, hour (UTC))
             of rocket launch. Must be given if a Forecast, Reanalysis
@@ -355,14 +360,23 @@ class Environment:
         # Save launch rail length
         self.railLength = railLength
 
-        # Save gravity value
-        self.gravity = gravity
+        # Initialize constants
+        self.earthRadius = 6.3781 * (10**6)
+        self.airGasConstant = 287.05287  # in J/K/Kg
+        self.standard_g = 9.80665
 
-        # Save datum
-        self.datum = datum
+        # Initialize atmosphere
+        self.setAtmosphericModel("StandardAtmosphere")
+
+        # Save latitude and longitude
+        self.latitude = latitude
+        self.longitude = longitude
+        if latitude != None and longitude != None:
+            self.setLocation(latitude, longitude)
+        else:
+            self.latitude, self.longitude = None, None
 
         # Save date
-        self.date = date
         if date != None:
             self.setDate(date, timeZone)
         else:
@@ -371,9 +385,12 @@ class Environment:
             self.localDate = None
             self.timeZone = None
 
-        # Initialize constants
-        self.earthRadius = 6.3781 * (10**6)
-        self.airGasConstant = 287.05287  # in J/K/Kg
+        # Initialize Earth geometry and save datum
+        self.datum = datum
+        self.ellipsoid = self.setEarthGeometry(datum)
+
+        # Set gravity model
+        self.gravity = self.setGravityModel(gravity)
 
         # Initialize plots and prints objects
         self.prints = _EnvironmentPrints(self)
@@ -391,7 +408,8 @@ class Environment:
 
         # Store launch site coordinates referenced to UTM projection system
         if self.latitude > -80 and self.latitude < 84:
-            convert = self.geodesicToUtm(self.latitude, self.longitude, self.datum)
+            convert = self.geodesicToUtm(self.latitude, self.longitude)
+
             self.initialNorth = convert[1]
             self.initialEast = convert[0]
             self.initialUtmZone = convert[2]
@@ -404,10 +422,7 @@ class Environment:
         self.setElevation(elevation)
 
         # Recalculate Earth Radius
-        self.earthRadius = self.calculateEarthRadius(self.latitude, self.datum)  # in m
-
-        # Initialize plots and prints object
-        self.plots = _EnvironmentPlots(self)
+        self.earthRadius = self.calculateEarthRadius(self.latitude)  # in m
 
         # Initialize plots and prints object
         self.plots = _EnvironmentPlots(self)
@@ -485,6 +500,64 @@ class Environment:
 
         # Return None
 
+    def setGravityModel(self, gravity):
+        """Sets the gravity model to be used in the simulation based
+        on the given user input to the gravity parameter.
+
+        Parameters
+        ----------
+        gravity : None or Function source
+
+        Returns
+        -------
+        Function
+            Function object representing the gravity model.
+        """
+        if gravity is None:
+            return self.somiglianaGravity.setDiscrete(0, self.maxExpectedHeight, 100)
+        else:
+            return Function(gravity, "height (m)", "gravity (m/s²)").setDiscrete(
+                0, self.maxExpectedHeight, 100
+            )
+
+    @funcify_method("height (m)", "gravity (m/s²)")
+    def somiglianaGravity(self, height):
+        """Computes the gravity acceleration with the Somigliana formula.
+        An height correction is applied to the normal gravity that is
+        accurate for heights used in aviation. The formula is based on the
+        WGS84 ellipsoid, but is accurate for other reference ellipsoids.
+
+        Parameters
+        ----------
+        height : float
+            Height above the reference ellipsoid in meters.
+
+        Returns
+        -------
+        Function
+            Function object representing the gravity model.
+        """
+        a = 6378137.0  # semi_major_axis
+        f = 1 / 298.257223563  # flattening_factor
+        m_rot = 3.449786506841e-3  # rotation_factor
+        g_e = 9.7803253359  # normal gravity at equator
+        k_somgl = 1.931852652458e-3  # normal gravity formula const.
+        first_ecc_sqrd = 6.694379990141e-3  # square of first eccentricity
+
+        # Compute quantities
+        sin_lat_sqrd = (np.sin(self.latitude * np.pi / 180)) ** 2
+
+        gravity_somgl = g_e * (
+            (1 + k_somgl * sin_lat_sqrd) / (np.sqrt(1 - first_ecc_sqrd * sin_lat_sqrd))
+        )
+        height_correction = (
+            1
+            - height * 2 / a * (1 + f + m_rot - 2 * f * sin_lat_sqrd)
+            + 3 * height**2 / a**2
+        )
+
+        return height_correction * gravity_somgl
+
     def setElevation(self, elevation="Open-Elevation"):
         """Set elevation of launch site given user input or using the
         Open-Elevation API.
@@ -513,7 +586,7 @@ class Environment:
 
         #     # Calculate elevation
         #     dem  = ee.Image('USGS/SRTMGL1_003')
-        #     xy   = ee.Geometry.Point([selfgitude, self.latitude])
+        #     xy   = ee.Geometry.Point([self.longitude, self.latitude])
         #     elev = dem.sample(xy, 30).first().get('elevation').getInfo()
 
         #     self.elevation = elev
@@ -529,7 +602,7 @@ class Environment:
                 self.elevation = results[0]["elevation"]
                 print("Elevation received:", self.elevation)
             except:
-                raise RuntimeError("Unabel to reach Open-Elevation API servers.")
+                raise RuntimeError("Unable to reach Open-Elevation API servers.")
         else:
             raise ValueError(
                 "Latitude and longitude must be set to use"
@@ -1458,7 +1531,7 @@ class Environment:
     def processWindyAtmosphere(self, model="ECMWF"):
         """Process data from Windy.com to retrieve atmospheric forecast data.
 
-        Paramaters
+        Parameters
         ----------
         model : string, optional
             The atmospheric model to use. Default is 'ECMWF'. Options are: 'ECMWF' for
@@ -2077,7 +2150,7 @@ class Environment:
                     weatherData.variables[dictionary["geopotential"]][
                         timeIndex, :, (latIndex - 1, latIndex), (lonIndex - 1, lonIndex)
                     ]
-                    / self.gravity
+                    / self.standard_g
                 )
             except:
                 raise ValueError(
@@ -2503,7 +2576,7 @@ class Environment:
                 )
                 geopotentials = (
                     weatherData.variables[dictionary["geopotential"]][params]
-                    / self.gravity
+                    / self.standard_g
                 )
             except:
                 raise ValueError(
@@ -2845,7 +2918,7 @@ class Environment:
         )
 
         # Get gravity and R
-        g = self.gravity
+        g = self.standard_g
         R = self.airGasConstant
 
         # Create function to compute pressure profile
@@ -3190,7 +3263,7 @@ class Environment:
 
         self.exportEnvDictionary = {
             "railLength": self.railLength,
-            "gravity": self.gravity,
+            "gravity": self.gravity(self.elevation),
             "date": [
                 self.datetime_date.year,
                 self.datetime_date.month,
@@ -3236,8 +3309,36 @@ class Environment:
 
         return None
 
+    def setEarthGeometry(self, datum):
+        """Sets the Earth geometry for the Environment class based on the
+        datum provided.
+
+        Parameters
+        ----------
+        datum: str
+            The datum to be used for the Earth geometry.
+
+        Returns
+        -------
+        earthGeometry: namedtuple
+            The namedtuple containing the Earth geometry.
+        """
+        geodesy = namedtuple("earthGeometry", "semiMajorAxis flattening")
+        ellipsoid = {
+            "SIRGAS2000": geodesy(6378137.0, 1 / 298.257223563),
+            "SAD69": geodesy(6378160.0, 1 / 298.25),
+            "NAD83": geodesy(6378137.0, 1 / 298.257024899),
+            "WGS84": geodesy(6378137.0, 1 / 298.257223563),
+        }
+        try:
+            return ellipsoid[datum]
+        except KeyError:
+            raise AttributeError(
+                f"The reference system {datum} for Earth geometry " "is not recognized."
+            )
+
     # Auxiliary functions - Geodesic Coordinates
-    def geodesicToUtm(self, lat, lon, datum):
+    def geodesicToUtm(self, lat, lon):
         """Function which converts geodetic coordinates, i.e. lat/lon, to UTM
         projection coordinates. Can be used only for latitudes between -80.00°
         and 84.00°
@@ -3250,11 +3351,6 @@ class Environment:
         lon : float
             The longitude coordinates of the point of analysis, must be contained
             between -180.00° and 180.00°
-        datum : string
-            The desired reference ellipsoide model, the following options are
-            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
-            is "SIRGAS2000", then this model will be used if the user make some
-            typing mistake
 
         Returns
         -------
@@ -3294,19 +3390,8 @@ class Environment:
             EW = "W|E"
 
         # Select the desired datum (i.e. the ellipsoid parameters)
-        if datum == "SAD69":
-            semiMajorAxis = 6378160.0
-            flattening = 1 / 298.25
-        elif datum == "WGS84":
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257223563
-        elif datum == "NAD83":
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257024899
-        else:
-            # SIRGAS2000
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257223563
+        flattening = self.ellipsoid.flattening
+        semiMajorAxis = self.ellipsoid.semiMajorAxis
 
         # Evaluate the hemisphere and determine the N coordinate at the Equator
         if lat < 0:
@@ -3368,7 +3453,7 @@ class Environment:
 
         return x, y, utmZone, utmLetter, hemis, EW
 
-    def utmToGeodesic(self, x, y, utmZone, hemis, datum):
+    def utmToGeodesic(self, x, y, utmZone, hemis):
         """Function to convert UTM coordinates to geodesic coordinates
         (i.e. latitude and longitude). The latitude should be between -80°
         and 84°
@@ -3384,11 +3469,6 @@ class Environment:
             1 and 60
         hemis : string
             Equals to "S" for southern hemisphere and "N" for Northern hemisphere
-        datum : string
-            The desired reference ellipsoid model, the following options are
-            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
-            is "SIRGAS2000", then this model will be used if the user make some
-            typing mistake
 
         Returns
         -------
@@ -3405,19 +3485,8 @@ class Environment:
         centralMeridian = utmZone * 6 - 183  # degrees
 
         # Select the desired datum
-        if datum == "SAD69":
-            semiMajorAxis = 6378160.0
-            flattening = 1 / 298.25
-        elif datum == "WGS84":
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257223563
-        elif datum == "NAD83":
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257024899
-        else:
-            # SIRGAS2000
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257223563
+        flattening = self.ellipsoid.flattening
+        semiMajorAxis = self.ellipsoid.semiMajorAxis
 
         # Calculate reference values
         K0 = 1 - 1 / 2500
@@ -3472,7 +3541,7 @@ class Environment:
 
         return lat, lon
 
-    def calculateEarthRadius(self, lat, datum):
+    def calculateEarthRadius(self, lat):
         """Simple function to calculate the Earth Radius at a specific latitude
         based on ellipsoidal reference model (datum). The earth radius here is
         assumed as the distance between the ellipsoid's center of gravity and a
@@ -3485,11 +3554,6 @@ class Environment:
         ----------
         lat : float
             latitude in which the Earth radius will be calculated
-        datum : string
-            The desired reference ellipsoide model, the following options are
-            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
-            is "SIRGAS2000", then this model will be used if the user make some
-            typing mistake
 
         Returns
         -------
@@ -3497,19 +3561,8 @@ class Environment:
             Earth Radius at the desired latitude in meters
         """
         # Select the desired datum (i.e. the ellipsoid parameters)
-        if datum == "SAD69":
-            semiMajorAxis = 6378160.0
-            flattening = 1 / 298.25
-        elif datum == "WGS84":
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257223563
-        elif datum == "NAD83":
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257024899
-        else:
-            # SIRGAS2000
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257223563
+        flattening = self.ellipsoid.flattening
+        semiMajorAxis = self.ellipsoid.semiMajorAxis
 
         # Calculate the semi minor axis length
         # semiMinorAxis = semiMajorAxis - semiMajorAxis*(flattening**(-1))
@@ -3527,7 +3580,7 @@ class Environment:
             / ((np.cos(lat) * semiMajorAxis) ** 2 + (np.sin(lat) * semiMinorAxis) ** 2)
         )
 
-        # Convert latitude to degress
+        # Convert latitude to degrees
         lat = lat * 180 / np.pi
 
         return eRadius

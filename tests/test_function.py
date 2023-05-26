@@ -37,7 +37,7 @@ def test_getters(func_from_csv):
     assert func_from_csv.getInputs() == ["Scalar"]
     assert func_from_csv.getOutputs() == ["Scalar"]
     assert func_from_csv.getInterpolationMethod() == "linear"
-    assert func_from_csv.getExtrapolationMethod() == "linear"
+    assert func_from_csv.getExtrapolationMethod() == "natural"
     assert np.isclose(func_from_csv.getValue(0), 0.0, atol=1e-6)
     assert np.isclose(func_from_csv.getValueOpt_deprecated(0), 0.0, atol=1e-6)
     assert np.isclose(func_from_csv.getValueOpt(0), 0.0, atol=1e-6)
@@ -59,8 +59,8 @@ def test_setters(func_from_csv):
     assert func_from_csv.getOutputs() == ["Scalar2"]
     func_from_csv.setInterpolation("linear")
     assert func_from_csv.getInterpolationMethod() == "linear"
-    func_from_csv.setExtrapolation("linear")
-    assert func_from_csv.getExtrapolationMethod() == "linear"
+    func_from_csv.setExtrapolation("natural")
+    assert func_from_csv.getExtrapolationMethod() == "natural"
 
 
 @patch("matplotlib.pyplot.show")
@@ -82,7 +82,7 @@ def test_plots(mock_show, func_from_csv):
         inputs=["Scalar"],
         outputs=["Scalar"],
         interpolation="linear",
-        extrapolation="linear",
+        extrapolation="natural",
     )
     assert (
         func_from_csv.comparePlots([func_from_csv, func2], returnObject=False) == None

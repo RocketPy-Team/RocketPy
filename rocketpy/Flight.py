@@ -26,11 +26,6 @@ try:
 except ImportError:
     from .tools import cached_property
 
-try:
-    from functools import cached_property
-except ImportError:
-    from .tools import cached_property
-
 
 class Flight:
     """Keeps all flight information and has a method to simulate flight.
@@ -712,7 +707,15 @@ class Flight:
                     noise = parachute.noiseFunction()
                     parachute.noiseSignal.append([node.t, noise])
                     parachute.noisyPressureSignal.append([node.t, pressure + noise])
-                    if parachute.trigger(pressure + noise, self.ySol):
+                    # Gets height above ground level considering noise
+                    hAGL = (
+                        self.env.pressure.findInput(
+                            pressure + noise,
+                            overshootableNode.y[2],
+                        )
+                        - self.env.elevation
+                    )
+                    if parachute.trigger(pressure + noise, hAGL, self.ySol):
                         # print('\nEVENT DETECTED')
                         # print('Parachute Triggered')
                         # print('Name: ', parachute.name, ' | Lag: ', parachute.lag)
@@ -720,13 +723,15 @@ class Flight:
                         self.parachutes.remove(parachute)
                         # Create flight phase for time after detection and before inflation
                         # Must only be created if parachute has any lag
+                        i = 1
                         if parachute.lag != 0:
                             self.flightPhases.addPhase(
                                 node.t,
                                 phase.derivative,
                                 clear=True,
-                                index=phase_index + 1,
+                                index=phase_index + i,
                             )
+                            i += 1
                         # Create flight phase for time after inflation
                         callbacks = [
                             lambda self, parachuteCdS=parachute.CdS: setattr(
@@ -1006,8 +1011,17 @@ class Flight:
                                     parachute.noisyPressureSignal.append(
                                         [overshootableNode.t, pressure + noise]
                                     )
+                                    # Gets height above ground level considering noise
+                                    hAGL = (
+                                        self.env.pressure.findInput(
+                                            pressure + noise,
+                                            overshootableNode.y[2],
+                                        )
+                                        - self.env.elevation
+                                    )
+
                                     if parachute.trigger(
-                                        pressure + noise, overshootableNode.y
+                                        pressure + noise, hAGL, overshootableNode.y
                                     ):
                                         # print('\nEVENT DETECTED')
                                         # print('Parachute Triggered')
@@ -1249,7 +1263,7 @@ class Flight:
         # Calculate Linear acceleration
         a3 = (R3 + Thrust) / M - (
             e0**2 - e1**2 - e2**2 + e3**2
-        ) * self.env.gravity
+        ) * self.env.gravity(z)
         if a3 > 0:
             ax = 2 * (e1 * e3 + e0 * e2) * a3
             ay = 2 * (e2 * e3 - e0 * e1) * a3
@@ -1509,7 +1523,7 @@ class Flight:
             (R3 - b * Mt * (alpha2 - omega1 * omega3) + Thrust) / M,
         ]
         ax, ay, az = np.dot(K, L)
-        az -= self.env.gravity  # Include gravity
+        az -= self.env.gravity(z)  # Include gravity
 
         # Create uDot
         uDot = [
@@ -2115,12 +2129,18 @@ class Flight:
     # Potential Energy
     @funcify_method("Time (s)", "Potential Energy (J)", "spline", "constant")
     def potentialEnergy(self):
-        """Potential energy as a rocketpy.Function of time."""
+        """Potential energy as a rocketpy.Function of time in relation to sea
+        level."""
+        # Constants
+        GM = 3.986004418e14
         # Redefine totalMass time grid to allow for efficient Function algebra
         totalMass = deepcopy(self.rocket.totalMass)
         totalMass.setDiscreteBasedOnModel(self.z)
-        # TODO: change calculation method to account for variable gravity
-        potentialEnergy = totalMass * self.env.gravity * self.z
+        potentialEnergy = (
+            GM
+            * totalMass
+            * (1 / (self.z + self.env.earthRadius) - 1 / self.env.earthRadius)
+        )
         return potentialEnergy
 
     # Total Mechanical Energy
@@ -2282,7 +2302,7 @@ class Flight:
         if self.outOfRailTimeIndex == 0:
             return 0
         else:
-            return np.max(self.railButton1NormalForce)
+            return self.railButton1NormalForce.max
 
     @cached_property
     def maxRailButton1ShearForce(self):
@@ -2294,7 +2314,7 @@ class Flight:
         if self.outOfRailTimeIndex == 0:
             return 0
         else:
-            return np.max(self.railButton1ShearForce)
+            return self.railButton1ShearForce.max
 
     @cached_property
     def maxRailButton2NormalForce(self):
@@ -2306,7 +2326,7 @@ class Flight:
         if self.outOfRailTimeIndex == 0:
             return 0
         else:
-            return np.max(self.railButton2NormalForce)
+            return self.railButton2NormalForce.max
 
     @cached_property
     def maxRailButton2ShearForce(self):
@@ -2318,7 +2338,7 @@ class Flight:
         if self.outOfRailTimeIndex == 0:
             return 0
         else:
-            return np.max(self.railButton2ShearForce)
+            return self.railButton2ShearForce.max
 
     @funcify_method(
         "Time (s)", "Horizontal Distance to Launch Point (m)", "spline", "constant"
