@@ -221,9 +221,6 @@ class Rocket:
 
         # Aerodynamic data initialization
         self.aerodynamicSurfaces = Components()
-        self._nosecones = []
-        self._fins = []
-        self._tails = []
         self.cpPosition = 0
         self.staticMargin = Function(
             lambda x: 0, inputs="Time (s)", outputs="Static Margin (c)"
@@ -272,18 +269,15 @@ class Rocket:
 
     @property
     def nosecones(self):
-        self._nosecones = self.aerodynamicSurfaces.get_by_type(NoseCone)
-        return self._nosecones
+        return self.aerodynamicSurfaces.get_by_type(NoseCone)
 
     @property
     def fins(self):
-        self._fins = self.aerodynamicSurfaces.get_by_type(Fins)
-        return self._fins
+        return self.aerodynamicSurfaces.get_by_type(Fins)
 
     @property
     def tails(self):
-        self._tails = self.aerodynamicSurfaces.get_by_type(Tail)
-        return self._tails
+        return self.aerodynamicSurfaces.get_by_type(Tail)
 
     def evaluateTotalMass(self):
         """Calculates and returns the rocket's total mass. The total
