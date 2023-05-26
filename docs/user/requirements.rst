@@ -21,12 +21,9 @@ The following packages are needed in order to run RocketPy:
 - Scipy >= 1.0
 - Matplotlib >= 3.0
 - netCDF4 >= 1.4, < 1.6 for Python 3.7+, netCDF4 >= 1.6.2 for Python 3.11
-- windrose >= 1.6.8
 - requests
 - pytz
 - simplekml
-- ipywidgets >= 7.6.3
-- jsonpickle
 
 All of these packages, are automatically installed when RocketPy is installed using either ``pip`` or ``conda``.
 However, in case the user wants to install these packages manually, they can do so by following the instructions bellow.
@@ -44,12 +41,9 @@ The packages needed can be installed via ``pip`` by running the following lines 
     pip install "scipy>=1.0"
     pip install "matplotlib>=3.0"
     pip install "netCDF4>=1.6.2"
-    pip install "windrose >= 1.6.8"
-    pip install "ipywidgets>=7.6.3"
     pip install requests
     pip install pytz
     pip install simplekml
-    pip install jsonpickle
 
 Installing Required Packages Using ``conda``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -67,7 +61,7 @@ To update Scipy and install netCDF4 using Conda, the following code is used:
 Optional Packages
 -----------------
 
-Optionally, you can install timezonefinder to allow for automatic timezone detection when performing Enviornment Analysis.
+Optionally, you can install timezonefinder to allow for automatic timezone detection when performing Environment Analysis.
 This can be done by running the following line of code in your preferred terminal:
 
 .. code-block:: shell
@@ -76,6 +70,21 @@ This can be done by running the following line of code in your preferred termina
 
 Keep in mind that this package is not required to run RocketPy, but it can be useful if you want to perform Environment Analysis.
 Furthermore, timezonefinder can only be used with Python 3.8+.
+
+Similar to timezonefinder, you can install other optional packages, including:
+
+- `windrose` : to allow for windrose plots when performing Environment Analysis,
+- `ipywidgets` : to allow for gifs generation when performing Environment Analysis,
+- `jsonpickle` : to allow for saving and loading of RocketPy objects.
+
+You can install these packages by running the following lines in your preferred terminal:
+
+.. code-block:: shell
+
+    pip install "windrose>=1.6.8"
+    pip install "ipywidgets>=7.6.3"
+    pip install jsonpickle
+
 
 Useful Packages
 ---------------

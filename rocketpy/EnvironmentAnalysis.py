@@ -10,8 +10,6 @@ import json
 import warnings
 from collections import defaultdict
 
-import ipywidgets as widgets
-import jsonpickle
 import matplotlib.ticker as mtick
 import netCDF4
 import numpy as np
@@ -22,7 +20,6 @@ from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.animation import PillowWriter as ImageWriter
 from scipy import stats
-from windrose import WindroseAxes
 from rocketpy.Environment import Environment
 
 from rocketpy.Function import Function
@@ -1926,6 +1923,10 @@ class EnvironmentAnalysis:
         -------
         WindroseAxes
         """
+        try:
+            from windrose import WindroseAxes
+        except ImportError:
+            raise ImportError("windrose package is required to plot wind roses.")
         ax = WindroseAxes.from_ax(fig=fig, rect=rect)
         ax.bar(
             wind_direction,
@@ -2064,6 +2065,13 @@ class EnvironmentAnalysis:
         -------
         Image : ipywidgets.widgets.widget_media.Image
         """
+        try:
+            import ipywidgets as widgets
+        except ImportError:
+            raise ImportError(
+                "You need to install ipywidgets to use this function. "
+                "Try 'pip install ipywidgets'"
+            )
         days = list(self.surfaceDataDict.keys())
         hours = list(self.surfaceDataDict[days[0]].keys())
 
@@ -3252,6 +3260,14 @@ class EnvironmentAnalysis:
         EnvironmentAnalysis object
 
         """
+        try:
+            import jsonpickle
+        except ImportError:
+            raise ImportError(
+                "The jsonpickle module is required to load a previously saved"
+                + "Environment Analysis file. Please install it by using the"
+                + "command 'pip install jsonpickle'."
+            )
         encoded_class = open(filename).read()
         return jsonpickle.decode(encoded_class)
 
@@ -3267,6 +3283,12 @@ class EnvironmentAnalysis:
         -------
         None
         """
+        try:
+            import jsonpickle
+        except ImportError:
+            raise ImportError(
+                "The jsonpickle module is required to save the Environment Analysis"
+            )
         encoded_class = jsonpickle.encode(self)
         file = open(filename, "w")
         file.write(encoded_class)
