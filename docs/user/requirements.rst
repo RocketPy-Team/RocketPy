@@ -7,7 +7,7 @@ But read further if this is not your case!
 Python Version
 --------------
 
-RocketPy supports Python 3.7 and above.
+RocketPy supports Python 3.8 and above.
 Sorry, there are currently no plans to support earlier versions.
 If you really need to run RocketPy on Python 3.6 or earlier, feel free to submit an issue and we will see what we can do!
 
@@ -20,7 +20,7 @@ The following packages are needed in order to run RocketPy:
 - Numpy >= 1.0
 - Scipy >= 1.0
 - Matplotlib >= 3.0
-- netCDF4 >= 1.4, < 1.6 for Python 3.7+, netCDF4 >= 1.6.2 for Python 3.11
+- netCDF4 >= 1.4, < 1.6 for Python 3.8+, netCDF4 >= 1.6.2 for Python 3.11
 - windrose >= 1.6.8
 - requests
 - pytz

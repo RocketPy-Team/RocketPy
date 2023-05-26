@@ -7,21 +7,13 @@ with open("README.md", "r") as fh:
 
 # Manage different netCDF4 versions depending on system version and Google Colab
 netCDF4_requirement = "netCDF4>=1.6.2"
-if sys.version_info[1] == 7:
-    # Support for Python 3.7
-    netCDF4_requirement = "netCDF4>=1.4,<1.6"
 
 # Check if running on a linux system
-elif sys.platform == "linux":
-    if sys.version_info[1] < 11:
-        # Support for Linux with Python < 3.11
-        # Avoid problems due to netcdf4 issue linked below
-        netCDF4_requirement = "netCDF4>=1.4,<1.6"
-    else:
-        # Support for Linux with Python >= 3.11
-        # Might have problems with openDAP in the Environment class due to
-        # https://github.com/Unidata/netcdf4-python/issues/1179
-        netCDF4_requirement = "netCDF4>=1.6.2"
+if sys.platform == "linux" and sys.version_info[1] < 11:
+    # Support for Linux with Python < 3.11
+    # Avoid problems due to netCDF4 issue linked below
+    # https://github.com/Unidata/netcdf4-python/issues/1179
+    netCDF4_requirement = "netCDF4>=1.4,<1.6"
 
 setuptools.setup(
     name="rocketpy",
@@ -54,5 +46,5 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.7",
+    python_requires=">=3.8",
 )
