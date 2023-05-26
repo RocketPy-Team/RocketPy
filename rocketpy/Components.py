@@ -6,30 +6,72 @@ from collections import namedtuple
 
 
 class Components:
-    """A group of components, each of which has a position"""
+    """A class to hold components of the Rocket class. A component is
+    an object that added to the rocket given a position relative to the
+    rocket's coordinate system origin. Components can be added to the
+    rocket using the 'add' methods. This class is currently used only to
+    hold aerodynamic surfaces.
+
+    Attributes
+    ----------
+    _components: list
+        A list of named tuples containing the component and its position.
+    component_tuple: namedtuple
+        A named tuple containing the component and its position.
+    """
 
     def __init__(self):
-        self.component_position = namedtuple("component_tuple", "component position")
+        """Initialize an empty components list instance."""
+        self.component_tuple = namedtuple("component_tuple", "component position")
         self._components = []
 
     def __repr__(self):
+        """Return a string representation of the Components instance."""
         return repr(self._components)
 
     def __len__(self):
+        """Return the number of components in the collection."""
         return len(self._components)
 
     def __getitem__(self, index):
+        """Return the number of components in the collection."""
         return self._components[index]
 
     def __iter__(self):
+        """Return an iterator over the components."""
         return iter(self._components)
 
     def add(self, component, position):
-        """Add a component to the list of components"""
-        self._components.append(self.component_position(component, position))
+        """Add a component to the collection.
+
+        Parameters
+        ----------
+            component: AeroSurface, Motor
+                The component to be added to the rocket.
+            position: int, float
+                The position of the component relative to the rocket's
+                coordinate system origin.
+
+        Returns
+        -------
+        None
+        """
+        self._components.append(self.component_tuple(component, position))
 
     def get_by_type(self, component_type):
-        """Get the component of a specified type"""
+        """Get the components of a specified given type.
+
+        Parameters
+        ----------
+        component_type: type
+            The type of component to be returned.
+
+        Returns:
+        --------
+        list
+            A list of components matching the specified type.
+
+        """
         component_type_list = [
             c.component
             for c in self._components
@@ -38,7 +80,17 @@ class Components:
         return component_type_list
 
     def remove(self, component):
-        """Remove a component from the list of components"""
+        """Remove a component from the list of components.
+
+        Parameters
+        ----------
+        component: AeroSurface, Motor
+            The component to be removed from the rocket.
+
+        Returns
+        --------
+        None
+        """
         for index, comp in enumerate(self._components):
             if comp.component == component:
                 self._components.pop(index)
@@ -47,9 +99,27 @@ class Components:
             raise Exception(f"Component {component} not found in components {self}")
 
     def pop(self, index=-1):
-        """Pop a component from the list of components"""
+        """Pop a component from the list of components.
+
+        Parameters
+        ----------
+        index: int
+            The index of the component to be removed from the list of
+            components. If no index is specified, the last component is
+            removed.
+
+        Returns
+        -------
+        component: AeroSurface, Motor
+            The component removed from the list of components.
+        """
         return self._components.pop(index)
 
     def clear(self):
-        """Clear all components from the list of components"""
+        """Clear all components from the list of components.
+
+        Returns
+        -------
+        None
+        """
         self._components.clear()
