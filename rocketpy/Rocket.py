@@ -486,7 +486,7 @@ class Rocket:
         try:
             for surface, position in zip(surfaces, positions):
                 self.aerodynamicSurfaces.add(surface, position)
-        except:
+        except TypeError:
             self.aerodynamicSurfaces.add(surfaces, positions)
 
         self.evaluateStaticMargin()
