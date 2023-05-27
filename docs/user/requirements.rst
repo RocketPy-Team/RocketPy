@@ -61,7 +61,7 @@ To update Scipy and install netCDF4 using Conda, the following code is used:
 Optional Packages
 -----------------
 
-Optionally, you can install the following packages to allow for additional functionality:
+Optionally, you can install the following packages to allow for additional functionalities when using the EnvironmentAnalysis class:
 
 - `timezonefinder` : to allow for automatic timezone detection when performing Environment Analysis,
 - `windrose` : to allow for windrose plots when performing Environment Analysis,
