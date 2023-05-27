@@ -11,7 +11,7 @@ from matplotlib.patches import Ellipse
 from .Function import Function
 
 
-class AeroSurfaces(ABC):
+class AeroSurface(ABC):
     """Abstract class used to define aerodynamic surfaces."""
 
     def __init__(self, name):
@@ -84,7 +84,7 @@ class AeroSurfaces(ABC):
         pass
 
 
-class NoseCone(AeroSurfaces):
+class NoseCone(AeroSurface):
     """Keeps nose cone information.
 
     Local coordinate system: Z axis along the longitudinal axis of symmetry, positive
@@ -352,7 +352,7 @@ class NoseCone(AeroSurfaces):
         return None
 
 
-class Fins(AeroSurfaces):
+class Fins(AeroSurface):
     """Abstract class that holds common methods for the fin classes.
     Cannot be instantiated.
 
@@ -1649,7 +1649,7 @@ class EllipticalFins(Fins):
         self.rollForcingInterferenceFactor = rollForcingInterferenceFactor
 
 
-class Tail(AeroSurfaces):
+class Tail(AeroSurface):
     """Class that defines a tail. Currently only accepts conical tails.
 
     Local coordinate system: Z axis along the longitudinal axis of symmetry, positive

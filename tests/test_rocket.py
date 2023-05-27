@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from rocketpy import Rocket, SolidMotor
-from rocketpy.AeroSurfaces import NoseCone
+from rocketpy.AeroSurface import NoseCone
 
 
 @patch("matplotlib.pyplot.show")

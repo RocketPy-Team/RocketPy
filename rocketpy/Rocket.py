@@ -13,7 +13,7 @@ import numpy as np
 
 from .Function import Function
 from .Parachute import Parachute
-from .AeroSurfaces import (
+from .AeroSurface import (
     Fins,
     NoseCone,
     TrapezoidalFins,
@@ -466,10 +466,10 @@ class Rocket:
 
         Parameters
         ----------
-        surfaces : list, AeroSurfaces, NoseCone, TrapezoidalFins, EllipticalFins, Tail
+        surfaces : list, AeroSurface, NoseCone, TrapezoidalFins, EllipticalFins, Tail
             Aerodynamic surface to be added to the rocket. Can be a list of
-            AeroSurfaces if more than one surface is to be added.
-            See AeroSurfaces class for more information.
+            AeroSurface if more than one surface is to be added.
+            See AeroSurface class for more information.
         positions : int, float, list
             Position, in m, of the aerodynamic surface's center of pressure
             relative to the user defined rocket coordinate system.

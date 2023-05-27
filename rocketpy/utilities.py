@@ -12,7 +12,7 @@ from scipy.integrate import solve_ivp
 
 from .Environment import Environment
 from .Function import Function
-from .AeroSurfaces import TrapezoidalFins
+from .AeroSurface import TrapezoidalFins
 
 
 # TODO: Needs tests

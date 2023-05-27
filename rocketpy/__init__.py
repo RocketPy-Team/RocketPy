@@ -21,8 +21,8 @@ __maintainer__ = "Giovani Hidalgo Ceotto"
 __email__ = "ghceotto@gmail.com"
 __status__ = "Production"
 
-from .AeroSurfaces import (
-    AeroSurfaces,
+from .AeroSurface import (
+    AeroSurface,
     NoseCone,
     Fins,
     TrapezoidalFins,
