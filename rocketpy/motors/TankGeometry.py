@@ -2,7 +2,11 @@ import numpy as np
 
 from rocketpy import Function
 from rocketpy.Function import PiecewiseFunction, funcify_method
-from functools import cached_property, cache
+from functools import cache
+try:
+    from functools import cached_property
+except ImportError:
+    from .tools import cached_property
 
 
 class TankGeometry:
