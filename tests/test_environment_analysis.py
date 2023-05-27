@@ -1,5 +1,4 @@
 import copy
-import datetime
 import os
 from unittest.mock import patch
 
@@ -8,13 +7,12 @@ import matplotlib as plt
 import pytest
 from IPython.display import HTML
 
-from rocketpy import EnvironmentAnalysis
-
 plt.rcParams.update({"figure.max_open_warning": 0})
 
 
 @pytest.mark.slow
-def test_allInfo(env_analysis):
+@patch("matplotlib.pyplot.show")
+def test_allInfo(mock_show, env_analysis):
     """Test the EnvironmentAnalysis.allInfo() method, which already invokes
     several other methods. It is a good way to test the whole class in a first view.
     However, if it fails, it is hard to know which method is failing.
@@ -29,6 +27,8 @@ def test_allInfo(env_analysis):
     None
     """
     assert env_analysis.allInfo() == None
+    # remove the files created by the method
+    os.remove("wind_rose.gif")
 
 
 @pytest.mark.slow
