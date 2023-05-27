@@ -61,26 +61,18 @@ To update Scipy and install netCDF4 using Conda, the following code is used:
 Optional Packages
 -----------------
 
-Optionally, you can install timezonefinder to allow for automatic timezone detection when performing Environment Analysis.
-This can be done by running the following line of code in your preferred terminal:
+Optionally, you can install the following packages to allow for additional functionality:
 
-.. code-block:: shell
-
-    pip install timezonefinder
-
-Keep in mind that this package is not required to run RocketPy, but it can be useful if you want to perform Environment Analysis.
-Furthermore, timezonefinder can only be used with Python 3.8+.
-
-Similar to timezonefinder, you can install other optional packages, including:
-
+- `timezonefinder` : to allow for automatic timezone detection when performing Environment Analysis,
 - `windrose` : to allow for windrose plots when performing Environment Analysis,
-- `ipywidgets` : to allow for gifs generation when performing Environment Analysis,
+- `ipywidgets` : to allow for GIFs generation when performing Environment Analysis,
 - `jsonpickle` : to allow for saving and loading of RocketPy objects.
 
 You can install these packages by running the following lines in your preferred terminal:
 
 .. code-block:: shell
 
+    pip install timezonefinder
     pip install "windrose>=1.6.8"
     pip install "ipywidgets>=7.6.3"
     pip install jsonpickle
