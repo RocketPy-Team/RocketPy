@@ -48,7 +48,7 @@ class Components:
 
         Parameters
         ----------
-        component: any
+        component: Any
             The component to be added to the rocket.
         position: int, float
             The position of the component relative to the rocket's
@@ -86,7 +86,7 @@ class Components:
 
         Parameters
         ----------
-        component: any
+        component: Any
             The component to be removed from the rocket.
 
         Returns
@@ -112,7 +112,7 @@ class Components:
 
         Returns
         -------
-        component: any
+        component: Any
             The component removed from the list of components.
         """
         return self._components.pop(index)
