@@ -14,7 +14,7 @@ from scipy import stats
 from windrose import WindroseAxes
 
 from rocketpy.units import convert_units
-
+from ..tools import find_two_closest_integers
 
 class _EnvironmentAnalysisPlots:
     """Class that holds plot methods for EnvironmentAnalysis class.
@@ -707,7 +707,7 @@ class _EnvironmentAnalysisPlots:
         windrose_side = 2.5  # inches
         vertical_padding_top = 1.5  # inches
         plot_padding = 0.18  # percentage
-        ncols, nrows = self.env_analysis._find_two_closest_integer_factors(len(hours))
+        ncols, nrows = find_two_closest_integers(len(hours))
         vertical_plot_area_percentage = (
             nrows * windrose_side / (nrows * windrose_side + vertical_padding_top)
         )
@@ -849,7 +849,7 @@ class _EnvironmentAnalysisPlots:
 
         # Create grid of plots for each hour
         hours = list(list(self.env_analysis.pressureLevelDataDict.values())[0].keys())
-        nrows, ncols = self.env_analysis._find_two_closest_integer_factors(len(hours))
+        nrows, ncols = find_two_closest_integers(len(hours))
         fig = plt.figure(figsize=(ncols * 2, nrows * 2.2))
         gs = fig.add_gridspec(nrows, ncols, hspace=0, wspace=0, left=0.12)
         axs = gs.subplots(sharex=True, sharey=True)
@@ -1017,7 +1017,7 @@ class _EnvironmentAnalysisPlots:
 
         # Create grid of plots for each hour
         hours = list(list(self.env_analysis.pressureLevelDataDict.values())[0].keys())
-        ncols, nrows = self.env_analysis._find_two_closest_integer_factors(len(hours))
+        ncols, nrows = find_two_closest_integers(len(hours))
         fig = plt.figure(figsize=(ncols * 2, nrows * 2.2))
         gs = fig.add_gridspec(nrows, ncols, hspace=0, wspace=0, left=0.12)
         axs = gs.subplots(sharex=True, sharey=True)
@@ -1216,7 +1216,7 @@ class _EnvironmentAnalysisPlots:
 
         # Create grid of plots for each hour
         hours = list(list(self.env_analysis.pressureLevelDataDict.values())[0].keys())
-        ncols, nrows = self.env_analysis._find_two_closest_integer_factors(len(hours))
+        ncols, nrows = find_two_closest_integers(len(hours))
         fig = plt.figure(figsize=(ncols * 2, nrows * 2.2))
         gs = fig.add_gridspec(nrows, ncols, hspace=0, wspace=0, left=0.12)
         axs = gs.subplots(sharex=True, sharey=True)
@@ -1300,7 +1300,7 @@ class _EnvironmentAnalysisPlots:
 
         # Create grid of plots for each hour
         hours = list(list(self.env_analysis.pressureLevelDataDict.values())[0].keys())
-        ncols, nrows = self.env_analysis._find_two_closest_integer_factors(len(hours))
+        ncols, nrows = find_two_closest_integers(len(hours))
         fig = plt.figure(figsize=(ncols * 2, nrows * 2.2))
         gs = fig.add_gridspec(nrows, ncols, hspace=0, wspace=0, left=0.12)
         axs = gs.subplots(sharex=True, sharey=True)

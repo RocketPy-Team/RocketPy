@@ -14,7 +14,6 @@ import jsonpickle
 import netCDF4
 import numpy as np
 import pytz
-from cftime import num2pydate
 
 from rocketpy.Environment import Environment
 from rocketpy.Function import Function
@@ -22,6 +21,7 @@ from rocketpy.units import convert_units
 
 from .plots.environment_analysis_plots import _EnvironmentAnalysisPlots
 from .prints.environment_analysis_prints import _EnvironmentAnalysisPrints
+from .tools import bilinear_interpolation, time_num_to_date_string
 
 
 class EnvironmentAnalysis:
@@ -235,19 +235,6 @@ class EnvironmentAnalysis:
                 self.forecast[hour] = Env
         return None
 
-    def __bilinear_interpolation(self, x, y, x1, x2, y1, y2, z11, z12, z21, z22):
-        """
-        Bilinear interpolation.
-
-        Source: GitHub Copilot
-        """
-        return (
-            z11 * (x2 - x) * (y2 - y)
-            + z21 * (x - x1) * (y2 - y)
-            + z12 * (x2 - x) * (y - y1)
-            + z22 * (x - x1) * (y - y1)
-        ) / ((x2 - x1) * (y2 - y1))
-
     def __init_surface_dictionary(self):
         # Create dictionary of file variable names to process surface data
         self.surfaceFileDict = {
@@ -311,20 +298,6 @@ class EnvironmentAnalysis:
 
         return index
 
-    def __timeNumToDateString(self, timeNum, units, calendar="gregorian"):
-        """Convert time number (usually hours before a certain date) into two
-        strings: one for the date (example: 2022.04.31) and one for the hour
-        (example: 14). See cftime.num2date for details on units and calendar.
-        Automatically converts time number from UTC to local timezone based on
-        lat,lon coordinates.
-        """
-        dateTimeUTC = num2pydate(timeNum, units, calendar=calendar)
-        dateTimeUTC = dateTimeUTC.replace(tzinfo=pytz.UTC)
-        dateTime = dateTimeUTC.astimezone(self.preferred_timezone)
-        dateString = f"{dateTime.year}.{dateTime.month}.{dateTime.day}"
-        hourString = f"{dateTime.hour}"
-        return dateString, hourString, dateTime
-
     def __extractSurfaceDataValue(
         self, surfaceData, variable, indices, lonArray, latArray
     ):
@@ -341,7 +314,7 @@ class EnvironmentAnalysis:
         z22 = variableData[timeIndex, lonIndex, latIndex]
 
         # Compute interpolated value on desired lat lon pair
-        value = self.__bilinear_interpolation(
+        value = bilinear_interpolation(
             x=self.longitude,
             y=self.latitude,
             x1=lonArray[lonIndex - 1],
@@ -372,7 +345,7 @@ class EnvironmentAnalysis:
         z22 = variableData[timeIndex, :, lonIndex, latIndex]
 
         # Compute interpolated value on desired lat lon pair
-        value_list_as_a_function_of_pressure_level = self.__bilinear_interpolation(
+        value_list_as_a_function_of_pressure_level = bilinear_interpolation(
             x=self.longitude,
             y=self.latitude,
             x1=lonArray[lonIndex - 1],
@@ -512,29 +485,6 @@ class EnvironmentAnalysis:
         self.convertSurfaceData()
         self.current_units = self.updated_units.copy()
 
-    @staticmethod
-    def _find_two_closest_integer_factors(number):
-        """Find the two closest integer factors of a number.
-
-        Parameters
-        ----------
-        number: int
-
-        Returns
-        -------
-        list[int]
-        """
-        number_sqrt = number**0.5
-        if isinstance(number_sqrt, int):
-            return number_sqrt, number_sqrt
-        else:
-            guess = int(number_sqrt)
-            while True:
-                if number % guess == 0:
-                    return guess, number // guess
-                else:
-                    guess -= 1
-
     def _beaufort_wind_scale(self, units, max_wind_speed=None):
         """Returns a list of bins equivalent to the Beaufort wind scale in the
         desired unit system.
@@ -637,8 +587,8 @@ class EnvironmentAnalysis:
 
         # Loop through time and save all values
         for timeIndex, timeNum in enumerate(timeNumArray):
-            dateString, hourString, dateTime = self.__timeNumToDateString(
-                timeNum, timeNumArray.units, calendar="gregorian"
+            dateString, hourString, dateTime = time_num_to_date_string(
+                timeNum, timeNumArray.units, self.preferred_timezone, calendar="gregorian"
             )
 
             # Check if date is within analysis range
@@ -819,8 +769,8 @@ class EnvironmentAnalysis:
 
         # Loop through time and save all values
         for timeIndex, timeNum in enumerate(timeNumArray):
-            dateString, hourString, dateTime = self.__timeNumToDateString(
-                timeNum, timeNumArray.units, calendar="gregorian"
+            dateString, hourString, dateTime = time_num_to_date_string(
+                timeNum, timeNumArray.units, self.preferred_timezone, calendar="gregorian"
             )
 
             # Check if date is within analysis range
