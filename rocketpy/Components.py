@@ -6,18 +6,20 @@ from collections import namedtuple
 
 
 class Components:
-    """A class to hold components of the Rocket class. A component is
-    an object that added to the rocket given a position relative to the
-    rocket's coordinate system origin. Components can be added to the
-    rocket using the 'add' methods. This class is currently used only to
-    hold aerodynamic surfaces.
+    """A Collection Class to hold components of the Rocket class. Each component
+    is an object that is added to the rocket at a specific position relative to
+    the rocket's coordinate system origin. Components can be added to the rocket
+    using the 'add' methods. This class is currently used specifically for
+    holding aerodynamic surfaces.
 
     Attributes
     ----------
-    _components: list
-        A list of named tuples containing the component and its position.
-    component_tuple: namedtuple
-        A named tuple containing the component and its position.
+    _components : list
+        A list of named tuples representing all the components and their
+        positions relative to the rocket.
+    component_tuple : namedtuple
+        A named tuple representing a component and its position within the
+        rocket.
     """
 
     def __init__(self):
@@ -30,27 +32,27 @@ class Components:
         return repr(self._components)
 
     def __len__(self):
-        """Return the number of components in the collection."""
+        """Return the number of components in the list of components."""
         return len(self._components)
 
     def __getitem__(self, index):
-        """Return the number of components in the collection."""
+        """Return the component at the specified index in the list of components."""
         return self._components[index]
 
     def __iter__(self):
-        """Return an iterator over the components."""
+        """Return an iterator over the list of components."""
         return iter(self._components)
 
     def add(self, component, position):
-        """Add a component to the collection.
+        """Add a component to the list of components.
 
         Parameters
         ----------
-            component: AeroSurface, Motor
-                The component to be added to the rocket.
-            position: int, float
-                The position of the component relative to the rocket's
-                coordinate system origin.
+        component: any
+            The component to be added to the rocket.
+        position: int, float
+            The position of the component relative to the rocket's
+            coordinate system origin.
 
         Returns
         -------
@@ -59,7 +61,8 @@ class Components:
         self._components.append(self.component_tuple(component, position))
 
     def get_by_type(self, component_type):
-        """Get the components of a specified given type.
+        """Search the list of components and return a list with all the components
+        of the given type.
 
         Parameters
         ----------
@@ -70,7 +73,6 @@ class Components:
         --------
         list
             A list of components matching the specified type.
-
         """
         component_type_list = [
             c.component
@@ -84,7 +86,7 @@ class Components:
 
         Parameters
         ----------
-        component: AeroSurface, Motor
+        component: any
             The component to be removed from the rocket.
 
         Returns
@@ -110,7 +112,7 @@ class Components:
 
         Returns
         -------
-        component: AeroSurface, Motor
+        component: any
             The component removed from the list of components.
         """
         return self._components.pop(index)

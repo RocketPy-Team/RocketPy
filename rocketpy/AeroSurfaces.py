@@ -18,7 +18,7 @@ class AeroSurfaces(ABC):
         self.cpx = 0
         self.cpy = 0
         self.cpz = 0
-        self.position = None  # in relation to rocket
+        self.position = None  # relative to rocket
         self.name = name
         return None
 
@@ -256,6 +256,10 @@ class NoseCone(AeroSurfaces):
         None
         """
         # Calculate clalpha
+        # clalpha is currently a constant, meaning it is independent of Mach
+        # number. This is only valid for subsonic speeds.
+        # It must be set as a Function because it will be called and treated
+        # as a function of mach in the simulation.
         self.clalpha = Function(
             lambda mach: 2 * self.radiusRatio**2,
             "Mach",
@@ -325,7 +329,7 @@ class NoseCone(AeroSurfaces):
         print(f"\nAerodynamic Information of {self.name}")
         print("-------------------------------")
         print(f"Center of Pressure Position in Local Coordinates: {self.cp} m")
-        print(f"Lift Coefficient Slope: {self.clalpha(0):.3f} 1/rad")
+        print(f"Lift Coefficient Slope at Mach 0: {self.clalpha(0):.3f} 1/rad")
         print("Lift Coefficient as a Function of Alpha and Mach:")
         self.cl()
 
@@ -1804,6 +1808,10 @@ class Tail(AeroSurfaces):
         None
         """
         # Calculate clalpha
+        # clalpha is currently a constant, meaning it is independent of Mach
+        # number. This is only valid for subsonic speeds.
+        # It must be set as a Function because it will be called and treated
+        # as a function of mach in the simulation.
         self.clalpha = Function(
             lambda mach: 2
             * (
@@ -1867,7 +1875,7 @@ class Tail(AeroSurfaces):
         print(f"\nAerodynamic Information of {self.name}")
         print("-------------------------------")
         print(f"Tail Center of Pressure Position in Local Coordinates: {self.cp} m")
-        print(f"Tail Lift Coefficient Slope: {self.clalpha(0):.3f} 1/rad")
+        print(f"Tail Lift Coefficient Slope at Mach 0: {self.clalpha(0):.3f} 1/rad")
         print("Tail Lift Coefficient as a function of Alpha and Mach:")
         self.cl()
 
