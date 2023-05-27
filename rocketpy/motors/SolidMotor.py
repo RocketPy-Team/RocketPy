@@ -129,6 +129,8 @@ class SolidMotor(Motor):
         thrustSource,
         burnOut,
         dry_mass,
+        dry_center_of_mass,
+        dry_inertia,
         grainsCenterOfMassPosition,
         grainNumber,
         grainDensity,
@@ -160,6 +162,23 @@ class SolidMotor(Motor):
             Function. See help(Function). Thrust units are Newtons.
         burnOut : int, float
             Motor burn out time in seconds.
+        dry_mass : int, float
+            Total mass of the empty motor structure, including chambers
+            and tanks, that is the motor mass without propellant.
+        dry_center_of_mass : int, float
+            The position of the motor's center of mass in meters with respect
+            to the motor's coordinate system. See `Motor.coordinateSystemOrientation`.
+        dry_inertia : tuple, list
+            Tuple or list containing the motor's dry mass inertia tensor
+            components, in kg*m^2. This inertia is defined with respect to the
+            the dry_center_of_mass position.
+            Assuming e_3 is the rocket's axis of symmetry, e_1 and e_2 are
+            orthogonal and form a plane perpendicular to e_3, the dry mass
+            inertia tensor components must be given in the following order:
+            (I_11, I_22, I_33, I_12, I_13, I_23), where I_ij is the
+            component of the inertia tensor in the direction of e_i x e_j.
+            Alternatively, the inertia tensor can be given as (I_11, I_22, I_33),
+            where I_12 = I_13 = I_23 = 0.
         grainsCenterOfMassPosition : float
             Position of the center of mass of the grains in meters, specified in
             the motor's coordinate system.
@@ -215,6 +234,8 @@ class SolidMotor(Motor):
             thrustSource,
             burnOut,
             dry_mass,
+            dry_center_of_mass,
+            dry_inertia,
             nozzleRadius,
             nozzlePosition,
             reshapeThrustCurve,
@@ -336,7 +357,7 @@ class SolidMotor(Motor):
         self.evaluateGeometry()
 
     @funcify_method("Time (s)", "center of mass (m)")
-    def centerOfMass(self):
+    def propellantCenterOfMass(self):
         """Calculates and returns the time derivative of motor center of mass.
         The result is a function of time, object of the Function class. The
         burn is assumed to be uniform along the grain, therefore the center of
@@ -499,90 +520,11 @@ class SolidMotor(Motor):
         )
         return Kn
 
-    @cached_property
-    def inertiaTensor(self):
-        """Calculates the propellant principal moment of inertia relative to
-        the tank center of mass. The z-axis correspond to the motor axis of
-        symmetry while the x and y axes complete the right-handed coordinate
-        system. The time derivatives of the products of inertia are also
-        evaluated. Products of inertia are assumed null due to symmetry.
-
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
-        Returns
-        -------
-        tuple (of Functions)
-            The two first arguments are equivalent and represent inertia Ix,
-            and Iy. The third argument is inertia Iz.
-        """
-
-        # Inertia I
-        # Calculate inertia I for each grain
-        grainMass = self.propellantMass / self.grainNumber
-        grainMassDot = self.massFlowRate / self.grainNumber
-        grainNumber = self.grainNumber
-        grainInertiaI = grainMass * (
-            (1 / 4) * (self.grainOuterRadius**2 + self.grainInnerRadius**2)
-            + (1 / 12) * self.grainHeight**2
-        )
-
-        # Calculate each grain's distance d to propellant center of mass
-        initialValue = (grainNumber - 1) / 2
-        d = np.linspace(-initialValue, initialValue, grainNumber)
-        d = d * (self.grainInitialHeight + self.grainSeparation)
-
-        # Calculate inertia for all grains
-        self.inertiaI = grainNumber * grainInertiaI + grainMass * np.sum(d**2)
-        self.inertiaI.setOutputs("Propellant Inertia I (kg*m2)")
-
-        # Inertia I Dot
-        # Calculate each grain's inertia I dot
-        grainInertiaIDot = (
-            grainMassDot
-            * (
-                (1 / 4) * (self.grainOuterRadius**2 + self.grainInnerRadius**2)
-                + (1 / 12) * self.grainHeight**2
-            )
-            + grainMass
-            * ((1 / 2) * self.grainInnerRadius - (1 / 3) * self.grainHeight)
-            * self.burnRate
-        )
-
-        # Calculate inertia I dot for all grains
-        self.inertiaIDot = grainNumber * grainInertiaIDot + grainMassDot * np.sum(
-            d**2
-        )
-        self.inertiaIDot.setOutputs("Propellant Inertia I Dot (kg*m2/s)")
-
-        # Inertia Z
-        self.inertiaZ = (
-            (1 / 2.0)
-            * self.propellantMass
-            * (self.grainOuterRadius**2 + self.grainInnerRadius**2)
-        )
-        self.inertiaZ.setOutputs("Propellant Inertia Z (kg*m2)")
-
-        # Inertia Z Dot
-        self.inertiaZDot = (1 / 2.0) * self.massFlowRate * (
-            self.grainOuterRadius**2 + self.grainInnerRadius**2
-        ) + self.propellantMass * self.grainInnerRadius * self.burnRate
-        self.inertiaZDot.setOutputs("Propellant Inertia Z Dot (kg*m2/s)")
-
-        # Stores the inertia tensor components
-        self.Ixx = self.inertiaI
-        self.Iyy = self.inertiaI
-        self.Izz = self.inertiaZ
-        self.Ixy = self.Ixz = self.Iyz = 0
-
-        return self.inertiaI, self.inertiaI, self.inertiaZ
-
     @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
-    def I_11(self):
-        """Inertia tensor 11 component, which corresponds to the inertia
-        relative to the e_1 axis, centered at the instantaneous center of mass.
+    def propellant_I_11(self):
+        """Inertia tensor 11 component of the propellnat, the inertia is
+        relative to the e_1 axis, centered at the instantaneous propellant
+        center of mass.
 
         Parameters
         ----------
@@ -598,15 +540,12 @@ class SolidMotor(Motor):
         -----
         The e_1 direction is assumed to be the direction perpendicular to the
         motor body axis.
-        Due to symmetry, the inertia tensor 22 component is equal to the
-        inertia tensor 11 component.
 
         References
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
         grainMass = self.propellantMass / self.grainNumber
-        grainMassDot = self.massFlowRate / self.grainNumber
         grainNumber = self.grainNumber
         grainInertia11 = grainMass * (
             (1 / 4) * (self.grainOuterRadius**2 + self.grainInnerRadius**2)
@@ -624,9 +563,10 @@ class SolidMotor(Motor):
         return I_11
 
     @funcify_method("Time (s)", "Inertia I_22 (kg m²)")
-    def I_22(self):
-        """Inertia tensor 22 component, which corresponds to the inertia
-        relative to the e_2 axis, centered at the instantaneous center of mass.
+    def propellant_I_22(self):
+        """Inertia tensor 22 component of the propellnat, the inertia is
+        relative to the e_2 axis, centered at the instantaneous propellant
+        center of mass.
 
         Parameters
         ----------
@@ -641,9 +581,7 @@ class SolidMotor(Motor):
         Notes
         -----
         The e_2 direction is assumed to be the direction perpendicular to the
-        motor body axis and to the e_1 axis.
-        Due to symmetry, the inertia tensor 22 component is equal to the
-        inertia tensor 11 component.
+        motor body axis, and perpendicular to e_1.
 
         References
         ----------
@@ -652,9 +590,10 @@ class SolidMotor(Motor):
         return self.I_11
 
     @funcify_method("Time (s)", "Inertia I_33 (kg m²)")
-    def I_33(self):
-        """Inertia tensor 33 component, which corresponds to the inertia
-        relative to the e_3 axis, centered at the instantaneous center of mass.
+    def propellant_I_33(self):
+        """Inertia tensor 33 component of the propellnat, the inertia is
+        relative to the e_3 axis, centered at the instantaneous propellant
+        center of mass.
 
         Parameters
         ----------
@@ -668,8 +607,8 @@ class SolidMotor(Motor):
 
         Notes
         -----
-        The e_3 direction is assumed to be the direction parallel to the motor
-        body axis.
+        The e_3 direction is assumed to be the axial direction of the rocket
+        motor.
 
         References
         ----------
@@ -683,15 +622,15 @@ class SolidMotor(Motor):
         return I_33
 
     @funcify_method("Time (s)", "Inertia I_12 (kg m²)")
-    def I_12(self):
+    def propellant_I_12(self):
         return 0
 
     @funcify_method("Time (s)", "Inertia I_13 (kg m²)")
-    def I_13(self):
+    def propellant_I_13(self):
         return 0
 
     @funcify_method("Time (s)", "Inertia I_23 (kg m²)")
-    def I_23(self):
+    def propellant_I_23(self):
         return 0
 
     def allInfo(self):
@@ -754,9 +693,12 @@ class SolidMotor(Motor):
         self.burnRate.plot(0, self.grainBurnOut)
         self.burnArea()
         self.Kn()
-        self.inertiaTensor[0]()
-        self.inertiaTensor[2]()
-        self.inertiaIDot()
-        self.inertiaZDot()
+        self.centerOfMass.plot(0, self.burnOutTime)
+        self.I_11.plot(0, self.burnOutTime)
+        self.I_22.plot(0, self.burnOutTime)
+        self.I_33.plot(0, self.burnOutTime)
+        self.I_12.plot(0, self.burnOutTime)
+        self.I_13.plot(0, self.burnOutTime)
+        self.I_23.plot(0, self.burnOutTime)
 
         return None
