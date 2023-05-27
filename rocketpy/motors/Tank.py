@@ -24,8 +24,11 @@ class Tank(ABC):
             Name of the tank.
         geometry : TankGeometry
             Geometry of the tank.
-        flux_time : tuple
-            Tuple containing start and final times of the tank flux.
+        flux_time : float, tuple of float, optional
+            Tank flux time.
+            If a float is given, the burn time is assumed to be between 0 and the
+            given float, in seconds. If a tuple of float is given, the burn time 
+            is assumed to be between the first and second elements of the tuple.
         gas : Fluid
             Gas inside the tank as a Fluid object.
         liquid : Fluid
@@ -41,6 +44,36 @@ class Tank(ABC):
         self.gas = gas
         self.liquid = liquid
         self.discretize = discretize
+
+    @property
+    def flux_time(self):
+        """Returns the start and final times of the tank flux.
+
+        Returns
+        -------
+        tuple
+            Tuple containing start and final times of the tank flux.
+        """
+        return self._flux_time
+    
+    @flux_time.setter
+    def flux_time(self, flux_time):
+        """Sets the start and final times of the tank flux.
+
+        Parameters
+        ----------
+        flux_time : tuple
+            Tuple containing start and final times of the tank flux.
+        """
+        if isinstance(flux_time, (int, float)):
+            self._flux_time = (0, flux_time)
+        elif isinstance(flux_time, (list, tuple)):
+            if len(flux_time) == 1:
+                self._flux_time = (0, flux_time[0])
+            elif len(flux_time) == 2:
+                self._flux_time = flux_time
+            else:
+                raise ValueError("flux_time must be a list or tuple of length 1 or 2.")
 
     @property
     @abstractmethod
