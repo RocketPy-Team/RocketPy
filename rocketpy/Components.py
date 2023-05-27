@@ -82,7 +82,9 @@ class Components:
         return component_type_list
 
     def remove(self, component):
-        """Remove a component from the list of components.
+        """Remove a component from the list of components. If more than one
+        instance of the same component is present in the list, only the first
+        instance is removed.
 
         Parameters
         ----------
