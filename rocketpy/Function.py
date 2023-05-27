@@ -14,7 +14,6 @@ except ImportError:
 
 import matplotlib.pyplot as plt
 import numpy as np
-from functools import cached_property
 from scipy import integrate, linalg, optimize
 
 
