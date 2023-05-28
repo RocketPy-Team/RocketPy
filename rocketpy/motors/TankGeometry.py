@@ -180,6 +180,10 @@ class TankGeometry:
             Tank centroid as a function of height.
         """
         height = self.area.identityFunction()
+
+        # Tolerance of 1e-8 is used to avoid numerical errors
+        upper = upper + 1e-12 if upper - lower < 1e-8 else upper
+
         balance = (height * self.area).integralFunction(lower, upper)
 
         # Correct naming
@@ -201,6 +205,10 @@ class TankGeometry:
             Tank volume of inertia as a function of height.
         """
         height2 = self.radius.identityFunction() ** 2
+
+        # Tolerance of 1e-8 is used to avoid numerical errors
+        upper = upper + 1e-12 if upper - lower < 1e-8 else upper
+
         inertia = (self.area * (height2 + self.radius**2 / 4)).integralFunction(
             lower, upper
         )
@@ -239,7 +247,12 @@ class TankGeometry:
         Function
             Tank volume of inertia as a function of height.
         """
-        return (self.area * self.radius**2).integralFunction(lower, upper) / 2
+        # Tolerance of 1e-8 is used to avoid numerical errors
+        upper = upper + 1e-12 if upper - lower < 1e-8 else upper
+
+        inertia = (self.area * self.radius**2).integralFunction(lower, upper) / 2
+
+        return inertia
 
     def add_geometry(self, domain, radius_function):
         """

@@ -27,7 +27,7 @@ class Tank(ABC):
         flux_time : float, tuple of float, optional
             Tank flux time.
             If a float is given, the burn time is assumed to be between 0 and the
-            given float, in seconds. If a tuple of float is given, the burn time 
+            given float, in seconds. If a tuple of float is given, the burn time
             is assumed to be between the first and second elements of the tuple.
         gas : Fluid
             Gas inside the tank as a Fluid object.
@@ -55,7 +55,7 @@ class Tank(ABC):
             Tuple containing start and final times of the tank flux.
         """
         return self._flux_time
-    
+
     @flux_time.setter
     def flux_time(self, flux_time):
         """Sets the start and final times of the tank flux.
@@ -206,7 +206,10 @@ class Tank(ABC):
         # Check for zero liquid volume
         bound_volume = self.liquidVolume < 1e-4 * self.geometry.total_volume
         if bound_volume.any():
+            # TODO: pending Function setter impl.
             centroid.yArray[bound_volume] = self.geometry.bottom
+            centroid.setInterpolation()
+            centroid.setExtrapolation()
 
         return centroid
 
@@ -231,7 +234,10 @@ class Tank(ABC):
         # Check for zero gas volume
         bound_volume = self.gasVolume < 1e-4 * self.geometry.total_volume
         if bound_volume.any():
+            # TODO: pending Function setter impl.
             centroid.yArray[bound_volume] = self.liquidHeight.yArray[bound_volume]
+            centroid.setInterpolation()
+            centroid.setExtrapolation()
 
         return centroid
 
@@ -254,7 +260,10 @@ class Tank(ABC):
         # Check for zero mass
         bound_mass = self.mass < 0.001 * self.geometry.total_volume * self.gas.density
         if bound_mass.any():
+            # TODO: pending Function setter impl.
             centerOfMass.yArray[bound_mass] = self.geometry.bottom
+            centerOfMass.setInterpolation()
+            centerOfMass.setExtrapolation()
 
         return centerOfMass
 
