@@ -20,11 +20,22 @@ from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.animation import PillowWriter as ImageWriter
 from scipy import stats
-from rocketpy.Environment import Environment
 
+from rocketpy.Environment import Environment
 from rocketpy.Function import Function
 from rocketpy.units import convert_units
 
+try:
+    import ipywidgets as widgets
+    import jsonpickle
+    from timezonefinder import TimezoneFinder
+    from windrose import WindroseAxes
+except ImportError:
+    raise ImportError(
+        "At least one required module could not be imported." + 
+        "The EnvironmentAnalysis requires additional dependencies." + 
+        "Please install them by running 'pip install rocketpy[env_analysis]'."
+        )
 
 class EnvironmentAnalysis:
     """Class for analyzing the environment.
@@ -417,16 +428,6 @@ class EnvironmentAnalysis:
 
     def __find_preferred_timezone(self):
         if self.preferred_timezone is None:
-            try:
-                from timezonefinder import TimezoneFinder
-            except ImportError:
-                raise ImportError(
-                    "The timezonefinder package is required to automatically "
-                    + "determine local timezone based on lat,lon coordinates. "
-                    + "Please specify the desired timezone using the `timezone` "
-                    + "argument when initializing the EnvironmentAnalysis class "
-                    + "or install timezonefinder with `pip install timezonefinder`."
-                )
             # Use local timezone based on lat lon pair
             tf = TimezoneFinder()
             self.preferred_timezone = pytz.timezone(
@@ -1923,10 +1924,6 @@ class EnvironmentAnalysis:
         -------
         WindroseAxes
         """
-        try:
-            from windrose import WindroseAxes
-        except ImportError:
-            raise ImportError("windrose package is required to plot wind roses.")
         ax = WindroseAxes.from_ax(fig=fig, rect=rect)
         ax.bar(
             wind_direction,
@@ -2065,13 +2062,6 @@ class EnvironmentAnalysis:
         -------
         Image : ipywidgets.widgets.widget_media.Image
         """
-        try:
-            import ipywidgets as widgets
-        except ImportError:
-            raise ImportError(
-                "You need to install ipywidgets to use this function. "
-                "Try 'pip install ipywidgets'"
-            )
         days = list(self.surfaceDataDict.keys())
         hours = list(self.surfaceDataDict[days[0]].keys())
 
@@ -3260,14 +3250,6 @@ class EnvironmentAnalysis:
         EnvironmentAnalysis object
 
         """
-        try:
-            import jsonpickle
-        except ImportError:
-            raise ImportError(
-                "The jsonpickle module is required to load a previously saved"
-                + "Environment Analysis file. Please install it by using the"
-                + "command 'pip install jsonpickle'."
-            )
         encoded_class = open(filename).read()
         return jsonpickle.decode(encoded_class)
 
@@ -3283,12 +3265,6 @@ class EnvironmentAnalysis:
         -------
         None
         """
-        try:
-            import jsonpickle
-        except ImportError:
-            raise ImportError(
-                "The jsonpickle module is required to save the Environment Analysis"
-            )
         encoded_class = jsonpickle.encode(self)
         file = open(filename, "w")
         file.write(encoded_class)
