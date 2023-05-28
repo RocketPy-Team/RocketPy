@@ -3008,11 +3008,11 @@ def funcify_method(*args, **kwargs):
                     # Handle methods which are the source themselves
                     source = lambda *_: self.func(instance, *_)
                     val = Function(source, *args, **kwargs)
-                # except Exception:
-                #     raise Exception(
-                #         "Could not create Function object from method "
-                #         f"{self.func.__name__}."
-                #     )
+                except Exception:
+                    raise Exception(
+                        "Could not create Function object from method "
+                        f"{self.func.__name__}."
+                    )
 
                 val.__doc__ = self.__doc__
                 cache[self.attrname] = val
