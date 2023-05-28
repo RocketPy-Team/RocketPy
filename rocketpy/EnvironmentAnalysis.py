@@ -32,10 +32,11 @@ try:
     from windrose import WindroseAxes
 except ImportError:
     raise ImportError(
-        "At least one required module could not be imported." + 
-        "The EnvironmentAnalysis requires additional dependencies." + 
-        "Please install them by running 'pip install rocketpy[env_analysis]'."
-        )
+        "At least one required module could not be imported."
+        + "The EnvironmentAnalysis requires additional dependencies."
+        + "Please install them by running 'pip install rocketpy[env_analysis]'."
+    )
+
 
 class EnvironmentAnalysis:
     """Class for analyzing the environment.
