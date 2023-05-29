@@ -170,14 +170,14 @@ def test_vector_is_parallel_to(vector_components):
 
 
 @pytest.mark.parametrize("vector_components", test_vectors)
-def test_vector_is_perpendicular_to(vector_components):
+def test_vector_is_orthogonal_to(vector_components):
     u = Vector(vector_components)
     v = u - Vector.i()
     projection = u.proj(v)
     projection_vector = projection * v.unit_vector
     w = u - projection_vector
-    assert u.is_perpendicular_to(2 * u) == False
-    assert w.is_perpendicular_to(v) == True
+    assert u.is_orthogonal_to(2 * u) == False
+    assert w.is_orthogonal_to(v) == True
 
 
 @pytest.mark.parametrize("operation", [lambda i: i**2, lambda i: 1 / i])
@@ -210,7 +210,7 @@ def test_vector_proj(u_c, v_c):
     u, v = Vector(u_c), Vector(v_c)
     projection = u.proj(v)
     projection_vector = projection * v.unit_vector
-    assert v.is_perpendicular_to(u - projection_vector)
+    assert v.is_orthogonal_to(u - projection_vector)
 
 
 @pytest.mark.parametrize("vector_components", test_vectors)
