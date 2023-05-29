@@ -863,6 +863,12 @@ class Flight:
                             self.flightPhases.addPhase(
                                 self.t, self.uDot, index=phase_index + 1
                             )
+                        elif uDot == "numpyFree":
+                            self.flightPhases.addPhase(
+                                self.t,
+                                self.uDotVariableMassNumpyFree,
+                                index=phase_index + 1
+                            )
                         else:
                             self.flightPhases.addPhase(
                                 self.t,
@@ -1913,16 +1919,16 @@ class Flight:
         x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
 
         # Create necessary vectors
-        r = Vector([x, y, z])  # CDM position vector
+        # r = Vector([x, y, z])  # CDM position vector
         v = Vector([vx, vy, vz])  # CDM velocity vector
         e = Vector([e0, e1, e2, e3])  # Euler parameters/quaternions
         w = Vector([omega1, omega2, omega3])  # Angular velocity vector
 
         # Retrieve necessary quantities
-        rho = self.env.density.getValueOpt(z)
-        total_mass = self.rocket.totalMass.getValueOpt(t)
-        total_mass_dot = self.rocket.totalMass.differentiate(t)
-        total_mass_ddot = self.rocket.totalMass.differentiate(t, order=2)
+        rho = float(self.env.density.getValueOpt(z))
+        total_mass = float(self.rocket.totalMass.getValueOpt(t))
+        total_mass_dot = float(self.rocket.totalMass.differentiate(t))
+        total_mass_ddot = float(self.rocket.totalMass.differentiate(t, order=2))
         ## CM position vector and time derivatives relative to CDM in body frame
         r_CM_z = (
             -1
@@ -1986,8 +1992,7 @@ class Flight:
             ]
         )
         ## Inertia tensor relative to CM
-        r_CM_X = self.cross_matrix(r_CM)
-        H = total_mass * (r_CM_X @ -r_CM_X)
+        H = (r_CM.cross_matrix @ -r_CM.cross_matrix) * total_mass
         I_CM = I - H
 
         # Prepare transformation matrices
@@ -2014,7 +2019,7 @@ class Flight:
             surfaceRadius = aeroSurface.rocketRadius
             referenceArea = np.pi * surfaceRadius**2
             # Component absolute velocity in body frame
-            compVB = vB + w * compCp
+            compVB = vB + (w ^ compCp)
             # Wind velocity at component altitude
             compZ = z + (K @ compCp).z
             compWindVx = self.env.windVelocityX.getValueOpt(compZ)
@@ -2085,15 +2090,15 @@ class Flight:
         )
         T05 = total_mass_dot * S_nozzle - I_dot
 
-        T20 = (w * T00) * w + w * T03 + T04 + weightB + Vector([R1, R2, R3])
+        T20 = ((w ^ T00) ^ w) + (w ^ T03) + T04 + weightB + Vector([R1, R2, R3])
 
-        T21 = I @ w * w + T05 @ w + weightB * r_CM + Vector([M1, M2, M3])
+        T21 = ((I @ w) ^ w) + T05 @ w + (weightB ^ r_CM) + Vector([M1, M2, M3])
 
         # Angular velocity derivative
-        w_dot = I_CM.inverse @ ((T21 + T20) * r_CM)
+        w_dot = I_CM.inverse @ ((T21 + T20) ^ r_CM)
 
         # Velocity vector derivative
-        v_dot = K * (T20 / total_mass - (r_CM * w_dot))
+        v_dot = K @ (T20 / total_mass - (r_CM ^ w_dot))
 
         # Euler parameters derivative
         e_dot = [
