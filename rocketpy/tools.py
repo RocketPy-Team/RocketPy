@@ -409,7 +409,9 @@ class Matrix:
         try:
             result = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
             for i, j in product(range(3), range(3)):
-                result[i][j] = Vector(self[i, :]) @ Vector([other[0][j], other[1][j], other[2][j]])
+                result[i][j] = Vector(self[i, :]) @ Vector(
+                    [other[0][j], other[1][j], other[2][j]]
+                )
             return Matrix(result)
         except (TypeError, IndexError):
             return Vector([Vector(self[i, :]) @ other for i in range(3)])
@@ -419,7 +421,9 @@ class Matrix:
         vector."""
         result = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
         for i, j in product(range(3), range(3)):
-            result[i][j] = Vector([other[i][0], other[i][1], other[i][2]]) @ Vector([self[0][j], self[1][j], self[2][j]])
+            result[i][j] = Vector([other[i][0], other[i][1], other[i][2]]) @ Vector(
+                [self[0][j], self[1][j], self[2][j]]
+            )
         return Matrix(result)
 
     def __pow__(self, other):
@@ -431,16 +435,16 @@ class Matrix:
 
     def __eq__(self, other):
         return (
-            len(other) == 3 and
-            isclose(self.xx, other[0][0], abs_tol=1e-9) and
-            isclose(self.xy, other[0][1], abs_tol=1e-9) and
-            isclose(self.xz, other[0][2], abs_tol=1e-9) and
-            isclose(self.yx, other[1][0], abs_tol=1e-9) and
-            isclose(self.yy, other[1][1], abs_tol=1e-9) and
-            isclose(self.yz, other[1][2], abs_tol=1e-9) and
-            isclose(self.zx, other[2][0], abs_tol=1e-9) and
-            isclose(self.zy, other[2][1], abs_tol=1e-9) and
-            isclose(self.zz, other[2][2], abs_tol=1e-9)
+            len(other) == 3
+            and isclose(self.xx, other[0][0], abs_tol=1e-9)
+            and isclose(self.xy, other[0][1], abs_tol=1e-9)
+            and isclose(self.xz, other[0][2], abs_tol=1e-9)
+            and isclose(self.yx, other[1][0], abs_tol=1e-9)
+            and isclose(self.yy, other[1][1], abs_tol=1e-9)
+            and isclose(self.yz, other[1][2], abs_tol=1e-9)
+            and isclose(self.zx, other[2][0], abs_tol=1e-9)
+            and isclose(self.zy, other[2][1], abs_tol=1e-9)
+            and isclose(self.zz, other[2][2], abs_tol=1e-9)
         )
 
     def element_wise(self, operation):
@@ -474,7 +478,7 @@ class Matrix:
 
     def __repr__(self):
         return (
-              f"Matrix([{self.xx}, {self.xy}, {self.xz}],\n"
+            f"Matrix([{self.xx}, {self.xy}, {self.xz}],\n"
             + f"       [{self.yx}, {self.yy}, {self.yz}],\n"
             + f"       [{self.zx}, {self.zy}, {self.zz}])"
         )

@@ -867,7 +867,7 @@ class Flight:
                             self.flightPhases.addPhase(
                                 self.t,
                                 self.uDotVariableMassNumpyFree,
-                                index=phase_index + 1
+                                index=phase_index + 1,
                             )
                         else:
                             self.flightPhases.addPhase(
