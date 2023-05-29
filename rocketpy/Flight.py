@@ -1920,8 +1920,8 @@ class Flight:
 
         # Create necessary vectors
         # r = Vector([x, y, z])               # CDM position vector
-        v = Vector([vx, vy, vz])              # CDM velocity vector
-        e = [e0, e1, e2, e3]                  # Euler parameters/quaternions
+        v = Vector([vx, vy, vz])  # CDM velocity vector
+        e = [e0, e1, e2, e3]  # Euler parameters/quaternions
         w = Vector([omega1, omega2, omega3])  # Angular velocity vector
 
         # Retrieve necessary quantities
