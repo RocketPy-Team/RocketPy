@@ -1,4 +1,5 @@
 from itertools import product
+from cmath import isclose
 
 _NOT_FOUND = object()
 
@@ -93,6 +94,7 @@ class Vector:
         return Vector(result)
 
     def __radd__(self, other):
+        """Sum two R3 vectors."""
         return self.__add__(other)
 
     def __sub__(self, other):
@@ -101,48 +103,52 @@ class Vector:
         return Vector(result)
 
     def __rsub__(self, other):
-        return self.__sub__(other)
+        """Subtract two R3 vectors."""
+        result = [other[i] - self[i] for i in range(3)]
+        return Vector(result)
 
     def __mul__(self, other):
-        """If other is scalar, component wise multiplication. If other is a
-        Vector, cross product between self and other."""
-        try:
-            x = self[1] * other[2] - self[2] * other[1]
-            y = -self[0] * other[2] + self[2] * other[0]
-            z = self[0] * other[1] - self[1] * other[0]
-            return Vector([x, y, z])
-        except TypeError:
-            return Vector([other * self.x, other * self.y, other * self.z])
+        """Component wise multiplication between R3 vector and scalar other."""
+        return self.__rmul__(other)
 
     def __rmul__(self, other):
-        return self.__mul__(other)
+        """Component wise multiplication between R3 vector and scalar other."""
+        return Vector([other * self.x, other * self.y, other * self.z])
 
     def __truediv__(self, other):
         """Component wise division between R3 vector and scalar other."""
         return Vector([self.x / other, self.y / other, self.z / other])
 
+    def __xor__(self, other):
+        """Cross product between self and other."""
+        x = self[1] * other[2] - self[2] * other[1]
+        y = -self[0] * other[2] + self[2] * other[0]
+        z = self[0] * other[1] - self[1] * other[0]
+        return Vector([x, y, z])
+
     def __matmul__(self, other):
         """Dot product between two R3 vectors."""
         return sum([self[i] * other[i] for i in range(3)])
 
+    def __rmatmul__(self, other):
+        """Dot product between two R3 vectors."""
+        return self.__matmul__(other)
+
     def __eq__(self, other):
         return (
             len(other) == 3
-            and self.x == other[0]
-            and self.y == other[1]
-            and self.z == other[2]
+            and isclose(self.x, other[0])
+            and isclose(self.y, other[1])
+            and isclose(self.z, other[2])
         )
-
-    def __neq__(self, other):
-        return ~self.__eq__(other)
 
     def is_parallel_to(self, other):
         """Returns True if self is parallel to R3 vector other. False otherwise."""
-        return self * other == 0
+        return isclose(self @ other, abs(self) * abs(other))
 
     def is_perpendicular_to(self, other):
         """Returns True if self is perpendicular to R3 vector other. False otherwise."""
-        return self @ other == 0
+        return isclose(self @ other, 0, rel_tol=0, abs_tol=1e-9)
 
     def element_wise(self, operation):
         """Element wise operation.
@@ -157,11 +163,11 @@ class Vector:
 
     def dot(self, other):
         """Dot product between two R3 vectors."""
-        return self.__matmul__(self, other)
+        return self.__matmul__(other)
 
     def cross(self, other):
         """Cross product between two R3 vectors."""
-        return self.__mul__(other)
+        return self.__xor__(other)
 
     def proj(self, other):
         """Scalar projection of R3 vector self onto R3 vector other."""
@@ -211,7 +217,13 @@ class Matrix:
         self.components = components
 
     def __getitem__(self, args):
-        return self.components[args[0]][args[1]]
+        if isinstance(args, int):
+            return self.components[args]
+        else:
+            return self.components[args[0]][args[1]]
+
+    def __len__(self):
+        return 3
 
     @cached_property
     def shape(self):
@@ -270,6 +282,26 @@ class Matrix:
         )
 
     @cached_property
+    def det(self):
+        return self.__abs__()
+
+    @cached_property
+    def is_diagonal(self, tol=1e-6):
+        """Boolean indicating if matrix is diagonal.
+
+        Parameters
+        ----------
+        tol : float, optional
+            Tolerance used to determine if non-diagonal elements are negligible.
+        """
+        for i, j in product(range(3), range(3)):
+            if i == j:
+                continue
+            if abs(self[i, j]) > tol:
+                return False
+        return True
+
+    @cached_property
     def inverse(self):
         """Matrix inverse."""
         if self.is_diagonal:
@@ -295,31 +327,12 @@ class Matrix:
                 ]
             )
 
-    @cached_property
-    def det(self):
-        return self.__abs__()
-
-    @cached_property
-    def is_diagonal(self, tol=1e-6):
-        """Boolean indicating if matrix is diagonal.
-
-        Parameters
-        ----------
-        tol : float, optional
-            Tolerance used to determine if non-diagonal elements are negligible.
-        """
-        for i, j in product(range(3), range(3)):
-            if i == j:
-                continue
-            if abs(self[i, j]) > tol:
-                return False
-        return True
-
     def __abs__(self):
         """Matrix determinant."""
-        det = self.xx * (self.yy * self.zz - self.zy * self.yz)
-        det += -self.yy * (self.yx * self.zz - self.zx * self.yz)
-        det += self.zz * (self.yx * self.zy - self.zx * self.yy)
+        ixx = self.yy * self.zz - self.zy * self.yz
+        iyx = self.zx * self.yz - self.yx * self.zz
+        izx = self.yx * self.zy - self.zx * self.yy
+        det = self.xx * ixx + self.xy * iyx + self.xz * izx
         return det
 
     def __neg__(self):
@@ -336,27 +349,35 @@ class Matrix:
         """Sum two 3x3 matrices."""
         return Matrix(
             [
-                [self.xx + other.xx, self.xy + other.xy, self.xz + other.xz],
-                [self.yx + other.yx, self.yy + other.yy, self.yz + other.yz],
-                [self.zx + other.zx, self.zy + other.zy, self.zz + other.zz],
+                [self.xx + other[0][0], self.xy + other[0][1], self.xz + other[0][2]],
+                [self.yx + other[1][0], self.yy + other[1][1], self.yz + other[1][2]],
+                [self.zx + other[2][0], self.zy + other[2][1], self.zz + other[2][2]],
             ]
         )
 
     def __radd__(self, other):
+        """Sum two 3x3 matrices."""
         return self.__add__(other)
 
     def __sub__(self, other):
         """Subtract two 3x3 matrices."""
         return Matrix(
             [
-                [self.xx - other.xx, self.xy - other.xy, self.xz - other.xz],
-                [self.yx - other.yx, self.yy - other.yy, self.yz - other.yz],
-                [self.zx - other.zx, self.zy - other.zy, self.zz - other.zz],
+                [self.xx - other[0][0], self.xy - other[0][1], self.xz - other[0][2]],
+                [self.yx - other[1][0], self.yy - other[1][1], self.yz - other[1][2]],
+                [self.zx - other[2][0], self.zy - other[2][1], self.zz - other[2][2]],
             ]
         )
 
     def __rsub__(self, other):
-        return self.__sub__(other)
+        """Subtract two 3x3 matrices."""
+        return Matrix(
+            [
+                [other[0][0] - self.xx, other[0][1] - self.xy, other[0][2] - self.xz],
+                [other[1][0] - self.yx, other[1][1] - self.yy, other[1][2] - self.yz],
+                [other[2][0] - self.zx, other[2][1] - self.zy, other[2][2] - self.zz],
+            ]
+        )
 
     def __mul__(self, other):
         """Element wise multiplication of 3x3 matrix self by scalar other."""
@@ -368,23 +389,19 @@ class Matrix:
             ]
         )
 
-    def __truediv__(self, other):
-        """Multiplication of 3x3 matrix self and the inverse of 3x3 matrix other.
-        If other is scalar, element wise division is carried out."""
-        try:
-            return self @ other.inverse
-        except AttributeError:
-            return Matrix(
-                [
-                    [self.xx / other, self.xy / other, self.xz / other],
-                    [self.yx / other, self.yy / other, self.yz / other],
-                    [self.zx / other, self.zy / other, self.zz / other],
-                ]
-            )
+    def __rmul__(self, other):
+        """Element wise multiplication of 3x3 matrix self by scalar other."""
+        return self.__mul__(other)
 
-    def __rtruediv__(self, other):
-        """Multiplication of 3x3 matrix self and the inverse of 3x3 matrix other."""
-        return self @ other.inverse
+    def __truediv__(self, other):
+        """Element wise division is carried out."""
+        return Matrix(
+            [
+                [self.xx / other, self.xy / other, self.xz / other],
+                [self.yx / other, self.yy / other, self.yz / other],
+                [self.zx / other, self.zy / other, self.zz / other],
+            ]
+        )
 
     def __matmul__(self, other):
         """Dot product between two 3x3 matrices or between 3x3 matrix and R3
@@ -392,39 +409,39 @@ class Matrix:
         try:
             result = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
             for i, j in product(range(3), range(3)):
-                result[i, j] = Vector(self[i, :]) @ Vector(other[j, :])
-                return Matrix(result)
-        except TypeError:
+                result[i][j] = Vector(self[i, :]) @ Vector([other[0][j], other[1][j], other[2][j]])
+            return Matrix(result)
+        except (TypeError, IndexError):
             return Vector([Vector(self[i, :]) @ other for i in range(3)])
 
     def __rmatmul__(self, other):
         """Dot product between two 3x3 matrices or between 3x3 matrix and R3
         vector."""
-        return self @ other
+        result = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+        for i, j in product(range(3), range(3)):
+            result[i][j] = Vector([other[i][0], other[i][1], other[i][2]]) @ Vector([self[0][j], self[1][j], self[2][j]])
+        return Matrix(result)
 
     def __pow__(self, other):
         """Exponentiation of 3x3 matrix by integer other."""
         result = Matrix.identity()
         for i in range(other):
-            result *= result
+            result = self @ result
         return result
 
     def __eq__(self, other):
         return (
-            self.shape == other.shape
-            and self.xx == other[0][0]
-            and self.xy == other[0][1]
-            and self.xz == other[0][2]
-            and self.yx == other[1][0]
-            and self.yy == other[1][1]
-            and self.yz == other[1][2]
-            and self.zx == other[2][0]
-            and self.zy == other[2][1]
-            and self.zz == other[2][2]
+            len(other) == 3 and
+            isclose(self.xx, other[0][0], abs_tol=1e-9) and
+            isclose(self.xy, other[0][1], abs_tol=1e-9) and
+            isclose(self.xz, other[0][2], abs_tol=1e-9) and
+            isclose(self.yx, other[1][0], abs_tol=1e-9) and
+            isclose(self.yy, other[1][1], abs_tol=1e-9) and
+            isclose(self.yz, other[1][2], abs_tol=1e-9) and
+            isclose(self.zx, other[2][0], abs_tol=1e-9) and
+            isclose(self.zy, other[2][1], abs_tol=1e-9) and
+            isclose(self.zz, other[2][2], abs_tol=1e-9)
         )
-
-    def __neq__(self, other):
-        return ~self.__eq__(other)
 
     def element_wise(self, operation):
         """Element wise operation.
@@ -446,7 +463,7 @@ class Matrix:
     def dot(self, other):
         """Dot product between two 3x3 matrices or between 3x3 matrix and R3
         vector."""
-        return self.__matmul__(self, other)
+        return self.__matmul__(other)
 
     def __str__(self):
         return (
@@ -457,9 +474,9 @@ class Matrix:
 
     def __repr__(self):
         return (
-            f"Matrix([{self.xx}, {self.xy}, {self.xz}], "
-            + f"[{self.yx}, {self.yy}, {self.yz}], "
-            + f"[{self.zx}, {self.zy}, {self.zz}])"
+              f"Matrix([{self.xx}, {self.xy}, {self.xz}],\n"
+            + f"       [{self.yx}, {self.yy}, {self.yz}],\n"
+            + f"       [{self.zx}, {self.zy}, {self.zz}])"
         )
 
     @staticmethod
