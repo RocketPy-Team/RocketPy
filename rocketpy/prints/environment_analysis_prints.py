@@ -57,28 +57,29 @@ class _EnvironmentAnalysisPrints:
             self.env_analysis.pressureLevelInitLon,
             "° To ",
             self.env_analysis.pressureLevelEndLon,
-            "°",
+            "°\n",
         )
         return None
 
     def launch_site(self):
         # Print launch site details
-        print("\nLaunch Site Details")
+        print("Launch Site Details")
         print("Launch Site Latitude: {:.5f}°".format(self.env_analysis.latitude))
         print("Launch Site Longitude: {:.5f}°".format(self.env_analysis.longitude))
         print(
-            "Surface Elevation (from surface data file): ", self.env_analysis.elevation
+            f"Surface Elevation (from surface data file): {self.env_analysis.converted_elevation:.1f} {self.env_analysis.unit_system['length']}"
         )  # TODO: Improve units
         print(
             "Max Expected Altitude: ",
             self.env_analysis.maxExpectedAltitude,
             " ",
             self.env_analysis.unit_system["length"],
+            "\n",
         )
         return None
 
     def pressure(self):
-        print("\nPressure Information")
+        print("Pressure Information")
         print(
             f"Average Surface Pressure: {self.env_analysis.average_surface_pressure:.2f} ± {self.env_analysis.std_surface_pressure:.2f} {self.env_analysis.unit_system['pressure']}"
         )
@@ -89,12 +90,12 @@ class _EnvironmentAnalysisPrints:
             f"Average Pressure at {convert_units(10000, 'ft', self.env_analysis.current_units['height_ASL']):.0f} {self.env_analysis.current_units['height_ASL']}: {self.env_analysis.average_pressure_at_10000ft:.2f} ± {self.env_analysis.std_pressure_at_1000ft:.2f} {self.env_analysis.unit_system['pressure']}"
         )
         print(
-            f"Average Pressure at {convert_units(30000, 'ft', self.env_analysis.current_units['height_ASL']):.0f} {self.env_analysis.current_units['height_ASL']}: {self.env_analysis.average_pressure_at_30000ft:.2f} ± {self.env_analysis.std_pressure_at_1000ft:.2f} {self.env_analysis.unit_system['pressure']}"
+            f"Average Pressure at {convert_units(30000, 'ft', self.env_analysis.current_units['height_ASL']):.0f} {self.env_analysis.current_units['height_ASL']}: {self.env_analysis.average_pressure_at_30000ft:.2f} ± {self.env_analysis.std_pressure_at_1000ft:.2f} {self.env_analysis.unit_system['pressure']}\n"
         )
         return None
 
     def temperature(self):
-        print("\nTemperature Information")
+        print("Temperature Information")
         print(
             f"Historical Maximum Temperature: {self.env_analysis.record_max_temperature:.2f} {self.env_analysis.unit_system['temperature']}"
         )
@@ -105,16 +106,13 @@ class _EnvironmentAnalysisPrints:
             f"Average Daily Maximum Temperature: {self.env_analysis.average_max_temperature:.2f} {self.env_analysis.unit_system['temperature']}"
         )
         print(
-            f"Average Daily Minimum Temperature: {self.env_analysis.average_min_temperature:.2f} {self.env_analysis.unit_system['temperature']}"
+            f"Average Daily Minimum Temperature: {self.env_analysis.average_min_temperature:.2f} {self.env_analysis.unit_system['temperature']}\n"
         )
         return None
 
     def wind_speed(self):
         print(
-            f"\nElevated Wind Speed Information ({convert_units(100, 'm', self.env_analysis.unit_system['length']):.0f} {self.env_analysis.unit_system['length']} above ground)"
-        )
-        print(
-            f"\nSustained Surface Wind Speed Information ({convert_units(10, 'm', self.env_analysis.unit_system['length']):.0f} {self.env_analysis.unit_system['length']} above ground)"
+            f"Elevated Wind Speed Information ({convert_units(10, 'm', self.env_analysis.unit_system['length']):.0f} {self.env_analysis.unit_system['length']} above ground)"
         )
         print(
             f"Historical Maximum Wind Speed: {self.env_analysis.record_max_surface_10m_wind_speed:.2f} {self.env_analysis.unit_system['wind_speed']}"
@@ -129,6 +127,9 @@ class _EnvironmentAnalysisPrints:
             f"Average Daily Minimum Wind Speed: {self.env_analysis.average_min_surface_10m_wind_speed:.2f} {self.env_analysis.unit_system['wind_speed']}"
         )
         print(
+            f"\nSustained Surface Wind Speed Information ({convert_units(100, 'm', self.env_analysis.unit_system['length']):.0f} {self.env_analysis.unit_system['length']} above ground)"
+        )
+        print(
             f"Historical Maximum Wind Speed: {self.env_analysis.record_max_surface_100m_wind_speed:.2f} {self.env_analysis.unit_system['wind_speed']}"
         )
         print(
@@ -138,22 +139,22 @@ class _EnvironmentAnalysisPrints:
             f"Average Daily Maximum Wind Speed: {self.env_analysis.average_max_surface_100m_wind_speed:.2f} {self.env_analysis.unit_system['wind_speed']}"
         )
         print(
-            f"Average Daily Minimum Wind Speed: {self.env_analysis.average_min_surface_100m_wind_speed:.2f} {self.env_analysis.unit_system['wind_speed']}"
+            f"Average Daily Minimum Wind Speed: {self.env_analysis.average_min_surface_100m_wind_speed:.2f} {self.env_analysis.unit_system['wind_speed']}\n"
         )
         return None
 
     def wind_gust(self):
-        print("\nWind Gust Information")
+        print("Wind Gust Information")
         print(
-            f"Historical Maximum Wind Gust: {self.env_analysis.max_wind_gust:.2f} {self.env_analysis.unit_system['wind_speed']}"
+            f"Historical Maximum Wind Gust: {self.env_analysis.record_max_wind_gust:.2f} {self.env_analysis.unit_system['wind_speed']}"
         )
         print(
-            f"Average Daily Maximum Wind Gust: {self.env_analysis.average_max_wind_gust:.2f} {self.env_analysis.unit_system['wind_speed']}"
+            f"Average Daily Maximum Wind Gust: {self.env_analysis.average_max_wind_gust:.2f} {self.env_analysis.unit_system['wind_speed']}\n"
         )
         return None
 
     def precipitation(self):
-        print("\nPrecipitation Information")
+        print("Precipitation Information")
         print(
             f"Percentage of Days with Precipitation: {100*self.env_analysis.percentage_of_days_with_precipitation:.1f}%"
         )
@@ -161,20 +162,20 @@ class _EnvironmentAnalysisPrints:
             f"Maximum Precipitation: {max(self.env_analysis.precipitation_per_day):.1f} {self.env_analysis.unit_system['precipitation']}"
         )
         print(
-            f"Average Precipitation: {np.mean(self.env_analysis.precipitation_per_day):.1f} {self.env_analysis.unit_system['precipitation']}"
+            f"Average Precipitation: {np.mean(self.env_analysis.precipitation_per_day):.1f} {self.env_analysis.unit_system['precipitation']}\n"
         )
         return None
 
     def cloud_coverage(self):
-        print("\nCloud Base Height Information")
+        print("Cloud Base Height Information")
         print(
-            f"Average Cloud Base Height: {self.env_analysis.mean_cloud_base_height:.2f} {self.env_analysis.unit_system['length']}"
+            f"Average Cloud Base Height: {self.env_analysis.average_cloud_base_height:.2f} {self.env_analysis.unit_system['length']}"
         )
         print(
-            f"Minimum Cloud Base Height: {self.env_analysis.min_cloud_base_height:.2f} {self.env_analysis.unit_system['length']}"
+            f"Minimum Cloud Base Height: {self.env_analysis.record_min_cloud_base_height:.2f} {self.env_analysis.unit_system['length']}"
         )
         print(
-            f"Percentage of Days Without Clouds: {100*self.env_analysis.percentage_of_days_with_no_cloud_coverage:.1f} %"
+            f"Percentage of Days Without Clouds: {100*self.env_analysis.percentage_of_days_with_no_cloud_coverage:.1f} %\n"
         )
         return None
 

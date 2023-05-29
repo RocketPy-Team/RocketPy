@@ -14,7 +14,8 @@ from scipy import stats
 from windrose import WindroseAxes
 
 from rocketpy.units import convert_units
-from ..tools import find_two_closest_integers
+from ..tools import find_two_closest_integers, beaufort_wind_scale
+
 
 class _EnvironmentAnalysisPlots:
     """Class that holds plot methods for EnvironmentAnalysis class.
@@ -37,9 +38,12 @@ class _EnvironmentAnalysisPlots:
         -------
         None
         """
-        # Create height grid
-
+        # Save attributes
         self.env_analysis = env_analysis
+
+        # Save commonly used attributes
+        self.surface_level_dict = self.env_analysis.converted_surface_data
+        self.pressure_level_dict = self.env_analysis.converted_pressure_level_data
 
         return None
 
@@ -47,11 +51,6 @@ class _EnvironmentAnalysisPlots:
         """Get all values of wind gust speed (for every date and hour available)
         and plot a single distribution. Expected result is a Weibull distribution.
         """
-        self.env_analysis.wind_gust_list = [
-            dayDict[hour]["surfaceWindGust"]
-            for dayDict in self.env_analysis.surfaceDataDict.values()
-            for hour in dayDict.keys()
-        ]
         plt.figure()
         # Plot histogram
         plt.hist(
@@ -60,7 +59,7 @@ class _EnvironmentAnalysisPlots:
             density=True,
             histtype="stepfilled",
             alpha=0.2,
-            label="Wind Gust Speed Distribution",
+            label="Wind Gust",
         )
 
         # Plot weibull distribution
@@ -80,6 +79,7 @@ class _EnvironmentAnalysisPlots:
         plt.ylabel("Probability")
         plt.xlabel(f"Wind gust speed ({self.env_analysis.unit_system['wind_speed']})")
         plt.title("Wind Gust Speed Distribution")
+        plt.xlim(0, max(self.env_analysis.wind_gust_list))
         plt.legend()
         plt.show()
 
@@ -89,31 +89,22 @@ class _EnvironmentAnalysisPlots:
         """Get all values of sustained surface wind speed (for every date and hour available)
         and plot a single distribution. Expected result is a Weibull distribution.
         """
-        self.env_analysis.wind_speed_list = [
-            (
-                dayDict[hour]["surface10mWindVelocityX"] ** 2
-                + dayDict[hour]["surface10mWindVelocityY"] ** 2
-            )
-            ** 0.5
-            for dayDict in self.env_analysis.surfaceDataDict.values()
-            for hour in dayDict.keys()
-        ]
         plt.figure()
         # Plot histogram
         plt.hist(
-            self.env_analysis.wind_speed_list,
-            bins=int(len(self.env_analysis.wind_speed_list) ** 0.5),
+            self.env_analysis.surface_10m_wind_speed_list,
+            bins=int(len(self.env_analysis.surface_10m_wind_speed_list) ** 0.5),
             density=True,
             histtype="stepfilled",
             alpha=0.2,
-            label="Wind Gust Speed Distribution",
+            label="Wind Speed",
         )
 
         # Plot weibull distribution
         c, loc, scale = stats.weibull_min.fit(
-            self.env_analysis.wind_speed_list, loc=0, scale=1
+            self.env_analysis.surface_10m_wind_speed_list, loc=0, scale=1
         )
-        x = np.linspace(0, np.max(self.env_analysis.wind_speed_list), 100)
+        x = np.linspace(0, np.max(self.env_analysis.surface_10m_wind_speed_list), 100)
         plt.plot(
             x,
             stats.weibull_min.pdf(x, c, loc, scale),
@@ -138,6 +129,7 @@ class _EnvironmentAnalysisPlots:
             f"Sustained surface wind speed ({self.env_analysis.unit_system['wind_speed']})"
         )
         plt.title("Sustained Surface Wind Speed Distribution")
+        plt.xlim(0, max(self.env_analysis.surface_10m_wind_speed_list))
         plt.legend()
         plt.show()
 
@@ -146,9 +138,6 @@ class _EnvironmentAnalysisPlots:
     def average_temperature_along_day(self):
         """Plots average temperature progression throughout the day, including
         sigma contours."""
-
-        # Compute values
-        self.env_analysis.calculate_average_temperature_along_day()
 
         # Get handy arrays
         hours = np.fromiter(
@@ -165,8 +154,9 @@ class _EnvironmentAnalysisPlots:
         temperatures_m2sigma = temperature_mean - 2 * temperature_std
 
         plt.figure()
+
         # Plot temperature along day for each available date
-        for hour_entries in self.env_analysis.surfaceDataDict.values():
+        for hour_entries in self.surface_level_dict.values():
             plt.plot(
                 [int(hour) for hour in hour_entries.keys()],
                 [val["surfaceTemperature"] for val in hour_entries.values()],
@@ -200,34 +190,35 @@ class _EnvironmentAnalysisPlots:
         return None
 
     def average_surface10m_wind_speed_along_day(self, windSpeedLimit=False):
-        """Plots average surface wind speed progression throughout the day, including
-        sigma contours."""
-
-        # Compute values
-        self.env_analysis.calculate_average_sustained_surface10m_wind_along_day()
+        """Plots average surface wind speed progression throughout the day,
+        including sigma contours."""
 
         # Get handy arrays
         hours = np.fromiter(
             self.env_analysis.average_surface10m_wind_speed_at_given_hour.keys(),
             float,
         )
-        wind_speed_mean = (
-            self.env_analysis.average_surface10m_wind_speed_at_given_hour.values()
+        wind_speed_mean = np.array(
+            list(
+                (self.env_analysis.average_surface10m_wind_speed_at_given_hour.values())
+            )
         )
-        wind_speed_mean = np.array(list(wind_speed_mean))
+
         wind_speed_std = np.array(
             list(
                 self.env_analysis.average_surface10m_wind_speed_sigmas_at_given_hour.values()
             )
         )
+
         wind_speeds_p1sigma = wind_speed_mean + wind_speed_std
         wind_speeds_m1sigma = wind_speed_mean - wind_speed_std
         wind_speeds_p2sigma = wind_speed_mean + 2 * wind_speed_std
         wind_speeds_m2sigma = wind_speed_mean - 2 * wind_speed_std
 
         plt.figure()
-        # Plot temperature along day for each available date
-        for hour_entries in self.env_analysis.surfaceDataDict.values():
+
+        # Plot average wind speed along day
+        for hour_entries in self.surface_level_dict.values():
             plt.plot(
                 [int(hour) for hour in hour_entries.keys()],
                 [
@@ -259,6 +250,7 @@ class _EnvironmentAnalysisPlots:
             lambda x, pos: "{0:02.0f}:{1:02.0f}".format(*divmod(x * 60, 60))
         )
         plt.autoscale(enable=True, axis="x", tight=True)
+
         if windSpeedLimit:
             plt.hlines(
                 convert_units(20, "mph", self.env_analysis.unit_system["wind_speed"]),
@@ -268,6 +260,7 @@ class _EnvironmentAnalysisPlots:
                 (0, (15, 5, 2, 5)),
                 label="Wind Speed Limit",
             )  # Plot Wind Speed Limit
+
         plt.xlabel("Time (hours)")
         plt.ylabel(
             f"Surface Wind Speed ({self.env_analysis.unit_system['wind_speed']})"
@@ -276,14 +269,12 @@ class _EnvironmentAnalysisPlots:
         plt.grid(alpha=0.25)
         plt.legend()
         plt.show()
+
         return None
 
     def average_sustained_surface100m_wind_speed_along_day(self):
         """Plots average surface wind speed progression throughout the day, including
         sigma contours."""
-
-        # Compute values
-        self.env_analysis.calculate_average_sustained_surface100m_wind_along_day()
 
         # Get handy arrays
         hours = np.fromiter(
@@ -306,7 +297,7 @@ class _EnvironmentAnalysisPlots:
 
         plt.figure()
         # Plot temperature along day for each available date
-        for hour_entries in self.env_analysis.surfaceDataDict.values():
+        for hour_entries in self.surface_level_dict.values():
             plt.plot(
                 [int(hour) for hour in hour_entries.keys()],
                 [
@@ -351,7 +342,7 @@ class _EnvironmentAnalysisPlots:
         altitude_list = np.linspace(*self.env_analysis.altitude_AGL_range, 100)
         wind_speed_profiles = [
             dayDict[hour]["windSpeed"](altitude_list)
-            for dayDict in self.env_analysis.pressureLevelDataDict.values()
+            for dayDict in self.pressure_level_dict.values()
             for hour in dayDict.keys()
         ]
         self.env_analysis.average_wind_speed_profile = np.mean(
@@ -437,25 +428,22 @@ class _EnvironmentAnalysisPlots:
 
         wind_X_profiles = [
             dayDict[hour]["windVelocityX"](altitude_list)
-            for dayDict in self.env_analysis.pressureLevelDataDict.values()
+            for dayDict in self.pressure_level_dict.values()
             for hour in dayDict.keys()
         ]
-        self.env_analysis.average_wind_X_profile = np.mean(wind_X_profiles, axis=0)
+        average_wind_X_profile = np.mean(wind_X_profiles, axis=0)
 
         wind_Y_profiles = [
             dayDict[hour]["windVelocityY"](altitude_list)
-            for dayDict in self.env_analysis.pressureLevelDataDict.values()
+            for dayDict in self.pressure_level_dict.values()
             for hour in dayDict.keys()
         ]
-        self.env_analysis.average_wind_Y_profile = np.mean(wind_Y_profiles, axis=0)
+        average_wind_Y_profile = np.mean(wind_Y_profiles, axis=0)
 
-        wind_heading_profiles = (
-            np.arctan2(wind_X_profiles, wind_Y_profiles) * 180 / np.pi % 360
-        )
-        self.env_analysis.average_wind_heading_profile = (
+        average_wind_heading_profile = (
             np.arctan2(
-                self.env_analysis.average_wind_X_profile,
-                self.env_analysis.average_wind_Y_profile,
+                average_wind_X_profile,
+                average_wind_Y_profile,
             )
             * 180
             / np.pi
@@ -466,39 +454,11 @@ class _EnvironmentAnalysisPlots:
         # Plot
         plt.figure()
         plt.plot(
-            self.env_analysis.average_wind_heading_profile,
+            average_wind_heading_profile,
             altitude_list,
             "r",
             label="$\\mu$",
         )
-        # plt.plot(
-        #     np.percentile(wind_heading_profiles, 50 - 34.1, axis=0),
-        #     altitude_list,
-        #     "b--",
-        #     alpha=1,
-        #     label="$\\mu \\pm \\sigma$",
-        # )
-        # plt.plot(
-        #     np.percentile(wind_heading_profiles, 50 + 34.1, axis=0),
-        #     altitude_list,
-        #     "b--",
-        #     alpha=1,
-        # )
-        # plt.plot(
-        #     np.percentile(wind_heading_profiles, 50 - 47.4, axis=0),
-        #     altitude_list,
-        #     "b--",
-        #     alpha=0.5,
-        #     label="$\\mu \\pm 2\\sigma$",
-        # )
-        # plt.plot(
-        #     np.percentile(wind_heading_profiles, 50 + 47.7, axis=0),
-        #     altitude_list,
-        #     "b--",
-        #     alpha=0.5,
-        # )
-        # for wind_heading_profile in wind_heading_profiles:
-        #     plt.plot(wind_heading_profile, altitude_list, "gray", alpha=0.01)
 
         plt.autoscale(enable=True, axis="x", tight=True)
         plt.autoscale(enable=True, axis="y", tight=True)
@@ -541,14 +501,14 @@ class _EnvironmentAnalysisPlots:
         altitude_list = np.linspace(*self.env_analysis.altitude_AGL_range, 100)
         pressure_profiles = [
             dayDict[hour]["pressure"](altitude_list)
-            for dayDict in self.env_analysis.pressureLevelDataDict.values()
+            for dayDict in self.pressure_level_dict.values()
             for hour in dayDict.keys()
         ]
-        self.env_analysis.average_pressure_profile = np.mean(pressure_profiles, axis=0)
+
         # Plot
         plt.figure()
         plt.plot(
-            self.env_analysis.average_pressure_profile,
+            np.mean(pressure_profiles, axis=0),
             altitude_list,
             "r",
             label="$\\mu$",
@@ -634,6 +594,7 @@ class _EnvironmentAnalysisPlots:
         title: str, optional
             Title of the plot
         fig: matplotlib.pyplot.figure, optional
+            Figure to plot the windrose
 
         Returns
         -------
@@ -671,10 +632,10 @@ class _EnvironmentAnalysisPlots:
         """
         hour = str(hour)
         self.plot_wind_rose(
-            self.env_analysis.wind_direction_per_hour[hour],
-            self.env_analysis.wind_speed_per_hour[hour],
-            bins=self.env_analysis._beaufort_wind_scale(
-                self.env_analysis.unit_system["wind_speed"],
+            self.env_analysis.wind_direction[hour],
+            self.env_analysis.wind_speed[hour],
+            bins=beaufort_wind_scale(
+                units=self.env_analysis.unit_system["wind_speed"],
                 max_wind_speed=self.env_analysis.max_wind_speed,
             ),
             title=f"Wind Rose of an Average Day ({self.env_analysis.unit_system['wind_speed']}) - Hour {float(hour):05.2f}".replace(
@@ -689,19 +650,8 @@ class _EnvironmentAnalysisPlots:
     def average_day_wind_rose_all_hours(self):
         """Plot wind roses for all hours of a day, in a grid like plot."""
         # Get days and hours
-        days = list(self.env_analysis.surfaceDataDict.keys())
-        hours = list(self.env_analysis.surfaceDataDict[days[0]].keys())
-
-        # Make sure necessary data has been calculated
-        if not all(
-            [
-                self.env_analysis.max_wind_speed,
-                self.env_analysis.min_wind_speed,
-                self.env_analysis.wind_speed_per_hour,
-                self.env_analysis.wind_direction_per_hour,
-            ]
-        ):
-            self.env_analysis.process_wind_speed_and_direction_data_for_average_day()
+        days = list(self.surface_level_dict.keys())
+        hours = list(self.surface_level_dict[days[0]].keys())
 
         # Figure settings
         windrose_side = 2.5  # inches
@@ -717,8 +667,8 @@ class _EnvironmentAnalysisPlots:
         fig.set_size_inches(
             ncols * windrose_side, nrows * windrose_side + vertical_padding_top
         )
-        bins = self.env_analysis._beaufort_wind_scale(
-            self.env_analysis.unit_system["wind_speed"],
+        bins = beaufort_wind_scale(
+            units=self.env_analysis.unit_system["wind_speed"],
             max_wind_speed=self.env_analysis.max_wind_speed,
         )
         width = (1 - 2 * plot_padding) * 1 / ncols
@@ -737,8 +687,8 @@ class _EnvironmentAnalysisPlots:
             # print(left, bottom)
 
             ax = self.plot_wind_rose(
-                self.env_analysis.wind_direction_per_hour[hour],
-                self.env_analysis.wind_speed_per_hour[hour],
+                self.env_analysis.wind_direction[hour],
+                self.env_analysis.wind_speed[hour],
                 bins=bins,
                 title=f"{float(hour):05.2f}".replace(".", ":"),
                 fig=fig,
@@ -782,18 +732,8 @@ class _EnvironmentAnalysisPlots:
         -------
         Image : ipywidgets.widgets.widget_media.Image
         """
-        days = list(self.env_analysis.surfaceDataDict.keys())
-        hours = list(self.env_analysis.surfaceDataDict[days[0]].keys())
-
-        if not all(
-            [
-                self.env_analysis.max_wind_speed,
-                self.env_analysis.min_wind_speed,
-                self.env_analysis.wind_speed_per_hour,
-                self.env_analysis.wind_direction_per_hour,
-            ]
-        ):
-            self.env_analysis.process_wind_speed_and_direction_data_for_average_day()
+        days = list(self.surface_level_dict.keys())
+        hours = list(self.surface_level_dict[days[0]].keys())
 
         metadata = dict(
             title="windrose",
@@ -806,10 +746,10 @@ class _EnvironmentAnalysisPlots:
         with writer.saving(fig, filename, 100):
             for hour in hours:
                 self.plot_wind_rose(
-                    self.env_analysis.wind_direction_per_hour[hour],
-                    self.env_analysis.wind_speed_per_hour[hour],
-                    bins=self.env_analysis._beaufort_wind_scale(
-                        self.env_analysis.unit_system["wind_speed"],
+                    self.env_analysis.wind_direction[hour],
+                    self.env_analysis.wind_speed[hour],
+                    bins=beaufort_wind_scale(
+                        units=self.env_analysis.unit_system["wind_speed"],
                         max_wind_speed=self.env_analysis.max_wind_speed,
                     ),
                     title=f"Wind Rose of an Average Day ({self.env_analysis.unit_system['wind_speed']}). Hour {float(hour):05.2f}".replace(
@@ -835,43 +775,46 @@ class _EnvironmentAnalysisPlots:
     def wind_gust_distribution_over_average_day(self):
         """Plots shown in the animation of how the wind gust distribution varies throughout the day."""
         # Gather animation data
-        average_wind_gust_at_given_hour = {}
-        for hour in list(self.env_analysis.surfaceDataDict.values())[0].keys():
-            wind_gust_values_for_this_hour = []
-            for dayDict in self.env_analysis.surfaceDataDict.values():
+        wind_gusts = {}
+
+        # Iterate over all hours
+        for hour in list(self.surface_level_dict.values())[0].keys():
+            values = []
+            # Iterate over all days
+            for dayDict in self.surface_level_dict.values():
                 try:
-                    wind_gust_values_for_this_hour += [dayDict[hour]["surfaceWindGust"]]
+                    # Get wind gust value for this hour
+                    values += [dayDict[hour]["surfaceWindGust"]]
                 except KeyError:
                     # Some day does not have data for the desired hour (probably the last one)
                     # No need to worry, just average over the other days
                     pass
-            average_wind_gust_at_given_hour[hour] = wind_gust_values_for_this_hour
+            wind_gusts[hour] = values
 
-        # Create grid of plots for each hour
-        hours = list(list(self.env_analysis.pressureLevelDataDict.values())[0].keys())
+        # Create grid of plots to show a distribution for each hour
+        hours = list(list(self.surface_level_dict.values())[0].keys())
         nrows, ncols = find_two_closest_integers(len(hours))
         fig = plt.figure(figsize=(ncols * 2, nrows * 2.2))
         gs = fig.add_gridspec(nrows, ncols, hspace=0, wspace=0, left=0.12)
         axs = gs.subplots(sharex=True, sharey=True)
         x_min, x_max, y_min, y_max = 0, 0, 0, 0
+        # Iterate over all hours and plot histograms
         for i, j in [(i, j) for i in range(nrows) for j in range(ncols)]:
             hour = hours[i * ncols + j]
             ax = axs[i, j]
             ax.set_title(f"{float(hour):05.2f}".replace(".", ":"), y=0.8)
             ax.hist(
-                average_wind_gust_at_given_hour[hour],
-                bins=int(len(average_wind_gust_at_given_hour[hour]) ** 0.5),
+                wind_gusts[hour],
+                bins=int(len(wind_gusts[hour]) ** 0.5),
                 density=True,
                 histtype="stepfilled",
                 alpha=0.2,
-                label="Wind Gust Speed Distribution",
+                label="Wind Gust",
             )
             ax.autoscale(enable=True, axis="y", tight=True)
             # Plot weibull distribution
-            c, loc, scale = stats.weibull_min.fit(
-                average_wind_gust_at_given_hour[hour], loc=0, scale=1
-            )
-            x = np.linspace(0, np.ceil(self.env_analysis.max_wind_gust), 100)
+            c, loc, scale = stats.weibull_min.fit(wind_gusts[hour], loc=0, scale=1)
+            x = np.linspace(0, np.ceil(self.env_analysis.max_wind_gust_list), 50)
             ax.plot(
                 x,
                 stats.weibull_min.pdf(x, c, loc, scale),
@@ -885,6 +828,7 @@ class _EnvironmentAnalysisPlots:
             y_max = current_y_max if current_y_max > y_max else y_max
             ax.label_outer()
             ax.grid()
+
         # Set x and y limits for the last axis. Since axes are shared, set to all
         ax.set_xlim(x_min, x_max)
         ax.set_ylim(y_min, y_max)
@@ -896,7 +840,12 @@ class _EnvironmentAnalysisPlots:
         )
         # Set title and axis labels for entire figure
         handles, labels = ax.get_legend_handles_labels()
-        fig.legend(handles, labels, loc="upper right")
+        by_label = dict(zip(labels, handles))
+        fig.legend(
+            by_label.values(),
+            by_label.keys(),
+            loc="upper right",
+        )
         fig.suptitle("Average Wind Profile")
         fig.supxlabel(
             f"Wind Gust Speed ({self.env_analysis.unit_system['wind_speed']})"
@@ -909,23 +858,23 @@ class _EnvironmentAnalysisPlots:
     def animate_wind_gust_distribution_over_average_day(self):
         """Animation of how the wind gust distribution varies throughout the day."""
         # Gather animation data
-        wind_gusts_at_given_hour = {}
-        for hour in list(self.env_analysis.surfaceDataDict.values())[0].keys():
-            wind_gust_values_for_this_hour = []
-            for dayDict in self.env_analysis.surfaceDataDict.values():
+        wind_gusts = {}
+        for hour in list(self.surface_level_dict.values())[0].keys():
+            values = []
+            for dayDict in self.surface_level_dict.values():
                 try:
-                    wind_gust_values_for_this_hour += [dayDict[hour]["surfaceWindGust"]]
+                    values += [dayDict[hour]["surfaceWindGust"]]
                 except KeyError:
                     # Some day does not have data for the desired hour (probably the last one)
                     # No need to worry, just average over the other days
                     pass
-            wind_gusts_at_given_hour[hour] = wind_gust_values_for_this_hour
+            wind_gusts[hour] = values
 
         # Create animation
         fig, ax = plt.subplots(dpi=200)
         # Initialize animation artists: histogram and hour text
         hist_bins = np.linspace(
-            0, np.ceil(self.env_analysis.max_wind_gust), 25
+            0, np.ceil(self.env_analysis.record_max_wind_gust), 25
         )  # Fix bins edges
         _, _, bar_container = plt.hist(
             [],
@@ -952,7 +901,7 @@ class _EnvironmentAnalysisPlots:
 
         # Define function to initialize animation
         def init():
-            ax.set_xlim(0, np.ceil(self.env_analysis.max_wind_gust))
+            ax.set_xlim(0, np.ceil(self.env_analysis.record_max_wind_gust))
             ax.set_ylim(0, 0.3)  # TODO: parametrize
             ax.set_xlabel(
                 f"Wind Gust Speed ({self.env_analysis.unit_system['wind_speed']})"
@@ -971,20 +920,20 @@ class _EnvironmentAnalysisPlots:
                 rect.set_height(count)
             # Update weibull distribution
             c, loc, scale = stats.weibull_min.fit(data, loc=0, scale=1)
-            xdata = np.linspace(0, np.ceil(self.env_analysis.max_wind_gust), 100)
+            xdata = np.linspace(0, np.ceil(self.env_analysis.record_max_wind_gust), 50)
             ydata = stats.weibull_min.pdf(xdata, c, loc, scale)
             ln.set_data(xdata, ydata)
             # Update hour text
             tx.set_text(f"{float(frame[0]):05.2f}".replace(".", ":"))
             return (ln, *bar_container.patches, tx)
 
-        for frame in wind_gusts_at_given_hour.items():
+        for frame in wind_gusts.items():
             update(frame)
 
         animation = FuncAnimation(
             fig,
             update,
-            frames=wind_gusts_at_given_hour.items(),
+            frames=wind_gusts.items(),
             interval=750,
             init_func=init,
             blit=True,
@@ -998,9 +947,9 @@ class _EnvironmentAnalysisPlots:
         """Plots shown in the animation of how the sustained surface wind speed distribution varies throughout the day."""
         # Gather animation data
         average_wind_speed_at_given_hour = {}
-        for hour in list(self.env_analysis.surfaceDataDict.values())[0].keys():
+        for hour in list(self.surface_level_dict.values())[0].keys():
             wind_speed_values_for_this_hour = []
-            for dayDict in self.env_analysis.surfaceDataDict.values():
+            for dayDict in self.surface_level_dict.values():
                 try:
                     wind_speed_values_for_this_hour += [
                         (
@@ -1016,7 +965,7 @@ class _EnvironmentAnalysisPlots:
             average_wind_speed_at_given_hour[hour] = wind_speed_values_for_this_hour
 
         # Create grid of plots for each hour
-        hours = list(list(self.env_analysis.pressureLevelDataDict.values())[0].keys())
+        hours = list(list(self.pressure_level_dict.values())[0].keys())
         ncols, nrows = find_two_closest_integers(len(hours))
         fig = plt.figure(figsize=(ncols * 2, nrows * 2.2))
         gs = fig.add_gridspec(nrows, ncols, hspace=0, wspace=0, left=0.12)
@@ -1032,7 +981,7 @@ class _EnvironmentAnalysisPlots:
                 density=True,
                 histtype="stepfilled",
                 alpha=0.2,
-                label="Wind speed Speed Distribution",
+                label="Wind Speed",
             )
             ax.autoscale(enable=True, axis="y", tight=True)
             # Plot weibull distribution
@@ -1041,7 +990,7 @@ class _EnvironmentAnalysisPlots:
             )
             x = np.linspace(
                 0,
-                np.ceil(self.env_analysis.calculate_maximum_surface_10m_wind_speed()),
+                np.ceil(self.env_analysis.max_surface_10m_wind_speed_list),
                 100,
             )
             ax.plot(
@@ -1084,7 +1033,12 @@ class _EnvironmentAnalysisPlots:
 
         # Set title and axis labels for entire figure
         handles, labels = ax.get_legend_handles_labels()
-        fig.legend(handles, labels, loc="upper right")
+        by_label = dict(zip(labels, handles))
+        fig.legend(
+            by_label.values(),
+            by_label.keys(),
+            loc="upper right",
+        )
         fig.suptitle("Average Wind Profile")
         fig.supxlabel(
             f"Sustained Surface Wind Speed ({self.env_analysis.unit_system['wind_speed']})"
@@ -1101,9 +1055,9 @@ class _EnvironmentAnalysisPlots:
         """Animation of how the sustained surface wind speed distribution varies throughout the day."""
         # Gather animation data
         surface_wind_speeds_at_given_hour = {}
-        for hour in list(self.env_analysis.surfaceDataDict.values())[0].keys():
+        for hour in list(self.surface_level_dict.values())[0].keys():
             surface_wind_speed_values_for_this_hour = []
-            for dayDict in self.env_analysis.surfaceDataDict.values():
+            for dayDict in self.surface_level_dict.values():
                 try:
                     surface_wind_speed_values_for_this_hour += [
                         (
@@ -1124,7 +1078,7 @@ class _EnvironmentAnalysisPlots:
         fig, ax = plt.subplots(dpi=200)
         # Initialize animation artists: histogram and hour text
         hist_bins = np.linspace(
-            0, np.ceil(self.env_analysis.calculate_maximum_surface_10m_wind_speed()), 25
+            0, np.ceil(self.env_analysis.record_max_surface_10m_wind_speed), 25
         )  # Fix bins edges
         _, _, bar_container = plt.hist(
             [],
@@ -1151,9 +1105,7 @@ class _EnvironmentAnalysisPlots:
 
         # Define function to initialize animation
         def init():
-            ax.set_xlim(
-                0, np.ceil(self.env_analysis.calculate_maximum_surface_10m_wind_speed())
-            )
+            ax.set_xlim(0, np.ceil(self.env_analysis.record_max_surface_10m_wind_speed))
             ax.set_ylim(0, 0.3)  # TODO: parametrize
             ax.set_xlabel(
                 f"Sustained Surface Wind Speed ({self.env_analysis.unit_system['wind_speed']})"
@@ -1187,7 +1139,7 @@ class _EnvironmentAnalysisPlots:
             c, loc, scale = stats.weibull_min.fit(data, loc=0, scale=1)
             xdata = np.linspace(
                 0,
-                np.ceil(self.env_analysis.calculate_maximum_surface_10m_wind_speed()),
+                np.ceil(self.env_analysis.record_max_surface_10m_wind_speed),
                 100,
             )
             ydata = stats.weibull_min.pdf(xdata, c, loc, scale)
@@ -1212,15 +1164,15 @@ class _EnvironmentAnalysisPlots:
 
     def wind_profile_over_average_day(self, clear_range_limits=False):
         """Creates a grid of plots with the wind profile over the average day."""
-        self.env_analysis.process_wind_speed_profile_over_average_day()
 
         # Create grid of plots for each hour
-        hours = list(list(self.env_analysis.pressureLevelDataDict.values())[0].keys())
+        hours = list(list(self.pressure_level_dict.values())[0].keys())
         ncols, nrows = find_two_closest_integers(len(hours))
         fig = plt.figure(figsize=(ncols * 2, nrows * 2.2))
         gs = fig.add_gridspec(nrows, ncols, hspace=0, wspace=0, left=0.12)
         axs = gs.subplots(sharex=True, sharey=True)
         x_min, x_max, y_min, y_max = 0, 0, np.inf, 0
+
         for i, j in [(i, j) for i in range(nrows) for j in range(ncols)]:
             hour = hours[i * ncols + j]
             ax = axs[i, j]
@@ -1243,6 +1195,7 @@ class _EnvironmentAnalysisPlots:
 
             ax.label_outer()
             ax.grid()
+
         # Set x and y limits for the last axis. Since axes are shared, set to all
         ax.set_xlim(x_min, x_max)
         ax.set_ylim(y_min, y_max)
@@ -1296,10 +1249,9 @@ class _EnvironmentAnalysisPlots:
 
     def wind_heading_profile_over_average_day(self, clear_range_limits=False):
         """Creates a grid of plots with the wind heading profile over the average day."""
-        self.env_analysis.process_wind_heading_profile_over_average_day()
 
         # Create grid of plots for each hour
-        hours = list(list(self.env_analysis.pressureLevelDataDict.values())[0].keys())
+        hours = list(list(self.pressure_level_dict.values())[0].keys())
         ncols, nrows = find_two_closest_integers(len(hours))
         fig = plt.figure(figsize=(ncols * 2, nrows * 2.2))
         gs = fig.add_gridspec(nrows, ncols, hspace=0, wspace=0, left=0.12)
@@ -1375,7 +1327,6 @@ class _EnvironmentAnalysisPlots:
 
     def animate_wind_profile_over_average_day(self, clear_range_limits=False):
         """Animation of how wind profile evolves throughout an average day."""
-        self.env_analysis.process_wind_speed_profile_over_average_day()
 
         # Create animation
         fig, ax = plt.subplots(dpi=200)
@@ -1448,7 +1399,6 @@ class _EnvironmentAnalysisPlots:
 
     def animate_wind_heading_profile_over_average_day(self, clear_range_limits=False):
         """Animation of how wind heading profile evolves throughout an average day."""
-        self.env_analysis.process_wind_heading_profile_over_average_day()
 
         # Create animation
         fig, ax = plt.subplots(dpi=200)
@@ -1466,7 +1416,6 @@ class _EnvironmentAnalysisPlots:
         # Define function to initialize animation
 
         def init():
-            altitude_list = np.linspace(*self.env_analysis.altitude_AGL_range, 100)
             ax.set_xlim(0, 360)
             ax.set_ylim(*self.env_analysis.altitude_AGL_range)
             ax.set_xlabel(f"Wind Heading ({self.env_analysis.unit_system['angle']})")
