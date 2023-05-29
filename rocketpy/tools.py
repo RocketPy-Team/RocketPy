@@ -1,7 +1,10 @@
 _NOT_FOUND = object()
 
+import numpy as np
 import pytz
 from cftime import num2pydate
+
+from .units import convert_units
 
 
 class cached_property:
@@ -138,3 +141,94 @@ def time_num_to_date_string(time_num, units, timezone, calendar="gregorian"):
     date_string = f"{date_time.year}.{date_time.month}.{date_time.day}"
     hour_string = f"{date_time.hour}"
     return date_string, hour_string, date_time
+
+
+def beaufort_wind_scale(units, max_wind_speed=None):
+    """Returns a list of bins equivalent to the Beaufort wind scale in the
+    desired unit system.
+
+    Parameters
+    ----------
+    units: str
+        Desired units for wind speed.
+        Options are: "knot", "mph", "m/s", "ft/s: and "km/h".
+    max_wind_speed: float
+        Maximum wind speed to be included in the scale. Should be expressed
+        in the same unit as the units parameter.
+
+    Returns
+    -------
+    list[float]
+    """
+    wind_scale_knots = np.array([0, 1, 3, 6, 10, 16, 21, 27, 33, 40, 47, 55, 63, 71])
+    wind_scale = wind_scale_knots * convert_units(1, "knot", units)
+    wind_scale_truncated = wind_scale[np.where(wind_scale <= max_wind_speed)]
+    if wind_scale[1] < 1:
+        return np.round(wind_scale_truncated, 1)
+    else:
+        return np.round(wind_scale_truncated, 0)
+
+
+def geopotential_to_height_asl(geopotential, radius=63781370, g=9.80665):
+    """Compute height above sea level from geopotential.
+
+    Source: https://en.wikipedia.org/wiki/Geopotential
+
+    Parameters
+    ----------
+    geopotential : float
+        Geopotential in m^2/s^2. It is the geopotential value at a given
+        pressure level, to be converted to height above sea level.
+    radius : float, optional
+        Earth radius in m. Default is 63781370 m.
+    g : float, optional
+        Gravity acceleration in m/s^2. Default is 9.80665 m/s^2.
+
+    Returns
+    -------
+    geopotential_to_height_asl : float
+        Height above sea level in m
+
+    Examples
+    --------
+    >>> geopotential_to_height_asl(0)
+    0
+    >>> geopotential_to_height_asl(100000)
+    849.5
+    >>> geopotential_to_height_asl(200000)
+    1699.0
+    """
+    geopotential_height = geopotential / g
+    return radius * geopotential_height / (radius - geopotential_height)
+
+
+def geopotential_to_height_agl(geopotential, elevation, radius=63781370, g=9.80665):
+    """Compute height above ground level from geopotential and elevation.
+
+    Parameters
+    ----------
+    geopotential : float
+        Geopotential in m^2/s^2. It is the geopotential value at a given
+        pressure level, to be converted to height above ground level.
+    elevation : float
+        Surface elevation in m
+    radius : float, optional
+        Earth radius in m. Default is 63781370 m.
+    g : float, optional
+        Gravity acceleration in m/s^2. Default is 9.80665 m/s^2.
+
+    Returns
+    -------
+    height_above_ground_level : float
+        Height above ground level in m
+
+    Examples
+    --------
+    >>> geopotential_to_height_agl(0, 0)
+    0
+    >>> geopotential_to_height_agl(100000, 0)
+    849.5
+    >>> geopotential_to_height_agl(100000, 1000)
+    1849.5
+    """
+    return geopotential_to_height_asl(geopotential, radius, g) - elevation
