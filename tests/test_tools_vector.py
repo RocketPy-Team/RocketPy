@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 
+from rocketpy import Function
 from rocketpy.tools import Vector
 
 test_vector_1 = [1, 2, 3]
@@ -20,6 +21,15 @@ def test_vector_get_item(vector_components):
     vector = Vector(vector_components)
     for i in range(3):
         assert vector[i] == vector_components[i]
+
+
+@pytest.mark.parametrize("vector_components", test_vectors)
+def test_vector_call(vector_components):
+    f = Function(lambda x: x**2)
+    vector = Vector(vector_components)
+    callable_vector = vector * f
+    assert callable_vector(1) == vector
+    assert callable_vector(2) == 4 * vector
 
 
 @pytest.mark.parametrize("vector_components", test_vectors)

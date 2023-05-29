@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 
+from rocketpy import Function
 from rocketpy.tools import Vector, Matrix
 
 test_matrix_1 = [[-7, 2, 3], [4, 5, -6], [1, -8, 9]]
@@ -37,6 +38,15 @@ def test_matrix_getitem(components):
     matrix = Matrix(components)
     for i, j in [(i, j) for i in range(3) for j in range(3)]:
         assert matrix[i, j] == components[i][j]
+
+
+@pytest.mark.parametrize("components", test_matrices)
+def test_matrix_call(components):
+    f = Function(lambda x: x**2)
+    matrix = Matrix(components)
+    callable_matrix = matrix * f
+    assert callable_matrix(1) == matrix
+    assert callable_matrix(2) == 4 * matrix
 
 
 @pytest.mark.parametrize("components", test_matrices)

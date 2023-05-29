@@ -50,6 +50,14 @@ class Vector:
     def __getitem__(self, i):
         return self.components[i]
 
+    def __call__(self, *args):
+        """Adds support for calling a vector as a function, if its elements are
+        callable."""
+        try:
+            return self.element_wise(lambda f: f(*args))
+        except TypeError:
+            raise TypeError("One or more elements of this vector is not callable.")
+
     def __len__(self):
         return 3
 
@@ -221,6 +229,14 @@ class Matrix:
             return self.components[args]
         else:
             return self.components[args[0]][args[1]]
+
+    def __call__(self, *args):
+        """Adds support for calling a matrix as a function, if its elements are
+        callable."""
+        try:
+            return self.element_wise(lambda f: f(*args))
+        except TypeError:
+            raise TypeError("One or more elements of this matrix is not callable.")
 
     def __len__(self):
         return 3
