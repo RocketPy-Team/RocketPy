@@ -1919,9 +1919,9 @@ class Flight:
         x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
 
         # Create necessary vectors
-        # r = Vector([x, y, z])  # CDM position vector
-        v = Vector([vx, vy, vz])  # CDM velocity vector
-        e = Vector([e0, e1, e2, e3])  # Euler parameters/quaternions
+        # r = Vector([x, y, z])               # CDM position vector
+        v = Vector([vx, vy, vz])              # CDM velocity vector
+        e = [e0, e1, e2, e3]                  # Euler parameters/quaternions
         w = Vector([omega1, omega2, omega3])  # Angular velocity vector
 
         # Retrieve necessary quantities
@@ -2095,7 +2095,7 @@ class Flight:
         T21 = ((I @ w) ^ w) + T05 @ w + (weightB ^ r_CM) + Vector([M1, M2, M3])
 
         # Angular velocity derivative
-        w_dot = I_CM.inverse @ ((T21 + T20) ^ r_CM)
+        w_dot = I_CM.inverse @ (T21 + (T20 ^ r_CM))
 
         # Velocity vector derivative
         v_dot = K @ (T20 / total_mass - (r_CM ^ w_dot))
