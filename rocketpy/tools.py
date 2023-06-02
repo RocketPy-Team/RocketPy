@@ -101,6 +101,8 @@ class Vector:
     False
     """
 
+    __array_ufunc__ = None
+
     def __init__(self, components):
         """Vector class constructor.
 
@@ -117,10 +119,15 @@ class Vector:
         Vector(1, 2, 3)
         """
         self.components = components
+        self.x, self.y, self.z = self.components
 
     def __getitem__(self, i):
         """Access vector components by indexing."""
         return self.components[i]
+
+    def __iter__(self):
+        """Adds support for iteration."""
+        return iter(self.components)
 
     def __call__(self, *args):
         """Adds support for calling a vector as a function, if its elements are
@@ -151,21 +158,6 @@ class Vector:
 
     def __len__(self):
         return 3
-
-    @cached_property
-    def x(self):
-        """First component of the vector."""
-        return self.components[0]
-
-    @cached_property
-    def y(self):
-        """Second component of the vector."""
-        return self.components[1]
-
-    @cached_property
-    def z(self):
-        """Third component of the vector."""
-        return self.components[2]
 
     @cached_property
     def unit_vector(self):
@@ -203,22 +195,11 @@ class Vector:
 
     def __add__(self, other):
         """Sum two R3 vectors."""
-        result = [self[i] + other[i] for i in range(3)]
-        return Vector(result)
-
-    def __radd__(self, other):
-        """Sum two R3 vectors."""
-        return self.__add__(other)
+        return Vector([self.x + other.x, self.y + other.y, self.z + other.z])
 
     def __sub__(self, other):
         """Subtract two R3 vectors."""
-        result = [self[i] - other[i] for i in range(3)]
-        return Vector(result)
-
-    def __rsub__(self, other):
-        """Subtract two R3 vectors."""
-        result = [other[i] - self[i] for i in range(3)]
-        return Vector(result)
+        return Vector([self.x - other.x, self.y - other.y, self.z - other.z])
 
     def __mul__(self, other):
         """Component wise multiplication between R3 vector and scalar other."""
@@ -259,18 +240,17 @@ class Vector:
         to avoid ambiguity with the bitwise xor operator and keep the
         precedence of the operators.
         """
-        x = self[1] * other[2] - self[2] * other[1]
-        y = -self[0] * other[2] + self[2] * other[0]
-        z = self[0] * other[1] - self[1] * other[0]
-        return Vector([x, y, z])
+        return Vector(
+            [
+                self.y * other.z - self.z * other.y,
+                -self.x * other.z + self.z * other.x,
+                self.x * other.y - self.y * other.x,
+            ]
+        )
 
     def __matmul__(self, other):
         """Dot product between two R3 vectors."""
-        return sum([self[i] * other[i] for i in range(3)])
-
-    def __rmatmul__(self, other):
-        """Dot product between two R3 vectors."""
-        return self.__matmul__(other)
+        return self.x * other.x + self.y * other.y + self.z * other.z
 
     def __eq__(self, other):
         """Check if two R3 vectors are equal.
@@ -299,9 +279,9 @@ class Vector:
         """
         return (
             len(other) == 3
-            and isclose(self.x, other[0])
-            and isclose(self.y, other[1])
-            and isclose(self.z, other[2])
+            and isclose(self.x, other[0], rel_tol=0, abs_tol=1e-9)
+            and isclose(self.y, other[1], rel_tol=0, abs_tol=1e-9)
+            and isclose(self.z, other[2], rel_tol=0, abs_tol=1e-9)
         )
 
     def is_parallel_to(self, other):
@@ -531,6 +511,8 @@ class Matrix:
     False
     """
 
+    __array_ufunc__ = None
+
     def __init__(self, components):
         """Matrix class constructor.
 
@@ -549,6 +531,10 @@ class Matrix:
                [7, 8, 9])
         """
         self.components = components
+        self.x, self.y, self.z = self.components
+        self.xx, self.xy, self.xz = self.x
+        self.yx, self.yy, self.yz = self.y
+        self.zx, self.zy, self.zz = self.z
 
     def __getitem__(self, args):
         """Adds support for indexing and slicing."""
@@ -556,6 +542,10 @@ class Matrix:
             return self.components[args]
         else:
             return self.components[args[0]][args[1]]
+
+    def __iter__(self):
+        """Adds support for iteration."""
+        return iter(self.components)
 
     def __call__(self, *args):
         """Adds support for calling a matrix as a function, if its elements are
@@ -596,42 +586,6 @@ class Matrix:
     def shape(self):
         """tuple: Shape of the matrix."""
         return (3, 3)
-
-    @cached_property
-    def xx(self):
-        return self[0, 0]
-
-    @cached_property
-    def xy(self):
-        return self[0, 1]
-
-    @cached_property
-    def xz(self):
-        return self[0, 2]
-
-    @cached_property
-    def yx(self):
-        return self[1, 0]
-
-    @cached_property
-    def yy(self):
-        return self[1, 1]
-
-    @cached_property
-    def yz(self):
-        return self[1, 2]
-
-    @cached_property
-    def zx(self):
-        return self[2, 0]
-
-    @cached_property
-    def zy(self):
-        return self[2, 1]
-
-    @cached_property
-    def zz(self):
-        return self[2, 2]
 
     @cached_property
     def trace(self):
@@ -710,28 +664,23 @@ class Matrix:
         ZeroDivisionError
             If the matrix is singular.
         """
-        if self.is_diagonal:
-            return Matrix(
-                [[1 / self.xx, 0, 0], [0, 1 / self.yy, 0], [0, 0, 1 / self.zz]]
-            )
-        else:
-            ixx = self.yy * self.zz - self.zy * self.yz
-            iyx = self.zx * self.yz - self.yx * self.zz
-            izx = self.yx * self.zy - self.zx * self.yy
-            ixy = self.zy * self.xz - self.xy * self.zz
-            iyy = self.xx * self.zz - self.zx * self.xz
-            izy = self.zx * self.xy - self.xx * self.zy
-            ixz = self.xy * self.yz - self.yy * self.xz
-            iyz = self.yx * self.xz - self.yz * self.xx
-            izz = self.xx * self.yy - self.yx * self.xy
-            det = self.xx * ixx + self.xy * iyx + self.xz * izx
-            return Matrix(
-                [
-                    [ixx / det, ixy / det, ixz / det],
-                    [iyx / det, iyy / det, iyz / det],
-                    [izx / det, izy / det, izz / det],
-                ]
-            )
+        ixx = self.yy * self.zz - self.zy * self.yz
+        iyx = self.zx * self.yz - self.yx * self.zz
+        izx = self.yx * self.zy - self.zx * self.yy
+        ixy = self.zy * self.xz - self.xy * self.zz
+        iyy = self.xx * self.zz - self.zx * self.xz
+        izy = self.zx * self.xy - self.xx * self.zy
+        ixz = self.xy * self.yz - self.yy * self.xz
+        iyz = self.yx * self.xz - self.yz * self.xx
+        izz = self.xx * self.yy - self.yx * self.xy
+        det = self.xx * ixx + self.xy * iyx + self.xz * izx
+        return Matrix(
+            [
+                [ixx / det, ixy / det, ixz / det],
+                [iyx / det, iyy / det, iyz / det],
+                [izx / det, izy / det, izz / det],
+            ]
+        )
 
     def __abs__(self):
         """Matrix determinant."""
@@ -755,33 +704,19 @@ class Matrix:
         """Sum two 3x3 matrices."""
         return Matrix(
             [
-                [self.xx + other[0][0], self.xy + other[0][1], self.xz + other[0][2]],
-                [self.yx + other[1][0], self.yy + other[1][1], self.yz + other[1][2]],
-                [self.zx + other[2][0], self.zy + other[2][1], self.zz + other[2][2]],
+                [self.xx + other.xx, self.xy + other.xy, self.xz + other.xz],
+                [self.yx + other.yx, self.yy + other.yy, self.yz + other.yz],
+                [self.zx + other.zx, self.zy + other.zy, self.zz + other.zz],
             ]
         )
-
-    def __radd__(self, other):
-        """Sum two 3x3 matrices."""
-        return self.__add__(other)
 
     def __sub__(self, other):
         """Subtract two 3x3 matrices."""
         return Matrix(
             [
-                [self.xx - other[0][0], self.xy - other[0][1], self.xz - other[0][2]],
-                [self.yx - other[1][0], self.yy - other[1][1], self.yz - other[1][2]],
-                [self.zx - other[2][0], self.zy - other[2][1], self.zz - other[2][2]],
-            ]
-        )
-
-    def __rsub__(self, other):
-        """Subtract two 3x3 matrices."""
-        return Matrix(
-            [
-                [other[0][0] - self.xx, other[0][1] - self.xy, other[0][2] - self.xz],
-                [other[1][0] - self.yx, other[1][1] - self.yy, other[1][2] - self.yz],
-                [other[2][0] - self.zx, other[2][1] - self.zy, other[2][2] - self.zz],
+                [self.xx - other.xx, self.xy - other.xy, self.xz - other.xz],
+                [self.yx - other.yx, self.yy - other.yy, self.yz - other.yz],
+                [self.zx - other.zx, self.zy - other.zy, self.zz - other.zz],
             ]
         )
 
@@ -839,29 +774,33 @@ class Matrix:
                [102, 126, 150])
         """
         try:
-            result = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
-            for i, j in product(range(3), range(3)):
-                result[i][j] = Vector(self[i, :]) @ Vector(
-                    [other[0][j], other[1][j], other[2][j]]
-                )
-            return Matrix(result)
-        except (TypeError, IndexError):
-            return Vector([Vector(self[i, :]) @ other for i in range(3)])
-
-    def __rmatmul__(self, other):
-        """Dot product between two 3x3 matrices or between 3x3 matrix and R3
-        vector.
-
-        See Also
-        --------
-        Matrix.__matmul__
-        """
-        result = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
-        for i, j in product(range(3), range(3)):
-            result[i][j] = Vector([other[i][0], other[i][1], other[i][2]]) @ Vector(
-                [self[0][j], self[1][j], self[2][j]]
+            return Matrix(
+                [
+                    [
+                        self.xx * other.xx + self.xy * other.yx + self.xz * other.zx,
+                        self.xx * other.xy + self.xy * other.yy + self.xz * other.zy,
+                        self.xx * other.xz + self.xy * other.yz + self.xz * other.zz,
+                    ],
+                    [
+                        self.yx * other.xx + self.yy * other.yx + self.yz * other.zx,
+                        self.yx * other.xy + self.yy * other.yy + self.yz * other.zy,
+                        self.yx * other.xz + self.yy * other.yz + self.yz * other.zz,
+                    ],
+                    [
+                        self.zx * other.xx + self.zy * other.yx + self.zz * other.zx,
+                        self.zx * other.xy + self.zy * other.yy + self.zz * other.zy,
+                        self.zx * other.xz + self.zy * other.yz + self.zz * other.zz,
+                    ],
+                ]
             )
-        return Matrix(result)
+        except (AttributeError):
+            return Vector(
+                [
+                    self.xx * other.x + self.xy * other.y + self.xz * other.z,
+                    self.yx * other.x + self.yy * other.y + self.yz * other.z,
+                    self.zx * other.x + self.zy * other.y + self.zz * other.z,
+                ]
+            )
 
     def __pow__(self, other):
         """Exponentiation of 3x3 matrix by integer other.
@@ -921,15 +860,15 @@ class Matrix:
         """
         return (
             len(other) == 3
-            and isclose(self.xx, other[0][0], abs_tol=1e-9)
-            and isclose(self.xy, other[0][1], abs_tol=1e-9)
-            and isclose(self.xz, other[0][2], abs_tol=1e-9)
-            and isclose(self.yx, other[1][0], abs_tol=1e-9)
-            and isclose(self.yy, other[1][1], abs_tol=1e-9)
-            and isclose(self.yz, other[1][2], abs_tol=1e-9)
-            and isclose(self.zx, other[2][0], abs_tol=1e-9)
-            and isclose(self.zy, other[2][1], abs_tol=1e-9)
-            and isclose(self.zz, other[2][2], abs_tol=1e-9)
+            and isclose(self.xx, other[0][0], rel_tol=0, abs_tol=1e-9)
+            and isclose(self.xy, other[0][1], rel_tol=0, abs_tol=1e-9)
+            and isclose(self.xz, other[0][2], rel_tol=0, abs_tol=1e-9)
+            and isclose(self.yx, other[1][0], rel_tol=0, abs_tol=1e-9)
+            and isclose(self.yy, other[1][1], rel_tol=0, abs_tol=1e-9)
+            and isclose(self.yz, other[1][2], rel_tol=0, abs_tol=1e-9)
+            and isclose(self.zx, other[2][0], rel_tol=0, abs_tol=1e-9)
+            and isclose(self.zy, other[2][1], rel_tol=0, abs_tol=1e-9)
+            and isclose(self.zz, other[2][2], rel_tol=0, abs_tol=1e-9)
         )
 
     def element_wise(self, operation):

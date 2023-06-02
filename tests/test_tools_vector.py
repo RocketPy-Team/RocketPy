@@ -24,6 +24,13 @@ def test_vector_get_item(vector_components):
 
 
 @pytest.mark.parametrize("vector_components", test_vectors)
+def test_vector_iter(vector_components):
+    vector = Vector(vector_components)
+    for i, j in zip(vector, vector_components):
+        assert i == j
+
+
+@pytest.mark.parametrize("vector_components", test_vectors)
 def test_vector_call(vector_components):
     f = Function(lambda x: x**2)
     vector = Vector(vector_components)
@@ -90,24 +97,8 @@ def test_vector_add(u_c, v_c):
 
 @pytest.mark.parametrize("u_c", test_vectors)
 @pytest.mark.parametrize("v_c", test_vectors)
-def test_vector_radd(u_c, v_c):
-    u, v = u_c, Vector(v_c)
-    result = u + v
-    assert result == Vector([i + j for i, j in zip(u_c, v_c)])
-
-
-@pytest.mark.parametrize("u_c", test_vectors)
-@pytest.mark.parametrize("v_c", test_vectors)
 def test_vector_sub(u_c, v_c):
     u, v = Vector(u_c), Vector(v_c)
-    result = u - v
-    assert result == Vector([i - j for i, j in zip(u_c, v_c)])
-
-
-@pytest.mark.parametrize("u_c", test_vectors)
-@pytest.mark.parametrize("v_c", test_vectors)
-def test_vector_rsub(u_c, v_c):
-    u, v = u_c, Vector(v_c)
     result = u - v
     assert result == Vector([i - j for i, j in zip(u_c, v_c)])
 
@@ -147,7 +138,7 @@ def test_vector_xor(u_c, v_c):
 @pytest.mark.parametrize("u_c", test_vectors)
 @pytest.mark.parametrize("v_c", test_vectors)
 def test_vector_matmul(u_c, v_c):
-    u, v = u_c, Vector(v_c)
+    u, v = Vector(u_c), Vector(v_c)
     result = u @ v
     assert result == np.dot(u_c, v_c)
 
@@ -191,7 +182,7 @@ def test_vector_element_wise(u_c, operation):
 @pytest.mark.parametrize("u_c", test_vectors)
 @pytest.mark.parametrize("v_c", test_vectors)
 def test_vector_dot(u_c, v_c):
-    u, v = Vector(u_c), v_c
+    u, v = Vector(u_c), Vector(v_c)
     result = u.dot(v)
     assert result == np.dot(u_c, v_c)
 
