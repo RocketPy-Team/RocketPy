@@ -1617,7 +1617,7 @@ class Flight:
         windVelocityX = self.env.windVelocityX.getValueOpt(z)
         windVelocityY = self.env.windVelocityY.getValueOpt(z)
         wind_velocity = Vector([windVelocityX, windVelocityY, 0])
-        freestreamSpeed = abs((wind_velocity - v))
+        freestreamSpeed = abs((wind_velocity - Vector(v)))
         freestreamMach = freestreamSpeed / self.env.speedOfSound.getValueOpt(z)
         dragCoeff = self.rocket.powerOnDrag.getValueOpt(freestreamMach)
         return -0.5 * rho * (freestreamSpeed**2) * self.rocket.area * (dragCoeff)
@@ -1925,10 +1925,10 @@ class Flight:
         w = Vector([omega1, omega2, omega3])  # Angular velocity vector
 
         # Retrieve necessary quantities
-        rho = float(self.env.density.getValueOpt(z))
-        total_mass = float(self.rocket.totalMass.getValueOpt(t))
-        total_mass_dot = float(self.rocket.totalMass.differentiate(t))
-        total_mass_ddot = float(self.rocket.totalMass.differentiate(t, order=2))
+        rho = self.env.density.getValueOpt(z)
+        total_mass = self.rocket.totalMass.getValueOpt(t)
+        total_mass_dot = self.rocket.totalMass.differentiate(t)
+        total_mass_ddot = self.rocket.totalMass.differentiate(t, order=2)
         ## CM position vector and time derivatives relative to CDM in body frame
         r_CM_z = (
             -1
@@ -2025,7 +2025,7 @@ class Flight:
             compWindVx = self.env.windVelocityX.getValueOpt(compZ)
             compWindVy = self.env.windVelocityY.getValueOpt(compZ)
             # Component freestream velocity in body frame
-            compWindVB = Kt @ [compWindVx, compWindVy, 0]
+            compWindVB = Kt @ Vector([compWindVx, compWindVy, 0])
             compStreamVelocity = compWindVB - compVB
             compStreamVxB, compStreamVyB, compStreamVzB = compStreamVelocity
             compStreamSpeed = abs(compStreamVelocity)
@@ -2076,7 +2076,7 @@ class Flight:
             except AttributeError:
                 pass
 
-        weightB = Kt @ [0, 0, -total_mass * self.env.g]
+        weightB = Kt @ Vector([0, 0, -total_mass * self.env.g])
         T00 = total_mass * r_CM
         T03 = (
             2 * total_mass_dot * (Vector([0, 0, r_NOZ]) - r_CM)
