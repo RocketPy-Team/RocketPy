@@ -793,7 +793,7 @@ class Matrix:
                     ],
                 ]
             )
-        except (AttributeError):
+        except AttributeError:
             return Vector(
                 [
                     self.xx * other.x + self.xy * other.y + self.xz * other.z,
