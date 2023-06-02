@@ -7,7 +7,7 @@ setuptools.setup(
     name="rocketpy",
     version="0.13.0",
     install_requires=[
-        "numpy>=1.0",
+        "numpy>=1.13",
         "scipy>=1.0",
         "matplotlib>=3.0",
         "netCDF4>=1.4,<1.6",
