@@ -172,13 +172,13 @@ def env_analysis():
         longitude=-8.28896388889,
         start_hour=6,
         end_hour=18,
-        surfaceDataFile="./data/weather/EuroC_single_level_reanalysis_2002_2021.nc",
-        pressureLevelDataFile="./data/weather/EuroC_pressure_levels_reanalysis_2001-2021.nc",
+        surface_data_file="./data/weather/EuroC_single_level_reanalysis_2002_2021.nc",
+        pressure_level_data_file="./data/weather/EuroC_pressure_levels_reanalysis_2001-2021.nc",
         timezone=None,
         unit_system="metric",
         forecast_date=None,
         forecast_args=None,
-        maxExpectedAltitude=None,
+        max_expected_altitude=None,
     )
 
     return env_analysis
