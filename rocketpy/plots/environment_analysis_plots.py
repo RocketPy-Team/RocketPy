@@ -71,7 +71,9 @@ class _EnvironmentAnalysisPlots:
         -------
         list[float]
         """
-        wind_scale_knots = np.array([0, 1, 3, 6, 10, 16, 21, 27, 33, 40, 47, 55, 63, 71])
+        wind_scale_knots = np.array(
+            [0, 1, 3, 6, 10, 16, 21, 27, 33, 40, 47, 55, 63, 71]
+        )
         wind_scale = wind_scale_knots * convert_units(1, "knot", units)
         wind_scale_truncated = wind_scale[np.where(wind_scale <= max_wind_speed)]
         if wind_scale[1] < 1:
