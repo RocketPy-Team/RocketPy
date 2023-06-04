@@ -15,7 +15,7 @@ from windrose import WindroseAxes
 
 from rocketpy.units import convert_units
 
-from ..tools import beaufort_wind_scale, find_two_closest_integers
+from ..tools import find_two_closest_integers
 
 # TODO: `wind_speed_limit` and `clear_range_limits` and should be numbers, not booleans
 
@@ -53,6 +53,31 @@ class _EnvironmentAnalysisPlots:
         self.pressure_level_dict = self.env_analysis.converted_pressure_level_data
 
         return None
+
+    def __beaufort_wind_scale(self, units, max_wind_speed=None):
+        """Returns a list of bins equivalent to the Beaufort wind scale in the
+        desired unit system.
+
+        Parameters
+        ----------
+        units: str
+            Desired units for wind speed.
+            Options are: "knot", "mph", "m/s", "ft/s: and "km/h".
+        max_wind_speed: float
+            Maximum wind speed to be included in the scale. Should be expressed
+            in the same unit as the units parameter.
+
+        Returns
+        -------
+        list[float]
+        """
+        wind_scale_knots = np.array([0, 1, 3, 6, 10, 16, 21, 27, 33, 40, 47, 55, 63, 71])
+        wind_scale = wind_scale_knots * convert_units(1, "knot", units)
+        wind_scale_truncated = wind_scale[np.where(wind_scale <= max_wind_speed)]
+        if wind_scale[1] < 1:
+            return np.round(wind_scale_truncated, 1)
+        else:
+            return np.round(wind_scale_truncated, 0)
 
     # Surface level plots
 
@@ -864,7 +889,7 @@ class _EnvironmentAnalysisPlots:
         self.plot_wind_rose(
             self.env_analysis.surface_wind_direction_by_hour[hour],
             self.env_analysis.surface_wind_speed_by_hour[hour],
-            bins=beaufort_wind_scale(
+            bins=self.__beaufort_wind_scale(
                 units=self.env_analysis.unit_system["wind_speed"],
                 max_wind_speed=self.env_analysis.record_max_surface_wind_speed,
             ),
@@ -899,7 +924,7 @@ class _EnvironmentAnalysisPlots:
         fig.set_size_inches(
             n_cols * windrose_side, n_rows * windrose_side + vertical_padding_top
         )
-        bins = beaufort_wind_scale(
+        bins = self.__beaufort_wind_scale(
             units=self.env_analysis.unit_system["wind_speed"],
             max_wind_speed=self.env_analysis.record_max_surface_wind_speed,
         )
@@ -978,7 +1003,7 @@ class _EnvironmentAnalysisPlots:
                 self.plot_wind_rose(
                     self.env_analysis.surface_wind_direction_by_hour[hour],
                     self.env_analysis.surface_wind_speed_by_hour[hour],
-                    bins=beaufort_wind_scale(
+                    bins=self.__beaufort_wind_scale(
                         units=self.env_analysis.unit_system["wind_speed"],
                         max_wind_speed=self.env_analysis.record_max_surface_wind_speed,
                     ),
