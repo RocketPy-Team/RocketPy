@@ -256,20 +256,6 @@ class EnvironmentAnalysis:
         -------
         index : int
             Index of the nearest value in the array.
-
-        Examples
-        --------
-        >>> array = np.array([-180, -90, 0, 90, 180])
-        >>> value = 0
-        >>> index = self.__get_nearest_index(array, value)
-        >>> index
-        2
-
-        >>> array = np.array([0, 90, 180, 270, 360])
-        >>> value = 0
-        >>> index = self.__get_nearest_index(array, value)
-        >>> index
-        0
         """
         # Create value convention
         if np.min(array) < 0:

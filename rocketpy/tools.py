@@ -79,18 +79,19 @@ def find_two_closest_integers(number):
 
     Returns
     -------
-    list[int]
+    tuple
+        Two closest integer factors of the number.
 
     Examples
     --------
     >>> find_two_closest_integers(10)
-    [2, 5]
+    (2, 5)
     >>> find_two_closest_integers(12)
-    [3, 4]
+    (3, 4)
     >>> find_two_closest_integers(13)
-    [1, 13]
+    (1, 13)
     >>> find_two_closest_integers(150)
-    [10, 15]
+    (10, 15)
     """
     number_sqrt = number**0.5
     if isinstance(number_sqrt, int):
@@ -164,7 +165,7 @@ def geopotential_to_height_asl(geopotential, radius=63781370, g=9.80665):
     Examples
     --------
     >>> geopotential_to_height_asl(0)
-    0
+    0.0
     >>> geopotential_to_height_asl(100000)
     849.5
     >>> geopotential_to_height_asl(200000)
@@ -197,7 +198,7 @@ def geopotential_to_height_agl(geopotential, elevation, radius=63781370, g=9.806
     Examples
     --------
     >>> geopotential_to_height_agl(0, 0)
-    0
+    0.0
     >>> geopotential_to_height_agl(100000, 0)
     849.5
     >>> geopotential_to_height_agl(100000, 1000)
