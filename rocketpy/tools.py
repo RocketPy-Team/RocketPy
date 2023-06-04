@@ -61,6 +61,12 @@ def bilinear_interpolation(x, y, x1, x2, y1, y2, z11, z12, z21, z22):
     -------
     float
         Interpolated value.
+
+    Examples
+    --------
+    >>> from rocketpy.tools import bilinear_interpolation
+    >>> bilinear_interpolation(0.5, 0.5, 0, 1, 0, 1, 0, 1, 1, 0)
+    0.5
     """
     return (
         z11 * (x2 - x) * (y2 - y)
@@ -84,6 +90,7 @@ def find_two_closest_integers(number):
 
     Examples
     --------
+    >>> from rocketpy.tools import find_two_closest_integers
     >>> find_two_closest_integers(10)
     (2, 5)
     >>> find_two_closest_integers(12)
@@ -164,12 +171,13 @@ def geopotential_to_height_asl(geopotential, radius=63781370, g=9.80665):
 
     Examples
     --------
+    >>> from rocketpy.tools import geopotential_to_height_asl
     >>> geopotential_to_height_asl(0)
     0.0
     >>> geopotential_to_height_asl(100000)
-    849.5
+    10198.792680243916
     >>> geopotential_to_height_asl(200000)
-    1699.0
+    20400.84750449947
     """
     geopotential_height = geopotential / g
     return radius * geopotential_height / (radius - geopotential_height)
@@ -197,11 +205,12 @@ def geopotential_to_height_agl(geopotential, elevation, radius=63781370, g=9.806
 
     Examples
     --------
+    >>> from rocketpy.tools import geopotential_to_height_agl
     >>> geopotential_to_height_agl(0, 0)
     0.0
     >>> geopotential_to_height_agl(100000, 0)
-    849.5
+    10198.792680243916
     >>> geopotential_to_height_agl(100000, 1000)
-    1849.5
+    9198.792680243916
     """
     return geopotential_to_height_asl(geopotential, radius, g) - elevation
