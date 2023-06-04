@@ -25,38 +25,38 @@ class _EnvironmentAnalysisPrints:
         print("Dataset Information: ")
         print(
             f"Time Period: From {self.env_analysis.start_date} to {self.env_analysis.end_date}"
-        )  # TODO: Improve Timezone
+        )
         print(
             f"Available hours: From {self.env_analysis.start_hour} to {self.env_analysis.end_hour}"
-        )  # TODO: Improve Timezone
-        print("Surface Data File Path: ", self.env_analysis.surfaceDataFile)
+        )
+        print("Surface Data File Path: ", self.env_analysis.surface_data_file)
         print(
             "Latitude Range: From ",
-            self.env_analysis.singleLevelInitLat,
-            "° To ",
-            self.env_analysis.singleLevelEndLat,
+            self.env_analysis.single_level_lat0,
+            "° to ",
+            self.env_analysis.single_level_lat1,
             "°",
         )
         print(
             "Longitude Range: From ",
-            self.env_analysis.singleLevelInitLon,
-            "° To ",
-            self.env_analysis.singleLevelEndLon,
+            self.env_analysis.single_level_lon0,
+            "° to ",
+            self.env_analysis.single_level_lon1,
             "°",
         )
-        print("Pressure Data File Path: ", self.env_analysis.pressureLevelDataFile)
+        print("Pressure Data File Path: ", self.env_analysis.pressure_level_data_file)
         print(
             "Latitude Range: From ",
-            self.env_analysis.pressureLevelInitLat,
+            self.env_analysis.pressure_level_lat0,
             "° To ",
-            self.env_analysis.pressureLevelEndLat,
+            self.env_analysis.pressure_level_lat1,
             "°",
         )
         print(
             "Longitude Range: From ",
-            self.env_analysis.pressureLevelInitLon,
+            self.env_analysis.pressure_level_lon0,
             "° To ",
-            self.env_analysis.pressureLevelEndLon,
+            self.env_analysis.pressure_level_lon1,
             "°\n",
         )
         return None
@@ -68,10 +68,10 @@ class _EnvironmentAnalysisPrints:
         print("Launch Site Longitude: {:.5f}°".format(self.env_analysis.longitude))
         print(
             f"Surface Elevation (from surface data file): {self.env_analysis.converted_elevation:.1f} {self.env_analysis.unit_system['length']}"
-        )  # TODO: Improve units
+        )
         print(
             "Max Expected Altitude: ",
-            self.env_analysis.maxExpectedAltitude,
+            self.env_analysis.max_expected_altitude,
             " ",
             self.env_analysis.unit_system["length"],
             "\n",
@@ -81,16 +81,16 @@ class _EnvironmentAnalysisPrints:
     def pressure(self):
         print("Pressure Information")
         print(
-            f"Average Surface Pressure: {self.env_analysis.average_surface_pressure:.2f} ± {self.env_analysis.std_surface_pressure:.2f} {self.env_analysis.unit_system['pressure']}"
+            f"Average Pressure at surface: {self.env_analysis.average_surface_pressure:.2f} ± {self.env_analysis.std_surface_pressure:.2f} {self.env_analysis.unit_system['pressure']}"
         )
         print(
-            f"Average Pressure at {convert_units(1000, 'ft', self.env_analysis.current_units['height_ASL']):.0f} {self.env_analysis.current_units['height_ASL']}: {self.env_analysis.average_pressure_at_1000ft:.2f} ± {self.env_analysis.std_pressure_at_1000ft:.2f} {self.env_analysis.unit_system['pressure']}"
+            f"Average Pressure at {convert_units(1000, 'ft', self.env_analysis.unit_system['length']):.0f} {self.env_analysis.unit_system['length']}: {self.env_analysis.average_pressure_at_1000ft:.2f} ± {self.env_analysis.std_pressure_at_1000ft:.2f} {self.env_analysis.unit_system['pressure']}"
         )
         print(
-            f"Average Pressure at {convert_units(10000, 'ft', self.env_analysis.current_units['height_ASL']):.0f} {self.env_analysis.current_units['height_ASL']}: {self.env_analysis.average_pressure_at_10000ft:.2f} ± {self.env_analysis.std_pressure_at_1000ft:.2f} {self.env_analysis.unit_system['pressure']}"
+            f"Average Pressure at {convert_units(10000, 'ft', self.env_analysis.unit_system['length']):.0f} {self.env_analysis.unit_system['length']}: {self.env_analysis.average_pressure_at_10000ft:.2f} ± {self.env_analysis.std_pressure_at_1000ft:.2f} {self.env_analysis.unit_system['pressure']}"
         )
         print(
-            f"Average Pressure at {convert_units(30000, 'ft', self.env_analysis.current_units['height_ASL']):.0f} {self.env_analysis.current_units['height_ASL']}: {self.env_analysis.average_pressure_at_30000ft:.2f} ± {self.env_analysis.std_pressure_at_1000ft:.2f} {self.env_analysis.unit_system['pressure']}\n"
+            f"Average Pressure at {convert_units(30000, 'ft', self.env_analysis.unit_system['length']):.0f} {self.env_analysis.unit_system['length']}: {self.env_analysis.average_pressure_at_30000ft:.2f} ± {self.env_analysis.std_pressure_at_1000ft:.2f} {self.env_analysis.unit_system['pressure']}\n"
         )
         return None
 
@@ -159,10 +159,10 @@ class _EnvironmentAnalysisPrints:
             f"Percentage of Days with Precipitation: {100*self.env_analysis.percentage_of_days_with_precipitation:.1f}%"
         )
         print(
-            f"Maximum Precipitation: {max(self.env_analysis.precipitation_per_day):.1f} {self.env_analysis.unit_system['precipitation']}"
+            f"Maximum Precipitation in a day: {max(self.env_analysis.precipitation_per_day):.1f} {self.env_analysis.unit_system['precipitation']}"
         )
         print(
-            f"Average Precipitation: {np.mean(self.env_analysis.precipitation_per_day):.1f} {self.env_analysis.unit_system['precipitation']}\n"
+            f"Average Precipitation in a day: {np.mean(self.env_analysis.precipitation_per_day):.1f} {self.env_analysis.unit_system['precipitation']}\n"
         )
         return None
 
