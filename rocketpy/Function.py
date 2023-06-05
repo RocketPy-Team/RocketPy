@@ -1714,7 +1714,7 @@ class Function:
         self.__akimaCoefficients__ = coeffs
 
     def __neg__(self):
-        """Negates the Function objetive. The result has the same effect as
+        """Negates the Function object. The result has the same effect as
         multiplying the Function by -1.
 
         Returns
