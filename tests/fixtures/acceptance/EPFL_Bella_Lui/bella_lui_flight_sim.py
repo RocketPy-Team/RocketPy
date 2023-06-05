@@ -114,7 +114,7 @@ Tail = BellaLui.addTail(
 
 
 # Parachute set-up
-def drogueTrigger(p, h, y):
+def drogueTrigger(p, y):
     # p = pressure
     # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
     # activate drogue when vz < 0 m/s.

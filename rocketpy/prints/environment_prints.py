@@ -43,11 +43,7 @@ class _EnvironmentPrints:
         None
         """
         print("\nGravity Details\n")
-        print(
-            "Acceleration of Gravity at Lauch Site: "
-            + str(self.environment.gravity(self.environment.elevation))
-            + " m/s²"
-        )
+        print("Acceleration of Gravity: " + str(self.environment.gravity) + " m/s²")
 
         return None
 
