@@ -1770,7 +1770,9 @@ class Function:
                     # Other is lambda based Function
                     return self.yArray >= other(self.xArray)
                 except ValueError:
-                    raise ValueError("Comparison not supported between instances of the Function class with different domain discretization.")
+                    raise ValueError(
+                        "Comparison not supported between instances of the Function class with different domain discretization."
+                    )
             else:
                 # Other is not a Function
                 try:
