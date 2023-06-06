@@ -413,7 +413,6 @@ class SolidMotor(Motor):
             geometryDot,
             t_span,
             y0,
-            t_eval=t,
             events=terminateBurn,
             method="LSODA",
             atol=1e-10,

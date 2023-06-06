@@ -251,21 +251,22 @@ class Motor(ABC):
         # Check if burn_time is within thrustSource range
         changedBurnTime = False
         if self.burn_time[1] > self.thrust.xArray[-1]:
-            self.burn_time = (self.burn_time[0], self.thrust.xArray[-1])
+            burn_time = (self.burn_time[0], self.thrust.xArray[-1])
             changedBurnTime = True
 
         if self.burn_time[0] < self.thrust.xArray[0]:
-            self.burn_time = (self.thrust.xArray[0], self.burn_time[1])
+            burn_time = (self.thrust.xArray[0], self.burn_time[1])
             changedBurnTime = True
 
         if changedBurnTime:
             warnings.warn(
-                "burn_time argument is out of thrust source time range. "
+                f"burn_time argument {self.burn_time} is out of thrust source time range. "
                 "Using thrustSource boudary minimum and maximum times instead: "
                 f"({self.thrust.xArray[0]}, {self.thrust.xArray[-1]}) s.\n"
                 "If you want to change the burn out time of the curve "
                 "please use the 'reshapeThrustCurve' argument."
             )
+            self.burn_time = burn_time
 
         # Clip thrust input according to burn_time
         bound_mask = np.logical_and(
