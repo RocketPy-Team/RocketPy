@@ -183,8 +183,9 @@ class Motor(ABC):
         self.thrust = self.clipThrust()
 
         # Auxiliary quantities
-        self.burnDuration = self.burn_time[1] - self.burn_time[0]
+        self.burnStartTime = self.burn_time[0]
         self.burnOutTime = self.burn_time[1]
+        self.burnDuration = self.burn_time[1] - self.burn_time[0]
 
         # Define motor attributes
         self.nozzleRadius = nozzleRadius
@@ -234,23 +235,31 @@ class Motor(ABC):
 
     def clipThrust(self):
         # checks if burn_time[1] is bigger than thrust curve time
-        if self.burn_time[1] > self.thrust.xArray[-1]:
+        if (
+            self.burn_time[1] > self.thrust.xArray[-1]
+            or self.burn_time[0] < self.thrust.xArray[0]
+        ):
             burn_time = (self.burn_time[0], self.thrust.xArray[-1])
             warnings.warn(
-                "burn_time argument is bigger than thrustSource "
-                "maximum time.\n"
-                "Using thrustSource boudary maximum time instead: "
-                f"{self.thrust.xArray[-1]} s\n"
+                "burn_time argument is out of thrust source time range. "
+                "Using thrustSource boudary minimum and maximum times instead: "
+                f"({self.thrust.xArray[0]}, {self.thrust.xArray[-1]}) s.\n"
                 "If you want to change the burn out time of the curve "
                 "please use the 'reshapeThrustCurve' argument."
             )
 
         # Clip thrust input according to burn_time
         bound_mask = np.logical_and(
-            self.thrust.xArray >= self.burn_time[0],
-            self.thrust.xArray <= self.burn_time[1],
+            self.thrust.xArray > self.burn_time[0],
+            self.thrust.xArray < self.burn_time[1],
         )
         clipped_source = self.thrust.source[bound_mask]
+
+        # Update source with burn_time points
+        endBurnData = [(self.burn_time[1], self.thrust(self.burn_time[1]))]
+        clipped_source = np.append(clipped_source, endBurnData, 0)
+        startBurnData = [(self.burn_time[0], self.thrust(self.burn_time[0]))]
+        clipped_source = np.insert(clipped_source, 0, startBurnData, 0)
 
         return Function(
             clipped_source,
