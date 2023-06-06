@@ -70,10 +70,15 @@ class Motor(ABC):
             Time, in seconds, in which the maximum thrust value is achieved.
         Motor.averageThrust : float
             Average thrust of the motor, given in N.
+        Motor.burn_time : tuple of float
+            Tuple containing the initial and final time of the motor's burn time
+            in seconds.
+        Motor.burnStartTime : float
+            Motor burn start time, in seconds.
         Motor.burnOutTime : float
-            Total motor burn out time, in seconds. Must include delay time
-            when the motor takes time to ignite. Also seen as time to end thrust
-            curve.
+            Motor burn out time, in seconds.
+        Motor.burnDuration : float
+            Total motor burn duration, in seconds. It is the difference between the burnOutTime and the burnStartTime.
         Motor.exhaustVelocity : float
             Propulsion gases exhaust velocity, assumed constant, in m/s.
         Motor.interpolate : string
@@ -234,12 +239,26 @@ class Motor(ABC):
             self._burn_time = (self.thrust.xArray[0], self.thrust.xArray[-1])
 
     def clipThrust(self):
-        # checks if burn_time[1] is bigger than thrust curve time
-        if (
-            self.burn_time[1] > self.thrust.xArray[-1]
-            or self.burn_time[0] < self.thrust.xArray[0]
-        ):
-            burn_time = (self.burn_time[0], self.thrust.xArray[-1])
+        """Clips the thrust curve data points according to the burn_time
+        parameter. If the burn_time range does not coincides with the thrust
+        dataset, their values are interpolated.
+
+        Returns
+        -------
+        Function
+            Clipped thrust curve.
+        """
+        # Check if burn_time is within thrustSource range
+        changedBurnTime = False
+        if self.burn_time[1] > self.thrust.xArray[-1]:
+            self.burn_time = (self.burn_time[0], self.thrust.xArray[-1])
+            changedBurnTime = True
+
+        if self.burn_time[0] < self.thrust.xArray[0]:
+            self.burn_time = (self.thrust.xArray[0], self.burn_time[1])
+            changedBurnTime = True
+
+        if changedBurnTime:
             warnings.warn(
                 "burn_time argument is out of thrust source time range. "
                 "Using thrustSource boudary minimum and maximum times instead: "

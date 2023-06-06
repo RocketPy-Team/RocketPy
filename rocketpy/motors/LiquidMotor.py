@@ -40,8 +40,16 @@ class LiquidMotor(Motor):
             specify time in seconds, while the second column specifies thrust.
             Arrays may also be specified, following rules set by the class
             Function. See help(Function). Thrust units are Newtons.
-        burnOut : int, float
-            Motor burn out time in seconds.
+        burn_time: float, tuple of float, optional
+            Motor's burn time.
+            If a float is given, the burn time is assumed to be between 0 and the
+            given float, in seconds.
+            If a tuple of float is given, the burn time is assumed to be between
+            the first and second elements of the tuple, in seconds.
+            If not specified, automatically sourced as the range between the first- and
+            last-time step of the motor's thrust curve. This can only be used if the
+            motor's thrust is defined by a list of points, such as a .csv file, a .eng
+            file or a Function instance whose source is a list.
         nozzleRadius : int, float
             Motor's nozzle outlet radius in meters.
         nozzlePosition : float

@@ -97,10 +97,15 @@ class SolidMotor(Motor):
             Time, in seconds, in which the maximum thrust value is achieved.
         Motor.averageThrust : float
             Average thrust of the motor, given in N.
+        Motor.burn_time : tuple of float
+            Tuple containing the initial and final time of the motor's burn time
+            in seconds.
+        Motor.burnStartTime : float
+            Motor burn start time, in seconds.
         Motor.burnOutTime : float
-            Total motor burn out time, in seconds. Must include delay time
-            when the motor takes time to ignite. Also seen as time to end thrust
-            curve.
+            Motor burn out time, in seconds.
+        Motor.burnDuration : float
+            Total motor burn duration, in seconds. It is the difference between the burnOutTime and the burnStartTime.
         Motor.exhaustVelocity : float
             Propulsion gases exhaust velocity, assumed constant, in m/s.
         Motor.burnArea : Function
