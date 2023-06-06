@@ -773,7 +773,15 @@ class Matrix:
                [66, 81, 96],
                [102, 126, 150])
         """
-        try:
+        if isinstance(other, Vector):
+            return Vector(
+                [
+                    self.xx * other.x + self.xy * other.y + self.xz * other.z,
+                    self.yx * other.x + self.yy * other.y + self.yz * other.z,
+                    self.zx * other.x + self.zy * other.y + self.zz * other.z,
+                ]
+            )
+        elif isinstance(other, Matrix):
             return Matrix(
                 [
                     [
@@ -793,14 +801,8 @@ class Matrix:
                     ],
                 ]
             )
-        except AttributeError:
-            return Vector(
-                [
-                    self.xx * other.x + self.xy * other.y + self.xz * other.z,
-                    self.yx * other.x + self.yy * other.y + self.yz * other.z,
-                    self.zx * other.x + self.zy * other.y + self.zz * other.z,
-                ]
-            )
+        else:
+            raise TypeError("Can only dot product with Matrix or Vector.")
 
     def __pow__(self, other):
         """Exponentiation of 3x3 matrix by integer other.
