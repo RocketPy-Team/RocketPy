@@ -1917,13 +1917,15 @@ class RailButtons:
         Parameters
         ----------
         upper_button_position : int, float
-            Position of the upper rail button in meters. The upper button is the one
-            closest to the nose cone and furthest from the tail. The coordinate system
-            used is the same as the Rocket that the buttons will be a part of.
+            Position of the upper rail button in meters. The upper button
+            is the one closest to the nose cone and furthest from the tail.
+            The coordinate system used is the same as the Rocket that the
+            buttons will be a part of.
         lower_button_position : int, float
-            Position of the lower rail button in meters. The lower button is the one
-            closest to the nose cone and furthest from the tail. The coordinate system
-            used is the same as the Rocket that the buttons will be a part of.
+            Position of the lower rail button in meters. The lower button
+            is the one closest to the nose cone and furthest from the tail.
+            The coordinate system used is the same as the Rocket that the
+            buttons will be a part of.
         angular_position : int, float, optional
             Angular position of the rail buttons in degrees measured
             as the rotation around the symmetry axis of the rocket

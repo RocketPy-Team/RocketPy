@@ -117,7 +117,7 @@ class Rocket:
         Rocket.powerOnDrag : Function
             Rocket's drag coefficient as a function of Mach number when the
             motor is on.
-        Rocket.railButtons : RailButtons
+        Rocket.rail_buttons : RailButtons
             RailButtons object containing the rail buttons information.
 
         Motor attributes:
@@ -812,7 +812,7 @@ class Rocket:
         # Return self
         return self.parachutes[-1]
 
-    def setRailButtons(self, position, angular_position=45):
+    def setRailButtons(self, pair_position, angular_position=45):
         """Adds rail buttons to the rocket, allowing for the
         calculation of forces exerted by them when the rocket is
         sliding in the launch rail. Furthermore, rail buttons are
@@ -822,7 +822,7 @@ class Rocket:
 
         Parameters
         ----------
-        position : tuple, list, array
+        pair_position : tuple, list, array
             Two values organized in a tuple, list or array which
             represent the position of each of the two rail buttons
             in the rocket coordinate system
@@ -841,10 +841,10 @@ class Rocket:
             RailButtons object created
         """
         # Place top most rail button as the first element of the list
-        if self._csys * position[0] < self._csys * position[1]:
-            position.reverse()
+        if self._csys * pair_position[0] < self._csys * pair_position[1]:
+            pair_position.reverse()
         # Save important attributes
-        self.rail_buttons = RailButtons(*position, angular_position)
+        self.rail_buttons = RailButtons(*pair_position, angular_position)
 
         return self.rail_buttons
 
