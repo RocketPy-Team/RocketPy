@@ -199,9 +199,11 @@ class Tank(ABC):
             Center of mass of the liquid portion of the tank as a
             function of time.
         """
-        balance = self.geometry.balance(self.geometry.bottom, self.liquidHeight.max)
-        liquid_balance = balance @ self.liquidHeight
-        centroid = liquid_balance / self.liquidVolume
+        moment = self.geometry.volume_moment(
+            self.geometry.bottom, self.liquidHeight.max
+        )
+        liquid_moment = moment @ self.liquidHeight
+        centroid = liquid_moment / self.liquidVolume
 
         # Check for zero liquid volume
         bound_volume = self.liquidVolume < 1e-4 * self.geometry.total_volume
@@ -226,10 +228,10 @@ class Tank(ABC):
             Center of mass of the gas portion of the tank as a
             function of time.
         """
-        balance = self.geometry.balance(self.geometry.bottom, self.gasHeight.max)
-        upper_balance = balance @ self.gasHeight
-        lower_balance = balance @ self.liquidHeight
-        centroid = (upper_balance - lower_balance) / self.gasVolume
+        moment = self.geometry.volume_moment(self.geometry.bottom, self.gasHeight.max)
+        upper_moment = moment @ self.gasHeight
+        lower_moment = moment @ self.liquidHeight
+        centroid = (upper_moment - lower_moment) / self.gasVolume
 
         # Check for zero gas volume
         bound_volume = self.gasVolume < 1e-4 * self.geometry.total_volume

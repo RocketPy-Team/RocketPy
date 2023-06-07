@@ -7,7 +7,7 @@ from functools import cache
 try:
     from functools import cached_property
 except ImportError:
-    from .tools import cached_property
+    from rocketpy.tools import cached_property
 
 
 class TankGeometry:
@@ -170,27 +170,36 @@ class TankGeometry:
         )
 
     @cache
-    def balance(self, lower, upper):
+    def volume_moment(self, lower, upper):
         """
-        The volume balance of the tank as a function of height.
+        Calculates the first volume moment of the tank as a function of height.
+        The first volume moment is used in the evaluation of the tank centroid, 
+        and can be understood as the weighted sum of the tank's infinitesimal 
+        slices volume by their height.
+
+        The height referential is the zero level of the defined tank geometry,
+        not to be confused with the tank bottom.
+
+        See also:
+        https://en.wikipedia.org/wiki/Moment_(physics)
 
         Returns
         -------
         Function
-            Tank centroid as a function of height.
+            Tank's first volume moment as a function of height.
         """
         height = self.area.identityFunction()
 
         # Tolerance of 1e-8 is used to avoid numerical errors
         upper = upper + 1e-12 if upper - lower < 1e-8 else upper
 
-        balance = (height * self.area).integralFunction(lower, upper)
+        volume_moment = (height * self.area).integralFunction(lower, upper)
 
         # Correct naming
-        balance.setInputs("height (m)")
-        balance.setOutputs("balance (m⁴)")
+        volume_moment.setInputs("height (m)")
+        volume_moment.setOutputs("balance (m⁴)")
 
-        return balance
+        return volume_moment
 
     @cache
     def Ix_volume(self, lower, upper):
@@ -198,6 +207,9 @@ class TankGeometry:
         The volume of inertia of the tank with respect to
         the x-axis as a function of height. The x direction is
         assumed to be perpendicular to the motor body axis.
+
+        The inertia reference point is the zero level of the defined 
+        tank geometry, not to be confused with the tank bottom.
 
         Returns
         -------
@@ -226,6 +238,9 @@ class TankGeometry:
         the y-axis as a function of height. The y direction is
         assumed to be perpendicular to the motor body axis.
 
+        The inertia reference point is the zero level of the defined 
+        tank geometry, not to be confused with the tank bottom.
+
         Due to symmetry, this is the same as the Ix_volume.
 
         Returns
@@ -241,6 +256,9 @@ class TankGeometry:
         The volume of inertia of the tank with respect to
         the z-axis as a function of height. The z direction is
         assumed to be parallel to the motor body axis.
+
+        The inertia reference point is the zero level of the defined 
+        tank geometry, not to be confused with the tank bottom.
 
         Returns
         -------
