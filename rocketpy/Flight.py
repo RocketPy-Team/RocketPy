@@ -611,16 +611,6 @@ class Flight:
         self.terminateOnApogee = terminateOnApogee
         self.name = name
 
-        # Modifying Rail Length for a better out of rail condition
-        upperButtonPosition, lowerButtonPosition = self.rocket.railButtons.position
-        nozzlePosition = self.rocket.motorPosition
-        self.effective1RL = self.env.railLength - abs(
-            nozzlePosition - upperButtonPosition
-        )
-        self.effective2RL = self.env.railLength - abs(
-            nozzlePosition - lowerButtonPosition
-        )
-
         # Flight initialization
         self.__init_post_process_variables()
         self.__init_solution_monitors()
