@@ -173,8 +173,8 @@ class TankGeometry:
     def volume_moment(self, lower, upper):
         """
         Calculates the first volume moment of the tank as a function of height.
-        The first volume moment is used in the evaluation of the tank centroid, 
-        and can be understood as the weighted sum of the tank's infinitesimal 
+        The first volume moment is used in the evaluation of the tank centroid,
+        and can be understood as the weighted sum of the tank's infinitesimal
         slices volume by their height.
 
         The height referential is the zero level of the defined tank geometry,
@@ -208,7 +208,7 @@ class TankGeometry:
         the x-axis as a function of height. The x direction is
         assumed to be perpendicular to the motor body axis.
 
-        The inertia reference point is the zero level of the defined 
+        The inertia reference point is the zero level of the defined
         tank geometry, not to be confused with the tank bottom.
 
         Returns
@@ -238,7 +238,7 @@ class TankGeometry:
         the y-axis as a function of height. The y direction is
         assumed to be perpendicular to the motor body axis.
 
-        The inertia reference point is the zero level of the defined 
+        The inertia reference point is the zero level of the defined
         tank geometry, not to be confused with the tank bottom.
 
         Due to symmetry, this is the same as the Ix_volume.
@@ -257,7 +257,7 @@ class TankGeometry:
         the z-axis as a function of height. The z direction is
         assumed to be parallel to the motor body axis.
 
-        The inertia reference point is the zero level of the defined 
+        The inertia reference point is the zero level of the defined
         tank geometry, not to be confused with the tank bottom.
 
         Returns

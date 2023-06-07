@@ -1027,7 +1027,7 @@ class Function:
                     denominatorSum = denominatorSum + weight
             return numeratorSum / denominatorSum
 
-    def getValueOpt(self, *args):
+    def getValueOpt2(self, *args):
         """DEPRECATED!! - See Function.getValueOpt for new version.
         This method returns the value of the Function at the specified
         point in a limited but optimized manner. See Function.getValue for an
