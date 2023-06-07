@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from rocketpy import Rocket, SolidMotor
-from rocketpy.AeroSurfaces import NoseCone
+from rocketpy.AeroSurface import NoseCone
 
 
 @patch("matplotlib.pyplot.show")
@@ -511,8 +511,7 @@ def test_add_trapezoidal_fins_sweep_length(
     # Check rocket's center of pressure (just double checking)
     assert translate - rocket.cpPosition == pytest.approx(expected_cpz_cm, 0.01)
 
-    # Check if AeroSurfaces.__getitem__() works
-    assert isinstance(rocket.aerodynamicSurfaces.__getitem__(0)[0], NoseCone)
+    assert isinstance(rocket.aerodynamicSurfaces[0].component, NoseCone)
 
 
 def test_add_fins_assert_cp_cm_plus_fins(rocket, dimensionless_rocket, m):
