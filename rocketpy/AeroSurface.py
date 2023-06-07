@@ -1892,7 +1892,7 @@ class Tail(AeroSurface):
         return None
 
 
-class RailButtons:
+class RailButtons(AeroSurface):
     """Class that defines a generic rail button.
 
     Attributes
@@ -1944,3 +1944,61 @@ class RailButtons:
     def __repr__(self):
         rep = f"Rail buttons pair at positions {self.upper_button_position} m and {self.lower_button_position} m"
         return rep
+
+    def evaluateCenterOfPressure(self):
+        """Evaluates the center of pressure of the rail buttons. Rail buttons
+        do not contribute to the center of pressure of the rocket.
+
+        Returns
+        -------
+        None
+        """
+        return None
+
+    def evaluateLiftCoefficient(self):
+        """Evaluates the lift coefficient curve of the rail buttons. Rail
+        buttons do not contribute to the lift coefficient of the rocket.
+
+        Returns
+        -------
+        None
+        """
+        return None
+
+    def evaluateGeometricalParameters(self):
+        """Evaluates the geometrical parameters of the rail buttons. Rail
+        buttons do not contribute to the geometrical parameters of the rocket.
+
+        Returns
+        -------
+        None
+        """
+        return None
+
+    def geometricalInfo(self):
+        """Returns the geometrical info of the rail buttons. Rail buttons
+        do not have geometrical parameters.
+
+        Returns
+        -------
+        None
+        """
+        return None
+
+    def aerodynamicInfo(self):
+        """Returns the aerodynamic info of the aerodynamic surface.
+
+        Returns
+        -------
+        None
+        """
+        return None
+
+    def allInfo(self):
+        """Returns all info of the aerodynamic surface.
+
+        Returns
+        -------
+        None
+        """
+        return None
