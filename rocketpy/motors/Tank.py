@@ -35,7 +35,7 @@ class Tank(ABC):
             Liquid inside the tank as a Fluid object.
         discretize : int, optional
             Number of points to discretize fluid inputs. If the input
-            already has a apropriate discretization, this parameter
+            already has a appropriate discretization, this parameter
             must be set to None. The default is 100.
         """
         self.name = name
