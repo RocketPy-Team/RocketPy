@@ -1839,8 +1839,7 @@ class Function:
                     return self(other.xArray) <= other.yArray
                 except AttributeError:
                     raise TypeError(
-                        "Cannot compare lambda based Function with "
-                        "lambda based Function."
+                        "Comparison not supported between two instances of the Function class with callable sources."
                     )
 
     def __gt__(self, other):
