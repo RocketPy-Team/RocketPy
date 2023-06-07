@@ -1027,7 +1027,7 @@ class Function:
                     denominatorSum = denominatorSum + weight
             return numeratorSum / denominatorSum
 
-    def getValueOpt2(self, *args):
+    def getValueOpt(self, *args):
         """DEPRECATED!! - See Function.getValueOpt for new version.
         This method returns the value of the Function at the specified
         point in a limited but optimized manner. See Function.getValue for an
@@ -1771,7 +1771,8 @@ class Function:
                     return self.yArray >= other(self.xArray)
                 except ValueError:
                     raise ValueError(
-                        "Comparison not supported between instances of the Function class with different domain discretization."
+                        "Comparison not supported between instances of the "
+                        "Function class with different domain discretization."
                     )
             else:
                 # Other is not a Function
@@ -1780,7 +1781,7 @@ class Function:
                 except TypeError:
                     raise TypeError(
                         "Comparison not supported between instances of "
-                        f"'Function' and '{type(other)}'"
+                        f"'Function' and '{type(other)}'."
                     )
         else:
             # self is lambda based Function
@@ -1789,7 +1790,8 @@ class Function:
                     return self(other.xArray) >= other.yArray
                 except AttributeError:
                     raise TypeError(
-                        "Comparison not supported between two instances of the Function class with callable sources."
+                        "Comparison not supported between two instances of "
+                        "the Function class with callable sources."
                     )
 
     def __le__(self, other):
@@ -1830,7 +1832,7 @@ class Function:
                 except TypeError:
                     raise TypeError(
                         "Comparison not supported between instances of "
-                        f"'Function' and '{type(other)}'"
+                        f"'Function' and '{type(other)}'."
                     )
         else:
             # self is lambda based Function
@@ -1839,7 +1841,8 @@ class Function:
                     return self(other.xArray) <= other.yArray
                 except AttributeError:
                     raise TypeError(
-                        "Comparison not supported between two instances of the Function class with callable sources."
+                        "Comparison not supported between two instances of "
+                        "the Function class with callable sources."
                     )
 
     def __gt__(self, other):
@@ -1911,7 +1914,7 @@ class Function:
         # If other is Function try...
         try:
             # Check if Function objects source is array or callable
-            # Check if Function objects have same interpolation and domain
+            # Check if Function objects have the same domain discretization
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
@@ -2037,7 +2040,7 @@ class Function:
         # If other is Function try...
         try:
             # Check if Function objects source is array or callable
-            # Check if Function objects have same interpolation and domain
+            # Check if Function objects have the same domain discretization
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
@@ -2120,7 +2123,7 @@ class Function:
         # If other is Function try...
         try:
             # Check if Function objects source is array or callable
-            # Check if Function objects have same interpolation and domain
+            # Check if Function objects have the same domain discretization
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
@@ -2141,7 +2144,7 @@ class Function:
                 # Create new Function object
                 return Function(source, inputs, outputs, interpolation)
             else:
-                return Function(lambda x: (self.getValueOpt2(x) / other(x)))
+                return Function(lambda x: (self.getValueOpt(x) / other(x)))
         # If other is Float except...
         except AttributeError:
             if isinstance(other, (float, int, complex)):
@@ -2159,10 +2162,10 @@ class Function:
                     # Create new Function object
                     return Function(source, inputs, outputs, interpolation)
                 else:
-                    return Function(lambda x: (self.getValueOpt2(x) / other))
+                    return Function(lambda x: (self.getValueOpt(x) / other))
             # Or if it is just a callable
             elif callable(other):
-                return Function(lambda x: (self.getValueOpt2(x) / other(x)))
+                return Function(lambda x: (self.getValueOpt(x) / other(x)))
 
     def __rtruediv__(self, other):
         """Divides 'other' by a Function object and returns a new Function
@@ -2194,10 +2197,10 @@ class Function:
                 # Create new Function object
                 return Function(source, inputs, outputs, interpolation)
             else:
-                return Function(lambda x: (other / self.getValueOpt2(x)))
+                return Function(lambda x: (other / self.getValueOpt(x)))
         # Or if it is just a callable
         elif callable(other):
-            return Function(lambda x: (other(x) / self.getValueOpt2(x)))
+            return Function(lambda x: (other(x) / self.getValueOpt(x)))
 
     def __pow__(self, other):
         """Raises a Function object to the power of 'other' and
@@ -2223,7 +2226,7 @@ class Function:
         # If other is Function try...
         try:
             # Check if Function objects source is array or callable
-            # Check if Function objects have same interpolation and domain
+            # Check if Function objects have the same domain discretization
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
@@ -2243,7 +2246,7 @@ class Function:
                 # Create new Function object
                 return Function(source, inputs, outputs, interpolation)
             else:
-                return Function(lambda x: (self.getValueOpt2(x) ** other(x)))
+                return Function(lambda x: (self.getValueOpt(x) ** other(x)))
         # If other is Float except...
         except AttributeError:
             if isinstance(other, (float, int, complex)):
@@ -2484,7 +2487,7 @@ class Function:
         follows the same discretization, and has linear interpolation and
         extrapolation.
         If the Function is defined by a lambda, the identity Function is the
-        indentity map 'lambda x: x'.
+        identity map 'lambda x: x'.
 
         Returns
         -------
