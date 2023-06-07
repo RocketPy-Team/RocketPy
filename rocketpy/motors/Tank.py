@@ -25,7 +25,9 @@ class Tank(ABC):
         geometry : TankGeometry
             Geometry of the tank.
         flux_time : float, tuple of float, optional
-            Tank flux time.
+            Tank flux time in seconds. It is the time range in which the tank
+            flux is being analyzed. In general, during this time, the tank is
+            being filled or emptied.
             If a float is given, the flux time is assumed to be between 0 and the
             given float, in seconds. If a tuple of float is given, the flux time
             is assumed to be between the first and second elements of the tuple.
