@@ -26,8 +26,8 @@ class Tank(ABC):
             Geometry of the tank.
         flux_time : float, tuple of float, optional
             Tank flux time.
-            If a float is given, the burn time is assumed to be between 0 and the
-            given float, in seconds. If a tuple of float is given, the burn time
+            If a float is given, the flux time is assumed to be between 0 and the
+            given float, in seconds. If a tuple of float is given, the flux time
             is assumed to be between the first and second elements of the tuple.
         gas : Fluid
             Gas inside the tank as a Fluid object.
