@@ -705,10 +705,10 @@ def test_latlon_conversions(mock_show):
 
     # Check for initial and final lat/lon coordinates based on launch pad coordinates
     test_flight.postProcess()
-    assert abs(test_flight.latitude(0)) - abs(test_flight.env.lat) < 1e-6
-    assert abs(test_flight.longitude(0)) - abs(test_flight.env.lon) < 1e-6
-    assert test_flight.latitude(test_flight.tFinal) > test_flight.env.lat
-    assert test_flight.longitude(test_flight.tFinal) > test_flight.env.lon
+    assert abs(test_flight.latitude(0)) - abs(test_flight.env.latitude) < 1e-6
+    assert abs(test_flight.longitude(0)) - abs(test_flight.env.longitude) < 1e-6
+    assert test_flight.latitude(test_flight.tFinal) > test_flight.env.latitude
+    assert test_flight.longitude(test_flight.tFinal) > test_flight.env.longitude
 
 
 @patch("matplotlib.pyplot.show")

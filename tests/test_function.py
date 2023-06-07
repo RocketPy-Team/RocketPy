@@ -23,7 +23,7 @@ def test_function_from_csv(func_from_csv):
     # Check the __str__ method
     assert func_from_csv.__str__() == "Function from R1 to R1 : (Scalar) → (Scalar)"
     # Check the __repr__ method
-    assert func_from_csv.__repr__() == "Function from R1 to R1 : (Scalar) → (Scalar)"
+    assert func_from_csv.__repr__() == "'Function from R1 to R1 : (Scalar) → (Scalar)'"
 
 
 def test_getters(func_from_csv):
