@@ -16,6 +16,7 @@ from .Parachute import Parachute
 from .AeroSurface import (
     Fins,
     NoseCone,
+    RailButtons,
     TrapezoidalFins,
     EllipticalFins,
     Tail,
@@ -98,8 +99,9 @@ class Rocket:
             axis, perpendicular to axis of cylindrical symmetry, in meters.
 
         Aerodynamic attributes
-        Rocket.aerodynamicSurfaces : list
-            List of aerodynamic surfaces of the rocket.
+        Rocket.aerodynamicSurfaces : Components
+            Collection of aerodynamic surfaces of the rocket. Holds Nose cones,
+            Fin sets, and Tails.
         Rocket.cpPosition : float
             Rocket's center of pressure position relative to the user defined rocket
             reference system. See `Rocket.centerOfDryMassPosition` for more information
@@ -115,6 +117,8 @@ class Rocket:
         Rocket.powerOnDrag : Function
             Rocket's drag coefficient as a function of Mach number when the
             motor is on.
+        Rocket.railButtons : RailButtons
+            RailButtons object containing the rail buttons information.
 
         Motor attributes:
         Rocket.motor : Motor
@@ -217,6 +221,8 @@ class Rocket:
 
         # Aerodynamic data initialization
         self.aerodynamicSurfaces = Components()
+        self.rail_buttons = None
+
         self.cpPosition = 0
         self.staticMargin = Function(
             lambda x: 0, inputs="Time (s)", outputs="Static Margin (c)"
@@ -838,7 +844,7 @@ class Rocket:
         if self._csys * position[0] < self._csys * position[1]:
             position.reverse()
         # Save important attributes
-        self.rail_buttons.append(RailButtons(*position, angular_position))
+        self.rail_buttons = RailButtons(*position, angular_position)
 
         return self.rail_buttons
 
