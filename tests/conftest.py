@@ -200,13 +200,45 @@ def linear_func():
 
 
 @pytest.fixture
+def linearly_interpolated_func():
+    """Create a linearly interpolated function based on a list of points.
+
+    Returns
+    -------
+    Function
+        Piece-wise linearly interpolated, with constant extrapolation
+    """
+    return Function(
+        [[0, 0], [1, 7], [2, -3], [3, -1], [4, 3]],
+        interpolation="spline",
+        extrapolation="constant",
+    )
+
+
+@pytest.fixture
+def spline_interpolated_func():
+    """Create a spline interpolated function based on a list of points.
+
+    Returns
+    -------
+    Function
+        Spline interpolated, with natural extrapolation
+    """
+    return Function(
+        [[0, 0], [1, 7], [2, -3], [3, -1], [4, 3]],
+        interpolation="spline",
+        extrapolation="natural",
+    )
+
+
+@pytest.fixture
 def func_from_csv():
     func = Function(
         source="tests/fixtures/airfoils/e473-10e6-degrees.csv",
         inputs=["Scalar"],
         outputs=["Scalar"],
         interpolation="linear",
-        extrapolation="linear",
+        extrapolation="natural",
     )
     return func
 
