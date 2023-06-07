@@ -188,7 +188,7 @@ class Function:
         if callable(source):
             # Set source
             self.source = source
-            # Set geValueOpt2
+            # Set getValueOpt
             self.getValueOpt = source
             # Set arguments name and domain dimensions
             parameters = signature(source).parameters
@@ -2497,15 +2497,13 @@ class Function:
 
         # Check if Function object source is array
         if isinstance(self.source, np.ndarray):
-            identity = Function(
-                [(-1, -1), (1, 1)],
+            return Function(
+                np.column_stack((self.xArray, self.xArray)),
                 inputs=self.__inputs__,
                 outputs=f"identity of {self.__outputs__}",
                 interpolation="linear",
                 extrapolation="natural",
             )
-            return identity.setDiscreteBasedOnModel(self)
-
         else:
             return Function(
                 lambda x: x,
