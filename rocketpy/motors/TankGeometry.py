@@ -2,7 +2,13 @@ import numpy as np
 
 from rocketpy import Function
 from rocketpy.Function import PiecewiseFunction, funcify_method
-from functools import cache
+
+try:
+    from functools import cache
+except ImportError:
+    from functools import lru_cache
+
+    cache = lru_cache(maxsize=None)
 
 try:
     from functools import cached_property
