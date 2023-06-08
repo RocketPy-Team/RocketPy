@@ -543,7 +543,7 @@ class Function:
             self.__interpolation__ = "shepard"
         return self
 
-    def setDiscreteBasedOnModel(self, modelFunction, oneByOne=True):
+    def setDiscreteBasedOnModel(self, modelFunction, oneByOne=True, keepSelf=True):
         """This method transforms the domain of Function instance into a list of
         discrete points based on the domain of a model Function instance. It does so by
         retrieving the domain, domain name, interpolation method and extrapolation
@@ -563,6 +563,11 @@ class Function:
         oneByOne : boolean, optional
             If True, evaluate Function in each sample point separately. If
             False, evaluates Function in vectorized form. Default is True.
+
+        keepSelf : boolean, optional
+            If True, the original Function interpolation and extrapolation methods
+            will be kept. If False, those are substituted by the ones from the model
+            Function. Default is True.
 
         Returns
         -------
@@ -635,8 +640,11 @@ class Function:
             Zs = np.array(self.getValue(mesh))
             self.setSource(np.concatenate(([Xs], [Ys], [Zs])).transpose())
 
-        self.setInterpolation(self.__interpolation__)
-        self.setExtrapolation(self.__extrapolation__)
+        interp = self.__interpolation__ if keepSelf else modelFunction.__interpolation__
+        extrap = self.__extrapolation__ if keepSelf else modelFunction.__extrapolation__
+
+        self.setInterpolation(interp)
+        self.setExtrapolation(extrap)
         return self
 
     def reset(
