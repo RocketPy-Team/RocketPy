@@ -13,8 +13,14 @@ import numpy as np
 
 from .Function import Function, funcify_method
 from .Parachute import Parachute
-from .AeroSurfaces import AeroSurfaces
-from .AeroSurfaces import NoseCone, TrapezoidalFins, EllipticalFins, Tail
+from .AeroSurface import (
+    Fins,
+    NoseCone,
+    TrapezoidalFins,
+    EllipticalFins,
+    Tail,
+)
+from .Components import Components
 from .motors.Motor import EmptyMotor
 
 from .prints.rocket_prints import _RocketPrints
@@ -215,10 +221,7 @@ class Rocket:
         self.railButtons = None
 
         # Aerodynamic data initialization
-        self.aerodynamicSurfaces = AeroSurfaces()
-        self.nosecone = AeroSurfaces()
-        self.fins = AeroSurfaces()
-        self.tail = AeroSurfaces()
+        self.aerodynamicSurfaces = Components()
         self.cpPosition = 0
         self.staticMargin = Function(
             lambda x: 0, inputs="Time (s)", outputs="Static Margin (c)"
@@ -242,6 +245,7 @@ class Rocket:
         self.cpPosition = 0  # Set by self.evaluateStaticMargin()
 
         # Create a, possibly, temporary empty motor
+        # self.motors = Components()  # currently unused since only one motor is supported
         self.addMotor(motor=EmptyMotor(), position=0)
 
         # Important dynamic inertial quantities
@@ -263,6 +267,18 @@ class Rocket:
         self.plots = _RocketPlots(self)
 
         return None
+
+    @property
+    def nosecones(self):
+        return self.aerodynamicSurfaces.get_by_type(NoseCone)
+
+    @property
+    def fins(self):
+        return self.aerodynamicSurfaces.get_by_type(Fins)
+
+    @property
+    def tails(self):
+        return self.aerodynamicSurfaces.get_by_type(Tail)
 
     def evaluateTotalMass(self):
         """Calculates and returns the rocket's total mass. The total
@@ -392,14 +408,10 @@ class Rocket:
 
         # Calculate total lift coefficient derivative and center of pressure
         if len(self.aerodynamicSurfaces) > 0:
-            for aeroSurface, position in self.aerodynamicSurfaces:
-                self.totalLiftCoeffDer += Function(
-                    lambda alpha: aeroSurface.cl(alpha, 0)
-                ).differentiate(x=1e-2, dx=1e-3)
-                self.cpPosition += Function(
-                    lambda alpha: aeroSurface.cl(alpha, 0)
-                ).differentiate(x=1e-2, dx=1e-3) * (
-                    position - self._csys * aeroSurface.cpz
+            for surface, position in self.aerodynamicSurfaces:
+                self.totalLiftCoeffDer += surface.clalpha(0)
+                self.cpPosition += surface.clalpha(0) * (
+                    position - self._csys * surface.cpz
                 )
             self.cpPosition /= self.totalLiftCoeffDer
 
@@ -413,7 +425,6 @@ class Rocket:
         self.staticMargin.setDiscrete(
             lower=0, upper=self.motor.burnOutTime, samples=200
         )
-
         # Return self
         return self
 
@@ -653,6 +664,38 @@ class Rocket:
         self.evaluateStaticMargin()
         return None
 
+    def addSurfaces(self, surfaces, positions):
+        """Adds one or more aerodynamic surfaces to the rocket. The aerodynamic
+        surface must be an instance of a class that inherits from the
+        AeroSurface (e.g. NoseCone, TrapezoidalFins, etc.)
+
+        Parameters
+        ----------
+        surfaces : list, AeroSurface, NoseCone, TrapezoidalFins, EllipticalFins, Tail
+            Aerodynamic surface to be added to the rocket. Can be a list of
+            AeroSurface if more than one surface is to be added.
+            See AeroSurface class for more information.
+        positions : int, float, list
+            Position, in m, of the aerodynamic surface's center of pressure
+            relative to the user defined rocket coordinate system.
+            See `Rocket.coordinateSystemOrientation` for more information
+            regarding the rocket's coordinate system.
+            If a list is passed, it will correspond to the position of each item
+            in the surfaces list.
+
+        Returns
+        -------
+        None
+        """
+        try:
+            for surface, position in zip(surfaces, positions):
+                self.aerodynamicSurfaces.add(surface, position)
+        except TypeError:
+            self.aerodynamicSurfaces.add(surfaces, positions)
+
+        self.evaluateStaticMargin()
+        return None
+
     def addTail(
         self, topRadius, bottomRadius, length, position, radius=None, name="Tail"
     ):
@@ -688,20 +731,14 @@ class Rocket:
 
         # Create new tail as an object of the Tail class
         tail = Tail(topRadius, bottomRadius, length, radius, name)
-        # Saves position on object for practicality
-        tail.position = position
 
-        # Add tail to aerodynamic surfaces and tail list
-        self.aerodynamicSurfaces.append(aeroSurface=tail, position=position)
-        self.tail.append(tail)
-
-        # Refresh static margin calculation
-        self.evaluateStaticMargin()
+        # Add tail to aerodynamic surfaces
+        self.addSurfaces(tail, position)
 
         # Return self
         return tail
 
-    def addNose(self, length, kind, position, name="Nose Cone"):
+    def addNose(self, length, kind, position, name="Nosecone"):
         """Creates a nose cone, storing its parameters as part of the
         aerodynamicSurfaces list. Its parameters are the axial position
         along the rocket and its derivative of the coefficient of lift
@@ -729,15 +766,9 @@ class Rocket:
         """
         # Create a nose as an object of NoseCone class
         nose = NoseCone(length, kind, self.radius, self.radius, name)
-        # Saves position on object for practicality
-        nose.position = position
 
         # Add nose to the list of aerodynamic surfaces
-        self.aerodynamicSurfaces.append(aeroSurface=nose, position=position)
-        self.nosecone.append(nose)
-
-        # Refresh static margin calculation
-        self.evaluateStaticMargin()
+        self.addSurfaces(nose, position)
 
         # Return self
         return nose
@@ -843,15 +874,9 @@ class Rocket:
             airfoil,
             name,
         )
-        # Saves position on object for practicality
-        finSet.position = position
 
         # Add fin set to the list of aerodynamic surfaces
-        self.aerodynamicSurfaces.append(aeroSurface=finSet, position=position)
-        self.fins.append(finSet)
-
-        # Refresh static margin calculation
-        self.evaluateStaticMargin()
+        self.addSurfaces(finSet, position)
 
         # Return the created aerodynamic surface
         return finSet
@@ -919,15 +944,9 @@ class Rocket:
 
         # Create a fin set as an object of EllipticalFins class
         finSet = EllipticalFins(n, rootChord, span, radius, cantAngle, airfoil, name)
-        # Saves position on object for practicality
-        finSet.position = position
 
         # Add fin set to the list of aerodynamic surfaces
-        self.aerodynamicSurfaces.append(aeroSurface=finSet, position=position)
-        self.fins.append(finSet)
-
-        # Refresh static margin calculation
-        self.evaluateStaticMargin()
+        self.addSurfaces(finSet, position)
 
         # Return self
         return finSet
@@ -951,14 +970,18 @@ class Rocket:
             force is the dynamic pressure computed on the parachute
             times its CdS coefficient. Has units of area and must be
             given in squared meters.
-        trigger : function
-            Function which defines if the parachute ejection system is
-            to be triggered. It must take as input the freestream
-            pressure in pascal and the state vector of the simulation,
-            which is defined by [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz].
-            It will be called according to the sampling rate given next.
-            It should return True if the parachute ejection system is
-            to be triggered and False otherwise.
+        trigger : function, float, string
+            Trigger for the parachute deployment. Can be a float with the height
+            in which the parachute is ejected (ejction happens after apogee); or
+            the string "apogee", for ejection at apogee.
+            Can also be a function which defines if the parachute ejection
+            system is to be triggered. It must take as input the freestream
+            pressure in pascal, the height in meters (above ground level), and
+            the state vector of the simulation, which is defined by
+            [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz].
+            The trigger will be called according to the sampling rate given next.
+            It should return True if the parachute ejection system is to be
+            triggered and False otherwise.
         samplingRate : float, optional
             Sampling rate in which the trigger function works. It is used to
             simulate the refresh rate of onboard sensors such as barometers.

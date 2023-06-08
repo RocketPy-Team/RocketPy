@@ -645,6 +645,7 @@ class Function:
 
         self.setInterpolation(interp)
         self.setExtrapolation(extrap)
+
         return self
 
     def reset(

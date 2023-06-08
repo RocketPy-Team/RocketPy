@@ -6,7 +6,11 @@ __license__ = "MIT"
 
 import re
 from abc import ABC, abstractmethod
-from functools import cached_property
+
+try:
+    from functools import cached_property
+except ImportError:
+    from rocketpy.tools import cached_property
 
 import numpy as np
 

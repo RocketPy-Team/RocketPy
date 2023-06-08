@@ -6,7 +6,11 @@ __license__ = "MIT"
 
 import numpy as np
 from scipy import integrate
-from functools import cached_property
+
+try:
+    from functools import cached_property
+except ImportError:
+    from rocketpy.tools import cached_property
 
 from rocketpy.Function import Function, funcify_method
 from rocketpy.motors import Motor
@@ -395,9 +399,7 @@ class SolidMotor(Motor):
         terminateBurn.terminal = True
 
         # Solve the system of differential equations
-        sol = integrate.solve_ivp(
-            geometryDot, t_span, y0, t_eval=t, events=terminateBurn
-        )
+        sol = integrate.solve_ivp(geometryDot, t_span, y0, events=terminateBurn)
 
         self.grainBurnOut = sol.t[-1]
 
