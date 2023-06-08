@@ -473,8 +473,7 @@ def test_simpler_parachute_triggers(mock_show):
     test_rocket = Rocket(
         radius=127 / 2000,
         mass=19.197 - 2.956,
-        inertiaI=6.60,
-        inertiaZ=0.0351,
+        inertia=(6.60, 6.60, 0.0351),
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )

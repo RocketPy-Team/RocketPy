@@ -51,7 +51,12 @@ def test_mass_based_motor():
 
     # Generate tanks based on Berkeley SEB team's real tank geometries
     real_tank_lox = MassBasedTank(
-        "Real Tank", real_geometry, lox_masses, gas_masses, lox, n2
+        name="Real Tank",
+        geometry=real_geometry,
+        liquid=lox,
+        gas=n2,
+        liquid_mass=lox_masses,
+        gas_mass=gas_masses,
     )
 
     # Generate tank geometry {radius: height, ...}
@@ -59,12 +64,12 @@ def test_mass_based_motor():
 
     # Generate tanks based on simplified tank geometry
     example_tank_lox = MassBasedTank(
-        "Example Tank",
-        example_geometry,
-        example_liquid_masses,
-        example_gas_masses,
-        lox,
-        n2,
+        name="Example Tank",
+        geometry=example_geometry,
+        liquid=lox,
+        gas=n2,
+        liquid_mass=example_liquid_masses,
+        gas_mass=example_gas_masses,
     )
 
     initial_liquid_mass = 5
@@ -176,7 +181,11 @@ def test_ullage_based_motor():
 
     ullage_data = pd.read_csv(os.path.abspath(test_dir + "loxUllage.csv")).to_numpy()
     levelTank = LevelBasedTank(
-        "Ullage Tank", tank_geometry, gas=n2, liquid=lox, liquid_height=ullage_data
+        name="Ullage Tank",
+        geometry=tank_geometry,
+        gas=n2,
+        liquid=lox,
+        liquid_height=ullage_data,
     )
 
     mass_data = pd.read_csv(test_dir + "loxMass.csv").to_numpy()
@@ -341,16 +350,16 @@ def test_mfr_tank_basic():
     gas_mass_flow_rate_out = 0.02
 
     t = MassFlowRateBasedTank(
-        "Test Tank",
-        tank_radius_function,
-        initial_liquid_mass,
-        initial_gas_mass,
-        liquid_mass_flow_rate_in,
-        gas_mass_flow_rate_in,
-        liquid_mass_flow_rate_out,
-        gas_mass_flow_rate_out,
-        lox,
-        n2,
+        name="Test Tank",
+        geometry=tank_radius_function,
+        initial_liquid_mass=initial_liquid_mass,
+        initial_gas_mass=initial_gas_mass,
+        liquid_mass_flow_rate_in=liquid_mass_flow_rate_in,
+        gas_mass_flow_rate_in=gas_mass_flow_rate_in,
+        liquid_mass_flow_rate_out=liquid_mass_flow_rate_out,
+        gas_mass_flow_rate_out=gas_mass_flow_rate_out,
+        liquid=lox,
+        gas=n2,
     )
 
     test_nmfr()

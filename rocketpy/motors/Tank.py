@@ -11,11 +11,11 @@ from rocketpy.utilities import except_negative
 
 
 class Tank(ABC):
-    def __init__(self, name, geometry, gas, liquid=0):
+    def __init__(self, name, geometry, liquid, gas):
         self.name = name
         self.geometry = geometry
-        self.gas = gas
         self.liquid = liquid
+        self.gas = gas
 
     @property
     @abstractmethod
@@ -285,7 +285,7 @@ class MassFlowRateBasedTank(Tank):
         liquid_mass_flow_rate_out,
         gas_mass_flow_rate_out,
     ):
-        super().__init__(name, geometry, gas, liquid)
+        super().__init__(name, geometry, liquid, gas)
         self.initial_liquid_mass = initial_liquid_mass
         self.initial_gas_mass = initial_gas_mass
 
@@ -380,7 +380,7 @@ class UllageBasedTank(Tank):
         gas,
         ullage,
     ):
-        super().__init__(name, geometry, gas, liquid)
+        super().__init__(name, geometry, liquid, gas)
         self.ullage = Function(ullage, "Time", "Volume", "linear", "constant")
 
     @funcify_method("Time (s)", "mass (kg)")
@@ -427,7 +427,7 @@ class LevelBasedTank(Tank):
         gas,
         liquid_height,
     ):
-        super().__init__(name, geometry, gas, liquid)
+        super().__init__(name, geometry, liquid, gas)
         self.liquid_height = Function(
             liquid_height, "Time", "Volume", "linear", "constant"
         )
@@ -477,7 +477,7 @@ class MassBasedTank(Tank):
         liquid_mass,
         gas_mass,
     ):
-        super().__init__(name, geometry, gas, liquid)
+        super().__init__(name, geometry, liquid, gas)
         self.liquid_mass = Function(liquid_mass, "Time", "Mass", "linear", "constant")
         self.gas_mass = Function(gas_mass, "Time", "Mass", "linear", "constant")
 
