@@ -5,7 +5,11 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 import numpy as np
-from functools import cached_property
+
+try:
+    from functools import cached_property
+except ImportError:
+    from rocketpy.tools import cached_property
 
 from rocketpy.motors import Motor
 from rocketpy.Function import funcify_method, Function
