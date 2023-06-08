@@ -2139,7 +2139,7 @@ class Function:
                 and np.array_equal(self.xArray, other.xArray)
             ):
                 # Operate on grid values
-                with np.errstate(divide="ignore"):
+                with np.errstate(divide="ignore", invalid="ignore"):
                     Ys = self.source[:, 1] / other.source[:, 1]
                     Ys = np.nan_to_num(Ys)
                 Xs = self.source[:, 0]
