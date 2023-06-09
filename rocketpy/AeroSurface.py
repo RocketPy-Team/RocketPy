@@ -1886,12 +1886,12 @@ class Tail(AeroSurface):
 
 
 class RailButtons(AeroSurface):
-    """Class that defines a generic rail button.
+    """Class that defines a rail button pair or group.
 
     Attributes
     ----------
     RailButtons.buttons_distance : int, float
-        Distance between the highest and the lowest rail button in meters.
+        Distance between the two rail buttons closest to the nozzle.
     RailButtons.angular_position : int, float
         Angular position of the rail buttons in degrees measured
         as the rotation around the symmetry axis of the rocket
@@ -1957,6 +1957,7 @@ class RailButtons(AeroSurface):
             ["Alpha (rad)", "Mach"],
             "Cl",
         )
+        return None
 
     def evaluateGeometricalParameters(self):
         """Evaluates the geometrical parameters of the rail buttons. Rail
