@@ -330,14 +330,11 @@ class HybridMotor(Motor):
             self.liquid.mass * (self.liquid.centerOfMass - self.centerOfMass) ** 2
         )
 
-        solidInertia = self.solid.inertiaTensor
-        liquidInertia = self.liquid.inertiaTensor
-
         self.InertiaI = (
-            solidInertia[0] + solidCorrection + liquidInertia[0] + liquidCorrection
+            self.solid.I_11 + solidCorrection + self.liquid.I_11 + liquidCorrection
         )
         self.InertiaZ = (
-            solidInertia[2] + solidCorrection + liquidInertia[2] + liquidCorrection
+            self.solid.I_33 + solidCorrection + self.liquid.I_33 + liquidCorrection
         )
 
         # Set naming convention

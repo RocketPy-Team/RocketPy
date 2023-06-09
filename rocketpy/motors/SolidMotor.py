@@ -343,7 +343,7 @@ class SolidMotor(Motor):
         t : float
             Time in seconds.
 
-        Returns
+        Returnsg
         -------
         Function
             Position of the center of mass as a function
@@ -399,7 +399,15 @@ class SolidMotor(Motor):
         terminateBurn.terminal = True
 
         # Solve the system of differential equations
-        sol = integrate.solve_ivp(geometryDot, t_span, y0, events=terminateBurn)
+        sol = integrate.solve_ivp(
+            geometryDot,
+            t_span,
+            y0,
+            events=terminateBurn,
+            atol=1e-12,
+            rtol=1e-11,
+            method="LSODA",
+        )
 
         self.grainBurnOut = sol.t[-1]
 

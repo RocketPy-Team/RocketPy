@@ -183,7 +183,7 @@ class LiquidMotor(Motor):
         tuple (of Functions)
             Pricipal moment of inertia tensor of the motor, in kg*m^2.
         """
-        self.inertiaI = self.inertiaZ = Function(0)
+        self.inertiaI = self.inertiaZ = 0
         centerOfMass = self.centerOfMass
 
         for positioned_tank in self.positioned_tanks:
@@ -226,7 +226,7 @@ class LiquidMotor(Motor):
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        I_11 = Function(0)
+        I_11 = 0
         centerOfMass = self.centerOfMass
 
         for positioned_tank in self.positioned_tanks:
