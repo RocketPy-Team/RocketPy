@@ -20,7 +20,7 @@ The following packages are needed in order to run RocketPy:
 - Numpy >= 1.0
 - Scipy >= 1.0
 - Matplotlib >= 3.0
-- netCDF4 >= 1.4, < 1.6 for Python 3.8+, netCDF4 >= 1.6.2 for Python 3.11
+- netCDF4 >= 1.6.2 for Windows, MacOS or Python < '3.11'; netCDF4 >=1.4,<1.6 for Python 3.11+ in Linux
 - windrose >= 1.6.8
 - requests
 - pytz

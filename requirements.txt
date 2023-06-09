@@ -1,8 +1,8 @@
 numpy>=1.0
 scipy>=1.0
 matplotlib>=3.0
-netCDF4>=1.4,<1.6; python_version < "3.11"
-netCDF4>=1.6.2; python_version >= "3.11"
+netCDF4>=1.6.2; sys_platform != 'linux' or python_version < '3.11'
+netCDF4>=1.4,<1.6; sys_platform == 'lixux' and python_version >= '3.11'
 windrose>=1.6.8
 ipywidgets>=7.6.3
 requests
