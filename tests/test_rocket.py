@@ -39,7 +39,7 @@ def test_rocket(mock_show):
 
     test_rocket.addMotor(test_motor, position=-1.255)
 
-    test_rocket.setRailButtons([0.2, -0.5])
+    test_rocket.setRailButtons(0.2, -0.5)
 
     NoseCone = test_rocket.addNose(
         length=0.55829, kind="vonKarman", position=1.278, name="NoseCone"
@@ -214,7 +214,7 @@ def test_elliptical_fins(mock_show):
 
     test_rocket.addMotor(test_motor, position=-1.255)
 
-    test_rocket.setRailButtons([0.2, -0.5])
+    test_rocket.setRailButtons(0.2, -0.5)
 
     NoseCone = test_rocket.addNose(
         length=0.55829, kind="vonKarman", position=1.278, name="NoseCone"
@@ -294,7 +294,7 @@ def test_airfoil(mock_show):
 
     test_rocket.addMotor(test_motor, position=-1.255)
 
-    test_rocket.setRailButtons([0.2, -0.5])
+    test_rocket.setRailButtons(0.2, -0.5)
 
     NoseCone = test_rocket.addNose(
         length=0.55829, kind="vonKarman", position=1.278, name="NoseCone"
@@ -592,8 +592,23 @@ def test_add_cp_eccentricity_assert_properties_set(rocket):
     assert rocket.cpEccentricityY == 5
 
 
-def test_set_rail_button_assert_distance_reverse(rocket):
-    rocket.setRailButtons([-0.5, 0.2])
-    assert rocket.rail_buttons.upper_button_position == 0.2
-    assert rocket.rail_buttons.lower_button_position == -0.5
-    assert rocket.rail_buttons.angular_position == 45
+def test_set_rail_button(rocket):
+    rail_buttons = rocket.setRailButtons(0.2, -0.5, 30)
+    # assert buttons_distance
+    assert (
+        rail_buttons.buttons_distance
+        == rocket.rail_buttons[0].component.buttons_distance
+        == pytest.approx(0.7, 1e-12)
+    )
+    # assert buttons position on rocket
+    assert rocket.rail_buttons[0].position == -0.5
+    # assert angular position
+    assert (
+        rail_buttons.angular_position
+        == rocket.rail_buttons[0].component.angular_position
+        == 30
+    )
+    # assert upper button position
+    assert rocket.rail_buttons[0].component.buttons_distance + rocket.rail_buttons[
+        0
+    ].position == pytest.approx(0.2, 1e-12)

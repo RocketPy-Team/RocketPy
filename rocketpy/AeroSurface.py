@@ -18,7 +18,6 @@ class AeroSurface(ABC):
         self.cpx = 0
         self.cpy = 0
         self.cpz = 0
-        self.position = None  # relative to rocket
         self.name = name
         return None
 
@@ -305,8 +304,6 @@ class NoseCone(AeroSurface):
         """
         print(f"\nGeometric Information of {self.name}")
         print("-------------------------------")
-        if self.position:
-            print(f"Position: {self.position:.3f} m")
         print(f"Length: {self.length:.3f} m")
         print(f"Kind: {self.kind}")
         print(f"Base Radius: {self.baseRadius:.3f} m")
@@ -767,8 +764,6 @@ class Fins(AeroSurface):
             print("Fin Type: Elliptical")
         print("Root Chord: {:.3f} m".format(self.rootChord))
         print("Span: {:.3f} m".format(self.span))
-        if self.position:
-            print("Position: {:.3f} m".format(self.position))
         print("Cant Angle: {:.3f} °".format(self.cantAngle))
         print("Longitudinal Section Area: {:.3f} m²".format(self.Af))
         print("Aspect Ratio: {:.3f} ".format(self.AR))
@@ -1858,8 +1853,6 @@ class Tail(AeroSurface):
 
         print(f"\nGeometric Information of {self.name}")
         print("-------------------------------")
-        if self.position:
-            print(f"Tail Position: {self.position:.3f} m")
         print(f"Tail Top Radius: {self.topRadius:.3f} m")
         print(f"Tail Bottom Radius: {self.bottomRadius:.3f} m")
         print(f"Tail Length: {self.length:.3f} m")
@@ -1897,53 +1890,40 @@ class RailButtons(AeroSurface):
 
     Attributes
     ----------
-    RailButtons.upper_button_position : int, float
-        Position of the upper rail button in meters. The upper button is the one
-        closest to the nose cone and furthest from the tail. The coordinate system
-        used is the same as the Rocket that the buttons will be a part of.
-    RailButtons.lower_button_position : int, float
-        Position of the lower rail button in meters. The lower button is the one
-        closest to the nose cone and furthest from the tail. The coordinate system
-        used is the same as the Rocket that the buttons will be a part of.
+    RailButtons.buttons_distance : int, float
+        Distance between the highest and the lowest rail button in meters.
     RailButtons.angular_position : int, float
         Angular position of the rail buttons in degrees measured
         as the rotation around the symmetry axis of the rocket
         relative to one of the other principal axis.
     """
 
-    def __init__(self, upper_button_position, lower_button_position, angular_position):
+    def __init__(self, buttons_distance, angular_position=45, name="Rail Buttons"):
         """Initializes RailButtons Class.
 
         Parameters
         ----------
-        upper_button_position : int, float
-            Position of the upper rail button in meters. The upper button
-            is the one closest to the nose cone and furthest from the tail.
-            The coordinate system used is the same as the Rocket that the
-            buttons will be a part of.
-        lower_button_position : int, float
-            Position of the lower rail button in meters. The lower button
-            is the one closest to the nose cone and furthest from the tail.
-            The coordinate system used is the same as the Rocket that the
-            buttons will be a part of.
+        buttons_distance : int, float
+            Distance between the first and the last rail button in meters.
         angular_position : int, float, optional
             Angular position of the rail buttons in degrees measured
             as the rotation around the symmetry axis of the rocket
             relative to one of the other principal axis.
+        name : string, optional
+            Name of the rail buttons. Defaul is "Rail Buttons".
 
         Returns
         -------
         None
 
         """
-        self.upper_button_position = upper_button_position
-        self.lower_button_position = lower_button_position
+        self.buttons_distance = buttons_distance
         self.angular_position = angular_position
-        return None
+        self.name = name
 
-    def __repr__(self):
-        rep = f"Rail buttons pair at positions {self.upper_button_position} m and {self.lower_button_position} m"
-        return rep
+        self.evaluateLiftCoefficient()
+        self.evaluateCenterOfPressure()
+        return None
 
     def evaluateCenterOfPressure(self):
         """Evaluates the center of pressure of the rail buttons. Rail buttons
@@ -1953,6 +1933,10 @@ class RailButtons(AeroSurface):
         -------
         None
         """
+        self.cpx = 0
+        self.cpy = 0
+        self.cpz = 0
+        self.cp = (self.cpx, self.cpy, self.cpz)
         return None
 
     def evaluateLiftCoefficient(self):
@@ -1963,7 +1947,16 @@ class RailButtons(AeroSurface):
         -------
         None
         """
-        return None
+        self.clalpha = Function(
+            lambda mach: 0,
+            "Mach",
+            f"Lift coefficient derivative for {self.name}",
+        )
+        self.cl = Function(
+            lambda alpha, mach: 0,
+            ["Alpha (rad)", "Mach"],
+            "Cl",
+        )
 
     def evaluateGeometricalParameters(self):
         """Evaluates the geometrical parameters of the rail buttons. Rail
