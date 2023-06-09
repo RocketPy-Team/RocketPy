@@ -1910,7 +1910,7 @@ class RailButtons(AeroSurface):
             as the rotation around the symmetry axis of the rocket
             relative to one of the other principal axis.
         name : string, optional
-            Name of the rail buttons. Defaul is "Rail Buttons".
+            Name of the rail buttons. Default is "Rail Buttons".
 
         Returns
         -------
