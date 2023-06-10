@@ -25,11 +25,11 @@ try:
     import jsonpickle
     from timezonefinder import TimezoneFinder
     from windrose import WindroseAxes
-except ImportError:
+except ImportError as error:
     raise ImportError(
-        "At least one required module could not be imported."
-        + "The EnvironmentAnalysis requires additional dependencies."
-        + "Please install them by running 'pip install rocketpy[env_analysis]'."
+        f"The following error was encountered while importing dependencies: '{error}'. "
+        "Please note that the EnvironmentAnalysis requires additional dependencies, "
+        "which can be installed by running 'pip install rocketpy[env_analysis]'."
     )
 from .plots.environment_analysis_plots import _EnvironmentAnalysisPlots
 from .prints.environment_analysis_prints import _EnvironmentAnalysisPrints
