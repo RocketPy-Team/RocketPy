@@ -66,8 +66,8 @@ class SolidMotor(Motor):
         Motor.grainInitialMass : float
             Initial mass of each grain in kg.
         Motor.dry_mass : float
-            Total mass of the empty motor structure, including chambers
-            and tanks, that is the motor mass without propellant.
+            The total mass of the motor structure, including chambers
+            and tanks, when it is empty and does not contain any propellant.
         Motor.propellantInitialMass : float
             Total propellant initial mass in kg.
         Motor.totalMass : Function
@@ -163,11 +163,12 @@ class SolidMotor(Motor):
         burnOut : int, float
             Motor burn out time in seconds.
         dry_mass : int, float
-            Total mass of the empty motor structure, including chambers
-            and tanks, that is the motor mass without propellant.
+            The total mass of the motor structure, including chambers
+            and tanks, when it is empty and does not contain any propellant.
         dry_center_of_mass : int, float
-            The position of the motor's center of mass in meters with respect
-            to the motor's coordinate system. See `Motor.coordinateSystemOrientation`.
+            The position, in meters, of the motor's center of mass with respect
+            to the motor's coordinate system when it is devoid of propellant.
+            See `Motor.coordinateSystemOrientation`.
         dry_inertia : tuple, list
             Tuple or list containing the motor's dry mass inertia tensor
             components, in kg*m^2. This inertia is defined with respect to the
