@@ -18,7 +18,6 @@ class AeroSurface(ABC):
         self.cpx = 0
         self.cpy = 0
         self.cpz = 0
-        self.position = None  # relative to rocket
         self.name = name
         return None
 
@@ -305,8 +304,6 @@ class NoseCone(AeroSurface):
         """
         print(f"\nGeometric Information of {self.name}")
         print("-------------------------------")
-        if self.position:
-            print(f"Position: {self.position:.3f} m")
         print(f"Length: {self.length:.3f} m")
         print(f"Kind: {self.kind}")
         print(f"Base Radius: {self.baseRadius:.3f} m")
@@ -767,8 +764,6 @@ class Fins(AeroSurface):
             print("Fin Type: Elliptical")
         print("Root Chord: {:.3f} m".format(self.rootChord))
         print("Span: {:.3f} m".format(self.span))
-        if self.position:
-            print("Position: {:.3f} m".format(self.position))
         print("Cant Angle: {:.3f} °".format(self.cantAngle))
         print("Longitudinal Section Area: {:.3f} m²".format(self.Af))
         print("Aspect Ratio: {:.3f} ".format(self.AR))
@@ -1656,7 +1651,7 @@ class Tail(AeroSurface):
     downwards (top -> bottom). Origin located at top of the tail (generally the portion
     closest to the rocket's nose).
 
-    Parameters
+    Attributes
     ----------
     Tail.topRadius : int, float
         Radius of the top of the tail. The top radius is defined as the radius
@@ -1671,9 +1666,6 @@ class Tail(AeroSurface):
         The reference rocket radius used for lift coefficient normalization in meters.
     Tail.name : str
         Name of the tail. Default is 'Tail'.
-
-    Attributes
-    ----------
     Tail.cpx : int, float
         x local coordinate of the center of pressure of the tail.
     Tail.cpy : int, float
@@ -1831,6 +1823,7 @@ class Tail(AeroSurface):
     def evaluateCenterOfPressure(self):
         """Calculates and returns the center of pressure of the tail in local
         coordinates. The center of pressure position is saved and stored as a tuple.
+
         Parameters
         ----------
         None
@@ -1860,8 +1853,6 @@ class Tail(AeroSurface):
 
         print(f"\nGeometric Information of {self.name}")
         print("-------------------------------")
-        if self.position:
-            print(f"Tail Position: {self.position:.3f} m")
         print(f"Tail Top Radius: {self.topRadius:.3f} m")
         print(f"Tail Bottom Radius: {self.bottomRadius:.3f} m")
         print(f"Tail Length: {self.length:.3f} m")
@@ -1891,4 +1882,117 @@ class Tail(AeroSurface):
         self.geometricalInfo()
         self.aerodynamicInfo()
 
+        return None
+
+
+class RailButtons(AeroSurface):
+    """Class that defines a rail button pair or group.
+
+    Attributes
+    ----------
+    RailButtons.buttons_distance : int, float
+        Distance between the two rail buttons closest to the nozzle.
+    RailButtons.angular_position : int, float
+        Angular position of the rail buttons in degrees measured
+        as the rotation around the symmetry axis of the rocket
+        relative to one of the other principal axis.
+    """
+
+    def __init__(self, buttons_distance, angular_position=45, name="Rail Buttons"):
+        """Initializes RailButtons Class.
+
+        Parameters
+        ----------
+        buttons_distance : int, float
+            Distance between the first and the last rail button in meters.
+        angular_position : int, float, optional
+            Angular position of the rail buttons in degrees measured
+            as the rotation around the symmetry axis of the rocket
+            relative to one of the other principal axis.
+        name : string, optional
+            Name of the rail buttons. Default is "Rail Buttons".
+
+        Returns
+        -------
+        None
+
+        """
+        self.buttons_distance = buttons_distance
+        self.angular_position = angular_position
+        self.name = name
+
+        self.evaluateLiftCoefficient()
+        self.evaluateCenterOfPressure()
+        return None
+
+    def evaluateCenterOfPressure(self):
+        """Evaluates the center of pressure of the rail buttons. Rail buttons
+        do not contribute to the center of pressure of the rocket.
+
+        Returns
+        -------
+        None
+        """
+        self.cpx = 0
+        self.cpy = 0
+        self.cpz = 0
+        self.cp = (self.cpx, self.cpy, self.cpz)
+        return None
+
+    def evaluateLiftCoefficient(self):
+        """Evaluates the lift coefficient curve of the rail buttons. Rail
+        buttons do not contribute to the lift coefficient of the rocket.
+
+        Returns
+        -------
+        None
+        """
+        self.clalpha = Function(
+            lambda mach: 0,
+            "Mach",
+            f"Lift coefficient derivative for {self.name}",
+        )
+        self.cl = Function(
+            lambda alpha, mach: 0,
+            ["Alpha (rad)", "Mach"],
+            "Cl",
+        )
+        return None
+
+    def evaluateGeometricalParameters(self):
+        """Evaluates the geometrical parameters of the rail buttons. Rail
+        buttons do not contribute to the geometrical parameters of the rocket.
+
+        Returns
+        -------
+        None
+        """
+        return None
+
+    def geometricalInfo(self):
+        """Returns the geometrical info of the rail buttons. Rail buttons
+        do not have geometrical parameters.
+
+        Returns
+        -------
+        None
+        """
+        return None
+
+    def aerodynamicInfo(self):
+        """Returns the aerodynamic info of the aerodynamic surface.
+
+        Returns
+        -------
+        None
+        """
+        return None
+
+    def allInfo(self):
+        """Returns all info of the aerodynamic surface.
+
+        Returns
+        -------
+        None
+        """
         return None
