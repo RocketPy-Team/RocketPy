@@ -58,8 +58,8 @@ class HybridMotor(Motor):
         Motor.grainInitialMass : float
             Initial mass of each grain in kg.
         Motor.dry_mass : float
-            Total mass of the empty motor structure, including chambers
-            and tanks, that is the motor mass without propellant.
+            The total mass of the motor structure, including chambers
+            and tanks, when it is empty and does not contain any propellant.
         Motor.propellantInitialMass : float
             Total propellant initial mass in kg.
         Motor.totalMass : Function
