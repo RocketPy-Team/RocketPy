@@ -155,8 +155,8 @@ class HybridMotor(Motor):
         burnOut : int, float
             Motor burn out time in seconds.
         dry_mass : int, float
-            Total mass of the empty motor structure, including chambers
-            and tanks, that is the motor mass without propellant.
+            The total mass of the motor structure, including chambers
+            and tanks, when it is empty and does not contain any propellant.
         dry_center_of_mass : int, float
             The position of the motor's center of mass in meters with respect
             to the motor's coordinate system. See `Motor.coordinateSystemOrientation`.
