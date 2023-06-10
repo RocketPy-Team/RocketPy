@@ -158,8 +158,9 @@ class HybridMotor(Motor):
             The total mass of the motor structure, including chambers
             and tanks, when it is empty and does not contain any propellant.
         dry_center_of_mass : int, float
-            The position of the motor's center of mass in meters with respect
-            to the motor's coordinate system. See `Motor.coordinateSystemOrientation`.
+            The position, in meters, of the motor's center of mass with respect
+            to the motor's coordinate system when it is devoid of propellant.
+            See `Motor.coordinateSystemOrientation`.
         dry_inertia : tuple, list
             Tuple or list containing the motor's dry mass inertia tensor
             components, in kg*m^2. This inertia is defined with respect to the
