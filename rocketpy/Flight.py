@@ -452,8 +452,8 @@ class Flight:
             Expressed as the absolute vale of the magnitude as a function
             of frequency in Hz. Can be called or accessed as array.
 
-        Flight.staticMargin : Function
-            Rocket's static margin during flight in calibers.
+        Flight.stabilityMargin : rocketpy.Function
+            Rocket's stability margin during flight, in calibers.
 
         Fluid Mechanics:
         Flight.streamVelocityX : Function
@@ -2232,10 +2232,26 @@ class Flight:
             samplingFrequency=100,
         )
 
-    @cached_property
-    def staticMargin(self):
-        """Static margin of the rocket."""
-        return self.rocket.staticMargin
+    @funcify_method("Time (s)", "Stability Margin (c)", "spline", "constant")
+    def stabilityMargin(self):
+        """Stability margin of the rocket along the flight, it considers the
+        variation of the center of pressure position according to the mach
+        number, as well as the variation of the center of gravity position
+        according to the propellant mass evolution.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        stability : rocketpy.Function
+            Stability margin as a rocketpy.Function of time. The stability margin
+            is defined as the distance between the center of pressure and the
+            center of gravity, divided by the rocket diameter.
+        """
+        s = [(t, self.rocket.stabilityMargin(t, m)) for t, m in self.MachNumber]
+        return Function(s, "Time (s)", "Stability Margin (c)")
 
     # Rail Button Forces
     @funcify_method("Time (s)", "Upper Rail Button Normal Force (N)", "spline", "zero")
