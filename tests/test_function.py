@@ -23,7 +23,7 @@ def test_function_from_csv(func_from_csv):
     # Check the __str__ method
     assert func_from_csv.__str__() == "Function from R1 to R1 : (Scalar) → (Scalar)"
     # Check the __repr__ method
-    assert func_from_csv.__repr__() == "Function from R1 to R1 : (Scalar) → (Scalar)"
+    assert func_from_csv.__repr__() == "'Function from R1 to R1 : (Scalar) → (Scalar)'"
 
 
 def test_getters(func_from_csv):
@@ -37,7 +37,7 @@ def test_getters(func_from_csv):
     assert func_from_csv.getInputs() == ["Scalar"]
     assert func_from_csv.getOutputs() == ["Scalar"]
     assert func_from_csv.getInterpolationMethod() == "linear"
-    assert func_from_csv.getExtrapolationMethod() == "linear"
+    assert func_from_csv.getExtrapolationMethod() == "natural"
     assert np.isclose(func_from_csv.getValue(0), 0.0, atol=1e-6)
     assert np.isclose(func_from_csv.getValueOpt_deprecated(0), 0.0, atol=1e-6)
     assert np.isclose(func_from_csv.getValueOpt(0), 0.0, atol=1e-6)
@@ -59,8 +59,8 @@ def test_setters(func_from_csv):
     assert func_from_csv.getOutputs() == ["Scalar2"]
     func_from_csv.setInterpolation("linear")
     assert func_from_csv.getInterpolationMethod() == "linear"
-    func_from_csv.setExtrapolation("linear")
-    assert func_from_csv.getExtrapolationMethod() == "linear"
+    func_from_csv.setExtrapolation("natural")
+    assert func_from_csv.getExtrapolationMethod() == "natural"
 
 
 @patch("matplotlib.pyplot.show")
@@ -82,7 +82,7 @@ def test_plots(mock_show, func_from_csv):
         inputs=["Scalar"],
         outputs=["Scalar"],
         interpolation="linear",
-        extrapolation="linear",
+        extrapolation="natural",
     )
     assert (
         func_from_csv.comparePlots([func_from_csv, func2], returnObject=False) == None
@@ -134,7 +134,9 @@ def test_extrapolation_methods(linear_func):
     assert np.isclose(linear_func.getValue(-1), -1, atol=1e-6)
 
 
-def test_integral(linear_func):
+@pytest.mark.parametrize("a", [-1, 0, 0.5, 1, 2, 2.5, 3.5, 4, 5])
+@pytest.mark.parametrize("b", [-1, 0, 0.5, 1, 2, 2.5, 3.5, 4, 5])
+def test_integral_linear_interpolation(linearly_interpolated_func, a, b):
     """Test the integral method of the Function class.
 
     Parameters
@@ -143,4 +145,33 @@ def test_integral(linear_func):
         A Function object created from a list of values.
     """
     # Test integral
-    assert np.isclose(linear_func.integral(0, 1), 0.5, atol=1e-6)
+    assert np.isclose(
+        linearly_interpolated_func.integral(a, b, numerical=False),
+        linearly_interpolated_func.integral(a, b, numerical=True),
+        atol=1e-3,
+    )
+
+
+@pytest.mark.parametrize("func", ["linear_func", "spline_interpolated_func"])
+@pytest.mark.parametrize("a", [-1, -0.5, 0, 0.5, 1, 2, 2.5, 3.5, 4, 5])
+@pytest.mark.parametrize("b", [-1, -0.5, 0, 0.5, 1, 2, 2.5, 3.5, 4, 5])
+def test_integral_spline_interpolation(request, func, a, b):
+    """Test the integral method of the Function class.
+
+    Parameters
+    ----------
+    spline_func : rocketpy.Function
+        A Function object created from a list of values.
+    a : float
+        Lower limit of the integral.
+    b : float
+        Upper limit of the integral.
+    """
+    # Test integral
+    # Get the function from the fixture
+    func = request.getfixturevalue(func)
+    assert np.isclose(
+        func.integral(a, b, numerical=False),
+        func.integral(a, b, numerical=True),
+        atol=1e-3,
+    )

@@ -1,5 +1,8 @@
-from rocketpy import utilities
+from unittest.mock import patch
+
 import numpy as np
+
+from rocketpy import utilities
 
 
 def test_compute_CdS_from_drop_test():
