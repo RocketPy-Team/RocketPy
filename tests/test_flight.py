@@ -48,7 +48,7 @@ def setup_rocket_with_given_static_margin(rocket, static_margin):
             length=0.060,
             position=-1.194656,
         )
-        return rocket.staticMargin(0) - static_margin
+        return rocket.stabilityMargin(0, 0) - static_margin
 
     sol = optimize.root_scalar(
         compute_static_margin_error_given_distance,
