@@ -443,7 +443,7 @@ class NoseCone(AeroSurface):
         plt.show()
         return None
 
-    def geometricInfo(self):
+    def geometricalInfo(self):
         """Prints out all the geometric information of the nose cone.
 
         Parameters
