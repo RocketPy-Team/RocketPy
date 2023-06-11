@@ -223,10 +223,10 @@ class NoseCone(AeroSurface):
 
         elif value == "lvhaack":
             self.k = 0.563
-            theta = lambda x: np.arccos(1 - 2 * (x / self.length))
+            theta = lambda x: np.arccos(1 - 2 * max(min(x / self.length, 1), 0))
             self.y_nosecone = Function(
                 lambda x: self.baseRadius
-                * (theta(x) - np.sin(2 * theta(x)) / 2 + (np.sin(theta) ** 3) / 3)
+                * (theta(x) - np.sin(2 * theta(x)) / 2 + (np.sin(theta(x)) ** 3) / 3)
                 ** (0.5)
                 / (np.pi**0.5)
             )
@@ -241,7 +241,7 @@ class NoseCone(AeroSurface):
             area = np.pi * self.baseRadius**2
             self.k = 1 - volume / (area * self.length)
             self.y_nosecone = Function(
-                lambda x: np.sqrt(rho**2 - (x - self.length) ** 2)
+                lambda x: np.sqrt(rho**2 - (min(x - self.length, 0)) ** 2)
                 + (self.baseRadius - rho)
             )
 
@@ -254,7 +254,7 @@ class NoseCone(AeroSurface):
 
         elif value == "vonkarman":
             self.k = 0.5
-            theta = lambda x: np.arccos(1 - 2 * (x / self.length))
+            theta = lambda x: np.arccos(1 - 2 * max(min(x / self.length, 1), 0))
             self.y_nosecone = Function(
                 lambda x: self.baseRadius
                 * (theta(x) - np.sin(2 * theta(x)) / 2) ** (0.5)
