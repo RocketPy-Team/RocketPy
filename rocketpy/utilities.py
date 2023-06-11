@@ -16,7 +16,6 @@ from .Flight import Flight
 from .Function import Function, funcify_method
 
 
-# TODO: Needs tests
 def compute_CdS_from_drop_test(
     terminal_velocity, rocket_mass, air_density=1.225, g=9.80665
 ):
@@ -614,7 +613,7 @@ def liftoff_speed_by_mass(flight, min_mass=3, max_mass=30, points=10):
         )
         return test_flight.outOfRailVelocity
 
-    x = np.linspace(3, 30, 10)
+    x = np.linspace(min_mass, max_mass, points)
     y = np.array([liftoff_speed(m) for m in x])
     source = np.array(list(zip(x, y)), dtype=np.float64)
 
