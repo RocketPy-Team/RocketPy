@@ -8,6 +8,7 @@ _NOT_FOUND = object()
 import math
 
 import numpy as np
+from matplotlib.patches import Ellipse
 
 
 class cached_property:
@@ -200,3 +201,184 @@ def decimalDegreesToArcSeconds(angle):
     sec = abs((signal * angle - deg) * 60 - min) * 60
 
     return deg, min, sec
+
+
+# Functions for dispersion analysis
+def generate_dispersion_ellipses(results):
+    """A function to create apogee and impact ellipses from the dispersion
+    results.
+
+    Parameters
+    ----------
+    results : dict
+        A dictionary containing the results of the dispersion analysis. It should
+        contain the following keys:
+            - apogeeX: an array containing the x coordinates of the apogee
+            - apogeeY: an array containing the y coordinates of the apogee
+            - xImpact: an array containing the x coordinates of the impact
+            - yImpact: an array containing the y coordinates of the impact
+
+    Returns
+    -------
+    apogee_ellipse : list[Ellipse]
+        A list of ellipse objects representing the apogee ellipses.
+    impact_ellipse : list[Ellipse]
+        A list of ellipse objects representing the impact ellipses.
+    apogeeX : np.array
+        An array containing the x coordinates of the apogee ellipse.
+    apogeeY : np.array
+        An array containing the y coordinates of the apogee ellipse.
+    impactX : np.array
+        An array containing the x coordinates of the impact ellipse.
+    impactY : np.array
+        An array containing the y coordinates of the impact ellipse.
+    """
+
+    # Retrieve dispersion data por apogee and impact XY position
+    try:
+        apogee_x = np.array(results["apogeeX"])
+        apogee_y = np.array(results["apogeeY"])
+    except KeyError:
+        print("No apogee data found. Skipping apogee ellipses.")
+        apogee_x = np.array([])
+        apogee_y = np.array([])
+    try:
+        impact_x = np.array(results["xImpact"])
+        impact_y = np.array(results["yImpact"])
+    except KeyError:
+        print("No impact data found. Skipping impact ellipses.")
+        impact_x = np.array([])
+        impact_y = np.array([])
+
+    # Define function to calculate Eigenvalues
+    def eigsorted(cov):
+        # Calculate eigenvalues and eigenvectors
+        vals, vecs = np.linalg.eigh(cov)
+        # Order eigenvalues and eigenvectors in descending order
+        order = vals.argsort()[::-1]
+        return vals[order], vecs[:, order]
+
+    def calculate_ellipses(list_x, list_y):
+        # Calculate covariance matrix
+        cov = np.cov(list_x, list_y)
+        # Calculate eigenvalues and eigenvectors
+        vals, vecs = eigsorted(cov)
+        # Calculate ellipse angle and width/height
+        theta = np.degrees(np.arctan2(*vecs[:, 0][::-1]))
+        w, h = 2 * np.sqrt(vals)
+        return theta, w, h
+
+    def create_ellipse_objects(x, y, n, w, h, theta, rgb):
+        """Create a list of matplotlib.patches.Ellipse objects.
+
+        Parameters
+        ----------
+        x : list or np.array
+            List of x coordinates.
+        y : list or np.array
+            List of y coordinates.
+        n : int
+            Number of ellipses to create. It represents the number of confidence
+            intervals to be used. For example, n=3 will create 3 ellipses with
+            1, 2 and 3 standard deviations.
+        w : float
+            Width of the ellipse.
+        h : float
+            Height of the ellipse.
+        theta : float
+            Angle of the ellipse.
+        rgb : tuple
+            Tuple containing the color of the ellipse in RGB format. For example,
+            (0, 0, 1) will create a blue ellipse.
+
+        Returns
+        -------
+        list
+            List of matplotlib.patches.Ellipse objects.
+        """
+        ell_list = [None] * n
+        for j in range(n):
+            ell = Ellipse(
+                xy=(np.mean(x), np.mean(y)),
+                width=w,
+                height=h,
+                angle=theta,
+                color="black",
+            )
+            ell.set_facecolor(rgb)
+            ell_list[j] = ell
+        return ell_list
+
+    # Calculate error ellipses for impact and apogee
+    impactTheta, impactW, impactH = calculate_ellipses(impact_x, impact_y)
+    apogeeTheta, apogeeW, apogeeH = calculate_ellipses(apogee_x, apogee_y)
+
+    # Draw error ellipses for impact
+    impact_ellipses = create_ellipse_objects(
+        impact_x, impact_y, 3, impactW, impactH, impactTheta, (0, 0, 1, 0.2)
+    )
+
+    apogee_ellipses = create_ellipse_objects(
+        apogee_x, apogee_y, 3, apogeeW, apogeeH, apogeeTheta, (0, 1, 0, 0.2)
+    )
+
+    return impact_ellipses, apogee_ellipses, apogee_x, apogee_y, impact_x, impact_y
+
+
+def generate_dispersion_ellipses_coordinates(
+    ellipses, origin_lat, origin_lon, resolution=100
+):
+    """Generate a list of latitude and longitude points for each ellipse in
+    ellipses.
+
+    Parameters
+    ----------
+    ellipses : list
+        List of matplotlib.patches.Ellipse objects.
+    origin_lat : float
+        Latitude of the origin of the coordinate system.
+    origin_lon : float
+        Longitude of the origin of the coordinate system.
+    resolution : int, optional
+        Number of points to generate for each ellipse, by default 100
+
+    Returns
+    -------
+    list
+        List of lists of tuples containing the latitude and longitude of each
+        point in each ellipse.
+    """
+    outputs = [None] * len(ellipses)
+
+    for index, ell in enumerate(ellipses):
+        # Get ellipse path points
+        center = ell.get_center()
+        width = ell.get_width()
+        height = ell.get_height()
+        angle = np.deg2rad(ell.get_angle())
+        points = lat_lon_points = [None] * resolution
+
+        # Generate ellipse path points (in a Cartesian coordinate system)
+        for i in range(resolution):
+            x = width / 2 * math.cos(2 * np.pi * i / resolution)
+            y = height / 2 * math.sin(2 * np.pi * i / resolution)
+            x_rot = center[0] + x * math.cos(angle) - y * math.sin(angle)
+            y_rot = center[1] + x * math.sin(angle) + y * math.cos(angle)
+            points[i] = (x_rot, y_rot)
+        points = np.array(points)
+
+        # Convert path points to lat/lon
+        for point in points:
+            x, y = point
+            # Convert to distance and bearing
+            d = math.sqrt((x**2 + y**2))
+            bearing = math.atan2(
+                x, y
+            )  # math.atan2 returns the angle in the range [-pi, pi]
+
+            lat_lon_points[i] = invertedHaversine(
+                origin_lat, origin_lon, d, bearing, eRadius=6.3781e6
+            )
+
+        outputs[index] = lat_lon_points
+    return outputs

@@ -4,26 +4,20 @@ __license__ = "MIT"
 
 
 import ast
-import math
-from random import choice
 from time import process_time, time
 
-import matplotlib.pyplot as plt
 import numpy as np
 import simplekml
-from matplotlib.patches import Ellipse
 
-from .Environment import Environment
 from .Flight import Flight
 from .Function import Function
-from .Motor import SolidMotor
-from .Rocket import Rocket
-from .tools import get_distribution, invertedHaversine
+from .tools import (
+    generate_dispersion_ellipses,
+    generate_dispersion_ellipses_coordinates,
+)
+from .prints import _DispersionPrints
+from .plots import _DispersionPlots
 
-try:
-    from functools import cached_property
-except ImportError:
-    from .tools import cached_property
 
 # TODO: How to save Functions? With pickle? Save just the source?
 
@@ -146,6 +140,8 @@ class Dispersion:
         self.num_of_loaded_sims = 0
         self.results = {}
         self.processed_results = {}
+        self.prints = _DispersionPrints(self)
+        self.plots = _DispersionPlots(self)
 
         try:
             self.import_inputs()
@@ -700,287 +696,6 @@ class Dispersion:
 
         return None
 
-    # methods for ellipses
-    def __createEllipses(self, results):
-        """A function to create apogee and impact ellipses from the dispersion
-        results.
-
-        Parameters
-        ----------
-        results : dict
-            A dictionary containing the results of the dispersion analysis.
-
-        Returns
-        -------
-        apogee_ellipse : Ellipse
-            An ellipse object representing the apogee ellipse.
-        impact_ellipse : Ellipse
-            An ellipse object representing the impact ellipse.
-        apogeeX : np.array
-            An array containing the x coordinates of the apogee ellipse.
-        apogeeY : np.array
-            An array containing the y coordinates of the apogee ellipse.
-        impactX : np.array
-            An array containing the x coordinates of the impact ellipse.
-        impactY : np.array
-            An array containing the y coordinates of the impact ellipse.
-        """
-
-        # Retrieve dispersion data por apogee and impact XY position
-        try:
-            apogeeX = np.array(results["apogeeX"])
-            apogeeY = np.array(results["apogeeY"])
-        except KeyError:
-            print("No apogee data found.")
-            apogeeX = np.array([])
-            apogeeY = np.array([])
-        try:
-            impactX = np.array(results["xImpact"])
-            impactY = np.array(results["yImpact"])
-        except KeyError:
-            print("No impact data found.")
-            impactX = np.array([])
-            impactY = np.array([])
-
-        # Define function to calculate eigen values
-        def eigsorted(cov):
-            vals, vecs = np.linalg.eigh(cov)
-            order = vals.argsort()[::-1]
-            return vals[order], vecs[:, order]
-
-        # Calculate error ellipses for impact
-        impactCov = np.cov(impactX, impactY)
-        impactVals, impactVecs = eigsorted(impactCov)
-        impactTheta = np.degrees(np.arctan2(*impactVecs[:, 0][::-1]))
-        impactW, impactH = 2 * np.sqrt(impactVals)
-
-        # Draw error ellipses for impact
-        impact_ellipses = []
-        for j in [1, 2, 3]:
-            impactEll = Ellipse(
-                xy=(np.mean(impactX), np.mean(impactY)),
-                width=impactW * j,
-                height=impactH * j,
-                angle=impactTheta,
-                color="black",
-            )
-            impactEll.set_facecolor((0, 0, 1, 0.2))
-            impact_ellipses.append(impactEll)
-
-        # Calculate error ellipses for apogee
-        apogeeCov = np.cov(apogeeX, apogeeY)
-        apogeeVals, apogeeVecs = eigsorted(apogeeCov)
-        apogeeTheta = np.degrees(np.arctan2(*apogeeVecs[:, 0][::-1]))
-        apogeeW, apogeeH = 2 * np.sqrt(apogeeVals)
-
-        apogee_ellipses = []
-        # Draw error ellipses for apogee
-        for j in [1, 2, 3]:
-            apogeeEll = Ellipse(
-                xy=(np.mean(apogeeX), np.mean(apogeeY)),
-                width=apogeeW * j,
-                height=apogeeH * j,
-                angle=apogeeTheta,
-                color="black",
-            )
-            apogeeEll.set_facecolor((0, 1, 0, 0.2))
-            apogee_ellipses.append(apogeeEll)
-        return impact_ellipses, apogee_ellipses, apogeeX, apogeeY, impactX, impactY
-
-    def plotEllipses(
-        self,
-        image=None,
-        actual_landing_point=None,
-        perimeterSize=3000,
-        xlim=(-3000, 3000),
-        ylim=(-3000, 3000),
-        save=False,
-    ):
-        """A function to plot the error ellipses for the apogee and impact
-        points of the rocket. The function also plots the real landing point, if
-        given
-
-        Parameters
-        ----------
-        image : str, optional
-            The path to the image to be used as the background
-        actual_landing_point : tuple, optional
-            A tuple containing the actual landing point of the rocket, if known.
-            Useful when comparing the dispersion results with the actual landing.
-            Must be given in tuple format, such as (x, y) in meters.
-            By default None.
-        perimeterSize : int, optional
-            The size of the perimeter to be plotted. The default is 3000.
-        xlim : tuple, optional
-            The limits of the x axis. The default is (-3000, 3000).
-        ylim : tuple, optional
-            The limits of the y axis. The default is (-3000, 3000).
-        save : bool
-            Whether save the output into a file or not. The default is False.
-            If True, the .show() method won't be called, and the image will be
-            saved with the same name as filename attribute, using a .png format.
-
-        Returns
-        -------
-        None
-        """
-        # Import background map
-        if image is not None:
-            try:
-                from imageio import imread
-
-                img = imread(image)
-            except ImportError:
-                raise ImportError(
-                    "The 'imageio' package could not be. Please install it to add background images."
-                )
-            except FileNotFoundError:
-                raise FileNotFoundError(
-                    "The image file was not found. Please check the path."
-                )
-
-        (
-            impact_ellipses,
-            apogee_ellipses,
-            apogeeX,
-            apogeeY,
-            impactX,
-            impactY,
-        ) = self.__createEllipses(self.results)
-
-        # Create plot figure
-        plt.figure(num=None, figsize=(8, 6), dpi=150, facecolor="w", edgecolor="k")
-        ax = plt.subplot(111)
-
-        for ell in impact_ellipses:
-            ax.add_artist(ell)
-        for ell in apogee_ellipses:
-            ax.add_artist(ell)
-
-        # Draw launch point
-        plt.scatter(0, 0, s=30, marker="*", color="black", label="Launch Point")
-        # Draw apogee points
-        plt.scatter(
-            apogeeX, apogeeY, s=5, marker="^", color="green", label="Simulated Apogee"
-        )
-        # Draw impact points
-        plt.scatter(
-            impactX,
-            impactY,
-            s=5,
-            marker="v",
-            color="blue",
-            label="Simulated Landing Point",
-        )
-        # Draw real landing point
-        if actual_landing_point != None:
-            plt.scatter(
-                actual_landing_point[0],
-                actual_landing_point[1],
-                s=20,
-                marker="X",
-                color="red",
-                label="Measured Landing Point",
-            )
-
-        plt.legend()
-
-        # Add title and labels to plot
-        ax.set_title(
-            "1$\sigma$, 2$\sigma$ and 3$\sigma$ Dispersion Ellipses: Apogee and Lading Points"
-        )
-        ax.set_ylabel("North (m)")
-        ax.set_xlabel("East (m)")
-
-        # Add background image to plot
-        # TODO: In the future, integrate with other libraries to plot the map (e.g. cartopy, ee, etc.)
-        # You can translate the basemap by changing dx and dy (in meters)
-        dx = 0
-        dy = 0
-        if image is not None:
-            plt.imshow(
-                img,
-                zorder=0,
-                extent=[
-                    -perimeterSize - dx,
-                    perimeterSize - dx,
-                    -perimeterSize - dy,
-                    perimeterSize - dy,
-                ],
-            )
-        plt.axhline(0, color="black", linewidth=0.5)
-        plt.axvline(0, color="black", linewidth=0.5)
-        plt.xlim(*xlim)
-        plt.ylim(*ylim)
-
-        # Save plot and show result
-        if save:
-            plt.savefig(str(self.filename) + ".png", bbox_inches="tight", pad_inches=0)
-        else:
-            plt.show()
-        return None
-
-    def __prepareEllipses(self, ellipses, origin_lat, origin_lon, resolution=100):
-        """Generate a list of latitude and longitude points for each ellipse in
-        ellipses.
-
-        Parameters
-        ----------
-        ellipses : list
-            List of matplotlib.patches.Ellipse objects.
-        origin_lat : float
-            Latitude of the origin of the coordinate system.
-        origin_lon : float
-            Longitude of the origin of the coordinate system.
-        resolution : int, optional
-            Number of points to generate for each ellipse, by default 100
-
-        Returns
-        -------
-        list
-            List of lists of tuples containing the latitude and longitude of each
-            point in each ellipse.
-        """
-        outputs = []
-
-        for ell in ellipses:
-            # Get ellipse path points
-            center = ell.get_center()
-            width = ell.get_width()
-            height = ell.get_height()
-            angle = np.deg2rad(ell.get_angle())
-            points = []
-
-            for i in range(resolution):
-                x = width / 2 * math.cos(2 * np.pi * i / resolution)
-                y = height / 2 * math.sin(2 * np.pi * i / resolution)
-                x_rot = center[0] + x * math.cos(angle) - y * math.sin(angle)
-                y_rot = center[1] + x * math.sin(angle) + y * math.cos(angle)
-                points.append((x_rot, y_rot))
-            points = np.array(points)
-
-            # Convert path points to lat/lon
-            lat_lon_points = []
-            for point in points:
-                x = point[0]
-                y = point[1]
-
-                # Convert to distance and bearing
-                d = math.sqrt((x**2 + y**2))
-                bearing = math.atan2(
-                    x, y
-                )  # math.atan2 returns the angle in the range [-pi, pi]
-
-                lat_lon_points.append(
-                    invertedHaversine(
-                        origin_lat, origin_lon, d, bearing, eRadius=6.3781e6
-                    )
-                )
-
-            # Export string
-            outputs.append(lat_lon_points)
-        return outputs
-
     def exportEllipsesToKML(
         self,
         filename,
@@ -1023,16 +738,16 @@ class Dispersion:
             _,
             _,
             _,
-        ) = self.__createEllipses(self.results)
+        ) = generate_dispersion_ellipses(self.results)
         outputs = []
 
         if type == "all" or type == "impact":
-            outputs = outputs + self.__prepareEllipses(
+            outputs = outputs + generate_dispersion_ellipses_coordinates(
                 impact_ellipses, origin_lat, origin_lon, resolution=resolution
             )
 
         if type == "all" or type == "apogee":
-            outputs = outputs + self.__prepareEllipses(
+            outputs = outputs + generate_dispersion_ellipses_coordinates(
                 apogee_ellipses, origin_lat, origin_lon, resolution=resolution
             )
 
@@ -1041,7 +756,7 @@ class Dispersion:
         for i in range(len(outputs)):
             temp = []
             for j in range(len(outputs[i])):
-                temp.append((outputs[i][j][1], outputs[i][j][0]))  # log, lat
+                temp.append((outputs[i][j][1], outputs[i][j][0]))  # lon, lat
             kml_data.append(temp)
 
         # Export to KML
@@ -1073,47 +788,6 @@ class Dispersion:
         return None
 
     # methods for printing and plotting results
-    def print_results(self):
-        """Print the mean and standard deviation of each parameter in the results
-        dictionary or of the variables passed as argument.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-
-        """
-        print("{:>25} {:>15} {:>15}".format("Parameter", "Mean", "Std. Dev."))
-        print("-" * 60)
-        for key, value in self.processed_results.items():
-            print("{:>25} {:>15.3f} {:>15.3f}".format(key, value[0], value[1]))
-
-        return None
-
-    def plot_results(self):
-        """Plot the results of the dispersion analysis.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        for key in self.results.keys():
-            plt.figure()
-            plt.hist(
-                self.results[key],
-            )
-            plt.title("Histogram of " + key)
-            plt.ylabel("Number of Occurrences")
-            plt.show()
-
-        return None
 
     def info(self):
         """Print information about the dispersion model.
@@ -1122,12 +796,7 @@ class Dispersion:
         -------
         None
         """
-
-        print("Monte Carlo Simulation by RocketPy")
-        print("Data Source: ", self.filename)
-        print("Number of simulations: ", self.num_of_loaded_sims)
-        print("Results: ")
-        self.print_results()
+        self.prints.print_results()
 
         return None
 
@@ -1139,8 +808,7 @@ class Dispersion:
         None
         """
         self.info()
-        print("Plotting results: ")
-        self.plotEllipses()
-        self.plot_results()
+        self.plots.plot_ellipses()
+        self.plots.plot_results()
 
         return None
