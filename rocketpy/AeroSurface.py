@@ -1,4 +1,4 @@
-__author__ = "Guilherme Fernandes Alves, Mateus Stano Junqueira"
+__author__ = "Guilherme Fernandes Alves, Mateus Stano Junqueira, Giovani Hidalgo Ceotto, Franz MasatoshiYuri, Calebe Gomes Teles"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
