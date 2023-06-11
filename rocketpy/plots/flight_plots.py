@@ -721,8 +721,8 @@ class _FlightPlots:
         fig9 = plt.figure(figsize=(9, 6))
 
         ax1 = plt.subplot(211)
-        ax1.plot(self.flight.staticMargin[:, 0], self.flight.staticMargin[:, 1])
-        ax1.set_xlim(0, self.flight.staticMargin[:, 0][-1])
+        ax1.plot(self.flight.stabilityMargin[:, 0], self.flight.stabilityMargin[:, 1])
+        ax1.set_xlim(0, self.flight.stabilityMargin[:, 0][-1])
         ax1.set_title("Static Margin")
         ax1.set_xlabel("Time (s)")
         ax1.set_ylabel("Static Margin (c)")

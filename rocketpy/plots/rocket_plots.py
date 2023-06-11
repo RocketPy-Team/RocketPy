@@ -66,7 +66,7 @@ class _RocketPlots:
 
         return None
 
-    def staticMargin(self):
+    def stabilityMargin(self):
         """Plots static margin of the rocket as a function of time.
 
         Parameters
@@ -78,7 +78,18 @@ class _RocketPlots:
         None
         """
 
-        self.rocket.staticMargin()
+        # TODO: it would be interesting to make a 3D plot of stability margin
+        # (https://matplotlib.org/stable/gallery/mplot3d/surface3d.html)
+
+        x = np.linspace(0, self.rocket.motor.burnOutTime, 20)
+        y = np.array([self.rocket.stabilityMargin(t, 0) for t in x])
+
+        plt.plot(x, y)
+        plt.xlabel("Time (s)")
+        plt.ylabel("Stability Margin (calibers)")
+        plt.title("Stability Margin (mach = 0)")
+        plt.grid()
+        plt.show()
 
         return None
 
@@ -148,7 +159,7 @@ class _RocketPlots:
         self.totalMass()
         self.reducedMass()
         print("\nAerodynamics Plots")
-        self.staticMargin()
+        self.stabilityMargin()
         self.powerOnDrag()
         self.powerOffDrag()
         self.thrustToWeight()

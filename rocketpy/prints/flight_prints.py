@@ -170,7 +170,7 @@ class _FlightPrints:
         )
         print(
             "Rail Departure Static Margin: {:.3f} c".format(
-                self.flight.staticMargin(self.flight.outOfRailTime)
+                self.flight.stabilityMargin(self.flight.outOfRailTime)
             )
         )
         print(

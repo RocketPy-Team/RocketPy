@@ -118,18 +118,20 @@ class _RocketPrints:
             cpz = surface.cp[2]
             print(name + " Center of Pressure to CM: {:.3f}".format(cpz) + " m")
         print(
-            "Distance - Center of Pressure to CM: "
-            + "{:.3f}".format(self.rocket.cpPosition)
+            "Distance - Center of Pressure to CM (Mach=0): "
+            + "{:.3f}".format(self.rocket.centerOfPressure(0))
             + " m"
         )
         print(
-            "Initial Static Margin: "
-            + "{:.3f}".format(self.rocket.staticMargin(0))
+            "Initial Stability Margin (Mach=0): "
+            + "{:.3f}".format(self.rocket.initialStabilityMargin(mach=0))
             + " c"
         )
         print(
-            "Final Static Margin: "
-            + "{:.3f}".format(self.rocket.staticMargin(self.rocket.motor.burnOutTime))
+            "Final Stability Margin (Mach=0): "
+            + "{:.3f}".format(
+                self.rocket.stabilityMargin(time=self.rocket.motor.burnOutTime, mach=0)
+            )
             + " c"
         )
 
