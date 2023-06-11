@@ -6,13 +6,14 @@ __license__ = "MIT"
 import traceback
 import warnings
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from scipy.integrate import solve_ivp
 
-from .Environment import Environment
-from .Function import Function
 from .AeroSurface import TrapezoidalFins
+from .Environment import Environment
+from .Flight import Flight
+from .Function import Function, funcify_method
 
 
 # TODO: Needs tests
@@ -504,3 +505,62 @@ def create_dispersion_dictionary(filename):
                 except ValueError:
                     analysis_parameters[row[0].strip()] = ""
     return analysis_parameters
+
+
+def apogee_by_mass(flight, min_mass=3, max_mass=30, points=10):
+    """Returns a Function object that estimates the apogee of a rocket given
+    its dry mass. The function will use the rocket's mass as the independent
+    variable and the estimated apogee as the dependent variable. The function
+    will use the rocket's environment and inclination to estimate the apogee.
+    This is useful when you want to adjust the rocket's mass to reach a
+    specific apogee.
+
+    Parameters
+    ----------
+    flight : rocketpy.Flight
+        Flight object containing the rocket's flight data
+    min_mass : int, optional
+        The minimum value of mass to calculate the apogee, by default 3. This
+        value should be the minimum dry mass of the rocket, therefore, a positive
+        value is expected.
+    max_mass : int, optional
+        The maximum value of mass to calculate the apogee, by default 30.
+    points : int, optional
+        The number of points to calculate the apogee between the mass boundaries,
+        by default 10. Increasing this value will refine the results, but will
+        also increase the computational time.
+
+    Returns
+    -------
+    rocketpy.Function
+        Function object containing the estimated apogee as a function of the
+        rocket's dry mass.
+    """
+    rocket = flight.rocket
+
+    def apogee(mass):
+        # First we need to modify the rocket's mass and update values
+        rocket.mass = float(mass)
+        rocket.evaluateTotalMass()
+        rocket.evaluateCenterOfMass()
+        rocket.evaluateReducedMass()
+        rocket.evaluateThrustToWeight()
+        rocket.evaluateStaticMargin()
+        # Then we can run the flight simulation
+        test_flight = Flight(
+            rocket=rocket,
+            environment=flight.env,
+            inclination=flight.inclination,
+            heading=flight.heading,
+            terminateOnApogee=True,
+        )
+        return test_flight.apogee - flight.env.elevation
+
+    x = np.linspace(min_mass, max_mass, points)
+    y = np.array([apogee(m) for m in x])
+    source = np.array(list(zip(x, y)), dtype=np.float64)
+
+    return Function(
+        source, inputs="Rocket Dry Mass (kg)", outputs="Estimated Apogee AGL (m)"
+    )
+
