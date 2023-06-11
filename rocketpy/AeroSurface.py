@@ -245,7 +245,7 @@ class NoseCone(AeroSurface):
                 + (self.baseRadius - rho)
             )
 
-        elif value == "elliptical": 
+        elif value == "elliptical":
             self.k = 1 / 3
             self.y_nosecone = Function(
                 lambda x: self.baseRadius
@@ -281,32 +281,34 @@ class NoseCone(AeroSurface):
             )
 
         n = 127  # Points on the final curve.
-        p = 3    # Density modifier. Greater n makes more points closer to 0. n=1 -> points equally spaced.
+        p = 3  # Density modifier. Greater n makes more points closer to 0. n=1 -> points equally spaced.
 
         # Finds the tangential intersection point between the circle and nosecone curve.
         yPrimeNosecone = lambda x: self.y_nosecone.differentiate(x)
         xIntercept = lambda x: x + self.y_nosecone(x) * yPrimeNosecone(x)
-        radius = lambda x: (self.y_nosecone(x) ** 2 + (x - xIntercept(x)) ** 2) ** 0.5 
-        xInit = fsolve(lambda x: radius(x) - self.bluffiness * self.baseRadius if x > 3e-7 else 0, self.bluffiness * self.baseRadius, xtol=1e-7)[0] 
-        
+        radius = lambda x: (self.y_nosecone(x) ** 2 + (x - xIntercept(x)) ** 2) ** 0.5
+        xInit = fsolve(
+            lambda x: radius(x) - self.bluffiness * self.baseRadius if x > 3e-7 else 0,
+            self.bluffiness * self.baseRadius,
+            xtol=1e-7,
+        )[0]
+
         # Corrects circle radius if it's too small.
         if xInit > 0:
-            r = self.bluffiness * self.baseRadius 
+            r = self.bluffiness * self.baseRadius
         else:
             r = 0
-            print("ATTENTION: The chosen bluffiness ratio is insufficient for the selected nosecone category, thereby the effective bluffiness will be 0.")
-        
+            print(
+                "ATTENTION: The chosen bluffiness ratio is insufficient for the selected nosecone category, thereby the effective bluffiness will be 0."
+            )
+
         # Creates the circle at correct position.
         circleCenter = xIntercept(xInit)
         circle = lambda x: abs(r**2 - (x - circleCenter) ** 2) ** 0.5
-        
+
         # Function defining final shape of curve with circle o the tip.
-        finalShape = Function(
-            lambda x: self.y_nosecone(x) if x >= xInit else circle(x)
-        )
-        finalShapeVec = np.vectorize(
-            finalShape
-        )  
+        finalShape = Function(lambda x: self.y_nosecone(x) if x >= xInit else circle(x))
+        finalShapeVec = np.vectorize(finalShape)
 
         # Creates the vectors X and Y with the points of the curve.
         self.nosecone_Xs = (self.length - (circleCenter - r)) * (
