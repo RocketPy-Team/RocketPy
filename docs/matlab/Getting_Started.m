@@ -122,7 +122,7 @@ Calisto = rocketpy.Rocket(pyargs( ...
     'coordinateSystemOrientation', "nozzleToCombustionChamber", ...
 ));
 
-Calisto.setRailButtons([0.2, -0.5])
+Calisto.setRailButtons(0.2, -0.5)
 
 Calisto.addMotor(Pro75M1670, position=-1.255)
 % Adding Aerodynamic Surfaces

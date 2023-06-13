@@ -104,20 +104,18 @@ class _RocketPrints:
         None
         """
         print("\nAerodynamics Lift Coefficient Derivatives\n")
-        for aerodynamicSurface in self.rocket.aerodynamicSurfaces:
-            name = aerodynamicSurface[0].name
+        for surface, position in self.rocket.aerodynamicSurfaces:
+            name = surface.name
             print(
                 name
-                + " Lift Coefficient Derivative: {:.3f}".format(
-                    aerodynamicSurface[0].clalpha(0)
-                )
+                + " Lift Coefficient Derivative: {:.3f}".format(surface.clalpha(0))
                 + "/rad"
             )
 
         print("\nAerodynamics Center of Pressure\n")
-        for aerodynamicSurface in self.rocket.aerodynamicSurfaces:
-            name = aerodynamicSurface[0].name
-            cpz = aerodynamicSurface[0].cp[2]
+        for surface, position in self.rocket.aerodynamicSurfaces:
+            name = surface.name
+            cpz = surface.cp[2]
             print(name + " Center of Pressure to CM: {:.3f}".format(cpz) + " m")
         print(
             "Distance - Center of Pressure to CM: "

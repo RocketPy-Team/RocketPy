@@ -13,7 +13,15 @@ import numpy as np
 
 from .Function import Function
 from .Parachute import Parachute
-from .AeroSurfaces import NoseCone, TrapezoidalFins, EllipticalFins, Tail, RailButtons
+from .AeroSurface import (
+    Fins,
+    NoseCone,
+    RailButtons,
+    TrapezoidalFins,
+    EllipticalFins,
+    Tail,
+)
+from .Components import Components
 from .Motor import EmptyMotor
 
 from .prints.rocket_prints import _RocketPrints
@@ -91,8 +99,9 @@ class Rocket:
             axis, perpendicular to axis of cylindrical symmetry, in meters.
 
         Aerodynamic attributes
-        Rocket.aerodynamicSurfaces : list
-            List of aerodynamic surfaces of the rocket.
+        Rocket.aerodynamicSurfaces : Components
+            Collection of aerodynamic surfaces of the rocket. Holds Nose cones,
+            Fin sets, and Tails.
         Rocket.cpPosition : float
             Rocket's center of pressure position relative to the user defined rocket
             reference system. See `Rocket.centerOfDryMassPosition` for more information
@@ -108,6 +117,8 @@ class Rocket:
         Rocket.powerOnDrag : Function
             Rocket's drag coefficient as a function of Mach number when the
             motor is on.
+        Rocket.rail_buttons : RailButtons
+            RailButtons object containing the rail buttons information.
 
         Motor attributes:
         Rocket.motor : Motor
@@ -209,10 +220,11 @@ class Rocket:
         self.parachutes = []
 
         # Aerodynamic data initialization
-        self.aerodynamicSurfaces = []
-        self._nosecone = []
-        self._fins = []
-        self._tail = []
+        self.aerodynamicSurfaces = Components()
+
+        # Rail buttons data initialization
+        self.rail_buttons = Components()
+
         self.cpPosition = 0
         self.staticMargin = Function(
             lambda x: 0, inputs="Time (s)", outputs="Static Margin (c)"
@@ -236,6 +248,7 @@ class Rocket:
         self.cpPosition = 0  # Set by self.evaluateStaticMargin()
 
         # Create a, possibly, temporary empty motor
+        # self.motors = Components()  # currently unused since only one motor is supported
         self.addMotor(motor=EmptyMotor(), position=0)
 
         # Important dynamic inertial quantities
@@ -259,25 +272,16 @@ class Rocket:
         return None
 
     @property
-    def nosecone(self):
-        if len(self._nosecone) == 1:
-            return self._nosecone[0]
-        else:
-            return self._nosecone
+    def nosecones(self):
+        return self.aerodynamicSurfaces.get_by_type(NoseCone)
 
     @property
     def fins(self):
-        if len(self._fins) == 1:
-            return self._fins[0]
-        else:
-            return self._fins
+        return self.aerodynamicSurfaces.get_by_type(Fins)
 
     @property
-    def tail(self):
-        if len(self._tail) == 1:
-            return self._tail[0]
-        else:
-            return self._tail
+    def tails(self):
+        return self.aerodynamicSurfaces.get_by_type(Tail)
 
     def evaluateTotalMass(self):
         """Calculates and returns the rocket's total mass. The total
@@ -407,10 +411,10 @@ class Rocket:
 
         # Calculate total lift coefficient derivative and center of pressure
         if len(self.aerodynamicSurfaces) > 0:
-            for aeroSurface, position in self.aerodynamicSurfaces:
-                self.totalLiftCoeffDer += aeroSurface.clalpha(0)
-                self.cpPosition += aeroSurface.clalpha(0) * (
-                    position - self._csys * aeroSurface.cpz
+            for surface, position in self.aerodynamicSurfaces:
+                self.totalLiftCoeffDer += surface.clalpha(0)
+                self.cpPosition += surface.clalpha(0) * (
+                    position - self._csys * surface.cpz
                 )
             self.cpPosition /= self.totalLiftCoeffDer
 
@@ -460,56 +464,40 @@ class Rocket:
         self.evaluateStaticMargin()
         return None
 
-    def addSurface(self, surface, position):
-        """Adds an aerodynamic surface to the rocket. The aerodynamic surface
-        must be an instance of a class that inherits from the AerodynamicSurface
-
-        Parameters
-        ----------
-        surface : AerodynamicSurface, NoseCone, TrapezoidalFins, EllipticalFins, Tail
-            Aerodynamic surface to be added to the rocket. See AerodynamicSurface class
-            for more information.
-        position : int, float
-            Position, in m, of the aerodynamic surface's center of pressure relative to
-            the user defined rocket coordinate system. See `Rocket.coordinateSystemOrientation`
-            for more information regarding the rocket's coordinate system.
-
-        Returns
-        -------
-        None
-        """
-        self.aerodynamicSurfaces.append((surface, position))
-        surface.position = position
-        if isinstance(surface, NoseCone):
-            self._nosecone.append(surface)
-        elif isinstance(surface, (TrapezoidalFins, EllipticalFins)):
-            self._fins.append(surface)
-        elif isinstance(surface, Tail):
-            self._tail.append(surface)
-        self.evaluateStaticMargin()
-        return None
-
     def addSurfaces(self, surfaces, positions):
-        """Adds multiple aerodynamic surfaces to the rocket. The aerodynamic surfaces
-        must be instances of classes that inherit from the AerodynamicSurface
+        """Adds one or more aerodynamic surfaces to the rocket. The aerodynamic
+        surface must be an instance of a class that inherits from the
+        AeroSurface (e.g. NoseCone, TrapezoidalFins, etc.)
 
         Parameters
         ----------
-        surfaces : list of AerodynamicSurface, NoseCone, TrapezoidalFins, EllipticalFins, Tail
-            List of aerodynamic surfaces to be added to the rocket. See AerodynamicSurface class
-            for more information.
-        positions : list of int, float
-            List of positions, in m, of the aerodynamic surfaces' center of pressure relative to
-            the user defined rocket coordinate system. See `Rocket.coordinateSystemOrientation`
-            for more information regarding the rocket's coordinate system.
+        surfaces : list, AeroSurface, NoseCone, TrapezoidalFins, EllipticalFins, Tail
+            Aerodynamic surface to be added to the rocket. Can be a list of
+            AeroSurface if more than one surface is to be added.
+            See AeroSurface class for more information.
+        positions : int, float, list
+            Position, in m, of the aerodynamic surface's center of pressure
+            relative to the user defined rocket coordinate system.
+            See `Rocket.coordinateSystemOrientation` for more information
+            regarding the rocket's coordinate system.
+            If a list is passed, it will correspond to the position of each item
+            in the surfaces list.
+            For NoseCone type, position is relative to the nose cone tip.
+            For Fins type, position is relative to the point belonging to
+            the root chord which is highest in the rocket coordinate system.
+            For Tail type, position is relative to the point belonging to the
+            tail which is highest in the rocket coordinate system.
 
         Returns
         -------
         None
         """
-        for surface, position in zip(surfaces, positions):
-            self.addSurface(surface, position)
-            surface.position = position
+        try:
+            for surface, position in zip(surfaces, positions):
+                self.aerodynamicSurfaces.add(surface, position)
+        except TypeError:
+            self.aerodynamicSurfaces.add(surfaces, positions)
+
         self.evaluateStaticMargin()
         return None
 
@@ -550,12 +538,12 @@ class Rocket:
         tail = Tail(topRadius, bottomRadius, length, radius, name)
 
         # Add tail to aerodynamic surfaces
-        self.addSurface(tail, position)
+        self.addSurfaces(tail, position)
 
         # Return self
         return tail
 
-    def addNose(self, length, kind, position, name="Nose Cone"):
+    def addNose(self, length, kind, position, name="Nosecone"):
         """Creates a nose cone, storing its parameters as part of the
         aerodynamicSurfaces list. Its parameters are the axial position
         along the rocket and its derivative of the coefficient of lift
@@ -585,7 +573,7 @@ class Rocket:
         nose = NoseCone(length, kind, self.radius, self.radius, name)
 
         # Add nose to the list of aerodynamic surfaces
-        self.addSurface(nose, position)
+        self.addSurfaces(nose, position)
 
         # Return self
         return nose
@@ -693,7 +681,7 @@ class Rocket:
         )
 
         # Add fin set to the list of aerodynamic surfaces
-        self.addSurface(finSet, position)
+        self.addSurfaces(finSet, position)
 
         # Return the created aerodynamic surface
         return finSet
@@ -763,7 +751,7 @@ class Rocket:
         finSet = EllipticalFins(n, rootChord, span, radius, cantAngle, airfoil, name)
 
         # Add fin set to the list of aerodynamic surfaces
-        self.addSurface(finSet, position)
+        self.addSurfaces(finSet, position)
 
         # Return self
         return finSet
@@ -827,23 +815,25 @@ class Rocket:
         # Return self
         return self.parachutes[-1]
 
-    def setRailButtons(self, position, angular_position=45):
-        """Adds rail buttons to the rocket, allowing for the
-        calculation of forces exerted by them when the rocket is
-        sliding in the launch rail. Furthermore, rail buttons are
-        also needed for the simulation of the planar flight phase,
-        when the rocket experiences 3 degrees of freedom motion while
-        only one rail button is still in the launch rail.
+    def setRailButtons(
+        self, upper_button_position, lower_button_position, angular_position=45
+    ):
+        """Adds rail buttons to the rocket, allowing for the calculation of
+        forces exerted by them when the rocket is sliding in the launch rail.
+        For the simulation, only two buttons are needed, which are the two
+        closest to the nozzle.
 
         Parameters
         ----------
-        position : tuple, list, array
-            Two values organized in a tuple, list or array which
-            represent the position of each of the two rail buttons
-            in the rocket coordinate system
-            The order does not matter. All values should be in meters.
+        upper_button_position : int, float
+            Position of the rail button furtherst from the nozzle relative to
+            the rocket's coordinate system, in meters.
             See `Rocket.coordinateSystemOrientation` for more information.
-        angular_position : float
+        lower_button_position : int, float
+            Position of the rail button closest to the nozzle relative to
+            the rocket's coordinate system, in meters.
+            See `Rocket.coordinateSystemOrientation` for more information.
+        angular_position : float, optional
             Angular position of the rail buttons in degrees measured
             as the rotation around the symmetry axis of the rocket
             relative to one of the other principal axis.
@@ -855,13 +845,12 @@ class Rocket:
         rail_buttons : RailButtons
             RailButtons object created
         """
-        # Place top most rail button as the first element of the list
-        if self._csys * position[0] < self._csys * position[1]:
-            position.reverse()
-        # Save important attributes
-        rail_buttons = RailButtons(*position, angular_position)
-        self.rail_buttons = rail_buttons
-
+        # Create a rail buttons object
+        buttons_distance = abs(upper_button_position - lower_button_position)
+        rail_buttons = RailButtons(
+            buttons_distance=buttons_distance, angular_position=angular_position
+        )
+        self.rail_buttons.add(rail_buttons, lower_button_position)
         return rail_buttons
 
     def addCMEccentricity(self, x, y):

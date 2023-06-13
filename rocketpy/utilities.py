@@ -16,7 +16,7 @@ from scipy.integrate import solve_ivp
 
 from .Environment import Environment
 from .Function import Function
-from .AeroSurfaces import TrapezoidalFins
+from .AeroSurface import TrapezoidalFins
 
 # Parachutes calculations
 
@@ -239,7 +239,7 @@ def fin_flutter_analysis(
     """
 
     # First, we need identify if there is at least a fin set in the rocket
-    for aero_surface, _ in flight.rocket.aerodynamicSurfaces:
+    for aero_surface in flight.rocket.aerodynamicSurfaces:
         if isinstance(aero_surface, TrapezoidalFins):
             # s: surface area; ar: aspect ratio; la: lambda
             root_chord = aero_surface.rootChord
