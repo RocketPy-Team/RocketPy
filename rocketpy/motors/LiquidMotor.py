@@ -20,7 +20,7 @@ class LiquidMotor(Motor):
         thrustSource,
         burnOut,
         dry_mass,
-        dry_center_of_mass,
+        center_of_dry_mass,
         dry_inertia,
         nozzleRadius,
         nozzlePosition=0,
@@ -48,14 +48,14 @@ class LiquidMotor(Motor):
         dry_mass : int, float
             The total mass of the motor structure, including chambers
             and tanks, when it is empty and does not contain any propellant.
-        dry_center_of_mass : int, float
+        center_of_dry_mass : int, float
             The position, in meters, of the motor's center of mass with respect
             to the motor's coordinate system when it is devoid of propellant.
             See `Motor.coordinateSystemOrientation`.
         dry_inertia : tuple, list
             Tuple or list containing the motor's dry mass inertia tensor
             components, in kg*m^2. This inertia is defined with respect to the
-            the dry_center_of_mass position.
+            the `center_of_dry_mass` position.
             Assuming e_3 is the rocket's axis of symmetry, e_1 and e_2 are
             orthogonal and form a plane perpendicular to e_3, the dry mass
             inertia tensor components must be given in the following order:
@@ -93,7 +93,7 @@ class LiquidMotor(Motor):
             thrustSource,
             burnOut,
             dry_mass,
-            dry_center_of_mass,
+            center_of_dry_mass,
             dry_inertia,
             nozzleRadius,
             nozzlePosition,
@@ -118,12 +118,12 @@ class LiquidMotor(Motor):
         Function
             Mass of the motor, in kg.
         """
-        totalMass = Function(0)
+        propellantMass = 0
 
         for positioned_tank in self.positioned_tanks:
-            totalMass += positioned_tank.get("tank").mass
+            propellantMass += positioned_tank.get("tank").mass
 
-        return totalMass
+        return propellantMass
 
     @cached_property
     def propellantInitialMass(self):
@@ -159,7 +159,7 @@ class LiquidMotor(Motor):
         return massFlowRate
 
     @funcify_method("Time (s)", "center of mass (m)")
-    def propellantCenterOfMass(self):
+    def centerOfPropellantMass(self):
         """Evaluates the center of mass of the motor from each tank center of
         mass and positioning. The center of mass height is measured relative to
         the motor nozzle.
@@ -211,7 +211,7 @@ class LiquidMotor(Motor):
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
         I_11 = Function(0)
-        centerOfMass = self.propellantCenterOfMass
+        centerOfMass = self.centerOfPropellantMass
 
         for positioned_tank in self.positioned_tanks:
             tank = positioned_tank.get("tank")

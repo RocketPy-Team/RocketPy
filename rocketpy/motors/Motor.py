@@ -91,7 +91,7 @@ class Motor(ABC):
         thrustSource,
         burnOut,
         dry_mass,
-        dry_center_of_mass,
+        center_of_dry_mass,
         dry_inertia,
         nozzleRadius,
         nozzlePosition=0,
@@ -119,14 +119,14 @@ class Motor(ABC):
         dry_mass : int, float
             The total mass of the motor structure, including chambers
             and tanks, when it is empty and does not contain any propellant.
-        dry_center_of_mass : int, float
+        center_of_dry_mass : int, float
             The position, in meters, of the motor's center of mass with respect
             to the motor's coordinate system when it is devoid of propellant.
             See `Motor.coordinateSystemOrientation`.
         dry_inertia : tuple, list
             Tuple or list containing the motor's dry mass inertia tensor
             components, in kg*m^2. This inertia is defined with respect to the
-            the dry_center_of_mass position.
+            the `center_of_dry_mass` position.
             Assuming e_3 is the rocket's axis of symmetry, e_1 and e_2 are
             orthogonal and form a plane perpendicular to e_3, the dry mass
             inertia tensor components must be given in the following order:
@@ -178,7 +178,7 @@ class Motor(ABC):
         self.burnOutTime = burnOut
         self.nozzlePosition = nozzlePosition
         self.nozzleRadius = nozzleRadius
-        self.dry_center_of_mass = dry_center_of_mass
+        self.center_of_dry_mass = center_of_dry_mass
 
         # Inertia tensor setup
         inertia = (*dry_inertia, 0, 0, 0) if len(dry_inertia) == 3 else dry_inertia
@@ -269,8 +269,8 @@ class Motor(ABC):
 
     @cached_property
     def totalImpulse(self):
-        """Calculates and returns total impulse by numerical integration of the
-        thrust curve in SI units.
+        """Calculates and returns total impulse by numerical integration
+        of the thrust curve in SI units.
 
         Parameters
         ----------
@@ -335,9 +335,8 @@ class Motor(ABC):
     @funcify_method("Time (s)", "mass dot (kg/s)", extrapolation="zero")
     def totalMassFlowRate(self):
         """Time derivative of propellant mass. Assumes constant exhaust
-        velocity. The formula used is the opposite of thrust divided by exhaust
-        velocity. The result is a function of time, object of the Function
-        class, which is stored in self.massFlowRate.
+        velocity. The formula used is the opposite of thrust divided by
+        exhaust velocity.
 
         Parameters
         ----------
@@ -348,6 +347,34 @@ class Motor(ABC):
         -------
         Function
             Time derivative of total propellant mass a function of time.
+
+        See Also
+        --------
+        `SolidMotor.massFlowRate` :
+            Numerically equivalent to `totalMassFlowRate`.
+        `HybridMotor.massFlowRate` :
+            Numerically equivalent to `totalMassFlowRate`.
+        `LiquidMotor.massFlowRate` :
+            Independent of `totalMassFlowRate` favoring more accurate
+            sum of Tanks' mass flow rates.
+
+        Notes
+        -----
+        This function computes the total mass flow rate of the motor by
+        dividing the thrust data by a constant approximation of the exhaust
+        velocity.
+        This approximation of the total mass flow rate is used in the
+        following manner by the child Motor classes:
+            - The `SolidMotor` class uses this approximation to compute the
+            grain's mass flow rate;
+            - The `HybridMotor` class uses this approximation as a reference
+            to the sum of the oxidizer and fuel (grains) mass flow rates;
+            - The `LiquidMotor` class favors the more accurate data from the
+            Tanks's mass flow rates. Therefore this value is numerically
+            independent of the `LiquidMotor.massFlowRate`.
+        It should be noted that, for hybrid motors, the oxidizer mass flow
+        rate should not be greater than `totalMassFlowRate`, otherwise the
+        grains mass flow rate will be negative, losing physical meaning.
         """
         return -1 * self.thrust / self.exhaustVelocity
 
@@ -383,14 +410,14 @@ class Motor(ABC):
             Position of the center of mass as a function of time.
         """
         mass_balance = (
-            self.propellantCenterOfMass * self.propellantMass
-            + self.dry_mass * self.dry_center_of_mass
+            self.centerOfPropellantMass * self.propellantMass
+            + self.dry_mass * self.center_of_dry_mass
         )
         return mass_balance / self.totalMass
 
     @property
     @abstractmethod
-    def propellantCenterOfMass(self):
+    def centerOfPropellantMass(self):
         """Position of the propellant center of mass as a function of time.
         The position is specified as a scalar, relative to the motor's
         coordinate system.
@@ -439,10 +466,10 @@ class Motor(ABC):
 
         # Steiner theorem the get inertia wrt motor center of mass
         propellant_I_11 += (
-            self.propellantMass * (self.propellantCenterOfMass - self.centerOfMass) ** 2
+            self.propellantMass * (self.centerOfPropellantMass - self.centerOfMass) ** 2
         )
 
-        dry_I_11 += self.dry_mass * (self.dry_center_of_mass - self.centerOfMass) ** 2
+        dry_I_11 += self.dry_mass * (self.center_of_dry_mass - self.centerOfMass) ** 2
 
         # Sum of inertia components
         return propellant_I_11 + dry_I_11
@@ -963,7 +990,7 @@ class GenericMotor(Motor):
         propellantInitialMass,
         nozzleRadius,
         dry_mass=0,
-        dry_center_of_mass=None,
+        center_of_dry_mass=None,
         dry_inertia=(0, 0, 0),
         nozzlePosition=0,
         reshapeThrustCurve=False,
@@ -974,7 +1001,7 @@ class GenericMotor(Motor):
             thrustSource,
             burnOut,
             dry_mass,
-            dry_center_of_mass,
+            center_of_dry_mass,
             dry_inertia,
             nozzleRadius,
             nozzlePosition,
@@ -989,8 +1016,8 @@ class GenericMotor(Motor):
         self.propellantInitialMass = propellantInitialMass
 
         # Set center of mass and estimate to chamber position if not given
-        self.dry_center_of_mass = (
-            dry_center_of_mass if dry_center_of_mass is not None else chamberPosition
+        self.center_of_dry_mass = (
+            center_of_dry_mass if center_of_dry_mass is not None else chamberPosition
         )
 
     @cached_property
@@ -1023,7 +1050,7 @@ class GenericMotor(Motor):
         Function
             Function representing the center of mass of the motor.
         """
-        return self.dry_center_of_mass
+        return self.center_of_dry_mass
 
     @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
     def propellant_I_11(self):

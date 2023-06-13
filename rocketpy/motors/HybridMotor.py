@@ -121,7 +121,7 @@ class HybridMotor(Motor):
         thrustSource,
         burnOut,
         dry_mass,
-        dry_center_of_mass,
+        center_of_dry_mass,
         dry_inertia,
         grainsCenterOfMassPosition,
         grainNumber,
@@ -157,14 +157,14 @@ class HybridMotor(Motor):
         dry_mass : int, float
             The total mass of the motor structure, including chambers
             and tanks, when it is empty and does not contain any propellant.
-        dry_center_of_mass : int, float
+        center_of_dry_mass : int, float
             The position, in meters, of the motor's center of mass with respect
             to the motor's coordinate system when it is devoid of propellant.
             See `Motor.coordinateSystemOrientation`.
         dry_inertia : tuple, list
             Tuple or list containing the motor's dry mass inertia tensor
             components, in kg*m^2. This inertia is defined with respect to the
-            the dry_center_of_mass position.
+            the `center_of_dry_mass` position.
             Assuming e_3 is the rocket's axis of symmetry, e_1 and e_2 are
             orthogonal and form a plane perpendicular to e_3, the dry mass
             inertia tensor components must be given in the following order:
@@ -223,7 +223,7 @@ class HybridMotor(Motor):
             thrustSource,
             burnOut,
             dry_mass,
-            dry_center_of_mass,
+            center_of_dry_mass,
             dry_inertia,
             nozzleRadius,
             nozzlePosition,
@@ -235,7 +235,7 @@ class HybridMotor(Motor):
             thrustSource,
             burnOut,
             dry_mass,
-            dry_center_of_mass,
+            center_of_dry_mass,
             dry_inertia,
             nozzleRadius,
             nozzlePosition,
@@ -247,7 +247,7 @@ class HybridMotor(Motor):
             thrustSource,
             burnOut,
             dry_mass,
-            dry_center_of_mass,
+            center_of_dry_mass,
             dry_inertia,
             grainsCenterOfMassPosition,
             grainNumber,
@@ -314,7 +314,7 @@ class HybridMotor(Motor):
         return self.solid.massFlowRate + self.liquid.massFlowRate
 
     @funcify_method("Time (s)", "center of mass (m)")
-    def propellantCenterOfMass(self):
+    def centerOfPropellantMass(self):
         """Calculates and returns the time derivative of motor center of mass.
         The formulas used are the Bernoulli equation, law of the ideal gases and
         Boyle's law. The result is a function of time, object of the
@@ -330,8 +330,8 @@ class HybridMotor(Motor):
             Position of the center of mass as a function of time.
         """
         massBalance = (
-            self.solid.propellantMass * self.solid.propellantCenterOfMass
-            + self.liquid.propellantMass * self.liquid.propellantCenterOfMass
+            self.solid.propellantMass * self.solid.centerOfPropellantMass
+            + self.liquid.propellantMass * self.liquid.centerOfPropellantMass
         )
         return massBalance / self.propellantMass
 
@@ -362,11 +362,11 @@ class HybridMotor(Motor):
         """
         solidCorrection = (
             self.solid.propellantMass
-            * (self.solid.propellantCenterOfMass - self.centerOfMass) ** 2
+            * (self.solid.centerOfPropellantMass - self.centerOfMass) ** 2
         )
         liquidCorrection = (
             self.liquid.propellantMass
-            * (self.liquid.propellantCenterOfMass - self.centerOfMass) ** 2
+            * (self.liquid.centerOfPropellantMass - self.centerOfMass) ** 2
         )
 
         I_11 = self.solid.I_11 + solidCorrection + self.liquid.I_11 + liquidCorrection
