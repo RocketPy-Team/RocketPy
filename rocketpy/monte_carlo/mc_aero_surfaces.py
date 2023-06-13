@@ -6,7 +6,7 @@ from typing import Any, List, Tuple, Union
 
 from pydantic import Field, FilePath, StrictInt, StrictStr
 
-from ..AeroSurfaces import EllipticalFins, NoseCone, RailButtons, Tail, TrapezoidalFins
+from ..AeroSurface import EllipticalFins, NoseCone, RailButtons, Tail, TrapezoidalFins
 from .DispersionModel import DispersionModel
 
 

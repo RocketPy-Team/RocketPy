@@ -8,7 +8,7 @@ from pydantic import Field, FilePath, PrivateAttr
 
 from rocketpy.tools import get_distribution
 
-from ..AeroSurfaces import EllipticalFins, NoseCone, Tail, TrapezoidalFins
+from ..AeroSurface import EllipticalFins, NoseCone, Tail, TrapezoidalFins
 from ..Rocket import Rocket
 from .DispersionModel import DispersionModel
 from .mc_aero_surfaces import (
