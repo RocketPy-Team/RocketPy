@@ -8,7 +8,6 @@ import pytest
 from scipy import optimize
 
 from rocketpy import Environment, Flight, Function, Rocket, SolidMotor
-from rocketpy.AeroSurfaces import AeroSurfaces
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
@@ -34,7 +33,7 @@ def setup_rocket_with_given_static_margin(rocket, static_margin):
     """
 
     def compute_static_margin_error_given_distance(position, static_margin, rocket):
-        rocket.aerodynamicSurfaces = AeroSurfaces()
+        rocket.aerodynamicSurfaces.clear()
         rocket.addNose(length=0.5, kind="vonKarman", position=1.0 + 0.5)
         rocket.addTrapezoidalFins(
             4,
@@ -101,7 +100,7 @@ def test_flight(mock_show):
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
 
-    test_rocket.setRailButtons([0.2, -0.5])
+    test_rocket.setRailButtons(0.2, -0.5)
 
     test_rocket.addMotor(test_motor, position=-1.255)
 
@@ -192,7 +191,7 @@ def test_initial_solution(mock_show):
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
 
-    test_rocket.setRailButtons([0.2, -0.5])
+    test_rocket.setRailButtons(0.2, -0.5)
 
     test_rocket.addMotor(test_motor, position=-1.255)
 
@@ -316,7 +315,7 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
         powerOffDrag=0,
         powerOnDrag=0,
     )
-    DummyRocket.setRailButtons([0.2, -0.5])
+    DummyRocket.setRailButtons(0.2, -0.5)
     DummyRocket.addMotor(DummyMotor, position=-1.255)
 
     setup_rocket_with_given_static_margin(DummyRocket, static_margin)
@@ -393,7 +392,7 @@ def test_rolling_flight(mock_show):
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
 
-    test_rocket.setRailButtons([0.2, -0.5])
+    test_rocket.setRailButtons(0.2, -0.5)
 
     test_rocket.addMotor(test_motor, position=-1.255)
 
@@ -484,7 +483,7 @@ def test_simpler_parachute_triggers(mock_show):
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
 
-    test_rocket.setRailButtons([0.2, -0.5])
+    test_rocket.setRailButtons(0.2, -0.5)
 
     test_rocket.addMotor(test_motor, position=-1.255)
 
@@ -569,7 +568,7 @@ def test_export_data():
         powerOnDrag=0.5,
     )
 
-    test_rocket.setRailButtons([0.2, -0.5])
+    test_rocket.setRailButtons(0.2, -0.5)
 
     test_rocket.addMotor(test_motor, position=-1.255)
 
@@ -667,7 +666,7 @@ def test_export_KML():
         powerOnDrag=0.5,
     )
 
-    test_rocket.setRailButtons([0.2, -0.5])
+    test_rocket.setRailButtons(0.2, -0.5)
 
     test_rocket.addMotor(test_motor, position=-1.255)
 
@@ -750,7 +749,7 @@ def test_latlon_conversions(mock_show):
         powerOnDrag=0.5,
     )
 
-    test_rocket.setRailButtons([0.2, -0.5])
+    test_rocket.setRailButtons(0.2, -0.5)
 
     test_rocket.addMotor(test_motor, position=-1.255)
 
@@ -835,7 +834,7 @@ def test_latlon_conversions2(mock_show):
         powerOnDrag=0.5,
     )
 
-    test_rocket.setRailButtons([0.2, -0.5])
+    test_rocket.setRailButtons(0.2, -0.5)
 
     test_rocket.addMotor(test_motor, position=-1.255)
 
