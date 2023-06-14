@@ -31,8 +31,6 @@ The following packages are needed in order to run RocketPy:
 All of these packages, are automatically installed when RocketPy is installed using either ``pip`` or ``conda``.
 However, in case the user wants to install these packages manually, they can do so by following the instructions bellow.
 
-Note: Google Colab and netCDF4 don't play well together for netCDF4 >= 1.6 (see `this issue <https://github.com/Unidata/netcdf4-python/issues/1179>`_). If you are using Google Colab, you should install netCDF4 < 1.6 or use `condacolab <https://github.com/conda-incubator/condacolab>`_) to install netCDF4 >= 1.6.
-
 Installing Required Packages Using ``pip``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
