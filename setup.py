@@ -3,23 +3,30 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+necessary_require = [
+    "numpy>=1.0",
+    "scipy>=1.0",
+    "matplotlib>=3.0",
+    "netCDF4>=1.6.4",
+    "requests",
+    "pytz",
+    "simplekml",
+]
+
+env_analysis_require = [
+    "timezonefinder",
+    "windrose>=1.6.8",
+    "ipywidgets>=7.6.3",
+    "jsonpickle",
+]
+
 setuptools.setup(
     name="rocketpy",
     version="0.13.1",
-    install_requires=[
-        "numpy>=1.0",
-        "scipy>=1.0",
-        "matplotlib>=3.0",
-        "netCDF4>=1.6.4",
-        "windrose>=1.6.8",
-        "ipywidgets>=7.6.3",
-        "requests",
-        "pytz",
-        "simplekml",
-        "jsonpickle",
-    ],
+    install_requires=necessary_require,
     extras_require={
-        "timezonefinder": ["timezonefinder"],
+        "env_analysis": env_analysis_require,
+        "all": necessary_require + env_analysis_require,
     },
     maintainer="RocketPy Developers",
     author="Giovani Hidalgo Ceotto",

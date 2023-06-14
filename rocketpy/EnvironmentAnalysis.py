@@ -10,7 +10,7 @@ import json
 import warnings
 from collections import defaultdict
 
-import jsonpickle
+import matplotlib.ticker as mtick
 import netCDF4
 import numpy as np
 import pytz
@@ -20,6 +20,17 @@ from rocketpy.Environment import Environment
 from rocketpy.Function import Function
 from rocketpy.units import convert_units
 
+try:
+    import ipywidgets as widgets
+    import jsonpickle
+    from timezonefinder import TimezoneFinder
+    from windrose import WindroseAxes
+except ImportError as error:
+    raise ImportError(
+        f"The following error was encountered while importing dependencies: '{error}'. "
+        "Please note that the EnvironmentAnalysis requires additional dependencies, "
+        "which can be installed by running 'pip install rocketpy[env_analysis]'."
+    )
 from .plots.environment_analysis_plots import _EnvironmentAnalysisPlots
 from .prints.environment_analysis_prints import _EnvironmentAnalysisPrints
 
@@ -420,16 +431,6 @@ class EnvironmentAnalysis:
 
     def __find_preferred_timezone(self):
         if self.preferred_timezone is None:
-            try:
-                from timezonefinder import TimezoneFinder
-            except ImportError:
-                raise ImportError(
-                    "The timezonefinder package is required to automatically "
-                    + "determine local timezone based on lat,lon coordinates. "
-                    + "Please specify the desired timezone using the `timezone` "
-                    + "argument when initializing the EnvironmentAnalysis class "
-                    + "or install timezonefinder with `pip install timezonefinder`."
-                )
             # Use local timezone based on lat lon pair
             tf = TimezoneFinder()
             self.preferred_timezone = pytz.timezone(
