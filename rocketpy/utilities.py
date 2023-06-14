@@ -552,6 +552,11 @@ def apogee_by_mass(flight, min_mass=3, max_mass=30, points=10):
             inclination=flight.inclination,
             heading=flight.heading,
             terminateOnApogee=True,
+            maxTimeStep=0.01,
+            minTimeStep=0,
+            rtol=1e-9,
+            atol=6 * [1e-6] + 4 * [1e-9] + 3 * [1e-9],
+            timeOvershoot=False,
         )
         return test_flight.apogee - flight.env.elevation
 
