@@ -40,8 +40,6 @@ The packages needed can be installed via ``pip`` by running the following lines 
     pip install "scipy>=1.0"
     pip install "matplotlib>=3.0"
     pip install "netCDF4>=1.6.4"
-    pip install "windrose >= 1.6.8"
-    pip install "ipywidgets>=7.6.3"
     pip install requests
     pip install pytz
     pip install simplekml
