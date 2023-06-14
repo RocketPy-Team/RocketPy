@@ -20,7 +20,7 @@ The following packages are needed in order to run RocketPy:
 - Numpy >= 1.0
 - Scipy >= 1.0
 - Matplotlib >= 3.0
-- netCDF4 >= 1.6.2 for Windows, MacOS or Python < '3.11'; netCDF4 >=1.4,<1.6 for Python 3.11+ in Linux
+- netCDF4 >= 1.6.4
 - windrose >= 1.6.8
 - requests
 - pytz
@@ -30,8 +30,6 @@ The following packages are needed in order to run RocketPy:
 
 All of these packages, are automatically installed when RocketPy is installed using either ``pip`` or ``conda``.
 However, in case the user wants to install these packages manually, they can do so by following the instructions bellow.
-
-Note: Google Colab and netCDF4 don't play well together for netCDF4 >= 1.6 (see `this issue <https://github.com/Unidata/netcdf4-python/issues/1179>`_). If you are using Google Colab, you should install netCDF4 < 1.6 or use `condacolab <https://github.com/conda-incubator/condacolab>`_) to install netCDF4 >= 1.6.
 
 Installing Required Packages Using ``pip``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -43,7 +41,7 @@ The packages needed can be installed via ``pip`` by running the following lines 
     pip install "numpy>=1.0" 
     pip install "scipy>=1.0"
     pip install "matplotlib>=3.0"
-    pip install "netCDF4>=1.6.2"
+    pip install "netCDF4>=1.6.4"
     pip install "windrose >= 1.6.8"
     pip install "ipywidgets>=7.6.3"
     pip install requests
@@ -61,7 +59,7 @@ To update Scipy and install netCDF4 using Conda, the following code is used:
 .. code-block:: shell
 
     conda install "scipy>=1.0"
-    conda install -c anaconda "netcdf4>=1.6.2"
+    conda install -c anaconda "netcdf4>=1.6.4"
 
 
 Optional Packages
