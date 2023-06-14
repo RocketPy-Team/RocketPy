@@ -2092,7 +2092,7 @@ class Flight:
 
         T20 = ((w ^ T00) ^ w) + (w ^ T03) + T04 + weightB + Vector([R1, R2, R3])
 
-        T21 = ((I @ w) ^ w) + T05 @ w + (weightB ^ r_CM) + Vector([M1, M2, M3])
+        T21 = ((I @ w) ^ w) + T05 @ w - (weightB ^ r_CM) + Vector([M1, M2, M3])
 
         # Angular velocity derivative
         w_dot = I_CM.inverse @ (T21 + (T20 ^ r_CM))
