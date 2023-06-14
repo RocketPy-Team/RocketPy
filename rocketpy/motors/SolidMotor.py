@@ -303,6 +303,23 @@ class SolidMotor(Motor):
         )
         return cross_section_area * self.grainHeight
 
+    @funcify_method("Time (s)", "Exhaust velocity (m/s)")
+    def exhaustVelocity(self):
+        """Exhaust velocity by assuming it as a constant. The formula used is
+        total impulse/propellant initial mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        self.exhaustVelocity : Function
+            Gas exhaust velocity of the motor.
+        """
+        return self.totalImpulse / self.propellantInitialMass
+
     @property
     def propellantInitialMass(self):
         """Returns the initial propellant mass.
@@ -320,10 +337,9 @@ class SolidMotor(Motor):
 
     @property
     def massFlowRate(self):
-        """Calculates and returns the time derivative of propellant mass by
-        assuming constant exhaust velocity. The formula used is the opposite of
-        thrust divided by exhaust velocity. The result is a function of time,
-        object of the Function class, which is stored in self.massDot.
+        """Time derivative of propellant mass. Assumes constant exhaust
+        velocity. The formula used is the opposite of thrust divided by
+        exhaust velocity.
 
         Parameters
         ----------
@@ -332,8 +348,14 @@ class SolidMotor(Motor):
 
         Returns
         -------
-        self.massDot : Function
-            Time derivative of total propellant mas as a function of time.
+        self.massFlowRate : Function
+            Time derivative of total propellant mass as a function of time.
+
+        See Also
+        --------
+        `Motor.totalMassFlowRate` :
+            Calculates the total mass flow rate of the motor assuming
+            constant exhaust velocity.
         """
         try:
             return self._massFlowRate
@@ -668,8 +690,8 @@ class SolidMotor(Motor):
             + " kg"
         )
         print(
-            "Propellant Exhaust Velocity: "
-            + "{:.3f}".format(self.exhaustVelocity)
+            "Average Propellant Exhaust Velocity: "
+            + "{:.3f}".format(self.exhaustVelocity.average(0, self.burnOutTime))
             + " m/s"
         )
         print("Average Thrust: " + "{:.3f}".format(self.averageThrust) + " N")
@@ -687,6 +709,7 @@ class SolidMotor(Motor):
         self.thrust()
         self.totalMass()
         self.massFlowRate()
+        self.exhaustVelocity()
         self.grainInnerRadius()
         self.grainHeight()
         self.burnRate.plot(0, self.grainBurnOut)

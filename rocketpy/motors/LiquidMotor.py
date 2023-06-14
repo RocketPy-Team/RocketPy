@@ -104,6 +104,23 @@ class LiquidMotor(Motor):
 
         self.positioned_tanks = []
 
+    @funcify_method("Time (s)", "Exhaust velocity (m/s)")
+    def exhaustVelocity(self):
+        """Computes the exhaust velocity of the motor from its mass flow
+        rate and thrust.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        self.exhaustVelocity : Function
+            Gas exhaust velocity of the motor.
+        """
+        return self.thrust / (-1 * self.massFlowRate)
+
     @funcify_method("Time (s)", "propellant mass (kg)")
     def propellantMass(self):
         """Evaluates the mass of the motor as the sum of each tank mass.
@@ -150,6 +167,12 @@ class LiquidMotor(Motor):
         -------
         Function
             Mass flow rate of the motor, in kg/s.
+
+        See Also
+        --------
+        `Motor.totalMassFlowRate` :
+            Calculates the total mass flow rate of the motor assuming
+            constant exhaust velocity.
         """
         massFlowRate = Function(0)
 
@@ -327,8 +350,8 @@ class LiquidMotor(Motor):
             + " kg"
         )
         print(
-            "Propellant Exhaust Velocity: "
-            + "{:.3f}".format(self.exhaustVelocity)
+            "Average Propellant Exhaust Velocity: "
+            + "{:.3f}".format(self.exhaustVelocity.average(0, self.burnOutTime))
             + " m/s"
         )
         print("Average Thrust: " + "{:.3f}".format(self.averageThrust) + " N")
@@ -346,6 +369,7 @@ class LiquidMotor(Motor):
         self.thrust.plot(0, self.burnOutTime)
         self.mass.plot(0, self.burnOutTime)
         self.massFlowRate.plot(0, self.burnOutTime)
+        self.exhaustVelocity.plot(0, self.burnOutTime)
         self.centerOfMass.plot(0, self.burnOutTime, samples=50)
         self.I_11.plot(0, self.burnOutTime, samples=50)
         self.I_22.plot(0, self.burnOutTime, samples=50)

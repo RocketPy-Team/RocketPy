@@ -284,6 +284,7 @@ class Motor(ABC):
         return self.thrust.integral(0, self.burnOutTime)
 
     @property
+    @abstractmethod
     def exhaustVelocity(self):
         """Exhaust velocity by assuming it as a constant. The formula used is
         total impulse/propellant initial mass.
@@ -297,7 +298,7 @@ class Motor(ABC):
         self.exhaustVelocity : float
             Constant gas exhaust velocity of the motor.
         """
-        return self.totalImpulse / self.propellantInitialMass
+        pass
 
     @funcify_method("Time (s)", "total mass (kg)")
     def totalMass(self):
@@ -945,7 +946,7 @@ class Motor(ABC):
         )
         print(
             "Propellant Exhaust Velocity: "
-            + "{:.3f}".format(self.exhaustVelocity)
+            + "{:.3f}".format(self.exhaustVelocity.average(0, self.burnOutTime))
             + " m/s"
         )
         print("Average Thrust: " + "{:.3f}".format(self.averageThrust) + " N")

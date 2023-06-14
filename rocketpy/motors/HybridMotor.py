@@ -264,6 +264,23 @@ class HybridMotor(Motor):
             coordinateSystemOrientation,
         )
 
+    @funcify_method("Time (s)", "Exhaust velocity (m/s)")
+    def exhaustVelocity(self):
+        """Exhaust velocity by assuming it as a constant. The formula used is
+        total impulse/propellant initial mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        self.exhaustVelocity : Function
+            Gas exhaust velocity of the motor.
+        """
+        return self.totalImpulse / self.propellantInitialMass
+
     @funcify_method("Time (s)", "mass (kg)")
     def propellantMass(self):
         """Evaluates the total propellant mass of the motor as the sum
@@ -310,15 +327,20 @@ class HybridMotor(Motor):
         -------
         Function
             Mass flow rate of the motor, in kg/s.
+
+        See Also
+        --------
+        `Motor.totalMassFlowRate` :
+            Calculates the total mass flow rate of the motor assuming
+            constant exhaust velocity.
         """
         return self.solid.massFlowRate + self.liquid.massFlowRate
 
     @funcify_method("Time (s)", "center of mass (m)")
     def centerOfPropellantMass(self):
-        """Calculates and returns the time derivative of motor center of mass.
-        The formulas used are the Bernoulli equation, law of the ideal gases and
-        Boyle's law. The result is a function of time, object of the
-        Function class.
+        """Position of the propellant center of mass as a function of time.
+        The position is specified as a scalar, relative to the motor's
+        coordinate system.
 
         Parameters
         ----------
@@ -492,8 +514,8 @@ class HybridMotor(Motor):
             + " kg"
         )
         print(
-            "Propellant Exhaust Velocity: "
-            + "{:.3f}".format(self.exhaustVelocity)
+            "Average Propellant Exhaust Velocity: "
+            + "{:.3f}".format(self.exhaustVelocity.average(0, self.burnOutTime))
             + " m/s"
         )
         print("Average Thrust: " + "{:.3f}".format(self.averageThrust) + " N")
@@ -511,6 +533,7 @@ class HybridMotor(Motor):
         self.thrust.plot(0, self.burnOutTime)
         self.propellantMass.plot(0, self.burnOutTime)
         self.massFlowRate.plot(0, self.burnOutTime)
+        self.exhaustVelocity.plot(0, self.burnOutTime)
         self.solid.grainInnerRadius.plot(0, self.burnOutTime)
         self.solid.grainHeight.plot(0, self.burnOutTime)
         self.solid.burnRate.plot(0, self.solid.grainBurnOut)

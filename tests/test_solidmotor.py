@@ -55,7 +55,7 @@ def test_initialize_motor_asserts_dynamic_values(solid_motor):
     assert solid_motor.grainInitialVolume == grain_vol
     assert solid_motor.grainInitialMass == grain_mass
     assert solid_motor.propellantInitialMass == grainNumber * grain_mass
-    assert solid_motor.exhaustVelocity == solid_motor.thrust.integral(0, burnOut) / (
+    assert solid_motor.exhaustVelocity(0) == solid_motor.thrust.integral(0, burnOut) / (
         grainNumber * grain_mass
     )
 
