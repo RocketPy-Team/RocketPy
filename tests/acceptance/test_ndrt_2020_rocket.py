@@ -108,7 +108,7 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
         powerOffDrag=parameters.get("dragCoefficient")[0],
         powerOnDrag=parameters.get("dragCoefficient")[0],
     )
-    NDRT2020.setRailButtons([0.2, -0.5], 45)
+    NDRT2020.setRailButtons(0.2, -0.5, 45)
     NDRT2020.addMotor(L1395, parameters.get("distanceRocketNozzle")[0])
     NoseCone = NDRT2020.addNose(
         length=parameters.get("noseLength")[0],

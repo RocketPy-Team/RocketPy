@@ -1155,29 +1155,30 @@ class Flight:
 
     @cached_property
     def effective1RL(self):
-        # Modifying Rail Length for a better out of rail condition
         nozzle = (
             self.rocket.motorPosition - self.rocket.centerOfDryMassPosition
         ) * self.rocket._csys  # Kinda works for single nozzle
         try:
-            upperRButton = self.rocket.rail_buttons.upper_button_position
-        except AttributeError:  # If there is no rail button
-            upperRButton = nozzle
-        effective1RL = self.env.railLength - abs(nozzle - upperRButton)
-
+            rail_buttons = self.rocket.rail_buttons[0]
+            upper_r_button = (
+                rail_buttons.component.buttons_distance + rail_buttons.position
+            )
+        except AttributeError:
+            upper_r_button = nozzle
+        effective1RL = self.env.railLength - abs(nozzle - upper_r_button)
         return effective1RL
 
     @cached_property
     def effective2RL(self):
-        # Modifying Rail Length for a better out of rail condition
         nozzle = (
             self.rocket.motorPosition - self.rocket.centerOfDryMassPosition
         ) * self.rocket._csys
         try:
-            lowerRButton = self.rocket.rail_buttons.lower_button_position
+            rail_buttons = self.rocket.rail_buttons[0]
+            lower_r_button = rail_buttons.position
         except AttributeError:
-            lowerRButton = nozzle
-        effective2RL = self.env.railLength - abs(nozzle - lowerRButton)
+            lower_r_button = nozzle
+        effective2RL = self.env.railLength - abs(nozzle - lower_r_button)
         return effective2RL
 
     @cached_property
@@ -2237,7 +2238,7 @@ class Flight:
             F11, F12 = self.calculate_rail_button_forces[0:2]
         else:
             F11, F12 = self.calculate_rail_button_forces()[0:2]
-        alpha = self.rocket.rail_buttons.angular_position * (np.pi / 180)
+        alpha = self.rocket.rail_buttons[0].component.angular_position * (np.pi / 180)
         return F11 * np.cos(alpha) + F12 * np.sin(alpha)
 
     @funcify_method("Time (s)", "Upper Rail Button Shear Force (N)", "spline", "zero")
@@ -2247,7 +2248,7 @@ class Flight:
             F11, F12 = self.calculate_rail_button_forces[0:2]
         else:
             F11, F12 = self.calculate_rail_button_forces()[0:2]
-        alpha = self.rocket.rail_buttons.angular_position * (
+        alpha = self.rocket.rail_buttons[0].component.angular_position * (
             np.pi / 180
         )  # Rail buttons angular position
         return F11 * -np.sin(alpha) + F12 * np.cos(alpha)
@@ -2259,7 +2260,7 @@ class Flight:
             F21, F22 = self.calculate_rail_button_forces[2:4]
         else:
             F21, F22 = self.calculate_rail_button_forces()[2:4]
-        alpha = self.rocket.rail_buttons.angular_position * (np.pi / 180)
+        alpha = self.rocket.rail_buttons[0].component.angular_position * (np.pi / 180)
         return F21 * np.cos(alpha) + F22 * np.sin(alpha)
 
     @funcify_method("Time (s)", "Lower Rail Button Shear Force (N)", "spline", "zero")
@@ -2269,7 +2270,7 @@ class Flight:
             F21, F22 = self.calculate_rail_button_forces[2:4]
         else:
             F21, F22 = self.calculate_rail_button_forces()[2:4]
-        alpha = self.rocket.rail_buttons.angular_position * (np.pi / 180)
+        alpha = self.rocket.rail_buttons[0].component.angular_position * (np.pi / 180)
         return F21 * -np.sin(alpha) + F22 * np.cos(alpha)
 
     @cached_property
@@ -2538,7 +2539,7 @@ class Flight:
         F22: Function
             Rail Button 2 force in the 2 direction
         """
-        if self.rocket.rail_buttons is None:
+        if len(self.rocket.rail_buttons) == 0:
             warnings.warn(
                 "Trying to calculate rail button forces without rail buttons defined."
             )
@@ -2549,14 +2550,17 @@ class Flight:
             return nullForce, nullForce, nullForce, nullForce
 
         # Distance from Rail Button 1 (upper) to CM
+        rail_buttons_tuple = self.rocket.rail_buttons[0]
+        upper_button_position = (
+            rail_buttons_tuple.component.buttons_distance + rail_buttons_tuple.position
+        )
+        lower_button_position = rail_buttons_tuple.position
         D1 = (
-            self.rocket.rail_buttons.upper_button_position
-            - self.rocket.centerOfDryMassPosition
+            upper_button_position - self.rocket.centerOfDryMassPosition
         ) * self.rocket._csys
         # Distance from Rail Button 2 (lower) to CM
         D2 = (
-            self.rocket.rail_buttons.lower_button_position
-            - self.rocket.centerOfDryMassPosition
+            lower_button_position - self.rocket.centerOfDryMassPosition
         ) * self.rocket._csys
         F11 = (self.R1 * D2 - self.M2) / (D1 + D2)
         F11.setOutputs("Upper button force direction 1 (m)")

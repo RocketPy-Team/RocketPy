@@ -167,7 +167,7 @@ Then the rail buttons must be set:
 
 .. code-block:: python
     
-    Calisto.setRailButtons([0.2, -0.5])
+    Calisto.setRailButtons(0.2, -0.5)
 
 In sequence, the aerodynamic surfaces must be set.
 If a lift curve for the fin set is not specified, it is assumed that they behave according to a linearized model with a coefficient calculated with Barrowman's theory.

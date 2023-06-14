@@ -120,7 +120,7 @@ FinSet = Valetudo.addTrapezoidalFins(
     span=analysis_parameters.get("finSpan")[0],
     position=analysis_parameters.get("finDistanceToCM")[0],
 )
-Valetudo.setRailButtons([0.224, -0.93], 30)
+Valetudo.setRailButtons(0.224, -0.93, 30)
 
 # Set up parachutes
 sisRecDrogue = SisRec.SisRecSt(0.8998194205245451, 0.2)

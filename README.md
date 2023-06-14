@@ -238,9 +238,7 @@ Calisto = Rocket(
     centerOfDryMassPosition=0,
     coordinateSystemOrientation="tailToNose",
 )
-
-Calisto.setRailButtons([0.2, -0.5])
-
+Calisto.setRailButtons(0.2, -0.5)
 Calisto.addMotor(Pro75M1670, position=-1.255)
 
 NoseCone = Calisto.addNose(length=0.55829, kind="vonKarman", position=0.71971 + 0.55829)
