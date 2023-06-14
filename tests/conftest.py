@@ -81,6 +81,7 @@ def flight(rocket, example_env):
         inclination=85,
         heading=90,
         terminateOnApogee=True,
+        timeOvershoot=False,
     )
     return flight
 
