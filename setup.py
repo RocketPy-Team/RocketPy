@@ -23,23 +23,30 @@ elif sys.platform == "linux":
         # https://github.com/Unidata/netcdf4-python/issues/1179
         netCDF4_requirement = "netCDF4>=1.6.2"
 
+necessary_require = [
+    "numpy>=1.0",
+    "scipy>=1.0",
+    "matplotlib>=3.0",
+    netCDF4_requirement,
+    "requests",
+    "pytz",
+    "simplekml",
+]
+
+env_analysis_require = [
+    "timezonefinder",
+    "windrose>=1.6.8",
+    "ipywidgets>=7.6.3",
+    "jsonpickle",
+]
+
 setuptools.setup(
     name="rocketpy",
     version="0.13.1",
-    install_requires=[
-        "numpy>=1.0",
-        "scipy>=1.0",
-        "matplotlib>=3.0",
-        netCDF4_requirement,
-        "windrose>=1.6.8",
-        "ipywidgets>=7.6.3",
-        "requests",
-        "pytz",
-        "simplekml",
-        "jsonpickle",
-    ],
+    install_requires=necessary_require,
     extras_require={
-        "timezonefinder": ["timezonefinder"],
+        "env_analysis": env_analysis_require,
+        "all": necessary_require + env_analysis_require,
     },
     maintainer="RocketPy Developers",
     author="Giovani Hidalgo Ceotto",
