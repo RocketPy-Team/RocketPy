@@ -334,8 +334,8 @@ class Motor(ABC):
             nonZeroIndex = thrustArray.nonzero()[0][0]
             # Clip timeArray and thrustArray
             nonZeroIndex = max(1, nonZeroIndex)
-            thrustArray = thrustArray[nonZeroIndex - 1:]
-            timeArray = timeArray[nonZeroIndex - 1:]
+            thrustArray = thrustArray[nonZeroIndex - 1 :]
+            timeArray = timeArray[nonZeroIndex - 1 :]
             timeArray = timeArray - timeArray[0]
 
         # Reshape time - set burn time to newBurnTime
