@@ -68,7 +68,6 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
 
     # Environment conditions
     Env23 = Environment(
-        railLength=parameters.get("railLength")[0],
         gravity=9.81,
         latitude=41.775447,
         longitude=-86.572467,
@@ -164,6 +163,7 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     Flight23 = Flight(
         rocket=NDRT2020,
         environment=Env23,
+        railLength=parameters.get("railLength")[0],
         inclination=parameters.get("inclination")[0],
         heading=parameters.get("heading")[0],
     )
