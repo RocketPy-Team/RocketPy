@@ -58,6 +58,8 @@ class Flight:
             Helper iterator function to generate time discretization points.
 
         Helper parameters:
+        Flight.railLength : float
+            Launch rail length in meters.
         Flight.effective1RL : float
             Original rail length minus the distance measured from nozzle exit
             to the upper rail button. It assumes the nozzle to be aligned with
@@ -512,6 +514,7 @@ class Flight:
         self,
         rocket,
         environment,
+        railLength,
         inclination=80,
         heading=90,
         initialSolution=None,
@@ -534,6 +537,10 @@ class Flight:
         environment : Environment
             Environment to run simulation on. See help(Environment) for
             more information.
+        railLength : scalar
+            Length in which the rocket will be attached to the rail, only
+            moving along a fixed direction, that is, the line parallel to the
+            rail.
         inclination : int, float, optional
             Rail inclination angle relative to ground, given in degrees.
             Default is 80.
@@ -598,6 +605,7 @@ class Flight:
         # and termination events
         self.env = environment
         self.rocket = rocket
+        self.railLength = railLength
         self.parachutes = self.rocket.parachutes[:]
         self.inclination = inclination
         self.heading = heading
@@ -1178,7 +1186,7 @@ class Flight:
             )
         except AttributeError:
             upper_r_button = nozzle
-        effective1RL = self.env.railLength - abs(nozzle - upper_r_button)
+        effective1RL = self.railLength - abs(nozzle - upper_r_button)
         return effective1RL
 
     @cached_property
@@ -1191,7 +1199,7 @@ class Flight:
             lower_r_button = rail_buttons.position
         except AttributeError:
             lower_r_button = nozzle
-        effective2RL = self.env.railLength - abs(nozzle - lower_r_button)
+        effective2RL = self.railLength - abs(nozzle - lower_r_button)
         return effective2RL
 
     @cached_property
