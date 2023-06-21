@@ -329,16 +329,25 @@ class Motor(ABC):
         timeArray, thrustArray = self.thrust.xArray, self.thrust.yArray
 
         # Move start to time = 0
-        if startAtZero and timeArray[0] != 0:
+        if startAtZero:
+            # Get index of first non-zero thrust value
+            nonZeroIndex = thrustArray.nonzero()[0][0]
+            # Clip timeArray and thrustArray
+            nonZeroIndex = max(1, nonZeroIndex)
+            thrustArray = thrustArray[nonZeroIndex - 1:]
+            timeArray = timeArray[nonZeroIndex - 1:]
             timeArray = timeArray - timeArray[0]
 
         # Reshape time - set burn time to newBurnTime
         self.burn_time = newBurnTime
 
         # Compute old thrust based on new time discretization
+        # Adjust scale
         newTimeArray = (
             (self.burn_time[1] - self.burn_time[0]) / (timeArray[-1] - timeArray[0])
-        ) * timeArray + self.burn_time[0]
+        ) * timeArray
+        # Adjust origin
+        newTimeArray = newTimeArray - newTimeArray[0] + self.burn_time[0]
         source = np.column_stack((newTimeArray, thrustArray))
         thrust = Function(source, "Time (s)", "Thrust (N)", self.interpolate, "zero")
 
