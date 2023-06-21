@@ -937,6 +937,45 @@ class Matrix:
         """Returns the 3x3 zero matrix."""
         return Matrix([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
 
+    @staticmethod
+    def transformation(quaternion):
+        """Returns the transformation Matrix from frame B to frame A, where B
+        is rotated by the quaternion q with respect to A.
+
+        Parameters
+        ----------
+        q : tuple of 4 floats
+            The quaternion representing the rotation from frame A to frame B.
+            Example: (cos(phi/2), 0, 0, sin(phi/2)) represents a rotation of
+            phi around the z-axis.
+            Note: the quaternion must be normalized.
+
+        Returns
+        -------
+        Matrix
+            The transformation matrix from frame B to frame A.
+        """
+        q_w, q_x, q_y, q_z = quaternion
+        return Matrix(
+            [
+                [
+                    1 - 2 * (q_y**2 + q_z**2),
+                    2 * (q_x * q_y - q_w * q_z),
+                    2 * (q_x * q_z + q_w * q_y),
+                ],
+                [
+                    2 * (q_x * q_y + q_w * q_z),
+                    1 - 2 * (q_x**2 + q_z**2),
+                    2 * (q_y * q_z - q_w * q_x),
+                ],
+                [
+                    2 * (q_x * q_z - q_w * q_y),
+                    2 * (q_y * q_z + q_w * q_x),
+                    1 - 2 * (q_x**2 + q_y**2),
+                ],
+            ]
+        )
+
 
 if __name__ == "__main__":
     import doctest

@@ -238,3 +238,21 @@ def test_matrix_identity():
 
 def test_matrix_zeros():
     assert Matrix.zeros() == np.zeros((3, 3))
+
+
+def test_matrix_transformation():
+    # Check that the matrix is orthogonal
+    phi = 45 * np.pi / 180
+    n = Vector([1, 1, 1])
+    q0 = np.cos(phi / 2)
+    q1, q2, q3 = np.sin(phi / 2) * n.unit_vector
+    matrix = Matrix.transformation((q0, q1, q2, q3))
+    assert matrix @ matrix.transpose == Matrix.identity()
+
+    # Check that the matrix rotates the vector correctly
+    phi = np.pi / 2
+    n = Vector([1, 0, 0])
+    q0 = np.cos(phi / 2)
+    q1, q2, q3 = np.sin(phi / 2) * n
+    matrix = Matrix.transformation((q0, q1, q2, q3))
+    assert matrix @ Vector([0, 0, 1]) == Vector([0, -1, 0])
