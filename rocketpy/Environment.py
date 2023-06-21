@@ -304,9 +304,9 @@ class Environment:
         datum="SIRGAS2000",
         timeZone="UTC",
     ):
-        """Initialize Environment class, saving launch date, location 
+        """Initialize Environment class, saving launch date, location
         coordinates and elevation. Note that by default the standard atmosphere
-        is loaded until another atmospheric model is used. 
+        is loaded until another atmospheric model is used.
         See Environment.setAtmosphericModel for more details.
 
         Parameters
