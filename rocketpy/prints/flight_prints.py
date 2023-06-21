@@ -149,7 +149,8 @@ class _FlightPrints:
         None
         """
 
-        print("\nLaunch Rail Orientation\n")
+        print("\nLaunch Rail\n")
+        print("Launch Rail Length:", self.flight.railLength, " m")
         print("Launch Rail Inclination: {:.2f}°".format(self.flight.inclination))
         print("Launch Rail Heading: {:.2f}°".format(self.flight.heading))
         return None

@@ -235,7 +235,6 @@ class EnvironmentAnalysis:
                 )
 
                 Env = Environment(
-                    railLength=5,
                     date=hour_datetime,
                     latitude=self.latitude,
                     longitude=self.longitude,
