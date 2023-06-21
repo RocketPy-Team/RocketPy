@@ -111,7 +111,7 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
         powerOffDrag=parameters.get("dragCoefficient")[0],
         powerOnDrag=parameters.get("dragCoefficient")[0],
     )
-    NDRT2020.setRailButtons([0.2, -0.5], 45)
+    NDRT2020.setRailButtons(0.2, -0.5, 45)
     NDRT2020.addMotor(L1395, parameters.get("distanceRocketNozzle")[0])
     NoseCone = NDRT2020.addNose(
         length=parameters.get("noseLength")[0],
@@ -134,17 +134,17 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     )
 
     # Parachute set-up
-    def drogueTrigger(p, y):
+    def drogueTrigger(p, h, y):
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate drogue when vz < 0 m/s.
         return True if y[5] < 0 else False
 
-    def mainTrigger(p, y):
+    def mainTrigger(p, h, y):
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate main when vz < 0 m/s and z < 167.64 m (AGL) or 550 ft (AGL)
-        return True if y[5] < 0 and y[2] < (167.64 + Env23.elevation) else False
+        return True if y[5] < 0 and h < 167.64 else False
 
     Drogue = NDRT2020.addParachute(
         "Drogue",

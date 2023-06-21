@@ -94,7 +94,7 @@ BellaLui = Rocket(
     powerOffDrag=0.43,
     powerOnDrag=0.43,
 )
-BellaLui.setRailButtons([0.1, -0.5])
+BellaLui.setRailButtons(0.1, -0.5)
 BellaLui.addMotor(K828FJ, parameters.get("distanceRocketNozzle")[0])
 NoseCone = BellaLui.addNose(
     length=parameters.get("noseLength")[0],
@@ -117,7 +117,7 @@ Tail = BellaLui.addTail(
 
 
 # Parachute set-up
-def drogueTrigger(p, y):
+def drogueTrigger(p, h, y):
     # p = pressure
     # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
     # activate drogue when vz < 0 m/s.

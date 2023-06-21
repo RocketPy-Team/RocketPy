@@ -12,7 +12,7 @@ from rocketpy import Environment
 def test_env_set_date(example_env):
     tomorrow = datetime.date.today() + datetime.timedelta(days=1)
     example_env.setDate((tomorrow.year, tomorrow.month, tomorrow.day, 12))
-    assert example_env.date == datetime.datetime(
+    assert example_env.datetime_date == datetime.datetime(
         tomorrow.year, tomorrow.month, tomorrow.day, 12, tzinfo=pytz.utc
     )
 
@@ -26,12 +26,12 @@ def test_env_set_date_time_zone(example_env):
     timezone = pytz.timezone("America/New_York")
     dateAwareLocalDate = timezone.localize(dateNaive)
     dateAwareUTC = dateAwareLocalDate.astimezone(pytz.UTC)
-    assert example_env.date == dateAwareUTC
+    assert example_env.datetime_date == dateAwareUTC
 
 
 def test_env_set_location(example_env):
     example_env.setLocation(-21.960641, -47.482122)
-    assert example_env.lat == -21.960641 and example_env.lon == -47.482122
+    assert example_env.latitude == -21.960641 and example_env.longitude == -47.482122
 
 
 def test_set_elevation(example_env):
@@ -47,7 +47,9 @@ def test_set_topographic_profile(example_env):
         dictionary="netCDF4",
     )
     assert (
-        example_env.getElevationFromTopographicProfile(example_env.lat, example_env.lon)
+        example_env.getElevationFromTopographicProfile(
+            example_env.latitude, example_env.longitude
+        )
         == 1565
     )
 
@@ -150,7 +152,7 @@ def test_info_returns(mock_show, example_env):
     returned_plots = example_env.allPlotInfoReturned()
     returned_infos = example_env.allInfoReturned()
     expected_info = {
-        "grav": 9.80665,
+        "grav": example_env.gravity,
         "launch_rail_length": 5,
         "elevation": 0,
         "modelType": "StandardAtmosphere",
@@ -233,7 +235,7 @@ def test_export_environment(example_env_robust):
 
 def test_utmToGeodesic(example_env_robust):
     lat, lon = example_env_robust.utmToGeodesic(
-        x=315468.64, y=3651938.65, utmZone=13, hemis="N", datum="WGS84"
+        x=315468.64, y=3651938.65, utmZone=13, hemis="N"
     )
     assert np.isclose(lat, 32.99025, atol=1e-5) == True
     assert np.isclose(lon, -106.9750, atol=1e-5) == True

@@ -167,7 +167,7 @@ Then the rail buttons must be set:
 
 .. code-block:: python
     
-    Calisto.setRailButtons([0.2, -0.5])
+    Calisto.setRailButtons(0.2, -0.5)
 
 In sequence, the aerodynamic surfaces must be set.
 If a lift curve for the fin set is not specified, it is assumed that they behave according to a linearized model with a coefficient calculated with Barrowman's theory.
@@ -194,24 +194,28 @@ In the example, a nosecone, one fin set and one tail were added, but each case c
 
 If you are considering the parachutes in the simulation, they also have to be added to the rocket object.
 A trigger function must be supplied to trigger the parachutes.
-Currently, the pressure `(p)` and the state-space variables `(y)` are necessary inputs for the function.
+Currently, the pressure `(p)`, the height above ground level considering noise `(h)`, and the state-space variables `(y)` are necessary inputs for the function.
 The state-space contains information about the rocket's position and velocities (translation and rotation).
 For example:
 
 .. code-block:: python
 
-    def drogueTrigger(p, y):
-        # p = pressure
+    def drogueTrigger(p, h, y):
+        # p = pressure considering parachute noise signal
+        # h = height above ground level considering parachute noise signal
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
+
         # activate drogue when vz < 0 m/s.
         return True if y[5] < 0 else False
 
 
-    def mainTrigger(p, y):
-        # p = pressure
+    def mainTrigger(p, h, y):
+        # p = pressure considering parachute noise signal
+        # h = height above ground level considering parachute noise signal
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
-        # activate main when vz < 0 m/s and z < 800 + 1400 m (+1400 due to surface elevation).
-        return True if y[5] < 0 and y[2] < 800 + 1400 else False
+
+        # activate main when vz < 0 m/s and z < 800 m
+        return True if y[5] < 0 and h < 800 else False
 
 After having the trigger functions defined, the parachute must be added to the rocket:
 
@@ -236,7 +240,7 @@ After having the trigger functions defined, the parachute must be added to the r
     )
 
 Simulating the flight
---------------------
+---------------------
 
 Finally, the flight can be simulated with the provided data.
 The rocket and environment classes are supplied as inputs, as well as the rail inclination and heading angle.

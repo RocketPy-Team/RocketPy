@@ -62,7 +62,7 @@ def rocket(solid_motor):
 
 @pytest.fixture
 def flight(rocket, example_env):
-    rocket.setRailButtons([0.2, -0.5])
+    rocket.setRailButtons(0.2, -0.5)
 
     NoseCone = rocket.addNose(
         length=0.55829, kind="vonKarman", position=1.278, name="NoseCone"
@@ -236,7 +236,7 @@ def func_from_csv():
         inputs=["Scalar"],
         outputs=["Scalar"],
         interpolation="linear",
-        extrapolation="linear",
+        extrapolation="natural",
     )
     return func
 

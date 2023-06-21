@@ -7,10 +7,9 @@ But read further if this is not your case!
 Python Version
 --------------
 
-RocketPy supports Python 3.7 and above.
-Support for Python 3.11 is still limited by some dependencies.
+RocketPy supports Python 3.8 and above.
 Sorry, there are currently no plans to support earlier versions.
-If you really need to run RocketPy on Python 3.6 or earlier, feel free to submit an issue and we will see what we can do!
+If you really need to run RocketPy on Python 3.7 or earlier, feel free to submit an issue and we will see what we can do!
 
 Required Packages
 -----------------
@@ -21,15 +20,12 @@ The following packages are needed in order to run RocketPy:
 - Numpy >= 1.0
 - Scipy >= 1.0
 - Matplotlib >= 3.0
-- netCDF4 >= 1.4
+- netCDF4 >= 1.6.4
 - windrose >= 1.6.8
 - requests
 - pytz
 - simplekml
-- ipywidgets >= 7.6.3
-- jsonpickle
 
- 
 All of these packages, are automatically installed when RocketPy is installed using either ``pip`` or ``conda``.
 However, in case the user wants to install these packages manually, they can do so by following the instructions bellow.
 
@@ -43,13 +39,10 @@ The packages needed can be installed via ``pip`` by running the following lines 
     pip install "numpy>=1.13" 
     pip install "scipy>=1.0"
     pip install "matplotlib>=3.0"
-    pip install "netCDF4>=1.4"
-    pip install "windrose >= 1.6.8"
-    pip install "ipywidgets>=7.6.3"
+    pip install "netCDF4>=1.6.4"
     pip install requests
     pip install pytz
     pip install simplekml
-    pip install jsonpickle
 
 Installing Required Packages Using ``conda``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -61,21 +54,33 @@ To update Scipy and install netCDF4 using Conda, the following code is used:
 .. code-block:: shell
 
     conda install "scipy>=1.0"
-    conda install -c anaconda "netcdf4>=1.4"
+    conda install -c anaconda "netcdf4>=1.6.4"
 
 
 Optional Packages
 -----------------
 
-Optionally, you can install timezonefinder to allow for automatic timezone detection when performing Enviornment Analysis.
-This can be done by running the following line of code in your preferred terminal:
+The EnvironmentAnalysis class requires a few extra packages to be installed.
+In case you want to use this class, you will need to install the following packages:
+
+- `timezonefinder` : to allow for automatic timezone detection,
+- `windrose` : to allow for windrose plots,
+- `ipywidgets` : to allow for GIFs generation,
+- `jsonpickle` : to allow for saving and loading of class instances.
+
+You can install all these packages by simply running the following lines in your preferred terminal:
 
 .. code-block:: shell
 
-    pip install timezonefinder
+    pip install rocketpy[env_analysis]
 
-Keep in mind that this package is not required to run RocketPy, but it can be useful if you want to perform Environment Analysis.
-Furthermore, timezonefinder can only be used with Python 3.8+.
+
+Alternatively, you can instal all extra packages by running the following line in your preferred terminal:
+
+.. code-block:: shell
+
+    pip install rocketpy[all]
+    
 
 Useful Packages
 ---------------

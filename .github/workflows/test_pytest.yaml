@@ -12,22 +12,23 @@ jobs:
           - macos-latest
           - windows-latest
         python-version:
-          - 3.7
+          - 3.8
+          - 3.11
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements_test.txt
-    - name: Build RocketPy
-      run: |
-        pip install -e .
-    - name: Test with pytest
-      run: |
-        pytest
-        cd rocketpy
-        pytest --doctest-modules
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-tests.txt
+      - name: Build RocketPy
+        run: |
+          pip install -e.[all]
+      - name: Test with pytest
+        run: |
+          pytest
+          cd rocketpy
+          pytest --doctest-modules
