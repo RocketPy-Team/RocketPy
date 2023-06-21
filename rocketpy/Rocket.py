@@ -54,7 +54,7 @@ class Rocket:
         Rocket.centerOfMass : Function
             Position of the rocket's center of mass, including propellant, relative
             to the user defined rocket reference system.
-            See `Rocket.centerOfDryMassPosition` for more information regarding the
+            See `Rocket.coordinateSystemOrientation` for more information regarding the
             coordinate system.
             Expressed in meters as a function of time.
         Rocket.reducedMass : Function
@@ -89,7 +89,7 @@ class Rocket:
             List of aerodynamic surfaces of the rocket.
         Rocket.cpPosition : float
             Rocket's center of pressure position relative to the user defined rocket
-            reference system. See `Rocket.centerOfDryMassPosition` for more information
+            reference system. See `Rocket.coordinateSystemOrientation` for more information
             regarding the reference system.
             Expressed in meters.
         Rocket.staticMargin : float
@@ -124,7 +124,7 @@ class Rocket:
         inertia,
         powerOffDrag,
         powerOnDrag,
-        centerOfDryMassPosition=0,
+        center_of_mass_without_motor,
         coordinateSystemOrientation="tailToNose",
     ):
         """Initializes Rocket class, process inertial, geometrical and
@@ -135,7 +135,7 @@ class Rocket:
         radius : int, float
             Rocket largest outer radius in meters.
         mass : int, float
-            Unloaded rocket total mass (without propellant) in kg.
+            Rocket total mass without motor in kg.
         inertia : tuple, list
             Tuple or list containing the rocket's dry mass inertia tensor
             components, in kg*m^2.
@@ -158,13 +158,13 @@ class Rocket:
             information. If int or float is given, it is assumed constant. If
             callable, string or array is given, it must be a function of Mach
             number only.
-        centerOfDryMassPosition : int, float, optional
-            Position, in m, of the rocket's center of dry mass (i.e. center of mass
-            without propellant) relative to the rocket's coordinate system.
-            Default is 0, which means the center of dry mass is chosen as the origin, to
-            comply with the legacy behavior of versions 0.X.Y.
-            See `Rocket.coordinateSystemOrientation` for more information regarding the
-            rocket's coordinate system.
+        center_of_mass_without_motor : int, float
+            Position, in m, of the rocket's center of mass without motor
+            relative to the rocket's coordinate system. Default is 0, which
+            means the center of dry mass is chosen as the origin, to comply
+            with the legacy behavior of versions 0.X.Y.
+            See `Rocket.coordinateSystemOrientation` for more information
+            regarding the rocket's coordinate system.
         coordinateSystemOrientation : string, optional
             String defining the orientation of the rocket's coordinate system. The
             coordinate system is defined by the rocket's axis of symmetry. The system's
@@ -198,7 +198,7 @@ class Rocket:
         self.dry_I_23 = inertia[5]
 
         # Define rocket geometrical parameters in SI units
-        self.centerOfDryMassPosition = centerOfDryMassPosition
+        self.center_of_mass_without_motor = center_of_mass_without_motor
         self.radius = radius
         self.area = np.pi * self.radius**2
 
@@ -248,9 +248,12 @@ class Rocket:
         self.centerOfMass = None
         self.reducedMass = None
         self.totalMass = None
+        self.dryMass = None
 
         # Calculate dynamic inertial quantities
+        self.evaluateDryMass()
         self.evaluateTotalMass()
+        self.evaluateCenterOfDryMass()
         self.evaluateCenterOfMass()
         self.evaluateReducedMass()
         self.evaluateThrustToWeight()
@@ -266,7 +269,7 @@ class Rocket:
 
     def evaluateTotalMass(self):
         """Calculates and returns the rocket's total mass. The total
-        mass is defined as the sum of the propellant mass and the
+        mass is defined as the sum of the motor mass with propellant and the
         rocket mass without propellant. The function returns an object
         of the Function class and is defined as a function of time.
 
@@ -287,11 +290,39 @@ class Rocket:
             return False
 
         # Calculate total mass by summing up propellant and dry mass
-        self.totalMass = self.mass + self.motor.mass
+        self.totalMass = self.mass + self.motor.totalMass
         self.totalMass.setOutputs("Total Mass (Rocket + Propellant) (kg)")
 
         # Return total mass
         return self.totalMass
+
+    def evaluateDryMass(self):
+        """Calculates and returns the rocket's dry mass. The dry
+        mass is defined as the sum of the motor's dry mass and the
+        rocket mass without motor. The function returns an object
+        of the Function class and is defined as a function of time.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        self.totalMass : Function
+            Function of time expressing the total mass of the rocket,
+            defined as the sum of the propellant mass and the rocket
+            mass without propellant.
+        """
+        # Make sure there is a motor associated with the rocket
+        if self.motor is None:
+            print("Please associate this rocket with a motor!")
+            return False
+
+        # Calculate total mass by summing up propellant and dry mass
+        self.dryMass = self.mass + self.motor.dry_mass
+
+        # Return total mass
+        return self.dryMass
 
     def evaluateCenterOfMass(self):
         """Evaluates rocket center of mass position relative to user defined rocket
@@ -305,18 +336,41 @@ class Rocket:
         -------
         self.centerOfMass : Function
             Function of time expressing the rocket's center of mass position relative to
-            user defined rocket reference system. See `Rocket.centerOfMass` for more
-            information.
+            user defined rocket reference system.
+            See `Rocket.coordinateSystemOrientation` for more information.
         """
         # Compute center of mass position
         self.centerOfMass = (
-            self.centerOfDryMassPosition * self.mass
-            + self.centerOfPropellantPosition * self.motor.mass
+            self.center_of_mass_without_motor * self.mass
+            + self.centerOfPropellantPosition * self.motor.centerOfMass
         ) / self.totalMass
         self.centerOfMass.setInputs("Time (s)")
         self.centerOfMass.setOutputs("Center of Mass Position (m)")
 
         return self.centerOfMass
+
+    def evaluateCenterOfDryMass(self):
+        """Evaluates rocket center dry of mass (i.e. without propellant)
+        position relative to user defined rocket reference system.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        self.centerOfDryMass : int, float
+            Rocket's center of dry mass position relative to user defined rocket
+            reference system. See `Rocket.coordinateSystemOrientation` for more
+            information.
+        """
+        # Compute center of mass position
+        self.centerOfDryMassPosition = (
+            self.center_of_mass_without_motor * self.mass
+            + self.motor.center_of_dry_mass * self.motor.dry_mass
+        ) / self.dryMass
+
+        return self.centerOfDryMassPosition
 
     def evaluateReducedMass(self):
         """Calculates and returns the rocket's total reduced mass. The
@@ -344,10 +398,10 @@ class Rocket:
             return False
 
         # Retrieve propellant mass as a function of time
-        motorMass = self.motor.mass
+        motorMass = self.motor.propellantMass
 
         # Retrieve constant rocket mass without propellant
-        mass = self.mass
+        mass = self.dryMass
 
         # Calculate reduced mass
         self.reducedMass = motorMass * mass / (motorMass + mass)
@@ -442,8 +496,8 @@ class Rocket:
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
         # Get masses
-        prop_mass = self.motor.mass  # Propellant mass as a function of time
-        dry_mass = self.mass  # Constant rocket dry mass without propellant
+        prop_mass = self.motor.propellantMass  # Propellant mass as a function of time
+        dry_mass = self.dryMass  # Constant rocket dry mass without propellant
 
         # Compute axes distances
         csys = self._csys
@@ -483,8 +537,8 @@ class Rocket:
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
         # Get masses
-        prop_mass = self.motor.mass  # Propellant mass as a function of time
-        dry_mass = self.mass  # Constant rocket dry mass without propellant
+        prop_mass = self.motor.propellantMass  # Propellant mass as a function of time
+        dry_mass = self.dryMass  # Constant rocket dry mass without propellant
 
         # Compute axes distances
         csys = self._csys
@@ -644,9 +698,11 @@ class Rocket:
         self.motorPosition = position
         _ = self._csys * self.motor._csys
         self.centerOfPropellantPosition = (
-            self.motor.centerOfMass - self.motor.nozzlePosition
+            self.motor.centerOfPropellantMass - self.motor.nozzlePosition
         ) * _ + self.motorPosition
+        self.evaluateDryMass()
         self.evaluateTotalMass()
+        self.evaluateCenterOfDryMass()
         self.evaluateCenterOfMass()
         self.evaluateReducedMass()
         self.evaluateThrustToWeight()
