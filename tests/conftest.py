@@ -134,14 +134,13 @@ def dimensionless_rocket(kg, m, dimensionless_solid_motor):
 
 @pytest.fixture
 def example_env():
-    Env = Environment(railLength=5, datum="WGS84")
+    Env = Environment(datum="WGS84")
     return Env
 
 
 @pytest.fixture
 def example_env_robust():
     Env = Environment(
-        railLength=5,
         latitude=32.990254,
         longitude=-106.974998,
         elevation=1400,

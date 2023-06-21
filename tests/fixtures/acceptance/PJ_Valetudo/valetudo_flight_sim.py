@@ -58,7 +58,6 @@ analysis_parameters = {
 
 # Environment conditions
 Env = Environment(
-    railLength=5.7,
     gravity=9.8,
     date=(2019, 8, 10, 21),
     latitude=-23.363611,
@@ -71,7 +70,6 @@ Env.setAtmosphericModel(
     file="tests/fixtures/acceptance/PJ_Valetudo/valetudo_weather_data_ERA5.nc",
     dictionary="ECMWF",
 )
-Env.railLength = analysis_parameters.get("railLength")[0]
 
 # Create motor
 Keron = SolidMotor(
@@ -145,6 +143,7 @@ sisRecDrogue.enable()
 TestFlight = Flight(
     rocket=Valetudo,
     environment=Env,
+    railLength=analysis_parameters.get("railLength")[0],
     inclination=analysis_parameters.get("inclination")[0],
     heading=analysis_parameters.get("heading")[0],
     maxTime=600,

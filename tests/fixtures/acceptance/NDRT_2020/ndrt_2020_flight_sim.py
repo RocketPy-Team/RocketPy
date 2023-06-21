@@ -61,7 +61,6 @@ parameters = {
 
 # Environment conditions
 Env23 = Environment(
-    railLength=parameters.get("railLength")[0],
     gravity=9.81,
     latitude=41.775447,
     longitude=-86.572467,
@@ -159,6 +158,7 @@ Main = NDRT2020.addParachute(
 Flight23 = Flight(
     rocket=NDRT2020,
     environment=Env23,
+    railLength=parameters.get("railLength")[0],
     inclination=parameters.get("inclination")[0],
     heading=parameters.get("heading")[0],
 )
