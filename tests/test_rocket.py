@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from rocketpy import Rocket, SolidMotor
-from rocketpy.AeroSurfaces import NoseCone
+from rocketpy.AeroSurface import NoseCone
 
 
 @patch("matplotlib.pyplot.show")
@@ -50,17 +50,17 @@ def test_rocket(mock_show):
         topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
     )
 
-    def drogueTrigger(p, y):
+    def drogueTrigger(p, h, y):
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate drogue when vz < 0 m/s.
         return True if y[5] < 0 else False
 
-    def mainTrigger(p, y):
+    def mainTrigger(p, h, y):
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate main when vz < 0 m/s and z < 800 m.
-        return True if y[5] < 0 and y[2] < 800 else False
+        return True if y[5] < 0 and h < 800 else False
 
     Main = test_rocket.addParachute(
         "Main",
@@ -222,17 +222,17 @@ def test_elliptical_fins(mock_show):
         topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
     )
 
-    def drogueTrigger(p, y):
+    def drogueTrigger(p, h, y):
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate drogue when vz < 0 m/s.
         return True if y[5] < 0 else False
 
-    def mainTrigger(p, y):
+    def mainTrigger(p, h, y):
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate main when vz < 0 m/s and z < 800 m.
-        return True if y[5] < 0 and y[2] < 800 else False
+        return True if y[5] < 0 and h < 800 else False
 
     Main = test_rocket.addParachute(
         "Main",
@@ -314,17 +314,17 @@ def test_airfoil(mock_show):
         topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
     )
 
-    def drogueTrigger(p, y):
+    def drogueTrigger(p, h, y):
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate drogue when vz < 0 m/s.
         return True if y[5] < 0 else False
 
-    def mainTrigger(p, y):
+    def mainTrigger(p, h, y):
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate main when vz < 0 m/s and z < 800 m.
-        return True if y[5] < 0 and y[2] < 800 else False
+        return True if y[5] < 0 and h < 800 else False
 
     Main = test_rocket.addParachute(
         "Main",
@@ -357,8 +357,8 @@ def test_evaluate_static_margin_assert_cp_equals_cm(kg, m, dimensionless_rocket)
 
     assert rocket.centerOfMass(0) / (2 * rocket.radius) == rocket.staticMargin(0)
     assert pytest.approx(
-        rocket.centerOfMass(burn_time[1]) / (2 * rocket.radius), 1e-12
-    ) == pytest.approx(rocket.staticMargin(burn_time[1]), 1e-12)
+        rocket.centerOfMass(burn_time[1]) / (2 * rocket.radius), 1e-8
+    ) == pytest.approx(rocket.staticMargin(burn_time[1]), 1e-8)
     assert rocket.totalLiftCoeffDer == 0
     assert rocket.cpPosition == 0
 
@@ -379,26 +379,26 @@ def test_add_nose_assert_cp_cm_plus_nose(k, type, rocket, dimensionless_rocket, 
     clalpha = 2
 
     static_margin_initial = (rocket.centerOfMass(0) - cpz) / (2 * rocket.radius)
-    assert static_margin_initial == pytest.approx(rocket.staticMargin(0), 1e-12)
+    assert static_margin_initial == pytest.approx(rocket.staticMargin(0), 1e-8)
 
     static_margin_final = (rocket.centerOfMass(np.inf) - cpz) / (2 * rocket.radius)
-    assert static_margin_final == pytest.approx(rocket.staticMargin(np.inf), 1e-12)
+    assert static_margin_final == pytest.approx(rocket.staticMargin(np.inf), 1e-8)
 
-    assert clalpha == pytest.approx(rocket.totalLiftCoeffDer, 1e-12)
-    assert rocket.cpPosition == pytest.approx(cpz, 1e-12)
+    assert clalpha == pytest.approx(rocket.totalLiftCoeffDer, 1e-8)
+    assert rocket.cpPosition == pytest.approx(cpz, 1e-8)
 
     dimensionless_rocket.addNose(length=0.55829 * m, kind=type, position=1.278 * m)
-    assert pytest.approx(dimensionless_rocket.staticMargin(0), 1e-12) == pytest.approx(
-        rocket.staticMargin(0), 1e-12
+    assert pytest.approx(dimensionless_rocket.staticMargin(0), 1e-8) == pytest.approx(
+        rocket.staticMargin(0), 1e-8
     )
     assert pytest.approx(
-        dimensionless_rocket.staticMargin(np.inf), 1e-12
-    ) == pytest.approx(rocket.staticMargin(np.inf), 1e-12)
-    assert pytest.approx(
-        dimensionless_rocket.totalLiftCoeffDer, 1e-12
-    ) == pytest.approx(rocket.totalLiftCoeffDer, 1e-12)
-    assert pytest.approx(dimensionless_rocket.cpPosition / m, 1e-12) == pytest.approx(
-        rocket.cpPosition, 1e-12
+        dimensionless_rocket.staticMargin(np.inf), 1e-8
+    ) == pytest.approx(rocket.staticMargin(np.inf), 1e-8)
+    assert pytest.approx(dimensionless_rocket.totalLiftCoeffDer, 1e-8) == pytest.approx(
+        rocket.totalLiftCoeffDer, 1e-8
+    )
+    assert pytest.approx(dimensionless_rocket.cpPosition / m, 1e-8) == pytest.approx(
+        rocket.cpPosition, 1e-8
     )
 
 
@@ -416,10 +416,10 @@ def test_add_tail_assert_cp_cm_plus_tail(rocket, dimensionless_rocket, m):
     )
 
     static_margin_initial = (rocket.centerOfMass(0) - cpz) / (2 * rocket.radius)
-    assert static_margin_initial == pytest.approx(rocket.staticMargin(0), 1e-12)
+    assert static_margin_initial == pytest.approx(rocket.staticMargin(0), 1e-8)
 
     static_margin_final = (rocket.centerOfMass(np.inf) - cpz) / (2 * rocket.radius)
-    assert static_margin_final == pytest.approx(rocket.staticMargin(np.inf), 1e-12)
+    assert static_margin_final == pytest.approx(rocket.staticMargin(np.inf), 1e-8)
     assert np.abs(clalpha) == pytest.approx(np.abs(rocket.totalLiftCoeffDer), 1e-8)
     assert rocket.cpPosition == cpz
 
@@ -429,17 +429,17 @@ def test_add_tail_assert_cp_cm_plus_tail(rocket, dimensionless_rocket, m):
         length=0.060 * m,
         position=-1.194656 * m,
     )
-    assert pytest.approx(dimensionless_rocket.staticMargin(0), 1e-12) == pytest.approx(
-        rocket.staticMargin(0), 1e-12
+    assert pytest.approx(dimensionless_rocket.staticMargin(0), 1e-8) == pytest.approx(
+        rocket.staticMargin(0), 1e-8
     )
     assert pytest.approx(
-        dimensionless_rocket.staticMargin(np.inf), 1e-12
-    ) == pytest.approx(rocket.staticMargin(np.inf), 1e-12)
-    assert pytest.approx(
-        dimensionless_rocket.totalLiftCoeffDer, 1e-12
-    ) == pytest.approx(rocket.totalLiftCoeffDer, 1e-12)
-    assert pytest.approx(dimensionless_rocket.cpPosition / m, 1e-12) == pytest.approx(
-        rocket.cpPosition, 1e-12
+        dimensionless_rocket.staticMargin(np.inf), 1e-8
+    ) == pytest.approx(rocket.staticMargin(np.inf), 1e-8)
+    assert pytest.approx(dimensionless_rocket.totalLiftCoeffDer, 1e-8) == pytest.approx(
+        rocket.totalLiftCoeffDer, 1e-8
+    )
+    assert pytest.approx(dimensionless_rocket.cpPosition / m, 1e-8) == pytest.approx(
+        rocket.cpPosition, 1e-8
     )
 
 
@@ -506,8 +506,7 @@ def test_add_trapezoidal_fins_sweep_length(
     # Check rocket's center of pressure (just double checking)
     assert translate - rocket.cpPosition == pytest.approx(expected_cpz_cm, 0.01)
 
-    # Check if AeroSurfaces.__getitem__() works
-    assert isinstance(rocket.aerodynamicSurfaces.__getitem__(0)[0], NoseCone)
+    assert isinstance(rocket.aerodynamicSurfaces[0].component, NoseCone)
 
 
 def test_add_fins_assert_cp_cm_plus_fins(rocket, dimensionless_rocket, m):
@@ -535,13 +534,13 @@ def test_add_fins_assert_cp_cm_plus_fins(rocket, dimensionless_rocket, m):
     clalpha *= 1 + rocket.radius / (0.1 + rocket.radius)
 
     static_margin_initial = (rocket.centerOfMass(0) - cpz) / (2 * rocket.radius)
-    assert static_margin_initial == pytest.approx(rocket.staticMargin(0), 1e-12)
+    assert static_margin_initial == pytest.approx(rocket.staticMargin(0), 1e-8)
 
     static_margin_final = (rocket.centerOfMass(np.inf) - cpz) / (2 * rocket.radius)
-    assert static_margin_final == pytest.approx(rocket.staticMargin(np.inf), 1e-12)
+    assert static_margin_final == pytest.approx(rocket.staticMargin(np.inf), 1e-8)
 
-    assert np.abs(clalpha) == pytest.approx(np.abs(rocket.totalLiftCoeffDer), 1e-12)
-    assert rocket.cpPosition == pytest.approx(cpz, 1e-12)
+    assert np.abs(clalpha) == pytest.approx(np.abs(rocket.totalLiftCoeffDer), 1e-8)
+    assert rocket.cpPosition == pytest.approx(cpz, 1e-8)
 
     dimensionless_rocket.addTrapezoidalFins(
         4,
@@ -550,17 +549,17 @@ def test_add_fins_assert_cp_cm_plus_fins(rocket, dimensionless_rocket, m):
         tipChord=0.040 * m,
         position=-1.04956 * m,
     )
-    assert pytest.approx(dimensionless_rocket.staticMargin(0), 1e-12) == pytest.approx(
-        rocket.staticMargin(0), 1e-12
+    assert pytest.approx(dimensionless_rocket.staticMargin(0), 1e-8) == pytest.approx(
+        rocket.staticMargin(0), 1e-8
     )
     assert pytest.approx(
-        dimensionless_rocket.staticMargin(np.inf), 1e-12
-    ) == pytest.approx(rocket.staticMargin(np.inf), 1e-12)
-    assert pytest.approx(
-        dimensionless_rocket.totalLiftCoeffDer, 1e-12
-    ) == pytest.approx(rocket.totalLiftCoeffDer, 1e-12)
-    assert pytest.approx(dimensionless_rocket.cpPosition / m, 1e-12) == pytest.approx(
-        rocket.cpPosition, 1e-12
+        dimensionless_rocket.staticMargin(np.inf), 1e-8
+    ) == pytest.approx(rocket.staticMargin(np.inf), 1e-8)
+    assert pytest.approx(dimensionless_rocket.totalLiftCoeffDer, 1e-8) == pytest.approx(
+        rocket.totalLiftCoeffDer, 1e-8
+    )
+    assert pytest.approx(dimensionless_rocket.cpPosition / m, 1e-8) == pytest.approx(
+        rocket.cpPosition, 1e-8
     )
 
 

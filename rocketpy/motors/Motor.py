@@ -8,7 +8,11 @@ import re
 import warnings
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from functools import cached_property
+
+try:
+    from functools import cached_property
+except ImportError:
+    from rocketpy.tools import cached_property
 
 import numpy as np
 

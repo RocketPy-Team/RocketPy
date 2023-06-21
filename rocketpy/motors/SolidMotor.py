@@ -6,7 +6,11 @@ __license__ = "MIT"
 
 import numpy as np
 from scipy import integrate
-from functools import cached_property
+
+try:
+    from functools import cached_property
+except ImportError:
+    from rocketpy.tools import cached_property
 
 from rocketpy.Function import Function, funcify_method
 from rocketpy.motors import Motor
@@ -352,7 +356,7 @@ class SolidMotor(Motor):
         t : float
             Time in seconds.
 
-        Returns
+        Returnsg
         -------
         Function
             Position of the center of mass as a function
@@ -414,9 +418,9 @@ class SolidMotor(Motor):
             t_span,
             y0,
             events=terminateBurn,
+            atol=1e-12,
+            rtol=1e-11,
             method="LSODA",
-            atol=1e-10,
-            rtol=1e-8,
         )
 
         self.grainBurnOut = sol.t[-1]

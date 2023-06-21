@@ -213,6 +213,7 @@ Pro75M1670 = SolidMotor(
     grainOuterRadius=33/1000,
     grainInitialInnerRadius=15/1000,
     grainInitialHeight=120/1000,
+    grainsCenterOfMassPosition=-0.85704,
     nozzleRadius=33/1000,
     throatRadius=11/1000,
     interpolationMethod='linear'
@@ -236,16 +237,12 @@ Calisto = Rocket(
     powerOffDrag="../../data/calisto/powerOffDragCurve.csv",
     powerOnDrag="../../data/calisto/powerOnDragCurve.csv",
     centerOfDryMassPosition=0,
-    coordinateSystemOrientation="tailToNose",
+    coordinateSystemOrientation="tailToNose"
 )
-
 Calisto.setRailButtons([0.2, -0.5])
-
 Calisto.addMotor(Pro75M1670, position=-1.255)
-
-NoseCone = Calisto.addNose(length=0.55829, kind="vonKarman", position=0.71971 + 0.55829)
-
-FinSet = Calisto.addTrapezoidalFins(
+Calisto.addNose(length=0.55829, kind="vonKarman", position=1.278)
+Calisto.addTrapezoidalFins(
     n=4,
     rootChord=0.120,
     tipChord=0.040,
@@ -253,10 +250,9 @@ FinSet = Calisto.addTrapezoidalFins(
     position=-1.04956,
     cantAngle=0,
     radius=None,
-    airfoil=None,
+    airfoil=None
 )
-
-Tail = Calisto.addTail(
+Calisto.addTail(
     topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
 )
 ```
@@ -264,25 +260,35 @@ Tail = Calisto.addTail(
 You may want to add parachutes to your rocket as well:
 
 ```python
-def drogueTrigger(p, y):
+def drogueTrigger(p, h, y):
+    # p = pressure considering parachute noise signal
+    # h = height above ground level considering parachute noise signal
+    # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
+
+    # activate drogue when vz < 0 m/s.
     return True if y[5] < 0 else False
 
-def mainTrigger(p, y):
-    return True if y[5] < 0 and y[2] < 800 else False
+def mainTrigger(p, h, y):
+    # p = pressure considering parachute noise signal
+    # h = height above ground level considering parachute noise signal
+    # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
+        
+    # activate main when vz < 0 m/s and z < 800 m
+    return True if y[5] < 0 and h < 800 else False
 
-Main = Calisto.addParachute('Main',
-                            CdS=10.0,
-                            trigger=mainTrigger, 
-                            samplingRate=105,
-                            lag=1.5,
-                            noise=(0, 8.3, 0.5))
+Calisto.addParachute('Main',
+                    CdS=10.0,
+                    trigger=mainTrigger, 
+                    samplingRate=105,
+                    lag=1.5,
+                    noise=(0, 8.3, 0.5))
 
-Drogue = Calisto.addParachute('Drogue',
-                              CdS=1.0,
-                              trigger=drogueTrigger, 
-                              samplingRate=105,
-                              lag=1.5,
-                              noise=(0, 8.3, 0.5))
+Calisto.addParachute('Drogue',
+                      CdS=1.0,
+                      trigger=drogueTrigger, 
+                      samplingRate=105,
+                      lag=1.5,
+                      noise=(0, 8.3, 0.5))
 ```
 
 Finally, you can create a Flight object to simulate your trajectory. To get help on the Flight class, use:
@@ -297,7 +303,7 @@ To actually create a Flight object, use:
 TestFlight = Flight(rocket=Calisto, environment=Env, inclination=85, heading=0)
 ```
 
-Once the TestFlight object is created, your simulation is done! Use the following code to get a summary of the results:
+Once the Flight object is created, your simulation is done! Use the following code to get a summary of the results:
 
 ```python
 TestFlight.info()
