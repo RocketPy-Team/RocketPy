@@ -524,7 +524,7 @@ class Flight:
         timeOvershoot=True,
         verbose=False,
         name="Flight",
-        EOM="standard",
+        equations_of_motion="standard",
     ):
         """Run a trajectory simulation.
 
@@ -585,7 +585,7 @@ class Flight:
             If true, verbose mode is activated. Default is False.
         name : str, optional
             Name of the flight. Default is "Flight".
-        EOM : str, optional
+        equations_of_motion : str, optional
             Type of equations of motion to use. Can be "standard" or
             "solid_propulsion". Default is "standard". Solid propulsion is a
             more restricted set of equations of motion that only works for
@@ -617,7 +617,7 @@ class Flight:
         self.timeOvershoot = timeOvershoot
         self.terminateOnApogee = terminateOnApogee
         self.name = name
-        self.EOM = EOM
+        self.equations_of_motion = equations_of_motion
 
         # Flight initialization
         self.__init_post_process_variables()
@@ -1179,7 +1179,7 @@ class Flight:
 
     def __init_equations_of_motion(self):
         """Initialize equations of motion."""
-        if self.EOM == "solid_propulsion":
+        if self.equations_of_motion == "solid_propulsion":
             self.uDotGeneralized = self.uDot
 
     @cached_property
