@@ -9,6 +9,8 @@ import numpy as np
 from matplotlib.patches import Ellipse
 
 from .Function import Function
+from .plots.aero_surface_plots import _NoseConePlots
+from .prints.aero_surface_prints import _NoseConePrints
 
 
 class AeroSurface(ABC):
@@ -118,6 +120,12 @@ class NoseCone(AeroSurface):
         the Mach number. Returns the lift coefficient.
     NoseCone.clalpha : float
         Lift coefficient slope. Has units of 1/rad.
+    NoseCone.plots : rocketpy.plots._NoseConePlots
+        This contains all the plots methods. Use help(NoseCone.plots) to know
+        more about it.
+    NoseCone.prints : rocketpy.prints._NoseConePrints
+        This contains all the prints methods. Use help(NoseCone.prints) to know
+        more about it.
     """
 
     def __init__(
@@ -164,6 +172,9 @@ class NoseCone(AeroSurface):
         self.evaluateGeometricalParameters()
         self.evaluateLiftCoefficient()
         self.evaluateCenterOfPressure()
+
+        self.plots = _NoseConePlots(self)
+        self.prints = _NoseConePrints(self)
 
         return None
 
@@ -291,49 +302,23 @@ class NoseCone(AeroSurface):
         self.cp = (self.cpx, self.cpy, self.cpz)
         return self.cp
 
-    def geometricalInfo(self):
-        """Prints out all the geometric information of the nose cone.
+    def info(self):
+        """Prints and plots summarized information of the nose cone.
 
         Parameters
         ----------
         None
 
-        Returns
-        -------
+        Return
+        ------
         None
         """
-        print(f"\nGeometric Information of {self.name}")
-        print("-------------------------------")
-        print(f"Length: {self.length:.3f} m")
-        print(f"Kind: {self.kind}")
-        print(f"Base Radius: {self.baseRadius:.3f} m")
-        print(f"Reference Rocket Radius: {self.rocketRadius:.3f} m")
-        print(f"Radius Ratio: {self.radiusRatio:.3f}")
-
-        return None
-
-    def aerodynamicInfo(self):
-        """Prints out all the aerodynamic information of the nose cone.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        print(f"\nAerodynamic Information of {self.name}")
-        print("-------------------------------")
-        print(f"Center of Pressure Position in Local Coordinates: {self.cp} m")
-        print(f"Lift Coefficient Slope at Mach 0: {self.clalpha(0):.3f} 1/rad")
-        print("Lift Coefficient as a Function of Alpha and Mach:")
-        self.cl()
-
+        self.prints.geometry()
+        self.prints.aerodynamic()
         return None
 
     def allInfo(self):
-        """Prints out all the geometric and aerodynamic information of the nose cone.
+        """Prints and plots all the available information of the nose cone.
 
         Parameters
         ----------
@@ -343,9 +328,8 @@ class NoseCone(AeroSurface):
         -------
         None
         """
-        self.geometricalInfo()
-        self.aerodynamicInfo()
-
+        self.prints.all()
+        self.plots.all()
         return None
 
 
