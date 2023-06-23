@@ -53,8 +53,8 @@ class AeroSurface(ABC):
         pass
 
     @abstractmethod
-    def geometricalInfo(self):
-        """Returns the geometrical info of the aerodynamic surface.
+    def info(self):
+        """Prints and plots summarized information of the aerodynamic surface.
 
         Returns
         -------
@@ -63,8 +63,8 @@ class AeroSurface(ABC):
         pass
 
     @abstractmethod
-    def aerodynamicInfo(self):
-        """Returns the aerodynamic info of the aerodynamic surface.
+    def allInfo(self):
+        """Prints and plots all the available information of the aero surface.
 
         Returns
         -------
