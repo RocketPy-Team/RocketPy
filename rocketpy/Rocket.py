@@ -342,7 +342,7 @@ class Rocket:
         # Compute center of mass position
         self.centerOfMass = (
             self.center_of_mass_without_motor * self.mass
-            + self.centerOfPropellantPosition * self.motor.centerOfMass
+            + (self.motor.centerOfMass + self.motorPosition) * self.motor.totalMass
         ) / self.totalMass
         self.centerOfMass.setInputs("Time (s)")
         self.centerOfMass.setOutputs("Center of Mass Position (m)")
