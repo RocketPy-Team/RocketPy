@@ -2,8 +2,61 @@ __author__ = "Guilherme Fernandes Alves"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
+from abc import ABC, abstractmethod
 
-class _NoseConePrints:
+
+class _AeroSurfacePrints(ABC):
+    def __init__(self, aero_surface):
+        self.aero_surface = aero_surface
+        return None
+
+    def identity(self):
+        """Prints the identity of the aero surface.
+
+        Returns
+        -------
+        None
+        """
+        print(f"Identification of the AeroSurface:")
+        print(f"----------------------------------")
+        print(f"Name: {self.aero_surface.name}")
+        print(f"Python Class: {str(self.aero_surface.__class__)}\n")
+        return None
+
+    @abstractmethod
+    def geometry(self):
+        pass
+
+    def lift(self):
+        """Prints the lift information of the aero surface.
+
+        Returns
+        -------
+        None
+        """
+        print(f"Lift information of the AeroSurface:")
+        print(f"-----------------------------------")
+        print(
+            f"Center of Pressure position in local coordinates: ({self.aero_surface.cpx:.3f}, {self.aero_surface.cpy:.3f}, {self.aero_surface.cpz:.3f})"
+        )
+        print(
+            f"Lift coefficient derivative at Mach 0 and AoA 0: {self.aero_surface.clalpha(0):.3f} 1/rad\n"
+        )
+        return None
+
+    def all(self):
+        """Prints all information of the aero surface.
+
+        Returns
+        -------
+        None
+        """
+        self.identity()
+        self.geometry()
+        self.lift()
+        return None
+
+
     """Class that contains all nosecone prints."""
 
     def __init__(self, nosecone):
