@@ -1,4 +1,10 @@
-from .aero_surface_prints import _NoseConePrints
+from .aero_surface_prints import (
+    _NoseConePrints,
+    _TrapezoidalFinsPrints,
+    _EllipticalFinsPrints,
+    _TailPrints,
+    _RailButtonsPrints,
+)
 from .compare_prints import _ComparePrints
 from .environment_analysis_prints import _EnvironmentAnalysisPrints
 from .environment_prints import _EnvironmentPrints
