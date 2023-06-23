@@ -189,9 +189,9 @@ class McRailButtons(DispersionModel):
     """
 
     rail_buttons: RailButtons = Field(..., exclude=True)
-    upper_button_position: Any = 0
-    lower_button_position: Any = 0
+    buttons_distance: Any = 0
     angular_position: Any = 0
+    name: List[StrictStr] = []
 
     def create_object(self):
         """Creates a RailButtons object from the randomly generated input arguments.
@@ -207,8 +207,7 @@ class McRailButtons(DispersionModel):
         """
         gen_dict = next(self.dict_generator())
         obj = RailButtons(
-            upper_button_position=gen_dict["upper_button_position"],
-            lower_button_position=gen_dict["lower_button_position"],
+            buttons_distance=gen_dict["buttons_distance"],
             angular_position=gen_dict["angular_position"],
         )
         return obj
