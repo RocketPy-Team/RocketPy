@@ -8,7 +8,6 @@ import pytest
 from scipy import optimize
 
 from rocketpy import Environment, Flight, Function, Rocket, SolidMotor
-from rocketpy.AeroSurfaces import AeroSurfaces
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
@@ -34,7 +33,7 @@ def setup_rocket_with_given_static_margin(rocket, static_margin):
     """
 
     def compute_static_margin_error_given_distance(position, static_margin, rocket):
-        rocket.aerodynamicSurfaces = AeroSurfaces()
+        rocket.aerodynamicSurfaces.clear()
         rocket.addNose(length=0.5, kind="vonKarman", position=1.0 + 0.5)
         rocket.addTrapezoidalFins(
             4,
@@ -100,7 +99,7 @@ def test_flight(mock_show):
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
 
-    test_rocket.setRailButtons([0.2, -0.5])
+    test_rocket.setRailButtons(0.2, -0.5)
 
     test_rocket.addMotor(test_motor, position=-1.255)
 
@@ -114,17 +113,17 @@ def test_flight(mock_show):
         topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
     )
 
-    def drogueTrigger(p, y):
+    def drogueTrigger(p, h, y):
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate drogue when vz < 0 m/s.
         return True if y[5] < 0 else False
 
-    def mainTrigger(p, y):
+    def mainTrigger(p, h, y):
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate main when vz < 0 m/s and z < 800 m.
-        return True if y[5] < 0 and y[2] < 800 else False
+        return True if y[5] < 0 and h < 800 else False
 
     Main = test_rocket.addParachute(
         "Main",
@@ -190,7 +189,7 @@ def test_initial_solution(mock_show):
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
 
-    test_rocket.setRailButtons([0.2, -0.5])
+    test_rocket.setRailButtons(0.2, -0.5)
 
     test_rocket.addMotor(test_motor, position=-1.255)
 
@@ -204,17 +203,17 @@ def test_initial_solution(mock_show):
         topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
     )
 
-    def drogueTrigger(p, y):
+    def drogueTrigger(p, h, y):
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate drogue when vz < 0 m/s.
         return True if y[5] < 0 else False
 
-    def mainTrigger(p, y):
+    def mainTrigger(p, h, y):
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate main when vz < 0 m/s and z < 800 m.
-        return True if y[5] < 0 and y[2] < 800 else False
+        return True if y[5] < 0 and h < 800 else False
 
     Main = test_rocket.addParachute(
         "Main",
@@ -313,7 +312,7 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
         powerOffDrag=0,
         powerOnDrag=0,
     )
-    DummyRocket.setRailButtons([0.2, -0.5])
+    DummyRocket.setRailButtons(0.2, -0.5)
     DummyRocket.addMotor(DummyMotor, position=-1.255)
 
     setup_rocket_with_given_static_margin(DummyRocket, static_margin)
@@ -389,7 +388,7 @@ def test_rolling_flight(mock_show):
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
 
-    test_rocket.setRailButtons([0.2, -0.5])
+    test_rocket.setRailButtons(0.2, -0.5)
 
     test_rocket.addMotor(test_motor, position=-1.255)
 
@@ -403,17 +402,17 @@ def test_rolling_flight(mock_show):
         topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
     )
 
-    def drogueTrigger(p, y):
+    def drogueTrigger(p, h, y):
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate drogue when vz < 0 m/s.
         return True if y[5] < 0 else False
 
-    def mainTrigger(p, y):
+    def mainTrigger(p, h, y):
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate main when vz < 0 m/s and z < 800 m.
-        return True if y[5] < 0 and y[2] < 800 else False
+        return True if y[5] < 0 and h < 800 else False
 
     Main = test_rocket.addParachute(
         "Main",
@@ -435,6 +434,93 @@ def test_rolling_flight(mock_show):
 
     test_flight = Flight(
         rocket=test_rocket, environment=test_env, inclination=85, heading=0
+    )
+
+    assert test_flight.allInfo() == None
+
+
+@patch("matplotlib.pyplot.show")
+def test_simpler_parachute_triggers(mock_show):
+    test_env = Environment(
+        railLength=5,
+        latitude=32.990254,
+        longitude=-106.974998,
+        elevation=1400,
+        datum="WGS84",
+    )
+    tomorrow = datetime.date.today() + datetime.timedelta(days=1)
+    test_env.setDate(
+        (tomorrow.year, tomorrow.month, tomorrow.day, 12)
+    )  # Hour given in UTC time
+
+    test_motor = SolidMotor(
+        thrustSource="data/motors/Cesaroni_M1670.eng",
+        burnOut=3.9,
+        grainsCenterOfMassPosition=-0.85704,
+        grainNumber=5,
+        grainSeparation=5 / 1000,
+        grainDensity=1815,
+        grainOuterRadius=33 / 1000,
+        grainInitialInnerRadius=15 / 1000,
+        grainInitialHeight=120 / 1000,
+        nozzleRadius=33 / 1000,
+        throatRadius=11 / 1000,
+        interpolationMethod="linear",
+        nozzlePosition=-1.255,
+        coordinateSystemOrientation="nozzleToCombustionChamber",
+    )
+
+    test_rocket = Rocket(
+        radius=127 / 2000,
+        mass=19.197 - 2.956,
+        inertia=(6.60, 6.60, 0.0351),
+        powerOffDrag="data/calisto/powerOffDragCurve.csv",
+        powerOnDrag="data/calisto/powerOnDragCurve.csv",
+    )
+
+    test_rocket.setRailButtons(0.2, -0.5)
+
+    test_rocket.addMotor(test_motor, position=-1.255)
+
+    NoseCone = test_rocket.addNose(
+        length=0.55829, kind="vonKarman", position=0.71971 + 0.558291
+    )
+    FinSet = test_rocket.addTrapezoidalFins(
+        4, span=0.100, rootChord=0.120, tipChord=0.040, position=-1.04956
+    )
+    Tail = test_rocket.addTail(
+        topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
+    )
+
+    Main = test_rocket.addParachute(
+        "Main",
+        CdS=10.0,
+        trigger=800,
+        samplingRate=105,
+        lag=0,
+    )
+
+    Drogue = test_rocket.addParachute(
+        "Drogue",
+        CdS=1.0,
+        trigger="apogee",
+        samplingRate=105,
+        lag=0,
+    )
+
+    test_flight = Flight(
+        rocket=test_rocket, environment=test_env, inclination=85, heading=0
+    )
+
+    assert (
+        abs(test_flight.z(test_flight.parachuteEvents[0][0]) - test_flight.apogee) <= 1
+    )
+    assert (
+        abs(
+            test_flight.z(test_flight.parachuteEvents[1][0])
+            - (800 + test_env.elevation)
+        )
+        <= 1
     )
 
     assert test_flight.allInfo() == None
@@ -476,7 +562,7 @@ def test_export_data():
         powerOnDrag=0.5,
     )
 
-    test_rocket.setRailButtons([0.2, -0.5])
+    test_rocket.setRailButtons(0.2, -0.5)
 
     test_rocket.addMotor(test_motor, position=-1.255)
 
@@ -573,7 +659,7 @@ def test_export_KML():
         powerOnDrag=0.5,
     )
 
-    test_rocket.setRailButtons([0.2, -0.5])
+    test_rocket.setRailButtons(0.2, -0.5)
 
     test_rocket.addMotor(test_motor, position=-1.255)
 
@@ -655,7 +741,7 @@ def test_latlon_conversions(mock_show):
         powerOnDrag=0.5,
     )
 
-    test_rocket.setRailButtons([0.2, -0.5])
+    test_rocket.setRailButtons(0.2, -0.5)
 
     test_rocket.addMotor(test_motor, position=-1.255)
 
@@ -669,17 +755,17 @@ def test_latlon_conversions(mock_show):
         topRadius=0.0635, bottomRadius=0.0435, length=0.060, position=-1.194656
     )
 
-    def drogueTrigger(p, y):
+    def drogueTrigger(p, h, y):
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate drogue when vz < 0 m/s.
         return True if y[5] < 0 else False
 
-    def mainTrigger(p, y):
+    def mainTrigger(p, h, y):
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate main when vz < 0 m/s and z < 800 m.
-        return True if y[5] < 0 and y[2] < 800 else False
+        return True if y[5] < 0 and h < 800 else False
 
     Main = test_rocket.addParachute(
         "Main",
@@ -705,10 +791,10 @@ def test_latlon_conversions(mock_show):
 
     # Check for initial and final lat/lon coordinates based on launch pad coordinates
     test_flight.postProcess()
-    assert abs(test_flight.latitude(0)) - abs(test_flight.env.lat) < 1e-6
-    assert abs(test_flight.longitude(0)) - abs(test_flight.env.lon) < 1e-6
-    assert test_flight.latitude(test_flight.tFinal) > test_flight.env.lat
-    assert test_flight.longitude(test_flight.tFinal) > test_flight.env.lon
+    assert abs(test_flight.latitude(0)) - abs(test_flight.env.latitude) < 1e-6
+    assert abs(test_flight.longitude(0)) - abs(test_flight.env.longitude) < 1e-6
+    assert test_flight.latitude(test_flight.tFinal) > test_flight.env.latitude
+    assert test_flight.longitude(test_flight.tFinal) > test_flight.env.longitude
 
 
 @patch("matplotlib.pyplot.show")
@@ -739,7 +825,7 @@ def test_latlon_conversions2(mock_show):
         powerOnDrag=0.5,
     )
 
-    test_rocket.setRailButtons([0.2, -0.5])
+    test_rocket.setRailButtons(0.2, -0.5)
 
     test_rocket.addMotor(test_motor, position=-1.255)
 

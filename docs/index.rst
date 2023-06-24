@@ -10,6 +10,7 @@
    User Guide <user/index>
    Code Reference <reference/index>
    Development <development/index>
+   Technical <technical/index>
 
 .. _`RocketPy`: https://www.linkedin.com/company/75016723
 

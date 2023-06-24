@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from .Function import Function
-
 __author__ = "Giovani Hidalgo Ceotto, Guilherme Fernandes Alves, Lucas Azevedo Pezente, Oscar Mauricio Prada Ramirez, Lucas Kierulff Balabram"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
@@ -16,6 +14,10 @@ import numpy as np
 import numpy.ma as ma
 import pytz
 import requests
+from collections import namedtuple
+from rocketpy.Function import funcify_method
+
+from .Function import Function
 
 from .plots.environment_plots import _EnvironmentPlots
 from .prints.environment_prints import _EnvironmentPrints
@@ -58,18 +60,18 @@ class Environment:
             Value of Air's Gas Constant = 287.05287 J/K/Kg
 
         Gravity and Launch Rail Length:
-        Environment.rl : float
+        Environment.railLength : float
             Launch rail length in meters.
-        Environment.g : float
+        Environment.gravity : float
             Positive value of gravitational acceleration in m/s^2.
 
         Coordinates and Date:
-        Environment.lat : float
+        Environment.latitude : float
             Launch site latitude.
-        Environment.lon : float
+        Environment.longitude : float
             Launch site longitude.
         Environment.datum: string
-            The desired reference ellipsoide model, the following options are
+            The desired reference ellipsoid model, the following options are
             available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
             is "SIRGAS2000", then this model will be used if the user make some
             typing mistake
@@ -103,7 +105,7 @@ class Environment:
         Environment.elevArray: array
             Two-dimensional Array containing the elevation information
         Environment.topographicProfileActivated: bool
-            True if the user already set a topographic plofile
+            True if the user already set a topographic profile
 
         Atmosphere Static Conditions:
         Environment.maxExpectedHeight : float
@@ -187,11 +189,11 @@ class Environment:
             Dictionary used to properly interpret netCDF and OPeNDAP
             files. Only defined for 'Forecast', 'Reanalysis', 'Ensemble'.
         Environment.atmosphericModelInitDate : datetime
-            Datetime object instance of first availabe date in netCDF
+            Datetime object instance of first available date in netCDF
             and OPeNDAP files when using 'Forecast', 'Reanalysis' or
             'Ensemble'.
         Environment.atmosphericModelEndDate : datetime
-            Datetime object instance of last availabe date in netCDF
+            Datetime object instance of last available date in netCDF
             and OPeNDAP files when using 'Forecast', 'Reanalysis' or
             'Ensemble'.
         Environment.atmosphericModelInterval : int
@@ -282,7 +284,7 @@ class Environment:
             Only defined when using Ensembles.
         Environment.windVEnsemble : array
             Only defined when using Ensembles.
-        Environment.windHeadingEnsemble : arrray
+        Environment.windHeadingEnsemble : array
             Only defined when using Ensembles.
         Environment.windDirectionEnsemble : array
             Only defined when using Ensembles.
@@ -297,7 +299,7 @@ class Environment:
     def __init__(
         self,
         railLength,
-        gravity=9.80665,
+        gravity=None,
         date=None,
         latitude=0,
         longitude=0,
@@ -317,9 +319,10 @@ class Environment:
             Length in which the rocket will be attached to the rail, only
             moving along a fixed direction, that is, the line parallel to the
             rail.
-        gravity : scalar, optional
+        gravity : int, float, callable, string, array, optional
             Surface gravitational acceleration. Positive values point the
-            acceleration down. Default value is 9.80665.
+            acceleration down. If None, the Somigliana formula is used to
+            compute the gravity at the launch site as a function of height.
         date : array, optional
             Array of length 4, stating (year, month, day, hour (UTC))
             of rocket launch. Must be given if a Forecast, Reanalysis
@@ -341,7 +344,7 @@ class Environment:
             find elevation data. For this option, latitude and
             longitude must also be specified. Default value is 0.
         datum : string
-            The desired reference ellipsoide model, the following options are
+            The desired reference ellipsoidal model, the following options are
             available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
             is "SIRGAS2000", then this model will be used if the user make some
             typing mistake.
@@ -353,28 +356,12 @@ class Environment:
         None
         """
         # Save launch rail length
-        self.rL = railLength
-
-        # Save gravity value
-        self.g = gravity
-
-        # Save datum
-        self.datum = datum
-
-        # Save date
-        if date != None:
-            self.setDate(date, timeZone)
-        else:
-            self.date = None
-            self.localDate = None
-            self.timeZone = None
+        self.railLength = railLength
 
         # Initialize constants
         self.earthRadius = 6.3781 * (10**6)
         self.airGasConstant = 287.05287  # in J/K/Kg
-
-        # Initialize plots and prints objects
-        self.prints = _EnvironmentPrints(self)
+        self.standard_g = 9.80665
 
         # Initialize atmosphere
         self.setAtmosphericModel("StandardAtmosphere")
@@ -383,11 +370,42 @@ class Environment:
         if latitude != None and longitude != None:
             self.setLocation(latitude, longitude)
         else:
-            self.lat, self.lon = None, None
+            self.latitude, self.longitude = None, None
+
+        # Save date
+        if date != None:
+            self.setDate(date, timeZone)
+        else:
+            self.date = None
+            self.datetime_date = None
+            self.localDate = None
+            self.timeZone = None
+
+        # Initialize Earth geometry and save datum
+        self.datum = datum
+        self.ellipsoid = self.setEarthGeometry(datum)
+
+        # Set gravity model
+        self.gravity = self.setGravityModel(gravity)
+
+        # Initialize plots and prints objects
+        self.prints = _EnvironmentPrints(self)
+
+        # Initialize atmosphere
+        self.setAtmosphericModel("StandardAtmosphere")
+
+        # Save latitude and longitude
+        self.latitude = latitude
+        self.longitude = longitude
+        if latitude != None and longitude != None:
+            self.setLocation(latitude, longitude)
+        else:
+            self.latitude, self.longitude = None, None
 
         # Store launch site coordinates referenced to UTM projection system
-        if self.lat > -80 and self.lat < 84:
-            convert = self.geodesicToUtm(self.lat, self.lon, self.datum)
+        if self.latitude > -80 and self.latitude < 84:
+            convert = self.geodesicToUtm(self.latitude, self.longitude)
+
             self.initialNorth = convert[1]
             self.initialEast = convert[0]
             self.initialUtmZone = convert[2]
@@ -396,10 +414,11 @@ class Environment:
             self.initialEW = convert[5]
 
         # Save elevation
+        self.elevation = elevation
         self.setElevation(elevation)
 
         # Recalculate Earth Radius
-        self.earthRadius = self.calculateEarthRadius(self.lat, self.datum)  # in m
+        self.earthRadius = self.calculateEarthRadius(self.latitude)  # in m
 
         # Initialize plots and prints object
         self.plots = _EnvironmentPlots(self)
@@ -431,8 +450,9 @@ class Environment:
             localDate = date
         if localDate.tzinfo == None:
             localDate = tz.localize(localDate)
+        self.date = date
         self.localDate = localDate
-        self.date = self.localDate.astimezone(pytz.UTC)
+        self.datetime_date = self.localDate.astimezone(pytz.UTC)
 
         # Update atmospheric conditions if atmosphere type is Forecast,
         # Reanalysis or Ensemble
@@ -464,8 +484,8 @@ class Environment:
         None
         """
         # Store latitude and longitude
-        self.lat = latitude
-        self.lon = longitude
+        self.latitude = latitude
+        self.longitude = longitude
 
         # Update atmospheric conditions if atmosphere type is Forecast,
         # Reanalysis or Ensemble
@@ -475,6 +495,64 @@ class Environment:
             )
 
         # Return None
+
+    def setGravityModel(self, gravity):
+        """Sets the gravity model to be used in the simulation based
+        on the given user input to the gravity parameter.
+
+        Parameters
+        ----------
+        gravity : None or Function source
+
+        Returns
+        -------
+        Function
+            Function object representing the gravity model.
+        """
+        if gravity is None:
+            return self.somiglianaGravity.setDiscrete(0, self.maxExpectedHeight, 100)
+        else:
+            return Function(gravity, "height (m)", "gravity (m/s²)").setDiscrete(
+                0, self.maxExpectedHeight, 100
+            )
+
+    @funcify_method("height (m)", "gravity (m/s²)")
+    def somiglianaGravity(self, height):
+        """Computes the gravity acceleration with the Somigliana formula.
+        An height correction is applied to the normal gravity that is
+        accurate for heights used in aviation. The formula is based on the
+        WGS84 ellipsoid, but is accurate for other reference ellipsoids.
+
+        Parameters
+        ----------
+        height : float
+            Height above the reference ellipsoid in meters.
+
+        Returns
+        -------
+        Function
+            Function object representing the gravity model.
+        """
+        a = 6378137.0  # semi_major_axis
+        f = 1 / 298.257223563  # flattening_factor
+        m_rot = 3.449786506841e-3  # rotation_factor
+        g_e = 9.7803253359  # normal gravity at equator
+        k_somgl = 1.931852652458e-3  # normal gravity formula const.
+        first_ecc_sqrd = 6.694379990141e-3  # square of first eccentricity
+
+        # Compute quantities
+        sin_lat_sqrd = (np.sin(self.latitude * np.pi / 180)) ** 2
+
+        gravity_somgl = g_e * (
+            (1 + k_somgl * sin_lat_sqrd) / (np.sqrt(1 - first_ecc_sqrd * sin_lat_sqrd))
+        )
+        height_correction = (
+            1
+            - height * 2 / a * (1 + f + m_rot - 2 * f * sin_lat_sqrd)
+            + 3 * height**2 / a**2
+        )
+
+        return height_correction * gravity_somgl
 
     def setElevation(self, elevation="Open-Elevation"):
         """Set elevation of launch site given user input or using the
@@ -496,7 +574,7 @@ class Environment:
         """
         if elevation != "Open-Elevation" and elevation != "SRTM":
             self.elevation = elevation
-        # elif elevation == "SRTM" and self.lat != None and self.lon != None:
+        # elif elevation == "SRTM" and self.latitude != None and self.longitude != None:
         #     # Trigger the authentication flow.
         #     #ee.Authenticate()
         #     # Initialize the library.
@@ -504,23 +582,23 @@ class Environment:
 
         #     # Calculate elevation
         #     dem  = ee.Image('USGS/SRTMGL1_003')
-        #     xy   = ee.Geometry.Point([self.lon, self.lat])
+        #     xy   = ee.Geometry.Point([self.longitude, self.latitude])
         #     elev = dem.sample(xy, 30).first().get('elevation').getInfo()
 
         #     self.elevation = elev
 
-        elif self.lat != None and self.lon != None:
+        elif self.latitude != None and self.longitude != None:
             try:
                 print("Fetching elevation from open-elevation.com...")
                 requestURL = "https://api.open-elevation.com/api/v1/lookup?locations={:f},{:f}".format(
-                    self.lat, self.lon
+                    self.latitude, self.longitude
                 )
                 response = requests.get(requestURL)
                 results = response.json()["results"]
                 self.elevation = results[0]["elevation"]
                 print("Elevation received:", self.elevation)
             except:
-                raise RuntimeError("Unabel to reach Open-Elevation API servers.")
+                raise RuntimeError("Unable to reach Open-Elevation API servers.")
         else:
             raise ValueError(
                 "Latitude and longitude must be set to use"
@@ -602,7 +680,7 @@ class Environment:
         """
         if self.topographicProfileActivated == False:
             print(
-                "You must define a Topographic profile first, please use the method Environment.setTopograghicProfile()"
+                "You must define a Topographic profile first, please use the method Environment.setTopographicProfile()"
             )
             return None
 
@@ -684,7 +762,7 @@ class Environment:
         Supported functionality includes using data from the
         International Standard Atmosphere, importing data from
         weather reanalysis, forecasts and ensemble forecasts,
-        importing data from upper air soundings and inputing
+        importing data from upper air soundings and inputting
         data as custom functions, arrays or csv files.
 
         Parameters
@@ -1449,7 +1527,7 @@ class Environment:
     def processWindyAtmosphere(self, model="ECMWF"):
         """Process data from Windy.com to retrieve atmospheric forecast data.
 
-        Paramaters
+        Parameters
         ----------
         model : string, optional
             The atmospheric model to use. Default is 'ECMWF'. Options are: 'ECMWF' for
@@ -1462,7 +1540,7 @@ class Environment:
         if model[-1] == "u":  # case iconEu
             model = "".join([model[:4], model[4].upper(), model[4 + 1 :]])
         # Load data from Windy.com: json file
-        url = f"https://node.windy.com/forecast/meteogram/{model}/{self.lat}/{self.lon}/?step=undefined"
+        url = f"https://node.windy.com/forecast/meteogram/{model}/{self.latitude}/{self.longitude}/?step=undefined"
         try:
             response = requests.get(url).json()
         except:
@@ -1475,7 +1553,7 @@ class Environment:
         # Determine time index from model
         timeArray = np.array(response["data"]["hours"])
         timeUnits = "milliseconds since 1970-01-01 00:00:00"
-        launchTimeInUnits = netCDF4.date2num(self.date, timeUnits)
+        launchTimeInUnits = netCDF4.date2num(self.datetime_date, timeUnits)
         # Find the index of the closest time in timeArray to the launch time
         timeIndex = (np.abs(timeArray - launchTimeInUnits)).argmin()
 
@@ -1580,10 +1658,10 @@ class Environment:
         self.atmosphericModelInterval = netCDF4.num2date(
             (timeArray[-1] - timeArray[0]) / (len(timeArray) - 1), units=timeUnits
         ).hour
-        self.atmosphericModelInitLat = self.lat
-        self.atmosphericModelEndLat = self.lat
-        self.atmosphericModelInitLon = self.lon
-        self.atmosphericModelEndLon = self.lon
+        self.atmosphericModelInitLat = self.latitude
+        self.atmosphericModelEndLat = self.latitude
+        self.atmosphericModelInitLon = self.longitude
+        self.atmosphericModelEndLon = self.longitude
 
         # Save debugging data
         self.geopotentials = geopotentialHeightArray
@@ -1627,7 +1705,7 @@ class Environment:
                 "Invalid OUTPUT: specified. Make sure the output is Text: List."
             )
 
-        # Process Wyoming Souding by finding data table and station info
+        # Process Wyoming Sounding by finding data table and station info
         response_split_text = re.split("(<.{0,1}PRE>)", response.text)
         data_table = response_split_text[2]
         station_info = response_split_text[6]
@@ -1940,14 +2018,14 @@ class Environment:
         None
         """
         # Check if date, lat and lon are known
-        if self.date is None:
+        if self.datetime_date is None:
             raise TypeError(
                 "Please specify Date (array-like) when "
                 "initializing this Environment. "
                 "Alternatively, use the Environment.setDate"
                 " method."
             )
-        if self.lat is None:
+        if self.latitude is None:
             raise TypeError(
                 "Please specify Location (lat, lon). when "
                 "initializing this Environment. "
@@ -1965,11 +2043,11 @@ class Environment:
 
         # Find time index
         timeIndex = netCDF4.date2index(
-            self.date, timeArray, calendar="gregorian", select="nearest"
+            self.datetime_date, timeArray, calendar="gregorian", select="nearest"
         )
         # Convert times do dates and numbers
         inputTimeNum = netCDF4.date2num(
-            self.date, timeArray.units, calendar="gregorian"
+            self.datetime_date, timeArray.units, calendar="gregorian"
         )
         fileTimeNum = timeArray[timeIndex]
         fileTimeDate = netCDF4.num2date(
@@ -2000,10 +2078,12 @@ class Environment:
         # Determine if file uses -180 to 180 or 0 to 360
         if lonArray[0] < 0 or lonArray[-1] < 0:
             # Convert input to -180 - 180
-            lon = self.lon if self.lon < 180 else -180 + self.lon % 180
+            lon = (
+                self.longitude if self.longitude < 180 else -180 + self.longitude % 180
+            )
         else:
             # Convert input to 0 - 360
-            lon = self.lon % 360
+            lon = self.longitude % 360
         # Check if reversed or sorted
         if lonArray[0] < lonArray[-1]:
             # Deal with sorted lonArray
@@ -2028,20 +2108,20 @@ class Environment:
         # Check if reversed or sorted
         if latArray[0] < latArray[-1]:
             # Deal with sorted latArray
-            latIndex = bisect.bisect(latArray, self.lat)
+            latIndex = bisect.bisect(latArray, self.latitude)
         else:
             # Deal with reversed latArray
             latArray.reverse()
-            latIndex = len(latArray) - bisect.bisect_left(latArray, self.lat)
+            latIndex = len(latArray) - bisect.bisect_left(latArray, self.latitude)
             latArray.reverse()
         # Take care of latitude value equal to maximum longitude in the grid
-        if latIndex == len(latArray) and latArray[latIndex - 1] == self.lat:
+        if latIndex == len(latArray) and latArray[latIndex - 1] == self.latitude:
             latIndex = latIndex - 1
         # Check if latitude value is inside the grid
         if latIndex == 0 or latIndex == len(latArray):
             raise ValueError(
                 "Latitude {:f} not inside region covered by file, which is from {:f} to {:f}.".format(
-                    self.lat, latArray[0], latArray[-1]
+                    self.latitude, latArray[0], latArray[-1]
                 )
             )
 
@@ -2066,11 +2146,11 @@ class Environment:
                     weatherData.variables[dictionary["geopotential"]][
                         timeIndex, :, (latIndex - 1, latIndex), (lonIndex - 1, lonIndex)
                     ]
-                    / self.g
+                    / self.standard_g
                 )
             except:
                 raise ValueError(
-                    "Unable to read geopontential height"
+                    "Unable to read geopotential height"
                     " nor geopotential from file. At least"
                     " one of them is necessary. Check "
                     " file and dictionary."
@@ -2105,7 +2185,7 @@ class Environment:
             )
 
         # Prepare for bilinear interpolation
-        x, y = self.lat, lon
+        x, y = self.latitude, lon
         x1, y1 = latArray[latIndex - 1], lonArray[lonIndex - 1]
         x2, y2 = latArray[latIndex], lonArray[lonIndex]
 
@@ -2335,14 +2415,14 @@ class Environment:
         None
         """
         # Check if date, lat and lon are known
-        if self.date is None:
+        if self.datetime_date is None:
             raise TypeError(
                 "Please specify Date (array-like) when "
                 "initializing this Environment. "
                 "Alternatively, use the Environment.setDate"
                 " method."
             )
-        if self.lat is None:
+        if self.latitude is None:
             raise TypeError(
                 "Please specify Location (lat, lon). when "
                 "initializing this Environment. "
@@ -2360,11 +2440,11 @@ class Environment:
 
         # Find time index
         timeIndex = netCDF4.date2index(
-            self.date, timeArray, calendar="gregorian", select="nearest"
+            self.datetime_date, timeArray, calendar="gregorian", select="nearest"
         )
         # Convert times do dates and numbers
         inputTimeNum = netCDF4.date2num(
-            self.date, timeArray.units, calendar="gregorian"
+            self.datetime_date, timeArray.units, calendar="gregorian"
         )
         fileTimeNum = timeArray[timeIndex]
         fileTimeDate = netCDF4.num2date(
@@ -2395,10 +2475,12 @@ class Environment:
         # Determine if file uses -180 to 180 or 0 to 360
         if lonArray[0] < 0 or lonArray[-1] < 0:
             # Convert input to -180 - 180
-            lon = self.lon if self.lon < 180 else -180 + self.lon % 180
+            lon = (
+                self.longitude if self.longitude < 180 else -180 + self.longitude % 180
+            )
         else:
             # Convert input to 0 - 360
-            lon = self.lon % 360
+            lon = self.longitude % 360
         # Check if reversed or sorted
         if lonArray[0] < lonArray[-1]:
             # Deal with sorted lonArray
@@ -2423,20 +2505,20 @@ class Environment:
         # Check if reversed or sorted
         if latArray[0] < latArray[-1]:
             # Deal with sorted latArray
-            latIndex = bisect.bisect(latArray, self.lat)
+            latIndex = bisect.bisect(latArray, self.latitude)
         else:
             # Deal with reversed latArray
             latArray.reverse()
-            latIndex = len(latArray) - bisect.bisect_left(latArray, self.lat)
+            latIndex = len(latArray) - bisect.bisect_left(latArray, self.latitude)
             latArray.reverse()
         # Take care of latitude value equal to maximum longitude in the grid
-        if latIndex == len(latArray) and latArray[latIndex - 1] == self.lat:
+        if latIndex == len(latArray) and latArray[latIndex - 1] == self.latitude:
             latIndex = latIndex - 1
         # Check if latitude value is inside the grid
         if latIndex == 0 or latIndex == len(latArray):
             raise ValueError(
                 "Latitude {:f} not inside region covered by file, which is from {:f} to {:f}.".format(
-                    self.lat, latArray[0], latArray[-1]
+                    self.latitude, latArray[0], latArray[-1]
                 )
             )
 
@@ -2489,11 +2571,12 @@ class Environment:
                     [paramDictionary[inverseDictionary[dim]] for dim in dimensions]
                 )
                 geopotentials = (
-                    weatherData.variables[dictionary["geopotential"]][params] / self.g
+                    weatherData.variables[dictionary["geopotential"]][params]
+                    / self.standard_g
                 )
             except:
                 raise ValueError(
-                    "Unable to read geopontential height"
+                    "Unable to read geopotential height"
                     " nor geopotential from file. At least"
                     " one of them is necessary. Check "
                     " file and dictionary."
@@ -2522,7 +2605,7 @@ class Environment:
             )
 
         # Prepare for bilinear interpolation
-        x, y = self.lat, lon
+        x, y = self.latitude, lon
         x1, y1 = latArray[latIndex - 1], lonArray[lonIndex - 1]
         x2, y2 = latArray[latIndex], lonArray[lonIndex]
 
@@ -2820,7 +2903,6 @@ class Environment:
         # Convert geopotential height to geometric height
         ER = self.earthRadius
         height = [ER * H / (ER - H) for H in geopotential_height]
-        height = geopotential_height
 
         # Save international standard atmosphere temperature profile
         self.temperatureISA = Function(
@@ -2831,15 +2913,15 @@ class Environment:
         )
 
         # Get gravity and R
-        g = self.g
+        g = self.standard_g
         R = self.airGasConstant
 
-        # Create function to compute pressure profile
+        # Create function to compute pressure at a given geometric height
         def pressure_function(h):
             # Convert geometric to geopotential height
             H = ER * h / (ER + h)
-            H = h
 
+            # Check if height is within bounds, return extrapolated value if not
             if H < -2000:
                 return pressure[0]
             elif H > 80000:
@@ -2854,7 +2936,7 @@ class Environment:
             Pb = pressure[layer]
             B = beta[layer]
 
-            # Compute presure
+            # Compute pressure
             if B != 0:
                 P = Pb * (1 + (B / Tb) * (H - Hb)) ** (-g / (B * R))
             else:
@@ -2919,10 +3001,10 @@ class Environment:
         # Retrieve gas constant R and temperature T
         R = self.airGasConstant
         T = self.temperature
-        G = 1.4  # Unused variable, why?
+        G = 1.4
 
         # Compute speed of sound using sqrt(gamma*R*T)
-        a = (1.4 * R * T) ** 0.5
+        a = (G * R * T) ** 0.5
 
         # Set new output for the calculated speed of sound
         a.setOutputs("Speed of Sound (m/s)")
@@ -2936,6 +3018,8 @@ class Environment:
         """Compute the dynamic viscosity of the atmosphere as a function of
         height by using the formula given in ISO 2533 u = B*T^(1.5)/(T+S).
         This function is automatically called whenever a new atmospheric model is set.
+        Warning: This equation is invalid for very high or very low temperatures
+        and under conditions occurring at altitudes above 90 km.
 
         Parameters
         ----------
@@ -3120,8 +3204,8 @@ class Environment:
 
         # Dictionary creation, if not commented follows the SI
         info = dict(
-            grav=self.g,
-            launch_rail_length=self.rL,
+            grav=self.gravity,
+            launch_rail_length=self.railLength,
             elevation=self.elevation,
             modelType=self.atmosphericModelType,
             modelTypeMaxExpectedHeight=self.maxExpectedHeight,
@@ -3133,11 +3217,11 @@ class Environment:
             surfaceAirDensity=self.density(self.elevation),
             surfaceSpeedOfSound=self.speedOfSound(self.elevation),
         )
-        if self.date != None:
-            info["launch_date"] = self.date.strftime("%Y-%d-%m %H:%M:%S")
-        if self.lat != None and self.lon != None:
-            info["lat"] = self.lat
-            info["lon"] = self.lon
+        if self.datetime_date != None:
+            info["launch_date"] = self.datetime_date.strftime("%Y-%d-%m %H:%M:%S")
+        if self.latitude != None and self.longitude != None:
+            info["lat"] = self.latitude
+            info["lon"] = self.longitude
         if info["modelType"] in ["Forecast", "Reanalysis", "Ensemble"]:
             info["initDate"] = self.atmosphericModelInitDate.strftime(
                 "%Y-%d-%m %H:%M:%S"
@@ -3175,11 +3259,16 @@ class Environment:
             atmosphericModelDict = ""
 
         self.exportEnvDictionary = {
-            "railLength": self.rL,
-            "gravity": self.g,
-            "date": [self.date.year, self.date.month, self.date.day, self.date.hour],
-            "latitude": self.lat,
-            "longitude": self.lon,
+            "railLength": self.railLength,
+            "gravity": self.gravity(self.elevation),
+            "date": [
+                self.datetime_date.year,
+                self.datetime_date.month,
+                self.datetime_date.day,
+                self.datetime_date.hour,
+            ],
+            "latitude": self.latitude,
+            "longitude": self.longitude,
             "elevation": self.elevation,
             "datum": self.datum,
             "timeZone": self.timeZone,
@@ -3217,8 +3306,36 @@ class Environment:
 
         return None
 
+    def setEarthGeometry(self, datum):
+        """Sets the Earth geometry for the Environment class based on the
+        datum provided.
+
+        Parameters
+        ----------
+        datum: str
+            The datum to be used for the Earth geometry.
+
+        Returns
+        -------
+        earthGeometry: namedtuple
+            The namedtuple containing the Earth geometry.
+        """
+        geodesy = namedtuple("earthGeometry", "semiMajorAxis flattening")
+        ellipsoid = {
+            "SIRGAS2000": geodesy(6378137.0, 1 / 298.257223563),
+            "SAD69": geodesy(6378160.0, 1 / 298.25),
+            "NAD83": geodesy(6378137.0, 1 / 298.257024899),
+            "WGS84": geodesy(6378137.0, 1 / 298.257223563),
+        }
+        try:
+            return ellipsoid[datum]
+        except KeyError:
+            raise AttributeError(
+                f"The reference system {datum} for Earth geometry " "is not recognized."
+            )
+
     # Auxiliary functions - Geodesic Coordinates
-    def geodesicToUtm(self, lat, lon, datum):
+    def geodesicToUtm(self, lat, lon):
         """Function which converts geodetic coordinates, i.e. lat/lon, to UTM
         projection coordinates. Can be used only for latitudes between -80.00°
         and 84.00°
@@ -3231,11 +3348,6 @@ class Environment:
         lon : float
             The longitude coordinates of the point of analysis, must be contained
             between -180.00° and 180.00°
-        datum : string
-            The desired reference ellipsoide model, the following options are
-            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
-            is "SIRGAS2000", then this model will be used if the user make some
-            typing mistake
 
         Returns
         -------
@@ -3275,19 +3387,8 @@ class Environment:
             EW = "W|E"
 
         # Select the desired datum (i.e. the ellipsoid parameters)
-        if datum == "SAD69":
-            semiMajorAxis = 6378160.0
-            flattening = 1 / 298.25
-        elif datum == "WGS84":
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257223563
-        elif datum == "NAD83":
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257024899
-        else:
-            # SIRGAS2000
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257223563
+        flattening = self.ellipsoid.flattening
+        semiMajorAxis = self.ellipsoid.semiMajorAxis
 
         # Evaluate the hemisphere and determine the N coordinate at the Equator
         if lat < 0:
@@ -3349,7 +3450,7 @@ class Environment:
 
         return x, y, utmZone, utmLetter, hemis, EW
 
-    def utmToGeodesic(self, x, y, utmZone, hemis, datum):
+    def utmToGeodesic(self, x, y, utmZone, hemis):
         """Function to convert UTM coordinates to geodesic coordinates
         (i.e. latitude and longitude). The latitude should be between -80°
         and 84°
@@ -3365,11 +3466,6 @@ class Environment:
             1 and 60
         hemis : string
             Equals to "S" for southern hemisphere and "N" for Northern hemisphere
-        datum : string
-            The desired reference ellipsoid model, the following options are
-            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
-            is "SIRGAS2000", then this model will be used if the user make some
-            typing mistake
 
         Returns
         -------
@@ -3386,19 +3482,8 @@ class Environment:
         centralMeridian = utmZone * 6 - 183  # degrees
 
         # Select the desired datum
-        if datum == "SAD69":
-            semiMajorAxis = 6378160.0
-            flattening = 1 / 298.25
-        elif datum == "WGS84":
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257223563
-        elif datum == "NAD83":
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257024899
-        else:
-            # SIRGAS2000
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257223563
+        flattening = self.ellipsoid.flattening
+        semiMajorAxis = self.ellipsoid.semiMajorAxis
 
         # Calculate reference values
         K0 = 1 - 1 / 2500
@@ -3453,7 +3538,7 @@ class Environment:
 
         return lat, lon
 
-    def calculateEarthRadius(self, lat, datum):
+    def calculateEarthRadius(self, lat):
         """Simple function to calculate the Earth Radius at a specific latitude
         based on ellipsoidal reference model (datum). The earth radius here is
         assumed as the distance between the ellipsoid's center of gravity and a
@@ -3466,11 +3551,6 @@ class Environment:
         ----------
         lat : float
             latitude in which the Earth radius will be calculated
-        datum : string
-            The desired reference ellipsoide model, the following options are
-            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
-            is "SIRGAS2000", then this model will be used if the user make some
-            typing mistake
 
         Returns
         -------
@@ -3478,19 +3558,8 @@ class Environment:
             Earth Radius at the desired latitude in meters
         """
         # Select the desired datum (i.e. the ellipsoid parameters)
-        if datum == "SAD69":
-            semiMajorAxis = 6378160.0
-            flattening = 1 / 298.25
-        elif datum == "WGS84":
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257223563
-        elif datum == "NAD83":
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257024899
-        else:
-            # SIRGAS2000
-            semiMajorAxis = 6378137.0
-            flattening = 1 / 298.257223563
+        flattening = self.ellipsoid.flattening
+        semiMajorAxis = self.ellipsoid.semiMajorAxis
 
         # Calculate the semi minor axis length
         # semiMinorAxis = semiMajorAxis - semiMajorAxis*(flattening**(-1))
@@ -3508,7 +3577,7 @@ class Environment:
             / ((np.cos(lat) * semiMajorAxis) ** 2 + (np.sin(lat) * semiMinorAxis) ** 2)
         )
 
-        # Convert latitude to degress
+        # Convert latitude to degrees
         lat = lat * 180 / np.pi
 
         return eRadius

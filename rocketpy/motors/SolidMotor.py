@@ -6,7 +6,11 @@ __license__ = "MIT"
 
 import numpy as np
 from scipy import integrate
-from functools import cached_property
+
+try:
+    from functools import cached_property
+except ImportError:
+    from rocketpy.tools import cached_property
 
 from rocketpy.Function import Function, funcify_method
 from rocketpy.motors import Motor
@@ -390,7 +394,7 @@ class SolidMotor(Motor):
         t : float
             Time in seconds.
 
-        Returns
+        Returnsg
         -------
         Function
             Position of the propellant center of mass as a function of time.

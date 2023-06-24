@@ -2,7 +2,18 @@ import numpy as np
 
 from rocketpy import Function
 from rocketpy.Function import PiecewiseFunction, funcify_method
-from functools import cached_property
+
+try:
+    from functools import cache
+except ImportError:
+    from functools import lru_cache
+
+    cache = lru_cache(maxsize=None)
+
+try:
+    from functools import cached_property
+except ImportError:
+    from rocketpy.tools import cached_property
 
 
 class TankGeometry:
@@ -163,6 +174,109 @@ class TankGeometry:
         return self.volume.inverseFunction(
             lambda v: v / (np.pi * self.average_radius**2),
         )
+
+    @cache
+    def volume_moment(self, lower, upper):
+        """
+        Calculates the first volume moment of the tank as a function of height.
+        The first volume moment is used in the evaluation of the tank centroid,
+        and can be understood as the weighted sum of the tank's infinitesimal
+        slices volume by their height.
+
+        The height referential is the zero level of the defined tank geometry,
+        not to be confused with the tank bottom.
+
+        See also:
+        https://en.wikipedia.org/wiki/Moment_(physics)
+
+        Returns
+        -------
+        Function
+            Tank's first volume moment as a function of height.
+        """
+        height = self.area.identityFunction()
+
+        # Tolerance of 1e-8 is used to avoid numerical errors
+        upper = upper + 1e-12 if upper - lower < 1e-8 else upper
+
+        volume_moment = (height * self.area).integralFunction(lower, upper)
+
+        # Correct naming
+        volume_moment.setInputs("height (m)")
+        volume_moment.setOutputs("balance (m⁴)")
+
+        return volume_moment
+
+    @cache
+    def Ix_volume(self, lower, upper):
+        """
+        The volume of inertia of the tank with respect to
+        the x-axis as a function of height. The x direction is
+        assumed to be perpendicular to the motor body axis.
+
+        The inertia reference point is the zero level of the defined
+        tank geometry, not to be confused with the tank bottom.
+
+        Returns
+        -------
+        Function
+            Tank volume of inertia as a function of height.
+        """
+        height2 = self.radius.identityFunction() ** 2
+
+        # Tolerance of 1e-8 is used to avoid numerical errors
+        upper = upper + 1e-12 if upper - lower < 1e-8 else upper
+
+        inertia = (self.area * (height2 + self.radius**2 / 4)).integralFunction(
+            lower, upper
+        )
+
+        # Correct naming
+        inertia.setInputs("height (m)")
+        inertia.setOutputs("volume of inertia (m⁵)")
+
+        return inertia
+
+    @cache
+    def Iy_volume(self, lower, upper):
+        """
+        The volume of inertia of the tank with respect to
+        the y-axis as a function of height. The y direction is
+        assumed to be perpendicular to the motor body axis.
+
+        The inertia reference point is the zero level of the defined
+        tank geometry, not to be confused with the tank bottom.
+
+        Due to symmetry, this is the same as the Ix_volume.
+
+        Returns
+        -------
+        Function
+            Tank volume of inertia as a function of height.
+        """
+        return self.Ix_volume(lower, upper)
+
+    @cache
+    def Iz_volume(self, lower, upper):
+        """
+        The volume of inertia of the tank with respect to
+        the z-axis as a function of height. The z direction is
+        assumed to be parallel to the motor body axis.
+
+        The inertia reference point is the zero level of the defined
+        tank geometry, not to be confused with the tank bottom.
+
+        Returns
+        -------
+        Function
+            Tank volume of inertia as a function of height.
+        """
+        # Tolerance of 1e-8 is used to avoid numerical errors
+        upper = upper + 1e-12 if upper - lower < 1e-8 else upper
+
+        inertia = (self.area * self.radius**2).integralFunction(lower, upper) / 2
+
+        return inertia
 
     def add_geometry(self, domain, radius_function):
         """
