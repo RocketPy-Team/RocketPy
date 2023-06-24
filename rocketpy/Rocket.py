@@ -16,6 +16,7 @@ from .Parachute import Parachute
 from .AeroSurface import (
     Fins,
     NoseCone,
+    RailButtons,
     TrapezoidalFins,
     EllipticalFins,
     Tail,
@@ -91,8 +92,9 @@ class Rocket:
             axis, perpendicular to axis of cylindrical symmetry, in meters.
 
         Aerodynamic attributes
-        Rocket.aerodynamicSurfaces : list
-            List of aerodynamic surfaces of the rocket.
+        Rocket.aerodynamicSurfaces : Components
+            Collection of aerodynamic surfaces of the rocket. Holds Nose cones,
+            Fin sets, and Tails.
         Rocket.cpPosition : float
             Rocket's center of pressure position relative to the user defined rocket
             reference system. See `Rocket.centerOfDryMassPosition` for more information
@@ -108,6 +110,8 @@ class Rocket:
         Rocket.powerOnDrag : Function
             Rocket's drag coefficient as a function of Mach number when the
             motor is on.
+        Rocket.rail_buttons : RailButtons
+            RailButtons object containing the rail buttons information.
 
         Motor attributes:
         Rocket.motor : Motor
@@ -217,11 +221,12 @@ class Rocket:
         # Parachute data initialization
         self.parachutes = []
 
-        # Rail button data initialization
-        self.railButtons = None
-
         # Aerodynamic data initialization
         self.aerodynamicSurfaces = Components()
+
+        # Rail buttons data initialization
+        self.rail_buttons = Components()
+
         self.cpPosition = 0
         self.staticMargin = Function(
             lambda x: 0, inputs="Time (s)", outputs="Static Margin (c)"
@@ -682,6 +687,11 @@ class Rocket:
             regarding the rocket's coordinate system.
             If a list is passed, it will correspond to the position of each item
             in the surfaces list.
+            For NoseCone type, position is relative to the nose cone tip.
+            For Fins type, position is relative to the point belonging to
+            the root chord which is highest in the rocket coordinate system.
+            For Tail type, position is relative to the point belonging to the
+            tail which is highest in the rocket coordinate system.
 
         Returns
         -------
@@ -1014,23 +1024,25 @@ class Rocket:
         # Return self
         return self.parachutes[-1]
 
-    def setRailButtons(self, position, angularPosition=45):
-        """Adds rail buttons to the rocket, allowing for the
-        calculation of forces exerted by them when the rocket is
-        sliding in the launch rail. Furthermore, rail buttons are
-        also needed for the simulation of the planar flight phase,
-        when the rocket experiences 3 degrees of freedom motion while
-        only one rail button is still in the launch rail.
+    def setRailButtons(
+        self, upper_button_position, lower_button_position, angular_position=45
+    ):
+        """Adds rail buttons to the rocket, allowing for the calculation of
+        forces exerted by them when the rocket is sliding in the launch rail.
+        For the simulation, only two buttons are needed, which are the two
+        closest to the nozzle.
 
         Parameters
         ----------
-        position : tuple, list, array
-            Two values organized in a tuple, list or array which
-            represent the position of each of the two rail buttons
-            in the rocket coordinate system
-            The order does not matter. All values should be in meters.
+        upper_button_position : int, float
+            Position of the rail button furtherst from the nozzle relative to
+            the rocket's coordinate system, in meters.
             See `Rocket.coordinateSystemOrientation` for more information.
-        angularPosition : float
+        lower_button_position : int, float
+            Position of the rail button closest to the nozzle relative to
+            the rocket's coordinate system, in meters.
+            See `Rocket.coordinateSystemOrientation` for more information.
+        angular_position : float, optional
             Angular position of the rail buttons in degrees measured
             as the rotation around the symmetry axis of the rocket
             relative to one of the other principal axis.
@@ -1039,15 +1051,16 @@ class Rocket:
 
         Returns
         -------
-        None
+        rail_buttons : RailButtons
+            RailButtons object created
         """
-        # Place top most rail button as the first element of the list
-        if self._csys * position[0] < self._csys * position[1]:
-            position.reverse()
-        # Save important attributes
-        self.railButtons = self.railButtonPair(position, angularPosition)
-
-        return None
+        # Create a rail buttons object
+        buttons_distance = abs(upper_button_position - lower_button_position)
+        rail_buttons = RailButtons(
+            buttons_distance=buttons_distance, angular_position=angular_position
+        )
+        self.rail_buttons.add(rail_buttons, lower_button_position)
+        return rail_buttons
 
     def addCMEccentricity(self, x, y):
         """Moves line of action of aerodynamic and thrust forces by
@@ -1206,6 +1219,3 @@ class Rocket:
             )
             self.aerodynamicSurfaces.append([positionVector, chordVector])
         return None
-
-    # Variables
-    railButtonPair = namedtuple("railButtonPair", "position angularPosition")

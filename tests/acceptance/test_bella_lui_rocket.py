@@ -99,7 +99,7 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         powerOffDrag=0.43,
         powerOnDrag=0.43,
     )
-    BellaLui.setRailButtons([0.1, -0.5])
+    BellaLui.setRailButtons(0.1, -0.5)
     BellaLui.addMotor(K828FJ, parameters.get("distanceRocketNozzle")[0])
     NoseCone = BellaLui.addNose(
         length=parameters.get("noseLength")[0],
