@@ -7,7 +7,7 @@ __license__ = "MIT"
 import re
 import warnings
 from abc import ABC, abstractmethod
-from copy import deepcopy
+from rocketpy.utilities import tuple_handler
 
 try:
     from functools import cached_property
@@ -140,7 +140,8 @@ class Motor(ABC):
             curve is reshaped to match the new specifications. May be useful
             for motors whose thrust curve shape is expected to remain similar
             in case the impulse and burn time varies slightly. Default is
-            False.
+            False. Note that the Motor burn_time parameter must include the new
+            reshaped burn time.
         interpolationMethod : string, optional
             Method of interpolation to be used in case thrust curve is given
             by data set in .csv or .eng, or as an array. Options are 'spline'
@@ -167,7 +168,7 @@ class Motor(ABC):
         # Handle .eng file inputs
         if isinstance(thrustSource, str):
             if thrustSource[-3:] == "eng":
-                comments, desc, points = self.importEng(thrustSource)
+                comments, desc, points = Motor.importEng(thrustSource)
                 thrustSource = points
 
         # Evaluate raw thrust source
@@ -186,10 +187,11 @@ class Motor(ABC):
         # Reshape thrustSource if needed
         if reshapeThrustCurve:
             # Overwrites burn_time and thrust
-            self.reshapeThrustCurve(*reshapeThrustCurve)
+            self.thrust = Motor.reshapeThrustCurve(self.thrust, *reshapeThrustCurve)
+            self.burn_time = (self.thrust.xArray[0], self.thrust.xArray[-1])
 
         # Post process thrust
-        self.thrust = self.clipThrust()
+        self.thrust = Motor.clipThrust(self.thrust, self.burn_time)
 
         # Auxiliary quantities
         self.burnStartTime = self.burn_time[0]
@@ -225,145 +227,16 @@ class Motor(ABC):
         ----------
         burn_time : float or two position array_like
         """
-        if isinstance(burn_time, (int, float)):
-            self._burn_time = (0, burn_time)
-        elif isinstance(burn_time, (list, tuple)):
-            if len(burn_time) == 1:
-                self._burn_time = (0, burn_time[0])
-            elif len(burn_time) == 2:
-                self._burn_time = burn_time
-            else:
-                raise ValueError("burn_time must be a list or tuple of length 1 or 2.")
-        elif callable(self.thrust.source):
-            raise ValueError(
-                "When using a float or callable as thrust source a burn_time "
-                "range must be specified."
-            )
+        if burn_time is not None:
+            self._burn_time = tuple_handler(burn_time)
         else:
-            self._burn_time = (self.thrust.xArray[0], self.thrust.xArray[-1])
-
-    def clipThrust(self):
-        """Clips the thrust curve data points according to the burn_time
-        parameter. If the burn_time range does not coincides with the thrust
-        dataset, their values are interpolated.
-
-        Returns
-        -------
-        Function
-            Clipped thrust curve.
-        """
-        # Check if burn_time is within thrustSource range
-        changedBurnTime = False
-        burn_time = list(self.burn_time)
-
-        if self.burn_time[1] > self.thrust.xArray[-1]:
-            burn_time[1] = self.thrust.xArray[-1]
-            changedBurnTime = True
-
-        if self.burn_time[0] < self.thrust.xArray[0]:
-            burn_time[0] = self.thrust.xArray[0]
-            changedBurnTime = True
-
-        if changedBurnTime:
-            warnings.warn(
-                f"burn_time argument {self.burn_time} is out of "
-                "thrust source time range. "
-                "Using thrustSource boudary times instead: "
-                f"({burn_time[0]}, {burn_time[1]}) s.\n"
-                "If you want to change the burn out time of the "
-                "curve please use the 'reshapeThrustCurve' argument."
-            )
-            self.burn_time = burn_time
-
-        # Clip thrust input according to burn_time
-        bound_mask = np.logical_and(
-            self.thrust.xArray > self.burn_time[0],
-            self.thrust.xArray < self.burn_time[1],
-        )
-        clipped_source = self.thrust.source[bound_mask]
-
-        # Update source with burn_time points
-        endBurnData = [(self.burn_time[1], self.thrust(self.burn_time[1]))]
-        clipped_source = np.append(clipped_source, endBurnData, 0)
-        startBurnData = [(self.burn_time[0], self.thrust(self.burn_time[0]))]
-        clipped_source = np.insert(clipped_source, 0, startBurnData, 0)
-
-        return Function(
-            clipped_source,
-            "Time (s)",
-            "Thrust (N)",
-            self.interpolate,
-            "zero",
-        )
-
-    def reshapeThrustCurve(
-        self, newBurnTime, totalImpulse, oldTotalImpulse=None, startAtZero=True
-    ):
-        """Transforms the thrust curve supplied by changing its total
-        burn time and/or its total impulse, without altering the
-        general shape of the curve. May translate the curve so that
-        thrust starts at time equals 0, without any delays.
-
-        Parameters
-        ----------
-        newBurnTime : float, tuple of float
-            New desired burn time in seconds.
-        totalImpulse : float
-            New desired total impulse.
-        oldTotalImpulse : float, optional
-            Specify the total impulse of the given thrust curve,
-            overriding the value calculated by numerical integration.
-            If left as None, the value calculated by numerical
-            integration will be used in order to reshape the curve.
-        startAtZero: bool, optional
-            If True, trims the initial thrust curve points which
-            are 0 Newtons, translating the thrust curve so that
-            thrust starts at time equals 0. If False, no translation
-            is applied.
-
-        Returns
-        -------
-        None
-        """
-        # Retrieve current thrust curve data points
-        timeArray, thrustArray = self.thrust.xArray, self.thrust.yArray
-
-        # Move start to time = 0
-        if startAtZero:
-            # Get index of first non-zero thrust value
-            nonZeroIndex = thrustArray.nonzero()[0][0]
-            # Clip timeArray and thrustArray
-            nonZeroIndex = max(1, nonZeroIndex)
-            thrustArray = thrustArray[nonZeroIndex - 1 :]
-            timeArray = timeArray[nonZeroIndex - 1 :]
-            timeArray = timeArray - timeArray[0]
-
-        # Reshape time - set burn time to newBurnTime
-        self.burn_time = newBurnTime
-
-        # Compute old thrust based on new time discretization
-        # Adjust scale
-        newTimeArray = (
-            (self.burn_time[1] - self.burn_time[0]) / (timeArray[-1] - timeArray[0])
-        ) * timeArray
-        # Adjust origin
-        newTimeArray = newTimeArray - newTimeArray[0] + self.burn_time[0]
-        source = np.column_stack((newTimeArray, thrustArray))
-        thrust = Function(source, "Time (s)", "Thrust (N)", self.interpolate, "zero")
-
-        # Get old total impulse
-        if oldTotalImpulse is None:
-            oldTotalImpulse = thrust.integral(*self.burn_time)
-
-        # Compute new thrust values
-        newThrustArray = (totalImpulse / oldTotalImpulse) * thrustArray
-        source = np.column_stack((newTimeArray, newThrustArray))
-        thrust = Function(source, "Time (s)", "Thrust (N)", self.interpolate, "zero")
-
-        # Set reshaped thrust curve
-        self.thrust = thrust
-
-        return self.thrust
+            if not callable(self.thrust.source):
+                self._burn_time = (self.thrust.xArray[0], self.thrust.xArray[-1])
+            else:
+                raise ValueError(
+                    "When using a float or callable as thrust source a burn_time "
+                    "range must be specified."
+                )
 
     @cached_property
     def totalImpulse(self):
@@ -379,11 +252,7 @@ class Motor(ABC):
         self.totalImpulse : float
             Motor total impulse in Ns.
         """
-        # Calculate total impulse
-        self.totalImpulse = self.thrust.integral(*self.burn_time)
-
-        # Return total impulse
-        return self.totalImpulse
+        return self.thrust.integral(*self.burn_time)
 
     @property
     def exhaustVelocity(self):
@@ -671,7 +540,115 @@ class Motor(ABC):
         """
         pass
 
-    def importEng(self, fileName):
+    @staticmethod
+    def reshapeThrustCurve(thrust, newBurnTime, totalImpulse):
+        """Transforms the thrust curve supplied by changing its total
+        burn time and/or its total impulse, without altering the
+        general shape of the curve.
+
+        Parameters
+        ----------
+        thrust : Function
+            Thrust curve to be reshaped.
+        newBurnTime : float, tuple of float
+            New desired burn time in seconds.
+        totalImpulse : float
+            New desired total impulse.
+
+        Returns
+        -------
+        Function
+            Reshaped thrust curve.
+        """
+        # Retrieve current thrust curve data points
+        timeArray, thrustArray = thrust.xArray, thrust.yArray
+        newBurnTime = tuple_handler(newBurnTime)
+
+        # Compute old thrust based on new time discretization
+        # Adjust scale
+        newTimeArray = (
+            (newBurnTime[1] - newBurnTime[0]) / (timeArray[-1] - timeArray[0])
+        ) * timeArray
+        # Adjust origin
+        newTimeArray = newTimeArray - newTimeArray[0] + newBurnTime[0]
+        source = np.column_stack((newTimeArray, thrustArray))
+        thrust = Function(
+            source, "Time (s)", "Thrust (N)", thrust.__interpolation__, "zero"
+        )
+
+        # Get old total impulse
+        oldTotalImpulse = thrust.integral(*newBurnTime)
+
+        # Compute new thrust values
+        newThrustArray = (totalImpulse / oldTotalImpulse) * thrustArray
+        source = np.column_stack((newTimeArray, newThrustArray))
+        thrust = Function(
+            source, "Time (s)", "Thrust (N)", thrust.__interpolation__, "zero"
+        )
+
+        return thrust
+
+    @staticmethod
+    def clipThrust(thrust, new_burn_time):
+        """Clips the thrust curve data points according to the new_burn_time
+        parameter. If the burn_time range does not coincides with the thrust
+        dataset, their values are interpolated.
+
+        Parameters
+        ----------
+        thrust : Function
+            Thrust curve to be clipped.
+
+        Returns
+        -------
+        Function
+            Clipped thrust curve.
+        """
+        # Check if burn_time is within thrustSource range
+        changedBurnTime = False
+        burn_time = list(tuple_handler(new_burn_time))
+
+        if burn_time[1] > thrust.xArray[-1]:
+            burn_time[1] = thrust.xArray[-1]
+            changedBurnTime = True
+
+        if burn_time[0] < thrust.xArray[0]:
+            burn_time[0] = thrust.xArray[0]
+            changedBurnTime = True
+
+        if changedBurnTime:
+            warnings.warn(
+                f"burn_time argument {new_burn_time} is out of "
+                "thrust source time range. "
+                "Using thrustSource boudary times instead: "
+                f"({burn_time[0]}, {burn_time[1]}) s.\n"
+                "If you want to change the burn out time of the "
+                "curve please use the 'reshapeThrustCurve' argument."
+            )
+
+        # Clip thrust input according to burn_time
+        bound_mask = np.logical_and(
+            thrust.xArray > burn_time[0],
+            thrust.xArray < burn_time[1],
+        )
+        clipped_source = thrust.source[bound_mask]
+
+        # Update source with burn_time points
+        endBurnData = [(burn_time[1], thrust(burn_time[1]))]
+        clipped_source = np.append(clipped_source, endBurnData, 0)
+        startBurnData = [(burn_time[0], thrust(burn_time[0]))]
+        clipped_source = np.insert(clipped_source, 0, startBurnData, 0)
+
+        return Function(
+            clipped_source,
+            "Time (s)",
+            "Thrust (N)",
+            thrust.__interpolation__,
+            "zero",
+        )
+
+    @staticmethod
+    def importEng(fileName):
         """Read content from .eng file and process it, in order to return the
         comments, description and data points.
 
