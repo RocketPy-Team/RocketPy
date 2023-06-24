@@ -58,7 +58,7 @@ class Flight:
             Helper iterator function to generate time discretization points.
 
         Helper parameters:
-        Flight.railLength : float
+        Flight.railLength : float, int
             Launch rail length in meters.
         Flight.effective1RL : float
             Original rail length minus the distance measured from nozzle exit
@@ -537,10 +537,11 @@ class Flight:
         environment : Environment
             Environment to run simulation on. See help(Environment) for
             more information.
-        railLength : scalar
+        railLength : int, float
             Length in which the rocket will be attached to the rail, only
             moving along a fixed direction, that is, the line parallel to the
-            rail.
+            rail. Currently, if the initialSolution is not None, the rail
+            length is not used.
         inclination : int, float, optional
             Rail inclination angle relative to ground, given in degrees.
             Default is 80.
@@ -1142,7 +1143,10 @@ class Flight:
                 w3Init,
             ]
             # Set initial derivative for rail phase
-            self.initialDerivative = self.uDotRail1
+            if self.railLength <= 0:
+                raise ValueError("Rail length must be a positive value.")
+            else:
+                self.initialDerivative = self.uDotRail1  # start at rail
         elif isinstance(self.initialSolution, Flight):
             # Initialize time and state variables based on last solution of
             # previous flight
