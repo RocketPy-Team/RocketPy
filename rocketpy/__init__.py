@@ -28,6 +28,7 @@ from .AeroSurface import (
     TrapezoidalFins,
     EllipticalFins,
     Tail,
+    RailButtons,
 )
 from .Components import Components
 from .Environment import Environment

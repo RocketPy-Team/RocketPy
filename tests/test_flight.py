@@ -99,7 +99,7 @@ def test_flight(mock_show):
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
 
-    test_rocket.setRailButtons([0.2, -0.5])
+    test_rocket.setRailButtons(0.2, -0.5)
 
     test_rocket.addMotor(test_motor, position=-1.255)
 
@@ -189,7 +189,7 @@ def test_initial_solution(mock_show):
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
 
-    test_rocket.setRailButtons([0.2, -0.5])
+    test_rocket.setRailButtons(0.2, -0.5)
 
     test_rocket.addMotor(test_motor, position=-1.255)
 
@@ -312,7 +312,7 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
         powerOffDrag=0,
         powerOnDrag=0,
     )
-    DummyRocket.setRailButtons([0.2, -0.5])
+    DummyRocket.setRailButtons(0.2, -0.5)
     DummyRocket.addMotor(DummyMotor, position=-1.255)
 
     setup_rocket_with_given_static_margin(DummyRocket, static_margin)
@@ -388,7 +388,7 @@ def test_rolling_flight(mock_show):
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
 
-    test_rocket.setRailButtons([0.2, -0.5])
+    test_rocket.setRailButtons(0.2, -0.5)
 
     test_rocket.addMotor(test_motor, position=-1.255)
 
@@ -478,7 +478,7 @@ def test_simpler_parachute_triggers(mock_show):
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
     )
 
-    test_rocket.setRailButtons([0.2, -0.5])
+    test_rocket.setRailButtons(0.2, -0.5)
 
     test_rocket.addMotor(test_motor, position=-1.255)
 
@@ -562,7 +562,7 @@ def test_export_data():
         powerOnDrag=0.5,
     )
 
-    test_rocket.setRailButtons([0.2, -0.5])
+    test_rocket.setRailButtons(0.2, -0.5)
 
     test_rocket.addMotor(test_motor, position=-1.255)
 
@@ -659,7 +659,7 @@ def test_export_KML():
         powerOnDrag=0.5,
     )
 
-    test_rocket.setRailButtons([0.2, -0.5])
+    test_rocket.setRailButtons(0.2, -0.5)
 
     test_rocket.addMotor(test_motor, position=-1.255)
 
@@ -741,7 +741,7 @@ def test_latlon_conversions(mock_show):
         powerOnDrag=0.5,
     )
 
-    test_rocket.setRailButtons([0.2, -0.5])
+    test_rocket.setRailButtons(0.2, -0.5)
 
     test_rocket.addMotor(test_motor, position=-1.255)
 
@@ -825,7 +825,7 @@ def test_latlon_conversions2(mock_show):
         powerOnDrag=0.5,
     )
 
-    test_rocket.setRailButtons([0.2, -0.5])
+    test_rocket.setRailButtons(0.2, -0.5)
 
     test_rocket.addMotor(test_motor, position=-1.255)
 
