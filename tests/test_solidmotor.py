@@ -135,11 +135,10 @@ def test_evaluate_inertia_11_asserts_extreme_values(solid_motor):
         d**2
     )
 
-    # not passing because I_11 is not discrete anymore
     assert np.allclose(
-        solid_motor.I_11.getSource()[0][-1], inertia_11_initial, atol=0.01
+        solid_motor.propellant_I_11.getSource()[0][-1], inertia_11_initial, atol=0.01
     )
-    assert np.allclose(solid_motor.I_11.getSource()[-1][-1], 0, atol=1e-6)
+    assert np.allclose(solid_motor.propellant_I_11.getSource()[-1][-1], 0, atol=1e-6)
 
 
 def test_evaluate_inertia_33_asserts_extreme_values(solid_motor):
@@ -154,9 +153,9 @@ def test_evaluate_inertia_33_asserts_extreme_values(solid_motor):
 
     # not passing because I_33 is not discrete anymore
     assert np.allclose(
-        solid_motor.I_33.getSource()[0][-1], grain_I_33_initial, atol=0.01
+        solid_motor.propellant_I_33.getSource()[0][-1], grain_I_33_initial, atol=0.01
     )
-    assert np.allclose(solid_motor.I_33.getSource()[-1][-1], 0, atol=1e-6)
+    assert np.allclose(solid_motor.propellant_I_33.getSource()[-1][-1], 0, atol=1e-6)
 
 
 def tests_import_eng_asserts_read_values_correctly(solid_motor):
@@ -227,7 +226,7 @@ def tests_export_eng_asserts_exported_values_correct(solid_motor):
 
 def test_reshape_thrust_curve_asserts_resultant_thrust_curve_correct():
     example_motor = SolidMotor(
-        thrustSource="data/motors/Cesaroni_M1670.eng",
+        thrustSource="tests/fixtures/motor/Cesaroni_M1670_shifted.eng",
         burnOut=3.9,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
@@ -246,7 +245,6 @@ def test_reshape_thrust_curve_asserts_resultant_thrust_curve_correct():
         coordinateSystemOrientation="nozzleToCombustionChamber",
         reshapeThrustCurve=(5, 3000),
     )
-    # not passing because ??
 
     thrust_reshaped = example_motor.thrust.getSource()
     assert thrust_reshaped[1][0] == 0.155 * (5 / 4)

@@ -200,12 +200,12 @@ class Motor(ABC):
                 # Import content
                 comments, desc, points = self.importEng(thrustSource)
                 thrustSource = points
-                self.burnOutTime = points[-1][0]
 
         # Create thrust function
         self.thrust = Function(
             thrustSource, "Time (s)", "Thrust (N)", self.interpolate, "zero"
         )
+
         if callable(thrustSource) or isinstance(thrustSource, (int, float)):
             self.thrust.setDiscrete(0, burnOut, 50, self.interpolate, "zero")
 
@@ -248,8 +248,8 @@ class Motor(ABC):
         None
         """
         # Retrieve current thrust curve data points
-        timeArray = self.thrust.source[:, 0]
-        thrustArray = self.thrust.source[:, 1]
+        timeArray = self.thrust.xArray
+        thrustArray = self.thrust.yArray
         # Move start to time = 0
         if startAtZero and timeArray[0] != 0:
             timeArray = timeArray - timeArray[0]

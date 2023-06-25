@@ -383,7 +383,7 @@ class SolidMotor(Motor):
         self._massFlowRate = value.reset("Time (s)", "grain mass flow rate (kg/s)")
         self.evaluateGeometry()
 
-    @funcify_method("Time (s)", "center of mass (m)")
+    @funcify_method("Time (s)", "center of mass (m)", "linear")
     def centerOfPropellantMass(self):
         """Position of the propellant center of mass as a function of time.
         The position is specified as a scalar, relative to the motor's
@@ -394,12 +394,14 @@ class SolidMotor(Motor):
         t : float
             Time in seconds.
 
-        Returnsg
+        Returns
         -------
         Function
             Position of the propellant center of mass as a function of time.
         """
-        return self.grainsCenterOfMassPosition
+        timeSource = self.grainInnerRadius.xArray
+        centerOfMass = np.full_like(timeSource, self.grainsCenterOfMassPosition)
+        return np.column_stack((timeSource, centerOfMass))
 
     def evaluateGeometry(self):
         """Calculates grain inner radius and grain height as a function of time
