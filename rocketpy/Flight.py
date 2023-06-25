@@ -1142,6 +1142,7 @@ class Flight:
             # Set unused monitors
             self.outOfRailState = self.initialSolution[1:]
             self.outOfRailTime = self.initialSolution[0]
+            self.outOfRailTimeIndex = 0
             # Set initial derivative for 6-DOF flight phase
             self.initialDerivative = self.uDot
         else:
