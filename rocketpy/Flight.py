@@ -1335,7 +1335,7 @@ class Flight:
             TiDot = self.rocket.motor.I_11.differentiate(t, dx=1e-6)
             # Mass
             MtDot = self.rocket.motor.massDot.getValueOpt(t)
-            Mt = self.rocket.motor.mass.getValueOpt(t)
+            Mt = self.rocket.motor.propellantMass.getValueOpt(t)
             # Thrust
             Thrust = self.rocket.motor.thrust.getValueOpt(t)
             # Off center moment
@@ -1356,14 +1356,14 @@ class Flight:
         Rz = self.rocket.dry_I_33
         Ri = self.rocket.dry_I_11
         # Mass
-        Mr = self.rocket.mass
+        Mr = self.rocket.dryMass
         M = Mt + Mr
         mu = (Mt * Mr) / (Mt + Mr)
         # Geometry
         # b = -self.rocket.distanceRocketPropellant
         b = (
             -(
-                self.rocket.centerOfPropellantPosition(0)
+                self.rocket.center_of_propellant_position(0)
                 - self.rocket.centerOfDryMassPosition
             )
             * self.rocket._csys

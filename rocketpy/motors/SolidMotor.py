@@ -584,6 +584,7 @@ class SolidMotor(Motor):
         )
 
         # Calculate each grain's distance d to propellant center of mass
+        # Assuming each grain's COM are evenly spaced
         initialValue = (grainNumber - 1) / 2
         d = np.linspace(-initialValue, initialValue, grainNumber)
         d = d * (self.grainInitialHeight + self.grainSeparation)

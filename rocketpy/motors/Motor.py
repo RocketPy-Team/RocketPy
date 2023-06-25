@@ -439,6 +439,25 @@ class Motor(ABC):
         """
         pass
 
+    @funcify_method("Time (s)", "mass dot (kg/s)", extrapolation="zero")
+    def massDot(self):
+        """Time derivative of propellant mass. Assumes constant exhaust
+        velocity. The formula used is the opposite of thrust divided by exhaust
+        velocity. The result is a function of time, object of the Function
+        class, which is stored in self.massFlowRate.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        Function
+            Time derivative of total propellant mass a function of time.
+        """
+        return -1 * self.thrust / self.exhaustVelocity
+
     @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
     def I_11(self):
         """Inertia tensor 11 component, which corresponds to the inertia
@@ -1224,3 +1243,9 @@ class EmptyMotor:
         self.dry_I_12 = 0
         self.dry_I_13 = 0
         self.dry_I_23 = 0
+        self.I_11 = 0
+        self.I_22 = 0
+        self.I_33 = 0
+        self.I_12 = 0
+        self.I_13 = 0
+        self.I_23 = 0

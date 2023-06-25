@@ -120,7 +120,7 @@ class Rocket:
             Position, in m, of the motor's nozzle exit area relative to the user defined
             rocket coordinate system. See `Rocket.coordinateSystemOrientation` for more
             information regarding the rocket's coordinate system.
-        Rocket.centerOfPropellantPosition : Function
+        Rocket.center_of_propellant_position : Function
             Position of the propellant's center of mass relative to the user defined
             rocket reference system. See `Rocket.coordinateSystemOrientation` for more
             information regarding the rocket's coordinate system.
@@ -200,12 +200,12 @@ class Rocket:
         # Define rocket inertia attributes in SI units
         self.mass = mass
         inertia = (*inertia, 0, 0, 0) if len(inertia) == 3 else inertia
-        self.dry_I_11 = inertia[0]
-        self.dry_I_22 = inertia[1]
-        self.dry_I_33 = inertia[2]
-        self.dry_I_12 = inertia[3]
-        self.dry_I_13 = inertia[4]
-        self.dry_I_23 = inertia[5]
+        self.I_11_without_motor = inertia[0]
+        self.I_22_without_motor = inertia[1]
+        self.I_33_without_motor = inertia[2]
+        self.I_12_without_motor = inertia[3]
+        self.I_13_without_motor = inertia[4]
+        self.I_23_without_motor = inertia[5]
 
         # Define rocket geometrical parameters in SI units
         self.center_of_mass_without_motor = center_of_mass_without_motor
@@ -363,7 +363,7 @@ class Rocket:
         # Compute center of mass position
         self.centerOfMass = (
             self.center_of_mass_without_motor * self.mass
-            + (self.motor.centerOfMass + self.motorPosition) * self.motor.totalMass
+            + self.motor_center_of_mass_position * self.motor.totalMass
         ) / self.totalMass
         self.centerOfMass.setInputs("Time (s)")
         self.centerOfMass.setOutputs("Center of Mass Position (m)")
@@ -388,7 +388,7 @@ class Rocket:
         # Compute center of mass position
         self.centerOfDryMassPosition = (
             self.center_of_mass_without_motor * self.mass
-            + self.motor.center_of_dry_mass * self.motor.dry_mass
+            + self.motor_center_of_dry_mass_position * self.motor.dry_mass
         ) / self.dryMass
 
         return self.centerOfDryMassPosition
@@ -487,136 +487,48 @@ class Rocket:
         # Return self
         return self
 
-    @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
-    def I_11(self):
-        """Inertia tensor 11 component, which corresponds to the inertia
-        relative to the e_1 axis, centered at the instantaneous center of mass.
+    def evaluateDryInertias(self):
+        """Calculates and returns the rocket's dry inertias relative to
+        the rocket's center of mass. The inertias are saved and returned
+        in units of kg*m².
 
         Parameters
         ----------
-        t : float
-            Time in seconds.
+        None
 
         Returns
         -------
-        float
-            Total inertia tensor 11 component at time t.
+        self.dry_I_11 : float
+            Float value corresponding to rocket inertia tensor 11
+            component, which corresponds to the inertia relative to the
+            e_1 axis, centered at the instantaneous center of mass.
+        self.dry_I_22 : float
+            Float value corresponding to rocket inertia tensor 22
+            component, which corresponds to the inertia relative to the
+            e_2 axis, centered at the instantaneous center of mass.
+        self.dry_I_33 : float
+            Float value corresponding to rocket inertia tensor 33
+            component, which corresponds to the inertia relative to the
+            e_3 axis, centered at the instantaneous center of mass.
+        self.dry_I_12 : float
+            Float value corresponding to rocket inertia tensor 12
+            component, which corresponds to the inertia relative to the
+            e_1 and e_2 axes, centered at the instantaneous center of mass.
+        self.dry_I_13 : float
+            Float value corresponding to rocket inertia tensor 13
+            component, which corresponds to the inertia relative to the
+            e_1 and e_3 axes, centered at the instantaneous center of mass.
+        self.dry_I_23 : float
+            Float value corresponding to rocket inertia tensor 23
+            component, which corresponds to the inertia relative to the
+            e_2 and e_3 axes, centered at the instantaneous center of mass.
 
         Notes
         -----
-        The e_1 direction is assumed to be the direction perpendicular to the
-        rocket axial direction.
-
-        References
-        ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
-        """
-        # Get masses
-        prop_mass = self.motor.propellantMass  # Propellant mass as a function of time
-        dry_mass = self.dryMass  # Constant rocket dry mass without propellant
-
-        # Compute axes distances
-        csys = self._csys
-        dry_dz = (self.centerOfMass - self.centerOfDryMassPosition) * csys
-        prop_dz = (self.centerOfMass - self.centerOfPropellantPosition) * csys
-
-        # Deconstruct tensor into components
-        return (
-            self.dry_I_11
-            + self.motor.I_11
-            + dry_mass * dry_dz**2
-            + prop_mass * prop_dz**2
-        )
-
-    @funcify_method("Time (s)", "Inertia I_22 (kg m²)")
-    def I_22(self):
-        """Inertia tensor 22 component, which corresponds to the inertia
-        relative to the e_2 axis, centered at the instantaneous center of mass.
-
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
-        Returns
-        -------
-        float
-            Total inertia tensor 22 component at time t.
-
-        Notes
-        -----
-        The e_1 direction is assumed to be the direction perpendicular to the
-        rocket axial direction.
-
-        References
-        ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
-        """
-        # Get masses
-        prop_mass = self.motor.propellantMass  # Propellant mass as a function of time
-        dry_mass = self.dryMass  # Constant rocket dry mass without propellant
-
-        # Compute axes distances
-        csys = self._csys
-        dry_dz = (self.centerOfMass - self.centerOfDryMassPosition) * csys
-        prop_dz = (self.centerOfMass - self.centerOfPropellantPosition) * csys
-
-        # Deconstruct tensor into components
-        return (
-            self.dry_I_22
-            + self.motor.I_22
-            + dry_mass * dry_dz**2
-            + prop_mass * prop_dz**2
-        )
-
-    @funcify_method("Time (s)", "Inertia I_33 (kg m²)")
-    def I_33(self):
-        """Inertia tensor 33 component, which corresponds to the inertia
-        relative to the e_3 axis, centered at the instantaneous center of mass.
-
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
-        Returns
-        -------
-        float
-            Total inertia tensor 33 component at time t.
-
-        Notes
-        -----
+        The e_1 and e_2 directions are assumed to be the directions
+        perpendicular to the rocket axial direction.
         The e_3 direction is assumed to be the direction parallel to the axis
         of symmetry of the rocket.
-
-        References
-        ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
-        """
-        return self.dry_I_33 + self.motor.I_33
-
-    @funcify_method("Time (s)", "Inertia I_12 (kg m²)")
-    def I_12(self):
-        """Inertia tensor 12 component, which corresponds to the inertia
-        relative to the e_1 and e_2 axes, centered at the instantaneous center
-        of mass.
-
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
-        Returns
-        -------
-        float
-            Total inertia tensor 12 component at time t.
-
-        Notes
-        -----
-        The e_1 direction is assumed to be the direction perpendicular to the
-        rocket body axis of symmetry.
-        The e_2 direction is assumed to be the direction perpendicular to the
-        rocket body axis of symmetry, and perpendicular to e_1.
         RocketPy follows the definition of the inertia tensor as in [1], which
         includes the minus sign for all products of inertia.
 
@@ -624,29 +536,70 @@ class Rocket:
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        return self.dry_I_12 + self.motor.I_12
+        # Compute axes distances
+        noMCM_to_CDM = self.center_of_mass_without_motor - self.centerOfDryMassPosition
+        motorCDM_to_CDM = (
+            self.motor_center_of_dry_mass_position - self.centerOfDryMassPosition
+        )
 
-    @funcify_method("Time (s)", "Inertia I_13 (kg m²)")
-    def I_13(self):
-        """Inertia tensor 13 component, which corresponds to the inertia
-        relative to the e_1 and e_3 axes, centered at the instantaneous center
-        of mass.
+        # Compute dry inertias
+        self.dry_I_11 = (
+            self.I_11_without_motor
+            + self.mass * noMCM_to_CDM**2
+            + self.motor.dry_I_11
+            + self.motor.dry_mass * motorCDM_to_CDM**2
+        )
+        self.dry_I_22 = (
+            self.I_22_without_motor
+            + self.mass * noMCM_to_CDM**2
+            + self.motor.dry_I_22
+            + self.motor.dry_mass * motorCDM_to_CDM**2
+        )
+        self.dry_I_33 = self.I_33_without_motor + self.motor.dry_I_33
+        self.dry_I_12 = self.I_12_without_motor + self.motor.dry_I_12
+        self.dry_I_13 = self.I_13_without_motor + self.motor.dry_I_13
+        self.dry_I_23 = self.I_23_without_motor + self.motor.dry_I_23
+
+        # Return inertias
+        return (
+            self.dry_I_11,
+            self.dry_I_22,
+            self.dry_I_33,
+            self.dry_I_12,
+            self.dry_I_13,
+            self.dry_I_23,
+        )
+
+    def evaluateInertias(self):
+        """Calculates and returns the rocket's inertias relative to
+        the rocket's center of mass. The inertias are saved and returned
+        in units of kg*m².
 
         Parameters
         ----------
-        t : float
-            Time in seconds.
+        None
 
         Returns
         -------
-        float
-            Total inertia tensor 13 component at time t.
+        self.I_11 : float
+            Float value corresponding to rocket inertia tensor 11
+            component, which corresponds to the inertia relative to the
+            e_1 axis, centered at the instantaneous center of mass.
+        self.I_22 : float
+            Float value corresponding to rocket inertia tensor 22
+            component, which corresponds to the inertia relative to the
+            e_2 axis, centered at the instantaneous center of mass.
+        self.I_33 : float
+            Float value corresponding to rocket inertia tensor 33
+            component, which corresponds to the inertia relative to the
+            e_3 axis, centered at the instantaneous center of mass.
 
         Notes
         -----
-        The e_1 direction is assumed to be the direction perpendicular to the
-        rocket body axis of symmetry.
-        The e_3 direction is assumed to be the axial direction of the rocket.
+        The e_1 and e_2 directions are assumed to be the directions
+        perpendicular to the rocket axial direction.
+        The e_3 direction is assumed to be the direction parallel to the axis
+        of symmetry of the rocket.
         RocketPy follows the definition of the inertia tensor as in [1], which
         includes the minus sign for all products of inertia.
 
@@ -654,37 +607,41 @@ class Rocket:
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        return self.dry_I_13 + self.motor.I_13
+        # Get masses
+        prop_mass = self.motor.propellantMass  # Propellant mass as a function of time
+        dry_mass = self.dryMass  # Constant rocket dry mass without propellant
 
-    @funcify_method("Time (s)", "Inertia I_23 (kg m²)")
-    def I_23(self):
-        """Inertia tensor 23 component, which corresponds to the inertia
-        relative to the e_2 and e_3 axes, centered at the instantaneous center
-        of mass.
+        # Compute axes distances
+        CM_to_CDM = self.centerOfMass - self.centerOfDryMassPosition
+        CM_to_CPM = self.centerOfMass - self.center_of_propellant_position
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
+        # Compute inertias
+        self.I_11 = (
+            self.dry_I_11
+            + self.motor.I_11
+            + dry_mass * CM_to_CDM**2
+            + prop_mass * CM_to_CPM**2
+        )
+        self.I_22 = (
+            self.dry_I_22
+            + self.motor.I_22
+            + dry_mass * CM_to_CDM**2
+            + prop_mass * CM_to_CPM**2
+        )
+        self.I_33 = self.dry_I_33 + self.motor.I_33
+        self.I_12 = self.dry_I_12 + self.motor.I_12
+        self.I_13 = self.dry_I_13 + self.motor.I_13
+        self.I_23 = self.dry_I_23 + self.motor.I_23
 
-        Returns
-        -------
-        float
-            Total inertia tensor 23 component at time t.
-
-        Notes
-        -----
-        The e_2 direction is assumed to be the direction perpendicular to the
-        rocket body axis of symmetry.
-        The e_3 direction is assumed to be the axial direction of the rocket.
-        RocketPy follows the definition of the inertia tensor as in [1], which
-        includes the minus sign for all products of inertia.
-
-        References
-        ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
-        """
-        return self.dry_I_23 + self.motor.I_23
+        # Return inertias
+        return (
+            self.I_11,
+            self.I_22,
+            self.I_33,
+            self.I_12,
+            self.I_13,
+            self.I_23,
+        )
 
     def evaluateNozzleGyrationTensor(self):
         pass
@@ -713,13 +670,21 @@ class Rocket:
         self.motor = motor
         self.motorPosition = position
         _ = self._csys * self.motor._csys
-        self.centerOfPropellantPosition = (
+        self.center_of_propellant_position = (
             self.motor.centerOfPropellantMass - self.motor.nozzlePosition
+        ) * _ + self.motorPosition
+        self.motor_center_of_mass_position = (
+            self.motor.centerOfMass - self.motor.nozzlePosition
+        ) * _ + self.motorPosition
+        self.motor_center_of_dry_mass_position = (
+            self.motor.center_of_dry_mass - self.motor.nozzlePosition
         ) * _ + self.motorPosition
         self.evaluateDryMass()
         self.evaluateTotalMass()
         self.evaluateCenterOfDryMass()
         self.evaluateCenterOfMass()
+        self.evaluateDryInertias()
+        self.evaluateInertias()
         self.evaluateReducedMass()
         self.evaluateThrustToWeight()
         self.evaluateStaticMargin()
