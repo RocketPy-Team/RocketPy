@@ -1176,7 +1176,7 @@ class Flight:
             upper_r_button = (
                 rail_buttons.component.buttons_distance + rail_buttons.position
             )
-        except AttributeError:
+        except IndexError:  # No rail buttons defined
             upper_r_button = nozzle
         effective1RL = self.env.railLength - abs(nozzle - upper_r_button)
         return effective1RL
@@ -1189,7 +1189,7 @@ class Flight:
         try:
             rail_buttons = self.rocket.rail_buttons[0]
             lower_r_button = rail_buttons.position
-        except AttributeError:
+        except IndexError:  # No rail buttons defined
             lower_r_button = nozzle
         effective2RL = self.env.railLength - abs(nozzle - lower_r_button)
         return effective2RL
