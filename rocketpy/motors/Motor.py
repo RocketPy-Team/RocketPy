@@ -7,7 +7,8 @@ __license__ = "MIT"
 import re
 import warnings
 from abc import ABC, abstractmethod
-from rocketpy.utilities import tuple_handler
+
+from rocketpy.tools import tuple_handler
 
 try:
     from functools import cached_property
