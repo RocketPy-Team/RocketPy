@@ -901,7 +901,7 @@ def test_rail_length(rocket, example_env, rail_length, out_of_rail_time, apogee)
     simulate the flight using different rail lengths and check if the expected
     out of rail time and apogee are achieved. Four different rail lengths are
     tested: 0.001, 1, 10, and 100000 meters. This provides a good test range.
-    Currently, if a rail length of 0 is used, the simulation will fail in a 
+    Currently, if a rail length of 0 is used, the simulation will fail in a
     ZeroDivisionError, which is not being tested here.
 
     Parameters
