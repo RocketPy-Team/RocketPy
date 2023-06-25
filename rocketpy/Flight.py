@@ -1617,12 +1617,12 @@ class Flight:
             -1
             * (
                 (
-                    self.rocket.centerOfPropellantPosition
+                    self.rocket.center_of_propellant_position
                     - self.rocket.centerOfDryMassPosition
                 )
                 * self.rocket._csys
             )
-            * self.rocket.motor.mass
+            * self.rocket.motor.propellantMass
             / total_mass
         )
         r_CM = Vector([0, 0, r_CM_z.getValueOpt(t)])
