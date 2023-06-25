@@ -61,13 +61,19 @@ class HybridMotor(Motor):
         Mass and moment of inertia attributes:
         Motor.grainInitialMass : float
             Initial mass of each grain in kg.
+        Motor.dry_mass : float
+            The total mass of the motor structure, including chambers
+            and tanks, when it is empty and does not contain any propellant.
         Motor.propellantInitialMass : float
             Total propellant initial mass in kg.
-        Motor.mass : Function
-            Propellant total mass in kg as a function of time.
-        Motor.massDot : Function
+        Motor.totalMass : Function
+            Total motor mass in kg as a function of time, defined as the sum
+            of propellant and dry mass.
+        Motor.propellantMass : Function
+            Total propellant mass in kg as a function of time.
+        Motor.totalMassFlowRate : Function
             Time derivative of propellant total mass in kg/s as a function
-            of time.
+            of time as obtained by the thrust source.
         Motor.inertiaI : Function
             Propellant moment of inertia in kg*meter^2 with respect to axis
             perpendicular to axis of cylindrical symmetry of each grain,
@@ -122,6 +128,9 @@ class HybridMotor(Motor):
     def __init__(
         self,
         thrustSource,
+        dry_mass,
+        center_of_dry_mass,
+        dry_inertia,
         grainsCenterOfMassPosition,
         grainNumber,
         grainDensity,
@@ -162,6 +171,24 @@ class HybridMotor(Motor):
             last-time step of the motor's thrust curve. This can only be used if the
             motor's thrust is defined by a list of points, such as a .csv file, a .eng
             file or a Function instance whose source is a list.
+        dry_mass : int, float
+            The total mass of the motor structure, including chambers
+            and tanks, when it is empty and does not contain any propellant.
+        center_of_dry_mass : int, float
+            The position, in meters, of the motor's center of mass with respect
+            to the motor's coordinate system when it is devoid of propellant.
+            See `Motor.coordinateSystemOrientation`.
+        dry_inertia : tuple, list
+            Tuple or list containing the motor's dry mass inertia tensor
+            components, in kg*m^2. This inertia is defined with respect to the
+            the `center_of_dry_mass` position.
+            Assuming e_3 is the rocket's axis of symmetry, e_1 and e_2 are
+            orthogonal and form a plane perpendicular to e_3, the dry mass
+            inertia tensor components must be given in the following order:
+            (I_11, I_22, I_33, I_12, I_13, I_23), where I_ij is the
+            component of the inertia tensor in the direction of e_i x e_j.
+            Alternatively, the inertia tensor can be given as (I_11, I_22, I_33),
+            where I_12 = I_13 = I_23 = 0.
         grainNumber : int
             Number of solid grains
         grainDensity : int, float
@@ -211,6 +238,9 @@ class HybridMotor(Motor):
         """
         super().__init__(
             thrustSource,
+            dry_mass,
+            center_of_dry_mass,
+            dry_inertia,
             nozzleRadius,
             burn_time,
             nozzlePosition,
@@ -220,6 +250,9 @@ class HybridMotor(Motor):
         )
         self.liquid = LiquidMotor(
             thrustSource,
+            dry_mass,
+            center_of_dry_mass,
+            dry_inertia,
             nozzleRadius,
             burn_time,
             nozzlePosition,
@@ -229,6 +262,9 @@ class HybridMotor(Motor):
         )
         self.solid = SolidMotor(
             thrustSource,
+            dry_mass,
+            center_of_dry_mass,
+            dry_inertia,
             grainsCenterOfMassPosition,
             grainNumber,
             grainDensity,
@@ -245,8 +281,25 @@ class HybridMotor(Motor):
             coordinateSystemOrientation,
         )
 
+    @funcify_method("Time (s)", "Exhaust velocity (m/s)")
+    def exhaustVelocity(self):
+        """Exhaust velocity by assuming it as a constant. The formula used is
+        total impulse/propellant initial mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        self.exhaustVelocity : Function
+            Gas exhaust velocity of the motor.
+        """
+        return self.totalImpulse / self.propellantInitialMass
+
     @funcify_method("Time (s)", "mass (kg)")
-    def mass(self):
+    def propellantMass(self):
         """Evaluates the total propellant mass of the motor as the sum
         of each tank mass and the grains mass.
 
@@ -260,7 +313,7 @@ class HybridMotor(Motor):
         Function
             Total propellant mass of the motor, in kg.
         """
-        return self.solid.mass + self.liquid.mass
+        return self.solid.propellantMass + self.liquid.propellantMass
 
     @cached_property
     def propellantInitialMass(self):
@@ -291,15 +344,20 @@ class HybridMotor(Motor):
         -------
         Function
             Mass flow rate of the motor, in kg/s.
+
+        See Also
+        --------
+        `Motor.totalMassFlowRate` :
+            Calculates the total mass flow rate of the motor assuming
+            constant exhaust velocity.
         """
         return self.solid.massFlowRate + self.liquid.massFlowRate
 
     @funcify_method("Time (s)", "center of mass (m)")
-    def centerOfMass(self):
-        """Calculates and returns the time derivative of motor center of mass.
-        The formulas used are the Bernoulli equation, law of the ideal gases and
-        Boyle's law. The result is a function of time, object of the
-        Function class.
+    def centerOfPropellantMass(self):
+        """Position of the propellant center of mass as a function of time.
+        The position is specified as a scalar, relative to the motor's
+        coordinate system.
 
         Parameters
         ----------
@@ -311,55 +369,16 @@ class HybridMotor(Motor):
             Position of the center of mass as a function of time.
         """
         massBalance = (
-            self.solid.mass * self.solid.centerOfMass
-            + self.liquid.mass * self.liquid.centerOfMass
+            self.solid.propellantMass * self.solid.centerOfPropellantMass
+            + self.liquid.propellantMass * self.liquid.centerOfPropellantMass
         )
-        return massBalance / self.mass
-
-    @cached_property
-    def inertiaTensor(self):
-        """Calculates the propellant principal moment of inertia relative
-        to the tank center of mass. The z-axis correspond to the motor axis
-        of symmetry while the x and y axes complete the right-handed coordinate
-        system. The time derivatives of the products of inertia are also
-        evaluated.
-        Products of inertia are assumed null due to symmetry.
-
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
-        Returns
-        -------
-        tuple (of Functions)
-            The two first arguments are equivalent and represent inertia Ix,
-            and Iy. The third argument is inertia Iz.
-        """
-        solidCorrection = (
-            self.solid.mass * (self.solid.centerOfMass - self.centerOfMass) ** 2
-        )
-        liquidCorrection = (
-            self.liquid.mass * (self.liquid.centerOfMass - self.centerOfMass) ** 2
-        )
-
-        self.InertiaI = (
-            self.solid.I_11 + solidCorrection + self.liquid.I_11 + liquidCorrection
-        )
-        self.InertiaZ = (
-            self.solid.I_33 + solidCorrection + self.liquid.I_33 + liquidCorrection
-        )
-
-        # Set naming convention
-        self.InertiaI.reset("Time (s)", "inertia y (kg*m^2)")
-        self.InertiaZ.reset("Time (s)", "inertia z (kg*m^2)")
-
-        return self.InertiaI, self.InertiaI, self.InertiaZ
+        return massBalance / self.propellantMass
 
     @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
-    def I_11(self):
-        """Inertia tensor 11 component, which corresponds to the inertia
-        relative to the e_1 axis, centered at the instantaneous center of mass.
+    def propellant_I_11(self):
+        """Inertia tensor 11 component of the propellnat, the inertia is
+        relative to the e_1 axis, centered at the instantaneous propellant
+        center of mass.
 
         Parameters
         ----------
@@ -375,27 +394,28 @@ class HybridMotor(Motor):
         -----
         The e_1 direction is assumed to be the direction perpendicular to the
         motor body axis.
-        Due to symmetry, the inertia tensor 22 component is equal to the
-        inertia tensor 11 component.
 
         References
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
         solidCorrection = (
-            self.solid.mass * (self.solid.centerOfMass - self.centerOfMass) ** 2
+            self.solid.propellantMass
+            * (self.solid.centerOfPropellantMass - self.centerOfMass) ** 2
         )
         liquidCorrection = (
-            self.liquid.mass * (self.liquid.centerOfMass - self.centerOfMass) ** 2
+            self.liquid.propellantMass
+            * (self.liquid.centerOfPropellantMass - self.centerOfMass) ** 2
         )
 
         I_11 = self.solid.I_11 + solidCorrection + self.liquid.I_11 + liquidCorrection
         return I_11
 
     @funcify_method("Time (s)", "Inertia I_22 (kg m²)")
-    def I_22(self):
-        """Inertia tensor 22 component, which corresponds to the inertia
-        relative to the e_2 axis, centered at the instantaneous center of mass.
+    def propellant_I_22(self):
+        """Inertia tensor 22 component of the propellnat, the inertia is
+        relative to the e_2 axis, centered at the instantaneous propellant
+        center of mass.
 
         Parameters
         ----------
@@ -410,9 +430,7 @@ class HybridMotor(Motor):
         Notes
         -----
         The e_2 direction is assumed to be the direction perpendicular to the
-        motor body axis and to the e_1 axis.
-        Due to symmetry, the inertia tensor 22 component is equal to the
-        inertia tensor 11 component.
+        motor body axis, and perpendicular to e_1.
 
         References
         ----------
@@ -421,9 +439,10 @@ class HybridMotor(Motor):
         return self.I_11
 
     @funcify_method("Time (s)", "Inertia I_33 (kg m²)")
-    def I_33(self):
-        """Inertia tensor 33 component, which corresponds to the inertia
-        relative to the e_3 axis, centered at the instantaneous center of mass.
+    def propellant_I_33(self):
+        """Inertia tensor 33 component of the propellnat, the inertia is
+        relative to the e_3 axis, centered at the instantaneous propellant
+        center of mass.
 
         Parameters
         ----------
@@ -437,25 +456,25 @@ class HybridMotor(Motor):
 
         Notes
         -----
-        The e_3 direction is assumed to be the direction parallel to the motor
-        body axis.
+        The e_3 direction is assumed to be the axial direction of the rocket
+        motor.
 
         References
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        return self.solid.I_33 + self.liquid.I_33
+        return self.solid.propellant_I_33 + self.liquid.propellant_I_33
 
     @funcify_method("Time (s)", "Inertia I_12 (kg m²)")
-    def I_12(self):
+    def propellant_I_12(self):
         return 0
 
     @funcify_method("Time (s)", "Inertia I_13 (kg m²)")
-    def I_13(self):
+    def propellant_I_13(self):
         return 0
 
     @funcify_method("Time (s)", "Inertia I_23 (kg m²)")
-    def I_23(self):
+    def propellant_I_23(self):
         return 0
 
     def addTank(self, tank, position):
@@ -474,7 +493,7 @@ class HybridMotor(Motor):
         None
         """
         self.liquid.addTank(tank, position)
-        self.solid.massFlowRate = self.massDot - self.liquid.massFlowRate
+        self.solid.massFlowRate = self.totalMassFlowRate - self.liquid.massFlowRate
 
     def allInfo(self):
         """Prints out all data and graphs available about the Motor.
@@ -512,8 +531,8 @@ class HybridMotor(Motor):
             + " kg"
         )
         print(
-            "Propellant Exhaust Velocity: "
-            + "{:.3f}".format(self.exhaustVelocity)
+            "Average Propellant Exhaust Velocity: "
+            + "{:.3f}".format(self.exhaustVelocity.average(*self.burn_time))
             + " m/s"
         )
         print("Average Thrust: " + "{:.3f}".format(self.averageThrust) + " N")
@@ -529,15 +548,19 @@ class HybridMotor(Motor):
         # Show plots
         print("\nPlots")
         self.thrust.plot(*self.burn_time)
-        self.mass.plot(*self.burn_time)
+        self.totalMass.plot(*self.burn_time)
         self.massFlowRate.plot(*self.burn_time)
         self.solid.grainInnerRadius.plot(*self.burn_time)
         self.solid.grainHeight.plot(*self.burn_time)
-        self.solid.burnRate.plot(0, self.solid.grainBurnOut)
+        self.solid.burnRate.plot(self.burn_time[0], self.solid.grainBurnOut)
         self.solid.burnArea.plot(*self.burn_time)
         self.solid.Kn.plot(*self.burn_time)
-        self.centerOfMass.plot(*self.burn_time, samples=50)
-        self.inertiaTensor[0].plot(*self.burn_time, samples=50)
-        self.inertiaTensor[2].plot(*self.burn_time, samples=50)
+        self.centerOfMass.plot(*self.burn_time)
+        self.I_11.plot(*self.burn_time)
+        self.I_22.plot(*self.burn_time)
+        self.I_33.plot(*self.burn_time)
+        self.I_12.plot(*self.burn_time)
+        self.I_13.plot(*self.burn_time)
+        self.I_23.plot(*self.burn_time)
 
         return None
