@@ -20,19 +20,22 @@ throatRadius = 11 / 1000
 @patch("matplotlib.pyplot.show")
 def test_motor(mock_show):
     example_motor = SolidMotor(
-        thrustSource="tests/fixtures/motor/Cesaroni_M1670.eng",
+        thrustSource="data/motors/Cesaroni_M1670.eng",
         burnOut=3.9,
-        dry_mass=10,
+        dry_mass=1.815,
+        dry_inertia=(0.125, 0.125, 0.002),
+        center_of_dry_mass=0.317,
+        nozzlePosition=0,
         grainNumber=5,
-        grainSeparation=5 / 1000,
         grainDensity=1815,
-        grainOuterRadius=33 / 1000,
-        grainInitialInnerRadius=15 / 1000,
-        grainInitialHeight=120 / 1000,
         nozzleRadius=33 / 1000,
         throatRadius=11 / 1000,
+        grainSeparation=5 / 1000,
+        grainOuterRadius=33 / 1000,
+        grainInitialHeight=120 / 1000,
+        grainsCenterOfMassPosition=0.397,
+        grainInitialInnerRadius=15 / 1000,
         interpolationMethod="linear",
-        grainsCenterOfMassPosition=0.39796,
         coordinateSystemOrientation="nozzleToCombustionChamber",
     )
 
@@ -132,6 +135,7 @@ def test_evaluate_inertia_11_asserts_extreme_values(solid_motor):
         d**2
     )
 
+    # not passing because I_11 is not discrete anymore
     assert np.allclose(
         solid_motor.I_11.getSource()[0][-1], inertia_11_initial, atol=0.01
     )
@@ -148,6 +152,7 @@ def test_evaluate_inertia_33_asserts_extreme_values(solid_motor):
         grain_mass * (1 / 2.0) * (grainInitialInnerRadius**2 + grainOuterRadius**2)
     )
 
+    # not passing because I_33 is not discrete anymore
     assert np.allclose(
         solid_motor.I_33.getSource()[0][-1], grain_I_33_initial, atol=0.01
     )
@@ -222,22 +227,26 @@ def tests_export_eng_asserts_exported_values_correct(solid_motor):
 
 def test_reshape_thrust_curve_asserts_resultant_thrust_curve_correct():
     example_motor = SolidMotor(
-        thrustSource="tests/fixtures/motor/Cesaroni_M1670_shifted.eng",
+        thrustSource="data/motors/Cesaroni_M1670.eng",
         burnOut=3.9,
-        dry_mass=10,
+        dry_mass=1.815,
+        dry_inertia=(0.125, 0.125, 0.002),
+        center_of_dry_mass=0.317,
+        nozzlePosition=0,
         grainNumber=5,
-        grainSeparation=5 / 1000,
         grainDensity=1815,
-        grainOuterRadius=33 / 1000,
-        grainInitialInnerRadius=15 / 1000,
-        grainInitialHeight=120 / 1000,
         nozzleRadius=33 / 1000,
         throatRadius=11 / 1000,
-        reshapeThrustCurve=(5, 3000),
+        grainSeparation=5 / 1000,
+        grainOuterRadius=33 / 1000,
+        grainInitialHeight=120 / 1000,
+        grainsCenterOfMassPosition=0.397,
+        grainInitialInnerRadius=15 / 1000,
         interpolationMethod="linear",
-        grainsCenterOfMassPosition=0.39796,
         coordinateSystemOrientation="nozzleToCombustionChamber",
+        reshapeThrustCurve=(5, 3000),
     )
+    # not passing because ??
 
     thrust_reshaped = example_motor.thrust.getSource()
     assert thrust_reshaped[1][0] == 0.155 * (5 / 4)
