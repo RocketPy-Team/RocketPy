@@ -2237,96 +2237,72 @@ class Flight:
         """Static margin of the rocket."""
         return self.rocket.staticMargin
 
+    @cached_property
+    def __rail_buttons_alpha_angle(self):
+        """Alpha angle of the rail buttons, in radians. If there is no rail
+        button, the function returns 0. See the rail buttons documentation to
+        learn more about the alpha angle.
+        """
+        try:
+            alpha = self.rocket.rail_buttons[0].component.angular_position * (
+                np.pi / 180
+            )
+        except IndexError:
+            alpha = 0  # there's no rail button defined, use any alpha value
+        return alpha
+
     # Rail Button Forces
     @funcify_method("Time (s)", "Upper Rail Button Normal Force (N)", "spline", "zero")
     def railButton1NormalForce(self):
-        """Upper rail button normal force as a rocketpy.Function of time."""
-        if isinstance(self.calculate_rail_button_forces, tuple):
-            F11, F12 = self.calculate_rail_button_forces[0:2]
-        else:
-            F11, F12 = self.calculate_rail_button_forces()[0:2]
-        alpha = self.rocket.rail_buttons[0].component.angular_position * (np.pi / 180)
+        """Upper rail button normal force as a rocketpy.Function of time. If
+        there's no rail button defined, the function returns a null Function."""
+        F11, F12 = self.__calculate_rail_button_forces[0:2]
+        alpha = self.__rail_buttons_alpha_angle
         return F11 * np.cos(alpha) + F12 * np.sin(alpha)
 
     @funcify_method("Time (s)", "Upper Rail Button Shear Force (N)", "spline", "zero")
     def railButton1ShearForce(self):
-        """Upper rail button shear force as a rocketpy.Function of time."""
-        if isinstance(self.calculate_rail_button_forces, tuple):
-            F11, F12 = self.calculate_rail_button_forces[0:2]
-        else:
-            F11, F12 = self.calculate_rail_button_forces()[0:2]
-        alpha = self.rocket.rail_buttons[0].component.angular_position * (
-            np.pi / 180
-        )  # Rail buttons angular position
+        """Upper rail button shear force as a rocketpy.Function of time. If
+        there's no rail button defined, the function returns a null Function."""
+        F11, F12 = self.__calculate_rail_button_forces[0:2]
+        alpha = self.__rail_buttons_alpha_angle
         return F11 * -np.sin(alpha) + F12 * np.cos(alpha)
 
     @funcify_method("Time (s)", "Lower Rail Button Normal Force (N)", "spline", "zero")
     def railButton2NormalForce(self):
-        """Lower rail button normal force as a rocketpy.Function of time."""
-        if isinstance(self.calculate_rail_button_forces, tuple):
-            F21, F22 = self.calculate_rail_button_forces[2:4]
-        else:
-            F21, F22 = self.calculate_rail_button_forces()[2:4]
-        alpha = self.rocket.rail_buttons[0].component.angular_position * (np.pi / 180)
+        """Lower rail button normal force as a rocketpy.Function of time. If
+        there's no rail button defined, the function returns a null Function."""
+        F21, F22 = self.__calculate_rail_button_forces[2:4]
+        alpha = self.__rail_buttons_alpha_angle
         return F21 * np.cos(alpha) + F22 * np.sin(alpha)
 
     @funcify_method("Time (s)", "Lower Rail Button Shear Force (N)", "spline", "zero")
     def railButton2ShearForce(self):
-        """Lower rail button shear force as a rocketpy.Function of time."""
-        if isinstance(self.calculate_rail_button_forces, tuple):
-            F21, F22 = self.calculate_rail_button_forces[2:4]
-        else:
-            F21, F22 = self.calculate_rail_button_forces()[2:4]
-        alpha = self.rocket.rail_buttons[0].component.angular_position * (np.pi / 180)
+        """Lower rail button shear force as a rocketpy.Function of time. If
+        there's no rail button defined, the function returns a null Function."""
+        F21, F22 = self.__calculate_rail_button_forces[2:4]
+        alpha = self.__rail_buttons_alpha_angle
         return F21 * -np.sin(alpha) + F22 * np.cos(alpha)
 
     @cached_property
     def maxRailButton1NormalForce(self):
         """Maximum upper rail button normal force, in Newtons."""
-        if isinstance(self.calculate_rail_button_forces, tuple):
-            F11 = self.calculate_rail_button_forces[0]
-        else:
-            F11 = self.calculate_rail_button_forces()[0]
-        if self.outOfRailTimeIndex == 0:
-            return 0
-        else:
-            return self.railButton1NormalForce.max
+        return self.railButton1NormalForce.max
 
     @cached_property
     def maxRailButton1ShearForce(self):
         """Maximum upper rail button shear force, in Newtons."""
-        if isinstance(self.calculate_rail_button_forces, tuple):
-            F11 = self.calculate_rail_button_forces[0]
-        else:
-            F11 = self.calculate_rail_button_forces()[0]
-        if self.outOfRailTimeIndex == 0:
-            return 0
-        else:
-            return self.railButton1ShearForce.max
+        return self.railButton1ShearForce.max
 
     @cached_property
     def maxRailButton2NormalForce(self):
         """Maximum lower rail button normal force, in Newtons."""
-        if isinstance(self.calculate_rail_button_forces, tuple):
-            F11 = self.calculate_rail_button_forces[0]
-        else:
-            F11 = self.calculate_rail_button_forces()[0]
-        if self.outOfRailTimeIndex == 0:
-            return 0
-        else:
-            return self.railButton2NormalForce.max
+        return self.railButton2NormalForce.max
 
     @cached_property
     def maxRailButton2ShearForce(self):
         """Maximum lower rail button shear force, in Newtons."""
-        if isinstance(self.calculate_rail_button_forces, tuple):
-            F11 = self.calculate_rail_button_forces[0]
-        else:
-            F11 = self.calculate_rail_button_forces()[0]
-        if self.outOfRailTimeIndex == 0:
-            return 0
-        else:
-            return self.railButton2ShearForce.max
+        return self.railButton2ShearForce.max
 
     @funcify_method(
         "Time (s)", "Horizontal Distance to Launch Point (m)", "spline", "constant"
@@ -2531,7 +2507,7 @@ class Flight:
         return temporary_values
 
     @cached_property
-    def calculate_rail_button_forces(self):
+    def __calculate_rail_button_forces(self):
         """Calculate the forces applied to the rail buttons while rocket is still
         on the launch rail. It will return 0 if no rail buttons are defined.
 
@@ -2546,14 +2522,19 @@ class Flight:
         F22: Function
             Rail Button 2 force in the 2 direction
         """
+        # First check for no rail phase or rail buttons
+        nullForce = 0 * self.R1
+        if self.outOfRailTimeIndex == 0:  # No rail phase, no rail button forces
+            warnings.warn(
+                "Trying to calculate rail button forces without a rail phase defined."
+                + "The rail button forces will be set to zero."
+            )
+            return nullForce, nullForce, nullForce, nullForce
         if len(self.rocket.rail_buttons) == 0:
             warnings.warn(
                 "Trying to calculate rail button forces without rail buttons defined."
+                + "The rail button forces will be set to zero."
             )
-            return 0, 0, 0, 0
-        if self.outOfRailTimeIndex == 0:
-            # No rail phase, no rail button forces
-            nullForce = 0 * self.R1
             return nullForce, nullForce, nullForce, nullForce
 
         # Distance from Rail Button 1 (upper) to CM
