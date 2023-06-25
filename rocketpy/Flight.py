@@ -2285,22 +2285,22 @@ class Flight:
         alpha = self.__rail_buttons_alpha_angle
         return F21 * -np.sin(alpha) + F22 * np.cos(alpha)
 
-    @cached_property
+    @property
     def maxRailButton1NormalForce(self):
         """Maximum upper rail button normal force, in Newtons."""
         return self.railButton1NormalForce.max
 
-    @cached_property
+    @property
     def maxRailButton1ShearForce(self):
         """Maximum upper rail button shear force, in Newtons."""
         return self.railButton1ShearForce.max
 
-    @cached_property
+    @property
     def maxRailButton2NormalForce(self):
         """Maximum lower rail button normal force, in Newtons."""
         return self.railButton2NormalForce.max
 
-    @cached_property
+    @property
     def maxRailButton2ShearForce(self):
         """Maximum lower rail button shear force, in Newtons."""
         return self.railButton2ShearForce.max
