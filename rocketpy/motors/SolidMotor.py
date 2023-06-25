@@ -441,7 +441,7 @@ class SolidMotor(Motor):
         y0 = [self.grainInitialInnerRadius, self.grainInitialHeight]
 
         # Define time mesh
-        t = self.massDot.source[:, 0]
+        t = self.thrust.source[:, 0]
         t_span = t[0], t[-1]
 
         density = self.grainDensity
@@ -718,7 +718,7 @@ class SolidMotor(Motor):
         )
         print(
             "Average Propellant Exhaust Velocity: "
-            + "{:.3f}".format(self.exhaustVelocity.average(0, self.burnOutTime))
+            + "{:.3f}".format(self.exhaustVelocity.average(*self.burn_time))
             + " m/s"
         )
         print("Average Thrust: " + "{:.3f}".format(self.averageThrust) + " N")
@@ -742,12 +742,12 @@ class SolidMotor(Motor):
         self.burnRate.plot(self.burn_time[0], self.grainBurnOut)
         self.burnArea()
         self.Kn()
-        self.centerOfMass.plot(0, self.burnOutTime)
-        self.I_11.plot(0, self.burnOutTime)
-        self.I_22.plot(0, self.burnOutTime)
-        self.I_33.plot(0, self.burnOutTime)
-        self.I_12.plot(0, self.burnOutTime)
-        self.I_13.plot(0, self.burnOutTime)
-        self.I_23.plot(0, self.burnOutTime)
+        self.centerOfMass.plot(*self.burn_time)
+        self.I_11.plot(*self.burn_time)
+        self.I_22.plot(*self.burn_time)
+        self.I_33.plot(*self.burn_time)
+        self.I_12.plot(*self.burn_time)
+        self.I_13.plot(*self.burn_time)
+        self.I_23.plot(*self.burn_time)
 
         return None

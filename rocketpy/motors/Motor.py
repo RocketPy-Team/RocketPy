@@ -1068,7 +1068,7 @@ class Motor(ABC):
         )
         print(
             "Propellant Exhaust Velocity: "
-            + "{:.3f}".format(self.exhaustVelocity.average(0, self.burnOutTime))
+            + "{:.3f}".format(self.exhaustVelocity.average(*self.burn_time))
             + " m/s"
         )
         print("Average Thrust: " + "{:.3f}".format(self.averageThrust) + " N")
@@ -1200,7 +1200,11 @@ class GenericMotor(Motor):
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        return self.mass * (3 * self.chamberRadius**2 + self.chamberHeight**2) / 12
+        return (
+            self.propellantMass
+            * (3 * self.chamberRadius**2 + self.chamberHeight**2)
+            / 12
+        )
 
     @funcify_method("Time (s)", "Inertia I_22 (kg m²)")
     def propellant_I_22(self):
@@ -1255,7 +1259,7 @@ class GenericMotor(Motor):
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        return self.mass * self.chamberRadius**2 / 2
+        return self.propellantMass * self.chamberRadius**2 / 2
 
     @funcify_method("Time (s)", "Inertia I_12 (kg m²)")
     def propellant_I_12(self):
@@ -1306,7 +1310,7 @@ class GenericMotor(Motor):
         # Show plots
         print("\nPlots")
         self.thrust()
-        self.mass()
+        self.totalMass()
         self.centerOfMass()
         self.I_11()
         self.I_22()

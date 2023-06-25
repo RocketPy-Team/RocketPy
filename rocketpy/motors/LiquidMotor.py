@@ -363,7 +363,7 @@ class LiquidMotor(Motor):
         )
         print(
             "Average Propellant Exhaust Velocity: "
-            + "{:.3f}".format(self.exhaustVelocity.average(0, self.burnOutTime))
+            + "{:.3f}".format(self.exhaustVelocity.average(*self.burn_time))
             + " m/s"
         )
         print("Average Thrust: " + "{:.3f}".format(self.averageThrust) + " N")
@@ -379,7 +379,7 @@ class LiquidMotor(Motor):
         # Show plots
         print("\nPlots")
         self.thrust.plot(*self.burn_time)
-        self.mass.plot(*self.burn_time)
+        self.totalMass.plot(*self.burn_time)
         self.massFlowRate.plot(*self.burn_time)
         self.exhaustVelocity.plot(*self.burn_time)
         self.centerOfMass.plot(*self.burn_time)
