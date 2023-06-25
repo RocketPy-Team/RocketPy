@@ -1334,7 +1334,7 @@ class Flight:
             TzDot = self.rocket.motor.I_33.differentiate(t, dx=1e-6)
             TiDot = self.rocket.motor.I_11.differentiate(t, dx=1e-6)
             # Mass
-            MtDot = self.rocket.motor.massDot.getValueOpt(t)
+            MtDot = self.rocket.motor.massFlowRate.getValueOpt(t)
             Mt = self.rocket.motor.propellantMass.getValueOpt(t)
             # Thrust
             Thrust = self.rocket.motor.thrust.getValueOpt(t)
@@ -1768,16 +1768,16 @@ class Flight:
         T03 = [
             0,
             0,
-            2 * self.rocket.massDot(t) * (self.rocket.nozzlePosition - r_CM)
+            2 * self.rocket.massFlowRate(t) * (self.rocket.nozzlePosition - r_CM)
             - 2 * M * r_CM_dot,
         ]
         T04 = (
             self.rocket.motor.thrust(t)
             - M * r_CM_ddot
-            - 2 * self.rocket.massDot(t) * r_CM_dot
+            - 2 * self.rocket.massFlowRate(t) * r_CM_dot
             + M_ddot * (self.rocket.nozzlePosition - r_CM)
         )
-        T05 = self.rocket.massDot(t) * S_nozzle - I_dot
+        T05 = self.rocket.massFlowRate(t) * S_nozzle - I_dot
 
         T20 = list_sum(
             cross(cross(omega, T00), omega),
@@ -1837,8 +1837,8 @@ class Flight:
         propellant_mass = self.rocket.motor.mass.getValueOpt(t)
         total_mass = dry_mass + propellant_mass
         reduced_mass = (dry_mass * propellant_mass) / (dry_mass + propellant_mass)
-        m_d = self.rocket.motor.massDot.getValueOpt(t)
-        m_dd = self.rocket.motor.massDot.differentiate(t, dx=1e-6)
+        m_d = self.rocket.motor.massFlowRate.getValueOpt(t)
+        m_dd = self.rocket.motor.massFlowRate.differentiate(t, dx=1e-6)
         I_11 = self.rocket.I_11.getValueOpt(t)
         I_22 = self.rocket.I_22.getValueOpt(t)
         I_33 = self.rocket.I_33.getValueOpt(t)
