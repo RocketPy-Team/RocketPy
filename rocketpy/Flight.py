@@ -10,6 +10,7 @@ import math
 import time
 import warnings
 from copy import deepcopy
+from functools import cached_property
 
 import matplotlib.pyplot as plt
 import numpy as np
