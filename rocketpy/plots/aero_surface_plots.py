@@ -28,7 +28,7 @@ class _AeroSurfacePlots(ABC):
         return None
 
     @abstractmethod
-    def cross_section(self):
+    def draw(self):
         pass
 
     def lift(self):
@@ -50,7 +50,7 @@ class _AeroSurfacePlots(ABC):
         -------
         None
         """
-        self.cross_section()
+        self.draw()
         self.lift()
         return None
 
@@ -74,7 +74,7 @@ class _NoseConePlots(_AeroSurfacePlots):
         super().__init__(nosecone)
         return None
 
-    def cross_section(self):
+    def draw(self):
         # This will de done in the future
         return None
 
@@ -99,7 +99,7 @@ class _FinPlots(_AeroSurfacePlots):
         return None
 
     @abstractmethod
-    def cross_section(self):
+    def draw(self):
         pass
 
     def airfoil(self):
@@ -150,7 +150,7 @@ class _FinPlots(_AeroSurfacePlots):
         -------
         None
         """
-        self.cross_section()
+        self.draw()
         self.airfoil()
         self.roll()
         self.lift()
@@ -164,7 +164,7 @@ class _TrapezoidalFinsPlots(_FinPlots):
         super().__init__(fin_set)
         return None
 
-    def cross_section(self):
+    def draw(self):
         """Draw the fin shape along with some important information, including
         the center line, the quarter line and the center of pressure position.
 
@@ -293,7 +293,7 @@ class _EllipticalFinsPlots(_FinPlots):
         super().__init__(fin_set)
         return None
 
-    def cross_section(self):
+    def draw(self):
         """Draw the fin shape along with some important information.
         These being: the center line and the center of pressure position.
 
@@ -383,6 +383,6 @@ class _TailPlots(_AeroSurfacePlots):
         super().__init__(tail)
         return None
 
-    def cross_section(self):
+    def draw(self):
         # This will de done in the future
         return None
