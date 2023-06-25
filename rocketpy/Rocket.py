@@ -22,7 +22,7 @@ from .AeroSurface import (
     Tail,
 )
 from .Components import Components
-from .motors import EmptyMotor
+from .motors.Motor import EmptyMotor
 
 from .prints.rocket_prints import _RocketPrints
 from .plots.rocket_plots import _RocketPlots
@@ -430,7 +430,8 @@ class Rocket:
         self.staticMargin.setDiscrete(
             lower=0, upper=self.motor.burnOutTime, samples=200
         )
-        return None
+        # Return self
+        return self
 
     @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
     def I_11(self):

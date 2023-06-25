@@ -21,11 +21,6 @@ from .plots.flight_plots import _FlightPlots
 from .prints.flight_prints import _FlightPrints
 from .tools import Vector, Matrix
 
-try:
-    from functools import cached_property
-except ImportError:
-    from .tools import cached_property
-
 
 class Flight:
     """Keeps all flight information and has a method to simulate flight.
