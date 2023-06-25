@@ -27,7 +27,7 @@ def pytest_configure(config):
 def solid_motor():
     example_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burn_time=3.9,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
         center_of_dry_mass=0.317,
@@ -114,7 +114,7 @@ def kg():
 def dimensionless_solid_motor(kg, m):
     example_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burn_time=3.9,
         dry_mass=1.815 * kg,
         dry_inertia=(
             0.125 * (kg * m**2),

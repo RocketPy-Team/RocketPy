@@ -17,7 +17,7 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         "rocketMass": (18.227 - 1, 0.010),  # 1.373 = propellant mass
         # Propulsion Details
         "impulse": (2157, 0.03 * 2157),
-        "burnOut": (2.43, 0.1),
+        "burn_time": (2.43, 0.1),
         "nozzleRadius": (44.45 / 1000, 0.001),
         "throatRadius": (21.4376 / 1000, 0.001),
         "grainSeparation": (3 / 1000, 1 / 1000),
@@ -73,7 +73,7 @@ def test_bella_lui_rocket_data_asserts_acceptance():
     # Motor Information
     K828FJ = SolidMotor(
         thrustSource="tests/fixtures/acceptance/EPFL_Bella_Lui/bella_lui_motor_AeroTech_K828FJ.eng",
-        burnOut=parameters.get("burnOut")[0],
+        burn_time=parameters.get("burn_time")[0],
         dry_mass=1,
         dry_inertia=(0, 0, 0),
         center_of_dry_mass=0,

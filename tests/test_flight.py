@@ -76,7 +76,7 @@ def test_flight(mock_show):
 
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burn_time=3.9,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
         center_of_dry_mass=0.317,
@@ -180,7 +180,7 @@ def test_initial_solution(mock_show):
 
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burn_time=3.9,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
         center_of_dry_mass=0.317,
@@ -319,7 +319,7 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
     # Create a motor with ZERO thrust and ZERO mass to keep the rocket's speed constant
     DummyMotor = SolidMotor(
         thrustSource=1e-300,
-        burnOut=1e-10,
+        burn_time=1e-10,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
         center_of_dry_mass=0.317,
@@ -399,7 +399,7 @@ def test_rolling_flight(mock_show):
 
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burn_time=3.9,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
         center_of_dry_mass=0.317,
@@ -504,7 +504,7 @@ def test_simpler_parachute_triggers(mock_show):
 
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burn_time=3.9,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
         center_of_dry_mass=0.317,
@@ -602,7 +602,7 @@ def test_export_data():
 
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burn_time=3.9,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
         center_of_dry_mass=0.317,
@@ -710,7 +710,7 @@ def test_export_KML():
 
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burn_time=3.9,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
         center_of_dry_mass=0.317,
@@ -803,7 +803,7 @@ def test_latlon_conversions(mock_show):
 
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burn_time=3.9,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
         center_of_dry_mass=0.317,
@@ -901,7 +901,7 @@ def test_latlon_conversions2(mock_show):
     "additional tests to capture incorrect behaviors during lat/lon conversions"
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burn_time=3.9,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
         center_of_dry_mass=0.317,

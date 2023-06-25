@@ -981,6 +981,34 @@ class Matrix:
         )
 
 
+def tuple_handler(value):
+    """Transforms the input value into a tuple that
+    represents a range. If the input is an input or float,
+    the output is a tuple from zero to the input value. If
+    the input is a tuple or list, the output is a tuple with
+    the same range.
+
+    Parameters
+    ----------
+    value : int, float, tuple, list
+        Input value.
+
+    Returns
+    -------
+    tuple
+        Tuple that represents the inputted range.
+    """
+    if isinstance(value, (int, float)):
+        return (0, value)
+    elif isinstance(value, (list, tuple)):
+        if len(value) == 1:
+            return (0, value[0])
+        elif len(value) == 2:
+            return tuple(value)
+        else:
+            raise ValueError("value must be a list or tuple of length 1 or 2.")
+
+
 def bilinear_interpolation(x, y, x1, x2, y1, y2, z11, z12, z21, z22):
     """Bilinear interpolation. It considers the values of the four points
     around the point to be interpolated and returns the interpolated value.

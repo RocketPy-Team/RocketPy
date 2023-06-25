@@ -107,10 +107,15 @@ class SolidMotor(Motor):
             Time, in seconds, in which the maximum thrust value is achieved.
         Motor.averageThrust : float
             Average thrust of the motor, given in N.
+        Motor.burn_time : tuple of float
+            Tuple containing the initial and final time of the motor's burn time
+            in seconds.
+        Motor.burnStartTime : float
+            Motor burn start time, in seconds.
         Motor.burnOutTime : float
-            Total motor burn out time, in seconds. Must include delay time
-            when the motor takes time to ignite. Also seen as time to end thrust
-            curve.
+            Motor burn out time, in seconds.
+        Motor.burnDuration : float
+            Total motor burn duration, in seconds. It is the difference between the burnOutTime and the burnStartTime.
         Motor.exhaustVelocity : float
             Propulsion gases exhaust velocity, assumed constant, in m/s.
         Motor.burnArea : Function
@@ -131,7 +136,6 @@ class SolidMotor(Motor):
     def __init__(
         self,
         thrustSource,
-        burnOut,
         dry_mass,
         center_of_dry_mass,
         dry_inertia,
@@ -143,6 +147,7 @@ class SolidMotor(Motor):
         grainInitialHeight,
         grainSeparation,
         nozzleRadius,
+        burn_time=None,
         nozzlePosition=0,
         throatRadius=0.01,
         reshapeThrustCurve=False,
@@ -164,8 +169,16 @@ class SolidMotor(Motor):
             specify time in seconds, while the second column specifies thrust.
             Arrays may also be specified, following rules set by the class
             Function. See help(Function). Thrust units are Newtons.
-        burnOut : int, float
-            Motor burn out time in seconds.
+        burn_time: float, tuple of float, optional
+            Motor's burn time.
+            If a float is given, the burn time is assumed to be between 0 and the
+            given float, in seconds.
+            If a tuple of float is given, the burn time is assumed to be between
+            the first and second elements of the tuple, in seconds.
+            If not specified, automatically sourced as the range between the first- and
+            last-time step of the motor's thrust curve. This can only be used if the
+            motor's thrust is defined by a list of points, such as a .csv file, a .eng
+            file or a Function instance whose source is a list.
         dry_mass : int, float
             The total mass of the motor structure, including chambers
             and tanks, when it is empty and does not contain any propellant.
@@ -185,9 +198,9 @@ class SolidMotor(Motor):
             Alternatively, the inertia tensor can be given as (I_11, I_22, I_33),
             where I_12 = I_13 = I_23 = 0.
         grainsCenterOfMassPosition : float
-            Position of the center of mass of the grains in meters, specified in
-            the motor's coordinate system.
-            See `Motor.coordinateSystemOrientation` for more information.
+            Position of the center of mass of the grains in meters. More specifically,
+            the coordinate of the center of mass specified in the motor's coordinate
+            system. See `Motor.coordinateSystemOrientation` for more information.
         grainNumber : int
             Number of solid grains
         grainDensity : int, float
@@ -237,11 +250,11 @@ class SolidMotor(Motor):
         """
         super().__init__(
             thrustSource,
-            burnOut,
             dry_mass,
             center_of_dry_mass,
             dry_inertia,
             nozzleRadius,
+            burn_time,
             nozzlePosition,
             reshapeThrustCurve,
             interpolationMethod,
@@ -428,8 +441,8 @@ class SolidMotor(Motor):
         y0 = [self.grainInitialInnerRadius, self.grainInitialHeight]
 
         # Define time mesh
-        t = self.thrust.source[:, 0]
-        t_span = (t[0], t[-1])
+        t = self.massDot.source[:, 0]
+        t_span = t[0], t[-1]
 
         density = self.grainDensity
         rO = self.grainOuterRadius
@@ -449,6 +462,7 @@ class SolidMotor(Motor):
             return end_function
 
         terminateBurn.terminal = True
+        terminateBurn.direction = -1
 
         # Solve the system of differential equations
         sol = integrate.solve_ivp(
@@ -696,7 +710,7 @@ class SolidMotor(Motor):
 
         # Print motor details
         print("\nMotor Details")
-        print("Total Burning Time: " + str(self.burnOutTime) + " s")
+        print("Total Burning Time: " + str(self.burnDuration) + " s")
         print(
             "Total Propellant Mass: "
             + "{:.3f}".format(self.propellantInitialMass)
@@ -725,7 +739,7 @@ class SolidMotor(Motor):
         self.exhaustVelocity()
         self.grainInnerRadius()
         self.grainHeight()
-        self.burnRate.plot(0, self.grainBurnOut)
+        self.burnRate.plot(self.burn_time[0], self.grainBurnOut)
         self.burnArea()
         self.Kn()
         self.centerOfMass.plot(0, self.burnOutTime)

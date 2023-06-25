@@ -6,7 +6,7 @@ import pytest
 
 from rocketpy import SolidMotor
 
-burnOut = 3.9
+burn_time = 3.9
 grainNumber = 5
 grainSeparation = 5 / 1000
 grainDensity = 1815
@@ -21,7 +21,7 @@ throatRadius = 11 / 1000
 def test_motor(mock_show):
     example_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burn_time=3.9,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
         center_of_dry_mass=0.317,
@@ -50,10 +50,11 @@ def test_initialize_motor_asserts_dynamic_values(solid_motor):
 
     assert solid_motor.maxThrust == 2200.0
     assert solid_motor.maxThrustTime == 0.15
-    assert solid_motor.burnOutTime == burnOut
-    assert solid_motor.totalImpulse == solid_motor.thrust.integral(0, burnOut)
+    assert solid_motor.burn_time[1] == burn_time
+    assert solid_motor.totalImpulse == solid_motor.thrust.integral(0, burn_time)
     assert (
-        solid_motor.averageThrust == solid_motor.thrust.integral(0, burnOut) / burnOut
+        solid_motor.averageThrust
+        == solid_motor.thrust.integral(0, burn_time) / burn_time
     )
     assert solid_motor.grainInitialVolume == grain_vol
     assert solid_motor.grainInitialMass == grain_mass
@@ -227,7 +228,7 @@ def tests_export_eng_asserts_exported_values_correct(solid_motor):
 def test_reshape_thrust_curve_asserts_resultant_thrust_curve_correct():
     example_motor = SolidMotor(
         thrustSource="tests/fixtures/motor/Cesaroni_M1670_shifted.eng",
-        burnOut=3.9,
+        burn_time=3.9,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
         center_of_dry_mass=0.317,

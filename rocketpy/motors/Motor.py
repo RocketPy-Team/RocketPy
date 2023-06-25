@@ -5,7 +5,10 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 import re
+import warnings
 from abc import ABC, abstractmethod
+
+from rocketpy.tools import tuple_handler
 
 try:
     from functools import cached_property
@@ -78,10 +81,15 @@ class Motor(ABC):
             Time, in seconds, in which the maximum thrust value is achieved.
         Motor.averageThrust : float
             Average thrust of the motor, given in N.
+        Motor.burn_time : tuple of float
+            Tuple containing the initial and final time of the motor's burn time
+            in seconds.
+        Motor.burnStartTime : float
+            Motor burn start time, in seconds.
         Motor.burnOutTime : float
-            Total motor burn out time, in seconds. Must include delay time
-            when the motor takes time to ignite. Also seen as time to end thrust
-            curve.
+            Motor burn out time, in seconds.
+        Motor.burnDuration : float
+            Total motor burn duration, in seconds. It is the difference between the burnOutTime and the burnStartTime.
         Motor.exhaustVelocity : float
             Propulsion gases exhaust velocity, assumed constant, in m/s.
         Motor.interpolate : string
@@ -93,11 +101,11 @@ class Motor(ABC):
     def __init__(
         self,
         thrustSource,
-        burnOut,
         dry_mass,
         center_of_dry_mass,
         dry_inertia,
         nozzleRadius,
+        burn_time=None,
         nozzlePosition=0,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
@@ -118,8 +126,6 @@ class Motor(ABC):
             specify time in seconds, while the second column specifies thrust.
             Arrays may also be specified, following rules set by the class
             Function. See help(Function). Thrust units are Newtons.
-        burnOut : int, float
-            Motor burn out time in seconds.
         dry_mass : int, float
             The total mass of the motor structure, including chambers
             and tanks, when it is empty and does not contain any propellant.
@@ -140,6 +146,16 @@ class Motor(ABC):
             where I_12 = I_13 = I_23 = 0.
         nozzleRadius : int, float, optional
             Motor's nozzle outlet radius in meters.
+        burn_time: float, tuple of float, optional
+            Motor's burn time.
+            If a float is given, the burn time is assumed to be between 0 and the
+            given float, in seconds.
+            If a tuple of float is given, the burn time is assumed to be between
+            the first and second elements of the tuple, in seconds.
+            If not specified, automatically sourced as the range between the first- and
+            last-time step of the motor's thrust curve. This can only be used if the
+            motor's thrust is defined by a list of points, such as a .csv file, a .eng
+            file or a Function instance whose source is a list.
         nozzlePosition : int, float, optional
             Motor's nozzle outlet position in meters, in the motor's coordinate
             system. See `Motor.coordinateSystemOrientation` for details.
@@ -152,7 +168,8 @@ class Motor(ABC):
             curve is reshaped to match the new specifications. May be useful
             for motors whose thrust curve shape is expected to remain similar
             in case the impulse and burn time varies slightly. Default is
-            False.
+            False. Note that the Motor burn_time parameter must include the new
+            reshaped burn time.
         interpolationMethod : string, optional
             Method of interpolation to be used in case thrust curve is given
             by data set in .csv or .eng, or as an array. Options are 'spline'
@@ -179,7 +196,6 @@ class Motor(ABC):
         # Motor parameters
         self.dry_mass = dry_mass
         self.interpolate = interpolationMethod
-        self.burnOutTime = burnOut
         self.nozzlePosition = nozzlePosition
         self.nozzleRadius = nozzleRadius
         self.center_of_dry_mass = center_of_dry_mass
@@ -193,83 +209,78 @@ class Motor(ABC):
         self.dry_I_13 = inertia[4]
         self.dry_I_23 = inertia[5]
 
-        # Check if thrustSource is csv, eng, function or other
+        # Handle .eng file inputs
         if isinstance(thrustSource, str):
-            # Determine if csv or eng
             if thrustSource[-3:] == "eng":
-                # Import content
-                comments, desc, points = self.importEng(thrustSource)
+                comments, desc, points = Motor.importEng(thrustSource)
                 thrustSource = points
 
-        # Create thrust function
+        # Evaluate raw thrust source
+        self.interpolate = interpolationMethod
+        self.thrustSource = thrustSource
         self.thrust = Function(
             thrustSource, "Time (s)", "Thrust (N)", self.interpolate, "zero"
         )
 
-        if callable(thrustSource) or isinstance(thrustSource, (int, float)):
-            self.thrust.setDiscrete(0, burnOut, 50, self.interpolate, "zero")
+        # Handle burn_time input
+        self.burn_time = burn_time
 
-        # Reshape curve
+        if callable(self.thrust.source):
+            self.thrust.setDiscrete(*self.burn_time, 50, self.interpolate, "zero")
+
+        # Reshape thrustSource if needed
         if reshapeThrustCurve:
-            self.reshapeThrustCurve(*reshapeThrustCurve)
+            # Overwrites burn_time and thrust
+            self.thrust = Motor.reshapeThrustCurve(self.thrust, *reshapeThrustCurve)
+            self.burn_time = (self.thrust.xArray[0], self.thrust.xArray[-1])
+
+        # Post process thrust
+        self.thrust = Motor.clipThrust(self.thrust, self.burn_time)
+
+        # Auxiliary quantities
+        self.burnStartTime = self.burn_time[0]
+        self.burnOutTime = self.burn_time[1]
+        self.burnDuration = self.burn_time[1] - self.burn_time[0]
+
+        # Define motor attributes
+        self.nozzleRadius = nozzleRadius
+        self.nozzlePosition = nozzlePosition
 
         # Compute thrust metrics
-        self.maxThrust = np.amax(self.thrust.source[:, 1])
-        maxThrustIndex = np.argmax(self.thrust.source[:, 1])
+        self.maxThrust = np.amax(self.thrust.yArray)
+        maxThrustIndex = np.argmax(self.thrust.yArray)
         self.maxThrustTime = self.thrust.source[maxThrustIndex, 0]
-        self.averageThrust = self.totalImpulse / self.burnOutTime
+        self.averageThrust = self.totalImpulse / self.burnDuration
 
-    def reshapeThrustCurve(
-        self, burnTime, totalImpulse, oldTotalImpulse=None, startAtZero=True
-    ):
-        """Transforms the thrust curve supplied by changing its total burn time
-        and/or its total impulse, without altering the general shape of the
-        curve. May translate the curve so that thrust starts at time equals 0,
-        without any delays.
-
-        Parameters
-        ----------
-        burnTime : float
-            New desired burn out time in seconds.
-        totalImpulse : float
-            New desired total impulse.
-        oldTotalImpulse : float, optional
-            Specify the total impulse of the given thrust curve, overriding the
-            value calculated by numerical integration. If left as None, the
-            value calculated by numerical integration will be used in order to
-            reshape the curve.
-        startAtZero: bool, optional
-            If True, trims the initial thrust curve points which are 0 Newtons,
-            translating the thrust curve so that thrust starts at time equals 0.
-            If False, no translation is applied.
+    @property
+    def burn_time(self):
+        """Burn time range in seconds.
 
         Returns
         -------
-        None
+        tuple
+            Burn time range in seconds.
         """
-        # Retrieve current thrust curve data points
-        timeArray = self.thrust.xArray
-        thrustArray = self.thrust.yArray
-        # Move start to time = 0
-        if startAtZero and timeArray[0] != 0:
-            timeArray = timeArray - timeArray[0]
+        return self._burn_time
 
-        # Reshape time - set burn time to burnTime
-        self.thrust.source[:, 0] = (burnTime / timeArray[-1]) * timeArray
-        self.burnOutTime = burnTime
-        self.thrust.setInterpolation(self.interpolate)
+    @burn_time.setter
+    def burn_time(self, burn_time):
+        """Sets burn time range in seconds.
 
-        # Reshape thrust - set total impulse
-        if oldTotalImpulse is None:
-            oldTotalImpulse = self.totalImpulse
-        self.thrust.source[:, 1] = (totalImpulse / oldTotalImpulse) * thrustArray
-        self.thrust.setInterpolation(self.interpolate)
-
-        # Store total impulse
-        self.totalImpulse = totalImpulse
-
-        # Return reshaped curve
-        return self.thrust
+        Parameters
+        ----------
+        burn_time : float or two position array_like
+        """
+        if burn_time is not None:
+            self._burn_time = tuple_handler(burn_time)
+        else:
+            if not callable(self.thrust.source):
+                self._burn_time = (self.thrust.xArray[0], self.thrust.xArray[-1])
+            else:
+                raise ValueError(
+                    "When using a float or callable as thrust source a burn_time "
+                    "range must be specified."
+                )
 
     @cached_property
     def totalImpulse(self):
@@ -285,7 +296,7 @@ class Motor(ABC):
         self.totalImpulse : float
             Motor total impulse in Ns.
         """
-        return self.thrust.integral(0, self.burnOutTime)
+        return self.thrust.integral(*self.burn_time)
 
     @property
     @abstractmethod
@@ -833,7 +844,115 @@ class Motor(ABC):
         """
         pass
 
-    def importEng(self, fileName):
+    @staticmethod
+    def reshapeThrustCurve(thrust, newBurnTime, totalImpulse):
+        """Transforms the thrust curve supplied by changing its total
+        burn time and/or its total impulse, without altering the
+        general shape of the curve.
+
+        Parameters
+        ----------
+        thrust : Function
+            Thrust curve to be reshaped.
+        newBurnTime : float, tuple of float
+            New desired burn time in seconds.
+        totalImpulse : float
+            New desired total impulse.
+
+        Returns
+        -------
+        Function
+            Reshaped thrust curve.
+        """
+        # Retrieve current thrust curve data points
+        timeArray, thrustArray = thrust.xArray, thrust.yArray
+        newBurnTime = tuple_handler(newBurnTime)
+
+        # Compute old thrust based on new time discretization
+        # Adjust scale
+        newTimeArray = (
+            (newBurnTime[1] - newBurnTime[0]) / (timeArray[-1] - timeArray[0])
+        ) * timeArray
+        # Adjust origin
+        newTimeArray = newTimeArray - newTimeArray[0] + newBurnTime[0]
+        source = np.column_stack((newTimeArray, thrustArray))
+        thrust = Function(
+            source, "Time (s)", "Thrust (N)", thrust.__interpolation__, "zero"
+        )
+
+        # Get old total impulse
+        oldTotalImpulse = thrust.integral(*newBurnTime)
+
+        # Compute new thrust values
+        newThrustArray = (totalImpulse / oldTotalImpulse) * thrustArray
+        source = np.column_stack((newTimeArray, newThrustArray))
+        thrust = Function(
+            source, "Time (s)", "Thrust (N)", thrust.__interpolation__, "zero"
+        )
+
+        return thrust
+
+    @staticmethod
+    def clipThrust(thrust, new_burn_time):
+        """Clips the thrust curve data points according to the new_burn_time
+        parameter. If the burn_time range does not coincides with the thrust
+        dataset, their values are interpolated.
+
+        Parameters
+        ----------
+        thrust : Function
+            Thrust curve to be clipped.
+
+        Returns
+        -------
+        Function
+            Clipped thrust curve.
+        """
+        # Check if burn_time is within thrustSource range
+        changedBurnTime = False
+        burn_time = list(tuple_handler(new_burn_time))
+
+        if burn_time[1] > thrust.xArray[-1]:
+            burn_time[1] = thrust.xArray[-1]
+            changedBurnTime = True
+
+        if burn_time[0] < thrust.xArray[0]:
+            burn_time[0] = thrust.xArray[0]
+            changedBurnTime = True
+
+        if changedBurnTime:
+            warnings.warn(
+                f"burn_time argument {new_burn_time} is out of "
+                "thrust source time range. "
+                "Using thrustSource boudary times instead: "
+                f"({burn_time[0]}, {burn_time[1]}) s.\n"
+                "If you want to change the burn out time of the "
+                "curve please use the 'reshapeThrustCurve' argument."
+            )
+
+        # Clip thrust input according to burn_time
+        bound_mask = np.logical_and(
+            thrust.xArray > burn_time[0],
+            thrust.xArray < burn_time[1],
+        )
+        clipped_source = thrust.source[bound_mask]
+
+        # Update source with burn_time points
+        endBurnData = [(burn_time[1], thrust(burn_time[1]))]
+        clipped_source = np.append(clipped_source, endBurnData, 0)
+        startBurnData = [(burn_time[0], thrust(burn_time[0]))]
+        clipped_source = np.insert(clipped_source, 0, startBurnData, 0)
+
+        return Function(
+            clipped_source,
+            "Time (s)",
+            "Thrust (N)",
+            thrust.__interpolation__,
+            "zero",
+        )
+
+    @staticmethod
+    def importEng(fileName):
         """Read content from .eng file and process it, in order to return the
         comments, description and data points.
 
@@ -882,8 +1001,7 @@ class Motor(ABC):
         return comments, description, dataPoints
 
     def exportEng(self, fileName, motorName):
-        """Exports thrust curve data points and motor description to.
-
+        """Exports thrust curve data points and motor description to
         .eng file format. A description of the format can be found
         here: http://www.thrustcurve.org/raspformat.shtml
 
@@ -942,7 +1060,7 @@ class Motor(ABC):
         """
         # Print motor details
         print("\nMotor Details")
-        print("Total Burning Time: " + str(self.burnOutTime) + " s")
+        print("Total Burning Time: " + str(self.burnDuration) + " s")
         print(
             "Total Propellant Mass: "
             + "{:.3f}".format(self.propellantInitialMass)
@@ -988,7 +1106,7 @@ class GenericMotor(Motor):
     def __init__(
         self,
         thrustSource,
-        burnOut,
+        burn_time,
         chamberRadius,
         chamberHeight,
         chamberPosition,
@@ -1004,11 +1122,11 @@ class GenericMotor(Motor):
     ):
         super().__init__(
             thrustSource,
-            burnOut,
             dry_mass,
             center_of_dry_mass,
             dry_inertia,
             nozzleRadius,
+            burn_time,
             nozzlePosition,
             reshapeThrustCurve,
             interpolationMethod,

@@ -22,11 +22,11 @@ class LiquidMotor(Motor):
     def __init__(
         self,
         thrustSource,
-        burnOut,
         dry_mass,
         center_of_dry_mass,
         dry_inertia,
         nozzleRadius,
+        burn_time=None,
         nozzlePosition=0,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
@@ -47,8 +47,16 @@ class LiquidMotor(Motor):
             specify time in seconds, while the second column specifies thrust.
             Arrays may also be specified, following rules set by the class
             Function. See help(Function). Thrust units are Newtons.
-        burnOut : int, float
-            Motor burn out time in seconds.
+        burn_time: float, tuple of float, optional
+            Motor's burn time.
+            If a float is given, the burn time is assumed to be between 0 and the
+            given float, in seconds.
+            If a tuple of float is given, the burn time is assumed to be between
+            the first and second elements of the tuple, in seconds.
+            If not specified, automatically sourced as the range between the first- and
+            last-time step of the motor's thrust curve. This can only be used if the
+            motor's thrust is defined by a list of points, such as a .csv file, a .eng
+            file or a Function instance whose source is a list.
         dry_mass : int, float
             The total mass of the motor structure, including chambers
             and tanks, when it is empty and does not contain any propellant.
@@ -95,11 +103,11 @@ class LiquidMotor(Motor):
         """
         super().__init__(
             thrustSource,
-            burnOut,
             dry_mass,
             center_of_dry_mass,
             dry_inertia,
             nozzleRadius,
+            burn_time,
             nozzlePosition,
             reshapeThrustCurve,
             interpolationMethod,
@@ -347,7 +355,7 @@ class LiquidMotor(Motor):
 
         # Print motor details
         print("\nMotor Details")
-        print("Total Burning Time: " + str(self.burnOutTime) + " s")
+        print("Total Burning Time: " + str(self.burnDuration) + " s")
         print(
             "Total Propellant Mass: "
             + "{:.3f}".format(self.propellantInitialMass)
@@ -370,14 +378,14 @@ class LiquidMotor(Motor):
 
         # Show plots
         print("\nPlots")
-        self.thrust.plot(0, self.burnOutTime)
-        self.mass.plot(0, self.burnOutTime)
-        self.massFlowRate.plot(0, self.burnOutTime)
-        self.exhaustVelocity.plot(0, self.burnOutTime)
-        self.centerOfMass.plot(0, self.burnOutTime, samples=50)
-        self.I_11.plot(0, self.burnOutTime, samples=50)
-        self.I_22.plot(0, self.burnOutTime, samples=50)
-        self.I_33.plot(0, self.burnOutTime, samples=50)
-        self.I_12.plot(0, self.burnOutTime, samples=50)
-        self.I_13.plot(0, self.burnOutTime, samples=50)
-        self.I_23.plot(0, self.burnOutTime, samples=50)
+        self.thrust.plot(*self.burn_time)
+        self.mass.plot(*self.burn_time)
+        self.massFlowRate.plot(*self.burn_time)
+        self.exhaustVelocity.plot(*self.burn_time)
+        self.centerOfMass.plot(*self.burn_time)
+        self.I_11.plot(*self.burn_time)
+        self.I_22.plot(*self.burn_time)
+        self.I_33.plot(*self.burn_time)
+        self.I_12.plot(*self.burn_time)
+        self.I_13.plot(*self.burn_time)
+        self.I_23.plot(*self.burn_time)

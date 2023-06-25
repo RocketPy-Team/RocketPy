@@ -11,7 +11,7 @@ from rocketpy.AeroSurface import NoseCone
 def test_rocket(mock_show):
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burn_time=3.9,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
         center_of_dry_mass=0.317,
@@ -111,7 +111,7 @@ def test_rocket(mock_show):
 def test_coordinate_system_orientation(mock_show):
     motor_nozzleToCombustionChamber = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burn_time=3.9,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
         center_of_dry_mass=0.317,
@@ -131,7 +131,7 @@ def test_coordinate_system_orientation(mock_show):
 
     motor_combustionChamberToNozzle = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burn_time=3.9,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
         center_of_dry_mass=0.317,
@@ -220,7 +220,7 @@ def test_coordinate_system_orientation(mock_show):
 def test_elliptical_fins(mock_show):
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burn_time=3.9,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
         center_of_dry_mass=0.317,
@@ -308,7 +308,7 @@ def test_elliptical_fins(mock_show):
 def test_airfoil(mock_show):
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burn_time=3.9,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
         center_of_dry_mass=0.317,
@@ -408,12 +408,12 @@ def test_evaluate_static_margin_assert_cp_equals_cm(kg, m, dimensionless_rocket)
     rocket = dimensionless_rocket
     rocket.evaluateStaticMargin()
 
-    burnOutTime = rocket.motor.burnOutTime
+    burn_time = rocket.motor.burn_time
 
     assert rocket.centerOfMass(0) / (2 * rocket.radius) == rocket.staticMargin(0)
     assert pytest.approx(
-        rocket.centerOfMass(burnOutTime) / (2 * rocket.radius), 1e-8
-    ) == pytest.approx(rocket.staticMargin(burnOutTime), 1e-8)
+        rocket.centerOfMass(burn_time[1]) / (2 * rocket.radius), 1e-8
+    ) == pytest.approx(rocket.staticMargin(burn_time[1]), 1e-8)
     assert rocket.totalLiftCoeffDer == 0
     assert rocket.cpPosition == 0
 
