@@ -93,10 +93,15 @@ class HybridMotor(Motor):
             Time, in seconds, in which the maximum thrust value is achieved.
         Motor.averageThrust : float
             Average thrust of the motor, given in N.
+        Motor.burn_time : tuple of float
+            Tuple containing the initial and final time of the motor's burn time
+            in seconds.
+        Motor.burnStartTime : float
+            Motor burn start time, in seconds.
         Motor.burnOutTime : float
-            Total motor burn out time, in seconds. Must include delay time
-            when the motor takes time to ignite. Also seen as time to end thrust
-            curve.
+            Motor burn out time, in seconds.
+        Motor.burnDuration : float
+            Total motor burn duration, in seconds. It is the difference between the burnOutTime and the burnStartTime.
         Motor.exhaustVelocity : float
             Propulsion gases exhaust velocity, assumed constant, in m/s.
         Motor.burnArea : Function
@@ -117,7 +122,6 @@ class HybridMotor(Motor):
     def __init__(
         self,
         thrustSource,
-        burnOut,
         grainsCenterOfMassPosition,
         grainNumber,
         grainDensity,
@@ -126,6 +130,7 @@ class HybridMotor(Motor):
         grainInitialHeight,
         grainSeparation,
         nozzleRadius,
+        burn_time=None,
         nozzlePosition=0,
         throatRadius=0.01,
         reshapeThrustCurve=False,
@@ -147,8 +152,16 @@ class HybridMotor(Motor):
             specify time in seconds, while the second column specifies thrust.
             Arrays may also be specified, following rules set by the class
             Function. See help(Function). Thrust units are Newtons.
-        burnOut : int, float
-            Motor burn out time in seconds.
+        burn_time: float, tuple of float, optional
+            Motor's burn time.
+            If a float is given, the burn time is assumed to be between 0 and the
+            given float, in seconds.
+            If a tuple of float is given, the burn time is assumed to be between
+            the first and second elements of the tuple, in seconds.
+            If not specified, automatically sourced as the range between the first- and
+            last-time step of the motor's thrust curve. This can only be used if the
+            motor's thrust is defined by a list of points, such as a .csv file, a .eng
+            file or a Function instance whose source is a list.
         grainNumber : int
             Number of solid grains
         grainDensity : int, float
@@ -198,8 +211,8 @@ class HybridMotor(Motor):
         """
         super().__init__(
             thrustSource,
-            burnOut,
             nozzleRadius,
+            burn_time,
             nozzlePosition,
             reshapeThrustCurve,
             interpolationMethod,
@@ -207,8 +220,8 @@ class HybridMotor(Motor):
         )
         self.liquid = LiquidMotor(
             thrustSource,
-            burnOut,
             nozzleRadius,
+            burn_time,
             nozzlePosition,
             reshapeThrustCurve,
             interpolationMethod,
@@ -216,7 +229,6 @@ class HybridMotor(Motor):
         )
         self.solid = SolidMotor(
             thrustSource,
-            burnOut,
             grainsCenterOfMassPosition,
             grainNumber,
             grainDensity,
@@ -225,6 +237,7 @@ class HybridMotor(Motor):
             grainInitialHeight,
             grainSeparation,
             nozzleRadius,
+            burn_time,
             nozzlePosition,
             throatRadius,
             reshapeThrustCurve,
@@ -492,7 +505,7 @@ class HybridMotor(Motor):
 
         # Print motor details
         print("\nMotor Details")
-        print("Total Burning Time: " + str(self.burnOutTime) + " s")
+        print("Total Burning Time: " + str(self.burnDuration) + " s")
         print(
             "Total Propellant Mass: "
             + "{:.3f}".format(self.propellantInitialMass)
@@ -515,16 +528,16 @@ class HybridMotor(Motor):
 
         # Show plots
         print("\nPlots")
-        self.thrust.plot(0, self.burnOutTime)
-        self.mass.plot(0, self.burnOutTime)
-        self.massFlowRate.plot(0, self.burnOutTime)
-        self.solid.grainInnerRadius.plot(0, self.burnOutTime)
-        self.solid.grainHeight.plot(0, self.burnOutTime)
+        self.thrust.plot(*self.burn_time)
+        self.mass.plot(*self.burn_time)
+        self.massFlowRate.plot(*self.burn_time)
+        self.solid.grainInnerRadius.plot(*self.burn_time)
+        self.solid.grainHeight.plot(*self.burn_time)
         self.solid.burnRate.plot(0, self.solid.grainBurnOut)
-        self.solid.burnArea.plot(0, self.burnOutTime)
-        self.solid.Kn.plot(0, self.burnOutTime)
-        self.centerOfMass.plot(0, self.burnOutTime, samples=50)
-        self.inertiaTensor[0].plot(0, self.burnOutTime, samples=50)
-        self.inertiaTensor[2].plot(0, self.burnOutTime, samples=50)
+        self.solid.burnArea.plot(*self.burn_time)
+        self.solid.Kn.plot(*self.burn_time)
+        self.centerOfMass.plot(*self.burn_time, samples=50)
+        self.inertiaTensor[0].plot(*self.burn_time, samples=50)
+        self.inertiaTensor[2].plot(*self.burn_time, samples=50)
 
         return None

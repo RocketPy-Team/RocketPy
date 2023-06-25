@@ -11,7 +11,6 @@ from rocketpy.Function import Function
 from math import isclose
 from scipy.optimize import fmin
 import numpy as np
-import pandas as pd
 import os
 
 
@@ -108,7 +107,7 @@ def test_mass_based_motor():
         )
         example_calculated = example_tank_lox.mass()
 
-        lox_vals = pd.read_csv(lox_masses, header=None)[1].values
+        lox_vals = Function(lox_masses).yArray
 
         real_expected = lambda t: lox_vals[t]
         real_calculated = real_tank_lox.mass()
@@ -126,9 +125,9 @@ def test_mass_based_motor():
         )
         example_calculated = example_tank_lox.netMassFlowRate()
 
-        liquid_mfrs = pd.read_csv(example_liquid_masses, header=None)[1].values
+        liquid_mfrs = Function(example_liquid_masses).yArray
 
-        gas_mfrs = pd.read_csv(example_gas_masses, header=None)[1].values
+        gas_mfrs = Function(example_gas_masses).yArray
 
         real_expected = lambda t: (liquid_mfrs[t] + gas_mfrs[t]) / t
         real_calculated = real_tank_lox.netMassFlowRate()
@@ -149,7 +148,7 @@ def test_mass_based_motor():
         )
         example_calculated = example_tank_lox.evaluateUllageHeight()
 
-        liquid_heights = pd.read_csv(example_liquid_masses, header=None)[1].values
+        liquid_heights = Function(example_liquid_masses).yArray
 
         real_expected = lambda t: liquid_heights[t]
         real_calculated = real_tank_lox.evaluateUllageHeight()
@@ -183,7 +182,7 @@ def test_ullage_based_motor():
         }
     )
 
-    ullage_data = pd.read_csv(os.path.abspath(test_dir + "loxUllage.csv")).to_numpy()
+    ullage_data = Function(os.path.abspath(test_dir + "loxUllage.csv")).getSource()
     levelTank = LevelBasedTank(
         name="Ullage Tank",
         geometry=tank_geometry,
@@ -194,8 +193,8 @@ def test_ullage_based_motor():
         discretize=None,
     )
 
-    mass_data = pd.read_csv(test_dir + "loxMass.csv").to_numpy()
-    mass_flow_rate_data = pd.read_csv(test_dir + "loxMFR.csv").to_numpy()
+    mass_data = Function(test_dir + "loxMass.csv").getSource()
+    mass_flow_rate_data = Function(test_dir + "loxMFR.csv").getSource()
 
     def align_time_series(small_source, large_source):
         assert isinstance(small_source, np.ndarray) and isinstance(

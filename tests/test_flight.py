@@ -76,7 +76,7 @@ def test_flight(mock_show):
 
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burn_time=3.9,
         grainsCenterOfMassPosition=-0.85704,
         grainNumber=5,
         grainSeparation=5 / 1000,
@@ -166,7 +166,7 @@ def test_initial_solution(mock_show):
 
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burn_time=3.9,
         grainsCenterOfMassPosition=-0.85704,
         grainNumber=5,
         grainSeparation=5 / 1000,
@@ -291,7 +291,7 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
     # Create a motor with ZERO thrust and ZERO mass to keep the rocket's speed constant
     DummyMotor = SolidMotor(
         thrustSource=1e-300,
-        burnOut=1e-10,
+        burn_time=1e-10,
         grainsCenterOfMassPosition=-0.85704,
         grainNumber=5,
         grainSeparation=5 / 1000,
@@ -365,7 +365,7 @@ def test_rolling_flight(mock_show):
 
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burn_time=3.9,
         grainsCenterOfMassPosition=-0.85704,
         grainNumber=5,
         grainSeparation=5 / 1000,
@@ -455,7 +455,7 @@ def test_simpler_parachute_triggers(mock_show):
 
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burn_time=3.9,
         grainsCenterOfMassPosition=-0.85704,
         grainNumber=5,
         grainSeparation=5 / 1000,
@@ -539,7 +539,7 @@ def test_export_data():
 
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burn_time=3.9,
         grainsCenterOfMassPosition=-0.85704,
         grainNumber=5,
         grainSeparation=5 / 1000,
@@ -636,7 +636,7 @@ def test_export_KML():
 
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burn_time=3.9,
         grainsCenterOfMassPosition=-0.85704,
         grainNumber=5,
         grainSeparation=5 / 1000,
@@ -718,7 +718,7 @@ def test_latlon_conversions(mock_show):
 
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burn_time=3.9,
         grainsCenterOfMassPosition=-0.85704,
         grainNumber=5,
         grainSeparation=5 / 1000,
@@ -802,7 +802,7 @@ def test_latlon_conversions2(mock_show):
     "additional tests to capture incorrect behaviors during lat/lon conversions"
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
+        burn_time=3.9,
         grainsCenterOfMassPosition=-0.85704,
         grainNumber=5,
         grainSeparation=5 / 1000,
