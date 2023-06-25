@@ -1027,6 +1027,7 @@ def bilinear_interpolation(x, y, x1, x2, y1, y2, z11, z12, z21, z22):
         + z22 * (x - x1) * (y - y1)
     ) / ((x2 - x1) * (y2 - y1))
 
+
 def find_two_closest_integers(number):
     """Find the two closest integer factors of a number.
 
@@ -1061,6 +1062,7 @@ def find_two_closest_integers(number):
                 return guess, number // guess
             else:
                 guess -= 1
+
 
 def time_num_to_date_string(time_num, units, timezone, calendar="gregorian"):
     """Convert time number (usually hours before a certain date) into two
@@ -1098,6 +1100,7 @@ def time_num_to_date_string(time_num, units, timezone, calendar="gregorian"):
     hour_string = f"{date_time.hour}"
     return date_string, hour_string, date_time
 
+
 def geopotential_to_height_asl(geopotential, radius=63781370, g=9.80665):
     """Compute height above sea level from geopotential.
 
@@ -1131,6 +1134,7 @@ def geopotential_to_height_asl(geopotential, radius=63781370, g=9.80665):
     geopotential_height = geopotential / g
     return radius * geopotential_height / (radius - geopotential_height)
 
+
 def geopotential_to_height_agl(geopotential, elevation, radius=63781370, g=9.80665):
     """Compute height above ground level from geopotential and elevation.
 
@@ -1162,6 +1166,7 @@ def geopotential_to_height_agl(geopotential, elevation, radius=63781370, g=9.806
     9198.792680243916
     """
     return geopotential_to_height_asl(geopotential, radius, g) - elevation
+
 
 if __name__ == "__main__":
     import doctest
