@@ -491,9 +491,9 @@ class UllageBasedTank(Tank):
     def liquidHeight(self):
         return self.geometry.inverse_volume.compose(self.liquidVolume)
 
-    @funcify_method("Time (s)", "height (m)")
+    @funcify_method("Time (s)", "height (m)", "linear")
     def gasHeight(self):
-        return self.geometry.top
+        return Function(self.geometry.top).setDiscreteBasedOnModel(self.gasVolume)
 
     def discretize_ullage(self):
         self.ullage.setDiscrete(*self.flux_time, self.discretize)
@@ -554,9 +554,9 @@ class LevelBasedTank(Tank):
     def liquidMass(self):
         return self.liquidVolume * self.liquid.density
 
-    @funcify_method("Time (s)", "height (m)")
+    @funcify_method("Time (s)", "height (m)", "linear")
     def gasHeight(self):
-        return self.geometry.top
+        return Function(self.geometry.top).setDiscreteBasedOnModel(self.liquidHeight)
 
     def discretize_liquid_height(self):
         self.liquid_height.setDiscrete(*self.flux_time, self.discretize)
