@@ -83,21 +83,8 @@ class Function:
         # Set source
         self.setSource(source)
         #  Set function title
-        if title:
-            self.setTitle(title)
-        else:
-            if self.__domDim__ == 1:
-                self.setTitle(
-                    self.__outputs__[0].title() + " x " + self.__inputs__[0].title()
-                )
-            elif self.__domDim__ == 2:
-                self.setTitle(
-                    self.__outputs__[0].title()
-                    + " x "
-                    + self.__inputs__[0].title()
-                    + " x "
-                    + self.__inputs__[1].title()
-                )
+        self.setTitle(title)
+
         # Return
         return None
 
@@ -645,6 +632,7 @@ class Function:
         outputs=None,
         interpolation=None,
         extrapolation=None,
+        title=None,
     ):
         """This method allows the user to reset the inputs, outputs, interpolation
         and extrapolation settings of a Function object, all at once, without
@@ -693,6 +681,8 @@ class Function:
             self.setInterpolation(interpolation)
         if extrapolation is not None and extrapolation != self.__extrapolation__:
             self.setExtrapolation(extrapolation)
+
+        self.setTitle(title)
 
         return self
 
@@ -1272,7 +1262,21 @@ class Function:
         )
 
     def setTitle(self, title):
-        self.title = title
+        if title:
+            self.title = title
+        else:
+            if self.__domDim__ == 1:
+                self.title = (
+                    self.__outputs__[0].title() + " x " + self.__inputs__[0].title()
+                )
+            elif self.__domDim__ == 2:
+                self.title = (
+                    self.__outputs__[0].title()
+                    + " x "
+                    + self.__inputs__[0].title()
+                    + " x "
+                    + self.__inputs__[1].title()
+                )
 
     def plot(self, *args, **kwargs):
         """Call Function.plot1D if Function is 1-Dimensional or call
