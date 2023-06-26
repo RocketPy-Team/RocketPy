@@ -7,6 +7,7 @@ __license__ = "MIT"
 from abc import ABC, abstractmethod
 
 from rocketpy.Function import Function, funcify_method
+from rocketpy.tools import tuple_handler
 
 
 class Tank(ABC):
@@ -67,15 +68,7 @@ class Tank(ABC):
         flux_time : tuple
             Tuple containing start and final times of the tank flux.
         """
-        if isinstance(flux_time, (int, float)):
-            self._flux_time = (0, flux_time)
-        elif isinstance(flux_time, (list, tuple)):
-            if len(flux_time) == 1:
-                self._flux_time = (0, flux_time[0])
-            elif len(flux_time) == 2:
-                self._flux_time = flux_time
-            else:
-                raise ValueError("flux_time must be a list or tuple of length 1 or 2.")
+        self._flux_time = tuple_handler(flux_time)
 
     @property
     @abstractmethod

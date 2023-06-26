@@ -69,13 +69,19 @@ class SolidMotor(Motor):
             regarding the motor's coordinate system
         Motor.grainInitialMass : float
             Initial mass of each grain in kg.
+        Motor.dry_mass : float
+            The total mass of the motor structure, including chambers
+            and tanks, when it is empty and does not contain any propellant.
         Motor.propellantInitialMass : float
             Total propellant initial mass in kg.
-        Motor.mass : Function
-            Propellant total mass in kg as a function of time.
-        Motor.massDot : Function
+        Motor.totalMass : Function
+            Total motor mass in kg as a function of time, defined as the sum
+            of propellant and dry mass.
+        Motor.propellantMass : Function
+            Total propellant mass in kg as a function of time.
+        Motor.totalMassFlowRate : Function
             Time derivative of propellant total mass in kg/s as a function
-            of time.
+            of time as obtained by the thrust source.
         Motor.inertiaI : Function
             Propellant moment of inertia in kg*meter^2 with respect to axis
             perpendicular to axis of cylindrical symmetry of each grain,
@@ -101,10 +107,15 @@ class SolidMotor(Motor):
             Time, in seconds, in which the maximum thrust value is achieved.
         Motor.averageThrust : float
             Average thrust of the motor, given in N.
+        Motor.burn_time : tuple of float
+            Tuple containing the initial and final time of the motor's burn time
+            in seconds.
+        Motor.burnStartTime : float
+            Motor burn start time, in seconds.
         Motor.burnOutTime : float
-            Total motor burn out time, in seconds. Must include delay time
-            when the motor takes time to ignite. Also seen as time to end thrust
-            curve.
+            Motor burn out time, in seconds.
+        Motor.burnDuration : float
+            Total motor burn duration, in seconds. It is the difference between the burnOutTime and the burnStartTime.
         Motor.exhaustVelocity : float
             Propulsion gases exhaust velocity, assumed constant, in m/s.
         Motor.burnArea : Function
@@ -125,7 +136,9 @@ class SolidMotor(Motor):
     def __init__(
         self,
         thrustSource,
-        burnOut,
+        dry_mass,
+        center_of_dry_mass,
+        dry_inertia,
         grainsCenterOfMassPosition,
         grainNumber,
         grainDensity,
@@ -134,6 +147,7 @@ class SolidMotor(Motor):
         grainInitialHeight,
         grainSeparation,
         nozzleRadius,
+        burn_time=None,
         nozzlePosition=0,
         throatRadius=0.01,
         reshapeThrustCurve=False,
@@ -155,12 +169,38 @@ class SolidMotor(Motor):
             specify time in seconds, while the second column specifies thrust.
             Arrays may also be specified, following rules set by the class
             Function. See help(Function). Thrust units are Newtons.
-        burnOut : int, float
-            Motor burn out time in seconds.
+        burn_time: float, tuple of float, optional
+            Motor's burn time.
+            If a float is given, the burn time is assumed to be between 0 and the
+            given float, in seconds.
+            If a tuple of float is given, the burn time is assumed to be between
+            the first and second elements of the tuple, in seconds.
+            If not specified, automatically sourced as the range between the first- and
+            last-time step of the motor's thrust curve. This can only be used if the
+            motor's thrust is defined by a list of points, such as a .csv file, a .eng
+            file or a Function instance whose source is a list.
+        dry_mass : int, float
+            The total mass of the motor structure, including chambers
+            and tanks, when it is empty and does not contain any propellant.
+        center_of_dry_mass : int, float
+            The position, in meters, of the motor's center of mass with respect
+            to the motor's coordinate system when it is devoid of propellant.
+            See `Motor.coordinateSystemOrientation`.
+        dry_inertia : tuple, list
+            Tuple or list containing the motor's dry mass inertia tensor
+            components, in kg*m^2. This inertia is defined with respect to the
+            the `center_of_dry_mass` position.
+            Assuming e_3 is the rocket's axis of symmetry, e_1 and e_2 are
+            orthogonal and form a plane perpendicular to e_3, the dry mass
+            inertia tensor components must be given in the following order:
+            (I_11, I_22, I_33, I_12, I_13, I_23), where I_ij is the
+            component of the inertia tensor in the direction of e_i x e_j.
+            Alternatively, the inertia tensor can be given as (I_11, I_22, I_33),
+            where I_12 = I_13 = I_23 = 0.
         grainsCenterOfMassPosition : float
-            Position of the center of mass of the grains in meters, specified in
-            the motor's coordinate system.
-            See `Motor.coordinateSystemOrientation` for more information.
+            Position of the center of mass of the grains in meters. More specifically,
+            the coordinate of the center of mass specified in the motor's coordinate
+            system. See `Motor.coordinateSystemOrientation` for more information.
         grainNumber : int
             Number of solid grains
         grainDensity : int, float
@@ -210,8 +250,11 @@ class SolidMotor(Motor):
         """
         super().__init__(
             thrustSource,
-            burnOut,
+            dry_mass,
+            center_of_dry_mass,
+            dry_inertia,
             nozzleRadius,
+            burn_time,
             nozzlePosition,
             reshapeThrustCurve,
             interpolationMethod,
@@ -241,7 +284,7 @@ class SolidMotor(Motor):
         self.evaluateGeometry()
 
     @funcify_method("Time (s)", "mass (kg)")
-    def mass(self):
+    def propellantMass(self):
         """Evaluates the total propellant mass as a function of time.
 
         Parameters
@@ -277,6 +320,23 @@ class SolidMotor(Motor):
         )
         return cross_section_area * self.grainHeight
 
+    @funcify_method("Time (s)", "Exhaust velocity (m/s)")
+    def exhaustVelocity(self):
+        """Exhaust velocity by assuming it as a constant. The formula used is
+        total impulse/propellant initial mass.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+
+        Returns
+        -------
+        self.exhaustVelocity : Function
+            Gas exhaust velocity of the motor.
+        """
+        return self.totalImpulse / self.propellantInitialMass
+
     @property
     def propellantInitialMass(self):
         """Returns the initial propellant mass.
@@ -294,10 +354,9 @@ class SolidMotor(Motor):
 
     @property
     def massFlowRate(self):
-        """Calculates and returns the time derivative of propellant mass by
-        assuming constant exhaust velocity. The formula used is the opposite of
-        thrust divided by exhaust velocity. The result is a function of time,
-        object of the Function class, which is stored in self.massDot.
+        """Time derivative of propellant mass. Assumes constant exhaust
+        velocity. The formula used is the opposite of thrust divided by
+        exhaust velocity.
 
         Parameters
         ----------
@@ -306,13 +365,19 @@ class SolidMotor(Motor):
 
         Returns
         -------
-        self.massDot : Function
-            Time derivative of total propellant mas as a function of time.
+        self.massFlowRate : Function
+            Time derivative of total propellant mass as a function of time.
+
+        See Also
+        --------
+        `Motor.totalMassFlowRate` :
+            Calculates the total mass flow rate of the motor assuming
+            constant exhaust velocity.
         """
         try:
             return self._massFlowRate
         except AttributeError:
-            self._massFlowRate = self.massDot
+            self._massFlowRate = self.totalMassFlowRate
             return self._massFlowRate
 
     @massFlowRate.setter
@@ -328,28 +393,28 @@ class SolidMotor(Motor):
         -------
         None
         """
-        self._massFlowRate = value.reset("Time (s)", "mass flow rate (kg/s)")
+        self._massFlowRate = value.reset("Time (s)", "grain mass flow rate (kg/s)")
         self.evaluateGeometry()
 
-    @funcify_method("Time (s)", "center of mass (m)")
-    def centerOfMass(self):
-        """Calculates and returns the time derivative of motor center of mass.
-        The result is a function of time, object of the Function class. The
-        burn is assumed to be uniform along the grain, therefore the center of
-        mass is fixed at the chamber's geometric center.
+    @funcify_method("Time (s)", "center of mass (m)", "linear")
+    def centerOfPropellantMass(self):
+        """Position of the propellant center of mass as a function of time.
+        The position is specified as a scalar, relative to the motor's
+        coordinate system.
 
         Parameters
         ----------
         t : float
             Time in seconds.
 
-        Returnsg
+        Returns
         -------
         Function
-            Position of the center of mass as a function
-            of time.
+            Position of the propellant center of mass as a function of time.
         """
-        return self.grainsCenterOfMassPosition
+        timeSource = self.grainInnerRadius.xArray
+        centerOfMass = np.full_like(timeSource, self.grainsCenterOfMassPosition)
+        return np.column_stack((timeSource, centerOfMass))
 
     def evaluateGeometry(self):
         """Calculates grain inner radius and grain height as a function of time
@@ -377,7 +442,7 @@ class SolidMotor(Motor):
 
         # Define time mesh
         t = self.thrust.source[:, 0]
-        t_span = (t[0], t[-1])
+        t_span = t[0], t[-1]
 
         density = self.grainDensity
         rO = self.grainOuterRadius
@@ -397,6 +462,7 @@ class SolidMotor(Motor):
             return end_function
 
         terminateBurn.terminal = True
+        terminateBurn.direction = -1
 
         # Solve the system of differential equations
         sol = integrate.solve_ivp(
@@ -501,90 +567,11 @@ class SolidMotor(Motor):
         )
         return Kn
 
-    @cached_property
-    def inertiaTensor(self):
-        """Calculates the propellant principal moment of inertia relative to
-        the tank center of mass. The z-axis correspond to the motor axis of
-        symmetry while the x and y axes complete the right-handed coordinate
-        system. The time derivatives of the products of inertia are also
-        evaluated. Products of inertia are assumed null due to symmetry.
-
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
-        Returns
-        -------
-        tuple (of Functions)
-            The two first arguments are equivalent and represent inertia Ix,
-            and Iy. The third argument is inertia Iz.
-        """
-
-        # Inertia I
-        # Calculate inertia I for each grain
-        grainMass = self.mass / self.grainNumber
-        grainMassDot = self.massFlowRate / self.grainNumber
-        grainNumber = self.grainNumber
-        grainInertiaI = grainMass * (
-            (1 / 4) * (self.grainOuterRadius**2 + self.grainInnerRadius**2)
-            + (1 / 12) * self.grainHeight**2
-        )
-
-        # Calculate each grain's distance d to propellant center of mass
-        initialValue = (grainNumber - 1) / 2
-        d = np.linspace(-initialValue, initialValue, grainNumber)
-        d = d * (self.grainInitialHeight + self.grainSeparation)
-
-        # Calculate inertia for all grains
-        self.inertiaI = grainNumber * grainInertiaI + grainMass * np.sum(d**2)
-        self.inertiaI.setOutputs("Propellant Inertia I (kg*m2)")
-
-        # Inertia I Dot
-        # Calculate each grain's inertia I dot
-        grainInertiaIDot = (
-            grainMassDot
-            * (
-                (1 / 4) * (self.grainOuterRadius**2 + self.grainInnerRadius**2)
-                + (1 / 12) * self.grainHeight**2
-            )
-            + grainMass
-            * ((1 / 2) * self.grainInnerRadius - (1 / 3) * self.grainHeight)
-            * self.burnRate
-        )
-
-        # Calculate inertia I dot for all grains
-        self.inertiaIDot = grainNumber * grainInertiaIDot + grainMassDot * np.sum(
-            d**2
-        )
-        self.inertiaIDot.setOutputs("Propellant Inertia I Dot (kg*m2/s)")
-
-        # Inertia Z
-        self.inertiaZ = (
-            (1 / 2.0)
-            * self.mass
-            * (self.grainOuterRadius**2 + self.grainInnerRadius**2)
-        )
-        self.inertiaZ.setOutputs("Propellant Inertia Z (kg*m2)")
-
-        # Inertia Z Dot
-        self.inertiaZDot = (1 / 2.0) * self.massFlowRate * (
-            self.grainOuterRadius**2 + self.grainInnerRadius**2
-        ) + self.mass * self.grainInnerRadius * self.burnRate
-        self.inertiaZDot.setOutputs("Propellant Inertia Z Dot (kg*m2/s)")
-
-        # Stores the inertia tensor components
-        self.Ixx = self.inertiaI
-        self.Iyy = self.inertiaI
-        self.Izz = self.inertiaZ
-        self.Ixy = self.Ixz = self.Iyz = 0
-
-        return self.inertiaI, self.inertiaI, self.inertiaZ
-
     @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
-    def I_11(self):
-        """Inertia tensor 11 component, which corresponds to the inertia
-        relative to the e_1 axis, centered at the instantaneous center of mass.
+    def propellant_I_11(self):
+        """Inertia tensor 11 component of the propellnat, the inertia is
+        relative to the e_1 axis, centered at the instantaneous propellant
+        center of mass.
 
         Parameters
         ----------
@@ -600,15 +587,12 @@ class SolidMotor(Motor):
         -----
         The e_1 direction is assumed to be the direction perpendicular to the
         motor body axis.
-        Due to symmetry, the inertia tensor 22 component is equal to the
-        inertia tensor 11 component.
 
         References
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        grainMass = self.mass / self.grainNumber
-        grainMassDot = self.massFlowRate / self.grainNumber
+        grainMass = self.propellantMass / self.grainNumber
         grainNumber = self.grainNumber
         grainInertia11 = grainMass * (
             (1 / 4) * (self.grainOuterRadius**2 + self.grainInnerRadius**2)
@@ -616,6 +600,7 @@ class SolidMotor(Motor):
         )
 
         # Calculate each grain's distance d to propellant center of mass
+        # Assuming each grain's COM are evenly spaced
         initialValue = (grainNumber - 1) / 2
         d = np.linspace(-initialValue, initialValue, grainNumber)
         d = d * (self.grainInitialHeight + self.grainSeparation)
@@ -626,9 +611,10 @@ class SolidMotor(Motor):
         return I_11
 
     @funcify_method("Time (s)", "Inertia I_22 (kg m²)")
-    def I_22(self):
-        """Inertia tensor 22 component, which corresponds to the inertia
-        relative to the e_2 axis, centered at the instantaneous center of mass.
+    def propellant_I_22(self):
+        """Inertia tensor 22 component of the propellnat, the inertia is
+        relative to the e_2 axis, centered at the instantaneous propellant
+        center of mass.
 
         Parameters
         ----------
@@ -643,9 +629,7 @@ class SolidMotor(Motor):
         Notes
         -----
         The e_2 direction is assumed to be the direction perpendicular to the
-        motor body axis and to the e_1 axis.
-        Due to symmetry, the inertia tensor 22 component is equal to the
-        inertia tensor 11 component.
+        motor body axis, and perpendicular to e_1.
 
         References
         ----------
@@ -654,9 +638,10 @@ class SolidMotor(Motor):
         return self.I_11
 
     @funcify_method("Time (s)", "Inertia I_33 (kg m²)")
-    def I_33(self):
-        """Inertia tensor 33 component, which corresponds to the inertia
-        relative to the e_3 axis, centered at the instantaneous center of mass.
+    def propellant_I_33(self):
+        """Inertia tensor 33 component of the propellnat, the inertia is
+        relative to the e_3 axis, centered at the instantaneous propellant
+        center of mass.
 
         Parameters
         ----------
@@ -670,8 +655,8 @@ class SolidMotor(Motor):
 
         Notes
         -----
-        The e_3 direction is assumed to be the direction parallel to the motor
-        body axis.
+        The e_3 direction is assumed to be the axial direction of the rocket
+        motor.
 
         References
         ----------
@@ -679,21 +664,21 @@ class SolidMotor(Motor):
         """
         I_33 = (
             (1 / 2.0)
-            * self.mass
+            * self.propellantMass
             * (self.grainOuterRadius**2 + self.grainInnerRadius**2)
         )
         return I_33
 
     @funcify_method("Time (s)", "Inertia I_12 (kg m²)")
-    def I_12(self):
+    def propellant_I_12(self):
         return 0
 
     @funcify_method("Time (s)", "Inertia I_13 (kg m²)")
-    def I_13(self):
+    def propellant_I_13(self):
         return 0
 
     @funcify_method("Time (s)", "Inertia I_23 (kg m²)")
-    def I_23(self):
+    def propellant_I_23(self):
         return 0
 
     def allInfo(self):
@@ -725,15 +710,15 @@ class SolidMotor(Motor):
 
         # Print motor details
         print("\nMotor Details")
-        print("Total Burning Time: " + str(self.burnOutTime) + " s")
+        print("Total Burning Time: " + str(self.burnDuration) + " s")
         print(
             "Total Propellant Mass: "
             + "{:.3f}".format(self.propellantInitialMass)
             + " kg"
         )
         print(
-            "Propellant Exhaust Velocity: "
-            + "{:.3f}".format(self.exhaustVelocity)
+            "Average Propellant Exhaust Velocity: "
+            + "{:.3f}".format(self.exhaustVelocity.average(*self.burn_time))
             + " m/s"
         )
         print("Average Thrust: " + "{:.3f}".format(self.averageThrust) + " N")
@@ -749,16 +734,20 @@ class SolidMotor(Motor):
         # Show plots
         print("\nPlots")
         self.thrust()
-        self.mass()
+        self.totalMass()
         self.massFlowRate()
+        self.exhaustVelocity()
         self.grainInnerRadius()
         self.grainHeight()
-        self.burnRate.plot(0, self.grainBurnOut)
+        self.burnRate.plot(self.burn_time[0], self.grainBurnOut)
         self.burnArea()
         self.Kn()
-        self.inertiaTensor[0]()
-        self.inertiaTensor[2]()
-        self.inertiaIDot()
-        self.inertiaZDot()
+        self.centerOfMass.plot(*self.burn_time)
+        self.I_11.plot(*self.burn_time)
+        self.I_22.plot(*self.burn_time)
+        self.I_33.plot(*self.burn_time)
+        self.I_12.plot(*self.burn_time)
+        self.I_13.plot(*self.burn_time)
+        self.I_23.plot(*self.burn_time)
 
         return None

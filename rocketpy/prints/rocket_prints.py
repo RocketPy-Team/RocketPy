@@ -79,7 +79,7 @@ class _RocketPrints:
             "Rocket Center of Dry Mass - Center of Propellant Mass: "
             + "{:.3f} m".format(
                 abs(
-                    self.rocket.centerOfPropellantPosition(0)
+                    self.rocket.center_of_propellant_position(0)
                     - self.rocket.centerOfDryMassPosition
                 )
             )
@@ -122,8 +122,8 @@ class _RocketPrints:
             cpz = surface.cp[2]
             print(name + " Center of Pressure to CM: {:.3f}".format(cpz) + " m")
         print(
-            "Distance - Center of Pressure to CM: "
-            + "{:.3f}".format(self.rocket.cpPosition)
+            "Distance - Center of Pressure to Center of Dry Mass: "
+            + "{:.3f}".format(self.rocket.centerOfMass(0) - self.rocket.cpPosition)
             + " m"
         )
         print(
