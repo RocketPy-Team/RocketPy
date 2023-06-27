@@ -297,7 +297,7 @@ class HybridMotor(Motor):
         """
         return self.totalImpulse / self.propellantInitialMass
 
-    @funcify_method("Time (s)", "mass (kg)")
+    @funcify_method("Time (s)", "Mass (kg)")
     def propellantMass(self):
         """Evaluates the total propellant mass of the motor as the sum
         of each tank mass and the grains mass.
@@ -375,7 +375,7 @@ class HybridMotor(Motor):
 
     @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
     def propellant_I_11(self):
-        """Inertia tensor 11 component of the propellnat, the inertia is
+        """Inertia tensor 11 component of the propellant, the inertia is
         relative to the e_1 axis, centered at the instantaneous propellant
         center of mass.
 
@@ -412,7 +412,7 @@ class HybridMotor(Motor):
 
     @funcify_method("Time (s)", "Inertia I_22 (kg m²)")
     def propellant_I_22(self):
-        """Inertia tensor 22 component of the propellnat, the inertia is
+        """Inertia tensor 22 component of the propellant, the inertia is
         relative to the e_2 axis, centered at the instantaneous propellant
         center of mass.
 
@@ -439,7 +439,7 @@ class HybridMotor(Motor):
 
     @funcify_method("Time (s)", "Inertia I_33 (kg m²)")
     def propellant_I_33(self):
-        """Inertia tensor 33 component of the propellnat, the inertia is
+        """Inertia tensor 33 component of the propellant, the inertia is
         relative to the e_3 axis, centered at the instantaneous propellant
         center of mass.
 

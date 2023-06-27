@@ -180,7 +180,7 @@ def test_ullage_based_motor():
 
     ullage_data = Function(os.path.abspath(test_dir + "loxUllage.csv")).getSource()
     levelTank = LevelBasedTank(
-        name="Ullage Tank",
+        name="LevelTank",
         geometry=tank_geometry,
         flux_time=(0, 10),
         gas=n2,

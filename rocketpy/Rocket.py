@@ -300,7 +300,7 @@ class Rocket:
 
         Returns
         -------
-        self.totalMass : Function
+        self.totalMass : rocketpy.Function
             Function of time expressing the total mass of the rocket,
             defined as the sum of the propellant mass and the rocket
             mass without propellant.
@@ -329,7 +329,7 @@ class Rocket:
 
         Returns
         -------
-        self.totalMass : Function
+        self.totalMass : rocketpy.Function
             Function of time expressing the total mass of the rocket,
             defined as the sum of the propellant mass and the rocket
             mass without propellant.
@@ -355,7 +355,7 @@ class Rocket:
 
         Returns
         -------
-        self.centerOfMass : Function
+        self.centerOfMass : rocketpy.Function
             Function of time expressing the rocket's center of mass position relative to
             user defined rocket reference system.
             See `Rocket.coordinateSystemOrientation` for more information.

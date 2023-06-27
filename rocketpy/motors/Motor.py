@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__author__ = "Giovani Hidalgo Ceotto, Oscar Mauricio Prada Ramirez, João Lemes Gribel Soares, Lucas Kierulff Balabram, Lucas Azevedo Pezente"
+__author__ = "Giovani Hidalgo Ceotto, Pedro Henrique Marinho Bressan, Oscar Mauricio Prada Ramirez, João Lemes Gribel Soares, Lucas Kierulff Balabram, Lucas Azevedo Pezente"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
@@ -89,7 +89,8 @@ class Motor(ABC):
         Motor.burnOutTime : float
             Motor burn out time, in seconds.
         Motor.burnDuration : float
-            Total motor burn duration, in seconds. It is the difference between the burnOutTime and the burnStartTime.
+            Total motor burn duration, in seconds. It is the difference between
+            the burnOutTime and the burnStartTime.
         Motor.exhaustVelocity : float
             Propulsion gases exhaust velocity, assumed constant, in m/s.
         Motor.interpolate : string
@@ -212,7 +213,7 @@ class Motor(ABC):
         # Handle .eng file inputs
         if isinstance(thrustSource, str):
             if thrustSource[-3:] == "eng":
-                comments, desc, points = Motor.importEng(thrustSource)
+                _, _, points = Motor.importEng(thrustSource)
                 thrustSource = points
 
         # Evaluate raw thrust source
@@ -251,6 +252,7 @@ class Motor(ABC):
         maxThrustIndex = np.argmax(self.thrust.yArray)
         self.maxThrustTime = self.thrust.source[maxThrustIndex, 0]
         self.averageThrust = self.totalImpulse / self.burnDuration
+        return None
 
     @property
     def burn_time(self):
@@ -270,8 +272,9 @@ class Motor(ABC):
         Parameters
         ----------
         burn_time : float or two position array_like
+            Burn time range in seconds.
         """
-        if burn_time is not None:
+        if burn_time:
             self._burn_time = tuple_handler(burn_time)
         else:
             if not callable(self.thrust.source):
@@ -317,8 +320,8 @@ class Motor(ABC):
 
     @funcify_method("Time (s)", "total mass (kg)")
     def totalMass(self):
-        """Total mass of the motor as a Function of time.
-        Is defined as the propellant mass plus the dry mass.
+        """Total mass of the motor as a function of time. It is defined as the
+        propellant mass plus the dry mass.
 
         Parameters
         ----------
@@ -327,7 +330,7 @@ class Motor(ABC):
 
         Returns
         -------
-        Function
+        rocketpy.Function
             Total mass as a function of time.
         """
         return self.propellantMass + self.dry_mass
@@ -343,7 +346,7 @@ class Motor(ABC):
 
         Returns
         -------
-        Function
+        rocketpy.Function
             Total propellant mass as a function of time.
         """
         return self.totalMassFlowRate.integralFunction() + self.propellantInitialMass
@@ -361,7 +364,7 @@ class Motor(ABC):
 
         Returns
         -------
-        Function
+        rocketpy;.Function
             Time derivative of total propellant mass a function of time.
 
         See Also
@@ -422,7 +425,7 @@ class Motor(ABC):
 
         Returns
         -------
-        Function
+        rocketpy.Function
             Position of the center of mass as a function of time.
         """
         mass_balance = (
@@ -445,7 +448,7 @@ class Motor(ABC):
 
         Returns
         -------
-        Function
+        rocketpy.Function
             Position of the propellant center of mass as a function of time.
         """
         pass
@@ -667,7 +670,7 @@ class Motor(ABC):
     @property
     @abstractmethod
     def propellant_I_11(self):
-        """Inertia tensor 11 component of the propellnat, the inertia is
+        """Inertia tensor 11 component of the propellant, the inertia is
         relative to the e_1 axis, centered at the instantaneous propellant
         center of mass.
 
@@ -695,7 +698,7 @@ class Motor(ABC):
     @property
     @abstractmethod
     def propellant_I_22(self):
-        """Inertia tensor 22 component of the propellnat, the inertia is
+        """Inertia tensor 22 component of the propellant, the inertia is
         relative to the e_2 axis, centered at the instantaneous propellant
         center of mass.
 
@@ -723,7 +726,7 @@ class Motor(ABC):
     @property
     @abstractmethod
     def propellant_I_33(self):
-        """Inertia tensor 33 component of the propellnat, the inertia is
+        """Inertia tensor 33 component of the propellant, the inertia is
         relative to the e_3 axis, centered at the instantaneous propellant
         center of mass.
 
@@ -751,7 +754,7 @@ class Motor(ABC):
     @property
     @abstractmethod
     def propellant_I_12(self):
-        """Inertia tensor 12 component of the propellnat, the product of inertia
+        """Inertia tensor 12 component of the propellant, the product of inertia
         is relative to axes e_1 and e_2, centered at the instantaneous propellant
         center of mass.
 
@@ -783,7 +786,7 @@ class Motor(ABC):
     @property
     @abstractmethod
     def propellant_I_13(self):
-        """Inertia tensor 13 component of the propellnat, the product of inertia
+        """Inertia tensor 13 component of the propellant, the product of inertia
         is relative to axes e_1 and e_3, centered at the instantaneous propellant
         center of mass.
 
@@ -815,7 +818,7 @@ class Motor(ABC):
     @property
     @abstractmethod
     def propellant_I_23(self):
-        """Inertia tensor 23 component of the propellnat, the product of inertia
+        """Inertia tensor 23 component of the propellant, the product of inertia
         is relative to axes e_2 and e_3, centered at the instantaneous propellant
         center of mass.
 
@@ -852,7 +855,7 @@ class Motor(ABC):
 
         Parameters
         ----------
-        thrust : Function
+        thrust : rocketpy.Function
             Thrust curve to be reshaped.
         newBurnTime : float, tuple of float
             New desired burn time in seconds.
@@ -861,7 +864,7 @@ class Motor(ABC):
 
         Returns
         -------
-        Function
+        rocketpy.Function
             Reshaped thrust curve.
         """
         # Retrieve current thrust curve data points
@@ -905,7 +908,7 @@ class Motor(ABC):
 
         Returns
         -------
-        Function
+        rocketpy.Function
             Clipped thrust curve.
         """
         # Check if burn_time is within thrustSource range
@@ -924,7 +927,7 @@ class Motor(ABC):
             warnings.warn(
                 f"burn_time argument {new_burn_time} is out of "
                 "thrust source time range. "
-                "Using thrustSource boudary times instead: "
+                "Using thrustSource boundary times instead: "
                 f"({burn_time[0]}, {burn_time[1]}) s.\n"
                 "If you want to change the burn out time of the "
                 "curve please use the 'reshapeThrustCurve' argument."
@@ -1140,8 +1143,9 @@ class GenericMotor(Motor):
 
         # Set center of mass and estimate to chamber position if not given
         self.center_of_dry_mass = (
-            center_of_dry_mass if center_of_dry_mass is not None else chamberPosition
+            center_of_dry_mass if center_of_dry_mass else chamberPosition
         )
+        return None
 
     @cached_property
     def propellantInitialMass(self):
@@ -1170,14 +1174,14 @@ class GenericMotor(Motor):
 
         Returns
         -------
-        Function
+        rocketpy.Function
             Function representing the center of mass of the motor.
         """
         return self.center_of_dry_mass
 
     @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
     def propellant_I_11(self):
-        """Inertia tensor 11 component of the propellnat, the inertia is
+        """Inertia tensor 11 component of the propellant, the inertia is
         relative to the e_1 axis, centered at the instantaneous propellant
         center of mass.
 
@@ -1208,7 +1212,7 @@ class GenericMotor(Motor):
 
     @funcify_method("Time (s)", "Inertia I_22 (kg m²)")
     def propellant_I_22(self):
-        """Inertia tensor 22 component of the propellnat, the inertia is
+        """Inertia tensor 22 component of the propellant, the inertia is
         relative to the e_2 axis, centered at the instantaneous propellant
         center of mass.
 
@@ -1235,10 +1239,9 @@ class GenericMotor(Motor):
 
     @funcify_method("Time (s)", "Inertia I_33 (kg m²)")
     def propellant_I_33(self):
-        """Inertia tensor 33 component of the propellnat, the inertia is
+        """Inertia tensor 33 component of the propellant, the inertia is
         relative to the e_3 axis, centered at the instantaneous propellant
         center of mass.
-
 
         Parameters
         ----------
@@ -1326,7 +1329,22 @@ class EmptyMotor:
     # TODO: This is a temporary solution. It should be replaced by a class that
     # inherits from the abstract Motor class. Currently cannot be done easily.
     def __init__(self):
-        """Initializes an empty motor with no mass and no thrust."""
+        """Initializes an empty motor with no mass and no thrust.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        This class is a temporary solution to the problem of having a motor
+        with no mass and no thrust. It should be replaced by a class that
+        inherits from the abstract Motor class. Currently cannot be done easily.
+        """
         self._csys = 1
         self.dry_mass = 0
         self.nozzleRadius = 0
@@ -1352,3 +1370,4 @@ class EmptyMotor:
         self.I_12 = 0
         self.I_13 = 0
         self.I_23 = 0
+        return None

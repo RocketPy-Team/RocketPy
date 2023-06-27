@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 necessary_require = [
-    "numpy>=1.0",
+    "numpy>=1.13",
     "scipy>=1.0",
     "matplotlib>=3.0",
     "netCDF4>=1.6.4",

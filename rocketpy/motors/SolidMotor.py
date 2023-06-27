@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__author__ = "Giovani Hidalgo Ceotto, Oscar Mauricio Prada Ramirez, João Lemes Gribel Soares, Lucas Kierulff Balabram, Lucas Azevedo Pezente"
+__author__ = "Giovani Hidalgo Ceotto, Pedro Henrique Marinho Bressan, Mateus Stano Junqueira, Oscar Mauricio Prada Ramirez, João Lemes Gribel Soares, Lucas Kierulff Balabram, Lucas Azevedo Pezente"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
@@ -282,8 +282,9 @@ class SolidMotor(Motor):
         self.grainInitialMass = self.grainDensity * self.grainInitialVolume
 
         self.evaluateGeometry()
+        return None
 
-    @funcify_method("Time (s)", "mass (kg)")
+    @funcify_method("Time (s)", "Mass (kg)")
     def propellantMass(self):
         """Evaluates the total propellant mass as a function of time.
 
@@ -299,7 +300,7 @@ class SolidMotor(Motor):
         """
         return self.grainVolume * self.grainDensity * self.grainNumber
 
-    @funcify_method("Time (s)", "grain volume (m³)")
+    @funcify_method("Time (s)", "Grain volume (m³)")
     def grainVolume(self):
         """Evaluates the total propellant volume as a function of time. The
         propellant is assumed to be a cylindrical Bates grain under uniform
@@ -332,7 +333,7 @@ class SolidMotor(Motor):
 
         Returns
         -------
-        self.exhaustVelocity : Function
+        self.exhaustVelocity : rocketpy.Function
             Gas exhaust velocity of the motor.
         """
         return self.totalImpulse / self.propellantInitialMass
@@ -409,7 +410,7 @@ class SolidMotor(Motor):
 
         Returns
         -------
-        Function
+        rocketpy.Function
             Position of the propellant center of mass as a function of time.
         """
         timeSource = self.grainInnerRadius.xArray
@@ -432,7 +433,7 @@ class SolidMotor(Motor):
 
         Returns
         -------
-        geometry : list of Functions
+        geometry : list of rocketpy.Functions
             First element is the Function representing the inner radius of a
             grain as a function of time. Second argument is the Function
             representing the height of a grain as a function of time.
@@ -507,7 +508,7 @@ class SolidMotor(Motor):
 
         Returns
         -------
-        burnArea : Function
+        burnArea : rocketpy.Function
             Function representing the burn area progression with the time.
         """
         burnArea = (
@@ -535,7 +536,7 @@ class SolidMotor(Motor):
 
         Returns
         -------
-        burnRate : Function
+        burnRate : rocketpy.Function
             Rate of progression of the inner radius during the combustion.
         """
         return -1 * self.massFlowRate / (self.burnArea * self.grainDensity)
@@ -547,7 +548,7 @@ class SolidMotor(Motor):
 
         Returns
         -------
-        Kn : Function of Inner Radius and Kn
+        Kn : rocketpy.Function
             Kn as a function of time.
         """
         KnSource = (
@@ -569,7 +570,7 @@ class SolidMotor(Motor):
 
     @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
     def propellant_I_11(self):
-        """Inertia tensor 11 component of the propellnat, the inertia is
+        """Inertia tensor 11 component of the propellant, the inertia is
         relative to the e_1 axis, centered at the instantaneous propellant
         center of mass.
 
@@ -612,7 +613,7 @@ class SolidMotor(Motor):
 
     @funcify_method("Time (s)", "Inertia I_22 (kg m²)")
     def propellant_I_22(self):
-        """Inertia tensor 22 component of the propellnat, the inertia is
+        """Inertia tensor 22 component of the propellant, the inertia is
         relative to the e_2 axis, centered at the instantaneous propellant
         center of mass.
 
@@ -639,7 +640,7 @@ class SolidMotor(Motor):
 
     @funcify_method("Time (s)", "Inertia I_33 (kg m²)")
     def propellant_I_33(self):
-        """Inertia tensor 33 component of the propellnat, the inertia is
+        """Inertia tensor 33 component of the propellant, the inertia is
         relative to the e_3 axis, centered at the instantaneous propellant
         center of mass.
 

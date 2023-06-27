@@ -1,7 +1,10 @@
+__author__ = "Pedro Henrique Marinho Bressan, Mateus Stano Junqueira"
+__copyright__ = "Copyright 20XX, RocketPy Team"
+__license__ = "MIT"
+
 import numpy as np
 
-from rocketpy import Function
-from rocketpy.Function import PiecewiseFunction, funcify_method
+from rocketpy.Function import Function, PiecewiseFunction, funcify_method
 
 try:
     from functools import cache
@@ -18,7 +21,7 @@ except ImportError:
 
 class TankGeometry:
     """Class to define the geometry of a tank. It is used to calculate the
-    its geometrical properties, such as volume, area and radius. The tank is
+    geometrical properties such as volume, area and radius. The tank is
     axi-symmetric, and its geometry is defined by a set of Functions that are
     used to calculate the radius as a function of height.
     """
@@ -36,6 +39,7 @@ class TankGeometry:
             function from a axis of symmetry.
         """
         self.geometry = geometry_dict
+        return None
 
     @property
     def geometry(self):
@@ -63,14 +67,14 @@ class TankGeometry:
         for domain, function in geometry_dict.items():
             self.add_geometry(domain, function)
 
-    @funcify_method("height (m)", "radius (m)", extrapolation="zero")
+    @funcify_method("Height (m)", "radius (m)", extrapolation="zero")
     def radius(self):
         """
         The radius of the tank as a function of height.
 
         Returns
         -------
-        Function
+        rocketpy.Function
             Piecewise defined Function of tank radius.
         """
         return self.radius
@@ -116,7 +120,7 @@ class TankGeometry:
     @cached_property
     def total_height(self):
         """
-        The total height of the tank.
+        The total height of the tank, in meters.
 
         Returns
         -------
@@ -125,7 +129,7 @@ class TankGeometry:
         """
         return self.top - self.bottom
 
-    @funcify_method("height (m)", "area (m²)", extrapolation="zero")
+    @funcify_method("Height (m)", "Area (m²)", extrapolation="zero")
     def area(self):
         """
         The area of the tank cross section as a function of height.
@@ -137,7 +141,7 @@ class TankGeometry:
         """
         return np.pi * self.radius**2
 
-    @funcify_method("height (m)", "volume (m³)", extrapolation="zero")
+    @funcify_method("Height (m)", "Volume (m³)", extrapolation="zero")
     def volume(self):
         """
         The volume of the tank as a function of height.
@@ -161,14 +165,14 @@ class TankGeometry:
         """
         return self.volume(self.top)
 
-    @funcify_method("volume (m³)", "height (m)", extrapolation="natural")
+    @funcify_method("Volume (m³)", "Height (m)", extrapolation="natural")
     def inverse_volume(self):
         """
         The height of the tank as a function of volume.
 
         Returns
         -------
-        Function
+        rocketpy.Function
             Tank height as a function of volume.
         """
         return self.volume.inverseFunction(
@@ -191,7 +195,7 @@ class TankGeometry:
 
         Returns
         -------
-        Function
+        rocketpy.Function
             Tank's first volume moment as a function of height.
         """
         height = self.area.identityFunction()
@@ -202,8 +206,8 @@ class TankGeometry:
         volume_moment = (height * self.area).integralFunction(lower, upper)
 
         # Correct naming
-        volume_moment.setInputs("height (m)")
-        volume_moment.setOutputs("balance (m⁴)")
+        volume_moment.setInputs("Height (m)")
+        volume_moment.setOutputs("Volume Moment (m⁴)")
 
         return volume_moment
 
@@ -217,10 +221,21 @@ class TankGeometry:
         The inertia reference point is the zero level of the defined
         tank geometry, not to be confused with the tank bottom.
 
+        Parameters
+        ----------
+        lower : float
+            Lower bound of the domain where the volume of inertia is valid.
+        upper : float
+            Upper bound of the domain where the volume of inertia is valid.
+
         Returns
         -------
-        Function
+        rocketpy.Function
             Tank volume of inertia as a function of height.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/List_of_moments_of_inertia
         """
         height2 = self.radius.identityFunction() ** 2
 
@@ -232,8 +247,8 @@ class TankGeometry:
         )
 
         # Correct naming
-        inertia.setInputs("height (m)")
-        inertia.setOutputs("volume of inertia (m⁵)")
+        inertia.setInputs("Height (m)")
+        inertia.setOutputs("Volume of inertia (m⁵)")
 
         return inertia
 
@@ -251,7 +266,7 @@ class TankGeometry:
 
         Returns
         -------
-        Function
+        rocketpy.Function
             Tank volume of inertia as a function of height.
         """
         return self.Ix_volume(lower, upper)
@@ -268,7 +283,7 @@ class TankGeometry:
 
         Returns
         -------
-        Function
+        rocketpy.Function
             Tank volume of inertia as a function of height.
         """
         # Tolerance of 1e-8 is used to avoid numerical errors
@@ -288,11 +303,11 @@ class TankGeometry:
         domain : tuple
             Tuple containing the lower and upper bounds of the domain where the
             radius is valid.
-        radius_function : Function, callable
+        radius_function : rocketpy.Function, callable
             Function that defines the radius of the tank as a function of height.
         """
         self._geometry[domain] = Function(radius_function)
-        self.radius = PiecewiseFunction(self._geometry, "height (m)", "radius (m)")
+        self.radius = PiecewiseFunction(self._geometry, "Height (m)", "radius (m)")
 
 
 class CylindricalTank(TankGeometry):
@@ -306,9 +321,9 @@ class CylindricalTank(TankGeometry):
         Parameters
         ----------
         radius : float
-            Radius of the cylindrical tank.
+            Radius of the cylindrical tank, in meters.
         height : float
-            Height of the cylindrical tank.
+            Height of the cylindrical tank, in meters.
         spherical_caps : bool, optional
             If True, the tank will have spherical caps. The default is False.
         geometry_dict : dict, optional
@@ -318,6 +333,7 @@ class CylindricalTank(TankGeometry):
         self.has_caps = False
         self.add_geometry((-height / 2, height / 2), radius)
         self.add_spherical_caps() if spherical_caps else None
+        return None
 
     def add_spherical_caps(self):
         """
@@ -340,12 +356,13 @@ class CylindricalTank(TankGeometry):
 
 
 class SphericalTank(TankGeometry):
-    """Class to define the geometry of a spherical tank."""
+    """Class to define the geometry of a spherical tank. This class inherits
+    from TankGeometry."""
 
     def __init__(self, radius, geometry_dict=dict()):
         """Initialize SphericalTank class. The zero reference point of the
-        sphere is its center (i.e. half of its height). Therefore the its
-        height coordinate span is (-radius, radius).
+        sphere is its center (i.e. half of its height). Therefore, its height
+        coordinate ranges between (-radius, radius).
 
         Parameters
         ----------
@@ -356,3 +373,4 @@ class SphericalTank(TankGeometry):
         """
         super().__init__(geometry_dict)
         self.add_geometry((-radius, radius), lambda h: (radius**2 - h**2) ** 0.5)
+        return None

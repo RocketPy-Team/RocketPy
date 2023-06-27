@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__author__ = "Giovani Hidalgo Ceotto, Oscar Mauricio Prada Ramirez, João Lemes Gribel Soares, Mateus Stano, Pedro Henrique Marinho Bressan, Patrick Bales, Lakshman Peri, Gautam Yarramreddy, Curtis Hu, and William Bradford"
+__author__ = "Giovani Hidalgo Ceotto, Oscar Mauricio Prada Ramirez, João Lemes Gribel Soares, Mateus Stano Junqueira, Pedro Henrique Marinho Bressan, Patrick Bales, Lakshman Peri, Gautam Yarramreddy, Curtis Hu, and William Bradford"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
@@ -15,7 +15,8 @@ from .Motor import Motor
 
 class LiquidMotor(Motor):
     """Class to specify characteristics and useful operations for Liquid
-    motors."""
+    motors. This class inherits from the Motor class.
+    """
 
     def __init__(
         self,
@@ -30,7 +31,7 @@ class LiquidMotor(Motor):
         interpolationMethod="linear",
         coordinateSystemOrientation="nozzleToCombustionChamber",
     ):
-        """Initialize Motor class, process thrust curve and geometrical
+        """Initialize LiquidMotor class, process thrust curve and geometrical
         parameters and store results.
 
         Parameters
@@ -114,7 +115,7 @@ class LiquidMotor(Motor):
 
         self.positioned_tanks = []
 
-    @funcify_method("Time (s)", "Exhaust velocity (m/s)")
+    @funcify_method("Time (s)", "Exhaust Velocity (m/s)")
     def exhaustVelocity(self):
         """Computes the exhaust velocity of the motor from its mass flow
         rate and thrust.
@@ -131,7 +132,7 @@ class LiquidMotor(Motor):
         """
         return self.thrust / (-1 * self.massFlowRate)
 
-    @funcify_method("Time (s)", "propellant mass (kg)")
+    @funcify_method("Time (s)", "Propellant Mass (kg)")
     def propellantMass(self):
         """Evaluates the mass of the motor as the sum of each tank mass.
 
@@ -220,7 +221,7 @@ class LiquidMotor(Motor):
 
     @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
     def propellant_I_11(self):
-        """Inertia tensor 11 component of the propellnat, the inertia is
+        """Inertia tensor 11 component of the propellant, the inertia is
         relative to the e_1 axis, centered at the instantaneous propellant
         center of mass.
 
@@ -258,7 +259,7 @@ class LiquidMotor(Motor):
 
     @funcify_method("Time (s)", "Inertia I_22 (kg m²)")
     def propellant_I_22(self):
-        """Inertia tensor 22 component of the propellnat, the inertia is
+        """Inertia tensor 22 component of the propellant, the inertia is
         relative to the e_2 axis, centered at the instantaneous propellant
         center of mass.
 
@@ -285,7 +286,7 @@ class LiquidMotor(Motor):
 
     @funcify_method("Time (s)", "Inertia I_33 (kg m²)")
     def propellant_I_33(self):
-        """Inertia tensor 33 component of the propellnat, the inertia is
+        """Inertia tensor 33 component of the propellant, the inertia is
         relative to the e_3 axis, centered at the instantaneous propellant
         center of mass.
 
