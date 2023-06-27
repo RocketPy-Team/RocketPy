@@ -193,6 +193,11 @@ class Motor(ABC):
             self._csys = 1
         elif coordinateSystemOrientation == "combustionChamberToNozzle":
             self._csys = -1
+        else:
+            raise ValueError(
+                "Invalid coordinate system orientation. Options are "
+                "'nozzleToCombustionChamber' and 'combustionChamberToNozzle'."
+            )
 
         # Motor parameters
         self.dry_mass = dry_mass
@@ -281,8 +286,8 @@ class Motor(ABC):
                 self._burn_time = (self.thrust.xArray[0], self.thrust.xArray[-1])
             else:
                 raise ValueError(
-                    "When using a float or callable as thrust source a burn_time "
-                    "range must be specified."
+                    "When using a float or callable as thrust source, a burn_time"
+                    " argument must be specified."
                 )
 
     @cached_property

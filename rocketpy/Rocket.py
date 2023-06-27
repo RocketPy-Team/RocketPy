@@ -196,6 +196,11 @@ class Rocket:
             self._csys = 1
         elif coordinateSystemOrientation == "noseToTail":
             self._csys = -1
+        else:
+            raise TypeError(
+                "Invalid coordinate system orientation. Please choose between "
+                + '"tailToNose" and "noseToTail".'
+            )
 
         # Define rocket inertia attributes in SI units
         self.mass = mass
