@@ -91,6 +91,8 @@ def test_rocket(mock_show):
     assert FinSet.allInfo() == None
     # Check if Tail allInfo() is working properly
     assert Tail.allInfo() == None
+    # Check if draw method is working properly
+    assert FinSet.draw() == None
 
 
 @patch("matplotlib.pyplot.show")

@@ -710,6 +710,9 @@ class Fins(AeroSurface):
         else:
             return n / 2
 
+    def draw(self):
+        self.plots.draw()
+
 
 class TrapezoidalFins(Fins):
     """Class that defines and holds information for a trapezoidal fin set.
