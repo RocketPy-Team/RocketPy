@@ -2522,7 +2522,9 @@ class Flight:
             rail_buttons_tuple.component.buttons_distance + rail_buttons_tuple.position
         )
         lower_button_position = rail_buttons_tuple.position
-        angular_position_rad = rail_buttons_tuple.component.angular_position * np.pi / 180
+        angular_position_rad = (
+            rail_buttons_tuple.component.angular_position * np.pi / 180
+        )
         D1 = (
             upper_button_position - self.rocket.centerOfDryMassPosition
         ) * self.rocket._csys
@@ -2550,13 +2552,26 @@ class Flight:
         F21.setDiscreteBasedOnModel(model)
         F22.setDiscreteBasedOnModel(model)
 
-        railButton1NormalForce = F11 * np.cos(angular_position_rad) + F12 * np.sin(angular_position_rad)
-        railButton1ShearForce = F11 * -np.sin(angular_position_rad) + F12 * np.cos(angular_position_rad)
-        railButton2NormalForce = F21 * np.cos(angular_position_rad) + F22 * np.sin(angular_position_rad)
-        railButton2ShearForce = F21 * -np.sin(angular_position_rad) + F22 * np.cos(angular_position_rad)
+        railButton1NormalForce = F11 * np.cos(angular_position_rad) + F12 * np.sin(
+            angular_position_rad
+        )
+        railButton1ShearForce = F11 * -np.sin(angular_position_rad) + F12 * np.cos(
+            angular_position_rad
+        )
+        railButton2NormalForce = F21 * np.cos(angular_position_rad) + F22 * np.sin(
+            angular_position_rad
+        )
+        railButton2ShearForce = F21 * -np.sin(angular_position_rad) + F22 * np.cos(
+            angular_position_rad
+        )
 
-        return railButton1NormalForce, railButton1ShearForce, railButton2NormalForce, railButton2ShearForce
-            
+        return (
+            railButton1NormalForce,
+            railButton1ShearForce,
+            railButton2NormalForce,
+            railButton2ShearForce,
+        )
+
     def _calculate_pressure_signal(self):
         """Calculate the pressure signal from the pressure sensor.
         It creates a SignalFunction attribute in the parachute object.
