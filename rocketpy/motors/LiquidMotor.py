@@ -9,7 +9,7 @@ try:
 except ImportError:
     from rocketpy.tools import cached_property
 
-from rocketpy.Function import Function, funcify_method
+from rocketpy.Function import Function, funcify_method, reset_funcified_methods
 from .Motor import Motor
 
 
@@ -336,6 +336,7 @@ class LiquidMotor(Motor):
             geometry reference zero point.
         """
         self.positioned_tanks.append({"tank": tank, "position": position})
+        reset_funcified_methods(self)
 
     def allInfo(self):
         """Prints out all data and graphs available about the Motor.
