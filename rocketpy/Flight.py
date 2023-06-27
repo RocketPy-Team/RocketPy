@@ -540,7 +540,7 @@ class Flight:
         railLength : int, float
             Length in which the rocket will be attached to the rail, only
             moving along a fixed direction, that is, the line parallel to the
-            rail. Currently, if the initialSolution is not None, the rail
+            rail. Currently, if the an initialSolution is passed, the rail
             length is not used.
         inclination : int, float, optional
             Rail inclination angle relative to ground, given in degrees.
