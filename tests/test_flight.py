@@ -331,7 +331,7 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
     initial_solution = [0] + init_pos + init_vel + init_att + init_angvel
     TestFlight = Flight(
         rocket=DummyRocket,
-        railLength=0,
+        railLength=1,
         environment=Env,
         initialSolution=initial_solution,
         maxTime=max_time,

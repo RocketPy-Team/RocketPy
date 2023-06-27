@@ -363,26 +363,32 @@ class _FlightPrints:
                 self.flight.maxAccelerationTime,
             )
         )
-        print(
-            "Maximum Upper Rail Button Normal Force: {:.3f} N".format(
-                self.flight.maxRailButton1NormalForce
+        if (
+            len(self.flight.rocket.rail_buttons) == 0
+            or self.flight.outOfRailTimeIndex == 0
+        ):
+            pass
+        else:
+            print(
+                "Maximum Upper Rail Button Normal Force: {:.3f} N".format(
+                    self.flight.maxRailButton1NormalForce
+                )
             )
-        )
-        print(
-            "Maximum Upper Rail Button Shear Force: {:.3f} N".format(
-                self.flight.maxRailButton1ShearForce
+            print(
+                "Maximum Upper Rail Button Shear Force: {:.3f} N".format(
+                    self.flight.maxRailButton1ShearForce
+                )
             )
-        )
-        print(
-            "Maximum Lower Rail Button Normal Force: {:.3f} N".format(
-                self.flight.maxRailButton2NormalForce
+            print(
+                "Maximum Lower Rail Button Normal Force: {:.3f} N".format(
+                    self.flight.maxRailButton2NormalForce
+                )
             )
-        )
-        print(
-            "Maximum Lower Rail Button Shear Force: {:.3f} N".format(
-                self.flight.maxRailButton2ShearForce
+            print(
+                "Maximum Lower Rail Button Shear Force: {:.3f} N".format(
+                    self.flight.maxRailButton2ShearForce
+                )
             )
-        )
         return None
 
     def all(self):
