@@ -2916,8 +2916,8 @@ class PiecewiseFunction(Function):
 
 
 def funcify_method(*args, **kwargs):
-    """Decorator factory to wrap methods as Function objects and save them as cached
-    properties.
+    """Decorator factory to wrap methods as Function objects and save them as
+    cached properties.
 
     Parameters
     ----------
@@ -2952,8 +2952,8 @@ def funcify_method(*args, **kwargs):
     >>> g(2)
     11
 
-    2. Method which returns a rocketpy.Function instance. An interesting use is to reset
-    input and output names after algebraic operations.
+    2. Method which returns a rocketpy.Function instance. An interesting use is
+    to reset input and output names after algebraic operations.
 
     >>> class Example():
     ...     @funcify_method(inputs=['x'], outputs=['x**3'])
@@ -3025,6 +3025,7 @@ def funcify_method(*args, **kwargs):
                     )
 
                 val.__doc__ = self.__doc__
+                val.__cached__ = True
                 cache[self.attrname] = val
             return val
 
@@ -3033,6 +3034,25 @@ def funcify_method(*args, **kwargs):
     else:
         return funcify_method_decorator
 
+def reset_funcified_methods(instance):
+    """Recalculates all the funcified methods of the instance. It does so by
+    deleting the current Functions, which will make the interperter redefine
+    them when they are called. This is useful when the instance has changed
+    and the methods need to be recalculated.
+
+    Parameters
+    ----------
+    instance : object
+        The instance of the class whose funcified methods will be recalculated.
+        The class must have a multable __dict__ attribute.
+
+    Return
+    ------
+    None
+    """
+    for key in list(instance.__dict__):
+        if hasattr(instance.__dict__[key], "__cached__"):
+            instance.__dict__.pop(key)
 
 if __name__ == "__main__":
     import doctest
