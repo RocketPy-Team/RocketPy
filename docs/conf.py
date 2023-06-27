@@ -78,7 +78,8 @@ html_theme_options = {
     "logo_link": "index",
     "github_url": "https://github.com/RocketPy-Team/RocketPy",
     "collapse_navigation": True,
-    "show_toc_level": 3,
+    "show_toc_level": 4,
+    "show_nav_level": 4,
 }
 
 html_sidebars = {

@@ -1,6 +1,6 @@
-===================
-Equations of Motion
-===================
+======================
+Equations of Motion v0
+======================
 
 Notes on the .rst file format version
 =====================================

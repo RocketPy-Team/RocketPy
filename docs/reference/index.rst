@@ -19,12 +19,16 @@ The following image shows how the four main classes interact with each other:
 For details about each class, see below.
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 4
    :caption: Contents:
 
    classes/Function
    classes/Environment
    classes/EnvironmentAnalysis
-   classes/SolidMotor
+   Motor Classes <classes/motors/index>
+   AeroSurface Classes <classes/aero_surfaces/index>
+   classes/Components
    classes/Rocket
+   classes/Parachute
    classes/Flight
+   Utils functions <classes/utils/index>
