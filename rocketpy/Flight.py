@@ -2238,52 +2238,30 @@ class Flight:
         """Static margin of the rocket."""
         return self.rocket.staticMargin
 
-    @cached_property
-    def __rail_buttons_alpha_angle(self):
-        """Alpha angle of the rail buttons, in radians. If there is no rail
-        button, the function returns 0. See the rail buttons documentation to
-        learn more about the alpha angle.
-        """
-        try:
-            alpha = self.rocket.rail_buttons[0].component.angular_position * (
-                np.pi / 180
-            )
-        except IndexError:
-            alpha = 0  # there's no rail button defined, use any alpha value
-        return alpha
-
     # Rail Button Forces
     @funcify_method("Time (s)", "Upper Rail Button Normal Force (N)", "spline", "zero")
     def railButton1NormalForce(self):
         """Upper rail button normal force as a rocketpy.Function of time. If
         there's no rail button defined, the function returns a null Function."""
-        F11, F12 = self.__calculate_rail_button_forces[0:2]
-        alpha = self.__rail_buttons_alpha_angle
-        return F11 * np.cos(alpha) + F12 * np.sin(alpha)
+        return self.__calculate_rail_button_forces[0]
 
     @funcify_method("Time (s)", "Upper Rail Button Shear Force (N)", "spline", "zero")
     def railButton1ShearForce(self):
         """Upper rail button shear force as a rocketpy.Function of time. If
         there's no rail button defined, the function returns a null Function."""
-        F11, F12 = self.__calculate_rail_button_forces[0:2]
-        alpha = self.__rail_buttons_alpha_angle
-        return F11 * -np.sin(alpha) + F12 * np.cos(alpha)
+        return self.__calculate_rail_button_forces[1]
 
     @funcify_method("Time (s)", "Lower Rail Button Normal Force (N)", "spline", "zero")
     def railButton2NormalForce(self):
         """Lower rail button normal force as a rocketpy.Function of time. If
         there's no rail button defined, the function returns a null Function."""
-        F21, F22 = self.__calculate_rail_button_forces[2:4]
-        alpha = self.__rail_buttons_alpha_angle
-        return F21 * np.cos(alpha) + F22 * np.sin(alpha)
+        return self.__calculate_rail_button_forces[2]
 
     @funcify_method("Time (s)", "Lower Rail Button Shear Force (N)", "spline", "zero")
     def railButton2ShearForce(self):
         """Lower rail button shear force as a rocketpy.Function of time. If
         there's no rail button defined, the function returns a null Function."""
-        F21, F22 = self.__calculate_rail_button_forces[2:4]
-        alpha = self.__rail_buttons_alpha_angle
-        return F21 * -np.sin(alpha) + F22 * np.cos(alpha)
+        return self.__calculate_rail_button_forces[3]
 
     @property
     def maxRailButton1NormalForce(self):
@@ -2524,7 +2502,7 @@ class Flight:
             Rail Button 2 force in the 2 direction
         """
         # First check for no rail phase or rail buttons
-        nullForce = 0 * self.R1
+        nullForce = []
         if self.outOfRailTimeIndex == 0:  # No rail phase, no rail button forces
             warnings.warn(
                 "Trying to calculate rail button forces without a rail phase defined."
@@ -2544,6 +2522,7 @@ class Flight:
             rail_buttons_tuple.component.buttons_distance + rail_buttons_tuple.position
         )
         lower_button_position = rail_buttons_tuple.position
+        angular_position_rad = rail_buttons_tuple.component.angular_position * np.pi / 180
         D1 = (
             upper_button_position - self.rocket.centerOfDryMassPosition
         ) * self.rocket._csys
@@ -2571,8 +2550,13 @@ class Flight:
         F21.setDiscreteBasedOnModel(model)
         F22.setDiscreteBasedOnModel(model)
 
-        return F11, F12, F21, F22
+        railButton1NormalForce = F11 * np.cos(angular_position_rad) + F12 * np.sin(angular_position_rad)
+        railButton1ShearForce = F11 * -np.sin(angular_position_rad) + F12 * np.cos(angular_position_rad)
+        railButton2NormalForce = F21 * np.cos(angular_position_rad) + F22 * np.sin(angular_position_rad)
+        railButton2ShearForce = F21 * -np.sin(angular_position_rad) + F22 * np.cos(angular_position_rad)
 
+        return railButton1NormalForce, railButton1ShearForce, railButton2NormalForce, railButton2ShearForce
+            
     def _calculate_pressure_signal(self):
         """Calculate the pressure signal from the pressure sensor.
         It creates a SignalFunction attribute in the parachute object.
