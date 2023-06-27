@@ -20,7 +20,7 @@ from scipy import integrate
 from .Function import Function, funcify_method
 from .plots.flight_plots import _FlightPlots
 from .prints.flight_prints import _FlightPrints
-from .tools import Vector, Matrix
+from .tools import Matrix, Vector
 
 
 class Flight:

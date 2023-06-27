@@ -37,7 +37,13 @@ from .Flight import Flight
 from .Function import Function
 from .motors import HybridMotor, SolidMotor, LiquidMotor, GenericMotor
 from .motors import EmptyMotor, Fluid
-from .motors import Tank, MassFlowRateBasedTank, UllageBasedTank, MassBasedTank
+from .motors import (
+    Tank,
+    MassFlowRateBasedTank,
+    UllageBasedTank,
+    MassBasedTank,
+    LevelBasedTank,
+)
 from .motors import TankGeometry, CylindricalTank, SphericalTank
 from .Rocket import Rocket
 from .utilities import *

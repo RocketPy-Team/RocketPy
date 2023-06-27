@@ -13,7 +13,7 @@ except ImportError:
     from rocketpy.tools import cached_property
 
 from rocketpy.Function import Function, funcify_method
-from rocketpy.motors import Motor
+from .Motor import Motor
 
 
 class SolidMotor(Motor):

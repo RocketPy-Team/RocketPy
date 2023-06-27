@@ -4,15 +4,13 @@ __author__ = "Giovani Hidalgo Ceotto, Oscar Mauricio Prada Ramirez, João Lemes 
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
-import numpy as np
-
 try:
     from functools import cached_property
 except ImportError:
     from rocketpy.tools import cached_property
 
-from rocketpy.motors import Motor
-from rocketpy.Function import funcify_method, Function
+from rocketpy.Function import Function, funcify_method
+from .Motor import Motor
 
 
 class LiquidMotor(Motor):

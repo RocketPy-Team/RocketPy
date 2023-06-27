@@ -1,17 +1,13 @@
+import os
+from math import isclose
+
+import numpy as np
+
 from rocketpy import Fluid
-from rocketpy.motors.Tank import (
-    MassBasedTank,
-    UllageBasedTank,
-    MassFlowRateBasedTank,
-    LevelBasedTank,
-)
+from rocketpy.Function import Function
 from rocketpy.motors import TankGeometry
 from rocketpy.motors.Fluid import Fluid
-from rocketpy.Function import Function
-from math import isclose
-from scipy.optimize import fmin
-import numpy as np
-import os
+from rocketpy.motors.Tank import LevelBasedTank, MassBasedTank, MassFlowRateBasedTank
 
 
 # @PBales1
