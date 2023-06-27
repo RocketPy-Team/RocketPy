@@ -3034,6 +3034,7 @@ def funcify_method(*args, **kwargs):
     else:
         return funcify_method_decorator
 
+
 def reset_funcified_methods(instance):
     """Recalculates all the funcified methods of the instance. It does so by
     deleting the current Functions, which will make the interperter redefine
@@ -3053,6 +3054,7 @@ def reset_funcified_methods(instance):
     for key in list(instance.__dict__):
         if hasattr(instance.__dict__[key], "__cached__"):
             instance.__dict__.pop(key)
+
 
 if __name__ == "__main__":
     import doctest
