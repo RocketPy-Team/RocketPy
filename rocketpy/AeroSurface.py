@@ -4,11 +4,22 @@ __license__ = "MIT"
 
 from abc import ABC, abstractmethod
 
-import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.patches import Ellipse
 
 from .Function import Function
+from .plots.aero_surface_plots import (
+    _EllipticalFinsPlots,
+    _NoseConePlots,
+    _TailPlots,
+    _TrapezoidalFinsPlots,
+)
+from .prints.aero_surface_prints import (
+    _EllipticalFinsPrints,
+    _NoseConePrints,
+    _RailButtonsPrints,
+    _TailPrints,
+    _TrapezoidalFinsPrints,
+)
 
 
 class AeroSurface(ABC):
@@ -53,18 +64,8 @@ class AeroSurface(ABC):
         pass
 
     @abstractmethod
-    def geometricalInfo(self):
-        """Returns the geometrical info of the aerodynamic surface.
-
-        Returns
-        -------
-        None
-        """
-        pass
-
-    @abstractmethod
-    def aerodynamicInfo(self):
-        """Returns the aerodynamic info of the aerodynamic surface.
+    def info(self):
+        """Prints and plots summarized information of the aerodynamic surface.
 
         Returns
         -------
@@ -74,7 +75,7 @@ class AeroSurface(ABC):
 
     @abstractmethod
     def allInfo(self):
-        """Returns all info of the aerodynamic surface.
+        """Prints and plots all the available information of the aero surface.
 
         Returns
         -------
@@ -118,6 +119,12 @@ class NoseCone(AeroSurface):
         the Mach number. Returns the lift coefficient.
     NoseCone.clalpha : float
         Lift coefficient slope. Has units of 1/rad.
+    NoseCone.plots : rocketpy.plots._NoseConePlots
+        This contains all the plots methods. Use help(NoseCone.plots) to know
+        more about it.
+    NoseCone.prints : rocketpy.prints._NoseConePrints
+        This contains all the prints methods. Use help(NoseCone.prints) to know
+        more about it.
     """
 
     def __init__(
@@ -164,6 +171,9 @@ class NoseCone(AeroSurface):
         self.evaluateGeometricalParameters()
         self.evaluateLiftCoefficient()
         self.evaluateCenterOfPressure()
+
+        self.plots = _NoseConePlots(self)
+        self.prints = _NoseConePrints(self)
 
         return None
 
@@ -291,49 +301,23 @@ class NoseCone(AeroSurface):
         self.cp = (self.cpx, self.cpy, self.cpz)
         return self.cp
 
-    def geometricalInfo(self):
-        """Prints out all the geometric information of the nose cone.
+    def info(self):
+        """Prints and plots summarized information of the nose cone.
 
         Parameters
         ----------
         None
 
-        Returns
-        -------
+        Return
+        ------
         None
         """
-        print(f"\nGeometric Information of {self.name}")
-        print("-------------------------------")
-        print(f"Length: {self.length:.3f} m")
-        print(f"Kind: {self.kind}")
-        print(f"Base Radius: {self.baseRadius:.3f} m")
-        print(f"Reference Rocket Radius: {self.rocketRadius:.3f} m")
-        print(f"Radius Ratio: {self.radiusRatio:.3f}")
-
-        return None
-
-    def aerodynamicInfo(self):
-        """Prints out all the aerodynamic information of the nose cone.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        print(f"\nAerodynamic Information of {self.name}")
-        print("-------------------------------")
-        print(f"Center of Pressure Position in Local Coordinates: {self.cp} m")
-        print(f"Lift Coefficient Slope at Mach 0: {self.clalpha(0):.3f} 1/rad")
-        print("Lift Coefficient as a Function of Alpha and Mach:")
-        self.cl()
-
+        self.prints.geometry()
+        self.prints.lift()
         return None
 
     def allInfo(self):
-        """Prints out all the geometric and aerodynamic information of the nose cone.
+        """Prints and plots all the available information of the nose cone.
 
         Parameters
         ----------
@@ -343,9 +327,8 @@ class NoseCone(AeroSurface):
         -------
         None
         """
-        self.geometricalInfo()
-        self.aerodynamicInfo()
-
+        self.prints.all()
+        self.plots.all()
         return None
 
 
@@ -727,179 +710,8 @@ class Fins(AeroSurface):
         else:
             return n / 2
 
-    @abstractmethod
-    def draw():
-        """Draw the fin shape along with some important
-        information. These being, the center line, the
-        quarter line and the center of pressure position.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        pass
-
-    def geometricalInfo(self):
-        """Prints out information about geometrical parameters
-        of the fin set.
-
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
-        None
-        """
-
-        print("\nGeometrical Parameters\n")
-        if isinstance(self, TrapezoidalFins):
-            print("Fin Type: Trapezoidal")
-            print("Tip Chord: {:.3f} m".format(self.tipChord))
-        else:
-            print("Fin Type: Elliptical")
-        print("Root Chord: {:.3f} m".format(self.rootChord))
-        print("Span: {:.3f} m".format(self.span))
-        print("Cant Angle: {:.3f} °".format(self.cantAngle))
-        print("Longitudinal Section Area: {:.3f} m²".format(self.Af))
-        print("Aspect Ratio: {:.3f} ".format(self.AR))
-        print("Gamma_c: {:.3f} m".format(self.gamma_c))
-        print("Mean Aerodynamic Chord: {:.3f} m".format(self.Yma))
-        print(
-            "Roll Geometrical Constant: {:.3f} m".format(self.rollGeometricalConstant)
-        )
-
-        return None
-
-    def aerodynamicInfo(self):
-        """Prints out information about lift parameters
-        of the fin set.
-
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
-        None
-        """
-        print("\nAerodynamic Information")
-        print("----------------")
-        print("Lift Interference Factor: {:.3f} m".format(self.liftInterferenceFactor))
-        print(
-            "Center of Pressure position in Local Coordinates: ({:.3f},{:.3f},{:.3f}) (x, y, z)".format(
-                self.cpx, self.cpy, self.cpz
-            )
-        )
-        print()
-        print(
-            "Lift Coefficient derivative as a Function of Alpha and Mach for Single Fin"
-        )
-        print()
-        self.clalphaSingleFin()
-        print()
-        print(
-            "Lift Coefficient derivative as a Function of Alpha and Mach for the Fin Set"
-        )
-        print()
-        self.clalphaMultipleFins()
-        print()
-        print("Lift Coefficient as a Function of Alpha and Mach for the Fin Set")
-        print()
-        self.cl()
-
-        return None
-
-    def rollInfo(self):
-        """Prints out information about roll parameters
-        of the fin set.
-
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
-        None
-        """
-        print("\nRoll Information")
-        print("----------------")
-        print(
-            "Cant Angle: {:.3f} ° or {:.3f} rad".format(
-                self.cantAngle, self.cantAngleRad
-            )
-        )
-        print(
-            "Roll Damping Interference Factor: {:.3f} rad".format(
-                self.rollDampingInterferenceFactor
-            )
-        )
-        print(
-            "Roll Forcing Interference Factor: {:.3f} rad".format(
-                self.rollForcingInterferenceFactor
-            )
-        )
-        # lacks a title for the plot
-        self.rollParameters[0]()
-        # lacks a title for the plot
-        self.rollParameters[1]()
-
-        return None
-
-    def airfoilInfo(self):
-        """Prints out airfoil related information of the
-        fin set.
-
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
-        None
-        """
-        if self.airfoil is not None:
-            print("\n\nAerodynamic Information\n")
-            print(
-                "Airfoil's Lift Curve as a Function of Alpha ({}))".format(
-                    self.airfoil[1]
-                )
-            )
-            self.airfoilCl.plot1D()
-
-        return None
-
-    def allInfo(self):
-        """Prints out all data and graphs available about the Rocket.
-
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
-        None
-        """
-
-        print("Fin set information\n")
-
-        self.draw()
-
-        print("Basic Information\n")
-
-        print("Number of fins: {:.0f}".format(self.n))
-        print("Reference rocket radius: {:.3f} m".format(self.rocketRadius))
-
-        self.geometricalInfo()
-        self.aerodynamicInfo()
-        self.rollInfo()
-        self.airfoilInfo()
-
-        return None
+    def draw(self):
+        self.plots.draw()
 
 
 class TrapezoidalFins(Fins):
@@ -1072,6 +884,9 @@ class TrapezoidalFins(Fins):
         self.evaluateLiftCoefficient()
         self.evaluateRollParameters()
 
+        self.prints = _TrapezoidalFinsPrints(self)
+        self.plots = _TrapezoidalFinsPlots(self)
+
     @property
     def tipChord(self):
         return self._tipChord
@@ -1133,113 +948,6 @@ class TrapezoidalFins(Fins):
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
-        return None
-
-    def draw(self):
-        """Draw the fin shape along with some important
-        information. These being, the center line, the
-        quarter line and the center of pressure position.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        # Color cycle [#348ABD, #A60628, #7A68A6, #467821, #D55E00, #CC79A7, #56B4E9, #009E73, #F0E442, #0072B2]
-        # Fin
-        leadingEdge = plt.Line2D((0, self.sweepLength), (0, self.span), color="#A60628")
-        tip = plt.Line2D(
-            (self.sweepLength, self.sweepLength + self.tipChord),
-            (self.span, self.span),
-            color="#A60628",
-        )
-        backEdge = plt.Line2D(
-            (self.sweepLength + self.tipChord, self.rootChord),
-            (self.span, 0),
-            color="#A60628",
-        )
-        root = plt.Line2D((self.rootChord, 0), (0, 0), color="#A60628")
-
-        # Center and Quarter line
-        center_line = plt.Line2D(
-            (self.rootChord / 2, self.sweepLength + self.tipChord / 2),
-            (0, self.span),
-            color="#7A68A6",
-            alpha=0.35,
-            linestyle="--",
-            label="Center Line",
-        )
-        quarter_line = plt.Line2D(
-            (self.rootChord / 4, self.sweepLength + self.tipChord / 4),
-            (0, self.span),
-            color="#7A68A6",
-            alpha=1,
-            linestyle="--",
-            label="Quarter Line",
-        )
-
-        # Center of pressure
-        cp_point = [self.cpz, self.Yma]
-
-        # Mean Aerodynamic Chord
-        Yma_start = (
-            self.sweepLength
-            * (self.rootChord + 2 * self.tipChord)
-            / (3 * (self.rootChord + self.tipChord))
-        )
-        Yma_end = (
-            2 * self.rootChord**2
-            + self.rootChord * self.sweepLength
-            + 2 * self.rootChord * self.tipChord
-            + 2 * self.sweepLength * self.tipChord
-            + 2 * self.tipChord**2
-        ) / (3 * (self.rootChord + self.tipChord))
-        Yma_line = plt.Line2D(
-            (Yma_start, Yma_end),
-            (self.Yma, self.Yma),
-            color="#467821",
-            linestyle="--",
-            label="Mean Aerodynamic Chord",
-        )
-
-        # Plotting
-        fig3 = plt.figure(figsize=(7, 4))
-        with plt.style.context("bmh"):
-            ax1 = fig3.add_subplot(111)
-
-        # Fin
-        ax1.add_line(leadingEdge)
-        ax1.add_line(tip)
-        ax1.add_line(backEdge)
-        ax1.add_line(root)
-
-        ax1.add_line(center_line)
-        ax1.add_line(quarter_line)
-        ax1.add_line(Yma_line)
-        ax1.scatter(
-            *cp_point, label="Center Of Pressure", color="red", s=100, zorder=10
-        )
-        ax1.scatter(*cp_point, facecolors="none", edgecolors="red", s=500, zorder=10)
-
-        # Plot settings
-        xlim = (
-            self.rootChord
-            if self.sweepLength + self.tipChord < self.rootChord
-            else self.sweepLength + self.tipChord
-        )
-        ax1.set_xlim(0, xlim * 1.1)
-        ax1.set_ylim(0, self.span * 1.1)
-        ax1.set_xlabel("Root Chord")
-        ax1.set_ylabel("Span")
-        ax1.set_title("Trapezoidal Fin")
-        ax1.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
-
-        plt.tight_layout()
-        plt.show()
-
         return None
 
     def evaluateGeometricalParameters(self):
@@ -1312,6 +1020,16 @@ class TrapezoidalFins(Fins):
         self.λ = λ
         self.rollDampingInterferenceFactor = rollDampingInterferenceFactor
         self.rollForcingInterferenceFactor = rollForcingInterferenceFactor
+
+    def info(self):
+        self.prints.geometry()
+        self.prints.lift()
+        return None
+
+    def allInfo(self):
+        self.prints.all()
+        self.plots.all()
+        return None
 
 
 class EllipticalFins(Fins):
@@ -1462,6 +1180,9 @@ class EllipticalFins(Fins):
         self.evaluateLiftCoefficient()
         self.evaluateRollParameters()
 
+        self.prints = _EllipticalFinsPrints(self)
+        self.plots = _EllipticalFinsPlots(self)
+
         return None
 
     def evaluateCenterOfPressure(self):
@@ -1482,78 +1203,6 @@ class EllipticalFins(Fins):
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
-        return None
-
-    def draw(self):
-        """Draw the fin shape along with some important information.
-        These being, the center line and the center of pressure position.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        # Color cycle [#348ABD, #A60628, #7A68A6, #467821, #D55E00, #CC79A7, #56B4E9, #009E73, #F0E442, #0072B2]
-        # Ellipse
-        el = Ellipse(
-            (self.rootChord / 2, 0),
-            self.rootChord,
-            self.span * 2,
-            fill=False,
-            edgecolor="#A60628",
-            linewidth=2,
-        )
-
-        # Mean Aerodynamic Chord
-        Yma_length = 8 * self.rootChord / (3 * np.pi)  # From Barrowman's theory
-        Yma_start = (self.rootChord - Yma_length) / 2
-        Yma_end = self.rootChord - (self.rootChord - Yma_length) / 2
-        Yma_line = plt.Line2D(
-            (Yma_start, Yma_end),
-            (self.Yma, self.Yma),
-            label="Mean Aerodynamic Chord",
-            color="#467821",
-        )
-
-        # Center Line
-        center_line = plt.Line2D(
-            (self.rootChord / 2, self.rootChord / 2),
-            (0, self.span),
-            color="#7A68A6",
-            alpha=0.35,
-            linestyle="--",
-            label="Center Line",
-        )
-
-        # Center of pressure
-        cp_point = [self.cpz, self.Yma]
-
-        # Plotting
-        fig3 = plt.figure(figsize=(7, 4))
-        with plt.style.context("bmh"):
-            ax1 = fig3.add_subplot(111)
-        ax1.add_patch(el)
-        ax1.add_line(Yma_line)
-        ax1.add_line(center_line)
-        ax1.scatter(
-            *cp_point, label="Center Of Pressure", color="red", s=100, zorder=10
-        )
-        ax1.scatter(*cp_point, facecolors="none", edgecolors="red", s=500, zorder=10)
-
-        # Plot settings
-        ax1.set_xlim(0, self.rootChord)
-        ax1.set_ylim(0, self.span * 1.1)
-        ax1.set_xlabel("Root Chord")
-        ax1.set_ylabel("Span")
-        ax1.set_title("Elliptical Fin")
-        ax1.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
-
-        plt.tight_layout()
-        plt.show()
-
         return None
 
     def evaluateGeometricalParameters(self):
@@ -1643,6 +1292,16 @@ class EllipticalFins(Fins):
         self.rollDampingInterferenceFactor = rollDampingInterferenceFactor
         self.rollForcingInterferenceFactor = rollForcingInterferenceFactor
 
+    def info(self):
+        self.prints.geometry()
+        self.prints.lift()
+        return None
+
+    def allInfo(self):
+        self.prints.all()
+        self.plots.all()
+        return None
+
 
 class Tail(AeroSurface):
     """Class that defines a tail. Currently only accepts conical tails.
@@ -1722,6 +1381,9 @@ class Tail(AeroSurface):
         self.evaluateGeometricalParameters()
         self.evaluateLiftCoefficient()
         self.evaluateCenterOfPressure()
+
+        self.plots = _TailPlots(self)
+        self.prints = _TailPrints(self)
 
         return None
 
@@ -1843,45 +1505,14 @@ class Tail(AeroSurface):
         self.cp = (self.cpx, self.cpy, self.cpz)
         return None
 
-    def geometricalInfo(self):
-        """Prints out all the geometric information of the tail.
-
-        Returns
-        -------
-        None
-        """
-
-        print(f"\nGeometric Information of {self.name}")
-        print("-------------------------------")
-        print(f"Tail Top Radius: {self.topRadius:.3f} m")
-        print(f"Tail Bottom Radius: {self.bottomRadius:.3f} m")
-        print(f"Tail Length: {self.length:.3f} m")
-        print(f"Reference Radius: {2*self.rocketRadius:.3f} m")
-        print(f"Tail Slant Length: {self.slantLength:.3f} m")
-        print(f"Tail Surface Area: {self.surfaceArea:.6f} m²")
-
-        return None
-
-    def aerodynamicInfo(self):
-        print(f"\nAerodynamic Information of {self.name}")
-        print("-------------------------------")
-        print(f"Tail Center of Pressure Position in Local Coordinates: {self.cp} m")
-        print(f"Tail Lift Coefficient Slope at Mach 0: {self.clalpha(0):.3f} 1/rad")
-        print("Tail Lift Coefficient as a function of Alpha and Mach:")
-        self.cl()
-
+    def info(self):
+        self.prints.geometry()
+        self.prints.lift()
         return None
 
     def allInfo(self):
-        """Prints all the information about the tail object.
-
-        Returns
-        -------
-        None
-        """
-        self.geometricalInfo()
-        self.aerodynamicInfo()
-
+        self.prints.all()
+        self.plots.all()
         return None
 
 
@@ -1917,12 +1548,15 @@ class RailButtons(AeroSurface):
         None
 
         """
+        super().__init__(name)
         self.buttons_distance = buttons_distance
         self.angular_position = angular_position
         self.name = name
 
         self.evaluateLiftCoefficient()
         self.evaluateCenterOfPressure()
+
+        self.prints = _RailButtonsPrints(self)
         return None
 
     def evaluateCenterOfPressure(self):
@@ -1969,30 +1603,22 @@ class RailButtons(AeroSurface):
         """
         return None
 
-    def geometricalInfo(self):
-        """Returns the geometrical info of the rail buttons. Rail buttons
-        do not have geometrical parameters.
+    def info(self):
+        """Prints out all the information about the Rail Buttons.
 
         Returns
         -------
         None
         """
-        return None
-
-    def aerodynamicInfo(self):
-        """Returns the aerodynamic info of the aerodynamic surface.
-
-        Returns
-        -------
-        None
-        """
+        self.prints.geometry()
         return None
 
     def allInfo(self):
-        """Returns all info of the aerodynamic surface.
+        """Returns all info of the Rail Buttons.
 
         Returns
         -------
         None
         """
+        self.prints.all()
         return None

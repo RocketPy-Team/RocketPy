@@ -381,7 +381,71 @@ class _FlightPlots:
 
         return None
 
-    def trajectory_force_data(self):
+    def rail_buttons_forces(self):
+        """Prints out all Rail Buttons Forces graphs available about the Flight.
+
+        Returns
+        -------
+        None
+        """
+        if len(self.flight.rocket.rail_buttons) == 0:
+            print("No rail buttons were defined. Skipping rail button plots.")
+        elif self.flight.outOfRailTimeIndex == 0:
+            print("No rail phase was found. Skipping rail button plots.")
+        else:
+            fig6 = plt.figure(figsize=(9, 6))
+
+            ax1 = plt.subplot(211)
+            ax1.plot(
+                self.flight.railButton1NormalForce[: self.flight.outOfRailTimeIndex, 0],
+                self.flight.railButton1NormalForce[: self.flight.outOfRailTimeIndex, 1],
+                label="Upper Rail Button",
+            )
+            ax1.plot(
+                self.flight.railButton2NormalForce[: self.flight.outOfRailTimeIndex, 0],
+                self.flight.railButton2NormalForce[: self.flight.outOfRailTimeIndex, 1],
+                label="Lower Rail Button",
+            )
+            ax1.set_xlim(
+                0,
+                self.flight.outOfRailTime
+                if self.flight.outOfRailTime > 0
+                else self.flight.tFinal,
+            )
+            ax1.legend()
+            ax1.grid(True)
+            ax1.set_xlabel(self.flight.railButton1NormalForce.getInputs()[0])
+            ax1.set_ylabel(self.flight.railButton1NormalForce.getOutputs()[0])
+            ax1.set_title("Rail Buttons Normal Force")
+
+            ax2 = plt.subplot(212)
+            ax2.plot(
+                self.flight.railButton1ShearForce[: self.flight.outOfRailTimeIndex, 0],
+                self.flight.railButton1ShearForce[: self.flight.outOfRailTimeIndex, 1],
+                label="Upper Rail Button",
+            )
+            ax2.plot(
+                self.flight.railButton2ShearForce[: self.flight.outOfRailTimeIndex, 0],
+                self.flight.railButton2ShearForce[: self.flight.outOfRailTimeIndex, 1],
+                label="Lower Rail Button",
+            )
+            ax2.set_xlim(
+                0,
+                self.flight.outOfRailTime
+                if self.flight.outOfRailTime > 0
+                else self.flight.tFinal,
+            )
+            ax2.legend()
+            ax2.grid(True)
+            ax2.set_xlabel(self.flight.railButton1ShearForce.__inputs__[0])
+            ax2.set_ylabel(self.flight.railButton1ShearForce.__outputs__[0])
+            ax2.set_title("Rail Buttons Shear Force")
+
+            plt.subplots_adjust(hspace=0.5)
+            plt.show()
+        return None
+
+    def aerodynamic_forces(self):
         """Prints out all Forces and Moments graphs available about the Flight
 
         Parameters
@@ -392,58 +456,6 @@ class _FlightPlots:
         ------
         None
         """
-
-        # Rail Button Forces
-        fig6 = plt.figure(figsize=(9, 6))
-
-        ax1 = plt.subplot(211)
-        ax1.plot(
-            self.flight.railButton1NormalForce[: self.flight.outOfRailTimeIndex, 0],
-            self.flight.railButton1NormalForce[: self.flight.outOfRailTimeIndex, 1],
-            label="Upper Rail Button",
-        )
-        ax1.plot(
-            self.flight.railButton2NormalForce[: self.flight.outOfRailTimeIndex, 0],
-            self.flight.railButton2NormalForce[: self.flight.outOfRailTimeIndex, 1],
-            label="Lower Rail Button",
-        )
-        ax1.set_xlim(
-            0,
-            self.flight.outOfRailTime
-            if self.flight.outOfRailTime > 0
-            else self.flight.tFinal,
-        )
-        ax1.legend()
-        ax1.grid(True)
-        ax1.set_xlabel("Time (s)")
-        ax1.set_ylabel("Normal Force (N)")
-        ax1.set_title("Rail Buttons Normal Force")
-
-        ax2 = plt.subplot(212)
-        ax2.plot(
-            self.flight.railButton1ShearForce[: self.flight.outOfRailTimeIndex, 0],
-            self.flight.railButton1ShearForce[: self.flight.outOfRailTimeIndex, 1],
-            label="Upper Rail Button",
-        )
-        ax2.plot(
-            self.flight.railButton2ShearForce[: self.flight.outOfRailTimeIndex, 0],
-            self.flight.railButton2ShearForce[: self.flight.outOfRailTimeIndex, 1],
-            label="Lower Rail Button",
-        )
-        ax2.set_xlim(
-            0,
-            self.flight.outOfRailTime
-            if self.flight.outOfRailTime > 0
-            else self.flight.tFinal,
-        )
-        ax2.legend()
-        ax2.grid(True)
-        ax2.set_xlabel("Time (s)")
-        ax2.set_ylabel("Shear Force (N)")
-        ax2.set_title("Rail Buttons Shear Force")
-
-        plt.subplots_adjust(hspace=0.5)
-        plt.show()
 
         # Aerodynamic force and moment plots
         fig7 = plt.figure(figsize=(9, 12))
@@ -855,8 +867,11 @@ class _FlightPlots:
         print("\n\nTrajectory Angular Velocity and Acceleration Plots\n")
         self.angular_kinematics_data()
 
-        print("\n\nTrajectory Force Plots\n")
-        self.trajectory_force_data()
+        print("\n\nAerodynamic Forces Plots\n")
+        self.aerodynamic_forces()
+
+        print("\n\nRail Buttons Forces Plots\n")
+        self.rail_buttons_forces()
 
         print("\n\nTrajectory Energy Plots\n")
         self.energy_data()
