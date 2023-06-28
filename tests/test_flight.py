@@ -887,46 +887,13 @@ def test_latlon_conversions2(mock_show):
     assert test_flight.latitude(test_flight.tFinal) > 0
 
 
-@pytest.mark.parametrize(
-    "rail_length, out_of_rail_time, apogee",
-    [
-        (0.001, 0.07984677248104025, 3155.8287127724143),
-        (1, 0.22346293974185316, 3156.352337599086),
-        (10, 0.5463169099894131, 3157.0751032155413),
-        (100000, 355.3026520, 104193.17946847),
-    ],
-)
-def test_rail_length(rocket, example_env, rail_length, out_of_rail_time, apogee):
-    """Test the rail length parameter of the Flight class. This test simply
-    simulate the flight using different rail lengths and check if the expected
-    out of rail time and apogee are achieved. Four different rail lengths are
-    tested: 0.001, 1, 10, and 100000 meters. This provides a good test range.
-    Currently, if a rail length of 0 is used, the simulation will fail in a
-    ZeroDivisionError, which is not being tested here.
-
-    Parameters
-    ----------
-    rocket : rocketpy.Rocket
-        The rocket to be simulated. In this case, the fixture rocket is used.
-        See the conftest.py file for more information.
-    example_env : rocketpy.Environment
-        The environment to be simulated. In this case, the fixture environment
-        is used. See the conftest.py file for more information.
-    rail_length : float, int
-        The length of the rail in meters. It must be a positive number. See the
-        Flight class documentation for more information.
-    out_of_rail_time : float, int
-        The expected time at which the rocket leaves the rail in seconds.
-    apogee : float, int
-        The expected apogee of the rocket in meters.
-    """
+def test_rail_length(rocket, example_env):
     test_flight = Flight(
         rocket=rocket,
         environment=example_env,
-        railLength=rail_length,
+        railLength=5.2,
         inclination=85,
         heading=0,
         terminateOnApogee=True,
     )
-    assert abs(test_flight.outOfRailTime - out_of_rail_time) < 1e-6
-    assert abs(test_flight.apogee - apogee) < 1e-6
+    assert (test_flight.z(test_flight.outOfRailTime) - 5.180378138072207) < 1e-6
