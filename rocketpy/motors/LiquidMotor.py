@@ -35,8 +35,9 @@ class LiquidMotor(Motor):
             coordinate system. See `Motor.coordinateSystemOrientation` for
             more information.
         Motor.positioned_tanks : list
-            List containing the motor's added tanks and their respective positions.
-        
+            List containing the motor's added tanks and their respective
+            positions.
+
         Mass and moment of inertia attributes:
         Motor.dry_mass : float
             The total mass of the motor structure, including chambers
@@ -48,47 +49,78 @@ class LiquidMotor(Motor):
             Total motor mass in kg as a function of time, defined as the sum
             of propellant and dry mass.
         Motor.propellantMass : Function
-            Total propellant mass in kg as a function of time, includes fuel and oxidizer.
+            Total propellant mass in kg as a function of time, includes fuel
+            and oxidizer.
         Motor.totalMassFlowRate : Function
             Time derivative of propellant total mass in kg/s as a function
             of time as obtained by the tanks mass flow.
         Motor.centerOfMass : Function
-            Position of the motor center of mass in 
+            Position of the motor center of mass in
             meters as a function of time.
             See `Motor.coordinateSystemOrientation` for more information
             regarding the motor's coordinate system.
-        Motor.propellantCenterOfMass : Function
-            Position of the motor propellant center of mass in meters as a function of time.
+        Motor.centerOfPropellantMass : Function
+            Position of the motor propellant center of mass in meters as a
+            function of time.
             See `Motor.coordinateSystemOrientation` for more information
             regarding the motor's coordinate system.
         Motor.I_11 : Function
-            Component of the motor's inertia tensor relative to the e_1 axis in kg*m^2, as a function of time. The e_1 axis is the direction perpendicular to the
-            motor body axis of symmetry, centered at the instantaneous motor center of mass.
+            Component of the motor's inertia tensor relative to the e_1 axis
+            in kg*m^2, as a function of time. The e_1 axis is the direction
+            perpendicular to the motor body axis of symmetry, centered at
+            the instantaneous motor center of mass.
         Motor.I_22 : Function
-            Component of the motor's inertia tensor relative to the e_2 axis in kg*m^2, as a function of time. The e_2 axis is the direction perpendicular to the
-            motor body axis of symmetry, centered at the instantaneous motor center of mass. Numerically equivalent to I_11 due to symmetry.
+            Component of the motor's inertia tensor relative to the e_2 axis
+            in kg*m^2, as a function of time. The e_2 axis is the direction
+            perpendicular to the motor body axis of symmetry, centered at
+            the instantaneous motor center of mass.
+            Numerically equivalent to I_11 due to symmetry.
         Motor.I_33 : Function
-            Component of the motor's inertia tensor relative to the e_3 axis in kg*m^2, as a function of time. The e_3 axis is the direction of the
-            motor body axis of symmetry, centered at the instantaneous motor center of mass.
+            Component of the motor's inertia tensor relative to the e_3 axis
+            in kg*m^2, as a function of time. The e_3 axis is the direction of
+            the motor body axis of symmetry, centered at the instantaneous
+            motor center of mass.
         Motor.I_12 : Function
-            Component of the motor's inertia tensor relative to the e_1 and e_2 axes in kg*m^2, as a function of time. See Motor.I_11 and Motor.I_22 for more information.
+            Component of the motor's inertia tensor relative to the e_1 and
+            e_2 axes in kg*m^2, as a function of time. See Motor.I_11 and
+            Motor.I_22 for more information.
         Motor.I_13 : Function
-            Component of the motor's inertia tensor relative to the e_1 and e_3 axes in kg*m^2, as a function of time. See Motor.I_11 and Motor.I_33 for more information.
+            Component of the motor's inertia tensor relative to the e_1 and
+            e_3 axes in kg*m^2, as a function of time. See Motor.I_11 and
+            Motor.I_33 for more information.
         Motor.I_23 : Function
-            Component of the motor's inertia tensor relative to the e_2 and e_3 axes in kg*m^2, as a function of time. See Motor.I_22 and Motor.I_33 for more information.
+            Component of the motor's inertia tensor relative to the e_2 and
+            e_3 axes in kg*m^2, as a function of time. See Motor.I_22 and
+            Motor.I_33 for more information.
         Motor.propellant_I_11 : Function
-            Component of the propellant inertia tensor relative to the e_1 axis in kg*m^2, as a function of time. The e_1 axis is the direction perpendicular to the motor body axis of symmetry, centered at the instantaneous propellant center of mass.
+            Component of the propellant inertia tensor relative to the e_1
+            axis in kg*m^2, as a function of time. The e_1 axis is the
+            direction perpendicular to the motor body axis of symmetry,
+            centered at the instantaneous propellant center of mass.
         Motor.propellant_I_22 : Function
-            Component of the propellant inertia tensor relative to the e_2 axis in kg*m^2, as a function of time. The e_2 axis is the direction perpendicular to the motor body axis of symmetry, centered at the instantaneous propellant center of mass. Numerically equivalent to propellant_I_11 due to symmetry.
+            Component of the propellant inertia tensor relative to the e_2
+            axis in kg*m^2, as a function of time. The e_2 axis is the
+            direction perpendicular to the motor body axis of symmetry,
+            centered at the instantaneous propellant center of mass.
+            Numerically equivalent to propellant_I_11 due to symmetry.
         Motor.propellant_I_33 : Function
-            Component of the propellant inertia tensor relative to the e_3 axis in kg*m^2, as a function of time. The e_3 axis is the direction of the motor body axis of symmetry, centered at the instantaneous propellant center of mass.
+            Component of the propellant inertia tensor relative to the e_3
+            axis in kg*m^2, as a function of time. The e_3 axis is the
+            direction of the motor body axis of symmetry, centered at the
+            instantaneous propellant center of mass.
         Motor.propellant_I_12 : Function
-            Component of the propellant inertia tensor relative to the e_1 and e_2 axes in kg*m^2, as a function of time. See Motor.propellant_I_11 and Motor.propellant_I_22 for more information.
+            Component of the propellant inertia tensor relative to the e_1 and
+            e_2 axes in kg*m^2, as a function of time. See Motor.propellant_I_11
+            and Motor.propellant_I_22 for more information.
         Motor.propellant_I_13 : Function
-            Component of the propellant inertia tensor relative to the e_1 and e_3 axes in kg*m^2, as a function of time. See Motor.propellant_I_11 and Motor.propellant_I_33 for more information.
+            Component of the propellant inertia tensor relative to the e_1 and
+            e_3 axes in kg*m^2, as a function of time. See Motor.propellant_I_11
+            and Motor.propellant_I_33 for more information.
         Motor.propellant_I_23 : Function
-            Component of the propellant inertia tensor relative to the e_2 and e_3 axes in kg*m^2, as a function of time. See Motor.propellant_I_22 and Motor.propellant_I_33 for more information.
-        
+            Component of the propellant inertia tensor relative to the e_2 and
+            e_3 axes in kg*m^2, as a function of time. See Motor.propellant_I_22
+            and Motor.propellant_I_33 for more information.
+
         Thrust and burn attributes:
         Motor.thrust : Function
             Motor thrust force, in Newtons, as a function of time.
@@ -215,11 +247,6 @@ class LiquidMotor(Motor):
         """Computes the exhaust velocity of the motor from its mass flow
         rate and thrust.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
         self.exhaustVelocity : Function
@@ -230,11 +257,6 @@ class LiquidMotor(Motor):
     @funcify_method("Time (s)", "Propellant Mass (kg)")
     def propellantMass(self):
         """Evaluates the mass of the motor as the sum of each tank mass.
-
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
 
         Returns
         -------
@@ -264,11 +286,6 @@ class LiquidMotor(Motor):
         """Evaluates the mass flow rate of the motor as the sum of each tank
         mass flow rate.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
         Function
@@ -293,11 +310,6 @@ class LiquidMotor(Motor):
         mass and positioning. The center of mass height is measured relative to
         the motor nozzle.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
         Function
@@ -320,14 +332,9 @@ class LiquidMotor(Motor):
         relative to the e_1 axis, centered at the instantaneous propellant
         center of mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
-        float
+        Function
             Propellant inertia tensor 11 component at time t.
 
         Notes
@@ -358,14 +365,9 @@ class LiquidMotor(Motor):
         relative to the e_2 axis, centered at the instantaneous propellant
         center of mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
-        float
+        Function
             Propellant inertia tensor 22 component at time t.
 
         Notes
@@ -385,14 +387,9 @@ class LiquidMotor(Motor):
         relative to the e_3 axis, centered at the instantaneous propellant
         center of mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
-        float
+        Function
             Propellant inertia tensor 33 component at time t.
 
         Notes
@@ -434,10 +431,6 @@ class LiquidMotor(Motor):
 
     def allInfo(self):
         """Prints out all data and graphs available about the Motor.
-
-        Parameters
-        ----------
-        None
 
         Return
         ------

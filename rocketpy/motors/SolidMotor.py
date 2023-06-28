@@ -62,11 +62,6 @@ class SolidMotor(Motor):
             Height of each grain in meters as a function of time.
 
         Mass and moment of inertia attributes:
-        Motor.centerOfMass : Function
-            Position of the center of mass in meters as a function of time.
-            Constant for solid motors, as the grains are assumed to be fixed.
-            See `Motor.coordinateSystemOrientation` for more information
-            regarding the motor's coordinate system
         Motor.grainInitialMass : float
             Initial mass of each grain in kg.
         Motor.dry_mass : float
@@ -82,19 +77,72 @@ class SolidMotor(Motor):
         Motor.totalMassFlowRate : Function
             Time derivative of propellant total mass in kg/s as a function
             of time as obtained by the thrust source.
-        Motor.inertiaI : Function
-            Propellant moment of inertia in kg*meter^2 with respect to axis
-            perpendicular to axis of cylindrical symmetry of each grain,
-            given as a function of time.
-        Motor.inertiaIDot : Function
-            Time derivative of inertiaI given in kg*meter^2/s as a function
-            of time.
-        Motor.inertiaZ : Function
-            Propellant moment of inertia in kg*meter^2 with respect to axis of
-            cylindrical symmetry of each grain, given as a function of time.
-        Motor.inertiaDot : Function
-            Time derivative of inertiaZ given in kg*meter^2/s as a function
-            of time.
+        Motor.centerOfMass : Function
+            Position of the motor center of mass in
+            meters as a function of time.
+            See `Motor.coordinateSystemOrientation` for more information
+            regarding the motor's coordinate system.
+        Motor.centerOfPropellantMass : Function
+            Position of the motor propellant center of mass in meters as a
+            function of time.
+            See `Motor.coordinateSystemOrientation` for more information
+            regarding the motor's coordinate system.
+        Motor.I_11 : Function
+            Component of the motor's inertia tensor relative to the e_1 axis
+            in kg*m^2, as a function of time. The e_1 axis is the direction
+            perpendicular to the motor body axis of symmetry, centered at
+            the instantaneous motor center of mass.
+        Motor.I_22 : Function
+            Component of the motor's inertia tensor relative to the e_2 axis
+            in kg*m^2, as a function of time. The e_2 axis is the direction
+            perpendicular to the motor body axis of symmetry, centered at
+            the instantaneous motor center of mass.
+            Numerically equivalent to I_11 due to symmetry.
+        Motor.I_33 : Function
+            Component of the motor's inertia tensor relative to the e_3 axis
+            in kg*m^2, as a function of time. The e_3 axis is the direction of
+            the motor body axis of symmetry, centered at the instantaneous
+            motor center of mass.
+        Motor.I_12 : Function
+            Component of the motor's inertia tensor relative to the e_1 and
+            e_2 axes in kg*m^2, as a function of time. See Motor.I_11 and
+            Motor.I_22 for more information.
+        Motor.I_13 : Function
+            Component of the motor's inertia tensor relative to the e_1 and
+            e_3 axes in kg*m^2, as a function of time. See Motor.I_11 and
+            Motor.I_33 for more information.
+        Motor.I_23 : Function
+            Component of the motor's inertia tensor relative to the e_2 and
+            e_3 axes in kg*m^2, as a function of time. See Motor.I_22 and
+            Motor.I_33 for more information.
+        Motor.propellant_I_11 : Function
+            Component of the propellant inertia tensor relative to the e_1
+            axis in kg*m^2, as a function of time. The e_1 axis is the
+            direction perpendicular to the motor body axis of symmetry,
+            centered at the instantaneous propellant center of mass.
+        Motor.propellant_I_22 : Function
+            Component of the propellant inertia tensor relative to the e_2
+            axis in kg*m^2, as a function of time. The e_2 axis is the
+            direction perpendicular to the motor body axis of symmetry,
+            centered at the instantaneous propellant center of mass.
+            Numerically equivalent to propellant_I_11 due to symmetry.
+        Motor.propellant_I_33 : Function
+            Component of the propellant inertia tensor relative to the e_3
+            axis in kg*m^2, as a function of time. The e_3 axis is the
+            direction of the motor body axis of symmetry, centered at the
+            instantaneous propellant center of mass.
+        Motor.propellant_I_12 : Function
+            Component of the propellant inertia tensor relative to the e_1 and
+            e_2 axes in kg*m^2, as a function of time. See Motor.propellant_I_11
+            and Motor.propellant_I_22 for more information.
+        Motor.propellant_I_13 : Function
+            Component of the propellant inertia tensor relative to the e_1 and
+            e_3 axes in kg*m^2, as a function of time. See Motor.propellant_I_11
+            and Motor.propellant_I_33 for more information.
+        Motor.propellant_I_23 : Function
+            Component of the propellant inertia tensor relative to the e_2 and
+            e_3 axes in kg*m^2, as a function of time. See Motor.propellant_I_22
+            and Motor.propellant_I_33 for more information.
 
         Thrust and burn attributes:
         Motor.thrust : Function
@@ -288,11 +336,6 @@ class SolidMotor(Motor):
     def propellantMass(self):
         """Evaluates the total propellant mass as a function of time.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
         Function
@@ -305,11 +348,6 @@ class SolidMotor(Motor):
         """Evaluates the total propellant volume as a function of time. The
         propellant is assumed to be a cylindrical Bates grain under uniform
         burn.
-
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
 
         Returns
         -------
@@ -326,11 +364,6 @@ class SolidMotor(Motor):
         """Exhaust velocity by assuming it as a constant. The formula used is
         total impulse/propellant initial mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
         self.exhaustVelocity : rocketpy.Function
@@ -341,10 +374,6 @@ class SolidMotor(Motor):
     @property
     def propellantInitialMass(self):
         """Returns the initial propellant mass.
-
-        Parameters
-        ----------
-        None
 
         Returns
         -------
@@ -358,11 +387,6 @@ class SolidMotor(Motor):
         """Time derivative of propellant mass. Assumes constant exhaust
         velocity. The formula used is the opposite of thrust divided by
         exhaust velocity.
-
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
 
         Returns
         -------
@@ -403,11 +427,6 @@ class SolidMotor(Motor):
         The position is specified as a scalar, relative to the motor's
         coordinate system.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
         rocketpy.Function
@@ -427,9 +446,6 @@ class SolidMotor(Motor):
         self.grainInnerRadius, self.grainHeight, self.burnArea, self.burnRate
         and self.Kn.
 
-        Parameters
-        ----------
-        None
 
         Returns
         -------
@@ -501,11 +517,6 @@ class SolidMotor(Motor):
         """Calculates the BurnArea of the grain for each time. Assuming that
         the grains are cylindrical BATES grains.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
         burnArea : rocketpy.Function
@@ -528,11 +539,6 @@ class SolidMotor(Motor):
         """Calculates the BurnRate with respect to time. This evaluation
         assumes that it was already calculated the massDot, burnArea time
         series.
-
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
 
         Returns
         -------
@@ -574,14 +580,9 @@ class SolidMotor(Motor):
         relative to the e_1 axis, centered at the instantaneous propellant
         center of mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
-        float
+        Function
             Propellant inertia tensor 11 component at time t.
 
         Notes
@@ -617,14 +618,9 @@ class SolidMotor(Motor):
         relative to the e_2 axis, centered at the instantaneous propellant
         center of mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
-        float
+        Function
             Propellant inertia tensor 22 component at time t.
 
         Notes
@@ -644,14 +640,9 @@ class SolidMotor(Motor):
         relative to the e_3 axis, centered at the instantaneous propellant
         center of mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
-        float
+        Function
             Propellant inertia tensor 33 component at time t.
 
         Notes
@@ -683,16 +674,7 @@ class SolidMotor(Motor):
         return 0
 
     def allInfo(self):
-        """Prints out all data and graphs available about the Motor.
-
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
-        None
-        """
+        """Prints out all data and graphs available about the Motor."""
         # Print nozzle details
         print("Nozzle Details")
         print("Nozzle Radius: " + str(self.nozzleRadius) + " m")

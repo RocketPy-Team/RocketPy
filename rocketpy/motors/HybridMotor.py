@@ -38,28 +38,12 @@ class HybridMotor(Motor):
             more information.
         Motor.throatRadius : float
             Radius of motor nozzle throat in meters.
-        Motor.grainNumber : int
-            Number of solid grains.
-        Motor.grainSeparation : float
-            Distance between two grains in meters.
-        Motor.grainDensity : float
-            Density of each grain in kg/meters cubed.
-        Motor.grainOuterRadius : float
-            Outer radius of each grain in meters.
-        Motor.grainInitialInnerRadius : float
-            Initial inner radius of each grain in meters.
-        Motor.grainInitialHeight : float
-            Initial height of each grain in meters.
-        Motor.grainInitialVolume : float
-            Initial volume of each grain in meters cubed.
-        Motor.grainInnerRadius : Function
-            Inner radius of each grain in meters as a function of time.
-        Motor.grainHeight : Function
-            Height of each grain in meters as a function of time.
+        Motor.solid : SolidMotor
+            Solid motor object that composes the hybrid motor.
+        Motor.liquid : LiquidMotor
+            Liquid motor object that composes the hybrid motor.
 
         Mass and moment of inertia attributes:
-        Motor.grainInitialMass : float
-            Initial mass of each grain in kg.
         Motor.dry_mass : float
             The total mass of the motor structure, including chambers
             and tanks, when it is empty and does not contain any propellant.
@@ -73,19 +57,72 @@ class HybridMotor(Motor):
         Motor.totalMassFlowRate : Function
             Time derivative of propellant total mass in kg/s as a function
             of time as obtained by the thrust source.
-        Motor.inertiaI : Function
-            Propellant moment of inertia in kg*meter^2 with respect to axis
-            perpendicular to axis of cylindrical symmetry of each grain,
-            given as a function of time.
-        Motor.inertiaIDot : Function
-            Time derivative of inertiaI given in kg*meter^2/s as a function
-            of time.
-        Motor.inertiaZ : Function
-            Propellant moment of inertia in kg*meter^2 with respect to axis of
-            cylindrical symmetry of each grain, given as a function of time.
-        Motor.inertiaDot : Function
-            Time derivative of inertiaZ given in kg*meter^2/s as a function
-            of time.
+        Motor.centerOfMass : Function
+            Position of the motor center of mass in
+            meters as a function of time.
+            See `Motor.coordinateSystemOrientation` for more information
+            regarding the motor's coordinate system.
+        Motor.centerOfPropellantMass : Function
+            Position of the motor propellant center of mass in meters as a
+            function of time.
+            See `Motor.coordinateSystemOrientation` for more information
+            regarding the motor's coordinate system.
+        Motor.I_11 : Function
+            Component of the motor's inertia tensor relative to the e_1 axis
+            in kg*m^2, as a function of time. The e_1 axis is the direction
+            perpendicular to the motor body axis of symmetry, centered at
+            the instantaneous motor center of mass.
+        Motor.I_22 : Function
+            Component of the motor's inertia tensor relative to the e_2 axis
+            in kg*m^2, as a function of time. The e_2 axis is the direction
+            perpendicular to the motor body axis of symmetry, centered at
+            the instantaneous motor center of mass.
+            Numerically equivalent to I_11 due to symmetry.
+        Motor.I_33 : Function
+            Component of the motor's inertia tensor relative to the e_3 axis
+            in kg*m^2, as a function of time. The e_3 axis is the direction of
+            the motor body axis of symmetry, centered at the instantaneous
+            motor center of mass.
+        Motor.I_12 : Function
+            Component of the motor's inertia tensor relative to the e_1 and
+            e_2 axes in kg*m^2, as a function of time. See Motor.I_11 and
+            Motor.I_22 for more information.
+        Motor.I_13 : Function
+            Component of the motor's inertia tensor relative to the e_1 and
+            e_3 axes in kg*m^2, as a function of time. See Motor.I_11 and
+            Motor.I_33 for more information.
+        Motor.I_23 : Function
+            Component of the motor's inertia tensor relative to the e_2 and
+            e_3 axes in kg*m^2, as a function of time. See Motor.I_22 and
+            Motor.I_33 for more information.
+        Motor.propellant_I_11 : Function
+            Component of the propellant inertia tensor relative to the e_1
+            axis in kg*m^2, as a function of time. The e_1 axis is the
+            direction perpendicular to the motor body axis of symmetry,
+            centered at the instantaneous propellant center of mass.
+        Motor.propellant_I_22 : Function
+            Component of the propellant inertia tensor relative to the e_2
+            axis in kg*m^2, as a function of time. The e_2 axis is the
+            direction perpendicular to the motor body axis of symmetry,
+            centered at the instantaneous propellant center of mass.
+            Numerically equivalent to propellant_I_11 due to symmetry.
+        Motor.propellant_I_33 : Function
+            Component of the propellant inertia tensor relative to the e_3
+            axis in kg*m^2, as a function of time. The e_3 axis is the
+            direction of the motor body axis of symmetry, centered at the
+            instantaneous propellant center of mass.
+        Motor.propellant_I_12 : Function
+            Component of the propellant inertia tensor relative to the e_1 and
+            e_2 axes in kg*m^2, as a function of time. See Motor.propellant_I_11
+            and Motor.propellant_I_22 for more information.
+        Motor.propellant_I_13 : Function
+            Component of the propellant inertia tensor relative to the e_1 and
+            e_3 axes in kg*m^2, as a function of time. See Motor.propellant_I_11
+            and Motor.propellant_I_33 for more information.
+        Motor.propellant_I_23 : Function
+            Component of the propellant inertia tensor relative to the e_2 and
+            e_3 axes in kg*m^2, as a function of time. See Motor.propellant_I_22
+            and Motor.propellant_I_33 for more information.
 
         Thrust and burn attributes:
         Motor.thrust : Function
@@ -386,7 +423,7 @@ class HybridMotor(Motor):
 
         Returns
         -------
-        float
+        Function
             Propellant inertia tensor 11 component at time t.
 
         Notes
@@ -423,7 +460,7 @@ class HybridMotor(Motor):
 
         Returns
         -------
-        float
+        Function
             Propellant inertia tensor 22 component at time t.
 
         Notes
@@ -450,7 +487,7 @@ class HybridMotor(Motor):
 
         Returns
         -------
-        float
+        Function
             Propellant inertia tensor 33 component at time t.
 
         Notes
