@@ -16,6 +16,101 @@ from .Motor import Motor
 class LiquidMotor(Motor):
     """Class to specify characteristics and useful operations for Liquid
     motors. This class inherits from the Motor class.
+
+    Attributes
+    ----------
+
+        Geometrical attributes:
+        Motor.coordinateSystemOrientation : str
+            Orientation of the motor's coordinate system. The coordinate system
+            is defined by the motor's axis of symmetry. The origin of the
+            coordinate system  may be placed anywhere along such axis, such as
+            at the nozzle area, and must be kept the same for all other
+            positions specified. Options are "nozzleToCombustionChamber" and
+            "combustionChamberToNozzle".
+        Motor.nozzleRadius : float
+            Radius of motor nozzle outlet in meters.
+        Motor.nozzlePosition : float
+            Motor's nozzle outlet position in meters, specified in the motor's
+            coordinate system. See `Motor.coordinateSystemOrientation` for
+            more information.
+        Motor.positioned_tanks : list
+            List containing the motor's added tanks and their respective positions.
+        
+        Mass and moment of inertia attributes:
+        Motor.dry_mass : float
+            The total mass of the motor structure, including chambers
+            and tanks, when it is empty and does not contain any propellant.
+        Motor.propellantInitialMass : float
+            Total propellant initial mass in kg, includes
+            fuel and oxidizer.
+        Motor.totalMass : Function
+            Total motor mass in kg as a function of time, defined as the sum
+            of propellant and dry mass.
+        Motor.propellantMass : Function
+            Total propellant mass in kg as a function of time, includes fuel and oxidizer.
+        Motor.totalMassFlowRate : Function
+            Time derivative of propellant total mass in kg/s as a function
+            of time as obtained by the tanks mass flow.
+        Motor.centerOfMass : Function
+            Position of the motor center of mass in 
+            meters as a function of time.
+            See `Motor.coordinateSystemOrientation` for more information
+            regarding the motor's coordinate system.
+        Motor.propellantCenterOfMass : Function
+            Position of the motor propellant center of mass in meters as a function of time.
+            See `Motor.coordinateSystemOrientation` for more information
+            regarding the motor's coordinate system.
+        Motor.I_11 : Function
+            Component of the motor's inertia tensor relative to the e_1 axis in kg*m^2, as a function of time. The e_1 axis is the direction perpendicular to the
+            motor body axis of symmetry, centered at the instantaneous motor center of mass.
+        Motor.I_22 : Function
+            Component of the motor's inertia tensor relative to the e_2 axis in kg*m^2, as a function of time. The e_2 axis is the direction perpendicular to the
+            motor body axis of symmetry, centered at the instantaneous motor center of mass. Numerically equivalent to I_11 due to symmetry.
+        Motor.I_33 : Function
+            Component of the motor's inertia tensor relative to the e_3 axis in kg*m^2, as a function of time. The e_3 axis is the direction of the
+            motor body axis of symmetry, centered at the instantaneous motor center of mass.
+        Motor.I_12 : Function
+            Component of the motor's inertia tensor relative to the e_1 and e_2 axes in kg*m^2, as a function of time. See Motor.I_11 and Motor.I_22 for more information.
+        Motor.I_13 : Function
+            Component of the motor's inertia tensor relative to the e_1 and e_3 axes in kg*m^2, as a function of time. See Motor.I_11 and Motor.I_33 for more information.
+        Motor.I_23 : Function
+            Component of the motor's inertia tensor relative to the e_2 and e_3 axes in kg*m^2, as a function of time. See Motor.I_22 and Motor.I_33 for more information.
+        Motor.propellant_I_11 : Function
+            Component of the propellant inertia tensor relative to the e_1 axis in kg*m^2, as a function of time. The e_1 axis is the direction perpendicular to the motor body axis of symmetry, centered at the instantaneous propellant center of mass.
+        Motor.propellant_I_22 : Function
+            Component of the propellant inertia tensor relative to the e_2 axis in kg*m^2, as a function of time. The e_2 axis is the direction perpendicular to the motor body axis of symmetry, centered at the instantaneous propellant center of mass. Numerically equivalent to propellant_I_11 due to symmetry.
+        Motor.propellant_I_33 : Function
+            Component of the propellant inertia tensor relative to the e_3 axis in kg*m^2, as a function of time. The e_3 axis is the direction of the motor body axis of symmetry, centered at the instantaneous propellant center of mass.
+        Motor.propellant_I_12 : Function
+            Component of the propellant inertia tensor relative to the e_1 and e_2 axes in kg*m^2, as a function of time. See Motor.propellant_I_11 and Motor.propellant_I_22 for more information.
+        Motor.propellant_I_13 : Function
+            Component of the propellant inertia tensor relative to the e_1 and e_3 axes in kg*m^2, as a function of time. See Motor.propellant_I_11 and Motor.propellant_I_33 for more information.
+        Motor.propellant_I_23 : Function
+            Component of the propellant inertia tensor relative to the e_2 and e_3 axes in kg*m^2, as a function of time. See Motor.propellant_I_22 and Motor.propellant_I_33 for more information.
+        
+        Thrust and burn attributes:
+        Motor.thrust : Function
+            Motor thrust force, in Newtons, as a function of time.
+        Motor.totalImpulse : float
+            Total impulse of the thrust curve in N*s.
+        Motor.maxThrust : float
+            Maximum thrust value of the given thrust curve, in N.
+        Motor.maxThrustTime : float
+            Time, in seconds, in which the maximum thrust value is achieved.
+        Motor.averageThrust : float
+            Average thrust of the motor, given in N.
+        Motor.burn_time : tuple of float
+            Tuple containing the initial and final time of the motor's burn time
+            in seconds.
+        Motor.burnStartTime : float
+            Motor burn start time, in seconds.
+        Motor.burnOutTime : float
+            Motor burn out time, in seconds.
+        Motor.burnDuration : float
+            Total motor burn duration, in seconds. It is the difference between the burnOutTime and the burnStartTime.
+        Motor.exhaustVelocity : Function
+            Propulsion gases exhaust velocity in m/s.
     """
 
     def __init__(
