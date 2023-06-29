@@ -56,19 +56,72 @@ class Motor(ABC):
         Motor.totalMassFlowRate : Function
             Time derivative of propellant total mass in kg/s as a function
             of time as obtained by the thrust source.
-        Motor.inertiaI : Function
-            Propellant moment of inertia in kg*meter^2 with respect to axis
-            perpendicular to axis of cylindrical symmetry of each grain,
-            given as a function of time.
-        Motor.inertiaIDot : Function
-            Time derivative of inertiaI given in kg*meter^2/s as a function
-            of time.
-        Motor.inertiaZ : Function
-            Propellant moment of inertia in kg*meter^2 with respect to axis of
-            cylindrical symmetry of each grain, given as a function of time.
-        Motor.inertiaZDot : Function
-            Time derivative of inertiaZ given in kg*meter^2/s as a function
-            of time.
+        Motor.centerOfMass : Function
+            Position of the motor center of mass in
+            meters as a function of time.
+            See `Motor.coordinateSystemOrientation` for more information
+            regarding the motor's coordinate system.
+        Motor.centerOfPropellantMass : Function
+            Position of the motor propellant center of mass in meters as a
+            function of time.
+            See `Motor.coordinateSystemOrientation` for more information
+            regarding the motor's coordinate system.
+        Motor.I_11 : Function
+            Component of the motor's inertia tensor relative to the e_1 axis
+            in kg*m^2, as a function of time. The e_1 axis is the direction
+            perpendicular to the motor body axis of symmetry, centered at
+            the instantaneous motor center of mass.
+        Motor.I_22 : Function
+            Component of the motor's inertia tensor relative to the e_2 axis
+            in kg*m^2, as a function of time. The e_2 axis is the direction
+            perpendicular to the motor body axis of symmetry, centered at
+            the instantaneous motor center of mass.
+            Numerically equivalent to I_11 due to symmetry.
+        Motor.I_33 : Function
+            Component of the motor's inertia tensor relative to the e_3 axis
+            in kg*m^2, as a function of time. The e_3 axis is the direction of
+            the motor body axis of symmetry, centered at the instantaneous
+            motor center of mass.
+        Motor.I_12 : Function
+            Component of the motor's inertia tensor relative to the e_1 and
+            e_2 axes in kg*m^2, as a function of time. See Motor.I_11 and
+            Motor.I_22 for more information.
+        Motor.I_13 : Function
+            Component of the motor's inertia tensor relative to the e_1 and
+            e_3 axes in kg*m^2, as a function of time. See Motor.I_11 and
+            Motor.I_33 for more information.
+        Motor.I_23 : Function
+            Component of the motor's inertia tensor relative to the e_2 and
+            e_3 axes in kg*m^2, as a function of time. See Motor.I_22 and
+            Motor.I_33 for more information.
+        Motor.propellant_I_11 : Function
+            Component of the propellant inertia tensor relative to the e_1
+            axis in kg*m^2, as a function of time. The e_1 axis is the
+            direction perpendicular to the motor body axis of symmetry,
+            centered at the instantaneous propellant center of mass.
+        Motor.propellant_I_22 : Function
+            Component of the propellant inertia tensor relative to the e_2
+            axis in kg*m^2, as a function of time. The e_2 axis is the
+            direction perpendicular to the motor body axis of symmetry,
+            centered at the instantaneous propellant center of mass.
+            Numerically equivalent to propellant_I_11 due to symmetry.
+        Motor.propellant_I_33 : Function
+            Component of the propellant inertia tensor relative to the e_3
+            axis in kg*m^2, as a function of time. The e_3 axis is the
+            direction of the motor body axis of symmetry, centered at the
+            instantaneous propellant center of mass.
+        Motor.propellant_I_12 : Function
+            Component of the propellant inertia tensor relative to the e_1 and
+            e_2 axes in kg*m^2, as a function of time. See Motor.propellant_I_11
+            and Motor.propellant_I_22 for more information.
+        Motor.propellant_I_13 : Function
+            Component of the propellant inertia tensor relative to the e_1 and
+            e_3 axes in kg*m^2, as a function of time. See Motor.propellant_I_11
+            and Motor.propellant_I_33 for more information.
+        Motor.propellant_I_23 : Function
+            Component of the propellant inertia tensor relative to the e_2 and
+            e_3 axes in kg*m^2, as a function of time. See Motor.propellant_I_22
+            and Motor.propellant_I_33 for more information.
 
         Thrust and burn attributes:
         Motor.thrust : Function
@@ -193,6 +246,11 @@ class Motor(ABC):
             self._csys = 1
         elif coordinateSystemOrientation == "combustionChamberToNozzle":
             self._csys = -1
+        else:
+            raise ValueError(
+                "Invalid coordinate system orientation. Options are "
+                "'nozzleToCombustionChamber' and 'combustionChamberToNozzle'."
+            )
 
         # Motor parameters
         self.dry_mass = dry_mass
@@ -281,18 +339,14 @@ class Motor(ABC):
                 self._burn_time = (self.thrust.xArray[0], self.thrust.xArray[-1])
             else:
                 raise ValueError(
-                    "When using a float or callable as thrust source a burn_time "
-                    "range must be specified."
+                    "When using a float or callable as thrust source, a burn_time"
+                    " argument must be specified."
                 )
 
     @cached_property
     def totalImpulse(self):
         """Calculates and returns total impulse by numerical integration
         of the thrust curve in SI units.
-
-        Parameters
-        ----------
-        None
 
         Returns
         -------
@@ -307,10 +361,6 @@ class Motor(ABC):
         """Exhaust velocity by assuming it as a constant. The formula used is
         total impulse/propellant initial mass.
 
-        Parameters
-        ----------
-        None
-
         Returns
         -------
         self.exhaustVelocity : float
@@ -323,11 +373,6 @@ class Motor(ABC):
         """Total mass of the motor as a function of time. It is defined as the
         propellant mass plus the dry mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
         rocketpy.Function
@@ -338,11 +383,6 @@ class Motor(ABC):
     @funcify_method("Time (s)", "propellant mass (kg)")
     def propellantMass(self):
         """Total propellant mass as a Function of time.
-
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
 
         Returns
         -------
@@ -356,11 +396,6 @@ class Motor(ABC):
         """Time derivative of propellant mass. Assumes constant exhaust
         velocity. The formula used is the opposite of thrust divided by
         exhaust velocity.
-
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
 
         Returns
         -------
@@ -402,10 +437,6 @@ class Motor(ABC):
     def propellantInitialMass(self):
         """Propellant initial mass in kg.
 
-        Parameters
-        ----------
-        None
-
         Returns
         -------
         float
@@ -417,11 +448,6 @@ class Motor(ABC):
     def centerOfMass(self):
         """Position of the center of mass as a function of time. The position
         is specified as a scalar, relative to the motor's coordinate system.
-
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
 
         Returns
         -------
@@ -441,11 +467,6 @@ class Motor(ABC):
         The position is specified as a scalar, relative to the motor's
         coordinate system.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
         rocketpy.Function
@@ -458,14 +479,9 @@ class Motor(ABC):
         """Inertia tensor 11 component, which corresponds to the inertia
         relative to the e_1 axis, centered at the instantaneous center of mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
-        float
+        Function
             Propellant inertia tensor 11 component at time t.
 
         Notes
@@ -498,14 +514,9 @@ class Motor(ABC):
         """Inertia tensor 22 component, which corresponds to the inertia
         relative to the e_2 axis, centered at the instantaneous center of mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
-        float
+        Function
             Propellant inertia tensor 22 component at time t.
 
         Notes
@@ -525,14 +536,9 @@ class Motor(ABC):
         """Inertia tensor 33 component, which corresponds to the inertia
         relative to the e_3 axis, centered at the instantaneous center of mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
-        float
+        Function
             Propellant inertia tensor 33 component at time t.
 
         Notes
@@ -559,14 +565,9 @@ class Motor(ABC):
         inertia relative to axes e_1 and e_2, centered at the instantaneous
         center of mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
-        float
+        Function
             Propellant inertia tensor 12 component at time t.
 
         Notes
@@ -597,14 +598,9 @@ class Motor(ABC):
         inertia relative to the axes e_1 and e_3, centered at the instantaneous
         center of mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
-        float
+        Function
             Propellant inertia tensor 13 component at time t.
 
         Notes
@@ -635,14 +631,9 @@ class Motor(ABC):
         inertia relative the axes e_2 and e_3, centered at the instantaneous
         center of mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
-        float
+        Function
             Propellant inertia tensor 23 component at time t.
 
         Notes
@@ -674,14 +665,9 @@ class Motor(ABC):
         relative to the e_1 axis, centered at the instantaneous propellant
         center of mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
-        float
+        Function
             Propellant inertia tensor 11 component at time t.
 
         Notes
@@ -702,14 +688,9 @@ class Motor(ABC):
         relative to the e_2 axis, centered at the instantaneous propellant
         center of mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
-        float
+        Function
             Propellant inertia tensor 22 component at time t.
 
         Notes
@@ -730,14 +711,9 @@ class Motor(ABC):
         relative to the e_3 axis, centered at the instantaneous propellant
         center of mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
-        float
+        Function
             Propellant inertia tensor 33 component at time t.
 
         Notes
@@ -758,14 +734,9 @@ class Motor(ABC):
         is relative to axes e_1 and e_2, centered at the instantaneous propellant
         center of mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
-        float
+        Function
             Propellant inertia tensor 12 component at time t.
 
         Notes
@@ -790,14 +761,9 @@ class Motor(ABC):
         is relative to axes e_1 and e_3, centered at the instantaneous propellant
         center of mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
-        float
+        Function
             Propellant inertia tensor 13 component at time t.
 
         Notes
@@ -822,14 +788,9 @@ class Motor(ABC):
         is relative to axes e_2 and e_3, centered at the instantaneous propellant
         center of mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
-        float
+        Function
             Propellant inertia tensor 23 component at time t.
 
         Notes
@@ -1052,14 +1013,6 @@ class Motor(ABC):
     def info(self):
         """Prints out a summary of the data and graphs available about the
         Motor.
-
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
-        None
         """
         # Print motor details
         print("\nMotor Details")
@@ -1092,16 +1045,7 @@ class Motor(ABC):
 
     @abstractmethod
     def allInfo(self):
-        """Prints out all data and graphs available about the Motor.
-
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
-        None
-        """
+        """Prints out all data and graphs available about the Motor."""
         pass
 
 
@@ -1151,10 +1095,6 @@ class GenericMotor(Motor):
     def propellantInitialMass(self):
         """Calculates the initial mass of the propellant.
 
-        Parameters
-        ----------
-        None
-
         Returns
         -------
         float
@@ -1167,10 +1107,6 @@ class GenericMotor(Motor):
         """Estimates the Center of Mass of the motor as fixed in the chamber
         position. For a more accurate evaluation, use the classes SolidMotor,
         LiquidMotor or HybridMotor.
-
-        Parameters
-        ----------
-        Time : float
 
         Returns
         -------
@@ -1185,14 +1121,9 @@ class GenericMotor(Motor):
         relative to the e_1 axis, centered at the instantaneous propellant
         center of mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
-        float
+        Function
             Propellant inertia tensor 11 component at time t.
 
         Notes
@@ -1216,14 +1147,9 @@ class GenericMotor(Motor):
         relative to the e_2 axis, centered at the instantaneous propellant
         center of mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
-        float
+        Function
             Propellant inertia tensor 22 component at time t.
 
         Notes
@@ -1243,14 +1169,9 @@ class GenericMotor(Motor):
         relative to the e_3 axis, centered at the instantaneous propellant
         center of mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
-        float
+        Function
             Propellant inertia tensor 33 component at time t.
 
         Notes
@@ -1277,16 +1198,7 @@ class GenericMotor(Motor):
         return 0
 
     def allInfo(self):
-        """Prints out all data and graphs available about the Motor.
-
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
-        None
-        """
+        """Prints out all data and graphs available about the Motor."""
         # Print motor details
         print("\nMotor Details")
         print("Total Burning Time: " + str(self.burnOutTime) + " s")
@@ -1331,14 +1243,6 @@ class EmptyMotor:
     def __init__(self):
         """Initializes an empty motor with no mass and no thrust.
 
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-
         Notes
         -----
         This class is a temporary solution to the problem of having a motor
@@ -1349,15 +1253,17 @@ class EmptyMotor:
         self.dry_mass = 0
         self.nozzleRadius = 0
         self.thrust = Function(0, "Time (s)", "Thrust (N)")
-        self.propellantMass = Function(0, "Time (s)", "Mass (kg)")
-        self.totalMass = Function(0, "Time (s)", "Mass (kg)")
+        self.propellantMass = Function(0, "Time (s)", "Propellant Mass (kg)")
+        self.totalMass = Function(0, "Time (s)", "Total Mass (kg)")
         self.totalMassFlowRate = Function(0, "Time (s)", "Mass Depletion Rate (kg/s)")
         self.burnOutTime = 1
         self.nozzlePosition = 0
         self.nozzleRadius = 0
         self.center_of_dry_mass = 0
-        self.centerOfPropellantMass = Function(0, "Time (s)", "Mass (kg)")
-        self.centerOfMass = Function(0, "Time (s)", "Mass (kg)")
+        self.centerOfPropellantMass = Function(
+            0, "Time (s)", "Center of Propellant Mass (kg)"
+        )
+        self.centerOfMass = Function(0, "Time (s)", "Center of Mass (kg)")
         self.dry_I_11 = 0
         self.dry_I_22 = 0
         self.dry_I_33 = 0
