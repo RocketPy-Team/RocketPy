@@ -273,16 +273,16 @@ class _LiquidMotorPlots:
         None
         """
 
-        self.thrust.plot(*self.burn_time)
-        self.totalMass.plot(*self.burn_time)
-        self.massFlowRate.plot(*self.burn_time)
-        self.exhaustVelocity.plot(*self.burn_time)
-        self.centerOfMass.plot(*self.burn_time)
-        self.I_11.plot(*self.burn_time)
-        self.I_22.plot(*self.burn_time)
-        self.I_33.plot(*self.burn_time)
-        self.I_12.plot(*self.burn_time)
-        self.I_13.plot(*self.burn_time)
-        self.I_23.plot(*self.burn_time)
+        self.thrust(*self.liquid_motor.burn_time)
+        self.totalMass(*self.liquid_motor.burn_time)
+        self.massFlowRate(*self.liquid_motor.burn_time)
+        self.exhaustVelocity(*self.liquid_motor.burn_time)
+        self.centerOfMass(*self.liquid_motor.burn_time)
+        self.I_11(*self.liquid_motor.burn_time)
+        self.I_22(*self.liquid_motor.burn_time)
+        self.I_33(*self.liquid_motor.burn_time)
+        self.I_12(*self.liquid_motor.burn_time)
+        self.I_13(*self.liquid_motor.burn_time)
+        self.I_23(*self.liquid_motor.burn_time)
 
         return None

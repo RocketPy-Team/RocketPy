@@ -5,6 +5,8 @@ __license__ = "MIT"
 import numpy as np
 
 from rocketpy.Function import Function, PiecewiseFunction, funcify_method
+from rocketpy.prints.tank_geometry_prints import _TankGeometryPrints
+from rocketpy.plots.tank_geometry_plots import _TankGeometryPlots
 
 try:
     from functools import cache
@@ -97,6 +99,10 @@ class TankGeometry:
             function from an axis of symmetry.
         """
         self.geometry = geometry_dict
+
+        # Initialize plots and prints object
+        self.prints = _TankGeometryPrints(self)
+        self.plots = _TankGeometryPlots(self)
 
     @property
     def geometry(self):

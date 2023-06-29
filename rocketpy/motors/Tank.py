@@ -7,6 +7,8 @@ __license__ = "MIT"
 from abc import ABC, abstractmethod
 
 from rocketpy.Function import Function, funcify_method
+from rocketpy.plots.tank_plots import _TankPlots
+from rocketpy.prints.tank_prints import _TankPrints
 from rocketpy.tools import tuple_handler
 
 
@@ -47,6 +49,10 @@ class Tank(ABC):
         self.gas = gas
         self.liquid = liquid
         self.discretize = discretize
+
+        # Initialize plots and prints object
+        self.prints = _TankPrints(self)
+        self.plots = _TankPlots(self)
         return None
 
     @property

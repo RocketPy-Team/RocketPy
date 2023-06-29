@@ -45,7 +45,7 @@ class _LiquidMotorPrints:
 
         # Print nozzle details
         print("Nozzle Details")
-        print("Nozzle Radius: " + str(self.nozzleRadius) + " m")
+        print("Nozzle Radius: " + str(self.liquid_motor.nozzleRadius) + " m")
 
     def motor_details(self):
         """Prints out all data available about the motor.
@@ -60,26 +60,32 @@ class _LiquidMotorPrints:
         """
         # Print motor details
         print("\nMotor Details")
-        print("Total Burning Time: " + str(self.burnDuration) + " s")
+        print("Total Burning Time: " + str(self.liquid_motor.burnDuration) + " s")
         print(
             "Total Propellant Mass: "
-            + "{:.3f}".format(self.propellantInitialMass)
+            + "{:.3f}".format(self.liquid_motor.propellantInitialMass)
             + " kg"
         )
         print(
             "Average Propellant Exhaust Velocity: "
-            + "{:.3f}".format(self.exhaustVelocity.average(*self.burn_time))
+            + "{:.3f}".format(
+                self.liquid_motor.exhaustVelocity.average(*self.liquid_motor.burn_time)
+            )
             + " m/s"
         )
-        print("Average Thrust: " + "{:.3f}".format(self.averageThrust) + " N")
+        print(
+            "Average Thrust: " + "{:.3f}".format(self.liquid_motor.averageThrust) + " N"
+        )
         print(
             "Maximum Thrust: "
-            + str(self.maxThrust)
+            + str(self.liquid_motor.maxThrust)
             + " N at "
-            + str(self.maxThrustTime)
+            + str(self.liquid_motor.maxThrustTime)
             + " s after ignition."
         )
-        print("Total Impulse: " + "{:.3f}".format(self.totalImpulse) + " Ns")
+        print(
+            "Total Impulse: " + "{:.3f}".format(self.liquid_motor.totalImpulse) + " Ns"
+        )
 
     def all(self):
         """Prints out all data available about the LiquidMotor.

@@ -44,8 +44,8 @@ class _SolidMotorPrints:
         """
         # Print nozzle details
         print("\nNozzle Details\n")
-        print("Nozzle Radius: " + str(self.nozzleRadius) + " m")
-        print("Nozzle Throat Radius: " + str(self.throatRadius) + " m")
+        print("Nozzle Radius: " + str(self.solid_motor.nozzleRadius) + " m")
+        print("Nozzle Throat Radius: " + str(self.solid_motor.throatRadius) + " m")
 
     def grain_details(self):
         """Prints out all data available about the SolidMotor grain.
@@ -61,14 +61,24 @@ class _SolidMotorPrints:
 
         # Print grain details
         print("\nGrain Details\n")
-        print("Number of Grains: " + str(self.grainNumber))
-        print("Grain Spacing: " + str(self.grainSeparation) + " m")
-        print("Grain Density: " + str(self.grainDensity) + " kg/m3")
-        print("Grain Outer Radius: " + str(self.grainOuterRadius) + " m")
-        print("Grain Inner Radius: " + str(self.grainInitialInnerRadius) + " m")
-        print("Grain Height: " + str(self.grainInitialHeight) + " m")
-        print("Grain Volume: " + "{:.3f}".format(self.grainInitialVolume) + " m3")
-        print("Grain Mass: " + "{:.3f}".format(self.grainInitialMass) + " kg")
+        print("Number of Grains: " + str(self.solid_motor.grainNumber))
+        print("Grain Spacing: " + str(self.solid_motor.grainSeparation) + " m")
+        print("Grain Density: " + str(self.solid_motor.grainDensity) + " kg/m3")
+        print("Grain Outer Radius: " + str(self.solid_motor.grainOuterRadius) + " m")
+        print(
+            "Grain Inner Radius: "
+            + str(self.solid_motor.grainInitialInnerRadius)
+            + " m"
+        )
+        print("Grain Height: " + str(self.solid_motor.grainInitialHeight) + " m")
+        print(
+            "Grain Volume: "
+            + "{:.3f}".format(self.solid_motor.grainInitialVolume)
+            + " m3"
+        )
+        print(
+            "Grain Mass: " + "{:.3f}".format(self.solid_motor.grainInitialMass) + " kg"
+        )
 
     def motor_details(self):
         """Prints out all data available about the SolidMotor.
@@ -84,26 +94,32 @@ class _SolidMotorPrints:
 
         # Print motor details
         print("\nMotor Details\n")
-        print("Total Burning Time: " + str(self.burnDuration) + " s")
+        print("Total Burning Time: " + str(self.solid_motor.burnDuration) + " s")
         print(
             "Total Propellant Mass: "
-            + "{:.3f}".format(self.propellantInitialMass)
+            + "{:.3f}".format(self.solid_motor.propellantInitialMass)
             + " kg"
         )
         print(
             "Average Propellant Exhaust Velocity: "
-            + "{:.3f}".format(self.exhaustVelocity.average(*self.burn_time))
+            + "{:.3f}".format(
+                self.solid_motor.exhaustVelocity.average(*self.solid_motor.burn_time)
+            )
             + " m/s"
         )
-        print("Average Thrust: " + "{:.3f}".format(self.averageThrust) + " N")
+        print(
+            "Average Thrust: " + "{:.3f}".format(self.solid_motor.averageThrust) + " N"
+        )
         print(
             "Maximum Thrust: "
-            + str(self.maxThrust)
+            + str(self.solid_motor.maxThrust)
             + " N at "
-            + str(self.maxThrustTime)
+            + str(self.solid_motor.maxThrustTime)
             + " s after ignition."
         )
-        print("Total Impulse: " + "{:.3f}".format(self.totalImpulse) + " Ns")
+        print(
+            "Total Impulse: " + "{:.3f}".format(self.solid_motor.totalImpulse) + " Ns"
+        )
 
     def all(self):
         """Prints out all data available about the SolidMotor.

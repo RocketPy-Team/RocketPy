@@ -380,21 +380,23 @@ class _HybridMotorPlots:
         None
         """
 
-        self.thrust(*self.burn_time)
-        self.totalMass(*self.burn_time)
-        self.massFlowRate(*self.burn_time)
-        self.exhaustVelocity(*self.burn_time)
-        self.grainInnerRadius(*self.burn_time)
-        self.grainHeight(*self.burn_time)
-        self.burnRate(self.burn_time[0], self.grainBurnOut)
-        self.burnArea(*self.burn_time)
+        self.thrust(*self.hybrid_motor.burn_time)
+        self.totalMass(*self.hybrid_motor.burn_time)
+        self.massFlowRate(*self.hybrid_motor.burn_time)
+        self.exhaustVelocity(*self.hybrid_motor.burn_time)
+        self.grainInnerRadius(*self.hybrid_motor.burn_time)
+        self.grainHeight(*self.hybrid_motor.burn_time)
+        self.burnRate(
+            self.hybrid_motor.burn_time[0], self.hybrid_motor.solid.grainBurnOut
+        )
+        self.burnArea(*self.hybrid_motor.burn_time)
         self.Kn()
-        self.centerOfMass(*self.burn_time)
-        self.I_11(*self.burn_time)
-        self.I_22(*self.burn_time)
-        self.I_33(*self.burn_time)
-        self.I_12(*self.burn_time)
-        self.I_13(*self.burn_time)
-        self.I_23(*self.burn_time)
+        self.centerOfMass(*self.hybrid_motor.burn_time)
+        self.I_11(*self.hybrid_motor.burn_time)
+        self.I_22(*self.hybrid_motor.burn_time)
+        self.I_33(*self.hybrid_motor.burn_time)
+        self.I_12(*self.hybrid_motor.burn_time)
+        self.I_13(*self.hybrid_motor.burn_time)
+        self.I_23(*self.hybrid_motor.burn_time)
 
         return None
