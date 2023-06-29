@@ -185,7 +185,6 @@ A sample code is:
 
 ```python
 Env = Environment(
-    rail_length=5.2,
     latitude=32.990254,
     longitude=-106.974998,
     elevation=1400,
@@ -211,11 +210,12 @@ Pro75M1670 = SolidMotor(
     grain_separation=5/1000,
     grain_density=1815,
     grain_outer_radius=33/1000,
-    grain_initial_inner_radius=15/1000,
-    grain_initial_height=120/1000,
-    nozzle_radius=33/1000,
-    throat_radius=11/1000,
-    interpolation_method='linear'
+    grainInitialInnerRadius=15/1000,
+    grainInitialHeight=120/1000,
+    grainsCenterOfMassPosition=-0.85704,
+    nozzleRadius=33/1000,
+    throatRadius=11/1000,
+    interpolationMethod='linear'
 )
 ```
 
@@ -236,16 +236,12 @@ Calisto = Rocket(
     power_off_drag="../../data/calisto/powerOffDragCurve.csv",
     power_on_drag="../../data/calisto/powerOnDragCurve.csv",
     center_of_dry_mass_position=0,
-    coordinate_system_orientation="tailToNose",
+    coordinate_system_orientation="tailToNose"
 )
-
-Calisto.set_rail_buttons([0.2, -0.5])
-
+Calisto.set_rail_buttons(0.2, -0.5)
 Calisto.add_motor(Pro75M1670, position=-1.255)
-
-nosecone = Calisto.add_nose(length=0.55829, kind="vonKarman", position=0.71971 + 0.55829)
-
-finset = Calisto.add_trapezoidal_fins(
+Calisto.add_nose(length=0.55829, kind="vonKarman", position=1.278)
+Calisto.add_trapezoidal_fins(
     n=4,
     root_chord=0.120,
     tip_chord=0.040,
@@ -253,10 +249,9 @@ finset = Calisto.add_trapezoidal_fins(
     position=-1.04956,
     cant_angle=0,
     radius=None,
-    airfoil=None,
+    airfoil=None
 )
-
-tail = Calisto.add_tail(
+Calisto.add_tail(
     top_radius=0.0635, bottom_radius=0.0435, length=0.060, position=-1.194656
 )
 ```
@@ -264,25 +259,35 @@ tail = Calisto.add_tail(
 You may want to add parachutes to your rocket as well:
 
 ```python
-def drogue_trigger(p, y):
+def drogue_trigger(p, h, y):
+    # p = pressure considering parachute noise signal
+    # h = height above ground level considering parachute noise signal
+    # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
+
+    # activate drogue when vz < 0 m/s.
     return True if y[5] < 0 else False
 
-def main_trigger(p, y):
-    return True if y[5] < 0 and y[2] < 800 else False
+def main_trigger(p, h, y):
+    # p = pressure considering parachute noise signal
+    # h = height above ground level considering parachute noise signal
+    # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
+        
+    # activate main when vz < 0 m/s and z < 800 m
+    return True if y[5] < 0 and h < 800 else False
 
-Main = Calisto.add_parachute('Main',
-                            CdS=10.0,
-                            trigger=main_trigger, 
-                            sampling_rate=105,
-                            lag=1.5,
-                            noise=(0, 8.3, 0.5))
+Calisto.addParachute('Main',
+                    CdS=10.0,
+                    trigger=main_trigger, 
+                    samplingRate=105,
+                    lag=1.5,
+                    noise=(0, 8.3, 0.5))
 
-Drogue = Calisto.add_parachute('Drogue',
-                              CdS=1.0,
-                              trigger=drogue_trigger, 
-                              sampling_rate=105,
-                              lag=1.5,
-                              noise=(0, 8.3, 0.5))
+Calisto.addParachute('Drogue',
+                      CdS=1.0,
+                      trigger=drogue_trigger, 
+                      samplingRate=105,
+                      lag=1.5,
+                      noise=(0, 8.3, 0.5))
 ```
 
 Finally, you can create a Flight object to simulate your trajectory. To get help on the Flight class, use:
@@ -294,10 +299,10 @@ help(Flight)
 To actually create a Flight object, use:
 
 ```python
-TestFlight = Flight(rocket=Calisto, environment=Env, inclination=85, heading=0)
+TestFlight = Flight(rocket=Calisto, environment=Env, railLength=5.2, inclination=85, heading=0)
 ```
 
-Once the TestFlight object is created, your simulation is done! Use the following code to get a summary of the results:
+Once the Flight object is created, your simulation is done! Use the following code to get a summary of the results:
 
 ```python
 TestFlight.info()

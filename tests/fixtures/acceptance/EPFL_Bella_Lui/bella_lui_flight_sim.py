@@ -51,7 +51,6 @@ parameters = {
 
 # Environment conditions
 Env = Environment(
-    rail_length=parameters.get("rail_length")[0],
     gravity=9.81,
     latitude=47.213476,
     longitude=9.003336,
@@ -91,10 +90,10 @@ BellaLui = Rocket(
     power_off_drag=0.43,
     power_on_drag=0.43,
 )
-BellaLui.set_rail_buttons([0.1, -0.5])
-BellaLui.add_motor(K828FJ, parameters.get("distance_rocket_nozzle")[0])
-nosecone = BellaLui.add_nose(
-    length=parameters.get("nose_length")[0],
+BellaLui.setRailButtons(0.1, -0.5)
+BellaLui.addMotor(K828FJ, parameters.get("distanceRocketNozzle")[0])
+NoseCone = BellaLui.addNose(
+    length=parameters.get("noseLength")[0],
     kind="tangent",
     position=parameters.get("nose_distance_to_cm")[0]
     + parameters.get("nose_length")[0],
@@ -115,7 +114,7 @@ tail = BellaLui.add_tail(
 
 
 # Parachute set-up
-def drogue_trigger(p, y):
+def drogue_trigger(p, h, y):
     # p = pressure
     # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
     # activate drogue when vz < 0 m/s.
@@ -169,6 +168,7 @@ BellaLui.power_on_drag *= parameters.get("power_on_drag")[0]
 TestFlight = Flight(
     rocket=BellaLui,
     environment=Env,
+    railLength=parameters.get("railLength")[0],
     inclination=parameters.get("inclination")[0],
     heading=parameters.get("heading")[0],
 )

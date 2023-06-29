@@ -12,7 +12,7 @@ from scipy.integrate import solve_ivp
 
 from .Environment import Environment
 from .Function import Function
-from .AeroSurfaces import TrapezoidalFins
+from .AeroSurface import TrapezoidalFins
 
 
 # TODO: Needs tests
@@ -132,7 +132,6 @@ def calculate_equilibrium_altitude(
 
     if env == None:
         environment = Environment(
-            rail_length=5.0,
             latitude=0,
             longitude=0,
             elevation=1000,
@@ -235,7 +234,7 @@ def fin_flutter_analysis(
     """
 
     # First, we need identify if there is at least a fin set in the rocket
-    for aero_surface, _ in flight.rocket.aerodynamic_surfaces:
+    for aero_surface in flight.rocket.aerodynamic_surfaces:
         if isinstance(aero_surface, TrapezoidalFins):
             # s: surface area; ar: aspect ratio; la: lambda
             root_chord = aero_surface.root_chord

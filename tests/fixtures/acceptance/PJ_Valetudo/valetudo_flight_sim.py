@@ -58,7 +58,6 @@ analysis_parameters = {
 
 # Environment conditions
 Env = Environment(
-    rail_length=5.7,
     gravity=9.8,
     date=(2019, 8, 10, 21),
     latitude=-23.363611,
@@ -71,7 +70,6 @@ Env.set_atmospheric_model(
     file="tests/fixtures/acceptance/PJ_Valetudo/valetudo_weather_data_ERA5.nc",
     dictionary="ECMWF",
 )
-Env.rail_length = analysis_parameters.get("rail_length")[0]
 
 # Create motor
 Keron = SolidMotor(
@@ -122,20 +120,20 @@ finset = Valetudo.add_trapezoidal_fins(
     span=analysis_parameters.get("fin_span")[0],
     position=analysis_parameters.get("fin_distance_to_cm")[0],
 )
-Valetudo.set_rail_buttons([0.224, -0.93], 30)
+Valetudo.set_rail_buttons(0.224, -0.93, 30)
 
 # Set up parachutes
 sis_rec_drogue = SisRec.SisRecSt(0.8998194205245451, 0.2)
 
 
-def drogueTrigger(p, y):
+def drogue_trigger(p, h, y):
     return True if sis_rec_drogue.update(p / 100000) == 2 else False
 
 
 drogue = Valetudo.add_parachute(
     "Drogue",
     CdS=analysis_parameters["CdS_drogue"][0],
-    trigger=drogueTrigger,
+    trigger=drogue_trigger,
     sampling_rate=105,
     lag=analysis_parameters["lag_rec"][0] + analysis_parameters["lag_se"][0],
     noise=(0, 8.3, 0.5),
@@ -147,6 +145,7 @@ sis_rec_drogue.enable()
 TestFlight = Flight(
     rocket=Valetudo,
     environment=Env,
+    railLength=analysis_parameters.get("railLength")[0],
     inclination=analysis_parameters.get("inclination")[0],
     heading=analysis_parameters.get("heading")[0],
     max_time=600,

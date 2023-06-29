@@ -26,11 +26,6 @@ try:
 except ImportError:
     from .tools import cached_property
 
-try:
-    from functools import cached_property
-except ImportError:
-    from .tools import cached_property
-
 
 class Flight:
     """Keeps all flight information and has a method to simulate flight.
@@ -63,7 +58,9 @@ class Flight:
             Helper iterator function to generate time discretization points.
 
         Helper parameters:
-        Flight.effective1rl : float
+        Flight.railLength : float, int
+            Launch rail length in meters.
+        Flight.effective1RL : float
             Original rail length minus the distance measured from nozzle exit
             to the upper rail button. It assumes the nozzle to be aligned with
             the beginning of the rail.
@@ -517,6 +514,7 @@ class Flight:
         self,
         rocket,
         environment,
+        railLength,
         inclination=80,
         heading=90,
         initial_solution=None,
@@ -539,6 +537,11 @@ class Flight:
         environment : Environment
             Environment to run simulation on. See help(Environment) for
             more information.
+        railLength : int, float
+            Length in which the rocket will be attached to the rail, only
+            moving along a fixed direction, that is, the line parallel to the
+            rail. Currently, if the an initialSolution is passed, the rail
+            length is not used.
         inclination : int, float, optional
             Rail inclination angle relative to ground, given in degrees.
             Default is 80.
@@ -547,12 +550,12 @@ class Flight:
             Default is 90, which points in the x direction.
         initial_solution : array, Flight, optional
             Initial solution array to be used. Format is
-            initial_solution = []
-                self.t_initial,
-                x_init, y_init, z_init,
-                vx_init, vy_init, vz_init,
-                e0_init, e1_init, e2_init, e3_init,
-                w1_init, w2_init, w3_init
+            initialSolution = [
+                self.tInitial,
+                xInit, yInit, zInit,
+                vxInit, vyInit, vzInit,
+                e0Init, e1Init, e2Init, e3Init,
+                w1Init, w2Init, w3Init
             ].
             If a Flight object is used, the last state vector will be used as
             initial solution. If None, the initial solution will start with
@@ -604,6 +607,9 @@ class Flight:
         # and termination events
         self.env = environment
         self.rocket = rocket
+        self.railLength = railLength
+        if self.railLength <= 0:
+            raise ValueError("Rail length must be a positive value.")
         self.parachutes = self.rocket.parachutes[:]
         self.inclination = inclination
         self.heading = heading
@@ -713,10 +719,18 @@ class Flight:
                     pressure = self.env.pressure.get_value_opt(self.y_sol[2])
                     parachute.clean_pressure_signal.append([node.t, pressure])
                     # Calculate and save noise
-                    noise = parachute.noise_function()
-                    parachute.noise_signal.append([node.t, noise])
-                    parachute.noisy_pressure_signal.append([node.t, pressure + noise])
-                    if parachute.trigger(pressure + noise, self.y_sol):
+                    noise = parachute.noiseFunction()
+                    parachute.noiseSignal.append([node.t, noise])
+                    parachute.noisyPressureSignal.append([node.t, pressure + noise])
+                    # Gets height above ground level considering noise
+                    hAGL = (
+                        self.env.pressure.findInput(
+                            pressure + noise,
+                            overshootableNode.y[2],
+                        )
+                        - self.env.elevation
+                    )
+                    if parachute.trigger(pressure + noise, hAGL, self.ySol):
                         # print('\nEVENT DETECTED')
                         # print('Parachute Triggered')
                         # print('Name: ', parachute.name, ' | Lag: ', parachute.lag)
@@ -724,13 +738,15 @@ class Flight:
                         self.parachutes.remove(parachute)
                         # Create flight phase for time after detection and before inflation
                         # Must only be created if parachute has any lag
+                        i = 1
                         if parachute.lag != 0:
                             self.FlightPhases.add_phase(
                                 node.t,
                                 phase.derivative,
                                 clear=True,
-                                index=phase_index + 1,
+                                index=phase_index + i,
                             )
+                            i += 1
                         # Create flight phase for time after inflation
                         callbacks = [
                             lambda self, parachute_CdS=parachute.CdS: setattr(
@@ -742,7 +758,7 @@ class Flight:
                             self.udot_parachute,
                             callbacks,
                             clear=False,
-                            index=phase_index + 2,
+                            index=phase_index + i,
                         )
                         # Prepare to leave loops and start new flight phase
                         phase.TimeNodes.flush_after(node_index)
@@ -1013,8 +1029,17 @@ class Flight:
                                     parachute.noisy_pressure_signal.append(
                                         [overshootable_node.t, pressure + noise]
                                     )
+                                    # Gets height above ground level considering noise
+                                    hAGL = (
+                                        self.env.pressure.findInput(
+                                            pressure + noise,
+                                            overshootableNode.y[2],
+                                        )
+                                        - self.env.elevation
+                                    )
+
                                     if parachute.trigger(
-                                        pressure + noise, overshootable_node.y
+                                        pressure + noise, hAGL, overshootableNode.y
                                     ):
                                         # print('\nEVENT DETECTED')
                                         # print('Parachute Triggered')
@@ -1022,12 +1047,16 @@ class Flight:
                                         # Remove parachute from flight parachutes
                                         self.parachutes.remove(parachute)
                                         # Create flight phase for time after detection and before inflation
-                                        self.FlightPhases.add_phase(
-                                            overshootable_node.t,
-                                            phase.derivative,
-                                            clear=True,
-                                            index=phase_index + 1,
-                                        )
+                                        # Must only be created if parachute has any lag
+                                        i = 1
+                                        if parachute.lag != 0:
+                                            self.flightPhases.addPhase(
+                                                overshootableNode.t,
+                                                phase.derivative,
+                                                clear=True,
+                                                index=phase_index + i,
+                                            )
+                                            i += 1
                                         # Create flight phase for time after inflation
                                         callbacks = [
                                             lambda self, parachute_CdS=parachute.CdS: setattr(
@@ -1039,7 +1068,7 @@ class Flight:
                                             self.udot_parachute,
                                             callbacks,
                                             clear=False,
-                                            index=phase_index + 2,
+                                            index=phase_index + i,
                                         )
                                         # Rollback history
                                         self.t = overshootable_node.t
@@ -1132,8 +1161,9 @@ class Flight:
             # previous flight
             self.initial_solution = self.initial_solution.solution[-1]
             # Set unused monitors
-            self.out_of_rail_state = self.initial_solution[1:]
-            self.out_of_rail_time = self.initial_solution[0]
+            self.outOfRailState = self.initialSolution[1:]
+            self.outOfRailTime = self.initialSolution[0]
+            self.outOfRailTimeIndex = 0
             # Set initial derivative for 6-DOF flight phase
             self.initial_derivative = self.udot
         else:
@@ -1159,31 +1189,32 @@ class Flight:
         self.y_sol = self.solution[-1][1:]
 
     @cached_property
-    def effective1rl(self):
-        # Modifying Rail Length for a better out of rail condition
+    def effective1RL(self):
         nozzle = (
             self.rocket.motor_position - self.rocket.center_of_dry_mass_position
         ) * self.rocket._csys  # Kinda works for single nozzle
         try:
-            upper_r_button = self.rocket.rail_buttons.upper_button_position
-        except AttributeError:  # If there is no rail button
+            rail_buttons = self.rocket.rail_buttons[0]
+            upper_r_button = (
+                rail_buttons.component.buttons_distance + rail_buttons.position
+            )
+        except IndexError:  # No rail buttons defined
             upper_r_button = nozzle
-        effective1rl = self.env.rail_length - abs(nozzle - upper_r_button)
-
-        return effective1rl
+        effective1RL = self.railLength - abs(nozzle - upper_r_button)
+        return effective1RL
 
     @cached_property
-    def effective2rl(self):
-        # Modifying Rail Length for a better out of rail condition
+    def effective2RL(self):
         nozzle = (
             self.rocket.motor_position - self.rocket.center_of_dry_mass_position
         ) * self.rocket._csys
         try:
-            lower_r_button = self.rocket.rail_buttons.lower_button_position
-        except AttributeError:
+            rail_buttons = self.rocket.rail_buttons[0]
+            lower_r_button = rail_buttons.position
+        except IndexError:  # No rail buttons defined
             lower_r_button = nozzle
-        effective2rl = self.env.rail_length - abs(nozzle - lower_r_button)
-        return effective2rl
+        effective2RL = self.railLength - abs(nozzle - lower_r_button)
+        return effective2RL
 
     @cached_property
     def frontal_surface_wind(self):
@@ -2255,94 +2286,48 @@ class Flight:
 
     # Rail Button Forces
     @funcify_method("Time (s)", "Upper Rail Button Normal Force (N)", "spline", "zero")
-    def rail_button1_normal_force(self):
-        """Upper rail button normal force as a rocketpy.Function of time."""
-        if isinstance(self.calculate_rail_button_forces, tuple):
-            F11, F12 = self.calculate_rail_button_forces[0:2]
-        else:
-            F11, F12 = self.calculate_rail_button_forces()[0:2]
-        alpha = self.rocket.rail_buttons.angular_position * (np.pi / 180)
-        return F11 * np.cos(alpha) + F12 * np.sin(alpha)
+    def railButton1NormalForce(self):
+        """Upper rail button normal force as a rocketpy.Function of time. If
+        there's no rail button defined, the function returns a null Function."""
+        return self.__calculate_rail_button_forces[0]
 
     @funcify_method("Time (s)", "Upper Rail Button Shear Force (N)", "spline", "zero")
-    def rail_button1_shear_force(self):
-        """Upper rail button shear force as a rocketpy.Function of time."""
-        if isinstance(self.calculate_rail_button_forces, tuple):
-            F11, F12 = self.calculate_rail_button_forces[0:2]
-        else:
-            F11, F12 = self.calculate_rail_button_forces()[0:2]
-        alpha = self.rocket.rail_buttons.angular_position * (
-            np.pi / 180
-        )  # Rail buttons angular position
-        return F11 * -np.sin(alpha) + F12 * np.cos(alpha)
+    def railButton1ShearForce(self):
+        """Upper rail button shear force as a rocketpy.Function of time. If
+        there's no rail button defined, the function returns a null Function."""
+        return self.__calculate_rail_button_forces[1]
 
     @funcify_method("Time (s)", "Lower Rail Button Normal Force (N)", "spline", "zero")
-    def rail_button2_normal_force(self):
-        """Lower rail button normal force as a rocketpy.Function of time."""
-        if isinstance(self.calculate_rail_button_forces, tuple):
-            F21, F22 = self.calculate_rail_button_forces[2:4]
-        else:
-            F21, F22 = self.calculate_rail_button_forces()[2:4]
-        alpha = self.rocket.rail_buttons.angular_position * (np.pi / 180)
-        return F21 * np.cos(alpha) + F22 * np.sin(alpha)
+    def railButton2NormalForce(self):
+        """Lower rail button normal force as a rocketpy.Function of time. If
+        there's no rail button defined, the function returns a null Function."""
+        return self.__calculate_rail_button_forces[2]
 
     @funcify_method("Time (s)", "Lower Rail Button Shear Force (N)", "spline", "zero")
-    def rail_button2_shear_force(self):
-        """Lower rail button shear force as a rocketpy.Function of time."""
-        if isinstance(self.calculate_rail_button_forces, tuple):
-            F21, F22 = self.calculate_rail_button_forces[2:4]
-        else:
-            F21, F22 = self.calculate_rail_button_forces()[2:4]
-        alpha = self.rocket.rail_buttons.angular_position * (np.pi / 180)
-        return F21 * -np.sin(alpha) + F22 * np.cos(alpha)
+    def railButton2ShearForce(self):
+        """Lower rail button shear force as a rocketpy.Function of time. If
+        there's no rail button defined, the function returns a null Function."""
+        return self.__calculate_rail_button_forces[3]
 
-    @cached_property
-    def max_rail_button1_normal_force(self):
+    @property
+    def maxRailButton1NormalForce(self):
         """Maximum upper rail button normal force, in Newtons."""
-        if isinstance(self.calculate_rail_button_forces, tuple):
-            F11 = self.calculate_rail_button_forces[0]
-        else:
-            F11 = self.calculate_rail_button_forces()[0]
-        if self.out_of_rail_time_index == 0:
-            return 0
-        else:
-            return np.max(self.rail_button1_normal_force)
+        return self.railButton1NormalForce.max
 
-    @cached_property
-    def max_rail_button1_shear_force(self):
+    @property
+    def maxRailButton1ShearForce(self):
         """Maximum upper rail button shear force, in Newtons."""
-        if isinstance(self.calculate_rail_button_forces, tuple):
-            F11 = self.calculate_rail_button_forces[0]
-        else:
-            F11 = self.calculate_rail_button_forces()[0]
-        if self.out_of_rail_time_index == 0:
-            return 0
-        else:
-            return np.max(self.rail_button1_shear_force)
+        return self.railButton1ShearForce.max
 
-    @cached_property
-    def max_rail_button2_normal_force(self):
+    @property
+    def maxRailButton2NormalForce(self):
         """Maximum lower rail button normal force, in Newtons."""
-        if isinstance(self.calculate_rail_button_forces, tuple):
-            F11 = self.calculate_rail_button_forces[0]
-        else:
-            F11 = self.calculate_rail_button_forces()[0]
-        if self.out_of_rail_time_index == 0:
-            return 0
-        else:
-            return np.max(self.rail_button2_normal_force)
+        return self.railButton2NormalForce.max
 
-    @cached_property
-    def max_rail_button2_shear_force(self):
+    @property
+    def maxRailButton2ShearForce(self):
         """Maximum lower rail button shear force, in Newtons."""
-        if isinstance(self.calculate_rail_button_forces, tuple):
-            F11 = self.calculate_rail_button_forces[0]
-        else:
-            F11 = self.calculate_rail_button_forces()[0]
-        if self.out_of_rail_time_index == 0:
-            return 0
-        else:
-            return np.max(self.rail_button2_shear_force)
+        return self.railButton2ShearForce.max
 
     @funcify_method(
         "Time (s)", "Horizontal Distance to Launch Point (m)", "spline", "constant"
@@ -2548,10 +2533,9 @@ class Flight:
         return temporary_values
 
     @cached_property
-    def calculate_rail_button_forces(self):
-        """Calculate the forces applied to the rail buttons while rocket is
-        still on the launch rail. It will return 0 if no rail buttons are
-        defined.
+    def __calculate_rail_button_forces(self):
+        """Calculate the forces applied to the rail buttons while rocket is still
+        on the launch rail. It will return 0 if no rail buttons are defined.
 
         Returns
         -------
@@ -2564,25 +2548,36 @@ class Flight:
         F22: Function
             Rail Button 2 force in the 2 direction
         """
-        if self.rocket.rail_buttons is None:
+        # First check for no rail phase or rail buttons
+        nullForce = []
+        if self.outOfRailTimeIndex == 0:  # No rail phase, no rail button forces
+            warnings.warn(
+                "Trying to calculate rail button forces without a rail phase defined."
+                + "The rail button forces will be set to zero."
+            )
+            return nullForce, nullForce, nullForce, nullForce
+        if len(self.rocket.rail_buttons) == 0:
             warnings.warn(
                 "Trying to calculate rail button forces without rail buttons defined."
+                + "The rail button forces will be set to zero."
             )
-            return 0, 0, 0, 0
-        if self.out_of_rail_time_index == 0:
-            # No rail phase, no rail button forces
-            null_force = 0 * self.R1
-            return null_force, null_force, null_force, null_force
+            return nullForce, nullForce, nullForce, nullForce
 
         # Distance from Rail Button 1 (upper) to CM
+        rail_buttons_tuple = self.rocket.rail_buttons[0]
+        upper_button_position = (
+            rail_buttons_tuple.component.buttons_distance + rail_buttons_tuple.position
+        )
+        lower_button_position = rail_buttons_tuple.position
+        angular_position_rad = (
+            rail_buttons_tuple.component.angular_position * np.pi / 180
+        )
         D1 = (
-            self.rocket.rail_buttons.upper_button_position
-            - self.rocket.center_of_dry_mass_position
+            upper_button_position - self.rocket.centerOfDryMassPosition
         ) * self.rocket._csys
         # Distance from Rail Button 2 (lower) to CM
         D2 = (
-            self.rocket.rail_buttons.lower_button_position
-            - self.rocket.center_of_dry_mass_position
+            lower_button_position - self.rocket.centerOfDryMassPosition
         ) * self.rocket._csys
         F11 = (self.R1 * D2 - self.M2) / (D1 + D2)
         F11.set_outputs("Upper button force direction 1 (m)")
@@ -2604,7 +2599,25 @@ class Flight:
         F21.set_discrete_based_on_model(model)
         F22.set_discrete_based_on_model(model)
 
-        return F11, F12, F21, F22
+        railButton1NormalForce = F11 * np.cos(angular_position_rad) + F12 * np.sin(
+            angular_position_rad
+        )
+        railButton1ShearForce = F11 * -np.sin(angular_position_rad) + F12 * np.cos(
+            angular_position_rad
+        )
+        railButton2NormalForce = F21 * np.cos(angular_position_rad) + F22 * np.sin(
+            angular_position_rad
+        )
+        railButton2ShearForce = F21 * -np.sin(angular_position_rad) + F22 * np.cos(
+            angular_position_rad
+        )
+
+        return (
+            railButton1NormalForce,
+            railButton1ShearForce,
+            railButton2NormalForce,
+            railButton2ShearForce,
+        )
 
     def _calculate_pressure_signal(self):
         """Calculate the pressure signal from the pressure sensor.

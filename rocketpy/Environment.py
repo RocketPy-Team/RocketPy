@@ -48,7 +48,7 @@ def requires_netCDF4(func):
 
 class Environment:
     """Keeps all environment information stored, such as wind and temperature
-    conditions, as well as gravity and rail length.
+    conditions, as well as gravity.
 
     Attributes
     ----------
@@ -59,9 +59,7 @@ class Environment:
         Environment.air_gas_constant : float
             Value of Air's Gas Constant = 287.05287 J/K/Kg
 
-        Gravity and Launch Rail Length:
-        Environment.rail_length : float
-            Launch rail length in meters.
+        Gravity:
         Environment.gravity : float
             Positive value of gravitational acceleration in m/s^2.
 
@@ -298,7 +296,6 @@ class Environment:
 
     def __init__(
         self,
-        rail_length,
         gravity=None,
         date=None,
         latitude=0,
@@ -310,19 +307,12 @@ class Environment:
         """Initialize Environment class, saving launch rail length,
         launch date, location coordinates and elevation. Note that
         by default the standard atmosphere is loaded until another
-        atmospheric model is used. See Environment.set_atmospheric_model
-        for details.
 
         Parameters
         ----------
-        rail_length : scalar
-            Length in which the rocket will be attached to the rail, only
-            moving along a fixed direction, that is, the line parallel to the
-            rail.
         gravity : int, float, callable, string, array, optional
             Surface gravitational acceleration. Positive values point the
             acceleration down. If None, the Somigliana formula is used to
-            compute the gravity at the launch site as a function of height.
         date : array, optional
             Array of length 4, stating (year, month, day, hour (UTC))
             of rocket launch. Must be given if a Forecast, Reanalysis
@@ -355,9 +345,6 @@ class Environment:
         -------
         None
         """
-        # Save launch rail length
-        self.rail_length = rail_length
-
         # Initialize constants
         self.earth_radius = 6.3781 * (10**6)
         self.air_gas_constant = 287.05287  # in J/K/Kg
@@ -2914,7 +2901,6 @@ class Environment:
         # Convert geopotential height to geometric height
         ER = self.earth_radius
         height = [ER * H / (ER - H) for H in geopotential_height]
-        height = geopotential_height
 
         # Save international standard atmosphere temperature profile
         self.temperature_ISA = Function(
@@ -2928,12 +2914,12 @@ class Environment:
         g = self.standard_g
         R = self.air_gas_constant
 
-        # Create function to compute pressure profile
+        # Create function to compute pressure at a given geometric height
         def pressure_function(h):
             # Convert geometric to geopotential height
             H = ER * h / (ER + h)
-            H = h
 
+            # Check if height is within bounds, return extrapolated value if not
             if H < -2000:
                 return pressure[0]
             elif H > 80000:
@@ -3029,8 +3015,9 @@ class Environment:
     def calculate_dynamic_viscosity(self):
         """Compute the dynamic viscosity of the atmosphere as a function of
         height by using the formula given in ISO 2533 u = B*T^(1.5)/(T+S).
-        This function is automatically called whenever a new atmospheric model
-        is set.
+        This function is automatically called whenever a new atmospheric model is set.
+        Warning: This equation is invalid for very high or very low temperatures
+        and under conditions occurring at altitudes above 90 km.
 
         Parameters
         ----------
@@ -3217,7 +3204,6 @@ class Environment:
         # Dictionary creation, if not commented follows the SI
         info = dict(
             grav=self.gravity,
-            launch_rail_length=self.rail_length,
             elevation=self.elevation,
             modelType=self.atmospheric_model_type,
             modelTypeMaxExpectedHeight=self.max_expected_height,
@@ -3273,7 +3259,6 @@ class Environment:
             atmospheric_model_dict = ""
 
         self.exportEnvDictionary = {
-            "rail_length": self.rail_length,
             "gravity": self.gravity(self.elevation),
             "date": [
                 self.datetime_date.year,

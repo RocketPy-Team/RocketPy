@@ -63,7 +63,7 @@ def rocket(solid_motor):
 
 @pytest.fixture
 def flight(rocket, example_env):
-    rocket.set_rail_buttons([0.2, -0.5])
+    rocket.setRailButtons(0.2, -0.5)
 
     nosecone = rocket.add_nose(
         length=0.55829, kind="vonKarman", position=1.278, name="NoseCone"
@@ -134,14 +134,13 @@ def dimensionless_rocket(kg, m, dimensionless_solid_motor):
 
 @pytest.fixture
 def example_env():
-    Env = Environment(rail_length=5, datum="WGS84")
+    Env = Environment(datum="WGS84")
     return Env
 
 
 @pytest.fixture
 def example_env_robust():
     Env = Environment(
-        rail_length=5,
         latitude=32.990254,
         longitude=-106.974998,
         elevation=1400,
@@ -238,7 +237,7 @@ def func_from_csv():
         inputs=["Scalar"],
         outputs=["Scalar"],
         interpolation="linear",
-        extrapolation="linear",
+        extrapolation="natural",
     )
     return func
 

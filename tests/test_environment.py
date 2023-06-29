@@ -125,7 +125,6 @@ def test_nam_atmosphere(mock_show, example_env_robust):
 @patch("matplotlib.pyplot.show")
 def test_era5_atmosphere(mock_show):
     Env = Environment(
-        rail_length=5,
         latitude=32.990254,
         longitude=-106.974998,
         elevation=1400,
@@ -153,7 +152,6 @@ def test_info_returns(mock_show, example_env):
     returned_infos = example_env.all_info_returned()
     expected_info = {
         "grav": example_env.gravity,
-        "launch_rail_length": 5,
         "elevation": 0,
         "modelType": "StandardAtmosphere",
         "modelTypeMaxExpectedHeight": 80000,

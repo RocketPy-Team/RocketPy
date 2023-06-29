@@ -61,7 +61,6 @@ parameters = {
 
 # Environment conditions
 Env23 = Environment(
-    rail_length=parameters.get("rail_length")[0],
     gravity=9.81,
     latitude=41.775447,
     longitude=-86.572467,
@@ -101,10 +100,10 @@ NDRT2020 = Rocket(
     power_off_drag=parameters.get("drag_coefficient")[0],
     power_on_drag=parameters.get("drag_coefficient")[0],
 )
-NDRT2020.set_rail_buttons([0.2, -0.5], 45)
-NDRT2020.add_motor(L1395, parameters.get("distance_rocket_nozzle")[0])
-nosecone = NDRT2020.add_nose(
-    length=parameters.get("nose_length")[0],
+NDRT2020.set_rail_buttons(0.2, -0.5, 45)
+NDRT2020.addMotor(L1395, parameters.get("distanceRocketNozzle")[0])
+NoseCone = NDRT2020.addNose(
+    length=parameters.get("noseLength")[0],
     kind="tangent",
     position=parameters.get("nose_distance_to_cm")[0]
     + parameters.get("nose_length")[0],
@@ -125,18 +124,18 @@ transition = NDRT2020.add_tail(
 
 
 # Parachute set-up
-def drogue_trigger(p, y):
+def drogue_trigger(p, h, y):
     # p = pressure
     # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
     # activate drogue when vz < 0 m/s.
     return True if y[5] < 0 else False
 
 
-def main_trigger(p, y):
+def main_trigger(p, h, y):
     # p = pressure
     # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
     # activate main when vz < 0 m/s and z < 167.64 m (AGL) or 550 ft (AGL)
-    return True if y[5] < 0 and y[2] < (167.64 + Env23.elevation) else False
+    return True if y[5] < 0 and h < 167.64 else False
 
 
 Drogue = NDRT2020.add_parachute(
@@ -160,6 +159,7 @@ Main = NDRT2020.add_parachute(
 Flight23 = Flight(
     rocket=NDRT2020,
     environment=Env23,
+    railLength=parameters.get("railLength")[0],
     inclination=parameters.get("inclination")[0],
     heading=parameters.get("heading")[0],
 )

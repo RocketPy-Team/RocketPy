@@ -149,7 +149,8 @@ class _FlightPrints:
         None
         """
 
-        print("\nLaunch Rail Orientation\n")
+        print("\nLaunch Rail\n")
+        print("Launch Rail Length:", self.flight.railLength, " m")
         print("Launch Rail Inclination: {:.2f}°".format(self.flight.inclination))
         print("Launch Rail Heading: {:.2f}°".format(self.flight.heading))
         return None
@@ -370,26 +371,32 @@ class _FlightPrints:
                 self.flight.max_acceleration_time,
             )
         )
-        print(
-            "Maximum Upper Rail Button Normal Force: {:.3f} N".format(
-                self.flight.max_rail_button1_normal_force
+        if (
+            len(self.flight.rocket.rail_buttons) == 0
+            or self.flight.outOfRailTimeIndex == 0
+        ):
+            pass
+        else:
+            print(
+                "Maximum Upper Rail Button Normal Force: {:.3f} N".format(
+                    self.flight.maxRailButton1NormalForce
+                )
             )
-        )
-        print(
-            "Maximum Upper Rail Button Shear Force: {:.3f} N".format(
-                self.flight.max_rail_button1_shear_force
+            print(
+                "Maximum Upper Rail Button Shear Force: {:.3f} N".format(
+                    self.flight.maxRailButton1ShearForce
+                )
             )
-        )
-        print(
-            "Maximum Lower Rail Button Normal Force: {:.3f} N".format(
-                self.flight.max_rail_button2_normal_force
+            print(
+                "Maximum Lower Rail Button Normal Force: {:.3f} N".format(
+                    self.flight.maxRailButton2NormalForce
+                )
             )
-        )
-        print(
-            "Maximum Lower Rail Button Shear Force: {:.3f} N".format(
-                self.flight.max_rail_button2_shear_force
+            print(
+                "Maximum Lower Rail Button Shear Force: {:.3f} N".format(
+                    self.flight.maxRailButton2ShearForce
+                )
             )
-        )
         return None
 
     def all(self):
