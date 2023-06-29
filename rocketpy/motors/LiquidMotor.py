@@ -10,6 +10,7 @@ except ImportError:
     from rocketpy.tools import cached_property
 
 from rocketpy.Function import Function, funcify_method
+
 from .Motor import Motor
 
 
@@ -281,7 +282,7 @@ class LiquidMotor(Motor):
         """
         return self.propellantMass(0)
 
-    @funcify_method("Time (s)", "mass flow rate (kg/s)", extrapolation="zero")
+    @funcify_method("Time (s)", "Mass flow rate (kg/s)", extrapolation="zero")
     def massFlowRate(self):
         """Evaluates the mass flow rate of the motor as the sum of each tank
         mass flow rate.
@@ -304,7 +305,7 @@ class LiquidMotor(Motor):
 
         return massFlowRate
 
-    @funcify_method("Time (s)", "center of mass (m)")
+    @funcify_method("Time (s)", "Center of mass (m)")
     def centerOfPropellantMass(self):
         """Evaluates the center of mass of the motor from each tank center of
         mass and positioning. The center of mass height is measured relative to

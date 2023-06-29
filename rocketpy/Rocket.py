@@ -5,27 +5,23 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 import warnings
-from inspect import getsourcelines
-from collections import namedtuple
-from inspect import getsourcelines
 
 import numpy as np
 
-from .Function import Function, funcify_method
-from .Parachute import Parachute
 from .AeroSurface import (
+    EllipticalFins,
     Fins,
     NoseCone,
     RailButtons,
-    TrapezoidalFins,
-    EllipticalFins,
     Tail,
+    TrapezoidalFins,
 )
 from .Components import Components
+from .Function import Function, funcify_method
 from .motors.Motor import EmptyMotor
-
-from .prints.rocket_prints import _RocketPrints
+from .Parachute import Parachute
 from .plots.rocket_plots import _RocketPlots
+from .prints.rocket_prints import _RocketPrints
 
 
 class Rocket:
@@ -344,7 +340,7 @@ class Rocket:
             print("Please associate this rocket with a motor!")
             return False
 
-        # Calculate total mass by summing up propellant and dry mass
+        # Calculate total dry mass: motor (without propellant) + rocket
         self.dryMass = self.mass + self.motor.dry_mass
 
         # Return total mass
@@ -489,8 +485,7 @@ class Rocket:
         self.staticMargin.setDiscrete(
             lower=0, upper=self.motor.burnOutTime, samples=200
         )
-        # Return self
-        return self
+        return None
 
     def evaluateDryInertias(self):
         """Calculates and returns the rocket's dry inertias relative to

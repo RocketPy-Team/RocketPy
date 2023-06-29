@@ -352,29 +352,29 @@ class MassFlowRateBasedTank(Tank):
         # Define flow rates
         self.liquid_mass_flow_rate_in = Function(
             liquid_mass_flow_rate_in,
-            inputs="Time",
-            outputs="Mass Flow Rate",
+            inputs="Time (s)",
+            outputs="Mass Flow Rate (kg/s)",
             interpolation="linear",
             extrapolation="zero",
         )
         self.gas_mass_flow_rate_in = Function(
             gas_mass_flow_rate_in,
-            inputs="Time",
-            outputs="Mass Flow Rate",
+            inputs="Time (s)",
+            outputs="Mass Flow Rate (kg/s)",
             interpolation="linear",
             extrapolation="zero",
         )
         self.liquid_mass_flow_rate_out = Function(
             liquid_mass_flow_rate_out,
-            inputs="Time",
-            outputs="Mass Flow Rate",
+            inputs="Time (s)",
+            outputs="Mass Flow Rate (kg/s)",
             interpolation="linear",
             extrapolation="zero",
         )
         self.gas_mass_flow_rate_out = Function(
             gas_mass_flow_rate_out,
-            inputs="Time",
-            outputs="Mass Flow Rate",
+            inputs="Time (s)",
+            outputs="Mass Flow Rate (kg/s)",
             interpolation="linear",
             extrapolation="zero",
         )
@@ -469,7 +469,7 @@ class UllageBasedTank(Tank):
     def mass(self):
         return self.liquidMass + self.gasMass
 
-    @funcify_method("Time (s)", "mass flow rate (kg/s)")
+    @funcify_method("Time (s)", "Mass flow rate (kg/s)")
     def netMassFlowRate(self):
         return self.mass.derivativeFunction()
 
@@ -532,7 +532,7 @@ class LevelBasedTank(Tank):
     def mass(self):
         return self.liquidMass + self.gasMass
 
-    @funcify_method("Time (s)", "mass flow rate (kg/s)")
+    @funcify_method("Time (s)", "Mass flow rate (kg/s)")
     def netMassFlowRate(self):
         return self.mass.derivativeFunction()
 
@@ -589,7 +589,7 @@ class MassBasedTank(Tank):
     def mass(self):
         return self.liquidMass + self.gasMass
 
-    @funcify_method("Time (s)", "mass flow rate (kg/s)")
+    @funcify_method("Time (s)", "Mass flow rate (kg/s)")
     def netMassFlowRate(self):
         return self.mass.derivativeFunction()
 

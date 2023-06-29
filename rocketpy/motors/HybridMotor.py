@@ -10,8 +10,9 @@ except ImportError:
     from rocketpy.tools import cached_property
 
 from rocketpy.Function import funcify_method
-from .Motor import Motor
+
 from .LiquidMotor import LiquidMotor
+from .Motor import Motor
 from .SolidMotor import SolidMotor
 
 
