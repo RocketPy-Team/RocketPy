@@ -1216,15 +1216,17 @@ class EmptyMotor:
         self.dry_mass = 0
         self.nozzleRadius = 0
         self.thrust = Function(0, "Time (s)", "Thrust (N)")
-        self.propellantMass = Function(0, "Time (s)", "Mass (kg)")
-        self.totalMass = Function(0, "Time (s)", "Mass (kg)")
+        self.propellantMass = Function(0, "Time (s)", "Propellant Mass (kg)")
+        self.totalMass = Function(0, "Time (s)", "Total Mass (kg)")
         self.totalMassFlowRate = Function(0, "Time (s)", "Mass Depletion Rate (kg/s)")
         self.burnOutTime = 1
         self.nozzlePosition = 0
         self.nozzleRadius = 0
         self.center_of_dry_mass = 0
-        self.centerOfPropellantMass = Function(0, "Time (s)", "Mass (kg)")
-        self.centerOfMass = Function(0, "Time (s)", "Mass (kg)")
+        self.centerOfPropellantMass = Function(
+            0, "Time (s)", "Center of Propellant Mass (kg)"
+        )
+        self.centerOfMass = Function(0, "Time (s)", "Center of Mass (kg)")
         self.dry_I_11 = 0
         self.dry_I_22 = 0
         self.dry_I_33 = 0

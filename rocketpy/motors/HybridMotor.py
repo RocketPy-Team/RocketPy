@@ -14,6 +14,7 @@ from rocketpy.plots.hybrid_motor_plots import _HybridMotorPlots
 from rocketpy.prints.hybrid_motor_prints import _HybridMotorPrints
 from .Motor import Motor
 from .LiquidMotor import LiquidMotor
+from .Motor import Motor
 from .SolidMotor import SolidMotor
 
 

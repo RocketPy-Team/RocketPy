@@ -16,6 +16,7 @@ except ImportError:
     from rocketpy.tools import cached_property
 
 from rocketpy.Function import Function, funcify_method
+
 from .Motor import Motor
 
 
