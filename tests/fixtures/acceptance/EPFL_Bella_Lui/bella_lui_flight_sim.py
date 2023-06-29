@@ -51,7 +51,6 @@ parameters = {
 
 # Environment conditions
 Env = Environment(
-    railLength=parameters.get("railLength")[0],
     gravity=9.81,
     latitude=47.213476,
     longitude=9.003336,
@@ -168,6 +167,7 @@ BellaLui.powerOnDrag *= parameters.get("powerOnDrag")[0]
 TestFlight = Flight(
     rocket=BellaLui,
     environment=Env,
+    railLength=parameters.get("railLength")[0],
     inclination=parameters.get("inclination")[0],
     heading=parameters.get("heading")[0],
 )

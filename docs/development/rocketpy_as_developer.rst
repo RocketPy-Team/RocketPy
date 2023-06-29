@@ -92,7 +92,7 @@ It contains information about the local pressure profile, temperature, speed of 
 
 .. code-block:: python
 
-    Env = Environment(railLength=5.2, latitude=32.990254, longitude=-106.974998, elevation=1400)
+    Env = Environment(latitude=32.990254, longitude=-106.974998, elevation=1400)
 
 RocketPy can use local files via the Ensemble method or meteorological forecasts through OpenDAP protocol. 
 To work with environment files, it will be very important ensuring tha that you have the netCDF4 library installed.
@@ -243,11 +243,11 @@ Simulating the flight
 ---------------------
 
 Finally, the flight can be simulated with the provided data.
-The rocket and environment classes are supplied as inputs, as well as the rail inclination and heading angle.
+The rocket and environment classes are supplied as inputs, as well as the rail length, inclination and heading angle.
 
 .. code-block:: python
 
-    TestFlight = Flight(rocket=Calisto, environment=Env, inclination=85, heading=0)
+    TestFlight = Flight(rocket=Calisto, environment=Env, railLength=5.2, inclination=85, heading=0)
 
 Flight data can be retrieved through:
 

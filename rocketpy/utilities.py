@@ -131,7 +131,6 @@ def calculateEquilibriumAltitude(
 
     if env == None:
         environment = Environment(
-            railLength=5.0,
             latitude=0,
             longitude=0,
             elevation=1000,
