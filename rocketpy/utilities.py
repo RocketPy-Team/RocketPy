@@ -506,7 +506,7 @@ def create_dispersion_dictionary(filename):
     return analysis_parameters
 
 
-def apogee_by_mass(flight, min_mass=3, max_mass=30, points=10):
+def apogee_by_mass(flight, min_mass=3, max_mass=30, points=10, plot=True):
     """Returns a Function object that estimates the apogee of a rocket given
     its dry mass. The function will use the rocket's mass as the independent
     variable and the estimated apogee as the dependent variable. The function
@@ -528,6 +528,8 @@ def apogee_by_mass(flight, min_mass=3, max_mass=30, points=10):
         The number of points to calculate the apogee between the mass boundaries,
         by default 10. Increasing this value will refine the results, but will
         also increase the computational time.
+    plot : bool, optional
+        If True, the function will plot the results, by default True.
 
     Returns
     -------
@@ -559,12 +561,15 @@ def apogee_by_mass(flight, min_mass=3, max_mass=30, points=10):
     y = np.array([apogee(m) for m in x])
     source = np.array(list(zip(x, y)), dtype=np.float64)
 
-    return Function(
+    retfunc = Function(
         source, inputs="Rocket Dry Mass (kg)", outputs="Estimated Apogee AGL (m)"
     )
+    if plot:
+        retfunc.plot()
+    return retfunc
 
 
-def liftoff_speed_by_mass(flight, min_mass=3, max_mass=30, points=10):
+def liftoff_speed_by_mass(flight, min_mass=3, max_mass=30, points=10, plot=True):
     """Returns a Function object that estimates the liftoff speed of a rocket
     given its dry mass. The function will use the rocket's mass as the
     independent variable and the estimated liftoff speed as the dependent
@@ -586,6 +591,8 @@ def liftoff_speed_by_mass(flight, min_mass=3, max_mass=30, points=10):
         The number of points to calculate the liftoff speed between the mass
         boundaries, by default 10. Increasing this value will refine the results,
         but will also increase the computational time.
+    plot : bool, optional
+        If True, the function will plot the results, by default True.
 
     Returns
     -------
@@ -617,6 +624,9 @@ def liftoff_speed_by_mass(flight, min_mass=3, max_mass=30, points=10):
     y = np.array([liftoff_speed(m) for m in x])
     source = np.array(list(zip(x, y)), dtype=np.float64)
 
-    return Function(
+    retfunc = Function(
         source, inputs="Rocket Dry Mass (kg)", outputs="Liftoff Speed (m/s)"
     )
+    if plot:
+        retfunc.plot()
+    return retfunc
