@@ -644,6 +644,7 @@ class Function:
         self.set_interpolation(model_function.__interpolation__)
         self.set_extrapolation(model_function.__extrapolation__)
         self.setInterpolation(self.__interpolation__)
+
     def reset(
         self,
         outputs=None,
