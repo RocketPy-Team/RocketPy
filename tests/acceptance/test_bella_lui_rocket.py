@@ -56,7 +56,6 @@ def test_bella_lui_rocket_data_asserts_acceptance():
 
     # Environment conditions
     Env = Environment(
-        railLength=parameters.get("railLength")[0],
         gravity=9.81,
         latitude=47.213476,
         longitude=9.003336,
@@ -172,12 +171,13 @@ def test_bella_lui_rocket_data_asserts_acceptance():
     TestFlight = Flight(
         rocket=BellaLui,
         environment=Env,
+        railLength=parameters.get("railLength")[0],
         inclination=parameters.get("inclination")[0],
         heading=parameters.get("heading")[0],
     )
     TestFlight.postProcess()
 
-    # Comparision with Real Data
+    # Comparison with Real Data
     flightData = np.loadtxt(
         "tests/fixtures/acceptance/EPFL_Bella_Lui/bella_lui_flight_data_filtered.csv",
         skiprows=1,

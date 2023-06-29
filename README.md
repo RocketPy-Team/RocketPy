@@ -185,7 +185,6 @@ A sample code is:
 
 ```python
 Env = Environment(
-    railLength=5.2,
     latitude=32.990254,
     longitude=-106.974998,
     elevation=1400,
@@ -300,7 +299,7 @@ help(Flight)
 To actually create a Flight object, use:
 
 ```python
-TestFlight = Flight(rocket=Calisto, environment=Env, inclination=85, heading=0)
+TestFlight = Flight(rocket=Calisto, environment=Env, railLength=5.2, inclination=85, heading=0)
 ```
 
 Once the Flight object is created, your simulation is done! Use the following code to get a summary of the results:
