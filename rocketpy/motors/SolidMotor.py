@@ -12,7 +12,7 @@ try:
 except ImportError:
     from rocketpy.tools import cached_property
 
-from rocketpy.Function import Function, funcify_method
+from rocketpy.Function import Function, funcify_method, reset_funcified_methods
 
 from .Motor import Motor
 
@@ -510,6 +510,8 @@ class SolidMotor(Motor):
             self.interpolate,
             "constant",
         )
+
+        reset_funcified_methods(self)
 
         return [self.grainInnerRadius, self.grainHeight]
 
