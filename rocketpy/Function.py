@@ -175,7 +175,7 @@ class Function:
         if callable(source):
             # Set source
             self.source = source
-            # Set geValueOpt2
+            # Set getValueOpt
             self.getValueOpt = source
             # Set arguments name and domain dimensions
             parameters = signature(source).parameters
@@ -530,7 +530,7 @@ class Function:
             self.__interpolation__ = "shepard"
         return self
 
-    def setDiscreteBasedOnModel(self, modelFunction, oneByOne=True):
+    def setDiscreteBasedOnModel(self, modelFunction, oneByOne=True, keepSelf=True):
         """This method transforms the domain of Function instance into a list of
         discrete points based on the domain of a model Function instance. It does so by
         retrieving the domain, domain name, interpolation method and extrapolation
@@ -550,6 +550,11 @@ class Function:
         oneByOne : boolean, optional
             If True, evaluate Function in each sample point separately. If
             False, evaluates Function in vectorized form. Default is True.
+
+        keepSelf : boolean, optional
+            If True, the original Function interpolation and extrapolation methods
+            will be kept. If False, those are substituted by the ones from the model
+            Function. Default is True.
 
         Returns
         -------
@@ -622,8 +627,12 @@ class Function:
             Zs = np.array(self.getValue(mesh))
             self.setSource(np.concatenate(([Xs], [Ys], [Zs])).transpose())
 
-        self.setInterpolation(self.__interpolation__)
-        self.setExtrapolation(self.__extrapolation__)
+        interp = self.__interpolation__ if keepSelf else modelFunction.__interpolation__
+        extrap = self.__extrapolation__ if keepSelf else modelFunction.__extrapolation__
+
+        self.setInterpolation(interp)
+        self.setExtrapolation(extrap)
+
         return self
 
     def reset(
@@ -1718,7 +1727,7 @@ class Function:
         self.__akimaCoefficients__ = coeffs
 
     def __neg__(self):
-        """Negates the Function objetive. The result has the same effect as
+        """Negates the Function object. The result has the same effect as
         multiplying the Function by -1.
 
         Returns
@@ -1774,7 +1783,10 @@ class Function:
                     # Other is lambda based Function
                     return self.yArray >= other(self.xArray)
                 except ValueError:
-                    raise ValueError("Operands should have the same discretization.")
+                    raise ValueError(
+                        "Comparison not supported between instances of the "
+                        "Function class with different domain discretization."
+                    )
             else:
                 # Other is not a Function
                 try:
@@ -1782,7 +1794,7 @@ class Function:
                 except TypeError:
                     raise TypeError(
                         "Comparison not supported between instances of "
-                        f"'Function' and '{type(other)}'"
+                        f"'Function' and '{type(other)}'."
                     )
         else:
             # self is lambda based Function
@@ -1791,8 +1803,8 @@ class Function:
                     return self(other.xArray) >= other.yArray
                 except AttributeError:
                     raise TypeError(
-                        "Cannot compare lambda based Function with "
-                        "lambda based Function."
+                        "Comparison not supported between two instances of "
+                        "the Function class with callable sources."
                     )
 
     def __le__(self, other):
@@ -1833,7 +1845,7 @@ class Function:
                 except TypeError:
                     raise TypeError(
                         "Comparison not supported between instances of "
-                        f"'Function' and '{type(other)}'"
+                        f"'Function' and '{type(other)}'."
                     )
         else:
             # self is lambda based Function
@@ -1842,8 +1854,8 @@ class Function:
                     return self(other.xArray) <= other.yArray
                 except AttributeError:
                     raise TypeError(
-                        "Cannot compare lambda based Function with "
-                        "lambda based Function."
+                        "Comparison not supported between two instances of "
+                        "the Function class with callable sources."
                     )
 
     def __gt__(self, other):
@@ -1915,7 +1927,7 @@ class Function:
         # If other is Function try...
         try:
             # Check if Function objects source is array or callable
-            # Check if Function objects have same interpolation and domain
+            # Check if Function objects have the same domain discretization
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
@@ -2041,7 +2053,7 @@ class Function:
         # If other is Function try...
         try:
             # Check if Function objects source is array or callable
-            # Check if Function objects have same interpolation and domain
+            # Check if Function objects have the same domain discretization
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
@@ -2124,7 +2136,7 @@ class Function:
         # If other is Function try...
         try:
             # Check if Function objects source is array or callable
-            # Check if Function objects have same interpolation and domain
+            # Check if Function objects have the same domain discretization
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
@@ -2132,7 +2144,7 @@ class Function:
                 and np.array_equal(self.xArray, other.xArray)
             ):
                 # Operate on grid values
-                with np.errstate(divide="ignore"):
+                with np.errstate(divide="ignore", invalid="ignore"):
                     Ys = self.source[:, 1] / other.source[:, 1]
                     Ys = np.nan_to_num(Ys)
                 Xs = self.source[:, 0]
@@ -2145,7 +2157,7 @@ class Function:
                 # Create new Function object
                 return Function(source, inputs, outputs, interpolation)
             else:
-                return Function(lambda x: (self.getValueOpt2(x) / other(x)))
+                return Function(lambda x: (self.getValueOpt(x) / other(x)))
         # If other is Float except...
         except AttributeError:
             if isinstance(other, (float, int, complex)):
@@ -2163,10 +2175,10 @@ class Function:
                     # Create new Function object
                     return Function(source, inputs, outputs, interpolation)
                 else:
-                    return Function(lambda x: (self.getValueOpt2(x) / other))
+                    return Function(lambda x: (self.getValueOpt(x) / other))
             # Or if it is just a callable
             elif callable(other):
-                return Function(lambda x: (self.getValueOpt2(x) / other(x)))
+                return Function(lambda x: (self.getValueOpt(x) / other(x)))
 
     def __rtruediv__(self, other):
         """Divides 'other' by a Function object and returns a new Function
@@ -2198,10 +2210,10 @@ class Function:
                 # Create new Function object
                 return Function(source, inputs, outputs, interpolation)
             else:
-                return Function(lambda x: (other / self.getValueOpt2(x)))
+                return Function(lambda x: (other / self.getValueOpt(x)))
         # Or if it is just a callable
         elif callable(other):
-            return Function(lambda x: (other(x) / self.getValueOpt2(x)))
+            return Function(lambda x: (other(x) / self.getValueOpt(x)))
 
     def __pow__(self, other):
         """Raises a Function object to the power of 'other' and
@@ -2227,7 +2239,7 @@ class Function:
         # If other is Function try...
         try:
             # Check if Function objects source is array or callable
-            # Check if Function objects have same interpolation and domain
+            # Check if Function objects have the same domain discretization
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
@@ -2247,7 +2259,7 @@ class Function:
                 # Create new Function object
                 return Function(source, inputs, outputs, interpolation)
             else:
-                return Function(lambda x: (self.getValueOpt2(x) ** other(x)))
+                return Function(lambda x: (self.getValueOpt(x) ** other(x)))
         # If other is Float except...
         except AttributeError:
             if isinstance(other, (float, int, complex)):
@@ -2488,7 +2500,7 @@ class Function:
         follows the same discretization, and has linear interpolation and
         extrapolation.
         If the Function is defined by a lambda, the identity Function is the
-        indentity map 'lambda x: x'.
+        identity map 'lambda x: x'.
 
         Returns
         -------
@@ -2498,15 +2510,13 @@ class Function:
 
         # Check if Function object source is array
         if isinstance(self.source, np.ndarray):
-            identity = Function(
-                [(-1, -1), (1, 1)],
+            return Function(
+                np.column_stack((self.xArray, self.xArray)),
                 inputs=self.__inputs__,
                 outputs=f"identity of {self.__outputs__}",
                 interpolation="linear",
                 extrapolation="natural",
             )
-            return identity.setDiscreteBasedOnModel(self)
-
         else:
             return Function(
                 lambda x: x,
@@ -2844,9 +2854,9 @@ class PiecewiseFunction(Function):
         source,
         inputs=["Scalar"],
         outputs=["Scalar"],
-        interpolation="akima",
+        interpolation="spline",
         extrapolation=None,
-        datapoints=50,
+        datapoints=100,
     ):
         """
         Creates a piecewise function from a dictionary of functions. The keys of the dictionary
@@ -2910,8 +2920,8 @@ class PiecewiseFunction(Function):
 
 
 def funcify_method(*args, **kwargs):
-    """Decorator factory to wrap methods as Function objects and save them as cached
-    properties.
+    """Decorator factory to wrap methods as Function objects and save them as
+    cached properties.
 
     Parameters
     ----------
@@ -2946,8 +2956,8 @@ def funcify_method(*args, **kwargs):
     >>> g(2)
     11
 
-    2. Method which returns a rocketpy.Function instance. An interesting use is to reset
-    input and output names after algebraic operations.
+    2. Method which returns a rocketpy.Function instance. An interesting use is
+    to reset input and output names after algebraic operations.
 
     >>> class Example():
     ...     @funcify_method(inputs=['x'], outputs=['x**3'])
@@ -3019,6 +3029,7 @@ def funcify_method(*args, **kwargs):
                     )
 
                 val.__doc__ = self.__doc__
+                val.__cached__ = True
                 cache[self.attrname] = val
             return val
 
@@ -3026,6 +3037,27 @@ def funcify_method(*args, **kwargs):
         return funcify_method_decorator(func)
     else:
         return funcify_method_decorator
+
+
+def reset_funcified_methods(instance):
+    """Resets all the funcified methods of the instance. It does so by
+    deleting the current Functions, which will make the interperter redefine
+    them when they are called. This is useful when the instance has changed
+    and the methods need to be recalculated.
+
+    Parameters
+    ----------
+    instance : object
+        The instance of the class whose funcified methods will be recalculated.
+        The class must have a mutable __dict__ attribute.
+
+    Return
+    ------
+    None
+    """
+    for key in list(instance.__dict__):
+        if hasattr(instance.__dict__[key], "__cached__"):
+            instance.__dict__.pop(key)
 
 
 if __name__ == "__main__":

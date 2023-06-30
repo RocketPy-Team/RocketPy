@@ -24,10 +24,10 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     # Defining all parameters
     parameters = {
         # Mass Details
-        "rocketMass": (23.321 - 2.475, 0.010),
+        "rocketMass": (23.321 - 2.475 - 1, 0.010),
         # Propulsion Details
         "impulse": (4895.050, 0.033 * 4895.050),
-        "burnOut": (3.51, 0.1),
+        "burn_time": (3.51, 0.1),
         "nozzleRadius": (49.5 / 2000, 0.001),
         "throatRadius": (21.5 / 2000, 0.001),
         "grainSeparation": (3 / 1000, 0.001),
@@ -84,7 +84,10 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     # Motor Information
     L1395 = SolidMotor(
         thrustSource="tests/fixtures/acceptance/NDRT_2020/ndrt_2020_motor_Cesaroni_4895L1395-P.eng",
-        burnOut=parameters.get("burnOut")[0],
+        burn_time=parameters.get("burn_time")[0],
+        dry_mass=1,
+        dry_inertia=(0, 0, 0),
+        center_of_dry_mass=0,
         grainsCenterOfMassPosition=parameters.get("distanceRocketPropellant")[0],
         grainNumber=5,
         grainSeparation=parameters.get("grainSeparation")[0],
@@ -102,10 +105,14 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     NDRT2020 = Rocket(
         radius=parameters.get("radius")[0],
         mass=parameters.get("rocketMass")[0],
-        inertiaI=parameters.get("inertiaI")[0],
-        inertiaZ=parameters.get("inertiaZ")[0],
+        inertia=(
+            parameters.get("inertiaI")[0],
+            parameters.get("inertiaI")[0],
+            parameters.get("inertiaZ")[0],
+        ),
         powerOffDrag=parameters.get("dragCoefficient")[0],
         powerOnDrag=parameters.get("dragCoefficient")[0],
+        center_of_mass_without_motor=0,
     )
     NDRT2020.setRailButtons(0.2, -0.5, 45)
     NDRT2020.addMotor(L1395, parameters.get("distanceRocketNozzle")[0])

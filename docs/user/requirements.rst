@@ -36,7 +36,7 @@ The packages needed can be installed via ``pip`` by running the following lines 
 
 .. code-block:: shell
 
-    pip install "numpy>=1.0" 
+    pip install "numpy>=1.13" 
     pip install "scipy>=1.0"
     pip install "matplotlib>=3.0"
     pip install "netCDF4>=1.6.4"

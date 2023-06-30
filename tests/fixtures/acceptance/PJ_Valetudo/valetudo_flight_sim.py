@@ -20,7 +20,7 @@ analysis_parameters = {
     "rocketMass": (8.257, 0.001),
     # Propulsion Details
     "impulse": (1415.15, 35.3),
-    "burnOut": (5.274, 1),
+    "burn_time": (5.274, 1),
     "nozzleRadius": (21.642 / 1000, 0.5 / 1000),
     "throatRadius": (8 / 1000, 0.5 / 1000),
     "grainSeparation": (6 / 1000, 1 / 1000),
@@ -74,10 +74,10 @@ Env.setAtmosphericModel(
 # Create motor
 Keron = SolidMotor(
     thrustSource="tests/fixtures/acceptance/PJ_Valetudo/valetudo_motor_Keron.csv",
-    burnOut=5.274,
+    burn_time=5.274,
     grainsCenterOfMassPosition=analysis_parameters.get("distanceRocketPropellant")[0],
     reshapeThrustCurve=(
-        analysis_parameters.get("burnOut")[0],
+        analysis_parameters.get("burn_time")[0],
         analysis_parameters.get("impulse")[0],
     ),
     nozzleRadius=analysis_parameters.get("nozzleRadius")[0],
@@ -97,8 +97,11 @@ Valetudo = Rocket(
     motor=Keron,
     radius=analysis_parameters.get("radius")[0],
     mass=analysis_parameters.get("rocketMass")[0],
-    inertiaI=analysis_parameters.get("inertiaI")[0],
-    inertiaZ=analysis_parameters.get("inertiaZ")[0],
+    inertia=(
+        parameters.get("inertiaI")[0],
+        parameters.get("inertiaI")[0],
+        parameters.get("inertiaZ")[0],
+    ),
     powerOffDrag="tests/fixtures/acceptance/PJ_Valetudo/valetudo_drag_power_off.csv",
     powerOnDrag="tests/fixtures/acceptance/PJ_Valetudo/valetudo_drag_power_on.csv",
 )

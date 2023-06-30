@@ -125,7 +125,7 @@ The motor class contains information about the thrust curve and uses some geomet
 
     Pro75M1670 = SolidMotor(
         thrustSource="../data/motors/Cesaroni_M1670.eng", #copy here the path to the thrust source file
-        burnOut=3.9,
+        burn_time=3.9,
         grainNumber=5,
         grainSeparation=5 / 1000,
         grainDensity=1815,

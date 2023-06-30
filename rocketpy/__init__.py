@@ -23,20 +23,35 @@ __status__ = "Production"
 
 from .AeroSurface import (
     AeroSurface,
-    NoseCone,
-    Fins,
-    TrapezoidalFins,
     EllipticalFins,
-    Tail,
+    Fins,
+    NoseCone,
     RailButtons,
+    Tail,
+    TrapezoidalFins,
 )
 from .Components import Components
 from .Environment import Environment
 from .EnvironmentAnalysis import EnvironmentAnalysis
 from .Flight import Flight
 from .Function import Function
-from .Motor import HybridMotor, SolidMotor
-from .Rocket import Rocket
-from .utilities import *
+from .motors import (
+    CylindricalTank,
+    EmptyMotor,
+    Fluid,
+    GenericMotor,
+    HybridMotor,
+    LevelBasedTank,
+    LiquidMotor,
+    MassBasedTank,
+    MassFlowRateBasedTank,
+    SolidMotor,
+    SphericalTank,
+    Tank,
+    TankGeometry,
+    UllageBasedTank,
+)
 from .plots import *
 from .prints import *
+from .Rocket import Rocket
+from .utilities import *

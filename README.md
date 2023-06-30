@@ -205,7 +205,7 @@ A sample Motor object can be created by the following code:
 ```python
 Pro75M1670 = SolidMotor(
     thrustSource="../data/motors/Cesaroni_M1670.eng",
-    burnOut=3.9,
+    burn_time=3.9,
     grainNumber=5,
     grainSeparation=5/1000,
     grainDensity=1815,
