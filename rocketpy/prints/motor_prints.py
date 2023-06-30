@@ -42,8 +42,7 @@ class _MotorPrints:
         ------
         None
         """
-        # Print motor details
-        print("\nMotor Details\n")
+        print("Motor Details")
         print("Total Burning Time: " + str(self.motor.burnOutTime) + " s")
         print(
             "Total Propellant Mass: "
@@ -63,8 +62,7 @@ class _MotorPrints:
             + str(self.motor.maxThrustTime)
             + " s after ignition."
         )
-        print("Total Impulse: " + "{:.3f}".format(self.motor.totalImpulse) + " Ns")
-
+        print("Total Impulse: " + "{:.3f}".format(self.motor.totalImpulse) + " Ns\n")
         return None
 
     def all(self):
@@ -78,7 +76,5 @@ class _MotorPrints:
         ------
         None
         """
-
         self.motor_details()
-
         return None

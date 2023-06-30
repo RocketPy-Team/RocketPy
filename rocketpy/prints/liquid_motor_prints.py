@@ -42,10 +42,9 @@ class _LiquidMotorPrints:
         ------
         None
         """
-
-        # Print nozzle details
         print("Nozzle Details")
-        print("Nozzle Radius: " + str(self.liquid_motor.nozzleRadius) + " m")
+        print("Nozzle Radius: " + str(self.liquid_motor.nozzleRadius) + " m\n")
+        return None
 
     def motor_details(self):
         """Prints out all data available about the motor.
@@ -58,8 +57,7 @@ class _LiquidMotorPrints:
         ------
         None
         """
-        # Print motor details
-        print("\nMotor Details")
+        print("Motor Details")
         print("Total Burning Time: " + str(self.liquid_motor.burnDuration) + " s")
         print(
             "Total Propellant Mass: "
@@ -84,8 +82,11 @@ class _LiquidMotorPrints:
             + " s after ignition."
         )
         print(
-            "Total Impulse: " + "{:.3f}".format(self.liquid_motor.totalImpulse) + " Ns"
+            "Total Impulse: "
+            + "{:.3f}".format(self.liquid_motor.totalImpulse)
+            + " Ns\n"
         )
+        return None
 
     def all(self):
         """Prints out all data available about the LiquidMotor.
@@ -98,11 +99,6 @@ class _LiquidMotorPrints:
         ------
         None
         """
-
         self.nozzle_details()
-        print()
-
         self.motor_details()
-        print()
-
         return None

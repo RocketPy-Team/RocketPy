@@ -2,6 +2,8 @@ __author__ = "Mateus Stano Junqueira"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
+import numpy as np
+
 
 class _HybridMotorPrints:
     """Class that holds prints methods for HybridMotor class.
@@ -44,10 +46,12 @@ class _HybridMotorPrints:
         """
         # Print nozzle details
         print("Nozzle Details")
-        print("Nozzle Radius: " + str(self.hybrid_motor.nozzleRadius) + " m")
-        print(
-            "Nozzle Throat Radius: " + str(self.hybrid_motor.solid.throatRadius) + " m"
-        )
+        print(f"Outlet Radius: {self.hybrid_motor.nozzleRadius} m")
+        print(f"Throat Radius: {self.hybrid_motor.solid.throatRadius} m")
+        print(f"Outlet Area: {np.pi*self.hybrid_motor.nozzleRadius**2:.6f} m²")
+        print(f"Throat Area: {np.pi*self.hybrid_motor.solid.throatRadius**2:.6f} m²")
+        print(f"Position: {self.hybrid_motor.nozzlePosition} m\n")
+        return None
 
     def grain_details(self):
         """Prints out all data available about the Grain.
@@ -61,7 +65,7 @@ class _HybridMotorPrints:
         None
         """
         # Print grain details
-        print("\nGrain Details")
+        print("Grain Details")
         print("Number of Grains: " + str(self.hybrid_motor.solid.grainNumber))
         print("Grain Spacing: " + str(self.hybrid_motor.solid.grainSeparation) + " m")
         print("Grain Density: " + str(self.hybrid_motor.solid.grainDensity) + " kg/m3")
@@ -84,8 +88,9 @@ class _HybridMotorPrints:
         print(
             "Grain Mass: "
             + "{:.3f}".format(self.hybrid_motor.solid.grainInitialMass)
-            + " kg"
+            + " kg\n"
         )
+        return None
 
     def motor_details(self):
         """Prints out all data available about the HybridMotor.
@@ -99,7 +104,7 @@ class _HybridMotorPrints:
         None
         """
         # Print motor details
-        print("\nMotor Details")
+        print("Motor Details")
         print("Total Burning Time: " + str(self.hybrid_motor.burnDuration) + " s")
         print(
             "Total Propellant Mass: "
@@ -124,8 +129,11 @@ class _HybridMotorPrints:
             + " s after ignition."
         )
         print(
-            "Total Impulse: " + "{:.3f}".format(self.hybrid_motor.totalImpulse) + " Ns"
+            "Total Impulse: "
+            + "{:.3f}".format(self.hybrid_motor.totalImpulse)
+            + " Ns\n"
         )
+        return None
 
     def all(self):
         """Prints out all data available about the HybridMotor.
@@ -140,12 +148,7 @@ class _HybridMotorPrints:
         """
 
         self.nozzle_details()
-        print()
-
         self.grain_details()
-        print()
-
         self.motor_details()
-        print()
 
         return None

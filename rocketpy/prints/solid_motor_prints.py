@@ -43,9 +43,9 @@ class _SolidMotorPrints:
         None
         """
         # Print nozzle details
-        print("\nNozzle Details\n")
+        print("Nozzle Details")
         print("Nozzle Radius: " + str(self.solid_motor.nozzleRadius) + " m")
-        print("Nozzle Throat Radius: " + str(self.solid_motor.throatRadius) + " m")
+        print("Nozzle Throat Radius: " + str(self.solid_motor.throatRadius) + " m\n")
 
     def grain_details(self):
         """Prints out all data available about the SolidMotor grain.
@@ -60,7 +60,7 @@ class _SolidMotorPrints:
         """
 
         # Print grain details
-        print("\nGrain Details\n")
+        print("Grain Details")
         print("Number of Grains: " + str(self.solid_motor.grainNumber))
         print("Grain Spacing: " + str(self.solid_motor.grainSeparation) + " m")
         print("Grain Density: " + str(self.solid_motor.grainDensity) + " kg/m3")
@@ -77,7 +77,9 @@ class _SolidMotorPrints:
             + " m3"
         )
         print(
-            "Grain Mass: " + "{:.3f}".format(self.solid_motor.grainInitialMass) + " kg"
+            "Grain Mass: "
+            + "{:.3f}".format(self.solid_motor.grainInitialMass)
+            + " kg\n"
         )
 
     def motor_details(self):
@@ -93,7 +95,7 @@ class _SolidMotorPrints:
         """
 
         # Print motor details
-        print("\nMotor Details\n")
+        print("Motor Details")
         print("Total Burning Time: " + str(self.solid_motor.burnDuration) + " s")
         print(
             "Total Propellant Mass: "
@@ -118,7 +120,7 @@ class _SolidMotorPrints:
             + " s after ignition."
         )
         print(
-            "Total Impulse: " + "{:.3f}".format(self.solid_motor.totalImpulse) + " Ns"
+            "Total Impulse: " + "{:.3f}".format(self.solid_motor.totalImpulse) + " Ns\n"
         )
 
     def all(self):
@@ -133,12 +135,6 @@ class _SolidMotorPrints:
         None
         """
         self.nozzle_details()
-        print()
-
         self.grain_details()
-        print()
-
         self.motor_details()
-        print()
-
         return None

@@ -6,8 +6,8 @@ __license__ = "MIT"
 
 import numpy as np
 from scipy import integrate
-from rocketpy.plots.solid_motor_plots import _SolidMotorPlots
 
+from rocketpy.plots.solid_motor_plots import _SolidMotorPlots
 from rocketpy.prints.solid_motor_prints import _SolidMotorPrints
 
 try:
@@ -685,6 +685,7 @@ class SolidMotor(Motor):
         """Prints out basic data about the Motor."""
         self.prints.all()
         self.plots.thrust()
+        return None
 
     def allInfo(self):
         """Prints out all data and graphs available about the Motor."""

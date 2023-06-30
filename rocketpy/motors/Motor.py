@@ -7,9 +7,9 @@ __license__ = "MIT"
 import re
 import warnings
 from abc import ABC, abstractmethod
+
 from rocketpy.plots.motor_plots import _MotorPlots
 from rocketpy.prints.motor_prints import _MotorPrints
-
 from rocketpy.tools import tuple_handler
 
 try:
@@ -1036,10 +1036,8 @@ class Motor(ABC):
         """
         # Print motor details
         self.prints.all()
-
-        # Show plots
-        print("\nPlots")
         self.plots.thrust()
+        return None
 
         return None
 
@@ -1047,8 +1045,8 @@ class Motor(ABC):
     def allInfo(self):
         """Prints out all data and graphs available about the Motor."""
         self.prints.all()
-
         self.plots.all()
+        return None
 
 
 class GenericMotor(Motor):
@@ -1223,11 +1221,9 @@ class GenericMotor(Motor):
     def allInfo(self):
         """Prints out all data and graphs available about the Motor."""
         # Print motor details
-        self.print.all()
-
-        # Show plots
-        print("\nPlots")
+        self.prints.all()
         self.plots.all()
+        return None
 
 
 class EmptyMotor:

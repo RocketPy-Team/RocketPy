@@ -30,6 +30,18 @@ class _TankGeometryPlots:
 
         return None
 
+    def radius(self, upper=None, lower=None):
+        self.tank_geometry.radius.plot(lower, upper)
+        return None
+
+    def area(self, upper=None, lower=None):
+        self.tank_geometry.area.plot(lower, upper)
+        return None
+
+    def volume(self, upper=None, lower=None):
+        self.tank_geometry.volume.plot(lower, upper)
+        return None
+
     def all(self):
         """Prints out all graphs available about the TankGeometry. It simply calls
         all the other plotter methods in this class.
@@ -41,5 +53,7 @@ class _TankGeometryPlots:
         ------
         None
         """
-
+        self.radius()
+        self.area()
+        self.volume()
         return None

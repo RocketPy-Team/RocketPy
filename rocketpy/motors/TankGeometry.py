@@ -5,8 +5,8 @@ __license__ = "MIT"
 import numpy as np
 
 from rocketpy.Function import Function, PiecewiseFunction, funcify_method
-from rocketpy.prints.tank_geometry_prints import _TankGeometryPrints
 from rocketpy.plots.tank_geometry_plots import _TankGeometryPlots
+from rocketpy.prints.tank_geometry_prints import _TankGeometryPrints
 
 try:
     from functools import cache
@@ -103,6 +103,7 @@ class TankGeometry:
         # Initialize plots and prints object
         self.prints = _TankGeometryPrints(self)
         self.plots = _TankGeometryPlots(self)
+        return None
 
     @property
     def geometry(self):

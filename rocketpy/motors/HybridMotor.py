@@ -12,7 +12,7 @@ except ImportError:
 from rocketpy.Function import funcify_method
 from rocketpy.plots.hybrid_motor_plots import _HybridMotorPlots
 from rocketpy.prints.hybrid_motor_prints import _HybridMotorPrints
-from .Motor import Motor
+
 from .LiquidMotor import LiquidMotor
 from .Motor import Motor
 from .SolidMotor import SolidMotor
@@ -322,6 +322,7 @@ class HybridMotor(Motor):
         # Initialize plots and prints object
         self.prints = _HybridMotorPrints(self)
         self.plots = _HybridMotorPlots(self)
+        return None
 
     @funcify_method("Time (s)", "Exhaust velocity (m/s)")
     def exhaustVelocity(self):
@@ -503,6 +504,7 @@ class HybridMotor(Motor):
         """Prints out basic data about the Motor."""
         self.prints.all()
         self.plots.thrust()
+        return None
 
     def allInfo(self):
         """Prints out all data and graphs available about the Motor.
@@ -513,4 +515,5 @@ class HybridMotor(Motor):
         """
         self.prints.all()
         self.plots.all()
+        return None
         return None

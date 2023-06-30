@@ -5,8 +5,8 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 from dataclasses import dataclass
-from rocketpy.plots.fluid_plots import _FluidPlots
 
+from rocketpy.plots.fluid_plots import _FluidPlots
 from rocketpy.prints.fluid_prints import _FluidPrints
 
 
@@ -51,6 +51,7 @@ class Fluid:
         # Initialize plots and prints object
         self.prints = _FluidPrints(self)
         self.plots = _FluidPlots(self)
+        return None
 
     def __repr__(self):
         """Representation method.
