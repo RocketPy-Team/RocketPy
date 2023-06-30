@@ -22,7 +22,9 @@ def test_compare(mock_show, rocket, example_env):
         Environment object to be used in the tests. See conftest.py for more details.
     """
     rocket.setRailButtons(-0.5, 0.2)
-    flight = Flight(environment=example_env, rocket=rocket, inclination=85, heading=0)
+    flight = Flight(
+        environment=example_env, rocket=rocket, railLength=5, inclination=85, heading=0
+    )
 
     objects = [flight, flight, flight]
 
@@ -84,6 +86,7 @@ def test_compare_flights(mock_show, rocket, example_env):
             flight = Flight(
                 environment=example_env,
                 rocket=rocket,
+                railLength=5,
                 inclination=inclination,
                 heading=heading,
                 name=f"Incl {inclination} Head {heading}",
