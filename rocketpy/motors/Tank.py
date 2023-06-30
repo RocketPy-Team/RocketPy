@@ -36,7 +36,7 @@ class Tank(ABC):
     Properties
     ----------
 
-        Tank.mass : rocketpy.Function
+        tank.fluidMass : rocketpy.Function
             Total mass of liquid and gases in kg inside the tank as a function
             of time.
         Tank.netMassFlowRate : rocketpy.Function
@@ -136,7 +136,7 @@ class Tank(ABC):
 
     @property
     @abstractmethod
-    def mass(self):
+    def fluidMass(self):
         """
         Returns the total mass of liquid and gases inside the tank as a
         function of time.
@@ -331,10 +331,12 @@ class Tank(ABC):
         centerOfMass = (
             self.liquidCenterOfMass * self.liquidMass
             + self.gasCenterOfMass * self.gasMass
-        ) / (self.mass)
+        ) / (self.fluidMass)
 
         # Check for zero mass
-        bound_mass = self.mass < 0.001 * self.geometry.total_volume * self.gas.density
+        bound_mass = (
+            self.fluidMass < 0.001 * self.geometry.total_volume * self.gas.density
+        )
         if bound_mass.any():
             # TODO: pending Function setter impl.
             centerOfMass.yArray[bound_mass] = self.geometry.bottom
@@ -509,7 +511,7 @@ class MassFlowRateBasedTank(Tank):
         return None
 
     @funcify_method("Time (s)", "Mass (kg)")
-    def mass(self):
+    def fluidMass(self):
         """
         Returns the total mass of liquid and gases inside the tank as a
         function of time.
@@ -789,7 +791,7 @@ class UllageBasedTank(Tank):
         return None
 
     @funcify_method("Time (s)", "Mass (kg)")
-    def mass(self):
+    def fluidMass(self):
         """
         Returns the total mass of liquid and gases inside the tank as a
         function of time.
@@ -812,7 +814,7 @@ class UllageBasedTank(Tank):
         Function
             Net mass flow rate of the tank as a function of time.
         """
-        return self.mass.derivativeFunction()
+        return self.fluidMass.derivativeFunction()
 
     @funcify_method("Time (s)", "Volume (m³)")
     def fluidVolume(self):
@@ -979,7 +981,7 @@ class LevelBasedTank(Tank):
             raise ValueError("The liquid level is out of bounds. It is negative.")
 
     @funcify_method("Time (s)", "Mass (kg)")
-    def mass(self):
+    def fluidMass(self):
         """
         Returns the total mass of liquid and gases inside the tank as a
         function of time.
@@ -1005,7 +1007,7 @@ class LevelBasedTank(Tank):
         Function
             Net mass flow rate of the tank as a function of time.
         """
-        return self.mass.derivativeFunction()
+        return self.fluidMass.derivativeFunction()
 
     @funcify_method("Time (s)", "Volume (m³)")
     def fluidVolume(self):
@@ -1177,7 +1179,7 @@ class MassBasedTank(Tank):
         self.discretize_masses() if discretize else None
 
     @funcify_method("Time (s)", "Mass (kg)")
-    def mass(self):
+    def fluidMass(self):
         """
         Returns the total mass of liquid and gases inside the tank as
         a function of time.
@@ -1200,7 +1202,7 @@ class MassBasedTank(Tank):
         Function
             Net mass flow rate of the tank as a function of time.
         """
-        return self.mass.derivativeFunction()
+        return self.fluidMass.derivativeFunction()
 
     @funcify_method("Time (s)", "Mass (kg)")
     def liquidMass(self):

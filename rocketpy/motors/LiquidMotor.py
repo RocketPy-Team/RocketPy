@@ -267,7 +267,7 @@ class LiquidMotor(Motor):
         propellantMass = 0
 
         for positioned_tank in self.positioned_tanks:
-            propellantMass += positioned_tank.get("tank").mass
+            propellantMass += positioned_tank.get("tank").fluidMass
 
         return propellantMass
 
@@ -322,8 +322,8 @@ class LiquidMotor(Motor):
         for positioned_tank in self.positioned_tanks:
             tank = positioned_tank.get("tank")
             tankPosition = positioned_tank.get("position")
-            totalMass += tank.mass
-            massBalance += tank.mass * (tankPosition + tank.centerOfMass)
+            totalMass += tank.fluidMass
+            massBalance += tank.fluidMass * (tankPosition + tank.centerOfMass)
 
         return massBalance / totalMass
 
@@ -355,7 +355,8 @@ class LiquidMotor(Motor):
             tankPosition = positioned_tank.get("position")
             I_11 += (
                 tank.inertia
-                + tank.mass * (tankPosition + tank.centerOfMass - centerOfMass) ** 2
+                + tank.fluidMass
+                * (tankPosition + tank.centerOfMass - centerOfMass) ** 2
             )
 
         return I_11

@@ -101,12 +101,12 @@ def test_mass_based_motor():
             + initial_gas_mass
             + t * (gas_mass_flow_rate_in - gas_mass_flow_rate_out)
         )
-        example_calculated = example_tank_lox.mass()
+        example_calculated = example_tank_lox.fluidMass()
 
         lox_vals = Function(lox_masses).yArray
 
         real_expected = lambda t: lox_vals[t]
-        real_calculated = real_tank_lox.mass()
+        real_calculated = real_tank_lox.fluidMass()
 
         test(example_calculated, example_expected, 5)
         # test(real_calculated, real_expected, 15.5, real=True)
@@ -261,7 +261,7 @@ def test_mfr_tank_basic():
             initial_liquid_mass
             + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x
         ) + (initial_gas_mass + (gas_mass_flow_rate_in - gas_mass_flow_rate_out) * x)
-        lm = t.mass
+        lm = t.fluidMass
         test(lm, m)
 
     def test_liquid_height():
