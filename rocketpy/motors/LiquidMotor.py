@@ -354,7 +354,7 @@ class LiquidMotor(Motor):
             tank = positioned_tank.get("tank")
             tankPosition = positioned_tank.get("position")
             I_11 += (
-                tank.inertiaTensor
+                tank.inertia
                 + tank.mass * (tankPosition + tank.centerOfMass - centerOfMass) ** 2
             )
 
