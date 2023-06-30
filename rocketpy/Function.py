@@ -3045,7 +3045,7 @@ def reset_funcified_methods(instance):
     ----------
     instance : object
         The instance of the class whose funcified methods will be recalculated.
-        The class must have a multable __dict__ attribute.
+        The class must have a mutable __dict__ attribute.
 
     Return
     ------
