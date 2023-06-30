@@ -63,7 +63,6 @@ class _EnvironmentPrints:
         None
         """
         print("\nLaunch Site Details\n")
-        print("Launch Rail Length:", self.environment.railLength, " m")
         time_format = "%Y-%m-%d %H:%M:%S"
         if (
             self.environment.datetime_date != None

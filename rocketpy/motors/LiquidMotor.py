@@ -272,7 +272,7 @@ class LiquidMotor(Motor):
         propellantMass = 0
 
         for positioned_tank in self.positioned_tanks:
-            propellantMass += positioned_tank.get("tank").mass
+            propellantMass += positioned_tank.get("tank").fluidMass
 
         return propellantMass
 
@@ -303,7 +303,7 @@ class LiquidMotor(Motor):
             Calculates the total mass flow rate of the motor assuming
             constant exhaust velocity.
         """
-        massFlowRate = Function(0)
+        massFlowRate = 0
 
         for positioned_tank in self.positioned_tanks:
             massFlowRate += positioned_tank.get("tank").netMassFlowRate
@@ -327,8 +327,8 @@ class LiquidMotor(Motor):
         for positioned_tank in self.positioned_tanks:
             tank = positioned_tank.get("tank")
             tankPosition = positioned_tank.get("position")
-            totalMass += tank.mass
-            massBalance += tank.mass * (tankPosition + tank.centerOfMass)
+            totalMass += tank.fluidMass
+            massBalance += tank.fluidMass * (tankPosition + tank.centerOfMass)
 
         return massBalance / totalMass
 
@@ -352,15 +352,16 @@ class LiquidMotor(Motor):
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        I_11 = Function(0)
+        I_11 = 0
         centerOfMass = self.centerOfPropellantMass
 
         for positioned_tank in self.positioned_tanks:
             tank = positioned_tank.get("tank")
             tankPosition = positioned_tank.get("position")
             I_11 += (
-                tank.inertiaTensor
-                + tank.mass * (tankPosition + tank.centerOfMass - centerOfMass) ** 2
+                tank.inertia
+                + tank.fluidMass
+                * (tankPosition + tank.centerOfMass - centerOfMass) ** 2
             )
 
         return I_11

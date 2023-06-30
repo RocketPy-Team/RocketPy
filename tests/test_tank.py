@@ -101,12 +101,12 @@ def test_mass_based_motor():
             + initial_gas_mass
             + t * (gas_mass_flow_rate_in - gas_mass_flow_rate_out)
         )
-        example_calculated = example_tank_lox.mass()
+        example_calculated = example_tank_lox.fluidMass()
 
         lox_vals = Function(lox_masses).yArray
 
         real_expected = lambda t: lox_vals[t]
-        real_calculated = real_tank_lox.mass()
+        real_calculated = real_tank_lox.fluidMass()
 
         test(example_calculated, example_expected, 5)
         # test(real_calculated, real_expected, 15.5, real=True)
@@ -261,7 +261,7 @@ def test_mfr_tank_basic():
             initial_liquid_mass
             + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x
         ) + (initial_gas_mass + (gas_mass_flow_rate_in - gas_mass_flow_rate_out) * x)
-        lm = t.mass
+        lm = t.fluidMass
         test(lm, m)
 
     def test_liquid_height():
@@ -333,9 +333,9 @@ def test_mfr_tank_basic():
             + liquid_mass(x) * (liquid_com(x) - acom(x)) ** 2
         )
         ixy = lambda x: ixy_gas(x) + ixy_liq(x)
-        test(t.gasInertiaTensor, ixy_gas, tol=1e-3)
-        test(t.liquidInertiaTensor, ixy_liq, tol=1e-3)
-        test(t.inertiaTensor, ixy, tol=1e-3)
+        test(t.gasInertia, ixy_gas, tol=1e-3)
+        test(t.liquidInertia, ixy_liq, tol=1e-3)
+        test(t.inertia, ixy, tol=1e-3)
 
     tank_radius_function = TankGeometry({(0, 5): 1})
     lox = Fluid(name="LOx", density=1141, quality=1.0)  # Placeholder quality value

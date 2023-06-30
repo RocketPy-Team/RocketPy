@@ -48,7 +48,7 @@ def requires_netCDF4(func):
 
 class Environment:
     """Keeps all environment information stored, such as wind and temperature
-    conditions, as well as gravity and rail length.
+    conditions, as well as gravity.
 
     Attributes
     ----------
@@ -59,9 +59,7 @@ class Environment:
         Environment.airGasConstant : float
             Value of Air's Gas Constant = 287.05287 J/K/Kg
 
-        Gravity and Launch Rail Length:
-        Environment.railLength : float
-            Launch rail length in meters.
+        Gravity:
         Environment.gravity : float
             Positive value of gravitational acceleration in m/s^2.
 
@@ -298,7 +296,6 @@ class Environment:
 
     def __init__(
         self,
-        railLength,
         gravity=None,
         date=None,
         latitude=0,
@@ -307,18 +304,13 @@ class Environment:
         datum="SIRGAS2000",
         timeZone="UTC",
     ):
-        """Initialize Environment class, saving launch rail length,
-        launch date, location coordinates and elevation. Note that
-        by default the standard atmosphere is loaded until another
-        atmospheric model is used. See Environment.setAtmosphericModel
-        for details.
+        """Initialize Environment class, saving launch date, location
+        coordinates and elevation. Note that by default the standard atmosphere
+        is loaded until another atmospheric model is used.
+        See Environment.setAtmosphericModel for more details.
 
         Parameters
         ----------
-        railLength : scalar
-            Length in which the rocket will be attached to the rail, only
-            moving along a fixed direction, that is, the line parallel to the
-            rail.
         gravity : int, float, callable, string, array, optional
             Surface gravitational acceleration. Positive values point the
             acceleration down. If None, the Somigliana formula is used to
@@ -355,9 +347,6 @@ class Environment:
         -------
         None
         """
-        # Save launch rail length
-        self.railLength = railLength
-
         # Initialize constants
         self.earthRadius = 6.3781 * (10**6)
         self.airGasConstant = 287.05287  # in J/K/Kg
@@ -3205,7 +3194,6 @@ class Environment:
         # Dictionary creation, if not commented follows the SI
         info = dict(
             grav=self.gravity,
-            launch_rail_length=self.railLength,
             elevation=self.elevation,
             modelType=self.atmosphericModelType,
             modelTypeMaxExpectedHeight=self.maxExpectedHeight,
@@ -3259,7 +3247,6 @@ class Environment:
             atmosphericModelDict = ""
 
         self.exportEnvDictionary = {
-            "railLength": self.railLength,
             "gravity": self.gravity(self.elevation),
             "date": [
                 self.datetime_date.year,

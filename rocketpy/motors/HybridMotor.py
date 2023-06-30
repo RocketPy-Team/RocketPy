@@ -328,11 +328,6 @@ class HybridMotor(Motor):
         """Exhaust velocity by assuming it as a constant. The formula used is
         total impulse/propellant initial mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
         self.exhaustVelocity : Function
@@ -345,11 +340,6 @@ class HybridMotor(Motor):
         """Evaluates the total propellant mass of the motor as the sum
         of each tank mass and the grains mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
         Function
@@ -359,11 +349,7 @@ class HybridMotor(Motor):
 
     @cached_property
     def propellantInitialMass(self):
-        """Returns the initial propellant mass of the motor
-
-        Parameters
-        ----------
-        None
+        """Returns the initial propellant mass of the motor.
 
         Returns
         -------
@@ -376,11 +362,6 @@ class HybridMotor(Motor):
     def massFlowRate(self):
         """Evaluates the mass flow rate of the motor as the sum of each tank
         mass flow rate and the grains mass flow rate.
-
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
 
         Returns
         -------
@@ -401,10 +382,6 @@ class HybridMotor(Motor):
         The position is specified as a scalar, relative to the motor's
         coordinate system.
 
-        Parameters
-        ----------
-        None
-
         Returns
         -------
         Function
@@ -421,11 +398,6 @@ class HybridMotor(Motor):
         """Inertia tensor 11 component of the propellant, the inertia is
         relative to the e_1 axis, centered at the instantaneous propellant
         center of mass.
-
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
 
         Returns
         -------
@@ -459,11 +431,6 @@ class HybridMotor(Motor):
         relative to the e_2 axis, centered at the instantaneous propellant
         center of mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
         Function
@@ -485,11 +452,6 @@ class HybridMotor(Motor):
         """Inertia tensor 33 component of the propellant, the inertia is
         relative to the e_3 axis, centered at the instantaneous propellant
         center of mass.
-
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
 
         Returns
         -------
@@ -544,10 +506,6 @@ class HybridMotor(Motor):
 
     def allInfo(self):
         """Prints out all data and graphs available about the Motor.
-
-        Parameters
-        ----------
-        None
 
         Return
         ------
