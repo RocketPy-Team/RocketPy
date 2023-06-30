@@ -358,13 +358,24 @@ class Motor(ABC):
     @property
     @abstractmethod
     def exhaustVelocity(self):
-        """Exhaust velocity by assuming it as a constant. The formula used is
-        total impulse/propellant initial mass.
+        """Exhaust velocity of the motor gases.
 
         Returns
         -------
         self.exhaustVelocity : float
-            Constant gas exhaust velocity of the motor.
+            Gas exhaust velocity of the motor.
+
+        Notes
+        -----
+        This method is implemented in the following manner by the child
+        Motor classes:
+            - The `SolidMotor` assumes a constant exhaust velocity and computes
+            it as the ratio of the total impulse and the propellant mass;
+            - The `HybridMotor` assumes a constant exhaust velocity and computes
+            it as the ratio of the total impulse and the propellant mass;
+            - The `LiquidMotor` class favors the more accurate data from the
+            Tanks's mass flow rates. Therefore the exhaust velocity is generally
+            variable, being the ratio of the motor thrust by the mass flow rate.
         """
         pass
 
@@ -866,6 +877,10 @@ class Motor(ABC):
         ----------
         thrust : Function
             Thrust curve to be clipped.
+        new_burn_time : float, tuple of float
+            New desired burn time in seconds for the thrust curve.
+            Must be within the thrust curve time range, otherwise
+            the thrust time range is used instead.
 
         Returns
         -------
@@ -1050,6 +1065,12 @@ class Motor(ABC):
 
 
 class GenericMotor(Motor):
+    """Class that represents a simple motor defined mainly by its thrust curve.
+    There is no distinction between the propellant types (e.g. Solid, Liquid).
+    This class is meant for rough estimations of the motor performance, therefore
+    for more accurate results, use the SolidMotor, HybridMotor or LiquidMotor
+    classes."""
+
     def __init__(
         self,
         thrustSource,
@@ -1101,6 +1122,18 @@ class GenericMotor(Motor):
             Initial mass of the propellant.
         """
         return self.propellantInitialMass
+
+    @funcify_method("Time (s)", "Exhaust velocity (m/s)")
+    def exhaustVelocity(self):
+        """Exhaust velocity by assuming it as a constant. The formula used is
+        total impulse/propellant initial mass.
+
+        Returns
+        -------
+        self.exhaustVelocity : rocketpy.Function
+            Gas exhaust velocity of the motor.
+        """
+        return self.totalImpulse / self.propellantInitialMass
 
     @funcify_method("Time (s)", "center of mass (m)")
     def centerOfMass(self):
@@ -1187,15 +1220,15 @@ class GenericMotor(Motor):
 
     @funcify_method("Time (s)", "Inertia I_12 (kg m²)")
     def propellant_I_12(self):
-        return 0
+        return Function(0)
 
     @funcify_method("Time (s)", "Inertia I_13 (kg m²)")
     def propellant_I_13(self):
-        return 0
+        return Function(0)
 
     @funcify_method("Time (s)", "Inertia I_23 (kg m²)")
     def propellant_I_23(self):
-        return 0
+        return Function(0)
 
     def allInfo(self):
         """Prints out all data and graphs available about the Motor."""

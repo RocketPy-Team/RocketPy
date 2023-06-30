@@ -298,7 +298,7 @@ class LiquidMotor(Motor):
             Calculates the total mass flow rate of the motor assuming
             constant exhaust velocity.
         """
-        massFlowRate = Function(0)
+        massFlowRate = 0
 
         for positioned_tank in self.positioned_tanks:
             massFlowRate += positioned_tank.get("tank").netMassFlowRate
@@ -347,7 +347,7 @@ class LiquidMotor(Motor):
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        I_11 = Function(0)
+        I_11 = 0
         centerOfMass = self.centerOfPropellantMass
 
         for positioned_tank in self.positioned_tanks:
