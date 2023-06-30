@@ -275,7 +275,6 @@ class Motor(ABC):
                 thrustSource = points
 
         # Evaluate raw thrust source
-        self.interpolate = interpolationMethod
         self.thrustSource = thrustSource
         self.thrust = Function(
             thrustSource, "Time (s)", "Thrust (N)", self.interpolate, "zero"
