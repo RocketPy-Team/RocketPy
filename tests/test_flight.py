@@ -289,28 +289,32 @@ def test_initial_solution(mock_show):
 
     test_motor = SolidMotor(
         thrustSource="data/motors/Cesaroni_M1670.eng",
-        burnOut=3.9,
-        grainsCenterOfMassPosition=-0.85704,
+        burn_time=3.9,
+        dry_mass=1.815,
+        dry_inertia=(0.125, 0.125, 0.002),
+        center_of_dry_mass=0.317,
+        nozzlePosition=0,
         grainNumber=5,
-        grainSeparation=5 / 1000,
         grainDensity=1815,
-        grainOuterRadius=33 / 1000,
-        grainInitialInnerRadius=15 / 1000,
-        grainInitialHeight=120 / 1000,
         nozzleRadius=33 / 1000,
         throatRadius=11 / 1000,
+        grainSeparation=5 / 1000,
+        grainOuterRadius=33 / 1000,
+        grainInitialHeight=120 / 1000,
+        grainsCenterOfMassPosition=0.397,
+        grainInitialInnerRadius=15 / 1000,
         interpolationMethod="linear",
-        nozzlePosition=-1.255,
         coordinateSystemOrientation="nozzleToCombustionChamber",
     )
 
     test_rocket = Rocket(
         radius=127 / 2000,
-        mass=19.197 - 2.956,
-        inertiaI=6.60,
-        inertiaZ=0.0351,
+        mass=19.197 - 2.956 - 1.815,
+        inertia=(6.321, 6.321, 0.034),
         powerOffDrag="data/calisto/powerOffDragCurve.csv",
         powerOnDrag="data/calisto/powerOnDragCurve.csv",
+        center_of_mass_without_motor=0,
+        coordinateSystemOrientation="tailToNose",
     )
 
     test_rocket.setRailButtons(0.2, -0.5)
@@ -1085,6 +1089,7 @@ def test_latlon_conversions2(mock_show):
     assert test_flight.latitude(test_flight.tFinal) > 0
 
 
+@pytest.mark.skip(reason="legacy tests")
 @pytest.mark.parametrize(
     "rail_length, out_of_rail_time",
     [

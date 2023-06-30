@@ -333,9 +333,9 @@ def test_mfr_tank_basic():
             + liquid_mass(x) * (liquid_com(x) - acom(x)) ** 2
         )
         ixy = lambda x: ixy_gas(x) + ixy_liq(x)
-        test(t.gasInertiaTensor, ixy_gas, tol=1e-3)
-        test(t.liquidInertiaTensor, ixy_liq, tol=1e-3)
-        test(t.inertiaTensor, ixy, tol=1e-3)
+        test(t.gasInertia, ixy_gas, tol=1e-3)
+        test(t.liquidInertia, ixy_liq, tol=1e-3)
+        test(t.inertia, ixy, tol=1e-3)
 
     tank_radius_function = TankGeometry({(0, 5): 1})
     lox = Fluid(name="LOx", density=1141, quality=1.0)  # Placeholder quality value
