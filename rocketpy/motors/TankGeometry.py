@@ -174,7 +174,7 @@ class TankGeometry:
         """
         return max(self._geometry.keys())[1]
 
-    @cached_property
+    @property
     def total_height(self):
         """
         The total height of the tank, in meters.

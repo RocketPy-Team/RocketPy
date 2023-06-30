@@ -868,9 +868,7 @@ class LevelBasedTank(Tank):
         super().__init__(name, geometry, flux_time, liquid, gas, discretize)
 
         # Define liquid height
-        self.liquid_height = Function(
-            liquid_height, "Time (s)", "volume (m³)", "linear"
-        )
+        self.liquid_height = Function(liquid_height, "Time (s)", "height (m)", "linear")
 
         # Discretize input if needed
         self.discretize_liquid_height() if discretize else None
