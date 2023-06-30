@@ -92,7 +92,7 @@ It contains information about the local pressure profile, temperature, speed of 
 
 .. code-block:: python
 
-    Env = Environment(latitude=32.990254, longitude=-106.974998, elevation=1400)
+    env = Environment(latitude=32.990254, longitude=-106.974998, elevation=1400)
 
 RocketPy can use local files via the Ensemble method or meteorological forecasts through OpenDAP protocol. 
 To work with environment files, it will be very important ensuring tha that you have the netCDF4 library installed.
@@ -102,17 +102,17 @@ Assuming we are using forecast, first we set the simulated data with:
 
     import datetime
     tomorrow = datetime.date.today() + datetime.timedelta(days=1)
-    Env.set_date((tomorrow.year, tomorrow.month, tomorrow.day, 12))  # Hour given in UTC time
+    env.set_date((tomorrow.year, tomorrow.month, tomorrow.day, 12))  # Hour given in UTC time
 
 Then we set the atmospheric model, in this case, GFS forecast:
 
 .. code-block:: python
 
-    Env.set_atmospheric_model(type="Forecast", file="GFS")
+    env.set_atmospheric_model(type="Forecast", file="GFS")
 
 Weather forecast data can be visualized through two info methods.
 
-``Env.info()`` or ``Env.allinfo()``
+``env.info()`` or ``env.all_info()``
 
 Creating the motor that boosts the rocket
 -----------------------------------------
@@ -125,7 +125,7 @@ The motor class contains information about the thrust curve and uses some geomet
 
     Pro75M1670 = SolidMotor(
         thrust_source="../data/motors/Cesaroni_M1670.eng", #copy here the path to the thrust source file
-        burn_out=3.9,
+        burn_time=3.9,
         grain_number=5,
         grain_separation=5 / 1000,
         grain_density=1815,
@@ -139,7 +139,7 @@ The motor class contains information about the thrust curve and uses some geomet
 
 Motor data can be visualized through the following methods:
 
-``Pro75M1670.info()`` or ``Pro75M1670.allinfo()``
+``Pro75M1670.info()`` or ``Pro75M1670.all_info()``
 
 
 Creating the rocket
@@ -150,7 +150,7 @@ The first step is to initialize the class with the vital data:
 
 .. code-block:: python
 
-    Calisto = Rocket(
+    calisto = Rocket(
         radius=127 / 2000,
         mass=19.197 - 2.956,
         inertia_i=6.60,
@@ -158,16 +158,16 @@ The first step is to initialize the class with the vital data:
         power_off_drag="../../data/calisto/powerOffDragCurve.csv",
         power_on_drag="../../data/calisto/powerOnDragCurve.csv",
         center_of_dry_mass_position=0,
-        coordinate_system_orientation="tailToNose",
+        coordinate_system_orientation="tail_to_nose",
     )
 
-    Calisto.add_motor(Pro75M1670, position=-1.255)
+    calisto.add_motor(Pro75M1670, position=-1.255)
 
 Then the rail buttons must be set:
 
 .. code-block:: python
     
-    Calisto.set_rail_buttons(0.2, -0.5)
+    calisto.set_rail_buttons(0.2, -0.5)
 
 In sequence, the aerodynamic surfaces must be set.
 If a lift curve for the fin set is not specified, it is assumed that they behave according to a linearized model with a coefficient calculated with Barrowman's theory.
@@ -175,9 +175,9 @@ In the example, a nosecone, one fin set and one tail were added, but each case c
 
 .. code-block:: python
 
-    nosecone = Calisto.add_nose(length=0.55829, kind="vonKarman", position=0.71971 + 0.55829)
+    nosecone = calisto.add_nose(length=0.55829, kind="vonKarman", position=0.71971 + 0.55829)
 
-    finset = Calisto.add_trapezoidal_fins(
+    fin_set = calisto.add_trapezoidal_fins(
         n=4,
         root_chord=0.120,
         tip_chord=0.040,
@@ -188,7 +188,7 @@ In the example, a nosecone, one fin set and one tail were added, but each case c
         airfoil=None,
     )
 
-    tail = Calisto.addTail(
+    tail = calisto.add_tail(
         top_radius=0.0635, bottom_radius=0.0435, length=0.060, position=-1.194656
     )
 
@@ -221,18 +221,18 @@ After having the trigger functions defined, the parachute must be added to the r
 
 .. code-block:: python
 
-    Main = Calisto.addParachute(
+    Main = calisto.add_parachute(
         "Main",
-        CdS=10.0,
+        cd_s=10.0,
         trigger=main_trigger,
         sampling_rate=105,
         lag=1.5,
         noise=(0, 8.3, 0.5),
     )
 
-    Drogue = Calisto.addParachute(
+    Drogue = calisto.add_parachute(
         "Drogue",
-        CdS=1.0,
+        cd_s=1.0,
         trigger=drogue_trigger,
         sampling_rate=105,
         lag=1.5,
@@ -247,14 +247,14 @@ The rocket and environment classes are supplied as inputs, as well as the rail l
 
 .. code-block:: python
 
-    TestFlight = Flight(rocket=Calisto, environment=Env, railLength=5.2, inclination=85, heading=0)
+    test_flight = Flight(rocket=calisto, environment=env, rail_length=5.2, inclination=85, heading=0)
 
 Flight data can be retrieved through:
 
-``TestFlight.info()`` or ``TestFlight.allinfo()``
+``test_flight.info()`` or ``test_flight.all_info()``
 
-This function plots a comprehensive amount of flight data and graphs but, if you want to access one specific variable, for example Z position, this may be achieved by `TestFlight.z`.
-If you insert `TestFlight.z()` the graph of the function will be plotted.
+This function plots a comprehensive amount of flight data and graphs but, if you want to access one specific variable, for example Z position, this may be achieved by `test_flight.z`.
+If you insert `test_flight.z()` the graph of the function will be plotted.
 This and other features can be found in the documentation of the `Function` class, which allows data to be treated in an easier way.
 The documentation of each variable used in the class can be found on `Flight.py` file.
 

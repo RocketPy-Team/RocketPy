@@ -235,7 +235,7 @@ class NoseCone(AeroSurface):
             self.k = 0.5  # Parabolic and Von Karman
         self.evaluate_center_of_pressure()
 
-    def evaluateGeometricalParameters(self):
+    def evaluate_geometrical_parameters(self):
         """Calculates and saves nose cone's radius ratio.
 
         Parameters
@@ -316,7 +316,7 @@ class NoseCone(AeroSurface):
         self.prints.lift()
         return None
 
-    def allInfo(self):
+    def all_info(self):
         """Prints and plots all the available information of the nose cone.
 
         Parameters
@@ -372,7 +372,7 @@ class Fins(AeroSurface):
         be given in degrees.
     Fins.d : float
         Reference diameter of the rocket. Has units of length and is given in meters.
-    Fins.Aref : float
+    Fins.ref_area : float
         Reference area of the rocket.
     Fins.Af : float
         Area of the longitudinal section of each fin in the set.
@@ -462,7 +462,7 @@ class Fins(AeroSurface):
 
         # Compute auxiliary geometrical parameters
         d = 2 * rocket_radius
-        Aref = np.pi * rocket_radius**2  # Reference area
+        ref_area = np.pi * rocket_radius**2  # Reference area
 
         # Store values
         self._n = n
@@ -473,7 +473,7 @@ class Fins(AeroSurface):
         self._span = span
         self.name = name
         self.d = d
-        self.Aref = Aref  # Reference area
+        self.ref_area = ref_area  # Reference area
 
         return None
 
@@ -550,7 +550,7 @@ class Fins(AeroSurface):
         self.evaluate_roll_parameters()
 
     def evaluate_lift_coefficient(self):
-        """Calculates and returns the finset's lift coefficient.
+        """Calculates and returns the fin set's lift coefficient.
         The lift coefficient is saved and returned. This function
         also calculates and saves the lift coefficient derivative
         for a single fin and the lift coefficient derivative for
@@ -593,7 +593,7 @@ class Fins(AeroSurface):
             lambda mach: (
                 clalpha2D(mach)
                 * FD(mach)
-                * (self.Af / self.Aref)
+                * (self.Af / self.ref_area)
                 * np.cos(self.gamma_c)
             )
             / (2 + FD(mach) * np.sqrt(1 + (2 / FD(mach)) ** 2)),
@@ -623,7 +623,7 @@ class Fins(AeroSurface):
         return self.cl
 
     def evaluate_roll_parameters(self):
-        """Calculates and returns the finset's roll coefficients.
+        """Calculates and returns the fin set's roll coefficients.
         The roll coefficients are saved in a list.
 
         Parameters
@@ -640,27 +640,27 @@ class Fins(AeroSurface):
 
         self.cant_angle_rad = np.radians(self.cant_angle)
 
-        clfdelta = (
+        clf_delta = (
             self.roll_forcing_interference_factor
             * self.n
             * (self.Yma + self.rocket_radius)
             * self.clalpha_single_fin
             / self.d
         )  # Function of mach number
-        clfdelta.set_inputs("Mach")
-        clfdelta.set_outputs("Roll moment forcing coefficient derivative")
-        cldomega = (
+        clf_delta.set_inputs("Mach")
+        clf_delta.set_outputs("Roll moment forcing coefficient derivative")
+        cld_omega = (
             2
             * self.roll_damping_interference_factor
             * self.n
             * self.clalpha_single_fin
             * np.cos(self.cant_angle_rad)
             * self.roll_geometrical_constant
-            / (self.Aref * self.d**2)
+            / (self.ref_area * self.d**2)
         )  # Function of mach number
-        cldomega.set_inputs("Mach")
-        cldomega.set_outputs("Roll moment damping coefficient derivative")
-        self.roll_parameters = [clfdelta, cldomega, self.cant_angle_rad]
+        cld_omega.set_inputs("Mach")
+        cld_omega.set_outputs("Roll moment damping coefficient derivative")
+        self.roll_parameters = [clf_delta, cld_omega, self.cant_angle_rad]
         return self.roll_parameters
 
     # Defines beta parameter
@@ -753,7 +753,7 @@ class TrapezoidalFins(Fins):
             be given in degrees.
         Fins.d : float
             Reference diameter of the rocket, in meters.
-        Fins.Aref : float
+        Fins.ref_area : float
             Reference area of the rocket, in m².
         Fins.Af : float
             Area of the longitudinal section of each fin in the set.
@@ -924,7 +924,7 @@ class TrapezoidalFins(Fins):
         self.evaluate_lift_coefficient()
         self.evaluate_roll_parameters()
 
-    def evaluateCenterOfPressure(self):
+    def evaluate_center_of_pressure(self):
         """Calculates and returns the center of pressure of the fin set in local
         coordinates. The center of pressure position is saved and stored as a tuple.
 
@@ -950,7 +950,7 @@ class TrapezoidalFins(Fins):
         self.cp = (self.cpx, self.cpy, self.cpz)
         return None
 
-    def evaluateGeometricalParameters(self):
+    def evaluate_geometrical_parameters(self):
         """Calculates and saves fin set's geometrical parameters such as the
         fins' area, aspect ratio and parameters for roll movement.
 
@@ -1029,7 +1029,7 @@ class TrapezoidalFins(Fins):
         self.prints.lift()
         return None
 
-    def allInfo(self):
+    def all_info(self):
         self.prints.all()
         self.plots.all()
         return None
@@ -1072,10 +1072,10 @@ class EllipticalFins(Fins):
             be given in degrees.
         Fins.d : float
             Reference diameter of the rocket, in meters.
-        Fins.Aref : float
+        Fins.ref_area : float
             Reference area of the rocket.
         Fins.Af : float
-            Area of the longtudinal section of each fin in the set.
+            Area of the longitudinal section of each fin in the set.
         Fins.AR : float
             Aspect ratio of each fin in the set.
         Fins.gamma_c : float
@@ -1188,7 +1188,7 @@ class EllipticalFins(Fins):
 
         return None
 
-    def evaluateCenterOfPressure(self):
+    def evaluate_center_of_pressure(self):
         """Calculates and returns the center of pressure of the fin set in local
         coordinates. The center of pressure position is saved and stored as a tuple.
 
@@ -1208,7 +1208,7 @@ class EllipticalFins(Fins):
         self.cp = (self.cpx, self.cpy, self.cpz)
         return None
 
-    def evaluateGeometricalParameters(self):
+    def evaluate_geometrical_parameters(self):
         """Calculates and saves fin set's geometrical parameters such as the
         fins' area, aspect ratio and parameters for roll movement.
 
@@ -1302,7 +1302,7 @@ class EllipticalFins(Fins):
         self.prints.lift()
         return None
 
-    def allInfo(self):
+    def all_info(self):
         self.prints.all()
         self.plots.all()
         return None
@@ -1433,7 +1433,7 @@ class Tail(AeroSurface):
         self._rocket_radius = value
         self.evaluate_lift_coefficient()
 
-    def evaluateGeometricalParameters(self):
+    def evaluate_geometrical_parameters(self):
         """Calculates and saves tail's slant length and surface area.
 
         Parameters
@@ -1515,7 +1515,7 @@ class Tail(AeroSurface):
         self.prints.lift()
         return None
 
-    def allInfo(self):
+    def all_info(self):
         self.prints.all()
         self.plots.all()
         return None
@@ -1558,13 +1558,13 @@ class RailButtons(AeroSurface):
         self.angular_position = angular_position
         self.name = name
 
-        self.evaluateLiftCoefficient()
-        self.evaluateCenterOfPressure()
+        self.evaluate_lift_coefficient()
+        self.evaluate_center_of_pressure()
 
         self.prints = _RailButtonsPrints(self)
         return None
 
-    def evaluateCenterOfPressure(self):
+    def evaluate_center_of_pressure(self):
         """Evaluates the center of pressure of the rail buttons. Rail buttons
         do not contribute to the center of pressure of the rocket.
 
@@ -1578,7 +1578,7 @@ class RailButtons(AeroSurface):
         self.cp = (self.cpx, self.cpy, self.cpz)
         return None
 
-    def evaluateLiftCoefficient(self):
+    def evaluate_lift_coefficient(self):
         """Evaluates the lift coefficient curve of the rail buttons. Rail
         buttons do not contribute to the lift coefficient of the rocket.
 
@@ -1598,7 +1598,7 @@ class RailButtons(AeroSurface):
         )
         return None
 
-    def evaluateGeometricalParameters(self):
+    def evaluate_geometrical_parameters(self):
         """Evaluates the geometrical parameters of the rail buttons. Rail
         buttons do not contribute to the geometrical parameters of the rocket.
 
@@ -1618,7 +1618,7 @@ class RailButtons(AeroSurface):
         self.prints.geometry()
         return None
 
-    def allInfo(self):
+    def all_info(self):
         """Returns all info of the Rail Buttons.
 
         Returns
@@ -1627,55 +1627,3 @@ class RailButtons(AeroSurface):
         """
         self.prints.all()
         return None
-
-
-class RailButtons:
-    """Class that defines a generic rail button.
-
-    Attributes
-    ----------
-    RailButtons.upper_button_position : int, float
-        Position of the upper rail button in meters. The upper button is the one
-        closest to the nose cone and furthest from the tail. The coordinate system
-        used is the same as the Rocket that the buttons will be a part of.
-    RailButtons.lower_button_position : int, float
-        Position of the lower rail button in meters. The lower button is the one
-        closest to the nose cone and furthest from the tail. The coordinate system
-        used is the same as the Rocket that the buttons will be a part of.
-    RailButtons.angular_position : int, float
-        Angular position of the rail buttons in degrees measured
-        as the rotation around the symmetry axis of the rocket
-        relative to one of the other principal axis.
-    """
-
-    def __init__(self, upper_button_position, lower_button_position, angular_position):
-        """Initializes RailButtons Class.
-
-        Parameters
-        ----------
-        upper_button_position : int, float
-            Position of the upper rail button in meters. The upper button is the one
-            closest to the nose cone and furthest from the tail. The coordinate system
-            used is the same as the Rocket that the buttons will be a part of.
-        lower_button_position : int, float
-            Position of the lower rail button in meters. The lower button is the one
-            closest to the nose cone and furthest from the tail. The coordinate system
-            used is the same as the Rocket that the buttons will be a part of.
-        angular_position : int, float, optional
-            Angular position of the rail buttons in degrees measured
-            as the rotation around the symmetry axis of the rocket
-            relative to one of the other principal axis.
-
-        Returns
-        -------
-        None
-
-        """
-        self.upper_button_position = upper_button_position
-        self.lower_button_position = lower_button_position
-        self.angular_position = angular_position
-        return None
-
-    def __repr__(self):
-        rep = f"Rail buttons pair at positions {self.upper_button_position} m and {self.lower_button_position} m"
-        return rep

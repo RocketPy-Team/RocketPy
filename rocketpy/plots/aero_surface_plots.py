@@ -123,8 +123,8 @@ class _FinPlots(_AeroSurfacePlots):
         None
         """
         # lacks a title in the plots
-        self.aero_surface.rollParameters[0]()
-        self.aero_surface.rollParameters[1]()
+        self.aero_surface.roll_parameters[0]()
+        self.aero_surface.roll_parameters[1]()
         return None
 
     def lift(self):
@@ -139,8 +139,8 @@ class _FinPlots(_AeroSurfacePlots):
         None
         """
         self.aero_surface.cl()
-        self.aero_surface.clalphaSingleFin()
-        self.aero_surface.clalphaMultipleFins()
+        self.aero_surface.clalpha_single_fin()
+        self.aero_surface.clalpha_multiple_fins()
         return None
 
     def all(self):
@@ -180,33 +180,33 @@ class _TrapezoidalFinsPlots(_FinPlots):
         # #56B4E9, #009E73, #F0E442, #0072B2]
         # Fin
         leading_edge = plt.Line2D(
-            (0, self.aero_surface.sweepLength),
+            (0, self.aero_surface.sweep_length),
             (0, self.aero_surface.span),
             color="#A60628",
         )
         tip = plt.Line2D(
             (
-                self.aero_surface.sweepLength,
-                self.aero_surface.sweepLength + self.aero_surface.tipChord,
+                self.aero_surface.sweep_length,
+                self.aero_surface.sweep_length + self.aero_surface.tip_chord,
             ),
             (self.aero_surface.span, self.aero_surface.span),
             color="#A60628",
         )
         back_edge = plt.Line2D(
             (
-                self.aero_surface.sweepLength + self.aero_surface.tipChord,
-                self.aero_surface.rootChord,
+                self.aero_surface.sweep_length + self.aero_surface.tip_chord,
+                self.aero_surface.root_chord,
             ),
             (self.aero_surface.span, 0),
             color="#A60628",
         )
-        root = plt.Line2D((self.aero_surface.rootChord, 0), (0, 0), color="#A60628")
+        root = plt.Line2D((self.aero_surface.root_chord, 0), (0, 0), color="#A60628")
 
         # Center and Quarter line
         center_line = plt.Line2D(
             (
-                self.aero_surface.rootChord / 2,
-                self.aero_surface.sweepLength + self.aero_surface.tipChord / 2,
+                self.aero_surface.root_chord / 2,
+                self.aero_surface.sweep_length + self.aero_surface.tip_chord / 2,
             ),
             (0, self.aero_surface.span),
             color="#7A68A6",
@@ -216,8 +216,8 @@ class _TrapezoidalFinsPlots(_FinPlots):
         )
         quarter_line = plt.Line2D(
             (
-                self.aero_surface.rootChord / 4,
-                self.aero_surface.sweepLength + self.aero_surface.tipChord / 4,
+                self.aero_surface.root_chord / 4,
+                self.aero_surface.sweep_length + self.aero_surface.tip_chord / 4,
             ),
             (0, self.aero_surface.span),
             color="#7A68A6",
@@ -231,17 +231,17 @@ class _TrapezoidalFinsPlots(_FinPlots):
 
         # Mean Aerodynamic Chord
         yma_start = (
-            self.aero_surface.sweepLength
-            * (self.aero_surface.rootChord + 2 * self.aero_surface.tipChord)
-            / (3 * (self.aero_surface.rootChord + self.aero_surface.tipChord))
+            self.aero_surface.sweep_length
+            * (self.aero_surface.root_chord + 2 * self.aero_surface.tip_chord)
+            / (3 * (self.aero_surface.root_chord + self.aero_surface.tip_chord))
         )
         yma_end = (
-            2 * self.aero_surface.rootChord**2
-            + self.aero_surface.rootChord * self.aero_surface.sweepLength
-            + 2 * self.aero_surface.rootChord * self.aero_surface.tipChord
-            + 2 * self.aero_surface.sweepLength * self.aero_surface.tipChord
-            + 2 * self.aero_surface.tipChord**2
-        ) / (3 * (self.aero_surface.rootChord + self.aero_surface.tipChord))
+            2 * self.aero_surface.root_chord**2
+            + self.aero_surface.root_chord * self.aero_surface.sweep_length
+            + 2 * self.aero_surface.root_chord * self.aero_surface.tip_chord
+            + 2 * self.aero_surface.sweep_length * self.aero_surface.tip_chord
+            + 2 * self.aero_surface.tip_chord**2
+        ) / (3 * (self.aero_surface.root_chord + self.aero_surface.tip_chord))
         yma_line = plt.Line2D(
             (yma_start, yma_end),
             (self.aero_surface.Yma, self.aero_surface.Yma),
@@ -269,10 +269,10 @@ class _TrapezoidalFinsPlots(_FinPlots):
 
         # Plot settings
         xlim = (
-            self.aero_surface.rootChord
-            if self.aero_surface.sweepLength + self.aero_surface.tipChord
-            < self.aero_surface.rootChord
-            else self.aero_surface.sweepLength + self.aero_surface.tipChord
+            self.aero_surface.root_chord
+            if self.aero_surface.sweep_length + self.aero_surface.tip_chord
+            < self.aero_surface.root_chord
+            else self.aero_surface.sweep_length + self.aero_surface.tip_chord
         )
         ax.set_xlim(0, xlim * 1.1)
         ax.set_ylim(0, self.aero_surface.span * 1.1)
@@ -307,8 +307,8 @@ class _EllipticalFinsPlots(_FinPlots):
         """
         # Ellipse
         ellipse = Ellipse(
-            (self.aero_surface.rootChord / 2, 0),
-            self.aero_surface.rootChord,
+            (self.aero_surface.root_chord / 2, 0),
+            self.aero_surface.root_chord,
             self.aero_surface.span * 2,
             fill=False,
             edgecolor="#A60628",
@@ -316,10 +316,11 @@ class _EllipticalFinsPlots(_FinPlots):
         )
 
         # Mean Aerodynamic Chord # From Barrowman's theory
-        yma_length = 8 * self.aero_surface.rootChord / (3 * np.pi)
-        yma_start = (self.aero_surface.rootChord - yma_length) / 2
+        yma_length = 8 * self.aero_surface.root_chord / (3 * np.pi)
+        yma_start = (self.aero_surface.root_chord - yma_length) / 2
         yma_end = (
-            self.aero_surface.rootChord - (self.aero_surface.rootChord - yma_length) / 2
+            self.aero_surface.root_chord
+            - (self.aero_surface.root_chord - yma_length) / 2
         )
         yma_line = plt.Line2D(
             (yma_start, yma_end),
@@ -330,7 +331,7 @@ class _EllipticalFinsPlots(_FinPlots):
 
         # Center Line
         center_line = plt.Line2D(
-            (self.aero_surface.rootChord / 2, self.aero_surface.rootChord / 2),
+            (self.aero_surface.root_chord / 2, self.aero_surface.root_chord / 2),
             (0, self.aero_surface.span),
             color="#7A68A6",
             alpha=0.35,
@@ -352,7 +353,7 @@ class _EllipticalFinsPlots(_FinPlots):
         ax.scatter(*cp_point, facecolors="none", edgecolors="red", s=500, zorder=10)
 
         # Plot settings
-        ax.set_xlim(0, self.aero_surface.rootChord)
+        ax.set_xlim(0, self.aero_surface.root_chord)
         ax.set_ylim(0, self.aero_surface.span * 1.1)
         ax.set_xlabel("Root chord (m)")
         ax.set_ylabel("Span (m)")

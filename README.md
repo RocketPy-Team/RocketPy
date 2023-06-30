@@ -184,14 +184,14 @@ help(Environment)
 A sample code is:
 
 ```python
-Env = Environment(
+env = Environment(
     latitude=32.990254,
     longitude=-106.974998,
     elevation=1400,
     date=(2020, 3, 4, 12) # Tomorrow's date in year, month, day, hour UTC format
 ) 
 
-Env.set_atmospheric_model(type='Forecast', file='GFS')
+env.set_atmospheric_model(type='Forecast', file='GFS')
 ```
 
 This can be followed up by starting a Solid Motor object. To get help on it, just use:
@@ -205,14 +205,14 @@ A sample Motor object can be created by the following code:
 ```python
 Pro75M1670 = SolidMotor(
     thrust_source="../data/motors/Cesaroni_M1670.eng",
-    burn_out=3.9,
+    burn_time=3.9,
     grain_number=5,
     grain_separation=5/1000,
     grain_density=1815,
     grain_outer_radius=33/1000,
     grainInitialInnerRadius=15/1000,
     grainInitialHeight=120/1000,
-    grainsCenterOfMassPosition=-0.85704,
+    grains_center_of_mass_position=-0.85704,
     nozzleRadius=33/1000,
     throatRadius=11/1000,
     interpolationMethod='linear'
@@ -228,7 +228,7 @@ help(Rocket)
 A sample code to create a Rocket is:
 
 ```python
-Calisto = Rocket(
+calisto = Rocket(
     radius=127 / 2000,
     mass=19.197 - 2.956,
     inertia_i=6.60,
@@ -236,12 +236,12 @@ Calisto = Rocket(
     power_off_drag="../../data/calisto/powerOffDragCurve.csv",
     power_on_drag="../../data/calisto/powerOnDragCurve.csv",
     center_of_dry_mass_position=0,
-    coordinate_system_orientation="tailToNose"
+    coordinate_system_orientation="tail_to_nose"
 )
-Calisto.set_rail_buttons(0.2, -0.5)
-Calisto.add_motor(Pro75M1670, position=-1.255)
-Calisto.add_nose(length=0.55829, kind="vonKarman", position=1.278)
-Calisto.add_trapezoidal_fins(
+calisto.set_rail_buttons(0.2, -0.5)
+calisto.add_motor(Pro75M1670, position=-1.255)
+calisto.add_nose(length=0.55829, kind="vonKarman", position=1.278)
+calisto.add_trapezoidal_fins(
     n=4,
     root_chord=0.120,
     tip_chord=0.040,
@@ -251,7 +251,7 @@ Calisto.add_trapezoidal_fins(
     radius=None,
     airfoil=None
 )
-Calisto.add_tail(
+calisto.add_tail(
     top_radius=0.0635, bottom_radius=0.0435, length=0.060, position=-1.194656
 )
 ```
@@ -275,17 +275,17 @@ def main_trigger(p, h, y):
     # activate main when vz < 0 m/s and z < 800 m
     return True if y[5] < 0 and h < 800 else False
 
-Calisto.addParachute('Main',
-                    CdS=10.0,
+calisto.add_parachute('Main',
+                    cd_s=10.0,
                     trigger=main_trigger, 
-                    samplingRate=105,
+                    sampling_rate=105,
                     lag=1.5,
                     noise=(0, 8.3, 0.5))
 
-Calisto.addParachute('Drogue',
-                      CdS=1.0,
+calisto.add_parachute('Drogue',
+                      cd_s=1.0,
                       trigger=drogue_trigger, 
-                      samplingRate=105,
+                      sampling_rate=105,
                       lag=1.5,
                       noise=(0, 8.3, 0.5))
 ```
@@ -299,19 +299,19 @@ help(Flight)
 To actually create a Flight object, use:
 
 ```python
-TestFlight = Flight(rocket=Calisto, environment=Env, railLength=5.2, inclination=85, heading=0)
+test_flight = Flight(rocket=calisto, environment=env, rail_length=5.2, inclination=85, heading=0)
 ```
 
 Once the Flight object is created, your simulation is done! Use the following code to get a summary of the results:
 
 ```python
-TestFlight.info()
+test_flight.info()
 ```
 
 To see all available results, use:
 
 ```python
-TestFlight.allinfo()
+test_flight.all_info()
 ```
 
 Here is just a quick taste of what RocketPy is able to calculate. There are hundreds of plots and data points computed by RocketPy to enhance your analyses.

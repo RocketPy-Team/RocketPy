@@ -390,55 +390,71 @@ class _FlightPlots:
         """
         if len(self.flight.rocket.rail_buttons) == 0:
             print("No rail buttons were defined. Skipping rail button plots.")
-        elif self.flight.outOfRailTimeIndex == 0:
+        elif self.flight.out_of_rail_time_index == 0:
             print("No rail phase was found. Skipping rail button plots.")
         else:
             fig6 = plt.figure(figsize=(9, 6))
 
             ax1 = plt.subplot(211)
             ax1.plot(
-                self.flight.railButton1NormalForce[: self.flight.outOfRailTimeIndex, 0],
-                self.flight.railButton1NormalForce[: self.flight.outOfRailTimeIndex, 1],
+                self.flight.rail_button1_normal_force[
+                    : self.flight.out_of_rail_time_index, 0
+                ],
+                self.flight.rail_button1_normal_force[
+                    : self.flight.out_of_rail_time_index, 1
+                ],
                 label="Upper Rail Button",
             )
             ax1.plot(
-                self.flight.railButton2NormalForce[: self.flight.outOfRailTimeIndex, 0],
-                self.flight.railButton2NormalForce[: self.flight.outOfRailTimeIndex, 1],
+                self.flight.rail_button2_normal_force[
+                    : self.flight.out_of_rail_time_index, 0
+                ],
+                self.flight.rail_button2_normal_force[
+                    : self.flight.out_of_rail_time_index, 1
+                ],
                 label="Lower Rail Button",
             )
             ax1.set_xlim(
                 0,
-                self.flight.outOfRailTime
-                if self.flight.outOfRailTime > 0
+                self.flight.out_of_rail_time
+                if self.flight.out_of_rail_time > 0
                 else self.flight.tFinal,
             )
             ax1.legend()
             ax1.grid(True)
-            ax1.set_xlabel(self.flight.railButton1NormalForce.getInputs()[0])
-            ax1.set_ylabel(self.flight.railButton1NormalForce.getOutputs()[0])
+            ax1.set_xlabel(self.flight.rail_button1_normal_force.get_inputs()[0])
+            ax1.set_ylabel(self.flight.rail_button1_normal_force.get_outputs()[0])
             ax1.set_title("Rail Buttons Normal Force")
 
             ax2 = plt.subplot(212)
             ax2.plot(
-                self.flight.railButton1ShearForce[: self.flight.outOfRailTimeIndex, 0],
-                self.flight.railButton1ShearForce[: self.flight.outOfRailTimeIndex, 1],
+                self.flight.rail_button1_shear_force[
+                    : self.flight.out_of_rail_time_index, 0
+                ],
+                self.flight.rail_button1_shear_force[
+                    : self.flight.out_of_rail_time_index, 1
+                ],
                 label="Upper Rail Button",
             )
             ax2.plot(
-                self.flight.railButton2ShearForce[: self.flight.outOfRailTimeIndex, 0],
-                self.flight.railButton2ShearForce[: self.flight.outOfRailTimeIndex, 1],
+                self.flight.rail_button2_shear_force[
+                    : self.flight.out_of_rail_time_index, 0
+                ],
+                self.flight.rail_button2_shear_force[
+                    : self.flight.out_of_rail_time_index, 1
+                ],
                 label="Lower Rail Button",
             )
             ax2.set_xlim(
                 0,
-                self.flight.outOfRailTime
-                if self.flight.outOfRailTime > 0
+                self.flight.out_of_rail_time
+                if self.flight.out_of_rail_time > 0
                 else self.flight.tFinal,
             )
             ax2.legend()
             ax2.grid(True)
-            ax2.set_xlabel(self.flight.railButton1ShearForce.__inputs__[0])
-            ax2.set_ylabel(self.flight.railButton1ShearForce.__outputs__[0])
+            ax2.set_xlabel(self.flight.rail_button1_shear_force.__inputs__[0])
+            ax2.set_ylabel(self.flight.rail_button1_shear_force.__outputs__[0])
             ax2.set_title("Rail Buttons Shear Force")
 
             plt.subplots_adjust(hspace=0.5)

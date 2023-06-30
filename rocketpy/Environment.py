@@ -176,12 +176,12 @@ class Environment:
         Atmospheric Model Details
         Environment.atmospheric_model_type : string
             Describes the atmospheric model which is being used.
-            Can only assume the following values: 'StandardAtmosphere',
-            'CustomAtmosphere', 'WyomingSounding', 'NOAARucSounding',
+            Can only assume the following values: 'standard_atmosphere',
+            'custom_atmosphere', 'wyoming_sounding', 'NOAARucSounding',
             'Forecast', 'Reanalysis', 'Ensemble'.
         Environment.atmospheric_model_file : string
             Address of the file used for the atmospheric model being used.
-            Only defined for 'WyomingSounding', 'NOAARucSounding',
+            Only defined for 'wyoming_sounding', 'NOAARucSounding',
             'Forecast', 'Reanalysis', 'Ensemble'
         Environment.atmospheric_model_dict : dictionary
             Dictionary used to properly interpret netCDF and OPeNDAP
@@ -351,7 +351,7 @@ class Environment:
         self.standard_g = 9.80665
 
         # Initialize atmosphere
-        self.set_atmospheric_model("StandardAtmosphere")
+        self.set_atmospheric_model("standard_atmosphere")
 
         # Save latitude and longitude
         if latitude != None and longitude != None:
@@ -379,7 +379,7 @@ class Environment:
         self.prints = _EnvironmentPrints(self)
 
         # Initialize atmosphere
-        self.set_atmospheric_model("StandardAtmosphere")
+        self.set_atmospheric_model("standard_atmosphere")
 
         # Save latitude and longitude
         self.latitude = latitude
@@ -758,13 +758,13 @@ class Environment:
         ----------
         type : string
             One of the following options:
-            - 'StandardAtmosphere': sets pressure and temperature
+            - 'standard_atmosphere': sets pressure and temperature
             profiles corresponding to the International Standard
             Atmosphere defined by ISO 2533 and ranging from -2 km
             to 80 km of altitude above sea level. Note that the wind
             profiles are set to zero when this type is chosen.
 
-            - 'WyomingSounding': sets pressure, temperature, wind-u
+            - 'wyoming_sounding': sets pressure, temperature, wind-u
             and wind-v profiles and surface elevation obtained from
             an upper air sounding given by the file parameter through
             an URL. This URL should point to a data webpage given by
@@ -852,7 +852,7 @@ class Environment:
             forecast is activated. To activate other ensemble forecasts
             see Environment.selectEnsembleMemberMember().
 
-            - 'CustomAtmosphere': sets pressure, temperature, wind-u
+            - 'custom_atmosphere': sets pressure, temperature, wind-u
             and wind-v profiles given though the pressure, temperature,
             wind-u and wind-v parameters of this method. If pressure
             or temperature is not given, it will default to the
@@ -861,7 +861,7 @@ class Environment:
 
         file : string, optional
             String that must be given when type is either
-            'WyomingSounding', 'Forecast', 'Reanalysis', 'Ensemble' or 'Windy'.
+            'wyoming_sounding', 'Forecast', 'Reanalysis', 'Ensemble' or 'Windy'.
             It specifies the location of the data given, either through
             a local file address or a URL.
             If type is 'Forecast', this parameter can also be either
@@ -905,7 +905,7 @@ class Environment:
                                  'v_wind': 'vgrdprs'}
         pressure : float, string, array, callable, optional
             This defines the atmospheric pressure profile.
-            Should be given if the type parameter is 'CustomAtmosphere'. If not,
+            Should be given if the type parameter is 'custom_atmosphere'. If not,
             than the the Standard Atmosphere pressure will be used.
             If a float is given, it will define a constant pressure
             profile. The float should be in units of Pa.
@@ -920,7 +920,7 @@ class Environment:
             level in meters and return a corresponding pressure in Pa.
         temperature : float, string, array, callable, optional
             This defines the atmospheric temperature profile.
-            Should be given if the type parameter is 'CustomAtmosphere'. If not,
+            Should be given if the type parameter is 'custom_atmosphere'. If not,
             than the the Standard Atmosphere temperature will be used.
             If a float is given, it will define a constant temperature
             profile. The float should be in units of K.
@@ -936,7 +936,7 @@ class Environment:
         wind_u : float, string, array, callable, optional
             This defines the atmospheric wind-u profile, corresponding
             the the magnitude of the wind speed heading East.
-            Should be given if the type parameter is 'CustomAtmosphere'. If not,
+            Should be given if the type parameter is 'custom_atmosphere'. If not,
             it will be assumed to be constant and equal to 0.
             If a float is given, it will define a constant wind-u
             profile. The float should be in units of m/s.
@@ -952,7 +952,7 @@ class Environment:
         wind_v : float, string, array, callable, optional
             This defines the atmospheric wind-v profile, corresponding
             the the magnitude of the wind speed heading North.
-            Should be given if the type parameter is 'CustomAtmosphere'. If not,
+            Should be given if the type parameter is 'custom_atmosphere'. If not,
             it will be assumed to be constant and equal to 0.
             If a float is given, it will define a constant wind-v
             profile. The float should be in units of m/s.
@@ -974,9 +974,9 @@ class Environment:
         self.atmospheric_model_type = type
 
         # Handle each case
-        if type == "StandardAtmosphere":
+        if type == "standard_atmosphere":
             self.process_standard_atmosphere()
-        elif type == "WyomingSounding":
+        elif type == "wyoming_sounding":
             self.process_wyoming_sounding(file)
             # Save file
             self.atmospheric_model_file = file
@@ -1274,7 +1274,7 @@ class Environment:
             # Save dictionary and file
             self.atmospheric_model_file = file
             self.atmospheric_model_dict = dictionary
-        elif type == "CustomAtmosphere":
+        elif type == "custom_atmosphere":
             self.process_custom_atmosphere(pressure, temperature, wind_u, wind_v)
         elif type == "Windy":
             self.process_windy_atmosphere(file)
@@ -1357,7 +1357,7 @@ class Environment:
         ----------
         pressure : float, string, array, callable, optional
             This defines the atmospheric pressure profile.
-            Should be given if the type parameter is 'CustomAtmosphere'. If not,
+            Should be given if the type parameter is 'custom_atmosphere'. If not,
             than the the Standard Atmosphere pressure will be used.
             If a float is given, it will define a constant pressure
             profile. The float should be in units of Pa.
@@ -1372,7 +1372,7 @@ class Environment:
             level in meters and return a corresponding pressure in Pa.
         temperature : float, string, array, callable, optional
             This defines the atmospheric temperature profile.
-            Should be given if the type parameter is 'CustomAtmosphere'. If not,
+            Should be given if the type parameter is 'custom_atmosphere'. If not,
             than the the Standard Atmosphere temperature will be used.
             If a float is given, it will define a constant temperature
             profile. The float should be in units of K.
@@ -1388,7 +1388,7 @@ class Environment:
         wind_u : float, string, array, callable, optional
             This defines the atmospheric wind-u profile, corresponding
             the the magnitude of the wind speed heading East.
-            Should be given if the type parameter is 'CustomAtmosphere'. If not,
+            Should be given if the type parameter is 'custom_atmosphere'. If not,
             it will be assumed constant and 0.
             If a float is given, it will define a constant wind-u
             profile. The float should be in units of m/s.
@@ -1404,7 +1404,7 @@ class Environment:
         wind_v : float, string, array, callable, optional
             This defines the atmospheric wind-v profile, corresponding
             the the magnitude of the wind speed heading North.
-            Should be given if the type parameter is 'CustomAtmosphere'. If not,
+            Should be given if the type parameter is 'custom_atmosphere'. If not,
             it will be assumed constant and 0.
             If a float is given, it will define a constant wind-v
             profile. The float should be in units of m/s.
@@ -3108,7 +3108,7 @@ class Environment:
         self.plots.info()
         return None
 
-    def allinfo(self):
+    def all_info(self):
         """Prints out all data and graphs available about the Environment.
 
         Parameters
@@ -3354,7 +3354,7 @@ class Environment:
             East coordinate, always positive
         y:
             North coordinate, always positive
-        utmzone: int
+        utm_zone: int
             The number of the UTM zone of the point of analysis, can vary
             between 1 and 60
         utm_letter: string
@@ -3441,15 +3441,15 @@ class Environment:
         lon_mc = lon_mc * 180 / np.pi
 
         # Calculate the UTM zone number
-        utmzone = int((lon_mc + 183) / 6)
+        utm_zone = int((lon_mc + 183) / 6)
 
         # Calculate the UTM zone letter
         letters = "CDEFGHJKLMNPQRSTUVWXX"
         utm_letter = letters[int(80 + lat) >> 3]
 
-        return x, y, utmzone, utm_letter, hemis, EW
+        return x, y, utm_zone, utm_letter, hemis, EW
 
-    def utm_to_geodesic(self, x, y, utmzone, hemis):
+    def utm_to_geodesic(self, x, y, utm_zone, hemis):
         """Function to convert UTM coordinates to geodesic coordinates
         (i.e. latitude and longitude). The latitude should be between -80°
         and 84°
@@ -3460,7 +3460,7 @@ class Environment:
             East UTM coordinate in meters
         y : float
             North UTM coordinate in meters
-        utmzone : int
+        utm_zone : int
             The number of the UTM zone of the point of analysis, can vary
             between 1 and 60
         hemis : string
@@ -3479,7 +3479,7 @@ class Environment:
             y = y + 10000000
 
         # Calculate the Central Meridian from the UTM zone number
-        central_meridian = utmzone * 6 - 183  # degrees
+        central_meridian = utm_zone * 6 - 183  # degrees
 
         # Select the desired datum
         flattening = self.ellipsoid.flattening
@@ -3585,7 +3585,7 @@ class Environment:
 
         return e_radius
 
-    def decimal_degress_to_arc_seconds(self, angle):
+    def decimal_degrees_to_arc_seconds(self, angle):
         """Function to convert an angle in decimal degrees to deg/min/sec.
          Converts (°) to (° ' ")
 

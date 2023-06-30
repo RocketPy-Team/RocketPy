@@ -56,9 +56,9 @@ def test_set_topographic_profile(example_env):
 
 @patch("matplotlib.pyplot.show")
 def test_standard_atmosphere(mock_show, example_env):
-    example_env.set_atmospheric_model(type="StandardAtmosphere")
+    example_env.set_atmospheric_model(type="standard_atmosphere")
     assert example_env.info() == None
-    assert example_env.allinfo() == None
+    assert example_env.all_info() == None
     assert example_env.pressure(0) == 101325.0
     assert example_env.prints.print_earth_details() == None
 
@@ -66,13 +66,13 @@ def test_standard_atmosphere(mock_show, example_env):
 @patch("matplotlib.pyplot.show")
 def test_custom_atmosphere(mock_show, example_env):
     example_env.set_atmospheric_model(
-        type="CustomAtmosphere",
+        type="custom_atmosphere",
         pressure=None,
         temperature=300,
         wind_u=[(0, 5), (1000, 10)],
         wind_v=[(0, -2), (500, 3), (1600, 2)],
     )
-    assert example_env.allinfo() == None
+    assert example_env.all_info() == None
     assert example_env.pressure(0) == 101325.0
     assert example_env.wind_velocity_x(0) == 5
     assert example_env.temperature(100) == 300
@@ -81,8 +81,8 @@ def test_custom_atmosphere(mock_show, example_env):
 @patch("matplotlib.pyplot.show")
 def test_wyoming_sounding_atmosphere(mock_show, example_env):
     URL = "http://weather.uwyo.edu/cgi-bin/sounding?region=samer&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=02&FROM=0500&TO=0512&STNM=83779"
-    example_env.set_atmospheric_model(type="WyomingSounding", file=URL)
-    assert example_env.allinfo() == None
+    example_env.set_atmospheric_model(type="wyoming_sounding", file=URL)
+    assert example_env.all_info() == None
     assert example_env.pressure(0) == 93600.0
     assert example_env.wind_velocity_x(0) == -2.9005178894925043
     assert example_env.temperature(100) == 291.75
@@ -94,7 +94,7 @@ def test_wyoming_sounding_atmosphere(mock_show, example_env):
 def test_noaa_ruc_sounding_atmosphere(mock_show, example_env):
     URL = r"https://rucsoundings.noaa.gov/get_raobs.cgi?data_source=RAOB&latest=latest&start_year=2019&start_month_name=Feb&start_mday=5&start_hour=12&start_min=0&n_hrs=1.0&fcst_len=shortest&airport=83779&text=Ascii%20text%20%28GSD%20format%29&hydrometeors=false&start=latest"
     example_env.set_atmospheric_model(type="NOAARucSounding", file=URL)
-    assert example_env.allinfo() == None
+    assert example_env.all_info() == None
     assert example_env.pressure(0) == 100000.0
 
 
@@ -102,14 +102,14 @@ def test_noaa_ruc_sounding_atmosphere(mock_show, example_env):
 @patch("matplotlib.pyplot.show")
 def test_gfs_atmosphere(mock_show, example_env_robust):
     example_env_robust.set_atmospheric_model(type="Forecast", file="GFS")
-    assert example_env_robust.allinfo() == None
+    assert example_env_robust.all_info() == None
 
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_nam_atmosphere(mock_show, example_env_robust):
     example_env_robust.set_atmospheric_model(type="Forecast", file="NAM")
-    assert example_env_robust.allinfo() == None
+    assert example_env_robust.all_info() == None
 
 
 # Deactivated since it is hard to figure out and appropriate date to use RAP forecast
@@ -119,31 +119,31 @@ def test_nam_atmosphere(mock_show, example_env_robust):
 #     today = datetime.date.today()
 #     example_env_robust.set_date((today.year, today.month, today.day, 8)) # Hour given in UTC time
 #     example_env_robust.set_atmospheric_model(type='Forecast', file='RAP')
-#     assert example_env_robust.allinfo() == None
+#     assert example_env_robust.all_info() == None
 
 
 @patch("matplotlib.pyplot.show")
 def test_era5_atmosphere(mock_show):
-    Env = Environment(
+    env = Environment(
         latitude=32.990254,
         longitude=-106.974998,
         elevation=1400,
         date=(2018, 10, 15, 12),
         datum="WGS84",
     )
-    Env.set_atmospheric_model(
+    env.set_atmospheric_model(
         type="Reanalysis",
         file="data/weather/SpaceportAmerica_2018_ERA-5.nc",
         dictionary="ECMWF",
     )
-    assert Env.allinfo() == None
+    assert env.all_info() == None
 
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_gefs_atmosphere(mock_show, example_env_robust):
     example_env_robust.set_atmospheric_model(type="Ensemble", file="GEFS")
-    assert example_env_robust.allinfo() == None
+    assert example_env_robust.all_info() == None
 
 
 @patch("matplotlib.pyplot.show")
@@ -153,7 +153,7 @@ def test_info_returns(mock_show, example_env):
     expected_info = {
         "grav": example_env.gravity,
         "elevation": 0,
-        "modelType": "StandardAtmosphere",
+        "modelType": "standard_atmosphere",
         "modelTypeMaxExpectedHeight": 80000,
         "windSpeed": 0,
         "windDirection": 0,
@@ -185,7 +185,7 @@ def test_info_returns(mock_show, example_env):
 @patch("matplotlib.pyplot.show")
 def test_cmc_atmosphere(mock_show, example_env_robust):
     example_env_robust.set_atmospheric_model(type="Ensemble", file="CMC")
-    assert example_env_robust.allinfo() == None
+    assert example_env_robust.all_info() == None
 
 
 # Deactivated since example file CuritibaRioSaoPauloEnsemble_2018_ERA-5.nc does not exist anymore
@@ -196,7 +196,7 @@ def test_cmc_atmosphere(mock_show, example_env_robust):
 #         file='data/weather/CuritibaRioSaoPauloEnsemble_2018_ERA-5.nc',
 #         dictionary='ECMWF'
 #     )
-#     assert example_env_robust.allinfo() == None
+#     assert example_env_robust.all_info() == None
 
 
 @pytest.mark.slow
@@ -223,7 +223,7 @@ def test_hiresw_ensemble_atmosphere(mock_show, example_env_robust):
         file=f"https://nomads.ncep.noaa.gov/dods/hiresw/hiresw{date_string}/hiresw_conusarw_12z",
         dictionary=HIRESW_dictionary,
     )
-    assert example_env_robust.allinfo() == None
+    assert example_env_robust.all_info() == None
 
 
 def test_export_environment(example_env_robust):
@@ -233,7 +233,7 @@ def test_export_environment(example_env_robust):
 
 def test_utm_to_geodesic(example_env_robust):
     lat, lon = example_env_robust.utm_to_geodesic(
-        x=315468.64, y=3651938.65, utmzone=13, hemis="N"
+        x=315468.64, y=3651938.65, utm_zone=13, hemis="N"
     )
     assert np.isclose(lat, 32.99025, atol=1e-5) == True
     assert np.isclose(lon, -106.9750, atol=1e-5) == True

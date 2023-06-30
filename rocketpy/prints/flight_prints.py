@@ -150,7 +150,7 @@ class _FlightPrints:
         """
 
         print("\nLaunch Rail\n")
-        print("Launch Rail Length:", self.flight.railLength, " m")
+        print("Launch Rail Length:", self.flight.rail_length, " m")
         print("Launch Rail Inclination: {:.2f}°".format(self.flight.inclination))
         print("Launch Rail Heading: {:.2f}°".format(self.flight.heading))
         return None
@@ -206,18 +206,18 @@ class _FlightPrints:
         print("\nBurnOut State\n")
         print("BurnOut time: {:.3f} s".format(self.flight.rocket.motor.burn_out_time))
         print(
-            "Altitude at burnOut: {:.3f} m (AGL)".format(
+            "Altitude at burn_time: {:.3f} m (AGL)".format(
                 self.flight.z(self.flight.rocket.motor.burn_out_time)
                 - self.flight.env.elevation
             )
         )
         print(
-            "Rocket velocity at burnOut: {:.3f} m/s".format(
+            "Rocket velocity at burn_time: {:.3f} m/s".format(
                 self.flight.speed(self.flight.rocket.motor.burn_out_time)
             )
         )
         print(
-            "Freestream velocity at burnOut: {:.3f} m/s".format(
+            "Freestream velocity at burn_time: {:.3f} m/s".format(
                 (
                     self.flight.stream_velocity_x(
                         self.flight.rocket.motor.burn_out_time
@@ -236,12 +236,12 @@ class _FlightPrints:
             )
         )
         print(
-            "Mach Number at burnOut: {:.3f}".format(
+            "Mach Number at burn_time: {:.3f}".format(
                 self.flight.mach_number(self.flight.rocket.motor.burn_out_time)
             )
         )
         print(
-            "Kinetic energy at burnOut: {:.3e} J".format(
+            "Kinetic energy at burn_time: {:.3e} J".format(
                 self.flight.kinetic_energy(self.flight.rocket.motor.burn_out_time)
             )
         )
@@ -373,28 +373,28 @@ class _FlightPrints:
         )
         if (
             len(self.flight.rocket.rail_buttons) == 0
-            or self.flight.outOfRailTimeIndex == 0
+            or self.flight.out_of_rail_time_index == 0
         ):
             pass
         else:
             print(
                 "Maximum Upper Rail Button Normal Force: {:.3f} N".format(
-                    self.flight.maxRailButton1NormalForce
+                    self.flight.max_rail_button1_normal_force
                 )
             )
             print(
                 "Maximum Upper Rail Button Shear Force: {:.3f} N".format(
-                    self.flight.maxRailButton1ShearForce
+                    self.flight.max_rail_button1_shear_force
                 )
             )
             print(
                 "Maximum Lower Rail Button Normal Force: {:.3f} N".format(
-                    self.flight.maxRailButton2NormalForce
+                    self.flight.max_rail_button2_normal_force
                 )
             )
             print(
                 "Maximum Lower Rail Button Shear Force: {:.3f} N".format(
-                    self.flight.maxRailButton2ShearForce
+                    self.flight.max_rail_button2_shear_force
                 )
             )
         return None
@@ -427,7 +427,7 @@ class _FlightPrints:
         self.out_of_rail_conditions()
         print()
 
-        # Print burnOut conditions
+        # Print burn_time conditions
         self.burn_out_conditions()
         print()
 

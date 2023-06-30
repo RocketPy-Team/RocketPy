@@ -58,9 +58,9 @@ class Flight:
             Helper iterator function to generate time discretization points.
 
         Helper parameters:
-        Flight.railLength : float, int
+        Flight.rail_length : float, int
             Launch rail length in meters.
-        Flight.effective1RL : float
+        Flight.effective_1rl : float
             Original rail length minus the distance measured from nozzle exit
             to the upper rail button. It assumes the nozzle to be aligned with
             the beginning of the rail.
@@ -514,7 +514,7 @@ class Flight:
         self,
         rocket,
         environment,
-        railLength,
+        rail_length,
         inclination=80,
         heading=90,
         initial_solution=None,
@@ -537,7 +537,7 @@ class Flight:
         environment : Environment
             Environment to run simulation on. See help(Environment) for
             more information.
-        railLength : int, float
+        rail_length : int, float
             Length in which the rocket will be attached to the rail, only
             moving along a fixed direction, that is, the line parallel to the
             rail. Currently, if the an initialSolution is passed, the rail
@@ -607,8 +607,8 @@ class Flight:
         # and termination events
         self.env = environment
         self.rocket = rocket
-        self.railLength = railLength
-        if self.railLength <= 0:
+        self.rail_length = rail_length
+        if self.rail_length <= 0:
             raise ValueError("Rail length must be a positive value.")
         self.parachutes = self.rocket.parachutes[:]
         self.inclination = inclination
@@ -724,9 +724,9 @@ class Flight:
                     parachute.noisyPressureSignal.append([node.t, pressure + noise])
                     # Gets height above ground level considering noise
                     hAGL = (
-                        self.env.pressure.findInput(
+                        self.env.pressure.find_input(
                             pressure + noise,
-                            overshootableNode.y[2],
+                            overshootable_node.y[2],
                         )
                         - self.env.elevation
                     )
@@ -749,7 +749,7 @@ class Flight:
                             i += 1
                         # Create flight phase for time after inflation
                         callbacks = [
-                            lambda self, parachute_CdS=parachute.CdS: setattr(
+                            lambda self, parachute_CdS=parachute.cd_s: setattr(
                                 self, "parachute_CdS", parachute_CdS
                             )
                         ]
@@ -798,7 +798,7 @@ class Flight:
                         self.y_sol[0] ** 2
                         + self.y_sol[1] ** 2
                         + (self.y_sol[2] - self.env.elevation) ** 2
-                        >= self.effective1rl**2
+                        >= self.effective_1rl**2
                     ):
                         # Rocket is out of rail
                         # Check exactly when it went out using root finding
@@ -812,7 +812,7 @@ class Flight:
                         # Get points
                         y0 = (
                             sum([self.solution[-2][i] ** 2 for i in [1, 2, 3]])
-                            - self.effective1rl**2
+                            - self.effective_1rl**2
                         )
                         yp0 = 2 * sum(
                             [
@@ -823,7 +823,7 @@ class Flight:
                         t1 = self.solution[-1][0] - self.solution[-2][0]
                         y1 = (
                             sum([self.solution[-1][i] ** 2 for i in [1, 2, 3]])
-                            - self.effective1rl**2
+                            - self.effective_1rl**2
                         )
                         yp1 = 2 * sum(
                             [
@@ -1031,15 +1031,15 @@ class Flight:
                                     )
                                     # Gets height above ground level considering noise
                                     hAGL = (
-                                        self.env.pressure.findInput(
+                                        self.env.pressure.find_input(
                                             pressure + noise,
-                                            overshootableNode.y[2],
+                                            overshootable_node.y[2],
                                         )
                                         - self.env.elevation
                                     )
 
                                     if parachute.trigger(
-                                        pressure + noise, hAGL, overshootableNode.y
+                                        pressure + noise, hAGL, overshootable_node.y
                                     ):
                                         # print('\nEVENT DETECTED')
                                         # print('Parachute Triggered')
@@ -1050,8 +1050,8 @@ class Flight:
                                         # Must only be created if parachute has any lag
                                         i = 1
                                         if parachute.lag != 0:
-                                            self.flightPhases.addPhase(
-                                                overshootableNode.t,
+                                            self.FlightPhases.add_phase(
+                                                overshootable_node.t,
                                                 phase.derivative,
                                                 clear=True,
                                                 index=phase_index + i,
@@ -1059,7 +1059,7 @@ class Flight:
                                             i += 1
                                         # Create flight phase for time after inflation
                                         callbacks = [
-                                            lambda self, parachute_CdS=parachute.CdS: setattr(
+                                            lambda self, parachute_CdS=parachute.cd_s: setattr(
                                                 self, "parachute_CdS", parachute_CdS
                                             )
                                         ]
@@ -1162,8 +1162,8 @@ class Flight:
             self.initial_solution = self.initial_solution.solution[-1]
             # Set unused monitors
             self.outOfRailState = self.initialSolution[1:]
-            self.outOfRailTime = self.initialSolution[0]
-            self.outOfRailTimeIndex = 0
+            self.out_of_rail_time = self.initialSolution[0]
+            self.out_of_rail_time_index = 0
             # Set initial derivative for 6-DOF flight phase
             self.initial_derivative = self.udot
         else:
@@ -1189,7 +1189,7 @@ class Flight:
         self.y_sol = self.solution[-1][1:]
 
     @cached_property
-    def effective1RL(self):
+    def effective_1rl(self):
         nozzle = (
             self.rocket.motor_position - self.rocket.center_of_dry_mass_position
         ) * self.rocket._csys  # Kinda works for single nozzle
@@ -1200,11 +1200,11 @@ class Flight:
             )
         except IndexError:  # No rail buttons defined
             upper_r_button = nozzle
-        effective1RL = self.railLength - abs(nozzle - upper_r_button)
-        return effective1RL
+        effective_1rl = self.rail_length - abs(nozzle - upper_r_button)
+        return effective_1rl
 
     @cached_property
-    def effective2RL(self):
+    def effective_2rl(self):
         nozzle = (
             self.rocket.motor_position - self.rocket.center_of_dry_mass_position
         ) * self.rocket._csys
@@ -1213,8 +1213,8 @@ class Flight:
             lower_r_button = rail_buttons.position
         except IndexError:  # No rail buttons defined
             lower_r_button = nozzle
-        effective2RL = self.railLength - abs(nozzle - lower_r_button)
-        return effective2RL
+        effective_2rl = self.rail_length - abs(nozzle - lower_r_button)
+        return effective_2rl
 
     @cached_property
     def frontal_surface_wind(self):
@@ -1494,20 +1494,20 @@ class Flight:
                     M2 += (comp_cp + a) * comp_lift_xb
             # Calculates Roll Moment
             try:
-                clfdelta, cldomega, cant_angle_rad = aero_surface.roll_parameters
+                clf_delta, cld_omega, cant_angle_rad = aero_surface.roll_parameters
                 M3f = (
                     (1 / 2 * rho * free_stream_speed**2)
                     * reference_area
                     * 2
                     * surface_radius
-                    * clfdelta(free_stream_mach)
+                    * clf_delta(free_stream_mach)
                     * cant_angle_rad
                 )
                 M3d = (
                     (1 / 2 * rho * free_stream_speed)
                     * reference_area
                     * (2 * surface_radius) ** 2
-                    * cldomega(free_stream_mach)
+                    * cld_omega(free_stream_mach)
                     * omega3
                     / 2
                 )
@@ -1621,7 +1621,7 @@ class Flight:
 
         """
         # Parachute data
-        CdS = self.parachute_CdS
+        cd_s = self.parachute_CdS
         ka = 1
         R = 1.5
         rho = self.env.density.get_value_opt(u[2])
@@ -1646,7 +1646,7 @@ class Flight:
         freestream_z = vz
         # Determine drag force
         pseudoD = (
-            -0.5 * rho * CdS * free_stream_speed
+            -0.5 * rho * cd_s * free_stream_speed
             - ka * rho * 4 * np.pi * (R**2) * Rdot
         )
         Dx = pseudoD * freestream_x
@@ -1868,7 +1868,7 @@ class Flight:
     @cached_property
     def max_speed_time(self):
         """Time at which the rocket reaches its maximum speed."""
-        max_speed_time_index = np.argmax(self.speed[:, 1])
+        max_speed_time_index = np.argmax(self.speed.get_source()[:, 1])
         return self.speed[max_speed_time_index, 0]
 
     @cached_property
@@ -2031,7 +2031,7 @@ class Flight:
             + self.stream_velocity_y**2
             + self.stream_velocity_z**2
         ) ** 0.5
-        return free_stream_speed.source
+        return free_stream_speed.get_source()
 
     # Apogee Freestream speed
     @cached_property
@@ -2286,48 +2286,48 @@ class Flight:
 
     # Rail Button Forces
     @funcify_method("Time (s)", "Upper Rail Button Normal Force (N)", "spline", "zero")
-    def railButton1NormalForce(self):
+    def rail_button1_normal_force(self):
         """Upper rail button normal force as a rocketpy.Function of time. If
         there's no rail button defined, the function returns a null Function."""
         return self.__calculate_rail_button_forces[0]
 
     @funcify_method("Time (s)", "Upper Rail Button Shear Force (N)", "spline", "zero")
-    def railButton1ShearForce(self):
+    def rail_button1_shear_force(self):
         """Upper rail button shear force as a rocketpy.Function of time. If
         there's no rail button defined, the function returns a null Function."""
         return self.__calculate_rail_button_forces[1]
 
     @funcify_method("Time (s)", "Lower Rail Button Normal Force (N)", "spline", "zero")
-    def railButton2NormalForce(self):
+    def rail_button2_normal_force(self):
         """Lower rail button normal force as a rocketpy.Function of time. If
         there's no rail button defined, the function returns a null Function."""
         return self.__calculate_rail_button_forces[2]
 
     @funcify_method("Time (s)", "Lower Rail Button Shear Force (N)", "spline", "zero")
-    def railButton2ShearForce(self):
+    def rail_button2_shear_force(self):
         """Lower rail button shear force as a rocketpy.Function of time. If
         there's no rail button defined, the function returns a null Function."""
         return self.__calculate_rail_button_forces[3]
 
     @property
-    def maxRailButton1NormalForce(self):
+    def max_rail_button1_normal_force(self):
         """Maximum upper rail button normal force, in Newtons."""
-        return self.railButton1NormalForce.max
+        return self.rail_button1_normal_force.max
 
     @property
-    def maxRailButton1ShearForce(self):
+    def max_rail_button1_shear_force(self):
         """Maximum upper rail button shear force, in Newtons."""
-        return self.railButton1ShearForce.max
+        return self.rail_button1_shear_force.max
 
     @property
-    def maxRailButton2NormalForce(self):
+    def max_rail_button2_normal_force(self):
         """Maximum lower rail button normal force, in Newtons."""
-        return self.railButton2NormalForce.max
+        return self.rail_button2_normal_force.max
 
     @property
-    def maxRailButton2ShearForce(self):
+    def max_rail_button2_shear_force(self):
         """Maximum lower rail button shear force, in Newtons."""
-        return self.railButton2ShearForce.max
+        return self.rail_button2_shear_force.max
 
     @funcify_method(
         "Time (s)", "Horizontal Distance to Launch Point (m)", "spline", "constant"
@@ -2550,7 +2550,7 @@ class Flight:
         """
         # First check for no rail phase or rail buttons
         nullForce = []
-        if self.outOfRailTimeIndex == 0:  # No rail phase, no rail button forces
+        if self.out_of_rail_time_index == 0:  # No rail phase, no rail button forces
             warnings.warn(
                 "Trying to calculate rail button forces without a rail phase defined."
                 + "The rail button forces will be set to zero."
@@ -2573,11 +2573,11 @@ class Flight:
             rail_buttons_tuple.component.angular_position * np.pi / 180
         )
         D1 = (
-            upper_button_position - self.rocket.centerOfDryMassPosition
+            upper_button_position - self.rocket.center_of_dry_mass_position
         ) * self.rocket._csys
         # Distance from Rail Button 2 (lower) to CM
         D2 = (
-            lower_button_position - self.rocket.centerOfDryMassPosition
+            lower_button_position - self.rocket.center_of_dry_mass_position
         ) * self.rocket._csys
         F11 = (self.R1 * D2 - self.M2) / (D1 + D2)
         F11.set_outputs("Upper button force direction 1 (m)")
@@ -2589,7 +2589,7 @@ class Flight:
         F22.set_outputs("Lower button force direction 2 (m)")
 
         model = Function(
-            F11.source[: self.out_of_rail_time_index + 1, :],
+            F11.get_source()[: self.out_of_rail_time_index + 1, :],
             interpolation=F11.__interpolation__,
         )
 
@@ -2599,24 +2599,24 @@ class Flight:
         F21.set_discrete_based_on_model(model)
         F22.set_discrete_based_on_model(model)
 
-        railButton1NormalForce = F11 * np.cos(angular_position_rad) + F12 * np.sin(
+        rail_button1_normal_force = F11 * np.cos(angular_position_rad) + F12 * np.sin(
             angular_position_rad
         )
-        railButton1ShearForce = F11 * -np.sin(angular_position_rad) + F12 * np.cos(
+        rail_button1_shear_force = F11 * -np.sin(angular_position_rad) + F12 * np.cos(
             angular_position_rad
         )
-        railButton2NormalForce = F21 * np.cos(angular_position_rad) + F22 * np.sin(
+        rail_button2_normal_force = F21 * np.cos(angular_position_rad) + F22 * np.sin(
             angular_position_rad
         )
-        railButton2ShearForce = F21 * -np.sin(angular_position_rad) + F22 * np.cos(
+        rail_button2_shear_force = F21 * -np.sin(angular_position_rad) + F22 * np.cos(
             angular_position_rad
         )
 
         return (
-            railButton1NormalForce,
-            railButton1ShearForce,
-            railButton2NormalForce,
-            railButton2ShearForce,
+            rail_button1_normal_force,
+            rail_button1_shear_force,
+            rail_button2_normal_force,
+            rail_button2_shear_force,
         )
 
     def _calculate_pressure_signal(self):
@@ -2806,7 +2806,7 @@ class Flight:
         variables : strings, optional
             Names of the data variables which shall be exported. Must be Flight
             class attributes which are instances of the Function class. Usage
-            example: TestFlight.export_data('test.csv', 'z', 'angle_of_attack',
+            example: test_flight.export_data('test.csv', 'z', 'angle_of_attack',
             'mach_number').
         time_step : float, optional
             Time step desired for the data. If None, all integration time steps
@@ -2974,7 +2974,7 @@ class Flight:
 
         return None
 
-    def allinfo(self):
+    def all_info(self):
         """Prints out all data and graphs available about the Flight.
 
         Parameters

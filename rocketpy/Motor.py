@@ -113,7 +113,7 @@ class Motor(ABC):
     def __init__(
         self,
         thrust_source,
-        burn_out,
+        burn_time,
         nozzle_radius=0.0335,
         nozzle_position=0,
         throat_radius=0.0114,
@@ -136,7 +136,7 @@ class Motor(ABC):
             specify time in seconds, while the second column specifies thrust.
             Arrays may also be specified, following rules set by the class
             Function. See help(Function). Thrust units are Newtons.
-        burn_out : int, float
+        burn_time : int, float
             Motor burn out time in seconds.
         nozzle_radius : int, float, optional
             Motor's nozzle outlet radius in meters. Used to calculate Kn curve.
@@ -185,7 +185,7 @@ class Motor(ABC):
 
         # Thrust parameters
         self.interpolate = interpolation_method
-        self.burn_out_time = burn_out
+        self.burn_out_time = burn_time
 
         # Check if thrust_source is csv, eng, function or other
         if isinstance(thrust_source, str):
@@ -213,7 +213,7 @@ class Motor(ABC):
             thrust_source, "Time (s)", "Thrust (N)", self.interpolate, "zero"
         )
         if callable(thrust_source) or isinstance(thrust_source, (int, float)):
-            self.thrust.set_discrete(0, burn_out, 50, self.interpolate, "zero")
+            self.thrust.set_discrete(0, burn_time, 50, self.interpolate, "zero")
 
         # Reshape curve and calculate impulse
         if reshape_thrust_curve:
@@ -240,9 +240,9 @@ class Motor(ABC):
 
         # Compute quantities
         # Thrust information - maximum and average
-        self.max_thrust = np.amax(self.thrust.source[:, 1])
-        max_thrust_index = np.argmax(self.thrust.source[:, 1])
-        self.max_thrust_time = self.thrust.source[max_thrust_index, 0]
+        self.max_thrust = np.amax(self.thrust.get_source()[:, 1])
+        max_thrust_index = np.argmax(self.thrust.get_source()[:, 1])
+        self.max_thrust_time = self.thrust.get_source()[max_thrust_index, 0]
         self.average_thrust = self.total_impulse / self.burn_out_time
 
         self.propellant_initial_mass = None
@@ -277,21 +277,23 @@ class Motor(ABC):
         None
         """
         # Retrieve current thrust curve data points
-        time_array = self.thrust.source[:, 0]
-        thrust_array = self.thrust.source[:, 1]
+        time_array = self.thrust.get_source()[:, 0]
+        thrust_array = self.thrust.get_source()[:, 1]
         # Move start to time = 0
         if start_at_zero and time_array[0] != 0:
             time_array = time_array - time_array[0]
 
         # Reshape time - set burn time to burn_time
-        self.thrust.source[:, 0] = (burn_time / time_array[-1]) * time_array
+        self.thrust.get_source()[:, 0] = (burn_time / time_array[-1]) * time_array
         self.burn_out_time = burn_time
         self.thrust.set_interpolation(self.interpolate)
 
         # Reshape thrust - set total impulse
         if old_total_impulse is None:
             old_total_impulse = self.evaluate_total_impulse()
-        self.thrust.source[:, 1] = (total_impulse / old_total_impulse) * thrust_array
+        self.thrust.get_source()[:, 1] = (
+            total_impulse / old_total_impulse
+        ) * thrust_array
         self.thrust.set_interpolation(self.interpolate)
 
         # Store total impulse
@@ -394,8 +396,8 @@ class Motor(ABC):
             Total propellant mass as a function of time.
         """
         # Retrieve mass dot curve data
-        t = self.mass_dot.source[:, 0]
-        ydot = self.mass_dot.source[:, 1]
+        t = self.mass_dot.get_source()[:, 0]
+        ydot = self.mass_dot.get_source()[:, 1]
 
         # Set initial conditions
         T = [0]
@@ -528,12 +530,12 @@ class Motor(ABC):
         )
 
         # Write thrust curve data points
-        for time, thrust in self.thrust.source[1:-1, :]:
+        for time, thrust in self.thrust.get_source()[1:-1, :]:
             # time, thrust = item
             file.write("{:.4f} {:.3f}\n".format(time, thrust))
 
         # Write last line
-        file.write("{:.4f} {:.3f}\n".format(self.thrust.source[-1, 0], 0))
+        file.write("{:.4f} {:.3f}\n".format(self.thrust.get_source()[-1, 0], 0))
 
         # Close file
         file.close()
@@ -581,7 +583,7 @@ class Motor(ABC):
 
         return None
 
-    def allinfo(self):
+    def all_info(self):
         """Prints out all data and graphs available about the Motor.
 
         Parameters
@@ -758,7 +760,7 @@ class SolidMotor(Motor):
     def __init__(
         self,
         thrust_source,
-        burn_out,
+        burn_time,
         grains_center_of_mass_position,
         grain_number,
         grain_density,
@@ -788,7 +790,7 @@ class SolidMotor(Motor):
             specify time in seconds, while the second column specifies thrust.
             Arrays may also be specified, following rules set by the class
             Function. See help(Function). Thrust units are Newtons.
-        burn_out : int, float
+        burn_time : int, float
             Motor burn out time in seconds.
         grains_center_of_mass_position : float
             Position of the center of mass of the grains in meters. More specifically,
@@ -846,7 +848,7 @@ class SolidMotor(Motor):
         """
         super().__init__(
             thrust_source,
-            burn_out,
+            burn_time,
             nozzle_radius,
             nozzle_position,
             throat_radius,
@@ -978,7 +980,7 @@ class SolidMotor(Motor):
         y0 = [self.grain_initial_inner_radius, self.grain_initial_height]
 
         # Define time mesh
-        t = self.mass_dot.source[:, 0]
+        t = self.mass_dot.get_source()[:, 0]
 
         density = self.grain_density
         rO = self.grain_outer_radius
@@ -1046,6 +1048,7 @@ class SolidMotor(Motor):
             * self.grain_number
         )
         self.burn_area.set_outputs("Burn Area (m2)")
+        self.burn_area.set_discrete_based_on_model(self.grain_inner_radius)
         return self.burn_area
 
     def evaluate_burn_rate(self):
@@ -1067,16 +1070,16 @@ class SolidMotor(Motor):
         return self.burn_rate
 
     def evaluate_kn(self):
-        KnSource = (
+        kn_source = (
             np.concatenate(
                 (
-                    [self.grain_inner_radius.source[:, 1]],
-                    [self.burn_area.source[:, 1] / self.throat_area],
+                    [self.grain_inner_radius.get_source()[:, 1]],
+                    [self.burn_area.get_source()[:, 1] / self.throat_area],
                 )
             ).transpose()
         ).tolist()
         self.Kn = Function(
-            KnSource,
+            kn_source,
             "Grain Inner Radius (m)",
             "Kn (m2/m2)",
             self.interpolate,
@@ -1123,6 +1126,7 @@ class SolidMotor(Motor):
         # Calculate inertia for all grains
         self.inertia_i = grain_number * grain_inertia_i + grain_mass * np.sum(d**2)
         self.inertia_i.set_outputs("Propellant Inertia I (kg*m2)")
+        self.inertia_i.set_discrete_based_on_model(self.grain_inner_radius)
 
         # Inertia I Dot
         # Calculate each grain's inertia I dot
@@ -1150,6 +1154,7 @@ class SolidMotor(Motor):
             * (self.grain_outer_radius**2 + self.grain_inner_radius**2)
         )
         self.inertia_z.set_outputs("Propellant Inertia Z (kg*m2)")
+        self.inertia_z.set_discrete_based_on_model(self.grain_inner_radius)
 
         # Inertia Z Dot
         self.inertia_z_dot = (1 / 2.0) * self.mass_dot * (
@@ -1159,7 +1164,7 @@ class SolidMotor(Motor):
 
         return [self.inertia_i, self.inertia_z]
 
-    def allinfo(self):
+    def all_info(self):
         """Prints out all data and graphs available about the Motor.
 
         Parameters
@@ -1327,7 +1332,7 @@ class HybridMotor(Motor):
     def __init__(
         self,
         thrust_source,
-        burn_out,
+        burn_time,
         grain_number,
         grain_density,
         grain_outer_radius,
@@ -1364,7 +1369,7 @@ class HybridMotor(Motor):
             specify time in seconds, while the second column specifies thrust.
             Arrays may also be specified, following rules set by the class
             Function. See help(Function). Thrust units are Newtons.
-        burn_out : int, float
+        burn_time : int, float
             Motor burn out time in seconds.
         grain_number : int
             Number of solid grains
@@ -1434,7 +1439,7 @@ class HybridMotor(Motor):
         """
         super().__init__(
             thrust_source,
-            burn_out,
+            burn_time,
             nozzle_radius,
             nozzle_position,
             throat_radius,
@@ -1577,7 +1582,7 @@ class HybridMotor(Motor):
         y0 = [self.grain_initial_inner_radius, self.grain_initial_height]
 
         # Define time mesh
-        t = self.mass_dot.source[:, 0]
+        t = self.mass_dot.get_source()[:, 0]
 
         density = self.grain_density
         rO = self.grain_outer_radius
@@ -1669,8 +1674,8 @@ class HybridMotor(Motor):
         KnSource = (
             np.concatenate(
                 (
-                    [self.grain_inner_radius.source[:, 1]],
-                    [self.burn_area.source[:, 1] / self.throat_area],
+                    [self.grain_inner_radius.get_source()[:, 1]],
+                    [self.burn_area.get_source()[:, 1] / self.throat_area],
                 )
             ).transpose()
         ).tolist()
@@ -1758,7 +1763,7 @@ class HybridMotor(Motor):
 
         return [self.inertia_i, self.inertia_z]
 
-    def allinfo(self):
+    def all_info(self):
         pass
 
 

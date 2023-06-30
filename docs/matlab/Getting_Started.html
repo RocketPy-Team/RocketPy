@@ -611,7 +611,7 @@
           <div class="S6">
             <span style="white-space: pre"
               ><span style="color: rgb(2, 128, 9)"
-                >% rocketpy.Environment(railLength, latitude, longitude,
+                >% rocketpy.Environment(rail_length, latitude, longitude,
                 elevation);</span
               ></span
             >
@@ -620,7 +620,7 @@
         <div class="inlineWrapper">
           <div class="S7">
             <span style="white-space: pre"
-              ><span>Env = rocketpy.Environment(pyargs(</span
+              ><span>env = rocketpy.Environment(pyargs(</span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
           </div>
@@ -629,7 +629,7 @@
           <div class="S7">
             <span style="white-space: pre"
               ><span> </span
-              ><span style="color: rgb(170, 4, 249)">'railLength'</span
+              ><span style="color: rgb(170, 4, 249)">'rail_length'</span
               ><span>, 5.2, </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
@@ -692,7 +692,7 @@
           <div class="S8">
             <span style="white-space: pre"
               ><span
-                >Env.setDate({int32(Tomorrow.Year), int32(Tomorrow.Month),
+                >env.set_date({int32(Tomorrow.Year), int32(Tomorrow.Month),
                 int32(Tomorrow.Day), int32(12)}) </span
               ><span style="color: rgb(2, 128, 9)"
                 >% Hour given in UTC time (noon UTC)</span
@@ -711,7 +711,7 @@
         <div class="inlineWrapper">
           <div class="S6">
             <span style="white-space: pre"
-              ><span>Env.setAtmosphericModel(pyargs( </span
+              ><span>env.set_atmospheric_model(pyargs( </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
           </div>
@@ -751,7 +751,7 @@
       <div class="CodeBlock">
         <div class="inlineWrapper outputs">
           <div class="S10">
-            <span style="white-space: pre"><span>Env.info()</span></span>
+            <span style="white-space: pre"><span>env.info()</span></span>
           </div>
           <div class="S11">
             <div
@@ -839,7 +839,7 @@
           <div class="S7">
             <span style="white-space: pre"
               ><span> </span
-              ><span style="color: rgb(170, 4, 249)">'thrustSource'</span
+              ><span style="color: rgb(170, 4, 249)">'thrust_source'</span
               ><span>, </span
               ><span style="color: rgb(170, 4, 249)"
                 >"../../data/motors/Cesaroni_M1670.eng"</span
@@ -852,7 +852,7 @@
           <div class="S7">
             <span style="white-space: pre"
               ><span> </span
-              ><span style="color: rgb(170, 4, 249)">'burnOut'</span
+              ><span style="color: rgb(170, 4, 249)">'burn_time'</span
               ><span>, 3.9, </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
@@ -863,7 +863,7 @@
             <span style="white-space: pre"
               ><span> </span
               ><span style="color: rgb(170, 4, 249)"
-                >'grainsCenterOfMassPosition'</span
+                >'grains_center_of_mass_position'</span
               ><span>, -0.85704, </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
@@ -873,7 +873,7 @@
           <div class="S7">
             <span style="white-space: pre"
               ><span> </span
-              ><span style="color: rgb(170, 4, 249)">'grainNumber'</span
+              ><span style="color: rgb(170, 4, 249)">'grain_number'</span
               ><span>, int32(5), </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
@@ -883,7 +883,7 @@
           <div class="S7">
             <span style="white-space: pre"
               ><span> </span
-              ><span style="color: rgb(170, 4, 249)">'grainSeparation'</span
+              ><span style="color: rgb(170, 4, 249)">'grain_separation'</span
               ><span>, 5 / 1000, </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
@@ -971,7 +971,7 @@
         <span
           >To see what our thrust curve looks like, along with other import
           properties, we invoke the info method yet again. You may try the
-          allInfo method if you want more information all at once!</span
+          all_info method if you want more information all at once!</span
         >
       </div>
       <div class="CodeBlock">
@@ -1033,7 +1033,7 @@
       </div>
       <div class="S1">
         <span
-          >Let's start by initializing our rocket, named Calisto, supplying it
+          >Let's start by initializing our rocket, named calisto, supplying it
           with the Pro75M1670 engine, entering its inertia properties, some
           dimensions and also its drag curves.</span
         >
@@ -1042,7 +1042,7 @@
         <div class="inlineWrapper">
           <div class="S6">
             <span style="white-space: pre"
-              ><span>Calisto = rocketpy.Rocket(pyargs( </span
+              ><span>calisto = rocketpy.Rocket(pyargs( </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
           </div>
@@ -1070,7 +1070,7 @@
           <div class="S7">
             <span style="white-space: pre"
               ><span> </span
-              ><span style="color: rgb(170, 4, 249)">'inertiaI'</span
+              ><span style="color: rgb(170, 4, 249)">'inertia_i'</span
               ><span>, 6.60, </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
@@ -1080,7 +1080,7 @@
           <div class="S7">
             <span style="white-space: pre"
               ><span> </span
-              ><span style="color: rgb(170, 4, 249)">'inertiaZ'</span
+              ><span style="color: rgb(170, 4, 249)">'inertia_z'</span
               ><span>, 0.0351, </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
@@ -1090,7 +1090,7 @@
           <div class="S7">
             <span style="white-space: pre"
               ><span> </span
-              ><span style="color: rgb(170, 4, 249)">'powerOffDrag'</span
+              ><span style="color: rgb(170, 4, 249)">'power_off_drag'</span
               ><span>, </span
               ><span style="color: rgb(170, 4, 249)"
                 >"../../data/calisto/powerOffDragCurve.csv"</span
@@ -1103,7 +1103,7 @@
           <div class="S7">
             <span style="white-space: pre"
               ><span> </span
-              ><span style="color: rgb(170, 4, 249)">'powerOnDrag'</span
+              ><span style="color: rgb(170, 4, 249)">'power_on_drag'</span
               ><span>, </span
               ><span style="color: rgb(170, 4, 249)"
                 >"../../data/calisto/powerOnDragCurve.csv" </span
@@ -1127,7 +1127,7 @@
               ><span> </span
               ><span style="color: rgb(170, 4, 249)"
                 >'coordinateSystemOrientation'</span
-              ><span>, "nozzleToCombustionChamber", </span
+              ><span>, "nozzle_to_combustion_chamber", </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
           </div>
@@ -1141,7 +1141,7 @@
         <div class="inlineWrapper">
           <div class="S8">
             <span style="white-space: pre"
-              ><span>Calisto.setRailButtons([0.2, -0.5])</span></span
+              ><span>calisto.set_rail_buttons(0.2, -0.5)</span></span
             >
           </div>
         </div>
@@ -1149,7 +1149,7 @@
         <div class="inlineWrapper">
           <div class="S8">
             <span style="white-space: pre"
-              ><span>Calisto.addMotor(Pro75M1670, position=-1.255)</span></span
+              ><span>calisto.add_motor(Pro75M1670, position=-1.255)</span></span
             >
           </div>
         </div>
@@ -1165,7 +1165,7 @@
         <div class="inlineWrapper">
           <div class="S6">
             <span style="white-space: pre"
-              ><span>NoseCone = rocketpy.Rocket.addNose(pyargs( </span
+              ><span>NoseCone = rocketpy.Rocket.add_nose(pyargs( </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
           </div>
@@ -1174,7 +1174,7 @@
           <div class="S7">
             <span style="white-space: pre"
               ><span> </span><span style="color: rgb(170, 4, 249)">'self'</span
-              ><span>, Calisto, </span
+              ><span>, calisto, </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
           </div>
@@ -1219,7 +1219,7 @@
         <div class="inlineWrapper">
           <div class="S7">
             <span style="white-space: pre"
-              ><span>FinSet = rocketpy.Rocket.addTrapezoidalFins(pyargs( </span
+              ><span>FinSet = rocketpy.Rocket.add_trapezoidal_fins(pyargs( </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
           </div>
@@ -1228,7 +1228,7 @@
           <div class="S7">
             <span style="white-space: pre"
               ><span> </span><span style="color: rgb(170, 4, 249)">'self'</span
-              ><span>, Calisto, </span
+              ><span>, calisto, </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
           </div>
@@ -1255,7 +1255,7 @@
           <div class="S7">
             <span style="white-space: pre"
               ><span> </span
-              ><span style="color: rgb(170, 4, 249)">'rootChord'</span
+              ><span style="color: rgb(170, 4, 249)">'root_chord'</span
               ><span>, 0.120, </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
@@ -1265,7 +1265,7 @@
           <div class="S7">
             <span style="white-space: pre"
               ><span> </span
-              ><span style="color: rgb(170, 4, 249)">'tipChord'</span
+              ><span style="color: rgb(170, 4, 249)">'tip_chord'</span
               ><span>, 0.040, </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
@@ -1290,7 +1290,7 @@
         <div class="inlineWrapper">
           <div class="S7">
             <span style="white-space: pre"
-              ><span>Tail = rocketpy.Rocket.addTail(pyargs( </span
+              ><span>Tail = rocketpy.Rocket.add_tail(pyargs( </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
           </div>
@@ -1299,7 +1299,7 @@
           <div class="S7">
             <span style="white-space: pre"
               ><span> </span><span style="color: rgb(170, 4, 249)">'self'</span
-              ><span>, Calisto, </span
+              ><span>, calisto, </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
           </div>
@@ -1308,7 +1308,7 @@
           <div class="S7">
             <span style="white-space: pre"
               ><span> </span
-              ><span style="color: rgb(170, 4, 249)">'topRadius'</span
+              ><span style="color: rgb(170, 4, 249)">'top_radius'</span
               ><span>, 0.0635, </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
@@ -1318,7 +1318,7 @@
           <div class="S7">
             <span style="white-space: pre"
               ><span> </span
-              ><span style="color: rgb(170, 4, 249)">'bottomRadius'</span
+              ><span style="color: rgb(170, 4, 249)">'bottom_radius'</span
               ><span>, 0.0435, </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
@@ -1353,7 +1353,7 @@
       <h3 class="S12"><span>Adding Parachutes</span></h3>
       <div class="S1">
         <span
-          >Finally, we have parachutes! Calisto will have two parachutes, Drogue
+          >Finally, we have parachutes! calisto will have two parachutes, Drogue
           and Main.</span
         >
       </div>
@@ -1379,7 +1379,7 @@
           <div class="S4">
             <span style="white-space: pre"
               ><span style="color: rgb(2, 128, 9)"
-                >% py.help(rocketpy.Rocket.addParachute)</span
+                >% py.help(rocketpy.Rocket.add_parachute)</span
               ></span
             >
           </div>
@@ -1453,7 +1453,7 @@
         <div class="inlineWrapper">
           <div class="S6">
             <span style="white-space: pre"
-              ><span>Main = rocketpy.Rocket.addParachute(pyargs( </span
+              ><span>Main = rocketpy.Rocket.add_parachute(pyargs( </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
           </div>
@@ -1462,7 +1462,7 @@
           <div class="S7">
             <span style="white-space: pre"
               ><span> </span><span style="color: rgb(170, 4, 249)">'self'</span
-              ><span>, Calisto, </span
+              ><span>, calisto, </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
           </div>
@@ -1480,7 +1480,7 @@
         <div class="inlineWrapper">
           <div class="S7">
             <span style="white-space: pre"
-              ><span> </span><span style="color: rgb(170, 4, 249)">'CdS'</span
+              ><span> </span><span style="color: rgb(170, 4, 249)">'cd_s'</span
               ><span>, 10.0, </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
@@ -1500,7 +1500,7 @@
           <div class="S7">
             <span style="white-space: pre"
               ><span> </span
-              ><span style="color: rgb(170, 4, 249)">'samplingRate'</span
+              ><span style="color: rgb(170, 4, 249)">'sampling_rate'</span
               ><span>, 105, </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
@@ -1533,7 +1533,7 @@
         <div class="inlineWrapper">
           <div class="S7">
             <span style="white-space: pre"
-              ><span>Drogue = rocketpy.Rocket.addParachute(pyargs( </span
+              ><span>Drogue = rocketpy.Rocket.add_parachute(pyargs( </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
           </div>
@@ -1542,7 +1542,7 @@
           <div class="S7">
             <span style="white-space: pre"
               ><span> </span><span style="color: rgb(170, 4, 249)">'self'</span
-              ><span>, Calisto, </span
+              ><span>, calisto, </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
           </div>
@@ -1561,7 +1561,7 @@
         <div class="inlineWrapper">
           <div class="S7">
             <span style="white-space: pre"
-              ><span> </span><span style="color: rgb(170, 4, 249)">'CdS'</span
+              ><span> </span><span style="color: rgb(170, 4, 249)">'cd_s'</span
               ><span>, 1.0, </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
@@ -1581,7 +1581,7 @@
           <div class="S7">
             <span style="white-space: pre"
               ><span> </span
-              ><span style="color: rgb(170, 4, 249)">'samplingRate'</span
+              ><span style="color: rgb(170, 4, 249)">'sampling_rate'</span
               ><span>, 105, </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
@@ -1626,7 +1626,7 @@
           <div class="S6">
             <span style="white-space: pre"
               ><span style="color: rgb(2, 128, 9)"
-                >% Calisto.parachutes.remove(Drogue)</span
+                >% calisto.parachutes.remove(Drogue)</span
               ></span
             >
           </div>
@@ -1635,7 +1635,7 @@
           <div class="S8">
             <span style="white-space: pre"
               ><span style="color: rgb(2, 128, 9)"
-                >% Calisto.parachutes.remove(Main)</span
+                >% calisto.parachutes.remove(Main)</span
               ></span
             >
           </div>
@@ -1656,7 +1656,7 @@
         <div class="inlineWrapper">
           <div class="S6">
             <span style="white-space: pre"
-              ><span>TestFlight = rocketpy.Flight(pyargs(</span
+              ><span>test_flight = rocketpy.Flight(pyargs(</span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
           </div>
@@ -1666,7 +1666,7 @@
             <span style="white-space: pre"
               ><span> </span
               ><span style="color: rgb(170, 4, 249)">'rocket'</span
-              ><span>, Calisto, </span
+              ><span>, calisto, </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
           </div>
@@ -1676,7 +1676,7 @@
             <span style="white-space: pre"
               ><span> </span
               ><span style="color: rgb(170, 4, 249)">'environment'</span
-              ><span>,Env, </span
+              ><span>,env, </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
           </div>
@@ -1722,7 +1722,7 @@
         <div class="inlineWrapper outputs">
           <div class="S10">
             <span style="white-space: pre"
-              ><span>TestFlight.allInfo()</span></span
+              ><span>test_flight.all_info()</span></span
             >
           </div>
           <div class="S11">
@@ -1766,9 +1766,9 @@
                 2.133 c Rail Departure Angle of Attack: 13.148° Rail Departure
                 Thrust-Weight Ratio: 10.143 Rail Departure Reynolds Number:
                 1.927e+05 BurnOut State BurnOut time: 3.900 s Altitude at
-                burnOut: 660.034 m (AGL) Rocket velocity at burnOut: 280.019 m/s
-                Freestream velocity at burnOut: 279.862 m/s Mach Number at
-                burnOut: 0.831 Kinetic energy at burnOut: 6.367e+05 J Apogee
+                burn_time: 660.034 m (AGL) Rocket velocity at burn_time: 280.019 m/s
+                Freestream velocity at burn_time: 279.862 m/s Mach Number at
+                burn_time: 0.831 Kinetic energy at burn_time: 6.367e+05 J Apogee
                 Apogee Altitude: 4826.179 m (ASL) | 3354.713 m (AGL) Apogee
                 Time: 26.058 s Apogee Freestream Speed: 11.757 m/s Events Drogue
                 Ejection Triggered at: 26.067 s Drogue Parachute Inflated at:
@@ -1921,7 +1921,7 @@
             <span style="white-space: pre"
               ><span
                 >solution_matrix =
-                double(py.numpy.array(TestFlight.solution))</span
+                double(py.numpy.array(test_flight.solution))</span
               ></span
             >
           </div>
@@ -2082,7 +2082,7 @@
           <div class="S10">
             <span style="white-space: pre"
               ><span
-                >angle_of_attack = double(TestFlight.angleOfAttack.source)</span
+                >angle_of_attack = double(test_flight.angleOfAttack.source)</span
               ></span
             >
           </div>
@@ -2227,7 +2227,7 @@
         <div class="inlineWrapper outputs">
           <div class="S14">
             <span style="white-space: pre"
-              ><span>xlim([TestFlight.outOfRailTime, 10])</span></span
+              ><span>xlim([test_flight.out_of_rail_time, 10])</span></span
             >
           </div>
           <div class="S11">
@@ -2249,7 +2249,7 @@
         <div class="inlineWrapper outputs">
           <div class="S10">
             <span style="white-space: pre"
-              ><span>wind_velocity_x = double(Env.windVelocityX.source) </span
+              ><span>wind_velocity_x = double(env.windVelocityX.source) </span
               ><span style="color: rgb(2, 128, 9)"
                 >% First column is altitude (ASL m), while the second one is the
                 speed (m/s)</span
@@ -2390,7 +2390,7 @@
         <div class="inlineWrapper outputs">
           <div class="S15">
             <span style="white-space: pre"
-              ><span>wind_velocity_y = double(Env.windVelocityY.source) </span
+              ><span>wind_velocity_y = double(env.windVelocityY.source) </span
               ><span style="color: rgb(2, 128, 9)"
                 >% First column is altitude (ASL m), while the second one is the
                 speed (m/s)</span
@@ -2570,9 +2570,9 @@ rocketpy = py.importlib.import_module('rocketpy');
 %% Setting Up a Simulation
 % Creating an Environment for Spaceport America
 
-% rocketpy.Environment(railLength, latitude, longitude, elevation);
-Env = rocketpy.Environment(pyargs(...
-    'railLength', 5.2, ...
+% rocketpy.Environment(rail_length, latitude, longitude, elevation);
+env = rocketpy.Environment(pyargs(...
+    'rail_length', 5.2, ...
     'latitude', 32.990254, ...
     'longitude',-106.974998, ...
     'elevation', 1400 ...
@@ -2584,19 +2584,19 @@ Env = rocketpy.Environment(pyargs(...
 % First, we set tomorrow's date.
 
 Tomorrow = datetime('tomorrow');
-Env.setDate({int32(Tomorrow.Year), int32(Tomorrow.Month), int32(Tomorrow.Day), int32(12)}) % Hour given in UTC time (noon UTC)
+env.set_date({int32(Tomorrow.Year), int32(Tomorrow.Month), int32(Tomorrow.Day), int32(12)}) % Hour given in UTC time (noon UTC)
 %% 
 % Now, we tell our Environment object to retrieve a weather forecast for our 
 % specified location and date using GFS:
 
-Env.setAtmosphericModel(pyargs( ...
+env.set_atmospheric_model(pyargs( ...
     'type', "Forecast", ...
     'file', "GFS" ...
 ))
 %% 
 % We can see what the weather will look like by calling the info method!
 
-Env.info()
+env.info()
 %% 
 % Plots will open in a separate window, so be sure to run this last cell to 
 % see them!
@@ -2612,10 +2612,10 @@ Env.info()
 % dimensions must also be given.
 
 Pro75M1670 = rocketpy.SolidMotor(pyargs( ...
-    'thrustSource', "../../data/motors/Cesaroni_M1670.eng", ...
-    'burnOut', 3.9, ...
-    'grainNumber', int32(5), ...
-    'grainSeparation', 5 / 1000, ...
+    'thrust_source', "../../data/motors/Cesaroni_M1670.eng", ...
+    'burn_time', 3.9, ...
+    'grain_number', int32(5), ...
+    'grain_separation', 5 / 1000, ...
     'grainDensity', 1815, ...
     'grain_outer_radius', 33 / 1000, ...
     'grainInitialInnerRadius', 15 / 1000, ...
@@ -2626,7 +2626,7 @@ Pro75M1670 = rocketpy.SolidMotor(pyargs( ...
 ));
 %% 
 % To see what our thrust curve looks like, along with other import properties, 
-% we invoke the info method yet again. You may try the allInfo method if you want 
+% we invoke the info method yet again. You may try the all_info method if you want 
 % more information all at once!
 
 Pro75M1670.info()
@@ -2638,51 +2638,51 @@ Pro75M1670.info()
 % thing we have the Pro75M1670 ready), a couple of aerodynamic surfaces (nose 
 % cone, fins and tail) and parachutes (if we are not launching a missile).
 % 
-% Let's start by initializing our rocket, named Calisto, supplying it with the 
+% Let's start by initializing our rocket, named calisto, supplying it with the 
 % Pro75M1670 engine, entering its inertia properties, some dimensions and also 
 % its drag curves.
 
-Calisto = rocketpy.Rocket(pyargs( ...
+calisto = rocketpy.Rocket(pyargs( ...
     'motor', Pro75M1670, ...
     'radius', 127 / 2000, ...
     'mass', 19.197 - 2.956, ...
-    'inertiaI', 6.60, ...
-    'inertiaZ', 0.0351, ...
-    'distanceRocketNozzle', -1.255, ...
+    'inertia_i', 6.60, ...
+    'inertia_z', 0.0351, ...
+    'distance_rocket_nozzle', -1.255, ...
     'distanceRocketPropellant', -0.85704, ...
-    'powerOffDrag', "../../data/calisto/powerOffDragCurve.csv", ...
-    'powerOnDrag', "../../data/calisto/powerOnDragCurve.csv" ...
+    'power_off_drag', "../../data/calisto/powerOffDragCurve.csv", ...
+    'power_on_drag', "../../data/calisto/powerOnDragCurve.csv" ...
 ));
 
-Calisto.setRailButtons([0.2, -0.5])
+calisto.set_rail_buttons(0.2, -0.5)
 % Adding Aerodynamic Surfaces
 % Now we define the aerodynamic surfaces. They are really straight forward.
 
-NoseCone = rocketpy.Rocket.addNose(pyargs( ...
-    'self', Calisto, ...
+NoseCone = rocketpy.Rocket.add_nose(pyargs( ...
+    'self', calisto, ...
     'length', 0.55829, ...
     'kind', "vonKarman", ...
     'distanceToCM', 0.71971 ...
 ));
 
-FinSet = rocketpy.Rocket.addTrapezoidalFins(pyargs( ...
-    'self', Calisto, ...
+FinSet = rocketpy.Rocket.add_trapezoidal_fins(pyargs( ...
+    'self', calisto, ...
     'n', int32(4), ...
     'span', 0.100, ...
-    'rootChord', 0.120, ...
-    'tipChord', 0.040, ...
+    'root_chord', 0.120, ...
+    'tip_chord', 0.040, ...
     'distanceToCM', -1.04956 ...
 ));
 
-Tail = rocketpy.Rocket.addTail(pyargs( ...
-    'self', Calisto, ...
-    'topRadius', 0.0635, ...
-    'bottomRadius', 0.0435, ...
+Tail = rocketpy.Rocket.add_tail(pyargs( ...
+    'self', calisto, ...
+    'top_radius', 0.0635, ...
+    'bottom_radius', 0.0435, ...
     'length', 0.060, ...
     'distanceToCM', -1.194656 ...
 ));
 % Adding Parachutes
-% Finally, we have parachutes! Calisto will have two parachutes, Drogue and 
+% Finally, we have parachutes! calisto will have two parachutes, Drogue and 
 % Main.
 % 
 % Both parachutes are activated by some special algorithm, which is usually 
@@ -2694,7 +2694,7 @@ Tail = rocketpy.Rocket.addTail(pyargs( ...
 % with pressure measurement at a predefined sampling rate. This pressure signal 
 % is usually noisy, so artificial noise parameters can be given. Call 
 
-% py.help(rocketpy.Rocket.addParachute)
+% py.help(rocketpy.Rocket.add_parachute)
 %% 
 % for more details. Furthermore, the trigger function also receives the complete 
 % state vector of the rocket, allowing us to use velocity, acceleration or even 
@@ -2711,22 +2711,22 @@ main_trigger = py.eval("lambda p, y: (y[5] < 0) and (y[2] < 800 + 1400)", py.dic
 %% 
 % Now we add both the drogue and the main parachute to our rocket.
 
-Main = rocketpy.Rocket.addParachute(pyargs( ...
-    'self', Calisto, ...
+Main = rocketpy.Rocket.add_parachute(pyargs( ...
+    'self', calisto, ...
     'name', "Main", ...
-    'CdS', 10.0, ...
+    'cd_s', 10.0, ...
     'trigger', main_trigger, ...
-    'samplingRate', 105, ...
+    'sampling_rate', 105, ...
     'lag', 1.5, ...
     'noise', py.tuple({0, 8.3, 0.5}) ...
 ));
 
-Drogue = rocketpy.Rocket.addParachute(pyargs( ...
-    'self', Calisto, ...
+Drogue = rocketpy.Rocket.add_parachute(pyargs( ...
+    'self', calisto, ...
     'name', "Drogue", ...
-    'CdS', 1.0, ...
+    'cd_s', 1.0, ...
     'trigger', drogue_trigger, ...
-    'samplingRate', 105, ...
+    'sampling_rate', 105, ...
     'lag', 1.5, ...
     'noise', py.tuple({0, 8.3, 0.5}) ...
 ));
@@ -2737,16 +2737,16 @@ Drogue = rocketpy.Rocket.addParachute(pyargs( ...
 % which define our rocket before running this, preventing unwanted old parachutes. 
 % Alternatively, you can run the following lines to remove parachutes.|
 
-% Calisto.parachutes.remove(Drogue)
-% Calisto.parachutes.remove(Main)
+% calisto.parachutes.remove(Drogue)
+% calisto.parachutes.remove(Main)
 %% |Simulating a Flight|
 % |Simulating a flight trajectory is as simple as initializing a Flight class 
 % object givin the rocket and environnement set up above as inputs. The launch 
 % rail inclination and heading are also given here.|
 
-TestFlight = rocketpy.Flight(pyargs(...
-    'rocket', Calisto, ...
-    'environment',Env, ...
+test_flight = rocketpy.Flight(pyargs(...
+    'rocket', calisto, ...
+    'environment',env, ...
     'inclination', 85, ...
     'heading', 0 ...
 ));
@@ -2756,7 +2756,7 @@ TestFlight = rocketpy.Flight(pyargs(...
 % see how to get plots for specific variables only, instead of all of them at 
 % once.|
 
-TestFlight.allInfo()
+test_flight.all_info()
 %% 
 % Plots will open in a separate window, so be sure to run this last cell to 
 % see them!
@@ -2766,7 +2766,7 @@ TestFlight.allInfo()
 % (m), $y$ (m), $z$ (m), $v_x$ (m/s), $v_y$ (m/s), $v_z$ (m/s), $q_0$, $q_1$, 
 % $q_2$, $q_3$,  $\omega_1$ (rad/s), $\omega_2$ (rad/s), $\omega_3$ (rad/s).
 
-solution_matrix = double(py.numpy.array(TestFlight.solution))
+solution_matrix = double(py.numpy.array(test_flight.solution))
 %% 
 % Support for accessing secondary values calculated during post processing, 
 % such as energy, mach number, and angle of attack, is also available for all 
@@ -2775,18 +2775,18 @@ solution_matrix = double(py.numpy.array(TestFlight.solution))
 % To showcase this, let's get the angle of attack of the rocket and plot it 
 % using MATLAB®:
 
-angle_of_attack = double(TestFlight.angleOfAttack.source)
+angle_of_attack = double(test_flight.angleOfAttack.source)
 plot(angle_of_attack(:,1), angle_of_attack(:,2)) % First column is time (s), second is the angle of attack
 ylabel('Angle of Attack (Deg)')
 xlabel('Time(s)')
-xlim([TestFlight.outOfRailTime, 10])
+xlim([test_flight.out_of_rail_time, 10])
 %% 
 % You can also convert data from other objects besides the Flight class, such 
 % as from the Environment. For example, let's say you want to get the wind velocity, 
 % both the x and y component:
 
-wind_velocity_x = double(Env.windVelocityX.source) % First column is altitude (ASL m), while the second one is the speed (m/s)
-wind_velocity_y = double(Env.windVelocityY.source) % First column is altitude (ASL m), while the second one is the speed (m/s)
+wind_velocity_x = double(env.windVelocityX.source) % First column is altitude (ASL m), while the second one is the speed (m/s)
+wind_velocity_y = double(env.windVelocityY.source) % First column is altitude (ASL m), while the second one is the speed (m/s)
 %% Time to Fly!
 % This is all you need to get started using RocketPy in MATLAB®! Now it is time 
 % to play around and create amazing rockets. Have a great launch!

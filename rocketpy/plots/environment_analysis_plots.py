@@ -487,9 +487,9 @@ class _EnvironmentAnalysisPlots:
         plt.autoscale(enable=True, axis="y", tight=True)
 
         if clear_range_limits:
-            xmin, xmax, _, _ = plt.axis()
+            x_min, xmax, _, _ = plt.axis()
             plt.fill_between(
-                [xmin, xmax],
+                [x_min, xmax],
                 0.7
                 * convert_units(10000, "ft", self.env_analysis.unit_system["length"]),
                 1.3
@@ -499,7 +499,7 @@ class _EnvironmentAnalysisPlots:
                 label=f"10,000 {self.env_analysis.unit_system['length']} ± 30%",
             )
             plt.fill_between(
-                [xmin, xmax],
+                [x_min, xmax],
                 0.7
                 * convert_units(30000, "ft", self.env_analysis.unit_system["length"]),
                 1.3
@@ -555,9 +555,9 @@ class _EnvironmentAnalysisPlots:
         )
 
         if clear_range_limits:
-            xmin, xmax, _, _ = plt.axis()
+            x_min, xmax, _, _ = plt.axis()
             plt.fill_between(
-                [xmin, xmax],
+                [x_min, xmax],
                 0.7
                 * convert_units(10000, "ft", self.env_analysis.unit_system["length"]),
                 1.3
@@ -567,7 +567,7 @@ class _EnvironmentAnalysisPlots:
                 label=f"10,000 {self.env_analysis.unit_system['length']} ± 30%",
             )
             plt.fill_between(
-                [xmin, xmax],
+                [x_min, xmax],
                 0.7
                 * convert_units(30000, "ft", self.env_analysis.unit_system["length"]),
                 1.3
@@ -614,9 +614,9 @@ class _EnvironmentAnalysisPlots:
         plt.autoscale(enable=True, axis="y", tight=True)
 
         if clear_range_limits:
-            xmin, xmax = 0, 360
+            x_min, xmax = 0, 360
             plt.fill_between(
-                [xmin, xmax],
+                [x_min, xmax],
                 0.7
                 * convert_units(10000, "ft", self.env_analysis.unit_system["length"]),
                 1.3
@@ -626,7 +626,7 @@ class _EnvironmentAnalysisPlots:
                 label=f"10,000 {self.env_analysis.unit_system['length']} ± 30%",
             )
             plt.fill_between(
-                [xmin, xmax],
+                [x_min, xmax],
                 0.7
                 * convert_units(30000, "ft", self.env_analysis.unit_system["length"]),
                 1.3
@@ -700,9 +700,9 @@ class _EnvironmentAnalysisPlots:
         plt.autoscale(enable=True, axis="y", tight=True)
 
         if clear_range_limits:
-            xmin, xmax, _, _ = plt.axis()
+            x_min, xmax, _, _ = plt.axis()
             plt.fill_between(
-                [xmin, xmax],
+                [x_min, xmax],
                 0.7
                 * convert_units(10000, "ft", self.env_analysis.unit_system["length"]),
                 1.3
@@ -712,7 +712,7 @@ class _EnvironmentAnalysisPlots:
                 label=f"10,000 {self.env_analysis.unit_system['length']} ± 30%",
             )
             plt.fill_between(
-                [xmin, xmax],
+                [x_min, xmax],
                 0.7
                 * convert_units(30000, "ft", self.env_analysis.unit_system["length"]),
                 1.3
@@ -788,9 +788,9 @@ class _EnvironmentAnalysisPlots:
         plt.autoscale(enable=True, axis="y", tight=True)
 
         if clear_range_limits:
-            xmin, xmax, ymax, ymin = plt.axis()
+            x_min, xmax, ymax, ymin = plt.axis()
             plt.fill_between(
-                [xmin, xmax],
+                [x_min, xmax],
                 0.7
                 * convert_units(10000, "ft", self.env_analysis.unit_system["length"]),
                 1.3
@@ -800,7 +800,7 @@ class _EnvironmentAnalysisPlots:
                 label=f"10,000 {self.env_analysis.unit_system['length']} ± 30%",
             )
             plt.fill_between(
-                [xmin, xmax],
+                [x_min, xmax],
                 0.7
                 * convert_units(30000, "ft", self.env_analysis.unit_system["length"]),
                 1.3
@@ -1453,7 +1453,7 @@ class _EnvironmentAnalysisPlots:
             if self.env_analysis.forecast:
                 forecast = self.env_analysis.forecast
                 y = self.env_analysis.average_wind_speed_profile_by_hour[hour][1]
-                x = forecast[hour].windSpeed.getValue(y) * convert_units(
+                x = forecast[hour].windSpeed.get_value(y) * convert_units(
                     1, "m/s", self.env_analysis.unit_system["wind_speed"]
                 )
                 ax.plot(x, y, "b--")

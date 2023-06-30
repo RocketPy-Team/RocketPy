@@ -12,7 +12,7 @@ parameters = {
     "rocket_mass": (18.227, 0.010),  # 1.373 = propellant mass
     # Propulsion Details
     "impulse": (2157, 0.03 * 2157),
-    "burn_out": (2.43, 0.1),
+    "burn_time": (2.43, 0.1),
     "nozzle_radius": (44.45 / 1000, 0.001),
     "throat_radius": (21.4376 / 1000, 0.001),
     "grain_separation": (3 / 1000, 1 / 1000),
@@ -50,24 +50,24 @@ parameters = {
 }
 
 # Environment conditions
-Env = Environment(
+env = Environment(
     gravity=9.81,
     latitude=47.213476,
     longitude=9.003336,
     date=(2020, 2, 22, 13, 0, 1),
     elevation=407,
 )
-Env.set_atmospheric_model(
+env.set_atmospheric_model(
     type="Reanalysis",
     file="tests/fixtures/acceptance/EPFL_Bella_Lui/bella_lui_weather_data_ERA5.nc",
     dictionary="ECMWF",
 )
-Env.max_expected_height = 2000
+env.max_expected_height = 2000
 
 # Motor Information
 K828FJ = SolidMotor(
     thrust_source="tests/fixtures/acceptance/EPFL_Bella_Lui/bella_lui_motor_AeroTech_K828FJ.eng",
-    burn_out=parameters.get("burn_out")[0],
+    burn_time=parameters.get("burn_time")[0],
     grains_center_of_mass_position=parameters.get("distance_rocket_propellant")[0],
     grain_number=3,
     grain_separation=parameters.get("grain_separation")[0],
@@ -90,15 +90,15 @@ BellaLui = Rocket(
     power_off_drag=0.43,
     power_on_drag=0.43,
 )
-BellaLui.setRailButtons(0.1, -0.5)
-BellaLui.addMotor(K828FJ, parameters.get("distanceRocketNozzle")[0])
-NoseCone = BellaLui.addNose(
-    length=parameters.get("noseLength")[0],
+BellaLui.set_rail_buttons(0.1, -0.5)
+BellaLui.add_motor(K828FJ, parameters.get("distance_rocket_nozzle")[0])
+NoseCone = BellaLui.add_nose(
+    length=parameters.get("nose_length")[0],
     kind="tangent",
     position=parameters.get("nose_distance_to_cm")[0]
     + parameters.get("nose_length")[0],
 )
-finset = BellaLui.add_trapezoidal_fins(
+fin_set = BellaLui.add_trapezoidal_fins(
     3,
     span=parameters.get("fin_span")[0],
     root_chord=parameters.get("fin_root_chord")[0],
@@ -121,9 +121,9 @@ def drogue_trigger(p, h, y):
     return True if y[5] < 0 else False
 
 
-drogue = BellaLui.addParachute(
+drogue = BellaLui.add_parachute(
     "Drogue",
-    CdS=parameters.get("CdS_drogue")[0],
+    cd_s=parameters.get("CdS_drogue")[0],
     trigger=drogue_trigger,
     sampling_rate=105,
     lag=parameters.get("lag_rec")[0],
@@ -165,14 +165,14 @@ BellaLui.power_off_drag *= parameters.get("power_off_drag")[0]
 BellaLui.power_on_drag *= parameters.get("power_on_drag")[0]
 
 # Flight
-TestFlight = Flight(
+test_flight = Flight(
     rocket=BellaLui,
-    environment=Env,
-    railLength=parameters.get("railLength")[0],
+    environment=env,
+    rail_length=parameters.get("rail_length")[0],
     inclination=parameters.get("inclination")[0],
     heading=parameters.get("heading")[0],
 )
-TestFlight.post_process()
+test_flight.post_process()
 
 # Comparision with Real Data
 flight_data = np.loadtxt(
@@ -191,17 +191,17 @@ altitude_rcp = []
 velocity_rcp = []
 acceleration_rcp = []
 i = 0
-while i <= int(TestFlight.t_final):
+while i <= int(test_flight.t_final):
     time_rcp.append(i)
-    altitude_rcp.append(TestFlight.z(i) - TestFlight.env.elevation)
-    velocity_rcp.append(TestFlight.vz(i))
-    acceleration_rcp.append(TestFlight.az(i))
+    altitude_rcp.append(test_flight.z(i) - test_flight.env.elevation)
+    velocity_rcp.append(test_flight.vz(i))
+    acceleration_rcp.append(test_flight.az(i))
     i += 0.005
 
-time_rcp.append(TestFlight.t_final)
+time_rcp.append(test_flight.t_final)
 altitude_rcp.append(0)
-velocity_rcp.append(TestFlight.vz(TestFlight.t_final))
-acceleration_rcp.append(TestFlight.az(TestFlight.t_final))
+velocity_rcp.append(test_flight.vz(test_flight.t_final))
+acceleration_rcp.append(test_flight.az(test_flight.t_final))
 
 # Acceleration comparison (will not be used in our publication)
 from scipy.signal import savgol_filter
@@ -216,11 +216,11 @@ acceleration_kalt_filt = savgol_filter(acceleration_kalt, 51, 3)  # Filter our d
 
 # Summary
 print("Apogee (AGL)")
-print("RocketPy: {:.2f} meters".format(TestFlight.apogee - TestFlight.env.elevation))
+print("RocketPy: {:.2f} meters".format(test_flight.apogee - test_flight.env.elevation))
 print("Real data: {:.2f} meters".format(max(altitude_kalt)))
 print(
     "RocketPy - Real data: {:.2f} meters".format(
-        abs(max(altitude_kalt) - TestFlight.apogee + TestFlight.env.elevation)
+        abs(max(altitude_kalt) - test_flight.apogee + test_flight.env.elevation)
     )
 )
 print()

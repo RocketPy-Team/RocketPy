@@ -6,7 +6,7 @@ import pytest
 
 from rocketpy import SolidMotor
 
-burn_out = 3.9
+burn_time = 3.9
 grain_number = 5
 grain_separation = 5 / 1000
 grain_density = 1815
@@ -21,7 +21,7 @@ throat_radius = 11 / 1000
 def test_motor(mock_show):
     example_motor = SolidMotor(
         thrust_source="tests/fixtures/motor/Cesaroni_M1670.eng",
-        burn_out=3.9,
+        burn_time=3.9,
         grain_number=5,
         grain_separation=5 / 1000,
         grain_density=1815,
@@ -35,7 +35,7 @@ def test_motor(mock_show):
         coordinate_system_orientation="nozzle_to_combustion_chamber",
     )
 
-    assert example_motor.allinfo() == None
+    assert example_motor.all_info() == None
 
 
 def test_initialize_motor_asserts_dynamic_values(solid_motor):
@@ -46,16 +46,16 @@ def test_initialize_motor_asserts_dynamic_values(solid_motor):
 
     assert solid_motor.max_thrust == 2200.0
     assert solid_motor.max_thrust_time == 0.15
-    assert solid_motor.burn_out_time == burn_out
-    assert solid_motor.total_impulse == solid_motor.thrust.integral(0, burn_out)
+    assert solid_motor.burn_out_time == burn_time
+    assert solid_motor.total_impulse == solid_motor.thrust.integral(0, burn_time)
     assert (
         solid_motor.average_thrust
-        == solid_motor.thrust.integral(0, burn_out) / burn_out
+        == solid_motor.thrust.integral(0, burn_time) / burn_time
     )
     assert solid_motor.grain_initial_volume == grain_vol
     assert solid_motor.grain_initial_mass == grain_mass
     assert solid_motor.propellant_initial_mass == grain_number * grain_mass
-    assert solid_motor.exhaust_velocity == solid_motor.thrust.integral(0, burn_out) / (
+    assert solid_motor.exhaust_velocity == solid_motor.thrust.integral(0, burn_time) / (
         grain_number * grain_mass
     )
 
@@ -222,7 +222,7 @@ def tests_export_eng_asserts_exported_values_correct(solid_motor):
 def test_reshape_thrust_curve_asserts_resultant_thrust_curve_correct():
     example_motor = SolidMotor(
         thrust_source="tests/fixtures/motor/Cesaroni_M1670_shifted.eng",
-        burn_out=3.9,
+        burn_time=3.9,
         grain_number=5,
         grain_separation=5 / 1000,
         grain_density=1815,

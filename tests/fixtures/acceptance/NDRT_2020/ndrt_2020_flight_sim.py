@@ -20,7 +20,7 @@ parameters = {
     "rocket_mass": (23.321 - 2.475, 0.010),
     # Propulsion Details
     "impulse": (4895.050, 0.033 * 4895.050),
-    "burn_out": (3.51, 0.1),
+    "burn_time": (3.51, 0.1),
     "nozzle_radius": (49.5 / 2000, 0.001),
     "throat_radius": (21.5 / 2000, 0.001),
     "grain_separation": (3 / 1000, 0.001),
@@ -77,8 +77,8 @@ Env23.max_expected_height = 2000
 # Motor Information
 L1395 = SolidMotor(
     thrust_source="tests/fixtures/acceptance/NDRT_2020/ndrt_2020_motor_Cesaroni_4895L1395-P.eng",
-    burn_out=parameters.get("burn_out")[0],
-    grainsCenterOfMassPosition=parameters.get("distance_rocket_propellant")[0],
+    burn_time=parameters.get("burn_time")[0],
+    grains_center_of_mass_position=parameters.get("distance_rocket_propellant")[0],
     grain_number=5,
     grain_separation=parameters.get("grain_separation")[0],
     grain_density=parameters.get("grain_density")[0],
@@ -101,14 +101,14 @@ NDRT2020 = Rocket(
     power_on_drag=parameters.get("drag_coefficient")[0],
 )
 NDRT2020.set_rail_buttons(0.2, -0.5, 45)
-NDRT2020.addMotor(L1395, parameters.get("distanceRocketNozzle")[0])
-NoseCone = NDRT2020.addNose(
-    length=parameters.get("noseLength")[0],
+NDRT2020.add_motor(L1395, parameters.get("distance_rocket_nozzle")[0])
+NoseCone = NDRT2020.add_nose(
+    length=parameters.get("nose_length")[0],
     kind="tangent",
     position=parameters.get("nose_distance_to_cm")[0]
     + parameters.get("nose_length")[0],
 )
-finset = NDRT2020.add_trapezoidal_fins(
+fin_set = NDRT2020.add_trapezoidal_fins(
     3,
     span=parameters.get("fin_span")[0],
     root_chord=parameters.get("fin_root_chord")[0],
@@ -140,7 +140,7 @@ def main_trigger(p, h, y):
 
 Drogue = NDRT2020.add_parachute(
     "Drogue",
-    CdS=parameters.get("CdS_drogue")[0],
+    cd_s=parameters.get("CdS_drogue")[0],
     trigger=drogue_trigger,
     sampling_rate=105,
     lag=parameters.get("lag_rec")[0],
@@ -148,7 +148,7 @@ Drogue = NDRT2020.add_parachute(
 )
 Main = NDRT2020.add_parachute(
     "Main",
-    CdS=parameters.get("CdS_main")[0],
+    cd_s=parameters.get("CdS_main")[0],
     trigger=main_trigger,
     sampling_rate=105,
     lag=parameters.get("lag_rec")[0],
@@ -159,7 +159,7 @@ Main = NDRT2020.add_parachute(
 Flight23 = Flight(
     rocket=NDRT2020,
     environment=Env23,
-    railLength=parameters.get("railLength")[0],
+    rail_length=parameters.get("rail_length")[0],
     inclination=parameters.get("inclination")[0],
     heading=parameters.get("heading")[0],
 )

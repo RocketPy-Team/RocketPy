@@ -66,9 +66,9 @@ class Function:
             and 'zero', which returns zero for all points outside of source
             range. Default for 1-D functions is constant.
         title : string, optional
-            Title to be displayed in the plots' figures. If none, the title
-            will be constructed using the inputs and outputs arguments in the
-            form "{inputs} x {outputs}".
+            Title to be displayed in the plots' figures. If none, the title will
+            be constructed using the inputs and outputs arguments in the form
+            of  "{inputs} x {outputs}".
 
         Returns
         -------
@@ -159,7 +159,7 @@ class Function:
         """
         # If the source is a Function
         if isinstance(source, Function):
-            source = source.getSource()
+            source = source.get_source()
         # Import CSV if source is a string or Path and convert values to ndarray
         if isinstance(source, (str, Path)):
             # Read file and check for headers
@@ -230,7 +230,7 @@ class Function:
                 self.source = source
                 # Update extrapolation method
                 if self.__extrapolation__ is None:
-                    self.setExtrapolation()
+                    self.set_extrapolation()
                 # Set default interpolation for point source if it hasn't
                 if self.__interpolation__ is None:
                     self.set_interpolation()
@@ -239,45 +239,45 @@ class Function:
                     self.set_interpolation(self.__interpolation__)
             # Do things if function is multivariate
             else:
-                self.xArray = source[:, 0]
-                self.xinitial, self.xfinal = self.xArray[0], self.xArray[-1]
+                self.x_array = source[:, 0]
+                self.xinitial, self.xfinal = self.x_array[0], self.x_array[-1]
 
-                self.yArray = source[:, 1]
-                self.yinitial, self.yfinal = self.yArray[0], self.yArray[-1]
+                self.y_array = source[:, 1]
+                self.y_initial, self.y_final = self.y_array[0], self.y_array[-1]
 
-                self.zArray = source[:, 2]
-                self.zinitial, self.zfinal = self.zArray[0], self.zArray[-1]
+                self.z_array = source[:, 2]
+                self.z_initial, self.z_final = self.z_array[0], self.z_array[-1]
 
                 # Finally set data source as source
                 self.source = source
                 if self.__interpolation__ is None:
-                    self.setInterpolation("shepard")
+                    self.set_interpolation("shepard")
         # Return self
         return self
 
     @cached_property
     def min(self):
-        """Get the minimum value of the Function yArray.
+        """Get the minimum value of the Function y_array.
         Raises an error if the Function is lambda based.
 
         Returns
         -------
         minimum: float.
         """
-        return self.yArray.min()
+        return self.y_array.min()
 
     @cached_property
     def max(self):
-        """Get the maximum value of the Function yArray.
+        """Get the maximum value of the Function y_array.
         Raises an error if the Function is lambda based.
 
         Returns
         -------
         maximum: float.
         """
-        return self.yArray.max()
+        return self.y_array.max()
 
-    def setInterpolation(self, method="spline"):
+    def set_interpolation(self, method="spline"):
         """Set interpolation method and process data is method requires.
 
         Parameters
@@ -341,9 +341,9 @@ class Function:
         self : Function
         """
         # Retrieve general info
-        xData = self.xArray
-        yData = self.yArray
-        xmin, xmax = self.xinitial, self.xfinal
+        x_data = self.x_array
+        y_data = self.y_array
+        x_min, x_max = self.xinitial, self.xfinal
         if self.__extrapolation__ == "zero":
             extrapolation = 0  # Extrapolation is zero
         elif self.__extrapolation__ == "natural":
@@ -549,22 +549,21 @@ class Function:
 
     def set_discrete_based_on_model(self, model_function, one_by_one=True):
         """This method transforms the domain of Function instance into a list of
-        discrete points based on the domain of a model Function instance. It
-        does so by retrieving the domain, domain name, interpolation method and
-        extrapolation method of the model Function instance. It then evaluates
-        the original Function instance in all points of the retrieved domain to
-        generate the list of discrete points that will be used for interpolation
-        when this Function is called.
+        discrete points based on the domain of a model Function instance. It does so by
+        retrieving the domain, domain name, interpolation method and extrapolation
+        method of the model Function instance. It then evaluates the original Function
+        instance in all points of the retrieved domain to generate the list of discrete
+        points that will be used for interpolation when this Function is called.
 
         Parameters
         ----------
         model_function : Function
             Function object that will be used to define the sampling points,
             interpolation method and extrapolation method.
-            Must be a Function whose source attribute is a list (i.e. a list
-            based Function instance).
-            Must have the same domain dimension as the Function to be
-            discretized.
+            Must be a Function whose source attribute is a list (i.e. a list based
+            Function instance).
+            Must have the same domain dimension as the Function to be discretized.
+
         one_by_one : boolean, optional
             If True, evaluate Function in each sample point separately. If
             False, evaluates Function in vectorized form. Default is True.
@@ -579,15 +578,14 @@ class Function:
 
         Examples
         --------
-        This method is particularly useful when algebraic operations are carried
-        out using Function instances defined by different discretized domains
-        (same range, but different mesh size). Once an algebraic operation is
-        done, it will not directly be applied between the list of discrete
-        points of the two Function instances. Instead, the result will be a
-        Function instance defined by a callable that calls both Function
-        instances and performs the operation. This makes the evaluation of the
-        resulting Function inefficient, due to extra function calling overhead
-        and multiple interpolations being carried out.
+        This method is particularly useful when algebraic operations are carried out
+        using Function instances defined by different discretized domains (same range,
+        but different mesh size). Once an algebraic operation is done, it will not
+        directly be applied between the list of discrete points of the two Function
+        instances. Instead, the result will be a Function instance defined by a callable
+        that calls both Function instances and performs the operation. This makes the
+        evaluation of the resulting Function inefficient, due to extra function calling
+        overhead and multiple interpolations being carried out.
 
         >>> from rocketpy import Function
         >>> f = Function([(0, 0), (1, 1), (2, 4), (3, 9), (4, 16)])
@@ -596,14 +594,14 @@ class Function:
         >>> type(h.source)
         <class 'function'>
 
-        Therefore, it is good practice to make sure both Function instances are
-        defined by the same domain, i.e. by the same list of mesh points. This
-        way, the algebraic operation will be carried out directly between the
-        lists of discrete points, generating a new Function instance defined by
-        this result. When it is evaluated, there are no extra function calling
-        overheads neither multiple interpolations.
+        Therefore, it is good practice to make sure both Function instances are defined
+        by the same domain, i.e. by the same list of mesh points. This way, the
+        algebraic operation will be carried out directly between the lists of discrete
+        points, generating a new Function instance defined by this result. When it is
+        evaluated, there are no extra function calling overheads neither multiple
+        interpolations.
 
-        >>> g.setDiscreteBasedOnModel(f)
+        >>> g.set_discrete_based_on_model(f)
         'Function from R1 to R1 : (Scalar) → (Scalar)'
         >>> h = f * g
         >>> h.source
@@ -641,18 +639,20 @@ class Function:
             Zs = np.array(self.get_value(mesh))
             self.set_source(np.concatenate(([xs], [ys], [Zs])).transpose())
 
-        self.set_interpolation(model_function.__interpolation__)
-        self.set_extrapolation(model_function.__extrapolation__)
-        self.setInterpolation(self.__interpolation__)
+        self.set_interpolation(self.__interpolation__)
+        self.set_extrapolation(self.__extrapolation__)
+        return self
+
     def reset(
         self,
+        inputs=None,
         outputs=None,
         interpolation=None,
         extrapolation=None,
     ):
-        """This method allows the user to reset the inputs, outputs,
-        interpolation and extrapolation settings of a Function object, all at
-        once, without having to call each of the corresponding methods.
+        """This method allows the user to reset the inputs, outputs, interpolation
+        and extrapolation settings of a Function object, all at once, without
+        having to call each of the corresponding methods.
 
         Parameters
         ----------
@@ -660,8 +660,8 @@ class Function:
             List of input variable names. If None, the original inputs are kept.
             See Function.set_inputs for more information.
         outputs : string, sequence of strings, optional
-            List of output variable names. If None, the original outputs are
-            kept. See Function.set_outputs for more information.
+            List of output variable names. If None, the original outputs are kept.
+            See Function.set_outputs for more information.
         interpolation : string, optional
             Interpolation method to be used if source type is ndarray.
             See Function.set_interpolation for more information.
@@ -671,9 +671,8 @@ class Function:
 
         Examples
         --------
-        A simple use case is to reset the inputs and outputs of a Function
-        object that has been defined by algebraic manipulation of other Function
-        objects.
+        A simple use case is to reset the inputs and outputs of a Function object
+        that has been defined by algebraic manipulation of other Function objects.
 
         >>> from rocketpy import Function
         >>> v = Function(lambda t: (9.8*t**2)/2, inputs='t', outputs='v')
@@ -791,10 +790,10 @@ class Function:
             if isinstance(args[0], (int, float)):
                 args = [list(args)]
             x = np.array(args[0])
-            xData = self.xArray
-            yData = self.yArray
-            xmin, xmax = self.xinitial, self.xfinal
-            coeffs = self.__polynomialCoefficients__
+            x_data = self.x_array
+            y_data = self.y_array
+            x_min, x_max = self.xinitial, self.xfinal
+            coeffs = self.__polynomial_coefficients__
             A = np.zeros((len(args[0]), coeffs.shape[0]))
             for i in range(coeffs.shape[0]):
                 A[:, i] = x**i
@@ -811,10 +810,10 @@ class Function:
             if isinstance(args[0], (int, float, complex, np.integer)):
                 args = [list(args)]
             x = [arg for arg in args[0]]
-            xData = self.xArray
-            yData = self.yArray
-            xIntervals = np.searchsorted(xData, x)
-            xmin, xmax = self.xinitial, self.xfinal
+            x_data = self.x_array
+            y_data = self.y_array
+            x_intervals = np.searchsorted(x_data, x)
+            x_min, x_max = self.xinitial, self.xfinal
             if self.__interpolation__ == "spline":
                 coeffs = self.__spline_coefficients__
                 for i in range(len(x)):
@@ -886,7 +885,7 @@ class Function:
 
     def get_value_opt_deprecated(self, *args):
         """THE CODE BELOW IS HERE FOR DOCUMENTATION PURPOSES ONLY. IT WAS
-        REPLACED FOR ALL INSTANCES BY THE FUNCTION.setgetvalueopt METHOD.
+        REPLACED FOR ALL INSTANCES BY THE FUNCTION.SETGETVALUEOPT METHOD.
 
         This method returns the value of the Function at the specified
         point in a limited but optimized manner. See Function.get_value for an
@@ -916,9 +915,9 @@ class Function:
 
         # Interpolated Function
         # Retrieve general info
-        xData = self.xArray
-        yData = self.yArray
-        xmin, xmax = self.xinitial, self.xfinal
+        x_data = self.x_array
+        y_data = self.y_array
+        x_min, x_max = self.xinitial, self.xfinal
         if self.__extrapolation__ == "zero":
             extrapolation = 0  # Extrapolation is zero
         elif self.__extrapolation__ == "natural":
@@ -1080,7 +1079,7 @@ class Function:
                 x_interval = np.searchsorted(x_data, x)
                 self.last_interval = x_interval if x_interval < len(x_data) else 0
             # Interval found... keep going
-            xmin, xmax = self.xinitial, self.xfinal
+            x_min, x_max = self.xinitial, self.xfinal
             if self.__interpolation__ == "spline":
                 coeffs = self.__spline_coefficients__
                 if x == x_min or x == x_max:
@@ -1179,10 +1178,10 @@ class Function:
 
     # Define all conversion methods
     def to_frequency_domain(self, lower, upper, sampling_frequency, remove_dc=True):
-        """Performs the conversion of the Function to the Frequency Domain and
-        returns the result. This is done by taking the Fourier transform of the
-        Function. The resulting frequency domain is symmetric, i.e., the
-        negative frequencies are included as well.
+        """Performs the conversion of the Function to the Frequency Domain and returns
+        the result. This is done by taking the Fourier transform of the Function.
+        The resulting frequency domain is symmetric, i.e., the negative frequencies are
+        included as well.
 
         Parameters
         ----------
@@ -1355,17 +1354,17 @@ class Function:
             upper = 10 if upper is None else upper
         else:
             # Determine boundaries
-            xData = self.xArray
-            xmin, xmax = self.xinitial, self.xfinal
-            lower = xmin if lower is None else lower
-            upper = xmax if upper is None else upper
-            # Plot data points if forceData = True
-            tooLow = True if xmin >= lower else False
-            tooHigh = True if xmax <= upper else False
-            loInd = 0 if tooLow else np.where(xData >= lower)[0][0]
-            upInd = len(xData) - 1 if tooHigh else np.where(xData <= upper)[0][0]
-            points = self.source[loInd : (upInd + 1), :].T.tolist()
-            if forceData:
+            x_data = self.x_array
+            x_min, x_max = self.xinitial, self.xfinal
+            lower = x_min if lower is None else lower
+            upper = x_max if upper is None else upper
+            # Plot data points if force_data = True
+            too_low = True if x_min >= lower else False
+            too_high = True if x_max <= upper else False
+            lo_ind = 0 if too_low else np.where(x_data >= lower)[0][0]
+            up_ind = len(x_data) - 1 if too_high else np.where(x_data <= upper)[0][0]
+            points = self.source[lo_ind : (up_ind + 1), :].T.tolist()
+            if force_data:
                 plt.scatter(points[0], points[1], marker="o")
         # Calculate function at mesh nodes
         x = np.linspace(lower, upper, samples)
@@ -1736,7 +1735,7 @@ class Function:
             The negated Function object.
         """
         if isinstance(self.source, np.ndarray):
-            neg_source = np.column_stack((self.xArray, -self.yArray))
+            neg_source = np.column_stack((self.x_array, -self.y_array))
             return Function(
                 neg_source,
                 self.__inputs__,
@@ -1778,16 +1777,16 @@ class Function:
         if isinstance(self.source, np.ndarray):
             if otherIsFunction:
                 try:
-                    return self.yArray >= other.yArray
+                    return self.y_array >= other.y_array
                 except AttributeError:
                     # Other is lambda based Function
-                    return self.yArray >= other(self.xArray)
+                    return self.y_array >= other(self.x_array)
                 except ValueError:
                     raise ValueError("Operands should have the same discretization.")
             else:
                 # Other is not a Function
                 try:
-                    return self.yArray >= other
+                    return self.y_array >= other
                 except TypeError:
                     raise TypeError(
                         "Comparison not supported between instances of "
@@ -1797,7 +1796,7 @@ class Function:
             # self is lambda based Function
             if otherIsFunction:
                 try:
-                    return self(other.xArray) >= other.yArray
+                    return self(other.x_array) >= other.y_array
                 except AttributeError:
                     raise TypeError(
                         "Cannot compare lambda based Function with "
@@ -1829,16 +1828,16 @@ class Function:
         if isinstance(self.source, np.ndarray):
             if otherIsFunction:
                 try:
-                    return self.yArray <= other.yArray
+                    return self.y_array <= other.y_array
                 except AttributeError:
                     # Other is lambda based Function
-                    return self.yArray <= other(self.xArray)
+                    return self.y_array <= other(self.x_array)
                 except ValueError:
                     raise ValueError("Operands should have the same discretization.")
             else:
                 # Other is not a Function
                 try:
-                    return self.yArray <= other
+                    return self.y_array <= other
                 except TypeError:
                     raise TypeError(
                         "Comparison not supported between instances of "
@@ -1848,7 +1847,7 @@ class Function:
             # self is lambda based Function
             if otherIsFunction:
                 try:
-                    return self(other.xArray) <= other.yArray
+                    return self(other.x_array) <= other.y_array
                 except AttributeError:
                     raise TypeError(
                         "Cannot compare lambda based Function with "
@@ -1928,13 +1927,13 @@ class Function:
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
-                and self.__domDim__ == other.__domDim__
-                and np.array_equal(self.xArray, other.xArray)
+                and self.__dom_dim__ == other.__dom_dim__
+                and np.array_equal(self.x_array, other.x_array)
             ):
                 # Operate on grid values
-                Ys = self.yArray + other.yArray
-                Xs = self.xArray
-                source = np.concatenate(([Xs], [Ys])).transpose()
+                ys = self.y_array + other.y_array
+                xs = self.x_array
+                source = np.concatenate(([xs], [ys])).transpose()
                 # Retrieve inputs, outputs and interpolation
                 inputs = self.__inputs__[:]
                 outputs = self.__outputs__[0] + " + " + other.__outputs__[0]
@@ -1943,16 +1942,16 @@ class Function:
                 # Create new Function object
                 return Function(source, inputs, outputs, interpolation)
             else:
-                return Function(lambda x: (self.getValue(x) + other(x)))
+                return Function(lambda x: (self.get_value(x) + other(x)))
         # If other is Float except...
         except AttributeError:
             if isinstance(other, (float, int, complex)):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
-                    Ys = self.yArray + other
-                    Xs = self.xArray
-                    source = np.concatenate(([Xs], [Ys])).transpose()
+                    ys = self.y_array + other
+                    xs = self.x_array
+                    source = np.concatenate(([xs], [ys])).transpose()
                     # Retrieve inputs, outputs and interpolation
                     inputs = self.__inputs__[:]
                     outputs = self.__outputs__[0] + " + " + str(other)
@@ -1961,10 +1960,10 @@ class Function:
                     # Create new Function object
                     return Function(source, inputs, outputs, interpolation)
                 else:
-                    return Function(lambda x: (self.getValue(x) + other))
+                    return Function(lambda x: (self.get_value(x) + other))
             # Or if it is just a callable
             elif callable(other):
-                return Function(lambda x: (self.getValue(x) + other(x)))
+                return Function(lambda x: (self.get_value(x) + other(x)))
 
     def __radd__(self, other):
         """Sums 'other' and a Function object and returns a new Function
@@ -2007,7 +2006,7 @@ class Function:
         try:
             return self + (-other)
         except TypeError:
-            return Function(lambda x: (self.getValue(x) - other(x)))
+            return Function(lambda x: (self.get_value(x) - other(x)))
 
     def __rsub__(self, other):
         """Subtracts a Function object from 'other' and returns a new Function
@@ -2054,13 +2053,13 @@ class Function:
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
-                and self.__domDim__ == other.__domDim__
-                and np.array_equal(self.xArray, other.xArray)
+                and self.__dom_dim__ == other.__dom_dim__
+                and np.array_equal(self.x_array, other.x_array)
             ):
                 # Operate on grid values
-                Ys = self.yArray * other.yArray
-                Xs = self.xArray
-                source = np.concatenate(([Xs], [Ys])).transpose()
+                ys = self.y_array * other.y_array
+                xs = self.x_array
+                source = np.concatenate(([xs], [ys])).transpose()
                 # Retrieve inputs, outputs and interpolation
                 inputs = self.__inputs__[:]
                 outputs = self.__outputs__[0] + "*" + other.__outputs__[0]
@@ -2069,16 +2068,16 @@ class Function:
                 # Create new Function object
                 return Function(source, inputs, outputs, interpolation)
             else:
-                return Function(lambda x: (self.getValue(x) * other(x)))
+                return Function(lambda x: (self.get_value(x) * other(x)))
         # If other is Float except...
         except AttributeError:
             if isinstance(other, (float, int, complex)):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
-                    Ys = self.yArray * other
-                    Xs = self.xArray
-                    source = np.concatenate(([Xs], [Ys])).transpose()
+                    ys = self.y_array * other
+                    xs = self.x_array
+                    source = np.concatenate(([xs], [ys])).transpose()
                     # Retrieve inputs, outputs and interpolation
                     inputs = self.__inputs__[:]
                     outputs = self.__outputs__[0] + "*" + str(other)
@@ -2087,10 +2086,10 @@ class Function:
                     # Create new Function object
                     return Function(source, inputs, outputs, interpolation)
                 else:
-                    return Function(lambda x: (self.getValue(x) * other))
+                    return Function(lambda x: (self.get_value(x) * other))
             # Or if it is just a callable
             elif callable(other):
-                return Function(lambda x: (self.getValue(x) * other(x)))
+                return Function(lambda x: (self.get_value(x) * other(x)))
 
     def __rmul__(self, other):
         """Multiplies 'other' by a Function object and returns a new Function
@@ -2137,8 +2136,8 @@ class Function:
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
-                and self.__domDim__ == other.__domDim__
-                and np.array_equal(self.xArray, other.xArray)
+                and self.__dom_dim__ == other.__dom_dim__
+                and np.array_equal(self.x_array, other.x_array)
             ):
                 # Operate on grid values
                 with np.errstate(divide="ignore"):
@@ -2240,9 +2239,9 @@ class Function:
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
-                and self.__domDim__ == other.__domDim__
-                and np.any(self.xArray - other.xArray) == False
-                and np.array_equal(self.xArray, other.xArray)
+                and self.__dom_dim__ == other.__dom_dim__
+                and np.any(self.x_array - other.x_array) == False
+                and np.array_equal(self.x_array, other.x_array)
             ):
                 # Operate on grid values
                 ys = self.y_array**other.y_array
@@ -2514,7 +2513,7 @@ class Function:
                 interpolation="linear",
                 extrapolation="natural",
             )
-            return identity.setDiscreteBasedOnModel(self)
+            return identity.set_discrete_based_on_model(self)
 
         else:
             return Function(
@@ -2923,7 +2922,7 @@ class PiecewiseFunction(Function):
 
 def funcify_method(*args, **kwargs):
     """Decorator factory to wrap methods as Function objects and save them as
-    cached roperties.
+    cached properties.
 
     Parameters
     ----------

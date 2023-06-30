@@ -16,10 +16,10 @@ from .AeroSurface import TrapezoidalFins
 
 
 # TODO: Needs tests
-def compute_CdS_from_drop_test(
+def compute_cd_s_from_drop_test(
     terminal_velocity, rocket_mass, air_density=1.225, g=9.80665
 ):
-    """Returns the parachute's CdS calculated through its final speed, air
+    """Returns the parachute's cd_s calculated through its final speed, air
     density in the landing point, the rocket's mass and the force of gravity
     in the landing point.
 
@@ -38,7 +38,7 @@ def compute_CdS_from_drop_test(
 
     Returns
     -------
-    CdS : float
+    cd_s : float
         Number equal to drag coefficient times reference area for parachute.
 
     """
@@ -49,7 +49,7 @@ def compute_CdS_from_drop_test(
 # TODO: Needs tests
 def calculate_equilibrium_altitude(
     rocket_mass,
-    CdS,
+    cd_s,
     z0,
     v0=0,
     env=None,
@@ -67,7 +67,7 @@ def calculate_equilibrium_altitude(
     ----------
     rocket_mass : float
         Rocket's mass in kg.
-    CdS : float
+    cd_s : float
         Number equal to drag coefficient times reference area for parachute.
     z0 : float
         Initial altitude of the rocket in meters.
@@ -158,7 +158,7 @@ def calculate_equilibrium_altitude(
         """
         return (
             u[1],
-            -g + environment.density(z) * ((u[1]) ** 2) * CdS / (2 * rocket_mass),
+            -g + environment.density(z) * ((u[1]) ** 2) * cd_s / (2 * rocket_mass),
         )
 
     u0 = [z0, v0]
@@ -450,7 +450,7 @@ def create_dispersion_dictionary(filename):
             attribute_class; parameter_name; mean_value; standard_deviation;
             environment; ensemble_member; [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];;
             motor; impulse; 1415.15; 35.3;
-            motor; burn_out; 5.274; 1;
+            motor; burn_time; 5.274; 1;
             motor; nozzle_radius; 0.021642; 0.0005;
             motor; throat_radius; 0.008; 0.0005;
             motor; grain_separation; 0.006; 0.001;
@@ -467,7 +467,7 @@ def create_dispersion_dictionary(filename):
                 },
                 'motor': {
                     'impulse': (1415.15, 35.3),
-                    'burn_out': (5.274, 1),
+                    'burn_time': (5.274, 1),
                     'nozzle_radius': (0.021642, 0.0005),
                     'throat_radius': (0.008, 0.0005),
                     'grain_separation': (0.006, 0.001),

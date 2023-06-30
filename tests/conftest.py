@@ -27,7 +27,7 @@ def pytest_configure(config):
 def solid_motor():
     example_motor = SolidMotor(
         thrust_source="data/motors/Cesaroni_M1670.eng",
-        burn_out=3.9,
+        burn_time=3.9,
         grains_center_of_mass_position=0.39796,
         grain_number=5,
         grain_separation=5 / 1000,
@@ -63,12 +63,12 @@ def rocket(solid_motor):
 
 @pytest.fixture
 def flight(rocket, example_env):
-    rocket.setRailButtons(0.2, -0.5)
+    rocket.set_rail_buttons(0.2, -0.5)
 
     nosecone = rocket.add_nose(
         length=0.55829, kind="vonKarman", position=1.278, name="NoseCone"
     )
-    finset = rocket.add_trapezoidal_fins(
+    fin_set = rocket.add_trapezoidal_fins(
         4, span=0.100, root_chord=0.120, tip_chord=0.040, position=-1.04956
     )
     tail = rocket.add_tail(
@@ -99,7 +99,7 @@ def kg():
 def dimensionless_solid_motor(kg, m):
     example_motor = SolidMotor(
         thrust_source="data/motors/Cesaroni_M1670.eng",
-        burn_out=3.9,
+        burn_time=3.9,
         grain_number=5,
         grain_separation=5 / 1000 * m,
         grain_density=1815 * (kg / m**3),
@@ -134,23 +134,23 @@ def dimensionless_rocket(kg, m, dimensionless_solid_motor):
 
 @pytest.fixture
 def example_env():
-    Env = Environment(datum="WGS84")
-    return Env
+    env = Environment(datum="WGS84")
+    return env
 
 
 @pytest.fixture
 def example_env_robust():
-    Env = Environment(
+    env = Environment(
         latitude=32.990254,
         longitude=-106.974998,
         elevation=1400,
         datum="WGS84",
     )
     tomorrow = datetime.date.today() + datetime.timedelta(days=1)
-    Env.set_date(
+    env.set_date(
         (tomorrow.year, tomorrow.month, tomorrow.day, 12)
     )  # Hour given in UTC time
-    return Env
+    return env
 
 
 # Create a simple object of the Environment Analysis class

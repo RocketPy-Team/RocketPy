@@ -95,7 +95,7 @@ class EnvironmentAnalysis:
         - animate wind gust distribution over average day
         - animate average wind rose
         - animation of how the wind gust distribution evolves over average day
-        - allInfo
+        - all_info
 
     All items listed are relevant to either
         1. participant safety
@@ -219,15 +219,15 @@ class EnvironmentAnalysis:
                     hour=int(hour),
                 )
 
-                Env = Environment(
+                env = Environment(
                     date=hour_date_time,
                     latitude=self.latitude,
                     longitude=self.longitude,
                     elevation=self.converted_elevation,
                 )
                 forecast_args = forecast_args or {"type": "Forecast", "file": "GFS"}
-                Env.set_atmospheric_model(**forecast_args)
-                self.forecast[hour] = Env
+                env.set_atmospheric_model(**forecast_args)
+                self.forecast[hour] = env
         return None
 
     # Private, auxiliary methods
@@ -999,7 +999,7 @@ class EnvironmentAnalysis:
 
     # Calculations
     def process_data(self):
-        """Process data that is shown in the allinfo method."""
+        """Process data that is shown in the all_info method."""
 
         return None
 
@@ -2609,7 +2609,7 @@ class EnvironmentAnalysis:
         self.plots.info()
         return None
 
-    def allInfo(self):
+    def all_info(self):
         """Prints out all data and graphs available.
 
         Parameters
@@ -2629,7 +2629,7 @@ class EnvironmentAnalysis:
     def export_mean_profiles(self, filename="export_env_analysis"):
         """
         Exports the mean profiles of the weather data to a file in order to it
-        be used as inputs on Environment Class by using the CustomAtmosphere
+        be used as inputs on Environment Class by using the custom_atmosphere
         model.
 
         Parameters

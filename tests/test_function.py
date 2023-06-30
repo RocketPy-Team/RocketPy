@@ -34,14 +34,14 @@ def test_getters(func_from_csv):
     func_from_csv : rocketpy.Function
         A Function object created from a .csv file.
     """
-    assert func_from_csv.getInputs() == ["Scalar"]
-    assert func_from_csv.getOutputs() == ["Scalar"]
-    assert func_from_csv.getInterpolationMethod() == "linear"
-    assert func_from_csv.getExtrapolationMethod() == "natural"
-    assert np.isclose(func_from_csv.getValue(0), 0.0, atol=1e-6)
-    assert np.isclose(func_from_csv.getValueOpt_deprecated(0), 0.0, atol=1e-6)
-    assert np.isclose(func_from_csv.getValueOpt(0), 0.0, atol=1e-6)
-    assert np.isclose(func_from_csv.getValueOpt2(0), 0.0, atol=1e-6)
+    assert func_from_csv.get_inputs() == ["Scalar"]
+    assert func_from_csv.get_outputs() == ["Scalar"]
+    assert func_from_csv.get_interpolation_method() == "linear"
+    assert func_from_csv.get_extrapolation_method() == "natural"
+    assert np.isclose(func_from_csv.get_value(0), 0.0, atol=1e-6)
+    assert np.isclose(func_from_csv.get_value_opt_deprecated(0), 0.0, atol=1e-6)
+    assert np.isclose(func_from_csv.get_value_opt(0), 0.0, atol=1e-6)
+    assert np.isclose(func_from_csv.get_value_opt2(0), 0.0, atol=1e-6)
 
 
 def test_setters(func_from_csv):
@@ -53,14 +53,14 @@ def test_setters(func_from_csv):
         A Function object created from a .csv file.
     """
     # Test set methods
-    func_from_csv.setInputs(["Scalar2"])
-    assert func_from_csv.getInputs() == ["Scalar2"]
-    func_from_csv.setOutputs(["Scalar2"])
-    assert func_from_csv.getOutputs() == ["Scalar2"]
-    func_from_csv.setInterpolation("linear")
-    assert func_from_csv.getInterpolationMethod() == "linear"
-    func_from_csv.setExtrapolation("natural")
-    assert func_from_csv.getExtrapolationMethod() == "natural"
+    func_from_csv.set_inputs(["Scalar2"])
+    assert func_from_csv.get_inputs() == ["Scalar2"]
+    func_from_csv.set_outputs(["Scalar2"])
+    assert func_from_csv.get_outputs() == ["Scalar2"]
+    func_from_csv.set_interpolation("linear")
+    assert func_from_csv.get_interpolation_method() == "linear"
+    func_from_csv.set_extrapolation("natural")
+    assert func_from_csv.get_extrapolation_method() == "natural"
 
 
 @patch("matplotlib.pyplot.show")

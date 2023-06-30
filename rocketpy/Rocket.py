@@ -105,7 +105,7 @@ class Rocket:
             Fin sets, and Tails.
         Rocket.cp_position : float
             Rocket's center of pressure position relative to the user defined rocket
-            reference system. See `Rocket.centerOfDryMassPosition` for more information
+            reference system. See `Rocket.center_of_dry_mass_position` for more information
             regarding the reference system.
             Expressed in meters.
         Rocket.static_margin : float
@@ -480,7 +480,7 @@ class Rocket:
         self.evaluate_static_margin()
         return None
 
-    def addSurfaces(self, surfaces, positions):
+    def add_surfaces(self, surfaces, positions):
         """Adds one or more aerodynamic surfaces to the rocket. The aerodynamic
         surface must be an instance of a class that inherits from the
         AeroSurface (e.g. NoseCone, TrapezoidalFins, etc.)
@@ -510,11 +510,11 @@ class Rocket:
         """
         try:
             for surface, position in zip(surfaces, positions):
-                self.aerodynamicSurfaces.add(surface, position)
+                self.aerodynamic_surfaces.add(surface, position)
         except TypeError:
-            self.aerodynamicSurfaces.add(surfaces, positions)
+            self.aerodynamic_surfaces.add(surfaces, positions)
 
-        self.evaluateStaticMargin()
+        self.evaluate_static_margin()
         return None
 
     def add_tail(
@@ -556,12 +556,12 @@ class Rocket:
         tail = Tail(top_radius, bottom_radius, length, radius, name)
 
         # Add tail to aerodynamic surfaces
-        self.addSurfaces(tail, position)
+        self.add_surfaces(tail, position)
 
         # Return self
         return tail
 
-    def addNose(self, length, kind, position, name="Nosecone"):
+    def add_nose(self, length, kind, position, name="Nosecone"):
         """Creates a nose cone, storing its parameters as part of the
         aerodynamic_surfaces list. Its parameters are the axial position
         along the rocket and its derivative of the coefficient of lift
@@ -591,7 +591,7 @@ class Rocket:
         nose = NoseCone(length, kind, self.radius, self.radius, name)
 
         # Add nose to the list of aerodynamic surfaces
-        self.addSurfaces(nose, position)
+        self.add_surfaces(nose, position)
 
         # Return self
         return nose
@@ -702,7 +702,7 @@ class Rocket:
         )
 
         # Add fin set to the list of aerodynamic surfaces
-        self.addSurfaces(finSet, position)
+        self.add_surfaces(fin_set, position)
 
         # Return the created aerodynamic surface
         return fin_set
@@ -771,13 +771,13 @@ class Rocket:
         fin_set = EllipticalFins(n, root_chord, span, radius, cant_angle, airfoil, name)
 
         # Add fin set to the list of aerodynamic surfaces
-        self.addSurfaces(finSet, position)
+        self.add_surfaces(fin_set, position)
 
         # Return self
         return fin_set
 
     def add_parachute(
-        self, name, CdS, trigger, sampling_rate=100, lag=0, noise=(0, 0, 0)
+        self, name, cd_s, trigger, sampling_rate=100, lag=0, noise=(0, 0, 0)
     ):
         """Creates a new parachute, storing its parameters such as
         opening delay, drag coefficients and trigger function.
@@ -788,12 +788,12 @@ class Rocket:
             Parachute name, such as drogue and main. Has no impact in
             simulation, as it is only used to display data in a more
             organized matter.
-        CdS : float
+        cd_s : float
             Drag coefficient times reference area for parachute. It is
             used to compute the drag force exerted on the parachute by
-            the equation F = ((1/2)*rho*V^2)*CdS, that is, the drag
+            the equation F = ((1/2)*rho*V^2)*cd_s, that is, the drag
             force is the dynamic pressure computed on the parachute
-            times its CdS coefficient. Has units of area and must be
+            times its cd_s coefficient. Has units of area and must be
             given in squared meters.
         trigger : function, float, string
             Trigger for the parachute deployment. Can be a float with the height
@@ -807,7 +807,7 @@ class Rocket:
             The trigger will be called according to the sampling rate given next.
             It should return True if the parachute ejection system is to be
             triggered and False otherwise.
-        samplingRate : float, optional
+        sampling_rate : float, optional
             Sampling rate in which the trigger function works. It is used to
             simulate the refresh rate of onboard sensors such as barometers.
             Default value is 100. Value must be given in hertz.
@@ -825,13 +825,13 @@ class Rocket:
         Returns
         -------
         parachute : Parachute
-            Parachute  containing trigger, sampling_rate, lag, CdS, noise
+            Parachute  containing trigger, sampling_rate, lag, cd_s, noise
             and name. Furthermore, it stores clean_pressure_signal,
             noise_signal and noisyPressureSignal which are filled in during
             Flight simulation.
         """
         # Create a parachute
-        parachute = Parachute(name, CdS, trigger, sampling_rate, lag, noise)
+        parachute = Parachute(name, cd_s, trigger, sampling_rate, lag, noise)
 
         # Add parachute to list of parachutes
         self.parachutes.append(parachute)
@@ -839,7 +839,7 @@ class Rocket:
         # Return self
         return self.parachutes[-1]
 
-    def setRailButtons(
+    def set_rail_buttons(
         self, upper_button_position, lower_button_position, angular_position=45
     ):
         """Adds rail buttons to the rocket, allowing for the calculation of
@@ -979,7 +979,7 @@ class Rocket:
 
         return None
 
-    def allinfo(self):
+    def all_info(self):
         """Prints out all data and graphs available about the Rocket.
 
         Parameters
@@ -997,31 +997,33 @@ class Rocket:
 
         return None
 
-    def addFin(
+    def add_fin(
         self,
-        numberOfFins=4,
+        number_of_fins=4,
         cl=2 * np.pi,
         cpr=1,
         cpz=1,
         gammas=[0, 0, 0, 0],
-        angularPositions=None,
+        angular_positions=None,
     ):
         "Hey! I will document this function later"
-        self.aerodynamicSurfaces = []
+        self.aerodynamic_surfaces = Components()
         pi = np.pi
         # Calculate angular positions if not given
-        if angularPositions is None:
-            angularPositions = np.array(range(numberOfFins)) * 2 * pi / numberOfFins
+        if angular_positions is None:
+            angular_positions = (
+                np.array(range(number_of_fins)) * 2 * pi / number_of_fins
+            )
         else:
-            angularPositions = np.array(angularPositions) * pi / 180
+            angular_positions = np.array(angular_positions) * pi / 180
         # Convert gammas to degree
         if isinstance(gammas, (int, float)):
-            gammas = [(pi / 180) * gammas for i in range(numberOfFins)]
+            gammas = [(pi / 180) * gammas for i in range(number_of_fins)]
         else:
             gammas = [(pi / 180) * gamma for gamma in gammas]
-        for i in range(numberOfFins):
+        for i in range(number_of_fins):
             # Get angular position and inclination for current fin
-            angularPosition = angularPositions[i]
+            angularPosition = angular_positions[i]
             gamma = gammas[i]
             # Calculate position vector
             cpx = cpr * np.cos(angularPosition)
@@ -1032,5 +1034,5 @@ class Rocket:
             chordVector = (
                 np.cos(gamma) * np.array([0, 0, 1]) - np.sin(gamma) * auxVector
             )
-            self.aerodynamicSurfaces.append([positionVector, chordVector])
+            self.aerodynamic_surfaces.append([positionVector, chordVector])
         return None

@@ -20,7 +20,7 @@ analysis_parameters = {
     "rocket_mass": (8.257, 0.001),
     # Propulsion Details
     "impulse": (1415.15, 35.3),
-    "burn_out": (5.274, 1),
+    "burn_time": (5.274, 1),
     "nozzle_radius": (21.642 / 1000, 0.5 / 1000),
     "throat_radius": (8 / 1000, 0.5 / 1000),
     "grain_separation": (6 / 1000, 1 / 1000),
@@ -57,15 +57,15 @@ analysis_parameters = {
 }
 
 # Environment conditions
-Env = Environment(
+env = Environment(
     gravity=9.8,
     date=(2019, 8, 10, 21),
     latitude=-23.363611,
     longitude=-48.011389,
 )
-Env.set_elevation(668)
-Env.max_expected_height = 1500
-Env.set_atmospheric_model(
+env.set_elevation(668)
+env.max_expected_height = 1500
+env.set_atmospheric_model(
     type="Reanalysis",
     file="tests/fixtures/acceptance/PJ_Valetudo/valetudo_weather_data_ERA5.nc",
     dictionary="ECMWF",
@@ -74,12 +74,12 @@ Env.set_atmospheric_model(
 # Create motor
 Keron = SolidMotor(
     thrust_source="tests/fixtures/acceptance/PJ_Valetudo/valetudo_motor_Keron.csv",
-    burn_out=5.274,
+    burn_time=5.274,
     grains_center_of_mass_position=analysis_parameters.get(
         "distance_rocket_propellant"
     )[0],
     reshape_thrust_curve=(
-        analysis_parameters.get("burn_out")[0],
+        analysis_parameters.get("burn_time")[0],
         analysis_parameters.get("impulse")[0],
     ),
     nozzle_radius=analysis_parameters.get("nozzle_radius")[0],
@@ -113,7 +113,7 @@ nosecone = Valetudo.add_nose(
     position=analysis_parameters.get("nose_distance_to_cm")[0]
     + analysis_parameters.get("nose_length")[0],
 )
-finset = Valetudo.add_trapezoidal_fins(
+fin_set = Valetudo.add_trapezoidal_fins(
     n=3,
     root_chord=analysis_parameters.get("fin_root_chord")[0],
     tip_chord=analysis_parameters.get("fin_tip_chord")[0],
@@ -132,7 +132,7 @@ def drogue_trigger(p, h, y):
 
 drogue = Valetudo.add_parachute(
     "Drogue",
-    CdS=analysis_parameters["CdS_drogue"][0],
+    cd_s=analysis_parameters["CdS_drogue"][0],
     trigger=drogue_trigger,
     sampling_rate=105,
     lag=analysis_parameters["lag_rec"][0] + analysis_parameters["lag_se"][0],
@@ -142,15 +142,15 @@ drogue = Valetudo.add_parachute(
 sis_rec_drogue.reset()
 sis_rec_drogue.enable()
 
-TestFlight = Flight(
+test_flight = Flight(
     rocket=Valetudo,
-    environment=Env,
-    railLength=analysis_parameters.get("railLength")[0],
+    environment=env,
+    rail_length=analysis_parameters.get("rail_length")[0],
     inclination=analysis_parameters.get("inclination")[0],
     heading=analysis_parameters.get("heading")[0],
     max_time=600,
 )
-TestFlight.post_process()
+test_flight.post_process()
 
 # Print summary
-TestFlight.info()
+test_flight.info()

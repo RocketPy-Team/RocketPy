@@ -109,7 +109,7 @@ class _RocketPrints:
         None
         """
         print("\nAerodynamics Lift Coefficient Derivatives\n")
-        for surface, position in self.rocket.aerodynamicSurfaces:
+        for surface, position in self.rocket.aerodynamic_surfaces:
             name = surface.name
             print(
                 name
@@ -154,7 +154,7 @@ class _RocketPrints:
         None
         """
         for chute in self.rocket.parachutes:
-            chute.allinfo()
+            chute.all_info()
         return None
 
     def all(self):
