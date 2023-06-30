@@ -3036,7 +3036,7 @@ def funcify_method(*args, **kwargs):
 
 
 def reset_funcified_methods(instance):
-    """Recalculates all the funcified methods of the instance. It does so by
+    """Resets all the funcified methods of the instance. It does so by
     deleting the current Functions, which will make the interperter redefine
     them when they are called. This is useful when the instance has changed
     and the methods need to be recalculated.
