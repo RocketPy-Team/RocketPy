@@ -9,7 +9,7 @@ try:
 except ImportError:
     from rocketpy.tools import cached_property
 
-from rocketpy.Function import funcify_method
+from rocketpy.Function import funcify_method, reset_funcified_methods
 from rocketpy.plots.hybrid_motor_plots import _HybridMotorPlots
 from rocketpy.prints.hybrid_motor_prints import _HybridMotorPrints
 
@@ -499,6 +499,7 @@ class HybridMotor(Motor):
         """
         self.liquid.addTank(tank, position)
         self.solid.massFlowRate = self.totalMassFlowRate - self.liquid.massFlowRate
+        reset_funcified_methods(self)
 
     def info(self):
         """Prints out basic data about the Motor."""
