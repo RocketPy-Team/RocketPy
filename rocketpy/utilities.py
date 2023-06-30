@@ -13,6 +13,7 @@ from scipy.integrate import solve_ivp
 from .Environment import Environment
 from .Function import Function
 from .AeroSurface import TrapezoidalFins
+from .Flight import Flight
 
 
 # TODO: Needs tests
@@ -505,3 +506,129 @@ def create_dispersion_dictionary(filename):
                 except ValueError:
                     analysis_parameters[row[0].strip()] = ""
     return analysis_parameters
+
+
+def apogee_by_mass(flight, min_mass, max_mass, points=10, plot=True):
+    """Returns a Function object that estimates the apogee of a rocket given
+    its dry mass. The function will use the rocket's mass as the independent
+    variable and the estimated apogee as the dependent variable. The function
+    will use the rocket's environment and inclination to estimate the apogee.
+    This is useful when you want to adjust the rocket's mass to reach a
+    specific apogee.
+
+    Parameters
+    ----------
+    flight : rocketpy.Flight
+        Flight object containing the rocket's flight data
+    min_mass : int
+        The minimum value of mass to calculate the apogee, by default 3. This
+        value should be the minimum dry mass of the rocket, therefore, a positive
+        value is expected.
+    max_mass : int
+        The maximum value of mass to calculate the apogee, by default 30.
+    points : int, optional
+        The number of points to calculate the apogee between the mass boundaries,
+        by default 10. Increasing this value will refine the results, but will
+        also increase the computational time.
+    plot : bool, optional
+        If True, the function will plot the results, by default True.
+
+    Returns
+    -------
+    rocketpy.Function
+        Function object containing the estimated apogee as a function of the
+        rocket's dry mass.
+    """
+    rocket = flight.rocket
+
+    def apogee(mass):
+        # First we need to modify the rocket's mass and update values
+        rocket.mass = float(mass)
+        rocket.evaluate_total_mass()
+        rocket.evaluate_center_of_mass()
+        rocket.evaluate_reduced_mass()
+        rocket.evaluate_thrust_to_weight()
+        rocket.evaluate_static_margin()
+        # Then we can run the flight simulation
+        test_flight = Flight(
+            rocket=rocket,
+            environment=flight.env,
+            inclination=flight.inclination,
+            heading=flight.heading,
+            terminateOnApogee=True,
+        )
+        return test_flight.apogee - flight.env.elevation
+
+    x = np.linspace(min_mass, max_mass, points)
+    y = np.array([apogee(m) for m in x])
+    source = np.array(list(zip(x, y)), dtype=np.float64)
+
+    retfunc = Function(
+        source, inputs="Rocket Dry Mass (kg)", outputs="Estimated Apogee AGL (m)"
+    )
+    if plot:
+        retfunc.plot(min_mass, max_mass, points)
+    return retfunc
+
+
+def liftoff_speed_by_mass(flight, min_mass, max_mass, points=10, plot=True):
+    """Returns a Function object that estimates the liftoff speed of a rocket
+    given its dry mass. The function will use the rocket's mass as the
+    independent variable and the estimated liftoff speed as the dependent
+    variable. The function will use the rocket's environment and inclination
+    to estimate the liftoff speed. This is useful when you want to adjust the
+    rocket's mass to reach a specific liftoff speed.
+
+    Parameters
+    ----------
+    flight : rocketpy.Flight
+        Flight object containing the rocket's flight data
+    min_mass : int
+        The minimum value of mass to calculate the liftoff speed, by default 3.
+        This value should be the minimum dry mass of the rocket, therefore, a
+        positive value is expected.
+    max_mass : int
+        The maximum value of mass to calculate the liftoff speed, by default 30.
+    points : int, optional
+        The number of points to calculate the liftoff speed between the mass
+        boundaries, by default 10. Increasing this value will refine the results,
+        but will also increase the computational time.
+    plot : bool, optional
+        If True, the function will plot the results, by default True.
+
+    Returns
+    -------
+    rocketpy.Function
+        Function object containing the estimated liftoff speed as a function of
+        the rocket's dry mass.
+    """
+    rocket = flight.rocket
+
+    def liftoff_speed(mass):
+        # First we need to modify the rocket's mass and update values
+        rocket.mass = float(mass)
+        rocket.evaluate_total_mass()
+        rocket.evaluate_center_of_mass()
+        rocket.evaluate_reduced_mass()
+        rocket.evaluate_thrust_to_weight()
+        rocket.evaluate_static_margin()
+        # Then we can run the flight simulation
+        test_flight = Flight(
+            rocket=rocket,
+            environment=flight.env,
+            inclination=flight.inclination,
+            heading=flight.heading,
+            terminate_on_apogee=True,
+        )
+        return test_flight.outOfRailVelocity
+
+    x = np.linspace(min_mass, max_mass, points)
+    y = np.array([liftoff_speed(m) for m in x])
+    source = np.array(list(zip(x, y)), dtype=np.float64)
+
+    retfunc = Function(
+        source, inputs="Rocket Dry Mass (kg)", outputs="Liftoff Speed (m/s)"
+    )
+    if plot:
+        retfunc.plot(min_mass, max_mass, points)
+    return retfunc
