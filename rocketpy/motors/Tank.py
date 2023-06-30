@@ -163,6 +163,21 @@ class Tank(ABC):
 
     @property
     @abstractmethod
+    def fluidVolume(self):
+        """
+        Returns the volume total fluid volume inside the tank as a
+        function of time. This volume is the sum of the liquid and gas
+        volumes.
+
+        Returns
+        -------
+        Function
+            Volume of the fluid as a function of time.
+        """
+        pass
+
+    @property
+    @abstractmethod
     def liquidVolume(self):
         """
         Returns the volume of the liquid as a function of time.
@@ -581,6 +596,20 @@ class MassFlowRateBasedTank(Tank):
         return self.netLiquidFlowRate + self.netGasFlowRate
 
     @funcify_method("Time (s)", "Volume (m³)")
+    def fluidVolume(self):
+        """
+        Returns the volume total fluid volume inside the tank as a
+        function of time. This volume is the sum of the liquid and gas
+        volumes.
+
+        Returns
+        -------
+        Function
+            Volume of the fluid as a function of time.
+        """
+        return self.liquidVolume + self.gasVolume
+
+    @funcify_method("Time (s)", "Volume (m³)")
     def liquidVolume(self):
         """
         Returns the volume of the liquid as a function of time.
@@ -730,6 +759,20 @@ class UllageBasedTank(Tank):
             Net mass flow rate of the tank as a function of time.
         """
         return self.mass.derivativeFunction()
+
+    @funcify_method("Time (s)", "Volume (m³)")
+    def fluidVolume(self):
+        """
+        Returns the volume total fluid volume inside the tank as a
+        function of time. This volume is the sum of the liquid and gas
+        volumes.
+
+        Returns
+        -------
+        Function
+            Volume of the fluid as a function of time.
+        """
+        return self.geometry.total_volume
 
     @funcify_method("Time (s)", "Volume (m³)")
     def liquidVolume(self):
@@ -904,6 +947,20 @@ class LevelBasedTank(Tank):
             Net mass flow rate of the tank as a function of time.
         """
         return self.mass.derivativeFunction()
+
+    @funcify_method("Time (s)", "Volume (m³)")
+    def fluidVolume(self):
+        """
+        Returns the volume total fluid volume inside the tank as a
+        function of time. This volume is the sum of the liquid and gas
+        volumes.
+
+        Returns
+        -------
+        Function
+            Volume of the fluid as a function of time.
+        """
+        return self.geometry.total_volume
 
     @funcify_method("Time (s)", "Volume (m³)")
     def liquidVolume(self):
@@ -1096,6 +1153,20 @@ class MassBasedTank(Tank):
             Mass of the gas as a function of time.
         """
         return self.gas_mass
+
+    @funcify_method("Time (s)", "Volume (m³)")
+    def fluidVolume(self):
+        """
+        Returns the volume total fluid volume inside the tank as a
+        function of time. This volume is the sum of the liquid and gas
+        volumes.
+
+        Returns
+        -------
+        Function
+            Volume of the fluid as a function of time.
+        """
+        return self.liquidVolume + self.gasVolume
 
     @funcify_method("Time (s)", "Volume (m³)")
     def gasVolume(self):
