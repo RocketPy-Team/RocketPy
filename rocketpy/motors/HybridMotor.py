@@ -9,8 +9,9 @@ try:
 except ImportError:
     from rocketpy.tools import cached_property
 
-
 from rocketpy.Function import funcify_method, reset_funcified_methods
+from rocketpy.plots.hybrid_motor_plots import _HybridMotorPlots
+from rocketpy.prints.hybrid_motor_prints import _HybridMotorPrints
 
 from .LiquidMotor import LiquidMotor
 from .Motor import Motor
@@ -318,6 +319,10 @@ class HybridMotor(Motor):
             interpolationMethod,
             coordinateSystemOrientation,
         )
+        # Initialize plots and prints object
+        self.prints = _HybridMotorPrints(self)
+        self.plots = _HybridMotorPlots(self)
+        return None
 
     @funcify_method("Time (s)", "Exhaust velocity (m/s)")
     def exhaustVelocity(self):
@@ -496,6 +501,12 @@ class HybridMotor(Motor):
         self.solid.massFlowRate = self.totalMassFlowRate - self.liquid.massFlowRate
         reset_funcified_methods(self)
 
+    def info(self):
+        """Prints out basic data about the Motor."""
+        self.prints.all()
+        self.plots.thrust()
+        return None
+
     def allInfo(self):
         """Prints out all data and graphs available about the Motor.
 
@@ -503,61 +514,7 @@ class HybridMotor(Motor):
         ------
         None
         """
-        # Print nozzle details
-        print("Nozzle Details")
-        print("Nozzle Radius: " + str(self.nozzleRadius) + " m")
-        print("Nozzle Throat Radius: " + str(self.solid.throatRadius) + " m")
-
-        # Print grain details
-        print("\nGrain Details")
-        print("Number of Grains: " + str(self.solid.grainNumber))
-        print("Grain Spacing: " + str(self.solid.grainSeparation) + " m")
-        print("Grain Density: " + str(self.solid.grainDensity) + " kg/m3")
-        print("Grain Outer Radius: " + str(self.solid.grainOuterRadius) + " m")
-        print("Grain Inner Radius: " + str(self.solid.grainInitialInnerRadius) + " m")
-        print("Grain Height: " + str(self.solid.grainInitialHeight) + " m")
-        print("Grain Volume: " + "{:.3f}".format(self.solid.grainInitialVolume) + " m3")
-        print("Grain Mass: " + "{:.3f}".format(self.solid.grainInitialMass) + " kg")
-
-        # Print motor details
-        print("\nMotor Details")
-        print("Total Burning Time: " + str(self.burnDuration) + " s")
-        print(
-            "Total Propellant Mass: "
-            + "{:.3f}".format(self.propellantInitialMass)
-            + " kg"
-        )
-        print(
-            "Average Propellant Exhaust Velocity: "
-            + "{:.3f}".format(self.exhaustVelocity.average(*self.burn_time))
-            + " m/s"
-        )
-        print("Average Thrust: " + "{:.3f}".format(self.averageThrust) + " N")
-        print(
-            "Maximum Thrust: "
-            + str(self.maxThrust)
-            + " N at "
-            + str(self.maxThrustTime)
-            + " s after ignition."
-        )
-        print("Total Impulse: " + "{:.3f}".format(self.totalImpulse) + " Ns")
-
-        # Show plots
-        print("\nPlots")
-        self.thrust.plot(*self.burn_time)
-        self.totalMass.plot(*self.burn_time)
-        self.massFlowRate.plot(*self.burn_time)
-        self.solid.grainInnerRadius.plot(*self.burn_time)
-        self.solid.grainHeight.plot(*self.burn_time)
-        self.solid.burnRate.plot(self.burn_time[0], self.solid.grainBurnOut)
-        self.solid.burnArea.plot(*self.burn_time)
-        self.solid.Kn.plot(*self.burn_time)
-        self.centerOfMass.plot(*self.burn_time)
-        self.I_11.plot(*self.burn_time)
-        self.I_22.plot(*self.burn_time)
-        self.I_33.plot(*self.burn_time)
-        self.I_12.plot(*self.burn_time)
-        self.I_13.plot(*self.burn_time)
-        self.I_23.plot(*self.burn_time)
-
+        self.prints.all()
+        self.plots.all()
+        return None
         return None

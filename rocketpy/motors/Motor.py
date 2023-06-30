@@ -8,6 +8,8 @@ import re
 import warnings
 from abc import ABC, abstractmethod
 
+from rocketpy.plots.motor_plots import _MotorPlots
+from rocketpy.prints.motor_prints import _MotorPrints
 from rocketpy.tools import tuple_handler
 
 try:
@@ -309,6 +311,10 @@ class Motor(ABC):
         maxThrustIndex = np.argmax(self.thrust.yArray)
         self.maxThrustTime = self.thrust.source[maxThrustIndex, 0]
         self.averageThrust = self.totalImpulse / self.burnDuration
+
+        # Initialize plots and prints object
+        self.prints = _MotorPrints(self)
+        self.plots = _MotorPlots(self)
         return None
 
     @property
@@ -1029,38 +1035,18 @@ class Motor(ABC):
         Motor.
         """
         # Print motor details
-        print("\nMotor Details")
-        print("Total Burning Time: " + str(self.burnDuration) + " s")
-        print(
-            "Total Propellant Mass: "
-            + "{:.3f}".format(self.propellantInitialMass)
-            + " kg"
-        )
-        print(
-            "Propellant Exhaust Velocity: "
-            + "{:.3f}".format(self.exhaustVelocity.average(*self.burn_time))
-            + " m/s"
-        )
-        print("Average Thrust: " + "{:.3f}".format(self.averageThrust) + " N")
-        print(
-            "Maximum Thrust: "
-            + str(self.maxThrust)
-            + " N at "
-            + str(self.maxThrustTime)
-            + " s after ignition."
-        )
-        print("Total Impulse: " + "{:.3f}".format(self.totalImpulse) + " Ns")
-
-        # Show plots
-        print("\nPlots")
-        self.thrust()
+        self.prints.all()
+        self.plots.thrust()
+        return None
 
         return None
 
     @abstractmethod
     def allInfo(self):
         """Prints out all data and graphs available about the Motor."""
-        pass
+        self.prints.all()
+        self.plots.all()
+        return None
 
 
 class GenericMotor(Motor):
@@ -1109,6 +1095,9 @@ class GenericMotor(Motor):
         self.center_of_dry_mass = (
             center_of_dry_mass if center_of_dry_mass else chamberPosition
         )
+        # Initialize plots and prints object
+        self.prints = _MotorPrints(self)
+        self.plots = _MotorPlots(self)
         return None
 
     @cached_property
@@ -1232,39 +1221,9 @@ class GenericMotor(Motor):
     def allInfo(self):
         """Prints out all data and graphs available about the Motor."""
         # Print motor details
-        print("\nMotor Details")
-        print("Total Burning Time: " + str(self.burnOutTime) + " s")
-        print(
-            "Total Propellant Mass: "
-            + "{:.3f}".format(self.propellantInitialMass)
-            + " kg"
-        )
-        print(
-            "Propellant Exhaust Velocity: "
-            + "{:.3f}".format(self.exhaustVelocity)
-            + " m/s"
-        )
-        print("Average Thrust: " + "{:.3f}".format(self.averageThrust) + " N")
-        print(
-            "Maximum Thrust: "
-            + str(self.maxThrust)
-            + " N at "
-            + str(self.maxThrustTime)
-            + " s after ignition."
-        )
-        print("Total Impulse: " + "{:.3f}".format(self.totalImpulse) + " Ns")
-
-        # Show plots
-        print("\nPlots")
-        self.thrust()
-        self.totalMass()
-        self.centerOfMass()
-        self.I_11()
-        self.I_22()
-        self.I_33()
-        self.I_12()
-        self.I_13()
-        self.I_23()
+        self.prints.all()
+        self.plots.all()
+        return None
 
 
 class EmptyMotor:

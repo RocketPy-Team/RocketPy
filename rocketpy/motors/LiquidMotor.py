@@ -10,6 +10,8 @@ except ImportError:
     from rocketpy.tools import cached_property
 
 from rocketpy.Function import Function, funcify_method, reset_funcified_methods
+from rocketpy.plots.liquid_motor_plots import _LiquidMotorPlots
+from rocketpy.prints.liquid_motor_prints import _LiquidMotorPrints
 
 from .Motor import Motor
 
@@ -243,6 +245,11 @@ class LiquidMotor(Motor):
 
         self.positioned_tanks = []
 
+        # Initialize plots and prints object
+        self.prints = _LiquidMotorPrints(self)
+        self.plots = _LiquidMotorPlots(self)
+        return None
+
     @funcify_method("Time (s)", "Exhaust Velocity (m/s)")
     def exhaustVelocity(self):
         """Computes the exhaust velocity of the motor from its mass flow
@@ -432,6 +439,12 @@ class LiquidMotor(Motor):
         self.positioned_tanks.append({"tank": tank, "position": position})
         reset_funcified_methods(self)
 
+    def info(self):
+        """Prints out basic data about the Motor."""
+        self.prints.all()
+        self.plots.thrust()
+        return None
+
     def allInfo(self):
         """Prints out all data and graphs available about the Motor.
 
@@ -439,43 +452,6 @@ class LiquidMotor(Motor):
         ------
         None
         """
-        # Print nozzle details
-        print("Nozzle Details")
-        print("Nozzle Radius: " + str(self.nozzleRadius) + " m")
-
-        # Print motor details
-        print("\nMotor Details")
-        print("Total Burning Time: " + str(self.burnDuration) + " s")
-        print(
-            "Total Propellant Mass: "
-            + "{:.3f}".format(self.propellantInitialMass)
-            + " kg"
-        )
-        print(
-            "Average Propellant Exhaust Velocity: "
-            + "{:.3f}".format(self.exhaustVelocity.average(*self.burn_time))
-            + " m/s"
-        )
-        print("Average Thrust: " + "{:.3f}".format(self.averageThrust) + " N")
-        print(
-            "Maximum Thrust: "
-            + str(self.maxThrust)
-            + " N at "
-            + str(self.maxThrustTime)
-            + " s after ignition."
-        )
-        print("Total Impulse: " + "{:.3f}".format(self.totalImpulse) + " Ns")
-
-        # Show plots
-        print("\nPlots")
-        self.thrust.plot(*self.burn_time)
-        self.totalMass.plot(*self.burn_time)
-        self.massFlowRate.plot(*self.burn_time)
-        self.exhaustVelocity.plot(*self.burn_time)
-        self.centerOfMass.plot(*self.burn_time)
-        self.I_11.plot(*self.burn_time)
-        self.I_22.plot(*self.burn_time)
-        self.I_33.plot(*self.burn_time)
-        self.I_12.plot(*self.burn_time)
-        self.I_13.plot(*self.burn_time)
-        self.I_23.plot(*self.burn_time)
+        self.prints.all()
+        self.plots.all()
+        return None
