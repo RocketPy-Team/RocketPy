@@ -59,9 +59,10 @@ RocketPy is the next-generation trajectory simulation solution for High-Power Ro
 </details>
 
 <details>
-<summary>Solid motors models</summary>
+<summary>Solid, Hybrid and Liquid motors models</summary>
 <ul>
   <li>Burn rate and mass variation properties from thrust curve</li>
+  <li>Define custom rocket tanks based on their flux data</li>
   <li>CSV and ENG file support</li>
 </ul>
 </details>
@@ -156,12 +157,12 @@ To learn more about RocketPy's requirements, visit our [Requirements Docs](https
 
 ## Running Your First Simulation
 
-In order to run your first rocket trajectory simulation using RocketPy, you can start a Jupyter Notebook and navigate to the _nbks_ folder. Open _Getting Started - Examples.ipynb_ and you are ready to go.
+In order to run your first rocket trajectory simulation using RocketPy, you can start a Jupyter Notebook and navigate to the _docs/notebooks_ folder. Open _getting_started.ipynb_ and you are ready to go.
 
 Otherwise, you may want to create your own script or your own notebook using RocketPy. To do this, let's see how to use RocketPy's four main classes:
 
 - Environment - Keeps data related to weather.
-- SolidMotor - Keeps data related to solid motors. Hybrid motor support is coming in the next weeks.
+- Motor - Subdivided into SolidMotor, HybridMotor and LiquidMotor. Keeps data related to rocket motors.
 - Rocket - Keeps data related to a rocket.
 - Flight - Runs the simulation and keeps the results.
 
