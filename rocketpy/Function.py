@@ -703,8 +703,6 @@ class Function:
 
         self.set_title(title)
 
-        self.setTitle(title)
-
         return self
 
     # Define all get methods
