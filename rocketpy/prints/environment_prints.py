@@ -72,7 +72,7 @@ class _EnvironmentPrints:
                 "Launch Date:",
                 self.environment.datetime_date.strftime(time_format),
                 "UTC |",
-                self.environment.localDate.strftime(time_format),
+                self.environment.local_date.strftime(time_format),
                 self.environment.timezone,
             )
         elif self.environment.datetime_date != None:
