@@ -137,6 +137,7 @@ def test_evaluate_inertia_11_asserts_extreme_values(solid_motor):
         d**2
     )
 
+    # not passing because I_33 is not discrete anymore
     assert np.allclose(
         solid_motor.propellant_I_11.get_source()[0][-1], inertia_11_initial, atol=0.01
     )
