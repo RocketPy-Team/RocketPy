@@ -45,18 +45,18 @@ class _FlightPlots:
     @cached_property
     def first_event_time(self):
         """Time of the first flight event."""
-        if len(self.flight.parachuteEvents) > 0:
+        if len(self.flight.parachute_events) > 0:
             return (
-                self.flight.parachuteEvents[0][0]
-                + self.flight.parachuteEvents[0][1].lag
+                self.flight.parachute_events[0][0]
+                + self.flight.parachute_events[0][1].lag
             )
         else:
-            return self.flight.tFinal
+            return self.flight.t_final
 
     @cached_property
     def first_event_time_index(self):
         """Time index of the first flight event."""
-        if len(self.flight.parachuteEvents) > 0:
+        if len(self.flight.parachute_events) > 0:
             return np.nonzero(self.flight.x[:, 0] == self.first_event_time)[0][0]
         else:
             return -1
@@ -138,7 +138,7 @@ class _FlightPlots:
 
         ax1 = plt.subplot(414)
         ax1.plot(self.flight.vx[:, 0], self.flight.vx[:, 1], color="#ff7f0e")
-        ax1.set_xlim(0, self.flight.tFinal)
+        ax1.set_xlim(0, self.flight.t_final)
         ax1.set_title("Velocity X | Acceleration X")
         ax1.set_xlabel("Time (s)")
         ax1.set_ylabel("Velocity X (m/s)", color="#ff7f0e")
@@ -152,7 +152,7 @@ class _FlightPlots:
 
         ax2 = plt.subplot(413)
         ax2.plot(self.flight.vy[:, 0], self.flight.vy[:, 1], color="#ff7f0e")
-        ax2.set_xlim(0, self.flight.tFinal)
+        ax2.set_xlim(0, self.flight.t_final)
         ax2.set_title("Velocity Y | Acceleration Y")
         ax2.set_xlabel("Time (s)")
         ax2.set_ylabel("Velocity Y (m/s)", color="#ff7f0e")
@@ -166,7 +166,7 @@ class _FlightPlots:
 
         ax3 = plt.subplot(412)
         ax3.plot(self.flight.vz[:, 0], self.flight.vz[:, 1], color="#ff7f0e")
-        ax3.set_xlim(0, self.flight.tFinal)
+        ax3.set_xlim(0, self.flight.t_final)
         ax3.set_title("Velocity Z | Acceleration Z")
         ax3.set_xlabel("Time (s)")
         ax3.set_ylabel("Velocity Z (m/s)", color="#ff7f0e")
@@ -180,7 +180,7 @@ class _FlightPlots:
 
         ax4 = plt.subplot(411)
         ax4.plot(self.flight.speed[:, 0], self.flight.speed[:, 1], color="#ff7f0e")
-        ax4.set_xlim(0, self.flight.tFinal)
+        ax4.set_xlim(0, self.flight.t_final)
         ax4.set_title("Velocity Magnitude | Acceleration Magnitude")
         ax4.set_xlabel("Time (s)")
         ax4.set_ylabel("Velocity (m/s)", color="#ff7f0e")
@@ -275,13 +275,13 @@ class _FlightPlots:
 
         ax1 = plt.subplot(211)
         ax1.plot(
-            self.flight.pathAngle[:, 0],
-            self.flight.pathAngle[:, 1],
+            self.flight.path_angle[:, 0],
+            self.flight.path_angle[:, 1],
             label="Flight Path Angle",
         )
         ax1.plot(
-            self.flight.attitudeAngle[:, 0],
-            self.flight.attitudeAngle[:, 1],
+            self.flight.attitude_angle[:, 0],
+            self.flight.attitude_angle[:, 1],
             label="Rocket Attitude Angle",
         )
         ax1.set_xlim(0, self.first_event_time)
@@ -293,8 +293,8 @@ class _FlightPlots:
 
         ax2 = plt.subplot(212)
         ax2.plot(
-            self.flight.lateralAttitudeAngle[:, 0],
-            self.flight.lateralAttitudeAngle[:, 1],
+            self.flight.lateral_attitude_angle[:, 0],
+            self.flight.lateral_attitude_angle[:, 1],
         )
         ax2.set_xlim(0, self.first_event_time)
         ax2.set_xlabel("Time (s)")
@@ -381,7 +381,87 @@ class _FlightPlots:
 
         return None
 
-    def trajectory_force_data(self):
+    def rail_buttons_forces(self):
+        """Prints out all Rail Buttons Forces graphs available about the Flight.
+
+        Returns
+        -------
+        None
+        """
+        if len(self.flight.rocket.rail_buttons) == 0:
+            print("No rail buttons were defined. Skipping rail button plots.")
+        elif self.flight.out_of_rail_time_index == 0:
+            print("No rail phase was found. Skipping rail button plots.")
+        else:
+            fig6 = plt.figure(figsize=(9, 6))
+
+            ax1 = plt.subplot(211)
+            ax1.plot(
+                self.flight.rail_button1_normal_force[
+                    : self.flight.out_of_rail_time_index, 0
+                ],
+                self.flight.rail_button1_normal_force[
+                    : self.flight.out_of_rail_time_index, 1
+                ],
+                label="Upper Rail Button",
+            )
+            ax1.plot(
+                self.flight.rail_button2_normal_force[
+                    : self.flight.out_of_rail_time_index, 0
+                ],
+                self.flight.rail_button2_normal_force[
+                    : self.flight.out_of_rail_time_index, 1
+                ],
+                label="Lower Rail Button",
+            )
+            ax1.set_xlim(
+                0,
+                self.flight.out_of_rail_time
+                if self.flight.out_of_rail_time > 0
+                else self.flight.tFinal,
+            )
+            ax1.legend()
+            ax1.grid(True)
+            ax1.set_xlabel(self.flight.rail_button1_normal_force.get_inputs()[0])
+            ax1.set_ylabel(self.flight.rail_button1_normal_force.get_outputs()[0])
+            ax1.set_title("Rail Buttons Normal Force")
+
+            ax2 = plt.subplot(212)
+            ax2.plot(
+                self.flight.rail_button1_shear_force[
+                    : self.flight.out_of_rail_time_index, 0
+                ],
+                self.flight.rail_button1_shear_force[
+                    : self.flight.out_of_rail_time_index, 1
+                ],
+                label="Upper Rail Button",
+            )
+            ax2.plot(
+                self.flight.rail_button2_shear_force[
+                    : self.flight.out_of_rail_time_index, 0
+                ],
+                self.flight.rail_button2_shear_force[
+                    : self.flight.out_of_rail_time_index, 1
+                ],
+                label="Lower Rail Button",
+            )
+            ax2.set_xlim(
+                0,
+                self.flight.out_of_rail_time
+                if self.flight.out_of_rail_time > 0
+                else self.flight.tFinal,
+            )
+            ax2.legend()
+            ax2.grid(True)
+            ax2.set_xlabel(self.flight.rail_button1_shear_force.__inputs__[0])
+            ax2.set_ylabel(self.flight.rail_button1_shear_force.__outputs__[0])
+            ax2.set_title("Rail Buttons Shear Force")
+
+            plt.subplots_adjust(hspace=0.5)
+            plt.show()
+        return None
+
+    def aerodynamic_forces(self):
         """Prints out all Forces and Moments graphs available about the Flight
 
         Parameters
@@ -393,65 +473,13 @@ class _FlightPlots:
         None
         """
 
-        # Rail Button Forces
-        fig6 = plt.figure(figsize=(9, 6))
-
-        ax1 = plt.subplot(211)
-        ax1.plot(
-            self.flight.railButton1NormalForce[: self.flight.outOfRailTimeIndex, 0],
-            self.flight.railButton1NormalForce[: self.flight.outOfRailTimeIndex, 1],
-            label="Upper Rail Button",
-        )
-        ax1.plot(
-            self.flight.railButton2NormalForce[: self.flight.outOfRailTimeIndex, 0],
-            self.flight.railButton2NormalForce[: self.flight.outOfRailTimeIndex, 1],
-            label="Lower Rail Button",
-        )
-        ax1.set_xlim(
-            0,
-            self.flight.outOfRailTime
-            if self.flight.outOfRailTime > 0
-            else self.flight.tFinal,
-        )
-        ax1.legend()
-        ax1.grid(True)
-        ax1.set_xlabel("Time (s)")
-        ax1.set_ylabel("Normal Force (N)")
-        ax1.set_title("Rail Buttons Normal Force")
-
-        ax2 = plt.subplot(212)
-        ax2.plot(
-            self.flight.railButton1ShearForce[: self.flight.outOfRailTimeIndex, 0],
-            self.flight.railButton1ShearForce[: self.flight.outOfRailTimeIndex, 1],
-            label="Upper Rail Button",
-        )
-        ax2.plot(
-            self.flight.railButton2ShearForce[: self.flight.outOfRailTimeIndex, 0],
-            self.flight.railButton2ShearForce[: self.flight.outOfRailTimeIndex, 1],
-            label="Lower Rail Button",
-        )
-        ax2.set_xlim(
-            0,
-            self.flight.outOfRailTime
-            if self.flight.outOfRailTime > 0
-            else self.flight.tFinal,
-        )
-        ax2.legend()
-        ax2.grid(True)
-        ax2.set_xlabel("Time (s)")
-        ax2.set_ylabel("Shear Force (N)")
-        ax2.set_title("Rail Buttons Shear Force")
-
-        plt.subplots_adjust(hspace=0.5)
-        plt.show()
-
         # Aerodynamic force and moment plots
         fig7 = plt.figure(figsize=(9, 12))
 
         ax1 = plt.subplot(411)
         ax1.plot(
-            self.flight.aerodynamicLift[: self.first_event_time_index, 0],
-            self.flight.aerodynamicLift[: self.first_event_time_index, 1],
+            self.flight.aerodynamic_lift[: self.first_event_time_index, 0],
+            self.flight.aerodynamic_lift[: self.first_event_time_index, 1],
             label="Resultant",
         )
         ax1.plot(
@@ -473,8 +501,8 @@ class _FlightPlots:
 
         ax2 = plt.subplot(412)
         ax2.plot(
-            self.flight.aerodynamicDrag[: self.first_event_time_index, 0],
-            self.flight.aerodynamicDrag[: self.first_event_time_index, 1],
+            self.flight.aerodynamic_drag[: self.first_event_time_index, 0],
+            self.flight.aerodynamic_drag[: self.first_event_time_index, 1],
         )
         ax2.set_xlim(0, self.first_event_time)
         ax2.set_xlabel("Time (s)")
@@ -484,8 +512,8 @@ class _FlightPlots:
 
         ax3 = plt.subplot(413)
         ax3.plot(
-            self.flight.aerodynamicBendingMoment[: self.first_event_time_index, 0],
-            self.flight.aerodynamicBendingMoment[: self.first_event_time_index, 1],
+            self.flight.aerodynamic_bending_moment[: self.first_event_time_index, 0],
+            self.flight.aerodynamic_bending_moment[: self.first_event_time_index, 1],
             label="Resultant",
         )
         ax3.plot(
@@ -507,8 +535,8 @@ class _FlightPlots:
 
         ax4 = plt.subplot(414)
         ax4.plot(
-            self.flight.aerodynamicSpinMoment[: self.first_event_time_index, 0],
-            self.flight.aerodynamicSpinMoment[: self.first_event_time_index, 1],
+            self.flight.aerodynamic_spin_moment[: self.first_event_time_index, 0],
+            self.flight.aerodynamic_spin_moment[: self.first_event_time_index, 1],
         )
         ax4.set_xlim(0, self.first_event_time)
         ax4.set_xlabel("Time (s)")
@@ -533,25 +561,25 @@ class _FlightPlots:
 
         ax1 = plt.subplot(411)
         ax1.plot(
-            self.flight.kineticEnergy[:, 0],
-            self.flight.kineticEnergy[:, 1],
+            self.flight.kinetic_energy[:, 0],
+            self.flight.kinetic_energy[:, 1],
             label="Kinetic Energy",
         )
         ax1.plot(
-            self.flight.rotationalEnergy[:, 0],
-            self.flight.rotationalEnergy[:, 1],
+            self.flight.rotational_energy[:, 0],
+            self.flight.rotational_energy[:, 1],
             label="Rotational Energy",
         )
         ax1.plot(
-            self.flight.translationalEnergy[:, 0],
-            self.flight.translationalEnergy[:, 1],
+            self.flight.translational_energy[:, 0],
+            self.flight.translational_energy[:, 1],
             label="Translational Energy",
         )
         ax1.set_xlim(
             0,
-            self.flight.apogeeTime
-            if self.flight.apogeeTime != 0.0
-            else self.flight.tFinal,
+            self.flight.apogee_time
+            if self.flight.apogee_time != 0.0
+            else self.flight.t_final,
         )
         ax1.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
         ax1.set_title("Kinetic Energy Components")
@@ -563,25 +591,25 @@ class _FlightPlots:
 
         ax2 = plt.subplot(412)
         ax2.plot(
-            self.flight.totalEnergy[:, 0],
-            self.flight.totalEnergy[:, 1],
+            self.flight.total_energy[:, 0],
+            self.flight.total_energy[:, 1],
             label="Total Energy",
         )
         ax2.plot(
-            self.flight.kineticEnergy[:, 0],
-            self.flight.kineticEnergy[:, 1],
+            self.flight.kinetic_energy[:, 0],
+            self.flight.kinetic_energy[:, 1],
             label="Kinetic Energy",
         )
         ax2.plot(
-            self.flight.potentialEnergy[:, 0],
-            self.flight.potentialEnergy[:, 1],
+            self.flight.potential_energy[:, 0],
+            self.flight.potential_energy[:, 1],
             label="Potential Energy",
         )
         ax2.set_xlim(
             0,
-            self.flight.apogeeTime
-            if self.flight.apogeeTime != 0.0
-            else self.flight.tFinal,
+            self.flight.apogee_time
+            if self.flight.apogee_time != 0.0
+            else self.flight.t_final,
         )
         ax2.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
         ax2.set_title("Total Mechanical Energy Components")
@@ -592,11 +620,11 @@ class _FlightPlots:
 
         ax3 = plt.subplot(413)
         ax3.plot(
-            self.flight.thrustPower[:, 0],
-            self.flight.thrustPower[:, 1],
+            self.flight.thrust_power[:, 0],
+            self.flight.thrust_power[:, 1],
             label="|Thrust Power|",
         )
-        ax3.set_xlim(0, self.flight.rocket.motor.burnOutTime)
+        ax3.set_xlim(0, self.flight.rocket.motor.burn_out_time)
         ax3.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
         ax3.set_title("Thrust Absolute Power")
         ax3.set_xlabel("Time (s)")
@@ -606,15 +634,15 @@ class _FlightPlots:
 
         ax4 = plt.subplot(414)
         ax4.plot(
-            self.flight.dragPower[:, 0],
-            -self.flight.dragPower[:, 1],
+            self.flight.drag_power[:, 0],
+            -self.flight.drag_power[:, 1],
             label="|Drag Power|",
         )
         ax4.set_xlim(
             0,
-            self.flight.apogeeTime
-            if self.flight.apogeeTime != 0.0
-            else self.flight.tFinal,
+            self.flight.apogee_time
+            if self.flight.apogee_time != 0.0
+            else self.flight.t_final,
         )
         ax3.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
         ax4.set_title("Drag Absolute Power")
@@ -645,16 +673,16 @@ class _FlightPlots:
         fig10 = plt.figure(figsize=(9, 12))
 
         ax1 = plt.subplot(411)
-        ax1.plot(self.flight.MachNumber[:, 0], self.flight.MachNumber[:, 1])
-        ax1.set_xlim(0, self.flight.tFinal)
+        ax1.plot(self.flight.mach_number[:, 0], self.flight.mach_number[:, 1])
+        ax1.set_xlim(0, self.flight.t_final)
         ax1.set_title("Mach Number")
         ax1.set_xlabel("Time (s)")
         ax1.set_ylabel("Mach Number")
         ax1.grid()
 
         ax2 = plt.subplot(412)
-        ax2.plot(self.flight.ReynoldsNumber[:, 0], self.flight.ReynoldsNumber[:, 1])
-        ax2.set_xlim(0, self.flight.tFinal)
+        ax2.plot(self.flight.reynolds_number[:, 0], self.flight.reynolds_number[:, 1])
+        ax2.set_xlim(0, self.flight.t_final)
         ax2.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
         ax2.set_title("Reynolds Number")
         ax2.set_xlabel("Time (s)")
@@ -663,13 +691,13 @@ class _FlightPlots:
 
         ax3 = plt.subplot(413)
         ax3.plot(
-            self.flight.dynamicPressure[:, 0],
-            self.flight.dynamicPressure[:, 1],
+            self.flight.dynamic_pressure[:, 0],
+            self.flight.dynamic_pressure[:, 1],
             label="Dynamic Pressure",
         )
         ax3.plot(
-            self.flight.totalPressure[:, 0],
-            self.flight.totalPressure[:, 1],
+            self.flight.total_pressure[:, 0],
+            self.flight.total_pressure[:, 1],
             label="Total Pressure",
         )
         ax3.plot(
@@ -677,7 +705,7 @@ class _FlightPlots:
             self.flight.pressure[:, 1],
             label="Static Pressure",
         )
-        ax3.set_xlim(0, self.flight.tFinal)
+        ax3.set_xlim(0, self.flight.t_final)
         ax3.legend()
         ax3.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
         ax3.set_title("Total and Dynamic Pressure")
@@ -686,15 +714,17 @@ class _FlightPlots:
         ax3.grid()
 
         ax4 = plt.subplot(414)
-        ax4.plot(self.flight.angleOfAttack[:, 0], self.flight.angleOfAttack[:, 1])
+        ax4.plot(self.flight.angle_of_attack[:, 0], self.flight.angle_of_attack[:, 1])
         # Make sure bottom and top limits are different
         if (
-            self.flight.outOfRailTime
-            * self.flight.angleOfAttack(self.flight.outOfRailTime)
+            self.flight.out_of_rail_time
+            * self.flight.angle_of_attack(self.flight.out_of_rail_time)
             != 0
         ):
-            ax4.set_xlim(self.flight.outOfRailTime, 10 * self.flight.outOfRailTime + 1)
-            ax4.set_ylim(0, self.flight.angleOfAttack(self.flight.outOfRailTime))
+            ax4.set_xlim(
+                self.flight.out_of_rail_time, 10 * self.flight.out_of_rail_time + 1
+            )
+            ax4.set_ylim(0, self.flight.angle_of_attack(self.flight.out_of_rail_time))
         ax4.set_title("Angle of Attack")
         ax4.set_xlabel("Time (s)")
         ax4.set_ylabel("Angle of Attack (°)")
@@ -721,40 +751,40 @@ class _FlightPlots:
         fig9 = plt.figure(figsize=(9, 6))
 
         ax1 = plt.subplot(211)
-        ax1.plot(self.flight.staticMargin[:, 0], self.flight.staticMargin[:, 1])
-        ax1.set_xlim(0, self.flight.staticMargin[:, 0][-1])
+        ax1.plot(self.flight.static_margin[:, 0], self.flight.static_margin[:, 1])
+        ax1.set_xlim(0, self.flight.static_margin[:, 0][-1])
         ax1.set_title("Static Margin")
         ax1.set_xlabel("Time (s)")
         ax1.set_ylabel("Static Margin (c)")
         ax1.grid()
 
         ax2 = plt.subplot(212)
-        maxAttitude = max(self.flight.attitudeFrequencyResponse[:, 1])
-        maxAttitude = maxAttitude if maxAttitude != 0 else 1
+        max_attitude = max(self.flight.attitude_frequency_response[:, 1])
+        max_attitude = max_attitude if max_attitude != 0 else 1
         ax2.plot(
-            self.flight.attitudeFrequencyResponse[:, 0],
-            self.flight.attitudeFrequencyResponse[:, 1] / maxAttitude,
+            self.flight.attitude_frequency_response[:, 0],
+            self.flight.attitude_frequency_response[:, 1] / max_attitude,
             label="Attitude Angle",
         )
-        maxOmega1 = max(self.flight.omega1FrequencyResponse[:, 1])
-        maxOmega1 = maxOmega1 if maxOmega1 != 0 else 1
+        max_omega1 = max(self.flight.omega1_frequency_response[:, 1])
+        max_omega1 = max_omega1 if max_omega1 != 0 else 1
         ax2.plot(
-            self.flight.omega1FrequencyResponse[:, 0],
-            self.flight.omega1FrequencyResponse[:, 1] / maxOmega1,
+            self.flight.omega1_frequency_response[:, 0],
+            self.flight.omega1_frequency_response[:, 1] / max_omega1,
             label=r"$\omega_1$",
         )
-        maxOmega2 = max(self.flight.omega2FrequencyResponse[:, 1])
-        maxOmega2 = maxOmega2 if maxOmega2 != 0 else 1
+        max_omega2 = max(self.flight.omega2_frequency_response[:, 1])
+        max_omega2 = max_omega2 if max_omega2 != 0 else 1
         ax2.plot(
-            self.flight.omega2FrequencyResponse[:, 0],
-            self.flight.omega2FrequencyResponse[:, 1] / maxOmega2,
+            self.flight.omega2_frequency_response[:, 0],
+            self.flight.omega2_frequency_response[:, 1] / max_omega2,
             label=r"$\omega_2$",
         )
-        maxOmega3 = max(self.flight.omega3FrequencyResponse[:, 1])
-        maxOmega3 = maxOmega3 if maxOmega3 != 0 else 1
+        max_omega3 = max(self.flight.omega3_frequency_response[:, 1])
+        max_omega3 = max_omega3 if max_omega3 != 0 else 1
         ax2.plot(
-            self.flight.omega3FrequencyResponse[:, 0],
-            self.flight.omega3FrequencyResponse[:, 1] / maxOmega3,
+            self.flight.omega3_frequency_response[:, 0],
+            self.flight.omega3_frequency_response[:, 1] / max_omega3,
             label=r"$\omega_3$",
         )
         ax2.set_title("Frequency Response")
@@ -789,7 +819,7 @@ class _FlightPlots:
         ax1.set_title("Pressure at Rocket's Altitude")
         ax1.set_xlabel("Time (s)")
         ax1.set_ylabel("Pressure (Pa)")
-        ax1.set_xlim(0, self.flight.tFinal)
+        ax1.set_xlim(0, self.flight.t_final)
         ax1.grid()
 
         plt.show()
@@ -816,13 +846,13 @@ class _FlightPlots:
         None
         """
 
-        if len(self.flight.parachuteEvents) > 0:
+        if len(self.flight.parachute_events) > 0:
             for parachute in self.flight.rocket.parachutes:
                 print("\nParachute: ", parachute.name)
                 self.flight._calculate_pressure_signal()
-                parachute.noiseSignalFunction()
-                parachute.noisyPressureSignalFunction()
-                parachute.cleanPressureSignalFunction()
+                parachute.noise_signal_function()
+                parachute.noisy_pressure_signal_function()
+                parachute.clean_pressure_signal_function()
         else:
             print("\nRocket has no parachutes. No parachute plots available")
 
@@ -855,8 +885,11 @@ class _FlightPlots:
         print("\n\nTrajectory Angular Velocity and Acceleration Plots\n")
         self.angular_kinematics_data()
 
-        print("\n\nTrajectory Force Plots\n")
-        self.trajectory_force_data()
+        print("\n\nAerodynamic Forces Plots\n")
+        self.aerodynamic_forces()
+
+        print("\n\nRail Buttons Forces Plots\n")
+        self.rail_buttons_forces()
 
         print("\n\nTrajectory Energy Plots\n")
         self.energy_data()

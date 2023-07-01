@@ -6,7 +6,11 @@ __license__ = "MIT"
 
 from abc import ABC, abstractmethod
 
+import numpy as np
+
 from rocketpy.Function import Function, funcify_method
+from rocketpy.plots.tank_plots import _TankPlots
+from rocketpy.prints.tank_prints import _TankPrints
 from rocketpy.tools import tuple_handler
 
 
@@ -14,9 +18,71 @@ class Tank(ABC):
     """Abstract Tank class that defines a tank object for a rocket motor, so
     that it evaluates useful properties of the tank and its fluids, such as
     mass, volume, fluid flow rate, center of mass, etc.
+
+    Attributes
+    ----------
+
+        Tank.name : str
+            Name of the tank.
+        Tank.geometry : rocketpy.motors.TankGeometry
+            Geometry of the tank.
+        Tank.flux_time : float, tuple of float, optional
+            Tank flux time in seconds.
+        Tank.liquid : rocketpy.motors.Fluid
+            Liquid inside the tank as a Fluid object.
+        Tank.gas : rocketpy.motors.Fluid
+            Gas inside the tank as a Fluid object.
+        Tank.discretize : int, optional
+            Number of points to discretize fluid inputs.
+
+    Properties
+    ----------
+
+        tank.fluid_mass : rocketpy.Function
+            Total mass of liquid and gases in kg inside the tank as a function
+            of time.
+        Tank.net_mass_flow_rate : rocketpy.Function
+            Net mass flow rate of the tank in kg/s as a function of time, also
+            understood as time derivative of the tank mass.
+        Tank.liquid_volume : rocketpy.Function
+            Volume of the liquid inside the Tank in m^3 as a function of time.
+        Tank.gas_volume : rocketpy.Function
+            Volume of the gas inside the Tank in m^3 as a function of time.
+        Tank.liquid_height : rocketpy.Function
+            Height of the liquid inside the Tank in m as a function of time.
+            The zero level reference is the same as set in Tank.geometry.
+        Tank.gas_height : rocketpy.Function
+            Height of the gas inside the Tank in m as a function of time.
+            The zero level reference is the same as set in Tank.geometry.
+        Tank.liquid_mass : rocketpy.Function
+            Mass of the liquid inside the Tank in kg as a function of time.
+        Tank.gas_mass : rocketpy.Function
+            Mass of the gas inside the Tank in kg as a function of time.
+        Tank.liquid_center_of_mass : rocketpy.Function
+            Center of mass of the liquid inside the Tank in m as a function of
+            time. The zero level reference is the same as set in Tank.geometry.
+        Tank.gas_center_of_mass : rocketpy.Function
+            Center of mass of the gas inside the Tank in m as a function of
+            time. The zero level reference is the same as set in Tank.geometry.
+        Tank.center_of_mass : rocketpy.Function
+            Center of mass of liquid and gas (i.e. propellant) inside the Tank
+            in m as a function of time. The zero level reference is the same as
+            set in Tank.geometry.
+        Tank.liquid_inertia : rocketpy.Function
+            The inertia of the liquid inside the Tank in kg*m^2 as a function
+            of time around a perpendicular axis to the Tank symmetry axis. The
+            reference point is the Tank center of mass.
+        Tank.gas_inertia : rocketpy.Function
+            The inertia of the gas inside the Tank in kg*m^2 as a function of
+            time around a perpendicular axis to the Tank symmetry axis. The
+            reference point is the Tank center of mass.
+        Tank.inertia : rocketpy.Function
+            The inertia of the liquid and gas (i.e. propellant) inside the Tank
+            in kg*m^2 as a function of time around a perpendicular axis to the
+            Tank symmetry axis. The reference point is the Tank center of mass.
     """
 
-    def __init__(self, name, geometry, flux_time, gas, liquid, discretize=100):
+    def __init__(self, name, geometry, flux_time, liquid, gas, discretize=100):
         """Initialize Tank class.
 
         Parameters
@@ -47,6 +113,10 @@ class Tank(ABC):
         self.gas = gas
         self.liquid = liquid
         self.discretize = discretize
+
+        # Initialize plots and prints object
+        self.prints = _TankPrints(self)
+        self.plots = _TankPlots(self)
         return None
 
     @property
@@ -73,7 +143,7 @@ class Tank(ABC):
 
     @property
     @abstractmethod
-    def mass(self):
+    def fluid_mass(self):
         """
         Returns the total mass of liquid and gases inside the tank as a
         function of time.
@@ -87,11 +157,11 @@ class Tank(ABC):
 
     @property
     @abstractmethod
-    def netMassFlowRate(self):
+    def net_mass_flow_rate(self):
         """
         Returns the net mass flow rate of the tank as a function of time.
-        Net mass flow rate is the mass flow rate exiting the tank minus the
-        mass flow rate entering the tank, including liquids and gases.
+        Net mass flow rate is the mass flow rate entering the tank minus the
+        mass flow rate exiting the tank, including liquids and gases.
 
         Returns
         -------
@@ -102,7 +172,22 @@ class Tank(ABC):
 
     @property
     @abstractmethod
-    def liquidVolume(self):
+    def fluid_volume(self):
+        """
+        Returns the volume total fluid volume inside the tank as a
+        function of time. This volume is the sum of the liquid and gas
+        volumes.
+
+        Returns
+        -------
+        Function
+            Volume of the fluid as a function of time.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def liquid_volume(self):
         """
         Returns the volume of the liquid as a function of time.
 
@@ -115,7 +200,7 @@ class Tank(ABC):
 
     @property
     @abstractmethod
-    def gasVolume(self):
+    def gas_volume(self):
         """
         Returns the volume of the gas as a function of time.
 
@@ -128,7 +213,7 @@ class Tank(ABC):
 
     @property
     @abstractmethod
-    def liquidHeight(self):
+    def liquid_height(self):
         """
         Returns the liquid level as a function of time. This
         height is measured from the zero level of the tank
@@ -143,7 +228,7 @@ class Tank(ABC):
 
     @property
     @abstractmethod
-    def gasHeight(self):
+    def gas_height(self):
         """
         Returns the gas level as a function of time. This
         height is measured from the zero level of the tank
@@ -158,7 +243,7 @@ class Tank(ABC):
 
     @property
     @abstractmethod
-    def liquidMass(self):
+    def liquid_mass(self):
         """
         Returns the mass of the liquid as a function of time.
 
@@ -171,7 +256,7 @@ class Tank(ABC):
 
     @property
     @abstractmethod
-    def gasMass(self):
+    def gas_mass(self):
         """
         Returns the mass of the gas as a function of time.
 
@@ -183,7 +268,7 @@ class Tank(ABC):
         pass
 
     @funcify_method("Time (s)", "Center of mass of liquid (m)")
-    def liquidCenterOfMass(self):
+    def liquid_center_of_mass(self):
         """
         Returns the center of mass of the liquid portion of the tank
         as a function of time. This height is measured from the zero
@@ -196,23 +281,23 @@ class Tank(ABC):
             function of time.
         """
         moment = self.geometry.volume_moment(
-            self.geometry.bottom, self.liquidHeight.max
+            self.geometry.bottom, self.liquid_height.max
         )
-        liquid_moment = moment @ self.liquidHeight
-        centroid = liquid_moment / self.liquidVolume
+        liquid_moment = moment @ self.liquid_height
+        centroid = liquid_moment / self.liquid_volume
 
         # Check for zero liquid volume
-        bound_volume = self.liquidVolume < 1e-4 * self.geometry.total_volume
+        bound_volume = self.liquid_volume < 1e-4 * self.geometry.total_volume
         if bound_volume.any():
             # TODO: pending Function setter impl.
-            centroid.yArray[bound_volume] = self.geometry.bottom
-            centroid.setInterpolation()
-            centroid.setExtrapolation()
+            centroid.y_array[bound_volume] = self.geometry.bottom
+            centroid.set_interpolation()
+            centroid.set_extrapolation()
 
         return centroid
 
     @funcify_method("Time (s)", "Center of mass of gas (m)")
-    def gasCenterOfMass(self):
+    def gas_center_of_mass(self):
         """
         Returns the center of mass of the gas portion of the tank
         as a function of time. This height is measured from the zero
@@ -224,23 +309,23 @@ class Tank(ABC):
             Center of mass of the gas portion of the tank as a
             function of time.
         """
-        moment = self.geometry.volume_moment(self.geometry.bottom, self.gasHeight.max)
-        upper_moment = moment @ self.gasHeight
-        lower_moment = moment @ self.liquidHeight
-        centroid = (upper_moment - lower_moment) / self.gasVolume
+        moment = self.geometry.volume_moment(self.geometry.bottom, self.gas_height.max)
+        upper_moment = moment @ self.gas_height
+        lower_moment = moment @ self.liquid_height
+        centroid = (upper_moment - lower_moment) / self.gas_volume
 
         # Check for zero gas volume
-        bound_volume = self.gasVolume < 1e-4 * self.geometry.total_volume
+        bound_volume = self.gas_volume < 1e-4 * self.geometry.total_volume
         if bound_volume.any():
             # TODO: pending Function setter impl.
-            centroid.yArray[bound_volume] = self.liquidHeight.yArray[bound_volume]
-            centroid.setInterpolation()
-            centroid.setExtrapolation()
+            centroid.y_array[bound_volume] = self.liquid_height.y_array[bound_volume]
+            centroid.set_interpolation()
+            centroid.set_extrapolation()
 
         return centroid
 
     @funcify_method("Time (s)", "Center of mass of Fluid (m)")
-    def centerOfMass(self):
+    def center_of_mass(self):
         """Returns the center of mass of the tank's fluids as a function of
         time. This height is measured from the zero level of the tank
         geometry.
@@ -250,23 +335,25 @@ class Tank(ABC):
         rocketpy.Function
             Center of mass of the tank's fluids as a function of time.
         """
-        centerOfMass = (
-            self.liquidCenterOfMass * self.liquidMass
-            + self.gasCenterOfMass * self.gasMass
-        ) / (self.mass)
+        center_of_mass = (
+            self.liquid_center_of_mass * self.liquid_mass
+            + self.gas_center_of_mass * self.gas_mass
+        ) / (self.fluid_mass)
 
         # Check for zero mass
-        bound_mass = self.mass < 0.001 * self.geometry.total_volume * self.gas.density
+        bound_mass = (
+            self.fluid_mass < 0.001 * self.geometry.total_volume * self.gas.density
+        )
         if bound_mass.any():
             # TODO: pending Function setter impl.
-            centerOfMass.yArray[bound_mass] = self.geometry.bottom
-            centerOfMass.setInterpolation()
-            centerOfMass.setExtrapolation()
+            center_of_mass.y_array[bound_mass] = self.geometry.bottom
+            center_of_mass.set_interpolation()
+            center_of_mass.set_extrapolation()
 
-        return centerOfMass
+        return center_of_mass
 
     @funcify_method("Time (s)", "Inertia tensor of liquid (kg*m²)")
-    def liquidInertiaTensor(self):
+    def liquid_inertia(self):
         """
         Returns the inertia tensor of the liquid portion of the tank
         as a function of time. The reference point is the center of
@@ -278,19 +365,21 @@ class Tank(ABC):
             Inertia tensor of the liquid portion of the tank as a
             function of time.
         """
-        Ix_volume = self.geometry.Ix_volume(self.geometry.bottom, self.liquidHeight.max)
-        Ix_volume = Ix_volume @ self.liquidHeight
+        Ix_volume = self.geometry.Ix_volume(
+            self.geometry.bottom, self.liquid_height.max
+        )
+        Ix_volume = Ix_volume @ self.liquid_height
 
         # Steiner theorem to account for center of mass
-        Ix_volume -= self.liquidVolume * self.liquidCenterOfMass**2
+        Ix_volume -= self.liquid_volume * self.liquid_center_of_mass**2
         Ix_volume += (
-            self.liquidVolume * (self.liquidCenterOfMass - self.centerOfMass) ** 2
+            self.liquid_volume * (self.liquid_center_of_mass - self.center_of_mass) ** 2
         )
 
         return self.liquid.density * Ix_volume
 
     @funcify_method("Time (s)", "inertia tensor of gas (kg*m^2)")
-    def gasInertiaTensor(self):
+    def gas_inertia(self):
         """
         Returns the inertia tensor of the gas portion of the tank
         as a function of time. The reference point is the center of
@@ -302,21 +391,21 @@ class Tank(ABC):
             Inertia tensor of the gas portion of the tank as a
             function of time.
         """
-        Ix_volume = self.geometry.Ix_volume(self.geometry.bottom, self.gasHeight.max)
-        lower_inertia_volume = Ix_volume @ self.liquidHeight
-        upper_inertia_volume = Ix_volume @ self.gasHeight
+        Ix_volume = self.geometry.Ix_volume(self.geometry.bottom, self.gas_height.max)
+        lower_inertia_volume = Ix_volume @ self.liquid_height
+        upper_inertia_volume = Ix_volume @ self.gas_height
         inertia_volume = upper_inertia_volume - lower_inertia_volume
 
         # Steiner theorem to account for center of mass
-        inertia_volume -= self.gasVolume * self.gasCenterOfMass**2
+        inertia_volume -= self.gas_volume * self.gas_center_of_mass**2
         inertia_volume += (
-            self.gasVolume * (self.gasCenterOfMass - self.centerOfMass) ** 2
+            self.gas_volume * (self.gas_center_of_mass - self.center_of_mass) ** 2
         )
 
         return self.gas.density * inertia_volume
 
     @funcify_method("Time (s)", "inertia tensor (kg*m^2)")
-    def inertiaTensor(self):
+    def inertia(self):
         """
         Returns the inertia tensor of the tank's fluids as a function of
         time. The reference point is the center of mass of the tank.
@@ -326,10 +415,15 @@ class Tank(ABC):
         Function
             Inertia tensor of the tank's fluids as a function of time.
         """
-        return self.liquidInertiaTensor + self.gasInertiaTensor
+        return self.liquid_inertia + self.gas_inertia
 
 
 class MassFlowRateBasedTank(Tank):
+    """Class to define a tank based on mass flow rates inputs. This class
+    inherits from the Tank class. See the Tank class for more information
+    on its attributes and methods.
+    """
+
     def __init__(
         self,
         name,
@@ -345,36 +439,78 @@ class MassFlowRateBasedTank(Tank):
         gas_mass_flow_rate_out,
         discretize=100,
     ):
-        super().__init__(name, geometry, flux_time, gas, liquid, discretize)
+        """Initializes the MassFlowRateBasedTank class.
+
+        Parameters
+        ----------
+        name : str
+            Name of the tank.
+        geometry : rocketpy.geometry.TankGeometry
+            Geometry of the tank.
+        flux_time : float, tuple of float, optional
+            Tank flux time in seconds. It is the time range in which the tank
+            flux is being analyzed. In general, during this time, the tank is
+            being filled or emptied.
+            If a float is given, the flux time is assumed to be between 0 and the
+            given float, in seconds. If a tuple of float is given, the flux time
+            is assumed to be between the first and second elements of the tuple.
+        liquid : rocketpy.motors.Fluid
+            Liquid inside the tank as a Fluid object.
+        gas : rocketpy.motors.Fluid
+            Gas inside the tank as a Fluid object.
+        initial_liquid_mass : float
+            Initial liquid mass in the tank in kg.
+        initial_gas_mass : float
+            Initial gas mass in the tank in kg.
+        liquid_mass_flow_rate_in : int, float, callable, string, array
+            Liquid mass flow rate into the tank in kg/s. Always positive.
+            It must be a valid rocketpy.Function source.
+        gas_mass_flow_rate_in : int, float, callable, string, array
+            Gas mass flow rate into the tank in kg/s. Always positive.
+            It must be a valid rocketpy.Function source.
+        liquid_mass_flow_rate_out : int, float, callable, string, array
+            Liquid mass flow rate out of the tank in kg/s. Always positive.
+            It must be a valid rocketpy.Function source.
+        gas_mass_flow_rate_out : int, float, callable, string, array
+            Gas mass flow rate out of the tank in kg/s. Always positive.
+            It must be a valid rocketpy.Function source.
+        discretize : int, optional
+            Number of points to discretize fluid inputs. If the mass flow
+            rate inputs are uniformly discretized (have the same time steps)
+            this parameter may be set to None. Otherwise, an uniform
+            discretization will be applied based on the discretize value.
+            The default is 100.
+        """
+        super().__init__(name, geometry, flux_time, liquid, gas, discretize)
         self.initial_liquid_mass = initial_liquid_mass
         self.initial_gas_mass = initial_gas_mass
 
         # Define flow rates
         self.liquid_mass_flow_rate_in = Function(
             liquid_mass_flow_rate_in,
-            inputs="Time",
-            outputs="Mass Flow Rate",
+            inputs="Time (s)",
+            outputs="Mass Flow Rate (kg/s)",
             interpolation="linear",
             extrapolation="zero",
         )
         self.gas_mass_flow_rate_in = Function(
             gas_mass_flow_rate_in,
-            inputs="Time",
-            outputs="Mass Flow Rate",
+            inputs="Time (s)",
+            outputs="Mass Flow Rate (kg/s)",
             interpolation="linear",
             extrapolation="zero",
         )
         self.liquid_mass_flow_rate_out = Function(
             liquid_mass_flow_rate_out,
-            inputs="Time",
-            outputs="Mass Flow Rate",
+            inputs="Time (s)",
+            outputs="Mass Flow Rate (kg/s)",
             interpolation="linear",
             extrapolation="zero",
         )
         self.gas_mass_flow_rate_out = Function(
             gas_mass_flow_rate_out,
-            inputs="Time",
-            outputs="Mass Flow Rate",
+            inputs="Time (s)",
+            outputs="Mass Flow Rate (kg/s)",
             interpolation="linear",
             extrapolation="zero",
         )
@@ -384,65 +520,228 @@ class MassFlowRateBasedTank(Tank):
         return None
 
     @funcify_method("Time (s)", "Mass (kg)")
-    def mass(self):
-        return self.liquidMass + self.gasMass
+    def fluid_mass(self):
+        """
+        Returns the total mass of liquid and gases inside the tank as a
+        function of time.
+
+        Returns
+        -------
+        Function
+            Mass of the tank as a function of time. Units in kg.
+        """
+        return self.liquid_mass + self.gas_mass
 
     @funcify_method("Time (s)", "Mass (kg)")
-    def liquidMass(self):
-        liquid_flow = self.netLiquidFlowRate.integralFunction()
-        liquidMass = self.initial_liquid_mass + liquid_flow
-        if (liquidMass < 0).any():
-            raise ValueError(f"The tank {self.name} is underfilled.")
-        return liquidMass
+    def liquid_mass(self):
+        """
+        Returns the mass of the liquid as a function of time by integrating
+        the liquid mass flow rate.
+
+        Returns
+        -------
+        Function
+            Mass of the liquid as a function of time.
+        """
+        liquid_flow = self.net_liquid_flow_rate.integral_function()
+        liquid_mass = self.initial_liquid_mass + liquid_flow
+        if (liquid_mass < 0).any():
+            raise ValueError(
+                f"The tank {self.name} is underfilled. "
+                + "The liquid mass is negative given the mass flow rates.\n\t\t"
+                + "Try increasing the initial liquid mass, or reducing the mass"
+                + "flow rates.\n\t\t"
+                + f"The liquid mass is {np.min(liquid_mass.y_array):.3f} kg at "
+                + f"{liquid_mass.x_array[np.argmin(liquid_mass.y_array)]} s."
+            )
+        return liquid_mass
 
     @funcify_method("Time (s)", "Mass (kg)")
-    def gasMass(self):
-        gas_flow = self.netGasFlowRate.integralFunction()
-        gasMass = self.initial_gas_mass + gas_flow
-        if (gasMass < 0).any():
-            raise ValueError(f"The tank {self.name} is underfilled.")
-        return gasMass
+    def gas_mass(self):
+        """
+        Returns the mass of the gas as a function of time by integrating
+        the gas mass flow rate.
+
+        Returns
+        -------
+        Function
+            Mass of the gas as a function of time.
+        """
+        gas_flow = self.net_gas_flow_rate.integral_function()
+        gas_mass = self.initial_gas_mass + gas_flow
+        if (gas_mass < -1e-6).any():  # -1e-6 is to avoid numerical errors
+            raise ValueError(
+                f"The tank {self.name} is underfilled. The gas mass is negative"
+                + " given the mass flow rates.\n\t\t"
+                + "Try increasing the initial gas mass, or reducing the mass"
+                + " flow rates.\n\t\t"
+                + f"The gas mass is {np.min(gas_mass.y_array):.3f} kg at "
+                + f"{gas_mass.x_array[np.argmin(gas_mass.y_array)]} s."
+            )
+
+        return gas_mass
 
     @funcify_method("Time (s)", "liquid mass flow rate (kg/s)", extrapolation="zero")
-    def netLiquidFlowRate(self):
+    def net_liquid_flow_rate(self):
+        """
+        Returns the net mass flow rate of liquid as a function of time.
+        It is computed as the liquid mass flow rate entering the tank
+        minus the liquid mass flow rate exiting the tank.
+
+        Returns
+        -------
+        Function
+            Net liquid mass flow rate of the tank as a function of time.
+        """
         return self.liquid_mass_flow_rate_in - self.liquid_mass_flow_rate_out
 
     @funcify_method("Time (s)", "gas mass flow rate (kg/s)", extrapolation="zero")
-    def netGasFlowRate(self):
+    def net_gas_flow_rate(self):
+        """
+        Returns the net mass flow rate of gas as a function of time.
+        It is computed as the gas mass flow rate entering the tank
+        minus the gas mass flow rate exiting the tank.
+
+        Returns
+        -------
+        Function
+            Net gas mass flow rate of the tank as a function of time.
+        """
         return self.gas_mass_flow_rate_in - self.gas_mass_flow_rate_out
 
     @funcify_method("Time (s)", "mass flow rate (kg/s)", extrapolation="zero")
-    def netMassFlowRate(self):
-        return self.netLiquidFlowRate + self.netGasFlowRate
+    def net_mass_flow_rate(self):
+        """
+        Returns the net mass flow rate of the tank as a function of time.
+        Net mass flow rate is the mass flow rate entering the tank minus the
+        mass flow rate exiting the tank, including liquids and gases.
+
+        Returns
+        -------
+        Function
+            Net mass flow rate of the tank as a function of time.
+        """
+        return self.net_liquid_flow_rate + self.net_gas_flow_rate
 
     @funcify_method("Time (s)", "Volume (m³)")
-    def liquidVolume(self):
-        return self.liquidMass / self.liquid.density
+    def fluid_volume(self):
+        """
+        Returns the volume total fluid volume inside the tank as a
+        function of time. This volume is the sum of the liquid and gas
+        volumes.
+
+        Returns
+        -------
+        Function
+            Volume of the fluid as a function of time.
+        """
+        return self.liquid_volume + self.gas_volume
 
     @funcify_method("Time (s)", "Volume (m³)")
-    def gasVolume(self):
-        return self.gasMass / self.gas.density
+    def liquid_volume(self):
+        """
+        Returns the volume of the liquid as a function of time.
+
+        Returns
+        -------
+        Function
+            Volume of the liquid as a function of time.
+        """
+        return self.liquid_mass / self.liquid.density
+
+    @funcify_method("Time (s)", "Volume (m³)")
+    def gas_volume(self):
+        """
+        Returns the volume of the gas as a function of time.
+
+        Returns
+        -------
+        Function
+            Volume of the gas as a function of time.
+        """
+        return self.gas_mass / self.gas.density
 
     @funcify_method("Time (s)", "Height (m)")
-    def liquidHeight(self):
-        return self.geometry.inverse_volume.compose(self.liquidVolume)
+    def liquid_height(self):
+        """
+        Returns the liquid level as a function of time. This
+        height is measured from the zero level of the tank
+        geometry.
+
+        Returns
+        -------
+        Function
+            Height of the ullage as a function of time.
+        """
+        liquid_height = self.geometry.inverse_volume.compose(self.liquid_volume)
+        diff_bt = liquid_height - self.geometry.bottom
+        diff_up = liquid_height - self.geometry.top
+
+        if (diff_bt < 0).any():
+            raise ValueError(
+                f"The tank '{self.name}' is underfilled. The liquid height is "
+                + "below the tank bottom.\n\t\t"
+                + "Try increasing the initial liquid mass, or reducing the mass"
+                + " flow rates.\n\t\t"
+                + f"The liquid height is {np.min(diff_bt.y_array):.3f} m below "
+                + f"the tank bottom at {diff_bt.x_array[np.argmin(diff_bt.y_array)]:.3f} s."
+            )
+        if (diff_up > 0).any():
+            raise ValueError(
+                f"The tank '{self.name}' is overfilled. The liquid height is "
+                + "above the tank top.\n\t\t"
+                + "Try increasing the tank height, or reducing the initial liquid"
+                + " mass, or reducing the mass flow rates.\n\t\t"
+                + f"The liquid height is {np.max(diff_up.y_array):.3f} m above "
+                + f"the tank top at {diff_up.x_array[np.argmax(diff_up.y_array)]:.3f} s."
+            )
+
+        return liquid_height
 
     @funcify_method("Time (s)", "Height (m)")
-    def gasHeight(self):
-        fluid_volume = self.gasVolume + self.liquidVolume
-        gasHeight = self.geometry.inverse_volume.compose(fluid_volume)
-        if (gasHeight > self.geometry.top).any():
-            raise ValueError(f"The tank {self.name} is overfilled.")
-        return gasHeight
+    def gas_height(self):
+        """
+        Returns the gas level as a function of time. This
+        height is measured from the zero level of the tank
+        geometry.
+
+        Returns
+        -------
+        Function
+            Height of the ullage as a function of time.
+        """
+        fluid_volume = self.gas_volume + self.liquid_volume
+        gas_height = self.geometry.inverse_volume.compose(fluid_volume)
+        diff = gas_height - self.geometry.top
+        if (diff > 0).any():
+            raise ValueError(
+                f"The tank '{self.name}' is overfilled. "
+                + "The gas height is above the tank top.\n\t\t"
+                + "Try increasing the tank height, or reducing fluids' mass,"
+                + " or double check the mass flow rates.\n\t\t"
+                + f"The gas height is {np.max(diff.y_array):.3f} m above "
+                + f"the tank top at {diff.x_array[np.argmax(diff.y_array)]} s."
+            )
+        return gas_height
 
     def discretize_flow(self):
-        self.liquid_mass_flow_rate_in.setDiscrete(*self.flux_time, self.discretize)
-        self.gas_mass_flow_rate_in.setDiscrete(*self.flux_time, self.discretize)
-        self.liquid_mass_flow_rate_out.setDiscrete(*self.flux_time, self.discretize)
-        self.gas_mass_flow_rate_out.setDiscrete(*self.flux_time, self.discretize)
+        """Discretizes the mass flow rate inputs according to the flux time and
+        the discretize parameter.
+        """
+        self.liquid_mass_flow_rate_in.set_discrete(*self.flux_time, self.discretize)
+        self.gas_mass_flow_rate_in.set_discrete(*self.flux_time, self.discretize)
+        self.liquid_mass_flow_rate_out.set_discrete(*self.flux_time, self.discretize)
+        self.gas_mass_flow_rate_out.set_discrete(*self.flux_time, self.discretize)
 
 
 class UllageBasedTank(Tank):
+    """Class to define a tank whose flow is described by ullage volume, i.e.,
+    the volume of the tank that is not occupied by the liquid. It assumes that
+    the ullage volume is uniformly filled by the gas. This class inherits from
+    the Tank class. See the Tank class for more information on its attributes
+    and methods.
+    """
+
     def __init__(
         self,
         name,
@@ -453,7 +752,36 @@ class UllageBasedTank(Tank):
         ullage,
         discretize=100,
     ):
-        super().__init__(name, geometry, flux_time, gas, liquid, discretize)
+        """
+        Parameters
+        ----------
+        name : str
+            Name of the tank.
+        geometry : rocketpy.geometry.TankGeometry
+            Geometry of the tank.
+        flux_time : float, tuple of float, optional
+            Tank flux time in seconds. It is the time range in which the tank
+            flux is being analyzed. In general, during this time, the tank is
+            being filled or emptied.
+            If a float is given, the flux time is assumed to be between 0 and the
+            given float, in seconds. If a tuple of float is given, the flux time
+            is assumed to be between the first and second elements of the tuple.
+        liquid : rocketpy.motors.Fluid
+            Liquid inside the tank as a Fluid object.
+        gas : rocketpy.motors.Fluid
+            Gas inside the tank as a Fluid object.
+        ullage : int, float, callable, string, array
+            Ullage volume as a function of time in m^3. Also understood as the
+            volume of the Tank that is not occupied by liquid. Must be a valid
+            rocketpy.Function source.
+        discretize : int, optional
+            Number of points to discretize fluid inputs. If the ullage input is
+            already discretized this parameter may be set to None. Otherwise,
+            an uniform discretization will be applied based on the discretize
+            value.
+            The default is 100.
+        """
+        super().__init__(name, geometry, flux_time, liquid, gas, discretize)
 
         # Define ullage
         self.ullage = Function(ullage, "Time (s)", "Volume (m³)", "linear")
@@ -462,46 +790,150 @@ class UllageBasedTank(Tank):
         self.discretize_ullage() if discretize else None
 
         # Check if the ullage is within bounds
-        if (self.ullage > self.geometry.total_volume).any() or (self.ullage < 0).any():
-            raise ValueError("The ullage volume is out of bounds.")
+        if (self.ullage > self.geometry.total_volume).any():
+            raise ValueError(
+                "The ullage volume is out of bounds. It is greater than the "
+                + "total volume of the tank."
+            )
+        if (self.ullage < 0).any():
+            raise ValueError("The ullage volume is out of bounds. It is negative.")
+        return None
 
     @funcify_method("Time (s)", "Mass (kg)")
-    def mass(self):
-        return self.liquidMass + self.gasMass
+    def fluid_mass(self):
+        """
+        Returns the total mass of liquid and gases inside the tank as a
+        function of time.
 
-    @funcify_method("Time (s)", "mass flow rate (kg/s)")
-    def netMassFlowRate(self):
-        return self.mass.derivativeFunction()
+        Returns
+        -------
+        Function
+            Mass of the tank as a function of time. Units in kg.
+        """
+        return self.liquid_mass + self.gas_mass
+
+    @funcify_method("Time (s)", "Mass flow rate (kg/s)")
+    def net_mass_flow_rate(self):
+        """
+        Returns the net mass flow rate of the tank as a function of time by
+        taking the derivative of the mass function.
+
+        Returns
+        -------
+        Function
+            Net mass flow rate of the tank as a function of time.
+        """
+        return self.fluid_mass.derivativeFunction()
 
     @funcify_method("Time (s)", "Volume (m³)")
-    def liquidVolume(self):
+    def fluid_volume(self):
+        """
+        Returns the volume total fluid volume inside the tank as a
+        function of time. This volume is the sum of the liquid and gas
+        volumes.
+
+        Returns
+        -------
+        Function
+            Volume of the fluid as a function of time.
+        """
+        return self.geometry.total_volume
+
+    @funcify_method("Time (s)", "Volume (m³)")
+    def liquid_volume(self):
+        """
+        Returns the volume of the liquid as a function of time. The
+        volume is computed by subtracting the ullage volume from the
+        total volume of the tank.
+
+        Returns
+        -------
+        Function
+            Volume of the liquid as a function of time.
+        """
         return -(self.ullage - self.geometry.total_volume)
 
     @funcify_method("Time (s)", "Volume (m³)")
-    def gasVolume(self):
+    def gas_volume(self):
+        """
+        Returns the volume of the gas as a function of time. From the
+        Tank assumptions the gas volume is equal to the ullage volume.
+
+        Returns
+        -------
+        Function
+            Volume of the gas as a function of time.
+        """
         return self.ullage
 
     @funcify_method("Time (s)", "Mass (kg)")
-    def gasMass(self):
-        return self.gasVolume * self.gas.density
+    def gas_mass(self):
+        """
+        Returns the mass of the gas as a function of time.
+
+        Returns
+        -------
+        Function
+            Mass of the gas as a function of time.
+        """
+        return self.gas_volume * self.gas.density
 
     @funcify_method("Time (s)", "Mass (kg)")
-    def liquidMass(self):
-        return self.liquidVolume * self.liquid.density
+    def liquid_mass(self):
+        """
+        Returns the mass of the liquid as a function of time.
+
+        Returns
+        -------
+        Function
+            Mass of the liquid as a function of time.
+        """
+        return self.liquid_volume * self.liquid.density
 
     @funcify_method("Time (s)", "Height (m)")
-    def liquidHeight(self):
-        return self.geometry.inverse_volume.compose(self.liquidVolume)
+    def liquid_height(self):
+        """
+        Returns the liquid level as a function of time. This
+        height is measured from the zero level of the tank
+        geometry.
+
+        Returns
+        -------
+        Function
+            Height of the ullage as a function of time.
+        """
+        return self.geometry.inverse_volume.compose(self.liquid_volume)
 
     @funcify_method("Time (s)", "Height (m)", "linear")
-    def gasHeight(self):
-        return Function(self.geometry.top).setDiscreteBasedOnModel(self.gasVolume)
+    def gas_height(self):
+        """
+        Returns the gas level as a function of time. This
+        height is measured from the zero level of the tank
+        geometry. Since the gas is assumed to be uniformly
+        distributed in the ullage, the gas height is constant
+        and equal to the top of the tank geometry.
+
+        Returns
+        -------
+        Function
+            Height of the ullage as a function of time.
+        """
+        return Function(self.geometry.top).set_discrete_based_on_model(self.gas_volume)
 
     def discretize_ullage(self):
-        self.ullage.setDiscrete(*self.flux_time, self.discretize)
+        """Discretizes the ullage input according to the flux time and the
+        discretize parameter."""
+        self.ullage.set_discrete(*self.flux_time, self.discretize)
 
 
 class LevelBasedTank(Tank):
+    """Class to define a tank whose flow is described by liquid level, i.e.,
+    the height of the liquid inside the tank. It assumes that the volume
+    above the liquid level is uniformly occupied by gas. This class inherits
+    from the Tank class. See the Tank class for more information on its
+    attributes and methods.
+    """
+
     def __init__(
         self,
         name,
@@ -512,59 +944,200 @@ class LevelBasedTank(Tank):
         liquid_height,
         discretize=100,
     ):
-        super().__init__(name, geometry, flux_time, gas, liquid, discretize)
+        """
+        Parameters
+        ----------
+        name : str
+            Name of the tank.
+        geometry : rocketpy.geometry.TankGeometry
+            Geometry of the tank.
+        flux_time : float, tuple of float, optional
+            Tank flux time in seconds. It is the time range in which the tank
+            flux is being analyzed. In general, during this time, the tank is
+            being filled or emptied.
+            If a float is given, the flux time is assumed to be between 0 and the
+            given float, in seconds. If a tuple of float is given, the flux time
+            is assumed to be between the first and second elements of the tuple.
+        liquid : rocketpy.motors.Fluid
+            Liquid inside the tank as a Fluid object.
+        gas : rocketpy.motors.Fluid
+            Gas inside the tank as a Fluid object.
+        liquid_height : int, float, callable, string, array
+            Liquid height as a function of time in m. Must be a valid
+            rocketpy.Function source. The liquid height zero level reference
+            is assumed to be the same as the Tank geometry.
+        discretize : int, optional
+            Number of points to discretize fluid inputs. If the liquid height
+            input is already discretized this parameter may be set to None.
+            Otherwise, an uniform discretization will be applied based on the
+            discretize value.
+            The default is 100.
+        """
+        super().__init__(name, geometry, flux_time, liquid, gas, discretize)
 
-        # Define liquid height
-        self.liquid_height = Function(
-            liquid_height, "Time (s)", "volume (m³)", "linear"
-        )
+        # Define liquid level function
+        self.liquid_level = Function(liquid_height, "Time (s)", "height (m)", "linear")
 
         # Discretize input if needed
         self.discretize_liquid_height() if discretize else None
 
         # Check if the liquid level is within bounds
-        if (self.liquid_height > self.geometry.top).any() or (
-            self.liquid_height < self.geometry.bottom
-        ).any():
-            raise ValueError("The liquid level is out of bounds.")
+        if (self.liquid_level > self.geometry.top).any():
+            raise ValueError(
+                "The liquid level is out of bounds. It is greater than the tank top."
+            )
+        if (self.liquid_level < self.geometry.bottom).any():
+            raise ValueError("The liquid level is out of bounds. It is negative.")
 
     @funcify_method("Time (s)", "Mass (kg)")
-    def mass(self):
-        return self.liquidMass + self.gasMass
+    def fluid_mass(self):
+        """
+        Returns the total mass of liquid and gases inside the tank as a
+        function of time.
 
-    @funcify_method("Time (s)", "mass flow rate (kg/s)")
-    def netMassFlowRate(self):
-        return self.mass.derivativeFunction()
+        Returns
+        -------
+        Function
+            Mass of the tank as a function of time. Units in kg.
+        """
+        # TODO: there's a bug in the net_mass_flow_rate if I don't discretize here
+        sum_mass = self.liquid_mass + self.gas_mass
+        sum_mass.set_discrete_based_on_model(self.liquid_level)
+        return sum_mass
+
+    @funcify_method("Time (s)", "Mass flow rate (kg/s)")
+    def net_mass_flow_rate(self):
+        """
+        Returns the net mass flow rate of the tank as a function of time by
+        taking the derivative of the mass function.
+
+        Returns
+        -------
+        Function
+            Net mass flow rate of the tank as a function of time.
+        """
+        return self.fluid_mass.derivativeFunction()
 
     @funcify_method("Time (s)", "Volume (m³)")
-    def liquidVolume(self):
-        return self.geometry.volume.compose(self.liquidHeight)
+    def fluid_volume(self):
+        """
+        Returns the volume total fluid volume inside the tank as a
+        function of time. This volume is the sum of the liquid and gas
+        volumes.
+
+        Returns
+        -------
+        Function
+            Volume of the fluid as a function of time.
+        """
+        volume = self.gas_volume + self.liquid_volume
+        diff = abs(volume - self.geometry.total_volume)
+        if (diff > 1e-6).any():
+            raise ValueError(
+                "The `fluid_volume`, defined as the sum of `gas_volume` and "
+                + "`liquid_volume`, is not equal to the total volume of the tank."
+                + "\n\t\tThe difference is more than 1e-6 m^3 at "
+                + f"{diff.x_array[np.argmin(diff.y_array)]} s."
+            )
+        return volume
 
     @funcify_method("Time (s)", "Volume (m³)")
-    def gasVolume(self):
-        return self.geometry.total_volume - self.liquidVolume
+    def liquid_volume(self):
+        """
+        Returns the volume of the liquid as a function of time.
+
+        Returns
+        -------
+        Function
+            Volume of the liquid as a function of time.
+        """
+        return self.geometry.volume.compose(self.liquid_height)
+
+    @funcify_method("Time (s)", "Volume (m³)")
+    def gas_volume(self):
+        """
+        Returns the volume of the gas as a function of time. The gas volume
+        is assumed to uniformly occupy the volume above the liquid level.
+
+        Returns
+        -------
+        Function
+            Volume of the gas as a function of time.
+        """
+        # TODO: there's a bug on the gas_center_of_mass is I don't discretize here
+        func = Function(self.geometry.total_volume)
+        func -= self.liquid_volume
+        func.set_discrete_based_on_model(self.liquid_volume)
+        return func
 
     @funcify_method("Time (s)", "Height (m)")
-    def liquidHeight(self):
-        return self.liquid_height
+    def liquid_height(self):
+        """
+        Returns the liquid level as a function of time. This height is
+        measured from the zero level of the tank geometry.
+
+        Returns
+        -------
+        Function
+            Height of the ullage as a function of time.
+        """
+        return self.liquid_level
 
     @funcify_method("Time (s)", "Mass (kg)")
-    def gasMass(self):
-        return self.gasVolume * self.gas.density
+    def gas_mass(self):
+        """
+        Returns the mass of the gas as a function of time.
+
+        Returns
+        -------
+        Function
+            Mass of the gas as a function of time.
+        """
+        return self.gas_volume * self.gas.density
 
     @funcify_method("Time (s)", "Mass (kg)")
-    def liquidMass(self):
-        return self.liquidVolume * self.liquid.density
+    def liquid_mass(self):
+        """
+        Returns the mass of the liquid as a function of time.
+
+        Returns
+        -------
+        Function
+            Mass of the liquid as a function of time.
+        """
+        return self.liquid_volume * self.liquid.density
 
     @funcify_method("Time (s)", "Height (m)", "linear")
-    def gasHeight(self):
-        return Function(self.geometry.top).setDiscreteBasedOnModel(self.liquidHeight)
+    def gas_height(self):
+        """
+        Returns the gas level as a function of time. This
+        height is measured from the zero level of the tank
+        geometry. Since the gas is assumed to uniformly occupy
+        the volume above the liquid level, the gas height is
+        constant and equal to the top of the tank geometry.
+
+        Returns
+        -------
+        Function
+            Height of the ullage as a function of time.
+        """
+        return Function(self.geometry.top).set_discrete_based_on_model(
+            self.liquid_level
+        )
 
     def discretize_liquid_height(self):
-        self.liquid_height.setDiscrete(*self.flux_time, self.discretize)
+        """Discretizes the liquid height input according to the flux time
+        and the discretize parameter.
+        """
+        self.liquid_level.set_discrete(*self.flux_time, self.discretize)
 
 
 class MassBasedTank(Tank):
+    """Class to define a tank whose flow is described by liquid and gas masses.
+    This class inherits from the Tank class. See the Tank class for more
+    information on its attributes and methods.
+    """
+
     def __init__(
         self,
         name,
@@ -576,7 +1149,38 @@ class MassBasedTank(Tank):
         gas_mass,
         discretize=100,
     ):
-        super().__init__(name, geometry, flux_time, gas, liquid, discretize)
+        """
+        Parameters
+        ----------
+        name : str
+            Name of the tank.
+        geometry : rocketpy.geometry.TankGeometry
+            Geometry of the tank.
+        flux_time : float, tuple of float, optional
+            Tank flux time in seconds. It is the time range in which the tank
+            flux is being analyzed. In general, during this time, the tank is
+            being filled or emptied.
+            If a float is given, the flux time is assumed to be between 0 and the
+            given float, in seconds. If a tuple of float is given, the flux time
+            is assumed to be between the first and second elements of the tuple.
+        liquid : rocketpy.motors.Fluid
+            Liquid inside the tank as a Fluid object.
+        gas : rocketpy.motors.Fluid
+            Gas inside the tank as a Fluid object.
+        liquid_mass : int, float, callable, string, array
+            Liquid mass as a function of time in kg. Must be a valid
+            rocketpy.Function source.
+        gas_mass : int, float, callable, string, array
+            Gas mass as a function of time in kg. Must be a valid
+            rocketpy.Function source.
+        discretize : int, optional
+            Number of points to discretize fluid inputs. If the mass inputs
+            are uniformly discretized (have the same time steps) this parameter
+            may be set to None. Otherwise, an uniform discretization will be
+            applied based on the discretize value.
+            The default is 100.
+        """
+        super().__init__(name, geometry, flux_time, liquid, gas, discretize)
 
         # Define fluid masses
         self.liquid_mass = Function(liquid_mass, "Time (s)", "Mass (kg)", "linear")
@@ -586,41 +1190,156 @@ class MassBasedTank(Tank):
         self.discretize_masses() if discretize else None
 
     @funcify_method("Time (s)", "Mass (kg)")
-    def mass(self):
-        return self.liquidMass + self.gasMass
+    def fluid_mass(self):
+        """
+        Returns the total mass of liquid and gases inside the tank as
+        a function of time.
 
-    @funcify_method("Time (s)", "mass flow rate (kg/s)")
-    def netMassFlowRate(self):
-        return self.mass.derivativeFunction()
+        Returns
+        -------
+        Function
+            Mass of the tank as a function of time. Units in kg.
+        """
+        return self.liquid_mass + self.gas_mass
+
+    @funcify_method("Time (s)", "Mass flow rate (kg/s)")
+    def net_mass_flow_rate(self):
+        """
+        Returns the net mass flow rate of the tank as a function of time
+        by taking the derivative of the mass function.
+
+        Returns
+        -------
+        Function
+            Net mass flow rate of the tank as a function of time.
+        """
+        return self.fluid_mass.derivativeFunction()
 
     @funcify_method("Time (s)", "Mass (kg)")
-    def liquidMass(self):
+    def liquid_mass(self):
+        """
+        Returns the mass of the liquid as a function of time.
+
+        Returns
+        -------
+        Function
+            Mass of the liquid as a function of time.
+        """
         return self.liquid_mass
 
     @funcify_method("Time (s)", "Mass (kg)")
-    def gasMass(self):
+    def gas_mass(self):
+        """
+        Returns the mass of the gas as a function of time.
+
+        Returns
+        -------
+        Function
+            Mass of the gas as a function of time.
+        """
         return self.gas_mass
 
     @funcify_method("Time (s)", "Volume (m³)")
-    def gasVolume(self):
-        return self.gasMass / self.gas.density
+    def fluid_volume(self):
+        """
+        Returns the volume total fluid volume inside the tank as a
+        function of time. This volume is the sum of the liquid and gas
+        volumes.
+
+        Returns
+        -------
+        Function
+            Volume of the fluid as a function of time.
+        """
+        return self.liquid_volume + self.gas_volume
 
     @funcify_method("Time (s)", "Volume (m³)")
-    def liquidVolume(self):
-        return self.liquidMass / self.liquid.density
+    def gas_volume(self):
+        """
+        Returns the volume of the gas as a function of time.
+
+        Returns
+        -------
+        Function
+            Volume of the gas as a function of time.
+        """
+        return self.gas_mass / self.gas.density
+
+    @funcify_method("Time (s)", "Volume (m³)")
+    def liquid_volume(self):
+        """
+        Returns the volume of the liquid as a function of time.
+
+        Returns
+        -------
+        Function
+            Volume of the liquid as a function of time.
+        """
+        return self.liquid_mass / self.liquid.density
 
     @funcify_method("Time (s)", "Height (m)")
-    def liquidHeight(self):
-        return self.geometry.inverse_volume.compose(self.liquidVolume)
+    def liquid_height(self):
+        """
+        Returns the liquid level as a function of time. This
+        height is measured from the zero level of the tank
+        geometry.
+
+        Returns
+        -------
+        Function
+            Height of the ullage as a function of time.
+        """
+        liquid_height = self.geometry.inverse_volume.compose(self.liquid_volume)
+        diff_bt = liquid_height - self.geometry.bottom
+        diff_up = liquid_height - self.geometry.top
+
+        if (diff_bt < 0).any():
+            raise ValueError(
+                f"The tank {self.name} is underfilled. The liquid height is below "
+                + "the tank bottom.\n\t\tTry increasing the initial liquid mass, "
+                + "or reducing the mass flow rates.\n\t\t"
+                + f"The liquid height is {np.min(diff_bt.y_array):.3f} m below "
+                + f"the tank bottom at {diff_bt.x_array[np.argmin(diff_bt.y_array)]:.3f} s."
+            )
+        if (diff_up > 0).any():
+            raise ValueError(
+                f"The tank {self.name} is overfilled. The liquid height is above "
+                + "the tank top.\n\t\tTry increasing the tank height, or reducing "
+                + "the initial liquid mass, or reducing the mass flow rates.\n\t\t"
+                + f"The liquid height is {np.max(diff_up.y_array):.3f} m above "
+                + f"the tank top at {diff_up.x_array[np.argmax(diff_up.y_array)]:.3f} s."
+            )
+
+        return liquid_height
 
     @funcify_method("Time (s)", "Height (m)")
-    def gasHeight(self):
-        fluid_volume = self.gasVolume + self.liquidVolume
-        gasHeight = self.geometry.inverse_volume.compose(fluid_volume)
-        if (gasHeight > self.geometry.top).any():
-            raise ValueError(f"The tank {self.name} is overfilled.")
-        return gasHeight
+    def gas_height(self):
+        """
+        Returns the gas level as a function of time. This
+        height is measured from the zero level of the tank
+        geometry.
+
+        Returns
+        -------
+        Function
+            Height of the ullage as a function of time.
+        """
+        fluid_volume = self.gas_volume + self.liquid_volume
+        gas_height = self.geometry.inverse_volume.compose(fluid_volume)
+        diff = gas_height - self.geometry.top
+        if (diff > 0).any():
+            raise ValueError(
+                f"The tank {self.name} is overfilled. The gas height is above "
+                + "the tank top.\n\t\tTry increasing the tank height, or "
+                + "reducing fluids' mass, or double check the mass flow rates."
+                + f"\n\t\tThe gas height is {np.max(diff.y_array):.3f} m "
+                + f"above the tank top at {diff.x_array[np.argmax(diff.y_array)]} s."
+            )
+        return gas_height
 
     def discretize_masses(self):
-        self.liquid_mass.setDiscrete(*self.flux_time, self.discretize)
-        self.gas_mass.setDiscrete(*self.flux_time, self.discretize)
+        """Discretizes the fluid mass inputs according to the flux time
+        and the discretize parameter.
+        """
+        self.liquid_mass.set_discrete(*self.flux_time, self.discretize)
+        self.gas_mass.set_discrete(*self.flux_time, self.discretize)

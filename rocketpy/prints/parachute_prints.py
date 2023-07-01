@@ -13,7 +13,7 @@ class _ParachutePrints:
 
     """
 
-    def __init__(self, parachute) -> None:
+    def __init__(self, parachute):
         """Initializes _ParachutePrints class
 
         Parameters
@@ -50,7 +50,7 @@ class _ParachutePrints:
         else:
             print("Ejection signal trigger: " + self.parachute.trigger.__name__)
 
-        print(f"Ejection system refresh rate: {self.parachute.samplingRate:.3f} Hz")
+        print(f"Ejection system refresh rate: {self.parachute.sampling_rate:.3f} Hz")
         print(
             f"Time between ejection signal is triggered and the parachute is fully opened: {self.parachute.lag:.1f} s\n"
         )

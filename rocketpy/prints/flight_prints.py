@@ -46,8 +46,8 @@ class _FlightPrints:
         print("\nInitial Conditions\n")
 
         # Post-process results
-        if self.flight.postProcessed is False:
-            self.flight.postProcess()
+        if self.flight.post_processed is False:
+            self.flight.post_process()
         print(
             "Position - x: {:.2f} m | y: {:.2f} m | z: {:.2f} m".format(
                 self.flight.x(0), self.flight.y(0), self.flight.z(0)
@@ -93,22 +93,22 @@ class _FlightPrints:
         """
 
         print("\nNumerical Integration Settings\n")
-        print("Maximum Allowed Flight Time: {:f} s".format(self.flight.maxTime))
-        print("Maximum Allowed Time Step: {:f} s".format(self.flight.maxTimeStep))
-        print("Minimum Allowed Time Step: {:e} s".format(self.flight.minTimeStep))
+        print("Maximum Allowed Flight Time: {:f} s".format(self.flight.max_time))
+        print("Maximum Allowed Time Step: {:f} s".format(self.flight.max_time_step))
+        print("Minimum Allowed Time Step: {:e} s".format(self.flight.min_time_step))
         print("Relative Error Tolerance: ", self.flight.rtol)
         print("Absolute Error Tolerance: ", self.flight.atol)
-        print("Allow Event Overshoot: ", self.flight.timeOvershoot)
-        print("Terminate Simulation on Apogee: ", self.flight.terminateOnApogee)
-        print("Number of Time Steps Used: ", len(self.flight.timeSteps))
+        print("Allow Event Overshoot: ", self.flight.time_overshoot)
+        print("Terminate Simulation on Apogee: ", self.flight.terminate_on_apogee)
+        print("Number of Time Steps Used: ", len(self.flight.time_steps))
         print(
             "Number of Derivative Functions Evaluation: ",
-            sum(self.flight.functionEvaluationsPerTimeStep),
+            sum(self.flight.function_evaluations_per_time_step),
         )
         print(
             "Average Function Evaluations per Time Step: {:3f}".format(
-                sum(self.flight.functionEvaluationsPerTimeStep)
-                / len(self.flight.timeSteps)
+                sum(self.flight.function_evaluations_per_time_step)
+                / len(self.flight.time_steps)
             )
         )
 
@@ -121,17 +121,17 @@ class _FlightPrints:
         -------
         None
         """
-        if self.flight.postProcessed is False:
-            self.flight.postProcess()
+        if self.flight.post_processed is False:
+            self.flight.post_process()
         print("\nSurface Wind Conditions\n")
         print(
             "Frontal Surface Wind Speed: {:.2f} m/s".format(
-                self.flight.frontalSurfaceWind
+                self.flight.frontal_surface_wind
             )
         )
         print(
             "Lateral Surface Wind Speed: {:.2f} m/s".format(
-                self.flight.lateralSurfaceWind
+                self.flight.lateral_surface_wind
             )
         )
 
@@ -149,7 +149,8 @@ class _FlightPrints:
         None
         """
 
-        print("\nLaunch Rail Orientation\n")
+        print("\nLaunch Rail\n")
+        print("Launch Rail Length:", self.flight.rail_length, " m")
         print("Launch Rail Inclination: {:.2f}°".format(self.flight.inclination))
         print("Launch Rail Heading: {:.2f}°".format(self.flight.heading))
         return None
@@ -161,31 +162,33 @@ class _FlightPrints:
         -------
         None
         """
-        if self.flight.postProcessed is False:
-            self.flight.postProcess()
+        if self.flight.post_processed is False:
+            self.flight.post_process()
         print("\nRail Departure State\n")
-        print("Rail Departure Time: {:.3f} s".format(self.flight.outOfRailTime))
+        print("Rail Departure Time: {:.3f} s".format(self.flight.out_of_rail_time))
         print(
-            "Rail Departure Velocity: {:.3f} m/s".format(self.flight.outOfRailVelocity)
+            "Rail Departure Velocity: {:.3f} m/s".format(
+                self.flight.out_of_rail_velocity
+            )
         )
         print(
             "Rail Departure Static Margin: {:.3f} c".format(
-                self.flight.staticMargin(self.flight.outOfRailTime)
+                self.flight.static_margin(self.flight.out_of_rail_time)
             )
         )
         print(
             "Rail Departure Angle of Attack: {:.3f}°".format(
-                self.flight.angleOfAttack(self.flight.outOfRailTime)
+                self.flight.angle_of_attack(self.flight.out_of_rail_time)
             )
         )
         print(
             "Rail Departure Thrust-Weight Ratio: {:.3f}".format(
-                self.flight.rocket.thrustToWeight(self.flight.outOfRailTime)
+                self.flight.rocket.thrust_to_weight(self.flight.out_of_rail_time)
             )
         )
         print(
             "Rail Departure Reynolds Number: {:.3e}".format(
-                self.flight.ReynoldsNumber(self.flight.outOfRailTime)
+                self.flight.reynolds_number(self.flight.out_of_rail_time)
             )
         )
 
@@ -198,29 +201,33 @@ class _FlightPrints:
         -------
         None
         """
-        if self.flight.postProcessed is False:
-            self.flight.postProcess()
         print("\nBurn out State\n")
-        print("Burn out time: {:.3f} s".format(self.flight.rocket.motor.burnOutTime))
+        print("Burn out time: {:.3f} s".format(self.flight.rocket.motor.burn_out_time))
         print(
             "Altitude at burn out: {:.3f} m (AGL)".format(
-                self.flight.z(self.flight.rocket.motor.burnOutTime)
+                self.flight.z(self.flight.rocket.motor.burn_out_time)
                 - self.flight.env.elevation
             )
         )
         print(
             "Rocket velocity at burn out: {:.3f} m/s".format(
-                self.flight.speed(self.flight.rocket.motor.burnOutTime)
+                self.flight.speed(self.flight.rocket.motor.burn_out_time)
             )
         )
         print(
             "Freestream velocity at burn out: {:.3f} m/s".format(
                 (
-                    self.flight.streamVelocityX(self.flight.rocket.motor.burnOutTime)
+                    self.flight.stream_velocity_x(
+                        self.flight.rocket.motor.burn_out_time
+                    )
                     ** 2
-                    + self.flight.streamVelocityY(self.flight.rocket.motor.burnOutTime)
+                    + self.flight.stream_velocity_y(
+                        self.flight.rocket.motor.burn_out_time
+                    )
                     ** 2
-                    + self.flight.streamVelocityZ(self.flight.rocket.motor.burnOutTime)
+                    + self.flight.stream_velocity_z(
+                        self.flight.rocket.motor.burn_out_time
+                    )
                     ** 2
                 )
                 ** 0.5
@@ -228,12 +235,12 @@ class _FlightPrints:
         )
         print(
             "Mach Number at burn out: {:.3f}".format(
-                self.flight.MachNumber(self.flight.rocket.motor.burnOutTime)
+                self.flight.mach_number(self.flight.rocket.motor.burn_out_time)
             )
         )
         print(
             "Kinetic energy at burn out: {:.3e} J".format(
-                self.flight.kineticEnergy(self.flight.rocket.motor.burnOutTime)
+                self.flight.kinetic_energy(self.flight.rocket.motor.burn_out_time)
             )
         )
 
@@ -246,18 +253,18 @@ class _FlightPrints:
         -------
         None
         """
-        if self.flight.postProcessed is False:
-            self.flight.postProcess()
+        if self.flight.post_processed is False:
+            self.flight.post_process()
         print("\nApogee State\n")
         print(
             "Apogee Altitude: {:.3f} m (ASL) | {:.3f} m (AGL)".format(
                 self.flight.apogee, self.flight.apogee - self.flight.env.elevation
             )
         )
-        print("Apogee Time: {:.3f} s".format(self.flight.apogeeTime))
+        print("Apogee Time: {:.3f} s".format(self.flight.apogee_time))
         print(
             "Apogee Freestream Speed: {:.3f} m/s".format(
-                self.flight.apogeeFreestreamSpeed
+                self.flight.apogee_freestream_speed
             )
         )
 
@@ -270,16 +277,16 @@ class _FlightPrints:
         -------
         None
         """
-        if self.flight.postProcessed is False:
-            self.flight.postProcess()
+        if self.flight.post_processed is False:
+            self.flight.post_process()
         print("\nParachute Events\n")
-        if len(self.flight.parachuteEvents) == 0:
+        if len(self.flight.parachute_events) == 0:
             print("No Parachute Events Were Triggered.")
-        for event in self.flight.parachuteEvents:
+        for event in self.flight.parachute_events:
             triggerTime = event[0]
             parachute = event[1]
             openTime = triggerTime + parachute.lag
-            velocity = self.flight.freestreamSpeed(openTime)
+            velocity = self.flight.free_stream_speed(openTime)
             altitude = self.flight.z(openTime)
             name = parachute.name.title()
             print(name + " Ejection Triggered at: {:.3f} s".format(triggerTime))
@@ -305,15 +312,15 @@ class _FlightPrints:
         -------
         None
         """
-        if self.flight.postProcessed is False:
-            self.flight.postProcess()
-        if len(self.flight.impactState) != 0:
+        if self.flight.post_processed is False:
+            self.flight.post_process()
+        if len(self.flight.impact_state) != 0:
             print("\nImpact Conditions\n")
-            print("X Impact: {:.3f} m".format(self.flight.xImpact))
-            print("Y Impact: {:.3f} m".format(self.flight.yImpact))
-            print("Time of Impact: {:.3f} s".format(self.flight.tFinal))
-            print("Velocity at Impact: {:.3f} m/s".format(self.flight.impactVelocity))
-        elif self.flight.terminateOnApogee is False:
+            print("X Impact: {:.3f} m".format(self.flight.x_impact))
+            print("Y Impact: {:.3f} m".format(self.flight.y_impact))
+            print("Time of Impact: {:.3f} s".format(self.flight.t_final))
+            print("Velocity at Impact: {:.3f} m/s".format(self.flight.impact_velocity))
+        elif self.flight.terminate_on_apogee is False:
             print("End of Simulation")
             print("Time: {:.3f} s".format(self.flight.solution[-1][0]))
             print("Altitude: {:.3f} m".format(self.flight.solution[-1][3]))
@@ -330,58 +337,64 @@ class _FlightPrints:
         print("\nMaximum Values\n")
         print(
             "Maximum Speed: {:.3f} m/s at {:.2f} s".format(
-                self.flight.maxSpeed, self.flight.maxSpeedTime
+                self.flight.max_speed, self.flight.max_speed_time
             )
         )
         print(
             "Maximum Mach Number: {:.3f} Mach at {:.2f} s".format(
-                self.flight.maxMachNumber, self.flight.maxMachNumberTime
+                self.flight.max_mach_number, self.flight.max_mach_number_time
             )
         )
         print(
             "Maximum Reynolds Number: {:.3e} at {:.2f} s".format(
-                self.flight.maxReynoldsNumber, self.flight.maxReynoldsNumberTime
+                self.flight.max_reynolds_number, self.flight.max_reynolds_number_time
             )
         )
         print(
             "Maximum Dynamic Pressure: {:.3e} Pa at {:.2f} s".format(
-                self.flight.maxDynamicPressure, self.flight.maxDynamicPressureTime
+                self.flight.max_dynamic_pressure, self.flight.max_dynamic_pressure_time
             )
         )
         print(
             "Maximum Acceleration: {:.3f} m/s² at {:.2f} s".format(
-                self.flight.maxAcceleration, self.flight.maxAccelerationTime
+                self.flight.max_acceleration, self.flight.max_acceleration_time
             )
         )
         print(
             "Maximum Gs: {:.3f} g at {:.2f} s".format(
-                self.flight.maxAcceleration
+                self.flight.max_acceleration
                 / self.flight.env.gravity(
-                    self.flight.z(self.flight.maxAccelerationTime)
+                    self.flight.z(self.flight.max_acceleration_time)
                 ),
-                self.flight.maxAccelerationTime,
+                self.flight.max_acceleration_time,
             )
         )
-        print(
-            "Maximum Upper Rail Button Normal Force: {:.3f} N".format(
-                self.flight.maxRailButton1NormalForce
+        if (
+            len(self.flight.rocket.rail_buttons) == 0
+            or self.flight.out_of_rail_time_index == 0
+        ):
+            pass
+        else:
+            print(
+                "Maximum Upper Rail Button Normal Force: {:.3f} N".format(
+                    self.flight.max_rail_button1_normal_force
+                )
             )
-        )
-        print(
-            "Maximum Upper Rail Button Shear Force: {:.3f} N".format(
-                self.flight.maxRailButton1ShearForce
+            print(
+                "Maximum Upper Rail Button Shear Force: {:.3f} N".format(
+                    self.flight.max_rail_button1_shear_force
+                )
             )
-        )
-        print(
-            "Maximum Lower Rail Button Normal Force: {:.3f} N".format(
-                self.flight.maxRailButton2NormalForce
+            print(
+                "Maximum Lower Rail Button Normal Force: {:.3f} N".format(
+                    self.flight.max_rail_button2_normal_force
+                )
             )
-        )
-        print(
-            "Maximum Lower Rail Button Shear Force: {:.3f} N".format(
-                self.flight.maxRailButton2ShearForce
+            print(
+                "Maximum Lower Rail Button Shear Force: {:.3f} N".format(
+                    self.flight.max_rail_button2_shear_force
+                )
             )
-        )
         return None
 
     def all(self):

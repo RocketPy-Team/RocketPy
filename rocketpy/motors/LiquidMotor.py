@@ -9,34 +9,164 @@ try:
 except ImportError:
     from rocketpy.tools import cached_property
 
-from rocketpy.Function import Function, funcify_method
+from rocketpy.Function import Function, funcify_method, reset_funcified_methods
+from rocketpy.plots.liquid_motor_plots import _LiquidMotorPlots
+from rocketpy.prints.liquid_motor_prints import _LiquidMotorPrints
+
 from .Motor import Motor
 
 
 class LiquidMotor(Motor):
     """Class to specify characteristics and useful operations for Liquid
     motors. This class inherits from the Motor class.
+
+    Attributes
+    ----------
+
+        Geometrical attributes:
+        Motor.coordinate_system_orientation : str
+            Orientation of the motor's coordinate system. The coordinate system
+            is defined by the motor's axis of symmetry. The origin of the
+            coordinate system  may be placed anywhere along such axis, such as
+            at the nozzle area, and must be kept the same for all other
+            positions specified. Options are "nozzle_to_combustion_chamber" and
+            "combustion_chamber_to_nozzle".
+        Motor.nozzle_radius : float
+            Radius of motor nozzle outlet in meters.
+        Motor.nozzle_position : float
+            Motor's nozzle outlet position in meters, specified in the motor's
+            coordinate system. See `Motor.coordinate_system_orientation` for
+            more information.
+        Motor.positioned_tanks : list
+            List containing the motor's added tanks and their respective
+            positions.
+
+        Mass and moment of inertia attributes:
+        Motor.dry_mass : float
+            The total mass of the motor structure, including chambers
+            and tanks, when it is empty and does not contain any propellant.
+        Motor.propellant_initial_mass : float
+            Total propellant initial mass in kg, includes
+            fuel and oxidizer.
+        Motor.total_mass : Function
+            Total motor mass in kg as a function of time, defined as the sum
+            of propellant and dry mass.
+        Motor.propellant_mass : Function
+            Total propellant mass in kg as a function of time, includes fuel
+            and oxidizer.
+        Motor.total_mass_flow_rate : Function
+            Time derivative of propellant total mass in kg/s as a function
+            of time as obtained by the tanks mass flow.
+        Motor.center_of_mass : Function
+            Position of the motor center of mass in
+            meters as a function of time.
+            See `Motor.coordinate_system_orientation` for more information
+            regarding the motor's coordinate system.
+        Motor.center_of_propellant_mass : Function
+            Position of the motor propellant center of mass in meters as a
+            function of time.
+            See `Motor.coordinate_system_orientation` for more information
+            regarding the motor's coordinate system.
+        Motor.I_11 : Function
+            Component of the motor's inertia tensor relative to the e_1 axis
+            in kg*m^2, as a function of time. The e_1 axis is the direction
+            perpendicular to the motor body axis of symmetry, centered at
+            the instantaneous motor center of mass.
+        Motor.I_22 : Function
+            Component of the motor's inertia tensor relative to the e_2 axis
+            in kg*m^2, as a function of time. The e_2 axis is the direction
+            perpendicular to the motor body axis of symmetry, centered at
+            the instantaneous motor center of mass.
+            Numerically equivalent to I_11 due to symmetry.
+        Motor.I_33 : Function
+            Component of the motor's inertia tensor relative to the e_3 axis
+            in kg*m^2, as a function of time. The e_3 axis is the direction of
+            the motor body axis of symmetry, centered at the instantaneous
+            motor center of mass.
+        Motor.I_12 : Function
+            Component of the motor's inertia tensor relative to the e_1 and
+            e_2 axes in kg*m^2, as a function of time. See Motor.I_11 and
+            Motor.I_22 for more information.
+        Motor.I_13 : Function
+            Component of the motor's inertia tensor relative to the e_1 and
+            e_3 axes in kg*m^2, as a function of time. See Motor.I_11 and
+            Motor.I_33 for more information.
+        Motor.I_23 : Function
+            Component of the motor's inertia tensor relative to the e_2 and
+            e_3 axes in kg*m^2, as a function of time. See Motor.I_22 and
+            Motor.I_33 for more information.
+        Motor.propellant_I_11 : Function
+            Component of the propellant inertia tensor relative to the e_1
+            axis in kg*m^2, as a function of time. The e_1 axis is the
+            direction perpendicular to the motor body axis of symmetry,
+            centered at the instantaneous propellant center of mass.
+        Motor.propellant_I_22 : Function
+            Component of the propellant inertia tensor relative to the e_2
+            axis in kg*m^2, as a function of time. The e_2 axis is the
+            direction perpendicular to the motor body axis of symmetry,
+            centered at the instantaneous propellant center of mass.
+            Numerically equivalent to propellant_I_11 due to symmetry.
+        Motor.propellant_I_33 : Function
+            Component of the propellant inertia tensor relative to the e_3
+            axis in kg*m^2, as a function of time. The e_3 axis is the
+            direction of the motor body axis of symmetry, centered at the
+            instantaneous propellant center of mass.
+        Motor.propellant_I_12 : Function
+            Component of the propellant inertia tensor relative to the e_1 and
+            e_2 axes in kg*m^2, as a function of time. See Motor.propellant_I_11
+            and Motor.propellant_I_22 for more information.
+        Motor.propellant_I_13 : Function
+            Component of the propellant inertia tensor relative to the e_1 and
+            e_3 axes in kg*m^2, as a function of time. See Motor.propellant_I_11
+            and Motor.propellant_I_33 for more information.
+        Motor.propellant_I_23 : Function
+            Component of the propellant inertia tensor relative to the e_2 and
+            e_3 axes in kg*m^2, as a function of time. See Motor.propellant_I_22
+            and Motor.propellant_I_33 for more information.
+
+        Thrust and burn attributes:
+        Motor.thrust : Function
+            Motor thrust force, in Newtons, as a function of time.
+        Motor.total_impulse : float
+            Total impulse of the thrust curve in N*s.
+        Motor.max_thrust : float
+            Maximum thrust value of the given thrust curve, in N.
+        Motor.max_thrust_time : float
+            Time, in seconds, in which the maximum thrust value is achieved.
+        Motor.average_thrust : float
+            Average thrust of the motor, given in N.
+        Motor.burn_time : tuple of float
+            Tuple containing the initial and final time of the motor's burn time
+            in seconds.
+        Motor.burn_start_time : float
+            Motor burn start time, in seconds.
+        Motor.burn_out_time : float
+            Motor burn out time, in seconds.
+        Motor.burn_duration : float
+            Total motor burn duration, in seconds. It is the difference between the burn_out_time and the burn_start_time.
+        Motor.exhaust_velocity : Function
+            Propulsion gases exhaust velocity in m/s.
     """
 
     def __init__(
         self,
-        thrustSource,
+        thrust_source,
         dry_mass,
         center_of_dry_mass,
         dry_inertia,
-        nozzleRadius,
+        nozzle_radius,
         burn_time=None,
-        nozzlePosition=0,
-        reshapeThrustCurve=False,
-        interpolationMethod="linear",
-        coordinateSystemOrientation="nozzleToCombustionChamber",
+        nozzle_position=0,
+        reshape_thrust_curve=False,
+        interpolation_method="linear",
+        coordinate_system_orientation="nozzle_to_combustion_chamber",
     ):
         """Initialize LiquidMotor class, process thrust curve and geometrical
         parameters and store results.
 
         Parameters
         ----------
-        thrustSource : int, float, callable, string, array
+        thrust_source : int, float, callable, string, array
             Motor's thrust curve. Can be given as an int or float, in which
             case the thrust will be considered constant in time. It can
             also be given as a callable function, whose argument is time in
@@ -62,7 +192,7 @@ class LiquidMotor(Motor):
         center_of_dry_mass : int, float
             The position, in meters, of the motor's center of mass with respect
             to the motor's coordinate system when it is devoid of propellant.
-            See `Motor.coordinateSystemOrientation`.
+            See `Motor.coordinate_system_orientation`.
         dry_inertia : tuple, list
             Tuple or list containing the motor's dry mass inertia tensor
             components, in kg*m^2. This inertia is defined with respect to the
@@ -74,13 +204,13 @@ class LiquidMotor(Motor):
             component of the inertia tensor in the direction of e_i x e_j.
             Alternatively, the inertia tensor can be given as (I_11, I_22, I_33),
             where I_12 = I_13 = I_23 = 0.
-        nozzleRadius : int, float
+        nozzle_radius : int, float
             Motor's nozzle outlet radius in meters.
-        nozzlePosition : float
+        nozzle_position : float
             Motor's nozzle outlet position in meters, specified in the motor's
-            coordinate system. See `Motor.coordinateSystemOrientation` for
+            coordinate system. See `Motor.coordinate_system_orientation` for
             more information.
-        reshapeThrustCurve : boolean, tuple, optional
+        reshape_thrust_curve : boolean, tuple, optional
             If False, the original thrust curve supplied is not altered. If a
             tuple is given, whose first parameter is a new burn out time and
             whose second parameter is a new total impulse in Ns, the thrust
@@ -88,73 +218,68 @@ class LiquidMotor(Motor):
             for motors whose thrust curve shape is expected to remain similar
             in case the impulse and burn time varies slightly. Default is
             False.
-        interpolationMethod : string, optional
+        interpolation_method : string, optional
             Method of interpolation to be used in case thrust curve is given
             by data set in .csv or .eng, or as an array. Options are 'spline'
             'akima' and 'linear'. Default is "linear".
-        coordinateSystemOrientation : string, optional
+        coordinate_system_orientation : string, optional
             Orientation of the motor's coordinate system. The coordinate system
             is defined by the motor's axis of symmetry. The origin of the
             coordinate system  may be placed anywhere along such axis, such as at the
             nozzle area, and must be kept the same for all other positions specified.
-            Options are "nozzleToCombustionChamber" and "combustionChamberToNozzle".
-            Default is "nozzleToCombustionChamber".
+            Options are "nozzle_to_combustion_chamber" and "combustion_chamber_to_nozzle".
+            Default is "nozzle_to_combustion_chamber".
         """
         super().__init__(
-            thrustSource,
+            thrust_source,
             dry_mass,
             center_of_dry_mass,
             dry_inertia,
-            nozzleRadius,
+            nozzle_radius,
             burn_time,
-            nozzlePosition,
-            reshapeThrustCurve,
-            interpolationMethod,
-            coordinateSystemOrientation,
+            nozzle_position,
+            reshape_thrust_curve,
+            interpolation_method,
+            coordinate_system_orientation,
         )
 
         self.positioned_tanks = []
 
+        # Initialize plots and prints object
+        self.prints = _LiquidMotorPrints(self)
+        self.plots = _LiquidMotorPlots(self)
+        return None
+
     @funcify_method("Time (s)", "Exhaust Velocity (m/s)")
-    def exhaustVelocity(self):
+    def exhaust_velocity(self):
         """Computes the exhaust velocity of the motor from its mass flow
         rate and thrust.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
-        self.exhaustVelocity : Function
+        self.exhaust_velocity : Function
             Gas exhaust velocity of the motor.
         """
-        return self.thrust / (-1 * self.massFlowRate)
+        return self.thrust / (-1 * self.mass_flow_rate)
 
     @funcify_method("Time (s)", "Propellant Mass (kg)")
-    def propellantMass(self):
+    def propellant_mass(self):
         """Evaluates the mass of the motor as the sum of each tank mass.
-
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
 
         Returns
         -------
         Function
             Mass of the motor, in kg.
         """
-        propellantMass = 0
+        propellant_mass = 0
 
         for positioned_tank in self.positioned_tanks:
-            propellantMass += positioned_tank.get("tank").mass
+            propellant_mass += positioned_tank.get("tank").fluid_mass
 
-        return propellantMass
+        return propellant_mass
 
     @cached_property
-    def propellantInitialMass(self):
+    def propellant_initial_mass(self):
         """Property to store the initial mass of the propellant.
 
         Returns
@@ -162,17 +287,12 @@ class LiquidMotor(Motor):
         float
             Initial mass of the propellant, in kg.
         """
-        return self.propellantMass(0)
+        return self.propellant_mass(0)
 
-    @funcify_method("Time (s)", "mass flow rate (kg/s)", extrapolation="zero")
-    def massFlowRate(self):
+    @funcify_method("Time (s)", "Mass flow rate (kg/s)", extrapolation="zero")
+    def mass_flow_rate(self):
         """Evaluates the mass flow rate of the motor as the sum of each tank
         mass flow rate.
-
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
 
         Returns
         -------
@@ -181,43 +301,38 @@ class LiquidMotor(Motor):
 
         See Also
         --------
-        `Motor.totalMassFlowRate` :
+        `Motor.total_mass_flow_rate` :
             Calculates the total mass flow rate of the motor assuming
             constant exhaust velocity.
         """
-        massFlowRate = Function(0)
+        mass_flow_rate = 0
 
         for positioned_tank in self.positioned_tanks:
-            massFlowRate += positioned_tank.get("tank").netMassFlowRate
+            mass_flow_rate += positioned_tank.get("tank").net_mass_flow_rate
 
-        return massFlowRate
+        return mass_flow_rate
 
-    @funcify_method("Time (s)", "center of mass (m)")
-    def centerOfPropellantMass(self):
+    @funcify_method("Time (s)", "Center of mass (m)")
+    def center_of_propellant_mass(self):
         """Evaluates the center of mass of the motor from each tank center of
         mass and positioning. The center of mass height is measured relative to
         the motor nozzle.
-
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
 
         Returns
         -------
         Function
             Center of mass of the motor, in meters.
         """
-        totalMass = 0
+        total_mass = 0
         massBalance = 0
 
         for positioned_tank in self.positioned_tanks:
             tank = positioned_tank.get("tank")
             tankPosition = positioned_tank.get("position")
-            totalMass += tank.mass
-            massBalance += tank.mass * (tankPosition + tank.centerOfMass)
+            total_mass += tank.fluid_mass
+            massBalance += tank.fluid_mass * (tankPosition + tank.center_of_mass)
 
-        return massBalance / totalMass
+        return massBalance / total_mass
 
     @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
     def propellant_I_11(self):
@@ -225,14 +340,9 @@ class LiquidMotor(Motor):
         relative to the e_1 axis, centered at the instantaneous propellant
         center of mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
-        float
+        Function
             Propellant inertia tensor 11 component at time t.
 
         Notes
@@ -244,15 +354,16 @@ class LiquidMotor(Motor):
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        I_11 = Function(0)
-        centerOfMass = self.centerOfPropellantMass
+        I_11 = 0
+        center_of_mass = self.center_of_propellant_mass
 
         for positioned_tank in self.positioned_tanks:
             tank = positioned_tank.get("tank")
             tankPosition = positioned_tank.get("position")
             I_11 += (
-                tank.inertiaTensor
-                + tank.mass * (tankPosition + tank.centerOfMass - centerOfMass) ** 2
+                tank.inertia
+                + tank.fluid_mass
+                * (tankPosition + tank.center_of_mass - center_of_mass) ** 2
             )
 
         return I_11
@@ -263,14 +374,9 @@ class LiquidMotor(Motor):
         relative to the e_2 axis, centered at the instantaneous propellant
         center of mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
-        float
+        Function
             Propellant inertia tensor 22 component at time t.
 
         Notes
@@ -290,14 +396,9 @@ class LiquidMotor(Motor):
         relative to the e_3 axis, centered at the instantaneous propellant
         center of mass.
 
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-
         Returns
         -------
-        float
+        Function
             Propellant inertia tensor 33 component at time t.
 
         Notes
@@ -323,7 +424,7 @@ class LiquidMotor(Motor):
     def propellant_I_23(self):
         return 0
 
-    def addTank(self, tank, position):
+    def add_tank(self, tank, position):
         """Adds a tank to the rocket motor.
 
         Parameters
@@ -336,55 +437,21 @@ class LiquidMotor(Motor):
             geometry reference zero point.
         """
         self.positioned_tanks.append({"tank": tank, "position": position})
+        reset_funcified_methods(self)
 
-    def allInfo(self):
+    def info(self):
+        """Prints out basic data about the Motor."""
+        self.prints.all()
+        self.plots.thrust()
+        return None
+
+    def all_info(self):
         """Prints out all data and graphs available about the Motor.
-
-        Parameters
-        ----------
-        None
 
         Return
         ------
         None
         """
-        # Print nozzle details
-        print("Nozzle Details")
-        print("Nozzle Radius: " + str(self.nozzleRadius) + " m")
-
-        # Print motor details
-        print("\nMotor Details")
-        print("Total Burning Time: " + str(self.burnDuration) + " s")
-        print(
-            "Total Propellant Mass: "
-            + "{:.3f}".format(self.propellantInitialMass)
-            + " kg"
-        )
-        print(
-            "Average Propellant Exhaust Velocity: "
-            + "{:.3f}".format(self.exhaustVelocity.average(*self.burn_time))
-            + " m/s"
-        )
-        print("Average Thrust: " + "{:.3f}".format(self.averageThrust) + " N")
-        print(
-            "Maximum Thrust: "
-            + str(self.maxThrust)
-            + " N at "
-            + str(self.maxThrustTime)
-            + " s after ignition."
-        )
-        print("Total Impulse: " + "{:.3f}".format(self.totalImpulse) + " Ns")
-
-        # Show plots
-        print("\nPlots")
-        self.thrust.plot(*self.burn_time)
-        self.totalMass.plot(*self.burn_time)
-        self.massFlowRate.plot(*self.burn_time)
-        self.exhaustVelocity.plot(*self.burn_time)
-        self.centerOfMass.plot(*self.burn_time)
-        self.I_11.plot(*self.burn_time)
-        self.I_22.plot(*self.burn_time)
-        self.I_33.plot(*self.burn_time)
-        self.I_12.plot(*self.burn_time)
-        self.I_13.plot(*self.burn_time)
-        self.I_23.plot(*self.burn_time)
+        self.prints.all()
+        self.plots.all()
+        return None

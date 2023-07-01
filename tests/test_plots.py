@@ -21,8 +21,10 @@ def test_compare(mock_show, rocket, example_env):
     example_env : rocketpy.Environment
         Environment object to be used in the tests. See conftest.py for more details.
     """
-    rocket.setRailButtons(-0.5, 0.2)
-    flight = Flight(environment=example_env, rocket=rocket, inclination=85, heading=0)
+    rocket.set_rail_buttons(-0.5, 0.2)
+    flight = Flight(
+        environment=example_env, rocket=rocket, rail_length=5, inclination=85, heading=0
+    )
 
     objects = [flight, flight, flight]
 
@@ -64,26 +66,25 @@ def test_compare_flights(mock_show, rocket, example_env):
     -------
     None
     """
-    example_env.setAtmosphericModel(
-        type="CustomAtmosphere",
+    example_env.set_atmospheric_model(
+        type="custom_atmosphere",
         pressure=None,
         temperature=300,
         wind_u=[(0, 5), (1000, 10)],
         wind_v=[(0, -2), (500, 3), (1600, 2)],
     )
 
-    rocket.setRailButtons(-0.5, 0.2)
-
+    rocket.set_rail_buttons(-0.5, 0.2)
     inclinations = [60, 70, 80, 90]
     headings = [0, 45, 90, 180]
     flights = []
-
     # Create (4 * 4) = 16 different flights to be compared
     for heading in headings:
         for inclination in inclinations:
             flight = Flight(
                 environment=example_env,
                 rocket=rocket,
+                rail_length=5,
                 inclination=inclination,
                 heading=heading,
                 name=f"Incl {inclination} Head {heading}",

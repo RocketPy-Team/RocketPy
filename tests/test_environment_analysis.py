@@ -13,7 +13,7 @@ plt.rcParams.update({"figure.max_open_warning": 0})
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_allInfo(mock_show, env_analysis):
-    """Test the EnvironmentAnalysis.allInfo() method, which already invokes
+    """Test the EnvironmentAnalysis.all_info() method, which already invokes
     several other methods. It is a good way to test the whole class in a first view.
     However, if it fails, it is hard to know which method is failing.
 
@@ -27,7 +27,7 @@ def test_allInfo(mock_show, env_analysis):
     None
     """
     assert env_analysis.info() == None
-    assert env_analysis.allInfo() == None
+    assert env_analysis.all_info() == None
     assert env_analysis.plots.info() == None
     os.remove("wind_rose.gif")  # remove the files created by the method
 
@@ -177,7 +177,7 @@ def test_exports(env_analysis):
 
     env2 = copy.deepcopy(env_analysis)
     env2.load("EnvAnalysisDict")
-    assert env2.allInfo() == None
+    assert env2.all_info() == None
 
     # Delete file created by save method
     os.remove("EnvAnalysisDict")
