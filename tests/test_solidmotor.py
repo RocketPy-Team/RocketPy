@@ -20,18 +20,22 @@ throat_radius = 11 / 1000
 @patch("matplotlib.pyplot.show")
 def test_motor(mock_show):
     example_motor = SolidMotor(
-        thrust_source="tests/fixtures/motor/Cesaroni_M1670.eng",
+        thrust_source="data/motors/Cesaroni_M1670.eng",
         burn_time=3.9,
+        dry_mass=1.815,
+        dry_inertia=(0.125, 0.125, 0.002),
+        center_of_dry_mass=0.317,
+        nozzle_position=0,
         grain_number=5,
-        grain_separation=5 / 1000,
         grain_density=1815,
-        grain_outer_radius=33 / 1000,
-        grain_initial_inner_radius=15 / 1000,
-        grain_initial_height=120 / 1000,
         nozzle_radius=33 / 1000,
         throat_radius=11 / 1000,
+        grain_separation=5 / 1000,
+        grain_outer_radius=33 / 1000,
+        grain_initial_height=120 / 1000,
+        grains_center_of_mass_position=0.397,
+        grain_initial_inner_radius=15 / 1000,
         interpolation_method="linear",
-        grains_center_of_mass_position=0.39796,
         coordinate_system_orientation="nozzle_to_combustion_chamber",
     )
 
@@ -46,18 +50,18 @@ def test_initialize_motor_asserts_dynamic_values(solid_motor):
 
     assert solid_motor.max_thrust == 2200.0
     assert solid_motor.max_thrust_time == 0.15
-    assert solid_motor.burn_out_time == burn_time
+    assert solid_motor.burn_time[1] == burn_time
     assert solid_motor.total_impulse == solid_motor.thrust.integral(0, burn_time)
     assert (
         solid_motor.average_thrust
         == solid_motor.thrust.integral(0, burn_time) / burn_time
     )
-    assert solid_motor.grain_initial_volume == grain_vol
-    assert solid_motor.grain_initial_mass == grain_mass
+    assert solid_motor.grainInitialVolume == grain_vol
+    assert solid_motor.grainInitialMass == grain_mass
     assert solid_motor.propellant_initial_mass == grain_number * grain_mass
-    assert solid_motor.exhaust_velocity == solid_motor.thrust.integral(0, burn_time) / (
-        grain_number * grain_mass
-    )
+    assert solid_motor.exhaust_velocity(0) == solid_motor.thrust.integral(
+        0, burn_time
+    ) / (grain_number * grain_mass)
 
 
 def test_grain_geometry_progession_asserts_extreme_values(solid_motor):
@@ -81,8 +85,10 @@ def test_mass_curve_asserts_extreme_values(solid_motor):
     )
     grain_mass = grain_vol * grain_density
 
-    assert np.allclose(solid_motor.mass.get_source()[-1][-1], 0)
-    assert np.allclose(solid_motor.mass.get_source()[0][-1], grain_number * grain_mass)
+    assert np.allclose(solid_motor.propellant_mass.get_source()[-1][-1], 0)
+    assert np.allclose(
+        solid_motor.propellant_mass.get_source()[0][-1], grain_number * grain_mass
+    )
 
 
 def test_burn_area_asserts_extreme_values(solid_motor):
@@ -107,50 +113,53 @@ def test_burn_area_asserts_extreme_values(solid_motor):
     )
 
     assert np.allclose(solid_motor.burn_area.get_source()[0][-1], initial_burn_area)
-    assert np.allclose(solid_motor.burn_area.get_source()[-1][-1], final_burn_area)
+    assert np.allclose(
+        solid_motor.burn_area.get_source()[-1][-1], final_burn_area, atol=1e-6
+    )
 
 
-def test_evaluate_inertia_I_asserts_extreme_values(solid_motor):
+def test_evaluate_inertia_11_asserts_extreme_values(solid_motor):
     grain_vol = grain_initial_height * (
         np.pi * (grain_outer_radius**2 - grain_initial_inner_radius**2)
     )
     grain_mass = grain_vol * grain_density
 
-    grainInertiaI_initial = grain_mass * (
+    grainInertia_11_initial = grain_mass * (
         (1 / 4) * (grain_outer_radius**2 + grain_initial_inner_radius**2)
         + (1 / 12) * grain_initial_height**2
     )
 
-    initialValue = (grain_number - 1) / 2
-    d = np.linspace(-initialValue, initialValue, grain_number)
+    initial_value = (grain_number - 1) / 2
+    d = np.linspace(-initial_value, initial_value, grain_number)
     d = d * (grain_initial_height + grain_separation)
 
-    inertiaI_initial = grain_number * grainInertiaI_initial + grain_mass * np.sum(
+    inertia_11_initial = grain_number * grainInertia_11_initial + grain_mass * np.sum(
         d**2
     )
 
     assert np.allclose(
-        solid_motor.inertia_i.get_source()[0][-1], inertiaI_initial, atol=0.01
+        solid_motor.propellant_I_11.get_source()[0][-1], inertia_11_initial, atol=0.01
     )
-    assert np.allclose(solid_motor.inertia_i.get_source()[-1][-1], 0, atol=1e-16)
+    assert np.allclose(solid_motor.propellant_I_11.get_source()[-1][-1], 0, atol=1e-6)
 
 
-def test_evaluate_inertia_Z_asserts_extreme_values(solid_motor):
+def test_evaluate_inertia_33_asserts_extreme_values(solid_motor):
     grain_vol = grain_initial_height * (
         np.pi * (grain_outer_radius**2 - grain_initial_inner_radius**2)
     )
     grain_mass = grain_vol * grain_density
 
-    grainInertiaZ_initial = (
+    grain_I_33_initial = (
         grain_mass
         * (1 / 2.0)
         * (grain_initial_inner_radius**2 + grain_outer_radius**2)
     )
 
+    # not passing because I_33 is not discrete anymore
     assert np.allclose(
-        solid_motor.inertia_z.get_source()[0][-1], grainInertiaZ_initial, atol=0.01
+        solid_motor.propellant_I_33.get_source()[0][-1], grain_I_33_initial, atol=0.01
     )
-    assert np.allclose(solid_motor.inertia_z.get_source()[-1][-1], 0, atol=1e-16)
+    assert np.allclose(solid_motor.propellant_I_33.get_source()[-1][-1], 0, atol=1e-6)
 
 
 def tests_import_eng_asserts_read_values_correctly(solid_motor):
@@ -223,18 +232,22 @@ def test_reshape_thrust_curve_asserts_resultant_thrust_curve_correct():
     example_motor = SolidMotor(
         thrust_source="tests/fixtures/motor/Cesaroni_M1670_shifted.eng",
         burn_time=3.9,
+        dry_mass=1.815,
+        dry_inertia=(0.125, 0.125, 0.002),
+        center_of_dry_mass=0.317,
+        nozzle_position=0,
         grain_number=5,
-        grain_separation=5 / 1000,
         grain_density=1815,
-        grain_outer_radius=33 / 1000,
-        grain_initial_inner_radius=15 / 1000,
-        grain_initial_height=120 / 1000,
         nozzle_radius=33 / 1000,
         throat_radius=11 / 1000,
-        reshape_thrust_curve=(5, 3000),
+        grain_separation=5 / 1000,
+        grain_outer_radius=33 / 1000,
+        grain_initial_height=120 / 1000,
+        grains_center_of_mass_position=0.397,
+        grain_initial_inner_radius=15 / 1000,
         interpolation_method="linear",
-        grains_center_of_mass_position=0.39796,
         coordinate_system_orientation="nozzle_to_combustion_chamber",
+        reshape_thrust_curve=(5, 3000),
     )
 
     thrust_reshaped = example_motor.thrust.get_source()

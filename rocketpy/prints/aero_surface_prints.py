@@ -98,8 +98,8 @@ class _FinsPrints(_AeroSurfacePrints):
 
         Parameters
         ----------
-        fin_set : rocketpy.AeroSurface.FinSet
-            FinSet object to be printed
+        fin_set : rocketpy.AeroSurface.fin_set
+            fin_set object to be printed
 
         Returns
         -------
@@ -219,8 +219,8 @@ class _TrapezoidalFinsPrints(_FinsPrints):
 
         Parameters
         ----------
-        fin_set : rocketpy.AeroSurface.FinSet
-            FinSet object to be printed
+        fin_set : rocketpy.AeroSurface.fin_set
+            fin_set object to be printed
 
         Returns
         -------
@@ -238,8 +238,8 @@ class _EllipticalFinsPrints(_FinsPrints):
 
         Parameters
         ----------
-        fin_set : rocketpy.AeroSurface.FinSet
-            FinSet object to be printed
+        fin_set : rocketpy.AeroSurface.fin_set
+            fin_set object to be printed
 
         Returns
         -------

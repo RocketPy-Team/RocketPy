@@ -88,8 +88,8 @@ class _FinPlots(_AeroSurfacePlots):
 
         Parameters
         ----------
-        fin_set : rocketpy.AeroSurface.FinSet
-            FinSet object to be plotted
+        fin_set : rocketpy.AeroSurface.fin_set
+            fin_set object to be plotted
 
         Returns
         -------

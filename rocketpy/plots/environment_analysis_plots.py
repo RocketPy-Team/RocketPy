@@ -1078,7 +1078,6 @@ class _EnvironmentAnalysisPlots:
             y_max = current_y_max if current_y_max > y_max else y_max
             ax.label_outer()
             ax.grid()
-
         # Set x and y limits for the last axis. Since axes are shared, set to all
         ax.set_xlim(x_min, x_max)
         ax.set_ylim(y_min, y_max)
@@ -1460,7 +1459,6 @@ class _EnvironmentAnalysisPlots:
 
             ax.label_outer()
             ax.grid()
-
         # Set x and y limits for the last axis. Since axes are shared, set to all
         ax.set_xlim(x_min, x_max)
         ax.set_ylim(y_min, y_max)

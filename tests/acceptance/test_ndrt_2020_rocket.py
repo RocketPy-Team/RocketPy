@@ -24,8 +24,8 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     # Defining all parameters
     parameters = {
         # Mass Details
-        "rocket_mass": (23.321 - 2.475, 0.010),
-        # Propulsion Details
+        "rocket_mass": (23.321 - 2.475 - 1, 0.010),
+        # propulsion details
         "impulse": (4895.050, 0.033 * 4895.050),
         "burn_time": (3.51, 0.1),
         "nozzle_radius": (49.5 / 2000, 0.001),
@@ -35,7 +35,7 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
         "grain_outer_radius": (33 / 1000, 0.001),
         "grain_initial_inner_radius": (15 / 1000, 0.002),
         "grain_initial_height": (120 / 1000, 0.001),
-        # Aerodynamic Details
+        # aerodynamic details
         "drag_coefficient": (0.44, 0.1),
         "inertia_i": (83.351, 0.3 * 83.351),
         "inertia_z": (0.15982, 0.3 * 0.15982),
@@ -53,16 +53,16 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
         "transition_top_radius": (203 / 2000, 0.010),
         "transition_bottom_radius": (155 / 2000, 0.010),
         "transition_length": (0.127, 0.010),
-        "transitiondistance_to_cm": (-1.194656, 0.010),
-        # Launch and Environment Details
+        "transition_distance_to_cm": (-1.194656, 0.010),
+        # launch and environment details
         "wind_direction": (0, 3),
         "wind_speed": (1, 0.30),
         "inclination": (90, 1),
         "heading": (181, 3),
         "rail_length": (3.353, 0.001),
-        # Parachute Details
-        "CdS_drogue": (1.5 * np.pi * (24 * 25.4 / 1000) * (24 * 25.4 / 1000) / 4, 0.1),
-        "CdS_main": (2.2 * np.pi * (120 * 25.4 / 1000) * (120 * 25.4 / 1000) / 4, 0.1),
+        # parachute details
+        "cd_s_drogue": (1.5 * np.pi * (24 * 25.4 / 1000) * (24 * 25.4 / 1000) / 4, 0.1),
+        "cd_s_main": (2.2 * np.pi * (120 * 25.4 / 1000) * (120 * 25.4 / 1000) / 4, 0.1),
         "lag_rec": (1, 0.5),
     }
 
@@ -81,10 +81,13 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     )
     Env23.max_expected_height = 2000
 
-    # Motor Information
+    # motor information
     L1395 = SolidMotor(
         thrust_source="tests/fixtures/acceptance/NDRT_2020/ndrt_2020_motor_Cesaroni_4895L1395-P.eng",
         burn_time=parameters.get("burn_time")[0],
+        dry_mass=1,
+        dry_inertia=(0, 0, 0),
+        center_of_dry_mass=0,
         grains_center_of_mass_position=parameters.get("distance_rocket_propellant")[0],
         grain_number=5,
         grain_separation=parameters.get("grain_separation")[0],
@@ -102,14 +105,18 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     NDRT2020 = Rocket(
         radius=parameters.get("radius")[0],
         mass=parameters.get("rocket_mass")[0],
-        inertia_i=parameters.get("inertia_i")[0],
-        inertia_z=parameters.get("inertia_z")[0],
+        inertia=(
+            parameters.get("inertia_i")[0],
+            parameters.get("inertia_i")[0],
+            parameters.get("inertia_z")[0],
+        ),
         power_off_drag=parameters.get("drag_coefficient")[0],
         power_on_drag=parameters.get("drag_coefficient")[0],
+        center_of_mass_without_motor=0,
     )
     NDRT2020.set_rail_buttons(0.2, -0.5, 45)
     NDRT2020.add_motor(L1395, parameters.get("distance_rocket_nozzle")[0])
-    NoseCone = NDRT2020.add_nose(
+    nose_cone = NDRT2020.add_nose(
         length=parameters.get("nose_length")[0],
         kind="tangent",
         position=parameters.get("nose_distance_to_cm")[0]
@@ -126,7 +133,7 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
         top_radius=parameters.get("transition_top_radius")[0],
         bottom_radius=parameters.get("transition_bottom_radius")[0],
         length=parameters.get("transition_length")[0],
-        position=parameters.get("transitiondistance_to_cm")[0],
+        position=parameters.get("transition_distance_to_cm")[0],
     )
 
     # Parachute set-up
@@ -144,7 +151,7 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
 
     Drogue = NDRT2020.add_parachute(
         "Drogue",
-        cd_s=parameters.get("CdS_drogue")[0],
+        cd_s=parameters.get("cd_s_drogue")[0],
         trigger=drogue_trigger,
         sampling_rate=105,
         lag=parameters.get("lag_rec")[0],
@@ -152,7 +159,7 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     )
     Main = NDRT2020.add_parachute(
         "Main",
-        cd_s=parameters.get("CdS_main")[0],
+        cd_s=parameters.get("cd_s_main")[0],
         trigger=main_trigger,
         sampling_rate=105,
         lag=parameters.get("lag_rec")[0],

@@ -169,7 +169,7 @@ def test_info_returns(mock_show, example_env):
         "grid",
         "windSpeed",
         "windDirection",
-        "speedOfSound",
+        "speed_of_sound",
         "density",
         "windVelX",
         "windVelY",

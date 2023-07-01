@@ -893,7 +893,7 @@
           <div class="S7">
             <span style="white-space: pre"
               ><span> </span
-              ><span style="color: rgb(170, 4, 249)">'grainDensity'</span
+              ><span style="color: rgb(170, 4, 249)">'grain_density'</span
               ><span>, 1815, </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
@@ -914,7 +914,7 @@
             <span style="white-space: pre"
               ><span> </span
               ><span style="color: rgb(170, 4, 249)"
-                >'grainInitialInnerRadius'</span
+                >'grain_initial_inner_radius'</span
               ><span>, 15 / 1000, </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
@@ -924,7 +924,7 @@
           <div class="S7">
             <span style="white-space: pre"
               ><span> </span
-              ><span style="color: rgb(170, 4, 249)">'grainInitialHeight'</span
+              ><span style="color: rgb(170, 4, 249)">'grain_initial_height'</span
               ><span>, 120 / 1000, </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
@@ -934,7 +934,7 @@
           <div class="S7">
             <span style="white-space: pre"
               ><span> </span
-              ><span style="color: rgb(170, 4, 249)">'nozzleRadius'</span
+              ><span style="color: rgb(170, 4, 249)">'nozzle_radius'</span
               ><span>, 33 / 1000, </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
@@ -944,7 +944,7 @@
           <div class="S7">
             <span style="white-space: pre"
               ><span> </span
-              ><span style="color: rgb(170, 4, 249)">'throatRadius'</span
+              ><span style="color: rgb(170, 4, 249)">'throat_radius'</span
               ><span>, 11 / 1000, </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
@@ -954,7 +954,7 @@
           <div class="S7">
             <span style="white-space: pre"
               ><span> </span
-              ><span style="color: rgb(170, 4, 249)">'interpolationMethod'</span
+              ><span style="color: rgb(170, 4, 249)">'interpolation_method'</span
               ><span>, </span
               ><span style="color: rgb(170, 4, 249)">"linear" </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
@@ -1115,7 +1115,7 @@
           <div class="S7">
             <span style="white-space: pre"
               ><span> </span
-              ><span style="color: rgb(170, 4, 249)">'nozzlePosition'</span
+              ><span style="color: rgb(170, 4, 249)">'nozzle_position'</span
               ><span>, -1.255, </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
@@ -1126,7 +1126,7 @@
             <span style="white-space: pre"
               ><span> </span
               ><span style="color: rgb(170, 4, 249)"
-                >'coordinateSystemOrientation'</span
+                >'coordinate_system_orientation'</span
               ><span>, "nozzle_to_combustion_chamber", </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
@@ -1219,7 +1219,8 @@
         <div class="inlineWrapper">
           <div class="S7">
             <span style="white-space: pre"
-              ><span>FinSet = rocketpy.Rocket.add_trapezoidal_fins(pyargs( </span
+              ><span
+                >fin_set = rocketpy.Rocket.add_trapezoidal_fins(pyargs( </span
               ><span style="color: rgb(14, 0, 255)">...</span></span
             >
           </div>
@@ -1766,8 +1767,8 @@
                 2.133 c Rail Departure Angle of Attack: 13.148° Rail Departure
                 Thrust-Weight Ratio: 10.143 Rail Departure Reynolds Number:
                 1.927e+05 BurnOut State BurnOut time: 3.900 s Altitude at
-                burn_time: 660.034 m (AGL) Rocket velocity at burn_time: 280.019 m/s
-                Freestream velocity at burn_time: 279.862 m/s Mach Number at
+                burn_time: 660.034 m (AGL) Rocket velocity at burn_time: 280.019
+                m/s Freestream velocity at burn_time: 279.862 m/s Mach Number at
                 burn_time: 0.831 Kinetic energy at burn_time: 6.367e+05 J Apogee
                 Apogee Altitude: 4826.179 m (ASL) | 3354.713 m (AGL) Apogee
                 Time: 26.058 s Apogee Freestream Speed: 11.757 m/s Events Drogue
@@ -2082,7 +2083,8 @@
           <div class="S10">
             <span style="white-space: pre"
               ><span
-                >angle_of_attack = double(test_flight.angleOfAttack.source)</span
+                >angle_of_attack =
+                double(test_flight.angleOfAttack.source)</span
               ></span
             >
           </div>
@@ -2249,7 +2251,7 @@
         <div class="inlineWrapper outputs">
           <div class="S10">
             <span style="white-space: pre"
-              ><span>wind_velocity_x = double(env.windVelocityX.source) </span
+              ><span>wind_velocity_x = double(env.wind_velocity_x.source) </span
               ><span style="color: rgb(2, 128, 9)"
                 >% First column is altitude (ASL m), while the second one is the
                 speed (m/s)</span
@@ -2390,7 +2392,7 @@
         <div class="inlineWrapper outputs">
           <div class="S15">
             <span style="white-space: pre"
-              ><span>wind_velocity_y = double(env.windVelocityY.source) </span
+              ><span>wind_velocity_y = double(env.wind_velocity_y.source) </span
               ><span style="color: rgb(2, 128, 9)"
                 >% First column is altitude (ASL m), while the second one is the
                 speed (m/s)</span
@@ -2616,13 +2618,13 @@ Pro75M1670 = rocketpy.SolidMotor(pyargs( ...
     'burn_time', 3.9, ...
     'grain_number', int32(5), ...
     'grain_separation', 5 / 1000, ...
-    'grainDensity', 1815, ...
+    'grain_density', 1815, ...
     'grain_outer_radius', 33 / 1000, ...
-    'grainInitialInnerRadius', 15 / 1000, ...
-    'grainInitialHeight', 120 / 1000, ...
-    'nozzleRadius', 33 / 1000, ...
-    'throatRadius', 11 / 1000, ...
-    'interpolationMethod', "linear" ...
+    'grain_initial_inner_radius', 15 / 1000, ...
+    'grain_initial_height', 120 / 1000, ...
+    'nozzle_radius', 33 / 1000, ...
+    'throat_radius', 11 / 1000, ...
+    'interpolation_method', "linear" ...
 ));
 %% 
 % To see what our thrust curve looks like, along with other import properties, 
@@ -2665,7 +2667,7 @@ NoseCone = rocketpy.Rocket.add_nose(pyargs( ...
     'distanceToCM', 0.71971 ...
 ));
 
-FinSet = rocketpy.Rocket.add_trapezoidal_fins(pyargs( ...
+fin_set = rocketpy.Rocket.add_trapezoidal_fins(pyargs( ...
     'self', calisto, ...
     'n', int32(4), ...
     'span', 0.100, ...
@@ -2785,8 +2787,8 @@ xlim([test_flight.out_of_rail_time, 10])
 % as from the Environment. For example, let's say you want to get the wind velocity, 
 % both the x and y component:
 
-wind_velocity_x = double(env.windVelocityX.source) % First column is altitude (ASL m), while the second one is the speed (m/s)
-wind_velocity_y = double(env.windVelocityY.source) % First column is altitude (ASL m), while the second one is the speed (m/s)
+wind_velocity_x = double(env.wind_velocity_x.source) % First column is altitude (ASL m), while the second one is the speed (m/s)
+wind_velocity_y = double(env.wind_velocity_y.source) % First column is altitude (ASL m), while the second one is the speed (m/s)
 %% Time to Fly!
 % This is all you need to get started using RocketPy in MATLAB®! Now it is time 
 % to play around and create amazing rockets. Have a great launch!

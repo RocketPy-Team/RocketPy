@@ -28,17 +28,19 @@ def solid_motor():
     example_motor = SolidMotor(
         thrust_source="data/motors/Cesaroni_M1670.eng",
         burn_time=3.9,
-        grains_center_of_mass_position=0.39796,
-        grain_number=5,
-        grain_separation=5 / 1000,
-        grain_density=1815,
-        grain_outer_radius=33 / 1000,
-        grain_initial_inner_radius=15 / 1000,
-        grain_initial_height=120 / 1000,
-        nozzle_radius=33 / 1000,
+        dry_mass=1.815,
+        dry_inertia=(0.125, 0.125, 0.002),
+        center_of_dry_mass=0.317,
         nozzle_position=0,
+        grain_number=5,
+        grain_density=1815,
+        nozzle_radius=33 / 1000,
         throat_radius=11 / 1000,
-        reshape_thrust_curve=False,
+        grain_separation=5 / 1000,
+        grain_outer_radius=33 / 1000,
+        grain_initial_height=120 / 1000,
+        grains_center_of_mass_position=0.397,
+        grain_initial_inner_radius=15 / 1000,
         interpolation_method="linear",
         coordinate_system_orientation="nozzle_to_combustion_chamber",
     )
@@ -49,30 +51,43 @@ def solid_motor():
 def rocket(solid_motor):
     example_rocket = Rocket(
         radius=127 / 2000,
-        mass=19.197 - 2.956,
-        inertia_i=6.60,
-        inertia_z=0.0351,
+        mass=19.197 - 2.956 - 1.815,
+        inertia=(6.321, 6.321, 0.034),
         power_off_drag="data/calisto/powerOffDragCurve.csv",
         power_on_drag="data/calisto/powerOnDragCurve.csv",
-        center_of_dry_mass_position=0,
+        center_of_mass_without_motor=0,
         coordinate_system_orientation="tail_to_nose",
     )
-    example_rocket.add_motor(solid_motor, position=-1.255)
+    example_rocket.add_motor(solid_motor, position=-1.255 - 0.1182359460624346)
     return example_rocket
 
 
 @pytest.fixture
 def flight(rocket, example_env):
-    rocket.set_rail_buttons(0.2, -0.5)
+    rocket.set_rail_buttons(
+        upper_button_position=0.2 - 0.1182359460624346,
+        lower_button_position=-0.5 - 0.1182359460624346,
+        angular_position=45,
+    )
 
-    nosecone = rocket.add_nose(
-        length=0.55829, kind="vonKarman", position=1.278, name="NoseCone"
+    nose_cone = rocket.add_nose(
+        length=0.55829,
+        kind="von_karman",
+        position=1.278 - 0.1182359460624346,
+        name="nose_cone",
     )
     fin_set = rocket.add_trapezoidal_fins(
-        4, span=0.100, root_chord=0.120, tip_chord=0.040, position=-1.04956
+        4,
+        span=0.100,
+        root_chord=0.120,
+        tip_chord=0.040,
+        position=-1.04956 - 0.1182359460624346,
     )
     tail = rocket.add_tail(
-        top_radius=0.0635, bottom_radius=0.0435, length=0.060, position=-1.194656
+        top_radius=0.0635,
+        bottom_radius=0.0435,
+        length=0.060,
+        position=-1.194656 - 0.1182359460624346,
     )
 
     flight = Flight(
@@ -100,6 +115,13 @@ def dimensionless_solid_motor(kg, m):
     example_motor = SolidMotor(
         thrust_source="data/motors/Cesaroni_M1670.eng",
         burn_time=3.9,
+        dry_mass=1.815 * kg,
+        dry_inertia=(
+            0.125 * (kg * m**2),
+            0.125 * (kg * m**2),
+            0.002 * (kg * m**2),
+        ),
+        center_of_dry_mass=0.317 * m,
         grain_number=5,
         grain_separation=5 / 1000 * m,
         grain_density=1815 * (kg / m**3),
@@ -109,7 +131,7 @@ def dimensionless_solid_motor(kg, m):
         nozzle_radius=33 / 1000 * m,
         throat_radius=11 / 1000 * m,
         interpolation_method="linear",
-        grains_center_of_mass_position=0.39796 * m,
+        grains_center_of_mass_position=0.397 * m,
         nozzle_position=0 * m,
         coordinate_system_orientation="nozzle_to_combustion_chamber",
     )
@@ -120,15 +142,16 @@ def dimensionless_solid_motor(kg, m):
 def dimensionless_rocket(kg, m, dimensionless_solid_motor):
     example_rocket = Rocket(
         radius=127 / 2000 * m,
-        mass=(19.197 - 2.956) * kg,
-        inertia_i=6.60 * (kg * m**2),
-        inertia_z=0.0351 * (kg * m**2),
+        mass=(19.197 - 2.956 - 1.815) * kg,
+        inertia=(6.321 * (kg * m**2), 6.321 * (kg * m**2), 0.034 * (kg * m**2)),
         power_off_drag="data/calisto/powerOffDragCurve.csv",
         power_on_drag="data/calisto/powerOnDragCurve.csv",
-        center_of_dry_mass_position=0 * m,
+        center_of_mass_without_motor=0 * m,
         coordinate_system_orientation="tail_to_nose",
     )
-    example_rocket.add_motor(dimensionless_solid_motor, position=-1.255 * m)
+    example_rocket.add_motor(
+        dimensionless_solid_motor, position=(-1.255 - 0.1182359460624346) * m
+    )
     return example_rocket
 
 

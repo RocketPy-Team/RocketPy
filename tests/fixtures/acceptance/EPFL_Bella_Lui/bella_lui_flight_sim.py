@@ -68,7 +68,7 @@ env.max_expected_height = 2000
 K828FJ = SolidMotor(
     thrust_source="tests/fixtures/acceptance/EPFL_Bella_Lui/bella_lui_motor_AeroTech_K828FJ.eng",
     burn_time=parameters.get("burn_time")[0],
-    grains_center_of_mass_position=parameters.get("distance_rocket_propellant")[0],
+    grains_center_of_mass_position=parameters.get("distanceRocketPropellant")[0],
     grain_number=3,
     grain_separation=parameters.get("grain_separation")[0],
     grain_density=parameters.get("grain_density")[0],
@@ -78,15 +78,18 @@ K828FJ = SolidMotor(
     nozzle_radius=parameters.get("nozzle_radius")[0],
     throat_radius=parameters.get("throat_radius")[0],
     interpolation_method="linear",
-    nozzle_position=parameters.get("distance_rocket_nozzle")[0],
+    nozzle_position=parameters.get("distanceRocketNozzle")[0],
 )
 
 # Rocket information
 BellaLui = Rocket(
     radius=parameters.get("radius")[0],
     mass=parameters.get("rocket_mass")[0],
-    inertia_i=parameters.get("inertia_i")[0],
-    inertia_z=parameters.get("inertia_z")[0],
+    inertia=(
+        parameters.get("inertia_i")[0],
+        parameters.get("inertia_i")[0],
+        parameters.get("inertia_z")[0],
+    ),
     power_off_drag=0.43,
     power_on_drag=0.43,
 )

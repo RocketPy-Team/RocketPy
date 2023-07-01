@@ -5,27 +5,23 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
 import warnings
-from inspect import getsourcelines
-from collections import namedtuple
-from inspect import getsourcelines
 
 import numpy as np
 
-from .Function import Function
-from .Parachute import Parachute
 from .AeroSurface import (
+    EllipticalFins,
     Fins,
     NoseCone,
     RailButtons,
-    TrapezoidalFins,
-    EllipticalFins,
     Tail,
+    TrapezoidalFins,
 )
 from .Components import Components
-from .Motor import EmptyMotor
-
-from .prints.rocket_prints import _RocketPrints
+from .Function import Function, funcify_method
+from .motors.Motor import EmptyMotor
+from .Parachute import Parachute
 from .plots.rocket_plots import _RocketPlots
+from .prints.rocket_prints import _RocketPrints
 
 
 class Rocket:
@@ -59,18 +55,11 @@ class Rocket:
         Mass and Inertia attributes:
         Rocket.mass : float
             Rocket's mass without propellant in kg.
-        Rocket.inertia_i : float
-            Rocket's moment of inertia, without propellant, with respect to
-            to an axis perpendicular to the rocket's axis of cylindrical
-            symmetry, in kg*m^2.
-        Rocket.inertia_z : float
-            Rocket's moment of inertia, without propellant, with respect to
-            the rocket's axis of cylindrical symmetry, in kg*m^2.
         Rocket.center_of_mass : Function
-            Position of the rocket's center of mass, including propellant,
-            relative to the user defined rocket reference system.
-            See `Rocket.center_of_dry_mass_position` for more information
-            regarding the coordinate system.
+            Position of the rocket's center of mass, including propellant, relative
+            to the user defined rocket reference system.
+            See `Rocket.coordinate_system_orientation` for more information regarding the
+            coordinate system.
             Expressed in meters as a function of time.
         Rocket.reduced_mass : Function
             Function of time expressing the reduced mass of the rocket,
@@ -105,7 +94,7 @@ class Rocket:
             Fin sets, and Tails.
         Rocket.cp_position : float
             Rocket's center of pressure position relative to the user defined rocket
-            reference system. See `Rocket.center_of_dry_mass_position` for more information
+            reference system. See `Rocket.coordinate_system_orientation` for more information
             regarding the reference system.
             Expressed in meters.
         Rocket.static_margin : float
@@ -125,27 +114,24 @@ class Rocket:
         Rocket.motor : Motor
             Rocket's motor. See Motor class for more details.
         Rocket.motor_position : float
-            Position, in m, of the motor's nozzle exit area relative to the user
-            defined rocket coordinate system.
-            See `Rocket.coordinate_system_orientation` for more information
-            regarding the rocket's coordinate system.
+            Position, in m, of the motor's nozzle exit area relative to the user defined
+            rocket coordinate system. See `Rocket.coordinate_system_orientation` for more
+            information regarding the rocket's coordinate system.
         Rocket.center_of_propellant_position : Function
-            Position of the propellant's center of mass relative to the user
-            defined rocket reference system.
-            See `Rocket.coordinate_system_orientation` for more information
-            regarding the rocket's coordinate system. Expressed in meters as a
-            function of time.
+            Position of the propellant's center of mass relative to the user defined
+            rocket reference system. See `Rocket.coordinate_system_orientation` for more
+            information regarding the rocket's coordinate system.
+            Expressed in meters as a function of time.
     """
 
     def __init__(
         self,
         radius,
         mass,
-        inertia_i,
-        inertia_z,
+        inertia,
         power_off_drag,
         power_on_drag,
-        center_of_dry_mass_position=0,
+        center_of_mass_without_motor,
         coordinate_system_orientation="tail_to_nose",
     ):
         """Initializes Rocket class, process inertial, geometrical and
@@ -156,13 +142,17 @@ class Rocket:
         radius : int, float
             Rocket largest outer radius in meters.
         mass : int, float
-            Unloaded rocket total mass (without propellant) in kg.
-        inertia_i : int, float
-            Unloaded rocket lateral (perpendicular to axis of symmetry)
-            moment of inertia (without propellant) in kg m^2.
-        inertia_z : int, float
-            Unloaded rocket axial moment of inertia (without propellant)
-            in kg m^2.
+            Rocket total mass without motor in kg.
+        inertia : tuple, list
+            Tuple or list containing the rocket's dry mass inertia tensor
+            components, in kg*m^2.
+            Assuming e_3 is the rocket's axis of symmetry, e_1 and e_2 are
+            orthogonal and form a plane perpendicular to e_3, the dry mass
+            inertia tensor components must be given in the following order:
+            (I_11, I_22, I_33, I_12, I_13, I_23), where I_ij is the
+            component of the inertia tensor in the direction of e_i x e_j.
+            Alternatively, the inertia tensor can be given as (I_11, I_22, I_33),
+            where I_12 = I_13 = I_23 = 0.
         power_off_drag : int, float, callable, string, array
             Rocket's drag coefficient when the motor is off. Can be given as an
             entry to the Function class. See help(Function) for more
@@ -175,25 +165,23 @@ class Rocket:
             information. If int or float is given, it is assumed constant. If
             callable, string or array is given, it must be a function of Mach
             number only.
-        center_of_dry_mass_position : int, float, optional
-            Position, in m, of the rocket's center of dry mass (i.e. center of
-            mass without propellant) relative to the rocket's coordinate system.
-            Default is 0, which means the center of dry mass is chosen as the
-            origin, to comply with the legacy behavior of versions 0.X.Y.
+        center_of_mass_without_motor : int, float
+            Position, in m, of the rocket's center of mass without motor
+            relative to the rocket's coordinate system. Default is 0, which
+            means the center of dry mass is chosen as the origin, to comply
+            with the legacy behavior of versions 0.X.Y.
             See `Rocket.coordinate_system_orientation` for more information
             regarding the rocket's coordinate system.
         coordinate_system_orientation : string, optional
-            String defining the orientation of the rocket's coordinate system.
-            The coordinate system is defined by the rocket's axis of symmetry.
-            The system's origin may be placed anywhere along such axis, such as
-            in the nozzle or in the nose cone, and must be kept the same for all
-            other positions specified. The two options available are:
-            "tail_to_nose" and "nose_to_tail". The first defines the coordinate
-            system with the rocket's axis of symmetry pointing from the rocket's
-            tail to the rocket's nose cone. The second option defines the
-            coordinate system with the rocket's axis of symmetry pointing from
-            the rocket's nose cone to the rocket's tail. Default is
-            "tail_to_nose".
+            String defining the orientation of the rocket's coordinate system. The
+            coordinate system is defined by the rocket's axis of symmetry. The system's
+            origin may be placed anywhere along such axis, such as in the nozzle or in
+            the nose cone, and must be kept the same for all other positions specified.
+            The two options available are: "tail_to_nose" and "nose_to_tail". The first
+            defines the coordinate system with the rocket's axis of symmetry pointing
+            from the rocket's tail to the rocket's nose cone. The second option defines
+            the coordinate system with the rocket's axis of symmetry pointing from the
+            rocket's nose cone to the rocket's tail. Default is "tail_to_nose".
 
         Returns
         -------
@@ -206,19 +194,23 @@ class Rocket:
         elif coordinate_system_orientation == "nose_to_tail":
             self._csys = -1
         else:
-            raise ValueError(
-                "Invalid coordinate system orientation name. "
-                + "Valid options are 'tail_to_nose' and "
-                + "'nose_to_tail"
+            raise TypeError(
+                "Invalid coordinate system orientation. Please choose between "
+                + '"tail_to_nose" and "nose_to_tail".'
             )
 
         # Define rocket inertia attributes in SI units
         self.mass = mass
-        self.inertia_i = inertia_i
-        self.inertia_z = inertia_z
+        inertia = (*inertia, 0, 0, 0) if len(inertia) == 3 else inertia
+        self.I_11_without_motor = inertia[0]
+        self.I_22_without_motor = inertia[1]
+        self.I_33_without_motor = inertia[2]
+        self.I_12_without_motor = inertia[3]
+        self.I_13_without_motor = inertia[4]
+        self.I_23_without_motor = inertia[5]
 
         # Define rocket geometrical parameters in SI units
-        self.center_of_dry_mass_position = center_of_dry_mass_position
+        self.center_of_mass_without_motor = center_of_mass_without_motor
         self.radius = radius
         self.area = np.pi * self.radius**2
 
@@ -267,9 +259,12 @@ class Rocket:
         self.center_of_mass = None
         self.reduced_mass = None
         self.total_mass = None
+        self.dry_mass = None
 
-        # Calculate dynamic inertial quantities
+        # calculate dynamic inertial quantities
+        self.evaluate_dry_mass()
         self.evaluate_total_mass()
+        self.evaluate_center_of_dry_mass()
         self.evaluate_center_of_mass()
         self.evaluate_reduced_mass()
         self.evaluate_thrust_to_weight()
@@ -297,7 +292,7 @@ class Rocket:
 
     def evaluate_total_mass(self):
         """Calculates and returns the rocket's total mass. The total
-        mass is defined as the sum of the propellant mass and the
+        mass is defined as the sum of the motor mass with propellant and the
         rocket mass without propellant. The function returns an object
         of the Function class and is defined as a function of time.
 
@@ -307,7 +302,7 @@ class Rocket:
 
         Returns
         -------
-        self.total_mass : Function
+        self.total_mass : rocketpy.Function
             Function of time expressing the total mass of the rocket,
             defined as the sum of the propellant mass and the rocket
             mass without propellant.
@@ -318,15 +313,17 @@ class Rocket:
             return False
 
         # Calculate total mass by summing up propellant and dry mass
-        self.total_mass = self.mass + self.motor.mass
+        self.total_mass = self.mass + self.motor.total_mass
         self.total_mass.set_outputs("Total Mass (Rocket + Propellant) (kg)")
 
         # Return total mass
         return self.total_mass
 
-    def evaluate_center_of_mass(self):
-        """Evaluates rocket center of mass position relative to user defined
-        rocket reference system.
+    def evaluate_dry_mass(self):
+        """Calculates and returns the rocket's dry mass. The dry
+        mass is defined as the sum of the motor's dry mass and the
+        rocket mass without motor. The function returns an object
+        of the Function class and is defined as a function of time.
 
         Parameters
         ----------
@@ -334,20 +331,69 @@ class Rocket:
 
         Returns
         -------
-        self.center_of_mass : Function
-            Function of time expressing the rocket's center of mass position
-            relative to user defined rocket reference system.
-            See `Rocket.center_of_mass` for more information.
+        self.total_mass : rocketpy.Function
+            Function of time expressing the total mass of the rocket,
+            defined as the sum of the propellant mass and the rocket
+            mass without propellant.
+        """
+        # Make sure there is a motor associated with the rocket
+        if self.motor is None:
+            print("Please associate this rocket with a motor!")
+            return False
+
+        # Calculate total dry mass: motor (without propellant) + rocket
+        self.dry_mass = self.mass + self.motor.dry_mass
+
+        # Return total mass
+        return self.dry_mass
+
+    def evaluate_center_of_mass(self):
+        """Evaluates rocket center of mass position relative to user defined rocket
+        reference system.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        self.center_of_mass : rocketpy.Function
+            Function of time expressing the rocket's center of mass position relative to
+            user defined rocket reference system.
+            See `Rocket.coordinate_system_orientation` for more information.
         """
         # Compute center of mass position
         self.center_of_mass = (
-            self.center_of_dry_mass_position * self.mass
-            + self.center_of_propellant_position * self.motor.mass
+            self.center_of_mass_without_motor * self.mass
+            + self.motor_center_of_mass_position * self.motor.total_mass
         ) / self.total_mass
         self.center_of_mass.set_inputs("Time (s)")
         self.center_of_mass.set_outputs("Center of Mass Position (m)")
 
         return self.center_of_mass
+
+    def evaluate_center_of_dry_mass(self):
+        """Evaluates rocket center dry of mass (i.e. without propellant)
+        position relative to user defined rocket reference system.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        self.center_of_dry_mass : int, float
+            Rocket's center of dry mass position relative to user defined rocket
+            reference system. See `Rocket.coordinate_system_orientation` for more
+            information.
+        """
+        # Compute center of mass position
+        self.center_of_dry_mass_position = (
+            self.center_of_mass_without_motor * self.mass
+            + self.motor_center_of_dry_mass_position * self.motor.dry_mass
+        ) / self.dry_mass
+
+        return self.center_of_dry_mass_position
 
     def evaluate_reduced_mass(self):
         """Calculates and returns the rocket's total reduced mass. The
@@ -375,12 +421,12 @@ class Rocket:
             return False
 
         # Retrieve propellant mass as a function of time
-        motor_mass = self.motor.mass
+        motor_mass = self.motor.propellant_mass
 
-        # Retrieve constant rocket mass without propellant
-        mass = self.mass
+        # retrieve constant rocket mass without propellant
+        mass = self.dry_mass
 
-        # Calculate reduced mass
+        # calculate reduced mass
         self.reduced_mass = motor_mass * mass / (motor_mass + mass)
         self.reduced_mass.set_outputs("Reduced Mass (kg)")
 
@@ -444,6 +490,167 @@ class Rocket:
         )
         return None
 
+    def evaluate_dry_inertias(self):
+        """Calculates and returns the rocket's dry inertias relative to
+        the rocket's center of mass. The inertias are saved and returned
+        in units of kg*m².
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        self.dry_I_11 : float
+            Float value corresponding to rocket inertia tensor 11
+            component, which corresponds to the inertia relative to the
+            e_1 axis, centered at the instantaneous center of mass.
+        self.dry_I_22 : float
+            Float value corresponding to rocket inertia tensor 22
+            component, which corresponds to the inertia relative to the
+            e_2 axis, centered at the instantaneous center of mass.
+        self.dry_I_33 : float
+            Float value corresponding to rocket inertia tensor 33
+            component, which corresponds to the inertia relative to the
+            e_3 axis, centered at the instantaneous center of mass.
+        self.dry_I_12 : float
+            Float value corresponding to rocket inertia tensor 12
+            component, which corresponds to the inertia relative to the
+            e_1 and e_2 axes, centered at the instantaneous center of mass.
+        self.dry_I_13 : float
+            Float value corresponding to rocket inertia tensor 13
+            component, which corresponds to the inertia relative to the
+            e_1 and e_3 axes, centered at the instantaneous center of mass.
+        self.dry_I_23 : float
+            Float value corresponding to rocket inertia tensor 23
+            component, which corresponds to the inertia relative to the
+            e_2 and e_3 axes, centered at the instantaneous center of mass.
+
+        Notes
+        -----
+        The e_1 and e_2 directions are assumed to be the directions
+        perpendicular to the rocket axial direction.
+        The e_3 direction is assumed to be the direction parallel to the axis
+        of symmetry of the rocket.
+        RocketPy follows the definition of the inertia tensor as in [1], which
+        includes the minus sign for all products of inertia.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        """
+        # Compute axes distances
+        noMCM_to_CDM = (
+            self.center_of_mass_without_motor - self.center_of_dry_mass_position
+        )
+        motorCDM_to_CDM = (
+            self.motor_center_of_dry_mass_position - self.center_of_dry_mass_position
+        )
+
+        # Compute dry inertias
+        self.dry_I_11 = (
+            self.I_11_without_motor
+            + self.mass * noMCM_to_CDM**2
+            + self.motor.dry_I_11
+            + self.motor.dry_mass * motorCDM_to_CDM**2
+        )
+        self.dry_I_22 = (
+            self.I_22_without_motor
+            + self.mass * noMCM_to_CDM**2
+            + self.motor.dry_I_22
+            + self.motor.dry_mass * motorCDM_to_CDM**2
+        )
+        self.dry_I_33 = self.I_33_without_motor + self.motor.dry_I_33
+        self.dry_I_12 = self.I_12_without_motor + self.motor.dry_I_12
+        self.dry_I_13 = self.I_13_without_motor + self.motor.dry_I_13
+        self.dry_I_23 = self.I_23_without_motor + self.motor.dry_I_23
+
+        # Return inertias
+        return (
+            self.dry_I_11,
+            self.dry_I_22,
+            self.dry_I_33,
+            self.dry_I_12,
+            self.dry_I_13,
+            self.dry_I_23,
+        )
+
+    def evaluate_inertias(self):
+        """Calculates and returns the rocket's inertias relative to
+        the rocket's center of mass. The inertias are saved and returned
+        in units of kg*m².
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        self.I_11 : float
+            Float value corresponding to rocket inertia tensor 11
+            component, which corresponds to the inertia relative to the
+            e_1 axis, centered at the instantaneous center of mass.
+        self.I_22 : float
+            Float value corresponding to rocket inertia tensor 22
+            component, which corresponds to the inertia relative to the
+            e_2 axis, centered at the instantaneous center of mass.
+        self.I_33 : float
+            Float value corresponding to rocket inertia tensor 33
+            component, which corresponds to the inertia relative to the
+            e_3 axis, centered at the instantaneous center of mass.
+
+        Notes
+        -----
+        The e_1 and e_2 directions are assumed to be the directions
+        perpendicular to the rocket axial direction.
+        The e_3 direction is assumed to be the direction parallel to the axis
+        of symmetry of the rocket.
+        RocketPy follows the definition of the inertia tensor as in [1], which
+        includes the minus sign for all products of inertia.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        """
+        # Get masses
+        prop_mass = self.motor.propellant_mass  # Propellant mass as a function of time
+        dry_mass = self.dry_mass  # Constant rocket dry mass without propellant
+
+        # Compute axes distances
+        CM_to_CDM = self.center_of_mass - self.center_of_dry_mass_position
+        CM_to_CPM = self.center_of_mass - self.center_of_propellant_position
+
+        # Compute inertias
+        self.I_11 = (
+            self.dry_I_11
+            + self.motor.I_11
+            + dry_mass * CM_to_CDM**2
+            + prop_mass * CM_to_CPM**2
+        )
+        self.I_22 = (
+            self.dry_I_22
+            + self.motor.I_22
+            + dry_mass * CM_to_CDM**2
+            + prop_mass * CM_to_CPM**2
+        )
+        self.I_33 = self.dry_I_33 + self.motor.I_33
+        self.I_12 = self.dry_I_12 + self.motor.I_12
+        self.I_13 = self.dry_I_13 + self.motor.I_13
+        self.I_23 = self.dry_I_23 + self.motor.I_23
+
+        # Return inertias
+        return (
+            self.I_11,
+            self.I_22,
+            self.I_33,
+            self.I_12,
+            self.I_13,
+            self.I_23,
+        )
+
+    def evaluate_nozzle_gyration_tensor(self):
+        pass
+
     def add_motor(self, motor, position):
         """Adds a motor to the rocket.
 
@@ -471,10 +678,20 @@ class Rocket:
         self.motor_position = position
         _ = self._csys * self.motor._csys
         self.center_of_propellant_position = (
+            self.motor.center_of_propellant_mass - self.motor.nozzle_position
+        ) * _ + self.motor_position
+        self.motor_center_of_mass_position = (
             self.motor.center_of_mass - self.motor.nozzle_position
         ) * _ + self.motor_position
+        self.motor_center_of_dry_mass_position = (
+            self.motor.center_of_dry_mass - self.motor.nozzle_position
+        ) * _ + self.motor_position
+        self.evaluate_dry_mass()
         self.evaluate_total_mass()
+        self.evaluate_center_of_dry_mass()
         self.evaluate_center_of_mass()
+        self.evaluate_dry_inertias()
+        self.evaluate_inertias()
         self.evaluate_reduced_mass()
         self.evaluate_thrust_to_weight()
         self.evaluate_static_margin()
@@ -494,7 +711,7 @@ class Rocket:
         positions : int, float, list
             Position, in m, of the aerodynamic surface's center of pressure
             relative to the user defined rocket coordinate system.
-            See `Rocket.coordinateSystemOrientation` for more information
+            See `Rocket.coordinate_system_orientation` for more information
             regarding the rocket's coordinate system.
             If a list is passed, it will correspond to the position of each item
             in the surfaces list.
@@ -797,7 +1014,7 @@ class Rocket:
             given in squared meters.
         trigger : function, float, string
             Trigger for the parachute deployment. Can be a float with the height
-            in which the parachute is ejected (ejction happens after apogee); or
+            in which the parachute is ejected (ejection happens after apogee); or
             the string "apogee", for ejection at apogee.
             Can also be a function which defines if the parachute ejection
             system is to be triggered. It must take as input the freestream
@@ -850,13 +1067,13 @@ class Rocket:
         Parameters
         ----------
         upper_button_position : int, float
-            Position of the rail button furtherst from the nozzle relative to
+            Position of the rail button furthest from the nozzle relative to
             the rocket's coordinate system, in meters.
-            See `Rocket.coordinateSystemOrientation` for more information.
+            See `Rocket.coordinate_system_orientation` for more information.
         lower_button_position : int, float
             Position of the rail button closest to the nozzle relative to
             the rocket's coordinate system, in meters.
-            See `Rocket.coordinateSystemOrientation` for more information.
+            See `Rocket.coordinate_system_orientation` for more information.
         angular_position : float, optional
             Angular position of the rail buttons in degrees measured
             as the rotation around the symmetry axis of the rocket

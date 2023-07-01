@@ -45,8 +45,36 @@ class _RocketPrints:
         print(
             "Rocket Mass: {:.3f} kg (With Propellant)".format(self.rocket.total_mass(0))
         )
-        print("Rocket Inertia I: {:.3f} kg*m2".format(self.rocket.inertia_i))
-        print("Rocket Inertia Z: {:.3f} kg*m2".format(self.rocket.inertia_z))
+        print(
+            "Rocket Inertia (with motor, but without propellant) 11: {:.3f} kg*m2".format(
+                self.rocket.dry_I_11
+            )
+        )
+        print(
+            "Rocket Inertia (with motor, but without propellant) 22: {:.3f} kg*m2".format(
+                self.rocket.dry_I_22
+            )
+        )
+        print(
+            "Rocket Inertia (with motor, but without propellant) 33: {:.3f} kg*m2".format(
+                self.rocket.dry_I_33
+            )
+        )
+        print(
+            "Rocket Inertia (with motor, but without propellant) 12: {:.3f} kg*m2".format(
+                self.rocket.dry_I_12
+            )
+        )
+        print(
+            "Rocket Inertia (with motor, but without propellant) 13: {:.3f} kg*m2".format(
+                self.rocket.dry_I_13
+            )
+        )
+        print(
+            "Rocket Inertia (with motor, but without propellant) 23: {:.3f} kg*m2".format(
+                self.rocket.dry_I_23
+            )
+        )
 
         return None
 
@@ -123,8 +151,8 @@ class _RocketPrints:
             cpz = surface.cp[2]
             print(name + " Center of Pressure to CM: {:.3f}".format(cpz) + " m")
         print(
-            "Distance - Center of Pressure to CM: "
-            + "{:.3f}".format(self.rocket.cp_position)
+            "Distance - Center of Pressure to Center of Dry Mass: "
+            + "{:.3f}".format(self.rocket.center_of_mass(0) - self.rocket.cp_position)
             + " m"
         )
         print(

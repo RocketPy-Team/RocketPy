@@ -14,8 +14,8 @@ def test_bella_lui_rocket_data_asserts_acceptance():
     # Defining all parameters
     parameters = {
         # Mass Details
-        "rocket_mass": (18.227, 0.010),  # 1.373 = propellant mass
-        # Propulsion Details
+        "rocket_mass": (18.227 - 1, 0.010),  # 1.373 = propellant mass
+        # propulsion details
         "impulse": (2157, 0.03 * 2157),
         "burn_time": (2.43, 0.1),
         "nozzle_radius": (44.45 / 1000, 0.001),
@@ -73,6 +73,9 @@ def test_bella_lui_rocket_data_asserts_acceptance():
     K828FJ = SolidMotor(
         thrust_source="tests/fixtures/acceptance/EPFL_Bella_Lui/bella_lui_motor_AeroTech_K828FJ.eng",
         burn_time=parameters.get("burn_time")[0],
+        dry_mass=1,
+        dry_inertia=(0, 0, 0),
+        center_of_dry_mass=0,
         grains_center_of_mass_position=parameters.get("distance_rocket_propellant")[0],
         grain_number=3,
         grain_separation=parameters.get("grain_separation")[0],
@@ -85,15 +88,18 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         interpolation_method="linear",
         nozzle_position=parameters.get("distance_rocket_nozzle")[0],
     )
-
-    # Rocket information
+    # rocket information
     BellaLui = Rocket(
         radius=parameters.get("radius")[0],
         mass=parameters.get("rocket_mass")[0],
-        inertia_i=parameters.get("inertia_i")[0],
-        inertia_z=parameters.get("inertia_z")[0],
+        inertia=(
+            parameters.get("inertia_i")[0],
+            parameters.get("inertia_i")[0],
+            parameters.get("inertia_z")[0],
+        ),
         power_off_drag=0.43,
         power_on_drag=0.43,
+        center_of_mass_without_motor=0,
     )
     BellaLui.set_rail_buttons(0.1, -0.5)
     BellaLui.add_motor(K828FJ, parameters.get("distance_rocket_nozzle")[0])

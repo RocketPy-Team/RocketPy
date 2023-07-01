@@ -8,7 +8,7 @@ import numpy as np
 
 
 class _RocketPlots:
-    """Class that holds plot methods for Environment class.
+    """Class that holds plot methods for Rocket class.
 
     Attributes
     ----------
@@ -18,7 +18,7 @@ class _RocketPlots:
     """
 
     def __init__(self, rocket) -> None:
-        """Initializes _EnvironmentPlots class.
+        """Initializes _RocketPlots class.
 
         Parameters
         ----------

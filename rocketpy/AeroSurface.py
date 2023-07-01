@@ -164,7 +164,7 @@ class NoseCone(AeroSurface):
         super().__init__(name)
 
         self._rocket_radius = rocket_radius
-        self._baseRadius = base_radius
+        self._base_radius = base_radius
         self._length = length
         self.kind = kind
 
@@ -189,11 +189,11 @@ class NoseCone(AeroSurface):
 
     @property
     def base_radius(self):
-        return self._baseRadius
+        return self._base_radius
 
     @base_radius.setter
     def base_radius(self, value):
-        self._baseRadius = value
+        self._base_radius = value
         self.evaluate_geometrical_parameters()
         self.evaluate_lift_coefficient()
 
@@ -468,8 +468,8 @@ class Fins(AeroSurface):
         self._n = n
         self._rocket_radius = rocket_radius
         self._airfoil = airfoil
-        self._cantAngle = cant_angle
-        self._rootChord = root_chord
+        self._cant_angle = cant_angle
+        self._root_chord = root_chord
         self._span = span
         self.name = name
         self.d = d
@@ -491,11 +491,11 @@ class Fins(AeroSurface):
 
     @property
     def root_chord(self):
-        return self._rootChord
+        return self._root_chord
 
     @root_chord.setter
     def root_chord(self, value):
-        self._rootChord = value
+        self._root_chord = value
         self.evaluate_geometrical_parameters()
         self.evaluate_center_of_pressure()
         self.evaluate_lift_coefficient()
@@ -527,11 +527,11 @@ class Fins(AeroSurface):
 
     @property
     def cant_angle(self):
-        return self._cantAngle
+        return self._cant_angle
 
     @cant_angle.setter
     def cant_angle(self, value):
-        self._cantAngle = value
+        self._cant_angle = value
         self.evaluate_geometrical_parameters()
         self.evaluate_center_of_pressure()
         self.evaluate_lift_coefficient()
@@ -604,7 +604,7 @@ class Fins(AeroSurface):
         # Lift coefficient derivative for a number of n fins corrected for Fin-Body interference
         self.clalpha_multiple_fins = (
             self.lift_interference_factor
-            * self.__finNumCorrection(self.n)
+            * self.__fin_num_correction(self.n)
             * self.clalpha_single_fin
         )  # Function of mach number
         self.clalpha_multiple_fins.set_inputs("Mach")
@@ -688,7 +688,7 @@ class Fins(AeroSurface):
             return np.sqrt(mach**2 - 1)
 
     # Defines number of fins  factor
-    def __finNumCorrection(_, n):
+    def __fin_num_correction(_, n):
         """Calculates a correction factor for the lift coefficient of multiple fins.
         The specifics  values are documented at:
         Niskanen, S. (2013). “OpenRocket technical documentation”. In: Development

@@ -201,23 +201,21 @@ class _FlightPrints:
         -------
         None
         """
-        if self.flight.post_processed is False:
-            self.flight.post_process()
-        print("\nBurnOut State\n")
-        print("BurnOut time: {:.3f} s".format(self.flight.rocket.motor.burn_out_time))
+        print("\nBurn out State\n")
+        print("Burn out time: {:.3f} s".format(self.flight.rocket.motor.burn_out_time))
         print(
-            "Altitude at burn_time: {:.3f} m (AGL)".format(
+            "Altitude at burn out: {:.3f} m (AGL)".format(
                 self.flight.z(self.flight.rocket.motor.burn_out_time)
                 - self.flight.env.elevation
             )
         )
         print(
-            "Rocket velocity at burn_time: {:.3f} m/s".format(
+            "Rocket velocity at burn out: {:.3f} m/s".format(
                 self.flight.speed(self.flight.rocket.motor.burn_out_time)
             )
         )
         print(
-            "Freestream velocity at burn_time: {:.3f} m/s".format(
+            "Freestream velocity at burn out: {:.3f} m/s".format(
                 (
                     self.flight.stream_velocity_x(
                         self.flight.rocket.motor.burn_out_time
@@ -236,12 +234,12 @@ class _FlightPrints:
             )
         )
         print(
-            "Mach Number at burn_time: {:.3f}".format(
+            "Mach Number at burn out: {:.3f}".format(
                 self.flight.mach_number(self.flight.rocket.motor.burn_out_time)
             )
         )
         print(
-            "Kinetic energy at burn_time: {:.3e} J".format(
+            "Kinetic energy at burn out: {:.3e} J".format(
                 self.flight.kinetic_energy(self.flight.rocket.motor.burn_out_time)
             )
         )
@@ -427,7 +425,7 @@ class _FlightPrints:
         self.out_of_rail_conditions()
         print()
 
-        # Print burn_time conditions
+        # Print burn out conditions
         self.burn_out_conditions()
         print()
 

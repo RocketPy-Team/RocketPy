@@ -85,21 +85,8 @@ class Function:
         # Set source
         self.set_source(source)
         #  Set function title
-        if title:
-            self.set_title(title)
-        else:
-            if self.__dom_dim__ == 1:
-                self.set_title(
-                    self.__outputs__[0].title() + " x " + self.__inputs__[0].title()
-                )
-            elif self.__dom_dim__ == 2:
-                self.set_title(
-                    self.__outputs__[0].title()
-                    + " x "
-                    + self.__inputs__[0].title()
-                    + " x "
-                    + self.__inputs__[1].title()
-                )
+        self.set_title(title)
+
         # Return
         return None
 
@@ -133,7 +120,7 @@ class Function:
         self : Function
         """
         self.__outputs__ = [outputs] if isinstance(outputs, str) else list(outputs)
-        self.__imgDim__ = len(self.__outputs__)
+        self.__img_dim__ = len(self.__outputs__)
         return self
 
     def set_source(self, source):
@@ -190,7 +177,7 @@ class Function:
         if callable(source):
             # Set source
             self.source = source
-            # Set geValueOpt2
+            # Set get_value_opt
             self.get_value_opt = source
             # Set arguments name and domain dimensions
             parameters = signature(source).parameters
@@ -204,7 +191,7 @@ class Function:
         else:
             # Check to see if dimensions match incoming data set
             newTotalDim = len(source[0, :])
-            oldTotalDim = self.__dom_dim__ + self.__imgDim__
+            oldTotalDim = self.__dom_dim__ + self.__img_dim__
             dV = self.__inputs__ == ["Scalar"] and self.__outputs__ == ["Scalar"]
             # If they don't, update default values or throw error
             if newTotalDim != oldTotalDim:
@@ -547,7 +534,9 @@ class Function:
             self.__interpolation__ = "shepard"
         return self
 
-    def set_discrete_based_on_model(self, model_function, one_by_one=True):
+    def set_discrete_based_on_model(
+        self, model_function, one_by_one=True, keep_self=True
+    ):
         """This method transforms the domain of Function instance into a list of
         discrete points based on the domain of a model Function instance. It does so by
         retrieving the domain, domain name, interpolation method and extrapolation
@@ -567,6 +556,11 @@ class Function:
         one_by_one : boolean, optional
             If True, evaluate Function in each sample point separately. If
             False, evaluates Function in vectorized form. Default is True.
+
+        keepSelf : boolean, optional
+            If True, the original Function interpolation and extrapolation methods
+            will be kept. If False, those are substituted by the ones from the model
+            Function. Default is True.
 
         Returns
         -------
@@ -639,8 +633,16 @@ class Function:
             Zs = np.array(self.get_value(mesh))
             self.set_source(np.concatenate(([xs], [ys], [Zs])).transpose())
 
-        self.set_interpolation(self.__interpolation__)
-        self.set_extrapolation(self.__extrapolation__)
+        interp = (
+            self.__interpolation__ if keep_self else model_function.__interpolation__
+        )
+        extrap = (
+            self.__extrapolation__ if keep_self else model_function.__extrapolation__
+        )
+
+        self.set_interpolation(interp)
+        self.set_extrapolation(extrap)
+
         return self
 
     def reset(
@@ -649,6 +651,7 @@ class Function:
         outputs=None,
         interpolation=None,
         extrapolation=None,
+        title=None,
     ):
         """This method allows the user to reset the inputs, outputs, interpolation
         and extrapolation settings of a Function object, all at once, without
@@ -698,6 +701,8 @@ class Function:
         if extrapolation is not None and extrapolation != self.__extrapolation__:
             self.set_extrapolation(extrapolation)
 
+        self.set_title(title)
+
         return self
 
     # Define all get methods
@@ -715,7 +720,7 @@ class Function:
 
     def get_image_dim(self):
         "Return int describing dimension of the image space of the function."
-        return self.__imgDim__
+        return self.__img_dim__
 
     def get_domain_dim(self):
         "Return int describing dimension of the domain space of the function."
@@ -1261,7 +1266,7 @@ class Function:
             "Function from R"
             + str(self.__dom_dim__)
             + " to R"
-            + str(self.__imgDim__)
+            + str(self.__img_dim__)
             + " : ("
             + ", ".join(self.__inputs__)
             + ") → ("
@@ -1275,7 +1280,7 @@ class Function:
             "Function from R"
             + str(self.__dom_dim__)
             + " to R"
-            + str(self.__imgDim__)
+            + str(self.__img_dim__)
             + " : ("
             + ", ".join(self.__inputs__)
             + ") → ("
@@ -1284,7 +1289,21 @@ class Function:
         )
 
     def set_title(self, title):
-        self.title = title
+        if title:
+            self.title = title
+        else:
+            if self.__dom_dim__ == 1:
+                self.title = (
+                    self.__outputs__[0].title() + " x " + self.__inputs__[0].title()
+                )
+            elif self.__dom_dim__ == 2:
+                self.title = (
+                    self.__outputs__[0].title()
+                    + " x "
+                    + self.__inputs__[0].title()
+                    + " x "
+                    + self.__inputs__[1].title()
+                )
 
     def plot(self, *args, **kwargs):
         """Call Function.plot1D if Function is 1-Dimensional or call
@@ -1726,7 +1745,7 @@ class Function:
         self.__akima_coefficients__ = coeffs
 
     def __neg__(self):
-        """Negates the Function objetive. The result has the same effect as
+        """Negates the Function object. The result has the same effect as
         multiplying the Function by -1.
 
         Returns
@@ -1782,7 +1801,10 @@ class Function:
                     # Other is lambda based Function
                     return self.y_array >= other(self.x_array)
                 except ValueError:
-                    raise ValueError("Operands should have the same discretization.")
+                    raise ValueError(
+                        "Comparison not supported between instances of the "
+                        "Function class with different domain discretization."
+                    )
             else:
                 # Other is not a Function
                 try:
@@ -1790,7 +1812,7 @@ class Function:
                 except TypeError:
                     raise TypeError(
                         "Comparison not supported between instances of "
-                        f"'Function' and '{type(other)}'"
+                        f"'Function' and '{type(other)}'."
                     )
         else:
             # self is lambda based Function
@@ -1799,8 +1821,8 @@ class Function:
                     return self(other.x_array) >= other.y_array
                 except AttributeError:
                     raise TypeError(
-                        "Cannot compare lambda based Function with "
-                        "lambda based Function."
+                        "Comparison not supported between two instances of "
+                        "the Function class with callable sources."
                     )
 
     def __le__(self, other):
@@ -1841,7 +1863,7 @@ class Function:
                 except TypeError:
                     raise TypeError(
                         "Comparison not supported between instances of "
-                        f"'Function' and '{type(other)}'"
+                        f"'Function' and '{type(other)}'."
                     )
         else:
             # self is lambda based Function
@@ -1850,8 +1872,8 @@ class Function:
                     return self(other.x_array) <= other.y_array
                 except AttributeError:
                     raise TypeError(
-                        "Cannot compare lambda based Function with "
-                        "lambda based Function."
+                        "Comparison not supported between two instances of "
+                        "the Function class with callable sources."
                     )
 
     def __gt__(self, other):
@@ -1923,7 +1945,7 @@ class Function:
         # If other is Function try...
         try:
             # Check if Function objects source is array or callable
-            # Check if Function objects have same interpolation and domain
+            # Check if Function objects have the same domain discretization
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
@@ -2049,7 +2071,7 @@ class Function:
         # If other is Function try...
         try:
             # Check if Function objects source is array or callable
-            # Check if Function objects have same interpolation and domain
+            # Check if Function objects have the same domain discretization
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
@@ -2132,20 +2154,20 @@ class Function:
         # If other is Function try...
         try:
             # Check if Function objects source is array or callable
-            # Check if Function objects have same interpolation and domain
+            # Check if Function objects have the same domain discretization
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
                 and self.__dom_dim__ == other.__dom_dim__
                 and np.array_equal(self.x_array, other.x_array)
             ):
-                # Operate on grid values
-                with np.errstate(divide="ignore"):
+                # operate on grid values
+                with np.errstate(divide="ignore", invalid="ignore"):
                     ys = self.source[:, 1] / other.source[:, 1]
                     ys = np.nan_to_num(ys)
                 xs = self.source[:, 0]
                 source = np.concatenate(([xs], [ys])).transpose()
-                # Retrieve inputs, outputs and interpolation
+                # retrieve inputs, outputs and interpolation
                 inputs = self.__inputs__[:]
                 outputs = self.__outputs__[0] + "/" + other.__outputs__[0]
                 outputs = "(" + outputs + ")"
@@ -2153,7 +2175,7 @@ class Function:
                 # Create new Function object
                 return Function(source, inputs, outputs, interpolation)
             else:
-                return Function(lambda x: (self.get_value_opt2(x) / other(x)))
+                return Function(lambda x: (self.get_value_opt(x) / other(x)))
         # If other is Float except...
         except AttributeError:
             if isinstance(other, (float, int, complex)):
@@ -2171,10 +2193,10 @@ class Function:
                     # Create new Function object
                     return Function(source, inputs, outputs, interpolation)
                 else:
-                    return Function(lambda x: (self.get_value_opt2(x) / other))
+                    return Function(lambda x: (self.get_value_opt(x) / other))
             # Or if it is just a callable
             elif callable(other):
-                return Function(lambda x: (self.get_value_opt2(x) / other(x)))
+                return Function(lambda x: (self.get_value_opt(x) / other(x)))
 
     def __rtruediv__(self, other):
         """Divides 'other' by a Function object and returns a new Function
@@ -2206,10 +2228,10 @@ class Function:
                 # Create new Function object
                 return Function(source, inputs, outputs, interpolation)
             else:
-                return Function(lambda x: (other / self.get_value_opt2(x)))
+                return Function(lambda x: (other / self.get_value_opt(x)))
         # Or if it is just a callable
         elif callable(other):
-            return Function(lambda x: (other(x) / self.get_value_opt2(x)))
+            return Function(lambda x: (other(x) / self.get_value_opt(x)))
 
     def __pow__(self, other):
         """Raises a Function object to the power of 'other' and
@@ -2235,7 +2257,7 @@ class Function:
         # If other is Function try...
         try:
             # Check if Function objects source is array or callable
-            # Check if Function objects have same interpolation and domain
+            # Check if Function objects have the same domain discretization
             if (
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
@@ -2255,7 +2277,7 @@ class Function:
                 # Create new Function object
                 return Function(source, inputs, outputs, interpolation)
             else:
-                return Function(lambda x: (self.get_value_opt2(x) ** other(x)))
+                return Function(lambda x: (self.get_value_opt(x) ** other(x)))
         # If other is Float except...
         except AttributeError:
             if isinstance(other, (float, int, complex)):
@@ -2496,7 +2518,7 @@ class Function:
         follows the same discretization, and has linear interpolation and
         extrapolation.
         If the Function is defined by a lambda, the identity Function is the
-        indentity map 'lambda x: x'.
+        identity map 'lambda x: x'.
 
         Returns
         -------
@@ -2506,15 +2528,13 @@ class Function:
 
         # Check if Function object source is array
         if isinstance(self.source, np.ndarray):
-            identity = Function(
-                [(-1, -1), (1, 1)],
+            return Function(
+                np.column_stack((self.x_array, self.x_array)),
                 inputs=self.__inputs__,
                 outputs=f"identity of {self.__outputs__}",
                 interpolation="linear",
                 extrapolation="natural",
             )
-            return identity.set_discrete_based_on_model(self)
-
         else:
             return Function(
                 lambda x: x,
@@ -2798,7 +2818,7 @@ class Function:
 
     def compose(self, func, extrapolate=False):
         """
-        Returns a Function object which is the result of inputing a function
+        Returns a Function object which is the result of inputting a function
         into a function (i.e. f(g(x))). The domain will become the domain of
         the input function and the range will become the range of the original
         function.
@@ -2806,7 +2826,7 @@ class Function:
         Parameters
         ----------
         func : Function
-            The function to be inputed into the function.
+            The function to be inputted into the function.
 
         extrapolate : bool, optional
             Whether or not to extrapolate the function if the input function's
@@ -2816,7 +2836,7 @@ class Function:
         Returns
         -------
         result : Function
-            The result of inputing the function into the function.
+            The result of inputting the function into the function.
         """
         # Check if the input is a function
         if not isinstance(func, Function):
@@ -2854,9 +2874,9 @@ class PiecewiseFunction(Function):
         source,
         inputs=["Scalar"],
         outputs=["Scalar"],
-        interpolation="akima",
+        interpolation="spline",
         extrapolation=None,
-        datapoints=50,
+        datapoints=100,
     ):
         """
         Creates a piecewise function from a dictionary of functions. The keys of
@@ -3030,6 +3050,7 @@ def funcify_method(*args, **kwargs):
                     )
 
                 val.__doc__ = self.__doc__
+                val.__cached__ = True
                 cache[self.attrname] = val
             return val
 
@@ -3037,6 +3058,27 @@ def funcify_method(*args, **kwargs):
         return funcify_method_decorator(func)
     else:
         return funcify_method_decorator
+
+
+def reset_funcified_methods(instance):
+    """Resets all the funcified methods of the instance. It does so by
+    deleting the current Functions, which will make the interperter redefine
+    them when they are called. This is useful when the instance has changed
+    and the methods need to be recalculated.
+
+    Parameters
+    ----------
+    instance : object
+        The instance of the class whose funcified methods will be recalculated.
+        The class must have a mutable __dict__ attribute.
+
+    Return
+    ------
+    None
+    """
+    for key in list(instance.__dict__):
+        if hasattr(instance.__dict__[key], "__cached__"):
+            instance.__dict__.pop(key)
 
 
 if __name__ == "__main__":

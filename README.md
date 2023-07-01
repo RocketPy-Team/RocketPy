@@ -210,12 +210,12 @@ Pro75M1670 = SolidMotor(
     grain_separation=5/1000,
     grain_density=1815,
     grain_outer_radius=33/1000,
-    grainInitialInnerRadius=15/1000,
-    grainInitialHeight=120/1000,
+    grain_initial_inner_radius=15/1000,
+    grain_initial_height=120/1000,
     grains_center_of_mass_position=-0.85704,
-    nozzleRadius=33/1000,
-    throatRadius=11/1000,
-    interpolationMethod='linear'
+    nozzle_radius=33/1000,
+    throat_radius=11/1000,
+    interpolation_method='linear'
 )
 ```
 

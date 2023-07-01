@@ -78,7 +78,7 @@ Env23.max_expected_height = 2000
 L1395 = SolidMotor(
     thrust_source="tests/fixtures/acceptance/NDRT_2020/ndrt_2020_motor_Cesaroni_4895L1395-P.eng",
     burn_time=parameters.get("burn_time")[0],
-    grains_center_of_mass_position=parameters.get("distance_rocket_propellant")[0],
+    grains_center_of_mass_position=parameters.get("distanceRocketPropellant")[0],
     grain_number=5,
     grain_separation=parameters.get("grain_separation")[0],
     grain_density=parameters.get("grain_density")[0],
@@ -88,17 +88,20 @@ L1395 = SolidMotor(
     nozzle_radius=parameters.get("nozzle_radius")[0],
     throat_radius=parameters.get("throat_radius")[0],
     interpolation_method="linear",
-    nozzle_position=parameters.get("distance_rocket_nozzle")[0],
+    nozzle_position=parameters.get("distanceRocketNozzle")[0],
 )
 
 # Rocket information
 NDRT2020 = Rocket(
     radius=parameters.get("radius")[0],
     mass=parameters.get("rocket_mass")[0],
-    inertia_i=parameters.get("inertia_i")[0],
-    inertia_z=parameters.get("inertia_z")[0],
-    power_off_drag=parameters.get("drag_coefficient")[0],
-    power_on_drag=parameters.get("drag_coefficient")[0],
+    inertia=(
+        parameters.get("inertia_i")[0],
+        parameters.get("inertia_i")[0],
+        parameters.get("inertia_z")[0],
+    ),
+    power_off_drag=parameters.get("dragCoefficient")[0],
+    power_on_drag=parameters.get("dragCoefficient")[0],
 )
 NDRT2020.set_rail_buttons(0.2, -0.5, 45)
 NDRT2020.add_motor(L1395, parameters.get("distance_rocket_nozzle")[0])

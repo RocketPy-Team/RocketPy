@@ -586,7 +586,7 @@ class EnvironmentAnalysis:
             indices = (time_index, lon_index, lat_index)
 
             # Retrieve geopotential first and compute altitudes
-            geopotentialArray = self.__extract_pressure_level_data_value(
+            geopotential_array = self.__extract_pressure_level_data_value(
                 pressure_level_data,
                 pressure_level_file_dict["geopotential"],
                 indices,
@@ -594,7 +594,7 @@ class EnvironmentAnalysis:
                 lat_array,
             )
             height_above_sea_level_array = geopotential_to_height_agl(
-                geopotentialArray, self.original_elevation
+                geopotential_array, self.original_elevation
             )
 
             # Loop through wind components and temperature, get value and convert to Function
@@ -605,13 +605,13 @@ class EnvironmentAnalysis:
                 variable_points_array = np.array(
                     [height_above_sea_level_array, value_array]
                 ).T
-                variableFunction = Function(
+                variable_function = Function(
                     variable_points_array,
                     inputs="Height Above Ground Level (m)",  # TODO: Check if it is really AGL or ASL here, see 3 lines above
                     outputs=key,
                     extrapolation="constant",
                 )
-                dictionary[date_string][hour_string][key] = variableFunction
+                dictionary[date_string][hour_string][key] = variable_function
 
             # Create function for pressure levels
             pressure_points_array = np.array(
@@ -628,14 +628,14 @@ class EnvironmentAnalysis:
             # Create function for wind speed levels
             wind_velocity_x_array = self.__extract_pressure_level_data_value(
                 pressure_level_data,
-                pressure_level_file_dict["windVelocityX"],
+                pressure_level_file_dict["wind_velocity_x"],
                 indices,
                 lon_array,
                 lat_array,
             )
             wind_velocity_y_array = self.__extract_pressure_level_data_value(
                 pressure_level_data,
-                pressure_level_file_dict["windVelocityY"],
+                pressure_level_file_dict["wind_velocity_y"],
                 indices,
                 lon_array,
                 lat_array,
@@ -741,7 +741,7 @@ class EnvironmentAnalysis:
         return self.__parse_pressure_level_data[4]
 
     @cached_property
-    def __parseSurfaceData(self):
+    def __parse_surface_data(self):
         """
         Parse surface data from a weather file.
         Currently only supports files from ECMWF.
@@ -775,7 +775,7 @@ class EnvironmentAnalysis:
         """
         # Setup dictionary used to read weather file
         dictionary = {}
-        surfaceFileDict = self.__init_surface_dictionary()
+        surface_file_dict = self.__init_surface_dictionary()
 
         # Read weather file
         surface_data = netCDF4.Dataset(self.surface_data_file)
@@ -820,7 +820,7 @@ class EnvironmentAnalysis:
 
             # Extract data from weather file
             indices = (time_index, lon_index, lat_index)
-            for key, value in surfaceFileDict.items():
+            for key, value in surface_file_dict.items():
                 dictionary[date_string][hour_string][
                     key
                 ] = self.__extract_surface_data_value(
@@ -863,32 +863,32 @@ class EnvironmentAnalysis:
                 }
             }
         """
-        return self.__parseSurfaceData[0]
+        return self.__parse_surface_data[0]
 
     @property
     def original_elevation(self):
         """Return the elevation of the surface data."""
-        return self.__parseSurfaceData[5]
+        return self.__parse_surface_data[5]
 
     @property
     def single_level_lat0(self):
         """Return the initial latitude of the surface data."""
-        return self.__parseSurfaceData[1]
+        return self.__parse_surface_data[1]
 
     @property
     def single_level_lat1(self):
         """Return the final latitude of the surface data."""
-        return self.__parseSurfaceData[2]
+        return self.__parse_surface_data[2]
 
     @property
     def single_level_lon0(self):
         """Return the initial longitude of the surface data."""
-        return self.__parseSurfaceData[3]
+        return self.__parse_surface_data[3]
 
     @property
     def single_level_lon1(self):
         """Return the final longitude of the surface data."""
-        return self.__parseSurfaceData[4]
+        return self.__parse_surface_data[4]
 
     @cached_property
     def converted_pressure_level_data(self):
@@ -1017,8 +1017,8 @@ class EnvironmentAnalysis:
             set(
                 [
                     int(hour)
-                    for dayDict in self.converted_surface_data.values()
-                    for hour in dayDict.keys()
+                    for day_dict in self.converted_surface_data.values()
+                    for hour in day_dict.keys()
                 ]
             )
         )
@@ -1071,9 +1071,9 @@ class EnvironmentAnalysis:
             Array with cloud base height for each hour and day in the dataset.
         """
         cloud_base_height = [
-            dayDict[hour]["cloudBaseHeight"]
-            for dayDict in self.converted_surface_data.values()
-            for hour in dayDict.keys()
+            day_dict[hour]["cloudBaseHeight"]
+            for day_dict in self.converted_surface_data.values()
+            for hour in day_dict.keys()
         ]
 
         masked_elem = np.ma.core.MaskedConstant
@@ -1097,9 +1097,9 @@ class EnvironmentAnalysis:
             List with pressure at surface for each hour and day in the dataset.
         """
         return [
-            dayDict[hour]["surfacePressure"]
-            for dayDict in self.converted_surface_data.values()
-            for hour in dayDict.keys()
+            day_dict[hour]["surfacePressure"]
+            for day_dict in self.converted_surface_data.values()
+            for hour in day_dict.keys()
         ]
 
     @cached_property
@@ -1115,9 +1115,9 @@ class EnvironmentAnalysis:
             List with temperature for each hour and day in the dataset.
         """
         return [
-            dayDict[hour]["surfaceTemperature"]
-            for dayDict in self.converted_surface_data.values()
-            for hour in dayDict.keys()
+            day_dict[hour]["surfaceTemperature"]
+            for day_dict in self.converted_surface_data.values()
+            for hour in day_dict.keys()
         ]
 
     @cached_property
@@ -1132,8 +1132,8 @@ class EnvironmentAnalysis:
             List with maximum temperature for each day in the dataset.
         """
         return [
-            np.max([dayDict[hour]["surfaceTemperature"] for hour in dayDict.keys()])
-            for dayDict in self.converted_surface_data.values()
+            np.max([day_dict[hour]["surfaceTemperature"] for hour in day_dict.keys()])
+            for day_dict in self.converted_surface_data.values()
         ]
 
     @cached_property
@@ -1148,8 +1148,8 @@ class EnvironmentAnalysis:
             List with minimum temperature for each day in the dataset.
         """
         return [
-            np.min([dayDict[hour]["surfaceTemperature"] for hour in dayDict.keys()])
-            for dayDict in self.converted_surface_data.values()
+            np.min([day_dict[hour]["surfaceTemperature"] for hour in day_dict.keys()])
+            for day_dict in self.converted_surface_data.values()
         ]
 
     @cached_property
@@ -1165,9 +1165,9 @@ class EnvironmentAnalysis:
             List with wind gust for each hour and day in the dataset.
         """
         return [
-            dayDict[hour]["surfaceWindGust"]
-            for dayDict in self.converted_surface_data.values()
-            for hour in dayDict.keys()
+            day_dict[hour]["surfaceWindGust"]
+            for day_dict in self.converted_surface_data.values()
+            for hour in day_dict.keys()
         ]
 
     @cached_property
@@ -1182,8 +1182,8 @@ class EnvironmentAnalysis:
             List with maximum wind gust for each day in the dataset.
         """
         return [
-            np.max([dayDict[hour]["surfaceWindGust"] for hour in dayDict.keys()])
-            for dayDict in self.converted_surface_data.values()
+            np.max([day_dict[hour]["surfaceWindGust"] for hour in day_dict.keys()])
+            for day_dict in self.converted_surface_data.values()
         ]
 
     @cached_property
@@ -1198,8 +1198,8 @@ class EnvironmentAnalysis:
             List with total precipitation for each day in the dataset.
         """
         return [
-            sum([dayDict[hour]["totalPrecipitation"] for hour in dayDict.keys()])
-            for dayDict in self.converted_surface_data.values()
+            sum([day_dict[hour]["totalPrecipitation"] for hour in day_dict.keys()])
+            for day_dict in self.converted_surface_data.values()
         ]
 
     @cached_property
@@ -1216,12 +1216,12 @@ class EnvironmentAnalysis:
         """
         return [
             (
-                dayDict[hour]["surface10mWindVelocityX"] ** 2
-                + dayDict[hour]["surface10mWindVelocityY"] ** 2
+                day_dict[hour]["surface10mWindVelocityX"] ** 2
+                + day_dict[hour]["surface10mWindVelocityY"] ** 2
             )
             ** 0.5
-            for dayDict in self.converted_surface_data.values()
-            for hour in dayDict.keys()
+            for day_dict in self.converted_surface_data.values()
+            for hour in day_dict.keys()
         ]
 
     @cached_property
@@ -1240,14 +1240,14 @@ class EnvironmentAnalysis:
             np.max(
                 [
                     (
-                        dayDict[hour]["surface10mWindVelocityX"] ** 2
-                        + dayDict[hour]["surface10mWindVelocityY"] ** 2
+                        day_dict[hour]["surface10mWindVelocityX"] ** 2
+                        + day_dict[hour]["surface10mWindVelocityY"] ** 2
                     )
                     ** 0.5
-                    for hour in dayDict.keys()
+                    for hour in day_dict.keys()
                 ]
             )
-            for dayDict in self.converted_surface_data.values()
+            for day_dict in self.converted_surface_data.values()
         ]
 
     @cached_property
@@ -1265,14 +1265,14 @@ class EnvironmentAnalysis:
             np.min(
                 [
                     (
-                        dayDict[hour]["surface10mWindVelocityX"] ** 2
-                        + dayDict[hour]["surface10mWindVelocityY"] ** 2
+                        day_dict[hour]["surface10mWindVelocityX"] ** 2
+                        + day_dict[hour]["surface10mWindVelocityY"] ** 2
                     )
                     ** 0.5
-                    for hour in dayDict.keys()
+                    for hour in day_dict.keys()
                 ]
             )
-            for dayDict in self.converted_surface_data.values()
+            for day_dict in self.converted_surface_data.values()
         ]
 
     @cached_property
@@ -1289,12 +1289,12 @@ class EnvironmentAnalysis:
         """
         return [
             (
-                dayDict[hour]["surface100mWindVelocityX"] ** 2
-                + dayDict[hour]["surface100mWindVelocityY"] ** 2
+                day_dict[hour]["surface100mWindVelocityX"] ** 2
+                + day_dict[hour]["surface100mWindVelocityY"] ** 2
             )
             ** 0.5
-            for dayDict in self.converted_surface_data.values()
-            for hour in dayDict.keys()
+            for day_dict in self.converted_surface_data.values()
+            for hour in day_dict.keys()
         ]
 
     @cached_property
@@ -1312,14 +1312,14 @@ class EnvironmentAnalysis:
             np.max(
                 [
                     (
-                        dayDict[hour]["surface100mWindVelocityX"] ** 2
-                        + dayDict[hour]["surface100mWindVelocityY"] ** 2
+                        day_dict[hour]["surface100mWindVelocityX"] ** 2
+                        + day_dict[hour]["surface100mWindVelocityY"] ** 2
                     )
                     ** 0.5
-                    for hour in dayDict.keys()
+                    for hour in day_dict.keys()
                 ]
             )
-            for dayDict in self.converted_surface_data.values()
+            for day_dict in self.converted_surface_data.values()
         ]
 
     @cached_property
@@ -1337,14 +1337,14 @@ class EnvironmentAnalysis:
             np.min(
                 [
                     (
-                        dayDict[hour]["surface100mWindVelocityX"] ** 2
-                        + dayDict[hour]["surface100mWindVelocityY"] ** 2
+                        day_dict[hour]["surface100mWindVelocityX"] ** 2
+                        + day_dict[hour]["surface100mWindVelocityY"] ** 2
                     )
                     ** 0.5
-                    for hour in dayDict.keys()
+                    for hour in day_dict.keys()
                 ]
             )
-            for dayDict in self.converted_surface_data.values()
+            for day_dict in self.converted_surface_data.values()
         ]
 
     # Surface level data - Maximum and minimum values
@@ -1987,10 +1987,10 @@ class EnvironmentAnalysis:
         for hour in self.hours:
             values = []
             # Iterate over all days
-            for dayDict in self.converted_surface_data.values():
+            for day_dict in self.converted_surface_data.values():
                 try:
                     # Get wind gust value for this hour
-                    values += [dayDict[str(hour)]["surfaceWindGust"]]
+                    values += [day_dict[str(hour)]["surfaceWindGust"]]
                 except KeyError:
                     # Some day does not have data for the desired hour (probably the last one)
                     # No need to worry, just average over the other days
@@ -2016,9 +2016,9 @@ class EnvironmentAnalysis:
         min_altitude = 0
         if self.max_expected_altitude == None:
             max_altitudes = [
-                np.max(dayDict[hour]["windSpeed"].source[-1, 0])
-                for dayDict in self.original_pressure_level_data.values()
-                for hour in dayDict.keys()
+                np.max(day_dict[hour]["windSpeed"].source[-1, 0])
+                for day_dict in self.original_pressure_level_data.values()
+                for hour in day_dict.keys()
             ]
             max_altitude = np.min(max_altitudes)
         else:
@@ -2054,11 +2054,11 @@ class EnvironmentAnalysis:
         done once. It uses the converted pressure level data.
         """
         return [
-            dayDict[hour]["pressure"](
+            day_dict[hour]["pressure"](
                 convert_units(1000, "ft", self.current_units["height_ASL"])
             )
-            for dayDict in self.converted_pressure_level_data.values()
-            for hour in dayDict.keys()
+            for day_dict in self.converted_pressure_level_data.values()
+            for hour in day_dict.keys()
         ]
 
     @cached_property
@@ -2075,11 +2075,11 @@ class EnvironmentAnalysis:
         """
         # Pressure at 10000 feet
         return [
-            dayDict[hour]["pressure"](
+            day_dict[hour]["pressure"](
                 convert_units(10000, "ft", self.current_units["height_ASL"])
             )
-            for dayDict in self.converted_pressure_level_data.values()
-            for hour in dayDict.keys()
+            for day_dict in self.converted_pressure_level_data.values()
+            for hour in day_dict.keys()
         ]
 
     @cached_property
@@ -2096,11 +2096,11 @@ class EnvironmentAnalysis:
         """
         # Pressure at 30000 feet
         return [
-            dayDict[hour]["pressure"](
+            day_dict[hour]["pressure"](
                 convert_units(30000, "ft", self.current_units["height_ASL"])
             )
-            for dayDict in self.converted_pressure_level_data.values()
-            for hour in dayDict.keys()
+            for day_dict in self.converted_pressure_level_data.values()
+            for hour in day_dict.keys()
         ]
 
     # Pressure level data - Average profiles by hour (dictionaries)
@@ -2129,9 +2129,9 @@ class EnvironmentAnalysis:
 
         for hour in self.hours:
             values = []
-            for dayDict in self.converted_pressure_level_data.values():
+            for day_dict in self.converted_pressure_level_data.values():
                 try:
-                    values += [dayDict[str(hour)]["temperature"](self.altitude_list)]
+                    values += [day_dict[str(hour)]["temperature"](self.altitude_list)]
                 except KeyError:
                     # Some day does not have data for the desired hour
                     # No need to worry, just average over the other days
@@ -2163,9 +2163,9 @@ class EnvironmentAnalysis:
 
         for hour in self.hours:
             values = []
-            for dayDict in self.converted_pressure_level_data.values():
+            for day_dict in self.converted_pressure_level_data.values():
                 try:
-                    values += [dayDict[str(hour)]["pressure"](self.altitude_list)]
+                    values += [day_dict[str(hour)]["pressure"](self.altitude_list)]
                 except KeyError:
                     # Some day does not have data for the desired hour
                     # No need to worry, just average over the other days
@@ -2199,9 +2199,9 @@ class EnvironmentAnalysis:
 
         for hour in self.hours:
             values = []
-            for dayDict in self.converted_pressure_level_data.values():
+            for day_dict in self.converted_pressure_level_data.values():
                 try:
-                    values += [dayDict[str(hour)]["windSpeed"](self.altitude_list)]
+                    values += [day_dict[str(hour)]["windSpeed"](self.altitude_list)]
                 except KeyError:
                     # Some day does not have data for the desired hour
                     # No need to worry, just average over the other days
@@ -2213,7 +2213,7 @@ class EnvironmentAnalysis:
 
     @cached_property
     def average_wind_velocity_x_profile_by_hour(self):
-        """Compute the average windVelocityX profile for each available hour of a
+        """Compute the average wind_velocity_x profile for each available hour of a
         day, over all days in the dataset. The result is cached so that the
         computation is only done once. The units are converted to the preferred
         unit system.
@@ -2221,7 +2221,7 @@ class EnvironmentAnalysis:
         Returns
         -------
         dictionary
-            Dictionary with average windVelocityX profile for each hour of the
+            Dictionary with average wind_velocity_x profile for each hour of the
             day. The dictionary has the following structure:
             {
                 hour1: [average_windVelocityX_profile1, altitude_list1],
@@ -2235,9 +2235,11 @@ class EnvironmentAnalysis:
 
         for hour in self.hours:
             values = []
-            for dayDict in self.converted_pressure_level_data.values():
+            for day_dict in self.converted_pressure_level_data.values():
                 try:
-                    values += [dayDict[str(hour)]["windVelocityX"](self.altitude_list)]
+                    values += [
+                        day_dict[str(hour)]["wind_velocity_x"](self.altitude_list)
+                    ]
                 except KeyError:
                     # Some day does not have data for the desired hour
                     # No need to worry, just average over the other days
@@ -2249,7 +2251,7 @@ class EnvironmentAnalysis:
 
     @cached_property
     def average_wind_velocity_y_profile_by_hour(self):
-        """Compute the average windVelocityY profile for each available hour of
+        """Compute the average wind_velocity_y profile for each available hour of
         a day, over all days in the dataset. The result is cached so that the
         computation is only done once. The units are converted to the preferred
         unit system.
@@ -2257,7 +2259,7 @@ class EnvironmentAnalysis:
         Returns
         -------
         dictionary
-            Dictionary with average windVelocityY profile for each hour of the
+            Dictionary with average wind_velocity_y profile for each hour of the
             day. The dictionary has the following structure:
             {
                 hour1: [average_windVelocityY_profile1, altitude_list1],
@@ -2271,9 +2273,11 @@ class EnvironmentAnalysis:
 
         for hour in self.hours:
             values = []
-            for dayDict in self.converted_pressure_level_data.values():
+            for day_dict in self.converted_pressure_level_data.values():
                 try:
-                    values += [dayDict[str(hour)]["windVelocityY"](self.altitude_list)]
+                    values += [
+                        day_dict[str(hour)]["wind_velocity_y"](self.altitude_list)
+                    ]
                 except KeyError:
                     # Some day does not have data for the desired hour
                     # No need to worry, just average over the other days
@@ -2324,17 +2328,17 @@ class EnvironmentAnalysis:
     @cached_property
     def wind_velocity_x_profiles_list(self):
         return [
-            dayDict[hour]["windVelocityX"](self.altitude_list)
-            for dayDict in self.converted_pressure_level_data.values()
-            for hour in dayDict.keys()
+            day_dict[hour]["wind_velocity_x"](self.altitude_list)
+            for day_dict in self.converted_pressure_level_data.values()
+            for hour in day_dict.keys()
         ]
 
     @cached_property
     def wind_velocity_y_profiles_list(self):
         return [
-            dayDict[hour]["windVelocityY"](self.altitude_list)
-            for dayDict in self.converted_pressure_level_data.values()
-            for hour in dayDict.keys()
+            day_dict[hour]["wind_velocity_y"](self.altitude_list)
+            for day_dict in self.converted_pressure_level_data.values()
+            for hour in day_dict.keys()
         ]
 
     @cached_property
@@ -2350,22 +2354,22 @@ class EnvironmentAnalysis:
             List with wind speed profile for each hour and day in the dataset.
         """
         return [
-            dayDict[hour]["windSpeed"](self.altitude_list)
-            for dayDict in self.converted_pressure_level_data.values()
-            for hour in dayDict.keys()
+            day_dict[hour]["windSpeed"](self.altitude_list)
+            for day_dict in self.converted_pressure_level_data.values()
+            for hour in day_dict.keys()
         ]
 
     @cached_property
     def wind_heading_profiles_list(self):
         return [
             np.arctan2(
-                dayDict[hour]["windVelocityX"](self.altitude_list),
-                dayDict[hour]["windVelocityY"](self.altitude_list),
+                day_dict[hour]["wind_velocity_x"](self.altitude_list),
+                day_dict[hour]["wind_velocity_y"](self.altitude_list),
             )
             * (180 / np.pi)
             % 360
-            for dayDict in self.converted_pressure_level_data.values()
-            for hour in dayDict.keys()
+            for day_dict in self.converted_pressure_level_data.values()
+            for hour in day_dict.keys()
         ]
 
     @cached_property
@@ -2381,9 +2385,9 @@ class EnvironmentAnalysis:
             List with pressure profile for each hour and day in the dataset.
         """
         return [
-            dayDict[hour]["pressure"](self.altitude_list)
-            for dayDict in self.converted_pressure_level_data.values()
-            for hour in dayDict.keys()
+            day_dict[hour]["pressure"](self.altitude_list)
+            for day_dict in self.converted_pressure_level_data.values()
+            for hour in day_dict.keys()
         ]
 
     @cached_property
@@ -2399,9 +2403,9 @@ class EnvironmentAnalysis:
             List with temperature profile for each hour and day in the dataset.
         """
         return [
-            dayDict[hour]["temperature"](self.altitude_list)
-            for dayDict in self.converted_pressure_level_data.values()
-            for hour in dayDict.keys()
+            day_dict[hour]["temperature"](self.altitude_list)
+            for day_dict in self.converted_pressure_level_data.values()
+            for hour in day_dict.keys()
         ]
 
     # Pressure level data - Maximum and minimum values
@@ -2542,18 +2546,18 @@ class EnvironmentAnalysis:
     @cached_property
     def average_wind_velocity_x_profile(self):
         wind_x_values = [
-            dayDict[hour]["windVelocityX"](self.altitude_list)
-            for dayDict in self.converted_pressure_level_data.values()
-            for hour in dayDict.keys()
+            day_dict[hour]["wind_velocity_x"](self.altitude_list)
+            for day_dict in self.converted_pressure_level_data.values()
+            for hour in day_dict.keys()
         ]
         return np.mean(wind_x_values, axis=0)
 
     @cached_property
     def average_wind_velocity_y_profile(self):
         wind_y_values = [
-            dayDict[hour]["windVelocityY"](self.altitude_list)
-            for dayDict in self.converted_pressure_level_data.values()
-            for hour in dayDict.keys()
+            day_dict[hour]["wind_velocity_y"](self.altitude_list)
+            for day_dict in self.converted_pressure_level_data.values()
+            for hour in day_dict.keys()
         ]
         return np.mean(wind_y_values, axis=0)
 
@@ -2575,18 +2579,18 @@ class EnvironmentAnalysis:
     @cached_property
     def average_pressure_profile(self):
         pressures = [
-            dayDict[hour]["pressure"](self.altitude_list)
-            for dayDict in self.converted_pressure_level_data.values()
-            for hour in dayDict.keys()
+            day_dict[hour]["pressure"](self.altitude_list)
+            for day_dict in self.converted_pressure_level_data.values()
+            for hour in day_dict.keys()
         ]
         return np.mean(pressures, axis=0)
 
     @cached_property
     def average_temperature_profile(self):
         temperatures = [
-            dayDict[hour]["temperature"](self.altitude_list)
-            for dayDict in self.converted_pressure_level_data.values()
-            for hour in dayDict.keys()
+            day_dict[hour]["temperature"](self.altitude_list)
+            for day_dict in self.converted_pressure_level_data.values()
+            for hour in day_dict.keys()
         ]
         return np.mean(temperatures, axis=0)
 

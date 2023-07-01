@@ -3142,7 +3142,7 @@ class Environment:
             grid=[i for i in grid],
             windSpeed=[self.wind_speed(i) for i in grid],
             windDirection=[self.wind_direction(i) for i in grid],
-            speedOfSound=[self.speed_of_sound(i) for i in grid],
+            speed_of_sound=[self.speed_of_sound(i) for i in grid],
             density=[self.density(i) for i in grid],
             windVelX=[self.wind_velocity_x(i) for i in grid],
             windVelY=[self.wind_velocity_y(i) for i in grid],
