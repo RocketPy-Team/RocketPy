@@ -786,7 +786,7 @@ class Environment:
             so information from virtual soundings such as GFS and NAM
             can also be imported.
 
-            - 'WindyAtmosphere': sets pressure, temperature, wind-u and wind-v
+            - 'windy_atmosphere': sets pressure, temperature, wind-u and wind-v
             profiles and surface elevation obtained from the Windy API. See file
             argument to specify the model as either ECMWF, GFS or ICON.
 
