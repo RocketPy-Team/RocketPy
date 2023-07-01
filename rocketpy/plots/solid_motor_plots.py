@@ -51,8 +51,8 @@ class _SolidMotorPlots:
 
         return None
 
-    def totalMass(self, lower_limit=None, upper_limit=None):
-        """Plots totalMass of the solid_motor as a function of time.
+    def total_mass(self, lower_limit=None, upper_limit=None):
+        """Plots total_mass of the solid_motor as a function of time.
 
         Parameters
         ----------
@@ -68,12 +68,12 @@ class _SolidMotorPlots:
         None
         """
 
-        self.solid_motor.totalMass.plot(lower=lower_limit, upper=upper_limit)
+        self.solid_motor.total_mass.plot(lower=lower_limit, upper=upper_limit)
 
         return None
 
-    def massFlowRate(self, lower_limit=None, upper_limit=None):
-        """Plots massFlowRate of the solid_motor as a function of time.
+    def mass_flow_rate(self, lower_limit=None, upper_limit=None):
+        """Plots mass_flow_rate of the solid_motor as a function of time.
 
         Parameters
         ----------
@@ -89,12 +89,12 @@ class _SolidMotorPlots:
         None
         """
 
-        self.solid_motor.massFlowRate.plot(lower=lower_limit, upper=upper_limit)
+        self.solid_motor.mass_flow_rate.plot(lower=lower_limit, upper=upper_limit)
 
         return None
 
-    def exhaustVelocity(self, lower_limit=None, upper_limit=None):
-        """Plots exhaustVelocity of the solid_motor as a function of time.
+    def exhaust_velocity(self, lower_limit=None, upper_limit=None):
+        """Plots exhaust_velocity of the solid_motor as a function of time.
 
         Parameters
         ----------
@@ -110,12 +110,12 @@ class _SolidMotorPlots:
         None
         """
 
-        self.solid_motor.exhaustVelocity.plot(lower=lower_limit, upper=upper_limit)
+        self.solid_motor.exhaust_velocity.plot(lower=lower_limit, upper=upper_limit)
 
         return None
 
-    def grainInnerRadius(self, lower_limit=None, upper_limit=None):
-        """Plots grainInnerRadius of the solid_motor as a function of time.
+    def grain_inner_radius(self, lower_limit=None, upper_limit=None):
+        """Plots grain_inner_radius of the solid_motor as a function of time.
 
         Parameters
         ----------
@@ -131,12 +131,12 @@ class _SolidMotorPlots:
         None
         """
 
-        self.solid_motor.grainInnerRadius.plot(lower=lower_limit, upper=upper_limit)
+        self.solid_motor.grain_inner_radius.plot(lower=lower_limit, upper=upper_limit)
 
         return None
 
-    def grainHeight(self, lower_limit=None, upper_limit=None):
-        """Plots grainHeight of the solid_motor as a function of time.
+    def grain_height(self, lower_limit=None, upper_limit=None):
+        """Plots grain_height of the solid_motor as a function of time.
 
         Parameters
         ----------
@@ -152,12 +152,12 @@ class _SolidMotorPlots:
         None
         """
 
-        self.solid_motor.grainHeight.plot(lower=lower_limit, upper=upper_limit)
+        self.solid_motor.grain_height.plot(lower=lower_limit, upper=upper_limit)
 
         return None
 
-    def burnRate(self, lower_limit=None, upper_limit=None):
-        """Plots burnRate of the solid_motor as a function of time.
+    def burn_rate(self, lower_limit=None, upper_limit=None):
+        """Plots burn_rate of the solid_motor as a function of time.
 
         Parameters
         ----------
@@ -173,12 +173,12 @@ class _SolidMotorPlots:
         None
         """
 
-        self.solid_motor.burnRate.plot(lower=lower_limit, upper=upper_limit)
+        self.solid_motor.burn_rate.plot(lower=lower_limit, upper=upper_limit)
 
         return None
 
-    def burnArea(self, lower_limit=None, upper_limit=None):
-        """Plots burnArea of the solid_motor as a function of time.
+    def burn_area(self, lower_limit=None, upper_limit=None):
+        """Plots burn_area of the solid_motor as a function of time.
 
         Parameters
         ----------
@@ -194,7 +194,7 @@ class _SolidMotorPlots:
         None
         """
 
-        self.solid_motor.burnArea.plot(lower=lower_limit, upper=upper_limit)
+        self.solid_motor.burn_area.plot(lower=lower_limit, upper=upper_limit)
 
         return None
 
@@ -219,8 +219,8 @@ class _SolidMotorPlots:
 
         return None
 
-    def centerOfMass(self, lower_limit=None, upper_limit=None):
-        """Plots centerOfMass of the solid_motor as a function of time.
+    def center_of_mass(self, lower_limit=None, upper_limit=None):
+        """Plots center_of_mass of the solid_motor as a function of time.
 
         Parameters
         ----------
@@ -236,7 +236,7 @@ class _SolidMotorPlots:
         None
         """
 
-        self.solid_motor.centerOfMass.plot(lower=lower_limit, upper=upper_limit)
+        self.solid_motor.center_of_mass.plot(lower=lower_limit, upper=upper_limit)
 
         return None
 
@@ -379,15 +379,15 @@ class _SolidMotorPlots:
         """
 
         self.thrust(*self.solid_motor.burn_time)
-        self.totalMass(*self.solid_motor.burn_time)
-        self.massFlowRate(*self.solid_motor.burn_time)
-        self.exhaustVelocity(*self.solid_motor.burn_time)
-        self.grainInnerRadius(*self.solid_motor.burn_time)
-        self.grainHeight(*self.solid_motor.burn_time)
-        self.burnRate(self.solid_motor.burn_time[0], self.solid_motor.grainBurnOut)
-        self.burnArea(*self.solid_motor.burn_time)
+        self.total_mass(*self.solid_motor.burn_time)
+        self.mass_flow_rate(*self.solid_motor.burn_time)
+        self.exhaust_velocity(*self.solid_motor.burn_time)
+        self.grain_inner_radius(*self.solid_motor.burn_time)
+        self.grain_height(*self.solid_motor.burn_time)
+        self.burn_rate(self.solid_motor.burn_time[0], self.solid_motor.grainBurnOut)
+        self.burn_area(*self.solid_motor.burn_time)
         self.Kn()
-        self.centerOfMass(*self.solid_motor.burn_time)
+        self.center_of_mass(*self.solid_motor.burn_time)
         self.I_11(*self.solid_motor.burn_time)
         self.I_22(*self.solid_motor.burn_time)
         self.I_33(*self.solid_motor.burn_time)

@@ -86,9 +86,9 @@ class _NoseConePrints(_AeroSurfacePrints):
         print(f"----------------------------------")
         print(f"Length: {self.aero_surface.length:.3f} m")
         print(f"Kind: {self.aero_surface.kind}")
-        print(f"Base radius: {self.aero_surface.baseRadius:.3f} m")
-        print(f"Reference rocket radius: {self.aero_surface.rocketRadius:.3f} m")
-        print(f"Reference radius ratio: {self.aero_surface.radiusRatio:.3f}\n")
+        print(f"Base radius: {self.aero_surface.base_radius:.3f} m")
+        print(f"Reference rocket radius: {self.aero_surface.rocket_radius:.3f} m")
+        print(f"Reference radius ratio: {self.aero_surface.radius_ratio:.3f}\n")
         return None
 
 
@@ -98,8 +98,8 @@ class _FinsPrints(_AeroSurfacePrints):
 
         Parameters
         ----------
-        fin_set : rocketpy.AeroSurface.FinSet
-            FinSet object to be printed
+        fin_set : rocketpy.AeroSurface.fin_set
+            fin_set object to be printed
 
         Returns
         -------
@@ -112,15 +112,15 @@ class _FinsPrints(_AeroSurfacePrints):
         print(f"Geometric information of the fin set:")
         print(f"-------------------------------------")
         print(f"Number of fins: {self.aero_surface.n}")
-        print(f"Reference rocket radius: {self.aero_surface.rocketRadius:.3f} m")
+        print(f"Reference rocket radius: {self.aero_surface.rocket_radius:.3f} m")
         try:
-            print(f"Tip chord: {self.aero_surface.tipChord:.3f} m")
+            print(f"Tip chord: {self.aero_surface.tip_chord:.3f} m")
         except AttributeError:
             pass  # it isn't a trapezoidal fin, just don't worry about tip chord
-        print(f"Root chord: {self.aero_surface.rootChord:.3f} m")
+        print(f"Root chord: {self.aero_surface.root_chord:.3f} m")
         print(f"Span: {self.aero_surface.span:.3f} m")
         print(
-            f"Cant angle: {self.aero_surface.cantAngle:.3f} ° or {self.aero_surface.cantAngleRad:.3f} rad"
+            f"Cant angle: {self.aero_surface.cant_angle:.3f} ° or {self.aero_surface.cant_angle_rad:.3f} rad"
         )
         print(f"Longitudinal section area: {self.aero_surface.Af:.3f} m²")
         print(f"Aspect ratio: {self.aero_surface.AR:.3f} ")
@@ -159,9 +159,11 @@ class _FinsPrints(_AeroSurfacePrints):
         """
         print(f"Roll information of the fin set:")
         print(f"--------------------------------")
-        print(f"Geometric constant: {self.aero_surface.rollGeometricalConstant:.3f} m")
         print(
-            f"Damping interference factor: {self.aero_surface.rollDampingInterferenceFactor:.3f} rad"
+            f"Geometric constant: {self.aero_surface.roll_geometrical_constant:.3f} m"
+        )
+        print(
+            f"Damping interference factor: {self.aero_surface.roll_damping_interference_factor:.3f} rad"
         )
         print(
             "Forcing interference factor: {self.aero_surface.rollForcingInterferenceFactor:.3f} rad\n"
@@ -183,16 +185,16 @@ class _FinsPrints(_AeroSurfacePrints):
         print(f"Lift information of the fin set:")
         print(f"--------------------------------")
         print(
-            f"Lift interference factor: {self.aero_surface.liftInterferenceFactor:.3f} m"
+            f"Lift interference factor: {self.aero_surface.lift_interference_factor:.3f} m"
         )
         print(
             f"Center of Pressure position in local coordinates: ({self.aero_surface.cpx:.3f}, {self.aero_surface.cpy:.3f}, {self.aero_surface.cpz:.3f})"
         )
         print(
-            f"Lift Coefficient derivative (single fin) at Mach 0 and AoA 0: {self.aero_surface.clalphaSingleFin(0):.3f}"
+            f"Lift Coefficient derivative (single fin) at Mach 0 and AoA 0: {self.aero_surface.clalpha_single_fin(0):.3f}"
         )
         print(
-            f"Lift Coefficient derivative (fin set) at Mach 0 and AoA 0: {self.aero_surface.clalphaMultipleFins(0):.3f}"
+            f"Lift Coefficient derivative (fin set) at Mach 0 and AoA 0: {self.aero_surface.clalpha_multiple_fins(0):.3f}"
         )
         return None
 
@@ -217,8 +219,8 @@ class _TrapezoidalFinsPrints(_FinsPrints):
 
         Parameters
         ----------
-        fin_set : rocketpy.AeroSurface.FinSet
-            FinSet object to be printed
+        fin_set : rocketpy.AeroSurface.fin_set
+            fin_set object to be printed
 
         Returns
         -------
@@ -236,8 +238,8 @@ class _EllipticalFinsPrints(_FinsPrints):
 
         Parameters
         ----------
-        fin_set : rocketpy.AeroSurface.FinSet
-            FinSet object to be printed
+        fin_set : rocketpy.AeroSurface.fin_set
+            fin_set object to be printed
 
         Returns
         -------
@@ -274,12 +276,12 @@ class _TailPrints(_AeroSurfacePrints):
         """
         print(f"Geometric information of the Tail:")
         print(f"----------------------------------")
-        print(f"Top radius: {self.aero_surface.topRadius:.3f} m")
-        print(f"Bottom radius: {self.aero_surface.bottomRadius:.3f} m")
-        print(f"Reference radius: {2*self.aero_surface.rocketRadius:.3f} m")
+        print(f"Top radius: {self.aero_surface.top_radius:.3f} m")
+        print(f"Bottom radius: {self.aero_surface.bottom_radius:.3f} m")
+        print(f"Reference radius: {2*self.aero_surface.rocket_radius:.3f} m")
         print(f"Length: {self.aero_surface.length:.3f} m")
-        print(f"Slant length: {self.aero_surface.slantLength:.3f} m")
-        print(f"Surface area: {self.aero_surface.surfaceArea:.6f} m²\n")
+        print(f"Slant length: {self.aero_surface.slant_length:.3f} m")
+        print(f"Surface area: {self.aero_surface.surface_area:.6f} m²\n")
         return None
 
 

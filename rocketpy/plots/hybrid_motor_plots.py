@@ -51,8 +51,8 @@ class _HybridMotorPlots:
 
         return None
 
-    def totalMass(self, lower_limit=None, upper_limit=None):
-        """Plots totalMass of the hybrid_motor as a function of time.
+    def total_mass(self, lower_limit=None, upper_limit=None):
+        """Plots total_mass of the hybrid_motor as a function of time.
 
         Parameters
         ----------
@@ -68,12 +68,12 @@ class _HybridMotorPlots:
         None
         """
 
-        self.hybrid_motor.totalMass.plot(lower=lower_limit, upper=upper_limit)
+        self.hybrid_motor.total_mass.plot(lower=lower_limit, upper=upper_limit)
 
         return None
 
-    def massFlowRate(self, lower_limit=None, upper_limit=None):
-        """Plots massFlowRate of the hybrid_motor as a function of time.
+    def mass_flow_rate(self, lower_limit=None, upper_limit=None):
+        """Plots mass_flow_rate of the hybrid_motor as a function of time.
 
         Parameters
         ----------
@@ -89,12 +89,12 @@ class _HybridMotorPlots:
         None
         """
 
-        self.hybrid_motor.massFlowRate.plot(lower=lower_limit, upper=upper_limit)
+        self.hybrid_motor.mass_flow_rate.plot(lower=lower_limit, upper=upper_limit)
 
         return None
 
-    def exhaustVelocity(self, lower_limit=None, upper_limit=None):
-        """Plots exhaustVelocity of the hybrid_motor as a function of time.
+    def exhaust_velocity(self, lower_limit=None, upper_limit=None):
+        """Plots exhaust_velocity of the hybrid_motor as a function of time.
 
         Parameters
         ----------
@@ -110,12 +110,12 @@ class _HybridMotorPlots:
         None
         """
 
-        self.hybrid_motor.exhaustVelocity.plot(lower=lower_limit, upper=upper_limit)
+        self.hybrid_motor.exhaust_velocity.plot(lower=lower_limit, upper=upper_limit)
 
         return None
 
-    def grainInnerRadius(self, lower_limit=None, upper_limit=None):
-        """Plots grainInnerRadius of the hybrid_motor as a function of time.
+    def grain_inner_radius(self, lower_limit=None, upper_limit=None):
+        """Plots grain_inner_radius of the hybrid_motor as a function of time.
 
         Parameters
         ----------
@@ -131,14 +131,14 @@ class _HybridMotorPlots:
         None
         """
 
-        self.hybrid_motor.solid.grainInnerRadius.plot(
+        self.hybrid_motor.solid.grain_inner_radius.plot(
             lower=lower_limit, upper=upper_limit
         )
 
         return None
 
-    def grainHeight(self, lower_limit=None, upper_limit=None):
-        """Plots grainHeight of the hybrid_motor as a function of time.
+    def grain_height(self, lower_limit=None, upper_limit=None):
+        """Plots grain_height of the hybrid_motor as a function of time.
 
         Parameters
         ----------
@@ -154,12 +154,12 @@ class _HybridMotorPlots:
         None
         """
 
-        self.hybrid_motor.solid.grainHeight.plot(lower=lower_limit, upper=upper_limit)
+        self.hybrid_motor.solid.grain_height.plot(lower=lower_limit, upper=upper_limit)
 
         return None
 
-    def burnRate(self, lower_limit=None, upper_limit=None):
-        """Plots burnRate of the hybrid_motor as a function of time.
+    def burn_rate(self, lower_limit=None, upper_limit=None):
+        """Plots burn_rate of the hybrid_motor as a function of time.
 
         Parameters
         ----------
@@ -175,12 +175,12 @@ class _HybridMotorPlots:
         None
         """
 
-        self.hybrid_motor.solid.burnRate.plot(lower=lower_limit, upper=upper_limit)
+        self.hybrid_motor.solid.burn_rate.plot(lower=lower_limit, upper=upper_limit)
 
         return None
 
-    def burnArea(self, lower_limit=None, upper_limit=None):
-        """Plots burnArea of the hybrid_motor as a function of time.
+    def burn_area(self, lower_limit=None, upper_limit=None):
+        """Plots burn_area of the hybrid_motor as a function of time.
 
         Parameters
         ----------
@@ -196,7 +196,7 @@ class _HybridMotorPlots:
         None
         """
 
-        self.hybrid_motor.solid.burnArea.plot(lower=lower_limit, upper=upper_limit)
+        self.hybrid_motor.solid.burn_area.plot(lower=lower_limit, upper=upper_limit)
 
         return None
 
@@ -221,8 +221,8 @@ class _HybridMotorPlots:
 
         return None
 
-    def centerOfMass(self, lower_limit=None, upper_limit=None):
-        """Plots centerOfMass of the hybrid_motor as a function of time.
+    def center_of_mass(self, lower_limit=None, upper_limit=None):
+        """Plots center_of_mass of the hybrid_motor as a function of time.
 
         Parameters
         ----------
@@ -238,7 +238,7 @@ class _HybridMotorPlots:
         None
         """
 
-        self.hybrid_motor.centerOfMass.plot(lower=lower_limit, upper=upper_limit)
+        self.hybrid_motor.center_of_mass.plot(lower=lower_limit, upper=upper_limit)
 
         return None
 
@@ -381,17 +381,17 @@ class _HybridMotorPlots:
         """
 
         self.thrust(*self.hybrid_motor.burn_time)
-        self.totalMass(*self.hybrid_motor.burn_time)
-        self.massFlowRate(*self.hybrid_motor.burn_time)
-        self.exhaustVelocity(*self.hybrid_motor.burn_time)
-        self.grainInnerRadius(*self.hybrid_motor.burn_time)
-        self.grainHeight(*self.hybrid_motor.burn_time)
-        self.burnRate(
+        self.total_mass(*self.hybrid_motor.burn_time)
+        self.mass_flow_rate(*self.hybrid_motor.burn_time)
+        self.exhaust_velocity(*self.hybrid_motor.burn_time)
+        self.grain_inner_radius(*self.hybrid_motor.burn_time)
+        self.grain_height(*self.hybrid_motor.burn_time)
+        self.burn_rate(
             self.hybrid_motor.burn_time[0], self.hybrid_motor.solid.grainBurnOut
         )
-        self.burnArea(*self.hybrid_motor.burn_time)
+        self.burn_area(*self.hybrid_motor.burn_time)
         self.Kn()
-        self.centerOfMass(*self.hybrid_motor.burn_time)
+        self.center_of_mass(*self.hybrid_motor.burn_time)
         self.I_11(*self.hybrid_motor.burn_time)
         self.I_22(*self.hybrid_motor.burn_time)
         self.I_33(*self.hybrid_motor.burn_time)

@@ -26,23 +26,23 @@ def pytest_configure(config):
 @pytest.fixture
 def solid_motor():
     example_motor = SolidMotor(
-        thrustSource="data/motors/Cesaroni_M1670.eng",
+        thrust_source="data/motors/Cesaroni_M1670.eng",
         burn_time=3.9,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
         center_of_dry_mass=0.317,
-        nozzlePosition=0,
-        grainNumber=5,
-        grainDensity=1815,
-        nozzleRadius=33 / 1000,
-        throatRadius=11 / 1000,
-        grainSeparation=5 / 1000,
-        grainOuterRadius=33 / 1000,
-        grainInitialHeight=120 / 1000,
-        grainsCenterOfMassPosition=0.397,
-        grainInitialInnerRadius=15 / 1000,
-        interpolationMethod="linear",
-        coordinateSystemOrientation="nozzleToCombustionChamber",
+        nozzle_position=0,
+        grain_number=5,
+        grain_density=1815,
+        nozzle_radius=33 / 1000,
+        throat_radius=11 / 1000,
+        grain_separation=5 / 1000,
+        grain_outer_radius=33 / 1000,
+        grain_initial_height=120 / 1000,
+        grains_center_of_mass_position=0.397,
+        grain_initial_inner_radius=15 / 1000,
+        interpolation_method="linear",
+        coordinate_system_orientation="nozzle_to_combustion_chamber",
     )
     return example_motor
 
@@ -53,39 +53,39 @@ def rocket(solid_motor):
         radius=127 / 2000,
         mass=19.197 - 2.956 - 1.815,
         inertia=(6.321, 6.321, 0.034),
-        powerOffDrag="data/calisto/powerOffDragCurve.csv",
-        powerOnDrag="data/calisto/powerOnDragCurve.csv",
+        power_off_drag="data/calisto/powerOffDragCurve.csv",
+        power_on_drag="data/calisto/powerOnDragCurve.csv",
         center_of_mass_without_motor=0,
-        coordinateSystemOrientation="tailToNose",
+        coordinate_system_orientation="tail_to_nose",
     )
-    example_rocket.addMotor(solid_motor, position=-1.255 - 0.1182359460624346)
+    example_rocket.add_motor(solid_motor, position=-1.255 - 0.1182359460624346)
     return example_rocket
 
 
 @pytest.fixture
 def flight(rocket, example_env):
-    rocket.setRailButtons(
+    rocket.set_rail_buttons(
         upper_button_position=0.2 - 0.1182359460624346,
         lower_button_position=-0.5 - 0.1182359460624346,
         angular_position=45,
     )
 
-    NoseCone = rocket.addNose(
+    nose_cone = rocket.add_nose(
         length=0.55829,
-        kind="vonKarman",
+        kind="von_karman",
         position=1.278 - 0.1182359460624346,
-        name="NoseCone",
+        name="nose_cone",
     )
-    FinSet = rocket.addTrapezoidalFins(
+    fin_set = rocket.add_trapezoidal_fins(
         4,
         span=0.100,
-        rootChord=0.120,
-        tipChord=0.040,
+        root_chord=0.120,
+        tip_chord=0.040,
         position=-1.04956 - 0.1182359460624346,
     )
-    Tail = rocket.addTail(
-        topRadius=0.0635,
-        bottomRadius=0.0435,
+    tail = rocket.add_tail(
+        top_radius=0.0635,
+        bottom_radius=0.0435,
         length=0.060,
         position=-1.194656 - 0.1182359460624346,
     )
@@ -95,7 +95,7 @@ def flight(rocket, example_env):
         rocket=rocket,
         inclination=85,
         heading=90,
-        terminateOnApogee=True,
+        terminate_on_apogee=True,
     )
     return flight
 
@@ -113,7 +113,7 @@ def kg():
 @pytest.fixture
 def dimensionless_solid_motor(kg, m):
     example_motor = SolidMotor(
-        thrustSource="data/motors/Cesaroni_M1670.eng",
+        thrust_source="data/motors/Cesaroni_M1670.eng",
         burn_time=3.9,
         dry_mass=1.815 * kg,
         dry_inertia=(
@@ -122,18 +122,18 @@ def dimensionless_solid_motor(kg, m):
             0.002 * (kg * m**2),
         ),
         center_of_dry_mass=0.317 * m,
-        grainNumber=5,
-        grainSeparation=5 / 1000 * m,
-        grainDensity=1815 * (kg / m**3),
-        grainOuterRadius=33 / 1000 * m,
-        grainInitialInnerRadius=15 / 1000 * m,
-        grainInitialHeight=120 / 1000 * m,
-        nozzleRadius=33 / 1000 * m,
-        throatRadius=11 / 1000 * m,
-        interpolationMethod="linear",
-        grainsCenterOfMassPosition=0.397 * m,
-        nozzlePosition=0 * m,
-        coordinateSystemOrientation="nozzleToCombustionChamber",
+        grain_number=5,
+        grain_separation=5 / 1000 * m,
+        grain_density=1815 * (kg / m**3),
+        grain_outer_radius=33 / 1000 * m,
+        grain_initial_inner_radius=15 / 1000 * m,
+        grain_initial_height=120 / 1000 * m,
+        nozzle_radius=33 / 1000 * m,
+        throat_radius=11 / 1000 * m,
+        interpolation_method="linear",
+        grains_center_of_mass_position=0.397 * m,
+        nozzle_position=0 * m,
+        coordinate_system_orientation="nozzle_to_combustion_chamber",
     )
     return example_motor
 
@@ -144,12 +144,12 @@ def dimensionless_rocket(kg, m, dimensionless_solid_motor):
         radius=127 / 2000 * m,
         mass=(19.197 - 2.956 - 1.815) * kg,
         inertia=(6.321 * (kg * m**2), 6.321 * (kg * m**2), 0.034 * (kg * m**2)),
-        powerOffDrag="data/calisto/powerOffDragCurve.csv",
-        powerOnDrag="data/calisto/powerOnDragCurve.csv",
+        power_off_drag="data/calisto/powerOffDragCurve.csv",
+        power_on_drag="data/calisto/powerOnDragCurve.csv",
         center_of_mass_without_motor=0 * m,
-        coordinateSystemOrientation="tailToNose",
+        coordinate_system_orientation="tail_to_nose",
     )
-    example_rocket.addMotor(
+    example_rocket.add_motor(
         dimensionless_solid_motor, position=(-1.255 - 0.1182359460624346) * m
     )
     return example_rocket
@@ -157,23 +157,23 @@ def dimensionless_rocket(kg, m, dimensionless_solid_motor):
 
 @pytest.fixture
 def example_env():
-    Env = Environment(datum="WGS84")
-    return Env
+    env = Environment(datum="WGS84")
+    return env
 
 
 @pytest.fixture
 def example_env_robust():
-    Env = Environment(
+    env = Environment(
         latitude=32.990254,
         longitude=-106.974998,
         elevation=1400,
         datum="WGS84",
     )
     tomorrow = datetime.date.today() + datetime.timedelta(days=1)
-    Env.setDate(
+    env.set_date(
         (tomorrow.year, tomorrow.month, tomorrow.day, 12)
     )  # Hour given in UTC time
-    return Env
+    return env
 
 
 # Create a simple object of the Environment Analysis class

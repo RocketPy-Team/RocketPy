@@ -83,8 +83,8 @@ def test_mass_based_motor():
         j = 0
         for i in np.arange(0, t, 0.1):
             try:
-                print(calculated.getValue(i), expected(i))
-                assert isclose(calculated.getValue(i), expected(i), rel_tol=5e-2)
+                print(calculated.get_value(i), expected(i))
+                assert isclose(calculated.get_value(i), expected(i), rel_tol=5e-2)
             except IndexError:
                 break
 
@@ -101,32 +101,32 @@ def test_mass_based_motor():
             + initial_gas_mass
             + t * (gas_mass_flow_rate_in - gas_mass_flow_rate_out)
         )
-        example_calculated = example_tank_lox.fluidMass()
+        example_calculated = example_tank_lox.fluid_mass()
 
-        lox_vals = Function(lox_masses).yArray
+        lox_vals = Function(lox_masses).y_array
 
         real_expected = lambda t: lox_vals[t]
-        real_calculated = real_tank_lox.fluidMass()
+        real_calculated = real_tank_lox.fluid_mass()
 
         test(example_calculated, example_expected, 5)
         # test(real_calculated, real_expected, 15.5, real=True)
 
     def test_net_mfr():
-        """Test netMassFlowRate function of MassBasedTank subclass of Tank"""
+        """Test net_mass_flow_rate function of MassBasedTank subclass of Tank"""
         example_expected = (
             lambda t: liquid_mass_flow_rate_in
             - liquid_mass_flow_rate_out
             + gas_mass_flow_rate_in
             - gas_mass_flow_rate_out
         )
-        example_calculated = example_tank_lox.netMassFlowRate()
+        example_calculated = example_tank_lox.net_mass_flow_rate()
 
-        liquid_mfrs = Function(example_liquid_masses).yArray
+        liquid_mfrs = Function(example_liquid_masses).y_array
 
-        gas_mfrs = Function(example_gas_masses).yArray
+        gas_mfrs = Function(example_gas_masses).y_array
 
         real_expected = lambda t: (liquid_mfrs[t] + gas_mfrs[t]) / t
-        real_calculated = real_tank_lox.netMassFlowRate()
+        real_calculated = real_tank_lox.net_mass_flow_rate()
 
         test(example_calculated, example_expected, 10)
         # test(real_calculated, real_expected, 15.5, real=True)
@@ -144,7 +144,7 @@ def test_mass_based_motor():
         )
         example_calculated = example_tank_lox.evaluateUllageHeight()
 
-        liquid_heights = Function(example_liquid_masses).yArray
+        liquid_heights = Function(example_liquid_masses).y_array
 
         real_expected = lambda t: liquid_heights[t]
         real_calculated = real_tank_lox.evaluateUllageHeight()
@@ -178,7 +178,7 @@ def test_ullage_based_motor():
         }
     )
 
-    ullage_data = Function(os.path.abspath(test_dir + "loxUllage.csv")).getSource()
+    ullage_data = Function(os.path.abspath(test_dir + "loxUllage.csv")).get_source()
     levelTank = LevelBasedTank(
         name="LevelTank",
         geometry=tank_geometry,
@@ -189,8 +189,8 @@ def test_ullage_based_motor():
         discretize=None,
     )
 
-    mass_data = Function(test_dir + "loxMass.csv").getSource()
-    mass_flow_rate_data = Function(test_dir + "loxMFR.csv").getSource()
+    mass_data = Function(test_dir + "loxMass.csv").get_source()
+    mass_flow_rate_data = Function(test_dir + "loxMFR.csv").get_source()
 
     def align_time_series(small_source, large_source):
         assert isinstance(small_source, np.ndarray) and isinstance(
@@ -215,25 +215,25 @@ def test_ullage_based_motor():
                 curr_ind += 1
         return result_larger_source, result_smaller_source
 
-    assert np.allclose(levelTank.liquidHeight, ullage_data)
+    assert np.allclose(levelTank.liquid_height, ullage_data)
 
-    calculated_mass = levelTank.liquidMass.setDiscrete(
+    calculated_mass = levelTank.liquid_mass.set_discrete(
         mass_data[0][0], mass_data[0][-1], len(mass_data[0])
     )
     calculated_mass, mass_data = align_time_series(
-        calculated_mass.getSource(), mass_data
+        calculated_mass.get_source(), mass_data
     )
     assert np.allclose(calculated_mass, mass_data, rtol=1, atol=2)
     # Function(calculated_mass).plot1D()
     # Function(mass_data).plot1D()
 
-    calculated_mfr = levelTank.netMassFlowRate.setDiscrete(
+    calculated_mfr = levelTank.net_mass_flow_rate.set_discrete(
         mass_flow_rate_data[0][0],
         mass_flow_rate_data[0][-1],
         len(mass_flow_rate_data[0]),
     )
     calculated_mfr, test_mfr = align_time_series(
-        calculated_mfr.getSource(), mass_flow_rate_data
+        calculated_mfr.get_source(), mass_flow_rate_data
     )
     # assert np.allclose(calculated_mfr, test_mfr)
     # Function(calculated_mfr).plot1D()
@@ -244,8 +244,8 @@ def test_ullage_based_motor():
 def test_mfr_tank_basic():
     def test(t, a, tol=1e-4):
         for i in np.arange(0, 10, 1):
-            print(t.getValue(i), a(i))
-            assert isclose(t.getValue(i), a(i), abs_tol=tol)
+            print(t.get_value(i), a(i))
+            assert isclose(t.get_value(i), a(i), abs_tol=tol)
 
     def test_nmfr():
         nmfr = (
@@ -254,14 +254,14 @@ def test_mfr_tank_basic():
             - liquid_mass_flow_rate_out
             - gas_mass_flow_rate_out
         )
-        test(t.netMassFlowRate, nmfr)
+        test(t.net_mass_flow_rate, nmfr)
 
     def test_mass():
         m = lambda x: (
             initial_liquid_mass
             + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x
         ) + (initial_gas_mass + (gas_mass_flow_rate_in - gas_mass_flow_rate_out) * x)
-        lm = t.fluidMass
+        lm = t.fluid_mass
         test(lm, m)
 
     def test_liquid_height():
@@ -273,7 +273,7 @@ def test_mfr_tank_basic():
             / lox.density
         )
         alh = lambda x: alv(x) / (np.pi)
-        tlh = t.liquidHeight
+        tlh = t.liquid_height
         test(tlh, alh)
 
     def test_com():
@@ -297,7 +297,7 @@ def test_mfr_tank_basic():
             liquid_mass(x) + gas_mass(x)
         )
 
-        tcom = t.centerOfMass
+        tcom = t.center_of_mass
         test(tcom, acom)
 
     def test_inertia():
@@ -333,8 +333,8 @@ def test_mfr_tank_basic():
             + liquid_mass(x) * (liquid_com(x) - acom(x)) ** 2
         )
         ixy = lambda x: ixy_gas(x) + ixy_liq(x)
-        test(t.gasInertia, ixy_gas, tol=1e-3)
-        test(t.liquidInertia, ixy_liq, tol=1e-3)
+        test(t.gas_inertia, ixy_gas, tol=1e-3)
+        test(t.liquid_inertia, ixy_liq, tol=1e-3)
         test(t.inertia, ixy, tol=1e-3)
 
     tank_radius_function = TankGeometry({(0, 5): 1})
@@ -355,10 +355,10 @@ def test_mfr_tank_basic():
         flux_time=(0, 10),
         initial_liquid_mass=initial_liquid_mass,
         initial_gas_mass=initial_gas_mass,
-        liquid_mass_flow_rate_in=Function(0.1).setDiscrete(0, 10, 1000),
-        gas_mass_flow_rate_in=Function(0.01).setDiscrete(0, 10, 1000),
-        liquid_mass_flow_rate_out=Function(0.2).setDiscrete(0, 10, 1000),
-        gas_mass_flow_rate_out=Function(0.02).setDiscrete(0, 10, 1000),
+        liquid_mass_flow_rate_in=Function(0.1).set_discrete(0, 10, 1000),
+        gas_mass_flow_rate_in=Function(0.01).set_discrete(0, 10, 1000),
+        liquid_mass_flow_rate_out=Function(0.2).set_discrete(0, 10, 1000),
+        gas_mass_flow_rate_out=Function(0.02).set_discrete(0, 10, 1000),
         liquid=lox,
         gas=n2,
         discretize=None,

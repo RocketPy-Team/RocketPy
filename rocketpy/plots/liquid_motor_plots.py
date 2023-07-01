@@ -51,8 +51,8 @@ class _LiquidMotorPlots:
 
         return None
 
-    def totalMass(self, lower_limit=None, upper_limit=None):
-        """Plots totalMass of the liquid_motor as a function of time.
+    def total_mass(self, lower_limit=None, upper_limit=None):
+        """Plots total_mass of the liquid_motor as a function of time.
 
         Parameters
         ----------
@@ -68,12 +68,12 @@ class _LiquidMotorPlots:
         None
         """
 
-        self.liquid_motor.totalMass.plot(lower=lower_limit, upper=upper_limit)
+        self.liquid_motor.total_mass.plot(lower=lower_limit, upper=upper_limit)
 
         return None
 
-    def massFlowRate(self, lower_limit=None, upper_limit=None):
-        """Plots massFlowRate of the liquid_motor as a function of time.
+    def mass_flow_rate(self, lower_limit=None, upper_limit=None):
+        """Plots mass_flow_rate of the liquid_motor as a function of time.
 
         Parameters
         ----------
@@ -89,12 +89,12 @@ class _LiquidMotorPlots:
         None
         """
 
-        self.liquid_motor.massFlowRate.plot(lower=lower_limit, upper=upper_limit)
+        self.liquid_motor.mass_flow_rate.plot(lower=lower_limit, upper=upper_limit)
 
         return None
 
-    def exhaustVelocity(self, lower_limit=None, upper_limit=None):
-        """Plots exhaustVelocity of the liquid_motor as a function of time.
+    def exhaust_velocity(self, lower_limit=None, upper_limit=None):
+        """Plots exhaust_velocity of the liquid_motor as a function of time.
 
         Parameters
         ----------
@@ -110,12 +110,12 @@ class _LiquidMotorPlots:
         None
         """
 
-        self.liquid_motor.exhaustVelocity.plot(lower=lower_limit, upper=upper_limit)
+        self.liquid_motor.exhaust_velocity.plot(lower=lower_limit, upper=upper_limit)
 
         return None
 
-    def centerOfMass(self, lower_limit=None, upper_limit=None):
-        """Plots centerOfMass of the liquid_motor as a function of time.
+    def center_of_mass(self, lower_limit=None, upper_limit=None):
+        """Plots center_of_mass of the liquid_motor as a function of time.
 
         Parameters
         ----------
@@ -131,7 +131,7 @@ class _LiquidMotorPlots:
         None
         """
 
-        self.liquid_motor.centerOfMass.plot(lower=lower_limit, upper=upper_limit)
+        self.liquid_motor.center_of_mass.plot(lower=lower_limit, upper=upper_limit)
 
         return None
 
@@ -274,10 +274,10 @@ class _LiquidMotorPlots:
         """
 
         self.thrust(*self.liquid_motor.burn_time)
-        self.totalMass(*self.liquid_motor.burn_time)
-        self.massFlowRate(*self.liquid_motor.burn_time)
-        self.exhaustVelocity(*self.liquid_motor.burn_time)
-        self.centerOfMass(*self.liquid_motor.burn_time)
+        self.total_mass(*self.liquid_motor.burn_time)
+        self.mass_flow_rate(*self.liquid_motor.burn_time)
+        self.exhaust_velocity(*self.liquid_motor.burn_time)
+        self.center_of_mass(*self.liquid_motor.burn_time)
         self.I_11(*self.liquid_motor.burn_time)
         self.I_22(*self.liquid_motor.burn_time)
         self.I_33(*self.liquid_motor.burn_time)

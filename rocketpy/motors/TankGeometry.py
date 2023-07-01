@@ -215,7 +215,7 @@ class TankGeometry:
         Function
             Tank volume as a function of height.
         """
-        return self.area.integralFunction(self.bottom)
+        return self.area.integral_function(self.bottom)
 
     @cached_property
     def total_volume(self):
@@ -239,7 +239,7 @@ class TankGeometry:
         rocketpy.Function
             Tank height as a function of volume.
         """
-        return self.volume.inverseFunction(
+        return self.volume.inverse_function(
             lambda v: v / (np.pi * self.average_radius**2),
         )
 
@@ -267,11 +267,11 @@ class TankGeometry:
         # Tolerance of 1e-8 is used to avoid numerical errors
         upper = upper + 1e-12 if upper - lower < 1e-8 else upper
 
-        volume_moment = (height * self.area).integralFunction(lower, upper)
+        volume_moment = (height * self.area).integral_function(lower, upper)
 
         # Correct naming
-        volume_moment.setInputs("Height (m)")
-        volume_moment.setOutputs("Volume Moment (m⁴)")
+        volume_moment.set_inputs("Height (m)")
+        volume_moment.set_outputs("Volume Moment (m⁴)")
 
         return volume_moment
 
@@ -306,13 +306,13 @@ class TankGeometry:
         # Tolerance of 1e-8 is used to avoid numerical errors
         upper = upper + 1e-12 if upper - lower < 1e-8 else upper
 
-        inertia = (self.area * (height2 + self.radius**2 / 4)).integralFunction(
+        inertia = (self.area * (height2 + self.radius**2 / 4)).integral_function(
             lower, upper
         )
 
         # Correct naming
-        inertia.setInputs("Height (m)")
-        inertia.setOutputs("Volume of inertia (m⁵)")
+        inertia.set_inputs("Height (m)")
+        inertia.set_outputs("Volume of inertia (m⁵)")
 
         return inertia
 
@@ -353,7 +353,7 @@ class TankGeometry:
         # Tolerance of 1e-8 is used to avoid numerical errors
         upper = upper + 1e-12 if upper - lower < 1e-8 else upper
 
-        inertia = (self.area * self.radius**2).integralFunction(lower, upper) / 2
+        inertia = (self.area * self.radius**2).integral_function(lower, upper) / 2
 
         return inertia
 

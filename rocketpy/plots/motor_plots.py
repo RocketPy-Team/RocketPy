@@ -51,8 +51,8 @@ class _MotorPlots:
 
         return None
 
-    def totalMass(self, lower_limit=None, upper_limit=None):
-        """Plots totalMass of the motor as a function of time.
+    def total_mass(self, lower_limit=None, upper_limit=None):
+        """Plots total_mass of the motor as a function of time.
 
         Parameters
         ----------
@@ -68,12 +68,12 @@ class _MotorPlots:
         None
         """
 
-        self.motor.totalMass.plot(lower=lower_limit, upper=upper_limit)
+        self.motor.total_mass.plot(lower=lower_limit, upper=upper_limit)
 
         return None
 
-    def centerOfMass(self, lower_limit=None, upper_limit=None):
-        """Plots centerOfMass of the motor as a function of time.
+    def center_of_mass(self, lower_limit=None, upper_limit=None):
+        """Plots center_of_mass of the motor as a function of time.
 
         Parameters
         ----------
@@ -89,7 +89,7 @@ class _MotorPlots:
         None
         """
 
-        self.motor.centerOfMass.plot(lower=lower_limit, upper=upper_limit)
+        self.motor.center_of_mass.plot(lower=lower_limit, upper=upper_limit)
 
         return None
 
@@ -233,8 +233,8 @@ class _MotorPlots:
 
         # Show plots
         self.thrust()
-        self.totalMass()
-        self.centerOfMass()
+        self.total_mass()
+        self.center_of_mass()
         self.I_11()
         self.I_22()
         self.I_33()

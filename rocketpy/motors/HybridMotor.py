@@ -26,20 +26,20 @@ class HybridMotor(Motor):
     ----------
 
         Geometrical attributes:
-        Motor.coordinateSystemOrientation : str
+        Motor.coordinate_system_orientation : str
             Orientation of the motor's coordinate system. The coordinate system
             is defined by the motor's axis of symmetry. The origin of the
             coordinate system  may be placed anywhere along such axis, such as
             at the nozzle area, and must be kept the same for all other
-            positions specified. Options are "nozzleToCombustionChamber" and
-            "combustionChamberToNozzle".
-        Motor.nozzleRadius : float
+            positions specified. Options are "nozzle_to_combustion_chamber" and
+            "combustion_chamber_to_nozzle".
+        Motor.nozzle_radius : float
             Radius of motor nozzle outlet in meters.
-        Motor.nozzlePosition : float
+        Motor.nozzle_position : float
             Motor's nozzle outlet position in meters, specified in the motor's
-            coordinate system. See `Motor.coordinateSystemOrientation` for
+            coordinate system. See `Motor.coordinate_system_orientation` for
             more information.
-        Motor.throatRadius : float
+        Motor.throat_radius : float
             Radius of motor nozzle throat in meters.
         Motor.solid : SolidMotor
             Solid motor object that composes the hybrid motor.
@@ -50,25 +50,25 @@ class HybridMotor(Motor):
         Motor.dry_mass : float
             The total mass of the motor structure, including chambers
             and tanks, when it is empty and does not contain any propellant.
-        Motor.propellantInitialMass : float
+        Motor.propellant_initial_mass : float
             Total propellant initial mass in kg.
-        Motor.totalMass : Function
+        Motor.total_mass : Function
             Total motor mass in kg as a function of time, defined as the sum
             of propellant and dry mass.
-        Motor.propellantMass : Function
+        Motor.propellant_mass : Function
             Total propellant mass in kg as a function of time.
-        Motor.totalMassFlowRate : Function
+        Motor.total_mass_flow_rate : Function
             Time derivative of propellant total mass in kg/s as a function
             of time as obtained by the thrust source.
-        Motor.centerOfMass : Function
+        Motor.center_of_mass : Function
             Position of the motor center of mass in
             meters as a function of time.
-            See `Motor.coordinateSystemOrientation` for more information
+            See `Motor.coordinate_system_orientation` for more information
             regarding the motor's coordinate system.
-        Motor.centerOfPropellantMass : Function
+        Motor.center_of_propellant_mass : Function
             Position of the motor propellant center of mass in meters as a
             function of time.
-            See `Motor.coordinateSystemOrientation` for more information
+            See `Motor.coordinate_system_orientation` for more information
             regarding the motor's coordinate system.
         Motor.I_11 : Function
             Component of the motor's inertia tensor relative to the e_1 axis
@@ -130,33 +130,33 @@ class HybridMotor(Motor):
         Thrust and burn attributes:
         Motor.thrust : Function
             Motor thrust force, in Newtons, as a function of time.
-        Motor.totalImpulse : float
+        Motor.total_impulse : float
             Total impulse of the thrust curve in N*s.
-        Motor.maxThrust : float
+        Motor.max_thrust : float
             Maximum thrust value of the given thrust curve, in N.
-        Motor.maxThrustTime : float
+        Motor.max_thrust_time : float
             Time, in seconds, in which the maximum thrust value is achieved.
-        Motor.averageThrust : float
+        Motor.average_thrust : float
             Average thrust of the motor, given in N.
         Motor.burn_time : tuple of float
             Tuple containing the initial and final time of the motor's burn time
             in seconds.
-        Motor.burnStartTime : float
+        Motor.burn_start_time : float
             Motor burn start time, in seconds.
-        Motor.burnOutTime : float
+        Motor.burn_out_time : float
             Motor burn out time, in seconds.
-        Motor.burnDuration : float
-            Total motor burn duration, in seconds. It is the difference between the burnOutTime and the burnStartTime.
-        Motor.exhaustVelocity : float
+        Motor.burn_duration : float
+            Total motor burn duration, in seconds. It is the difference between the burn_out_time and the burn_start_time.
+        Motor.exhaust_velocity : float
             Propulsion gases exhaust velocity, assumed constant, in m/s.
-        Motor.burnArea : Function
+        Motor.burn_area : Function
             Total burn area considering all grains, made out of inner
             cylindrical burn area and grain top and bottom faces. Expressed
             in meters squared as a function of time.
         Motor.Kn : Function
-            Motor Kn as a function of time. Defined as burnArea divided by
+            Motor Kn as a function of time. Defined as burn_area divided by
             nozzle throat cross sectional area. Has no units.
-        Motor.burnRate : Function
+        Motor.burn_rate : Function
             Propellant burn rate in meter/second as a function of time.
         Motor.interpolate : string
             Method of interpolation used in case thrust curve is given
@@ -166,31 +166,31 @@ class HybridMotor(Motor):
 
     def __init__(
         self,
-        thrustSource,
+        thrust_source,
         dry_mass,
         center_of_dry_mass,
         dry_inertia,
-        grainsCenterOfMassPosition,
-        grainNumber,
-        grainDensity,
-        grainOuterRadius,
-        grainInitialInnerRadius,
-        grainInitialHeight,
-        grainSeparation,
-        nozzleRadius,
+        grains_center_of_mass_position,
+        grain_number,
+        grain_density,
+        grain_outer_radius,
+        grain_initial_inner_radius,
+        grain_initial_height,
+        grain_separation,
+        nozzle_radius,
         burn_time=None,
-        nozzlePosition=0,
-        throatRadius=0.01,
-        reshapeThrustCurve=False,
-        interpolationMethod="linear",
-        coordinateSystemOrientation="nozzleToCombustionChamber",
+        nozzle_position=0,
+        throat_radius=0.01,
+        reshape_thrust_curve=False,
+        interpolation_method="linear",
+        coordinate_system_orientation="nozzle_to_combustion_chamber",
     ):
         """Initialize Motor class, process thrust curve and geometrical
         parameters and store results.
 
         Parameters
         ----------
-        thrustSource : int, float, callable, string, array
+        thrust_source : int, float, callable, string, array
             Motor's thrust curve. Can be given as an int or float, in which
             case the thrust will be considered constant in time. It can
             also be given as a callable function, whose argument is time in
@@ -216,7 +216,7 @@ class HybridMotor(Motor):
         center_of_dry_mass : int, float
             The position, in meters, of the motor's center of mass with respect
             to the motor's coordinate system when it is devoid of propellant.
-            See `Motor.coordinateSystemOrientation`.
+            See `Motor.coordinate_system_orientation`.
         dry_inertia : tuple, list
             Tuple or list containing the motor's dry mass inertia tensor
             components, in kg*m^2. This inertia is defined with respect to the
@@ -228,30 +228,30 @@ class HybridMotor(Motor):
             component of the inertia tensor in the direction of e_i x e_j.
             Alternatively, the inertia tensor can be given as (I_11, I_22, I_33),
             where I_12 = I_13 = I_23 = 0.
-        grainNumber : int
+        grain_number : int
             Number of solid grains
-        grainDensity : int, float
+        grain_density : int, float
             Solid grain density in kg/m3.
-        grainOuterRadius : int, float
+        grain_outer_radius : int, float
             Solid grain outer radius in meters.
-        grainInitialInnerRadius : int, float
+        grain_initial_inner_radius : int, float
             Solid grain initial inner radius in meters.
-        grainInitialHeight : int, float
+        grain_initial_height : int, float
             Solid grain initial height in meters.
-        grainSeparation : int, float
+        grain_separation : int, float
             Distance between grains, in meters.
-        nozzleRadius : int, float
+        nozzle_radius : int, float
             Motor's nozzle outlet radius in meters.
-        nozzlePosition : int, float, optional
+        nozzle_position : int, float, optional
             Motor's nozzle outlet position in meters, in the motor's coordinate
-            system. See `Motor.coordinateSystemOrientation` for details.
+            system. See `Motor.coordinate_system_orientation` for details.
             Default is 0, in which case the origin of the coordinate system
             is placed at the motor's nozzle outlet.
-        throatRadius : int, float, optional
+        throat_radius : int, float, optional
             Motor's nozzle throat radius in meters. Used to calculate Kn curve.
             Optional if the Kn curve is not interesting. Its value does not
             impact trajectory simulation.
-        reshapeThrustCurve : boolean, tuple, optional
+        reshape_thrust_curve : boolean, tuple, optional
             If False, the original thrust curve supplied is not altered. If a
             tuple is given, whose first parameter is a new burn out time and
             whose second parameter is a new total impulse in Ns, the thrust
@@ -259,65 +259,65 @@ class HybridMotor(Motor):
             for motors whose thrust curve shape is expected to remain similar
             in case the impulse and burn time varies slightly. Default is
             False.
-        interpolationMethod : string, optional
+        interpolation_method : string, optional
             Method of interpolation to be used in case thrust curve is given
             by data set in .csv or .eng, or as an array. Options are 'spline'
             'akima' and 'linear'. Default is "linear".
-        coordinateSystemOrientation : string, optional
+        coordinate_system_orientation : string, optional
             Orientation of the motor's coordinate system. The coordinate system
             is defined by the motor's axis of symmetry. The origin of the
             coordinate system  may be placed anywhere along such axis, such as
             at the nozzle area, and must be kept the same for all other
-            positions specified. Options are "nozzleToCombustionChamber" and
-            "combustionChamberToNozzle". Default is "nozzleToCombustionChamber".
+            positions specified. Options are "nozzle_to_combustion_chamber" and
+            "combustion_chamber_to_nozzle". Default is "nozzle_to_combustion_chamber".
 
         Returns
         -------
         None
         """
         super().__init__(
-            thrustSource,
+            thrust_source,
             dry_mass,
             center_of_dry_mass,
             dry_inertia,
-            nozzleRadius,
+            nozzle_radius,
             burn_time,
-            nozzlePosition,
-            reshapeThrustCurve,
-            interpolationMethod,
-            coordinateSystemOrientation,
+            nozzle_position,
+            reshape_thrust_curve,
+            interpolation_method,
+            coordinate_system_orientation,
         )
         self.liquid = LiquidMotor(
-            thrustSource,
+            thrust_source,
             dry_mass,
             center_of_dry_mass,
             dry_inertia,
-            nozzleRadius,
+            nozzle_radius,
             burn_time,
-            nozzlePosition,
-            reshapeThrustCurve,
-            interpolationMethod,
-            coordinateSystemOrientation,
+            nozzle_position,
+            reshape_thrust_curve,
+            interpolation_method,
+            coordinate_system_orientation,
         )
         self.solid = SolidMotor(
-            thrustSource,
+            thrust_source,
             dry_mass,
             center_of_dry_mass,
             dry_inertia,
-            grainsCenterOfMassPosition,
-            grainNumber,
-            grainDensity,
-            grainOuterRadius,
-            grainInitialInnerRadius,
-            grainInitialHeight,
-            grainSeparation,
-            nozzleRadius,
+            grains_center_of_mass_position,
+            grain_number,
+            grain_density,
+            grain_outer_radius,
+            grain_initial_inner_radius,
+            grain_initial_height,
+            grain_separation,
+            nozzle_radius,
             burn_time,
-            nozzlePosition,
-            throatRadius,
-            reshapeThrustCurve,
-            interpolationMethod,
-            coordinateSystemOrientation,
+            nozzle_position,
+            throat_radius,
+            reshape_thrust_curve,
+            interpolation_method,
+            coordinate_system_orientation,
         )
         # Initialize plots and prints object
         self.prints = _HybridMotorPrints(self)
@@ -325,19 +325,19 @@ class HybridMotor(Motor):
         return None
 
     @funcify_method("Time (s)", "Exhaust velocity (m/s)")
-    def exhaustVelocity(self):
+    def exhaust_velocity(self):
         """Exhaust velocity by assuming it as a constant. The formula used is
         total impulse/propellant initial mass.
 
         Returns
         -------
-        self.exhaustVelocity : Function
+        self.exhaust_velocity : Function
             Gas exhaust velocity of the motor.
         """
-        return self.totalImpulse / self.propellantInitialMass
+        return self.total_impulse / self.propellant_initial_mass
 
     @funcify_method("Time (s)", "Mass (kg)")
-    def propellantMass(self):
+    def propellant_mass(self):
         """Evaluates the total propellant mass of the motor as the sum
         of each tank mass and the grains mass.
 
@@ -346,10 +346,10 @@ class HybridMotor(Motor):
         Function
             Total propellant mass of the motor, in kg.
         """
-        return self.solid.propellantMass + self.liquid.propellantMass
+        return self.solid.propellant_mass + self.liquid.propellant_mass
 
     @cached_property
-    def propellantInitialMass(self):
+    def propellant_initial_mass(self):
         """Returns the initial propellant mass of the motor.
 
         Returns
@@ -357,10 +357,10 @@ class HybridMotor(Motor):
         float
             Initial propellant mass of the motor, in kg.
         """
-        return self.solid.propellantInitialMass + self.liquid.propellantInitialMass
+        return self.solid.propellant_initial_mass + self.liquid.propellant_initial_mass
 
     @funcify_method("Time (s)", "mass flow rate (kg/s)", extrapolation="zero")
-    def massFlowRate(self):
+    def mass_flow_rate(self):
         """Evaluates the mass flow rate of the motor as the sum of each tank
         mass flow rate and the grains mass flow rate.
 
@@ -371,14 +371,14 @@ class HybridMotor(Motor):
 
         See Also
         --------
-        `Motor.totalMassFlowRate` :
+        `Motor.total_mass_flow_rate` :
             Calculates the total mass flow rate of the motor assuming
             constant exhaust velocity.
         """
-        return self.solid.massFlowRate + self.liquid.massFlowRate
+        return self.solid.mass_flow_rate + self.liquid.mass_flow_rate
 
     @funcify_method("Time (s)", "center of mass (m)")
-    def centerOfPropellantMass(self):
+    def center_of_propellant_mass(self):
         """Position of the propellant center of mass as a function of time.
         The position is specified as a scalar, relative to the motor's
         coordinate system.
@@ -389,10 +389,10 @@ class HybridMotor(Motor):
             Position of the center of mass as a function of time.
         """
         massBalance = (
-            self.solid.propellantMass * self.solid.centerOfPropellantMass
-            + self.liquid.propellantMass * self.liquid.centerOfPropellantMass
+            self.solid.propellant_mass * self.solid.center_of_propellant_mass
+            + self.liquid.propellant_mass * self.liquid.center_of_propellant_mass
         )
-        return massBalance / self.propellantMass
+        return massBalance / self.propellant_mass
 
     @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
     def propellant_I_11(self):
@@ -415,12 +415,12 @@ class HybridMotor(Motor):
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
         solidCorrection = (
-            self.solid.propellantMass
-            * (self.solid.centerOfPropellantMass - self.centerOfMass) ** 2
+            self.solid.propellant_mass
+            * (self.solid.center_of_propellant_mass - self.center_of_mass) ** 2
         )
         liquidCorrection = (
-            self.liquid.propellantMass
-            * (self.liquid.centerOfPropellantMass - self.centerOfMass) ** 2
+            self.liquid.propellant_mass
+            * (self.liquid.center_of_propellant_mass - self.center_of_mass) ** 2
         )
 
         I_11 = self.solid.I_11 + solidCorrection + self.liquid.I_11 + liquidCorrection
@@ -482,7 +482,7 @@ class HybridMotor(Motor):
     def propellant_I_23(self):
         return 0
 
-    def addTank(self, tank, position):
+    def add_tank(self, tank, position):
         """Adds a tank to the motor.
 
         Parameters
@@ -497,8 +497,10 @@ class HybridMotor(Motor):
         -------
         None
         """
-        self.liquid.addTank(tank, position)
-        self.solid.massFlowRate = self.totalMassFlowRate - self.liquid.massFlowRate
+        self.liquid.add_tank(tank, position)
+        self.solid.mass_flow_rate = (
+            self.total_mass_flow_rate - self.liquid.mass_flow_rate
+        )
         reset_funcified_methods(self)
 
     def info(self):
@@ -507,7 +509,7 @@ class HybridMotor(Motor):
         self.plots.thrust()
         return None
 
-    def allInfo(self):
+    def all_info(self):
         """Prints out all data and graphs available about the Motor.
 
         Return

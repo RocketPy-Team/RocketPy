@@ -73,7 +73,7 @@ def conversion_factor(from_unit, to_unit):
 def convert_units_Functions(variable, from_unit, to_unit, axis=1):
     """See units.convert_units() for documentation."""
     # Perform conversion, take special care with temperatures
-    variable_source = variable.source
+    variable_source = variable.get_source()
     if from_unit in ["K", "degC", "degF"]:
         variable_source[:, axis] = convert_temperature(
             variable_source[:, axis], from_unit, to_unit
