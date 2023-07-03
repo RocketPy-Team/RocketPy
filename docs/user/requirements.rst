@@ -17,7 +17,7 @@ Required Packages
 The following packages are needed in order to run RocketPy:
 
 - requests
-- Numpy >= 1.0
+- Numpy >= 1.13
 - Scipy >= 1.0
 - Matplotlib >= 3.0
 - netCDF4 >= 1.6.4
