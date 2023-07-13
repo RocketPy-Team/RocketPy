@@ -1,4 +1,3 @@
-import datetime
 import os
 from unittest.mock import patch
 
@@ -7,7 +6,7 @@ import numpy as np
 import pytest
 from scipy import optimize
 
-from rocketpy import Environment, Flight, Function, Rocket, SolidMotor, Components
+from rocketpy import Components, Environment, Flight, Function, Rocket, SolidMotor
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
@@ -21,18 +20,38 @@ def setup_rocket_with_given_static_margin(rocket, static_margin):
 
     Parameters
     ----------
-    rocket : Rocket
+    calisto : Rocket
         Rocket to be modified
     static_margin : float
         Static margin that the given rocket shall have
 
     Returns
     -------
-    rocket : Rocket
+    calisto : Rocket
         Rocket with the given static margin.
     """
 
     def compute_static_margin_error_given_distance(position, static_margin, rocket):
+        """Computes the error between the static margin of a rocket and a given
+        static margin. This function is used by the scipy.optimize.root_scalar
+        function to find the position of the aerodynamic surfaces that will
+        result in the given static margin.
+
+        Parameters
+        ----------
+        position : float
+            Position of the trapezoidal fins
+        static_margin : float
+            Static margin that the given rocket shall have
+        rocket : rocketpy.Rocket
+            Rocket to be modified. Only the trapezoidal fins will be modified.
+
+        Returns
+        -------
+        error : float
+            Error between the static margin of the rocket and the given static
+            margin.
+        """
         rocket.aerodynamic_surfaces = Components()
         rocket.add_nose(length=0.5, kind="vonKarman", position=1.0 + 0.5)
         rocket.add_trapezoidal_fins(
@@ -50,7 +69,7 @@ def setup_rocket_with_given_static_margin(rocket, static_margin):
         )
         return rocket.static_margin(0) - static_margin
 
-    sol = optimize.root_scalar(
+    _ = optimize.root_scalar(
         compute_static_margin_error_given_distance,
         bracket=[-2.0, 2.0],
         method="brentq",
@@ -61,315 +80,43 @@ def setup_rocket_with_given_static_margin(rocket, static_margin):
 
 
 @patch("matplotlib.pyplot.show")
-def test_flight(mock_show):
-    test_env = Environment(
-        latitude=32.990254,
-        longitude=-106.974998,
-        elevation=1400,
-        datum="WGS84",
-    )
-    tomorrow = datetime.date.today() + datetime.timedelta(days=1)
-    test_env.set_date(
-        (tomorrow.year, tomorrow.month, tomorrow.day, 12)
-    )  # Hour given in UTC time
+def test_all_info(mock_show, flight_calisto_robust):
+    """Test that the flight class is working as intended. This basically calls
+    the all_info() method and checks if it returns None. It is not testing if
+    the values are corrected, but if the method is working without errors.
 
-    test_motor = SolidMotor(
-        thrust_source="data/motors/Cesaroni_M1670.eng",
-        burn_time=3.9,
-        dry_mass=1.815,
-        dry_inertia=(0.125, 0.125, 0.002),
-        center_of_dry_mass=0.317,
-        nozzle_position=0,
-        grain_number=5,
-        grain_density=1815,
-        nozzle_radius=33 / 1000,
-        throat_radius=11 / 1000,
-        grain_separation=5 / 1000,
-        grain_outer_radius=33 / 1000,
-        grain_initial_height=120 / 1000,
-        grains_center_of_mass_position=0.397,
-        grain_initial_inner_radius=15 / 1000,
-        interpolation_method="linear",
-        coordinate_system_orientation="nozzle_to_combustion_chamber",
-    )
+    Parameters
+    ----------
+    mock_show : unittest.mock.MagicMock
+        Mock object to replace matplotlib.pyplot.show
+    flight_calisto_robust : rocketpy.Flight
+        Flight object to be tested. See the conftest.py file for more info
+        regarding this pytest fixture.
+    """
+    assert flight_calisto_robust.all_info() == None
 
-    test_rocket = Rocket(
-        radius=127 / 2000,
-        mass=19.197 - 2.956 - 1.815,
-        inertia=(6.321, 6.321, 0.034),
-        power_off_drag="data/calisto/powerOffDragCurve.csv",
-        power_on_drag="data/calisto/powerOnDragCurve.csv",
-        center_of_mass_without_motor=0,
-        coordinate_system_orientation="tail_to_nose",
-    )
 
-    test_rocket.set_rail_buttons(0.2 - 0.1182359460624346, -0.5 - 0.1182359460624346)
+@patch("matplotlib.pyplot.show")
+def test_initial_solution(mock_show, test_env, calisto_robust):
+    """Tests the initial_solution option of the Flight class. This test simply
+    simulates the flight using the initial_solution option and checks if the
+    all_info method returns None.
 
-    test_rocket.add_motor(test_motor, position=-1.255 - 0.1182359460624346)
-
-    nose_cone = test_rocket.add_nose(
-        length=0.55829,
-        kind="von_karman",
-        position=0.71971 + 0.558291 - 0.1182359460624346,
-    )
-    fin_set = test_rocket.add_trapezoidal_fins(
-        4,
-        span=0.100,
-        root_chord=0.120,
-        tip_chord=0.040,
-        position=-1.04956 - 0.1182359460624346,
-    )
-    tail = test_rocket.add_tail(
-        top_radius=0.0635,
-        bottom_radius=0.0435,
-        length=0.060,
-        position=-1.194656 - 0.1182359460624346,
-    )
-
-    def drogue_trigger(p, h, y):
-        # p = pressure
-        # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
-        # activate drogue when vz < 0 m/s.
-        return True if y[5] < 0 else False
-
-    def main_trigger(p, h, y):
-        # p = pressure
-        # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
-        # activate main when vz < 0 m/s and z < 800 m.
-        return True if y[5] < 0 and h < 800 else False
-
-    main = test_rocket.add_parachute(
-        "Main",
-        cd_s=10.0,
-        trigger=main_trigger,
-        sampling_rate=105,
-        lag=1.5,
-        noise=(0, 8.3, 0.5),
-    )
-
-    drogue = test_rocket.add_parachute(
-        "Drogue",
-        cd_s=1.0,
-        trigger=drogue_trigger,
-        sampling_rate=105,
-        lag=1.5,
-        noise=(0, 8.3, 0.5),
-    )
-
+    Parameters
+    ----------
+    mock_show : unittest.mock.MagicMock
+        Mock object to replace matplotlib.pyplot.show
+    test_env : rocketpy.Environment
+        Environment to be simulated. See the conftest.py file for more info.
+    calisto_robust : rocketpy.Rocket
+        Rocket to be simulated. See the conftest.py file for more info.
+    """
     test_flight = Flight(
-        rocket=test_rocket,
+        rocket=calisto_robust,
         environment=test_env,
         rail_length=5,
         inclination=85,
         heading=0,
-    )
-
-    assert test_flight.all_info() == None
-
-
-@patch("matplotlib.pyplot.show")
-def test_initial_solution(mock_show):
-    test_env = Environment(
-        latitude=32.990254,
-        longitude=-106.974998,
-        elevation=1400,
-        datum="WGS84",
-    )
-    tomorrow = datetime.date.today() + datetime.timedelta(days=1)
-    test_env.set_date(
-        (tomorrow.year, tomorrow.month, tomorrow.day, 12)
-    )  # Hour given in UTC time
-
-    test_motor = SolidMotor(
-        thrust_source="data/motors/Cesaroni_M1670.eng",
-        burn_time=3.9,
-        dry_mass=1.815,
-        dry_inertia=(0.125, 0.125, 0.002),
-        center_of_dry_mass=0.317,
-        nozzle_position=0,
-        grain_number=5,
-        grain_density=1815,
-        nozzle_radius=33 / 1000,
-        throat_radius=11 / 1000,
-        grain_separation=5 / 1000,
-        grain_outer_radius=33 / 1000,
-        grain_initial_height=120 / 1000,
-        grains_center_of_mass_position=0.397,
-        grain_initial_inner_radius=15 / 1000,
-        interpolation_method="linear",
-        coordinate_system_orientation="nozzle_to_combustion_chamber",
-    )
-
-    test_rocket = Rocket(
-        radius=127 / 2000,
-        mass=19.197 - 2.956 - 1.815,
-        inertia=(6.321, 6.321, 0.034),
-        power_off_drag="data/calisto/powerOffDragCurve.csv",
-        power_on_drag="data/calisto/powerOnDragCurve.csv",
-        center_of_mass_without_motor=0,
-        coordinate_system_orientation="tail_to_nose",
-    )
-
-    test_rocket.set_rail_buttons(0.2 - 0.1182359460624346, -0.5 - 0.1182359460624346)
-
-    test_rocket.add_motor(test_motor, position=-1.255 - 0.1182359460624346)
-
-    nose_cone = test_rocket.add_nose(
-        length=0.55829,
-        kind="von_karman",
-        position=0.71971 + 0.558291 - 0.1182359460624346,
-    )
-    fin_set = test_rocket.add_trapezoidal_fins(
-        4,
-        span=0.100,
-        root_chord=0.120,
-        tip_chord=0.040,
-        position=-1.04956 - 0.1182359460624346,
-    )
-    tail = test_rocket.add_tail(
-        top_radius=0.0635,
-        bottom_radius=0.0435,
-        length=0.060,
-        position=-1.194656 - 0.1182359460624346,
-    )
-
-    def drogue_trigger(p, h, y):
-        # p = pressure
-        # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
-        # activate drogue when vz < 0 m/s.
-        return true if y[5] < 0 else false
-
-    def main_trigger(p, h, y):
-        # p = pressure
-        # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
-        # activate main when vz < 0 m/s and z < 800 m.
-        return true if y[5] < 0 and h < 800 else false
-
-    main = test_rocket.add_parachute(
-        "main",
-        cd_s=10.0,
-        trigger=main_trigger,
-        sampling_rate=105,
-        lag=1.5,
-        noise=(0, 8.3, 0.5),
-    )
-
-    drogue = test_rocket.add_parachute(
-        "drogue",
-        cd_s=1.0,
-        trigger=drogue_trigger,
-        sampling_rate=105,
-        lag=1.5,
-        noise=(0, 8.3, 0.5),
-    )
-
-    test_flight = Flight(
-        rocket=test_rocket,
-        environment=test_env,
-        railLength=5,
-        inclination=85,
-        heading=0,
-    )
-
-    assert test_flight.all_info() == None
-
-
-@patch("matplotlib.pyplot.show")
-def test_initial_solution(mock_show):
-    test_env = Environment(
-        latitude=32.990254,
-        longitude=-106.974998,
-        elevation=1400,
-        datum="WGS84",
-    )
-    tomorrow = datetime.date.today() + datetime.timedelta(days=1)
-    test_env.set_date(
-        (tomorrow.year, tomorrow.month, tomorrow.day, 12)
-    )  # Hour given in UTC time
-
-    test_motor = SolidMotor(
-        thrust_source="data/motors/Cesaroni_M1670.eng",
-        burn_time=3.9,
-        dry_mass=1.815,
-        dry_inertia=(0.125, 0.125, 0.002),
-        center_of_dry_mass=0.317,
-        nozzle_position=0,
-        grain_number=5,
-        grain_density=1815,
-        nozzle_radius=33 / 1000,
-        throat_radius=11 / 1000,
-        grain_separation=5 / 1000,
-        grain_outer_radius=33 / 1000,
-        grain_initial_height=120 / 1000,
-        grains_center_of_mass_position=0.397,
-        grain_initial_inner_radius=15 / 1000,
-        interpolation_method="linear",
-        coordinate_system_orientation="nozzle_to_combustion_chamber",
-    )
-
-    test_rocket = Rocket(
-        radius=127 / 2000,
-        mass=19.197 - 2.956 - 1.815,
-        inertia=(6.321, 6.321, 0.034),
-        power_off_drag="data/calisto/powerOffDragCurve.csv",
-        power_on_drag="data/calisto/powerOnDragCurve.csv",
-        center_of_mass_without_motor=0,
-        coordinate_system_orientation="tail_to_nose",
-    )
-
-    test_rocket.set_rail_buttons(0.2, -0.5)
-
-    test_rocket.add_motor(test_motor, position=-1.255)
-
-    nosecone = test_rocket.add_nose(
-        length=0.55829, kind="vonKarman", position=0.71971 + 0.558291
-    )
-    fin_set = test_rocket.add_trapezoidal_fins(
-        4, span=0.100, root_chord=0.120, tip_chord=0.040, position=-1.04956
-    )
-    tail = test_rocket.add_tail(
-        top_radius=0.0635, bottom_radius=0.0435, length=0.060, position=-1.194656
-    )
-
-    def drogue_trigger(p, h, y):
-        # p = pressure
-        # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
-        # activate drogue when vz < 0 m/s.
-        return True if y[5] < 0 else False
-
-    def main_trigger(p, h, y):
-        # p = pressure
-        # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
-        # activate main when vz < 0 m/s and z < 800 m.
-        return True if y[5] < 0 and h < 800 else False
-
-    Main = test_rocket.add_parachute(
-        "Main",
-        cd_s=10.0,
-        trigger=main_trigger,
-        sampling_rate=105,
-        lag=1.5,
-        noise=(0, 8.3, 0.5),
-    )
-
-    Drogue = test_rocket.add_parachute(
-        "Drogue",
-        cd_s=1.0,
-        trigger=drogue_trigger,
-        sampling_rate=105,
-        lag=1.5,
-        noise=(0, 8.3, 0.5),
-    )
-
-    test_flight = Flight(
-        rocket=test_rocket,
-        environment=test_env,
-        rail_length=5,
-        inclination=85,
-        heading=0,
-        # max_time=300*60,
-        # minTimeStep=0.1,
-        # max_time_step=10,
         rtol=1e-8,
         atol=1e-6,
         verbose=True,
@@ -402,7 +149,19 @@ def test_initial_solution(mock_show):
 def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
     """Test stability margins for a constant velocity flight, 100 m/s, wind a
     lateral wind speed of 10 m/s. Rocket has infinite mass to prevent side motion.
-    Check if a restoring moment exists depending on static margins."""
+    Check if a restoring moment exists depending on static margins.
+
+    Parameters
+    ----------
+    wind_u : float
+        Wind speed in the x direction
+    wind_v : float
+        Wind speed in the y direction
+    static_margin : float
+        Static margin to be tested
+    max_time : float
+        Maximum time to be simulated
+    """
 
     # Create an environment with ZERO gravity to keep the rocket's speed constant
     env = Environment(gravity=0, latitude=0, longitude=0, elevation=0)
@@ -418,6 +177,7 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
     env.speed_of_sound = Function(1e16)
 
     # Create a motor with ZERO thrust and ZERO mass to keep the rocket's speed constant
+    # TODO: why don t we use these same values to create EmptyMotor class?
     dummy_motor = SolidMotor(
         thrust_source=1e-300,
         burn_time=1e-10,
@@ -485,107 +245,39 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
 
 
 @patch("matplotlib.pyplot.show")
-def test_rolling_flight(mock_show):
-    test_env = Environment(
-        latitude=32.990254,
-        longitude=-106.974998,
-        elevation=1400,
-        datum="WGS84",
-    )
-    tomorrow = datetime.date.today() + datetime.timedelta(days=1)
-    test_env.set_date(
-        (tomorrow.year, tomorrow.month, tomorrow.day, 12)
-    )  # Hour given in UTC time
-    test_env.set_atmospheric_model(type="standard_atmosphere")
-
-    test_motor = SolidMotor(
-        thrust_source="data/motors/Cesaroni_M1670.eng",
-        burn_time=3.9,
-        dry_mass=1.815,
-        dry_inertia=(0.125, 0.125, 0.002),
-        center_of_dry_mass=0.317,
-        nozzle_position=0,
-        grain_number=5,
-        grain_density=1815,
-        nozzle_radius=33 / 1000,
-        throat_radius=11 / 1000,
-        grain_separation=5 / 1000,
-        grain_outer_radius=33 / 1000,
-        grain_initial_height=120 / 1000,
-        grains_center_of_mass_position=0.397,
-        grain_initial_inner_radius=15 / 1000,
-        interpolation_method="linear",
-        coordinate_system_orientation="nozzle_to_combustion_chamber",
-    )
-
-    test_rocket = Rocket(
-        radius=127 / 2000,
-        mass=19.197 - 2.956 - 1.815,
-        inertia=(6.321, 6.321, 0.034),
-        power_off_drag="data/calisto/powerOffDragCurve.csv",
-        power_on_drag="data/calisto/powerOnDragCurve.csv",
-        center_of_mass_without_motor=0,
-        coordinate_system_orientation="tail_to_nose",
-    )
+def test_rolling_flight(
+    mock_show,
+    test_env,
+    cesaroni_m1670,
+    calisto,
+    calisto_nose_cone,
+    calisto_tail,
+    calisto_main_chute,
+    calisto_drogue_chute,
+):
+    test_rocket = calisto
 
     test_rocket.set_rail_buttons(0.2 - 0.1182359460624346, -0.5 - 0.1182359460624346)
-
-    test_rocket.add_motor(test_motor, position=-1.255 - 0.1182359460624346)
-
-    nose_cone = test_rocket.add_nose(
-        length=0.55829,
-        kind="vonKarman",
-        position=0.71971 + 0.558291 - 0.1182359460624346,
-    )
+    test_rocket.add_motor(cesaroni_m1670, position=-1.255 - 0.1182359460624346)
     fin_set = test_rocket.add_trapezoidal_fins(
         4,
         span=0.100,
         root_chord=0.120,
         tip_chord=0.040,
         position=-1.04956,
-        cant_angle=0.5 - 0.1182359460624346,
+        cant_angle=0.5,
     )
-    tail = test_rocket.add_tail(
-        top_radius=0.0635,
-        bottom_radius=0.0435,
-        length=0.060,
-        position=-1.194656 - 0.1182359460624346,
+    calisto.aero_surfaces.add(
+        calisto_nose_cone, 0.71971 + 0.558291 - 0.1182359460624346
     )
-
-    def drogue_trigger(p, h, y):
-        # p = pressure
-        # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
-        # activate drogue when vz < 0 m/s.
-        return True if y[5] < 0 else False
-
-    def main_trigger(p, h, y):
-        # p = pressure
-        # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
-        # activate main when vz < 0 m/s and z < 800 m.
-        return True if y[5] < 0 and h < 800 else False
-
-    Main = test_rocket.add_parachute(
-        "Main",
-        cd_s=10.0,
-        trigger=main_trigger,
-        sampling_rate=105,
-        lag=1.5,
-        noise=(0, 8.3, 0.5),
-    )
-
-    Drogue = test_rocket.add_parachute(
-        "Drogue",
-        cd_s=1.0,
-        trigger=drogue_trigger,
-        sampling_rate=105,
-        lag=1.5,
-        noise=(0, 8.3, 0.5),
-    )
+    calisto.aero_surfaces.add(calisto_tail, -1.194656 - 0.1182359460624346)
+    calisto.parachutes.append(calisto_main_chute)
+    calisto.parachutes.append(calisto_drogue_chute)
 
     test_flight = Flight(
         rocket=test_rocket,
         environment=test_env,
-        rail_length=5,
+        rail_length=5.2,
         inclination=85,
         heading=0,
     )
@@ -594,72 +286,23 @@ def test_rolling_flight(mock_show):
 
 
 @patch("matplotlib.pyplot.show")
-def test_simpler_parachute_triggers(mock_show):
-    test_env = Environment(
-        latitude=32.990254,
-        longitude=-106.974998,
-        elevation=1400,
-        datum="WGS84",
-    )
-    tomorrow = datetime.date.today() + datetime.timedelta(days=1)
-    test_env.set_date(
-        (tomorrow.year, tomorrow.month, tomorrow.day, 12)
-    )  # Hour given in UTC time
+def test_simpler_parachute_triggers(mock_show, test_env, calisto_robust):
+    """Tests different types of parachute triggers. This is important to ensure
+    the code is working as intended, since the parachute triggers can have very
+    different format definitions.
 
-    test_motor = SolidMotor(
-        thrust_source="data/motors/Cesaroni_M1670.eng",
-        burn_time=3.9,
-        dry_mass=1.815,
-        dry_inertia=(0.125, 0.125, 0.002),
-        center_of_dry_mass=0.317,
-        nozzle_position=0,
-        grain_number=5,
-        grain_density=1815,
-        nozzle_radius=33 / 1000,
-        throat_radius=11 / 1000,
-        grain_separation=5 / 1000,
-        grain_outer_radius=33 / 1000,
-        grain_initial_height=120 / 1000,
-        grains_center_of_mass_position=0.397,
-        grain_initial_inner_radius=15 / 1000,
-        interpolation_method="linear",
-        coordinate_system_orientation="nozzle_to_combustion_chamber",
-    )
+    Parameters
+    ----------
+    mock_show : unittest.mock.MagicMock
+        Mock object to replace matplotlib.pyplot.show
+    test_env : rocketpy.Environment
+        Environment to be simulated. See the conftest.py file for more info.
+    calisto_robust : rocketpy.Rocket
+        Rocket to be simulated. See the conftest.py file for more info.
+    """
+    calisto_robust.parachutes = []
 
-    test_rocket = Rocket(
-        radius=127 / 2000,
-        mass=19.197 - 2.956 - 1.815,
-        inertia=(6.321, 6.321, 0.034),
-        power_off_drag="data/calisto/powerOffDragCurve.csv",
-        power_on_drag="data/calisto/powerOnDragCurve.csv",
-        center_of_mass_without_motor=0,
-        coordinate_system_orientation="tail_to_nose",
-    )
-
-    test_rocket.set_rail_buttons(0.2 - 0.1182359460624346, -0.5 - 0.1182359460624346)
-
-    test_rocket.add_motor(test_motor, position=-1.255 - 0.1182359460624346)
-
-    nose_cone = test_rocket.add_nose(
-        length=0.55829,
-        kind="von_karman",
-        position=0.71971 + 0.558291 - 0.1182359460624346,
-    )
-    fin_set = test_rocket.add_trapezoidal_fins(
-        4,
-        span=0.100,
-        root_chord=0.120,
-        tip_chord=0.040,
-        position=-1.04956 - 0.1182359460624346,
-    )
-    tail = test_rocket.add_tail(
-        top_radius=0.0635,
-        bottom_radius=0.0435,
-        length=0.060,
-        position=-1.194656 - 0.1182359460624346,
-    )
-
-    main = test_rocket.add_parachute(
+    main = calisto_robust.add_parachute(
         "Main",
         cd_s=10.0,
         trigger=800,
@@ -667,7 +310,7 @@ def test_simpler_parachute_triggers(mock_show):
         lag=0,
     )
 
-    drogue = test_rocket.add_parachute(
+    drogue = calisto_robust.add_parachute(
         "Drogue",
         cd_s=1.0,
         trigger="apogee",
@@ -676,7 +319,7 @@ def test_simpler_parachute_triggers(mock_show):
     )
 
     test_flight = Flight(
-        rocket=test_rocket,
+        rocket=calisto_robust,
         environment=test_env,
         rail_length=5,
         inclination=85,
@@ -693,74 +336,19 @@ def test_simpler_parachute_triggers(mock_show):
         )
         <= 1
     )
-
     assert test_flight.all_info() == None
 
 
-def test_export_data():
-    "Tests weather the method Flight.export_data is working as intended"
+def test_export_data(flight_calisto):
+    """Tests wether the method Flight.export_data is working as intended
 
-    test_env = Environment(
-        latitude=32.990254,
-        longitude=-106.974998,
-        elevation=1400,
-        datum="WGS84",
-    )
-
-    test_motor = SolidMotor(
-        thrust_source="data/motors/Cesaroni_M1670.eng",
-        burn_time=3.9,
-        dry_mass=1.815,
-        dry_inertia=(0.125, 0.125, 0.002),
-        center_of_dry_mass=0.317,
-        nozzle_position=0,
-        grain_number=5,
-        grain_density=1815,
-        nozzle_radius=33 / 1000,
-        throat_radius=11 / 1000,
-        grain_separation=5 / 1000,
-        grain_outer_radius=33 / 1000,
-        grain_initial_height=120 / 1000,
-        grains_center_of_mass_position=0.397,
-        grain_initial_inner_radius=15 / 1000,
-        interpolation_method="linear",
-        coordinate_system_orientation="nozzle_to_combustion_chamber",
-    )
-
-    test_rocket = Rocket(
-        radius=127 / 2000,
-        mass=19.197 - 2.956 - 1.815,
-        inertia=(6.321, 6.321, 0.034),
-        power_off_drag=0.5,
-        power_on_drag=0.5,
-        center_of_mass_without_motor=0,
-        coordinate_system_orientation="tail_to_nose",
-    )
-
-    test_rocket.set_rail_buttons(0.2 - 0.1182359460624346, -0.5 - 0.1182359460624346)
-
-    test_rocket.add_motor(test_motor, position=-1.255 - 0.1182359460624346)
-
-    nose_cone = test_rocket.add_nose(
-        length=0.55829,
-        kind="von_karman",
-        position=0.71971 + 0.558291 - 0.1182359460624346,
-    )
-    fin_set = test_rocket.add_trapezoidal_fins(
-        4,
-        span=0.100,
-        root_chord=0.120,
-        tip_chord=0.040,
-        position=-1.04956 - 0.1182359460624346,
-    )
-
-    test_flight = Flight(
-        rocket=test_rocket,
-        environment=test_env,
-        rail_length=5,
-        inclination=85,
-        heading=0,
-    )
+    Parameters:
+    -----------
+    flight_calisto : rocketpy.Flight
+        Flight object to be tested. See the conftest.py file for more info
+        regarding this pytest fixture.
+    """
+    test_flight = flight_calisto
 
     # Basic export
     test_flight.export_data("test_export_data_1.csv")
@@ -777,7 +365,6 @@ def test_export_data():
     )
 
     # Load exported files and fixtures and compare them
-
     test_1 = np.loadtxt("test_export_data_1.csv", delimiter=",")
     test_2 = np.loadtxt("test_export_data_2.csv", delimiter=",")
 
@@ -814,70 +401,17 @@ def test_export_data():
     )
 
 
-def test_export_kml():
-    "Tests weather the method Flight.export_kml is working as intended"
+def test_export_kml(flight_calisto_robust):
+    """Tests weather the method Flight.export_kml is working as intended.
 
-    test_env = Environment(
-        latitude=32.990254,
-        longitude=-106.974998,
-        elevation=1400,
-        datum="WGS84",
-    )
+    Parameters:
+    -----------
+    flight_calisto_robust : rocketpy.Flight
+        Flight object to be tested. See the conftest.py file for more info
+        regarding this pytest fixture.
+    """
 
-    test_motor = SolidMotor(
-        thrust_source="data/motors/Cesaroni_M1670.eng",
-        burn_time=3.9,
-        dry_mass=1.815,
-        dry_inertia=(0.125, 0.125, 0.002),
-        center_of_dry_mass=0.317,
-        nozzle_position=0,
-        grain_number=5,
-        grain_density=1815,
-        nozzle_radius=33 / 1000,
-        throat_radius=11 / 1000,
-        grain_separation=5 / 1000,
-        grain_outer_radius=33 / 1000,
-        grain_initial_height=120 / 1000,
-        grains_center_of_mass_position=0.397,
-        grain_initial_inner_radius=15 / 1000,
-        interpolation_method="linear",
-        coordinate_system_orientation="nozzle_to_combustion_chamber",
-    )
-
-    test_rocket = Rocket(
-        radius=127 / 2000,
-        mass=19.197 - 2.956 - 1.815,
-        inertia=(6.321, 6.321, 0.034),
-        power_off_drag=0.5,
-        power_on_drag=0.5,
-        center_of_mass_without_motor=0,
-        coordinate_system_orientation="tail_to_nose",
-    )
-
-    test_rocket.set_rail_buttons(0.2 - 0.1182359460624346, -0.5 - 0.1182359460624346)
-
-    test_rocket.add_motor(test_motor, position=-1.255 - 0.1182359460624346)
-
-    nose_cone = test_rocket.add_nose(
-        length=0.55829,
-        kind="von_karman",
-        position=0.71971 + 0.558291 - 0.1182359460624346,
-    )
-    fin_set = test_rocket.add_trapezoidal_fins(
-        4,
-        span=0.100,
-        root_chord=0.120,
-        tip_chord=0.040,
-        position=-1.04956 - 0.1182359460624346,
-    )
-
-    test_flight = Flight(
-        rocket=test_rocket,
-        environment=test_env,
-        rail_length=5,
-        inclination=85,
-        heading=0,
-    )
+    test_flight = flight_calisto_robust
 
     # Basic export
     test_flight.export_kml(
@@ -912,101 +446,11 @@ def test_export_kml():
 
 
 @patch("matplotlib.pyplot.show")
-def test_latlon_conversions(mock_show):
-    test_env = Environment(
-        latitude=32.990254,
-        longitude=-106.974998,
-        elevation=1400,
-        datum="WGS84",
-    )
-
-    test_motor = SolidMotor(
-        thrust_source="data/motors/Cesaroni_M1670.eng",
-        burn_time=3.9,
-        dry_mass=1.815,
-        dry_inertia=(0.125, 0.125, 0.002),
-        center_of_dry_mass=0.317,
-        nozzle_position=0,
-        grain_number=5,
-        grain_density=1815,
-        nozzle_radius=33 / 1000,
-        throat_radius=11 / 1000,
-        grain_separation=5 / 1000,
-        grain_outer_radius=33 / 1000,
-        grain_initial_height=120 / 1000,
-        grains_center_of_mass_position=0.397,
-        grain_initial_inner_radius=15 / 1000,
-        interpolation_method="linear",
-        coordinate_system_orientation="nozzle_to_combustion_chamber",
-    )
-
-    test_rocket = Rocket(
-        radius=127 / 2000,
-        mass=19.197 - 2.956 - 1.815,
-        inertia=(6.321, 6.321, 0.034),
-        power_off_drag=0.5,
-        power_on_drag=0.5,
-        center_of_mass_without_motor=0,
-        coordinate_system_orientation="tail_to_nose",
-    )
-
-    test_rocket.set_rail_buttons(0.2 - 0.1182359460624346, -0.5 - 0.1182359460624346)
-
-    test_rocket.add_motor(test_motor, position=-1.255 - 0.1182359460624346)
-
-    nose_cone = test_rocket.add_nose(
-        length=0.55829,
-        kind="von_karman",
-        position=0.71971 + 0.558291 - 0.1182359460624346,
-    )
-    fin_set = test_rocket.add_trapezoidal_fins(
-        4,
-        span=0.100,
-        root_chord=0.120,
-        tip_chord=0.040,
-        position=-1.04956 - 0.1182359460624346,
-    )
-    tail = test_rocket.add_tail(
-        top_radius=0.0635,
-        bottom_radius=0.0435,
-        length=0.060,
-        position=-1.194656 - 0.1182359460624346,
-    )
-
-    def drogue_trigger(p, h, y):
-        # p = pressure
-        # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
-        # activate drogue when vz < 0 m/s.
-        return True if y[5] < 0 else False
-
-    def main_trigger(p, h, y):
-        # p = pressure
-        # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
-        # activate main when vz < 0 m/s and z < 800 m.
-        return True if y[5] < 0 and h < 800 else False
-
-    Main = test_rocket.add_parachute(
-        "Main",
-        cd_s=10.0,
-        trigger=main_trigger,
-        sampling_rate=105,
-        lag=1.5,
-        noise=(0, 8.3, 0.5),
-    )
-
-    Drogue = test_rocket.add_parachute(
-        "Drogue",
-        cd_s=1.0,
-        trigger=drogue_trigger,
-        sampling_rate=105,
-        lag=1.5,
-        noise=(0, 8.3, 0.5),
-    )
-
+def test_lat_lon_conversions(mock_show, test_env_robust, calisto_robust):
     test_flight = Flight(
-        rocket=test_rocket,
-        environment=test_env,
-        rail_length=5,
+        rocket=calisto_robust,
+        environment=test_env_robust,
+        rail_length=5.2,
         inclination=85,
         heading=45,
     )
@@ -1020,71 +464,13 @@ def test_latlon_conversions(mock_show):
 
 
 @patch("matplotlib.pyplot.show")
-def test_latlon_conversions2(mock_show):
+def test_lat_lon_conversions2(mock_show, test_env, calisto_robust):
     "additional tests to capture incorrect behaviors during lat/lon conversions"
-    test_motor = SolidMotor(
-        thrust_source="data/motors/Cesaroni_M1670.eng",
-        burn_time=3.9,
-        dry_mass=1.815,
-        dry_inertia=(0.125, 0.125, 0.002),
-        center_of_dry_mass=0.317,
-        nozzle_position=0,
-        grain_number=5,
-        grain_density=1815,
-        nozzle_radius=33 / 1000,
-        throat_radius=11 / 1000,
-        grain_separation=5 / 1000,
-        grain_outer_radius=33 / 1000,
-        grain_initial_height=120 / 1000,
-        grains_center_of_mass_position=0.397,
-        grain_initial_inner_radius=15 / 1000,
-        interpolation_method="linear",
-        coordinate_system_orientation="nozzle_to_combustion_chamber",
-    )
-
-    test_rocket = Rocket(
-        radius=127 / 2000,
-        mass=19.197 - 2.956 - 1.815,
-        inertia=(6.321, 6.321, 0.034),
-        power_off_drag=0.5,
-        power_on_drag=0.5,
-        center_of_mass_without_motor=0,
-        coordinate_system_orientation="tail_to_nose",
-    )
-
-    test_rocket.set_rail_buttons(0.2 - 0.1182359460624346, -0.5 - 0.1182359460624346)
-
-    test_rocket.add_motor(test_motor, position=-1.255 - 0.1182359460624346)
-
-    nose_cone = test_rocket.add_nose(
-        length=0.55829,
-        kind="von_karman",
-        position=0.71971 + 0.558291 - 0.1182359460624346,
-    )
-    fin_set = test_rocket.add_trapezoidal_fins(
-        4,
-        span=0.100,
-        root_chord=0.120,
-        tip_chord=0.040,
-        position=-1.04956 - 0.1182359460624346,
-    )
-    tail = test_rocket.add_tail(
-        top_radius=0.0635,
-        bottom_radius=0.0435,
-        length=0.060,
-        position=-1.194656 - 0.1182359460624346,
-    )
-
-    test_env = Environment(
-        latitude=0,
-        longitude=0,
-        elevation=1400,
-    )
 
     test_flight = Flight(
-        rocket=test_rocket,
+        rocket=calisto_robust,
         environment=test_env,
-        rail_length=5,
+        rail_length=5.2,
         inclination=85,
         heading=0,
     )
@@ -1103,7 +489,7 @@ def test_latlon_conversions2(mock_show):
         (100000, 100003.35594050681),
     ],
 )
-def test_rail_length(rocket, example_env, rail_length, out_of_rail_time):
+def test_rail_length(calisto_robust, example_env, rail_length, out_of_rail_time):
     """Test the rail length parameter of the Flight class. This test simply
     simulate the flight using different rail lengths and checks if the expected
     out of rail altitude is achieved. Four different rail lengths are
@@ -1113,7 +499,7 @@ def test_rail_length(rocket, example_env, rail_length, out_of_rail_time):
 
     Parameters
     ----------
-    rocket : rocketpy.Rocket
+    calisto_robust : rocketpy.Rocket
         The rocket to be simulated. In this case, the fixture rocket is used.
         See the conftest.py file for more information.
     example_env : rocketpy.Environment
@@ -1126,11 +512,11 @@ def test_rail_length(rocket, example_env, rail_length, out_of_rail_time):
         The expected time at which the rocket leaves the rail in seconds.
     """
     test_flight = Flight(
-        rocket=rocket,
+        rocket=calisto_robust,
         environment=example_env,
         rail_length=rail_length,
         inclination=85,
         heading=0,
         terminate_on_apogee=True,
     )
-    assert (test_flight.z(test_flight.out_of_rail_time) - out_of_rail_time) < 1e-6
+    assert abs(test_flight.z(test_flight.out_of_rail_time) - out_of_rail_time) < 1e-6

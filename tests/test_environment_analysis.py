@@ -19,7 +19,7 @@ def test_allInfo(mock_show, env_analysis):
 
     Parameters
     ----------
-    env_analysis : EnvironmentAnalysis
+    env_analysis : rocketpy.EnvironmentAnalysis
         A simple object of the Environment Analysis class
 
     Returns
@@ -42,7 +42,7 @@ def test_distribution_plots(mock_show, env_analysis):
 
     Parameters
     ----------
-    env_analysis : EnvironmentAnalysis
+    env_analysis : rocketpy.EnvironmentAnalysis
         A simple object of the EnvironmentAnalysis class.
 
     Returns
@@ -73,7 +73,7 @@ def test_average_plots(mock_show, env_analysis):
 
     Parameters
     ----------
-    env_analysis : EnvironmentAnalysis
+    env_analysis : rocketpy.EnvironmentAnalysis
         A simple object of the EnvironmentAnalysis class.
 
     Returns
@@ -101,7 +101,7 @@ def test_profile_plots(mock_show, env_analysis):
     ----------
     mock_show : Mock
         Mock of the matplotlib.pyplot.show() method
-    env_analysis : EnvironmentAnalysis
+    env_analysis : rocketpy.EnvironmentAnalysis
         A simple object of the EnvironmentAnalysis class.
     """
     # Check profile plots
@@ -173,14 +173,14 @@ def test_exports(env_analysis):
     """
 
     assert env_analysis.export_mean_profiles() == None
-    assert env_analysis.save("EnvAnalysisDict") == None
+    assert env_analysis.save("env_analysis_dict") == None
 
     env2 = copy.deepcopy(env_analysis)
-    env2.load("EnvAnalysisDict")
+    env2.load("env_analysis_dict")
     assert env2.all_info() == None
 
     # Delete file created by save method
-    os.remove("EnvAnalysisDict")
+    os.remove("env_analysis_dict")
     os.remove("wind_rose.gif")
     os.remove("export_env_analysis.json")
 

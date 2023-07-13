@@ -3140,12 +3140,12 @@ class Environment:
         grid = np.linspace(self.elevation, self.max_expected_height)
         plotInfo = dict(
             grid=[i for i in grid],
-            windSpeed=[self.wind_speed(i) for i in grid],
-            windDirection=[self.wind_direction(i) for i in grid],
+            wind_speed=[self.wind_speed(i) for i in grid],
+            wind_direction=[self.wind_direction(i) for i in grid],
             speed_of_sound=[self.speed_of_sound(i) for i in grid],
             density=[self.density(i) for i in grid],
-            windVelX=[self.wind_velocity_x(i) for i in grid],
-            windVelY=[self.wind_velocity_y(i) for i in grid],
+            wind_vel_x=[self.wind_velocity_x(i) for i in grid],
+            wind_vel_y=[self.wind_velocity_y(i) for i in grid],
             pressure=[self.pressure(i) / 100 for i in grid],
             temperature=[self.temperature(i) for i in grid],
         )
@@ -3205,22 +3205,22 @@ class Environment:
         info = dict(
             grav=self.gravity,
             elevation=self.elevation,
-            modelType=self.atmospheric_model_type,
-            modelTypeMaxExpectedHeight=self.max_expected_height,
-            windSpeed=self.wind_speed(self.elevation),
-            windDirection=self.wind_direction(self.elevation),
-            windHeading=self.wind_heading(self.elevation),
-            surfacePressure=self.pressure(self.elevation) / 100,  # in hPa
-            surfaceTemperature=self.temperature(self.elevation),
-            surfaceAirDensity=self.density(self.elevation),
-            surfaceSpeedOfSound=self.speed_of_sound(self.elevation),
+            model_type=self.atmospheric_model_type,
+            model_type_max_expected_height=self.max_expected_height,
+            wind_speed=self.wind_speed(self.elevation),
+            wind_direction=self.wind_direction(self.elevation),
+            wind_heading=self.wind_heading(self.elevation),
+            surface_pressure=self.pressure(self.elevation) / 100,  # in hPa
+            surface_temperature=self.temperature(self.elevation),
+            surface_air_density=self.density(self.elevation),
+            surface_speed_of_sound=self.speed_of_sound(self.elevation),
         )
         if self.datetime_date != None:
             info["launch_date"] = self.datetime_date.strftime("%Y-%d-%m %H:%M:%S")
         if self.latitude != None and self.longitude != None:
             info["lat"] = self.latitude
             info["lon"] = self.longitude
-        if info["modelType"] in ["Forecast", "Reanalysis", "Ensemble"]:
+        if info["model_type"] in ["Forecast", "Reanalysis", "Ensemble"]:
             info["initDate"] = self.atmospheric_model_init_date.strftime(
                 "%Y-%d-%m %H:%M:%S"
             )
@@ -3232,7 +3232,7 @@ class Environment:
             info["endLat"] = self.atmospheric_model_end_lat
             info["initLon"] = self.atmospheric_model_init_lon
             info["endLon"] = self.atmospheric_model_end_lon
-        if info["modelType"] == "Ensemble":
+        if info["model_type"] == "Ensemble":
             info["numEnsembleMembers"] = self.num_ensemble_members
             info["selectedEnsembleMember"] = self.ensemble_member
         return info
