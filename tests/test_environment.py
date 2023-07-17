@@ -221,7 +221,7 @@ def test_rap_atmosphere(mock_show, example_env_robust):
 
 
 @patch("matplotlib.pyplot.show")
-def test_era5_atmosphere(mock_show, test_env_robust):
+def test_era5_atmosphere(mock_show, example_env_robust):
     """Tests the Reanalysis model with the ERA5 file. It uses an example file
     available in the data/weather folder of the RocketPy repository.
 
@@ -229,16 +229,16 @@ def test_era5_atmosphere(mock_show, test_env_robust):
     ----------
     mock_show : mock
         Mock object to replace matplotlib.pyplot.show() method.
-    test_env_robust : rocketpy.Environment
+    example_env_robust : rocketpy.Environment
         Example environment object to be tested.
     """
-    test_env_robust.set_date((2018, 10, 15, 12))
-    test_env_robust.set_atmospheric_model(
+    example_env_robust.set_date((2018, 10, 15, 12))
+    example_env_robust.set_atmospheric_model(
         type="Reanalysis",
         file="data/weather/SpaceportAmerica_2018_ERA-5.nc",
         dictionary="ECMWF",
     )
-    assert test_env_robust.all_info() == None
+    assert example_env_robust.all_info() == None
 
 
 @pytest.mark.slow

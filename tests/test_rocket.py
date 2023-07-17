@@ -173,8 +173,8 @@ def test_airfoil(
     assert test_rocket.all_info() == None or not abs(static_margin - 2.03) < 0.01
 
 
-def test_evaluate_static_margin_assert_cp_equals_cm(dimensionless_rocket):
-    rocket = dimensionless_rocket
+def test_evaluate_static_margin_assert_cp_equals_cm(dimensionless_calisto):
+    rocket = dimensionless_calisto
     rocket.evaluate_static_margin()
 
     burn_time = rocket.motor.burn_time
@@ -199,7 +199,7 @@ def test_evaluate_static_margin_assert_cp_equals_cm(dimensionless_rocket):
         [0.5, "not a mapped string, to show default case"],
     ),
 )
-def test_add_nose_assert_cp_cm_plus_nose(k, type, calisto, dimensionless_rocket, m):
+def test_add_nose_assert_cp_cm_plus_nose(k, type, calisto, dimensionless_calisto, m):
     calisto.add_nose(length=0.55829, kind=type, position=1.278 - 0.1182359460624346)
     cpz = (
         1.278 - 0.1182359460624346
@@ -215,24 +215,24 @@ def test_add_nose_assert_cp_cm_plus_nose(k, type, calisto, dimensionless_rocket,
     assert clalpha == pytest.approx(calisto.total_lift_coeff_der, 1e-8)
     assert calisto.cp_position == pytest.approx(cpz, 1e-8)
 
-    dimensionless_rocket.add_nose(
+    dimensionless_calisto.add_nose(
         length=0.55829 * m, kind=type, position=(1.278 - 0.1182359460624346) * m
     )
-    assert pytest.approx(dimensionless_rocket.static_margin(0), 1e-8) == pytest.approx(
+    assert pytest.approx(dimensionless_calisto.static_margin(0), 1e-8) == pytest.approx(
         calisto.static_margin(0), 1e-8
     )
     assert pytest.approx(
-        dimensionless_rocket.static_margin(np.inf), 1e-8
+        dimensionless_calisto.static_margin(np.inf), 1e-8
     ) == pytest.approx(calisto.static_margin(np.inf), 1e-8)
     assert pytest.approx(
-        dimensionless_rocket.total_lift_coeff_der, 1e-8
+        dimensionless_calisto.total_lift_coeff_der, 1e-8
     ) == pytest.approx(calisto.total_lift_coeff_der, 1e-8)
-    assert pytest.approx(dimensionless_rocket.cp_position / m, 1e-8) == pytest.approx(
+    assert pytest.approx(dimensionless_calisto.cp_position / m, 1e-8) == pytest.approx(
         calisto.cp_position, 1e-8
     )
 
 
-def test_add_tail_assert_cp_cm_plus_tail(calisto, dimensionless_rocket, m):
+def test_add_tail_assert_cp_cm_plus_tail(calisto, dimensionless_calisto, m):
     calisto.add_tail(
         top_radius=0.0635,
         bottom_radius=0.0435,
@@ -253,22 +253,22 @@ def test_add_tail_assert_cp_cm_plus_tail(calisto, dimensionless_rocket, m):
     assert np.abs(clalpha) == pytest.approx(np.abs(calisto.total_lift_coeff_der), 1e-8)
     assert calisto.cp_position == cpz
 
-    dimensionless_rocket.add_tail(
+    dimensionless_calisto.add_tail(
         top_radius=0.0635 * m,
         bottom_radius=0.0435 * m,
         length=0.060 * m,
         position=(-1.194656 - 0.1182359460624346) * m,
     )
-    assert pytest.approx(dimensionless_rocket.static_margin(0), 1e-8) == pytest.approx(
+    assert pytest.approx(dimensionless_calisto.static_margin(0), 1e-8) == pytest.approx(
         calisto.static_margin(0), 1e-8
     )
     assert pytest.approx(
-        dimensionless_rocket.static_margin(np.inf), 1e-8
+        dimensionless_calisto.static_margin(np.inf), 1e-8
     ) == pytest.approx(calisto.static_margin(np.inf), 1e-8)
     assert pytest.approx(
-        dimensionless_rocket.total_lift_coeff_der, 1e-8
+        dimensionless_calisto.total_lift_coeff_der, 1e-8
     ) == pytest.approx(calisto.total_lift_coeff_der, 1e-8)
-    assert pytest.approx(dimensionless_rocket.cp_position / m, 1e-8) == pytest.approx(
+    assert pytest.approx(dimensionless_calisto.cp_position / m, 1e-8) == pytest.approx(
         calisto.cp_position, 1e-8
     )
 
@@ -347,7 +347,7 @@ def test_add_trapezoidal_fins_sweep_length(
     assert isinstance(calisto.aerodynamic_surfaces[0].component, NoseCone)
 
 
-def test_add_fins_assert_cp_cm_plus_fins(calisto, dimensionless_rocket, m):
+def test_add_fins_assert_cp_cm_plus_fins(calisto, dimensionless_calisto, m):
     calisto.add_trapezoidal_fins(
         4,
         span=0.100,
@@ -380,23 +380,23 @@ def test_add_fins_assert_cp_cm_plus_fins(calisto, dimensionless_rocket, m):
     assert np.abs(clalpha) == pytest.approx(np.abs(calisto.total_lift_coeff_der), 1e-8)
     assert calisto.cp_position == pytest.approx(cpz, 1e-8)
 
-    dimensionless_rocket.add_trapezoidal_fins(
+    dimensionless_calisto.add_trapezoidal_fins(
         4,
         span=0.100 * m,
         root_chord=0.120 * m,
         tip_chord=0.040 * m,
         position=(-1.04956 - 0.1182359460624346) * m,
     )
-    assert pytest.approx(dimensionless_rocket.static_margin(0), 1e-8) == pytest.approx(
+    assert pytest.approx(dimensionless_calisto.static_margin(0), 1e-8) == pytest.approx(
         calisto.static_margin(0), 1e-8
     )
     assert pytest.approx(
-        dimensionless_rocket.static_margin(np.inf), 1e-8
+        dimensionless_calisto.static_margin(np.inf), 1e-8
     ) == pytest.approx(calisto.static_margin(np.inf), 1e-8)
     assert pytest.approx(
-        dimensionless_rocket.total_lift_coeff_der, 1e-8
+        dimensionless_calisto.total_lift_coeff_der, 1e-8
     ) == pytest.approx(calisto.total_lift_coeff_der, 1e-8)
-    assert pytest.approx(dimensionless_rocket.cp_position / m, 1e-8) == pytest.approx(
+    assert pytest.approx(dimensionless_calisto.cp_position / m, 1e-8) == pytest.approx(
         calisto.cp_position, 1e-8
     )
 

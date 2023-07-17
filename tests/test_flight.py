@@ -97,7 +97,7 @@ def test_all_info(mock_show, flight_calisto_robust):
 
 
 @patch("matplotlib.pyplot.show")
-def test_initial_solution(mock_show, test_env, calisto_robust):
+def test_initial_solution(mock_show, example_env, calisto_robust):
     """Tests the initial_solution option of the Flight class. This test simply
     simulates the flight using the initial_solution option and checks if the
     all_info method returns None.
@@ -106,14 +106,14 @@ def test_initial_solution(mock_show, test_env, calisto_robust):
     ----------
     mock_show : unittest.mock.MagicMock
         Mock object to replace matplotlib.pyplot.show
-    test_env : rocketpy.Environment
+    example_env : rocketpy.Environment
         Environment to be simulated. See the conftest.py file for more info.
     calisto_robust : rocketpy.Rocket
         Rocket to be simulated. See the conftest.py file for more info.
     """
     test_flight = Flight(
         rocket=calisto_robust,
-        environment=test_env,
+        environment=example_env,
         rail_length=5,
         inclination=85,
         heading=0,
@@ -247,7 +247,7 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
 @patch("matplotlib.pyplot.show")
 def test_rolling_flight(
     mock_show,
-    test_env,
+    example_env,
     cesaroni_m1670,
     calisto,
     calisto_nose_cone,
@@ -276,7 +276,7 @@ def test_rolling_flight(
 
     test_flight = Flight(
         rocket=test_rocket,
-        environment=test_env,
+        environment=example_env,
         rail_length=5.2,
         inclination=85,
         heading=0,
@@ -286,7 +286,7 @@ def test_rolling_flight(
 
 
 @patch("matplotlib.pyplot.show")
-def test_simpler_parachute_triggers(mock_show, test_env, calisto_robust):
+def test_simpler_parachute_triggers(mock_show, example_env, calisto_robust):
     """Tests different types of parachute triggers. This is important to ensure
     the code is working as intended, since the parachute triggers can have very
     different format definitions.
@@ -295,7 +295,7 @@ def test_simpler_parachute_triggers(mock_show, test_env, calisto_robust):
     ----------
     mock_show : unittest.mock.MagicMock
         Mock object to replace matplotlib.pyplot.show
-    test_env : rocketpy.Environment
+    example_env : rocketpy.Environment
         Environment to be simulated. See the conftest.py file for more info.
     calisto_robust : rocketpy.Rocket
         Rocket to be simulated. See the conftest.py file for more info.
@@ -320,7 +320,7 @@ def test_simpler_parachute_triggers(mock_show, test_env, calisto_robust):
 
     test_flight = Flight(
         rocket=calisto_robust,
-        environment=test_env,
+        environment=example_env,
         rail_length=5,
         inclination=85,
         heading=0,
@@ -332,7 +332,7 @@ def test_simpler_parachute_triggers(mock_show, test_env, calisto_robust):
     assert (
         abs(
             test_flight.z(test_flight.parachute_events[1][0])
-            - (800 + test_env.elevation)
+            - (800 + example_env.elevation)
         )
         <= 1
     )
@@ -446,10 +446,10 @@ def test_export_kml(flight_calisto_robust):
 
 
 @patch("matplotlib.pyplot.show")
-def test_lat_lon_conversions(mock_show, test_env_robust, calisto_robust):
+def test_lat_lon_conversions(mock_show, example_env_robust, calisto_robust):
     test_flight = Flight(
         rocket=calisto_robust,
-        environment=test_env_robust,
+        environment=example_env_robust,
         rail_length=5.2,
         inclination=85,
         heading=45,
@@ -464,12 +464,12 @@ def test_lat_lon_conversions(mock_show, test_env_robust, calisto_robust):
 
 
 @patch("matplotlib.pyplot.show")
-def test_lat_lon_conversions2(mock_show, test_env, calisto_robust):
+def test_lat_lon_conversions2(mock_show, example_env, calisto_robust):
     "additional tests to capture incorrect behaviors during lat/lon conversions"
 
     test_flight = Flight(
         rocket=calisto_robust,
-        environment=test_env,
+        environment=example_env,
         rail_length=5.2,
         inclination=85,
         heading=0,
