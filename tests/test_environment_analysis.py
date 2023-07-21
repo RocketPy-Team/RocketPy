@@ -12,7 +12,7 @@ plt.rcParams.update({"figure.max_open_warning": 0})
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_allInfo(mock_show, env_analysis):
+def test_all_info(mock_show, env_analysis):
     """Test the EnvironmentAnalysis.all_info() method, which already invokes
     several other methods. It is a good way to test the whole class in a first view.
     However, if it fails, it is hard to know which method is failing.

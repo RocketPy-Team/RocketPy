@@ -215,7 +215,7 @@ class _EnvironmentAnalysisPlots:
         for hour_entries in self.surface_level_dict.values():
             plt.plot(
                 [int(hour) for hour in hour_entries.keys()],
-                [val[""] for val in hour_entries.values()],
+                [val["surface_temperature"] for val in hour_entries.values()],
                 "gray",
                 alpha=0.1,
             )
@@ -291,8 +291,8 @@ class _EnvironmentAnalysisPlots:
                 [x for x in self.env_analysis.hours],
                 [
                     (
-                        val["surface10mWindVelocityX"] ** 2
-                        + val["surface10mWindVelocityY"] ** 2
+                        val["surface10m_wind_velocity_x"] ** 2
+                        + val["surface10m_wind_velocity_y"] ** 2
                     )
                     ** 0.5
                     for val in hour_entries.values()
@@ -378,8 +378,8 @@ class _EnvironmentAnalysisPlots:
                 [int(hour) for hour in hour_entries.keys()],
                 [
                     (
-                        val["surface100mWindVelocityX"] ** 2
-                        + val["surface100mWindVelocityY"] ** 2
+                        val["surface100m_wind_velocity_x"] ** 2
+                        + val["surface100m_wind_velocity_y"] ** 2
                     )
                     ** 0.5
                     for val in hour_entries.values()

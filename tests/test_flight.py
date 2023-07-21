@@ -267,10 +267,10 @@ def test_rolling_flight(
         position=-1.04956,
         cant_angle=0.5,
     )
-    calisto.aero_surfaces.add(
+    calisto.aerodynamic_surfaces.add(
         calisto_nose_cone, 0.71971 + 0.558291 - 0.1182359460624346
     )
-    calisto.aero_surfaces.add(calisto_tail, -1.194656 - 0.1182359460624346)
+    calisto.aerodynamic_surfaces.add(calisto_tail, -1.194656 - 0.1182359460624346)
     calisto.parachutes.append(calisto_main_chute)
     calisto.parachutes.append(calisto_drogue_chute)
 

@@ -51,6 +51,7 @@ from .motors import (
     TankGeometry,
     UllageBasedTank,
 )
+from .Parachute import Parachute
 from .plots import *
 from .prints import *
 from .Rocket import Rocket
