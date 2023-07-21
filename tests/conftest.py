@@ -118,15 +118,15 @@ def calisto(cesaroni_m1670):  # old name: rocket
         A simple object of the Rocket class
     """
     calisto = Rocket(
-        radius=127 / 2000,
-        mass=19.197 - 2.956 - 1.815,
+        radius=0.0635,
+        mass=14.426,
         inertia=(6.321, 6.321, 0.034),
         power_off_drag="data/calisto/powerOffDragCurve.csv",
         power_on_drag="data/calisto/powerOnDragCurve.csv",
         center_of_mass_without_motor=0,
         coordinate_system_orientation="tail_to_nose",
     )
-    calisto.add_motor(cesaroni_m1670, position=-1.255 - 0.1182359460624346)
+    calisto.add_motor(cesaroni_m1670, position=-1.373)
     return calisto
 
 
@@ -168,15 +168,15 @@ def calisto_robust(
         An object of the Rocket class
     """
     # we follow this fomrat: calisto.add_surfaces(surface, position)
-    calisto.add_surfaces(calisto_nose_cone, 1.278 - 0.1182359460624346)
-    calisto.add_surfaces(calisto_tail, -1.194656 - 0.1182359460624346)
-    calisto.add_surfaces(calisto_trapezoidal_fins, -1.04956 - 0.1182359460624346)
-    # calisto.add_surfaces(calisto_rail_buttons, -1.04956 - 0.1182359460624346)
+    calisto.add_surfaces(calisto_nose_cone, 1.160)
+    calisto.add_surfaces(calisto_tail, -1.313)
+    calisto.add_surfaces(calisto_trapezoidal_fins, -1.168)
+    # calisto.add_surfaces(calisto_rail_buttons, -1.168)
     # TODO: if I use the line above, the calisto won't have rail buttons attribute
     #       we need to apply a check in the add_surfaces method to set the rail buttons
     calisto.set_rail_buttons(
-        upper_button_position=0.2 - 0.1182359460624346,
-        lower_button_position=-0.5 - 0.1182359460624346,
+        upper_button_position=0.082,
+        lower_button_position=-0.618,
         angular_position=45,
     )
     calisto.parachutes.append(calisto_main_chute)
@@ -199,8 +199,8 @@ def calisto_nose_cone():
     return NoseCone(
         length=0.55829,
         kind="von_karman",
-        base_radius=0.127 / 2,
-        rocket_radius=0.127 / 2,
+        base_radius=0.0635,
+        rocket_radius=0.0635,
         name="calisto_nose_cone",
     )
 
@@ -218,7 +218,7 @@ def calisto_tail():
         top_radius=0.0635,
         bottom_radius=0.0435,
         length=0.060,
-        rocket_radius=0.127 / 2,
+        rocket_radius=0.0635,
         name="calisto_tail",
     )
 
@@ -237,7 +237,7 @@ def calisto_trapezoidal_fins():
         span=0.100,
         root_chord=0.120,
         tip_chord=0.040,
-        rocket_radius=0.127 / 2,
+        rocket_radius=0.0635,
         name="calisto_trapezoidal_fins",
         cant_angle=0,
         sweep_length=None,
@@ -510,17 +510,15 @@ def dimensionless_calisto(kg, m, dimensionless_cesaroni_m1670):
         An object of the Rocket class
     """
     example_rocket = Rocket(
-        radius=127 / 2000 * m,
-        mass=(19.197 - 2.956 - 1.815) * kg,
+        radius=0.0635 * m,
+        mass=14.426 * kg,
         inertia=(6.321 * (kg * m**2), 6.321 * (kg * m**2), 0.034 * (kg * m**2)),
         power_off_drag="data/calisto/powerOffDragCurve.csv",
         power_on_drag="data/calisto/powerOnDragCurve.csv",
         center_of_mass_without_motor=0 * m,
         coordinate_system_orientation="tail_to_nose",
     )
-    example_rocket.add_motor(
-        dimensionless_cesaroni_m1670, position=(-1.255 - 0.1182359460624346) * m
-    )
+    example_rocket.add_motor(dimensionless_cesaroni_m1670, position=(-1.373) * m)
     return example_rocket
 
 

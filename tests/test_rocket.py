@@ -70,8 +70,8 @@ def test_coordinate_system_orientation(
     )
 
     rocket_tail_to_nose = Rocket(
-        radius=127 / 2000,
-        mass=19.197 - 2.956 - 1.815,
+        radius=0.0635,
+        mass=14.426,
         inertia=(6.321, 6.321, 0.034),
         power_off_drag="data/calisto/powerOffDragCurve.csv",
         power_on_drag="data/calisto/powerOnDragCurve.csv",
@@ -79,22 +79,16 @@ def test_coordinate_system_orientation(
         coordinate_system_orientation="tail_to_nose",
     )
 
-    rocket_tail_to_nose.add_motor(
-        motor_nozzleToCombustionChamber, position=-1.255 - 0.1182359460624346
-    )
+    rocket_tail_to_nose.add_motor(motor_nozzleToCombustionChamber, position=-1.373)
 
-    rocket_tail_to_nose.aerodynamic_surfaces.add(
-        calisto_nose_cone, 1.278 - 0.1182359460624346
-    )
-    rocket_tail_to_nose.aerodynamic_surfaces.add(
-        calisto_trapezoidal_fins, -1.04956 - 0.1182359460624346
-    )
+    rocket_tail_to_nose.aerodynamic_surfaces.add(calisto_nose_cone, 1.160)
+    rocket_tail_to_nose.aerodynamic_surfaces.add(calisto_trapezoidal_fins, -1.168)
 
     static_margin_tail_to_nose = rocket_tail_to_nose.static_margin(0)
 
     rocket_nose_to_tail = Rocket(
-        radius=127 / 2000,
-        mass=19.197 - 2.956 - 1.815,
+        radius=0.0635,
+        mass=14.426,
         inertia=(6.321, 6.321, 0.034),
         power_off_drag="data/calisto/powerOffDragCurve.csv",
         power_on_drag="data/calisto/powerOnDragCurve.csv",
@@ -102,16 +96,10 @@ def test_coordinate_system_orientation(
         coordinate_system_orientation="nose_to_tail",
     )
 
-    rocket_nose_to_tail.add_motor(
-        motor_combustionChamberToNozzle, position=1.255 + 0.1182359460624346
-    )
+    rocket_nose_to_tail.add_motor(motor_combustionChamberToNozzle, position=1.373)
 
-    rocket_nose_to_tail.aerodynamic_surfaces.add(
-        calisto_nose_cone, -1.278 + 0.1182359460624346
-    )
-    rocket_nose_to_tail.aerodynamic_surfaces.add(
-        calisto_trapezoidal_fins, 1.04956 + 0.1182359460624346
-    )
+    rocket_nose_to_tail.aerodynamic_surfaces.add(calisto_nose_cone, -1.160)
+    rocket_nose_to_tail.aerodynamic_surfaces.add(calisto_trapezoidal_fins, 1.168)
 
     static_margin_nose_to_tail = rocket_nose_to_tail.static_margin(0)
 
@@ -127,7 +115,7 @@ def test_elliptical_fins(mock_show, calisto_robust, calisto_trapezoidal_fins):
     test_rocket = calisto_robust
     calisto_robust.aerodynamic_surfaces.remove(calisto_trapezoidal_fins)
     fin_set = test_rocket.add_elliptical_fins(
-        4, span=0.100, root_chord=0.120, position=-1.04956 - 0.1182359460624346
+        4, span=0.100, root_chord=0.120, position=-1.168
     )
     static_margin = test_rocket.static_margin(0)
     assert test_rocket.all_info() == None or not abs(static_margin - 2.30) < 0.01
@@ -143,16 +131,16 @@ def test_airfoil(
     calisto_tail,
 ):
     test_rocket = calisto
-    test_rocket.set_rail_buttons(0.2 - 0.1182359460624346, -0.5 - 0.1182359460624346)
-    calisto.aerodynamic_surfaces.add(calisto_nose_cone, 1.278 - 0.1182359460624346)
-    calisto.aerodynamic_surfaces.add(calisto_tail, -1.194656 - 0.1182359460624346)
+    test_rocket.set_rail_buttons(0.082, -0.618)
+    calisto.aerodynamic_surfaces.add(calisto_nose_cone, 1.160)
+    calisto.aerodynamic_surfaces.add(calisto_tail, -1.313)
 
     fin_set_NACA = test_rocket.add_trapezoidal_fins(
         2,
         span=0.100,
         root_chord=0.120,
         tip_chord=0.040,
-        position=-1.04956 - 0.1182359460624346,
+        position=-1.168,
         airfoil=("tests/fixtures/airfoils/NACA0012-radians.txt", "radians"),
         name="NACA0012",
     )
@@ -161,7 +149,7 @@ def test_airfoil(
         span=0.100,
         root_chord=0.120,
         tip_chord=0.040,
-        position=-1.04956 - 0.1182359460624346,
+        position=-1.168,
         airfoil=("tests/fixtures/airfoils/e473-10e6-degrees.csv", "degrees"),
         name="E473",
     )
@@ -200,10 +188,8 @@ def test_evaluate_static_margin_assert_cp_equals_cm(dimensionless_calisto):
     ),
 )
 def test_add_nose_assert_cp_cm_plus_nose(k, type, calisto, dimensionless_calisto, m):
-    calisto.add_nose(length=0.55829, kind=type, position=1.278 - 0.1182359460624346)
-    cpz = (
-        1.278 - 0.1182359460624346
-    ) - k * 0.55829  # Relative to the center of dry mass
+    calisto.add_nose(length=0.55829, kind=type, position=1.160)
+    cpz = (1.160) - k * 0.55829  # Relative to the center of dry mass
     clalpha = 2
 
     static_margin_initial = (calisto.center_of_mass(0) - cpz) / (2 * calisto.radius)
@@ -215,9 +201,7 @@ def test_add_nose_assert_cp_cm_plus_nose(k, type, calisto, dimensionless_calisto
     assert clalpha == pytest.approx(calisto.total_lift_coeff_der, 1e-8)
     assert calisto.cp_position == pytest.approx(cpz, 1e-8)
 
-    dimensionless_calisto.add_nose(
-        length=0.55829 * m, kind=type, position=(1.278 - 0.1182359460624346) * m
-    )
+    dimensionless_calisto.add_nose(length=0.55829 * m, kind=type, position=(1.160) * m)
     assert pytest.approx(dimensionless_calisto.static_margin(0), 1e-8) == pytest.approx(
         calisto.static_margin(0), 1e-8
     )
@@ -237,11 +221,11 @@ def test_add_tail_assert_cp_cm_plus_tail(calisto, dimensionless_calisto, m):
         top_radius=0.0635,
         bottom_radius=0.0435,
         length=0.060,
-        position=-1.194656 - 0.1182359460624346,
+        position=-1.313,
     )
 
     clalpha = -2 * (1 - (0.0635 / 0.0435) ** (-2)) * (0.0635 / (calisto.radius)) ** 2
-    cpz = (-1.194656 - 0.1182359460624346) - (0.06 / 3) * (
+    cpz = (-1.313) - (0.06 / 3) * (
         1 + (1 - (0.0635 / 0.0435)) / (1 - (0.0635 / 0.0435) ** 2)
     )
 
@@ -257,7 +241,7 @@ def test_add_tail_assert_cp_cm_plus_tail(calisto, dimensionless_calisto, m):
         top_radius=0.0635 * m,
         bottom_radius=0.0435 * m,
         length=0.060 * m,
-        position=(-1.194656 - 0.1182359460624346) * m,
+        position=(-1.313) * m,
     )
     assert pytest.approx(dimensionless_calisto.static_margin(0), 1e-8) == pytest.approx(
         calisto.static_margin(0), 1e-8
@@ -275,7 +259,7 @@ def test_add_tail_assert_cp_cm_plus_tail(calisto, dimensionless_calisto, m):
 
 @pytest.mark.parametrize(
     "sweep_angle, expected_fin_cpz, expected_clalpha, expected_cpz_cm",
-    [(39.8, 2.51, 3.16, 1.65), (-10, 2.47, 3.21, 1.63), (29.1, 2.50, 3.28, 1.66)],
+    [(39.8, 2.51, 3.16, 1.50), (-10, 2.47, 3.21, 1.49), (29.1, 2.50, 3.28, 1.52)],
 )
 def test_add_trapezoidal_fins_sweep_angle(
     calisto,
@@ -286,19 +270,19 @@ def test_add_trapezoidal_fins_sweep_angle(
     calisto_nose_cone,
 ):
     # Reference values from OpenRocket
-    calisto.aerodynamic_surfaces.add(calisto_nose_cone, 1.278 - 0.1182359460624346)
+    calisto.aerodynamic_surfaces.add(calisto_nose_cone, 1.160)
     fin_set = calisto.add_trapezoidal_fins(
         n=3,
         span=0.090,
         root_chord=0.100,
         tip_chord=0.050,
         sweep_angle=sweep_angle,
-        position=-1.182 - 0.1182359460624346,
+        position=-1.064,
     )
 
     # Check center of pressure
-    translate = 0.55829 + 0.71971 - 0.1182359460624346
-    cpz = -1.182 - fin_set.cpz - 0.1182359460624346
+    translate = 1.160
+    cpz = -1.300 - fin_set.cpz
     assert translate - cpz == pytest.approx(expected_fin_cpz, 0.01)
 
     # Check lift coefficient derivative
@@ -311,7 +295,11 @@ def test_add_trapezoidal_fins_sweep_angle(
 
 @pytest.mark.parametrize(
     "sweep_length, expected_fin_cpz, expected_clalpha, expected_cpz_cm",
-    [(0.075, 2.51, 3.16, 1.65), (-0.0159, 2.47, 3.21, 1.63), (0.05, 2.50, 3.28, 1.66)],
+    [
+        (0.075, 2.28, 3.16, 1.502),
+        (-0.0159, 2.24, 3.21, 1.485),
+        (0.05, 2.27, 3.28, 1.513),
+    ],
 )
 def test_add_trapezoidal_fins_sweep_length(
     calisto,
@@ -322,19 +310,19 @@ def test_add_trapezoidal_fins_sweep_length(
     calisto_nose_cone,
 ):
     # Reference values from OpenRocket
-    calisto.aerodynamic_surfaces.add(calisto_nose_cone, 1.278 - 0.1182359460624346)
+    calisto.aerodynamic_surfaces.add(calisto_nose_cone, 1.160)
     fin_set = calisto.add_trapezoidal_fins(
         n=3,
         span=0.090,
         root_chord=0.100,
         tip_chord=0.050,
         sweep_length=sweep_length,
-        position=-1.182 - 0.1182359460624346,
+        position=-1.064,
     )
 
     # Check center of pressure
-    translate = 1.278 - 0.1182359460624346
-    cpz = -fin_set.cp[2] - 1.182 - 0.1182359460624346
+    translate = 1.160
+    cpz = -fin_set.cp[2] - 1.064
     assert translate - cpz == pytest.approx(expected_fin_cpz, 0.01)
 
     # Check lift coefficient derivative
@@ -353,10 +341,10 @@ def test_add_fins_assert_cp_cm_plus_fins(calisto, dimensionless_calisto, m):
         span=0.100,
         root_chord=0.120,
         tip_chord=0.040,
-        position=-1.04956 - 0.1182359460624346,
+        position=-1.168,
     )
 
-    cpz = (-1.04956 - 0.1182359460624346) - (
+    cpz = (-1.168) - (
         ((0.120 - 0.040) / 3) * ((0.120 + 2 * 0.040) / (0.120 + 0.040))
         + (1 / 6) * (0.120 + 0.040 - 0.120 * 0.040 / (0.120 + 0.040))
     )
@@ -385,7 +373,7 @@ def test_add_fins_assert_cp_cm_plus_fins(calisto, dimensionless_calisto, m):
         span=0.100 * m,
         root_chord=0.120 * m,
         tip_chord=0.040 * m,
-        position=(-1.04956 - 0.1182359460624346) * m,
+        position=(-1.168) * m,
     )
     assert pytest.approx(dimensionless_calisto.static_margin(0), 1e-8) == pytest.approx(
         calisto.static_margin(0), 1e-8

@@ -200,15 +200,15 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
 
     # create a rocket with zero drag and huge mass to keep the rocket's speed constant
     dummy_rocket = Rocket(
-        radius=127 / 2000,
+        radius=0.0635,
         mass=1e16,
         inertia=(1, 1, 0.034),
         power_off_drag=0,
         power_on_drag=0,
         center_of_mass_without_motor=0,
     )
-    dummy_rocket.set_rail_buttons(0.2 - 0.1182359460624346, -0.5 - 0.1182359460624346)
-    dummy_rocket.add_motor(dummy_motor, position=-1.255 - 0.1182359460624346)
+    dummy_rocket.set_rail_buttons(0.082, -0.618)
+    dummy_rocket.add_motor(dummy_motor, position=-1.373)
 
     setup_rocket_with_given_static_margin(dummy_rocket, static_margin)
 
@@ -257,8 +257,8 @@ def test_rolling_flight(
 ):
     test_rocket = calisto
 
-    test_rocket.set_rail_buttons(0.2 - 0.1182359460624346, -0.5 - 0.1182359460624346)
-    test_rocket.add_motor(cesaroni_m1670, position=-1.255 - 0.1182359460624346)
+    test_rocket.set_rail_buttons(0.082, -0.618)
+    test_rocket.add_motor(cesaroni_m1670, position=-1.373)
     fin_set = test_rocket.add_trapezoidal_fins(
         4,
         span=0.100,
@@ -267,10 +267,8 @@ def test_rolling_flight(
         position=-1.04956,
         cant_angle=0.5,
     )
-    calisto.aerodynamic_surfaces.add(
-        calisto_nose_cone, 0.71971 + 0.558291 - 0.1182359460624346
-    )
-    calisto.aerodynamic_surfaces.add(calisto_tail, -1.194656 - 0.1182359460624346)
+    calisto.aerodynamic_surfaces.add(calisto_nose_cone, 1.160)
+    calisto.aerodynamic_surfaces.add(calisto_tail, -1.313)
     calisto.parachutes.append(calisto_main_chute)
     calisto.parachutes.append(calisto_drogue_chute)
 
