@@ -1,5 +1,6 @@
 import datetime
 import os
+import time
 from unittest.mock import patch
 
 import numpy as np
@@ -159,6 +160,7 @@ def test_wyoming_sounding_atmosphere(mock_show, example_env):
             example_env.set_atmospheric_model(type="wyoming_sounding", file=URL)
             break
         except:
+            time.sleep(1)  # wait 1 second before trying again
             pass
     assert example_env.all_info() == None
     assert abs(example_env.pressure(0) - 93600.0) < 1e-8

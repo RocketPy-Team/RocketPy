@@ -27,29 +27,26 @@ def test_aero_surfaces_infos(
 
 @patch("matplotlib.pyplot.show")
 def test_coordinate_system_orientation(
-    mock_show, calisto_nose_cone, calisto_tail, calisto_trapezoidal_fins
+    mock_show, calisto_nose_cone, cesaroni_m1670, calisto_trapezoidal_fins
 ):
-    motor_nozzleToCombustionChamber = SolidMotor(
-        thrust_source="data/motors/Cesaroni_M1670.eng",
-        burn_time=3.9,
-        dry_mass=1.815,
-        dry_inertia=(0.125, 0.125, 0.002),
-        center_of_dry_mass=0.317,
-        nozzle_position=0,
-        grain_number=5,
-        grain_density=1815,
-        nozzle_radius=33 / 1000,
-        throat_radius=11 / 1000,
-        grain_separation=5 / 1000,
-        grain_outer_radius=33 / 1000,
-        grain_initial_height=120 / 1000,
-        grains_center_of_mass_position=0.397,
-        grain_initial_inner_radius=15 / 1000,
-        interpolation_method="linear",
-        coordinate_system_orientation="nozzle_to_combustion_chamber",
-    )
+    """Test if the coordinate system orientation is working properly. This test
+    basically checks if the static margin is the same for the same rocket with
+    different coordinate system orientation.
 
-    motor_combustionChamberToNozzle = SolidMotor(
+    Parameters
+    ----------
+    mock_show : mock
+        Mock of matplotlib.pyplot.show
+    calisto_nose_cone : rocketpy.NoseCone
+        Nose cone of the rocket
+    cesaroni_m1670 : rocketpy.SolidMotor
+        Cesaroni M1670 motor
+    calisto_trapezoidal_fins : rocketpy.TrapezoidalFins
+        Trapezoidal fins of the rocket
+    """    
+    motor_nozzle_to_combustion_chamber = cesaroni_m1670
+
+    motor_combustion_chamber_to_nozzle = SolidMotor(
         thrust_source="data/motors/Cesaroni_M1670.eng",
         burn_time=3.9,
         dry_mass=1.815,
@@ -79,7 +76,7 @@ def test_coordinate_system_orientation(
         coordinate_system_orientation="tail_to_nose",
     )
 
-    rocket_tail_to_nose.add_motor(motor_nozzleToCombustionChamber, position=-1.373)
+    rocket_tail_to_nose.add_motor(motor_nozzle_to_combustion_chamber, position=-1.373)
 
     rocket_tail_to_nose.aerodynamic_surfaces.add(calisto_nose_cone, 1.160)
     rocket_tail_to_nose.aerodynamic_surfaces.add(calisto_trapezoidal_fins, -1.168)
@@ -96,7 +93,7 @@ def test_coordinate_system_orientation(
         coordinate_system_orientation="nose_to_tail",
     )
 
-    rocket_nose_to_tail.add_motor(motor_combustionChamberToNozzle, position=1.373)
+    rocket_nose_to_tail.add_motor(motor_combustion_chamber_to_nozzle, position=1.373)
 
     rocket_nose_to_tail.aerodynamic_surfaces.add(calisto_nose_cone, -1.160)
     rocket_nose_to_tail.aerodynamic_surfaces.add(calisto_trapezoidal_fins, 1.168)

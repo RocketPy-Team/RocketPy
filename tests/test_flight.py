@@ -20,14 +20,14 @@ def setup_rocket_with_given_static_margin(rocket, static_margin):
 
     Parameters
     ----------
-    calisto : Rocket
+    rocket : Rocket
         Rocket to be modified
     static_margin : float
         Static margin that the given rocket shall have
 
     Returns
     -------
-    calisto : Rocket
+    rocket : Rocket
         Rocket with the given static margin.
     """
 
@@ -444,7 +444,7 @@ def test_export_kml(flight_calisto_robust):
 
 
 @patch("matplotlib.pyplot.show")
-def test_lat_lon_conversions(mock_show, example_env_robust, calisto_robust):
+def test_lat_lon_conversion_robust(mock_show, example_env_robust, calisto_robust):
     test_flight = Flight(
         rocket=calisto_robust,
         environment=example_env_robust,
@@ -454,7 +454,6 @@ def test_lat_lon_conversions(mock_show, example_env_robust, calisto_robust):
     )
 
     # Check for initial and final lat/lon coordinates based on launch pad coordinates
-    test_flight.post_process()
     assert abs(test_flight.latitude(0)) - abs(test_flight.env.latitude) < 1e-6
     assert abs(test_flight.longitude(0)) - abs(test_flight.env.longitude) < 1e-6
     assert test_flight.latitude(test_flight.t_final) > test_flight.env.latitude
@@ -462,7 +461,7 @@ def test_lat_lon_conversions(mock_show, example_env_robust, calisto_robust):
 
 
 @patch("matplotlib.pyplot.show")
-def test_lat_lon_conversions2(mock_show, example_env, calisto_robust):
+def test_lat_lon_conversion_from_origin(mock_show, example_env, calisto_robust):
     "additional tests to capture incorrect behaviors during lat/lon conversions"
 
     test_flight = Flight(
