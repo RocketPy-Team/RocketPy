@@ -43,7 +43,7 @@ def test_coordinate_system_orientation(
         Cesaroni M1670 motor
     calisto_trapezoidal_fins : rocketpy.TrapezoidalFins
         Trapezoidal fins of the rocket
-    """    
+    """
     motor_nozzle_to_combustion_chamber = cesaroni_m1670
 
     motor_combustion_chamber_to_nozzle = SolidMotor(
