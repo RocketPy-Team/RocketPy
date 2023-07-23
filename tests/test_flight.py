@@ -83,7 +83,7 @@ def setup_rocket_with_given_static_margin(rocket, static_margin):
 def test_all_info(mock_show, flight_calisto_robust):
     """Test that the flight class is working as intended. This basically calls
     the all_info() method and checks if it returns None. It is not testing if
-    the values are corrected, but if the method is working without errors.
+    the values are correct, but whether the method is working without errors.
 
     Parameters
     ----------
