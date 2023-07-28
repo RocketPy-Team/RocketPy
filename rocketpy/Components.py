@@ -112,6 +112,20 @@ class Components:
         """
         return [c.position for c in self._components]
 
+    def get_index_of_component(self, component):
+        """Search the list of components and return the index of the component
+
+        Returns
+        -------
+        int
+            The index of the component
+        """
+        for index, comp in enumerate(self._components):
+            if comp.component == component:
+                return index
+        else:
+            raise Exception(f"Component {component} not found in components {self}")
+
     def remove(self, component):
         """Remove a component from the list of components. If more than one
         instance of the same component is present in the list, only the first
