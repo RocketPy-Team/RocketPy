@@ -1744,64 +1744,68 @@ class Flight:
         # Get rocket velocity in body frame
         vB = Kt @ v
         # Calculate lift and moment for each component of the rocket
-        for aeroSurface, position in self.rocket.aerodynamic_surfaces:
-            compCpz = (
+        for aero_surface, position in self.rocket.aerodynamic_surfaces:
+            comp_cpz = (
                 position - self.rocket.center_of_dry_mass_position
-            ) * self.rocket._csys - aeroSurface.cpz
-            compCp = Vector([0, 0, compCpz])
-            surfaceRadius = aeroSurface.rocket_radius
-            referenceArea = np.pi * surfaceRadius**2
+            ) * self.rocket._csys - aero_surface.cpz
+            comp_cp = Vector([0, 0, comp_cpz])
+            surface_radius = aero_surface.rocket_radius
+            reference_area = np.pi * surface_radius**2
             # Component absolute velocity in body frame
-            compVB = vB + (w ^ compCp)
+            comp_vb = vB + (w ^ comp_cp)
             # Wind velocity at component altitude
-            compZ = z + (K @ compCp).z
-            compWindVx = self.env.wind_velocity_x.get_value_opt(compZ)
-            compWindVy = self.env.wind_velocity_y.get_value_opt(compZ)
+            comp_z = z + (K @ comp_cp).z
+            comp_wind_vx = self.env.wind_velocity_x.get_value_opt(comp_z)
+            comp_wind_vy = self.env.wind_velocity_y.get_value_opt(comp_z)
             # Component freestream velocity in body frame
-            compWindVB = Kt @ Vector([compWindVx, compWindVy, 0])
-            compStreamVelocity = compWindVB - compVB
-            compStreamVxB, compStreamVyB, compStreamVzB = compStreamVelocity
-            compStreamSpeed = abs(compStreamVelocity)
-            compStreamMach = compStreamSpeed / self.env.speed_of_sound.get_value_opt(z)
+            comp_wind_vb = Kt @ Vector([comp_wind_vx, comp_wind_vy, 0])
+            comp_stream_velocity = comp_wind_vb - comp_vb
+            comp_stream_vx_b, comp_stream_vy_b, comp_stream_vz_b = comp_stream_velocity
+            comp_stream_speed = abs(comp_stream_velocity)
+            comp_stream_mach = (
+                comp_stream_speed / self.env.speed_of_sound.get_value_opt(z)
+            )
             # Component attack angle and lift force
-            compAttackAngle = 0
-            compLift, compLiftXB, compLiftYB = 0, 0, 0
-            if compStreamVxB**2 + compStreamVyB**2 != 0:
+            comp_attack_angle = 0
+            comp_lift, comp_lift_xb, comp_lift_yb = 0, 0, 0
+            if comp_stream_vx_b**2 + comp_stream_vy_b**2 != 0:
                 # Normalize component stream velocity in body frame
-                compStreamVzBn = compStreamVzB / compStreamSpeed
-                if -1 * compStreamVzBn < 1:
-                    compAttackAngle = np.arccos(-compStreamVzBn)
-                    cLift = aeroSurface.cl(compAttackAngle, compStreamMach)
+                comp_stream_vz_bn = comp_stream_vz_b / comp_stream_speed
+                if -1 * comp_stream_vz_bn < 1:
+                    comp_attack_angle = np.arccos(-comp_stream_vz_bn)
+                    c_lift = aero_surface.cl(comp_attack_angle, comp_stream_mach)
                     # Component lift force magnitude
-                    compLift = (
-                        0.5 * rho * (compStreamSpeed**2) * referenceArea * cLift
+                    comp_lift = (
+                        0.5 * rho * (comp_stream_speed**2) * reference_area * c_lift
                     )
                     # Component lift force components
-                    liftDirNorm = (compStreamVxB**2 + compStreamVyB**2) ** 0.5
-                    compLiftXB = compLift * (compStreamVxB / liftDirNorm)
-                    compLiftYB = compLift * (compStreamVyB / liftDirNorm)
+                    lift_dir_norm = (
+                        comp_stream_vx_b**2 + comp_stream_vy_b**2
+                    ) ** 0.5
+                    comp_lift_xb = comp_lift * (comp_stream_vx_b / lift_dir_norm)
+                    comp_lift_yb = comp_lift * (comp_stream_vy_b / lift_dir_norm)
                     # Add to total lift force
-                    R1 += compLiftXB
-                    R2 += compLiftYB
+                    R1 += comp_lift_xb
+                    R2 += comp_lift_yb
                     # Add to total moment
-                    M1 -= (compCpz + r_CM_z.get_value_opt(t)) * compLiftYB
-                    M2 += (compCpz + r_CM_z.get_value_opt(t)) * compLiftXB
+                    M1 -= (comp_cpz + r_CM_z.get_value_opt(t)) * comp_lift_yb
+                    M2 += (comp_cpz + r_CM_z.get_value_opt(t)) * comp_lift_xb
             # Calculates Roll Moment
             try:
-                Clfdelta, Cldomega, cantAngleRad = aeroSurface.rollParameters
+                clf_delta, cld_omega, cant_angle_rad = aero_surface.roll_parameters
                 M3f = (
-                    (1 / 2 * rho * compStreamSpeed**2)
-                    * referenceArea
+                    (1 / 2 * rho * comp_stream_speed**2)
+                    * reference_area
                     * 2
-                    * surfaceRadius
-                    * Clfdelta(compStreamMach)
-                    * cantAngleRad
+                    * surface_radius
+                    * clf_delta(comp_stream_mach)
+                    * cant_angle_rad
                 )
                 M3d = (
-                    (1 / 2 * rho * compStreamSpeed)
-                    * referenceArea
-                    * (2 * surfaceRadius) ** 2
-                    * Cldomega(compStreamMach)
+                    (1 / 2 * rho * comp_stream_speed)
+                    * reference_area
+                    * (2 * surface_radius) ** 2
+                    * cld_omega(comp_stream_mach)
                     * omega3
                     / 2
                 )
