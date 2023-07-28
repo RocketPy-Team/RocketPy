@@ -1008,20 +1008,31 @@ class Rocket:
             Dictionary with the fin group meta data."""
 
         if maximumCantAngleChange:
-            if newCantAngle > finGroup["metadata"]["cantAngle"]:
-                newCantAngle = (
-                    finGroup["metadata"]["cantAngle"] + maximumCantAngleChange
-                )
-            elif newCantAngle < finGroup["metadata"]["cantAngle"]:
-                newCantAngle = (
-                    finGroup["metadata"]["cantAngle"] - maximumCantAngleChange
-                )
+            if newCantAngle > finGroup.cant_angle:
+                newCantAngle = finGroup.cant_angle + maximumCantAngleChange
+            elif newCantAngle < finGroup.cant_angle:
+                newCantAngle = finGroup.cant_angle - maximumCantAngleChange
 
-        finGroup["metadata"]["cantAngle"] = newCantAngle  # in radians
+        # removes the fin group and gets position
+        new_fins_position = (
+            self.aerodynamic_surfaces.pop(
+                self.aerodynamic_surfaces.get_index_of_component(finGroup)
+            )
+        ).position
 
-        newFinGroup = self.addFins(**finGroup["metadata"])
-
-        self.aerodynamicSurfaces.remove(finGroup)
+        newFinGroup = self.add_trapezoidal_fins(
+            n=finGroup.n,
+            root_chord=finGroup.root_chord,
+            tip_chord=finGroup.tip_chord,
+            span=finGroup.span,
+            position=new_fins_position,
+            cant_angle=newCantAngle,
+            sweep_length=finGroup.sweep_length,
+            sweep_angle=finGroup.sweep_angle,
+            radius=finGroup.rocket_radius,
+            airfoil=finGroup.airfoil,
+            name=finGroup.name,
+        )
 
         return newFinGroup
 
