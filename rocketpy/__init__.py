@@ -16,14 +16,43 @@ __copyright__ = "Copyright 20XX, RocketPy Team"
 __copyright__ = "Copyright 20XX, Projeto Jupiter"
 __credits__ = ["Matheus Marques Araujo", "Rodrigo Schmitt", "Guilherme Tavares"]
 __license__ = "MIT"
-__version__ = "0.11.0"
+__version__ = "0.13.1"
 __maintainer__ = "Giovani Hidalgo Ceotto"
 __email__ = "ghceotto@gmail.com"
 __status__ = "Production"
 
+from .AeroSurface import (
+    AeroSurface,
+    EllipticalFins,
+    Fins,
+    NoseCone,
+    RailButtons,
+    Tail,
+    TrapezoidalFins,
+)
+from .Components import Components
 from .Environment import Environment
+from .EnvironmentAnalysis import EnvironmentAnalysis
 from .Flight import Flight
 from .Function import Function
-from .Motor import HybridMotor, SolidMotor
+from .motors import (
+    CylindricalTank,
+    EmptyMotor,
+    Fluid,
+    GenericMotor,
+    HybridMotor,
+    LevelBasedTank,
+    LiquidMotor,
+    MassBasedTank,
+    MassFlowRateBasedTank,
+    SolidMotor,
+    SphericalTank,
+    Tank,
+    TankGeometry,
+    UllageBasedTank,
+)
+from .Parachute import Parachute
+from .plots import *
+from .prints import *
 from .Rocket import Rocket
 from .utilities import *

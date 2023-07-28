@@ -4,12 +4,14 @@
    contain the root `toctree` directive.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 4
    :hidden:
 
    User Guide <user/index>
    Code Reference <reference/index>
    Development <development/index>
+   Technical <technical/index>
+   Flight Examples <examples/index>
 
 .. _`RocketPy`: https://www.linkedin.com/company/75016723
 
