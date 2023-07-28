@@ -1635,7 +1635,7 @@ class Flight:
         -------
         u_dot : list
             State vector defined by u_dot = [vx, vy, vz, ax, ay, az,
-            e0Dot, e1Dot, e2Dot, e3Dot, alpha1, alpha2, alpha3].
+            e0_dot, e1_dot, e2_dot, e3_dot, alpha1, alpha2, alpha3].
         """
         # Retrieve integration data
         x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
