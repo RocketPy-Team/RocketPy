@@ -1203,7 +1203,7 @@ class Flight:
     def __init_equations_of_motion(self):
         """Initialize equations of motion."""
         if self.equations_of_motion == "solid_propulsion":
-            self.uDotGeneralized = self.uDot
+            self.u_dot_generalized = self.u_dot
 
     @cached_property
     def effective_1rl(self):
