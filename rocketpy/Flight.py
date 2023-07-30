@@ -1375,10 +1375,10 @@ class Flight:
             # Inertias
             Tz = self.rocket.motor.I_33.get_value_opt(t)
             Ti = self.rocket.motor.I_11.get_value_opt(t)
-            TzDot = self.rocket.motor.I_33.differentiate(t, dx=1e-6)
-            TiDot = self.rocket.motor.I_11.differentiate(t, dx=1e-6)
+            Tzdot = self.rocket.motor.I_33.differentiate(t, dx=1e-6)
+            Tidot = self.rocket.motor.I_11.differentiate(t, dx=1e-6)
             # Mass
-            MtDot = self.rocket.motor.mass_flow_rate.get_value_opt(t)
+            Mtdot = self.rocket.motor.mass_flow_rate.get_value_opt(t)
             Mt = self.rocket.motor.propellant_mass.get_value_opt(t)
             # Thrust
             thrust = self.rocket.motor.thrust.get_value_opt(t)
