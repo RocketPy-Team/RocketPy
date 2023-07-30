@@ -1207,13 +1207,12 @@ class Flight:
 
     @cached_property
     def effective_1rl(self):
-        nozzle = (
-            self.rocket.motor_position - self.rocket.center_of_dry_mass_position
-        ) * self.rocket._csys  # Kinda works for single nozzle
+        nozzle = self.rocket.motor_position
         try:
             rail_buttons = self.rocket.rail_buttons[0]
             upper_r_button = (
-                rail_buttons.component.buttons_distance + rail_buttons.position
+                rail_buttons.component.buttons_distance * self.rocket._csys
+                + rail_buttons.position
             )
         except IndexError:  # No rail buttons defined
             upper_r_button = nozzle
@@ -1222,9 +1221,7 @@ class Flight:
 
     @cached_property
     def effective_2rl(self):
-        nozzle = (
-            self.rocket.motor_position - self.rocket.center_of_dry_mass_position
-        ) * self.rocket._csys
+        nozzle = self.rocket.motor_position
         try:
             rail_buttons = self.rocket.rail_buttons[0]
             lower_r_button = rail_buttons.position
