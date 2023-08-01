@@ -537,7 +537,7 @@ class Flight:
         rail_length : int, float
             Length in which the rocket will be attached to the rail, only
             moving along a fixed direction, that is, the line parallel to the
-            rail. Currently, if the an initialSolution is passed, the rail
+            rail. Currently, if the an initial_solution is passed, the rail
             length is not used.
         inclination : int, float, optional
             Rail inclination angle relative to ground, given in degrees.
@@ -547,12 +547,12 @@ class Flight:
             Default is 90, which points in the x direction.
         initial_solution : array, Flight, optional
             Initial solution array to be used. Format is
-            initialSolution = [
-                self.tInitial,
-                xInit, yInit, zInit,
-                vxInit, vyInit, vzInit,
-                e0Init, e1Init, e2Init, e3Init,
-                w1Init, w2Init, w3Init
+            initial_solution = [
+                self.t_initial,
+                x_init, y_init, z_init,
+                vx_init, vy_init, vz_init,
+                e0_init, e1_init, e2_init, e3_init,
+                w1_init, w2_init, w3_init
             ].
             If a Flight object is used, the last state vector will be used as
             initial solution. If None, the initial solution will start with
@@ -724,9 +724,9 @@ class Flight:
                     pressure = self.env.pressure.get_value_opt(self.y_sol[2])
                     parachute.clean_pressure_signal.append([node.t, pressure])
                     # Calculate and save noise
-                    noise = parachute.noiseFunction()
-                    parachute.noiseSignal.append([node.t, noise])
-                    parachute.noisyPressureSignal.append([node.t, pressure + noise])
+                    noise = parachute.noise_function()
+                    parachute.noise_signal.append([node.t, noise])
+                    parachute.noisy_pressure_signal.append([node.t, pressure + noise])
                     # Gets height above ground level considering noise
                     hAGL = (
                         self.env.pressure.find_input(
@@ -754,8 +754,8 @@ class Flight:
                             i += 1
                         # Create flight phase for time after inflation
                         callbacks = [
-                            lambda self, parachute_CdS=parachute.cd_s: setattr(
-                                self, "parachute_CdS", parachute_CdS
+                            lambda self, parachute_cd_s=parachute.cd_s: setattr(
+                                self, "parachute_cd_s", parachute_cd_s
                             )
                         ]
                         self.FlightPhases.add_phase(
@@ -974,7 +974,7 @@ class Flight:
                         self.impact_state = self.y_sol
                         self.x_impact = self.impact_state[0]
                         self.y_impact = self.impact_state[1]
-                        self.zImpact = self.impact_state[2]
+                        self.z_impact = self.impact_state[2]
                         self.impact_velocity = self.impact_state[5]
                         self.t_final = self.t
                         # Set last flight phase
@@ -1066,8 +1066,8 @@ class Flight:
                                             i += 1
                                         # Create flight phase for time after inflation
                                         callbacks = [
-                                            lambda self, parachute_CdS=parachute.cd_s: setattr(
-                                                self, "parachute_CdS", parachute_CdS
+                                            lambda self, parachute_cd_s=parachute.cd_s: setattr(
+                                                self, "parachute_cd_s", parachute_cd_s
                                             )
                                         ]
                                         self.FlightPhases.add_phase(
@@ -1168,8 +1168,8 @@ class Flight:
             # previous flight
             self.initial_solution = self.initial_solution.solution[-1]
             # Set unused monitors
-            self.outOfRailState = self.initialSolution[1:]
-            self.out_of_rail_time = self.initialSolution[0]
+            self.out_of_rail_state = self.initial_solution[1:]
+            self.out_of_rail_time = self.initial_solution[0]
             self.out_of_rail_time_index = 0
             # Set initial derivative for 6-DOF flight phase
             self.initial_derivative = self.u_dot_generalized
@@ -1268,7 +1268,7 @@ class Flight:
             e2, e3, omega1, omega2, omega3].
         post_processing : bool, optional
             If True, adds flight data information directly to self
-            variables such as self.attackAngle. Default is False.
+            variables such as self.angle_of_attack. Default is False.
 
         Return
         ------
@@ -1329,7 +1329,7 @@ class Flight:
             e2, e3, omega1, omega2, omega3].
         post_processing : bool, optional
             If True, adds flight data information directly to self
-            variables such as self.attackAngle, by default False
+            variables such as self.angle_of_attack, by default False
 
         Returns
         -------
@@ -1354,7 +1354,7 @@ class Flight:
             e2, e3, omega1, omega2, omega3].
         post_processing : bool, optional
             If True, adds flight data information directly to self
-            variables such as self.attackAngle, by default False
+            variables such as self.angle_of_attack, by default False
 
         Returns
         -------
@@ -1629,7 +1629,7 @@ class Flight:
             q2, q3, omega1, omega2, omega3].
         post_processing : bool, optional
             If True, adds flight data information directly to self variables
-            such as self.attackAngle, by default False.
+            such as self.angle_of_attack, by default False.
 
         Returns
         -------
@@ -1890,7 +1890,7 @@ class Flight:
             e2, e3, omega1, omega2, omega3].
         post_processing : bool, optional
             If True, adds flight data information directly to self
-            variables such as self.attackAngle. Default is False.
+            variables such as self.angle_of_attack. Default is False.
 
         Return
         ------
@@ -1900,7 +1900,7 @@ class Flight:
 
         """
         # Parachute data
-        cd_s = self.parachute_CdS
+        cd_s = self.parachute_cd_s
         ka = 1
         R = 1.5
         rho = self.env.density.get_value_opt(u[2])
@@ -2496,7 +2496,7 @@ class Flight:
     def angle_of_attack(self):
         """Angle of attack of the rocket with respect to the freestream
         velocity vector."""
-        dotProduct = [
+        dot_product = [
             -self.attitude_vector_x.get_value_opt(i)
             * self.stream_velocity_x.get_value_opt(i)
             - self.attitude_vector_y.get_value_opt(i)
@@ -2511,7 +2511,7 @@ class Flight:
 
         # Normalize dot product
         dot_product_normalized = [
-            i / j if j > 1e-6 else 0 for i, j in zip(dotProduct, free_stream_speed)
+            i / j if j > 1e-6 else 0 for i, j in zip(dot_product, free_stream_speed)
         ]
         dot_product_normalized = np.nan_to_num(dot_product_normalized)
         dot_product_normalized = np.clip(dot_product_normalized, -1, 1)
@@ -2829,19 +2829,19 @@ class Flight:
             Rail Button 2 force in the 2 direction
         """
         # First check for no rail phase or rail buttons
-        nullForce = []
+        null_force = []
         if self.out_of_rail_time_index == 0:  # No rail phase, no rail button forces
             warnings.warn(
                 "Trying to calculate rail button forces without a rail phase defined."
                 + "The rail button forces will be set to zero."
             )
-            return nullForce, nullForce, nullForce, nullForce
+            return null_force, null_force, null_force, null_force
         if len(self.rocket.rail_buttons) == 0:
             warnings.warn(
                 "Trying to calculate rail button forces without rail buttons defined."
                 + "The rail button forces will be set to zero."
             )
-            return nullForce, nullForce, nullForce, nullForce
+            return null_force, null_force, null_force, null_force
 
         # Distance from Rail Button 1 (upper) to CM
         rail_buttons_tuple = self.rocket.rail_buttons[0]
@@ -2980,7 +2980,7 @@ class Flight:
         ------
         None
         """
-        vF = self.out_of_rail_velocity
+        v_f = self.out_of_rail_velocity
 
         # Convert angle to radians
         theta = self.inclination * 3.14159265359 / 180
@@ -2989,11 +2989,11 @@ class Flight:
         c = (math.cos(stall_angle) ** 2 - math.cos(theta) ** 2) / math.sin(
             stall_angle
         ) ** 2
-        wV = (
-            2 * vF * math.cos(theta) / c
+        w_v = (
+            2 * v_f * math.cos(theta) / c
             + (
-                4 * vF * vF * math.cos(theta) * math.cos(theta) / (c**2)
-                + 4 * 1 * vF * vF / c
+                4 * v_f * v_f * math.cos(theta) * math.cos(theta) / (c**2)
+                + 4 * 1 * v_f * v_f / c
             )
             ** 0.5
         ) / 2
@@ -3002,7 +3002,7 @@ class Flight:
         stall_angle = stall_angle * 180 / np.pi
         print(
             "Maximum wind velocity at Rail Departure time before angle of attack exceeds {:.3f}°: {:.3f} m/s".format(
-                stall_angle, wV
+                stall_angle, w_v
             )
         )
 
@@ -3334,10 +3334,10 @@ class Flight:
             except:
                 time.sleep(1 / (fps * speed))
 
-    def time_iterator(self, nodeList):
+    def time_iterator(self, node_list):
         i = 0
-        while i < len(nodeList) - 1:
-            yield i, nodeList[i]
+        while i < len(node_list) - 1:
+            yield i, node_list[i]
             i += 1
 
     class FlightPhases:
@@ -3475,8 +3475,8 @@ class Flight:
         def __repr__(self):
             return str(self.list)
 
-        def add(self, timeNode):
-            self.list.append(timeNode)
+        def add(self, time_node):
+            self.list.append(time_node)
 
         def add_node(self, t, parachutes, callbacks):
             self.list.append(self.TimeNode(t, parachutes, callbacks))

@@ -73,12 +73,12 @@ class _SolidMotorPrints:
         print("Grain Height: " + str(self.solid_motor.grain_initial_height) + " m")
         print(
             "Grain Volume: "
-            + "{:.3f}".format(self.solid_motor.grainInitialVolume)
+            + "{:.3f}".format(self.solid_motor.grain_initial_volume)
             + " m3"
         )
         print(
             "Grain Mass: "
-            + "{:.3f}".format(self.solid_motor.grainInitialMass)
+            + "{:.3f}".format(self.solid_motor.grain_initial_mass)
             + " kg\n"
         )
 

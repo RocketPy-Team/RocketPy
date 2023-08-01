@@ -39,29 +39,29 @@ class Parachute:
     lag : float
         Time, in seconds, between the parachute ejection system is triggered
         and the parachute is fully opened.
-    noiseBias : float
+    noise_bias : float
         Mean value of the noise added to the pressure signal, which is
         passed to the trigger function. Unit is in pascal.
-    noiseDeviation : float
+    noise_deviation : float
         Standard deviation of the noise added to the pressure signal,
         which is passed to the trigger function. Unit is in pascal.
-    noiseCorr : tuple, list
+    noise_corr : tuple, list
         Tuple with the correlation between noise and time.
-    noiseSignal : list
+    noise_signal : list
         List of (t, noise signal) corresponding to signal passed to
         trigger function. Completed after running a simulation.
-    noisyPressureSignal : list
+    noisy_pressure_signal : list
         List of (t, noisy pressure signal) that is passed to the
         trigger function. Completed after running a simulation.
-    cleanPressureSignal : list
+    clean_pressure_signal : list
         List of (t, clean pressure signal) corresponding to signal passed to
         trigger function. Completed after running a simulation.
-    noiseSignalFunction : Function
+    noise_signalFunction : Function
         Function of noiseSignal.
-    noisyPressureSignalFunction : Function
-        Function of noisyPressureSignal.
-    cleanPressureSignalFunction : Function
-        Function of cleanPressureSignal.
+    noisy_pressure_signalFunction : Function
+        Function of noisy_pressure_signal.
+    clean_pressure_signalFunction : Function
+        Function of clean_pressure_signal.
     """
 
     def __init__(

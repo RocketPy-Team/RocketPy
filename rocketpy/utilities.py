@@ -620,7 +620,7 @@ def liftoff_speed_by_mass(flight, min_mass, max_mass, points=10, plot=True):
             heading=flight.heading,
             terminate_on_apogee=True,
         )
-        return test_flight.outOfRailVelocity
+        return test_flight.out_of_rail_velocity
 
     x = np.linspace(min_mass, max_mass, points)
     y = np.array([liftoff_speed(m) for m in x])

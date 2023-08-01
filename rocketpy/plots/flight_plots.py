@@ -74,13 +74,13 @@ class _FlightPlots:
         """
 
         # Get max and min x and y
-        maxZ = max(self.flight.z[:, 1] - self.flight.env.elevation)
-        maxX = max(self.flight.x[:, 1])
-        minX = min(self.flight.x[:, 1])
-        maxY = max(self.flight.y[:, 1])
-        minY = min(self.flight.y[:, 1])
-        maxXY = max(maxX, maxY)
-        minXY = min(minX, minY)
+        max_z = max(self.flight.z[:, 1] - self.flight.env.elevation)
+        max_x = max(self.flight.x[:, 1])
+        min_x = min(self.flight.x[:, 1])
+        max_y = max(self.flight.y[:, 1])
+        min_y = min(self.flight.y[:, 1])
+        max_xy = max(max_x, max_y)
+        min_xy = min(min_x, min_y)
 
         # Create figure
         fig1 = plt.figure(figsize=(9, 9))
@@ -91,14 +91,14 @@ class _FlightPlots:
         ax1.plot(
             self.flight.x[:, 1],
             self.flight.z[:, 1] - self.flight.env.elevation,
-            zs=minXY,
+            zs=min_xy,
             zdir="y",
             linestyle="--",
         )
         ax1.plot(
             self.flight.y[:, 1],
             self.flight.z[:, 1] - self.flight.env.elevation,
-            zs=minXY,
+            zs=min_xy,
             zdir="x",
             linestyle="--",
         )
@@ -113,9 +113,9 @@ class _FlightPlots:
         ax1.set_ylabel("Y - North (m)")
         ax1.set_zlabel("Z - Altitude Above Ground Level (m)")
         ax1.set_title("Flight Trajectory")
-        ax1.set_zlim3d([0, maxZ])
-        ax1.set_ylim3d([minXY, maxXY])
-        ax1.set_xlim3d([minXY, maxXY])
+        ax1.set_zlim3d([0, max_z])
+        ax1.set_ylim3d([min_xy, max_xy])
+        ax1.set_xlim3d([min_xy, max_xy])
         ax1.view_init(15, 45)
         plt.show()
 
