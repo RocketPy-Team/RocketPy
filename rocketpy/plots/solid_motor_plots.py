@@ -384,7 +384,7 @@ class _SolidMotorPlots:
         self.exhaust_velocity(*self.solid_motor.burn_time)
         self.grain_inner_radius(*self.solid_motor.burn_time)
         self.grain_height(*self.solid_motor.burn_time)
-        self.burn_rate(self.solid_motor.burn_time[0], self.solid_motor.grainBurnOut)
+        self.burn_rate(self.solid_motor.burn_time[0], self.solid_motor.grain_burn_out)
         self.burn_area(*self.solid_motor.burn_time)
         self.Kn()
         self.center_of_mass(*self.solid_motor.burn_time)
