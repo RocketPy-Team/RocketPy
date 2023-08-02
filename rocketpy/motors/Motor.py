@@ -308,8 +308,8 @@ class Motor(ABC):
 
         # Compute thrust metrics
         self.max_thrust = np.amax(self.thrust.y_array)
-        maxThrustIndex = np.argmax(self.thrust.y_array)
-        self.max_thrust_time = self.thrust.source[maxThrustIndex, 0]
+        max_thrust_index = np.argmax(self.thrust.y_array)
+        self.max_thrust_time = self.thrust.source[max_thrust_index, 0]
         self.average_thrust = self.total_impulse / self.burn_duration
 
         # Initialize plots and prints object
@@ -828,7 +828,7 @@ class Motor(ABC):
         pass
 
     @staticmethod
-    def reshape_thrust_curve(thrust, newBurnTime, total_impulse):
+    def reshape_thrust_curve(thrust, new_burn_time, total_impulse):
         """Transforms the thrust curve supplied by changing its total
         burn time and/or its total impulse, without altering the
         general shape of the curve.
@@ -837,7 +837,7 @@ class Motor(ABC):
         ----------
         thrust : rocketpy.Function
             Thrust curve to be reshaped.
-        newBurnTime : float, tuple of float
+        new_burn_time : float, tuple of float
             New desired burn time in seconds.
         total_impulse : float
             New desired total impulse.
@@ -848,27 +848,27 @@ class Motor(ABC):
             Reshaped thrust curve.
         """
         # Retrieve current thrust curve data points
-        timeArray, thrustArray = thrust.x_array, thrust.y_array
-        newBurnTime = tuple_handler(newBurnTime)
+        time_array, thrust_array = thrust.x_array, thrust.y_array
+        new_burn_time = tuple_handler(new_burn_time)
 
         # Compute old thrust based on new time discretization
         # Adjust scale
-        newTimeArray = (
-            (newBurnTime[1] - newBurnTime[0]) / (timeArray[-1] - timeArray[0])
-        ) * timeArray
+        new_time_array = (
+            (new_burn_time[1] - new_burn_time[0]) / (time_array[-1] - time_array[0])
+        ) * time_array
         # Adjust origin
-        newTimeArray = newTimeArray - newTimeArray[0] + newBurnTime[0]
-        source = np.column_stack((newTimeArray, thrustArray))
+        new_time_array = new_time_array - new_time_array[0] + new_burn_time[0]
+        source = np.column_stack((new_time_array, thrust_array))
         thrust = Function(
             source, "Time (s)", "Thrust (N)", thrust.__interpolation__, "zero"
         )
 
         # Get old total impulse
-        oldTotalImpulse = thrust.integral(*newBurnTime)
+        old_total_impulse = thrust.integral(*new_burn_time)
 
         # Compute new thrust values
-        newThrustArray = (total_impulse / oldTotalImpulse) * thrustArray
-        source = np.column_stack((newTimeArray, newThrustArray))
+        new_thrust_array = (total_impulse / old_total_impulse) * thrust_array
+        source = np.column_stack((new_time_array, new_thrust_array))
         thrust = Function(
             source, "Time (s)", "Thrust (N)", thrust.__interpolation__, "zero"
         )
@@ -896,18 +896,18 @@ class Motor(ABC):
             Clipped thrust curve.
         """
         # Check if burn_time is within thrust_source range
-        changedBurnTime = False
+        changed_burn_time = False
         burn_time = list(tuple_handler(new_burn_time))
 
         if burn_time[1] > thrust.x_array[-1]:
             burn_time[1] = thrust.x_array[-1]
-            changedBurnTime = True
+            changed_burn_time = True
 
         if burn_time[0] < thrust.x_array[0]:
             burn_time[0] = thrust.x_array[0]
-            changedBurnTime = True
+            changed_burn_time = True
 
-        if changedBurnTime:
+        if changed_burn_time:
             warnings.warn(
                 f"burn_time argument {new_burn_time} is out of "
                 "thrust source time range. "
@@ -925,10 +925,10 @@ class Motor(ABC):
         clipped_source = thrust.source[bound_mask]
 
         # Update source with burn_time points
-        endBurnData = [(burn_time[1], thrust(burn_time[1]))]
-        clipped_source = np.append(clipped_source, endBurnData, 0)
-        startBurnData = [(burn_time[0], thrust(burn_time[0]))]
-        clipped_source = np.insert(clipped_source, 0, startBurnData, 0)
+        end_burn_data = [(burn_time[1], thrust(burn_time[1]))]
+        clipped_source = np.append(clipped_source, end_burn_data, 0)
+        start_burn_data = [(burn_time[0], thrust(burn_time[0]))]
+        clipped_source = np.insert(clipped_source, 0, start_burn_data, 0)
 
         return Function(
             clipped_source,
@@ -958,7 +958,7 @@ class Motor(ABC):
             Description of the motor. All attributes are returned separated in
             a list. E.g. "F32 24 124 5-10-15 .0377 .0695 RV\n" is return as
             ['F32', '24', '124', '5-10-15', '.0377', '.0695', 'RV\n']
-        dataPoints: list
+        data_points: list
             List of all data points in file. Each data point is an entry in
             the returned list and written as a list of two entries.
         """
@@ -966,7 +966,7 @@ class Motor(ABC):
         # Initialize arrays
         comments = []
         description = []
-        dataPoints = [[0, 0]]
+        data_points = [[0, 0]]
 
         # Open and read .eng file
         with open(file_name) as file:
@@ -982,10 +982,10 @@ class Motor(ABC):
                     else:
                         # Extract thrust curve data points
                         time, thrust = re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", line)
-                        dataPoints.append([float(time), float(thrust)])
+                        data_points.append([float(time), float(thrust)])
 
         # Return all extract content
-        return comments, description, dataPoints
+        return comments, description, data_points
 
     def export_eng(self, file_name, motor_name):
         """Exports thrust curve data points and motor description to

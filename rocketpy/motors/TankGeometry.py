@@ -262,7 +262,7 @@ class TankGeometry:
         rocketpy.Function
             Tank's first volume moment as a function of height.
         """
-        height = self.area.identityFunction()
+        height = self.area.identity_function()
 
         # Tolerance of 1e-8 is used to avoid numerical errors
         upper = upper + 1e-12 if upper - lower < 1e-8 else upper
@@ -301,7 +301,7 @@ class TankGeometry:
         ----------
         .. [1] https://en.wikipedia.org/wiki/List_of_moments_of_inertia
         """
-        height2 = self.radius.identityFunction() ** 2
+        height2 = self.radius.identity_function() ** 2
 
         # Tolerance of 1e-8 is used to avoid numerical errors
         upper = upper + 1e-12 if upper - lower < 1e-8 else upper

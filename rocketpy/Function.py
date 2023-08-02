@@ -190,14 +190,14 @@ class Function:
         # Handle ndarray source
         else:
             # Check to see if dimensions match incoming data set
-            newTotalDim = len(source[0, :])
-            oldTotalDim = self.__dom_dim__ + self.__img_dim__
+            new_total_dim = len(source[0, :])
+            old_total_dim = self.__dom_dim__ + self.__img_dim__
             dV = self.__inputs__ == ["Scalar"] and self.__outputs__ == ["Scalar"]
             # If they don't, update default values or throw error
-            if newTotalDim != oldTotalDim:
+            if new_total_dim != old_total_dim:
                 if dV:
                     # Update dimensions and inputs
-                    self.__dom_dim__ = newTotalDim - 1
+                    self.__dom_dim__ = new_total_dim - 1
                     self.__inputs__ = self.__dom_dim__ * self.__inputs__
                 else:
                     # User has made a mistake inputting inputs and outputs
@@ -529,8 +529,8 @@ class Function:
             xs, ys = xs.flatten(), ys.flatten()
             mesh = [[xs[i], ys[i]] for i in range(len(xs))]
             # Evaluate function at all mesh nodes and convert it to matrix
-            Zs = np.array(self.get_value(mesh))
-            self.set_source(np.concatenate(([xs], [ys], [Zs])).transpose())
+            zs = np.array(self.get_value(mesh))
+            self.set_source(np.concatenate(([xs], [ys], [zs])).transpose())
             self.__interpolation__ = "shepard"
         return self
 
@@ -630,8 +630,8 @@ class Function:
             xs, ys = xs.flatten(), ys.flatten()
             mesh = [[xs[i], ys[i]] for i in range(len(xs))]
             # Evaluate function at all mesh nodes and convert it to matrix
-            Zs = np.array(self.get_value(mesh))
-            self.set_source(np.concatenate(([xs], [ys], [Zs])).transpose())
+            zs = np.array(self.get_value(mesh))
+            self.set_source(np.concatenate(([xs], [ys], [zs])).transpose())
 
         interp = (
             self.__interpolation__ if keep_self else model_function.__interpolation__
@@ -1791,10 +1791,10 @@ class Function:
         numpy.ndarray of bool
             The result of the comparison one by one.
         """
-        otherIsFunction = isinstance(other, Function)
+        other_is_function = isinstance(other, Function)
 
         if isinstance(self.source, np.ndarray):
-            if otherIsFunction:
+            if other_is_function:
                 try:
                     return self.y_array >= other.y_array
                 except AttributeError:
@@ -1816,7 +1816,7 @@ class Function:
                     )
         else:
             # self is lambda based Function
-            if otherIsFunction:
+            if other_is_function:
                 try:
                     return self(other.x_array) >= other.y_array
                 except AttributeError:
@@ -1845,10 +1845,10 @@ class Function:
         numpy.ndarray of bool
             The result of the comparison one by one.
         """
-        otherIsFunction = isinstance(other, Function)
+        other_is_function = isinstance(other, Function)
 
         if isinstance(self.source, np.ndarray):
-            if otherIsFunction:
+            if other_is_function:
                 try:
                     return self.y_array <= other.y_array
                 except AttributeError:
@@ -1867,7 +1867,7 @@ class Function:
                     )
         else:
             # self is lambda based Function
-            if otherIsFunction:
+            if other_is_function:
                 try:
                     return self(other.x_array) <= other.y_array
                 except AttributeError:
@@ -2511,7 +2511,7 @@ class Function:
                 self.get_value(x + dx) - 2 * self.get_value(x) + self.get_value(x - dx)
             ) / dx**2
 
-    def identityFunction(self):
+    def identity_function(self):
         """Returns a Function object that correspond to the identity mapping,
         i.e. f(x) = x.
         If the Function object is defined on an array, the identity Function
@@ -2542,7 +2542,7 @@ class Function:
                 outputs=f"identity of {self.__outputs__}",
             )
 
-    def derivativeFunction(self):
+    def derivative_function(self):
         """Returns a Function object which gives the derivative of the Function object.
 
         Returns
@@ -2921,18 +2921,18 @@ class PiecewiseFunction(Function):
                 o[j] = func.get_value(inputs[j])
             return o
 
-        inputData = []
-        outputData = []
+        input_data = []
+        output_data = []
         for key in sorted(source.keys()):
             i = np.linspace(key[0], key[1], datapoints)
-            i = i[~np.in1d(i, inputData)]
-            inputData = np.concatenate((inputData, i))
+            i = i[~np.in1d(i, input_data)]
+            input_data = np.concatenate((input_data, i))
 
             f = Function(source[key])
-            outputData = np.concatenate((outputData, calc_output(f, i)))
+            output_data = np.concatenate((output_data, calc_output(f, i)))
 
         return Function(
-            np.concatenate(([inputData], [outputData])).T,
+            np.concatenate(([input_data], [output_data])).T,
             inputs=inputs,
             outputs=outputs,
             interpolation=interpolation,

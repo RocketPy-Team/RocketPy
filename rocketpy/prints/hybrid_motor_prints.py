@@ -84,12 +84,12 @@ class _HybridMotorPrints:
         )
         print(
             "Grain Volume: "
-            + "{:.3f}".format(self.hybrid_motor.solid.grainInitialVolume)
+            + "{:.3f}".format(self.hybrid_motor.solid.grain_initial_volume)
             + " m3"
         )
         print(
             "Grain Mass: "
-            + "{:.3f}".format(self.hybrid_motor.solid.grainInitialMass)
+            + "{:.3f}".format(self.hybrid_motor.solid.grain_initial_mass)
             + " kg\n"
         )
         return None

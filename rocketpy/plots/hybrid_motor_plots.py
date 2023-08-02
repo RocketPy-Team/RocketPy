@@ -387,7 +387,7 @@ class _HybridMotorPlots:
         self.grain_inner_radius(*self.hybrid_motor.burn_time)
         self.grain_height(*self.hybrid_motor.burn_time)
         self.burn_rate(
-            self.hybrid_motor.burn_time[0], self.hybrid_motor.solid.grainBurnOut
+            self.hybrid_motor.burn_time[0], self.hybrid_motor.solid.grain_burn_out
         )
         self.burn_area(*self.hybrid_motor.burn_time)
         self.Kn()
