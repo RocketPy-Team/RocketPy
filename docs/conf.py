@@ -19,9 +19,9 @@ sys.path.insert(0, os.path.abspath("../"))
 # -- Project information -----------------------------------------------------
 
 project = "RocketPy"
-copyright = "2020, RocketPy Team"
+copyright = "2023, RocketPy Team"
 
-author = "Giovani Hidalgo Ceotto"
+author = "RocketPy Team"
 
 # The full version, including alpha/beta/rc tags
 release = "1.0.0a1"
@@ -37,6 +37,8 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "sphinx.ext.mathjax",
+    "sphinx_design",
+    "jupyter_sphinx",
     "nbsphinx",
     "m2r2",
 ]
@@ -50,9 +52,31 @@ nbsphinx_execute = "never"
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 
+# Napoleon settings
 napoleon_numpy_docstring = True
+napoleon_include_init_with_doc = True
+napoleon_include_private_with_doc = True
+napoleon_include_special_with_doc = True
+napoleon_use_admonition_for_examples = True
+napoleon_use_admonition_for_notes = True
+napoleon_use_admonition_for_references = True
+napoleon_use_ivar = True
+napoleon_use_param = True
+napoleon_use_rtype = True
+napoleon_preprocess_types = True
+
 autodoc_member_order = "bysource"
-autoclass_content = "both"
+autoclass_content = "class"
+
+# -- Options for autodoc ----------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html#configuration
+
+# Automatically extract typehints when specified and place them in
+# descriptions of the relevant function/method.
+autodoc_typehints = "description"
+
+# Don't show class signature with the class' name.
+autodoc_class_signature = "separated"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
