@@ -2,14 +2,15 @@ Motor Classes
 =============
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 3
    :caption: Contents:
 
+   Motor
    SolidMotor
-   Fluid
-   Tank and TankGeometry classes <tanks/index>
-   LiquidMotor
    HybridMotor
+   LiquidMotor
    GenericMotor
-   EmptyMotor
+   Fluid
+   Tank Classes <tanks/index>
+   Tank Geometry Classes <geometries/index>
 

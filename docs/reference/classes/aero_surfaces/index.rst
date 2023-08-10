@@ -5,8 +5,10 @@ AeroSurface Classes
    :maxdepth: 4
    :caption: Contents:
 
+   AeroSurface
    NoseCone
+   Tail
+   Fins
    TrapezoidalFins
    EllipticalFins
-   Tail
    RailButtons

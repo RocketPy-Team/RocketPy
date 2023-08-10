@@ -5,9 +5,7 @@ Tanks and TanksGeometry Classes
    :maxdepth: 4
    :caption: Contents:
 
-   TankGeometry
-   CylindricalTank
-   SphericalTank
+   Tank
    MassFlowRateBasedTank
    UllageBasedTank
    MassBasedTank
