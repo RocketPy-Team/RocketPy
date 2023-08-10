@@ -1,4 +1,8 @@
-![RocketPy Logo](https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/RocketPy_Logo_Black.svg)
+.. image:: https://drive.google.com/uc?id=19f5D0PIBb0oGc-t1-qGp-icAbe5dIhB9
+    :class: only-dark
+
+.. image:: https://drive.google.com/uc?id=1xKt6u5mI8x8ZuA5IZvIFDolg2_0iQUf-
+    :class: only-light
 
 <br>
 
