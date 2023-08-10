@@ -72,7 +72,6 @@ html_theme = "pydata_sphinx_theme"
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["static"]
 html_css_files = ["notebooks.css"]
-html_logo = "static/RocketPy_Logo_Black.svg"
 html_favicon = "static/favicon.ico"
 html_theme_options = {
     "logo_link": "index",
@@ -85,8 +84,33 @@ html_theme_options = {
 html_sidebars = {
     "**": ["search-field.html", "sidebar-nav-bs.html", "sidebar-ethical-ads.html"]
 }
-html_theme_options = {"navbar_end": ["navbar-icon-links.html", "search-field.html"]}
-
+html_theme_options = {
+    "logo": {
+        "image_light": "static/RocketPy_Logo_black.png",
+        "image_dark": "static/RocketPy_Logo_white.png",
+    },
+    "navbar_end": ["theme-switcher", "navbar-icon-links.html"],
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/RocketPy-Team/RocketPy/",
+            "icon": "fa-brands fa-square-github",
+            "type": "fontawesome",
+        },
+        {
+            "name": "LinkedIn",
+            "url": "https://www.linkedin.com/company/rocketpy/",
+            "icon": "fa-brands fa-linkedin",
+            "type": "fontawesome",
+        },
+        {
+            "name": "PyPI",
+            "url": "https://pypi.org/project/rocketpy/",
+            "icon": "fa-solid fa-box",
+            "type": "fontawesome",
+        },
+    ],
+}
 html_use_modindex = True
 html_copy_source = False
 html_domain_indices = False
