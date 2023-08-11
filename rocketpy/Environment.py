@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-
-__author__ = "Giovani Hidalgo Ceotto, Guilherme Fernandes Alves, Lucas Azevedo Pezente, Oscar Mauricio Prada Ramirez, Lucas Kierulff Balabram"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
 import bisect
 import json
 import re
@@ -27,7 +21,7 @@ try:
 except ImportError:
     has_netCDF4 = False
     warnings.warn(
-        "Unable to load netCDF4. NetCDF files and OPeNDAP will not be imported.",
+        "Unable to load netCDF4. NetCDF files and ``OPeNDAP`` will not be imported.",
         ImportWarning,
     )
 else:
@@ -52,246 +46,221 @@ class Environment:
 
     Attributes
     ----------
+    Environment.earth_radius : float
+        Value of Earth's Radius as 6.3781e6 m.
+    Environment.air_gas_constant : float
+        Value of Air's Gas Constant as 287.05287 J/K/Kg
+    Environment.gravity : float
+        Positive value of gravitational acceleration in m/s^2.
+    Environment.latitude : float
+        Launch site latitude.
+    Environment.longitude : float
+        Launch site longitude.
+    Environment.datum : string
+        The desired reference ellipsoid model, the following options are
+        available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
+        is "SIRGAS2000", then this model will be used if the user make some
+        typing mistake
+    Environment.initial_east : float
+        Launch site East UTM coordinate
+    Environment.initial_north :  float
+        Launch site North UTM coordinate
+    Environment.initial_utm_zone : int
+        Launch site UTM zone number
+    Environment.initial_utm_letter : string
+        Launch site UTM letter, to keep the latitude band and describe the
+        UTM Zone
+    Environment.initial_hemisphere : string
+        Launch site S/N hemisphere
+    Environment.initial_ew : string
+        Launch site E/W hemisphere
+    Environment.elevation : float
+        Launch site elevation.
+    Environment.date : datetime
+        Date time of launch in UTC.
+    Environment.local_date : datetime
+        Date time of launch in the local time zone, defined by
+        ``Environment.timezone``.
+    Environment.timezone : string
+        Local time zone specification. See `pytz`_. for time zone information.
 
-        Constants
-        Environment.earth_radius : float
-            Value of Earth's Radius = 6.3781e6 m.
-        Environment.air_gas_constant : float
-            Value of Air's Gas Constant = 287.05287 J/K/Kg
+        .. _pytz: https://pytz.sourceforge.net/
 
-        Gravity:
-        Environment.gravity : float
-            Positive value of gravitational acceleration in m/s^2.
-
-        Coordinates and Date:
-        Environment.latitude : float
-            Launch site latitude.
-        Environment.longitude : float
-            Launch site longitude.
-        Environment.datum: string
-            The desired reference ellipsoid model, the following options are
-            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
-            is "SIRGAS2000", then this model will be used if the user make some
-            typing mistake
-        Environment.initial_east: float
-            Launch site East UTM coordinate
-        Environment.initial_north:  float
-            Launch site North UTM coordinate
-        Environment.initial_utm_zone: int
-            Launch site UTM zone number
-        Environment.initial_utm_letter: string
-            Launch site UTM letter, to keep the latitude band and describe the
-            UTM Zone
-        Environment.initial_hemisphere: string
-            Launch site S/N hemisphere
-        Environment.initial_ew: string
-            Launch site E/W hemisphere
-        Environment.elevation : float
-            Launch site elevation.
-        Environment.date : datetime
-            Date time of launch in UTC.
-        Environment.local_date : datetime
-                    Date time of launch in the local time zone, defined by Environment.timezone.
-        Environment.timezone : string
-                    Local time zone specification. See pytz for time zone info.
-
-        Topographic information:
-        Environment.elev_lon_array: array
-            Unidimensional array containing the longitude coordinates
-        Environment.elev_lat_array: array
-            Unidimensional array containing the latitude coordinates
-        Environment.elev_array: array
-            Two-dimensional Array containing the elevation information
-        Environment.topographic_profile_activated: bool
-            True if the user already set a topographic profile
-
-        Atmosphere Static Conditions:
-        Environment.max_expected_height : float
-            Maximum altitude in meters to keep weather data.
-            Used especially for plotting range.
-            Can be altered as desired.
-        Environment.pressure_ISA : Function
-            Air pressure in Pa as a function of altitude as defined
-            by the International Standard Atmosphere ISO 2533.
-            Only defined after load Environment.load_international_standard_atmosphere
-            has been called.
-            Can be accessed as regular array, or called
-            as a function. See Function for more information.
-        Environment.temperature_ISA : Function
-            Air temperature in K as a function of altitude  as defined
-            by the International Standard Atmosphere ISO 2533.
-            Only defined after load Environment.load_international_standard_atmosphere
-            has been called.
-            Can be accessed as regular array, or called
-            as a function. See Function for more information.
-        Environment.pressure : Function
-            Air pressure in Pa as a function of altitude.
-            Can be accessed as regular array, or called
-            as a function. See Function for more information.
-        Environment.temperature : Function
-            Air temperature in K as a function of altitude.
-            Can be accessed as regular array, or called
-            as a function. See Function for more information.
-        Environment.speed_of_sound : Function
-            Speed of sound in air in m/s as a function of altitude.
-            Can be accessed as regular array, or called
-            as a function. See Function for more information.
-        Environment.density : Function
-            Air density in kg/m³ as a function of altitude.
-            Can be accessed as regular array, or called
-            as a function. See Function for more information.
-        Environment.dynamic_viscosity : Function
-            Air dynamic viscosity in Pa s as a function of altitude.
-            Can be accessed as regular array, or called
-            as a function. See Function for more information.
-
-        Atmosphere Wind Conditions:
-        Environment.wind_speed : Function
-            Wind speed in m/s as a function of altitude.
-            Can be accessed as regular array, or called
-            as a function. See Function for more information.
-        Environment.wind_direction : Function
-            Wind direction (from which the wind blows)
-            in degrees relative to north (positive clockwise)
-            as a function of altitude.
-            Can be accessed as regular array, or called
-            as a function. See Function for more information.
-        Environment.wind_heading : Function
-            Wind heading (direction towards which the wind blows)
-            in degrees relative to north (positive clockwise)
-            as a function of altitude.
-            Can be accessed as regular array, or called
-            as a function. See Function for more information.
-        Environment.wind_velocity_x : Function
-            Wind U, or X (east) component of wind velocity in m/s as a function of
-            altitude.
-            Can be accessed as regular array, or called
-            as a function. See Function for more information.
-        Environment.wind_velocity_y : Function
-            Wind V, or Y (east) component of wind velocity in m/s as a function of
-            altitude.
-            Can be accessed as regular array, or called
-            as a function. See Function for more information.
-
-        Atmospheric Model Details
-        Environment.atmospheric_model_type : string
-            Describes the atmospheric model which is being used.
-            Can only assume the following values: 'standard_atmosphere',
-            'custom_atmosphere', 'wyoming_sounding', 'NOAARucSounding',
-            'Forecast', 'Reanalysis', 'Ensemble'.
-        Environment.atmospheric_model_file : string
-            Address of the file used for the atmospheric model being used.
-            Only defined for 'wyoming_sounding', 'NOAARucSounding',
-            'Forecast', 'Reanalysis', 'Ensemble'
-        Environment.atmospheric_model_dict : dictionary
-            Dictionary used to properly interpret netCDF and OPeNDAP
-            files. Only defined for 'Forecast', 'Reanalysis', 'Ensemble'.
-        Environment.atmospheric_model_init_date : datetime
-            Datetime object instance of first available date in netCDF
-            and OPeNDAP files when using 'Forecast', 'Reanalysis' or
-            'Ensemble'.
-        Environment.atmospheric_model_end_date : datetime
-            Datetime object instance of last available date in netCDF
-            and OPeNDAP files when using 'Forecast', 'Reanalysis' or
-            'Ensemble'.
-        Environment.atmospheric_model_interval : int
-            Hour step between weather condition used in netCDF and
-            OPeNDAP files when using 'Forecast', 'Reanalysis' or
-            'Ensemble'.
-        Environment.atmospheric_model_init_lat : float
-            Latitude of vertex just before the launch site in netCDF
-            and OPeNDAP files when using 'Forecast', 'Reanalysis' or
-            'Ensemble'.
-        Environment.atmospheric_model_end_lat : float
-            Latitude of vertex just after the launch site in netCDF
-            and OPeNDAP files when using 'Forecast', 'Reanalysis' or
-            'Ensemble'.
-        Environment.atmospheric_model_init_lon : float
-            Longitude of vertex just before the launch site in netCDF
-            and OPeNDAP files when using 'Forecast', 'Reanalysis' or
-            'Ensemble'.
-        Environment.atmospheric_model_end_lon : float
-            Longitude of vertex just after the launch site in netCDF
-            and OPeNDAP files when using 'Forecast', 'Reanalysis' or
-            'Ensemble'.
-
-        Atmospheric Model Storage
-        Environment.lat_array : array
-            Defined if netCDF or OPeNDAP file is used, for Forecasts,
-            Reanalysis and Ensembles. 2x2 matrix for each pressure level of latitudes
-            corresponding to the vertices of the grid cell which surrounds
-            the launch site.
-        Environment.lon_array : array
-            Defined if netCDF or OPeNDAP file is used, for Forecasts,
-            Reanalysis and Ensembles. 2x2 matrix for each pressure level of longitudes
-            corresponding to the vertices of the grid cell which surrounds
-            the launch site.
-        Environment.lon_index : int
-            Defined if netCDF or OPeNDAP file is used, for Forecasts,
-            Reanalysis and Ensembles. Index to a grid longitude which
-            is just over the launch site longitude, while lon_index - 1
-            points to a grid longitude which is just under the launch
-            site longitude.
-        Environment.lat_index : int
-            Defined if netCDF or OPeNDAP file is used, for Forecasts,
-            Reanalysis and Ensembles. Index to a grid latitude which
-            is just over the launch site latitude, while lon_index - 1
-            points to a grid latitude which is just under the launch
-            site latitude.
-        Environment.geopotentials : array
-            Defined if netCDF or OPeNDAP file is used, for Forecasts,
-            Reanalysis and Ensembles. 2x2 matrix for each pressure level of geopotential heights
-            corresponding to the vertices of the grid cell which surrounds
-            the launch site.
-        Environment.wind_us : array
-            Defined if netCDF or OPeNDAP file is used, for Forecasts,
-            Reanalysis and Ensembles. 2x2 matrix for each pressure level of wind U (east) component
-            corresponding to the vertices of the grid cell which surrounds
-            the launch site.
-        Environment.wind_vs : array
-            Defined if netCDF or OPeNDAP file is used, for Forecasts,
-            Reanalysis and Ensembles. 2x2 matrix for each pressure level of wind V (north) component
-            corresponding to the vertices of the grid cell which surrounds
-            the launch site.
-        Environment.levels : array
-            Defined if netCDF or OPeNDAP file is used, for Forecasts,
-            Reanalysis and Ensembles. List of pressure levels available
-            in the file.
-        Environment.temperatures : array
-            Defined if netCDF or OPeNDAP file is used, for Forecasts,
-            Reanalysis and Ensembles. 2x2 matrix for each pressure level of temperatures
-            corresponding to the vertices of the grid cell which surrounds
-            the launch site.
-        Environment.time_array : array
-            Defined if netCDF or OPeNDAP file is used, for Forecasts,
-            Reanalysis and Ensembles. Array of dates available in the
-            file.
-        Environment.height : array
-           Defined if netCDF or OPeNDAP file is used, for Forecasts,
-           Reanalysis and Ensembles. List of geometric height
-           corresponding to launch site location.
-
-        Atmospheric Model Ensemble Specific Data
-        Environment.level_ensemble : array
-            Only defined when using Ensembles.
-        Environment.height_ensemble : array
-            Only defined when using Ensembles.
-        Environment.temperature_ensemble : array
-            Only defined when using Ensembles.
-        Environment.wind_u_ensemble : array
-            Only defined when using Ensembles.
-        Environment.wind_v_ensemble : array
-            Only defined when using Ensembles.
-        Environment.wind_heading_ensemble : array
-            Only defined when using Ensembles.
-        Environment.wind_direction_ensemble : array
-            Only defined when using Ensembles.
-        Environment.wind_speed_ensemble : array
-            Only defined when using Ensembles.
-        Environment.num_ensemble_members : int
-            Number of ensemble members. Only defined when using Ensembles.
-        Environment.ensemble_member : int
-            Current selected ensemble member. Only defined when using Ensembles.
+    Environment.elev_lon_array : array
+        Unidimensional array containing the longitude coordinates.
+    Environment.elev_lat_array : array
+        Unidimensional array containing the latitude coordinates.
+    Environment.elev_array : array
+        Two-dimensional Array containing the elevation information.
+    Environment.topographic_profile_activated : bool
+        True if the user already set a topographic profile. False otherwise.
+    Environment.max_expected_height : float
+        Maximum altitude in meters to keep weather data.
+        Used especially for plotting range.
+        Can be altered as desired.
+    Environment.pressure_ISA : Function
+        Air pressure in Pa as a function of altitude as defined by the
+        `International Standard Atmosphere ISO 2533`. Only defined after load
+        ``Environment.load_international_standard_atmosphere`` has been called.
+        Can be accessed as regular array, or called as a Function. See Function
+        for more information.
+    Environment.temperature_ISA : Function
+        Air temperature in K as a function of altitude as defined by the
+        `International Standard Atmosphere ISO 2533`. Only defined after load
+        ``Environment.load_international_standard_atmosphere`` has been called.
+        Can be accessed as regular array, or called as a Function. See Function
+        for more information.
+    Environment.pressure : Function
+        Air pressure in Pa as a function of altitude. Can be accessed as regular
+        array, or called as a Function. See Function for more information.
+    Environment.temperature : Function
+        Air temperature in K as a function of altitude. Can be accessed as
+        regular array, or called as a Function. See Function for more
+        information.
+    Environment.speed_of_sound : Function
+        Speed of sound in air in m/s as a function of altitude. Can be accessed
+        as regular array, or called as a Function. See Function for more
+        information.
+    Environment.density : Function
+        Air density in kg/m³ as a function of altitude. Can be accessed as
+        regular array, or called as a Function. See Function for more
+        information.
+    Environment.dynamic_viscosity : Function
+        Air dynamic viscosity in Pa*s as a function of altitude. Can be accessed
+        as regular array, or called as a Function. See Function for more
+        information.
+    Environment.wind_speed : Function
+        Wind speed in m/s as a function of altitude. Can be accessed as regular
+        array, or called as a Function. See Function for more information.
+    Environment.wind_direction : Function
+        Wind direction (from which the wind blows) in degrees relative to north
+        (positive clockwise) as a function of altitude. Can be accessed as an
+        array, or called as a Function. See Function for more information.
+    Environment.wind_heading : Function
+        Wind heading (direction towards which the wind blows) in degrees
+        relative to north (positive clockwise) as a function of altitude.
+        Can be accessed as an array, or called as a Function.
+        See Function for more information.
+    Environment.wind_velocity_x : Function
+        Wind U, or X (east) component of wind velocity in m/s as a function of
+        altitude. Can be accessed as an array, or called as a Function. See
+        Function for more information.
+    Environment.wind_velocity_y : Function
+        Wind V, or Y (north) component of wind velocity in m/s as a function of
+        altitude. Can be accessed as an array, or called as a Function. See
+        Function for more information.
+    Environment.atmospheric_model_type : string
+        Describes the atmospheric model which is being used. Can only assume the
+        following values: ``standard_atmosphere``, ``custom_atmosphere``,
+        ``wyoming_sounding``, ``NOAARucSounding``, ``Forecast``, ``Reanalysis``,
+        ``Ensemble``.
+    Environment.atmospheric_model_file : string
+        Address of the file used for the atmospheric model being used. Only
+        defined for ``wyoming_sounding``, ``NOAARucSounding``, ``Forecast``,
+        ``Reanalysis``, ``Ensemble``
+    Environment.atmospheric_model_dict : dictionary
+        Dictionary used to properly interpret ``netCDF`` and ``OPeNDAP`` files.
+        Only defined for ``Forecast``, ``Reanalysis``, ``Ensemble``.
+    Environment.atmospheric_model_init_date : datetime
+        Datetime object instance of first available date in ``netCDF``
+        and ``OPeNDAP`` files when using ``Forecast``, ``Reanalysis`` or
+        ``Ensemble``.
+    Environment.atmospheric_model_end_date : datetime
+        Datetime object instance of last available date in ``netCDF`` and
+        ``OPeNDAP`` files when using ``Forecast``, ``Reanalysis`` or
+        ``Ensemble``.
+    Environment.atmospheric_model_interval : int
+        Hour step between weather condition used in ``netCDF`` and
+        ``OPeNDAP`` files when using ``Forecast``, ``Reanalysis`` or
+        ``Ensemble``.
+    Environment.atmospheric_model_init_lat : float
+        Latitude of vertex just before the launch site in ``netCDF``
+        and ``OPeNDAP`` files when using ``Forecast``, ``Reanalysis`` or
+        ``Ensemble``.
+    Environment.atmospheric_model_end_lat : float
+        Latitude of vertex just after the launch site in ``netCDF``
+        and ``OPeNDAP`` files when using ``Forecast``, ``Reanalysis`` or
+        ``Ensemble``.
+    Environment.atmospheric_model_init_lon : float
+        Longitude of vertex just before the launch site in ``netCDF``
+        and ``OPeNDAP`` files when using ``Forecast``, ``Reanalysis`` or
+        ``Ensemble``.
+    Environment.atmospheric_model_end_lon : float
+        Longitude of vertex just after the launch site in ``netCDF``
+        and ``OPeNDAP`` files when using ``Forecast``, ``Reanalysis`` or
+        ``Ensemble``.
+    Environment.lat_array : array
+        Defined if ``netCDF`` or ``OPeNDAP`` file is used, for Forecasts,
+        Reanalysis and Ensembles. 2x2 matrix for each pressure level of
+        latitudes corresponding to the vertices of the grid cell which
+        surrounds the launch site.
+    Environment.lon_array : array
+        Defined if ``netCDF`` or ``OPeNDAP`` file is used, for Forecasts,
+        Reanalysis and Ensembles. 2x2 matrix for each pressure level of
+        longitudes corresponding to the vertices of the grid cell which
+        surrounds the launch site.
+    Environment.lon_index : int
+        Defined if ``netCDF`` or ``OPeNDAP`` file is used, for Forecasts,
+        Reanalysis and Ensembles. Index to a grid longitude which
+        is just over the launch site longitude, while ``lon_index`` - 1
+        points to a grid longitude which is just under the launch
+        site longitude.
+    Environment.lat_index : int
+        Defined if ``netCDF`` or ``OPeNDAP`` file is used, for Forecasts,
+        Reanalysis and Ensembles. Index to a grid latitude which
+        is just over the launch site latitude, while ``lat_index`` - 1
+        points to a grid latitude which is just under the launch
+        site latitude.
+    Environment.geopotentials : array
+        Defined if ``netCDF`` or ``OPeNDAP`` file is used, for Forecasts,
+        Reanalysis and Ensembles. 2x2 matrix for each pressure level of
+        geopotential heights corresponding to the vertices of the grid cell
+        which surrounds the launch site.
+    Environment.wind_us : array
+        Defined if ``netCDF`` or ``OPeNDAP`` file is used, for Forecasts,
+        Reanalysis and Ensembles. 2x2 matrix for each pressure level of
+        wind U (east) component corresponding to the vertices of the grid
+        cell which surrounds the launch site.
+    Environment.wind_vs : array
+        Defined if ``netCDF`` or ``OPeNDAP`` file is used, for Forecasts,
+        Reanalysis and Ensembles. 2x2 matrix for each pressure level of
+        wind V (north) component corresponding to the vertices of the grid
+        cell which surrounds the launch site.
+    Environment.levels : array
+        Defined if ``netCDF`` or ``OPeNDAP`` file is used, for Forecasts,
+        Reanalysis and Ensembles. List of pressure levels available in the file.
+    Environment.temperatures : array
+        Defined if ``netCDF`` or ``OPeNDAP`` file is used, for Forecasts,
+        Reanalysis and Ensembles. 2x2 matrix for each pressure level of
+        temperatures corresponding to the vertices of the grid cell which
+        surrounds the launch site.
+    Environment.time_array : array
+        Defined if ``netCDF`` or ``OPeNDAP`` file is used, for Forecasts,
+        Reanalysis and Ensembles. Array of dates available in the file.
+    Environment.height : array
+        Defined if ``netCDF`` or ``OPeNDAP`` file is used, for Forecasts,
+        Reanalysis and Ensembles. List of geometric height corresponding to
+        launch site location.
+    Environment.level_ensemble : array
+        Only defined when using Ensembles.
+    Environment.height_ensemble : array
+        Only defined when using Ensembles.
+    Environment.temperature_ensemble : array
+        Only defined when using Ensembles.
+    Environment.wind_u_ensemble : array
+        Only defined when using Ensembles.
+    Environment.wind_v_ensemble : array
+        Only defined when using Ensembles.
+    Environment.wind_heading_ensemble : array
+        Only defined when using Ensembles.
+    Environment.wind_direction_ensemble : array
+        Only defined when using Ensembles.
+    Environment.wind_speed_ensemble : array
+        Only defined when using Ensembles.
+    Environment.num_ensemble_members : int
+        Number of ensemble members. Only defined when using Ensembles.
+    Environment.ensemble_member : int
+        Current selected ensemble member. Only defined when using Ensembles.
     """
 
     def __init__(
@@ -340,6 +309,8 @@ class Environment:
             typing mistake.
         timezone : string, optional
             Name of the time zone. To see all time zones, import pytz and run
+            print(pytz.all_timezones). Default time zone is "UTC".
+
 
         Returns
         -------
@@ -422,10 +393,10 @@ class Environment:
             Datetime object specifying launch date and time.
         timezone : string, optional
             Name of the time zone. To see all time zones, import pytz and run
-        print(pytz.all_timezones). Default time zone is "UTC".
+            print(pytz.all_timezones). Default time zone is "UTC".
 
-        Return
-        ------
+        Returns
+        -------
         None
         """
         # Store date and configure time zone
@@ -460,14 +431,13 @@ class Environment:
         Parameters
         ----------
         latitude : float
-            Latitude of launch site. May range from -90 to 90
-            degrees.
+            Latitude of launch site. May range from -90 to 90 degrees.
         longitude : float
-            Longitude of launch site. Either from 0 to 360 degrees
-            or from -180 to 180 degrees.
+            Longitude of launch site. Either from 0 to 360 degrees or from -180
+            to 180 degrees.
 
-        Return
-        ------
+        Returns
+        -------
         None
         """
         # Store latitude and longitude
@@ -484,12 +454,15 @@ class Environment:
         # Return None
 
     def set_gravity_model(self, gravity):
-        """Sets the gravity model to be used in the simulation based
-        on the given user input to the gravity parameter.
+        """Sets the gravity model to be used in the simulation based on the
+        given user input to the gravity parameter.
 
         Parameters
         ----------
         gravity : None or Function source
+            If None, the Somigliana formula is used to compute the gravity
+            acceleration. Otherwise, the user can provide a Function object
+            representing the gravity model.
 
         Returns
         -------
@@ -550,15 +523,17 @@ class Environment:
         Parameters
         ----------
         elevation : float, string, optional
-            Elevation of launch site measured as height above sea
-            level in meters.
-            Alternatively, can be set as 'Open-Elevation' which uses
-            the Open-Elevation API to find elevation data. For this
-            option, latitude and longitude must have already been
-            specified. See Environment.set_location for more details.
+            Elevation of launch site measured as height above sea level in
+            meters. Alternatively, can be set as 'Open-Elevation' which uses
+            the Open-Elevation API to find elevation data. For this option,
+            latitude and longitude must have already been specified.
 
-        Return
-        ------
+            See Also
+            --------
+            Environment.set_location
+
+        Returns
+        -------
         None
         """
         if elevation != "Open-Elevation" and elevation != "SRTM":
@@ -657,15 +632,8 @@ class Environment:
 
         Returns
         -------
-        elevation: float
+        elevation : float
             Elevation provided by the topographic data, in meters.
-
-        Raises
-        ------
-        ValueError
-            [description]
-        ValueError
-            [description]
         """
         if self.topographic_profile_activated == False:
             print(
@@ -747,169 +715,198 @@ class Environment:
         wind_u=0,
         wind_v=0,
     ):
-        """Defines an atmospheric model for the Environment.
-        Supported functionality includes using data from the
-        International Standard Atmosphere, importing data from
-        weather reanalysis, forecasts and ensemble forecasts,
-        importing data from upper air soundings and inputting
-        data as custom functions, arrays or csv files.
+        """Defines an atmospheric model for the Environment. Supported
+        functionality includes using data from the `International Standard
+        Atmosphere`, importing data from weather reanalysis, forecasts and
+        ensemble forecasts, importing data from upper air soundings and
+        inputting data as custom functions, arrays or csv files.
 
         Parameters
         ----------
         type : string
             One of the following options:
-            - 'standard_atmosphere': sets pressure and temperature
-            profiles corresponding to the International Standard
-            Atmosphere defined by ISO 2533 and ranging from -2 km
-            to 80 km of altitude above sea level. Note that the wind
-            profiles are set to zero when this type is chosen.
 
-            - 'wyoming_sounding': sets pressure, temperature, wind-u
-            and wind-v profiles and surface elevation obtained from
-            an upper air sounding given by the file parameter through
-            an URL. This URL should point to a data webpage given by
-            selecting plot type as text: list, a station and a time at
-            http://weather.uwyo.edu/upperair/sounding.html.
-            An example of a valid link would be:
-            http://weather.uwyo.edu/cgi-bin/sounding?region=samer&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=02&FROM=0200&TO=0200&STNM=82599
+            - ``standard_atmosphere``: sets pressure and temperature profiles
+              corresponding to the International Standard Atmosphere defined by
+              ISO 2533 and ranging from -2 km to 80 km of altitude above sea
+              level. Note that the wind profiles are set to zero when this type
+              is chosen.
 
-            - 'NOAARucSounding': sets pressure, temperature, wind-u
-            and wind-v profiles and surface elevation obtained from
-            an upper air sounding given by the file parameter through
-            an URL. This URL should point to a data webpage obtained
-            through NOAA's Ruc Sounding servers, which can be accessed
-            in https://rucsoundings.noaa.gov/. Selecting ROABs as the
-            initial data source, specifying the station through it's
-            WMO-ID and opting for the ASCII (GSD format) button, the
-            following example URL opens up: https://rucsoundings.noaa.gov/get_raobs.cgi?data_source=RAOB&latest=latest&start_year=2019&start_month_name=Feb&start_mday=5&start_hour=12&start_min=0&n_hrs=1.0&fcst_len=shortest&airport=83779&text=Ascii%20text%20%28GSD%20format%29&hydrometeors=false&start=latest
-            Any ASCII GSD format page from this server can be read,
-            so information from virtual soundings such as GFS and NAM
-            can also be imported.
+            - ``wyoming_sounding``: sets pressure, temperature, wind-u
+              and wind-v profiles and surface elevation obtained from
+              an upper air sounding given by the file parameter through
+              an URL. This URL should point to a data webpage given by
+              selecting plot type as text: list, a station and a time at
+              `weather.uwyo`_.
+              An example of a valid link would be:
 
-            - 'windy_atmosphere': sets pressure, temperature, wind-u and wind-v
-            profiles and surface elevation obtained from the Windy API. See file
-            argument to specify the model as either ECMWF, GFS or ICON.
+              http://weather.uwyo.edu/cgi-bin/sounding?region=samer&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=02&FROM=0200&TO=0200&STNM=82599
 
-            - 'Forecast': sets pressure, temperature, wind-u and wind-v
-            profiles and surface elevation obtained from a weather
-            forecast file in netCDF format or from an OPeNDAP URL, both
-            given through the file parameter. When this type
-            is chosen, the date and location of the launch
-            should already have been set through the date and
-            location parameters when initializing the Environment.
-            The netCDF and OPeNDAP datasets must contain at least
-            geopotential height or geopotential, temperature,
-            wind-u and wind-v profiles as a function of pressure levels.
-            If surface geopotential or geopotential height is given,
-            elevation is also set. Otherwise, elevation is not changed.
-            Profiles are interpolated bi-linearly using supplied
-            latitude and longitude. The date used is the nearest one
-            to the date supplied. Furthermore, a dictionary must be
-            supplied through the dictionary parameter in order for the
-            dataset to be accurately read. Lastly, the dataset must use
-            a rectangular grid sorted in either ascending or descending
-            order of latitude and longitude.
+              .. _weather.uwyo: http://weather.uwyo.edu/upperair/sounding.html
 
-            - 'Reanalysis': sets pressure, temperature, wind-u and wind-v
-            profiles and surface elevation obtained from a weather
-            forecast file in netCDF format or from an OPeNDAP URL, both
-            given through the file parameter. When this type
-            is chosen, the date and location of the launch
-            should already have been set through the date and
-            location parameters when initializing the Environment.
-            The netCDF and OPeNDAP datasets must contain at least
-            geopotential height or geopotential, temperature,
-            wind-u and wind-v profiles as a function of pressure levels.
-            If surface geopotential or geopotential height is given,
-            elevation is also set. Otherwise, elevation is not changed.
-            Profiles are interpolated bi-linearly using supplied
-            latitude and longitude. The date used is the nearest one
-            to the date supplied. Furthermore, a dictionary must be
-            supplied through the dictionary parameter in order for the
-            dataset to be accurately read. Lastly, the dataset must use
-            a rectangular grid sorted in either ascending or descending
-            order of latitude and longitude.
+            - ``NOAARucSounding``: sets pressure, temperature, wind-u
+              and wind-v profiles and surface elevation obtained from
+              an upper air sounding given by the file parameter through
+              an URL. This URL should point to a data webpage obtained
+              through NOAA's Ruc Sounding servers, which can be accessed
+              in `rucsoundings`_. Selecting ROABs as the
+              initial data source, specifying the station through it's
+              WMO-ID and opting for the ASCII (GSD format) button, the
+              following example URL opens up:
 
-            - 'Ensemble': sets pressure, temperature, wind-u and wind-v
-            profiles and surface elevation obtained from a weather
-            forecast file in netCDF format or from an OPeNDAP URL, both
-            given through the file parameter. When this type
-            is chosen, the date and location of the launch
-            should already have been set through the date and
-            location parameters when initializing the Environment.
-            The netCDF and OPeNDAP datasets must contain at least
-            geopotential height or geopotential, temperature,
-            wind-u and wind-v profiles as a function of pressure
-            levels. If surface geopotential or geopotential height
-            is given, elevation is also set. Otherwise, elevation is not
-            changed. Profiles are interpolated bi-linearly using supplied
-            latitude and longitude. The date used is the nearest one
-            to the date supplied. Furthermore, a dictionary must be
-            supplied through the dictionary parameter in order for the
-            dataset to be accurately read. Lastly, the dataset must use
-            a rectangular grid sorted in either ascending or descending
-            order of latitude and longitude. By default the first ensemble
-            forecast is activated. To activate other ensemble forecasts
-            see Environment.selectEnsembleMemberMember().
+              https://rucsoundings.noaa.gov/get_raobs.cgi?data_source=RAOB&latest=latest&start_year=2019&start_month_name=Feb&start_mday=5&start_hour=12&start_min=0&n_hrs=1.0&fcst_len=shortest&airport=83779&text=Ascii%20text%20%28GSD%20format%29&hydrometeors=false&start=latest
 
-            - 'custom_atmosphere': sets pressure, temperature, wind-u
-            and wind-v profiles given though the pressure, temperature,
-            wind-u and wind-v parameters of this method. If pressure
-            or temperature is not given, it will default to the
-            International Standard Atmosphere. If the wind components
-            are not given, it will default to 0.
+              Any ASCII GSD format page from this server can be read,
+              so information from virtual soundings such as GFS and NAM
+              can also be imported.
+
+              .. _rucsoundings: https://rucsoundings.noaa.gov/
+
+            - ``windy_atmosphere``: sets pressure, temperature, wind-u and
+              wind-v profiles and surface elevation obtained from the Windy API.
+              See file argument to specify the model as either ``ECMWF``,
+              ``GFS`` or ``ICON``.
+
+            - ``Forecast``: sets pressure, temperature, wind-u and wind-v
+              profiles and surface elevation obtained from a weather forecast
+              file in ``netCDF`` format or from an ``OPeNDAP`` URL, both given
+              through the file parameter. When this type is chosen, the date
+              and location of the launch should already have been set through
+              the date and location parameters when initializing the
+              Environment. The ``netCDF`` and ``OPeNDAP`` datasets must contain
+              at least geopotential height or geopotential, temperature, wind-u
+              and wind-v profiles as a function of pressure levels. If surface
+              geopotential or geopotential height is given, elevation is also
+              set. Otherwise, elevation is not changed. Profiles are
+              interpolated bi-linearly using supplied latitude and longitude.
+              The date used is the nearest one to the date supplied.
+              Furthermore, a dictionary must be supplied through the dictionary
+              parameter in order for the dataset to be accurately read. Lastly,
+              the dataset must use a rectangular grid sorted in either ascending
+              or descending order of latitude and longitude.
+
+            - ``Reanalysis``: sets pressure, temperature, wind-u and wind-v
+              profiles and surface elevation obtained from a weather forecast
+              file in ``netCDF`` format or from an ``OPeNDAP`` URL, both given
+              through the file parameter. When this type is chosen, the date and
+              location of the launch should already have been set through the
+              date and location parameters when initializing the Environment.
+              The ``netCDF`` and ``OPeNDAP`` datasets must contain at least
+              geopotential height or geopotential, temperature, wind-u and
+              wind-v profiles as a function of pressure levels. If surface
+              geopotential or geopotential height is given, elevation is also
+              set. Otherwise, elevation is not changed. Profiles are
+              interpolated bi-linearly using supplied latitude and longitude.
+              The date used is the nearest one to the date supplied.
+              Furthermore, a dictionary must be supplied through the dictionary
+              parameter in order for the dataset to be accurately read. Lastly,
+              the dataset must use a rectangular grid sorted in either ascending
+              or descending order of latitude and longitude.
+
+            - ``Ensemble``: sets pressure, temperature, wind-u and wind-v
+              profiles and surface elevation obtained from a weather forecast
+              file in ``netCDF`` format or from an ``OPeNDAP`` URL, both given
+              through the file parameter. When this type is chosen, the date and
+              location of the launch should already have been set through the
+              date and location parameters when initializing the Environment.
+              The ``netCDF`` and ``OPeNDAP`` datasets must contain at least
+              geopotential height or geopotential, temperature, wind-u and
+              wind-v profiles as a function of pressure levels. If surface
+              geopotential or geopotential height is given, elevation is also
+              set. Otherwise, elevation is not changed. Profiles are
+              interpolated bi-linearly using supplied latitude and longitude.
+              The date used is the nearest one to the date supplied.
+              Furthermore, a dictionary must be supplied through the dictionary
+              parameter in order for the dataset to be accurately read. Lastly,
+              the dataset must use a rectangular grid sorted in either ascending
+              or descending order of latitude and longitude. By default the
+              first ensemble forecast is activated.
+
+              .. seealso::
+
+                To activate other ensemble forecasts see
+                ``Environment.selectEnsembleMemberMember``.
+
+            - ``custom_atmosphere``: sets pressure, temperature, wind-u and
+              wind-v profiles given though the pressure, temperature, wind-u and
+              wind-v parameters of this method. If pressure or temperature is
+              not given, it will default to the `International Standard
+              Atmosphere`. If the wind components are not given, it will default
+              to 0.
 
         file : string, optional
-            String that must be given when type is either
-            'wyoming_sounding', 'Forecast', 'Reanalysis', 'Ensemble' or 'Windy'.
-            It specifies the location of the data given, either through
-            a local file address or a URL.
-            If type is 'Forecast', this parameter can also be either
-            'GFS', 'FV3', 'RAP' or 'NAM' for latest of these forecasts.
-            References: GFS: Global - 0.25deg resolution - Updates every 6 hours, forecast for 81 points spaced by 3 hours
-                        FV3: Global - 0.25deg resolution - Updates every 6 hours, forecast for 129 points spaced by 3 hours
-                        RAP: Regional USA - 0.19deg resolution - Updates hourly, forecast for 40 points spaced hourly
-                        NAM: Regional CONUS Nest - 5 km resolution - Updates every 6 hours, forecast for 21 points spaced by 3 hours
-            If type is 'Ensemble', this parameter can also be either
-            'GEFS', or 'CMC' for the latest of these ensembles.
-            References: GEFS: Global, bias-corrected, 0.5deg resolution, 21 forecast members, Updates every 6 hours, forecast for 65 points spaced by 4 hours
-                       CMC: Global, 0.5deg resolution, 21 forecast members, Updates every 12 hours, forecast for 65 points spaced by 4 hours
-            If type is 'Windy', this parameter can be either 'GFS', 'ECMWF', 'ICON' or
-            'ICONEU'
-            Default in this case is 'ecmwf'.
+            String that must be given when type is either ``wyoming_sounding``,
+            ``Forecast``, ``Reanalysis``, ``Ensemble`` or ``Windy``. It
+            specifies the location of the data given, either through a local
+            file address or a URL. If type is ``Forecast``, this parameter can
+            also be either ``GFS``, ``FV3``, ``RAP`` or ``NAM`` for latest of
+            these forecasts.
+
+            .. note::
+
+                Time referece for the Forecasts are:
+
+                - ``GFS``: `Global` - 0.25deg resolution - Updates every 6
+                  hours, forecast for 81 points spaced by 3 hours
+                - ``FV3``: `Global` - 0.25deg resolution - Updates every 6
+                  hours, forecast for 129 points spaced by 3 hours
+                - ``RAP``: `Regional USA` - 0.19deg resolution - Updates hourly,
+                  forecast for 40 points spaced hourly
+                - ``NAM``: `Regional CONUS Nest` - 5 km resolution - Updates
+                  every 6 hours, forecast for 21 points spaced by 3 hours
+
+            If type is ``Ensemble``, this parameter can also be either ``GEFS``,
+            or ``CMC`` for the latest of these ensembles.
+
+            .. note::
+
+                Time referece for the Ensembles are:
+
+                - GEFS: Global, bias-corrected, 0.5deg resolution, 21 forecast
+                  members, Updates every 6 hours, forecast for 65 points spaced
+                  by 4 hours
+                - CMC: Global, 0.5deg resolution, 21 forecast members, Updates
+                  every 12 hours, forecast for 65 points spaced by 4 hours
+
+            If type is ``Windy``, this parameter can be either ``GFS``,
+            ``ECMWF``, ``ICON`` or ``ICONEU``. Default in this case is ``ECMWF``.
         dictionary : dictionary, string, optional
-            Dictionary that must be given when type is either
-            'Forecast', 'Reanalysis' or 'Ensemble'.
-            It specifies the dictionary to be used when reading netCDF
-            and OPeNDAP files, allowing the correct retrieval of data.
-            Acceptable values include 'ECMWF', 'NOAA' and 'UCAR' for
-            default dictionaries which can generally be used to read
-            datasets from these institutes.
-            Alternatively, a dictionary structure can also be given,
-            specifying the short names used for time, latitude, longitude,
-            pressure levels, temperature profile, geopotential or
-            geopotential height profile, wind-u and wind-v profiles in
-            the dataset given in the file parameter. Additionally,
-            ensemble dictionaries must have the ensemble as well.
-            An example is the following dictionary, used for 'NOAA':
-                                  {'time': 'time',
-                               'latitude': 'lat',
-                              'longitude': 'lon',
-                                  'level': 'lev',
-                               'ensemble': 'ens',
-                            'temperature': 'tmpprs',
-            'surface_geopotential_height': 'hgtsfc',
-                    'geopotential_height': 'hgtprs',
-                           'geopotential': None,
-                                 'u_wind': 'ugrdprs',
-                                 'v_wind': 'vgrdprs'}
+            Dictionary that must be given when type is either ``Forecast``,
+            ``Reanalysis`` or ``Ensemble``. It specifies the dictionary to be
+            used when reading ``netCDF`` and ``OPeNDAP`` files, allowing the
+            correct retrieval of data. Acceptable values include ``ECMWF``,
+            ``NOAA`` and ``UCAR`` for default dictionaries which can generally
+            be used to read datasets from these institutes. Alternatively, a
+            dictionary structure can also be given, specifying the short names
+            used for time, latitude, longitude, pressure levels, temperature
+            profile, geopotential or geopotential height profile, wind-u and
+            wind-v profiles in the dataset given in the file parameter.
+            Additionally, ensemble dictionaries must have the ensemble as well.
+            An example is the following dictionary, used for ``NOAA``:
+
+            .. code-block:: python
+
+                dictionary = {
+                    "time": "time",
+                    "latitude": "lat",
+                    "longitude": "lon",
+                    "level": "lev",
+                    "ensemble": "ens",
+                    "temperature": "tmpprs",
+                    "surface_geopotential_height": "hgtsfc",
+                    "geopotential_height": "hgtprs",
+                    "geopotential": None,
+                    "u_wind": "ugrdprs",
+                    "v_wind": "vgrdprs",
+                }
+
         pressure : float, string, array, callable, optional
             This defines the atmospheric pressure profile.
-            Should be given if the type parameter is 'custom_atmosphere'. If not,
-            than the the Standard Atmosphere pressure will be used.
+            Should be given if the type parameter is ``custom_atmosphere``. If not,
+            than the the ``Standard Atmosphere`` pressure will be used.
             If a float is given, it will define a constant pressure
             profile. The float should be in units of Pa.
-            If a string is given, it should point to a .CSV file
+            If a string is given, it should point to a `.CSV` file
             containing at most one header line and two columns of data.
             The first column must be the geometric height above sea level in
             meters while the second column must be the pressure in Pa.
@@ -919,55 +916,50 @@ class Environment:
             function should take one argument, the height above sea
             level in meters and return a corresponding pressure in Pa.
         temperature : float, string, array, callable, optional
-            This defines the atmospheric temperature profile.
-            Should be given if the type parameter is 'custom_atmosphere'. If not,
-            than the the Standard Atmosphere temperature will be used.
-            If a float is given, it will define a constant temperature
-            profile. The float should be in units of K.
-            If a string is given, it should point to a .CSV file
-            containing at most one header line and two columns of data.
-            The first column must be the geometric height above sea level in
-            meters while the second column must be the temperature in K.
-            If an array is given, it is expected to be a list or array
-            of coordinates (height in meters, temperature in K).
-            Finally, a callable or function is also accepted. The
-            function should take one argument, the height above sea
-            level in meters and return a corresponding temperature in K.
+            This defines the atmospheric temperature profile. Should be given
+            if the type parameter is ``custom_atmosphere``. If not, than the the
+            ``Standard Atmosphere`` temperature will be used. If a float is
+            given, it will define a constant temperature profile. The float
+            should be in units of K. If a string is given, it should point to a
+            `.CSV` file containing at most one header line and two columns of
+            data. The first column must be the geometric height above sea level
+            in meters while the second column must be the temperature in K.
+            If an array is given, it is expected to be a list or array of
+            coordinates (height in meters, temperature in K). Finally, a
+            callable or function is also accepted. The function should take one
+            argument, the height above sea level in meters and return a
+            corresponding temperature in K.
         wind_u : float, string, array, callable, optional
-            This defines the atmospheric wind-u profile, corresponding
-            the the magnitude of the wind speed heading East.
-            Should be given if the type parameter is 'custom_atmosphere'. If not,
-            it will be assumed to be constant and equal to 0.
-            If a float is given, it will define a constant wind-u
-            profile. The float should be in units of m/s.
-            If a string is given, it should point to a .CSV file
-            containing at most one header line and two columns of data.
-            The first column must be the geometric height above sea level in
-            meters while the second column must be the wind-u in m/s.
-            If an array is given, it is expected to be an array of
-            coordinates (height in meters, wind-u in m/s).
-            Finally, a callable or function is also accepted. The
-            function should take one argument, the height above sea
-            level in meters and return a corresponding wind-u in m/s.
+            This defines the atmospheric wind-u profile, corresponding the
+            magnitude of the wind speed heading East. Should be given if the
+            type parameter is ``custom_atmosphere``. If not, it will be assumed
+            to be constant and equal to 0. If a float is given, it will define
+            a constant wind-u profile. The float should be in units of m/s. If a
+            string is given, it should point to a .CSV file containing at most
+            one header line and two columns of data. The first column must be
+            the geometric height above sea level in meters while the second
+            column must be the wind-u in m/s. If an array is given, it is
+            expected to be an array of coordinates (height in meters,
+            wind-u in m/s). Finally, a callable or function is also accepted.
+            The function should take one argument, the height above sea level in
+            meters and return a corresponding wind-u in m/s.
         wind_v : float, string, array, callable, optional
-            This defines the atmospheric wind-v profile, corresponding
-            the the magnitude of the wind speed heading North.
-            Should be given if the type parameter is 'custom_atmosphere'. If not,
-            it will be assumed to be constant and equal to 0.
-            If a float is given, it will define a constant wind-v
-            profile. The float should be in units of m/s.
-            If a string is given, it should point to a .CSV file
-            containing at most one header line and two columns of data.
-            The first column must be the geometric height above sea level in
-            meters while the second column must be the wind-v in m/s.
-            If an array is given, it is expected to be an array of
-            coordinates (height in meters, wind-v in m/s).
-            Finally, a callable or function is also accepted. The
-            function should take one argument, the height above sea
-            level in meters and return a corresponding wind-v in m/s.
+            This defines the atmospheric wind-v profile, corresponding the
+            magnitude of the wind speed heading North. Should be given if the
+            type parameter is ``custom_atmosphere``. If not, it will be assumed
+            to be constant and equal to 0. If a float is given, it will define a
+            constant wind-v profile. The float should be in units of m/s. If a
+            string is given, it should point to a .CSV file containing at most
+            one header line and two columns of data. The first column must be
+            the geometric height above sea level in meters while the second
+            column must be the wind-v in m/s. If an array is given, it is
+            expected to be an array of coordinates (height in meters, wind-v in
+            m/s). Finally, a callable or function is also accepted. The function
+            should take one argument, the height above sea level in meters and
+            return a corresponding wind-v in m/s.
 
-        Return
-        ------
+        Returns
+        -------
         None
         """
         # Save atmospheric model type
@@ -1298,10 +1290,6 @@ class Environment:
         ranging from -2 km to 80 km of altitude above sea level. Note
         that the wind profiles are set to zero.
 
-        Parameters
-        ---------
-        None
-
         Returns
         -------
         None
@@ -1357,8 +1345,8 @@ class Environment:
         ----------
         pressure : float, string, array, callable, optional
             This defines the atmospheric pressure profile.
-            Should be given if the type parameter is 'custom_atmosphere'. If not,
-            than the the Standard Atmosphere pressure will be used.
+            Should be given if the type parameter is ``custom_atmosphere``.
+            If not, than the the Standard Atmosphere pressure will be used.
             If a float is given, it will define a constant pressure
             profile. The float should be in units of Pa.
             If a string is given, it should point to a .CSV file
@@ -1372,8 +1360,8 @@ class Environment:
             level in meters and return a corresponding pressure in Pa.
         temperature : float, string, array, callable, optional
             This defines the atmospheric temperature profile.
-            Should be given if the type parameter is 'custom_atmosphere'. If not,
-            than the the Standard Atmosphere temperature will be used.
+            Should be given if the type parameter is ``custom_atmosphere``.
+            If not, than the the Standard Atmosphere temperature will be used.
             If a float is given, it will define a constant temperature
             profile. The float should be in units of K.
             If a string is given, it should point to a .CSV file
@@ -1388,8 +1376,8 @@ class Environment:
         wind_u : float, string, array, callable, optional
             This defines the atmospheric wind-u profile, corresponding
             the the magnitude of the wind speed heading East.
-            Should be given if the type parameter is 'custom_atmosphere'. If not,
-            it will be assumed constant and 0.
+            Should be given if the type parameter is ``custom_atmosphere``.
+            If not, it will be assumed constant and 0.
             If a float is given, it will define a constant wind-u
             profile. The float should be in units of m/s.
             If a string is given, it should point to a .CSV file
@@ -1404,8 +1392,8 @@ class Environment:
         wind_v : float, string, array, callable, optional
             This defines the atmospheric wind-v profile, corresponding
             the the magnitude of the wind speed heading North.
-            Should be given if the type parameter is 'custom_atmosphere'. If not,
-            it will be assumed constant and 0.
+            Should be given if the type parameter is ``custom_atmosphere``.
+            If not, it will be assumed constant and 0.
             If a float is given, it will define a constant wind-v
             profile. The float should be in units of m/s.
             If a string is given, it should point to a .CSV file
@@ -1519,9 +1507,10 @@ class Environment:
         Parameters
         ----------
         model : string, optional
-            The atmospheric model to use. Default is 'ECMWF'. Options are:
-            'ECMWF' for the ECMWF-HRES model, 'GFS' for the GFS model, 'ICON'
-            for the ICON-Global model or 'ICONEU' for the ICON-EU model.
+            The atmospheric model to use. Default is ``ECMWF``. Options are:
+            ``ECMWF`` for the `ECMWF-HRES` model, ``GFS`` for the `GFS` model,
+            ``ICON`` for the `ICON-Global` model or ``ICONEU`` for the `ICON-EU`
+            model.
         """
 
         # Process the model string
@@ -1668,19 +1657,21 @@ class Environment:
         self.height = altitude_array
 
     def process_wyoming_sounding(self, file):
-        """Import and process the upper air sounding data from Wyoming
-        Upper Air Soundings database given by the url in file. Sets
+        """Import and process the upper air sounding data from `Wyoming
+        Upper Air Soundings` database given by the url in file. Sets
         pressure, temperature, wind-u, wind-v profiles and surface elevation.
 
         Parameters
         ----------
         file : string
-            URL of an upper air sounding data output from Wyoming
-            Upper Air Soundings database.
+            URL of an upper air sounding data output from `Wyoming
+            Upper Air Soundings` database.
+
             Example:
+
             http://weather.uwyo.edu/cgi-bin/sounding?region=samer&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=02&FROM=0200&TO=0200&STNM=82599
-            More can be found at:
-            http://weather.uwyo.edu/upperair/sounding.html.
+
+            More can be found at: http://weather.uwyo.edu/upperair/sounding.html.
 
         Returns
         -------
@@ -1793,20 +1784,22 @@ class Environment:
         return None
 
     def process_noaaruc_sounding(self, file):
-        """Import and process the upper air sounding data from NOAA
-        Ruc Soundings database (https://rucsoundings.noaa.gov/) given as
+        """Import and process the upper air sounding data from `NOAA
+        Ruc Soundings` database (https://rucsoundings.noaa.gov/) given as
         ASCII GSD format pages passed by its url to the file parameter. Sets
         pressure, temperature, wind-u, wind-v profiles and surface elevation.
 
         Parameters
         ----------
         file : string
-            URL of an upper air sounding data output from NOAA Ruc Soundings
+            URL of an upper air sounding data output from `NOAA Ruc Soundings`
             in ASCII GSD format.
+
             Example:
+
             https://rucsoundings.noaa.gov/get_raobs.cgi?data_source=RAOB&latest=latest&start_year=2019&start_month_name=Feb&start_mday=5&start_hour=12&start_min=0&n_hrs=1.0&fcst_len=shortest&airport=83779&text=Ascii%20text%20%28GSD%20format%29&hydrometeors=false&start=latest
-            More can be found at:
-            https://rucsoundings.noaa.gov/.
+
+            More can be found at: https://rucsoundings.noaa.gov/.
 
         Returns
         -------
@@ -1912,17 +1905,17 @@ class Environment:
         wind_speed_array[:, 1] = (
             wind_speed_array[:, 1] * 1.852 / 3.6
         )  # Converts Knots to m/s
-        windHeading_array = wind_direction_array[:, :] * 1
-        windHeading_array[:, 1] = (
+        wind_heading_array = wind_direction_array[:, :] * 1
+        wind_heading_array[:, 1] = (
             wind_direction_array[:, 1] + 180
         ) % 360  # Convert wind direction to wind heading
         wind_u = wind_speed_array[:, :] * 1
         wind_v = wind_speed_array[:, :] * 1
         wind_u[:, 1] = wind_speed_array[:, 1] * np.sin(
-            windHeading_array[:, 1] * np.pi / 180
+            wind_heading_array[:, 1] * np.pi / 180
         )
         wind_v[:, 1] = wind_speed_array[:, 1] * np.cos(
-            windHeading_array[:, 1] * np.pi / 180
+            wind_heading_array[:, 1] * np.pi / 180
         )
 
         # Save wind data
@@ -1933,7 +1926,7 @@ class Environment:
             interpolation="linear",
         )
         self.wind_heading = Function(
-            windHeading_array,
+            wind_heading_array,
             inputs="Height Above Sea Level (m)",
             outputs="Wind Heading (Deg True)",
             interpolation="linear",
@@ -1963,14 +1956,14 @@ class Environment:
     @requires_netCDF4
     def process_forecast_reanalysis(self, file, dictionary):
         """Import and process atmospheric data from weather forecasts
-        and reanalysis given as netCDF or OPeNDAP files.
+        and reanalysis given as ``netCDF`` or ``OPeNDAP`` files.
         Sets pressure, temperature, wind-u and wind-v
         profiles and surface elevation obtained from a weather
-        file in netCDF format or from an OPeNDAP URL, both
+        file in ``netCDF`` format or from an ``OPeNDAP`` URL, both
         given through the file parameter. The date and location of the launch
         should already have been set through the date and
         location parameters when initializing the Environment.
-        The netCDF and OPeNDAP datasets must contain at least
+        The ``netCDF`` and ``OPeNDAP`` datasets must contain at least
         geopotential height or geopotential, temperature,
         wind-u and wind-v profiles as a function of pressure levels.
         If surface geopotential or geopotential height is given,
@@ -1986,27 +1979,33 @@ class Environment:
         Parameters
         ----------
         file : string
-            String containing path to local netCDF file or URL of an
-            OPeNDAP file, such as NOAA's NOMAD or UCAR TRHEDDS server.
+            String containing path to local ``netCDF`` file or URL of an
+            ``OPeNDAP`` file, such as NOAA's NOMAD or UCAR TRHEDDS server.
         dictionary : dictionary
-            Specifies the dictionary to be used when reading netCDF and
-            OPeNDAP files, allowing for the correct retrieval of data.
+            Specifies the dictionary to be used when reading ``netCDF`` and
+            ``OPeNDAP`` files, allowing for the correct retrieval of data.
             The dictionary structure should specify the short names
             used for time, latitude, longitude, pressure levels,
             temperature profile, geopotential or geopotential height
             profile, wind-u and wind-v profiles in the dataset given in
             the file parameter. An example is the following dictionary,
-            generally used to read OPeNDAP files from NOAA's NOMAD
-            server:               {'time': 'time',
-                               'latitude': 'lat',
-                              'longitude': 'lon',
-                                  'level': 'lev',
-                            'temperature': 'tmpprs',
-            'surface_geopotential_height': 'hgtsfc',
-                    'geopotential_height': 'hgtprs',
-                           'geopotential': None,
-                                 'u_wind': 'ugrdprs',
-                                 'v_wind': 'vgrdprs'}
+            generally used to read ``OPeNDAP`` files from NOAA's NOMAD
+            server:
+
+            .. code-block:: python
+
+                dictionary = {
+                    "time": "time",
+                    "latitude": "lat",
+                    "longitude": "lon",
+                    "level": "lev",
+                    "temperature": "tmpprs",
+                    "surface_geopotential_height": "hgtsfc",
+                    "geopotential_height": "hgtprs",
+                    "geopotential": None,
+                    "u_wind": "ugrdprs",
+                    "v_wind": "vgrdprs",
+                }
 
         Returns
         -------
@@ -2361,52 +2360,55 @@ class Environment:
     @requires_netCDF4
     def process_ensemble(self, file, dictionary):
         """Import and process atmospheric data from weather ensembles
-        given as netCDF or OPeNDAP files.
-        Sets pressure, temperature, wind-u and wind-v
-        profiles and surface elevation obtained from a weather
-        ensemble file in netCDF format or from an OPeNDAP URL, both
+        given as ``netCDF`` or ``OPeNDAP`` files. Sets pressure, temperature,
+        wind-u and wind-v profiles and surface elevation obtained from a weather
+        ensemble file in ``netCDF`` format or from an ``OPeNDAP`` URL, both
         given through the file parameter. The date and location of the launch
-        should already have been set through the date and
-        location parameters when initializing the Environment.
-        The netCDF and OPeNDAP datasets must contain at least
-        geopotential height or geopotential, temperature,
-        wind-u and wind-v profiles as a function of pressure
-        levels. If surface geopotential or geopotential height
-        is given, elevation is also set. Otherwise, elevation is not
-        changed. Profiles are interpolated bi-linearly using supplied
-        latitude and longitude. The date used is the nearest one
-        to the date supplied. Furthermore, a dictionary must be
-        supplied through the dictionary parameter in order for the
-        dataset to be accurately read. Lastly, the dataset must use
-        a rectangular grid sorted in either ascending or descending
-        order of latitude and longitude. By default the first ensemble
-        forecast is activated. To activate other ensemble forecasts
-        see Environment.selectEnsembleMemberMember().
+        should already have been set through the date and location parameters
+        when initializing the Environment. The ``netCDF`` and ``OPeNDAP``
+        datasets must contain at least geopotential height or geopotential,
+        temperature, wind-u and wind-v profiles as a function of pressure
+        levels. If surface geopotential or geopotential height is given,
+        elevation is also set. Otherwise, elevation is not changed. Profiles are
+        interpolated bi-linearly using supplied latitude and longitude. The date
+        used is the nearest one to the date supplied. Furthermore, a dictionary
+        must be supplied through the dictionary parameter in order for the
+        dataset to be accurately read. Lastly, the dataset must use a
+        rectangular grid sorted in either ascending or descending order of
+        latitude and longitude. By default the first ensemble forecast is
+        activated. To activate other ensemble forecasts see
+        ``Environment.selectEnsembleMemberMember()``.
 
         Parameters
         ----------
         file : string
-            String containing path to local netCDF file or URL of an
-            OPeNDAP file, such as NOAA's NOMAD or UCAR TRHEDDS server.
+            String containing path to local ``netCDF`` file or URL of an
+            ``OPeNDAP`` file, such as NOAA's NOMAD or UCAR TRHEDDS server.
         dictionary : dictionary
-            Specifies the dictionary to be used when reading netCDF and
-            OPeNDAP files, allowing for the correct retrieval of data.
+            Specifies the dictionary to be used when reading ``netCDF`` and
+            ``OPeNDAP`` files, allowing for the correct retrieval of data.
             The dictionary structure should specify the short names
             used for time, latitude, longitude, pressure levels,
             temperature profile, geopotential or geopotential height
             profile, wind-u and wind-v profiles in the dataset given in
             the file parameter. An example is the following dictionary,
-            generally used to read OPeNDAP files from NOAA's NOMAD
-            server:               {'time': 'time',
-                               'latitude': 'lat',
-                              'longitude': 'lon',
-                                  'level': 'lev',
-                               'ensemble': 'ens',
-            'surface_geopotential_height': 'hgtsfc',
-                    'geopotential_height': 'hgtprs',
-                           'geopotential': None,
-                                 'u_wind': 'ugrdprs',
-                                 'v_wind': 'vgrdprs'}
+            generally used to read ``OPeNDAP`` files from NOAA's NOMAD
+            server:
+
+            .. code-block:: python
+
+                dictionary = {
+                    "time": "time",
+                    "latitude": "lat",
+                    "longitude": "lon",
+                    "level": "lev",
+                    "ensemble": "ens",
+                    "surface_geopotential_height": "hgtsfc",
+                    "geopotential_height": "hgtprs",
+                    "geopotential": None,
+                    "u_wind": "ugrdprs",
+                    "v_wind": "vgrdprs",
+                }
 
         Returns
         -------
@@ -2726,9 +2728,9 @@ class Environment:
         return None
 
     def select_ensemble_member(self, member=0):
-        """Activates ensemble member, meaning that all atmospheric
-        variables read from the Environment instance will correspond
-        to the desired ensemble member.
+        """Activates ensemble member, meaning that all atmospheric variables
+        read from the Environment instance will correspond to the desired
+        ensemble member.
 
         Parameters
         ---------
@@ -2841,12 +2843,8 @@ class Environment:
 
     def load_international_standard_atmosphere(self):
         """Defines the pressure and temperature profile functions set
-        by ISO 2533 for the International Standard atmosphere and saves
-        them as self.pressure_ISA and self.temperature_ISA.
-
-        Parameters
-        ---------
-        None
+        by `ISO 2533` for the International Standard atmosphere and saves
+        them as ``Environment.pressure_ISA`` and ``Environment.temperature_ISA``.
 
         Returns
         -------
@@ -2958,10 +2956,6 @@ class Environment:
         height by using the formula rho = P/(RT). This function is
         automatically called whenever a new atmospheric model is set.
 
-        Parameters
-        ----------
-        None
-
         Returns
         -------
         None
@@ -2987,10 +2981,6 @@ class Environment:
         of height by using the formula a = sqrt(gamma*R*T). This
         function is automatically called whenever a new atmospheric
         model is set.
-
-        Parameters
-        ----------
-        None
 
         Returns
         -------
@@ -3018,10 +3008,6 @@ class Environment:
         This function is automatically called whenever a new atmospheric model is set.
         Warning: This equation is invalid for very high or very low temperatures
         and under conditions occurring at altitudes above 90 km.
-
-        Parameters
-        ----------
-        None
 
         Returns
         -------
@@ -3095,10 +3081,6 @@ class Environment:
         """Prints most important data and graphs available about the
         Environment.
 
-        Parameters
-        ----------
-        None
-
         Return
         ------
         None
@@ -3111,12 +3093,8 @@ class Environment:
     def all_info(self):
         """Prints out all data and graphs available about the Environment.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -3128,10 +3106,6 @@ class Environment:
     def all_plot_info_returned(self):
         """Returns a dictionary with all plot information available about the Environment.
 
-        Parameters
-        ----------
-        None
-
         Returns
         ------
         plotInfo : Dict
@@ -3140,8 +3114,8 @@ class Environment:
         grid = np.linspace(self.elevation, self.max_expected_height)
         plotInfo = dict(
             grid=[i for i in grid],
-            windSpeed=[self.wind_speed(i) for i in grid],
-            windDirection=[self.wind_direction(i) for i in grid],
+            wind_speed=[self.wind_speed(i) for i in grid],
+            wind_direction=[self.wind_direction(i) for i in grid],
             speed_of_sound=[self.speed_of_sound(i) for i in grid],
             density=[self.density(i) for i in grid],
             windVelX=[self.wind_velocity_x(i) for i in grid],
@@ -3165,14 +3139,14 @@ class Environment:
             plotInfo["ensembleWindVelocityY"].append(
                 [self.wind_velocity_y(i) for i in grid]
             )
-        plotInfo["ensembleWindSpeed"] = []
+        plotInfo["ensemblewind_speed"] = []
         for i in range(self.num_ensemble_members):
             self.select_ensemble_member(i)
-            plotInfo["ensembleWindSpeed"].append([self.wind_speed(i) for i in grid])
-        plotInfo["ensembleWindDirection"] = []
+            plotInfo["ensemblewind_speed"].append([self.wind_speed(i) for i in grid])
+        plotInfo["ensemblewind_direction"] = []
         for i in range(self.num_ensemble_members):
             self.select_ensemble_member(i)
-            plotInfo["ensembleWindDirection"].append(
+            plotInfo["ensemblewind_direction"].append(
                 [self.wind_direction(i) for i in grid]
             )
         plotInfo["ensemblePressure"] = []
@@ -3191,13 +3165,9 @@ class Environment:
     def all_info_returned(self):
         """Returns as dicts all data available about the Environment.
 
-        Parameters
-        ----------
-        None
-
         Returns
         ------
-        info: Dict
+        info : Dict
             Information relevant about the Environment class.
         """
 
@@ -3205,22 +3175,22 @@ class Environment:
         info = dict(
             grav=self.gravity,
             elevation=self.elevation,
-            modelType=self.atmospheric_model_type,
-            modelTypeMaxExpectedHeight=self.max_expected_height,
-            windSpeed=self.wind_speed(self.elevation),
-            windDirection=self.wind_direction(self.elevation),
-            windHeading=self.wind_heading(self.elevation),
-            surfacePressure=self.pressure(self.elevation) / 100,  # in hPa
-            surfaceTemperature=self.temperature(self.elevation),
-            surfaceAirDensity=self.density(self.elevation),
-            surfaceSpeedOfSound=self.speed_of_sound(self.elevation),
+            model_type=self.atmospheric_model_type,
+            model_type_max_expected_height=self.max_expected_height,
+            wind_speed=self.wind_speed(self.elevation),
+            wind_direction=self.wind_direction(self.elevation),
+            wind_heading=self.wind_heading(self.elevation),
+            surface_pressure=self.pressure(self.elevation) / 100,  # in hPa
+            surface_temperature=self.temperature(self.elevation),
+            surface_air_density=self.density(self.elevation),
+            surface_speed_of_sound=self.speed_of_sound(self.elevation),
         )
         if self.datetime_date != None:
             info["launch_date"] = self.datetime_date.strftime("%Y-%d-%m %H:%M:%S")
         if self.latitude != None and self.longitude != None:
             info["lat"] = self.latitude
             info["lon"] = self.longitude
-        if info["modelType"] in ["Forecast", "Reanalysis", "Ensemble"]:
+        if info["model_type"] in ["Forecast", "Reanalysis", "Ensemble"]:
             info["initDate"] = self.atmospheric_model_init_date.strftime(
                 "%Y-%d-%m %H:%M:%S"
             )
@@ -3232,19 +3202,20 @@ class Environment:
             info["endLat"] = self.atmospheric_model_end_lat
             info["initLon"] = self.atmospheric_model_init_lon
             info["endLon"] = self.atmospheric_model_end_lon
-        if info["modelType"] == "Ensemble":
+        if info["model_type"] == "Ensemble":
             info["numEnsembleMembers"] = self.num_ensemble_members
             info["selectedEnsembleMember"] = self.ensemble_member
         return info
 
     def export_environment(self, filename="environment"):
-        """Export important attributes of Environment class to a .json file,
+        """Export important attributes of Environment class to a ``.json`` file,
         saving all the information needed to recreate the same environment using
         customAtmosphere.
 
         Parameters
         ----------
-        filename
+        filename : string
+            The name of the file to be saved, without the extension.
 
         Return
         ------
@@ -3306,17 +3277,17 @@ class Environment:
         return None
 
     def set_earth_geometry(self, datum):
-        """Sets the Earth geometry for the Environment class based on the
+        """Sets the Earth geometry for the ``Environment`` class based on the
         datum provided.
 
         Parameters
         ----------
-        datum: str
+        datum : str
             The datum to be used for the Earth geometry.
 
         Returns
         -------
-        earthGeometry: namedtuple
+        earthGeometry : namedtuple
             The namedtuple containing the Earth geometry.
         """
         geodesy = namedtuple("earthGeometry", "semi_major_axis flattening")
@@ -3350,19 +3321,19 @@ class Environment:
 
         Returns
         -------
-        x: float
+        x : float
             East coordinate, always positive
-        y:
+        y : float
             North coordinate, always positive
-        utm_zone: int
+        utm_zone : int
             The number of the UTM zone of the point of analysis, can vary
             between 1 and 60
-        utm_letter: string
+        utm_letter : string
             The letter of the UTM zone of the point of analysis, can vary
             between C and X, omitting the letters "I" and "O"
-        hemis: string
+        hemis : string
             Returns "S" for southern hemisphere and "N" for Northern hemisphere
-        EW: string
+        EW : string
             Returns "W" for western hemisphere and "E" for eastern hemisphere
         """
 
@@ -3469,9 +3440,9 @@ class Environment:
 
         Returns
         -------
-        lat: float
+        lat : float
             latitude of the analyzed point
-        lon: float
+        lon : float
             latitude of the analyzed point
         """
 
@@ -3554,7 +3525,7 @@ class Environment:
 
         Returns
         -------
-        float:
+        radius : float
             Earth Radius at the desired latitude in meters
         """
         # Select the desired datum (i.e. the ellipsoid parameters)
@@ -3597,11 +3568,11 @@ class Environment:
 
         Returns
         -------
-        deg: float
+        deg : float
             The degrees.
-        min: float
+        min : float
             The arc minutes. 1 arc-minute = (1/60)*degree
-        sec: float
+        sec : float
             The arc Seconds. 1 arc-second = (1/3600)*degree
         """
 
