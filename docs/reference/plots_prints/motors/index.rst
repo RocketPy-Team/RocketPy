@@ -2,7 +2,7 @@ Motors Plots and Prints Classes
 ===============================
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
     :caption: Contents:
 
     Motor Plots and Prints <Motor/index>
