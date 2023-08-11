@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from .Function import Function
-from matplotlib.patches import Ellipse
+import matplotlib.pyplot as plt
 from scipy.optimize import fsolve
 from .plots.aero_surface_plots import (
     _EllipticalFinsPlots,
