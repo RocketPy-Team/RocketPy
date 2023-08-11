@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-__author__ = "Giovani Hidalgo Ceotto"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-
 import numpy as np
 from rocketpy.Function import Function
 
@@ -122,7 +116,7 @@ def convert_units(variable, from_unit, to_unit, axis=1):
 
     Parameters
     ----------
-    variable : int, float, numpy.array, Function
+    variable : int, float, numpy.array, rocketpy.Function
         Variable to be converted. If Function, specify axis that should
         be converted.
     from_unit : string
@@ -136,7 +130,7 @@ def convert_units(variable, from_unit, to_unit, axis=1):
 
     Returns
     -------
-    variable : int, float, numpy.array, Function
+    variable : int, float, numpy.array, rocketpy.Function
         Variable converted from "from_unit" to "to_unit".
     """
     if from_unit == to_unit:
