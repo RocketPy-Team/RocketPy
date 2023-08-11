@@ -1,6 +1,6 @@
 from .aero_surface_plots import (
     _EllipticalFinsPlots,
-    _FinPlots,
+    _FinsPlots,
     _NoseConePlots,
     _TailPlots,
     _TrapezoidalFinsPlots,

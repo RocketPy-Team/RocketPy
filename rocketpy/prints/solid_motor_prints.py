@@ -1,8 +1,3 @@
-__author__ = "Mateus Stano Junqueira"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-
 class _SolidMotorPrints:
     """Class that holds prints methods for SolidMotor class.
 
@@ -34,12 +29,8 @@ class _SolidMotorPrints:
     def nozzle_details(self):
         """Prints out all data available about the SolidMotor nozzle.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         # Print nozzle details
@@ -50,12 +41,8 @@ class _SolidMotorPrints:
     def grain_details(self):
         """Prints out all data available about the SolidMotor grain.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -85,12 +72,8 @@ class _SolidMotorPrints:
     def motor_details(self):
         """Prints out all data available about the SolidMotor.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -128,12 +111,8 @@ class _SolidMotorPrints:
     def all(self):
         """Prints out all data available about the SolidMotor.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         self.nozzle_details()

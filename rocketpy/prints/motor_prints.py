@@ -1,8 +1,3 @@
-__author__ = "Mateus Stano Junqueira"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-
 class _MotorPrints:
     """Class that holds prints methods for Motor class.
 
@@ -34,12 +29,8 @@ class _MotorPrints:
     def motor_details(self):
         """Print Motor details.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         print("Motor Details")
@@ -68,12 +59,8 @@ class _MotorPrints:
     def all(self):
         """Prints out all data available about the Motor.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         self.motor_details()

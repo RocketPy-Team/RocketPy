@@ -1,8 +1,3 @@
-__author__ = "Mateus Stano Junqueira, Guilherme Fernandes Alves"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -179,12 +174,8 @@ class _EnvironmentPlots:
         """Plots the gravity model graph that represents the gravitational
         acceleration as a function of height.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         # Create figure
@@ -206,12 +197,8 @@ class _EnvironmentPlots:
         speed and wind direction, density and speed of sound, wind u and wind v,
         and pressure and temperature.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -244,12 +231,8 @@ class _EnvironmentPlots:
         """Plots ensemble member comparisons. It requires that the environment
         model has been set as Ensemble.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -379,12 +362,8 @@ class _EnvironmentPlots:
         a complete description of the atmospheric model and the ensemble members
         comparison if the atmospheric model is an ensemble.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 

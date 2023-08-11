@@ -1,8 +1,3 @@
-__author__ = "Mateus Stano Junqueira"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-
 class _TankPrints:
     """Class that holds prints methods for Tank class.
 
@@ -34,12 +29,8 @@ class _TankPrints:
     def all(self):
         """Prints out all data available about the Tank.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         return None

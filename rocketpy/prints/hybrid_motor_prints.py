@@ -1,7 +1,3 @@
-__author__ = "Mateus Stano Junqueira"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
 import numpy as np
 
 
@@ -36,12 +32,8 @@ class _HybridMotorPrints:
     def nozzle_details(self):
         """Prints out all data available about the Nozzle.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         # Print nozzle details
@@ -56,12 +48,8 @@ class _HybridMotorPrints:
     def grain_details(self):
         """Prints out all data available about the Grain.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         # Print grain details
@@ -97,12 +85,8 @@ class _HybridMotorPrints:
     def motor_details(self):
         """Prints out all data available about the HybridMotor.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         # Print motor details
@@ -142,12 +126,8 @@ class _HybridMotorPrints:
     def all(self):
         """Prints out all data available about the HybridMotor.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 

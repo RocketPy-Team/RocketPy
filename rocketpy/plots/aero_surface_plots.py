@@ -1,7 +1,3 @@
-__author__ = "Guilherme Fernandes Alves"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
 from abc import ABC, abstractmethod
 
 import matplotlib.pyplot as plt
@@ -79,7 +75,7 @@ class _NoseConePlots(_AeroSurfacePlots):
         return None
 
 
-class _FinPlots(_AeroSurfacePlots):
+class _FinsPlots(_AeroSurfacePlots):
     """Abstract class that contains all fin plots. This class inherits from the
     _AeroSurfacePlots class."""
 
@@ -157,7 +153,7 @@ class _FinPlots(_AeroSurfacePlots):
         return None
 
 
-class _TrapezoidalFinsPlots(_FinPlots):
+class _TrapezoidalFinsPlots(_FinsPlots):
     """Class that contains all trapezoidal fin plots."""
 
     def __init__(self, fin_set):
@@ -167,10 +163,6 @@ class _TrapezoidalFinsPlots(_FinPlots):
     def draw(self):
         """Draw the fin shape along with some important information, including
         the center line, the quarter line and the center of pressure position.
-
-        Parameters
-        ----------
-        None
 
         Returns
         -------
@@ -286,7 +278,7 @@ class _TrapezoidalFinsPlots(_FinPlots):
         return None
 
 
-class _EllipticalFinsPlots(_FinPlots):
+class _EllipticalFinsPlots(_FinsPlots):
     """Class that contains all elliptical fin plots."""
 
     def __init__(self, fin_set):
@@ -296,10 +288,6 @@ class _EllipticalFinsPlots(_FinPlots):
     def draw(self):
         """Draw the fin shape along with some important information.
         These being: the center line and the center of pressure position.
-
-        Parameters
-        ----------
-        None
 
         Returns
         -------
