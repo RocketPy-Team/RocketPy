@@ -1,7 +1,3 @@
-__author__ = "Mateus Stano Junqueira"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
 from collections import namedtuple
 
 
@@ -36,7 +32,8 @@ class Components:
         return len(self._components)
 
     def __getitem__(self, index):
-        """Return the component at the specified index in the list of components."""
+        """Return the component at the specified index in the list of
+        components."""
         return self._components[index]
 
     def __iter__(self):
@@ -61,15 +58,15 @@ class Components:
         self._components.append(self.component_tuple(component, position))
 
     def get_by_type(self, component_type):
-        """Search the list of components and return a list with all the components
-        of the given type.
+        """Search the list of components and return a list with all the
+        components of the given type.
 
         Parameters
         ----------
         component_type: type
             The type of component to be returned.
 
-        Returns:
+        Returns
         --------
         list
             A list of components matching the specified type.
@@ -90,7 +87,7 @@ class Components:
         component_type: type
             The type of component to be returned.
 
-        Returns:
+        Returns
         --------
         list
             A list of components matching the specified type.
