@@ -36,7 +36,7 @@ class SolidMotor(Motor):
         Radius of motor nozzle outlet in meters.
     SolidMotor.nozzle_position : float
         Motor's nozzle outlet position in meters, specified in the motor's
-        coordinate system. See 
+        coordinate system. See
         :doc:`Postions and Coordinate Systems </user/positions>` for
         more information.
     SolidMotor.throat_radius : float
@@ -58,13 +58,13 @@ class SolidMotor(Motor):
         Initial inner radius of each grain in meters.
     SolidMotor.grain_initial_height : float
         Initial height of each grain in meters.
-    SolidMotor.grainInitialVolume : float
+    SolidMotor.grain_initial_volume : float
         Initial volume of each grain in meters cubed.
     SolidMotor.grain_inner_radius : Function
         Inner radius of each grain in meters as a function of time.
     SolidMotor.grain_height : Function
         Height of each grain in meters as a function of time.
-    SolidMotor.grainInitialMass : float
+    SolidMotor.grain_initial_mass : float
         Initial mass of each grain in kg.
     SolidMotor.dry_mass : float
         The total mass of the motor structure, including chambers
@@ -82,13 +82,13 @@ class SolidMotor(Motor):
     SolidMotor.center_of_mass : Function
         Position of the motor center of mass in
         meters as a function of time.
-        See 
-        :doc:`Postions and Coordinate Systems </user/positions>` for more 
+        See
+        :doc:`Postions and Coordinate Systems </user/positions>` for more
         information regarding the motor's coordinate system.
     SolidMotor.center_of_propellant_mass : Function
         Position of the motor propellant center of mass in meters as a
         function of time.
-        See 
+        See
         :doc:`Postions and Coordinate Systems </user/positions>` for more
         information regarding the motor's coordinate system.
     SolidMotor.I_11 : Function
@@ -257,16 +257,16 @@ class SolidMotor(Motor):
             Position of the center of mass of the grains in meters. More
             specifically, the coordinate of the center of mass specified in the
             motor's coordinate system.
-            See 
-            :doc:`Postions and Coordinate Systems </user/positions>` 
-            for more information. 
+            See
+            :doc:`Postions and Coordinate Systems </user/positions>`
+            for more information.
         center_of_dry_mass_position : int, float
             The position, in meters, of the motor's center of mass with respect
             to the motor's coordinate system when it is devoid of propellant.
             See :doc:`Postions and Coordinate Systems </user/positions>`.
         nozzle_position : int, float, optional
             Motor's nozzle outlet position in meters, in the motor's coordinate
-            system. See :doc:`Postions and Coordinate Systems </user/positions>` 
+            system. See :doc:`Postions and Coordinate Systems </user/positions>`
             for details. Default is 0, in which case the origin of the
             coordinate system is placed at the motor's nozzle outlet.
         burn_time: float, tuple of float, optional
@@ -322,7 +322,7 @@ class SolidMotor(Motor):
         )
         # Nozzle parameters
         self.throat_radius = throat_radius
-        self.throatArea = np.pi * throat_radius**2
+        self.throat_area = np.pi * throat_radius**2
 
         # Grain parameters
         self.grains_center_of_mass_position = grains_center_of_mass_position
@@ -334,12 +334,12 @@ class SolidMotor(Motor):
         self.grain_initial_height = grain_initial_height
 
         # Grains initial geometrical parameters
-        self.grainInitialVolume = (
+        self.grain_initial_volume = (
             self.grain_initial_height
             * np.pi
             * (self.grain_outer_radius**2 - self.grain_initial_inner_radius**2)
         )
-        self.grainInitialMass = self.grain_density * self.grainInitialVolume
+        self.grain_initial_mass = self.grain_density * self.grain_initial_volume
 
         self.evaluate_geometry()
 
@@ -396,7 +396,7 @@ class SolidMotor(Motor):
         float
             Initial propellant mass in kg.
         """
-        return self.grain_number * self.grainInitialMass
+        return self.grain_number * self.grain_initial_mass
 
     @property
     def mass_flow_rate(self):
@@ -416,10 +416,10 @@ class SolidMotor(Motor):
             constant exhaust velocity.
         """
         try:
-            return self._massFlowRate
+            return self._mass_flow_rate
         except AttributeError:
-            self._massFlowRate = self.total_mass_flow_rate
-            return self._massFlowRate
+            self._mass_flow_rate = self.total_mass_flow_rate
+            return self._mass_flow_rate
 
     @mass_flow_rate.setter
     def mass_flow_rate(self, value):
@@ -434,7 +434,7 @@ class SolidMotor(Motor):
         -------
         None
         """
-        self._massFlowRate = value.reset("Time (s)", "grain mass flow rate (kg/s)")
+        self._mass_flow_rate = value.reset("Time (s)", "grain mass flow rate (kg/s)")
         self.evaluate_geometry()
 
     @funcify_method("Time (s)", "center of mass (m)", "linear")
@@ -448,9 +448,9 @@ class SolidMotor(Motor):
         rocketpy.Function
             Position of the propellant center of mass as a function of time.
         """
-        timeSource = self.grain_inner_radius.x_array
-        center_of_mass = np.full_like(timeSource, self.grains_center_of_mass_position)
-        return np.column_stack((timeSource, center_of_mass))
+        time_source = self.grain_inner_radius.x_array
+        center_of_mass = np.full_like(time_source, self.grains_center_of_mass_position)
+        return np.column_stack((time_source, center_of_mass))
 
     def evaluate_geometry(self):
         """Calculates grain inner radius and grain height as a function of time
@@ -481,34 +481,36 @@ class SolidMotor(Motor):
         rO = self.grain_outer_radius
 
         # Define system of differential equations
-        def geometryDot(t, y):
-            grainMassDot = self.mass_flow_rate(t) / self.grain_number
+        def geometry_dot(t, y):
+            grain_mass_dot = self.mass_flow_rate(t) / self.grain_number
             rI, h = y
             rIDot = (
-                -0.5 * grainMassDot / (density * np.pi * (rO**2 - rI**2 + rI * h))
+                -0.5 * grain_mass_dot / (density * np.pi * (rO**2 - rI**2 + rI * h))
             )
-            hDot = 1.0 * grainMassDot / (density * np.pi * (rO**2 - rI**2 + rI * h))
+            hDot = (
+                1.0 * grain_mass_dot / (density * np.pi * (rO**2 - rI**2 + rI * h))
+            )
             return [rIDot, hDot]
 
-        def terminateBurn(t, y):
+        def terminate_burn(t, y):
             end_function = (self.grain_outer_radius - y[0]) * y[1]
             return end_function
 
-        terminateBurn.terminal = True
-        terminateBurn.direction = -1
+        terminate_burn.terminal = True
+        terminate_burn.direction = -1
 
         # Solve the system of differential equations
         sol = integrate.solve_ivp(
-            geometryDot,
+            geometry_dot,
             t_span,
             y0,
-            events=terminateBurn,
+            events=terminate_burn,
             atol=1e-12,
             rtol=1e-11,
             method="LSODA",
         )
 
-        self.grainBurnOut = sol.t[-1]
+        self.grain_burn_out = sol.t[-1]
 
         # Write down functions for innerRadius and height
         self.grain_inner_radius = Function(
@@ -575,16 +577,16 @@ class SolidMotor(Motor):
         Kn : rocketpy.Function
             Kn as a function of time.
         """
-        KnSource = (
+        Kn_source = (
             np.concatenate(
                 (
                     [self.grain_inner_radius.source[:, 1]],
-                    [self.burn_area.source[:, 1] / self.throatArea],
+                    [self.burn_area.source[:, 1] / self.throat_area],
                 )
             ).transpose()
         ).tolist()
         Kn = Function(
-            KnSource,
+            Kn_source,
             "Grain Inner Radius (m)",
             "Kn (m2/m2)",
             self.interpolate,
@@ -612,21 +614,21 @@ class SolidMotor(Motor):
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        grainMass = self.propellant_mass / self.grain_number
+        grain_mass = self.propellant_mass / self.grain_number
         grain_number = self.grain_number
-        grainInertia11 = grainMass * (
+        grain_inertia11 = grain_mass * (
             (1 / 4) * (self.grain_outer_radius**2 + self.grain_inner_radius**2)
             + (1 / 12) * self.grain_height**2
         )
 
         # Calculate each grain's distance d to propellant center of mass
         # Assuming each grain's COM are evenly spaced
-        initialValue = (grain_number - 1) / 2
-        d = np.linspace(-initialValue, initialValue, grain_number)
+        initial_value = (grain_number - 1) / 2
+        d = np.linspace(-initial_value, initial_value, grain_number)
         d = d * (self.grain_initial_height + self.grain_separation)
 
         # Calculate inertia for all grains
-        I_11 = grain_number * grainInertia11 + grainMass * np.sum(d**2)
+        I_11 = grain_number * grain_inertia11 + grain_mass * np.sum(d**2)
 
         return I_11
 

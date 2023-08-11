@@ -561,9 +561,9 @@ class EnvironmentAnalysis:
         self.__check_coordinates_inside_grid(lon_index, lat_index, lon_array, lat_array)
 
         # Loop through time and save all values
-        for time_index, timeNum in enumerate(time_num_array):
+        for time_index, time_num in enumerate(time_num_array):
             date_string, hour_string, date_time = time_num_to_date_string(
-                timeNum,
+                time_num,
                 time_num_array.units,
                 self.preferred_timezone,
                 calendar="gregorian",
@@ -651,7 +651,7 @@ class EnvironmentAnalysis:
                 outputs="Wind Speed (m/s)",
                 extrapolation="constant",
             )
-            dictionary[date_string][hour_string]["windSpeed"] = wind_speed_function
+            dictionary[date_string][hour_string]["wind_speed"] = wind_speed_function
 
             # Create function for wind heading levels
             wind_heading_array = (
@@ -669,7 +669,7 @@ class EnvironmentAnalysis:
                 outputs="Wind Heading (Deg True)",
                 extrapolation="constant",
             )
-            dictionary[date_string][hour_string]["windHeading"] = wind_heading_function
+            dictionary[date_string][hour_string]["wind_heading"] = wind_heading_function
 
             # Create function for wind direction levels
             wind_direction_array = (wind_heading_array - 180) % 360
@@ -683,7 +683,7 @@ class EnvironmentAnalysis:
                 extrapolation="constant",
             )
             dictionary[date_string][hour_string][
-                "windDirection"
+                "wind_direction"
             ] = wind_direction_function
 
         return (dictionary, lat0, lat1, lon0, lon1)
@@ -802,9 +802,9 @@ class EnvironmentAnalysis:
         self.__check_coordinates_inside_grid(lon_index, lat_index, lon_array, lat_array)
 
         # Loop through time and save all values
-        for time_index, timeNum in enumerate(time_num_array):
+        for time_index, time_num in enumerate(time_num_array):
             date_string, hour_string, date_time = time_num_to_date_string(
-                timeNum,
+                time_num,
                 time_num_array.units,
                 self.preferred_timezone,
                 calendar="gregorian",
@@ -837,7 +837,7 @@ class EnvironmentAnalysis:
         )
         elevation = geopotential_to_height_asl(surface_geopotential)
 
-        return dictionary, lat0, lat1, lon0, lon1, elevation
+        return (dictionary, lat0, lat1, lon0, lon1, elevation)
 
     @property
     def original_surface_data(self):
@@ -1005,15 +1005,11 @@ class EnvironmentAnalysis:
 
         self.updated_units["height_ASL"] = self.unit_system["length"]
         return converted_dict
-    
-    # Calculations
-    def process_data(self):
-        """Process data that is shown in the all_info method."""
 
-        return None
-
+    @cached_property
     def hours(self):
-        """is flattened, so that it is a 1D list with all the values. The result
+        """A list containing all the hours available in the dataset. The list
+        is flattened, so that it is a 1D list with all the values. The result
         is cached so that the computation is only done once.
 
         Returns
@@ -2002,7 +1998,7 @@ class EnvironmentAnalysis:
             dictionary has the following structure:
 
             .. code-block:: python
-            
+
                 dictionary = {
                     hour1: [wind_speed1, wind_speed2, ..., wind_speedN],
                     ...
@@ -2081,7 +2077,7 @@ class EnvironmentAnalysis:
         min_altitude = 0
         if self.max_expected_altitude == None:
             max_altitudes = [
-                np.max(day_dict[hour]["windSpeed"].source[-1, 0])
+                np.max(day_dict[hour]["wind_speed"].source[-1, 0])
                 for day_dict in self.original_pressure_level_data.values()
                 for hour in day_dict.keys()
             ]
@@ -2186,7 +2182,7 @@ class EnvironmentAnalysis:
             The dictionary has the following structure:
 
             .. code-block:: python
-            
+
                 dictionary = {
                     hour1: [average_temperature_profile1, altitude_list1],
                     hour2: [average_temperature_profile2, altitude_list2],
@@ -2225,7 +2221,7 @@ class EnvironmentAnalysis:
             The dictionary has the following structure:
 
             .. code-block:: python
-            
+
                 dictionary = {
                     hour1: [average_pressure_profile1, altitude_list1],
                     hour2: [average_pressure_profile2, altitude_list2],
@@ -2281,7 +2277,7 @@ class EnvironmentAnalysis:
             values = []
             for day_dict in self.converted_pressure_level_data.values():
                 try:
-                    values += [day_dict[str(hour)]["windSpeed"](self.altitude_list)]
+                    values += [day_dict[str(hour)]["wind_speed"](self.altitude_list)]
                 except KeyError:
                     # Some day does not have data for the desired hour
                     # No need to worry, just average over the other days
@@ -2446,7 +2442,7 @@ class EnvironmentAnalysis:
             List with wind speed profile for each hour and day in the dataset.
         """
         return [
-            day_dict[hour]["windSpeed"](self.altitude_list)
+            day_dict[hour]["wind_speed"](self.altitude_list)
             for day_dict in self.converted_pressure_level_data.values()
             for hour in day_dict.keys()
         ]
@@ -2728,7 +2724,7 @@ class EnvironmentAnalysis:
         Parameters
         ----------
         filename : str, optional
-            Name of the file where to be saved, by default "EnvAnalysisDict"
+            Name of the file where to be saved, by default "env_analysis_dict"
 
         Returns
         -------
@@ -2737,8 +2733,8 @@ class EnvironmentAnalysis:
 
         flipped_temperature_dict = {}
         flipped_pressure_dict = {}
-        flipped_windX_dict = {}
-        flipped_windY_dict = {}
+        flipped_wind_x_dict = {}
+        flipped_wind_y_dict = {}
 
         for hour in self.average_temperature_profile_by_hour.keys():
             flipped_temperature_dict[hour] = np.column_stack(
@@ -2753,13 +2749,13 @@ class EnvironmentAnalysis:
                     self.average_pressure_profile_by_hour[hour][0],
                 )
             ).tolist()
-            flipped_windX_dict[hour] = np.column_stack(
+            flipped_wind_x_dict[hour] = np.column_stack(
                 (
                     self.average_wind_velocity_x_profile_by_hour[hour][1],
                     self.average_wind_velocity_x_profile_by_hour[hour][0],
                 )
             ).tolist()
-            flipped_windY_dict[hour] = np.column_stack(
+            flipped_wind_y_dict[hour] = np.column_stack(
                 (
                     self.average_wind_velocity_y_profile_by_hour[hour][1],
                     self.average_wind_velocity_y_profile_by_hour[hour][0],
@@ -2778,10 +2774,10 @@ class EnvironmentAnalysis:
             "unit_system": self.unit_system,
             "surface_data_file": self.surface_data_file,
             "pressure_level_data_file": self.pressure_level_data_file,
-            "atmosphericModelPressureProfile": flipped_pressure_dict,
-            "atmosphericModelTemperatureProfile": flipped_temperature_dict,
-            "atmosphericModelWindVelocityXProfile": flipped_windX_dict,
-            "atmosphericModelWindVelocityYProfile": flipped_windY_dict,
+            "atmospheric_model_pressure_profile": flipped_pressure_dict,
+            "atmospheric_model_temperature_profile": flipped_temperature_dict,
+            "atmospheric_model_wind_velocity_x_profile": flipped_wind_x_dict,
+            "atmospheric_model_wind_velocity_y_profile": flipped_wind_y_dict,
         }
 
         # Convert to json
@@ -2806,14 +2802,14 @@ class EnvironmentAnalysis:
         return None
 
     @classmethod
-    def load(self, filename="EnvAnalysisDict"):
+    def load(self, filename="env_analysis_dict"):
         """Load a previously saved Environment Analysis file.
         Example: EnvA = EnvironmentAnalysis.load("filename").
 
         Parameters
         ----------
         filename : str, optional
-            Name of the previous saved file, by default "EnvAnalysisDict"
+            Name of the previous saved file, by default "env_analysis_dict"
 
         Returns
         -------
@@ -2823,14 +2819,14 @@ class EnvironmentAnalysis:
         encoded_class = open(filename).read()
         return jsonpickle.decode(encoded_class)
 
-    def save(self, filename="EnvAnalysisDict"):
+    def save(self, filename="env_analysis_dict"):
         """Save the Environment Analysis object to a file so it can be used
         later.
 
         Parameters
         ----------
         filename : str, optional
-            Name of the file where to be saved, by default "EnvAnalysisDict"
+            Name of the file where to be saved, by default "env_analysis_dict"
 
         Returns
         -------

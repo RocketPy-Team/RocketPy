@@ -844,7 +844,7 @@ class UllageBasedTank(Tank):
         Function
             Net mass flow rate of the tank as a function of time.
         """
-        return self.fluid_mass.derivativeFunction()
+        return self.fluid_mass.derivative_function()
 
     @funcify_method("Time (s)", "Volume (m³)")
     def fluid_volume(self):
@@ -1043,7 +1043,7 @@ class LevelBasedTank(Tank):
         Function
             Net mass flow rate of the tank as a function of time.
         """
-        return self.fluid_mass.derivativeFunction()
+        return self.fluid_mass.derivative_function()
 
     @funcify_method("Time (s)", "Volume (m³)")
     def fluid_volume(self):
@@ -1250,7 +1250,7 @@ class MassBasedTank(Tank):
         Function
             Net mass flow rate of the tank as a function of time.
         """
-        return self.fluid_mass.derivativeFunction()
+        return self.fluid_mass.derivative_function()
 
     @funcify_method("Time (s)", "Mass (kg)")
     def liquid_mass(self):

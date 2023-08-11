@@ -97,29 +97,29 @@ class _EnvironmentPrints:
         None
         """
         print("\nAtmospheric Model Details\n")
-        modelType = self.environment.atmospheric_model_type
-        print("Atmospheric Model Type:", modelType)
+        model_type = self.environment.atmospheric_model_type
+        print("Atmospheric Model Type:", model_type)
         print(
-            modelType
+            model_type
             + " Maximum Height: {:.3f} km".format(
                 self.environment.max_expected_height / 1000
             )
         )
-        if modelType in ["Forecast", "Reanalysis", "Ensemble"]:
+        if model_type in ["Forecast", "Reanalysis", "Ensemble"]:
             # Determine time period
             initDate = self.environment.atmospheric_model_init_date
             endDate = self.environment.atmospheric_model_end_date
             interval = self.environment.atmospheric_model_interval
-            print(modelType + " Time Period: From ", initDate, " to ", endDate, " UTC")
-            print(modelType + " Hour Interval:", interval, " hrs")
+            print(model_type + " Time Period: From ", initDate, " to ", endDate, " UTC")
+            print(model_type + " Hour Interval:", interval, " hrs")
             # Determine latitude and longitude range
             initLat = self.environment.atmospheric_model_init_lat
             endLat = self.environment.atmospheric_model_end_lat
             initLon = self.environment.atmospheric_model_init_lon
             endLon = self.environment.atmospheric_model_end_lon
-            print(modelType + " Latitude Range: From ", initLat, "° To ", endLat, "°")
-            print(modelType + " Longitude Range: From ", initLon, "° To ", endLon, "°")
-        if modelType == "Ensemble":
+            print(model_type + " Latitude Range: From ", initLat, "° To ", endLat, "°")
+            print(model_type + " Longitude Range: From ", initLon, "° To ", endLon, "°")
+        if model_type == "Ensemble":
             print("Number of Ensemble Members:", self.environment.num_ensemble_members)
             print(
                 "Selected Ensemble Member:",

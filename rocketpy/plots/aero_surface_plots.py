@@ -108,7 +108,7 @@ class _FinsPlots(_AeroSurfacePlots):
         """
 
         if self.aero_surface.airfoil:  # TODO: see issue #144
-            self.aero_surface.airfoilCl.plot1D()
+            self.aero_surface.airfoil_cl.plot1D()
         return None
 
     def roll(self):
