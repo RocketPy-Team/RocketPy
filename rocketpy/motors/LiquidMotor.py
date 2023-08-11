@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-
-__author__ = "Giovani Hidalgo Ceotto, Oscar Mauricio Prada Ramirez, João Lemes Gribel Soares, Mateus Stano Junqueira, Pedro Henrique Marinho Bressan, Patrick Bales, Lakshman Peri, Gautam Yarramreddy, Curtis Hu, and William Bradford"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
 try:
     from functools import cached_property
 except ImportError:
@@ -20,143 +14,146 @@ class LiquidMotor(Motor):
     """Class to specify characteristics and useful operations for Liquid
     motors. This class inherits from the Motor class.
 
+    See Also
+    --------
+    Motor
+
     Attributes
     ----------
-
-        Geometrical attributes:
-        Motor.coordinate_system_orientation : str
-            Orientation of the motor's coordinate system. The coordinate system
-            is defined by the motor's axis of symmetry. The origin of the
-            coordinate system  may be placed anywhere along such axis, such as
-            at the nozzle area, and must be kept the same for all other
-            positions specified. Options are "nozzle_to_combustion_chamber" and
-            "combustion_chamber_to_nozzle".
-        Motor.nozzle_radius : float
-            Radius of motor nozzle outlet in meters.
-        Motor.nozzle_position : float
-            Motor's nozzle outlet position in meters, specified in the motor's
-            coordinate system. See `Motor.coordinate_system_orientation` for
-            more information.
-        Motor.positioned_tanks : list
-            List containing the motor's added tanks and their respective
-            positions.
-
-        Mass and moment of inertia attributes:
-        Motor.dry_mass : float
-            The total mass of the motor structure, including chambers
-            and tanks, when it is empty and does not contain any propellant.
-        Motor.propellant_initial_mass : float
-            Total propellant initial mass in kg, includes
-            fuel and oxidizer.
-        Motor.total_mass : Function
-            Total motor mass in kg as a function of time, defined as the sum
-            of propellant and dry mass.
-        Motor.propellant_mass : Function
-            Total propellant mass in kg as a function of time, includes fuel
-            and oxidizer.
-        Motor.total_mass_flow_rate : Function
-            Time derivative of propellant total mass in kg/s as a function
-            of time as obtained by the tanks mass flow.
-        Motor.center_of_mass : Function
-            Position of the motor center of mass in
-            meters as a function of time.
-            See `Motor.coordinate_system_orientation` for more information
-            regarding the motor's coordinate system.
-        Motor.center_of_propellant_mass : Function
-            Position of the motor propellant center of mass in meters as a
-            function of time.
-            See `Motor.coordinate_system_orientation` for more information
-            regarding the motor's coordinate system.
-        Motor.I_11 : Function
-            Component of the motor's inertia tensor relative to the e_1 axis
-            in kg*m^2, as a function of time. The e_1 axis is the direction
-            perpendicular to the motor body axis of symmetry, centered at
-            the instantaneous motor center of mass.
-        Motor.I_22 : Function
-            Component of the motor's inertia tensor relative to the e_2 axis
-            in kg*m^2, as a function of time. The e_2 axis is the direction
-            perpendicular to the motor body axis of symmetry, centered at
-            the instantaneous motor center of mass.
-            Numerically equivalent to I_11 due to symmetry.
-        Motor.I_33 : Function
-            Component of the motor's inertia tensor relative to the e_3 axis
-            in kg*m^2, as a function of time. The e_3 axis is the direction of
-            the motor body axis of symmetry, centered at the instantaneous
-            motor center of mass.
-        Motor.I_12 : Function
-            Component of the motor's inertia tensor relative to the e_1 and
-            e_2 axes in kg*m^2, as a function of time. See Motor.I_11 and
-            Motor.I_22 for more information.
-        Motor.I_13 : Function
-            Component of the motor's inertia tensor relative to the e_1 and
-            e_3 axes in kg*m^2, as a function of time. See Motor.I_11 and
-            Motor.I_33 for more information.
-        Motor.I_23 : Function
-            Component of the motor's inertia tensor relative to the e_2 and
-            e_3 axes in kg*m^2, as a function of time. See Motor.I_22 and
-            Motor.I_33 for more information.
-        Motor.propellant_I_11 : Function
-            Component of the propellant inertia tensor relative to the e_1
-            axis in kg*m^2, as a function of time. The e_1 axis is the
-            direction perpendicular to the motor body axis of symmetry,
-            centered at the instantaneous propellant center of mass.
-        Motor.propellant_I_22 : Function
-            Component of the propellant inertia tensor relative to the e_2
-            axis in kg*m^2, as a function of time. The e_2 axis is the
-            direction perpendicular to the motor body axis of symmetry,
-            centered at the instantaneous propellant center of mass.
-            Numerically equivalent to propellant_I_11 due to symmetry.
-        Motor.propellant_I_33 : Function
-            Component of the propellant inertia tensor relative to the e_3
-            axis in kg*m^2, as a function of time. The e_3 axis is the
-            direction of the motor body axis of symmetry, centered at the
-            instantaneous propellant center of mass.
-        Motor.propellant_I_12 : Function
-            Component of the propellant inertia tensor relative to the e_1 and
-            e_2 axes in kg*m^2, as a function of time. See Motor.propellant_I_11
-            and Motor.propellant_I_22 for more information.
-        Motor.propellant_I_13 : Function
-            Component of the propellant inertia tensor relative to the e_1 and
-            e_3 axes in kg*m^2, as a function of time. See Motor.propellant_I_11
-            and Motor.propellant_I_33 for more information.
-        Motor.propellant_I_23 : Function
-            Component of the propellant inertia tensor relative to the e_2 and
-            e_3 axes in kg*m^2, as a function of time. See Motor.propellant_I_22
-            and Motor.propellant_I_33 for more information.
-
-        Thrust and burn attributes:
-        Motor.thrust : Function
-            Motor thrust force, in Newtons, as a function of time.
-        Motor.total_impulse : float
-            Total impulse of the thrust curve in N*s.
-        Motor.max_thrust : float
-            Maximum thrust value of the given thrust curve, in N.
-        Motor.max_thrust_time : float
-            Time, in seconds, in which the maximum thrust value is achieved.
-        Motor.average_thrust : float
-            Average thrust of the motor, given in N.
-        Motor.burn_time : tuple of float
-            Tuple containing the initial and final time of the motor's burn time
-            in seconds.
-        Motor.burn_start_time : float
-            Motor burn start time, in seconds.
-        Motor.burn_out_time : float
-            Motor burn out time, in seconds.
-        Motor.burn_duration : float
-            Total motor burn duration, in seconds. It is the difference between the burn_out_time and the burn_start_time.
-        Motor.exhaust_velocity : Function
-            Propulsion gases exhaust velocity in m/s.
+    LiquidMotor.coordinate_system_orientation : str
+        Orientation of the motor's coordinate system. The coordinate system
+        is defined by the motor's axis of symmetry. The origin of the
+        coordinate system  may be placed anywhere along such axis, such as
+        at the nozzle area, and must be kept the same for all other
+        positions specified. Options are "nozzle_to_combustion_chamber" and
+        "combustion_chamber_to_nozzle".
+    LiquidMotor.nozzle_radius : float
+        Radius of motor nozzle outlet in meters.
+    LiquidMotor.nozzle_position : float
+        Motor's nozzle outlet position in meters, specified in the motor's
+        coordinate system. See
+        :doc:`Postions and Coordinate Systems </user/positions>` for more
+        information.
+    LiquidMotor.positioned_tanks : list
+        List containing the motor's added tanks and their respective
+        positions.
+    LiquidMotor.dry_mass : float
+        The total mass of the motor structure, including chambers
+        and tanks, when it is empty and does not contain any propellant.
+    LiquidMotor.propellant_initial_mass : float
+        Total propellant initial mass in kg, includes
+        fuel and oxidizer.
+    LiquidMotor.total_mass : Function
+        Total motor mass in kg as a function of time, defined as the sum
+        of propellant and dry mass.
+    LiquidMotor.propellant_mass : Function
+        Total propellant mass in kg as a function of time, includes fuel
+        and oxidizer.
+    LiquidMotor.total_mass_flow_rate : Function
+        Time derivative of propellant total mass in kg/s as a function
+        of time as obtained by the tanks mass flow.
+    LiquidMotor.center_of_mass : Function
+        Position of the motor center of mass in
+        meters as a function of time.
+        See :doc:`Postions and Coordinate Systems </user/positions>`
+        for more information regarding the motor's coordinate system.
+    LiquidMotor.center_of_propellant_mass : Function
+        Position of the motor propellant center of mass in meters as a
+        function of time.
+        See :doc:`Postions and Coordinate Systems </user/positions>`
+        for more information regarding the motor's coordinate system.
+    LiquidMotor.I_11 : Function
+        Component of the motor's inertia tensor relative to the e_1 axis
+        in kg*m^2, as a function of time. The e_1 axis is the direction
+        perpendicular to the motor body axis of symmetry, centered at
+        the instantaneous motor center of mass.
+    LiquidMotor.I_22 : Function
+        Component of the motor's inertia tensor relative to the e_2 axis
+        in kg*m^2, as a function of time. The e_2 axis is the direction
+        perpendicular to the motor body axis of symmetry, centered at
+        the instantaneous motor center of mass.
+        Numerically equivalent to I_11 due to symmetry.
+    LiquidMotor.I_33 : Function
+        Component of the motor's inertia tensor relative to the e_3 axis
+        in kg*m^2, as a function of time. The e_3 axis is the direction of
+        the motor body axis of symmetry, centered at the instantaneous
+        motor center of mass.
+    LiquidMotor.I_12 : Function
+        Component of the motor's inertia tensor relative to the e_1 and
+        e_2 axes in kg*m^2, as a function of time. See LiquidMotor.I_11 and
+        LiquidMotor.I_22 for more information.
+    LiquidMotor.I_13 : Function
+        Component of the motor's inertia tensor relative to the e_1 and
+        e_3 axes in kg*m^2, as a function of time. See LiquidMotor.I_11 and
+        LiquidMotor.I_33 for more information.
+    LiquidMotor.I_23 : Function
+        Component of the motor's inertia tensor relative to the e_2 and
+        e_3 axes in kg*m^2, as a function of time. See LiquidMotor.I_22 and
+        LiquidMotor.I_33 for more information.
+    LiquidMotor.propellant_I_11 : Function
+        Component of the propellant inertia tensor relative to the e_1
+        axis in kg*m^2, as a function of time. The e_1 axis is the
+        direction perpendicular to the motor body axis of symmetry,
+        centered at the instantaneous propellant center of mass.
+    LiquidMotor.propellant_I_22 : Function
+        Component of the propellant inertia tensor relative to the e_2
+        axis in kg*m^2, as a function of time. The e_2 axis is the
+        direction perpendicular to the motor body axis of symmetry,
+        centered at the instantaneous propellant center of mass.
+        Numerically equivalent to propellant_I_11 due to symmetry.
+    LiquidMotor.propellant_I_33 : Function
+        Component of the propellant inertia tensor relative to the e_3
+        axis in kg*m^2, as a function of time. The e_3 axis is the
+        direction of the motor body axis of symmetry, centered at the
+        instantaneous propellant center of mass.
+    LiquidMotor.propellant_I_12 : Function
+        Component of the propellant inertia tensor relative to the e_1 and
+        e_2 axes in kg*m^2, as a function of time. See
+        LiquidMotor.propellant_I_11 and LiquidMotor.propellant_I_22 for
+        more information.
+    LiquidMotor.propellant_I_13 : Function
+        Component of the propellant inertia tensor relative to the e_1 and
+        e_3 axes in kg*m^2, as a function of time. See
+        LiquidMotor.propellant_I_11 and LiquidMotor.propellant_I_33 for
+        more information.
+    LiquidMotor.propellant_I_23 : Function
+        Component of the propellant inertia tensor relative to the e_2 and
+        e_3 axes in kg*m^2, as a function of time. See
+        LiquidMotor.propellant_I_22 and LiquidMotor.propellant_I_33 for
+        more information.
+    LiquidMotor.thrust : Function
+        Motor thrust force, in Newtons, as a function of time.
+    LiquidMotor.total_impulse : float
+        Total impulse of the thrust curve in N*s.
+    LiquidMotor.max_thrust : float
+        Maximum thrust value of the given thrust curve, in N.
+    LiquidMotor.max_thrust_time : float
+        Time, in seconds, in which the maximum thrust value is achieved.
+    LiquidMotor.average_thrust : float
+        Average thrust of the motor, given in N.
+    LiquidMotor.burn_time : tuple of float
+        Tuple containing the initial and final time of the motor's burn time
+        in seconds.
+    LiquidMotor.burn_start_time : float
+        Motor burn start time, in seconds.
+    LiquidMotor.burn_out_time : float
+        Motor burn out time, in seconds.
+    LiquidMotor.burn_duration : float
+        Total motor burn duration, in seconds. It is the difference between the
+        burn_out_time and the burn_start_time.
+    LiquidMotor.exhaust_velocity : Function
+        Propulsion gases exhaust velocity in m/s.
     """
 
     def __init__(
         self,
         thrust_source,
         dry_mass,
-        center_of_dry_mass,
         dry_inertia,
         nozzle_radius,
-        burn_time=None,
+        center_of_dry_mass_position,
         nozzle_position=0,
+        burn_time=None,
         reshape_thrust_curve=False,
         interpolation_method="linear",
         coordinate_system_orientation="nozzle_to_combustion_chamber",
@@ -166,7 +163,7 @@ class LiquidMotor(Motor):
 
         Parameters
         ----------
-        thrust_source : int, float, callable, string, array
+        thrust_source : int, float, callable, string, array, Function
             Motor's thrust curve. Can be given as an int or float, in which
             case the thrust will be considered constant in time. It can
             also be given as a callable function, whose argument is time in
@@ -175,41 +172,45 @@ class LiquidMotor(Motor):
             The .csv file shall contain no headers and the first column must
             specify time in seconds, while the second column specifies thrust.
             Arrays may also be specified, following rules set by the class
-            Function. See help(Function). Thrust units are Newtons.
-        burn_time: float, tuple of float, optional
-            Motor's burn time.
-            If a float is given, the burn time is assumed to be between 0 and the
-            given float, in seconds.
-            If a tuple of float is given, the burn time is assumed to be between
-            the first and second elements of the tuple, in seconds.
-            If not specified, automatically sourced as the range between the first- and
-            last-time step of the motor's thrust curve. This can only be used if the
-            motor's thrust is defined by a list of points, such as a .csv file, a .eng
-            file or a Function instance whose source is a list.
+            Function. Thrust units are Newtons.
+
+            .. seealso:: :doc:`Thrust Source Details </user/motors/thrust>`
         dry_mass : int, float
             The total mass of the motor structure, including chambers
             and tanks, when it is empty and does not contain any propellant.
-        center_of_dry_mass : int, float
-            The position, in meters, of the motor's center of mass with respect
-            to the motor's coordinate system when it is devoid of propellant.
-            See `Motor.coordinate_system_orientation`.
         dry_inertia : tuple, list
             Tuple or list containing the motor's dry mass inertia tensor
             components, in kg*m^2. This inertia is defined with respect to the
-            the `center_of_dry_mass` position.
+            the ``center_of_dry_mass_position`` position.
             Assuming e_3 is the rocket's axis of symmetry, e_1 and e_2 are
             orthogonal and form a plane perpendicular to e_3, the dry mass
             inertia tensor components must be given in the following order:
             (I_11, I_22, I_33, I_12, I_13, I_23), where I_ij is the
             component of the inertia tensor in the direction of e_i x e_j.
-            Alternatively, the inertia tensor can be given as (I_11, I_22, I_33),
-            where I_12 = I_13 = I_23 = 0.
+            Alternatively, the inertia tensor can be given as
+            (I_11, I_22, I_33), where I_12 = I_13 = I_23 = 0.
         nozzle_radius : int, float
             Motor's nozzle outlet radius in meters.
+        center_of_dry_mass_position : int, float
+            The position, in meters, of the motor's center of mass with respect
+            to the motor's coordinate system when it is devoid of propellant.
+            See :doc:`Postions and Coordinate Systems </user/positions>`
         nozzle_position : float
             Motor's nozzle outlet position in meters, specified in the motor's
-            coordinate system. See `Motor.coordinate_system_orientation` for
+            coordinate system. See
+            :doc:`Postions and Coordinate Systems </user/positions>` for
             more information.
+        burn_time: float, tuple of float, optional
+            Motor's burn time.
+            If a float is given, the burn time is assumed to be between 0 and
+            the given float, in seconds.
+            If a tuple of float is given, the burn time is assumed to be between
+            the first and second elements of the tuple, in seconds.
+            If not specified, automatically sourced as the range between the
+            first and last-time step of the motor's thrust curve. This can only
+            be used if the motor's thrust is defined by a list of points, such
+            as a .csv file, a .eng file or a Function instance whose source is
+            a list.
         reshape_thrust_curve : boolean, tuple, optional
             If False, the original thrust curve supplied is not altered. If a
             tuple is given, whose first parameter is a new burn out time and
@@ -225,19 +226,20 @@ class LiquidMotor(Motor):
         coordinate_system_orientation : string, optional
             Orientation of the motor's coordinate system. The coordinate system
             is defined by the motor's axis of symmetry. The origin of the
-            coordinate system  may be placed anywhere along such axis, such as at the
-            nozzle area, and must be kept the same for all other positions specified.
-            Options are "nozzle_to_combustion_chamber" and "combustion_chamber_to_nozzle".
-            Default is "nozzle_to_combustion_chamber".
+            coordinate system  may be placed anywhere along such axis, such as
+            at the nozzle area, and must be kept the same for all other
+            positions specified. Options are "nozzle_to_combustion_chamber"
+            and "combustion_chamber_to_nozzle". Default is
+            "nozzle_to_combustion_chamber".
         """
         super().__init__(
             thrust_source,
             dry_mass,
-            center_of_dry_mass,
             dry_inertia,
             nozzle_radius,
-            burn_time,
+            center_of_dry_mass_position,
             nozzle_position,
+            burn_time,
             reshape_thrust_curve,
             interpolation_method,
             coordinate_system_orientation,
@@ -301,7 +303,7 @@ class LiquidMotor(Motor):
 
         See Also
         --------
-        `Motor.total_mass_flow_rate` :
+        Motor.total_mass_flow_rate :
             Calculates the total mass flow rate of the motor assuming
             constant exhaust velocity.
         """
@@ -435,6 +437,10 @@ class LiquidMotor(Motor):
             Position of the tank relative to the motor nozzle, in meters.
             The position is measured from the nozzle tip to the tank
             geometry reference zero point.
+
+        See Also
+        --------
+        :ref:`Adding Tanks`
         """
         self.positioned_tanks.append({"tank": tank, "position": position})
         reset_funcified_methods(self)
