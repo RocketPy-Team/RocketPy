@@ -12,12 +12,17 @@ from rocketpy.motors.Tank import LevelBasedTank, MassBasedTank, MassFlowRateBase
 
 # @PBales1
 def test_mass_based_motor():
-    lox = Fluid(name="LOx", density=1141.7,)  
+    lox = Fluid(
+        name="LOx",
+        density=1141.7,
+    )
     propane = Fluid(
-        name="Propane", density=493,
-    )  
+        name="Propane",
+        density=493,
+    )
     n2 = Fluid(
-        name="Nitrogen Gas", density=51.75,
+        name="Nitrogen Gas",
+        density=51.75,
     )  # density value may be estimate
 
     top_endcap = lambda y: np.sqrt(
@@ -163,8 +168,14 @@ def test_mass_based_motor():
 
 # @curtisjhu
 def test_ullage_based_motor():
-    lox = Fluid(name="LOx", density=1141.7,)
-    n2 = Fluid(name="Nitrogen Gas", density=51.75,)
+    lox = Fluid(
+        name="LOx",
+        density=1141.7,
+    )
+    n2 = Fluid(
+        name="Nitrogen Gas",
+        density=51.75,
+    )
 
     test_dir = "./data/berkeley/"
 
@@ -338,10 +349,14 @@ def test_mfr_tank_basic():
         test(t.inertia, ixy, tol=1e-3)
 
     tank_radius_function = TankGeometry({(0, 5): 1})
-    lox = Fluid(name="LOx", density=1141,)  
+    lox = Fluid(
+        name="LOx",
+        density=1141,
+    )
     n2 = Fluid(
-        name="Nitrogen Gas", density=51.75,
-    )  ; density value may be estimate
+        name="Nitrogen Gas",
+        density=51.75,
+    )  # density value may be estimate
     initial_liquid_mass = 5
     initial_gas_mass = 0.1
     liquid_mass_flow_rate_in = 0.1

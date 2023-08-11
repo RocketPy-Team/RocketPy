@@ -158,7 +158,7 @@ def test_info_returns(mock_show, example_env):
         "wind_speed": 0,
         "wind_direction": 0,
         "wind_heading": 0,
-        "surfacePressure": 1013.25,
+        "surface_pressure": 1013.25,
         "surface_temperature": 288.15,
         "surface_air_density": 1.225000018124288,
         "surface_speed_of_sound": 340.293988026089,
