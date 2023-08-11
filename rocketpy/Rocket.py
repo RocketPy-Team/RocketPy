@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-
-__author__ = "Giovani Hidalgo Ceotto, Franz Masatoshi Yuri, Mateus Stano Junqueira, Kaleb Ramos Wanderley, Calebe Gomes Teles, Matheus Doretto"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
 import warnings
 
 import numpy as np
@@ -30,98 +24,93 @@ class Rocket:
 
     Attributes
     ----------
-        Geometrical attributes:
-        Rocket.radius : float
-            Rocket's largest radius in meters.
-        Rocket.area : float
-            Rocket's circular cross section largest frontal area in squared
-            meters.
-        Rocket.center_of_dry_mass_position : float
-            Position, in m, of the rocket's center of dry mass (i.e. center of
-            mass without propellant) relative to the rocket's coordinate system.
-            See `Rocket.coordinate_system_orientation` for more information
-            regarding the rocket's coordinate system.
-        Rocket.coordinate_system_orientation : string
-            String defining the orientation of the rocket's coordinate system.
-            The coordinate system is defined by the rocket's axis of symmetry.
-            The system's origin may be placed anywhere along such axis, such as
-            in the nozzle or in the nose cone, and must be kept the same for all
-            other positions specified. If "tail_to_nose", the coordinate system
-            is defined with the rocket's axis of symmetry pointing from the
-            rocket's tail to the rocket's nose cone. If "nose_to_tail", the
-            coordinate system is defined with the rocket's axis of symmetry
-            pointing from the rocket's nose cone to the rocket's tail.
-
-        Mass and Inertia attributes:
-        Rocket.mass : float
-            Rocket's mass without propellant in kg.
-        Rocket.center_of_mass : Function
-            Position of the rocket's center of mass, including propellant, relative
-            to the user defined rocket reference system.
-            See `Rocket.coordinate_system_orientation` for more information regarding the
-            coordinate system.
-            Expressed in meters as a function of time.
-        Rocket.reduced_mass : Function
-            Function of time expressing the reduced mass of the rocket,
-            defined as the product of the propellant mass and the mass
-            of the rocket without propellant, divided by the sum of the
-            propellant mass and the rocket mass.
-        Rocket.total_mass : Function
-            Function of time expressing the total mass of the rocket,
-            defined as the sum of the propellant mass and the rocket
-            mass without propellant.
-        Rocket.thrust_to_weight : Function
-            Function of time expressing the motor thrust force divided by rocket
-            weight. The gravitational acceleration is assumed as 9.80665 m/s^2.
-
-        Eccentricity attributes:
-        Rocket.cp_eccentricity_x : float
-            Center of pressure position relative to center of mass in the x
-            axis, perpendicular to axis of cylindrical symmetry, in meters.
-        Rocket.cp_eccentricity_y : float
-            Center of pressure position relative to center of mass in the y
-            axis, perpendicular to axis of cylindrical symmetry, in meters.
-        Rocket.thrust_eccentricity_y : float
-            Thrust vector position relative to center of mass in the y
-            axis, perpendicular to axis of cylindrical symmetry, in meters.
-        Rocket.thrust_eccentricity_x : float
-            Thrust vector position relative to center of mass in the x
-            axis, perpendicular to axis of cylindrical symmetry, in meters.
-
-        Aerodynamic attributes
-        Rocket.aerodynamic_surfaces : list
-            Collection of aerodynamic surfaces of the rocket. Holds Nose cones,
-            Fin sets, and Tails.
-        Rocket.cp_position : float
-            Rocket's center of pressure position relative to the user defined rocket
-            reference system. See `Rocket.coordinate_system_orientation` for more information
-            regarding the reference system.
-            Expressed in meters.
-        Rocket.static_margin : float
-            Float value corresponding to rocket static margin when
-            loaded with propellant in units of rocket diameter or
-            calibers.
-        Rocket.power_off_drag : Function
-            Rocket's drag coefficient as a function of Mach number when the
-            motor is off.
-        Rocket.power_on_drag : Function
-            Rocket's drag coefficient as a function of Mach number when the
-            motor is on.
-        Rocket.rail_buttons : RailButtons
-            RailButtons object containing the rail buttons information.
-
-        Motor attributes:
-        Rocket.motor : Motor
-            Rocket's motor. See Motor class for more details.
-        Rocket.motor_position : float
-            Position, in m, of the motor's nozzle exit area relative to the user defined
-            rocket coordinate system. See `Rocket.coordinate_system_orientation` for more
-            information regarding the rocket's coordinate system.
-        Rocket.center_of_propellant_position : Function
-            Position of the propellant's center of mass relative to the user defined
-            rocket reference system. See `Rocket.coordinate_system_orientation` for more
-            information regarding the rocket's coordinate system.
-            Expressed in meters as a function of time.
+    Rocket.radius : float
+        Rocket's largest radius in meters.
+    Rocket.area : float
+        Rocket's circular cross section largest frontal area in squared
+        meters.
+    Rocket.center_of_dry_mass_position : float
+        Position, in m, of the rocket's center of dry mass (i.e. center of
+        mass without propellant) relative to the rocket's coordinate system.
+        See :doc:`Postions and Coordinate Systems </user/positions>`
+        for more information
+        regarding the rocket's coordinate system.
+    Rocket.coordinate_system_orientation : string
+        String defining the orientation of the rocket's coordinate system.
+        The coordinate system is defined by the rocket's axis of symmetry.
+        The system's origin may be placed anywhere along such axis, such as
+        in the nozzle or in the nose cone, and must be kept the same for all
+        other positions specified. If "tail_to_nose", the coordinate system
+        is defined with the rocket's axis of symmetry pointing from the
+        rocket's tail to the rocket's nose cone. If "nose_to_tail", the
+        coordinate system is defined with the rocket's axis of symmetry
+        pointing from the rocket's nose cone to the rocket's tail.
+    Rocket.mass : float
+        Rocket's mass without propellant in kg.
+    Rocket.center_of_mass : Function
+        Position of the rocket's center of mass, including propellant, relative
+        to the user defined rocket reference system.
+        See :doc:`Postions and Coordinate Systems </user/positions>`
+        for more information
+        regarding the coordinate system.
+        Expressed in meters as a function of time.
+    Rocket.reduced_mass : Function
+        Function of time expressing the reduced mass of the rocket,
+        defined as the product of the propellant mass and the mass
+        of the rocket without propellant, divided by the sum of the
+        propellant mass and the rocket mass.
+    Rocket.total_mass : Function
+        Function of time expressing the total mass of the rocket,
+        defined as the sum of the propellant mass and the rocket
+        mass without propellant.
+    Rocket.thrust_to_weight : Function
+        Function of time expressing the motor thrust force divided by rocket
+        weight. The gravitational acceleration is assumed as 9.80665 m/s^2.
+    Rocket.cp_eccentricity_x : float
+        Center of pressure position relative to center of mass in the x
+        axis, perpendicular to axis of cylindrical symmetry, in meters.
+    Rocket.cp_eccentricity_y : float
+        Center of pressure position relative to center of mass in the y
+        axis, perpendicular to axis of cylindrical symmetry, in meters.
+    Rocket.thrust_eccentricity_y : float
+        Thrust vector position relative to center of mass in the y
+        axis, perpendicular to axis of cylindrical symmetry, in meters.
+    Rocket.thrust_eccentricity_x : float
+        Thrust vector position relative to center of mass in the x
+        axis, perpendicular to axis of cylindrical symmetry, in meters.
+    Rocket.aerodynamic_surfaces : list
+        Collection of aerodynamic surfaces of the rocket. Holds Nose cones,
+        Fin sets, and Tails.
+    Rocket.cp_position : float
+        Rocket's center of pressure position relative to the user defined rocket
+        reference system. See
+        :doc:`Postions and Coordinate Systems </user/positions>` for more
+        information regarding the reference system. Expressed in meters.
+    Rocket.static_margin : float
+        Float value corresponding to rocket static margin when
+        loaded with propellant in units of rocket diameter or calibers.
+    Rocket.power_off_drag : Function
+        Rocket's drag coefficient as a function of Mach number when the
+        motor is off.
+    Rocket.power_on_drag : Function
+        Rocket's drag coefficient as a function of Mach number when the
+        motor is on.
+    Rocket.rail_buttons : RailButtons
+        RailButtons object containing the rail buttons information.
+    Rocket.motor : Motor
+        Rocket's motor. See Motor class for more details.
+    Rocket.motor_position : float
+        Position, in m, of the motor's nozzle exit area relative to the user
+        definedrocket coordinate system. See
+        :doc:`Postions and Coordinate Systems </user/positions>`
+        for more information
+        regarding the rocket's coordinate system.
+    Rocket.center_of_propellant_position : Function
+        Position of the propellant's center of mass relative to the user defined
+        rocket reference system. See
+        :doc:`Postions and Coordinate Systems </user/positions>` for more
+        information regarding the rocket's coordinate system. Expressed in
+        meters as a function of time.
     """
 
     def __init__(
@@ -151,8 +140,8 @@ class Rocket:
             inertia tensor components must be given in the following order:
             (I_11, I_22, I_33, I_12, I_13, I_23), where I_ij is the
             component of the inertia tensor in the direction of e_i x e_j.
-            Alternatively, the inertia tensor can be given as (I_11, I_22, I_33),
-            where I_12 = I_13 = I_23 = 0.
+            Alternatively, the inertia tensor can be given as
+            (I_11, I_22, I_33), where I_12 = I_13 = I_23 = 0.
         power_off_drag : int, float, callable, string, array
             Rocket's drag coefficient when the motor is off. Can be given as an
             entry to the Function class. See help(Function) for more
@@ -170,18 +159,21 @@ class Rocket:
             relative to the rocket's coordinate system. Default is 0, which
             means the center of dry mass is chosen as the origin, to comply
             with the legacy behavior of versions 0.X.Y.
-            See `Rocket.coordinate_system_orientation` for more information
+            See :doc:`Postions and Coordinate Systems </user/positions>`
+            for more information
             regarding the rocket's coordinate system.
         coordinate_system_orientation : string, optional
-            String defining the orientation of the rocket's coordinate system. The
-            coordinate system is defined by the rocket's axis of symmetry. The system's
-            origin may be placed anywhere along such axis, such as in the nozzle or in
-            the nose cone, and must be kept the same for all other positions specified.
-            The two options available are: "tail_to_nose" and "nose_to_tail". The first
-            defines the coordinate system with the rocket's axis of symmetry pointing
-            from the rocket's tail to the rocket's nose cone. The second option defines
-            the coordinate system with the rocket's axis of symmetry pointing from the
-            rocket's nose cone to the rocket's tail. Default is "tail_to_nose".
+            String defining the orientation of the rocket's coordinate system.
+            The coordinate system is defined by the rocket's axis of symmetry.
+            The system's origin may be placed anywhere along such axis, such as
+            in the nozzle or in the nose cone, and must be kept the same for all
+            other positions specified. The two options available are:
+            "tail_to_nose" and "nose_to_tail". The first defines the coordinate
+            system with the rocket's axis of symmetry pointing from the rocket's
+            tail to the rocket's nose cone. The second option defines the
+            coordinate system with the rocket's axis of symmetry pointing from
+            the  rocket's nose cone to the rocket's tail. Default is
+            "tail_to_nose".
 
         Returns
         -------
@@ -296,13 +288,9 @@ class Rocket:
         rocket mass without propellant. The function returns an object
         of the Function class and is defined as a function of time.
 
-        Parameters
-        ----------
-        None
-
         Returns
         -------
-        self.total_mass : rocketpy.Function
+        self.total_mass : Function
             Function of time expressing the total mass of the rocket,
             defined as the sum of the propellant mass and the rocket
             mass without propellant.
@@ -325,13 +313,9 @@ class Rocket:
         rocket mass without motor. The function returns an object
         of the Function class and is defined as a function of time.
 
-        Parameters
-        ----------
-        None
-
         Returns
         -------
-        self.total_mass : rocketpy.Function
+        self.total_mass : Function
             Function of time expressing the total mass of the rocket,
             defined as the sum of the propellant mass and the rocket
             mass without propellant.
@@ -348,19 +332,16 @@ class Rocket:
         return self.dry_mass
 
     def evaluate_center_of_mass(self):
-        """Evaluates rocket center of mass position relative to user defined rocket
-        reference system.
-
-        Parameters
-        ----------
-        None
+        """Evaluates rocket center of mass position relative to user defined
+        rocket reference system.
 
         Returns
         -------
-        self.center_of_mass : rocketpy.Function
-            Function of time expressing the rocket's center of mass position relative to
-            user defined rocket reference system.
-            See `Rocket.coordinate_system_orientation` for more information.
+        self.center_of_mass : Function
+            Function of time expressing the rocket's center of mass position
+            relative to user defined rocket reference system.
+            See :doc:`Postions and Coordinate Systems </user/positions>`
+            for more information.
         """
         # Compute center of mass position
         self.center_of_mass = (
@@ -376,16 +357,13 @@ class Rocket:
         """Evaluates rocket center dry of mass (i.e. without propellant)
         position relative to user defined rocket reference system.
 
-        Parameters
-        ----------
-        None
-
         Returns
         -------
-        self.center_of_dry_mass : int, float
+        self.center_of_dry_mass_position : int, float
             Rocket's center of dry mass position relative to user defined rocket
-            reference system. See `Rocket.coordinate_system_orientation` for more
-            information.
+            reference system. See
+            :doc:`Postions and Coordinate Systems </user/positions>` for
+            more information.
         """
         # Compute center of mass position
         self.center_of_dry_mass_position = (
@@ -402,10 +380,6 @@ class Rocket:
         sum of the propellant mass and the rocket mass. The function
         returns an object of the Function class and is defined as a
         function of time.
-
-        Parameters
-        ----------
-        None
 
         Returns
         -------
@@ -452,10 +426,6 @@ class Rocket:
         in units of rocket diameter or calibers. This function also calculates
         the rocket center of pressure and total lift coefficients.
 
-        Parameters
-        ----------
-        None
-
         Returns
         -------
         self.static_margin : float
@@ -485,6 +455,7 @@ class Rocket:
         )  # Change sign if coordinate system is upside down
         self.static_margin.set_inputs("Time (s)")
         self.static_margin.set_outputs("Static Margin (c)")
+        self.static_margin.set_title("Static Margin")
         self.static_margin.set_discrete(
             lower=0, upper=self.motor.burn_out_time, samples=200
         )
@@ -494,10 +465,6 @@ class Rocket:
         """Calculates and returns the rocket's dry inertias relative to
         the rocket's center of mass. The inertias are saved and returned
         in units of kg*m².
-
-        Parameters
-        ----------
-        None
 
         Returns
         -------
@@ -580,10 +547,6 @@ class Rocket:
         the rocket's center of mass. The inertias are saved and returned
         in units of kg*m².
 
-        Parameters
-        ----------
-        None
-
         Returns
         -------
         self.I_11 : float
@@ -656,14 +619,15 @@ class Rocket:
 
         Parameters
         ----------
-        motor : Motor, SolidMotor, HybridMotor, EmptyMotor
-            Motor to be added to the rocket. See Motor class for more
-            information.
+        motor : Motor, SolidMotor, HybridMotor, LiquidMotor
+            Motor to be added to the rocket.
         position : int, float
             Position, in m, of the motor's nozzle exit area relative to the user
             defined rocket coordinate system.
-            See `Rocket.coordinate_system_orientation` for more information
-            regarding the rocket's coordinate system.
+
+        See Also
+        --------
+        :ref:`addsurface`
 
         Returns
         -------
@@ -684,7 +648,7 @@ class Rocket:
             self.motor.center_of_mass - self.motor.nozzle_position
         ) * _ + self.motor_position
         self.motor_center_of_dry_mass_position = (
-            self.motor.center_of_dry_mass - self.motor.nozzle_position
+            self.motor.center_of_dry_mass_position - self.motor.nozzle_position
         ) * _ + self.motor_position
         self.evaluate_dry_mass()
         self.evaluate_total_mass()
@@ -707,12 +671,9 @@ class Rocket:
         surfaces : list, AeroSurface, NoseCone, TrapezoidalFins, EllipticalFins, Tail
             Aerodynamic surface to be added to the rocket. Can be a list of
             AeroSurface if more than one surface is to be added.
-            See AeroSurface class for more information.
         positions : int, float, list
             Position, in m, of the aerodynamic surface's center of pressure
             relative to the user defined rocket coordinate system.
-            See `Rocket.coordinate_system_orientation` for more information
-            regarding the rocket's coordinate system.
             If a list is passed, it will correspond to the position of each item
             in the surfaces list.
             For NoseCone type, position is relative to the nose cone tip.
@@ -720,6 +681,10 @@ class Rocket:
             the root chord which is highest in the rocket coordinate system.
             For Tail type, position is relative to the point belonging to the
             tail which is highest in the rocket coordinate system.
+
+        See Also
+        --------
+        :ref:`addsurface`
 
         Returns
         -------
@@ -755,10 +720,13 @@ class Rocket:
             Tail length or height in meters. Must be a positive value.
         position : int, float
             Tail position relative to the rocket's coordinate system.
-            By tail position, understand the point belonging to the tail which is
-            highest in the rocket coordinate system (i.e. generally the point closest
-            to the nose cone).
-            See `Rocket.coordinate_system_orientation` for more information.
+            By tail position, understand the point belonging to the tail which
+            is highest in the rocket coordinate system (i.e. the point
+            closest to the nose cone).
+
+        See Also
+        --------
+        :ref:`addsurface`
 
         Returns
         -------
@@ -795,9 +763,12 @@ class Rocket:
             supported.
         position : int, float
             Nose cone tip coordinate relative to the rocket's coordinate system.
-            See `Rocket.coordinate_system_orientation` for more information.
         name : string
             Nose cone name. Default is "Nose Cone".
+
+        See Also
+        --------
+        :ref:`addsurface`
 
         Returns
         -------
@@ -858,8 +829,11 @@ class Rocket:
             Fin set position relative to the rocket's coordinate system.
             By fin set position, understand the point belonging to the root
             chord which is highest in the rocket coordinate system (i.e.
-            generally the point closest to the nose cone tip).
-            See `Rocket.coordinate_system_orientation` for more information.
+            the point closest to the nose cone tip).
+
+            See Also
+            --------
+            :ref:`addsurface`
         cant_angle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
@@ -951,9 +925,12 @@ class Rocket:
         position : int, float
             Fin set position relative to the rocket's coordinate system. By fin
             set position, understand the point belonging to the root chord which
-            is highest in the rocket coordinate system (i.e. generally the point
+            is highest in the rocket coordinate system (i.e. the point
             closest to the nose cone tip).
-            See `Rocket.coordinate_system_orientation` for more information.
+
+            See Also
+            --------
+            :ref:`addsurface`
         cant_angle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must be given
             in degrees.
@@ -1014,16 +991,16 @@ class Rocket:
             given in squared meters.
         trigger : function, float, string
             Trigger for the parachute deployment. Can be a float with the height
-            in which the parachute is ejected (ejection happens after apogee); or
-            the string "apogee", for ejection at apogee.
+            in which the parachute is ejected (ejection happens after apogee);
+            or the string "apogee", for ejection at apogee.
             Can also be a function which defines if the parachute ejection
             system is to be triggered. It must take as input the freestream
             pressure in pascal, the height in meters (above ground level), and
             the state vector of the simulation, which is defined by
             [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz].
-            The trigger will be called according to the sampling rate given next.
-            It should return True if the parachute ejection system is to be
-            triggered and False otherwise.
+            The trigger will be called according to the sampling rate given
+            next. It should return True if the parachute ejection system is to
+            be triggered and False otherwise.
         sampling_rate : float, optional
             Sampling rate in which the trigger function works. It is used to
             simulate the refresh rate of onboard sensors such as barometers.
@@ -1069,17 +1046,23 @@ class Rocket:
         upper_button_position : int, float
             Position of the rail button furthest from the nozzle relative to
             the rocket's coordinate system, in meters.
-            See `Rocket.coordinate_system_orientation` for more information.
+            See :doc:`Postions and Coordinate Systems </user/positions>`
+            for more information.
         lower_button_position : int, float
             Position of the rail button closest to the nozzle relative to
             the rocket's coordinate system, in meters.
-            See `Rocket.coordinate_system_orientation` for more information.
+            See :doc:`Postions and Coordinate Systems </user/positions>`
+            for more information.
         angular_position : float, optional
             Angular position of the rail buttons in degrees measured
             as the rotation around the symmetry axis of the rocket
             relative to one of the other principal axis.
             Default value is 45 degrees, generally used in rockets with
             4 fins.
+
+        See Also
+        --------
+        :ref:`addsurface`
 
         Returns
         -------
@@ -1183,12 +1166,8 @@ class Rocket:
         """Prints out a summary of the data and graphs available about
         the Rocket.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         # All prints
@@ -1199,12 +1178,8 @@ class Rocket:
     def all_info(self):
         """Prints out all data and graphs available about the Rocket.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
