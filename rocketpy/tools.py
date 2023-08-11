@@ -43,51 +43,65 @@ class Vector:
     Examples
     --------
     Creating a Vector instance requires passing its components as an iterable:
+
     >>> v = Vector([1, 2, 3])
     >>> v
     Vector(1, 2, 3)
 
     Vector components can be accessed by x, y and z or by indexing:
+
     >>> v.x, v.y, v.z
     (1, 2, 3)
+
     >>> v[0], v[1], v[2]
     (1, 2, 3)
 
     Vector instances can be added, subtracted, multiplied by a scalar, divided
     by a scalar, negated, and cross and dot product can be computed:
+
     >>> v + v
     Vector(2, 4, 6)
+
     >>> v - v
     Vector(0, 0, 0)
+
     >>> v * 2
     Vector(2, 4, 6)
+
     >>> v / 2
     Vector(0.5, 1.0, 1.5)
+
     >>> -v
     Vector(-1, -2, -3)
+
     >>> v @ v # Dot product
     14
 
     Cross products need to be wrapped in parentheses to ensure the ^ operator
     precedence:
+
     >>> (v ^ v)
     Vector(0, 0, 0)
 
     Vector instances can be called as functions if their elements are callable:
+
     >>> v = Vector([lambda x: x**2, lambda x: x**3, lambda x: x**4])
     >>> v(2)
     Vector(4, 8, 16)
 
     Vector instances magnitudes can be accessed as its absolute value:
+
     >>> v = Vector([1, 2, 3])
     >>> abs(v)
     3.7416573867739413
 
     Vector instances can be normalized:
+
     >>> v.unit_vector
     Vector(0.2672612419124244, 0.5345224838248488, 0.8017837257372732)
 
     Vector instances can be compared for equality:
+
     >>> v = Vector([1, 2, 3])
     >>> u = Vector([1, 2, 3])
     >>> v == u
@@ -97,6 +111,7 @@ class Vector:
 
     And last, but not least, it is also possible to check if two vectors are
     parallel or orthogonal:
+
     >>> v = Vector([1, 2, 3])
     >>> u = Vector([2, 4, 6])
     >>> v.is_parallel_to(u)
@@ -417,6 +432,7 @@ class Matrix:
     --------
     Creating a Matrix instance requires passing its components as a nested
     iterable:
+
     >>> M = Matrix([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     >>> M
     Matrix([1, 2, 3],
@@ -424,21 +440,27 @@ class Matrix:
            [7, 8, 9])
 
     Matrix instances can be indexed and sliced like lists:
+
     >>> M[0]
     [1, 2, 3]
+
     >>> M[0][0]
     1
+
     >>> M[0, 0]
     1
+
     >>> M[0, 0:2]
     [1, 2]
 
     Matrix instances components can be accessed as attributes:
+
     >>> M.xx, M.xy, M.xz
     (1, 2, 3)
 
     Matrix instances can be called as functions, if their elements are
     callable:
+
     >>> M = Matrix([[lambda x: x**1, lambda x: x**2, lambda x: x**3],
     ...             [lambda x: x**4, lambda x: x**5, lambda x: x**6],
     ...             [lambda x: x**7, lambda x: x**8, lambda x: x**9]])
@@ -449,25 +471,30 @@ class Matrix:
 
     Matrix instances can be added, subtracted, multiplied and divided by
     scalars:
+
     >>> M = Matrix([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     >>> M + M
     Matrix([2, 4, 6],
            [8, 10, 12],
            [14, 16, 18])
+
     >>> M - M
     Matrix([0, 0, 0],
            [0, 0, 0],
            [0, 0, 0])
+
     >>> M * 2
     Matrix([2, 4, 6],
            [8, 10, 12],
            [14, 16, 18])
+
     >>> M / 2
     Matrix([0.5, 1.0, 1.5],
            [2.0, 2.5, 3.0],
            [3.5, 4.0, 4.5])
 
     Matrix instances can be multiplied (inner product) by other matrices:
+
     >>> M = Matrix([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     >>> N = Matrix([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     >>> M @ N
@@ -476,12 +503,14 @@ class Matrix:
            [102, 126, 150])
 
     Matrix instances can be used to transform vectors by the inner product:
+
     >>> M = Matrix([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     >>> v = Vector([1, 2, 3])
     >>> M @ v
     Vector(14, 32, 50)
 
     Matrix instances can be transposed and inverted:
+
     >>> M = Matrix([[1, 2, 3], [4, 0, 6], [7, 8, 9]])
     >>> M.transpose
     Matrix([1, 4, 7],
@@ -493,6 +522,7 @@ class Matrix:
            [0.5333333333333333, 0.1, -0.13333333333333333])
 
     Matrix instances can be element-wise operated on by callables:
+
     >>> M = Matrix([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     >>> M.element_wise(lambda x: x**2)
     Matrix([1, 4, 9],
@@ -500,6 +530,7 @@ class Matrix:
            [49, 64, 81])
 
     Determinants can be calculated:
+
     >>> M = Matrix([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     >>> M.det
     0
@@ -507,6 +538,7 @@ class Matrix:
     0
 
     Matrices can be compared for equality:
+
     >>> M = Matrix([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     >>> N = Matrix([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     >>> M == N
