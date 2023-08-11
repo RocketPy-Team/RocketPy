@@ -10,7 +10,8 @@ in their code.
    :maxdepth: 2
    :caption: Contents:
 
-   Equations of Motion <equations_of_motion.rst>
+   Equations of Motion v0 <equations_of_motion.rst>
+   ../notebooks/rocketpy_equations_of_motion.ipynb
    Elliptical Fins <aerodynamics/elliptical_fins.rst>
    Roll Moment <aerodynamics/roll_equations.rst>
 

@@ -8,7 +8,7 @@ import numpy as np
 
 
 class _RocketPlots:
-    """Class that holds plot methods for Environment class.
+    """Class that holds plot methods for Rocket class.
 
     Attributes
     ----------
@@ -18,7 +18,7 @@ class _RocketPlots:
     """
 
     def __init__(self, rocket) -> None:
-        """Initializes _EnvironmentPlots class.
+        """Initializes _RocketPlots class.
 
         Parameters
         ----------
@@ -34,7 +34,7 @@ class _RocketPlots:
 
         return None
 
-    def totalMass(self):
+    def total_mass(self):
         """Plots total mass of the rocket as a function of time.
 
         Parameters
@@ -46,11 +46,11 @@ class _RocketPlots:
         None
         """
 
-        self.rocket.totalMass()
+        self.rocket.total_mass()
 
         return None
 
-    def reducedMass(self):
+    def reduced_mass(self):
         """Plots reduced mass of the rocket as a function of time.
 
         Parameters
@@ -62,11 +62,11 @@ class _RocketPlots:
         None
         """
 
-        self.rocket.reducedMass()
+        self.rocket.reduced_mass()
 
         return None
 
-    def staticMargin(self):
+    def static_margin(self):
         """Plots static margin of the rocket as a function of time.
 
         Parameters
@@ -78,11 +78,11 @@ class _RocketPlots:
         None
         """
 
-        self.rocket.staticMargin()
+        self.rocket.static_margin()
 
         return None
 
-    def powerOnDrag(self):
+    def power_on_drag(self):
         """Plots power on drag of the rocket as a function of time.
 
         Parameters
@@ -94,11 +94,11 @@ class _RocketPlots:
         None
         """
 
-        self.rocket.powerOnDrag()
+        self.rocket.power_on_drag()
 
         return None
 
-    def powerOffDrag(self):
+    def power_off_drag(self):
         """Plots power off drag of the rocket as a function of time.
 
         Parameters
@@ -110,11 +110,11 @@ class _RocketPlots:
         None
         """
 
-        self.rocket.powerOffDrag()
+        self.rocket.power_off_drag()
 
         return None
 
-    def thrustToWeight(self):
+    def thrust_to_weight(self):
         """Plots the motor thrust force divided by rocket
             weight as a function of time.
 
@@ -127,7 +127,9 @@ class _RocketPlots:
         None
         """
 
-        self.rocket.thrustToWeight.plot(lower=0, upper=self.rocket.motor.burnOutTime)
+        self.rocket.thrust_to_weight.plot(
+            lower=0, upper=self.rocket.motor.burn_out_time
+        )
 
         return None
 
@@ -145,12 +147,12 @@ class _RocketPlots:
 
         # Show plots
         print("\nMass Plots")
-        self.totalMass()
-        self.reducedMass()
+        self.total_mass()
+        self.reduced_mass()
         print("\nAerodynamics Plots")
-        self.staticMargin()
-        self.powerOnDrag()
-        self.powerOffDrag()
-        self.thrustToWeight()
+        self.static_margin()
+        self.power_on_drag()
+        self.power_off_drag()
+        self.thrust_to_weight()
 
         return None

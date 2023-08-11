@@ -63,18 +63,17 @@ class _EnvironmentPrints:
         None
         """
         print("\nLaunch Site Details\n")
-        print("Launch Rail Length:", self.environment.railLength, " m")
         time_format = "%Y-%m-%d %H:%M:%S"
         if (
             self.environment.datetime_date != None
-            and "UTC" not in self.environment.timeZone
+            and "UTC" not in self.environment.timezone
         ):
             print(
                 "Launch Date:",
                 self.environment.datetime_date.strftime(time_format),
                 "UTC |",
-                self.environment.localDate.strftime(time_format),
-                self.environment.timeZone,
+                self.environment.local_date.strftime(time_format),
+                self.environment.timezone,
             )
         elif self.environment.datetime_date != None:
             print(
@@ -87,14 +86,15 @@ class _EnvironmentPrints:
             print("Launch Site Longitude: {:.5f}°".format(self.environment.longitude))
         print("Reference Datum: " + self.environment.datum)
         print(
-            "Launch Site UTM coordinates: {:.2f} ".format(self.environment.initialEast)
-            + self.environment.initialEW
-            + "    {:.2f} ".format(self.environment.initialNorth)
-            + self.environment.initialHemisphere
+            "Launch Site UTM coordinates: {:.2f} ".format(self.environment.initial_east)
+            + self.environment.initial_ew
+            + "    {:.2f} ".format(self.environment.initial_north)
+            + self.environment.initial_hemisphere
         )
         print(
             "Launch Site UTM zone:",
-            str(self.environment.initialUtmZone) + self.environment.initialUtmLetter,
+            str(self.environment.initial_utm_zone)
+            + self.environment.initial_utm_letter,
         )
         print(
             "Launch Site Surface Elevation: {:.1f} m".format(self.environment.elevation)
@@ -114,33 +114,33 @@ class _EnvironmentPrints:
         None
         """
         print("\nAtmospheric Model Details\n")
-        modelType = self.environment.atmosphericModelType
-        print("Atmospheric Model Type:", modelType)
+        model_type = self.environment.atmospheric_model_type
+        print("Atmospheric Model Type:", model_type)
         print(
-            modelType
+            model_type
             + " Maximum Height: {:.3f} km".format(
-                self.environment.maxExpectedHeight / 1000
+                self.environment.max_expected_height / 1000
             )
         )
-        if modelType in ["Forecast", "Reanalysis", "Ensemble"]:
+        if model_type in ["Forecast", "Reanalysis", "Ensemble"]:
             # Determine time period
-            initDate = self.environment.atmosphericModelInitDate
-            endDate = self.environment.atmosphericModelEndDate
-            interval = self.environment.atmosphericModelInterval
-            print(modelType + " Time Period: From ", initDate, " to ", endDate, " UTC")
-            print(modelType + " Hour Interval:", interval, " hrs")
+            initDate = self.environment.atmospheric_model_init_date
+            endDate = self.environment.atmospheric_model_end_date
+            interval = self.environment.atmospheric_model_interval
+            print(model_type + " Time Period: From ", initDate, " to ", endDate, " UTC")
+            print(model_type + " Hour Interval:", interval, " hrs")
             # Determine latitude and longitude range
-            initLat = self.environment.atmosphericModelInitLat
-            endLat = self.environment.atmosphericModelEndLat
-            initLon = self.environment.atmosphericModelInitLon
-            endLon = self.environment.atmosphericModelEndLon
-            print(modelType + " Latitude Range: From ", initLat, "° To ", endLat, "°")
-            print(modelType + " Longitude Range: From ", initLon, "° To ", endLon, "°")
-        if modelType == "Ensemble":
-            print("Number of Ensemble Members:", self.environment.numEnsembleMembers)
+            initLat = self.environment.atmospheric_model_init_lat
+            endLat = self.environment.atmospheric_model_end_lat
+            initLon = self.environment.atmospheric_model_init_lon
+            endLon = self.environment.atmospheric_model_end_lon
+            print(model_type + " Latitude Range: From ", initLat, "° To ", endLat, "°")
+            print(model_type + " Longitude Range: From ", initLon, "° To ", endLon, "°")
+        if model_type == "Ensemble":
+            print("Number of Ensemble Members:", self.environment.num_ensemble_members)
             print(
                 "Selected Ensemble Member:",
-                self.environment.ensembleMember,
+                self.environment.ensemble_member,
                 " (Starts from 0)",
             )
 
@@ -160,17 +160,17 @@ class _EnvironmentPrints:
         print("\nSurface Atmospheric Conditions\n")
         print(
             "Surface Wind Speed: {:.2f} m/s".format(
-                self.environment.windSpeed(self.environment.elevation)
+                self.environment.wind_speed(self.environment.elevation)
             )
         )
         print(
             "Surface Wind Direction: {:.2f}°".format(
-                self.environment.windDirection(self.environment.elevation)
+                self.environment.wind_direction(self.environment.elevation)
             )
         )
         print(
             "Surface Wind Heading: {:.2f}°".format(
-                self.environment.windHeading(self.environment.elevation)
+                self.environment.wind_heading(self.environment.elevation)
             )
         )
         print(
@@ -190,13 +190,13 @@ class _EnvironmentPrints:
         )
         print(
             "Surface Speed of Sound: {:.2f} m/s".format(
-                self.environment.speedOfSound(self.environment.elevation)
+                self.environment.speed_of_sound(self.environment.elevation)
             )
         )
 
         return None
 
-    def printEarthDetails(self):
+    def print_earth_details(self):
         """[UNDER CONSTRUCTION]
         Function to print information about the Earth Model used in the
         Environment Class
@@ -207,13 +207,15 @@ class _EnvironmentPrints:
         # print("Launch Site Latitude: {:.5f}°".format(self.environment.latitude))
         # print("Launch Site Longitude: {:.5f}°".format(self.environment.longitude))
         # print("Reference Datum: " + self.environment.datum)
-        # print("Launch Site UTM coordinates: {:.2f} ".format(self.environment.initialEast)
-        #    + self.environment.initialEW + "    {:.2f} ".format(self.environment.initialNorth) + self.environment.initialHemisphere
+        # print("Launch Site UTM coordinates: {:.2f} ".format(self.environment.initial_east)
+        #    + self.environment.initial_ew + "    {:.2f} ".format(self.environment.initial_north) + self.environment.initial_hemisphere
         # )
-        # print("Launch Site UTM zone number:", self.environment.initialUtmZone)
+        # print("Launch Site UTM zone number:", self.environment.initial_utm_zone)
         # print("Launch Site Surface Elevation: {:.1f} m".format(self.environment.elevation))
         print(
-            "Earth Radius at Launch site: {:.1f} m".format(self.environment.earthRadius)
+            "Earth Radius at Launch site: {:.1f} m".format(
+                self.environment.earth_radius
+            )
         )
         print("Gravity acceleration at launch site: Still not implemented :(")
 

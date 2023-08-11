@@ -18,12 +18,12 @@ class Parachute:
         Parachute name, such as drogue and main. Has no impact in
         simulation, as it is only used to display data in a more
         organized matter.
-    CdS : float
+    cd_s : float
         Drag coefficient times reference area for parachute. It is
         used to compute the drag force exerted on the parachute by
-        the equation F = ((1/2)*rho*V^2)*CdS, that is, the drag
+        the equation F = ((1/2)*rho*V^2)*cd_s, that is, the drag
         force is the dynamic pressure computed on the parachute
-        times its CdS coefficient. Has units of area and must be
+        times its cd_s coefficient. Has units of area and must be
         given in squared meters.
     trigger : function
         Function which defines if the parachute ejection system is
@@ -34,42 +34,42 @@ class Parachute:
         It will be called according to the sampling rate given next.
         It should return True if the parachute ejection system is
         to be triggered and False otherwise.
-    samplingRate : float
+    sampling_rate : float
         Sampling rate, in hertz, for the trigger function.
     lag : float
         Time, in seconds, between the parachute ejection system is triggered
         and the parachute is fully opened.
-    noiseBias : float
+    noise_bias : float
         Mean value of the noise added to the pressure signal, which is
         passed to the trigger function. Unit is in pascal.
-    noiseDeviation : float
+    noise_deviation : float
         Standard deviation of the noise added to the pressure signal,
         which is passed to the trigger function. Unit is in pascal.
-    noiseCorr : tuple, list
+    noise_corr : tuple, list
         Tuple with the correlation between noise and time.
-    noiseSignal : list
+    noise_signal : list
         List of (t, noise signal) corresponding to signal passed to
         trigger function. Completed after running a simulation.
-    noisyPressureSignal : list
+    noisy_pressure_signal : list
         List of (t, noisy pressure signal) that is passed to the
         trigger function. Completed after running a simulation.
-    cleanPressureSignal : list
+    clean_pressure_signal : list
         List of (t, clean pressure signal) corresponding to signal passed to
         trigger function. Completed after running a simulation.
-    noiseSignalFunction : Function
+    noise_signalFunction : Function
         Function of noiseSignal.
-    noisyPressureSignalFunction : Function
-        Function of noisyPressureSignal.
-    cleanPressureSignalFunction : Function
-        Function of cleanPressureSignal.
+    noisy_pressure_signalFunction : Function
+        Function of noisy_pressure_signal.
+    clean_pressure_signalFunction : Function
+        Function of clean_pressure_signal.
     """
 
     def __init__(
         self,
         name,
-        CdS,
+        cd_s,
         trigger,
-        samplingRate,
+        sampling_rate,
         lag,
         noise=(0, 0, 0),
     ):
@@ -81,7 +81,7 @@ class Parachute:
             Parachute name, such as drogue and main. Has no impact in
             simulation, as it is only used to display data in a more
             organized matter.
-        CdS : float
+        cd_s : float
             Drag coefficient times reference area of the parachute.
         trigger : function, float, string
             Function which defines if the parachute ejection system is
@@ -92,7 +92,7 @@ class Parachute:
             It will be called according to the sampling rate given next.
             It should return True if the parachute ejection system is
             to be triggered and False otherwise.
-        samplingRate : float
+        sampling_rate : float
             Sampling rate in which the parachute trigger will be checked at.
             It is used to simulate the refresh rate of onboard sensors such
             as barometers. Default value is 100. Value must be given in hertz.
@@ -111,22 +111,22 @@ class Parachute:
         None
         """
         self.name = name
-        self.CdS = CdS
+        self.cd_s = cd_s
         self.trigger = trigger
-        self.samplingRate = samplingRate
+        self.sampling_rate = sampling_rate
         self.lag = lag
-        self.noiseSignal = [[-1e-6, np.random.normal(noise[0], noise[1])]]
-        self.noisyPressureSignal = []
-        self.cleanPressureSignal = []
-        self.noiseBias = noise[0]
-        self.noiseDeviation = noise[1]
-        self.noiseCorr = (noise[2], (1 - noise[2] ** 2) ** 0.5)
-        self.cleanPressureSignalFunction = Function(0)
-        self.noisyPressureSignalFunction = Function(0)
-        self.noiseSignalFunction = Function(0)
+        self.noise_signal = [[-1e-6, np.random.normal(noise[0], noise[1])]]
+        self.noisy_pressure_signal = []
+        self.clean_pressure_signal = []
+        self.noise_bias = noise[0]
+        self.noise_deviation = noise[1]
+        self.noise_corr = (noise[2], (1 - noise[2] ** 2) ** 0.5)
+        self.clean_pressure_signal_function = Function(0)
+        self.noisy_pressure_signal_function = Function(0)
+        self.noise_signal_function = Function(0)
 
-        alpha, beta = self.noiseCorr
-        self.noiseFunction = lambda: alpha * self.noiseSignal[-1][
+        alpha, beta = self.noise_corr
+        self.noise_function = lambda: alpha * self.noise_signal[-1][
             1
         ] + beta * np.random.normal(noise[0], noise[1])
 
@@ -168,9 +168,9 @@ class Parachute:
         string
             String representation of Parachute class. It is human readable.
         """
-        return "Parachute {} with a CdS of {:.4f} m2".format(
+        return "Parachute {} with a cd_s of {:.4f} m2".format(
             self.name.title(),
-            self.CdS,
+            self.cd_s,
         )
 
     def info(self):
@@ -178,7 +178,7 @@ class Parachute:
 
         return None
 
-    def allInfo(self):
+    def all_info(self):
         self.info()
         # self.plots.all() # Parachutes still doesn't have plots
 
