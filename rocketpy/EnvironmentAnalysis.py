@@ -1956,7 +1956,7 @@ class EnvironmentAnalysis:
         wind_speed = {}
         wind_dir = {}
 
-        for hour in self.hours():
+        for hour in self.hours:
             # The following two lines avoid the use of append, which is slow
             wind_speed[hour] = ["" for _ in range(len(self.days))]
             wind_dir[hour] = ["" for _ in range(len(self.days))]
@@ -1978,7 +1978,7 @@ class EnvironmentAnalysis:
                     pass
 
         # Remove the undesired "" values
-        for hour in self.hours():
+        for hour in self.hours:
             wind_speed[hour] = [x for x in wind_speed[hour] if x != ""]
             wind_dir[hour] = [x for x in wind_dir[hour] if x != ""]
 
@@ -2045,7 +2045,7 @@ class EnvironmentAnalysis:
     def surface_wind_gust_by_hour(self):
         wind_gusts = {}
         # Iterate over all hours
-        for hour in self.hours():
+        for hour in self.hours:
             values = []
             # Iterate over all days
             for day_dict in self.converted_surface_data.values():
@@ -2194,7 +2194,7 @@ class EnvironmentAnalysis:
 
         profiles_by_hour = {}
 
-        for hour in self.hours():
+        for hour in self.hours:
             values = []
             for day_dict in self.converted_pressure_level_data.values():
                 try:
@@ -2233,7 +2233,7 @@ class EnvironmentAnalysis:
 
         pressures = {}
 
-        for hour in self.hours():
+        for hour in self.hours:
             values = []
             for day_dict in self.converted_pressure_level_data.values():
                 try:
@@ -2273,7 +2273,7 @@ class EnvironmentAnalysis:
 
         wind_speed = {}
 
-        for hour in self.hours():
+        for hour in self.hours:
             values = []
             for day_dict in self.converted_pressure_level_data.values():
                 try:
@@ -2313,7 +2313,7 @@ class EnvironmentAnalysis:
 
         wind_x_values = {}
 
-        for hour in self.hours():
+        for hour in self.hours:
             values = []
             for day_dict in self.converted_pressure_level_data.values():
                 try:
@@ -2355,7 +2355,7 @@ class EnvironmentAnalysis:
 
         wind_y_speed = {}
 
-        for hour in self.hours():
+        for hour in self.hours:
             values = []
             for day_dict in self.converted_pressure_level_data.values():
                 try:
@@ -2397,7 +2397,7 @@ class EnvironmentAnalysis:
 
         avg_profiles = {}
 
-        for hour in self.hours():
+        for hour in self.hours:
             headings = [
                 np.arctan2(
                     self.average_wind_velocity_x_profile_by_hour[hour][0],

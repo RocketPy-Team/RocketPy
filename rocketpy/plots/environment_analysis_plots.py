@@ -217,19 +217,19 @@ class _EnvironmentAnalysisPlots:
             )
 
         # Plot average temperature along day
-        plt.plot(self.env_analysis.hours(), temperature_mean, "r", label="$\\mu$")
+        plt.plot(self.env_analysis.hours, temperature_mean, "r", label="$\\mu$")
 
         # Plot standard deviations temperature along day
         plt.plot(
-            self.env_analysis.hours(),
+            self.env_analysis.hours,
             temperatures_m1sigma,
             "b--",
             label=r"$\mu \pm \sigma$",
         )
-        plt.plot(self.env_analysis.hours(), temperatures_p1sigma, "b--")
-        plt.plot(self.env_analysis.hours(), temperatures_p2sigma, "b--", alpha=0.5)
+        plt.plot(self.env_analysis.hours, temperatures_p1sigma, "b--")
+        plt.plot(self.env_analysis.hours, temperatures_p2sigma, "b--", alpha=0.5)
         plt.plot(
-            self.env_analysis.hours(),
+            self.env_analysis.hours,
             temperatures_m2sigma,
             "b--",
             label=r"$\mu \pm 2\sigma $",
@@ -284,7 +284,7 @@ class _EnvironmentAnalysisPlots:
         # Plot average wind speed along day
         for hour_entries in self.surface_level_dict.values():
             plt.plot(
-                [x for x in self.env_analysis.hours()],
+                [x for x in self.env_analysis.hours],
                 [
                     (
                         val["surface10m_wind_velocity_x"] ** 2
@@ -298,19 +298,19 @@ class _EnvironmentAnalysisPlots:
             )
 
         # Plot average temperature along day
-        plt.plot(self.env_analysis.hours(), wind_speed_mean, "r", label="$\\mu$")
+        plt.plot(self.env_analysis.hours, wind_speed_mean, "r", label="$\\mu$")
 
         # Plot standard deviations temperature along day
         plt.plot(
-            self.env_analysis.hours(),
+            self.env_analysis.hours,
             wind_speeds_m1sigma,
             "b--",
             label=r"$\mu \pm \sigma$",
         )
-        plt.plot(self.env_analysis.hours(), wind_speeds_p1sigma, "b--")
-        plt.plot(self.env_analysis.hours(), wind_speeds_p2sigma, "b--", alpha=0.5)
+        plt.plot(self.env_analysis.hours, wind_speeds_p1sigma, "b--")
+        plt.plot(self.env_analysis.hours, wind_speeds_p2sigma, "b--", alpha=0.5)
         plt.plot(
-            self.env_analysis.hours(),
+            self.env_analysis.hours,
             wind_speeds_m2sigma,
             "b--",
             label=r"$\mu \pm 2\sigma $",
@@ -327,8 +327,8 @@ class _EnvironmentAnalysisPlots:
         if wind_speed_limit:
             plt.hlines(
                 convert_units(20, "mph", self.env_analysis.unit_system["wind_speed"]),
-                min(self.env_analysis.hours()),
-                max(self.env_analysis.hours()),
+                min(self.env_analysis.hours),
+                max(self.env_analysis.hours),
                 "g",
                 (0, (15, 5, 2, 5)),
                 label="Wind Speed Limit",
@@ -385,19 +385,19 @@ class _EnvironmentAnalysisPlots:
             )
 
         # Plot average temperature along day
-        plt.plot(self.env_analysis.hours(), wind_speed_mean, "r", label="$\\mu$")
+        plt.plot(self.env_analysis.hours, wind_speed_mean, "r", label="$\\mu$")
 
         # Plot standard deviations temperature along day
         plt.plot(
-            self.env_analysis.hours(),
+            self.env_analysis.hours,
             wind_speeds_m1sigma,
             "b--",
             label=r"$\mu \pm \sigma$",
         )
-        plt.plot(self.env_analysis.hours(), wind_speeds_p1sigma, "b--")
-        plt.plot(self.env_analysis.hours(), wind_speeds_p2sigma, "b--", alpha=0.5)
+        plt.plot(self.env_analysis.hours, wind_speeds_p1sigma, "b--")
+        plt.plot(self.env_analysis.hours, wind_speeds_p2sigma, "b--", alpha=0.5)
         plt.plot(
-            self.env_analysis.hours(),
+            self.env_analysis.hours,
             wind_speeds_m2sigma,
             "b--",
             label=r"$\mu \pm 2\sigma $",
@@ -912,7 +912,7 @@ class _EnvironmentAnalysisPlots:
         windrose_side = 2.5  # inches
         vertical_padding_top = 2.5  # inches
         plot_padding = 0.18  # percentage
-        n_cols, n_rows = find_two_closest_integers(len(self.env_analysis.hours()))
+        n_cols, n_rows = find_two_closest_integers(len(self.env_analysis.hours))
         vertical_plot_area_percentage = (
             n_rows * windrose_side / (n_rows * windrose_side + vertical_padding_top)
         )
@@ -928,9 +928,9 @@ class _EnvironmentAnalysisPlots:
         )
         width = (1 - 2 * plot_padding) * 1 / n_cols
         height = vertical_plot_area_percentage * (1 - 2 * plot_padding) * 1 / n_rows
-        for k, hour in enumerate(self.env_analysis.hours()):
+        for k, hour in enumerate(self.env_analysis.hours):
             # Row count bottom up
-            i, j = len(self.env_analysis.hours()) // n_rows - k // n_cols, k % n_cols
+            i, j = len(self.env_analysis.hours) // n_rows - k // n_cols, k % n_cols
             left = j * 1 / n_cols + plot_padding / n_cols
             bottom = (
                 vertical_plot_area_percentage
@@ -997,7 +997,7 @@ class _EnvironmentAnalysisPlots:
         writer = ImageWriter(fps=1, metadata=metadata)
         fig = plt.figure(facecolor="w", edgecolor="w", figsize=figsize)
         with writer.saving(fig, filename, 100):
-            for hour in self.env_analysis.hours():
+            for hour in self.env_analysis.hours:
                 self.plot_wind_rose(
                     self.env_analysis.surface_wind_direction_by_hour[hour],
                     self.env_analysis.surface_wind_speed_by_hour[hour],
@@ -1038,7 +1038,7 @@ class _EnvironmentAnalysisPlots:
         wind_gusts = self.env_analysis.surface_wind_gust_by_hour
 
         # Create grid of plots to show a distribution for each hour
-        n_rows, n_cols = find_two_closest_integers(len(self.env_analysis.hours()))
+        n_rows, n_cols = find_two_closest_integers(len(self.env_analysis.hours))
         fig = plt.figure(figsize=(n_cols * 2, n_rows * 2.2))
         gs = fig.add_gridspec(n_rows, n_cols, hspace=0, wspace=0, left=0.12)
         axs = gs.subplots(sharex=True, sharey=True)
@@ -1046,7 +1046,7 @@ class _EnvironmentAnalysisPlots:
 
         # Iterate over all hours and plot histograms
         for i, j in [(i, j) for i in range(n_rows) for j in range(n_cols)]:
-            hour = self.env_analysis.hours()[i * n_cols + j]
+            hour = self.env_analysis.hours[i * n_cols + j]
             ax = axs[i, j]
             ax.set_title(f"{float(hour):05.2f}".replace(".", ":"), y=0.8)
             ax.hist(
@@ -1146,7 +1146,7 @@ class _EnvironmentAnalysisPlots:
             stats.weibull_min.pdf(
                 np.linspace(0, np.ceil(self.env_analysis.record_max_wind_gust), 50),
                 *stats.weibull_min.fit(
-                    wind_gusts[self.env_analysis.hours()[0]], loc=0, scale=1
+                    wind_gusts[self.env_analysis.hours[0]], loc=0, scale=1
                 ),
             )
         )
@@ -1211,13 +1211,13 @@ class _EnvironmentAnalysisPlots:
         average_wind_speed_at_given_hour = self.env_analysis.surface_wind_speed_by_hour
 
         # Create grid of plots for each hour
-        n_cols, n_rows = find_two_closest_integers(len(self.env_analysis.hours()))
+        n_cols, n_rows = find_two_closest_integers(len(self.env_analysis.hours))
         fig = plt.figure(figsize=(n_cols * 2, n_rows * 2.2))
         gs = fig.add_gridspec(n_rows, n_cols, hspace=0, wspace=0, left=0.12)
         axs = gs.subplots(sharex=True, sharey=True)
         x_min, x_max, y_min, y_max = 0, 0, 0, 0
         for i, j in [(i, j) for i in range(n_rows) for j in range(n_cols)]:
-            hour = self.env_analysis.hours()[i * n_cols + j]
+            hour = self.env_analysis.hours[i * n_cols + j]
             ax = axs[i, j]
             ax.set_title(f"{float(hour):05.2f}".replace(".", ":"), y=0.8)
             ax.hist(
@@ -1347,7 +1347,7 @@ class _EnvironmentAnalysisPlots:
                     100,
                 ),
                 *stats.weibull_min.fit(
-                    surface_wind_speeds_at_given_hour[self.env_analysis.hours()[0]],
+                    surface_wind_speeds_at_given_hour[self.env_analysis.hours[0]],
                     loc=0,
                     scale=1,
                 ),
@@ -1427,14 +1427,14 @@ class _EnvironmentAnalysisPlots:
         """
 
         # Create grid of plots for each hour
-        n_cols, n_rows = find_two_closest_integers(len(self.env_analysis.hours()))
+        n_cols, n_rows = find_two_closest_integers(len(self.env_analysis.hours))
         fig = plt.figure(figsize=(n_cols * 2, n_rows * 2.2))
         gs = fig.add_gridspec(n_rows, n_cols, hspace=0, wspace=0, left=0.12)
         axs = gs.subplots(sharex=True, sharey=True)
         x_min, x_max, y_min, y_max = 0, 0, np.inf, 0
 
         for i, j in [(i, j) for i in range(n_rows) for j in range(n_cols)]:
-            hour = self.env_analysis.hours()[i * n_cols + j]
+            hour = self.env_analysis.hours[i * n_cols + j]
             ax = axs[i, j]
             ax.plot(*self.env_analysis.average_wind_speed_profile_by_hour[hour], "r-")
             ax.set_title(f"{float(hour):05.2f}".replace(".", ":"), y=0.8)
@@ -1522,7 +1522,7 @@ class _EnvironmentAnalysisPlots:
         """
 
         # Create grid of plots for each hour
-        n_cols, n_rows = find_two_closest_integers(len(self.env_analysis.hours()))
+        n_cols, n_rows = find_two_closest_integers(len(self.env_analysis.hours))
 
         fig = plt.figure(figsize=(n_cols * 2, n_rows * 2.2))
         gs = fig.add_gridspec(n_rows, n_cols, hspace=0, wspace=0, left=0.12)
@@ -1530,7 +1530,7 @@ class _EnvironmentAnalysisPlots:
         _, y_min, y_max = 0, np.inf, 0
 
         for i, j in [(i, j) for i in range(n_rows) for j in range(n_cols)]:
-            hour = self.env_analysis.hours()[i * n_cols + j]
+            hour = self.env_analysis.hours[i * n_cols + j]
             ax = axs[i, j]
             ax.plot(
                 *self.env_analysis.average_wind_heading_profile_by_hour[hour],
