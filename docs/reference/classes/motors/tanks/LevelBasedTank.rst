@@ -1,5 +1,5 @@
 LevelBasedTank Class
 ---------------------
 
-.. automodule:: rocketpy.LevelBasedTank
+.. autoclass:: rocketpy.LevelBasedTank
    :members:

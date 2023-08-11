@@ -1,5 +1,5 @@
 TankGeometry Class
 ------------------
 
-.. automodule:: rocketpy.TankGeometry
+.. autoclass:: rocketpy.TankGeometry
    :members:

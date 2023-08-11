@@ -1,5 +1,5 @@
 SphericalTank Class
 ---------------------
 
-.. automodule:: rocketpy.SphericalTank
+.. autoclass:: rocketpy.SphericalTank
    :members:

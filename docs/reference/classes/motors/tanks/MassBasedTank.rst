@@ -1,5 +1,5 @@
 MassBasedTank Class
 ---------------------
 
-.. automodule:: rocketpy.MassBasedTank
+.. autoclass:: rocketpy.MassBasedTank
    :members:

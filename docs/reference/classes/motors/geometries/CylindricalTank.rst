@@ -1,5 +1,5 @@
 CylindricalTank Class
 ---------------------
 
-.. automodule:: rocketpy.CylindricalTank
+.. autoclass:: rocketpy.CylindricalTank
    :members:
