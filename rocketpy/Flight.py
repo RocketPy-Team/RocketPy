@@ -2162,6 +2162,41 @@ class Flight:
         return (self.ax**2 + self.ay**2 + self.az**2) ** 0.5
 
     @cached_property
+    def max_acceleration_power_on(self):
+        """Maximum acceleration reached by the rocket during motor burn."""
+        closest_value = float("inf")
+        index_to_slice = None
+
+        for index, item in enumerate(self.acceleration):
+            if abs(item[0] - self.rocket.motor.burn_out_time) < abs(
+                closest_value - self.rocket.motor.burn_out_time
+            ):
+                closest_value = item[0]
+                index_to_slice = index
+        max_acceleration_time_index = np.argmax(
+            self.acceleration[: index_to_slice + 1, 1]
+        )
+        return self.acceleration[max_acceleration_time_index, 1]
+
+    @cached_property
+    def max_acceleration_power_on_time(self):
+        """Time at which the rocket reaches its maximum acceleration during
+        motor burn."""
+        closest_value = float("inf")
+        index_to_slice = None
+
+        for index, item in enumerate(self.acceleration):
+            if abs(item[0] - self.rocket.motor.burn_out_time) < abs(
+                closest_value - self.rocket.motor.burn_out_time
+            ):
+                closest_value = item[0]
+                index_to_slice = index
+        max_acceleration_time_index = np.argmax(
+            self.acceleration[: index_to_slice + 1, 1]
+        )
+        return self.acceleration[max_acceleration_time_index, 0]
+
+    @cached_property
     def max_acceleration(self):
         """Maximum acceleration reached by the rocket."""
         max_acceleration_time_index = np.argmax(self.acceleration[:, 1])

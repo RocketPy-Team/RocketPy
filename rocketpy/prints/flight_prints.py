@@ -369,6 +369,28 @@ class _FlightPrints:
                 self.flight.max_acceleration_time,
             )
         )
+        # check if max acceleration during burn is different than overall
+        # max acceleration
+        if (
+            self.flight.max_acceleration_time
+            != self.flight.max_acceleration_power_on_time
+        ):
+            print(
+                "Maximum Acceleration During Motor Burn: {:.3f} m/s² at {:.2f} s".format(
+                    self.flight.max_acceleration_power_on,
+                    self.flight.max_acceleration_power_on_time,
+                )
+            )
+            print(
+                "Maximum Gs During Motor Burn: {:.3f} g at {:.2f} s".format(
+                    self.flight.max_acceleration_power_on
+                    / self.flight.env.gravity(
+                        self.flight.z(self.flight.max_acceleration_power_on_time)
+                    ),
+                    self.flight.max_acceleration_power_on_time,
+                )
+            )
+
         if (
             len(self.flight.rocket.rail_buttons) == 0
             or self.flight.out_of_rail_time_index == 0
