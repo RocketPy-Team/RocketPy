@@ -159,7 +159,7 @@ When :math:`S < r`:
 
 .. math::
 
-    k_{R_{D}} = 1-\frac{r^2 \cdot\left(2 S^3-\pi S^2 r-2 S r^2+\pi r^3+2 r^2 \sqrt{-S^2+r^2} \cdot \operatorname{atan}\left(\frac{S}{\sqrt{-S^2+r^2}}\right)-\pi r^2 \sqrt{-S^2+r^2}\right)}{2 S\left(-S^2+r^2\right)\left(\frac{S^2}{3}+\frac{\pi S r}{4}\right)}
+    k_{R_{D}} = 1-\frac{r^2 \cdot\left(2 s^3-\pi s^2 r-2 s r^2+\pi r^3+2 r^2 \sqrt{-s^2+r^2} \cdot \operatorname{atan}\left(\frac{s}{\sqrt{-s^2+r^2}}\right)-\pi r^2 \sqrt{-s^2+r^2}\right)}{2 s\left(-s^2+r^2\right)\left(\frac{s^2}{3}+\frac{\pi s r}{4}\right)}
 
 And by calculating the limit of the above expressions when :math:`S \rightarrow r` we have that, for :math:`S = r`:
 
