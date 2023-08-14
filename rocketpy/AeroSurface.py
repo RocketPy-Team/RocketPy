@@ -1299,7 +1299,7 @@ class EllipticalFins(Fins):
                 * (self.span**2 / 3 + np.pi * self.span * self.rocket_radius / 4)
             )
         elif self.span == self.rocket_radius:
-            roll_damping_interference_factor = (28-3*np.pi)/(4+3*np.pi)
+            roll_damping_interference_factor = (28 - 3 * np.pi) / (4 + 3 * np.pi)
 
         roll_forcing_interference_factor = (1 / np.pi**2) * (
             (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
