@@ -1242,36 +1242,65 @@ class EllipticalFins(Fins):
         # Fin–body interference correction parameters
         tau = (self.span + self.rocket_radius) / self.rocket_radius
         lift_interference_factor = 1 + 1 / tau
-        roll_damping_interference_factor = 1 + (
-            (self.rocket_radius**2)
-            * (
-                2
-                * (self.rocket_radius**2)
-                * np.sqrt(self.span**2 - self.rocket_radius**2)
-                * np.log(
-                    (
-                        2
-                        * self.span
-                        * np.sqrt(self.span**2 - self.rocket_radius**2)
-                        + 2 * self.span**2
+        if self.span > self.rocket_radius:
+            roll_damping_interference_factor = 1 + (
+                (self.rocket_radius**2)
+                * (
+                    2
+                    * (self.rocket_radius**2)
+                    * np.sqrt(self.span**2 - self.rocket_radius**2)
+                    * np.log(
+                        (
+                            2
+                            * self.span
+                            * np.sqrt(self.span**2 - self.rocket_radius**2)
+                            + 2 * self.span**2
+                        )
+                        / self.rocket_radius
                     )
-                    / self.rocket_radius
+                    - 2
+                    * (self.rocket_radius**2)
+                    * np.sqrt(self.span**2 - self.rocket_radius**2)
+                    * np.log(2 * self.span)
+                    + 2 * self.span**3
+                    - np.pi * self.rocket_radius * self.span**2
+                    - 2 * (self.rocket_radius**2) * self.span
+                    + np.pi * self.rocket_radius**3
                 )
-                - 2
-                * (self.rocket_radius**2)
-                * np.sqrt(self.span**2 - self.rocket_radius**2)
-                * np.log(2 * self.span)
-                + 2 * self.span**3
-                - np.pi * self.rocket_radius * self.span**2
-                - 2 * (self.rocket_radius**2) * self.span
-                + np.pi * self.rocket_radius**3
+            ) / (
+                2
+                * (self.span**2)
+                * (self.span / 3 + np.pi * self.rocket_radius / 4)
+                * (self.span**2 - self.rocket_radius**2)
             )
-        ) / (
-            2
-            * (self.span**2)
-            * (self.span / 3 + np.pi * self.rocket_radius / 4)
-            * (self.span**2 - self.rocket_radius**2)
-        )
+        elif self.span < self.rocket_radius:
+            roll_damping_interference_factor = 1 - (
+                self.rocket_radius**2
+                * (
+                    2 * self.span**3
+                    - np.pi * self.span**2 * self.rocket_radius
+                    - 2 * self.span * self.rocket_radius**2
+                    + np.pi * self.rocket_radius**3
+                    + 2
+                    * self.rocket_radius**2
+                    * np.sqrt(-self.span**2 + self.rocket_radius**2)
+                    * np.arctan(
+                        (self.span)
+                        / (np.sqrt(-self.span**2 + self.rocket_radius**2))
+                    )
+                    - np.pi
+                    * self.rocket_radius**2
+                    * np.sqrt(-self.span**2 + self.rocket_radius**2)
+                )
+            ) / (
+                2
+                * self.span
+                * (-self.span**2 + self.rocket_radius**2)
+                * (self.span**2 / 3 + np.pi * self.span * self.rocket_radius / 4)
+            )
+        elif self.span == self.rocket_radius:
+            roll_damping_interference_factor = (28-3*np.pi)/(4+3*np.pi)
+
         roll_forcing_interference_factor = (1 / np.pi**2) * (
             (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
             + ((np.pi * (tau**2 + 1) ** 2) / (tau**2 * (tau - 1) ** 2))
