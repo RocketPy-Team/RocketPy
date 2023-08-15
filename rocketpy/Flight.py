@@ -731,11 +731,11 @@ class Flight:
                     hAGL = (
                         self.env.pressure.find_input(
                             pressure + noise,
-                            overshootable_node.y[2],
+                            self.y_sol[2],
                         )
                         - self.env.elevation
                     )
-                    if parachute.trigger(pressure + noise, hAGL, self.ySol):
+                    if parachute.trigger(pressure + noise, hAGL, self.y_sol):
                         # print('\nEVENT DETECTED')
                         # print('Parachute Triggered')
                         # print('Name: ', parachute.name, ' | Lag: ', parachute.lag)
