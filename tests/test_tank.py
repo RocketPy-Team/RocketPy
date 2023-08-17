@@ -2,6 +2,7 @@ import os
 from math import isclose
 
 import numpy as np
+import pytest
 
 from rocketpy import Fluid
 from rocketpy.Function import Function
@@ -72,11 +73,11 @@ def test_mass_based_motor():
     )
 
     initial_liquid_mass = 5
-    initial_gas_mass = 0.1
+    initial_gas_mass = 0
     liquid_mass_flow_rate_in = 0.1
-    gas_mass_flow_rate_in = 0.01
+    gas_mass_flow_rate_in = 0.1
     liquid_mass_flow_rate_out = 0.2
-    gas_mass_flow_rate_out = 0.02
+    gas_mass_flow_rate_out = 0.05
 
     def test(calculated, expected, t, real=False):
         """Iterate over time range and test that calculated value is close to actual value"""
@@ -101,15 +102,15 @@ def test_mass_based_motor():
             + initial_gas_mass
             + t * (gas_mass_flow_rate_in - gas_mass_flow_rate_out)
         )
-        example_calculated = example_tank_lox.fluid_mass()
+        example_calculated = example_tank_lox.fluid_mass
 
         lox_vals = Function(lox_masses).y_array
 
         real_expected = lambda t: lox_vals[t]
-        real_calculated = real_tank_lox.fluid_mass()
+        real_calculated = real_tank_lox.fluid_mass
 
         test(example_calculated, example_expected, 5)
-        # test(real_calculated, real_expected, 15.5, real=True)
+        test(real_calculated, real_expected, 15.5, real=True)
 
     def test_net_mfr():
         """Test net_mass_flow_rate function of MassBasedTank subclass of Tank"""
@@ -119,46 +120,20 @@ def test_mass_based_motor():
             + gas_mass_flow_rate_in
             - gas_mass_flow_rate_out
         )
-        example_calculated = example_tank_lox.net_mass_flow_rate()
+        example_calculated = example_tank_lox.net_mass_flow_rate
 
         liquid_mfrs = Function(example_liquid_masses).y_array
 
         gas_mfrs = Function(example_gas_masses).y_array
 
         real_expected = lambda t: (liquid_mfrs[t] + gas_mfrs[t]) / t
-        real_calculated = real_tank_lox.net_mass_flow_rate()
+        real_calculated = real_tank_lox.net_mass_flow_rate
 
         test(example_calculated, example_expected, 10)
-        # test(real_calculated, real_expected, 15.5, real=True)
+        test(real_calculated, real_expected, 15.5, real=True)
 
-    def test_eval_ullage():
-        """Test evaluateUllage function of MassBasedTank subclass of Tank"""
-        example_expected = (
-            lambda t: (
-                initial_liquid_mass
-                * (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out)
-                * t
-            )
-            / lox.density
-            / np.pi
-        )
-        example_calculated = example_tank_lox.evaluateUllageHeight()
-
-        liquid_heights = Function(example_liquid_masses).y_array
-
-        real_expected = lambda t: liquid_heights[t]
-        real_calculated = real_tank_lox.evaluateUllageHeight()
-
-        test(example_calculated, example_expected, 10)
-        # test(real_calculated, real_expected, 15.5, real=True)
-
-    # print("Testing MassBasedTank subclass of Tank")
-    # test_mass()
-    # print("Mass test passed")
-    # test_net_mfr()
-    # print("Net mass flow rate test passed")
-    # test_eval_ullage()
-    # print("Evaluate ullage test passed")
+    test_mass()
+    test_net_mfr()
 
 
 # @curtisjhu
@@ -369,3 +344,312 @@ def test_mfr_tank_basic():
     test_liquid_height()
     test_com()
     test_inertia()
+
+
+pressurant_tank_radius = 0.135 / 2
+fuel_tank_radius = 0.0744
+oxidizer_tank_radius = 0.0744
+pressurant_tank_height = 0.846
+fuel_tank_height = 0.658
+oxidizer_tank_height = 0.658
+
+
+def test_tank_bounds(pressurant_tank, fuel_tank, oxidizer_tank):
+    expected_pressurant_tank_height = (
+        pressurant_tank_height + 2 * pressurant_tank_radius
+    )
+    expected_fuel_tank_height = fuel_tank_height + 2 * fuel_tank_radius
+    expected_oxidizer_tank_height = oxidizer_tank_height + 2 * oxidizer_tank_radius
+
+    assert pressurant_tank.geometry.total_height == pytest.approx(
+        expected_pressurant_tank_height, 1e-6
+    )
+    assert fuel_tank.geometry.total_height == pytest.approx(
+        expected_fuel_tank_height, 1e-6
+    )
+    assert oxidizer_tank.geometry.total_height == pytest.approx(
+        expected_oxidizer_tank_height, 1e-6
+    )
+
+
+def test_tank_total_volume(pressurant_tank, fuel_tank, oxidizer_tank):
+    expected_pressurant_tank_volume = (
+        np.pi * pressurant_tank_radius**2 * pressurant_tank_height
+        + 4 / 3 * np.pi * pressurant_tank_radius**3
+    )
+    expected_fuel_tank_volume = (
+        np.pi * fuel_tank_radius**2 * fuel_tank_height
+        + 4 / 3 * np.pi * fuel_tank_radius**3
+    )
+    expected_oxidizer_tank_volume = (
+        np.pi * oxidizer_tank_radius**2 * oxidizer_tank_height
+        + 4 / 3 * np.pi * oxidizer_tank_radius**3
+    )
+
+    assert pressurant_tank.geometry.total_volume == pytest.approx(
+        expected_pressurant_tank_volume, abs=1e-6
+    )
+    assert fuel_tank.geometry.total_volume == pytest.approx(
+        expected_fuel_tank_volume, abs=1e-6
+    )
+    assert oxidizer_tank.geometry.total_volume == pytest.approx(
+        expected_oxidizer_tank_volume, abs=1e-6
+    )
+
+
+def test_tank_volume(pressurant_tank, fuel_tank, oxidizer_tank):
+    for tank in [pressurant_tank, fuel_tank, oxidizer_tank]:
+        tank_volume = tank_volume_function(
+            tank.geometry.radius(0), tank.geometry.total_height, tank.geometry.bottom
+        )
+        for h in np.linspace(tank.geometry.bottom, tank.geometry.top, 101):
+            assert tank.geometry.volume(h) == pytest.approx(tank_volume(h), abs=1e-6)
+
+
+def test_tank_centroid(pressurant_tank, fuel_tank, oxidizer_tank):
+    for tank in [pressurant_tank, fuel_tank, oxidizer_tank]:
+        tank_centroid = tank_centroid_function(
+            tank.geometry.radius(0), tank.geometry.total_height, tank.geometry.bottom
+        )
+        for h, liquid_com in zip(
+            tank.liquid_height.y_array, tank.liquid_center_of_mass.y_array
+        ):
+            assert liquid_com == pytest.approx(tank_centroid(h), abs=1e-3)
+
+
+def test_tank_inertia(pressurant_tank, fuel_tank, oxidizer_tank):
+    for tank in [pressurant_tank, fuel_tank, oxidizer_tank]:
+        tank_inertia = tank_inertia_function(
+            tank.geometry.radius(0), tank.geometry.total_height, tank.geometry.bottom
+        )
+        for h in tank.liquid_height.y_array:
+            print(
+                h,
+                tank.geometry.Ix_volume(tank.geometry.bottom, h)(h),
+                tank_inertia(h)[0],
+                tank.name,
+            )
+            assert tank.geometry.Ix_volume(tank.geometry.bottom, h)(h) == pytest.approx(
+                tank_inertia(h)[0], abs=1e-4
+            )
+
+
+"""Auxiliary testing functions"""
+
+
+def cylinder_volume(radius, height):
+    """Returns the volume of a cylinder with the given radius and height.
+
+    Parameters
+    ----------
+    radius : float
+        The radius of the cylinder.
+    height : float
+        The height of the cylinder.
+
+    Returns
+    -------
+    float
+        The volume of the cylinder.
+    """
+    return np.pi * radius**2 * height
+
+
+def lower_spherical_cap_volume(radius, height=None):
+    """Returns the volume of a spherical cap with the given radius and filled
+    height that is filled from its convex side.
+
+    Parameters
+    ----------
+    radius : float
+        The radius of the spherical cap.
+    height : float, optional
+        The height of the spherical cap. If not given, the radius is used.
+
+    Returns
+    -------
+    float
+        The volume of the spherical cap.
+    """
+    if height is None:
+        height = radius
+    return np.pi / 3 * height**2 * (3 * radius - height)
+
+
+def upper_spherical_cap_volume(radius, height=None):
+    """Returns the volume of a spherical cap with the given radius and filled
+    height that is filled from its concave side.
+
+    Parameters
+    ----------
+    radius : float
+        The radius of the spherical cap.
+    height : float, optional
+        The height of the spherical cap. If not given, the radius is used.
+
+    Returns
+    -------
+    float
+        The volume of the spherical cap.
+    """
+    if height is None:
+        height = radius
+    return np.pi / 3 * height * (3 * radius**2 - height**2)
+
+
+def tank_volume_function(tank_radius, tank_height, zero_height=0):
+    """Returns a function that calculates the volume of a cylindrical tank
+    with spherical caps.
+
+    Parameters
+    ----------
+    tank_radius : float
+        The radius of the cylindrical part of the tank.
+    tank_height : float
+        The height of the tank including caps.
+    zero_height : float, optional
+        The coordinate of the bottom of the tank. Defaults to 0.
+
+    Returns
+    -------
+    function
+        A function that calculates the volume of the tank for a given height.
+    """
+
+    def tank_volume(h):
+        h = h - zero_height
+        if h < tank_radius:
+            return lower_spherical_cap_volume(tank_radius, h)
+        elif tank_radius <= h < tank_height - tank_radius:
+            return lower_spherical_cap_volume(tank_radius) + cylinder_volume(
+                tank_radius, h - tank_radius
+            )
+        else:
+            return (
+                lower_spherical_cap_volume(tank_radius)
+                + cylinder_volume(tank_radius, tank_height - 2 * tank_radius)
+                + upper_spherical_cap_volume(
+                    tank_radius, h - (tank_height - tank_radius)
+                )
+            )
+
+    return tank_volume
+
+
+def cylinder_centroid(height):
+    """Returns the centroid of a cylinder with the given height.
+
+    Parameters
+    ----------
+    height : float
+        The height of the cylinder.
+
+    Returns
+    -------
+    float
+        The centroid of the cylinder.
+    """
+    return height / 2
+
+
+def lower_spherical_cap_centroid(radius, height=None):
+    """Returns the centroid of a spherical cap with the given radius and filled
+    height that is filled from its convex side.
+
+    Parameters
+    ----------
+    radius : float
+        The radius of the spherical cap.
+    height : float, optional
+        The height of the spherical cap. If not given, the radius is used.
+
+    Returns
+    -------
+    float
+        The centroid of the spherical cap.
+    """
+    if height is None:
+        height = radius
+    return radius - (0.75 * (2 * radius - height) ** 2 / (3 * radius - height))
+
+
+def upper_spherical_cap_centroid(radius, height=None):
+    """Returns the centroid of a spherical cap with the given radius and filled
+    height that is filled from its concave side.
+
+    Parameters
+    ----------
+    radius : float
+        The radius of the spherical cap.
+    height : float, optional
+        The height of the spherical cap. If not given, the radius is used.
+
+    Returns
+    -------
+    float
+        The centroid of the spherical cap.
+    """
+    if height is None:
+        height = radius
+    return (
+        0.75
+        * (height**3 - 2 * height * radius**2)
+        / (height**2 - 3 * radius**2)
+    )
+
+
+def tank_centroid_function(tank_radius, tank_height, zero_height=0):
+    """Returns a function that calculates the centroid of a cylindrical tank
+    with spherical caps.
+
+    Parameters
+    ----------
+    tank_radius : float
+        The radius of the cylindrical part of the tank.
+    tank_height : float
+        The height of the tank including caps.
+    zero_height : float, optional
+        The coordinate of the bottom of the tank. Defaults to 0.
+
+    Returns
+    -------
+    function
+        A function that calculates the centroid of the tank for a given height.
+    """
+
+    def tank_centroid(h):
+        h = h - zero_height
+        if h < tank_radius:
+            centroid = lower_spherical_cap_centroid(tank_radius, h)
+        elif tank_radius <= h < tank_height - tank_radius:
+            base = tank_radius
+            balance = lower_spherical_cap_volume(
+                tank_radius
+            ) * lower_spherical_cap_centroid(tank_radius) + cylinder_volume(
+                tank_radius, h - base
+            ) * (
+                cylinder_centroid(h - base) + tank_radius
+            )
+            volume = lower_spherical_cap_volume(tank_radius) + cylinder_volume(
+                tank_radius, h - base
+            )
+            centroid = balance / volume
+        else:
+            base = tank_height - tank_radius
+            balance = (
+                lower_spherical_cap_volume(tank_radius)
+                * lower_spherical_cap_centroid(tank_radius)
+                + cylinder_volume(tank_radius, tank_height - 2 * tank_radius)
+                * (cylinder_centroid(tank_height - 2 * tank_radius) + tank_radius)
+                + upper_spherical_cap_volume(tank_radius, h - base)
+                * (upper_spherical_cap_centroid(tank_radius, h - base) + base)
+            )
+            volume = (
+                lower_spherical_cap_volume(tank_radius)
+                + cylinder_volume(tank_radius, tank_height - 2 * tank_radius)
+                + upper_spherical_cap_volume(tank_radius, h - base)
+            )
+            centroid = balance / volume
+        return centroid + zero_height
+
+    return tank_centroid
