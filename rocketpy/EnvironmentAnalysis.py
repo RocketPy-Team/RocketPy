@@ -18,18 +18,6 @@ import pytz
 from rocketpy.Environment import Environment
 from rocketpy.Function import Function
 from rocketpy.units import convert_units
-
-try:
-    import ipywidgets as widgets
-    import jsonpickle
-    from timezonefinder import TimezoneFinder
-    from windrose import WindroseAxes
-except ImportError as error:
-    raise ImportError(
-        f"The following error was encountered while importing dependencies: '{error}'. "
-        "Please note that the EnvironmentAnalysis requires additional dependencies, "
-        "which can be installed by running 'pip install rocketpy[env_analysis]'."
-    )
 from .plots.environment_analysis_plots import _EnvironmentAnalysisPlots
 from .prints.environment_analysis_prints import _EnvironmentAnalysisPrints
 from .tools import (
@@ -180,7 +168,19 @@ class EnvironmentAnalysis:
         -------
         None
         """
-
+        # Import optional modules
+        try:
+            import ipywidgets as widgets
+            import jsonpickle
+            from timezonefinder import TimezoneFinder
+            from windrose import WindroseAxes
+        except ImportError as error:
+            raise ImportError(
+                "The following error was encountered while importing dependencies: "
+                f"{error}. Please note that the EnvironmentAnalysis requires additional "
+                "dependencies, which can be installed by running 'pip install "
+                "rocketpy[env_analysis]'."
+            )
         # Save inputs
         self.start_date = start_date
         self.end_date = end_date
