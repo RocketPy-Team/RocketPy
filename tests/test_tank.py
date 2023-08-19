@@ -11,8 +11,11 @@ from rocketpy.motors.Fluid import Fluid
 from rocketpy.motors.Tank import LevelBasedTank, MassBasedTank, MassFlowRateBasedTank
 
 
-# @PBales1
-def test_mass_based_motor():
+def test_mass_based_tank():
+    """Tests the MassBasedTank subclass of Tank regarding its mass and
+    net mass flow rate properties. The test is performed on both a real
+    tank and a simplified tank.
+    """
     lox = Fluid(name="LOx", density=1141.7, quality=1.0)  # Placeholder quality value
     propane = Fluid(
         name="Propane", density=493, quality=1.0
@@ -22,7 +25,7 @@ def test_mass_based_motor():
     )  # Placeholder quality value; density value may be estimate
 
     top_endcap = lambda y: np.sqrt(
-        0.0775**2 - (y - 0.692300000000001) ** 2
+        0.0775**2 - (y - 0.6924) ** 2
     )  # Hemisphere equation creating top endcap
     bottom_endcap = lambda y: np.sqrt(
         0.0775**2 - (0.0775 - y) ** 2
@@ -136,8 +139,10 @@ def test_mass_based_motor():
     test_net_mfr()
 
 
-# @curtisjhu
-def test_ullage_based_motor():
+def test_level_based_tank():
+    """Test LevelBasedTank subclass of Tank class using Berkeley SEB team's
+    tank data of fluid level.
+    """
     lox = Fluid(name="LOx", density=1141.7, quality=1.0)
     n2 = Fluid(name="Nitrogen Gas", density=51.75, quality=1.0)
 
@@ -199,8 +204,6 @@ def test_ullage_based_motor():
         calculated_mass.get_source(), mass_data
     )
     assert np.allclose(calculated_mass, mass_data, rtol=1, atol=2)
-    # Function(calculated_mass).plot1D()
-    # Function(mass_data).plot1D()
 
     calculated_mfr = levelTank.net_mass_flow_rate.set_discrete(
         mass_flow_rate_data[0][0],
@@ -210,13 +213,13 @@ def test_ullage_based_motor():
     calculated_mfr, test_mfr = align_time_series(
         calculated_mfr.get_source(), mass_flow_rate_data
     )
-    # assert np.allclose(calculated_mfr, test_mfr)
-    # Function(calculated_mfr).plot1D()
-    # Function(test_mfr).plot1D()
 
 
-# @gautamsaiy
 def test_mfr_tank_basic():
+    """Test MassFlowRateTank subclass of Tank class regarding its properties,
+    such as net_mass_flow_rate, fluid_mass, center_of_mass and inertia.
+    """
+
     def test(t, a, tol=1e-4):
         for i in np.arange(0, 10, 1):
             print(t.get_value(i), a(i))
@@ -355,6 +358,7 @@ oxidizer_tank_height = 0.658
 
 
 def test_tank_bounds(pressurant_tank, fuel_tank, oxidizer_tank):
+    """Test basic geoeometric properties of the tanks."""
     expected_pressurant_tank_height = (
         pressurant_tank_height + 2 * pressurant_tank_radius
     )
@@ -373,6 +377,9 @@ def test_tank_bounds(pressurant_tank, fuel_tank, oxidizer_tank):
 
 
 def test_tank_total_volume(pressurant_tank, fuel_tank, oxidizer_tank):
+    """Test the total volume of the tanks comparing to the analytically
+    calculated values.
+    """
     expected_pressurant_tank_volume = (
         np.pi * pressurant_tank_radius**2 * pressurant_tank_height
         + 4 / 3 * np.pi * pressurant_tank_radius**3
@@ -398,6 +405,9 @@ def test_tank_total_volume(pressurant_tank, fuel_tank, oxidizer_tank):
 
 
 def test_tank_volume(pressurant_tank, fuel_tank, oxidizer_tank):
+    """Test the volume of the tanks at different heights comparing to the
+    analytically calculated values.
+    """
     for tank in [pressurant_tank, fuel_tank, oxidizer_tank]:
         tank_volume = tank_volume_function(
             tank.geometry.radius(0), tank.geometry.total_height, tank.geometry.bottom
@@ -407,6 +417,9 @@ def test_tank_volume(pressurant_tank, fuel_tank, oxidizer_tank):
 
 
 def test_tank_centroid(pressurant_tank, fuel_tank, oxidizer_tank):
+    """Test the centroid of the tanks at different heights comparing to the
+    analytically calculated values.
+    """
     for tank in [pressurant_tank, fuel_tank, oxidizer_tank]:
         tank_centroid = tank_centroid_function(
             tank.geometry.radius(0), tank.geometry.total_height, tank.geometry.bottom
@@ -414,10 +427,14 @@ def test_tank_centroid(pressurant_tank, fuel_tank, oxidizer_tank):
         for h, liquid_com in zip(
             tank.liquid_height.y_array, tank.liquid_center_of_mass.y_array
         ):
+            # Loss of accuracy to 1e-3 when liquid height is close to zero
             assert liquid_com == pytest.approx(tank_centroid(h), abs=1e-3)
 
 
 def test_tank_inertia(pressurant_tank, fuel_tank, oxidizer_tank):
+    """Test the inertia of the tanks at different heights comparing to the
+    analytically calculated values.
+    """
     for tank in [pressurant_tank, fuel_tank, oxidizer_tank]:
         tank_inertia = tank_inertia_function(
             tank.geometry.radius(0), tank.geometry.total_height, tank.geometry.bottom
