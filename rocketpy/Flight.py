@@ -20,7 +20,7 @@ from scipy import integrate
 from .Function import Function, funcify_method
 from .plots.flight_plots import _FlightPlots
 from .prints.flight_prints import _FlightPrints
-from .tools import Matrix, Vector
+from .tools import Matrix, Vector, find_closest
 
 
 class Flight:
@@ -2164,17 +2164,11 @@ class Flight:
     @cached_property
     def max_acceleration_power_on(self):
         """Maximum acceleration reached by the rocket during motor burn."""
-        closest_value = float("inf")
-        index_to_slice = None
-
-        for index, item in enumerate(self.acceleration):
-            if abs(item[0] - self.rocket.motor.burn_out_time) < abs(
-                closest_value - self.rocket.motor.burn_out_time
-            ):
-                closest_value = item[0]
-                index_to_slice = index
+        burn_out_time_index = find_closest(
+            self.acceleration.source[:, 0], self.rocket.motor.burn_out_time
+        )
         max_acceleration_time_index = np.argmax(
-            self.acceleration[: index_to_slice + 1, 1]
+            self.acceleration[:burn_out_time_index, 1]
         )
         return self.acceleration[max_acceleration_time_index, 1]
 
@@ -2182,17 +2176,34 @@ class Flight:
     def max_acceleration_power_on_time(self):
         """Time at which the rocket reaches its maximum acceleration during
         motor burn."""
-        closest_value = float("inf")
-        index_to_slice = None
-
-        for index, item in enumerate(self.acceleration):
-            if abs(item[0] - self.rocket.motor.burn_out_time) < abs(
-                closest_value - self.rocket.motor.burn_out_time
-            ):
-                closest_value = item[0]
-                index_to_slice = index
+        burn_out_time_index = find_closest(
+            self.acceleration.source[:, 0], self.rocket.motor.burn_out_time
+        )
         max_acceleration_time_index = np.argmax(
-            self.acceleration[: index_to_slice + 1, 1]
+            self.acceleration[:burn_out_time_index, 1]
+        )
+        return self.acceleration[max_acceleration_time_index, 0]
+
+    @cached_property
+    def max_acceleration_power_off(self):
+        """Maximum acceleration reached by the rocket after motor burn."""
+        burn_out_time_index = find_closest(
+            self.acceleration.source[:, 0], self.rocket.motor.burn_out_time
+        )
+        max_acceleration_time_index = np.argmax(
+            self.acceleration[burn_out_time_index:, 1]
+        )
+        return self.acceleration[max_acceleration_time_index, 1]
+
+    @cached_property
+    def max_acceleration_power_off_time(self):
+        """Time at which the rocket reaches its maximum acceleration after
+        motor burn."""
+        burn_out_time_index = find_closest(
+            self.acceleration.source[:, 0], self.rocket.motor.burn_out_time
+        )
+        max_acceleration_time_index = np.argmax(
+            self.acceleration[burn_out_time_index:, 1]
         )
         return self.acceleration[max_acceleration_time_index, 0]
 
