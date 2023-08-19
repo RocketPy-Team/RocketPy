@@ -287,7 +287,7 @@ class LiquidMotor(Motor):
         float
             Initial mass of the propellant, in kg.
         """
-        return self.propellant_mass(0)
+        return self.propellant_mass(self.burn_start_time)
 
     @funcify_method("Time (s)", "Mass flow rate (kg/s)", extrapolation="zero")
     def mass_flow_rate(self):
