@@ -416,11 +416,13 @@ class HybridMotor(Motor):
         """
         solidCorrection = (
             self.solid.propellant_mass
-            * (self.solid.center_of_propellant_mass - self.center_of_propellant_mass) ** 2
+            * (self.solid.center_of_propellant_mass - self.center_of_propellant_mass)
+            ** 2
         )
         liquidCorrection = (
             self.liquid.propellant_mass
-            * (self.liquid.center_of_propellant_mass - self.center_of_propellant_mass) ** 2
+            * (self.liquid.center_of_propellant_mass - self.center_of_propellant_mass)
+            ** 2
         )
 
         I_11 = (
