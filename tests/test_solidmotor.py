@@ -48,8 +48,8 @@ def test_initialize_motor_asserts_dynamic_values(cesaroni_m1670):
         cesaroni_m1670.average_thrust
         - cesaroni_m1670.thrust.integral(0, burn_time) / burn_time
     ) < 1e-9
-    assert abs(cesaroni_m1670.grainInitialVolume - grain_vol) < 1e-9
-    assert abs(cesaroni_m1670.grainInitialMass - grain_mass) < 1e-9
+    assert abs(cesaroni_m1670.grain_initial_volume - grain_vol) < 1e-9
+    assert abs(cesaroni_m1670.grain_initial_mass - grain_mass) < 1e-9
     assert (
         abs(cesaroni_m1670.propellant_initial_mass - grain_number * grain_mass) < 1e-9
     )
