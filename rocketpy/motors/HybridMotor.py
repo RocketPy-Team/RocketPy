@@ -431,7 +431,7 @@ class HybridMotor(Motor):
             + self.liquid.propellant_I_11
             + liquidCorrection
         )
-  
+
         return I_11
 
     @funcify_method("Time (s)", "Inertia I_22 (kg m²)")
