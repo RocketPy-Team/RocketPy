@@ -324,15 +324,15 @@ class LiquidMotor(Motor):
             Center of mass of the motor, in meters.
         """
         total_mass = 0
-        massBalance = 0
+        mass_balance = 0
 
         for positioned_tank in self.positioned_tanks:
             tank = positioned_tank.get("tank")
-            tankPosition = positioned_tank.get("position")
+            tank_position = positioned_tank.get("position")
             total_mass += tank.fluid_mass
-            massBalance += tank.fluid_mass * (tankPosition + tank.center_of_mass)
+            mass_balance += tank.fluid_mass * (tank_position + tank.center_of_mass)
 
-        return massBalance / total_mass
+        return mass_balance / total_mass
 
     @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
     def propellant_I_11(self):
@@ -359,11 +359,11 @@ class LiquidMotor(Motor):
 
         for positioned_tank in self.positioned_tanks:
             tank = positioned_tank.get("tank")
-            tankPosition = positioned_tank.get("position")
+            tank_position = positioned_tank.get("position")
             I_11 += (
                 tank.inertia
                 + tank.fluid_mass
-                * (tankPosition + tank.center_of_mass - center_of_mass) ** 2
+                * (tank_position + tank.center_of_mass - center_of_mass) ** 2
             )
 
         return I_11

@@ -253,7 +253,7 @@ class _EnvironmentPlots:
         None
         """
 
-        currentMember = self.environment.ensemble_member
+        current_member = self.environment.ensemble_member
 
         # Create figure
         plt.figure(figsize=(9, 13.5))
@@ -347,7 +347,7 @@ class _EnvironmentPlots:
         plt.show()
 
         # Clean up
-        self.environment.select_ensemble_member(currentMember)
+        self.environment.select_ensemble_member(current_member)
 
         return None
 

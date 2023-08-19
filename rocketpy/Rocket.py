@@ -1240,16 +1240,16 @@ class Rocket:
             gammas = [(pi / 180) * gamma for gamma in gammas]
         for i in range(number_of_fins):
             # Get angular position and inclination for current fin
-            angularPosition = angular_positions[i]
+            angular_position = angular_positions[i]
             gamma = gammas[i]
             # Calculate position vector
-            cpx = cpr * np.cos(angularPosition)
-            cpy = cpr * np.sin(angularPosition)
-            positionVector = np.array([cpx, cpy, cpz])
+            cpx = cpr * np.cos(angular_position)
+            cpy = cpr * np.sin(angular_position)
+            position_vector = np.array([cpx, cpy, cpz])
             # Calculate chord vector
-            auxVector = np.array([cpy, -cpx, 0]) / (cpr)
-            chordVector = (
-                np.cos(gamma) * np.array([0, 0, 1]) - np.sin(gamma) * auxVector
+            aux_vector = np.array([cpy, -cpx, 0]) / (cpr)
+            chord_vector = (
+                np.cos(gamma) * np.array([0, 0, 1]) - np.sin(gamma) * aux_vector
             )
-            self.aerodynamic_surfaces.append([positionVector, chordVector])
+            self.aerodynamic_surfaces.append([position_vector, chord_vector])
         return None

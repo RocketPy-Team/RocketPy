@@ -283,14 +283,14 @@ class _FlightPrints:
         if len(self.flight.parachute_events) == 0:
             print("No Parachute Events Were Triggered.")
         for event in self.flight.parachute_events:
-            triggerTime = event[0]
+            trigger_time = event[0]
             parachute = event[1]
-            openTime = triggerTime + parachute.lag
-            velocity = self.flight.free_stream_speed(openTime)
-            altitude = self.flight.z(openTime)
+            open_time = trigger_time + parachute.lag
+            velocity = self.flight.free_stream_speed(open_time)
+            altitude = self.flight.z(open_time)
             name = parachute.name.title()
-            print(name + " Ejection Triggered at: {:.3f} s".format(triggerTime))
-            print(name + " Parachute Inflated at: {:.3f} s".format(openTime))
+            print(name + " Ejection Triggered at: {:.3f} s".format(trigger_time))
+            print(name + " Parachute Inflated at: {:.3f} s".format(open_time))
             print(
                 name
                 + " Parachute Inflated with Freestream Speed of: {:.3f} m/s".format(

@@ -579,10 +579,10 @@ class Environment:
         elif self.latitude != None and self.longitude != None:
             try:
                 print("Fetching elevation from open-elevation.com...")
-                requestURL = "https://api.open-elevation.com/api/v1/lookup?locations={:f},{:f}".format(
+                request_url = "https://api.open-elevation.com/api/v1/lookup?locations={:f},{:f}".format(
                     self.latitude, self.longitude
                 )
-                response = requests.get(requestURL)
+                response = requests.get(request_url)
                 results = response.json()["results"]
                 self.elevation = results[0]["elevation"]
                 print("Elevation received:", self.elevation)
@@ -1912,17 +1912,17 @@ class Environment:
         wind_speed_array[:, 1] = (
             wind_speed_array[:, 1] * 1.852 / 3.6
         )  # Converts Knots to m/s
-        windHeading_array = wind_direction_array[:, :] * 1
-        windHeading_array[:, 1] = (
+        wind_heading_array = wind_direction_array[:, :] * 1
+        wind_heading_array[:, 1] = (
             wind_direction_array[:, 1] + 180
         ) % 360  # Convert wind direction to wind heading
         wind_u = wind_speed_array[:, :] * 1
         wind_v = wind_speed_array[:, :] * 1
         wind_u[:, 1] = wind_speed_array[:, 1] * np.sin(
-            windHeading_array[:, 1] * np.pi / 180
+            wind_heading_array[:, 1] * np.pi / 180
         )
         wind_v[:, 1] = wind_speed_array[:, 1] * np.cos(
-            windHeading_array[:, 1] * np.pi / 180
+            wind_heading_array[:, 1] * np.pi / 180
         )
 
         # Save wind data
@@ -1933,7 +1933,7 @@ class Environment:
             interpolation="linear",
         )
         self.wind_heading = Function(
-            windHeading_array,
+            wind_heading_array,
             inputs="Height Above Sea Level (m)",
             outputs="Wind Heading (Deg True)",
             interpolation="linear",
@@ -2522,7 +2522,7 @@ class Environment:
 
         # Get ensemble data from file
         try:
-            numMembers = len(weather_data.variables[dictionary["ensemble"]][:])
+            num_members = len(weather_data.variables[dictionary["ensemble"]][:])
         except:
             raise ValueError(
                 "Unable to read ensemble data from file. Check file and dictionary."
@@ -2542,7 +2542,7 @@ class Environment:
         inverse_dictionary = {v: k for k, v in dictionary.items()}
         param_dictionary = {
             "time": time_index,
-            "ensemble": range(numMembers),
+            "ensemble": range(num_members),
             "level": range(len(levels)),
             "latitude": (lat_index - 1, lat_index),
             "longitude": (lon_index - 1, lon_index),
@@ -2661,7 +2661,7 @@ class Environment:
         self.wind_heading_ensemble = wind_heading
         self.wind_direction_ensemble = wind_direction
         self.wind_speed_ensemble = wind_speed
-        self.num_ensemble_members = numMembers
+        self.num_ensemble_members = num_members
 
         # Activate default ensemble
         self.select_ensemble_member()
@@ -3134,11 +3134,11 @@ class Environment:
 
         Returns
         ------
-        plotInfo : Dict
+        plot_info : Dict
             Dict of data relevant to plot externally
         """
         grid = np.linspace(self.elevation, self.max_expected_height)
-        plotInfo = dict(
+        plot_info = dict(
             grid=[i for i in grid],
             wind_speed=[self.wind_speed(i) for i in grid],
             wind_direction=[self.wind_direction(i) for i in grid],
@@ -3150,43 +3150,45 @@ class Environment:
             temperature=[self.temperature(i) for i in grid],
         )
         if self.atmospheric_model_type != "Ensemble":
-            return plotInfo
-        currentMember = self.ensemble_member
+            return plot_info
+        current_member = self.ensemble_member
         # List for each ensemble
-        plotInfo["ensembleWindVelocityX"] = []
+        plot_info["ensemble_wind_velocity_x"] = []
         for i in range(self.num_ensemble_members):
             self.select_ensemble_member(i)
-            plotInfo["ensembleWindVelocityX"].append(
+            plot_info["ensemble_wind_velocity_x"].append(
                 [self.wind_velocity_x(i) for i in grid]
             )
-        plotInfo["ensembleWindVelocityY"] = []
+        plot_info["ensemble_wind_velocity_y"] = []
         for i in range(self.num_ensemble_members):
             self.select_ensemble_member(i)
-            plotInfo["ensembleWindVelocityY"].append(
+            plot_info["ensemble_wind_velocity_y"].append(
                 [self.wind_velocity_y(i) for i in grid]
             )
-        plotInfo["ensembleWindSpeed"] = []
+        plot_info["ensemble_wind_speed"] = []
         for i in range(self.num_ensemble_members):
             self.select_ensemble_member(i)
-            plotInfo["ensembleWindSpeed"].append([self.wind_speed(i) for i in grid])
-        plotInfo["ensembleWindDirection"] = []
+            plot_info["ensemble_wind_speed"].append([self.wind_speed(i) for i in grid])
+        plot_info["ensemble_wind_direction"] = []
         for i in range(self.num_ensemble_members):
             self.select_ensemble_member(i)
-            plotInfo["ensembleWindDirection"].append(
+            plot_info["ensemble_wind_direction"].append(
                 [self.wind_direction(i) for i in grid]
             )
-        plotInfo["ensemblePressure"] = []
+        plot_info["ensemble_pressure"] = []
         for i in range(self.num_ensemble_members):
             self.select_ensemble_member(i)
-            plotInfo["ensemblePressure"].append([self.pressure(i) for i in grid])
-        plotInfo["ensembleTemperature"] = []
+            plot_info["ensemble_pressure"].append([self.pressure(i) for i in grid])
+        plot_info["ensemble_temperature"] = []
         for i in range(self.num_ensemble_members):
             self.select_ensemble_member(i)
-            plotInfo["ensembleTemperature"].append([self.temperature(i) for i in grid])
+            plot_info["ensemble_temperature"].append(
+                [self.temperature(i) for i in grid]
+            )
 
         # Clean up
-        self.select_ensemble_member(currentMember)
-        return plotInfo
+        self.select_ensemble_member(current_member)
+        return plot_info
 
     def all_info_returned(self):
         """Returns as dicts all data available about the Environment.
@@ -3221,26 +3223,26 @@ class Environment:
             info["lat"] = self.latitude
             info["lon"] = self.longitude
         if info["model_type"] in ["Forecast", "Reanalysis", "Ensemble"]:
-            info["initDate"] = self.atmospheric_model_init_date.strftime(
+            info["init_date"] = self.atmospheric_model_init_date.strftime(
                 "%Y-%d-%m %H:%M:%S"
             )
             info["endDate"] = self.atmospheric_model_end_date.strftime(
                 "%Y-%d-%m %H:%M:%S"
             )
             info["interval"] = self.atmospheric_model_interval
-            info["initLat"] = self.atmospheric_model_init_lat
-            info["endLat"] = self.atmospheric_model_end_lat
-            info["initLon"] = self.atmospheric_model_init_lon
-            info["endLon"] = self.atmospheric_model_end_lon
+            info["init_lat"] = self.atmospheric_model_init_lat
+            info["end_lat"] = self.atmospheric_model_end_lat
+            info["init_lon"] = self.atmospheric_model_init_lon
+            info["end_lon"] = self.atmospheric_model_end_lon
         if info["model_type"] == "Ensemble":
-            info["numEnsembleMembers"] = self.num_ensemble_members
-            info["selectedEnsembleMember"] = self.ensemble_member
+            info["num_ensemble_members"] = self.num_ensemble_members
+            info["selected_ensemble_member"] = self.ensemble_member
         return info
 
     def export_environment(self, filename="environment"):
         """Export important attributes of Environment class to a .json file,
         saving all the information needed to recreate the same environment using
-        customAtmosphere.
+        custom_atmosphere.
 
         Parameters
         ----------
@@ -3258,7 +3260,7 @@ class Environment:
             atmospheric_model_file = ""
             atmospheric_model_dict = ""
 
-        self.exportEnvDictionary = {
+        self.export_env_dictionary = {
             "gravity": self.gravity(self.elevation),
             "date": [
                 self.datetime_date.year,
@@ -3275,16 +3277,16 @@ class Environment:
             "atmospheric_model_type": self.atmospheric_model_type,
             "atmospheric_model_file": atmospheric_model_file,
             "atmospheric_model_dict": atmospheric_model_dict,
-            "atmosphericModelPressureProfile": ma.getdata(
+            "atmospheric_model_pressure_profile": ma.getdata(
                 self.pressure.get_source()
             ).tolist(),
-            "atmosphericModelTemperatureProfile": ma.getdata(
+            "atmospheric_model_temperature_profile": ma.getdata(
                 self.temperature.get_source()
             ).tolist(),
-            "atmosphericModelWindVelocityXProfile": ma.getdata(
+            "atmospheric_model_wind_velocity_x_profile": ma.getdata(
                 self.wind_velocity_x.get_source()
             ).tolist(),
-            "atmosphericModelWindVelocityYProfile": ma.getdata(
+            "atmospheric_model_wind_velocity_y_profile": ma.getdata(
                 self.wind_velocity_y.get_source()
             ).tolist(),
         }
@@ -3293,14 +3295,16 @@ class Environment:
 
         # write json object to file
         f.write(
-            json.dumps(self.exportEnvDictionary, sort_keys=False, indent=4, default=str)
+            json.dumps(
+                self.export_env_dictionary, sort_keys=False, indent=4, default=str
+            )
         )
 
         # close file
         f.close()
         print("Your Environment file was saved, check it out: " + filename + ".json")
         print(
-            "You can use it in the future by using the customAtmosphere atmospheric model."
+            "You can use it in the future by using the custom_atmosphere atmospheric model."
         )
 
         return None
@@ -3316,10 +3320,10 @@ class Environment:
 
         Returns
         -------
-        earthGeometry: namedtuple
+        earth_geometry: namedtuple
             The namedtuple containing the Earth geometry.
         """
-        geodesy = namedtuple("earthGeometry", "semi_major_axis flattening")
+        geodesy = namedtuple("earth_geometry", "semi_major_axis flattening")
         ellipsoid = {
             "SIRGAS2000": geodesy(6378137.0, 1 / 298.257223563),
             "SAD69": geodesy(6378160.0, 1 / 298.25),

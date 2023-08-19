@@ -388,11 +388,11 @@ class HybridMotor(Motor):
         Function
             Position of the center of mass as a function of time.
         """
-        massBalance = (
+        mass_balance = (
             self.solid.propellant_mass * self.solid.center_of_propellant_mass
             + self.liquid.propellant_mass * self.liquid.center_of_propellant_mass
         )
-        return massBalance / self.propellant_mass
+        return mass_balance / self.propellant_mass
 
     @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
     def propellant_I_11(self):
@@ -414,12 +414,12 @@ class HybridMotor(Motor):
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        solidCorrection = (
+        solid_correction = (
             self.solid.propellant_mass
             * (self.solid.center_of_propellant_mass - self.center_of_propellant_mass)
             ** 2
         )
-        liquidCorrection = (
+        liquid_correction = (
             self.liquid.propellant_mass
             * (self.liquid.center_of_propellant_mass - self.center_of_propellant_mass)
             ** 2
@@ -431,6 +431,7 @@ class HybridMotor(Motor):
             + self.liquid.propellant_I_11
             + liquidCorrection
         )
+  
         return I_11
 
     @funcify_method("Time (s)", "Inertia I_22 (kg m²)")

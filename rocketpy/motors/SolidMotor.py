@@ -569,7 +569,7 @@ class SolidMotor(Motor):
         Kn : rocketpy.Function
             Kn as a function of time.
         """
-        KnSource = (
+        Kn_source = (
             np.concatenate(
                 (
                     [self.grain_inner_radius.source[:, 1]],
@@ -578,7 +578,7 @@ class SolidMotor(Motor):
             ).transpose()
         ).tolist()
         Kn = Function(
-            KnSource,
+            Kn_source,
             "Grain Inner Radius (m)",
             "Kn (m2/m2)",
             self.interpolate,
@@ -606,21 +606,21 @@ class SolidMotor(Motor):
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        grainMass = self.propellant_mass / self.grain_number
+        grain_mass = self.propellant_mass / self.grain_number
         grain_number = self.grain_number
-        grainInertia11 = grainMass * (
+        grain_inertia11 = grain_mass * (
             (1 / 4) * (self.grain_outer_radius**2 + self.grain_inner_radius**2)
             + (1 / 12) * self.grain_height**2
         )
 
         # Calculate each grain's distance d to propellant center of mass
         # Assuming each grain's COM are evenly spaced
-        initialValue = (grain_number - 1) / 2
-        d = np.linspace(-initialValue, initialValue, grain_number)
+        initial_value = (grain_number - 1) / 2
+        d = np.linspace(-initial_value, initial_value, grain_number)
         d = d * (self.grain_initial_height + self.grain_separation)
 
         # Calculate inertia for all grains
-        I_11 = grain_number * grainInertia11 + grainMass * np.sum(d**2)
+        I_11 = grain_number * grain_inertia11 + grain_mass * np.sum(d**2)
 
         return I_11
 

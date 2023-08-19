@@ -537,7 +537,7 @@ class Flight:
         rail_length : int, float
             Length in which the rocket will be attached to the rail, only
             moving along a fixed direction, that is, the line parallel to the
-            rail. Currently, if the an initialSolution is passed, the rail
+            rail. Currently, if the an initial_solution is passed, the rail
             length is not used.
         inclination : int, float, optional
             Rail inclination angle relative to ground, given in degrees.
@@ -547,12 +547,12 @@ class Flight:
             Default is 90, which points in the x direction.
         initial_solution : array, Flight, optional
             Initial solution array to be used. Format is
-            initialSolution = [
-                self.tInitial,
-                xInit, yInit, zInit,
-                vxInit, vyInit, vzInit,
-                e0Init, e1Init, e2Init, e3Init,
-                w1Init, w2Init, w3Init
+            initial_solution = [
+                self.t_initial,
+                x_init, y_init, z_init,
+                vx_init, vy_init, vz_init,
+                e0_init, e1_init, e2_init, e3_init,
+                w1_init, w2_init, w3_init
             ].
             If a Flight object is used, the last state vector will be used as
             initial solution. If None, the initial solution will start with
@@ -724,18 +724,18 @@ class Flight:
                     pressure = self.env.pressure.get_value_opt(self.y_sol[2])
                     parachute.clean_pressure_signal.append([node.t, pressure])
                     # Calculate and save noise
-                    noise = parachute.noiseFunction()
-                    parachute.noiseSignal.append([node.t, noise])
-                    parachute.noisyPressureSignal.append([node.t, pressure + noise])
+                    noise = parachute.noise_function()
+                    parachute.noise_signal.append([node.t, noise])
+                    parachute.noisy_pressure_signal.append([node.t, pressure + noise])
                     # Gets height above ground level considering noise
                     hAGL = (
                         self.env.pressure.find_input(
                             pressure + noise,
-                            overshootable_node.y[2],
+                            self.y_sol[2],
                         )
                         - self.env.elevation
                     )
-                    if parachute.trigger(pressure + noise, hAGL, self.ySol):
+                    if parachute.trigger(pressure + noise, hAGL, self.y_sol):
                         # print('\nEVENT DETECTED')
                         # print('Parachute Triggered')
                         # print('Name: ', parachute.name, ' | Lag: ', parachute.lag)
@@ -754,8 +754,8 @@ class Flight:
                             i += 1
                         # Create flight phase for time after inflation
                         callbacks = [
-                            lambda self, parachute_CdS=parachute.cd_s: setattr(
-                                self, "parachute_CdS", parachute_CdS
+                            lambda self, parachute_cd_s=parachute.cd_s: setattr(
+                                self, "parachute_cd_s", parachute_cd_s
                             )
                         ]
                         self.FlightPhases.add_phase(
@@ -974,7 +974,7 @@ class Flight:
                         self.impact_state = self.y_sol
                         self.x_impact = self.impact_state[0]
                         self.y_impact = self.impact_state[1]
-                        self.zImpact = self.impact_state[2]
+                        self.z_impact = self.impact_state[2]
                         self.impact_velocity = self.impact_state[5]
                         self.t_final = self.t
                         # Set last flight phase
@@ -1066,8 +1066,8 @@ class Flight:
                                             i += 1
                                         # Create flight phase for time after inflation
                                         callbacks = [
-                                            lambda self, parachute_CdS=parachute.cd_s: setattr(
-                                                self, "parachute_CdS", parachute_CdS
+                                            lambda self, parachute_cd_s=parachute.cd_s: setattr(
+                                                self, "parachute_cd_s", parachute_cd_s
                                             )
                                         ]
                                         self.FlightPhases.add_phase(
@@ -1168,8 +1168,8 @@ class Flight:
             # previous flight
             self.initial_solution = self.initial_solution.solution[-1]
             # Set unused monitors
-            self.outOfRailState = self.initialSolution[1:]
-            self.out_of_rail_time = self.initialSolution[0]
+            self.out_of_rail_state = self.initial_solution[1:]
+            self.out_of_rail_time = self.initial_solution[0]
             self.out_of_rail_time_index = 0
             # Set initial derivative for 6-DOF flight phase
             self.initial_derivative = self.u_dot_generalized
@@ -1203,7 +1203,7 @@ class Flight:
     def __init_equations_of_motion(self):
         """Initialize equations of motion."""
         if self.equations_of_motion == "solid_propulsion":
-            self.uDotGeneralized = self.uDot
+            self.u_dot_generalized = self.u_dot
 
     @cached_property
     def effective_1rl(self):
@@ -1268,7 +1268,7 @@ class Flight:
             e2, e3, omega1, omega2, omega3].
         post_processing : bool, optional
             If True, adds flight data information directly to self
-            variables such as self.attackAngle. Default is False.
+            variables such as self.angle_of_attack. Default is False.
 
         Return
         ------
@@ -1329,7 +1329,7 @@ class Flight:
             e2, e3, omega1, omega2, omega3].
         post_processing : bool, optional
             If True, adds flight data information directly to self
-            variables such as self.attackAngle, by default False
+            variables such as self.angle_of_attack, by default False
 
         Returns
         -------
@@ -1354,7 +1354,7 @@ class Flight:
             e2, e3, omega1, omega2, omega3].
         post_processing : bool, optional
             If True, adds flight data information directly to self
-            variables such as self.attackAngle, by default False
+            variables such as self.angle_of_attack, by default False
 
         Returns
         -------
@@ -1375,10 +1375,10 @@ class Flight:
             # Inertias
             Tz = self.rocket.motor.I_33.get_value_opt(t)
             Ti = self.rocket.motor.I_11.get_value_opt(t)
-            TzDot = self.rocket.motor.I_33.differentiate(t, dx=1e-6)
-            TiDot = self.rocket.motor.I_11.differentiate(t, dx=1e-6)
+            Tzdot = self.rocket.motor.I_33.differentiate(t, dx=1e-6)
+            Tidot = self.rocket.motor.I_11.differentiate(t, dx=1e-6)
             # Mass
-            MtDot = self.rocket.motor.mass_flow_rate.get_value_opt(t)
+            Mtdot = self.rocket.motor.mass_flow_rate.get_value_opt(t)
             Mt = self.rocket.motor.propellant_mass.get_value_opt(t)
             # Thrust
             thrust = self.rocket.motor.thrust.get_value_opt(t)
@@ -1629,13 +1629,13 @@ class Flight:
             q2, q3, omega1, omega2, omega3].
         post_processing : bool, optional
             If True, adds flight data information directly to self variables
-            such as self.attackAngle, by default False.
+            such as self.angle_of_attack, by default False.
 
         Returns
         -------
         u_dot : list
             State vector defined by u_dot = [vx, vy, vz, ax, ay, az,
-            e0Dot, e1Dot, e2Dot, e3Dot, alpha1, alpha2, alpha3].
+            e0_dot, e1_dot, e2_dot, e3_dot, alpha1, alpha2, alpha3].
         """
         # Retrieve integration data
         x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
@@ -1744,64 +1744,68 @@ class Flight:
         # Get rocket velocity in body frame
         vB = Kt @ v
         # Calculate lift and moment for each component of the rocket
-        for aeroSurface, position in self.rocket.aerodynamic_surfaces:
-            compCpz = (
+        for aero_surface, position in self.rocket.aerodynamic_surfaces:
+            comp_cpz = (
                 position - self.rocket.center_of_dry_mass_position
-            ) * self.rocket._csys - aeroSurface.cpz
-            compCp = Vector([0, 0, compCpz])
-            surfaceRadius = aeroSurface.rocket_radius
-            referenceArea = np.pi * surfaceRadius**2
+            ) * self.rocket._csys - aero_surface.cpz
+            comp_cp = Vector([0, 0, comp_cpz])
+            surface_radius = aero_surface.rocket_radius
+            reference_area = np.pi * surface_radius**2
             # Component absolute velocity in body frame
-            compVB = vB + (w ^ compCp)
+            comp_vb = vB + (w ^ comp_cp)
             # Wind velocity at component altitude
-            compZ = z + (K @ compCp).z
-            compWindVx = self.env.wind_velocity_x.get_value_opt(compZ)
-            compWindVy = self.env.wind_velocity_y.get_value_opt(compZ)
+            comp_z = z + (K @ comp_cp).z
+            comp_wind_vx = self.env.wind_velocity_x.get_value_opt(comp_z)
+            comp_wind_vy = self.env.wind_velocity_y.get_value_opt(comp_z)
             # Component freestream velocity in body frame
-            compWindVB = Kt @ Vector([compWindVx, compWindVy, 0])
-            compStreamVelocity = compWindVB - compVB
-            compStreamVxB, compStreamVyB, compStreamVzB = compStreamVelocity
-            compStreamSpeed = abs(compStreamVelocity)
-            compStreamMach = compStreamSpeed / self.env.speed_of_sound.get_value_opt(z)
+            comp_wind_vb = Kt @ Vector([comp_wind_vx, comp_wind_vy, 0])
+            comp_stream_velocity = comp_wind_vb - comp_vb
+            comp_stream_vx_b, comp_stream_vy_b, comp_stream_vz_b = comp_stream_velocity
+            comp_stream_speed = abs(comp_stream_velocity)
+            comp_stream_mach = (
+                comp_stream_speed / self.env.speed_of_sound.get_value_opt(z)
+            )
             # Component attack angle and lift force
-            compAttackAngle = 0
-            compLift, compLiftXB, compLiftYB = 0, 0, 0
-            if compStreamVxB**2 + compStreamVyB**2 != 0:
+            comp_attack_angle = 0
+            comp_lift, comp_lift_xb, comp_lift_yb = 0, 0, 0
+            if comp_stream_vx_b**2 + comp_stream_vy_b**2 != 0:
                 # Normalize component stream velocity in body frame
-                compStreamVzBn = compStreamVzB / compStreamSpeed
-                if -1 * compStreamVzBn < 1:
-                    compAttackAngle = np.arccos(-compStreamVzBn)
-                    cLift = aeroSurface.cl(compAttackAngle, compStreamMach)
+                comp_stream_vz_bn = comp_stream_vz_b / comp_stream_speed
+                if -1 * comp_stream_vz_bn < 1:
+                    comp_attack_angle = np.arccos(-comp_stream_vz_bn)
+                    c_lift = aero_surface.cl(comp_attack_angle, comp_stream_mach)
                     # Component lift force magnitude
-                    compLift = (
-                        0.5 * rho * (compStreamSpeed**2) * referenceArea * cLift
+                    comp_lift = (
+                        0.5 * rho * (comp_stream_speed**2) * reference_area * c_lift
                     )
                     # Component lift force components
-                    liftDirNorm = (compStreamVxB**2 + compStreamVyB**2) ** 0.5
-                    compLiftXB = compLift * (compStreamVxB / liftDirNorm)
-                    compLiftYB = compLift * (compStreamVyB / liftDirNorm)
+                    lift_dir_norm = (
+                        comp_stream_vx_b**2 + comp_stream_vy_b**2
+                    ) ** 0.5
+                    comp_lift_xb = comp_lift * (comp_stream_vx_b / lift_dir_norm)
+                    comp_lift_yb = comp_lift * (comp_stream_vy_b / lift_dir_norm)
                     # Add to total lift force
-                    R1 += compLiftXB
-                    R2 += compLiftYB
+                    R1 += comp_lift_xb
+                    R2 += comp_lift_yb
                     # Add to total moment
-                    M1 -= (compCpz + r_CM_z.get_value_opt(t)) * compLiftYB
-                    M2 += (compCpz + r_CM_z.get_value_opt(t)) * compLiftXB
+                    M1 -= (comp_cpz + r_CM_z.get_value_opt(t)) * comp_lift_yb
+                    M2 += (comp_cpz + r_CM_z.get_value_opt(t)) * comp_lift_xb
             # Calculates Roll Moment
             try:
-                Clfdelta, Cldomega, cantAngleRad = aeroSurface.rollParameters
+                clf_delta, cld_omega, cant_angle_rad = aero_surface.roll_parameters
                 M3f = (
-                    (1 / 2 * rho * compStreamSpeed**2)
-                    * referenceArea
+                    (1 / 2 * rho * comp_stream_speed**2)
+                    * reference_area
                     * 2
-                    * surfaceRadius
-                    * Clfdelta(compStreamMach)
-                    * cantAngleRad
+                    * surface_radius
+                    * clf_delta(comp_stream_mach)
+                    * cant_angle_rad
                 )
                 M3d = (
-                    (1 / 2 * rho * compStreamSpeed)
-                    * referenceArea
-                    * (2 * surfaceRadius) ** 2
-                    * Cldomega(compStreamMach)
+                    (1 / 2 * rho * comp_stream_speed)
+                    * reference_area
+                    * (2 * surface_radius) ** 2
+                    * cld_omega(comp_stream_mach)
                     * omega3
                     / 2
                 )
@@ -1886,7 +1890,7 @@ class Flight:
             e2, e3, omega1, omega2, omega3].
         post_processing : bool, optional
             If True, adds flight data information directly to self
-            variables such as self.attackAngle. Default is False.
+            variables such as self.angle_of_attack. Default is False.
 
         Return
         ------
@@ -1896,7 +1900,7 @@ class Flight:
 
         """
         # Parachute data
-        cd_s = self.parachute_CdS
+        cd_s = self.parachute_cd_s
         ka = 1
         R = 1.5
         rho = self.env.density.get_value_opt(u[2])
@@ -2492,7 +2496,7 @@ class Flight:
     def angle_of_attack(self):
         """Angle of attack of the rocket with respect to the freestream
         velocity vector."""
-        dotProduct = [
+        dot_product = [
             -self.attitude_vector_x.get_value_opt(i)
             * self.stream_velocity_x.get_value_opt(i)
             - self.attitude_vector_y.get_value_opt(i)
@@ -2507,7 +2511,7 @@ class Flight:
 
         # Normalize dot product
         dot_product_normalized = [
-            i / j if j > 1e-6 else 0 for i, j in zip(dotProduct, free_stream_speed)
+            i / j if j > 1e-6 else 0 for i, j in zip(dot_product, free_stream_speed)
         ]
         dot_product_normalized = np.nan_to_num(dot_product_normalized)
         dot_product_normalized = np.clip(dot_product_normalized, -1, 1)
@@ -2825,19 +2829,19 @@ class Flight:
             Rail Button 2 force in the 2 direction
         """
         # First check for no rail phase or rail buttons
-        nullForce = []
+        null_force = []
         if self.out_of_rail_time_index == 0:  # No rail phase, no rail button forces
             warnings.warn(
                 "Trying to calculate rail button forces without a rail phase defined."
                 + "The rail button forces will be set to zero."
             )
-            return nullForce, nullForce, nullForce, nullForce
+            return null_force, null_force, null_force, null_force
         if len(self.rocket.rail_buttons) == 0:
             warnings.warn(
                 "Trying to calculate rail button forces without rail buttons defined."
                 + "The rail button forces will be set to zero."
             )
-            return nullForce, nullForce, nullForce, nullForce
+            return null_force, null_force, null_force, null_force
 
         # Distance from Rail Button 1 (upper) to CM
         rail_buttons_tuple = self.rocket.rail_buttons[0]
@@ -2976,7 +2980,7 @@ class Flight:
         ------
         None
         """
-        vF = self.out_of_rail_velocity
+        v_f = self.out_of_rail_velocity
 
         # Convert angle to radians
         theta = self.inclination * 3.14159265359 / 180
@@ -2985,11 +2989,11 @@ class Flight:
         c = (math.cos(stall_angle) ** 2 - math.cos(theta) ** 2) / math.sin(
             stall_angle
         ) ** 2
-        wV = (
-            2 * vF * math.cos(theta) / c
+        w_v = (
+            2 * v_f * math.cos(theta) / c
             + (
-                4 * vF * vF * math.cos(theta) * math.cos(theta) / (c**2)
-                + 4 * 1 * vF * vF / c
+                4 * v_f * v_f * math.cos(theta) * math.cos(theta) / (c**2)
+                + 4 * 1 * v_f * v_f / c
             )
             ** 0.5
         ) / 2
@@ -2998,7 +3002,7 @@ class Flight:
         stall_angle = stall_angle * 180 / np.pi
         print(
             "Maximum wind velocity at Rail Departure time before angle of attack exceeds {:.3f}°: {:.3f} m/s".format(
-                stall_angle, wV
+                stall_angle, w_v
             )
         )
 
@@ -3330,10 +3334,10 @@ class Flight:
             except:
                 time.sleep(1 / (fps * speed))
 
-    def time_iterator(self, nodeList):
+    def time_iterator(self, node_list):
         i = 0
-        while i < len(nodeList) - 1:
-            yield i, nodeList[i]
+        while i < len(node_list) - 1:
+            yield i, node_list[i]
             i += 1
 
     class FlightPhases:
@@ -3471,8 +3475,8 @@ class Flight:
         def __repr__(self):
             return str(self.list)
 
-        def add(self, timeNode):
-            self.list.append(timeNode)
+        def add(self, time_node):
+            self.list.append(time_node)
 
         def add_node(self, t, parachutes, callbacks):
             self.list.append(self.TimeNode(t, parachutes, callbacks))

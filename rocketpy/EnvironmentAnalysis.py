@@ -563,9 +563,9 @@ class EnvironmentAnalysis:
         self.__check_coordinates_inside_grid(lon_index, lat_index, lon_array, lat_array)
 
         # Loop through time and save all values
-        for time_index, timeNum in enumerate(time_num_array):
+        for time_index, time_num in enumerate(time_num_array):
             date_string, hour_string, date_time = time_num_to_date_string(
-                timeNum,
+                time_num,
                 time_num_array.units,
                 self.preferred_timezone,
                 calendar="gregorian",
@@ -798,9 +798,9 @@ class EnvironmentAnalysis:
         self.__check_coordinates_inside_grid(lon_index, lat_index, lon_array, lat_array)
 
         # Loop through time and save all values
-        for time_index, timeNum in enumerate(time_num_array):
+        for time_index, time_num in enumerate(time_num_array):
             date_string, hour_string, date_time = time_num_to_date_string(
-                timeNum,
+                time_num,
                 time_num_array.units,
                 self.preferred_timezone,
                 calendar="gregorian",
@@ -2635,7 +2635,7 @@ class EnvironmentAnalysis:
         Parameters
         ----------
         filename : str, optional
-            Name of the file where to be saved, by default "EnvAnalysisDict"
+            Name of the file where to be saved, by default "env_analysis_dict"
 
         Returns
         -------
@@ -2644,8 +2644,8 @@ class EnvironmentAnalysis:
 
         flipped_temperature_dict = {}
         flipped_pressure_dict = {}
-        flipped_windX_dict = {}
-        flipped_windY_dict = {}
+        flipped_wind_x_dict = {}
+        flipped_wind_y_dict = {}
 
         for hour in self.average_temperature_profile_by_hour.keys():
             flipped_temperature_dict[hour] = np.column_stack(
@@ -2660,13 +2660,13 @@ class EnvironmentAnalysis:
                     self.average_pressure_profile_by_hour[hour][0],
                 )
             ).tolist()
-            flipped_windX_dict[hour] = np.column_stack(
+            flipped_wind_x_dict[hour] = np.column_stack(
                 (
                     self.average_wind_velocity_x_profile_by_hour[hour][1],
                     self.average_wind_velocity_x_profile_by_hour[hour][0],
                 )
             ).tolist()
-            flipped_windY_dict[hour] = np.column_stack(
+            flipped_wind_y_dict[hour] = np.column_stack(
                 (
                     self.average_wind_velocity_y_profile_by_hour[hour][1],
                     self.average_wind_velocity_y_profile_by_hour[hour][0],
@@ -2685,10 +2685,10 @@ class EnvironmentAnalysis:
             "unit_system": self.unit_system,
             "surface_data_file": self.surface_data_file,
             "pressure_level_data_file": self.pressure_level_data_file,
-            "atmosphericModelPressureProfile": flipped_pressure_dict,
-            "atmosphericModelTemperatureProfile": flipped_temperature_dict,
-            "atmosphericModelWindVelocityXProfile": flipped_windX_dict,
-            "atmosphericModelWindVelocityYProfile": flipped_windY_dict,
+            "atmospheric_model_pressure_profile": flipped_pressure_dict,
+            "atmospheric_model_temperature_profile": flipped_temperature_dict,
+            "atmospheric_model_wind_velocity_x_profile": flipped_wind_x_dict,
+            "atmospheric_model_wind_velocity_y_profile": flipped_wind_y_dict,
         }
 
         # Convert to json
@@ -2713,14 +2713,14 @@ class EnvironmentAnalysis:
         return None
 
     @classmethod
-    def load(self, filename="EnvAnalysisDict"):
+    def load(self, filename="env_analysis_dict"):
         """Load a previously saved Environment Analysis file.
         Example: EnvA = EnvironmentAnalysis.load("filename").
 
         Parameters
         ----------
         filename : str, optional
-            Name of the previous saved file, by default "EnvAnalysisDict"
+            Name of the previous saved file, by default "env_analysis_dict"
 
         Returns
         -------
@@ -2730,14 +2730,14 @@ class EnvironmentAnalysis:
         encoded_class = open(filename).read()
         return jsonpickle.decode(encoded_class)
 
-    def save(self, filename="EnvAnalysisDict"):
+    def save(self, filename="env_analysis_dict"):
         """Save the Environment Analysis object to a file so it can be used
         later.
 
         Parameters
         ----------
         filename : str, optional
-            Name of the file where to be saved, by default "EnvAnalysisDict"
+            Name of the file where to be saved, by default "env_analysis_dict"
 
         Returns
         -------
