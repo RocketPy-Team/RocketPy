@@ -423,14 +423,8 @@ def test_tank_inertia(pressurant_tank, fuel_tank, oxidizer_tank):
             tank.geometry.radius(0), tank.geometry.total_height, tank.geometry.bottom
         )
         for h in tank.liquid_height.y_array:
-            print(
-                h,
-                tank.geometry.Ix_volume(tank.geometry.bottom, h)(h),
-                tank_inertia(h)[0],
-                tank.name,
-            )
             assert tank.geometry.Ix_volume(tank.geometry.bottom, h)(h) == pytest.approx(
-                tank_inertia(h)[0], abs=1e-4
+                tank_inertia(h)[0], abs=1e-5
             )
 
 
@@ -653,3 +647,179 @@ def tank_centroid_function(tank_radius, tank_height, zero_height=0):
         return centroid + zero_height
 
     return tank_centroid
+
+
+def cylinder_inertia(radius, height, reference=0):
+    """Returns the inertia of a cylinder with the given radius and height.
+
+    Parameters
+    ----------
+    radius : float
+        The radius of the cylinder.
+    height : float
+        The height of the cylinder.
+    reference : float, optional
+        The coordinate of the axis of rotation.
+
+    Returns
+    -------
+    numpy.ndarray
+        The inertia of the cylinder in the x, y, and z directions.
+    """
+    inertia_x = cylinder_volume(radius, height) * (
+        radius**2 / 4 + height**2 / 12 + (height / 2 - reference) ** 2
+    )
+    inertia_y = inertia_x
+    inertia_z = cylinder_volume(radius, height) * radius**2 / 2
+
+    return np.array([inertia_x, inertia_y, inertia_z])
+
+
+def lower_spherical_cap_inertia(radius, height=None, reference=0):
+    """Returns the inertia of a spherical cap with the given radius and filled
+    height that is filled from its convex side.
+
+    Parameters
+    ----------
+    radius : float
+        The radius of the spherical cap.
+    height : float
+        The height of the spherical cap. If not given, the radius is used.
+    reference : float, optional
+        The coordinate of the axis of rotation.
+
+    Returns
+    -------
+    numpy.ndarray
+        The inertia of the spherical cap in the x, y, and z directions.
+    """
+    if height is None:
+        height = radius
+
+    centroid = lower_spherical_cap_centroid(radius, height)
+
+    inertia_x = lower_spherical_cap_volume(radius, height) * (
+        (
+            np.pi
+            * height**2
+            * (
+                -9 * height**3
+                + 45 * height**2 * radius
+                - 80 * height * radius**2
+                + 60 * radius**3
+            )
+            / 60
+        )
+        + (centroid - reference) ** 2
+        - (radius - centroid) ** 2
+    )
+    inertia_y = inertia_x
+    inertia_z = lower_spherical_cap_volume(radius, height) * (
+        np.pi
+        * height**3
+        * (3 * height**2 - 15 * height * radius + 20 * radius**2)
+        / 30
+    )
+    return np.array([inertia_x, inertia_y, inertia_z])
+
+
+def upper_spherical_cap_inertia(radius, height=None, reference=0):
+    """Returns the inertia of a spherical cap with the given radius and filled
+    height that is filled from its concave side.
+
+    Parameters
+    ----------
+    radius : float
+        The radius of the spherical cap.
+    height : float
+        The height of the spherical cap. If not given, the radius is used.
+    reference : float, optional
+        The coordinate of the axis of rotation.
+
+    Returns
+    -------
+    numpy.ndarray
+        The inertia of the spherical cap in the x, y, and z directions.
+    """
+    if height is None:
+        height = radius
+
+    centroid = upper_spherical_cap_centroid(radius, height)
+
+    inertia_x = upper_spherical_cap_volume(radius, height) * (
+        (
+            (
+                np.pi
+                * height
+                * (-9 * height**4 + 10 * height**2 * radius**2 + 15 * radius**4)
+            )
+            / 60
+        )
+        + (centroid - reference) ** 2
+        - centroid**2
+    )
+    inertia_y = inertia_x
+    inertia_z = upper_spherical_cap_volume(radius, height) * (
+        np.pi
+        * height
+        * (3 * height**4 - 10 * height**2 * radius**2 + 15 * radius**4)
+        / 30
+    )
+    return np.array([inertia_x, inertia_y, inertia_z])
+
+
+def tank_inertia_function(tank_radius, tank_height, zero_height=0):
+    """Returns a function that calculates the inertia of a cylindrical tank
+    with spherical caps. The reference point is the tank centroid.
+
+    Parameters
+    ----------
+    tank_radius : float
+        The radius of the cylindrical part of the tank.
+    tank_height : float
+        The height of the tank including caps.
+    zero_height : float, optional
+        The coordinate of the bottom of the tank. Defaults to 0.
+
+    Returns
+    -------
+    function
+        A function that calculates the inertia of the tank for a given height.
+    """
+
+    def tank_inertia(h):
+        center = tank_height / 2
+        h = h - zero_height
+        if h < tank_radius:
+            inertia = lower_spherical_cap_inertia(tank_radius, h, center)
+        elif tank_radius <= h < tank_height - tank_radius:
+            base = tank_radius
+            lower_centroid = lower_spherical_cap_centroid(tank_radius)
+            cyl_centroid = cylinder_centroid(h - base) + base
+            lower_inertia = lower_spherical_cap_inertia(tank_radius, reference=center)
+            cyl_inertia = cylinder_inertia(tank_radius, h - base, center - base)
+
+            inertia = lower_inertia + cyl_inertia
+
+        else:
+            base = tank_height - tank_radius
+            lower_centroid = lower_spherical_cap_centroid(tank_radius)
+            cyl_centroid = (
+                cylinder_centroid(tank_height - 2 * tank_radius) + tank_radius
+            )
+            upper_centroid = upper_spherical_cap_centroid(tank_radius, h - base) + base
+            lower_inertia = lower_spherical_cap_inertia(
+                tank_radius, reference=lower_centroid - center
+            )
+            cyl_inertia = cylinder_inertia(
+                tank_radius, tank_height - 2 * tank_radius, cyl_centroid - tank_radius
+            )
+            upper_inertia = upper_spherical_cap_inertia(
+                tank_radius, h - base, upper_centroid - base
+            )
+
+            inertia = lower_inertia + cyl_inertia + upper_inertia
+
+        return inertia
+
+    return tank_inertia
