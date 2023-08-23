@@ -363,10 +363,7 @@ class _FlightPrints:
         )
         print(
             "Maximum Gs During Motor Burn: {:.3f} g at {:.2f} s".format(
-                self.flight.max_acceleration_power_on
-                / self.flight.env.gravity(
-                    self.flight.z(self.flight.max_acceleration_power_on_time)
-                ),
+                self.flight.max_acceleration_power_on / self.flight.env.standard_g,
                 self.flight.max_acceleration_power_on_time,
             )
         )
@@ -378,10 +375,7 @@ class _FlightPrints:
         )
         print(
             "Maximum Gs After Motor Burn: {:.3f} g at {:.2f} s".format(
-                self.flight.max_acceleration_power_off
-                / self.flight.env.gravity(
-                    self.flight.z(self.flight.max_acceleration_power_off_time)
-                ),
+                self.flight.max_acceleration_power_off / self.flight.env.standard_g,
                 self.flight.max_acceleration_power_off_time,
             )
         )
