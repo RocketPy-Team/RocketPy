@@ -6,6 +6,7 @@ _NOT_FOUND = object()
 import numpy as np
 import pytz
 from cftime import num2pydate
+from bisect import bisect_left
 
 
 class cached_property:
@@ -1194,6 +1195,40 @@ def geopotential_to_height_agl(geopotential, elevation, radius=63781370, g=9.806
     9198.792680243916
     """
     return geopotential_to_height_asl(geopotential, radius, g) - elevation
+
+
+def find_closest(ordered_sequence, value):
+    """Find the index of the closest value to a given value within an ordered
+    sequence.
+
+    Parameters
+    ----------
+    ordered_sequence : list
+        A sequence of values that is ordered from smallest to largest.
+    value : float
+        The value to which you want to find the closest value.
+
+    Returns
+    -------
+    index : int
+        The index of the closest value to the given value within the ordered
+        sequence. If the given value is less than the first value in the
+        sequence, then 0 is returned. If the given value is greater than the
+        last value in the sequence, then the index of the last value in the
+        sequence is returned.
+    """
+    if len(ordered_sequence) == 1:
+        return 0
+
+    pivot_index = bisect_left(ordered_sequence, value)
+    if pivot_index == 0:
+        return pivot_index
+    if pivot_index == len(ordered_sequence):
+        return pivot_index - 1
+
+    smaller, greater = ordered_sequence[pivot_index - 1], ordered_sequence[pivot_index]
+
+    return pivot_index - 1 if value - smaller <= greater - value else pivot_index
 
 
 if __name__ == "__main__":

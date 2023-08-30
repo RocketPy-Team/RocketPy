@@ -356,19 +356,30 @@ class _FlightPrints:
             )
         )
         print(
-            "Maximum Acceleration: {:.3f} m/s² at {:.2f} s".format(
-                self.flight.max_acceleration, self.flight.max_acceleration_time
+            "Maximum Acceleration During Motor Burn: {:.3f} m/s² at {:.2f} s".format(
+                self.flight.max_acceleration_power_on,
+                self.flight.max_acceleration_power_on_time,
             )
         )
         print(
-            "Maximum Gs: {:.3f} g at {:.2f} s".format(
-                self.flight.max_acceleration
-                / self.flight.env.gravity(
-                    self.flight.z(self.flight.max_acceleration_time)
-                ),
-                self.flight.max_acceleration_time,
+            "Maximum Gs During Motor Burn: {:.3f} g at {:.2f} s".format(
+                self.flight.max_acceleration_power_on / self.flight.env.standard_g,
+                self.flight.max_acceleration_power_on_time,
             )
         )
+        print(
+            "Maximum Acceleration After Motor Burn: {:.3f} m/s² at {:.2f} s".format(
+                self.flight.max_acceleration_power_off,
+                self.flight.max_acceleration_power_off_time,
+            )
+        )
+        print(
+            "Maximum Gs After Motor Burn: {:.3f} g at {:.2f} s".format(
+                self.flight.max_acceleration_power_off / self.flight.env.standard_g,
+                self.flight.max_acceleration_power_off_time,
+            )
+        )
+
         if (
             len(self.flight.rocket.rail_buttons) == 0
             or self.flight.out_of_rail_time_index == 0

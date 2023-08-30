@@ -20,7 +20,7 @@ from scipy import integrate
 from .Function import Function, funcify_method
 from .plots.flight_plots import _FlightPlots
 from .prints.flight_prints import _FlightPrints
-from .tools import Matrix, Vector
+from .tools import Matrix, Vector, find_closest
 
 
 class Flight:
@@ -2159,16 +2159,50 @@ class Flight:
         return (self.ax**2 + self.ay**2 + self.az**2) ** 0.5
 
     @cached_property
-    def max_acceleration(self):
-        """Maximum acceleration reached by the rocket."""
-        max_acceleration_time_index = np.argmax(self.acceleration[:, 1])
-        return self.acceleration[max_acceleration_time_index, 1]
+    def max_acceleration_power_on_time(self):
+        """Time at which the rocket reaches its maximum acceleration during
+        motor burn."""
+        burn_out_time_index = find_closest(
+            self.acceleration.source[:, 0], self.rocket.motor.burn_out_time
+        )
+        max_acceleration_time_index = np.argmax(
+            self.acceleration[:burn_out_time_index, 1]
+        )
+        return self.acceleration[max_acceleration_time_index, 0]
+
+    @cached_property
+    def max_acceleration_power_on(self):
+        """Maximum acceleration reached by the rocket during motor burn."""
+        return self.acceleration(self.max_acceleration_power_on_time)
+
+    @cached_property
+    def max_acceleration_power_off_time(self):
+        """Time at which the rocket reaches its maximum acceleration after
+        motor burn."""
+        burn_out_time_index = find_closest(
+            self.acceleration.source[:, 0], self.rocket.motor.burn_out_time
+        )
+        max_acceleration_time_index = np.argmax(
+            self.acceleration[burn_out_time_index:, 1]
+        )
+        return self.acceleration[max_acceleration_time_index, 0]
+
+    @cached_property
+    def max_acceleration_power_off(self):
+        """Maximum acceleration reached by the rocket after motor burn."""
+        return self.acceleration(self.max_acceleration_power_off_time)
 
     @cached_property
     def max_acceleration_time(self):
         """Time at which the rocket reaches its maximum acceleration."""
         max_acceleration_time_index = np.argmax(self.acceleration[:, 1])
         return self.acceleration[max_acceleration_time_index, 0]
+
+    @cached_property
+    def max_acceleration(self):
+        """Maximum acceleration reached by the rocket."""
+        max_acceleration_time_index = np.argmax(self.acceleration[:, 1])
+        return self.acceleration[max_acceleration_time_index, 1]
 
     @funcify_method("Time (s)", "Horizontal Speed (m/s)")
     def horizontal_speed(self):
