@@ -427,9 +427,9 @@ class HybridMotor(Motor):
 
         I_11 = (
             self.solid.propellant_I_11
-            + solidCorrection
+            + solid_correction
             + self.liquid.propellant_I_11
-            + liquidCorrection
+            + liquid_correction
         )
 
         return I_11
