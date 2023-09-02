@@ -32,7 +32,7 @@ class Rocket:
     Rocket.center_of_dry_mass_position : float
         Position, in m, of the rocket's center of dry mass (i.e. center of
         mass without propellant) relative to the rocket's coordinate system.
-        See :doc:`Postions and Coordinate Systems </user/positions>`
+        See :doc:`Positions and Coordinate Systems </user/positions>`
         for more information
         regarding the rocket's coordinate system.
     Rocket.coordinate_system_orientation : string
@@ -50,7 +50,7 @@ class Rocket:
     Rocket.center_of_mass : Function
         Position of the rocket's center of mass, including propellant, relative
         to the user defined rocket reference system.
-        See :doc:`Postions and Coordinate Systems </user/positions>`
+        See :doc:`Positions and Coordinate Systems </user/positions>`
         for more information
         regarding the coordinate system.
         Expressed in meters as a function of time.
@@ -84,7 +84,7 @@ class Rocket:
     Rocket.cp_position : float
         Rocket's center of pressure position relative to the user defined rocket
         reference system. See
-        :doc:`Postions and Coordinate Systems </user/positions>` for more
+        :doc:`Positions and Coordinate Systems </user/positions>` for more
         information regarding the reference system. Expressed in meters.
     Rocket.static_margin : float
         Float value corresponding to rocket static margin when
@@ -101,14 +101,14 @@ class Rocket:
         Rocket's motor. See Motor class for more details.
     Rocket.motor_position : float
         Position, in m, of the motor's nozzle exit area relative to the user
-        definedrocket coordinate system. See
-        :doc:`Postions and Coordinate Systems </user/positions>`
+        defined rocket coordinate system. See
+        :doc:`Positions and Coordinate Systems </user/positions>`
         for more information
         regarding the rocket's coordinate system.
     Rocket.center_of_propellant_position : Function
         Position of the propellant's center of mass relative to the user defined
         rocket reference system. See
-        :doc:`Postions and Coordinate Systems </user/positions>` for more
+        :doc:`Positions and Coordinate Systems </user/positions>` for more
         information regarding the rocket's coordinate system. Expressed in
         meters as a function of time.
     """
@@ -159,7 +159,7 @@ class Rocket:
             relative to the rocket's coordinate system. Default is 0, which
             means the center of dry mass is chosen as the origin, to comply
             with the legacy behavior of versions 0.X.Y.
-            See :doc:`Postions and Coordinate Systems </user/positions>`
+            See :doc:`Positions and Coordinate Systems </user/positions>`
             for more information
             regarding the rocket's coordinate system.
         coordinate_system_orientation : string, optional
@@ -340,7 +340,7 @@ class Rocket:
         self.center_of_mass : Function
             Function of time expressing the rocket's center of mass position
             relative to user defined rocket reference system.
-            See :doc:`Postions and Coordinate Systems </user/positions>`
+            See :doc:`Positions and Coordinate Systems </user/positions>`
             for more information.
         """
         # Compute center of mass position
@@ -362,7 +362,7 @@ class Rocket:
         self.center_of_dry_mass_position : int, float
             Rocket's center of dry mass position relative to user defined rocket
             reference system. See
-            :doc:`Postions and Coordinate Systems </user/positions>` for
+            :doc:`Positions and Coordinate Systems </user/positions>` for
             more information.
         """
         # Compute center of mass position
@@ -627,7 +627,7 @@ class Rocket:
 
         See Also
         --------
-        :ref:`addsurface`
+        :ref:`add_surface`
 
         Returns
         -------
@@ -684,7 +684,7 @@ class Rocket:
 
         See Also
         --------
-        :ref:`addsurface`
+        :ref:`add_surface`
 
         Returns
         -------
@@ -726,7 +726,7 @@ class Rocket:
 
         See Also
         --------
-        :ref:`addsurface`
+        :ref:`add_surface`
 
         Returns
         -------
@@ -768,7 +768,7 @@ class Rocket:
 
         See Also
         --------
-        :ref:`addsurface`
+        :ref:`add_surface`
 
         Returns
         -------
@@ -833,7 +833,7 @@ class Rocket:
 
             See Also
             --------
-            :ref:`addsurface`
+            :ref:`add_surface`
         cant_angle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
@@ -930,7 +930,7 @@ class Rocket:
 
             See Also
             --------
-            :ref:`addsurface`
+            :ref:`add_surface`
         cant_angle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must be given
             in degrees.
@@ -1046,12 +1046,12 @@ class Rocket:
         upper_button_position : int, float
             Position of the rail button furthest from the nozzle relative to
             the rocket's coordinate system, in meters.
-            See :doc:`Postions and Coordinate Systems </user/positions>`
+            See :doc:`Positions and Coordinate Systems </user/positions>`
             for more information.
         lower_button_position : int, float
             Position of the rail button closest to the nozzle relative to
             the rocket's coordinate system, in meters.
-            See :doc:`Postions and Coordinate Systems </user/positions>`
+            See :doc:`Positions and Coordinate Systems </user/positions>`
             for more information.
         angular_position : float, optional
             Angular position of the rail buttons in degrees measured
@@ -1062,7 +1062,7 @@ class Rocket:
 
         See Also
         --------
-        :ref:`addsurface`
+        :ref:`add_surface`
 
         Returns
         -------

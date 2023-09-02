@@ -22,7 +22,7 @@ Tanks Usage
 
 Tanks can be added to Hybrids and Liquids motors so that the propellant's time
 varying properties can be properly calculated. To do this the tank must be first
-seperately defined.
+separately defined.
 
 A few different types of tanks are available. These are simply different ways of
 defining a the propellant flow given different information.

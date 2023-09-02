@@ -36,7 +36,7 @@ Just open your Anaconda terminal and run:
 Optional Installation Method: from source
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you wish to downloaded RocketPy from source, you may do so either by:
+If you wish to download RocketPy from source, you may do so either by:
 
 - Downloading it from `RocketPy's GitHub <https://github.com/RocketPy-Team/RocketPy>`_ page and unzipping the downloaded folder.
 - Or cloning it to a desired directory using git:

@@ -34,7 +34,7 @@ class HybridMotor(Motor):
     HybridMotor.nozzle_position : float
         Motor's nozzle outlet position in meters, specified in the motor's
         coordinate system. See
-        :doc:`Postions and Coordinate Systems </user/positions>` for more
+        :doc:`Positions and Coordinate Systems </user/positions>` for more
         information.
     HybridMotor.throat_radius : float
         Radius of motor nozzle throat in meters.
@@ -58,12 +58,12 @@ class HybridMotor(Motor):
     HybridMotor.center_of_mass : Function
         Position of the motor center of mass in
         meters as a function of time.
-        See :doc:`Postions and Coordinate Systems </user/positions>`
+        See :doc:`Positions and Coordinate Systems </user/positions>`
         for more information regarding the motor's coordinate system.
     HybridMotor.center_of_propellant_mass : Function
         Position of the motor propellant center of mass in meters as a
         function of time.
-        See :doc:`Postions and Coordinate Systems </user/positions>`
+        See :doc:`Positions and Coordinate Systems </user/positions>`
         for more information regarding the motor's coordinate system.
     HybridMotor.I_11 : Function
         Component of the motor's inertia tensor relative to the e_1 axis
@@ -231,15 +231,15 @@ class HybridMotor(Motor):
             Position of the center of mass of the grains in meters. More
             specifically, the coordinate of the center of mass specified in the
             motor's coordinate system.
-            See :doc:`Postions and Coordinate Systems </user/positions>` for
+            See :doc:`Positions and Coordinate Systems </user/positions>` for
             more information.
         center_of_dry_mass_position : int, float
             The position, in meters, of the motor's center of mass with respect
             to the motor's coordinate system when it is devoid of propellant.
-            See :doc:`Postions and Coordinate Systems </user/positions>`.
+            See :doc:`Positions and Coordinate Systems </user/positions>`.
         nozzle_position : int, float, optional
             Motor's nozzle outlet position in meters, in the motor's coordinate
-            system. See :doc:`Postions and Coordinate Systems </user/positions>`
+            system. See :doc:`Positions and Coordinate Systems </user/positions>`
             for details. Default is 0, in which case the origin of the
             coordinate system is placed at the motor's nozzle outlet.
         burn_time: float, tuple of float, optional

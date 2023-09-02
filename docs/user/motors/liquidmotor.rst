@@ -120,7 +120,7 @@ curve, but keep in mind that you can use
 
 .. seealso:: 
     
-    You can find details on each of the intialization parameters in 
+    You can find details on each of the initialization parameters in 
     :class:`rocketpy.SolidMotor.__init__`
 
     And you can find details on adding tanks in :ref:`Adding Tanks`

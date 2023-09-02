@@ -13,8 +13,8 @@ generates the thrust.
 When simulating this kind of motor in RocketPy, we internally use two motors:
 one for the solid fuel grain and another for the liquid oxidizer.
 
-The solid fuel behaviour is simulated by a solid motor, and the liquid oxidizer
-behaviour is simulated by a liquid motor. The combination of these two create
+The solid fuel behavior is simulated by a solid motor, and the liquid oxidizer
+behavior is simulated by a liquid motor. The combination of these two create
 a valid hybrid motor. Everything is then defined at the same time using the
 HybridMotor class.
 
@@ -35,7 +35,7 @@ To define a hybrid motor, we will need a few information about our motor:
   of the nozzle. See more details in 
   :ref:`Motor Coordinate Systems <motorcsys>`
 
-So, lets first import the necesary classes:
+So, lets first import the necessary classes:
 
 .. jupyter-execute::
 

@@ -32,7 +32,7 @@ class LiquidMotor(Motor):
     LiquidMotor.nozzle_position : float
         Motor's nozzle outlet position in meters, specified in the motor's
         coordinate system. See
-        :doc:`Postions and Coordinate Systems </user/positions>` for more
+        :doc:`Positions and Coordinate Systems </user/positions>` for more
         information.
     LiquidMotor.positioned_tanks : list
         List containing the motor's added tanks and their respective
@@ -55,12 +55,12 @@ class LiquidMotor(Motor):
     LiquidMotor.center_of_mass : Function
         Position of the motor center of mass in
         meters as a function of time.
-        See :doc:`Postions and Coordinate Systems </user/positions>`
+        See :doc:`Positions and Coordinate Systems </user/positions>`
         for more information regarding the motor's coordinate system.
     LiquidMotor.center_of_propellant_mass : Function
         Position of the motor propellant center of mass in meters as a
         function of time.
-        See :doc:`Postions and Coordinate Systems </user/positions>`
+        See :doc:`Positions and Coordinate Systems </user/positions>`
         for more information regarding the motor's coordinate system.
     LiquidMotor.I_11 : Function
         Component of the motor's inertia tensor relative to the e_1 axis
@@ -194,11 +194,11 @@ class LiquidMotor(Motor):
         center_of_dry_mass_position : int, float
             The position, in meters, of the motor's center of mass with respect
             to the motor's coordinate system when it is devoid of propellant.
-            See :doc:`Postions and Coordinate Systems </user/positions>`
+            See :doc:`Positions and Coordinate Systems </user/positions>`
         nozzle_position : float
             Motor's nozzle outlet position in meters, specified in the motor's
             coordinate system. See
-            :doc:`Postions and Coordinate Systems </user/positions>` for
+            :doc:`Positions and Coordinate Systems </user/positions>` for
             more information.
         burn_time: float, tuple of float, optional
             Motor's burn time.

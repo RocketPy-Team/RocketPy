@@ -38,7 +38,7 @@ A basic simulation with RocketPy is composed of the following steps:
 
 .. tip::
 
-    It is recomended that RocketPy is ran in a Jupyter Notebook. This way,
+    It is recommended that RocketPy is ran in a Jupyter Notebook. This way,
     the results can be easily plotted and analyzed.
 
 The first step to set up a simulation, we need to first import the classes
@@ -58,7 +58,7 @@ Defining a Environment
 
 The ``Environment`` class is used to store data related to the weather and the
 wind conditions of the launch site. The weather conditions are imported from
-weather organisations such as NOAA and ECMWF.
+weather organizations such as NOAA and ECMWF.
 
 To define a Environment object, we need to first specify some information 
 regarding the launch site:
@@ -96,7 +96,7 @@ of tomorrow:
 .. seealso::
     
     To learn more about the different types of atmospheric models and 
-    a better desciption of the initialization parameters, see
+    a better description of the initialization parameters, see
     `Environment Usage <https://colab.research.google.com/github/RocketPy-Team/rocketpy/blob/master/docs/notebooks/environment/environment_class_usage.html>`_. 
 
 We can see what the weather will look like by calling the ``info`` method:
@@ -279,7 +279,7 @@ We can then see if the rocket is stable by plotting the static margin:
     If it is **negative**, your rocket is **unstable** and the simulation 
     will most likely **fail**.
 
-    If it is unresoanably **high**, your rocket is **super stable** and the
+    If it is unreasonably **high**, your rocket is **super stable** and the
     simulation will most likely **fail**.
 
 Running the Simulation

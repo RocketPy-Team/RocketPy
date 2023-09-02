@@ -51,11 +51,11 @@ and radius:
     - ``center_of_mass_without_motor`` and 
       ``coordinate_system_orientation`` are :ref:`position <positions>`
       parameters. They must be treated with care. See the 
-      :doc:`Postions and Coordinate Systems </user/positions>` section for more
+      :doc:`Positions and Coordinate Systems </user/positions>` section for more
       information.
 
 .. seealso::
-    For more information on the :class:`rocketpy.Rocket` class intialization, see 
+    For more information on the :class:`rocketpy.Rocket` class initialization, see 
     :class:`rocketpy.Rocket.__init__` section.
 
 Drag Curves
@@ -175,7 +175,7 @@ With the motor defined, you can add it to the rocket:
 .. caution::
 
     Again, pay special attention to the ``position`` parameter. See
-    the :doc:`Postions and Coordinate Systems </user/positions>` section for
+    the :doc:`Positions and Coordinate Systems </user/positions>` section for
     more information.
 
 3. Adding Aerodynamic Surfaces
@@ -212,7 +212,7 @@ to the rocket in one step:
 .. caution::
 
     Again, pay special attention to the ``position`` parameter. See
-    the :ref:`Adding Aerodynamic Surfaces <addsurface>` section for
+    the :ref:`Adding Aerodynamic Surfaces <add_surface>` section for
     more information.
 
 .. seealso::
@@ -340,7 +340,7 @@ based on the pressure or height above ground level. The ``y`` parameter is
 useful if you want to deploy the parachute based on the state vector (velocity,
 attitude angle, etc).
 
-This function is called througout the simulation. Therefore, you can
+This function is called throughout the simulation. Therefore, you can
 use it to deploy the parachute at any time.
 
 The following example shows how to define a callable trigger function that will
@@ -375,7 +375,7 @@ are defined by their positions.
 .. note::
 
     Rail buttons are optional for the simulation, but are very important to 
-    have realistic out of rail speeds and behaviour.
+    have realistic out of rail speeds and behavior.
 
 Here is an example of how to set rail buttons:
 
@@ -416,7 +416,7 @@ First, lets guarantee that the rocket is stable, by plotting the static margin:
     If it is **negative**, your rocket is **unstable** and the simulation 
     will most likely **fail**.
 
-    If it is unresoanably **high**, your rocket is **super stable** and the
+    If it is unreasonably **high**, your rocket is **super stable** and the
     simulation will most likely **fail**.
 
 The lets check all the information available about the rocket:

@@ -177,7 +177,7 @@ must be specified:
   - ``lower_button_position`` position is relative to the point belonging to the
     rail button which is furthest from the tip of the rocket.
   - If the rocket has more than two rail buttons, the position any button 
-    besides the upper and lower buttons is uneeded.
+    besides the upper and lower buttons is not necessary.
 
 .. seealso::
   :class:`rocketpy.Rocket.set_rail_buttons`
@@ -277,7 +277,7 @@ system origin at the nozzle outlet and
   - The coordinate system origin is at the outlet of the nozzle. This point is
     not explicitly specified and can be chosen by the user. All positions given
     by the user must be relative to this point.
-  - Since the coordinate system origin is at the nozzle's outler, the
+  - Since the coordinate system origin is at the nozzle's outlet, the
     position of the nozzle is **zero**. 
   - We are using the ``nozzle_to_combustion_chamber`` coordinate system 
     orientation. This means that ``center_of_mass_without_position`` and
