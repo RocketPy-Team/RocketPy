@@ -10,7 +10,6 @@ import datetime
 import json
 from collections import defaultdict
 
-import matplotlib.ticker as mtick
 import netCDF4
 import numpy as np
 import pytz
@@ -505,13 +504,13 @@ class EnvironmentAnalysis:
         - Temperature
 
         Must compute the following for each date and hour available in the dataset:
-        - pressure = Function(..., inputs="Height Above Sea Level (m)", outputs="Pressure (Pa)")
-        - temperature = Function(..., inputs="Height Above Sea Level (m)", outputs="Temperature (K)")
-        - wind_direction = Function(..., inputs="Height Above Sea Level (m)", outputs="Wind Direction (Deg True)")
-        - wind_heading = Function(..., inputs="Height Above Sea Level (m)", outputs="Wind Heading (Deg True)")
-        - wind_speed = Function(..., inputs="Height Above Sea Level (m)", outputs="Wind Speed (m/s)")
-        - wind_velocity_x = Function(..., inputs="Height Above Sea Level (m)", outputs="Wind Velocity X (m/s)")
-        - wind_velocity_y = Function(..., inputs="Height Above Sea Level (m)", outputs="Wind Velocity Y (m/s)")
+        - pressure = Function(..., inputs="Height Above Ground Level (m)", outputs="Pressure (Pa)")
+        - temperature = Function(..., inputs="Height Above Ground Level (m)", outputs="Temperature (K)")
+        - wind_direction = Function(..., inputs="Height Above Ground Level (m)", outputs="Wind Direction (Deg True)")
+        - wind_heading = Function(..., inputs="Height Above Ground Level (m)", outputs="Wind Heading (Deg True)")
+        - wind_speed = Function(..., inputs="Height Above Ground Level (m)", outputs="Wind Speed (m/s)")
+        - wind_velocity_x = Function(..., inputs="Height Above Ground Level (m)", outputs="Wind Velocity X (m/s)")
+        - wind_velocity_y = Function(..., inputs="Height Above Ground Level (m)", outputs="Wind Velocity Y (m/s)")
 
         Return a dictionary with all the computed data with the following structure:
         pressure_level_data_dict: {
@@ -593,7 +592,7 @@ class EnvironmentAnalysis:
                 lon_array,
                 lat_array,
             )
-            height_above_sea_level_array = geopotential_to_height_agl(
+            height_above_ground_level_array = geopotential_to_height_agl(
                 geopotential_array, self.original_elevation
             )
 
@@ -603,11 +602,11 @@ class EnvironmentAnalysis:
                     pressure_level_data, value, indices, lon_array, lat_array
                 )
                 variable_points_array = np.array(
-                    [height_above_sea_level_array, value_array]
+                    [height_above_ground_level_array, value_array]
                 ).T
                 variable_function = Function(
                     variable_points_array,
-                    inputs="Height Above Ground Level (m)",  # TODO: Check if it is really AGL or ASL here, see 3 lines above
+                    inputs="Height Above Ground Level (m)",
                     outputs=key,
                     extrapolation="constant",
                 )
@@ -615,11 +614,11 @@ class EnvironmentAnalysis:
 
             # Create function for pressure levels
             pressure_points_array = np.array(
-                [height_above_sea_level_array, pressure_level_array]
+                [height_above_ground_level_array, pressure_level_array]
             ).T
             pressure_function = Function(
                 pressure_points_array,
-                inputs="Height Above Sea Level (m)",
+                inputs="Height Above Ground Level (m)",
                 outputs="Pressure (Pa)",
                 extrapolation="constant",
             )
@@ -645,11 +644,11 @@ class EnvironmentAnalysis:
             )
 
             wind_speed_points_array = np.array(
-                [height_above_sea_level_array, wind_speed_array]
+                [height_above_ground_level_array, wind_speed_array]
             ).T
             wind_speed_function = Function(
                 wind_speed_points_array,
-                inputs="Height Above Sea Level (m)",
+                inputs="Height Above Ground Level (m)",
                 outputs="Wind Speed (m/s)",
                 extrapolation="constant",
             )
@@ -663,11 +662,11 @@ class EnvironmentAnalysis:
             )
 
             wind_heading_points_array = np.array(
-                [height_above_sea_level_array, wind_heading_array]
+                [height_above_ground_level_array, wind_heading_array]
             ).T
             wind_heading_function = Function(
                 wind_heading_points_array,
-                inputs="Height Above Sea Level (m)",
+                inputs="Height Above Ground Level (m)",
                 outputs="Wind Heading (Deg True)",
                 extrapolation="constant",
             )
@@ -676,11 +675,11 @@ class EnvironmentAnalysis:
             # Create function for wind direction levels
             wind_direction_array = (wind_heading_array - 180) % 360
             wind_direction_points_array = np.array(
-                [height_above_sea_level_array, wind_direction_array]
+                [height_above_ground_level_array, wind_direction_array]
             ).T
             wind_direction_function = Function(
                 wind_direction_points_array,
-                inputs="Height Above Sea Level (m)",
+                inputs="Height Above Ground Level (m)",
                 outputs="Wind Direction (Deg True)",
                 extrapolation="constant",
             )
