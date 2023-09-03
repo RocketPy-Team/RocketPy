@@ -796,7 +796,7 @@ class Dispersion:
         -------
         None
         """
-        self.prints.print_results()
+        self.prints.all_results()
 
         return None
 
@@ -808,7 +808,7 @@ class Dispersion:
         None
         """
         self.info()
-        self.plots.plot_ellipses()
-        self.plots.plot_results()
+        self.plots.ellipses()
+        self.plots.all_results()
 
         return None

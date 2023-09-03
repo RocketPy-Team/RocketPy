@@ -17,7 +17,7 @@ class _DispersionPlots:
         self.dispersion = dispersion
         return None
 
-    def plot_ellipses(
+    def ellipses(
         self,
         image=None,
         actual_landing_point=None,
@@ -154,18 +154,37 @@ class _DispersionPlots:
             plt.show()
         return None
 
-    def plot_results(self):
+    def all_results(self, keys=None):
         """Plot the results of the dispersion analysis.
 
         Parameters
         ----------
-        None
+        keys : str, list or tuple, optional
+            The keys of the results to be plotted. If None, all results will be
+            plotted. The default is None.
 
         Returns
         -------
         None
         """
-        for key in self.dispersion.results.keys():
+
+        if keys is None:
+            keys = self.dispersion.results.keys()
+        elif isinstance(keys, str):
+            keys = [keys]
+        elif isinstance(keys, (list, tuple)):
+            keys = list(set(keys).intersection(self.dispersion.results.keys()))
+            if len(keys) == 0:
+                raise ValueError(
+                    "The selected 'keys' are not available in the results. "
+                    "Please check the documentation."
+                )
+        else:
+            raise ValueError(
+                "The 'keys' argument must be a string, list or tuple. "
+                "Please check the documentation."
+            )
+        for key in keys:
             plt.figure()
             plt.hist(
                 self.dispersion.results[key],

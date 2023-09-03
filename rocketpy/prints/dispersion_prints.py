@@ -10,7 +10,7 @@ class _DispersionPrints:
         self.dispersion = dispersion
         return None
 
-    def print_results(self):
+    def all_results(self):
         """Print the mean and standard deviation of each parameter in the results
         dictionary or of the variables passed as argument.
 
