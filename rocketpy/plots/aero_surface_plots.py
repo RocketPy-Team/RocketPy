@@ -111,8 +111,9 @@ class _FinPlots(_AeroSurfacePlots):
         None
         """
 
-        if self.aero_surface.airfoil:  # TODO: see issue #144
-            self.aero_surface.airfoil_cl.plot1D()
+        if self.aero_surface.airfoil:
+            print("Airfoil lift curve:")
+            self.aero_surface.airfoil_cl.plot1D(force_data=True)
         return None
 
     def roll(self):
@@ -122,7 +123,8 @@ class _FinPlots(_AeroSurfacePlots):
         -------
         None
         """
-        # lacks a title in the plots
+        print("Roll parameters:")
+        # TODO: lacks a title in the plots
         self.aero_surface.roll_parameters[0]()
         self.aero_surface.roll_parameters[1]()
         return None
@@ -138,6 +140,7 @@ class _FinPlots(_AeroSurfacePlots):
         -------
         None
         """
+        print("Lift coefficient:")
         self.aero_surface.cl()
         self.aero_surface.clalpha_single_fin()
         self.aero_surface.clalpha_multiple_fins()

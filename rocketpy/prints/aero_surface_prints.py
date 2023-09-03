@@ -142,7 +142,12 @@ class _FinsPrints(_AeroSurfacePrints):
         if self.aero_surface.airfoil:
             print(f"Airfoil information:")
             print(f"--------------------")
-            print(f"Hey, this will be implemented later!\n")  # TODO: issue #144
+            print(
+                f"Number of points defining the lift curve: {len(self.aero_surface.airfoil_cl.x_array)}"
+            )
+            print(
+                f"Lift coefficient derivative at Mach 0 and AoA 0: {self.aero_surface.clalpha(0):.5f} 1/rad\n"
+            )
         return None
 
     def roll(self):
@@ -166,7 +171,7 @@ class _FinsPrints(_AeroSurfacePrints):
             f"Damping interference factor: {self.aero_surface.roll_damping_interference_factor:.3f} rad"
         )
         print(
-            "Forcing interference factor: {self.aero_surface.rollForcingInterferenceFactor:.3f} rad\n"
+            f"Forcing interference factor: {self.aero_surface.roll_forcing_interference_factor:.3f} rad\n"
         )
         return None
 
