@@ -345,6 +345,9 @@ class Dispersion:
         # Checks export_list
         self.export_list = self.__check_export_list(export_list)
 
+        # Initializes inputs_dict in case of error in the first iteration
+        inputs_dict = {}
+
         # Initialize counter and timer
         i = self.num_of_loaded_sims if append else 0
         initial_wall_time = time()
@@ -379,23 +382,26 @@ class Dispersion:
                     ]
                     for item in d.items()
                 )
+                # TODO: I believe the positions are not being saved
+                # need to check if they are and fix if not
                 if self.rocket.motors:
-                    for motor in self.rocket.motors:
+                    for motor in self.rocket.motors.get_components():
                         inputs_dict.update(motor.last_rnd_dict)
                 if self.rocket.nosecones:
-                    for nosecone in self.rocket.nosecones:
+                    for nosecone in self.rocket.nosecones.get_components():
                         inputs_dict.update(nosecone.last_rnd_dict)
                 if self.rocket.fins:
-                    for fin in self.rocket.fins:
+                    for fin in self.rocket.fins.get_components():
                         inputs_dict.update(fin.last_rnd_dict)
                 if self.rocket.tails:
-                    for tail in self.rocket.tails:
+                    for tail in self.rocket.tails.get_components():
                         inputs_dict.update(tail.last_rnd_dict)
                 if self.rocket.parachutes:
                     for parachute in self.rocket.parachutes:
                         inputs_dict.update(parachute.last_rnd_dict)
-                if self.rocket.rail_buttons:
-                    inputs_dict.update(self.rocket.rail_buttons.last_rnd_dict)
+                if self.rocket.rail_buttons.get_components():
+                    for rail_buttons in self.rocket.rail_buttons.get_components():
+                        inputs_dict.update(rail_buttons.last_rnd_dict)
                 # Export inputs and outputs to file
                 self.__export_flight_data(
                     setting=inputs_dict,
@@ -406,6 +412,7 @@ class Dispersion:
             except (TypeError, ValueError, KeyError, AttributeError) as error:
                 print(f"Error on iteration {i}: {error}\n")
                 error_file.write(f"{inputs_dict}\n")
+                raise error
             except KeyboardInterrupt:
                 print("Keyboard Interrupt, file saved.")
                 error_file.write(f"{inputs_dict}\n")
