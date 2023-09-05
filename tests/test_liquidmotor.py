@@ -28,6 +28,7 @@ def test_liquid_motor_info(mock_show, liquid_motor):
     liquid_motor : rocketpy.LiquidMotor
         The LiquidMotor object to be used in the tests.
     """
+    assert liquid_motor.info() == None
     assert liquid_motor.all_info() == None
 
 
