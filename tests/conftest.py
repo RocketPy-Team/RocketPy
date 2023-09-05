@@ -139,6 +139,60 @@ def calisto(cesaroni_m1670):  # old name: rocket
 
 
 @pytest.fixture
+def calisto_liquid_modded(liquid_motor):
+    """Create a simple object of the Rocket class to be used in the tests. This
+    is an example of the Calisto rocket with a liquid motor.
+
+    Parameters
+    ----------
+    liquid_motor : rocketpy.LiquidMotor
+
+    Returns
+    -------
+    rocketpy.Rocket
+        A simple object of the Rocket class
+    """
+    calisto = Rocket(
+        radius=0.0635,
+        mass=14.426,
+        inertia=(6.321, 6.321, 0.034),
+        power_off_drag="data/calisto/powerOffDragCurve.csv",
+        power_on_drag="data/calisto/powerOnDragCurve.csv",
+        center_of_mass_without_motor=0,
+        coordinate_system_orientation="tail_to_nose",
+    )
+    calisto.add_motor(liquid_motor, position=-1.373)
+    return calisto
+
+
+@pytest.fixture
+def calisto_hybrid_modded(hybrid_motor):
+    """Create a simple object of the Rocket class to be used in the tests. This
+    is an example of the Calisto rocket with a hybrid motor.
+
+    Parameters
+    ----------
+    hybrid_motor : rocketpy.HybridMotor
+
+    Returns
+    -------
+    rocketpy.Rocket
+        A simple object of the Rocket class
+    """
+    calisto = Rocket(
+        radius=0.0635,
+        mass=14.426,
+        inertia=(6.321, 6.321, 0.034),
+        power_off_drag="data/calisto/powerOffDragCurve.csv",
+        power_on_drag="data/calisto/powerOnDragCurve.csv",
+        center_of_mass_without_motor=0,
+        coordinate_system_orientation="tail_to_nose",
+    )
+    calisto.add_motor(hybrid_motor, position=-1.373)
+    return calisto
+
+
+@pytest.fixture
 def calisto_robust(
     calisto,
     calisto_nose_cone,

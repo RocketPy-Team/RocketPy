@@ -546,3 +546,51 @@ def test_time_overshoot(mock_show, calisto_robust, example_env_robust):
     )
 
     assert test_flight.all_info() == None
+
+
+@patch("matplotlib.pyplot.show")
+def test_liquid_motor_flight(mock_show, calisto_liquid_modded):
+    """Test the flight of a rocket with a liquid motor. This test only validates
+    that a flight simulation can be performed with a liquid motor; it does not
+    validate the results.
+
+    Parameters
+    ----------
+    mock_show : unittest.mock.MagicMock
+        Mock object to replace matplotlib.pyplot.show
+    calisto_liquid_modded : rocketpy.Rocket
+        Sample Rocket to be simulated. See the conftest.py file for more info.
+    """
+    test_flight = Flight(
+        rocket=calisto_liquid_modded,
+        environment=Environment(),
+        rail_length=5,
+        inclination=85,
+        heading=0,
+    )
+
+    assert test_flight.all_info() == None
+
+
+@patch("matplotlib.pyplot.show")
+def test_hybrid_motor_flight(mock_show, calisto_hybrid_modded):
+    """Test the flight of a rocket with a hybrid motor. This test only validates
+    that a flight simulation can be performed with a hybrid motor; it does not
+    validate the results.
+
+    Parameters
+    ----------
+    mock_show : unittest.mock.MagicMock
+        Mock object to replace matplotlib.pyplot.show
+    calisto_hybrid_modded : rocketpy.Rocket
+        Sample rocket to be simulated. See the conftest.py file for more info.
+    """
+    test_flight = Flight(
+        rocket=calisto_hybrid_modded,
+        environment=Environment(),
+        rail_length=5,
+        inclination=85,
+        heading=0,
+    )
+
+    assert test_flight.all_info() == None
