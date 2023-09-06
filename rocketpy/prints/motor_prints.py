@@ -50,8 +50,10 @@ class _MotorPrints:
             + " kg"
         )
         print(
-            "Propellant Exhaust Velocity: "
-            + "{:.3f}".format(self.motor.exhaust_velocity)
+            "Average Propellant Exhaust Velocity: "
+            + "{:.3f}".format(
+                self.motor.exhaust_velocity.average(*self.motor.burn_time)
+            )
             + " m/s"
         )
         print("Average Thrust: " + "{:.3f}".format(self.motor.average_thrust) + " N")
