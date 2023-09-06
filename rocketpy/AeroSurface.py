@@ -308,7 +308,7 @@ class NoseCone(AeroSurface):
             # Finds intersection point between circle and nosecone curve
             x_init = root_scalar(
                 lambda x: radius(x) - self.bluffness * self.base_radius,
-                bracket=[1e-6, 2 * self.bluffness * self.base_radiu],
+                bracket=[1e-6, self.length],
                 method="brenth",
                 x0=self.bluffness * self.base_radius,
                 xtol=1e-6,
