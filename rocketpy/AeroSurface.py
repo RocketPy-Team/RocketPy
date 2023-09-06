@@ -8,7 +8,9 @@ import numpy as np
 
 from .Function import Function
 import matplotlib.pyplot as plt
+import numpy as np
 from scipy.optimize import fsolve
+from scipy.optimize import root_scalar
 from .plots.aero_surface_plots import (
     _EllipticalFinsPlots,
     _NoseConePlots,
@@ -135,7 +137,7 @@ class NoseCone(AeroSurface):
         length,
         kind,
         base_radius=None,
-        bluffiness=0,
+        bluffness=0,
         rocket_radius=None,
         name="Nose Cone",
     ):
@@ -149,12 +151,10 @@ class NoseCone(AeroSurface):
         kind : string
             Nose cone kind. Can be "conical", "ogive", "elliptical", "tangent",
             "von karman", "parabolic" or "lvhaack".
-        base_radius : float, optional
+        base_radius : float
             Nose cone base radius. Has units of length and must be given in
             meters.
-            If not given, the ratio between base_radius and rocket_radius will be
-            assumed as 1.
-        bluffiness : float, optional
+        bluffness : float, optional
             Ratio between the radius of the circle on the tip of the ogive and
             the radius of the base of the ogive.
         rocket_radius : int, float, optional
@@ -174,7 +174,7 @@ class NoseCone(AeroSurface):
         self._rocket_radius = rocket_radius
         self._base_radius = base_radius
         self._length = length
-        self.bluffiness = bluffiness
+        self.bluffness = bluffness
         self.kind = kind
 
         self.evaluate_geometrical_parameters()
@@ -229,13 +229,13 @@ class NoseCone(AeroSurface):
 
         if value == "conical":
             self.k = 2 / 3
-            self.y_nosecone = Function(lambda x: x * self.baseRadius / self.length)
+            self.y_nosecone = Function(lambda x: x * self.base_radius / self.length)
 
         elif value == "lvhaack":
             self.k = 0.563
             theta = lambda x: np.arccos(1 - 2 * max(min(x / self.length, 1), 0))
             self.y_nosecone = Function(
-                lambda x: self.baseRadius
+                lambda x: self.base_radius
                 * (theta(x) - np.sin(2 * theta(x)) / 2 + (np.sin(theta(x)) ** 3) / 3)
                 ** (0.5)
                 / (np.pi**0.5)
@@ -252,13 +252,13 @@ class NoseCone(AeroSurface):
             self.k = 1 - volume / (area * self.length)
             self.y_nosecone = Function(
                 lambda x: np.sqrt(rho**2 - (min(x - self.length, 0)) ** 2)
-                + (self.baseRadius - rho)
+                + (self.base_radius - rho)
             )
 
         elif value == "elliptical":
             self.k = 1 / 3
             self.y_nosecone = Function(
-                lambda x: self.baseRadius
+                lambda x: self.base_radius
                 * np.sqrt(1 - ((x - self.length) / self.length) ** 2)
             )
 
@@ -266,14 +266,14 @@ class NoseCone(AeroSurface):
             self.k = 0.5
             theta = lambda x: np.arccos(1 - 2 * max(min(x / self.length, 1), 0))
             self.y_nosecone = Function(
-                lambda x: self.baseRadius
+                lambda x: self.base_radius
                 * (theta(x) - np.sin(2 * theta(x)) / 2) ** (0.5)
                 / (np.pi**0.5)
             )
         elif value == "parabolic":
             self.k = 0.5
             self.y_nosecone = Function(
-                lambda x: self.baseRadius
+                lambda x: self.base_radius
                 * ((2 * x / self.length - (x / self.length) ** 2) / (2 - 1))
             )
 
@@ -294,41 +294,59 @@ class NoseCone(AeroSurface):
         p = 3  # Density modifier. Greater n makes more points closer to 0. n=1 -> points equally spaced.
 
         # Finds the tangential intersection point between the circle and nosecone curve.
-        yPrimeNosecone = lambda x: self.y_nosecone.differentiate(x)
-        xIntercept = lambda x: x + self.y_nosecone(x) * yPrimeNosecone(x)
-        radius = lambda x: (self.y_nosecone(x) ** 2 + (x - xIntercept(x)) ** 2) ** 0.5
-        xInit = fsolve(
-            lambda x: radius(x) - self.bluffiness * self.baseRadius if x > 3e-7 else 0,
-            self.bluffiness * self.baseRadius,
-            xtol=1e-7,
-        )[0]
+        y_prime_nosecone = lambda x: self.y_nosecone.differentiate(x)
+        x_intercept = lambda x: x + self.y_nosecone(x) * y_prime_nosecone(x)
+        radius = lambda x: (self.y_nosecone(x) ** 2 + (x - x_intercept(x)) ** 2) ** 0.5
 
-        # Corrects circle radius if it's too small.
-        if xInit > 0:
-            r = self.bluffiness * self.baseRadius
+        # Circle radius
+        r = self.bluffness * self.base_radius
+
+        # Sets up a circle at the starting position to test bluffness
+        test_circle = lambda x: np.sqrt(x * r - x**2)
+
+        # Checks bluffness circle an chooses to use it or not
+        if test_circle(1e-03) > self.y_nosecone(1e-03):
+            # Finds intersection point between circle and nosecone curve
+            x_init = root_scalar(
+                lambda x: radius(x) - self.bluffness * self.base_radius,
+                bracket=[1e-6, 2 * self.bluffness * self.base_radiu],
+                method="brenth",
+                x0=self.bluffness * self.base_radius,
+                xtol=1e-6,
+            ).root
+            circle_center = x_intercept(x_init)
         else:
+            # Sets up parameters to continue calculus without bluffness
             r = 0
-            print(
-                "ATTENTION: The chosen bluffiness ratio is insufficient for the selected nosecone category, thereby the effective bluffiness will be 0."
-            )
+            circle_center = 0
+            x_init = 0
+
+            # Warning in case user tried to use bluffness and it was ignored
+            if self.bluffness != 0:
+                print(
+                    "WARNING: The chosen bluffness ratio is insufficient for "
+                    "the selected nosecone category, thereby the effective "
+                    "bluffness will be 0."
+                )
 
         # Creates the circle at correct position.
-        circleCenter = xIntercept(xInit)
-        circle = lambda x: abs(r**2 - (x - circleCenter) ** 2) ** 0.5
+        circle = lambda x: abs(r**2 - (x - circle_center) ** 2) ** 0.5
 
         # Function defining final shape of curve with circle o the tip.
-        finalShape = Function(lambda x: self.y_nosecone(x) if x >= xInit else circle(x))
-        finalShapeVec = np.vectorize(finalShape)
+        finalShape = Function(
+            lambda x: self.y_nosecone(x) if x >= x_init else circle(x)
+        )
+        final_shape_vec = np.vectorize(finalShape)
 
         # Creates the vectors X and Y with the points of the curve.
-        self.nosecone_Xs = (self.length - (circleCenter - r)) * (
+        self.nosecone_x = (self.length - (circle_center - r)) * (
             np.linspace(0, 1, n) ** p
         )
-        self.nosecone_Ys = finalShapeVec(self.nosecone_Xs + (circleCenter - r))
+        self.nosecone_y = final_shape_vec(self.nosecone_x + (circle_center - r))
 
         # Evaluates final geometry parameters.
-        self.length = self.nosecone_Xs[-1]
-        self.FinenessRatio = self.length / (2 * self.baseRadius)
+        self.length = self.nosecone_x[-1]
+        self.fineness_ratio = self.length / (2 * self.base_radius)
         self.evaluate_center_of_pressure()
 
     def evaluate_geometrical_parameters(self):
@@ -399,9 +417,9 @@ class NoseCone(AeroSurface):
 
     def draw(self):
         # Figure creation and set up
-        fig_Ogive, ax = plt.subplots()
+        fig_ogive, ax = plt.subplots()
         ax.set_xlim(-0.05, self.length * 1.02)  # Horizontal size
-        ax.set_ylim(-self.baseRadius * 1.05, self.baseRadius * 1.05)  # Vertical size
+        ax.set_ylim(-self.base_radius * 1.05, self.base_radius * 1.05)  # Vertical size
         ax.set_aspect("equal")  # Makes the graduation be the same on both axis
         ax.set_facecolor("#EEEEEE")  # Background colour
         ax.grid(True, linestyle="--", linewidth=0.5)
@@ -409,10 +427,10 @@ class NoseCone(AeroSurface):
         cp_plot = (self.cpz, 0)
         # Plotting
         ax.plot(
-            self.nosecone_Xs, self.nosecone_Ys, linestyle="-", color="#A60628"
+            self.nosecone_x, self.nosecone_y, linestyle="-", color="#A60628"
         )  # Ogive's upper side
         ax.plot(
-            self.nosecone_Xs, -self.nosecone_Ys, linestyle="-", color="#A60628"
+            self.nosecone_x, -self.nosecone_y, linestyle="-", color="#A60628"
         )  # Ogive's lower side
         ax.scatter(
             *cp_plot, label="Center Of Pressure", color="red", s=100, zorder=10
@@ -422,7 +440,7 @@ class NoseCone(AeroSurface):
         )  # Center of pressure outer circle
         # Center Line
         ax.plot(
-            [0, self.nosecone_Xs[len(self.nosecone_Xs) - 1]],
+            [0, self.nosecone_x[len(self.nosecone_x) - 1]],
             [0, 0],
             linestyle="--",
             color="#7A68A6",
@@ -432,12 +450,12 @@ class NoseCone(AeroSurface):
         # Vertical base line
         ax.plot(
             [
-                self.nosecone_Xs[len(self.nosecone_Xs) - 1],
-                self.nosecone_Xs[len(self.nosecone_Xs) - 1],
+                self.nosecone_x[len(self.nosecone_x) - 1],
+                self.nosecone_x[len(self.nosecone_x) - 1],
             ],
             [
-                self.nosecone_Ys[len(self.nosecone_Ys) - 1],
-                -self.nosecone_Ys[len(self.nosecone_Ys) - 1],
+                self.nosecone_y[len(self.nosecone_y) - 1],
+                -self.nosecone_y[len(self.nosecone_y) - 1],
             ],
             linestyle="-",
             color="#A60628",
@@ -488,7 +506,7 @@ class Fins(AeroSurface):
     """Abstract class that holds common methods for the fin classes.
     Cannot be instantiated.
 
-    Local coordinate system: Z axis along the longitudinal axis of symmetry, positive
+    Local coordinate sytem: Z axis along the longitudinal axis of symmetry, positive
     downwards (top -> bottom). Origin located at the top of the root chord.
 
     Attributes
@@ -504,7 +522,7 @@ class Fins(AeroSurface):
         Fins cant angle with respect to the rocket centerline, in degrees.
     Fins.changing_attribute_dict : dict
         Dictionary that stores the name and the values of the attributes that may
-        be changed during a simulation. Useful for control systems.
+        be changed during a simulation. Useful for control sytems.
     Fins.cant_angle_rad : float
         Fins cant angle with respect to the rocket centerline, in radians.
     Fins.root_chord : float
@@ -885,7 +903,7 @@ class TrapezoidalFins(Fins):
             Fins cant angle with respect to the rocket centerline, in degrees.
         Fins.changing_attribute_dict : dict
             Dictionary that stores the name and the values of the attributes that may
-            be changed during a simulation. Useful for control systems.
+            be changed during a simulation. Useful for control sytems.
         Fins.cant_angle_rad : float
             Fins cant angle with respect to the rocket centerline, in radians.
         Fins.root_chord : float
