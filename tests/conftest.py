@@ -16,7 +16,6 @@ from rocketpy import (
     HybridMotor,
     LiquidMotor,
     GenericMotor,
-    EmptyMotor,
     CylindricalTank,
     SphericalTank,
     Fluid,
