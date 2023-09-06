@@ -1253,10 +1253,10 @@ def import_optional_dependency(name):
     >>> plt.__name__
     'matplotlib.pyplot'
     """
-    package_name = name.split(".")[0]
     try:
         module = importlib.import_module(name)
     except ImportError as exc:
+        package_name = name.split(".")[0]
         raise ImportError(
             f"{package_name} is an optional dependency and is not installed.\n"
             + f"\t\tUse 'pip install {package_name}' to install it or "
