@@ -409,6 +409,7 @@ class EnvironmentAnalysis:
                 print(
                     "'timezonefinder' not installed, defaulting to UTC."
                     + " Install timezonefinder to get local time zone."
+                    + " To do so, run 'pip install timezonefinder'"
                 )
                 self.preferred_timezone = pytz.timezone("UTC")
         elif isinstance(self.preferred_timezone, str):

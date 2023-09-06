@@ -1231,13 +1231,11 @@ def find_closest(ordered_sequence, value):
     return pivot_index - 1 if value - smaller <= greater - value else pivot_index
 
 
-def import_optional_dependency(
-    name,
-):
-    """Import an optional dependency.
-
+def import_optional_dependency(name):
+    """Import an optional dependency. If the dependency is not installed, an
+    ImportError is raised. This function is based on the implementation found in
+    pandas repository:
     github.com/pandas-dev/pandas/blob/main/pandas/compat/_optional.py
-    If the dependency is not installed, an ImportError is raised.
 
     Parameters
     ----------
