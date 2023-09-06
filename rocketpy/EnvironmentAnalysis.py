@@ -299,7 +299,28 @@ class EnvironmentAnalysis:
         self, surface_data, variable, indices, lon_array, lat_array
     ):
         """Extract value from surface data netCDF4 file. Performs bilinear
-        interpolation along longitude and latitude."""
+        interpolation along longitude and latitude.
+
+        Parameters
+        ----------
+        surface_data : netCDF4.Dataset
+            Surface data netCDF4 file.
+        variable : str
+            Variable to be extracted from the file. Must be an existing variable
+            in the surface_data.
+        indices : tuple
+            Indices of the variable in the file. Must be given as a tuple
+            (time_index, lon_index, lat_index).
+        lon_array : array
+            Array of longitudes.
+        lat_array : array
+            Array of latitudes.
+
+        Returns
+        -------
+        value : float
+            Value of the variable at the given indices.
+        """
 
         time_index, lon_index, lat_index = indices
         variable_data = surface_data[variable]
@@ -330,7 +351,28 @@ class EnvironmentAnalysis:
         self, pressure_level_data, variable, indices, lon_array, lat_array
     ):
         """Extract value from surface data netCDF4 file. Performs bilinear
-        interpolation along longitude and latitude."""
+        interpolation along longitude and latitude.
+
+        Parameters
+        ----------
+        pressure_level_data : netCDF4.Dataset
+            Pressure level data netCDF4 file.
+        variable : str
+            Variable to be extracted from the file. Must be an existing variable
+            in the pressure_level_data.
+        indices : tuple
+            Indices of the variable in the file. Must be given as a tuple
+            (time_index, lon_index, lat_index).
+        lon_array : array
+            Array of longitudes.
+        lat_array : array
+            Array of latitudes.
+
+        Returns
+        -------
+        value : float
+            Value of the variable at the given indices.
+        """
 
         time_index, lon_index, lat_index = indices
         variable_data = pressure_level_data[variable]
