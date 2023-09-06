@@ -173,7 +173,7 @@ class NoseCone(AeroSurface):
         self._rocket_radius = rocket_radius
         self._base_radius = base_radius
         self._length = length
-        self.bluffness = bluffness
+        self._bluffness = bluffness
         self.kind = kind
 
         self.evaluate_geometrical_parameters()
@@ -347,6 +347,18 @@ class NoseCone(AeroSurface):
         self.length = self.nosecone_x[-1]
         self.fineness_ratio = self.length / (2 * self.base_radius)
         self.evaluate_center_of_pressure()
+
+    @property
+    def bluffness(self):
+        return self._bluffness
+
+    @bluffness.setter
+    def bluffness(self, value):
+        if value > 1 or value < 0:
+            raise ValueError(
+                f"Bluffness ratio {value} out of range. It must be between 0 and 1."
+            )
+        self._bluffness = value
 
     def evaluate_geometrical_parameters(self):
         """Calculates and saves nose cone's radius ratio.
