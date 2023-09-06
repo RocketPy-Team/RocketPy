@@ -243,7 +243,7 @@ class EnvironmentAnalysis:
         for requirement in env_analysis_require:
             pckg_name = requirement
             for op in operators:
-                pckg_name = pckg_name.split(op)[0]   
+                pckg_name = pckg_name.split(op)[0]
             try:
                 _ = import_optional_dependency(pckg_name)
             except ImportError:
