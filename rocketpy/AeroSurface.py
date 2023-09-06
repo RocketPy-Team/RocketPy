@@ -9,7 +9,6 @@ import numpy as np
 from .Function import Function
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.optimize import fsolve
 from scipy.optimize import root_scalar
 from .plots.aero_surface_plots import (
     _EllipticalFinsPlots,
@@ -137,7 +136,7 @@ class NoseCone(AeroSurface):
         length,
         kind,
         base_radius=None,
-        bluffness=0,
+        bluffness=0.0,
         rocket_radius=None,
         name="Nose Cone",
     ):
@@ -333,10 +332,10 @@ class NoseCone(AeroSurface):
         circle = lambda x: abs(r**2 - (x - circle_center) ** 2) ** 0.5
 
         # Function defining final shape of curve with circle o the tip.
-        finalShape = Function(
+        final_shape = Function(
             lambda x: self.y_nosecone(x) if x >= x_init else circle(x)
         )
-        final_shape_vec = np.vectorize(finalShape)
+        final_shape_vec = np.vectorize(final_shape)
 
         # Creates the vectors X and Y with the points of the curve.
         self.nosecone_x = (self.length - (circle_center - r)) * (
@@ -421,7 +420,7 @@ class NoseCone(AeroSurface):
         ax.set_xlim(-0.05, self.length * 1.02)  # Horizontal size
         ax.set_ylim(-self.base_radius * 1.05, self.base_radius * 1.05)  # Vertical size
         ax.set_aspect("equal")  # Makes the graduation be the same on both axis
-        ax.set_facecolor("#EEEEEE")  # Background colour
+        ax.set_facecolor("#EEEEEE")  # Background color
         ax.grid(True, linestyle="--", linewidth=0.5)
 
         cp_plot = (self.cpz, 0)
@@ -506,7 +505,7 @@ class Fins(AeroSurface):
     """Abstract class that holds common methods for the fin classes.
     Cannot be instantiated.
 
-    Local coordinate sytem: Z axis along the longitudinal axis of symmetry, positive
+    Local coordinate system: Z axis along the longitudinal axis of symmetry, positive
     downwards (top -> bottom). Origin located at the top of the root chord.
 
     Attributes
@@ -522,7 +521,7 @@ class Fins(AeroSurface):
         Fins cant angle with respect to the rocket centerline, in degrees.
     Fins.changing_attribute_dict : dict
         Dictionary that stores the name and the values of the attributes that may
-        be changed during a simulation. Useful for control sytems.
+        be changed during a simulation. Useful for control systems.
     Fins.cant_angle_rad : float
         Fins cant angle with respect to the rocket centerline, in radians.
     Fins.root_chord : float
@@ -903,7 +902,7 @@ class TrapezoidalFins(Fins):
             Fins cant angle with respect to the rocket centerline, in degrees.
         Fins.changing_attribute_dict : dict
             Dictionary that stores the name and the values of the attributes that may
-            be changed during a simulation. Useful for control sytems.
+            be changed during a simulation. Useful for control systems.
         Fins.cant_angle_rad : float
             Fins cant angle with respect to the rocket centerline, in radians.
         Fins.root_chord : float
