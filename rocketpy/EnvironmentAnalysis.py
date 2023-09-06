@@ -239,9 +239,13 @@ class EnvironmentAnalysis:
             "ipywidgets>=7.6.3",
             "jsonpickle",
         ]
+        operators = [">=", "<=", "==", ">", "<"]
         for requirement in env_analysis_require:
+            pckg_name = requirement
+            for op in operators:
+                pckg_name = pckg_name.split(op)[0]   
             try:
-                module = import_optional_dependency(requirement)
+                _ = import_optional_dependency(pckg_name)
             except ImportError:
                 print(
                     f"{requirement:20} is not installed. Some methods may not work."
