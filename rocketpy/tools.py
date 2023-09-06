@@ -1,12 +1,12 @@
-from itertools import product
+import importlib
+from bisect import bisect_left
 from cmath import isclose
+from itertools import product
 
-_NOT_FOUND = object()
-
-import numpy as np
 import pytz
 from cftime import num2pydate
-from bisect import bisect_left
+
+_NOT_FOUND = object()
 
 
 class cached_property:
@@ -1229,6 +1229,42 @@ def find_closest(ordered_sequence, value):
     smaller, greater = ordered_sequence[pivot_index - 1], ordered_sequence[pivot_index]
 
     return pivot_index - 1 if value - smaller <= greater - value else pivot_index
+
+
+def import_optional_dependency(
+    name,
+):
+    """Import an optional dependency.
+
+    github.com/pandas-dev/pandas/blob/main/pandas/compat/_optional.py
+    If the dependency is not installed, an ImportError is raised.
+
+    Parameters
+    ----------
+    name : str
+        The name of the module to import. Can be used to import submodules too.
+        The name will be used as an argument to importlib.import_module method.
+
+    Examples:
+    ---------
+    >>> from rocketpy.tools import import_optional_dependency
+    >>> matplotlib = import_optional_dependency("matplotlib")
+    >>> matplotlib.__name__
+    'matplotlib'
+    >>> plt = import_optional_dependency("matplotlib.pyplot")
+    >>> plt.__name__
+    'matplotlib.pyplot'
+    """
+    package_name = name.split(".")[0]
+    try:
+        module = importlib.import_module(name)
+    except ImportError as exc:
+        raise ImportError(
+            f"{package_name} is an optional dependency and is not installed.\n"
+            + f"\t\tUse 'pip install {package_name}' to install it or "
+            + "'pip install rocketpy[all]' to install all optional dependencies."
+        ) from exc
+    return module
 
 
 if __name__ == "__main__":

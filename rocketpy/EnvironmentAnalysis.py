@@ -10,7 +10,6 @@ import datetime
 import json
 from collections import defaultdict
 
-import matplotlib.ticker as mtick
 import netCDF4
 import numpy as np
 import pytz
@@ -19,23 +18,13 @@ from rocketpy.Environment import Environment
 from rocketpy.Function import Function
 from rocketpy.units import convert_units
 
-try:
-    import ipywidgets as widgets
-    import jsonpickle
-    from timezonefinder import TimezoneFinder
-    from windrose import WindroseAxes
-except ImportError as error:
-    raise ImportError(
-        f"The following error was encountered while importing dependencies: '{error}'. "
-        "Please note that the EnvironmentAnalysis requires additional dependencies, "
-        "which can be installed by running 'pip install rocketpy[env_analysis]'."
-    )
 from .plots.environment_analysis_plots import _EnvironmentAnalysisPlots
 from .prints.environment_analysis_prints import _EnvironmentAnalysisPrints
 from .tools import (
     bilinear_interpolation,
     geopotential_to_height_agl,
     geopotential_to_height_asl,
+    import_optional_dependency,
     time_num_to_date_string,
 )
 
@@ -194,6 +183,9 @@ class EnvironmentAnalysis:
         self.unit_system = unit_system
         self.max_expected_altitude = max_expected_altitude
 
+        # Check if extra requirements are installed
+        self.__check_extra_requirements()
+
         # Manage units and timezones
         self.__init_data_parsing_units()
         self.__find_preferred_timezone()
@@ -231,6 +223,31 @@ class EnvironmentAnalysis:
         return None
 
     # Private, auxiliary methods
+
+    def __check_extra_requirements(self):
+        """Check if extra requirements are installed. If not, print a message
+        informing the user that some methods may not work and how to install
+        the extra requirements for environment analysis.
+
+        Returns
+        -------
+        None
+        """
+        env_analysis_require = [
+            "timezonefinder",
+            "windrose>=1.6.8",
+            "ipywidgets>=7.6.3",
+            "jsonpickle",
+        ]
+        for requirement in env_analysis_require:
+            try:
+                module = import_optional_dependency(requirement)
+            except ImportError:
+                print(
+                    f"{requirement:20} is not installed. Some methods may not work."
+                    + " You can install it by running 'pip install rocketpy[env_analysis]'"
+                )
+        return None
 
     def __init_surface_dictionary(self):
         # Create dictionary of file variable names to process surface data
@@ -382,10 +399,18 @@ class EnvironmentAnalysis:
     def __find_preferred_timezone(self):
         if self.preferred_timezone is None:
             # Use local timezone based on lat lon pair
-            tf = TimezoneFinder()
-            self.preferred_timezone = pytz.timezone(
-                tf.timezone_at(lng=self.longitude, lat=self.latitude)
-            )
+            try:
+                timezonefinder = import_optional_dependency("timezonefinder")
+                tf = timezonefinder.TimezoneFinder()
+                self.preferred_timezone = pytz.timezone(
+                    tf.timezone_at(lng=self.longitude, lat=self.latitude)
+                )
+            except ImportError:
+                print(
+                    "'timezonefinder' not installed, defaulting to UTC."
+                    + " Install timezonefinder to get local time zone."
+                )
+                self.preferred_timezone = pytz.timezone("UTC")
         elif isinstance(self.preferred_timezone, str):
             self.preferred_timezone = pytz.timezone(self.preferred_timezone)
 
@@ -2727,6 +2752,7 @@ class EnvironmentAnalysis:
         EnvironmentAnalysis object
 
         """
+        jsonpickle = import_optional_dependency("jsonpickle")
         encoded_class = open(filename).read()
         return jsonpickle.decode(encoded_class)
 
@@ -2743,6 +2769,7 @@ class EnvironmentAnalysis:
         -------
         None
         """
+        jsonpickle = import_optional_dependency("jsonpickle")
         encoded_class = jsonpickle.encode(self)
         file = open(filename, "w")
         file.write(encoded_class)
