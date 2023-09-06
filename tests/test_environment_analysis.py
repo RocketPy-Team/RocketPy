@@ -160,7 +160,8 @@ def test_animation_plots(mock_show, env_analysis):
 
 
 @pytest.mark.slow
-def test_exports(env_analysis):
+@patch("matplotlib.pyplot.show")
+def test_exports(mock_show, env_analysis):
     """Check the export methods of the EnvironmentAnalysis class. It
     only checks if the method runs without errors. It does not check if the
     files are correct, as this would require a lot of work and would be
