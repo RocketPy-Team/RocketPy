@@ -198,7 +198,7 @@ def calisto_nose_cone():
     """
     return NoseCone(
         length=0.55829,
-        kind="von_karman",
+        kind="vonkarman",
         base_radius=0.0635,
         rocket_radius=0.0635,
         name="calisto_nose_cone",

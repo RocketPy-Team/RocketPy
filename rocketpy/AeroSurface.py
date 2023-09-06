@@ -1,4 +1,4 @@
-__author__ = "Guilherme Fernandes Alves, Mateus Stano Junqueira"
+__author__ = "Guilherme Fernandes Alves, Mateus Stano Junqueira, Giovani Hidalgo Ceotto, Franz MasatoshiYuri, Calebe Gomes Teles"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
@@ -7,6 +7,9 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from .Function import Function
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.optimize import root_scalar
 from .plots.aero_surface_plots import (
     _EllipticalFinsPlots,
     _NoseConePlots,
@@ -97,7 +100,8 @@ class NoseCone(AeroSurface):
     NoseCone.rocket_radius : float
         The reference rocket radius used for lift coefficient normalization, in meters.
     NoseCone.kind : string
-        Nose cone kind. Can be "conical", "ogive" or "lvhaack".
+        Nose cone kind. Can be "conical", "ogive", "elliptical", "tangent",
+        "von karman", "parabolic" or "lvhaack".
     NoseCone.name : string
         Nose cone name. Has no impact in simulation, as it is only used to
         display data in a more organized matter.
@@ -132,6 +136,7 @@ class NoseCone(AeroSurface):
         length,
         kind,
         base_radius=None,
+        bluffness=0.0,
         rocket_radius=None,
         name="Nose Cone",
     ):
@@ -145,10 +150,12 @@ class NoseCone(AeroSurface):
         kind : string
             Nose cone kind. Can be "conical", "ogive", "elliptical", "tangent",
             "von karman", "parabolic" or "lvhaack".
-        base_radius : float, optional
-            Nose cone base radius. Has units of length and must be given in meters.
-            If not given, the ratio between base_radius and rocket_radius will be
-            assumed as 1.
+        base_radius : float
+            Nose cone base radius. Has units of length and must be given in
+            meters.
+        bluffness : float, optional
+            Ratio between the radius of the circle on the tip of the ogive and
+            the radius of the base of the ogive.
         rocket_radius : int, float, optional
             The reference rocket radius used for lift coefficient normalization.
             If not given, the ratio between base_radius and rocket_radius will be
@@ -166,6 +173,7 @@ class NoseCone(AeroSurface):
         self._rocket_radius = rocket_radius
         self._base_radius = base_radius
         self._length = length
+        self._bluffness = bluffness
         self.kind = kind
 
         self.evaluate_geometrical_parameters()
@@ -212,15 +220,27 @@ class NoseCone(AeroSurface):
 
     @kind.setter
     def kind(self, value):
-        # Analyze type
+        # Analyzes nosecone type
+        # Sets the k for Cp calculation
+        # Sets the function which creates the respective curve
         self._kind = value
+        value = (value.replace(" ", "")).lower()
+
         if value == "conical":
             self.k = 2 / 3
-        elif value == "ogive":
-            self.k = 0.466
+            self.y_nosecone = Function(lambda x: x * self.base_radius / self.length)
+
         elif value == "lvhaack":
             self.k = 0.563
-        elif value == "tangent":
+            theta = lambda x: np.arccos(1 - 2 * max(min(x / self.length, 1), 0))
+            self.y_nosecone = Function(
+                lambda x: self.base_radius
+                * (theta(x) - np.sin(2 * theta(x)) / 2 + (np.sin(theta(x)) ** 3) / 3)
+                ** (0.5)
+                / (np.pi**0.5)
+            )
+
+        elif value in ["tangent", "tangentogive", "ogive"]:
             rho = (self.base_radius**2 + self.length**2) / (2 * self.base_radius)
             volume = np.pi * (
                 self.length * rho**2
@@ -229,11 +249,116 @@ class NoseCone(AeroSurface):
             )
             area = np.pi * self.base_radius**2
             self.k = 1 - volume / (area * self.length)
+            self.y_nosecone = Function(
+                lambda x: np.sqrt(rho**2 - (min(x - self.length, 0)) ** 2)
+                + (self.base_radius - rho)
+            )
+
         elif value == "elliptical":
             self.k = 1 / 3
+            self.y_nosecone = Function(
+                lambda x: self.base_radius
+                * np.sqrt(1 - ((x - self.length) / self.length) ** 2)
+            )
+
+        elif value == "vonkarman":
+            self.k = 0.5
+            theta = lambda x: np.arccos(1 - 2 * max(min(x / self.length, 1), 0))
+            self.y_nosecone = Function(
+                lambda x: self.base_radius
+                * (theta(x) - np.sin(2 * theta(x)) / 2) ** (0.5)
+                / (np.pi**0.5)
+            )
+        elif value == "parabolic":
+            self.k = 0.5
+            self.y_nosecone = Function(
+                lambda x: self.base_radius
+                * ((2 * x / self.length - (x / self.length) ** 2) / (2 - 1))
+            )
+
         else:
-            self.k = 0.5  # Parabolic and Von Karman
+            raise ValueError(
+                f"Nose Cone kind '{self.kind}' not found, "
+                + "please use one of the following Nose Cone kinds:"
+                + '\n\t"conical"'
+                + '\n\t"ogive"'
+                + '\n\t"lvhaack"'
+                + '\n\t"tangent"'
+                + '\n\t"vonkarman"'
+                + '\n\t"elliptical"'
+                + '\n\t"parabolic"\n'
+            )
+
+        n = 127  # Points on the final curve.
+        p = 3  # Density modifier. Greater n makes more points closer to 0. n=1 -> points equally spaced.
+
+        # Finds the tangential intersection point between the circle and nosecone curve.
+        y_prime_nosecone = lambda x: self.y_nosecone.differentiate(x)
+        x_intercept = lambda x: x + self.y_nosecone(x) * y_prime_nosecone(x)
+        radius = lambda x: (self.y_nosecone(x) ** 2 + (x - x_intercept(x)) ** 2) ** 0.5
+
+        # Circle radius
+        r = self.bluffness * self.base_radius
+
+        # Sets up a circle at the starting position to test bluffness
+        test_circle = lambda x: np.sqrt(x * r - x**2)
+
+        # Checks bluffness circle an chooses to use it or not
+        if test_circle(1e-03) > self.y_nosecone(1e-03):
+            # Finds intersection point between circle and nosecone curve
+            x_init = root_scalar(
+                lambda x: radius(x) - self.bluffness * self.base_radius,
+                bracket=[1e-6, self.length],
+                method="brenth",
+                x0=self.bluffness * self.base_radius,
+                xtol=1e-6,
+            ).root
+            circle_center = x_intercept(x_init)
+        else:
+            # Sets up parameters to continue calculus without bluffness
+            r = 0
+            circle_center = 0
+            x_init = 0
+
+            # Warning in case user tried to use bluffness and it was ignored
+            if self.bluffness != 0:
+                print(
+                    "WARNING: The chosen bluffness ratio is insufficient for "
+                    "the selected nosecone category, thereby the effective "
+                    "bluffness will be 0."
+                )
+
+        # Creates the circle at correct position.
+        circle = lambda x: abs(r**2 - (x - circle_center) ** 2) ** 0.5
+
+        # Function defining final shape of curve with circle o the tip.
+        final_shape = Function(
+            lambda x: self.y_nosecone(x) if x >= x_init else circle(x)
+        )
+        final_shape_vec = np.vectorize(final_shape)
+
+        # Creates the vectors X and Y with the points of the curve.
+        self.nosecone_x = (self.length - (circle_center - r)) * (
+            np.linspace(0, 1, n) ** p
+        )
+        self.nosecone_y = final_shape_vec(self.nosecone_x + (circle_center - r))
+
+        # Evaluates final geometry parameters.
+        self.length = self.nosecone_x[-1]
+        self.fineness_ratio = self.length / (2 * self.base_radius)
         self.evaluate_center_of_pressure()
+
+    @property
+    def bluffness(self):
+        return self._bluffness
+
+    @bluffness.setter
+    def bluffness(self, value):
+        if value > 1 or value < 0:
+            raise ValueError(
+                f"Bluffness ratio {value} out of range. It must be between 0 and 1."
+            )
+        self._bluffness = value
 
     def evaluate_geometrical_parameters(self):
         """Calculates and saves nose cone's radius ratio.
@@ -300,6 +425,62 @@ class NoseCone(AeroSurface):
         self.cpx = 0
         self.cp = (self.cpx, self.cpy, self.cpz)
         return self.cp
+
+    def draw(self):
+        # Figure creation and set up
+        fig_ogive, ax = plt.subplots()
+        ax.set_xlim(-0.05, self.length * 1.02)  # Horizontal size
+        ax.set_ylim(-self.base_radius * 1.05, self.base_radius * 1.05)  # Vertical size
+        ax.set_aspect("equal")  # Makes the graduation be the same on both axis
+        ax.set_facecolor("#EEEEEE")  # Background color
+        ax.grid(True, linestyle="--", linewidth=0.5)
+
+        cp_plot = (self.cpz, 0)
+        # Plotting
+        ax.plot(
+            self.nosecone_x, self.nosecone_y, linestyle="-", color="#A60628"
+        )  # Ogive's upper side
+        ax.plot(
+            self.nosecone_x, -self.nosecone_y, linestyle="-", color="#A60628"
+        )  # Ogive's lower side
+        ax.scatter(
+            *cp_plot, label="Center Of Pressure", color="red", s=100, zorder=10
+        )  # Center of pressure inner circle
+        ax.scatter(
+            *cp_plot, facecolors="none", edgecolors="red", s=500, zorder=10
+        )  # Center of pressure outer circle
+        # Center Line
+        ax.plot(
+            [0, self.nosecone_x[len(self.nosecone_x) - 1]],
+            [0, 0],
+            linestyle="--",
+            color="#7A68A6",
+            linewidth=1.5,
+            label="Center Line",
+        )
+        # Vertical base line
+        ax.plot(
+            [
+                self.nosecone_x[len(self.nosecone_x) - 1],
+                self.nosecone_x[len(self.nosecone_x) - 1],
+            ],
+            [
+                self.nosecone_y[len(self.nosecone_y) - 1],
+                -self.nosecone_y[len(self.nosecone_y) - 1],
+            ],
+            linestyle="-",
+            color="#A60628",
+            linewidth=1.5,
+        )
+
+        # Labels and legend
+        ax.set_xlabel("Length")
+        ax.set_ylabel("Radius")
+        ax.set_title(self.kind + " Nose Cone")
+        ax.legend(bbox_to_anchor=(1, -0.2))
+        # Show Plot
+        plt.show()
+        return None
 
     def info(self):
         """Prints and plots summarized information of the nose cone.
