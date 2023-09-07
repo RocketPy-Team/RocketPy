@@ -135,7 +135,7 @@ class Motor(ABC):
     Motor.burn_duration : float
         Total motor burn duration, in seconds. It is the difference between
         the burn_out_time and the burn_start_time.
-    Motor.exhaust_velocity : rocketpy.Function
+    Motor.exhaust_velocity : Function
         Propulsion gases exhaust velocity in m/s.
     Motor.interpolate : string
         Method of interpolation used in case thrust curve is given
@@ -361,7 +361,7 @@ class Motor(ABC):
 
         Returns
         -------
-        self.exhaust_velocity : rocketpy.Function
+        self.exhaust_velocity : Function
             Gas exhaust velocity of the motor.
 
         Notes
@@ -386,7 +386,7 @@ class Motor(ABC):
 
         Returns
         -------
-        rocketpy.Function
+        Function
             Total mass as a function of time.
         """
         return self.propellant_mass + self.dry_mass
@@ -397,7 +397,7 @@ class Motor(ABC):
 
         Returns
         -------
-        rocketpy.Function
+        Function
             Total propellant mass as a function of time.
         """
         return (
@@ -412,7 +412,7 @@ class Motor(ABC):
 
         Returns
         -------
-        rocketpy.Function
+        Function
             Time derivative of total propellant mass a function of time.
 
         See Also
@@ -466,7 +466,7 @@ class Motor(ABC):
 
         Returns
         -------
-        rocketpy.Function
+        Function
             Position of the center of mass as a function of time.
         """
         mass_balance = (
@@ -484,7 +484,7 @@ class Motor(ABC):
 
         Returns
         -------
-        rocketpy.Function
+        Function
             Position of the propellant center of mass as a function of time.
         """
         pass
@@ -835,7 +835,7 @@ class Motor(ABC):
 
         Parameters
         ----------
-        thrust : rocketpy.Function
+        thrust : Function
             Thrust curve to be reshaped.
         new_burn_time : float, tuple of float
             New desired burn time in seconds.
@@ -844,7 +844,7 @@ class Motor(ABC):
 
         Returns
         -------
-        rocketpy.Function
+        Function
             Reshaped thrust curve.
         """
         # Retrieve current thrust curve data points
@@ -892,7 +892,7 @@ class Motor(ABC):
 
         Returns
         -------
-        rocketpy.Function
+        Function
             Clipped thrust curve.
         """
         # Check if burn_time is within thrust_source range
@@ -1215,7 +1215,7 @@ class GenericMotor(Motor):
 
         Returns
         -------
-        self.exhaust_velocity : rocketpy.Function
+        self.exhaust_velocity : Function
             Gas exhaust velocity of the motor.
         """
         return self.total_impulse / self.propellant_initial_mass
@@ -1228,7 +1228,7 @@ class GenericMotor(Motor):
 
         Returns
         -------
-        rocketpy.Function
+        Function
             Function representing the center of mass of the motor.
         """
         return self.center_of_dry_mass_position

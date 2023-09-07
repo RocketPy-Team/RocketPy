@@ -170,7 +170,7 @@ class SolidMotor(Motor):
     SolidMotor.burn_duration : float
         Total motor burn duration, in seconds. It is the difference between the
         ``burn_out_time`` and the ``burn_start_time``.
-    SolidMotor.exhaust_velocity : rocketpy.Function
+    SolidMotor.exhaust_velocity : Function
         Propulsion gases exhaust velocity, assumed constant, in m/s.
     SolidMotor.burn_area : Function
         Total burn area considering all grains, made out of inner
@@ -382,7 +382,7 @@ class SolidMotor(Motor):
 
         Returns
         -------
-        self.exhaust_velocity : rocketpy.Function
+        self.exhaust_velocity : Function
             Gas exhaust velocity of the motor.
         """
         return self.total_impulse / self.propellant_initial_mass
@@ -445,7 +445,7 @@ class SolidMotor(Motor):
 
         Returns
         -------
-        rocketpy.Function
+        Function
             Position of the propellant center of mass as a function of time.
         """
         time_source = self.grain_inner_radius.x_array
@@ -531,7 +531,7 @@ class SolidMotor(Motor):
 
         Returns
         -------
-        burn_area : rocketpy.Function
+        burn_area : Function
             Function representing the burn area progression with the time.
         """
         burn_area = (
@@ -554,7 +554,7 @@ class SolidMotor(Motor):
 
         Returns
         -------
-        burn_rate : rocketpy.Function
+        burn_rate : Function
             Rate of progression of the inner radius during the combustion.
         """
         return -1 * self.mass_flow_rate / (self.burn_area * self.grain_density)
@@ -566,7 +566,7 @@ class SolidMotor(Motor):
 
         Returns
         -------
-        Kn : rocketpy.Function
+        Kn : Function
             Kn as a function of time.
         """
         Kn_source = (
