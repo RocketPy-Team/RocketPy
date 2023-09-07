@@ -8,6 +8,9 @@ from cftime import num2pydate
 
 _NOT_FOUND = object()
 
+# Mapping of module name and the name of the package that should be installed
+INSTALL_MAPPING = {"IPython": "ipython"}
+
 
 class cached_property:
     def __init__(self, func):
@@ -1256,7 +1259,8 @@ def import_optional_dependency(name):
     try:
         module = importlib.import_module(name)
     except ImportError as exc:
-        package_name = name.split(".")[0]
+        module_name = name.split(".")[0]
+        package_name = INSTALL_MAPPING.get(module_name, module_name)
         raise ImportError(
             f"{package_name} is an optional dependency and is not installed.\n"
             + f"\t\tUse 'pip install {package_name}' to install it or "

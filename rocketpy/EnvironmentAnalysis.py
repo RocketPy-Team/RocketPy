@@ -7,6 +7,7 @@ __license__ = "MIT"
 import bisect
 import copy
 import datetime
+import importlib.util
 import json
 from collections import defaultdict
 
@@ -236,6 +237,7 @@ class EnvironmentAnalysis:
         env_analysis_require = [
             "timezonefinder",
             "windrose>=1.6.8",
+            "IPython>=8.14.0",
             "ipywidgets>=7.6.3",
             "jsonpickle",
         ]
@@ -244,11 +246,10 @@ class EnvironmentAnalysis:
             pckg_name = requirement
             for op in operators:
                 pckg_name = pckg_name.split(op)[0]
-            try:
-                _ = import_optional_dependency(pckg_name)
-            except ImportError:
+            is_present = importlib.util.find_spec(pckg_name)
+            if is_present is None:
                 print(
-                    f"{requirement:20} is not installed. Some methods may not work."
+                    f"{pckg_name:20} is not installed. Some methods may not work."
                     + " You can install it by running 'pip install rocketpy[env_analysis]'"
                 )
         return None

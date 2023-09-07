@@ -5,7 +5,6 @@ __license__ = "MIT"
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import numpy as np
-from IPython.display import HTML
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.animation import PillowWriter as ImageWriter
@@ -1114,6 +1113,9 @@ class _EnvironmentAnalysisPlots:
         HTML : IPython.core.display.HTML
             The animation as an HTML object
         """
+        module = import_optional_dependency("IPython.display")
+        HTML = module.HTML  # this is a class
+
         # Gather animation data
         wind_gusts = self.env_analysis.surface_wind_gust_by_hour
 
@@ -1312,6 +1314,9 @@ class _EnvironmentAnalysisPlots:
         -------
         HTML : IPython.core.display.HTML
         """
+        module = import_optional_dependency("IPython.display")
+        HTML = module.HTML  # this is a class
+
         # Gather animation data
         surface_wind_speeds_at_given_hour = self.env_analysis.surface_wind_speed_by_hour
 
@@ -1609,6 +1614,8 @@ class _EnvironmentAnalysisPlots:
             Whether to clear the sky range limits or not, by default False. This
             is useful when the launch site is constrained in terms or altitude.
         """
+        module = import_optional_dependency("IPython.display")
+        HTML = module.HTML  # this is a class
 
         # Create animation
         fig, ax = plt.subplots(dpi=200)
@@ -1688,6 +1695,8 @@ class _EnvironmentAnalysisPlots:
             Whether to clear the sky range limits or not, by default False. This
             is useful when the launch site is constrained in terms or altitude.
         """
+        module = import_optional_dependency("IPython.display")
+        HTML = module.HTML  # this is a class
 
         # Create animation
         fig, ax = plt.subplots(dpi=200)
