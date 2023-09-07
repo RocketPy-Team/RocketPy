@@ -28,7 +28,7 @@ class SolidMotor(Motor):
     SolidMotor.coordinate_system_orientation : str
         Orientation of the motor's coordinate system. The coordinate system
         is defined by the motor's axis of symmetry. The origin of the
-        coordinate system  may be placed anywhere along such axis, such as
+        coordinate system may be placed anywhere along such axis, such as
         at the nozzle area, and must be kept the same for all other
         positions specified. Options are "nozzle_to_combustion_chamber" and
         "combustion_chamber_to_nozzle".
@@ -170,7 +170,7 @@ class SolidMotor(Motor):
     SolidMotor.burn_duration : float
         Total motor burn duration, in seconds. It is the difference between the
         ``burn_out_time`` and the ``burn_start_time``.
-    SolidMotor.exhaust_velocity : float
+    SolidMotor.exhaust_velocity : rocketpy.Function
         Propulsion gases exhaust velocity, assumed constant, in m/s.
     SolidMotor.burn_area : Function
         Total burn area considering all grains, made out of inner
@@ -298,7 +298,7 @@ class SolidMotor(Motor):
         coordinate_system_orientation : string, optional
             Orientation of the motor's coordinate system. The coordinate system
             is defined by the motor's axis of symmetry. The origin of the
-            coordinate system  may be placed anywhere along such axis, such as
+            coordinate system may be placed anywhere along such axis, such as
             at the nozzle area, and must be kept the same for all other
             positions specified. Options are "nozzle_to_combustion_chamber" and
             "combustion_chamber_to_nozzle". Default is
@@ -456,19 +456,11 @@ class SolidMotor(Motor):
         """Calculates grain inner radius and grain height as a function of time
         by assuming that every propellant mass burnt is exhausted. In order to
         do that, a system of differential equations is solved using
-        scipy.integrate.odeint. Furthermore, the function calculates burn area,
-        burn rate and Kn as a function of time using the previous results. All
-        functions are stored as objects of the class Function in
-        ``self.grain_inner_radius``, ``self.grain_height``, ``self.burn_area``,
-        ``self.burn_rate`` and ``self.Kn``.
-
+        scipy.integrate.solve_ivp.
 
         Returns
         -------
-        geometry : list of rocketpy.Functions
-            First element is the Function representing the inner radius of a
-            grain as a function of time. Second argument is the Function
-            representing the height of a grain as a function of time.
+        None
         """
         # Define initial conditions for integration
         y0 = [self.grain_initial_inner_radius, self.grain_initial_height]
@@ -530,7 +522,7 @@ class SolidMotor(Motor):
 
         reset_funcified_methods(self)
 
-        return [self.grain_inner_radius, self.grain_height]
+        return None
 
     @funcify_method("Time (s)", "burn area (m²)")
     def burn_area(self):

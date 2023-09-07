@@ -25,7 +25,7 @@ class HybridMotor(Motor):
     HybridMotor.coordinate_system_orientation : str
         Orientation of the motor's coordinate system. The coordinate system
         is defined by the motor's axis of symmetry. The origin of the
-        coordinate system  may be placed anywhere along such axis, such as
+        coordinate system may be placed anywhere along such axis, such as
         at the nozzle area, and must be kept the same for all other
         positions specified. Options are "nozzle_to_combustion_chamber" and
         "combustion_chamber_to_nozzle".
@@ -144,7 +144,7 @@ class HybridMotor(Motor):
     HybridMotor.burn_duration : float
         Total motor burn duration, in seconds. It is the difference between the
         ``burn_out_time`` and the ``burn_start_time``.
-    HybridMotor.exhaust_velocity : float
+    HybridMotor.exhaust_velocity : Function
         Propulsion gases exhaust velocity, assumed constant, in m/s.
     HybridMotor.burn_area : Function
         Total burn area considering all grains, made out of inner
@@ -272,7 +272,7 @@ class HybridMotor(Motor):
         coordinate_system_orientation : string, optional
             Orientation of the motor's coordinate system. The coordinate system
             is defined by the motor's axis of symmetry. The origin of the
-            coordinate system  may be placed anywhere along such axis, such as
+            coordinate system may be placed anywhere along such axis, such as
             at the nozzle area, and must be kept the same for all other
             positions specified. Options are "nozzle_to_combustion_chamber" and
             "combustion_chamber_to_nozzle". Default is
@@ -497,8 +497,9 @@ class HybridMotor(Motor):
         tank : Tank
             Tank object to be added to the motor.
         position : float
-            Position of the tank relative to the nozzle exit. The
-            tank reference point is its tank_geometry zero point.
+            Position of the tank relative to the origin of the motor
+            coordinate system. The tank reference point is its
+            tank_geometry zero reference point.
 
         See Also
         --------
