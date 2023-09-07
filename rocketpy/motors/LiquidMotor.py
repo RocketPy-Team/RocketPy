@@ -436,7 +436,7 @@ class LiquidMotor(Motor):
         position : float
             Position of the tank relative to the origin of the motor
             coordinate system. The tank reference point is its
-            tank_geometry zero reference point.
+            geometry zero reference point.
 
         See Also
         --------

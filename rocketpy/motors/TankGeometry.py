@@ -25,7 +25,6 @@ class TankGeometry:
 
     Attributes
     ----------
-    Geometrical attributes:
     TankGeometry.geometry : dict
         Dictionary containing the geometry of the tank. The dictionary
         keys are disjoint domains of the corresponding coordinates in
@@ -238,7 +237,7 @@ class TankGeometry:
 
         References
         ----------
-        https://en.wikipedia.org/wiki/Moment_(physics)
+        .. [1] `<https://en.wikipedia.org/wiki/Moment_(physics)#Examples/>`_
         """
         height = self.area.identity_function()
 
@@ -276,7 +275,7 @@ class TankGeometry:
 
         References
         ----------
-        https://en.wikipedia.org/wiki/List_of_moments_of_inertia
+        .. [1] https://en.wikipedia.org/wiki/List_of_moments_of_inertia
         """
         height2 = self.radius.identity_function() ** 2
 
