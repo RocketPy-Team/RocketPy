@@ -27,6 +27,9 @@ jobs:
       - name: Build RocketPy (without optional dependencies)
         run: |
           pip install -e.
+      - name: Import rocketpy in python and test if it works
+        run: |
+          python -c "import sys, rocketpy; print(f'{rocketpy.__name__} running on Python {sys.version}')"
       - name: Test with pytest
         run: |
           pytest
