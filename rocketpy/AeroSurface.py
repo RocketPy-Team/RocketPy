@@ -747,24 +747,24 @@ class Fins(AeroSurface):
         """
         if not self.airfoil:
             # Defines clalpha2D as 2*pi for planar fins
-            clalpha2D = Function(lambda mach: 2 * np.pi / self.__beta(mach))
+            clalpha2D_incompressible = 2 * np.pi
         else:
-            # Defines clalpha2D as the derivative of the
-            # lift coefficient curve for a specific airfoil
+            # Defines clalpha2D as the derivative of the lift coefficient curve
+            # for the specific airfoil
             self.airfoil_cl = Function(
                 self.airfoil[0],
                 interpolation="linear",
             )
 
-            # Differentiating at x = 0 to get cl_alpha
-            clalpha2D_mach0 = self.airfoil_cl.differentiate(x=1e-3, dx=1e-3)
+            # Differentiating at alpha = 0 to get cl_alpha
+            clalpha2D_incompressible = self.airfoil_cl.differentiate(x=1e-3, dx=1e-3)
 
             # Convert to radians if needed
             if self.airfoil[1] == "degrees":
-                clalpha2D_mach0 *= 180 / np.pi
+                clalpha2D_incompressible *= 180 / np.pi
 
-            # Correcting for compressible flow
-            clalpha2D = Function(lambda mach: clalpha2D_mach0 / self.__beta(mach))
+        # Correcting for compressible flow (apply Prandtl-Glauert correction)
+        clalpha2D = Function(lambda mach: clalpha2D_incompressible / self.__beta(mach))
 
         # Diederich's Planform Correlation Parameter
         FD = 2 * np.pi * self.AR / (clalpha2D * np.cos(self.gamma_c))
