@@ -416,14 +416,22 @@ class HybridMotor(Motor):
         """
         solid_correction = (
             self.solid.propellant_mass
-            * (self.solid.center_of_propellant_mass - self.center_of_mass) ** 2
+            * (self.solid.center_of_propellant_mass - self.center_of_propellant_mass)
+            ** 2
         )
         liquid_correction = (
             self.liquid.propellant_mass
-            * (self.liquid.center_of_propellant_mass - self.center_of_mass) ** 2
+            * (self.liquid.center_of_propellant_mass - self.center_of_propellant_mass)
+            ** 2
         )
 
-        I_11 = self.solid.I_11 + solid_correction + self.liquid.I_11 + liquid_correction
+        I_11 = (
+            self.solid.propellant_I_11
+            + solid_correction
+            + self.liquid.propellant_I_11
+            + liquid_correction
+        )
+
         return I_11
 
     @funcify_method("Time (s)", "Inertia I_22 (kg m²)")
@@ -446,7 +454,7 @@ class HybridMotor(Motor):
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        return self.I_11
+        return self.propellant_I_11
 
     @funcify_method("Time (s)", "Inertia I_33 (kg m²)")
     def propellant_I_33(self):

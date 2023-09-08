@@ -1125,8 +1125,8 @@ class GenericMotor(Motor):
         return self.total_impulse / self.propellant_initial_mass
 
     @funcify_method("Time (s)", "center of mass (m)")
-    def center_of_mass(self):
-        """Estimates the Center of Mass of the motor as fixed in the chamber
+    def center_of_propellant_mass(self):
+        """Estimates the propellant center of mass as fixed in the chamber
         position. For a more accurate evaluation, use the classes SolidMotor,
         LiquidMotor or HybridMotor.
 
@@ -1135,7 +1135,7 @@ class GenericMotor(Motor):
         rocketpy.Function
             Function representing the center of mass of the motor.
         """
-        return self.center_of_dry_mass
+        return self.chamber_position
 
     @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
     def propellant_I_11(self):
@@ -1183,7 +1183,7 @@ class GenericMotor(Motor):
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        return self.I_11
+        return self.propellant_I_11
 
     @funcify_method("Time (s)", "Inertia I_33 (kg m²)")
     def propellant_I_33(self):

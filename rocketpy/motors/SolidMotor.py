@@ -644,7 +644,7 @@ class SolidMotor(Motor):
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        return self.I_11
+        return self.propellant_I_11
 
     @funcify_method("Time (s)", "Inertia I_33 (kg m²)")
     def propellant_I_33(self):
