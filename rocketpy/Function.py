@@ -264,6 +264,28 @@ class Function:
         """
         return self.y_array.max()
 
+    @cached_property
+    def min_absolute(self):
+        """Get the minimum absolute value of the Function y_array.
+
+        Returns
+        -------
+        minimum: float.
+            The minimum absolute value of the Function y_array.
+        """        
+        return np.abs(self.y_array).min()
+
+    @cached_property
+    def max_absolute(self):
+        """Get the maximum absolute value of the Function y_array.
+
+        Returns
+        -------
+        maximum: float.
+            The maximum absolute value of the Function y_array.
+        """        
+        return np.abs(self.y_array).max()
+
     def set_interpolation(self, method="spline"):
         """Set interpolation method and process data is method requires.
 
