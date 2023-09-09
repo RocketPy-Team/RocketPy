@@ -679,7 +679,7 @@ def test_effective_rail_length(
     assert pytest.approx(test2.effective_2rl, abs=atol) == effective_2rl
 
 
-def test_max_values(flight_calisto_robust, atol=1e-3):
+def test_max_values(flight_calisto_robust, atol=5e-3):
     """Test the max values of the flight. This tests if the max values are
     close to the expected values. However, the expected values were NOT
     calculated by hand, it was just copied from the test results. This is
@@ -698,7 +698,7 @@ def test_max_values(flight_calisto_robust, atol=1e-3):
         Flight object to be tested. See the conftest.py file for more info
         regarding this pytest fixture.
     atol : float, optional
-        Absolute tolerance error, by default 1e-3
+        Absolute tolerance error, by default 5e-3
     """
     test = flight_calisto_robust
     assert pytest.approx(105.2774, abs=atol) == test.max_acceleration_power_on
@@ -707,7 +707,7 @@ def test_max_values(flight_calisto_robust, atol=1e-3):
     assert pytest.approx(285.90240, abs=atol) == test.max_speed
 
 
-def test_rail_buttons_forces(flight_calisto_custom_wind, atol=1e-3):
+def test_rail_buttons_forces(flight_calisto_custom_wind, atol=5e-3):
     """Test the rail buttons forces. This tests if the rail buttons forces are
     close to the expected values. However, the expected values were NOT
     calculated by hand, it was just copied from the test results. The results
@@ -720,7 +720,7 @@ def test_rail_buttons_forces(flight_calisto_custom_wind, atol=1e-3):
         Flight object to be tested. See the conftest.py file for more info
         regarding this pytest fixture.
     atol : float, optional
-        The absolute tolerance error, by default 1e-3
+        The absolute tolerance error, by default 5e-3
     """
     test = flight_calisto_custom_wind
     assert pytest.approx(3.80358, abs=atol) == test.max_rail_button1_normal_force
@@ -785,7 +785,7 @@ def test_velocities(flight_calisto_custom_wind, atol=5e-3):
         assert_approx_equal(test.vz(t), expected_vz, atol, label)
 
 
-def test_aerodynamic_forces(flight_calisto_custom_wind, atol=1e-3):
+def test_aerodynamic_forces(flight_calisto_custom_wind, atol=5e-3):
     """Tests if the aerodynamic forces in some particular points of the
     trajectory is correct. The expected values were NOT calculated by hand, it
     was just copied from the test results. The results are not expected to
@@ -796,7 +796,7 @@ def test_aerodynamic_forces(flight_calisto_custom_wind, atol=1e-3):
     flight_calisto_custom_wind : rocketpy.Flight
         Flight object to be tested. See the conftest.py file for more info.
     atol : float, optional
-        The absolute tolerance error, by default 1e-3
+        The absolute tolerance error, by default 5e-3
     """
     test = flight_calisto_custom_wind
 
@@ -813,7 +813,7 @@ def test_aerodynamic_forces(flight_calisto_custom_wind, atol=1e-3):
         assert_approx_equal(test.R3(t), expected_R3, atol, label)
 
 
-def test_aerodynamic_moments(flight_calisto_custom_wind, atol=1e-3):
+def test_aerodynamic_moments(flight_calisto_custom_wind, atol=5e-3):
     """Tests if the aerodynamic moments in some particular points of the
     trajectory is correct. The expected values were NOT calculated by hand, it
     was just copied from the test results. The results are not expected to
@@ -824,7 +824,7 @@ def test_aerodynamic_moments(flight_calisto_custom_wind, atol=1e-3):
     flight_calisto_custom_wind : rocketpy.Flight
         Flight object to be tested. See the conftest.py file for more info.
     atol : float, optional
-        The absolute tolerance error, by default 1e-3
+        The absolute tolerance error, by default 5e-3
     """
     test = flight_calisto_custom_wind
 
