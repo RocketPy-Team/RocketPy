@@ -704,7 +704,7 @@ def test_max_values(flight_calisto_robust, atol=1e-3):
     assert pytest.approx(105.2774, abs=atol) == test.max_acceleration_power_on
     assert pytest.approx(105.2774, abs=atol) == test.max_acceleration
     assert pytest.approx(0.85999, abs=atol) == test.max_mach_number
-    assert pytest.approx(285.90240,abs=atol) == test.max_speed
+    assert pytest.approx(285.90240, abs=atol) == test.max_speed
 
 
 def test_rail_buttons_forces(flight_calisto_custom_wind, atol=1e-3):
