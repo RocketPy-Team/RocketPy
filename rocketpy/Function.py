@@ -272,7 +272,7 @@ class Function:
         -------
         minimum: float.
             The minimum absolute value of the Function y_array.
-        """        
+        """
         return np.abs(self.y_array).min()
 
     @cached_property
@@ -283,7 +283,7 @@ class Function:
         -------
         maximum: float.
             The maximum absolute value of the Function y_array.
-        """        
+        """
         return np.abs(self.y_array).max()
 
     def set_interpolation(self, method="spline"):
