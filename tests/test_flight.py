@@ -12,6 +12,24 @@ plt.rcParams.update({"figure.max_open_warning": 0})
 
 # Helper functions
 
+def assert_approx_equal(test_value, expected_value, atol=1e-4, label=""):
+    """Asserts if two values are approximately equal. If the values are not
+    approximately equal, an AssertionError is raised, with a message containing
+    the label and the values.
+
+    Parameters
+    ----------
+    test_value : float
+        Value to be tested
+    expected_value : float
+        Expected value
+    atol : float, optional
+        Absolute tolerance error, by default 1e-4
+    label : str, optional
+        Label to be printed in the error message, by default ""
+    """
+    assert pytest.approx(test_value, abs=atol) == expected_value, f"Assertion failed at {label}: {test_value} != {expected_value}"
+
 
 def setup_rocket_with_given_static_margin(rocket, static_margin):
     """Takes any rocket, removes its aerodynamic surfaces and adds a set of
@@ -78,6 +96,8 @@ def setup_rocket_with_given_static_margin(rocket, static_margin):
 
     return rocket
 
+
+# Tests
 
 @patch("matplotlib.pyplot.show")
 def test_all_info(mock_show, flight_calisto_robust):
@@ -594,3 +614,234 @@ def test_hybrid_motor_flight(mock_show, calisto_hybrid_modded):
     )
 
     assert test_flight.all_info() == None
+
+
+def test_surface_wind(flight_calisto_custom_wind, atol=1e-8):
+    """Tests the surface wind of the flight simulation. The expected values
+    are provided by the definition of the 'light_calisto_custom_wind' fixture.
+    If the fixture changes, this test must be updated.
+
+    Parameters
+    ----------
+    flight_calisto_custom_wind : rocketpy.Flight
+        Flight object to be tested. See the conftest.py file for more info
+        regarding this pytest fixture.
+    atol : float, optional
+        Absolute tolerance error, by default 1e-8
+    """
+    test = flight_calisto_custom_wind
+    assert pytest.approx(2.0, abs=atol) == test.frontal_surface_wind
+    assert pytest.approx(-5.0, abs=atol) == test.lateral_surface_wind
+
+
+def test_effective_rail_length(
+    flight_calisto_robust, flight_calisto_nose_to_tail, atol=1e-8
+):
+    """Tests the effective rail length of the flight simulation. The expected
+    values are calculated by hand, and should be valid as long as the rail
+    length and the position of the buttons and nozzle do not change in the
+    fixtures. If the fixtures change, this test must be updated. It is important
+    to keep
+
+    Parameters
+    ----------
+    flight_calisto_robust : rocketpy.Flight
+        Flight object to be tested. See the conftest.py file for more info
+        regarding this pytest fixture.
+    flight_calisto_nose_to_tail : rocketpy.Flight
+        Flight object to be tested. The difference here is that the rocket is
+        defined with the "nose_to_tail" orientation instead of the
+        "tail_to_nose" orientation. See the conftest.py file for more info
+        regarding this pytest fixture.
+    atol : float, optional
+        The absolute tolerance error, by default 1e-8
+    """
+    test1 = flight_calisto_robust
+    test2 = flight_calisto_nose_to_tail
+
+    rail_length = 5.2
+    upper_button_position = 0.082
+    lower_button_position = -0.618
+    nozzle_position = -1.373
+
+    effective_1rl = rail_length - abs(upper_button_position - nozzle_position)
+    effective_2rl = rail_length - abs(lower_button_position - nozzle_position)
+
+    # test 1: Rocket with "tail_to_nose" orientation
+    assert pytest.approx(test1.effective_1rl, abs=atol) == effective_1rl
+    assert pytest.approx(test1.effective_2rl, abs=atol) == effective_2rl
+    # test 2: Rocket with "nose_to_tail" orientation
+    assert pytest.approx(test2.effective_1rl, abs=atol) == effective_1rl
+    assert pytest.approx(test2.effective_2rl, abs=atol) == effective_2rl
+
+
+def test_max_values(flight_calisto_robust, atol=1e-4):
+    """Test the max values of the flight. This tests if the max values are
+    close to the expected values. However, the expected values were NOT
+    calculated by hand, it was just copied from the test results. This is
+    because the expected values are not easy to calculate by hand, and the
+    results are not expected to change. If the results change, the test will
+    fail, and the expected values must be updated. If if want to update the
+    values, always double check if the results are really correct. Acceptable
+    reasons for changes in the results are: 1) changes in the code that
+    improve the accuracy of the simulation, 2) a bug was found and fixed. Keep
+    in mind that other tests may be more accurate than this one, for example,
+    the acceptance tests, which are based on the results of real flights.
+
+    Parameters
+    ----------
+    flight_calisto_robust : rocketpy.Flight
+        Flight object to be tested. See the conftest.py file for more info
+        regarding this pytest fixture.
+    atol : float, optional
+        Absolute tolerance error, by default 1e-4
+    """
+    test = flight_calisto_robust
+    assert pytest.approx(0.14996, abs=atol) == test.max_acceleration_power_on_time
+    assert pytest.approx(105.2774, abs=atol) == test.max_acceleration_power_on
+    assert pytest.approx(11.88541, abs=atol) == test.max_acceleration_power_off_time
+    assert pytest.approx(12.58658, abs=atol) == test.max_acceleration_power_off
+    assert pytest.approx(0.14996, abs=atol) == test.max_acceleration_time
+    assert pytest.approx(105.2774, abs=atol) == test.max_acceleration
+    assert pytest.approx(3.39630, abs=atol) == test.max_mach_number_time
+    assert pytest.approx(0.85999, abs=atol) == test.max_mach_number
+    assert pytest.approx(3.31516, abs=atol) == test.max_reynolds_number_time
+    assert pytest.approx(2138372.40383, abs=atol) == test.max_reynolds_number
+    assert pytest.approx(3.34463, abs=atol) == test.max_dynamic_pressure_time
+    assert pytest.approx(41528.39153, abs=atol) == test.max_dynamic_pressure
+    assert pytest.approx(3.29872, abs=atol) == test.max_total_pressure_time
+    assert pytest.approx(130467.16722, abs=atol) == test.max_total_pressure
+
+
+def test_rail_buttons_forces(flight_calisto_custom_wind, atol=1e-4):
+    """Test the rail buttons forces. This tests if the rail buttons forces are
+    close to the expected values. However, the expected values were NOT
+    calculated by hand, it was just copied from the test results. The results
+    are not expected to change, unless the code is changed for bug fixes or
+    accuracy improvements.
+
+    Parameters
+    ----------
+    flight_calisto_custom_wind : rocketpy.Flight
+        Flight object to be tested. See the conftest.py file for more info
+        regarding this pytest fixture.
+    atol : float, optional
+        The absolute tolerance error, by default 1e-4
+    """
+    test = flight_calisto_custom_wind
+    assert pytest.approx(3.80358, abs=atol) == test.max_rail_button1_normal_force
+    assert pytest.approx(1.63602, abs=atol) == test.max_rail_button1_shear_force
+    assert pytest.approx(1.19353, abs=atol) == test.max_rail_button2_normal_force
+    assert pytest.approx(0.51337, abs=atol) == test.max_rail_button2_shear_force
+
+
+def test_accelerations(flight_calisto_custom_wind, atol=1e-4):
+    """Tests if the acceleration in some particular points of the trajectory is
+    correct. The expected values were NOT calculated by hand, it was just
+    copied from the test results. The results are not expected to change,
+    unless the code is changed for bug fixes or accuracy improvements. 
+
+    Parameters
+    ----------
+    flight_calisto_custom_wind : rocketpy.Flight
+        Flight object to be tested. See the conftest.py file for more info.
+    atol : float, optional
+        The absolute tolerance error, by default 1e-4
+    """    
+    test = flight_calisto_custom_wind
+
+    points = {
+        "t_initial": (test.t_initial, 0, 0, 0),
+        "out_of_rail_time": (test.out_of_rail_time, 0, 7.8068, 89.2325),
+        "apogee_time": (test.apogee_time, 0.07534, -0.058127, -9.614386),
+        "t_final": (test.t_final, 0, 0, 0.0017346294117130806),
+    }
+
+    for label, (t, expected_ax, expected_ay, expected_az) in points.items():
+        assert_approx_equal(test.ax(t), expected_ax, atol, label)
+        assert_approx_equal(test.ay(t), expected_ay, atol, label)
+        assert_approx_equal(test.az(t), expected_az, atol, label)
+
+
+def test_velocities(flight_calisto_custom_wind, atol=1e-4):
+    """Tests if the velocity in some particular points of the trajectory is
+    correct. The expected values were NOT calculated by hand, it was just
+    copied from the test results. The results are not expected to change,
+    unless the code is changed for bug fixes or accuracy improvements. 
+
+    Parameters
+    ----------
+    flight_calisto_custom_wind : rocketpy.Flight
+        Flight object to be tested. See the conftest.py file for more info.
+    atol : float, optional
+        The absolute tolerance error, by default 1e-4
+    """    
+    test = flight_calisto_custom_wind
+
+    points = {
+        "t_initial": (test.t_initial, 0, 0, 0),
+        "out_of_rail_time": (test.out_of_rail_time, 0, 2.248727, 25.703072),
+        "apogee_time": (test.apogee_time, -13.209436, 16.05115, -0.000257),
+        "t_final": (test.t_final, 5, 2, -5.334289),
+    }
+
+    for label, (t, expected_vx, expected_vy, expected_vz) in points.items():
+        assert_approx_equal(test.vx(t), expected_vx, atol, label)
+        assert_approx_equal(test.vy(t), expected_vy, atol, label)
+        assert_approx_equal(test.vz(t), expected_vz, atol, label)
+
+
+def test_aerodynamic_forces(flight_calisto_custom_wind, atol=1e-4):
+    """Tests if the aerodynamic forces in some particular points of the
+    trajectory is correct. The expected values were NOT calculated by hand, it
+    was just copied from the test results. The results are not expected to
+    change, unless the code is changed for bug fixes or accuracy improvements.
+
+    Parameters
+    ----------
+    flight_calisto_custom_wind : rocketpy.Flight
+        Flight object to be tested. See the conftest.py file for more info.
+    atol : float, optional
+        The absolute tolerance error, by default 1e-4
+    """    
+    test = flight_calisto_custom_wind
+
+    points = {
+        "t_initial": (test.t_initial, 1.6542528, 0.65918, -0.067107),
+        "out_of_rail_time": (test.out_of_rail_time, 5.05334, 2.01364, -1.7541),
+        "apogee_time": (test.apogee_time, 2.35291, -1.8275, -0.87851),
+        "t_final": (test.t_final, 0, 0, 141.42421),
+    }
+
+    for label, (t, expected_R1, expected_R2, expected_R3) in points.items():
+        assert_approx_equal(test.R1(t), expected_R1, atol, label)
+        assert_approx_equal(test.R2(t), expected_R2, atol, label)
+        assert_approx_equal(test.R3(t), expected_R3, atol, label)
+
+
+def test_aerodynamic_moments(flight_calisto_custom_wind, atol=1e-4):
+    """Tests if the aerodynamic moments in some particular points of the
+    trajectory is correct. The expected values were NOT calculated by hand, it
+    was just copied from the test results. The results are not expected to
+    change, unless the code is changed for bug fixes or accuracy improvements.
+
+    Parameters
+    ----------
+    flight_calisto_custom_wind : rocketpy.Flight
+        Flight object to be tested. See the conftest.py file for more info.
+    atol : float, optional
+        The absolute tolerance error, by default 1e-4
+    """    
+    test = flight_calisto_custom_wind
+
+    points = {
+        "t_initial": (test.t_initial, 0.17179073815516033, -0.431117, 0),
+        "out_of_rail_time": (test.out_of_rail_time, 0.547026, -1.3727895, 0),
+        "apogee_time": (test.apogee_time, -0.5874848151271623, -0.7563596, 0),
+        "t_final": (test.t_final, 0, 0, 0),
+    }
+
+    for label, (t, expected_M1, expected_M2, expected_M3) in points.items():
+        assert_approx_equal(test.M1(t), expected_M1, atol, label)
+        assert_approx_equal(test.M2(t), expected_M2, atol, label)
+        assert_approx_equal(test.M3(t), expected_M3, atol, label)

@@ -140,6 +140,43 @@ def calisto(cesaroni_m1670):  # old name: rocket
 
 
 @pytest.fixture
+def calisto_nose_to_tail(cesaroni_m1670):
+    """Create a simple object of the Rocket class to be used in the tests. This
+    is the same as the calisto fixture, but with the coordinate system
+    orientation set to "nose_to_tail" instead of "tail_to_nose". This allows to
+    check if the coordinate system orientation is being handled correctly in
+    the code.
+
+    Parameters
+    ----------
+    cesaroni_m1670 : rocketpy.SolidMotor
+        An object of the SolidMotor class. This is a pytest fixture too.
+
+    Returns
+    -------
+    rocketpy.Rocket
+        The Calisto rocket with the coordinate system orientation set to
+        "nose_to_tail". Rail buttons are already set, as well as the motor.
+    """    
+    calisto = Rocket(
+        radius=0.0635,
+        mass=14.426,
+        inertia=(6.321, 6.321, 0.034),
+        power_off_drag="data/calisto/powerOffDragCurve.csv",
+        power_on_drag="data/calisto/powerOnDragCurve.csv",
+        center_of_mass_without_motor=0,
+        coordinate_system_orientation="nose_to_tail",
+    )
+    calisto.add_motor(cesaroni_m1670, position=1.373)
+    calisto.set_rail_buttons(
+        upper_button_position=-0.082,
+        lower_button_position=0.618,
+        angular_position=45,
+    )
+    return calisto
+
+
+@pytest.fixture
 def calisto_liquid_modded(liquid_motor):
     """Create a simple object of the Rocket class to be used in the tests. This
     is an example of the Calisto rocket with a liquid motor.
@@ -730,6 +767,35 @@ def flight_calisto(calisto, example_env):  # old name: flight
 
 
 @pytest.fixture
+def flight_calisto_nose_to_tail(calisto_nose_to_tail, example_env):
+    """A rocketpy.Flight object of the Calisto rocket. This uses the calisto
+    with "nose_to_tail" coordinate system orientation, just as described in the
+    calisto_nose_to_tail fixture. 
+
+    Parameters
+    ----------
+    calisto_nose_to_tail : rocketpy.Rocket
+        An object of the Rocket class. This is a pytest fixture too.
+    example_env : rocketpy.Environment
+        An object of the Environment class. This is a pytest fixture too.
+
+    Returns
+    -------
+    rocketpy.Flight
+        The Calisto rocket with the coordinate system orientation set to
+        "nose_to_tail".
+    """    
+    return Flight(
+        environment=example_env,
+        rocket=calisto_nose_to_tail,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=False,
+    )
+
+
+@pytest.fixture
 def flight_calisto_robust(calisto_robust, example_env_robust):
     """A rocketpy.Flight object of the Calisto rocket. This uses the calisto
     with the aerodynamic surfaces and parachutes. The environment is a bit more
@@ -753,6 +819,42 @@ def flight_calisto_robust(calisto_robust, example_env_robust):
     """
     return Flight(
         environment=example_env_robust,
+        rocket=calisto_robust,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=False,
+    )
+
+
+@pytest.fixture
+def flight_calisto_custom_wind(calisto_robust, example_env_robust):
+    """A rocketpy.Flight object of the Calisto rocket. This uses the calisto
+    with the aerodynamic surfaces and parachutes. The environment is a bit more
+    complex than the one in the flight_calisto_robust fixture. Now the wind is
+    set to 5m/s (x direction) and 2m/s (y direction), constant with altitude.
+
+    Parameters
+    ----------
+    calisto_robust : rocketpy.Rocket
+        An object of the Rocket class. This is a pytest fixture too.
+    example_env_robust : rocketpy.Environment
+        An object of the Environment class. This is a pytest fixture too.
+
+    Returns
+    -------
+    rocketpy.Flight
+
+    """
+    env = example_env_robust
+    env.set_atmospheric_model(
+        type="custom_atmosphere",
+        temperature=300,
+        wind_u=[(0, 5), (4000, 5)],
+        wind_v=[(0, 2), (4000, 2)],
+    )
+    return Flight(
+        environment=env,
         rocket=calisto_robust,
         rail_length=5.2,
         inclination=85,
