@@ -157,7 +157,7 @@ def calisto_nose_to_tail(cesaroni_m1670):
     rocketpy.Rocket
         The Calisto rocket with the coordinate system orientation set to
         "nose_to_tail". Rail buttons are already set, as well as the motor.
-    """    
+    """
     calisto = Rocket(
         radius=0.0635,
         mass=14.426,
@@ -770,7 +770,7 @@ def flight_calisto(calisto, example_env):  # old name: flight
 def flight_calisto_nose_to_tail(calisto_nose_to_tail, example_env):
     """A rocketpy.Flight object of the Calisto rocket. This uses the calisto
     with "nose_to_tail" coordinate system orientation, just as described in the
-    calisto_nose_to_tail fixture. 
+    calisto_nose_to_tail fixture.
 
     Parameters
     ----------
@@ -784,7 +784,7 @@ def flight_calisto_nose_to_tail(calisto_nose_to_tail, example_env):
     rocketpy.Flight
         The Calisto rocket with the coordinate system orientation set to
         "nose_to_tail".
-    """    
+    """
     return Flight(
         environment=example_env,
         rocket=calisto_nose_to_tail,
