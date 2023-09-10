@@ -23,13 +23,15 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements-tests.txt
       - name: Build RocketPy (without optional dependencies)
         run: |
-          pip install -e.
+          pip install .
       - name: Import rocketpy in python and test if it works
         run: |
           python -c "import sys, rocketpy; print(f'{rocketpy.__name__} running on Python {sys.version}')"
+      - name: Install optional dependencies
+        run: |
+          pip install -r requirements-tests.txt
       - name: Test with pytest
         run: |
           pytest
