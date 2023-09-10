@@ -16,7 +16,7 @@ necessary_require = [
 env_analysis_require = [
     "timezonefinder",
     "windrose>=1.6.8",
-    "IPython>=8.8.0",
+    "IPython",
     "ipywidgets>=7.6.3",
     "jsonpickle",
 ]

@@ -7,7 +7,6 @@ __license__ = "MIT"
 import bisect
 import copy
 import datetime
-import importlib.util
 import json
 from collections import defaultdict
 
@@ -23,6 +22,7 @@ from .plots.environment_analysis_plots import _EnvironmentAnalysisPlots
 from .prints.environment_analysis_prints import _EnvironmentAnalysisPrints
 from .tools import (
     bilinear_interpolation,
+    check_requirement_version,
     geopotential_to_height_agl,
     geopotential_to_height_asl,
     import_optional_dependency,
@@ -185,7 +185,7 @@ class EnvironmentAnalysis:
         self.max_expected_altitude = max_expected_altitude
 
         # Check if extra requirements are installed
-        self.__check_extra_requirements()
+        self.__check_requirements()
 
         # Manage units and timezones
         self.__init_data_parsing_units()
@@ -225,7 +225,7 @@ class EnvironmentAnalysis:
 
     # Private, auxiliary methods
 
-    def __check_extra_requirements(self):
+    def __check_requirements(self):
         """Check if extra requirements are installed. If not, print a message
         informing the user that some methods may not work and how to install
         the extra requirements for environment analysis.
@@ -234,24 +234,28 @@ class EnvironmentAnalysis:
         -------
         None
         """
-        env_analysis_require = [
-            "timezonefinder",
-            "windrose>=1.6.8",
-            "IPython>=8.8.0",
-            "ipywidgets>=7.6.3",
-            "jsonpickle",
-        ]
-        operators = [">=", "<=", "==", ">", "<"]
-        for requirement in env_analysis_require:
-            pckg_name = requirement
-            for op in operators:
-                pckg_name = pckg_name.split(op)[0]
-            is_present = importlib.util.find_spec(pckg_name)
-            if is_present is None:
+        env_analysis_require = {  # The same as in the setup.py file
+            "timezonefinder": "",
+            "windrose": ">=1.6.8",
+            "IPython": "",
+            "ipywidgets": ">=7.6.3",
+            "jsonpickle": "",
+        }
+        has_error = False
+        for module_name, version in env_analysis_require.items():
+            version = ">=0" if not version else version
+            try:
+                check_requirement_version(module_name, version)
+            except (ValueError, ImportError) as e:
+                has_error = True
                 print(
-                    f"{pckg_name:20} is not installed. Some methods may not work."
-                    + " You can install it by running 'pip install rocketpy[env_analysis]'"
+                    f"The following error occurred while importing {module_name}: {e}"
                 )
+        if has_error:
+            print(
+                "Given the above errors, some methods may not work. Please run "
+                + "'pip install rocketpy[env_analysis]' to install extra requirements."
+            )
         return None
 
     def __init_surface_dictionary(self):

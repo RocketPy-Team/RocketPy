@@ -1,6 +1,8 @@
 import importlib
+import re
 from bisect import bisect_left
 from cmath import isclose
+from importlib.metadata import version as importlib_get_version
 from itertools import product
 
 import pytz
@@ -1267,6 +1269,50 @@ def import_optional_dependency(name):
             + "'pip install rocketpy[all]' to install all optional dependencies."
         ) from exc
     return module
+
+
+def check_requirement_version(module_name, version):
+    """This function tests if a module is installed and if the version is
+    correct. If the module is not installed, an ImportError is raised. If the
+    version is not correct, an error is raised.
+
+    Parameters
+    ----------
+    module_name : str
+        The name of the module to be tested.
+    version : str
+        The version of the module that is required. The string must start with
+        one of the following operators: ">", "<", ">=", "<=", "==", "!=".
+
+    Example:
+    --------
+    >>> from rocketpy.tools import check_requirement_version
+    >>> check_requirement_version("numpy", ">=1.0.0")
+    True
+    >>> check_requirement_version("matplotlib", ">=3.0")
+    True
+    """
+    operators = [">=", "<=", "==", ">", "<", "!="]
+    # separator the operator from the version number
+    operator, v_number = re.match(f"({'|'.join(operators)})(.*)", version).groups()
+
+    if operator not in operators:
+        raise ValueError(
+            f"Version must start with one of the following operators: {operators}"
+        )
+    if importlib.util.find_spec(module_name) is None:
+        raise ImportError(
+            f"{module_name} is not installed. You can install it by running "
+            + f"'pip install {module_name}'"
+        )
+    installed_version = importlib_get_version(module_name)
+    if not eval(f'"{installed_version}" {operator} "{v_number}"'):
+        raise ImportError(
+            f"{module_name} version is {installed_version}, but version {version} "
+            + f"is required. You can install a correct version by running "
+            + f"'pip install {module_name}{version}'"
+        )
+    return True
 
 
 if __name__ == "__main__":
