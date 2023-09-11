@@ -619,11 +619,11 @@ class Rocket:
 
         Parameters
         ----------
-        motor : Motor, SolidMotor, HybridMotor, LiquidMotor
+        motor : Motor, SolidMotor, HybridMotor, LiquidMotor, GenericMotor
             Motor to be added to the rocket.
         position : int, float
-            Position, in m, of the motor's nozzle exit area relative to the user
-            defined rocket coordinate system.
+            Position, in meters, of the motor's coordinate system origin
+            relative to the user defined rocket coordinate system.
 
         See Also
         --------

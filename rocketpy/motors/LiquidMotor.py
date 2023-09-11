@@ -23,7 +23,7 @@ class LiquidMotor(Motor):
     LiquidMotor.coordinate_system_orientation : str
         Orientation of the motor's coordinate system. The coordinate system
         is defined by the motor's axis of symmetry. The origin of the
-        coordinate system  may be placed anywhere along such axis, such as
+        coordinate system may be placed anywhere along such axis, such as
         at the nozzle area, and must be kept the same for all other
         positions specified. Options are "nozzle_to_combustion_chamber" and
         "combustion_chamber_to_nozzle".
@@ -226,7 +226,7 @@ class LiquidMotor(Motor):
         coordinate_system_orientation : string, optional
             Orientation of the motor's coordinate system. The coordinate system
             is defined by the motor's axis of symmetry. The origin of the
-            coordinate system  may be placed anywhere along such axis, such as
+            coordinate system may be placed anywhere along such axis, such as
             at the nozzle area, and must be kept the same for all other
             positions specified. Options are "nozzle_to_combustion_chamber"
             and "combustion_chamber_to_nozzle". Default is
@@ -434,9 +434,9 @@ class LiquidMotor(Motor):
         tank : Tank
             Tank object to be added to the rocket motor.
         position : float
-            Position of the tank relative to the motor nozzle, in meters.
-            The position is measured from the nozzle tip to the tank
-            geometry reference zero point.
+            Position of the tank relative to the origin of the motor
+            coordinate system. The tank reference point is its
+            geometry zero reference point.
 
         See Also
         --------
