@@ -126,7 +126,9 @@ Here is an image showing the different positions that must be specified:
 .. important::
 
   - All positions are relative to the coordinate system origin.
-  - **Motor** position is relative to the motor's nozzle exit area.
+  - **Motor** position is relative to the motor's coordinate system origin. In
+    the above image, the motor's coordinate system origin is at the nozzle exit
+    area. See :ref:`motorcsys` for more information.
   - **Nose cone** position is relative to its tip.
   - **Fins** position is relative to the point belonging to the root chord which is
     highest in the rocket coordinate system (i.e. the point closest to the nose
@@ -307,8 +309,8 @@ origin at the nozzle outlet and
   The ``center_of_dry_mass_position`` is given considering the combustion
   chamber **and** all the tanks of the motor **without propellant**.
 
-With a :doc:`Tank Object </user/motors/tanks>` defined and is position known (as
-shown in the above figure), the tank can be added to the motor using the
+With a :doc:`Tank Object </user/motors/tanks>` defined and its position known
+(as shown in the above figure), the tank can be added to the motor using the
 ``add_tank`` method.
 
 .. code-block:: python
