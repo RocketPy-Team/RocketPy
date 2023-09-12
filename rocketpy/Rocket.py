@@ -627,7 +627,7 @@ class Rocket:
 
         See Also
         --------
-        :ref:`add_surface`
+        :ref:`add_surfaces`
 
         Returns
         -------
@@ -684,7 +684,7 @@ class Rocket:
 
         See Also
         --------
-        :ref:`add_surface`
+        :ref:`add_surfaces`
 
         Returns
         -------
@@ -726,7 +726,7 @@ class Rocket:
 
         See Also
         --------
-        :ref:`add_surface`
+        :ref:`add_surfaces`
 
         Returns
         -------
@@ -768,7 +768,7 @@ class Rocket:
 
         See Also
         --------
-        :ref:`add_surface`
+        :ref:`add_surfaces`
 
         Returns
         -------
@@ -833,7 +833,7 @@ class Rocket:
 
             See Also
             --------
-            :ref:`add_surface`
+            :ref:`add_surfaces`
         cant_angle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
@@ -930,7 +930,7 @@ class Rocket:
 
             See Also
             --------
-            :ref:`add_surface`
+            :ref:`add_surfaces`
         cant_angle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must be given
             in degrees.
@@ -1062,7 +1062,7 @@ class Rocket:
 
         See Also
         --------
-        :ref:`add_surface`
+        :ref:`add_surfaces`
 
         Returns
         -------
@@ -1198,7 +1198,6 @@ class Rocket:
         gammas=[0, 0, 0, 0],
         angular_positions=None,
     ):
-        "Hey! I will document this function later"
         self.aerodynamic_surfaces = Components()
         pi = np.pi
         # Calculate angular positions if not given

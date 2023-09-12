@@ -119,10 +119,10 @@ class NoseCone(AeroSurface):
         radians and the Mach number. Returns the lift coefficient.
     NoseCone.clalpha : float
         Lift coefficient slope. Has units of 1/rad.
-    NoseCone.plots : rocketpy.plots.aero_surface_plots._NoseConePlots
+    NoseCone.plots : plots.aero_surface_plots._NoseConePlots
         This contains all the plots methods. Use help(NoseCone.plots) to know
         more about it.
-    NoseCone.prints : rocketpy.prints.aero_surface_prints._NoseConePrints
+    NoseCone.prints : prints.aero_surface_prints._NoseConePrints
         This contains all the prints methods. Use help(NoseCone.prints) to know
         more about it.
     """
