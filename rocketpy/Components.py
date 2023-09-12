@@ -10,7 +10,7 @@ class Components:
 
     Attributes
     ----------
-    _components : list
+    _components : list of namedtuple
         A list of named tuples representing all the components and their
         positions relative to the rocket.
     component_tuple : namedtuple
@@ -45,9 +45,9 @@ class Components:
 
         Parameters
         ----------
-        component: Any
+        component : Any
             The component to be added to the rocket.
-        position: int, float
+        position : int, float
             The position of the component relative to the rocket's
             coordinate system origin.
 
@@ -63,7 +63,7 @@ class Components:
 
         Parameters
         ----------
-        component_type: type
+        component_type : type
             The type of component to be returned.
 
         Returns
@@ -84,7 +84,7 @@ class Components:
 
         Parameters
         ----------
-        component_type: type
+        component_type : type
             The type of component to be returned.
 
         Returns
@@ -116,7 +116,7 @@ class Components:
 
         Parameters
         ----------
-        component: Any
+        component : Any
             The component to be removed from the rocket.
 
         Returns
@@ -135,14 +135,14 @@ class Components:
 
         Parameters
         ----------
-        index: int
+        index : int
             The index of the component to be removed from the list of
             components. If no index is specified, the last component is
             removed.
 
         Returns
         -------
-        component: Any
+        component : Any
             The component removed from the list of components.
         """
         return self._components.pop(index)

@@ -901,7 +901,7 @@ class EnvironmentAnalysis:
     def converted_pressure_level_data(self):
         """Convert pressure level data to desired unit system. This method will
         loop through all the data (dates, hours and variables) and convert
-        the units of each variable. Therefor, the performance of this method is
+        the units of each variable. therefore, the performance of this method is
         not optimal. However, this method is only called once and the results
         are cached, so that the conversion is only done once.
 

@@ -43,20 +43,20 @@ class Parachute:
         which is passed to the trigger function. Unit is in pascal.
     noise_corr : tuple, list
         Tuple with the correlation between noise and time.
-    noise_signal : list
+    noise_signal : list of tuple
         List of (t, noise signal) corresponding to signal passed to
         trigger function. Completed after running a simulation.
-    noisy_pressure_signal : list
+    noisy_pressure_signal : list of tuple
         List of (t, noisy pressure signal) that is passed to the
         trigger function. Completed after running a simulation.
-    clean_pressure_signal : list
+    clean_pressure_signal : list of tuple
         List of (t, clean pressure signal) corresponding to signal passed to
         trigger function. Completed after running a simulation.
     noise_signal_function : Function
         Function of noiseSignal.
-    noisy_pressure_signalFunction : Function
+    noisy_pressure_signal_function : Function
         Function of noisy_pressure_signal.
-    clean_pressure_signalFunction : Function
+    clean_pressure_signal_function : Function
         Function of clean_pressure_signal.
     """
 

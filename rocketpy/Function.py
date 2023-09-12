@@ -2888,9 +2888,9 @@ class PiecewiseFunction(Function):
         ----------
         source: dictionary
             A dictionary of Function objects, where the keys are the domains.
-        inputs : list
+        inputs : list of strings
             A list of strings that represent the inputs of the function.
-        outputs: list
+        outputs: list of strings
             A list of strings that represent the outputs of the function.
         interpolation: str
             The type of interpolation to use. The default value is 'akima'.
