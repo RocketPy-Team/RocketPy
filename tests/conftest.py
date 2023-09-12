@@ -257,7 +257,7 @@ def pressurant_fluid():
     rocketpy.Fluid
         An object of the Fluid class.
     """
-    return Fluid(name="N2", density=300, quality=1)
+    return Fluid(name="N2", density=300)
 
 
 @pytest.fixture
@@ -270,7 +270,7 @@ def fuel_pressurant():
     rocketpy.Fluid
         An object of the Fluid class.
     """
-    return Fluid(name="N2", density=25, quality=1)
+    return Fluid(name="N2", density=25)
 
 
 @pytest.fixture
@@ -283,7 +283,7 @@ def oxidizer_pressurant():
     rocketpy.Fluid
         An object of the Fluid class.
     """
-    return Fluid(name="N2", density=35, quality=1)
+    return Fluid(name="N2", density=35)
 
 
 @pytest.fixture
@@ -296,7 +296,7 @@ def fuel_fluid():
     rocketpy.Fluid
         An object of the Fluid class.
     """
-    return Fluid(name="Propane", density=500, quality=1)
+    return Fluid(name="Propane", density=500)
 
 
 @pytest.fixture
@@ -309,7 +309,7 @@ def oxidizer_fluid():
     rocketpy.Fluid
         An object of the Fluid class.
     """
-    return Fluid(name="O2", density=1000, quality=1)
+    return Fluid(name="O2", density=1000)
 
 
 @pytest.fixture

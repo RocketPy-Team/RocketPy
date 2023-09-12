@@ -125,7 +125,7 @@ def test_mass_based_tank():
     net mass flow rate properties. The test is performed on both a real
     tank and a simplified tank.
     """
-    lox = Fluid(name="LOx", density=1141.7, quality=1.0)  # Placeholder quality value
+    lox = Fluid(name="LOx", density=1141.7)
     propane = Fluid(
         name="Propane",
         density=493,
@@ -254,8 +254,8 @@ def test_level_based_tank():
     """Test LevelBasedTank subclass of Tank class using Berkeley SEB team's
     tank data of fluid level.
     """
-    lox = Fluid(name="LOx", density=1141.7, quality=1.0)
-    n2 = Fluid(name="Nitrogen Gas", density=51.75, quality=1.0)
+    lox = Fluid(name="LOx", density=1141.7)
+    n2 = Fluid(name="Nitrogen Gas", density=51.75)
 
     test_dir = "./data/berkeley/"
 
