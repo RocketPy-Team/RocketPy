@@ -517,3 +517,80 @@ def test_rail_length(calisto_robust, example_env, rail_length, out_of_rail_time)
         terminate_on_apogee=True,
     )
     assert abs(test_flight.z(test_flight.out_of_rail_time) - out_of_rail_time) < 1e-6
+
+
+@patch("matplotlib.pyplot.show")
+def test_time_overshoot(mock_show, calisto_robust, example_env_robust):
+    """Test the time_overshoot parameter of the Flight class. This basically
+    calls the all_info() method for a simulation without time_overshoot and
+    checks if it returns None. It is not testing if the values are correct,
+    just if the flight simulation is not breaking.
+
+    Parameters
+    ----------
+    calisto_robust : rocketpy.Rocket
+        The rocket to be simulated. In this case, the fixture rocket is used.
+        See the conftest.py file for more information.
+    example_env_robust : rocketpy.Environment
+        The environment to be simulated. In this case, the fixture environment
+        is used. See the conftest.py file for more information.
+    """
+
+    test_flight = Flight(
+        rocket=calisto_robust,
+        environment=example_env_robust,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        time_overshoot=False,
+    )
+
+    assert test_flight.all_info() == None
+
+
+@patch("matplotlib.pyplot.show")
+def test_liquid_motor_flight(mock_show, calisto_liquid_modded):
+    """Test the flight of a rocket with a liquid motor. This test only validates
+    that a flight simulation can be performed with a liquid motor; it does not
+    validate the results.
+
+    Parameters
+    ----------
+    mock_show : unittest.mock.MagicMock
+        Mock object to replace matplotlib.pyplot.show
+    calisto_liquid_modded : rocketpy.Rocket
+        Sample Rocket to be simulated. See the conftest.py file for more info.
+    """
+    test_flight = Flight(
+        rocket=calisto_liquid_modded,
+        environment=Environment(),
+        rail_length=5,
+        inclination=85,
+        heading=0,
+    )
+
+    assert test_flight.all_info() == None
+
+
+@patch("matplotlib.pyplot.show")
+def test_hybrid_motor_flight(mock_show, calisto_hybrid_modded):
+    """Test the flight of a rocket with a hybrid motor. This test only validates
+    that a flight simulation can be performed with a hybrid motor; it does not
+    validate the results.
+
+    Parameters
+    ----------
+    mock_show : unittest.mock.MagicMock
+        Mock object to replace matplotlib.pyplot.show
+    calisto_hybrid_modded : rocketpy.Rocket
+        Sample rocket to be simulated. See the conftest.py file for more info.
+    """
+    test_flight = Flight(
+        rocket=calisto_hybrid_modded,
+        environment=Environment(),
+        rail_length=5,
+        inclination=85,
+        heading=0,
+    )
+
+    assert test_flight.all_info() == None

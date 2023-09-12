@@ -2,9 +2,9 @@
 Elliptical Fins Equations
 =========================
 
+:Author: Mateus Stano Junqueira,
 :Author: Franz Masatoshi Yuri,
 :Author: Kaleb Ramos Wanderley Santos,
-:Author: Mateus Stano Junqueira,
 :Author: Matheus Gonçalvez Doretto,
 :Date:   February 2022
 
@@ -149,10 +149,21 @@ According to [Barrowman]_, the roll damping interference factor can be given by:
 Solving the integrals for elliptical fin geometry, using equations described at
 Chord Length (:math:`c`):
 
+When :math:`S > r`:
 
 .. math:: 
 
-    k_{R_{D}} = 1 + {r}^{2} \cdot \frac{\Bigl[2\cdot {r}^{2} \sqrt{s^2-r^2}\cdot \ln\Bigl(\frac{2s\cdot\sqrt{s^2-r^2}+ 2s^2}{r}\Bigr) - 2{r}^2\sqrt{{s}^2-{r}^2}\cdot \ln(2s) + 2s^{3} - {\pi}rs^{2} - 2r^2s + {\pi}\cdot {r}^3 \Bigr]}{2\cdot {s}^{2} \cdot \Bigl(\frac{s}{3}+\frac{{\pi}\cdot r}{4}\Bigr) \cdot\Bigl(s^2-r^2\Bigr)}
+    k_{R_{D}} = 1 + {r}^{2} \cdot \frac{2\cdot {r}^{2} \sqrt{s^2-r^2}\cdot \ln\Bigl(\frac{2s\cdot\sqrt{s^2-r^2}+ 2s^2}{r}\Bigr) - 2{r}^2\sqrt{{s}^2-{r}^2}\cdot \ln(2s) + 2s^{3} - {\pi}rs^{2} - 2r^2s + {\pi}\cdot {r}^3}{2\cdot {s}^{2} \cdot \Bigl(\frac{s}{3}+\frac{{\pi}\cdot r}{4}\Bigr) \cdot\Bigl(s^2-r^2\Bigr)}
+
+When :math:`S < r`:
+
+.. math::
+
+    k_{R_{D}} = 1-\frac{r^2 \cdot\left(2 s^3-\pi s^2 r-2 s r^2+\pi r^3+2 r^2 \sqrt{-s^2+r^2} \cdot \operatorname{atan}\left(\frac{s}{\sqrt{-s^2+r^2}}\right)-\pi r^2 \sqrt{-s^2+r^2}\right)}{2 s\left(-s^2+r^2\right)\left(\frac{s^2}{3}+\frac{\pi s r}{4}\right)}
+
+And by calculating the limit of the above expressions when :math:`S \rightarrow r` we have that, for :math:`S = r`:
+
+.. math:: k_{R_{D}} = \frac{28-3\pi}{4+3\pi}
 
 References
 ==========

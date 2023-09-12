@@ -12,7 +12,7 @@ from scipy import integrate
 from .Function import Function, funcify_method
 from .plots.flight_plots import _FlightPlots
 from .prints.flight_prints import _FlightPrints
-from .tools import Matrix, Vector
+from .tools import Matrix, Vector, find_closest
 
 
 class Flight:
@@ -698,11 +698,11 @@ class Flight:
                     hAGL = (
                         self.env.pressure.find_input(
                             pressure + noise,
-                            overshootable_node.y[2],
+                            self.y_sol[2],
                         )
                         - self.env.elevation
                     )
-                    if parachute.trigger(pressure + noise, hAGL, self.ySol):
+                    if parachute.trigger(pressure + noise, hAGL, self.y_sol):
                         # print('\nEVENT DETECTED')
                         # print('Parachute Triggered')
                         # print('Name: ', parachute.name, ' | Lag: ', parachute.lag)
@@ -1171,6 +1171,53 @@ class Flight:
         """Initialize equations of motion."""
         if self.equations_of_motion == "solid_propulsion":
             self.u_dot_generalized = self.u_dot
+
+    @cached_property
+    def effective_1rl(self):
+        nozzle = self.rocket.motor_position
+        try:
+            rail_buttons = self.rocket.rail_buttons[0]
+            upper_r_button = (
+                rail_buttons.component.buttons_distance * self.rocket._csys
+                + rail_buttons.position
+            )
+        except IndexError:  # No rail buttons defined
+            upper_r_button = nozzle
+        effective_1rl = self.rail_length - abs(nozzle - upper_r_button)
+        return effective_1rl
+
+    @cached_property
+    def effective_2rl(self):
+        nozzle = self.rocket.motor_position
+        try:
+            rail_buttons = self.rocket.rail_buttons[0]
+            lower_r_button = rail_buttons.position
+        except IndexError:  # No rail buttons defined
+            lower_r_button = nozzle
+        effective_2rl = self.rail_length - abs(nozzle - lower_r_button)
+        return effective_2rl
+
+    @cached_property
+    def frontal_surface_wind(self):
+        # Surface wind magnitude in the frontal direction at the rail's elevation
+        wind_u = self.env.wind_velocity_x(self.env.elevation)
+        wind_v = self.env.wind_velocity_y(self.env.elevation)
+        heading_rad = self.heading * np.pi / 180
+        frontal_surface_wind = wind_u * np.sin(heading_rad) + wind_v * np.cos(
+            heading_rad
+        )
+        return frontal_surface_wind
+
+    @cached_property
+    def lateral_surface_wind(self):
+        # Surface wind magnitude in the lateral direction at the rail's elevation
+        wind_u = self.env.wind_velocity_x(self.env.elevation)
+        wind_v = self.env.wind_velocity_y(self.env.elevation)
+        heading_rad = self.heading * np.pi / 180
+        lateral_surface_wind = -wind_u * np.cos(heading_rad) + wind_v * np.sin(
+            heading_rad
+        )
+        return lateral_surface_wind
 
     def udot_rail1(self, t, u, post_processing=False):
         """Calculates derivative of u state vector with respect to time
@@ -2079,16 +2126,50 @@ class Flight:
         return (self.ax**2 + self.ay**2 + self.az**2) ** 0.5
 
     @cached_property
-    def max_acceleration(self):
-        """Maximum acceleration reached by the rocket."""
-        max_acceleration_time_index = np.argmax(self.acceleration[:, 1])
-        return self.acceleration[max_acceleration_time_index, 1]
+    def max_acceleration_power_on_time(self):
+        """Time at which the rocket reaches its maximum acceleration during
+        motor burn."""
+        burn_out_time_index = find_closest(
+            self.acceleration.source[:, 0], self.rocket.motor.burn_out_time
+        )
+        max_acceleration_time_index = np.argmax(
+            self.acceleration[:burn_out_time_index, 1]
+        )
+        return self.acceleration[max_acceleration_time_index, 0]
+
+    @cached_property
+    def max_acceleration_power_on(self):
+        """Maximum acceleration reached by the rocket during motor burn."""
+        return self.acceleration(self.max_acceleration_power_on_time)
+
+    @cached_property
+    def max_acceleration_power_off_time(self):
+        """Time at which the rocket reaches its maximum acceleration after
+        motor burn."""
+        burn_out_time_index = find_closest(
+            self.acceleration.source[:, 0], self.rocket.motor.burn_out_time
+        )
+        max_acceleration_time_index = np.argmax(
+            self.acceleration[burn_out_time_index:, 1]
+        )
+        return self.acceleration[max_acceleration_time_index, 0]
+
+    @cached_property
+    def max_acceleration_power_off(self):
+        """Maximum acceleration reached by the rocket after motor burn."""
+        return self.acceleration(self.max_acceleration_power_off_time)
 
     @cached_property
     def max_acceleration_time(self):
         """Time at which the rocket reaches its maximum acceleration."""
         max_acceleration_time_index = np.argmax(self.acceleration[:, 1])
         return self.acceleration[max_acceleration_time_index, 0]
+
+    @cached_property
+    def max_acceleration(self):
+        """Maximum acceleration reached by the rocket."""
+        max_acceleration_time_index = np.argmax(self.acceleration[:, 1])
+        return self.acceleration[max_acceleration_time_index, 1]
 
     @funcify_method("Time (s)", "Horizontal Speed (m/s)")
     def horizontal_speed(self):
