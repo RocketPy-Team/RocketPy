@@ -1,5 +1,5 @@
 HybridMotor Prints Class
 ------------------------
 
-.. automodule:: rocketpy.prints.hybrid_motor_prints 
+.. autoclass:: rocketpy.prints.hybrid_motor_prints._HybridMotorPrints
    :members:

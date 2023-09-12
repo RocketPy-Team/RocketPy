@@ -1,5 +1,5 @@
 Tank Prints Class
 -----------------
 
-.. automodule:: rocketpy.prints.tank_prints 
+.. autoclass:: rocketpy.prints.tank_prints._TankPrints
    :members:

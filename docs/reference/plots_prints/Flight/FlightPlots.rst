@@ -1,5 +1,5 @@
 Flight Plots Class
 ------------------
 
-.. automodule:: rocketpy.plots.flight_plots 
+.. autoclass:: rocketpy.plots.flight_plots._FlightPlots
    :members:

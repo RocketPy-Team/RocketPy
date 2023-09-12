@@ -1,5 +1,5 @@
 Fluid Plots Class
 -----------------
 
-.. automodule:: rocketpy.plots.fluid_plots 
+.. autoclass:: rocketpy.plots.fluid_plots._FluidPlots
    :members:

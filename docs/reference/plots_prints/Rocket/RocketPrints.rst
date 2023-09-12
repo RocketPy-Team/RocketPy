@@ -1,5 +1,5 @@
 Rocket Prints Class
 -------------------
 
-.. automodule:: rocketpy.prints.rocket_prints 
+.. autoclass:: rocketpy.prints.rocket_prints._RocketPrints
    :members:

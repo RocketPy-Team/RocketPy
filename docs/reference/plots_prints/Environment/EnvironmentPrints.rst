@@ -1,5 +1,5 @@
 Environment Prints Class
 ------------------------
 
-.. automodule:: rocketpy.prints.environment_prints 
+.. autoclass:: rocketpy.prints.environment_prints._EnvironmentPrints
    :members:

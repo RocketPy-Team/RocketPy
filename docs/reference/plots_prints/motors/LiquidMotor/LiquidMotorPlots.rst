@@ -1,5 +1,5 @@
 LiquidMotor Plots Class
 -----------------------
 
-.. automodule:: rocketpy.plots.liquid_motor_plots 
+.. autoclass:: rocketpy.plots.liquid_motor_plots._LiquidMotorPlots
    :members:

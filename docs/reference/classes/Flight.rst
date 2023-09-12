@@ -1,5 +1,5 @@
 Flight Class
 ------------
 
-.. automodule:: rocketpy.Flight
+.. autoclass:: rocketpy.Flight
    :members:

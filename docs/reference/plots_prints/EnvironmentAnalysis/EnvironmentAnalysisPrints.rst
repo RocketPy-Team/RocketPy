@@ -1,5 +1,5 @@
 EnvironmentAnalysis Prints Class
 --------------------------------
 
-.. automodule:: rocketpy.prints.environment_analysis_prints 
+.. autoclass:: rocketpy.prints.environment_analysis_prints._EnvironmentAnalysisPrints
    :members:

@@ -1,5 +1,5 @@
 Environment Analysis Class
 --------------------------
 
-.. automodule:: rocketpy.EnvironmentAnalysis
+.. autoclass:: rocketpy.EnvironmentAnalysis
    :members:

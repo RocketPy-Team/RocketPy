@@ -1,5 +1,5 @@
 TankGeometry Plots Class
 ------------------------
 
-.. automodule:: rocketpy.plots.tank_geometry_plots 
+.. autoclass:: rocketpy.plots.tank_geometry_plots._TankGeometryPlots
    :members:

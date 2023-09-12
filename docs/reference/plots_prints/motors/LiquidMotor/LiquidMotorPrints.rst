@@ -1,5 +1,5 @@
 LiquidMotor Prints Class
 ------------------------
 
-.. automodule:: rocketpy.prints.liquid_motor_prints 
+.. autoclass:: rocketpy.prints.liquid_motor_prints._LiquidMotorPrints
    :members:

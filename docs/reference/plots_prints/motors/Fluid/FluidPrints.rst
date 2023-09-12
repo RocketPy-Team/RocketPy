@@ -1,5 +1,5 @@
 Fluid Prints Class
 ------------------
 
-.. automodule:: rocketpy.prints.fluid_prints 
+.. autoclass:: rocketpy.prints.fluid_prints._FluidPrints
    :members:

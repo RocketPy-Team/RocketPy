@@ -1,5 +1,5 @@
 EnvironmentAnalysis Plots Class
 -------------------------------
 
-.. automodule:: rocketpy.plots.environment_analysis_plots 
+.. autoclass:: rocketpy.plots.environment_analysis_plots._EnvironmentAnalysisPlots
    :members:

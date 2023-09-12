@@ -1,5 +1,5 @@
 HybridMotor Plots Class
 -----------------------
 
-.. automodule:: rocketpy.plots.hybrid_motor_plots 
+.. autoclass:: rocketpy.plots.hybrid_motor_plots._HybridMotorPlots
    :members:

@@ -1,5 +1,5 @@
 Motor Prints Class
 ------------------
 
-.. automodule:: rocketpy.prints.motor_prints 
+.. autoclass:: rocketpy.prints.motor_prints._MotorPrints
    :members:

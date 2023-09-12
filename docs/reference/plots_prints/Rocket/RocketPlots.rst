@@ -1,5 +1,5 @@
 Rocket Plots Class
 -------------------
 
-.. automodule:: rocketpy.plots.rocket_plots 
+.. autoclass:: rocketpy.plots.rocket_plots._RocketPlots
    :members:

@@ -1,5 +1,5 @@
 Motor Plots Class
 -----------------
 
-.. automodule:: rocketpy.plots.motor_plots 
+.. autoclass:: rocketpy.plots.motor_plots._MotorPlots
    :members:

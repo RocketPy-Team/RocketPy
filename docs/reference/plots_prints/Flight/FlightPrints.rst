@@ -1,5 +1,5 @@
 Flight Prints Class
 -------------------
 
-.. automodule:: rocketpy.prints.flight_prints 
+.. autoclass:: rocketpy.prints.flight_prints._FlightPrints
    :members:

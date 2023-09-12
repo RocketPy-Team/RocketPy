@@ -1,5 +1,5 @@
 SolidMotor Prints Class
 -----------------------
 
-.. automodule:: rocketpy.prints.solid_motor_prints 
+.. autoclass:: rocketpy.prints.solid_motor_prints._SolidMotorPrints
    :members:

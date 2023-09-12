@@ -1,5 +1,5 @@
 Tank Plots Class
 ----------------
 
-.. automodule:: rocketpy.plots.tank_plots 
+.. autoclass:: rocketpy.plots.tank_plots._TankPlots
    :members:
