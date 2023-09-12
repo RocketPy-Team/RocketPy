@@ -4,8 +4,27 @@ First Simulation with RocketPy
 Here we will show how to set up a complete simulation with RocketPy.
 
 .. seealso::
-    An example of a Jupyter Notebook with the complete simulation shown here
-    can be found in `Getting Started Notebook <https://colab.research.google.com/github/RocketPy-Team/rocketpy/blob/master/docs/notebooks/getting_started_colab.html>`_
+
+    You can find all the code used in this page in the notebooks folder of the
+    RocketPy repository. You can also run the code in Google Colab:
+
+    .. grid:: auto
+
+        .. grid-item::
+
+            .. button-link:: https://github.com/RocketPy-Team/RocketPy/blob/master/docs/notebooks/getting_started.ipynb
+                :ref-type: any
+                :color: primary
+
+                Notebook File
+
+        .. grid-item::
+
+            .. button-link:: https://colab.research.google.com/github/RocketPy-Team/rocketpy/blob/master/docs/notebooks/getting_started_colab.html
+                :ref-type: any
+                :color: secondary
+
+                Google Colab
 
 RocketPy is structured into four main classes, each one with its own purpose:
 

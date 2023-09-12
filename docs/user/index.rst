@@ -7,7 +7,6 @@ RocketPy's User Guide
 
    Installation and Requirements <installation.rst>
    First Simulation <first_simulation.rst>
-   Getting Started Notebook <../notebooks/getting_started.ipynb>
 
 .. toctree::
    :maxdepth: 1
