@@ -430,7 +430,7 @@ def liquid_motor(pressurant_tank, fuel_tank, oxidizer_tank):
         burn_time=(8, 20),
         dry_mass=10,
         dry_inertia=(5, 5, 0.2),
-        center_of_dry_mass=0,
+        center_of_dry_mass_position=0,
         nozzle_position=-1.364,
         nozzle_radius=0.069 / 2,
     )
@@ -489,7 +489,7 @@ def hybrid_motor(spherical_oxidizer_tank):
     motor = HybridMotor(
         thrust_source=lambda t: 2000 - 100 * t,
         burn_time=10,
-        center_of_dry_mass=0,
+        center_of_dry_mass_position=0,
         dry_inertia=(4, 4, 0.1),
         dry_mass=8,
         grain_density=1700,
