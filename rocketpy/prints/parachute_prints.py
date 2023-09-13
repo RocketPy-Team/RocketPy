@@ -2,6 +2,8 @@ __author__ = "Guilherme Fernandes Alves"
 __copyright__ = "Copyright 20XX, RocketPy Team"
 __license__ = "MIT"
 
+from inspect import getsourcelines
+
 
 class _ParachutePrints:
     """Class that holds prints methods for Parachute class.
@@ -42,7 +44,7 @@ class _ParachutePrints:
         """
 
         if self.parachute.trigger.__name__ == "<lambda>":
-            line = self.rocket.getsourcelines(self.parachute.trigger)[0][0]
+            line = getsourcelines(self.parachute.trigger)[0][0]
             print(
                 "Ejection signal trigger: "
                 + line.split("lambda ")[1].split(",")[0].split("\n")[0]
