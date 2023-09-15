@@ -1,4 +1,4 @@
-import importlib
+import importlib, importlib.metadata
 import re
 from bisect import bisect_left
 from cmath import isclose
