@@ -2,11 +2,11 @@ import importlib
 import re
 from bisect import bisect_left
 from cmath import isclose
-from importlib.metadata import version as importlib_get_version
 from itertools import product
 
 import pytz
 from cftime import num2pydate
+from packaging import version as packaging_version
 
 _NOT_FOUND = object()
 
@@ -1305,12 +1305,13 @@ def check_requirement_version(module_name, version):
             f"{module_name} is not installed. You can install it by running "
             + f"'pip install {module_name}'"
         )
-    installed_version = importlib_get_version(module_name)
-    if not eval(f'"{installed_version}" {operator} "{v_number}"'):
+    installed_version = packaging_version.parse(importlib.metadata.version(module_name))
+    required_version = packaging_version.parse(v_number)
+    if installed_version < required_version:
         raise ImportError(
-            f"{module_name} version is {installed_version}, but version {version} "
-            + f"is required. You can install a correct version by running "
-            + f"'pip install {module_name}{version}'"
+            f"{module_name} version is {installed_version}, which is not correct"
+            + f". A version {version} is required. You can install a correct "
+            + f"version by running 'pip install {module_name}{version}'"
         )
     return True
 
