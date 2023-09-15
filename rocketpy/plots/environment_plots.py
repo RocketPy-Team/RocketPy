@@ -128,7 +128,7 @@ class _EnvironmentPlots:
             self.grid,
             label="Wind V",
         )
-        ax.legend(loc="best").set_draggable(True)
+        # ax.legend(loc="best").set_draggable(True)
         ax.set_ylabel("Height Above Sea Level (m)")
         ax.set_xlabel("Wind Speed (m/s)")
         ax.grid(True)
@@ -216,7 +216,7 @@ class _EnvironmentPlots:
         # Create wind u and wind v subplot
         ax3 = plt.subplot(223)
         ax3 = self.__wind_components(ax3)
-        ax3.legend(loc="best").set_draggable(True)
+        # ax3.legend(loc="best").set_draggable(True)
 
         # Create pressure and temperature subplot
         ax4 = plt.subplot(224)
