@@ -362,7 +362,12 @@ class Environment:
 
         # Store launch site coordinates referenced to UTM projection system
         if self.latitude > -80 and self.latitude < 84:
-            convert = self.geodesic_to_utm(self.latitude, self.longitude)
+            convert = self.geodesic_to_utm(
+                lat=self.latitude,
+                lon=self.longitude,
+                flattening=self.ellipsoid.flattening,
+                semi_major_axis=self.ellipsoid.semi_major_axis,
+            )
 
             self.initial_north = convert[1]
             self.initial_east = convert[0]
@@ -375,8 +380,12 @@ class Environment:
         self.elevation = elevation
         self.set_elevation(elevation)
 
-        # Recalculate Earth Radius
-        self.earth_radius = self.calculate_earth_radius(self.latitude)  # in m
+        # Recalculate Earth Radius (meters)
+        self.earth_radius = self.calculate_earth_radius(
+            lat=self.latitude,
+            semi_major_axis=self.ellipsoid.semi_major_axis,
+            flattening=self.ellipsoid.flattening,
+        )
 
         # Initialize plots and prints object
         self.plots = _EnvironmentPlots(self)
@@ -3309,7 +3318,11 @@ class Environment:
             )
 
     # Auxiliary functions - Geodesic Coordinates
-    def geodesic_to_utm(self, lat, lon):
+
+    @staticmethod
+    def geodesic_to_utm(
+        lat, lon, semi_major_axis=6378137.0, flattening=1 / 298.257223563
+    ):
         """Function which converts geodetic coordinates, i.e. lat/lon, to UTM
         projection coordinates. Can be used only for latitudes between -80.00°
         and 84.00°
@@ -3322,6 +3335,14 @@ class Environment:
         lon : float
             The longitude coordinates of the point of analysis, must be
             contained between -180.00° and 180.00°
+        semi_major_axis : float
+            The semi-major axis of the ellipsoid used to represent the Earth,
+            must be given in meters (default is 6,378,137.0 m, which corresponds
+            to the WGS84 ellipsoid)
+        flattening : float
+            The flattening of the ellipsoid used to represent the Earth, usually
+            between 1/250 and 1/150 (default is 1/298.257223563, which
+            corresponds to the WGS84 ellipsoid)
 
         Returns
         -------
@@ -3359,10 +3380,6 @@ class Environment:
         else:
             lon_mc = 3
             EW = "W|E"
-
-        # Select the desired datum (i.e. the ellipsoid parameters)
-        flattening = self.ellipsoid.flattening
-        semi_major_axis = self.ellipsoid.semi_major_axis
 
         # Evaluate the hemisphere and determine the N coordinate at the Equator
         if lat < 0:
@@ -3424,7 +3441,10 @@ class Environment:
 
         return x, y, utm_zone, utm_letter, hemis, EW
 
-    def utm_to_geodesic(self, x, y, utm_zone, hemis):
+    @staticmethod
+    def utm_to_geodesic(
+        x, y, utm_zone, hemis, semi_major_axis=6378137.0, flattening=1 / 298.257223563
+    ):
         """Function to convert UTM coordinates to geodesic coordinates
         (i.e. latitude and longitude). The latitude should be between -80°
         and 84°
@@ -3441,6 +3461,14 @@ class Environment:
         hemis : string
             Equals to "S" for southern hemisphere and "N" for Northern
             hemisphere
+        semi_major_axis : float
+            The semi-major axis of the ellipsoid used to represent the Earth,
+            must be given in meters (default is 6,378,137.0 m, which corresponds
+            to the WGS84 ellipsoid)
+        flattening : float
+            The flattening of the ellipsoid used to represent the Earth, usually
+            between 1/250 and 1/150 (default is 1/298.257223563, which
+            corresponds to the WGS84 ellipsoid)
 
         Returns
         -------
@@ -3455,10 +3483,6 @@ class Environment:
 
         # Calculate the Central Meridian from the UTM zone number
         central_meridian = utm_zone * 6 - 183  # degrees
-
-        # Select the desired datum
-        flattening = self.ellipsoid.flattening
-        semi_major_axis = self.ellipsoid.semi_major_axis
 
         # Calculate reference values
         K0 = 1 - 1 / 2500
@@ -3513,7 +3537,10 @@ class Environment:
 
         return lat, lon
 
-    def calculate_earth_radius(self, lat):
+    @staticmethod
+    def calculate_earth_radius(
+        lat, semi_major_axis=6378137.0, flattening=1 / 298.257223563
+    ):
         """Simple function to calculate the Earth Radius at a specific latitude
         based on ellipsoidal reference model (datum). The earth radius here is
         assumed as the distance between the ellipsoid's center of gravity and a
@@ -3526,21 +3553,23 @@ class Environment:
         ----------
         lat : float
             latitude in which the Earth radius will be calculated
+        semi_major_axis : float
+            The semi-major axis of the ellipsoid used to represent the Earth,
+            must be given in meters (default is 6,378,137.0 m, which corresponds
+            to the WGS84 ellipsoid)
+        flattening : float
+            The flattening of the ellipsoid used to represent the Earth, usually
+            between 1/250 and 1/150 (default is 1/298.257223563, which
+            corresponds to the WGS84 ellipsoid)
 
         Returns
         -------
         radius : float
             Earth Radius at the desired latitude in meters
         """
-        # Select the desired datum (i.e. the ellipsoid parameters)
-        flattening = self.ellipsoid.flattening
-        semi_major_axis = self.ellipsoid.semi_major_axis
-
-        # Calculate the semi minor axis length
-        # semi_minor_axis = semi_major_axis - semi_major_axis*(flattening**(-1))
         semi_minor_axis = semi_major_axis * (1 - flattening)
 
-        # Convert latitude to radians
+        # Numpy trigonometric functions work with radians, so convert to radians
         lat = lat * np.pi / 180
 
         # Calculate the Earth Radius in meters
@@ -3554,9 +3583,6 @@ class Environment:
                 + (np.sin(lat) * semi_minor_axis) ** 2
             )
         )
-
-        # Convert latitude to degrees
-        lat = lat * 180 / np.pi
 
         return e_radius
 
