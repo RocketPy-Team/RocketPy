@@ -101,7 +101,9 @@ def test_generic_motor_center_of_mass(generic_motor):
     assert generic_motor.center_of_propellant_mass.y_array == pytest.approx(
         center_of_propellant_mass
     )
-    assert generic_motor.center_of_dry_mass == pytest.approx(center_of_dry_mass)
+    assert generic_motor.center_of_dry_mass_position == pytest.approx(
+        center_of_dry_mass
+    )
     assert generic_motor.center_of_mass.y_array == pytest.approx(center_of_mass)
 
 

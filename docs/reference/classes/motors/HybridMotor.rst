@@ -1,5 +1,5 @@
 HybridMotor Class
 -----------------
 
-.. automodule:: rocketpy.HybridMotor
+.. autoclass:: rocketpy.HybridMotor
    :members:

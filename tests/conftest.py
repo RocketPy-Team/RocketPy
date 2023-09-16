@@ -92,7 +92,7 @@ def cesaroni_m1670():  # old name: solid_motor
         burn_time=3.9,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
-        center_of_dry_mass=0.317,
+        center_of_dry_mass_position=0.317,
         nozzle_position=0,
         grain_number=5,
         grain_density=1815,
@@ -257,7 +257,7 @@ def pressurant_fluid():
     rocketpy.Fluid
         An object of the Fluid class.
     """
-    return Fluid(name="N2", density=300, quality=1)
+    return Fluid(name="N2", density=300)
 
 
 @pytest.fixture
@@ -270,7 +270,7 @@ def fuel_pressurant():
     rocketpy.Fluid
         An object of the Fluid class.
     """
-    return Fluid(name="N2", density=25, quality=1)
+    return Fluid(name="N2", density=25)
 
 
 @pytest.fixture
@@ -283,7 +283,7 @@ def oxidizer_pressurant():
     rocketpy.Fluid
         An object of the Fluid class.
     """
-    return Fluid(name="N2", density=35, quality=1)
+    return Fluid(name="N2", density=35)
 
 
 @pytest.fixture
@@ -296,7 +296,7 @@ def fuel_fluid():
     rocketpy.Fluid
         An object of the Fluid class.
     """
-    return Fluid(name="Propane", density=500, quality=1)
+    return Fluid(name="Propane", density=500)
 
 
 @pytest.fixture
@@ -309,7 +309,7 @@ def oxidizer_fluid():
     rocketpy.Fluid
         An object of the Fluid class.
     """
-    return Fluid(name="O2", density=1000, quality=1)
+    return Fluid(name="O2", density=1000)
 
 
 @pytest.fixture
@@ -430,7 +430,7 @@ def liquid_motor(pressurant_tank, fuel_tank, oxidizer_tank):
         burn_time=(8, 20),
         dry_mass=10,
         dry_inertia=(5, 5, 0.2),
-        center_of_dry_mass=0,
+        center_of_dry_mass_position=0,
         nozzle_position=-1.364,
         nozzle_radius=0.069 / 2,
     )
@@ -489,7 +489,7 @@ def hybrid_motor(spherical_oxidizer_tank):
     motor = HybridMotor(
         thrust_source=lambda t: 2000 - 100 * t,
         burn_time=10,
-        center_of_dry_mass=0,
+        center_of_dry_mass_position=0,
         dry_inertia=(4, 4, 0.1),
         dry_mass=8,
         grain_density=1700,
@@ -818,7 +818,7 @@ def dimensionless_cesaroni_m1670(kg, m):  # old name: dimensionless_motor
             0.125 * (kg * m**2),
             0.002 * (kg * m**2),
         ),
-        center_of_dry_mass=0.317 * m,
+        center_of_dry_mass_position=0.317 * m,
         grain_number=5,
         grain_separation=5 / 1000 * m,
         grain_density=1815 * (kg / m**3),

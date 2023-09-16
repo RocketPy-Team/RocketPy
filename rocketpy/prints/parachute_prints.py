@@ -1,8 +1,3 @@
-__author__ = "Guilherme Fernandes Alves"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-
 class _ParachutePrints:
     """Class that holds prints methods for Parachute class.
 
@@ -32,12 +27,8 @@ class _ParachutePrints:
     def trigger(self):
         """Prints trigger information.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -64,12 +55,8 @@ class _ParachutePrints:
     def all(self):
         """Prints all information about the parachute.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 

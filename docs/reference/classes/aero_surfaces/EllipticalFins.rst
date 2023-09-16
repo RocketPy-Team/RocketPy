@@ -1,5 +1,5 @@
 EllipticalFins Class
 --------------------
 
-.. automodule:: rocketpy.EllipticalFins
+.. autoclass:: rocketpy.EllipticalFins
    :members:

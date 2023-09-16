@@ -183,7 +183,7 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
         burn_time=1e-10,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
-        center_of_dry_mass=0.317,
+        center_of_dry_mass_position=0.317,
         grains_center_of_mass_position=0.397,
         grain_number=5,
         grain_separation=5 / 1000,

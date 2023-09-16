@@ -1,8 +1,3 @@
-__author__ = "Mateus Stano Junqueira"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-
 class _HybridMotorPlots:
     """Class that holds plot methods for HybridMotor class.
 
@@ -372,11 +367,8 @@ class _HybridMotorPlots:
         """Prints out all graphs available about the HybridMotor. It simply calls
         all the other plotter methods in this class.
 
-        Parameters
-        ----------
-        None
-        Return
-        ------
+        Returns
+        -------
         None
         """
 

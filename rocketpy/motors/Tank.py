@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-
-__author__ = "Giovani Hidalgo Ceotto, Oscar Mauricio Prada Ramirez, João Lemes Gribel Soares, Mateus Stano, Pedro Henrique Marinho Bressan, Patrick Bales, Lakshman Peri, Gautam Yarramreddy, Curtis Hu, and William Bradford"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
 from abc import ABC, abstractmethod
 
 import numpy as np
@@ -19,67 +13,66 @@ class Tank(ABC):
     that it evaluates useful properties of the tank and its fluids, such as
     mass, volume, fluid flow rate, center of mass, etc.
 
+    See Also
+    --------
+    :ref:`tanks_usage`
+
     Attributes
     ----------
-
-        Tank.name : str
-            Name of the tank.
-        Tank.geometry : rocketpy.motors.TankGeometry
-            Geometry of the tank.
-        Tank.flux_time : float, tuple of float, optional
-            Tank flux time in seconds.
-        Tank.liquid : rocketpy.motors.Fluid
-            Liquid inside the tank as a Fluid object.
-        Tank.gas : rocketpy.motors.Fluid
-            Gas inside the tank as a Fluid object.
-        Tank.discretize : int, optional
-            Number of points to discretize fluid inputs.
-
-    Properties
-    ----------
-
-        tank.fluid_mass : rocketpy.Function
-            Total mass of liquid and gases in kg inside the tank as a function
-            of time.
-        Tank.net_mass_flow_rate : rocketpy.Function
-            Net mass flow rate of the tank in kg/s as a function of time, also
-            understood as time derivative of the tank mass.
-        Tank.liquid_volume : rocketpy.Function
-            Volume of the liquid inside the Tank in m^3 as a function of time.
-        Tank.gas_volume : rocketpy.Function
-            Volume of the gas inside the Tank in m^3 as a function of time.
-        Tank.liquid_height : rocketpy.Function
-            Height of the liquid inside the Tank in m as a function of time.
-            The zero level reference is the same as set in Tank.geometry.
-        Tank.gas_height : rocketpy.Function
-            Height of the gas inside the Tank in m as a function of time.
-            The zero level reference is the same as set in Tank.geometry.
-        Tank.liquid_mass : rocketpy.Function
-            Mass of the liquid inside the Tank in kg as a function of time.
-        Tank.gas_mass : rocketpy.Function
-            Mass of the gas inside the Tank in kg as a function of time.
-        Tank.liquid_center_of_mass : rocketpy.Function
-            Center of mass of the liquid inside the Tank in m as a function of
-            time. The zero level reference is the same as set in Tank.geometry.
-        Tank.gas_center_of_mass : rocketpy.Function
-            Center of mass of the gas inside the Tank in m as a function of
-            time. The zero level reference is the same as set in Tank.geometry.
-        Tank.center_of_mass : rocketpy.Function
-            Center of mass of liquid and gas (i.e. propellant) inside the Tank
-            in m as a function of time. The zero level reference is the same as
-            set in Tank.geometry.
-        Tank.liquid_inertia : rocketpy.Function
-            The inertia of the liquid inside the Tank in kg*m^2 as a function
-            of time around a perpendicular axis to the Tank symmetry axis. The
-            reference point is the Tank center of mass.
-        Tank.gas_inertia : rocketpy.Function
-            The inertia of the gas inside the Tank in kg*m^2 as a function of
-            time around a perpendicular axis to the Tank symmetry axis. The
-            reference point is the Tank center of mass.
-        Tank.inertia : rocketpy.Function
-            The inertia of the liquid and gas (i.e. propellant) inside the Tank
-            in kg*m^2 as a function of time around a perpendicular axis to the
-            Tank symmetry axis. The reference point is the Tank center of mass.
+    Tank.name : str
+        Name of the tank.
+    Tank.geometry : TankGeometry
+        Geometry of the tank.
+    Tank.flux_time : float, tuple of float, optional
+        Tank flux time in seconds.
+    Tank.liquid : Fluid
+        Liquid inside the tank as a Fluid object.
+    Tank.gas : Fluid
+        Gas inside the tank as a Fluid object.
+    Tank.discretize : int, optional
+        Number of points to discretize fluid inputs.
+    Tank.fluid_mass : Function
+        Total mass of liquid and gases in kg inside the tank as a function
+        of time.
+    Tank.net_mass_flow_rate : Function
+        Net mass flow rate of the tank in kg/s as a function of time, also
+        understood as time derivative of the tank mass.
+    Tank.liquid_volume : Function
+        Volume of the liquid inside the Tank in m^3 as a function of time.
+    Tank.gas_volume : Function
+        Volume of the gas inside the Tank in m^3 as a function of time.
+    Tank.liquid_height : Function
+        Height of the liquid inside the Tank in m as a function of time.
+        The zero level reference is the same as set in Tank.geometry.
+    Tank.gas_height : Function
+        Height of the gas inside the Tank in m as a function of time.
+        The zero level reference is the same as set in Tank.geometry.
+    Tank.liquid_mass : Function
+        Mass of the liquid inside the Tank in kg as a function of time.
+    Tank.gas_mass : Function
+        Mass of the gas inside the Tank in kg as a function of time.
+    Tank.liquid_center_of_mass : Function
+        Center of mass of the liquid inside the Tank in m as a function of
+        time. The zero level reference is the same as set in Tank.geometry.
+    Tank.gas_center_of_mass : Function
+        Center of mass of the gas inside the Tank in m as a function of
+        time. The zero level reference is the same as set in Tank.geometry.
+    Tank.center_of_mass : Function
+        Center of mass of liquid and gas (i.e. propellant) inside the Tank
+        in m as a function of time. The zero level reference is the same as
+        set in Tank.geometry.
+    Tank.liquid_inertia : Function
+        The inertia of the liquid inside the Tank in kg*m^2 as a function
+        of time around a perpendicular axis to the Tank symmetry axis. The
+        reference point is the Tank center of mass.
+    Tank.gas_inertia : Function
+        The inertia of the gas inside the Tank in kg*m^2 as a function of
+        time around a perpendicular axis to the Tank symmetry axis. The
+        reference point is the Tank center of mass.
+    Tank.inertia : Function
+        The inertia of the liquid and gas (i.e. propellant) inside the Tank
+        in kg*m^2 as a function of time around a perpendicular axis to the
+        Tank symmetry axis. The reference point is the Tank center of mass.
     """
 
     def __init__(self, name, geometry, flux_time, liquid, gas, discretize=100):
@@ -89,18 +82,18 @@ class Tank(ABC):
         ----------
         name : str
             Name of the tank.
-        geometry : rocketpy.motors.TankGeometry
+        geometry : TankGeometry
             Geometry of the tank.
         flux_time : float, tuple of float, optional
             Tank flux time in seconds. It is the time range in which the tank
             flux is being analyzed. In general, during this time, the tank is
-            being filled or emptied.
-            If a float is given, the flux time is assumed to be between 0 and the
-            given float, in seconds. If a tuple of float is given, the flux time
-            is assumed to be between the first and second elements of the tuple.
-        gas : rocketpy.motors.Fluid
+            being filled or emptied.If a float is given, the flux time is
+            assumed to be between 0 and the given float, in seconds. If a tuple
+            of float is given, the flux time is assumed to be between the first
+            and second elements of the tuple.
+        gas : Fluid
             Gas inside the tank as a Fluid object.
-        liquid : rocketpy.motors.Fluid
+        liquid : Fluid
             Liquid inside the tank as a Fluid object.
         discretize : int, optional
             Number of points to discretize fluid inputs. If the input
@@ -276,7 +269,7 @@ class Tank(ABC):
 
         Returns
         -------
-        rocketpy.Function
+        Function
             Center of mass of the liquid portion of the tank as a
             function of time.
         """
@@ -305,7 +298,7 @@ class Tank(ABC):
 
         Returns
         -------
-        rocketpy.Function
+        Function
             Center of mass of the gas portion of the tank as a
             function of time.
         """
@@ -332,7 +325,7 @@ class Tank(ABC):
 
         Returns
         -------
-        rocketpy.Function
+        Function
             Center of mass of the tank's fluids as a function of time.
         """
         center_of_mass = (
@@ -361,7 +354,7 @@ class Tank(ABC):
 
         Returns
         -------
-        rocketpy.Function
+        Function
             Inertia tensor of the liquid portion of the tank as a
             function of time.
         """
@@ -387,7 +380,7 @@ class Tank(ABC):
 
         Returns
         -------
-        rocketpy.Function
+        Function
             Inertia tensor of the gas portion of the tank as a
             function of time.
         """
@@ -422,6 +415,10 @@ class MassFlowRateBasedTank(Tank):
     """Class to define a tank based on mass flow rates inputs. This class
     inherits from the Tank class. See the Tank class for more information
     on its attributes and methods.
+
+    See Also
+    --------
+    :ref:`tanks_usage`
     """
 
     def __init__(
@@ -445,35 +442,52 @@ class MassFlowRateBasedTank(Tank):
         ----------
         name : str
             Name of the tank.
-        geometry : rocketpy.geometry.TankGeometry
+        geometry : TankGeometry
             Geometry of the tank.
         flux_time : float, tuple of float, optional
             Tank flux time in seconds. It is the time range in which the tank
             flux is being analyzed. In general, during this time, the tank is
             being filled or emptied.
-            If a float is given, the flux time is assumed to be between 0 and the
-            given float, in seconds. If a tuple of float is given, the flux time
-            is assumed to be between the first and second elements of the tuple.
-        liquid : rocketpy.motors.Fluid
+            If a float is given, the flux time is assumed to be between 0 and
+            the given float, in seconds. If a tuple of float is given, the flux
+            time is assumed to be between the first and second elements of the
+            tuple.
+        liquid : Fluid
             Liquid inside the tank as a Fluid object.
-        gas : rocketpy.motors.Fluid
+        gas : Fluid
             Gas inside the tank as a Fluid object.
         initial_liquid_mass : float
             Initial liquid mass in the tank in kg.
         initial_gas_mass : float
             Initial gas mass in the tank in kg.
-        liquid_mass_flow_rate_in : int, float, callable, string, array
+        liquid_mass_flow_rate_in : int, float, callable, string, array, Function
             Liquid mass flow rate into the tank in kg/s. Always positive.
-            It must be a valid rocketpy.Function source.
-        gas_mass_flow_rate_in : int, float, callable, string, array
+            It must be a valid :class:`Function` source.
+            If a callable is given, it must be a function of time.
+            If a ``.csv`` file is given, it must have two columns, the first
+            one being time in seconds and the second one being the mass flow
+            rate in kg/s.
+        gas_mass_flow_rate_in : int, float, callable, string, array, Function
             Gas mass flow rate into the tank in kg/s. Always positive.
-            It must be a valid rocketpy.Function source.
-        liquid_mass_flow_rate_out : int, float, callable, string, array
+            It must be a valid :class:`Function` source.
+            If a callable is given, it must be a function of time.
+            If a ``.csv`` file is given, it must have two columns, the first
+            one being time in seconds and the second one being the mass flow
+            rate in kg/s.
+        liquid_mass_flow_rate_out : int, float, callable, string, array, Function
             Liquid mass flow rate out of the tank in kg/s. Always positive.
-            It must be a valid rocketpy.Function source.
-        gas_mass_flow_rate_out : int, float, callable, string, array
+            It must be a valid :class:`Function` source.
+            If a callable is given, it must be a function of time.
+            If a ``.csv`` file is given, it must have two columns, the first
+            one being time in seconds and the second one being the mass flow
+            rate in kg/s.
+        gas_mass_flow_rate_out : int, float, callable, string, array, Function
             Gas mass flow rate out of the tank in kg/s. Always positive.
-            It must be a valid rocketpy.Function source.
+            It must be a valid :class:`Function` source.
+            If a callable is given, it must be a function of time.
+            If a ``.csv`` file is given, it must have two columns, the first
+            one being time in seconds and the second one being the mass flow
+            rate in kg/s.
         discretize : int, optional
             Number of points to discretize fluid inputs. If the mass flow
             rate inputs are uniformly discretized (have the same time steps)
@@ -740,6 +754,10 @@ class UllageBasedTank(Tank):
     the ullage volume is uniformly filled by the gas. This class inherits from
     the Tank class. See the Tank class for more information on its attributes
     and methods.
+
+    See Also
+    --------
+    :ref:`tanks_usage`
     """
 
     def __init__(
@@ -757,23 +775,26 @@ class UllageBasedTank(Tank):
         ----------
         name : str
             Name of the tank.
-        geometry : rocketpy.geometry.TankGeometry
+        geometry : TankGeometry
             Geometry of the tank.
         flux_time : float, tuple of float, optional
             Tank flux time in seconds. It is the time range in which the tank
             flux is being analyzed. In general, during this time, the tank is
-            being filled or emptied.
-            If a float is given, the flux time is assumed to be between 0 and the
-            given float, in seconds. If a tuple of float is given, the flux time
-            is assumed to be between the first and second elements of the tuple.
-        liquid : rocketpy.motors.Fluid
+            being filled or emptied. If a float is given, the flux time is
+            assumed to be between 0 and the given float, in seconds. If a tuple
+            of float is given, the flux time is assumed to be between the first
+            and second elements of the tuple.
+        liquid : Fluid
             Liquid inside the tank as a Fluid object.
-        gas : rocketpy.motors.Fluid
+        gas : Fluid
             Gas inside the tank as a Fluid object.
-        ullage : int, float, callable, string, array
+        ullage : int, float, callable, string, array, Function
             Ullage volume as a function of time in m^3. Also understood as the
             volume of the Tank that is not occupied by liquid. Must be a valid
-            rocketpy.Function source.
+            :class:`Function` source.
+            If a callable is given, it must be a function of time in seconds.
+            If a ``.csv`` file is given, the first column must be the time in
+            seconds and the second column must be the ullage volume in m^3.
         discretize : int, optional
             Number of points to discretize fluid inputs. If the ullage input is
             already discretized this parameter may be set to None. Otherwise,
@@ -907,10 +928,9 @@ class UllageBasedTank(Tank):
     @funcify_method("Time (s)", "Height (m)", "linear")
     def gas_height(self):
         """
-        Returns the gas level as a function of time. This
-        height is measured from the zero level of the tank
-        geometry. Since the gas is assumed to be uniformly
-        distributed in the ullage, the gas height is constant
+        Returns the gas level as a function of time. This height is measured
+        from the zero level of the tank geometry. Since the gas is assumed to
+        be uniformly distributed in the ullage, the gas height is constant
         and equal to the top of the tank geometry.
 
         Returns
@@ -932,6 +952,10 @@ class LevelBasedTank(Tank):
     above the liquid level is uniformly occupied by gas. This class inherits
     from the Tank class. See the Tank class for more information on its
     attributes and methods.
+
+    See Also
+    --------
+    :ref:`tanks_usage`
     """
 
     def __init__(
@@ -949,23 +973,26 @@ class LevelBasedTank(Tank):
         ----------
         name : str
             Name of the tank.
-        geometry : rocketpy.geometry.TankGeometry
+        geometry : TankGeometry
             Geometry of the tank.
         flux_time : float, tuple of float, optional
             Tank flux time in seconds. It is the time range in which the tank
             flux is being analyzed. In general, during this time, the tank is
-            being filled or emptied.
-            If a float is given, the flux time is assumed to be between 0 and the
-            given float, in seconds. If a tuple of float is given, the flux time
-            is assumed to be between the first and second elements of the tuple.
-        liquid : rocketpy.motors.Fluid
+            being filled or emptied. If a float is given, the flux time is
+            assumed to be between 0 and the given float, in seconds. If a tuple
+            of float is given, the flux time is assumed to be between the first
+            and second elements of the tuple.
+        liquid : Fluid
             Liquid inside the tank as a Fluid object.
-        gas : rocketpy.motors.Fluid
+        gas : Fluid
             Gas inside the tank as a Fluid object.
-        liquid_height : int, float, callable, string, array
+        liquid_height : int, float, callable, string, array, Function
             Liquid height as a function of time in m. Must be a valid
-            rocketpy.Function source. The liquid height zero level reference
-            is assumed to be the same as the Tank geometry.
+            :class:`Function` source. The liquid height zero level
+            reference is assumed to be the same as the Tank geometry.
+            If a callable is given, it must be a function of time in seconds
+            If a ``.csv`` file is given, the first column is assumed to be the
+            time and the second column the liquid height in meters.
         discretize : int, optional
             Number of points to discretize fluid inputs. If the liquid height
             input is already discretized this parameter may be set to None.
@@ -1136,6 +1163,10 @@ class MassBasedTank(Tank):
     """Class to define a tank whose flow is described by liquid and gas masses.
     This class inherits from the Tank class. See the Tank class for more
     information on its attributes and methods.
+
+    See Also
+    --------
+    :ref:`tanks_usage`
     """
 
     def __init__(
@@ -1154,25 +1185,31 @@ class MassBasedTank(Tank):
         ----------
         name : str
             Name of the tank.
-        geometry : rocketpy.geometry.TankGeometry
+        geometry : TankGeometry
             Geometry of the tank.
         flux_time : float, tuple of float, optional
             Tank flux time in seconds. It is the time range in which the tank
             flux is being analyzed. In general, during this time, the tank is
-            being filled or emptied.
-            If a float is given, the flux time is assumed to be between 0 and the
-            given float, in seconds. If a tuple of float is given, the flux time
-            is assumed to be between the first and second elements of the tuple.
-        liquid : rocketpy.motors.Fluid
+            being filled or emptied. If a float is given, the flux time is
+            assumed to be between 0 and the given float, in seconds. If a tuple
+            of float is given, the flux time is assumed to be between the first
+            and second elements of the tuple.
+        liquid : Fluid
             Liquid inside the tank as a Fluid object.
-        gas : rocketpy.motors.Fluid
+        gas : Fluid
             Gas inside the tank as a Fluid object.
-        liquid_mass : int, float, callable, string, array
+        liquid_mass : int, float, callable, string, array, Function
             Liquid mass as a function of time in kg. Must be a valid
-            rocketpy.Function source.
-        gas_mass : int, float, callable, string, array
+            :class:`Function` source.
+            If a callable is given, it must be a function of time in seconds.
+            If a ``.csv`` file is given, the first column must be the time in
+            seconds and the second column must be the liquid mass in kg.
+        gas_mass : int, float, callable, string, array, Function
             Gas mass as a function of time in kg. Must be a valid
-            rocketpy.Function source.
+            :class:`Function` source.
+            If a callable is given, it must be a function of time in seconds.
+            If a ``.csv`` file is given, the first column must be the time in
+            seconds and the second column must be the gas mass in kg.
         discretize : int, optional
             Number of points to discretize fluid inputs. If the mass inputs
             are uniformly discretized (have the same time steps) this parameter

@@ -1,8 +1,3 @@
-__author__ = "Mateus Stano Junqueira"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-
 class _LiquidMotorPrints:
     """Class that holds prints methods for LiquidMotor class.
 
@@ -34,12 +29,8 @@ class _LiquidMotorPrints:
     def nozzle_details(self):
         """Prints out all data available about the Nozzle.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         print("Nozzle Details")
@@ -49,12 +40,8 @@ class _LiquidMotorPrints:
     def motor_details(self):
         """Prints out all data available about the motor.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         print("Motor Details")
@@ -93,12 +80,8 @@ class _LiquidMotorPrints:
     def all(self):
         """Prints out all data available about the LiquidMotor.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         self.nozzle_details()

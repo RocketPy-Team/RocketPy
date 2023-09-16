@@ -1,8 +1,3 @@
-__author__ = " "
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-
 class _FlightPrints:
     """Class that holds prints methods for Flight class.
 
@@ -34,12 +29,8 @@ class _FlightPrints:
     def initial_conditions(self):
         """Prints all initial conditions data available about the Flight.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -83,12 +74,8 @@ class _FlightPrints:
         """Prints out the Numerical Integration settings available about the
         flight.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -139,10 +126,6 @@ class _FlightPrints:
 
     def launch_rail_conditions(self):
         """Prints out the Launch Rail Conditions available about the flight.
-
-        Parameters
-        ----------
-        None
 
         Returns
         -------
@@ -411,12 +394,8 @@ class _FlightPrints:
     def all(self):
         """Prints out all data available about the Flight.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 

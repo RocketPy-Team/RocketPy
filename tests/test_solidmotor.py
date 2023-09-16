@@ -245,7 +245,7 @@ def test_reshape_thrust_curve_asserts_resultant_thrust_curve_correct():
         burn_time=burn_time,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
-        center_of_dry_mass=0.317,
+        center_of_dry_mass_position=0.317,
         nozzle_position=0,
         grain_number=grain_number,
         grain_density=grain_density,

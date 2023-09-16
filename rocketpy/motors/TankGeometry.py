@@ -1,7 +1,3 @@
-__author__ = "Pedro Henrique Marinho Bressan, Mateus Stano Junqueira"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
 import numpy as np
 
 from rocketpy.Function import Function, PiecewiseFunction, funcify_method
@@ -29,61 +25,41 @@ class TankGeometry:
 
     Attributes
     ----------
-
-        Geometrical attributes:
-        TankGeometry.geometry : dict
-            Dictionary containing the geometry of the tank. The dictionary
-            keys are disjoint domains of the corresponding coordinates in
-            meters on the TankGeometry symmetry axis. The dictionary values
-            are rocketpy.Function objects that map the Tank height to its
-            corresponding radius.
-            As an example, `{ (-1,1): Function(lambda h: (1 - h**2) ** (1/2)) }`
-            defines an spherical tank of radius 1.
-        TankGeometry.radius : rocketpy.Function
-            Piecewise defined radius in meters as a rocketpy.Function based
-            on the TankGeometry.geometry dict.
-        TankGeometry.average_radius : float
-            The average radius in meters of the Tank radius. It is calculated
-            as the average of the radius Function over the tank height.
-        TankGeometry.bottom : float
-            The bottom of the tank. It is the lowest coordinate that belongs to
-            the domain of the geometry.
-        TankGeometry.top : float
-            The top of the tank. It is the highest coordinate that belongs to
-            the domain of the geometry.
-        TankGeometry.total_height : float
-            The total height of the tank, in meters. It is calculated as the
-            difference between the top and bottom coordinates.
-        TankGeometry.area : rocketpy.Function
-            Tank cross sectional area in meters squared as a function of height,
-            defined as the area of a circle with radius TankGeometry.radius.
-        TankGeometry.volume : rocketpy.Function
-            Tank volume in in meters cubed as a function of height, defined as
-            the Tank volume from the bottom to the given height.
-        TankGeometry.total_volume : float
-            Total volume of the tank, in meters cubed. It is calculated as the
-            volume from the bottom to the top of the tank.
-        TankGeometry.inverse_volume : rocketpy.Function
-            Tank height as a function of volume, defined as the inverse of the
-            TankGeometry.volume Function.
-
-    Methods
-    -------
-        TankGeometry.volume_moment : rocketpy.Function
-            Tank first volume moment in m^4 of the tank as a function of height.
-            See TankGeometry.volume_moment for more details.
-        TankGeometry.Ix_volume : rocketpy.Function
-            Tank volume of inertia in m^5 around the an axis that is perpendicular
-            to the tank symmetry axis. The reference is the zero height coordinate.
-            See TankGeometry.Ix_volume for more details.
-        TankGeometry.Iz_volume : rocketpy.Function
-            Tank volume of inertia in m^5 around the tank symmetry axis. The
-            reference is the zero height coordinate. See TankGeometry.Iz_volume
-            for more details.
-        TankGeometry.add_geometry : None
-            Adds a new geometry to the tank. See TankGeometry.add_geometry for
-            more details.
-
+    TankGeometry.geometry : dict
+        Dictionary containing the geometry of the tank. The dictionary
+        keys are disjoint domains of the corresponding coordinates in
+        meters on the TankGeometry symmetry axis. The dictionary values
+        are rocketpy.Function objects that map the Tank height to its
+        corresponding radius.
+        As an example, `{ (-1,1): Function(lambda h: (1 - h**2) ** (1/2)) }`
+        defines an spherical tank of radius 1.
+    TankGeometry.radius : Function
+        Piecewise defined radius in meters as a rocketpy.Function based
+        on the TankGeometry.geometry dict.
+    TankGeometry.average_radius : float
+        The average radius in meters of the Tank radius. It is calculated
+        as the average of the radius Function over the tank height.
+    TankGeometry.bottom : float
+        The bottom of the tank. It is the lowest coordinate that belongs to
+        the domain of the geometry.
+    TankGeometry.top : float
+        The top of the tank. It is the highest coordinate that belongs to
+        the domain of the geometry.
+    TankGeometry.total_height : float
+        The total height of the tank, in meters. It is calculated as the
+        difference between the top and bottom coordinates.
+    TankGeometry.area : Function
+        Tank cross sectional area in meters squared as a function of height,
+        defined as the area of a circle with radius TankGeometry.radius.
+    TankGeometry.volume : Function
+        Tank volume in in meters cubed as a function of height, defined as
+        the Tank volume from the bottom to the given height.
+    TankGeometry.total_volume : float
+        Total volume of the tank, in meters cubed. It is calculated as the
+        volume from the bottom to the top of the tank.
+    TankGeometry.inverse_volume : Function
+        Tank height as a function of volume, defined as the inverse of the
+        TankGeometry.volume Function.
     """
 
     def __init__(self, geometry_dict=dict()):
@@ -138,7 +114,7 @@ class TankGeometry:
 
         Returns
         -------
-        rocketpy.Function
+        Function
             Piecewise defined Function of tank radius.
         """
         return self.radius
@@ -236,7 +212,7 @@ class TankGeometry:
 
         Returns
         -------
-        rocketpy.Function
+        Function
             Tank height as a function of volume.
         """
         return self.volume.inverse_function(
@@ -246,21 +222,22 @@ class TankGeometry:
     @cache
     def volume_moment(self, lower, upper):
         """
-        Calculates the first volume moment of the tank as a function of height.
-        The first volume moment is used in the evaluation of the tank centroid,
-        and can be understood as the weighted sum of the tank's infinitesimal
-        slices volume by their height.
+        Calculates the first volume moment in m^4 of the tank as a function of
+        height. The first volume moment is used in the evaluation of the tank
+        centroid, and can be understood as the weighted sum of the tank's
+        infinitesimal slices volume by their height.
 
         The height referential is the zero level of the defined tank geometry,
         not to be confused with the tank bottom.
 
-        See also:
-        https://en.wikipedia.org/wiki/Moment_(physics)
-
         Returns
         -------
-        rocketpy.Function
+        Function
             Tank's first volume moment as a function of height.
+
+        References
+        ----------
+        .. [1] `<https://en.wikipedia.org/wiki/Moment_(physics)#Examples/>`_
         """
         height = self.area.identity_function()
 
@@ -277,8 +254,7 @@ class TankGeometry:
 
     @cache
     def Ix_volume(self, lower, upper):
-        """
-        The volume of inertia of the tank with respect to
+        """The volume of inertia of the tank in m^5 with respect to
         the x-axis as a function of height. The x direction is
         assumed to be perpendicular to the motor body axis.
 
@@ -294,7 +270,7 @@ class TankGeometry:
 
         Returns
         -------
-        rocketpy.Function
+        Function
             Tank volume of inertia as a function of height.
 
         References
@@ -330,7 +306,7 @@ class TankGeometry:
 
         Returns
         -------
-        rocketpy.Function
+        Function
             Tank volume of inertia as a function of height.
         """
         return self.Ix_volume(lower, upper)
@@ -347,7 +323,7 @@ class TankGeometry:
 
         Returns
         -------
-        rocketpy.Function
+        Function
             Tank volume of inertia as a function of height.
         """
         # Tolerance of 1e-8 is used to avoid numerical errors
@@ -367,7 +343,7 @@ class TankGeometry:
         domain : tuple
             Tuple containing the lower and upper bounds of the domain where the
             radius is valid.
-        radius_function : rocketpy.Function, callable
+        radius_function : Function, callable
             Function that defines the radius of the tank as a function of height.
         """
         self._geometry[domain] = Function(radius_function)

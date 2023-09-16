@@ -1,5 +1,5 @@
 UllageBasedTank Class
 ---------------------
 
-.. automodule:: rocketpy.UllageBasedTank
+.. autoclass:: rocketpy.UllageBasedTank
    :members:
