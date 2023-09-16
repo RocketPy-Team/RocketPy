@@ -1,5 +1,5 @@
 Parachute Class
 ---------------
 
-.. automodule:: rocketpy.Parachute
+.. autoclass:: rocketpy.Parachute
    :members:

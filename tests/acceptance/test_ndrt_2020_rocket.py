@@ -87,7 +87,7 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
         burn_time=parameters.get("burn_time")[0],
         dry_mass=1,
         dry_inertia=(0, 0, 0),
-        center_of_dry_mass=0,
+        center_of_dry_mass_position=0,
         grains_center_of_mass_position=parameters.get("distance_rocket_propellant")[0],
         grain_number=5,
         grain_separation=parameters.get("grain_separation")[0],

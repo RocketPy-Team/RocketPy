@@ -1,5 +1,5 @@
 MassFlowRateBasedTank Class
 ---------------------------
 
-.. automodule:: rocketpy.MassFlowRateBasedTank
+.. autoclass:: rocketpy.MassFlowRateBasedTank
    :members:

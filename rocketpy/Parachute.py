@@ -1,7 +1,3 @@
-__author__ = "Giovani Hidalgo Ceotto, Franz Masatoshi Yuri, Guilherme Fernandes Alves"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
 import numpy as np
 
 from .Function import Function
@@ -25,7 +21,7 @@ class Parachute:
         force is the dynamic pressure computed on the parachute
         times its cd_s coefficient. Has units of area and must be
         given in squared meters.
-    trigger : function
+    trigger : function, callable
         Function which defines if the parachute ejection system is
         to be triggered. It must take as input the freestream
         pressure in pascal, the height in meters (above ground level), and
@@ -47,20 +43,20 @@ class Parachute:
         which is passed to the trigger function. Unit is in pascal.
     noise_corr : tuple, list
         Tuple with the correlation between noise and time.
-    noise_signal : list
+    noise_signal : list of tuple
         List of (t, noise signal) corresponding to signal passed to
         trigger function. Completed after running a simulation.
-    noisy_pressure_signal : list
+    noisy_pressure_signal : list of tuple
         List of (t, noisy pressure signal) that is passed to the
         trigger function. Completed after running a simulation.
-    clean_pressure_signal : list
+    clean_pressure_signal : list of tuple
         List of (t, clean pressure signal) corresponding to signal passed to
         trigger function. Completed after running a simulation.
-    noise_signalFunction : Function
+    noise_signal_function : Function
         Function of noiseSignal.
-    noisy_pressure_signalFunction : Function
+    noisy_pressure_signal_function : Function
         Function of noisy_pressure_signal.
-    clean_pressure_signalFunction : Function
+    clean_pressure_signal_function : Function
         Function of clean_pressure_signal.
     """
 
@@ -70,7 +66,7 @@ class Parachute:
         cd_s,
         trigger,
         sampling_rate,
-        lag,
+        lag=0,
         noise=(0, 0, 0),
     ):
         """Initializes Parachute class.
@@ -96,7 +92,7 @@ class Parachute:
             Sampling rate in which the parachute trigger will be checked at.
             It is used to simulate the refresh rate of onboard sensors such
             as barometers. Default value is 100. Value must be given in hertz.
-        lag : float
+        lag : float, optional
             Time between the parachute ejection system is triggered and the
             parachute is fully opened. During this time, the simulation will
             consider the rocket as flying without a parachute. Default value
@@ -159,9 +155,6 @@ class Parachute:
 
     def __str__(self):
         """Returns a string representation of the Parachute class.
-        Parameters
-        ----------
-        None
 
         Returns
         -------
@@ -174,11 +167,13 @@ class Parachute:
         )
 
     def info(self):
+        """Prints information about the Parachute class."""
         self.prints.all()
 
         return None
 
     def all_info(self):
+        """Prints all information about the Parachute class."""
         self.info()
         # self.plots.all() # Parachutes still doesn't have plots
 

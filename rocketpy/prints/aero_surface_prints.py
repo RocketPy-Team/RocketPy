@@ -1,7 +1,3 @@
-__author__ = "Guilherme Fernandes Alves"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
 from abc import ABC, abstractmethod
 
 
@@ -131,12 +127,8 @@ class _FinsPrints(_AeroSurfacePrints):
     def airfoil(self):
         """Prints out airfoil related information of the fin set.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         if self.aero_surface.airfoil:
@@ -154,12 +146,8 @@ class _FinsPrints(_AeroSurfacePrints):
         """Prints out information about roll parameters
         of the fin set.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         print(f"Roll information of the fin set:")
@@ -179,12 +167,8 @@ class _FinsPrints(_AeroSurfacePrints):
         """Prints out information about lift parameters
         of the fin set.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         print(f"Lift information of the fin set:")

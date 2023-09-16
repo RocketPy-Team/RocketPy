@@ -5,16 +5,19 @@ RocketPy in MATLAB®
 --------------------
 Did you know you can run RocketPy inside MATLAB®?
 
-MATLAB® provides a nice method to run Python libraries, allowing everyone familiar with MATLAB® to run RocketPy, getting the best of both worlds.
+MATLAB® provides a nice method to run Python libraries, allowing everyone 
+familiar with MATLAB® to run RocketPy, getting the best of both worlds.
 
-Below, you will find a quick tutorial created using Live Script which reproduces RocketPy's classic Getting Started tutorial.
+Below, you will find a quick tutorial created using Live Script which reproduces
+RocketPy's classic Getting Started tutorial.
 
 Download Files
 --------------
 
 .. only:: builder_html or readthedocs
 
-   You can download the :download:`Live Script <Getting_Started.mlx>` or the :download:`MATLAB® script <Getting_Started.m>` file to follow along.
+   You can download the :download:`Live Script <Getting_Started.mlx>` or the 
+   :download:`MATLAB® script <Getting_Started.m>` file to follow along.
 
 Tutorial
 --------

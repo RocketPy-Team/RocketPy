@@ -2,11 +2,13 @@ AeroSurface Classes
 ===================
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 1
    :caption: Contents:
 
+   AeroSurface
    NoseCone
+   Tail
+   Fins
    TrapezoidalFins
    EllipticalFins
-   Tail
    RailButtons

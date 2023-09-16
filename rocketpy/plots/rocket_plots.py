@@ -1,8 +1,3 @@
-__author__ = "Oscar Mauricio Prada Ramirez"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -37,12 +32,8 @@ class _RocketPlots:
     def total_mass(self):
         """Plots total mass of the rocket as a function of time.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -53,12 +44,8 @@ class _RocketPlots:
     def reduced_mass(self):
         """Plots reduced mass of the rocket as a function of time.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -69,12 +56,8 @@ class _RocketPlots:
     def static_margin(self):
         """Plots static margin of the rocket as a function of time.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -85,12 +68,8 @@ class _RocketPlots:
     def power_on_drag(self):
         """Plots power on drag of the rocket as a function of time.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -101,12 +80,8 @@ class _RocketPlots:
     def power_off_drag(self):
         """Plots power off drag of the rocket as a function of time.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -118,12 +93,8 @@ class _RocketPlots:
         """Plots the motor thrust force divided by rocket
             weight as a function of time.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -137,11 +108,8 @@ class _RocketPlots:
         """Prints out all graphs available about the Rocket. It simply calls
         all the other plotter methods in this class.
 
-        Parameters
-        ----------
-        None
-        Return
-        ------
+        Returns
+        -------
         None
         """
 

@@ -51,7 +51,7 @@ def test_coordinate_system_orientation(
         burn_time=3.9,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
-        center_of_dry_mass=0.317,
+        center_of_dry_mass_position=0.317,
         nozzle_position=0,
         grain_number=5,
         grain_density=1815,

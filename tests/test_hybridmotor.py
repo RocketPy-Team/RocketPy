@@ -53,7 +53,7 @@ def test_hybrid_motor_basic_parameters(hybrid_motor):
         hybrid_motor.dry_I_22,
         hybrid_motor.dry_I_33,
     ) == dry_inertia
-    assert hybrid_motor.center_of_dry_mass == center_of_dry_mass
+    assert hybrid_motor.center_of_dry_mass_position == center_of_dry_mass
     assert hybrid_motor.nozzle_position == nozzle_position
     assert hybrid_motor.nozzle_radius == nozzle_radius
     assert hybrid_motor.solid.grain_number == grain_number

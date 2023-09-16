@@ -1,5 +1,5 @@
 Fluid Class
 -----------
 
-.. automodule:: rocketpy.Fluid
+.. autoclass:: rocketpy.Fluid
    :members:

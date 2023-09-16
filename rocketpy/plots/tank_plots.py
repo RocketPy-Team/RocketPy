@@ -1,8 +1,3 @@
-__author__ = "Mateus Stano Junqueira"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-
 class _TankPlots:
     """Class that holds plot methods for Tank class.
 
@@ -34,11 +29,8 @@ class _TankPlots:
         """Prints out all graphs available about the Tank. It simply calls
         all the other plotter methods in this class.
 
-        Parameters
-        ----------
-        None
-        Return
-        ------
+        Returns
+        -------
         None
         """
 

@@ -1,7 +1,3 @@
-__author__ = "Guilherme Fernandes Alves, Mateus Stano Junqueira"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
 import warnings
 import matplotlib.pyplot as plt
 

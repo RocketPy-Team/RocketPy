@@ -1,5 +1,5 @@
 LiquidMotor Class
 -----------------
 
-.. automodule:: rocketpy.LiquidMotor
+.. autoclass:: rocketpy.LiquidMotor
    :members:

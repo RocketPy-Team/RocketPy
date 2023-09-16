@@ -1,7 +1,3 @@
-__author__ = "Guilherme Fernandes Alves"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import numpy as np

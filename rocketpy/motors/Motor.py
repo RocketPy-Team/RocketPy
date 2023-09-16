@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-
-__author__ = "Giovani Hidalgo Ceotto, Pedro Henrique Marinho Bressan, Oscar Mauricio Prada Ramirez, João Lemes Gribel Soares, Lucas Kierulff Balabram, Lucas Azevedo Pezente"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
 import re
 import warnings
 from abc import ABC, abstractmethod
@@ -28,141 +22,136 @@ class Motor(ABC):
 
     Attributes
     ----------
-
-        Geometrical attributes:
-        Motor.coordinate_system_orientation : str
-            Orientation of the motor's coordinate system. The coordinate system
-            is defined by the motor's axis of symmetry. The origin of the
-            coordinate system  may be placed anywhere along such axis, such as
-            at the nozzle area, and must be kept the same for all other
-            positions specified. Options are "nozzle_to_combustion_chamber" and
-            "combustion_chamber_to_nozzle".
-        Motor.nozzle_radius : float
-            Radius of motor nozzle outlet in meters.
-        Motor.nozzle_position : float
-            Motor's nozzle outlet position in meters, specified in the motor's
-            coordinate system. See `Motor.coordinate_system_orientation` for
-            more information.
-
-        Mass and moment of inertia attributes:
-        Motor.dry_mass : float
-            The total mass of the motor structure, including chambers
-            and tanks, when it is empty and does not contain any propellant.
-        Motor.propellant_initial_mass : float
-            Total propellant initial mass in kg.
-        Motor.total_mass : Function
-            Total motor mass in kg as a function of time, defined as the sum
-            of propellant and dry mass.
-        Motor.propellant_mass : Function
-            Total propellant mass in kg as a function of time.
-        Motor.total_mass_flow_rate : Function
-            Time derivative of propellant total mass in kg/s as a function
-            of time as obtained by the thrust source.
-        Motor.center_of_mass : Function
-            Position of the motor center of mass in
-            meters as a function of time.
-            See `Motor.coordinate_system_orientation` for more information
-            regarding the motor's coordinate system.
-        Motor.center_of_propellant_mass : Function
-            Position of the motor propellant center of mass in meters as a
-            function of time.
-            See `Motor.coordinate_system_orientation` for more information
-            regarding the motor's coordinate system.
-        Motor.I_11 : Function
-            Component of the motor's inertia tensor relative to the e_1 axis
-            in kg*m^2, as a function of time. The e_1 axis is the direction
-            perpendicular to the motor body axis of symmetry, centered at
-            the instantaneous motor center of mass.
-        Motor.I_22 : Function
-            Component of the motor's inertia tensor relative to the e_2 axis
-            in kg*m^2, as a function of time. The e_2 axis is the direction
-            perpendicular to the motor body axis of symmetry, centered at
-            the instantaneous motor center of mass.
-            Numerically equivalent to I_11 due to symmetry.
-        Motor.I_33 : Function
-            Component of the motor's inertia tensor relative to the e_3 axis
-            in kg*m^2, as a function of time. The e_3 axis is the direction of
-            the motor body axis of symmetry, centered at the instantaneous
-            motor center of mass.
-        Motor.I_12 : Function
-            Component of the motor's inertia tensor relative to the e_1 and
-            e_2 axes in kg*m^2, as a function of time. See Motor.I_11 and
-            Motor.I_22 for more information.
-        Motor.I_13 : Function
-            Component of the motor's inertia tensor relative to the e_1 and
-            e_3 axes in kg*m^2, as a function of time. See Motor.I_11 and
-            Motor.I_33 for more information.
-        Motor.I_23 : Function
-            Component of the motor's inertia tensor relative to the e_2 and
-            e_3 axes in kg*m^2, as a function of time. See Motor.I_22 and
-            Motor.I_33 for more information.
-        Motor.propellant_I_11 : Function
-            Component of the propellant inertia tensor relative to the e_1
-            axis in kg*m^2, as a function of time. The e_1 axis is the
-            direction perpendicular to the motor body axis of symmetry,
-            centered at the instantaneous propellant center of mass.
-        Motor.propellant_I_22 : Function
-            Component of the propellant inertia tensor relative to the e_2
-            axis in kg*m^2, as a function of time. The e_2 axis is the
-            direction perpendicular to the motor body axis of symmetry,
-            centered at the instantaneous propellant center of mass.
-            Numerically equivalent to propellant_I_11 due to symmetry.
-        Motor.propellant_I_33 : Function
-            Component of the propellant inertia tensor relative to the e_3
-            axis in kg*m^2, as a function of time. The e_3 axis is the
-            direction of the motor body axis of symmetry, centered at the
-            instantaneous propellant center of mass.
-        Motor.propellant_I_12 : Function
-            Component of the propellant inertia tensor relative to the e_1 and
-            e_2 axes in kg*m^2, as a function of time. See Motor.propellant_I_11
-            and Motor.propellant_I_22 for more information.
-        Motor.propellant_I_13 : Function
-            Component of the propellant inertia tensor relative to the e_1 and
-            e_3 axes in kg*m^2, as a function of time. See Motor.propellant_I_11
-            and Motor.propellant_I_33 for more information.
-        Motor.propellant_I_23 : Function
-            Component of the propellant inertia tensor relative to the e_2 and
-            e_3 axes in kg*m^2, as a function of time. See Motor.propellant_I_22
-            and Motor.propellant_I_33 for more information.
-
-        Thrust and burn attributes:
-        Motor.thrust : Function
-            Motor thrust force, in Newtons, as a function of time.
-        Motor.total_impulse : float
-            Total impulse of the thrust curve in N*s.
-        Motor.max_thrust : float
-            Maximum thrust value of the given thrust curve, in N.
-        Motor.max_thrust_time : float
-            Time, in seconds, in which the maximum thrust value is achieved.
-        Motor.average_thrust : float
-            Average thrust of the motor, given in N.
-        Motor.burn_time : tuple of float
-            Tuple containing the initial and final time of the motor's burn time
-            in seconds.
-        Motor.burn_start_time : float
-            Motor burn start time, in seconds.
-        Motor.burn_out_time : float
-            Motor burn out time, in seconds.
-        Motor.burn_duration : float
-            Total motor burn duration, in seconds. It is the difference between
-            the burn_out_time and the burn_start_time.
-        Motor.exhaust_velocity : float
-            Propulsion gases exhaust velocity, assumed constant, in m/s.
-        Motor.interpolate : string
-            Method of interpolation used in case thrust curve is given
-            by data set in .csv or .eng, or as an array. Options are 'spline'
-            'akima' and 'linear'. Default is "linear".
+    Motor.coordinate_system_orientation : str
+        Orientation of the motor's coordinate system. The coordinate system
+        is defined by the motor's axis of symmetry. The origin of the
+        coordinate system may be placed anywhere along such axis, such as
+        at the nozzle exit area, and must be kept the same for all other
+        positions specified. Options are "nozzle_to_combustion_chamber" and
+        "combustion_chamber_to_nozzle".
+    Motor.nozzle_radius : float
+        Radius of motor nozzle outlet in meters.
+    Motor.nozzle_position : float
+        Motor's nozzle outlet position in meters, specified in the motor's
+        coordinate system. See
+        :doc:`Positions and Coordinate Systems </user/positions>` for more
+        information.
+    Motor.dry_mass : float
+        The total mass of the motor structure, including chambers
+        and tanks, when it is empty and does not contain any propellant.
+    Motor.propellant_initial_mass : float
+        Total propellant initial mass in kg.
+    Motor.total_mass : Function
+        Total motor mass in kg as a function of time, defined as the sum
+        of propellant and dry mass.
+    Motor.propellant_mass : Function
+        Total propellant mass in kg as a function of time.
+    Motor.total_mass_flow_rate : Function
+        Time derivative of propellant total mass in kg/s as a function
+        of time as obtained by the thrust source.
+    Motor.center_of_mass : Function
+        Position of the motor center of mass in
+        meters as a function of time.
+        See :doc:`Positions and Coordinate Systems </user/positions>`
+        for more information regarding the motor's coordinate system.
+    Motor.center_of_propellant_mass : Function
+        Position of the motor propellant center of mass in meters as a
+        function of time.
+        See :doc:`Positions and Coordinate Systems </user/positions>`
+        for more information regarding the motor's coordinate system.
+    Motor.I_11 : Function
+        Component of the motor's inertia tensor relative to the e_1 axis
+        in kg*m^2, as a function of time. The e_1 axis is the direction
+        perpendicular to the motor body axis of symmetry, centered at
+        the instantaneous motor center of mass.
+    Motor.I_22 : Function
+        Component of the motor's inertia tensor relative to the e_2 axis
+        in kg*m^2, as a function of time. The e_2 axis is the direction
+        perpendicular to the motor body axis of symmetry, centered at
+        the instantaneous motor center of mass.
+        Numerically equivalent to I_11 due to symmetry.
+    Motor.I_33 : Function
+        Component of the motor's inertia tensor relative to the e_3 axis
+        in kg*m^2, as a function of time. The e_3 axis is the direction of
+        the motor body axis of symmetry, centered at the instantaneous
+        motor center of mass.
+    Motor.I_12 : Function
+        Component of the motor's inertia tensor relative to the e_1 and
+        e_2 axes in kg*m^2, as a function of time. See Motor.I_11 and
+        Motor.I_22 for more information.
+    Motor.I_13 : Function
+        Component of the motor's inertia tensor relative to the e_1 and
+        e_3 axes in kg*m^2, as a function of time. See Motor.I_11 and
+        Motor.I_33 for more information.
+    Motor.I_23 : Function
+        Component of the motor's inertia tensor relative to the e_2 and
+        e_3 axes in kg*m^2, as a function of time. See Motor.I_22 and
+        Motor.I_33 for more information.
+    Motor.propellant_I_11 : Function
+        Component of the propellant inertia tensor relative to the e_1
+        axis in kg*m^2, as a function of time. The e_1 axis is the
+        direction perpendicular to the motor body axis of symmetry,
+        centered at the instantaneous propellant center of mass.
+    Motor.propellant_I_22 : Function
+        Component of the propellant inertia tensor relative to the e_2
+        axis in kg*m^2, as a function of time. The e_2 axis is the
+        direction perpendicular to the motor body axis of symmetry,
+        centered at the instantaneous propellant center of mass.
+        Numerically equivalent to propellant_I_11 due to symmetry.
+    Motor.propellant_I_33 : Function
+        Component of the propellant inertia tensor relative to the e_3
+        axis in kg*m^2, as a function of time. The e_3 axis is the
+        direction of the motor body axis of symmetry, centered at the
+        instantaneous propellant center of mass.
+    Motor.propellant_I_12 : Function
+        Component of the propellant inertia tensor relative to the e_1 and
+        e_2 axes in kg*m^2, as a function of time. See Motor.propellant_I_11
+        and Motor.propellant_I_22 for more information.
+    Motor.propellant_I_13 : Function
+        Component of the propellant inertia tensor relative to the e_1 and
+        e_3 axes in kg*m^2, as a function of time. See Motor.propellant_I_11
+        and Motor.propellant_I_33 for more information.
+    Motor.propellant_I_23 : Function
+        Component of the propellant inertia tensor relative to the e_2 and
+        e_3 axes in kg*m^2, as a function of time. See Motor.propellant_I_22
+        and Motor.propellant_I_33 for more information.
+    Motor.thrust : Function
+        Motor thrust force, in Newtons, as a function of time.
+    Motor.total_impulse : float
+        Total impulse of the thrust curve in N*s.
+    Motor.max_thrust : float
+        Maximum thrust value of the given thrust curve, in N.
+    Motor.max_thrust_time : float
+        Time, in seconds, in which the maximum thrust value is achieved.
+    Motor.average_thrust : float
+        Average thrust of the motor, given in N.
+    Motor.burn_time : tuple of float
+        Tuple containing the initial and final time of the motor's burn time
+        in seconds.
+    Motor.burn_start_time : float
+        Motor burn start time, in seconds.
+    Motor.burn_out_time : float
+        Motor burn out time, in seconds.
+    Motor.burn_duration : float
+        Total motor burn duration, in seconds. It is the difference between
+        the burn_out_time and the burn_start_time.
+    Motor.exhaust_velocity : Function
+        Propulsion gases exhaust velocity in m/s.
+    Motor.interpolate : string
+        Method of interpolation used in case thrust curve is given
+        by data set in .csv or .eng, or as an array. Options are 'spline'
+        'akima' and 'linear'. Default is "linear".
     """
 
     def __init__(
         self,
         thrust_source,
         dry_mass,
-        center_of_dry_mass,
         dry_inertia,
         nozzle_radius,
-        burn_time=None,
+        center_of_dry_mass_position,
         nozzle_position=0,
+        burn_time=None,
         reshape_thrust_curve=False,
         interpolation_method="linear",
         coordinate_system_orientation="nozzle_to_combustion_chamber",
@@ -172,7 +161,7 @@ class Motor(ABC):
 
         Parameters
         ----------
-        thrust_source : int, float, callable, string, array
+        thrust_source : int, float, callable, string, array, Function
             Motor's thrust curve. Can be given as an int or float, in which
             case the thrust will be considered constant in time. It can
             also be given as a callable function, whose argument is time in
@@ -181,42 +170,46 @@ class Motor(ABC):
             The .csv file shall contain no headers and the first column must
             specify time in seconds, while the second column specifies thrust.
             Arrays may also be specified, following rules set by the class
-            Function. See help(Function). Thrust units are Newtons.
+            Function. Thrust units are Newtons.
+
+            .. seealso:: :doc:`Thrust Source Details </user/motors/thrust>`
+
         dry_mass : int, float
             The total mass of the motor structure, including chambers
             and tanks, when it is empty and does not contain any propellant.
-        center_of_dry_mass : int, float
+        center_of_dry_mass_position : int, float
             The position, in meters, of the motor's center of mass with respect
             to the motor's coordinate system when it is devoid of propellant.
-            See `Motor.coordinate_system_orientation`.
+            See :doc:`Positions and Coordinate Systems </user/positions>`
         dry_inertia : tuple, list
             Tuple or list containing the motor's dry mass inertia tensor
             components, in kg*m^2. This inertia is defined with respect to the
-            the `center_of_dry_mass` position.
+            the `center_of_dry_mass_position` position.
             Assuming e_3 is the rocket's axis of symmetry, e_1 and e_2 are
             orthogonal and form a plane perpendicular to e_3, the dry mass
             inertia tensor components must be given in the following order:
             (I_11, I_22, I_33, I_12, I_13, I_23), where I_ij is the
             component of the inertia tensor in the direction of e_i x e_j.
-            Alternatively, the inertia tensor can be given as (I_11, I_22, I_33),
-            where I_12 = I_13 = I_23 = 0.
+            Alternatively, the inertia tensor can be given as
+            (I_11, I_22, I_33), where I_12 = I_13 = I_23 = 0.
         nozzle_radius : int, float, optional
             Motor's nozzle outlet radius in meters.
         burn_time: float, tuple of float, optional
             Motor's burn time.
-            If a float is given, the burn time is assumed to be between 0 and the
-            given float, in seconds.
+            If a float is given, the burn time is assumed to be between 0 and
+            the given float, in seconds.
             If a tuple of float is given, the burn time is assumed to be between
             the first and second elements of the tuple, in seconds.
-            If not specified, automatically sourced as the range between the first- and
-            last-time step of the motor's thrust curve. This can only be used if the
-            motor's thrust is defined by a list of points, such as a .csv file, a .eng
-            file or a Function instance whose source is a list.
+            If not specified, automatically sourced as the range between the
+            first and last-time step of the motor's thrust curve. This can only
+            be used if the motor's thrust is defined by a list of points, such
+            as a .csv file, a .eng file or a Function instance whose source is a
+            list.
         nozzle_position : int, float, optional
             Motor's nozzle outlet position in meters, in the motor's coordinate
-            system. See `Motor.coordinate_system_orientation` for details.
-            Default is 0, in which case the origin of the coordinate system
-            is placed at the motor's nozzle outlet.
+            system. See :doc:`Positions and Coordinate Systems </user/positions>`
+            for details. Default is 0, in which case the origin of the
+            coordinate system is placed at the motor's nozzle outlet.
         reshape_thrust_curve : boolean, tuple, optional
             If False, the original thrust curve supplied is not altered. If a
             tuple is given, whose first parameter is a new burn out time and
@@ -233,10 +226,11 @@ class Motor(ABC):
         coordinate_system_orientation : string, optional
             Orientation of the motor's coordinate system. The coordinate system
             is defined by the motor's axis of symmetry. The origin of the
-            coordinate system  may be placed anywhere along such axis, such as
+            coordinate system may be placed anywhere along such axis, such as
             at the nozzle area, and must be kept the same for all other
             positions specified. Options are "nozzle_to_combustion_chamber" and
-            "combustion_chamber_to_nozzle". Default is "nozzle_to_combustion_chamber".
+            "combustion_chamber_to_nozzle". Default is
+            "nozzle_to_combustion_chamber".
 
         Returns
         -------
@@ -259,7 +253,7 @@ class Motor(ABC):
         self.interpolate = interpolation_method
         self.nozzle_position = nozzle_position
         self.nozzle_radius = nozzle_radius
-        self.center_of_dry_mass = center_of_dry_mass
+        self.center_of_dry_mass_position = center_of_dry_mass_position
 
         # Inertia tensor setup
         inertia = (*dry_inertia, 0, 0, 0) if len(dry_inertia) == 3 else dry_inertia
@@ -367,20 +361,21 @@ class Motor(ABC):
 
         Returns
         -------
-        self.exhaust_velocity : float
+        self.exhaust_velocity : Function
             Gas exhaust velocity of the motor.
 
         Notes
         -----
         This method is implemented in the following manner by the child
         Motor classes:
-            - The `SolidMotor` assumes a constant exhaust velocity and computes
-            it as the ratio of the total impulse and the propellant mass;
-            - The `HybridMotor` assumes a constant exhaust velocity and computes
-            it as the ratio of the total impulse and the propellant mass;
-            - The `LiquidMotor` class favors the more accurate data from the
-            Tanks's mass flow rates. Therefore the exhaust velocity is generally
-            variable, being the ratio of the motor thrust by the mass flow rate.
+
+        - The ``SolidMotor`` assumes a constant exhaust velocity and computes
+          it as the ratio of the total impulse and the propellant mass;
+        - The ``HybridMotor`` assumes a constant exhaust velocity and computes
+          it as the ratio of the total impulse and the propellant mass;
+        - The ``LiquidMotor`` class favors the more accurate data from the
+          Tanks's mass flow rates. Therefore the exhaust velocity is generally
+          variable, being the ratio of the motor thrust by the mass flow rate.
         """
         pass
 
@@ -391,7 +386,7 @@ class Motor(ABC):
 
         Returns
         -------
-        rocketpy.Function
+        Function
             Total mass as a function of time.
         """
         return self.propellant_mass + self.dry_mass
@@ -402,7 +397,7 @@ class Motor(ABC):
 
         Returns
         -------
-        rocketpy.Function
+        Function
             Total propellant mass as a function of time.
         """
         return (
@@ -417,17 +412,17 @@ class Motor(ABC):
 
         Returns
         -------
-        rocketpy;.Function
+        Function
             Time derivative of total propellant mass a function of time.
 
         See Also
         --------
-        `SolidMotor.mass_flow_rate` :
-            Numerically equivalent to `total_mass_flow_rate`.
-        `HybridMotor.mass_flow_rate` :
-            Numerically equivalent to `total_mass_flow_rate`.
-        `LiquidMotor.mass_flow_rate` :
-            Independent of `total_mass_flow_rate` favoring more accurate
+        SolidMotor.mass_flow_rate :
+            Numerically equivalent to ``total_mass_flow_rate``.
+        HybridMotor.mass_flow_rate :
+            Numerically equivalent to ``total_mass_flow_rate``.
+        LiquidMotor.mass_flow_rate :
+            Independent of ``total_mass_flow_rate`` favoring more accurate
             sum of Tanks' mass flow rates.
 
         Notes
@@ -437,13 +432,15 @@ class Motor(ABC):
         velocity.
         This approximation of the total mass flow rate is used in the
         following manner by the child Motor classes:
-            - The `SolidMotor` class uses this approximation to compute the
-            grain's mass flow rate;
-            - The `HybridMotor` class uses this approximation as a reference
-            to the sum of the oxidizer and fuel (grains) mass flow rates;
-            - The `LiquidMotor` class favors the more accurate data from the
-            Tanks's mass flow rates. Therefore this value is numerically
-            independent of the `LiquidMotor.mass_flow_rate`.
+
+        - The ``SolidMotor`` class uses this approximation to compute the
+          grain's mass flow rate;
+        - The ``HybridMotor`` class uses this approximation as a reference
+          to the sum of the oxidizer and fuel (grains) mass flow rates;
+        - The ``LiquidMotor`` class favors the more accurate data from the
+          Tanks's mass flow rates. Therefore this value is numerically
+          independent of the ``LiquidMotor.mass_flow_rate``.
+
         It should be noted that, for hybrid motors, the oxidizer mass flow
         rate should not be greater than `total_mass_flow_rate`, otherwise the
         grains mass flow rate will be negative, losing physical meaning.
@@ -469,12 +466,12 @@ class Motor(ABC):
 
         Returns
         -------
-        rocketpy.Function
+        Function
             Position of the center of mass as a function of time.
         """
         mass_balance = (
             self.center_of_propellant_mass * self.propellant_mass
-            + self.dry_mass * self.center_of_dry_mass
+            + self.dry_mass * self.center_of_dry_mass_position
         )
         return mass_balance / self.total_mass
 
@@ -487,7 +484,7 @@ class Motor(ABC):
 
         Returns
         -------
-        rocketpy.Function
+        Function
             Position of the propellant center of mass as a function of time.
         """
         pass
@@ -523,7 +520,10 @@ class Motor(ABC):
             * (self.center_of_propellant_mass - self.center_of_mass) ** 2
         )
 
-        dry_I_11 += self.dry_mass * (self.center_of_dry_mass - self.center_of_mass) ** 2
+        dry_I_11 += (
+            self.dry_mass
+            * (self.center_of_dry_mass_position - self.center_of_mass) ** 2
+        )
 
         # Sum of inertia components
         return propellant_I_11 + dry_I_11
@@ -633,7 +633,7 @@ class Motor(ABC):
 
         References
         ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia
+        https://en.wikipedia.org/wiki/Moment_of_inertia
         """
         # Propellant inertia tensor 13 component wrt propellant center of mass
         propellant_I_13 = self.propellant_I_13
@@ -666,7 +666,7 @@ class Motor(ABC):
 
         References
         ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia
+        https://en.wikipedia.org/wiki/Moment_of_inertia
         """
         # Propellant inertia tensor 23 component wrt propellant center of mass
         propellant_I_23 = self.propellant_I_23
@@ -777,8 +777,8 @@ class Motor(ABC):
     @abstractmethod
     def propellant_I_13(self):
         """Inertia tensor 13 component of the propellant, the product of inertia
-        is relative to axes e_1 and e_3, centered at the instantaneous propellant
-        center of mass.
+        is relative to axes e_1 and e_3, centered at the instantaneous
+        propellant center of mass.
 
         Returns
         -------
@@ -796,7 +796,7 @@ class Motor(ABC):
 
         References
         ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia
+        https://en.wikipedia.org/wiki/Moment_of_inertia
         """
         pass
 
@@ -804,8 +804,8 @@ class Motor(ABC):
     @abstractmethod
     def propellant_I_23(self):
         """Inertia tensor 23 component of the propellant, the product of inertia
-        is relative to axes e_2 and e_3, centered at the instantaneous propellant
-        center of mass.
+        is relative to axes e_2 and e_3, centered at the instantaneous
+        propellant center of mass.
 
         Returns
         -------
@@ -823,7 +823,7 @@ class Motor(ABC):
 
         References
         ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia
+        https://en.wikipedia.org/wiki/Moment_of_inertia
         """
         pass
 
@@ -835,7 +835,7 @@ class Motor(ABC):
 
         Parameters
         ----------
-        thrust : rocketpy.Function
+        thrust : Function
             Thrust curve to be reshaped.
         new_burn_time : float, tuple of float
             New desired burn time in seconds.
@@ -844,7 +844,7 @@ class Motor(ABC):
 
         Returns
         -------
-        rocketpy.Function
+        Function
             Reshaped thrust curve.
         """
         # Retrieve current thrust curve data points
@@ -892,7 +892,7 @@ class Motor(ABC):
 
         Returns
         -------
-        rocketpy.Function
+        Function
             Clipped thrust curve.
         """
         # Check if burn_time is within thrust_source range
@@ -956,9 +956,9 @@ class Motor(ABC):
             line is an entry of the list.
         description: list
             Description of the motor. All attributes are returned separated in
-            a list. E.g. "F32 24 124 5-10-15 .0377 .0695 RV\n" is return as
-            ['F32', '24', '124', '5-10-15', '.0377', '.0695', 'RV\n']
-        data_points: list
+            a list. E.g. "F32 24 124 5-10-15 .0377 .0695 RV" is return as
+            ['F32', '24', '124', '5-10-15', '.0377', '.0695', 'RV']
+        dataPoints: list
             List of all data points in file. Each data point is an entry in
             the returned list and written as a list of two entries.
         """
@@ -1053,9 +1053,9 @@ class Motor(ABC):
 class GenericMotor(Motor):
     """Class that represents a simple motor defined mainly by its thrust curve.
     There is no distinction between the propellant types (e.g. Solid, Liquid).
-    This class is meant for rough estimations of the motor performance, therefore
-    for more accurate results, use the SolidMotor, HybridMotor or LiquidMotor
-    classes."""
+    This class is meant for rough estimations of the motor performance,
+    therefore for more accurate results, use the ``SolidMotor``, ``HybridMotor``
+    or ``LiquidMotor`` classes."""
 
     def __init__(
         self,
@@ -1067,21 +1067,115 @@ class GenericMotor(Motor):
         propellant_initial_mass,
         nozzle_radius,
         dry_mass=0,
-        center_of_dry_mass=None,
+        center_of_dry_mass_position=None,
         dry_inertia=(0, 0, 0),
         nozzle_position=0,
         reshape_thrust_curve=False,
         interpolation_method="linear",
         coordinate_system_orientation="nozzle_to_combustion_chamber",
     ):
+        """Initialize GenericMotor class, process thrust curve and geometrical
+        parameters and store results.
+
+        Parameters
+        ----------
+        thrust_source : int, float, callable, string, array, Function
+            Motor's thrust curve. Can be given as an int or float, in which
+            case the thrust will be considered constant in time. It can
+            also be given as a callable function, whose argument is time in
+            seconds and returns the thrust supplied by the motor in the
+            instant. If a string is given, it must point to a .csv or .eng file.
+            The .csv file shall contain no headers and the first column must
+            specify time in seconds, while the second column specifies thrust.
+            Arrays may also be specified, following rules set by the class
+            Function. Thrust units are Newtons.
+
+            .. seealso:: :doc:`Thrust Source Details </user/motors/thrust>`
+
+        chamber_radius : int, float
+            The radius of a overall cylindrical chamber of propellant in meters.
+            This is a rough estimate for the motor's propellant chamber or tanks.
+        chamber_height : int, float
+            The height of a overall cylindrical chamber of propellant in meters.
+            This is a rough estimate for the motor's propellant chamber or tanks.
+        chamber_position : int, float
+            The position, in meters, of the centroid (half height) of the motor's
+            overall cylindrical chamber of propellant with respect to the motor's
+            coordinate system.
+            See :doc:`Positions and Coordinate Systems </user/positions>`
+        dry_mass : int, float
+            The total mass of the motor structure, including chambers
+            and tanks, when it is empty and does not contain any propellant.
+        propellant_initial_mass : int, float
+            The initial mass of the propellant in the motor.
+        center_of_dry_mass_position : int, float, optional
+            The position, in meters, of the motor's center of mass with respect
+            to the motor's coordinate system when it is devoid of propellant.
+            If not specified, automatically sourced as the chamber position.
+            See :doc:`Positions and Coordinate Systems </user/positions>`
+        dry_inertia : tuple, list
+            Tuple or list containing the motor's dry mass inertia tensor
+            components, in kg*m^2. This inertia is defined with respect to the
+            the `center_of_dry_mass_position` position.
+            Assuming e_3 is the rocket's axis of symmetry, e_1 and e_2 are
+            orthogonal and form a plane perpendicular to e_3, the dry mass
+            inertia tensor components must be given in the following order:
+            (I_11, I_22, I_33, I_12, I_13, I_23), where I_ij is the
+            component of the inertia tensor in the direction of e_i x e_j.
+            Alternatively, the inertia tensor can be given as
+            (I_11, I_22, I_33), where I_12 = I_13 = I_23 = 0.
+        nozzle_radius : int, float, optional
+            Motor's nozzle outlet radius in meters.
+        burn_time: float, tuple of float, optional
+            Motor's burn time.
+            If a float is given, the burn time is assumed to be between 0 and
+            the given float, in seconds.
+            If a tuple of float is given, the burn time is assumed to be between
+            the first and second elements of the tuple, in seconds.
+            If not specified, automatically sourced as the range between the
+            first and last-time step of the motor's thrust curve. This can only
+            be used if the motor's thrust is defined by a list of points, such
+            as a .csv file, a .eng file or a Function instance whose source is a
+            list.
+        nozzle_position : int, float, optional
+            Motor's nozzle outlet position in meters, in the motor's coordinate
+            system. See :doc:`Positions and Coordinate Systems </user/positions>`
+            for details. Default is 0, in which case the origin of the
+            coordinate system is placed at the motor's nozzle outlet.
+        reshape_thrust_curve : boolean, tuple, optional
+            If False, the original thrust curve supplied is not altered. If a
+            tuple is given, whose first parameter is a new burn out time and
+            whose second parameter is a new total impulse in Ns, the thrust
+            curve is reshaped to match the new specifications. May be useful
+            for motors whose thrust curve shape is expected to remain similar
+            in case the impulse and burn time varies slightly. Default is
+            False. Note that the Motor burn_time parameter must include the new
+            reshaped burn time.
+        interpolation_method : string, optional
+            Method of interpolation to be used in case thrust curve is given
+            by data set in .csv or .eng, or as an array. Options are 'spline'
+            'akima' and 'linear'. Default is "linear".
+        coordinate_system_orientation : string, optional
+            Orientation of the motor's coordinate system. The coordinate system
+            is defined by the motor's axis of symmetry. The origin of the
+            coordinate system may be placed anywhere along such axis, such as
+            at the nozzle area, and must be kept the same for all other
+            positions specified. Options are "nozzle_to_combustion_chamber" and
+            "combustion_chamber_to_nozzle". Default is
+            "nozzle_to_combustion_chamber".
+
+        Returns
+        -------
+        None
+        """
         super().__init__(
             thrust_source,
             dry_mass,
-            center_of_dry_mass,
             dry_inertia,
             nozzle_radius,
-            burn_time,
+            center_of_dry_mass_position,
             nozzle_position,
+            burn_time,
             reshape_thrust_curve,
             interpolation_method,
             coordinate_system_orientation,
@@ -1093,8 +1187,10 @@ class GenericMotor(Motor):
         self.propellant_initial_mass = propellant_initial_mass
 
         # Set center of mass and estimate to chamber position if not given
-        self.center_of_dry_mass = (
-            center_of_dry_mass if center_of_dry_mass else chamber_position
+        self.center_of_dry_mass_position = (
+            center_of_dry_mass_position
+            if center_of_dry_mass_position
+            else chamber_position
         )
         # Initialize plots and prints object
         self.prints = _MotorPrints(self)
@@ -1119,7 +1215,7 @@ class GenericMotor(Motor):
 
         Returns
         -------
-        self.exhaust_velocity : rocketpy.Function
+        self.exhaust_velocity : Function
             Gas exhaust velocity of the motor.
         """
         return self.total_impulse / self.propellant_initial_mass
@@ -1132,7 +1228,7 @@ class GenericMotor(Motor):
 
         Returns
         -------
-        rocketpy.Function
+        Function
             Function representing the center of mass of the motor.
         """
         return self.chamber_position
@@ -1253,7 +1349,7 @@ class EmptyMotor:
         self.burn_out_time = 1
         self.nozzle_position = 0
         self.nozzle_radius = 0
-        self.center_of_dry_mass = 0
+        self.center_of_dry_mass_position = 0
         self.center_of_propellant_mass = Function(
             0, "Time (s)", "Center of Propellant Mass (kg)"
         )
@@ -1264,10 +1360,10 @@ class EmptyMotor:
         self.dry_I_12 = 0
         self.dry_I_13 = 0
         self.dry_I_23 = 0
-        self.I_11 = 0
-        self.I_22 = 0
-        self.I_33 = 0
-        self.I_12 = 0
-        self.I_13 = 0
-        self.I_23 = 0
+        self.I_11 = Function(0)
+        self.I_22 = Function(0)
+        self.I_33 = Function(0)
+        self.I_12 = Function(0)
+        self.I_13 = Function(0)
+        self.I_23 = Function(0)
         return None

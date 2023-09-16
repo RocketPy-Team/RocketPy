@@ -1,5 +1,5 @@
 TrapezoidalFins Class
 ----------------------
 
-.. automodule:: rocketpy.TrapezoidalFins
+.. autoclass:: rocketpy.TrapezoidalFins
    :members:
