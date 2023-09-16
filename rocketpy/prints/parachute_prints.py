@@ -45,10 +45,7 @@ class _ParachutePrints:
 
         if self.parachute.trigger.__name__ == "<lambda>":
             line = getsourcelines(self.parachute.trigger)[0][0]
-            print(
-                "Ejection signal trigger: "
-                + line.split("lambda ")[1].split(",")[0].split("\n")[0]
-            )
+            print("Ejection signal trigger: " + line.split("=")[0].strip())
         else:
             print("Ejection signal trigger: " + self.parachute.trigger.__name__)
 
