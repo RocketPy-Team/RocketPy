@@ -7,6 +7,8 @@ import numpy as np
 import pytest
 import pytz
 
+from rocketpy.Environment import Environment
+
 
 def test_env_set_date(example_env):
     """Test that the date is set correctly in the environment object. This
@@ -383,3 +385,32 @@ def test_utm_to_geodesic(example_env_robust):
     )
     assert np.isclose(lat, 32.99025, atol=1e-5) == True
     assert np.isclose(lon, -106.9750, atol=1e-5) == True
+
+@pytest.mark.parametrize(
+    "angle, deg, arc_min, arc_sec",
+    [
+        (-106.974998, -106.0, 58, 29.9928),
+        (32.990254, 32, 59.0, 24.9144),
+        (90.0, 90, 0, 0),
+    ],
+)
+def test_decimal_degrees_to_arc_seconds(angle, deg, arc_min, arc_sec):
+    """Tests if the conversion from decimal degrees to arc seconds is correct.
+    It takes 3 different angles and their expected results and compares them
+    with the results from the method.
+
+    Parameters
+    ----------
+    angle : float
+        Angle in decimal degrees.
+    deg : int
+        Expected degrees.
+    arc_min : int
+        Expected arc minutes.
+    arc_sec : float
+        Expected arc seconds.
+    """
+    res = Environment.decimal_degrees_to_arc_seconds(angle)
+    assert pytest.approx(res[0], abs=1e-8) == deg
+    assert pytest.approx(res[1], abs=1e-8) == arc_min
+    assert pytest.approx(res[2], abs=1e-8) == arc_sec

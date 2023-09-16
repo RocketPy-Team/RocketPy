@@ -3560,7 +3560,8 @@ class Environment:
 
         return e_radius
 
-    def decimal_degrees_to_arc_seconds(self, angle):
+    @staticmethod
+    def decimal_degrees_to_arc_seconds(angle):
         """Function to convert an angle in decimal degrees to deg/min/sec.
          Converts (°) to (° ' ")
 
@@ -3572,24 +3573,16 @@ class Environment:
 
         Returns
         -------
-        deg : float
+        degrees : float
             The degrees.
-        min : float
+        arc_minutes : float
             The arc minutes. 1 arc-minute = (1/60)*degree
-        sec : float
+        arc_seconds : float
             The arc Seconds. 1 arc-second = (1/3600)*degree
         """
-
-        if angle < 0:
-            signal = -1
-        else:
-            signal = 1
-
-        deg = (signal * angle) // 1
-        min = abs(signal * angle - deg) * 60 // 1
-        sec = abs((signal * angle - deg) * 60 - min) * 60
-        # print("The angle {:f} is equals to {:.0f}º {:.0f}' {:.3f}'' ".format(
-        #    angle, signal*deg, min, sec
-        # ))
-
-        return deg, min, sec
+        sign = -1 if angle < 0 else 1
+        degrees = int(abs(angle)) * sign
+        remainder = abs(angle) - abs(degrees)
+        arc_minutes = int(remainder * 60)
+        arc_seconds = (remainder * 60 - arc_minutes) * 60
+        return degrees, arc_minutes, arc_seconds
