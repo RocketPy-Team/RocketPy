@@ -2623,22 +2623,22 @@ class Flight:
     @property
     def max_rail_button1_normal_force(self):
         """Maximum upper rail button normal force, in Newtons."""
-        return self.rail_button1_normal_force.max
+        return np.abs(self.rail_button1_normal_force.y_array).max()
 
     @property
     def max_rail_button1_shear_force(self):
         """Maximum upper rail button shear force, in Newtons."""
-        return self.rail_button1_shear_force.max
+        return np.abs(self.rail_button1_shear_force.y_array).max()
 
     @property
     def max_rail_button2_normal_force(self):
         """Maximum lower rail button normal force, in Newtons."""
-        return self.rail_button2_normal_force.max
+        return np.abs(self.rail_button2_normal_force.y_array).max()
 
     @property
     def max_rail_button2_shear_force(self):
         """Maximum lower rail button shear force, in Newtons."""
-        return self.rail_button2_shear_force.max
+        return np.abs(self.rail_button2_shear_force.y_array).max()
 
     @funcify_method(
         "Time (s)", "Horizontal Distance to Launch Point (m)", "spline", "constant"

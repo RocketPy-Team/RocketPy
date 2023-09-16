@@ -65,6 +65,7 @@ In case you want to use this class, you will need to install the following packa
 
 - `timezonefinder` : to allow for automatic timezone detection,
 - `windrose` : to allow for windrose plots,
+- `ipython` : to allow for animated plots,
 - `ipywidgets` : to allow for GIFs generation,
 - `jsonpickle` : to allow for saving and loading of class instances.
 

@@ -2,11 +2,6 @@ numpy>=1.13
 scipy>=1.0
 matplotlib>=3.0
 netCDF4>=1.6.4
-windrose>=1.6.8
-ipywidgets>=7.6.3
 requests
 pytz
-timezonefinder
 simplekml
-jsonpickle
-numericalunits
