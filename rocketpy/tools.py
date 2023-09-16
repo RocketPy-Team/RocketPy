@@ -1,12 +1,17 @@
-from itertools import product
+import importlib, importlib.metadata
+import re
+from bisect import bisect_left
 from cmath import isclose
+from itertools import product
+
+import pytz
+from cftime import num2pydate
+from packaging import version as packaging_version
 
 _NOT_FOUND = object()
 
-import numpy as np
-import pytz
-from cftime import num2pydate
-from bisect import bisect_left
+# Mapping of module name and the name of the package that should be installed
+INSTALL_MAPPING = {"IPython": "ipython"}
 
 
 class cached_property:
@@ -1261,6 +1266,86 @@ def find_closest(ordered_sequence, value):
     smaller, greater = ordered_sequence[pivot_index - 1], ordered_sequence[pivot_index]
 
     return pivot_index - 1 if value - smaller <= greater - value else pivot_index
+
+
+def import_optional_dependency(name):
+    """Import an optional dependency. If the dependency is not installed, an
+    ImportError is raised. This function is based on the implementation found in
+    pandas repository:
+    github.com/pandas-dev/pandas/blob/main/pandas/compat/_optional.py
+
+    Parameters
+    ----------
+    name : str
+        The name of the module to import. Can be used to import submodules too.
+        The name will be used as an argument to importlib.import_module method.
+
+    Examples:
+    ---------
+    >>> from rocketpy.tools import import_optional_dependency
+    >>> matplotlib = import_optional_dependency("matplotlib")
+    >>> matplotlib.__name__
+    'matplotlib'
+    >>> plt = import_optional_dependency("matplotlib.pyplot")
+    >>> plt.__name__
+    'matplotlib.pyplot'
+    """
+    try:
+        module = importlib.import_module(name)
+    except ImportError as exc:
+        module_name = name.split(".")[0]
+        package_name = INSTALL_MAPPING.get(module_name, module_name)
+        raise ImportError(
+            f"{package_name} is an optional dependency and is not installed.\n"
+            + f"\t\tUse 'pip install {package_name}' to install it or "
+            + "'pip install rocketpy[all]' to install all optional dependencies."
+        ) from exc
+    return module
+
+
+def check_requirement_version(module_name, version):
+    """This function tests if a module is installed and if the version is
+    correct. If the module is not installed, an ImportError is raised. If the
+    version is not correct, an error is raised.
+
+    Parameters
+    ----------
+    module_name : str
+        The name of the module to be tested.
+    version : str
+        The version of the module that is required. The string must start with
+        one of the following operators: ">", "<", ">=", "<=", "==", "!=".
+
+    Example:
+    --------
+    >>> from rocketpy.tools import check_requirement_version
+    >>> check_requirement_version("numpy", ">=1.0.0")
+    True
+    >>> check_requirement_version("matplotlib", ">=3.0")
+    True
+    """
+    operators = [">=", "<=", "==", ">", "<", "!="]
+    # separator the operator from the version number
+    operator, v_number = re.match(f"({'|'.join(operators)})(.*)", version).groups()
+
+    if operator not in operators:
+        raise ValueError(
+            f"Version must start with one of the following operators: {operators}"
+        )
+    if importlib.util.find_spec(module_name) is None:
+        raise ImportError(
+            f"{module_name} is not installed. You can install it by running "
+            + f"'pip install {module_name}'"
+        )
+    installed_version = packaging_version.parse(importlib.metadata.version(module_name))
+    required_version = packaging_version.parse(v_number)
+    if installed_version < required_version:
+        raise ImportError(
+            f"{module_name} version is {installed_version}, which is not correct"
+            + f". A version {version} is required. You can install a correct "
+            + f"version by running 'pip install {module_name}{version}'"
+        )
+    return True
 
 
 if __name__ == "__main__":
