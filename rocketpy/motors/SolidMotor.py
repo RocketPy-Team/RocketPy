@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-
-__author__ = "Giovani Hidalgo Ceotto, Pedro Henrique Marinho Bressan, Mateus Stano Junqueira, Oscar Mauricio Prada Ramirez, João Lemes Gribel Soares, Lucas Kierulff Balabram, Lucas Azevedo Pezente"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
 import numpy as np
 from scipy import integrate
 
@@ -23,184 +17,192 @@ from .Motor import Motor
 class SolidMotor(Motor):
     """Class to specify characteristics and useful operations for solid motors.
 
+    Inherits from the abstract class rocketpy.Motor.
+
+    See Also
+    --------
+    Motor
+
     Attributes
     ----------
-
-        Geometrical attributes:
-        Motor.coordinate_system_orientation : str
-            Orientation of the motor's coordinate system. The coordinate system
-            is defined by the motor's axis of symmetry. The origin of the
-            coordinate system  may be placed anywhere along such axis, such as
-            at the nozzle area, and must be kept the same for all other
-            positions specified. Options are "nozzle_to_combustion_chamber" and
-            "combustion_chamber_to_nozzle".
-        Motor.nozzle_radius : float
-            Radius of motor nozzle outlet in meters.
-        Motor.nozzle_position : float
-            Motor's nozzle outlet position in meters, specified in the motor's
-            coordinate system. See `Motor.coordinate_system_orientation` for
-            more information.
-        Motor.throat_radius : float
-            Radius of motor nozzle throat in meters.
-        Motor.grain_number : int
-            Number of solid grains.
-        Motor.grains_center_of_mass_position : float
-            Position of the center of mass of the grains in meters, specified in
-            the motor's coordinate system.
-            See `Motor.coordinate_system_orientation` for more information.
-        Motor.grain_separation : float
-            Distance between two grains in meters.
-        Motor.grain_density : float
-            Density of each grain in kg/meters cubed.
-        Motor.grain_outer_radius : float
-            Outer radius of each grain in meters.
-        Motor.grain_initial_inner_radius : float
-            Initial inner radius of each grain in meters.
-        Motor.grain_initial_height : float
-            Initial height of each grain in meters.
-        Motor.grain_initial_volume : float
-            Initial volume of each grain in meters cubed.
-        Motor.grain_inner_radius : Function
-            Inner radius of each grain in meters as a function of time.
-        Motor.grain_height : Function
-            Height of each grain in meters as a function of time.
-
-        Mass and moment of inertia attributes:
-        Motor.grain_initial_mass : float
-            Initial mass of each grain in kg.
-        Motor.dry_mass : float
-            The total mass of the motor structure, including chambers
-            and tanks, when it is empty and does not contain any propellant.
-        Motor.propellant_initial_mass : float
-            Total propellant initial mass in kg.
-        Motor.total_mass : Function
-            Total motor mass in kg as a function of time, defined as the sum
-            of propellant and dry mass.
-        Motor.propellant_mass : Function
-            Total propellant mass in kg as a function of time.
-        Motor.total_mass_flow_rate : Function
-            Time derivative of propellant total mass in kg/s as a function
-            of time as obtained by the thrust source.
-        Motor.center_of_mass : Function
-            Position of the motor center of mass in
-            meters as a function of time.
-            See `Motor.coordinate_system_orientation` for more information
-            regarding the motor's coordinate system.
-        Motor.center_of_propellant_mass : Function
-            Position of the motor propellant center of mass in meters as a
-            function of time.
-            See `Motor.coordinate_system_orientation` for more information
-            regarding the motor's coordinate system.
-        Motor.I_11 : Function
-            Component of the motor's inertia tensor relative to the e_1 axis
-            in kg*m^2, as a function of time. The e_1 axis is the direction
-            perpendicular to the motor body axis of symmetry, centered at
-            the instantaneous motor center of mass.
-        Motor.I_22 : Function
-            Component of the motor's inertia tensor relative to the e_2 axis
-            in kg*m^2, as a function of time. The e_2 axis is the direction
-            perpendicular to the motor body axis of symmetry, centered at
-            the instantaneous motor center of mass.
-            Numerically equivalent to I_11 due to symmetry.
-        Motor.I_33 : Function
-            Component of the motor's inertia tensor relative to the e_3 axis
-            in kg*m^2, as a function of time. The e_3 axis is the direction of
-            the motor body axis of symmetry, centered at the instantaneous
-            motor center of mass.
-        Motor.I_12 : Function
-            Component of the motor's inertia tensor relative to the e_1 and
-            e_2 axes in kg*m^2, as a function of time. See Motor.I_11 and
-            Motor.I_22 for more information.
-        Motor.I_13 : Function
-            Component of the motor's inertia tensor relative to the e_1 and
-            e_3 axes in kg*m^2, as a function of time. See Motor.I_11 and
-            Motor.I_33 for more information.
-        Motor.I_23 : Function
-            Component of the motor's inertia tensor relative to the e_2 and
-            e_3 axes in kg*m^2, as a function of time. See Motor.I_22 and
-            Motor.I_33 for more information.
-        Motor.propellant_I_11 : Function
-            Component of the propellant inertia tensor relative to the e_1
-            axis in kg*m^2, as a function of time. The e_1 axis is the
-            direction perpendicular to the motor body axis of symmetry,
-            centered at the instantaneous propellant center of mass.
-        Motor.propellant_I_22 : Function
-            Component of the propellant inertia tensor relative to the e_2
-            axis in kg*m^2, as a function of time. The e_2 axis is the
-            direction perpendicular to the motor body axis of symmetry,
-            centered at the instantaneous propellant center of mass.
-            Numerically equivalent to propellant_I_11 due to symmetry.
-        Motor.propellant_I_33 : Function
-            Component of the propellant inertia tensor relative to the e_3
-            axis in kg*m^2, as a function of time. The e_3 axis is the
-            direction of the motor body axis of symmetry, centered at the
-            instantaneous propellant center of mass.
-        Motor.propellant_I_12 : Function
-            Component of the propellant inertia tensor relative to the e_1 and
-            e_2 axes in kg*m^2, as a function of time. See Motor.propellant_I_11
-            and Motor.propellant_I_22 for more information.
-        Motor.propellant_I_13 : Function
-            Component of the propellant inertia tensor relative to the e_1 and
-            e_3 axes in kg*m^2, as a function of time. See Motor.propellant_I_11
-            and Motor.propellant_I_33 for more information.
-        Motor.propellant_I_23 : Function
-            Component of the propellant inertia tensor relative to the e_2 and
-            e_3 axes in kg*m^2, as a function of time. See Motor.propellant_I_22
-            and Motor.propellant_I_33 for more information.
-
-        Thrust and burn attributes:
-        Motor.thrust : Function
-            Motor thrust force, in Newtons, as a function of time.
-        Motor.total_impulse : float
-            Total impulse of the thrust curve in N*s.
-        Motor.max_thrust : float
-            Maximum thrust value of the given thrust curve, in N.
-        Motor.max_thrust_time : float
-            Time, in seconds, in which the maximum thrust value is achieved.
-        Motor.average_thrust : float
-            Average thrust of the motor, given in N.
-        Motor.burn_time : tuple of float
-            Tuple containing the initial and final time of the motor's burn time
-            in seconds.
-        Motor.burn_start_time : float
-            Motor burn start time, in seconds.
-        Motor.burn_out_time : float
-            Motor burn out time, in seconds.
-        Motor.burn_duration : float
-            Total motor burn duration, in seconds. It is the difference between the burn_out_time and the burn_start_time.
-        Motor.exhaust_velocity : float
-            Propulsion gases exhaust velocity, assumed constant, in m/s.
-        Motor.burn_area : Function
-            Total burn area considering all grains, made out of inner
-            cylindrical burn area and grain top and bottom faces. Expressed
-            in meters squared as a function of time.
-        Motor.Kn : Function
-            Motor Kn as a function of time. Defined as burn_area divided by
-            nozzle throat cross sectional area. Has no units.
-        Motor.burn_rate : Function
-            Propellant burn rate in meter/second as a function of time.
-        Motor.interpolate : string
-            Method of interpolation used in case thrust curve is given
-            by data set in .csv or .eng, or as an array. Options are 'spline'
-            'akima' and 'linear'. Default is "linear".
+    SolidMotor.coordinate_system_orientation : str
+        Orientation of the motor's coordinate system. The coordinate system
+        is defined by the motor's axis of symmetry. The origin of the
+        coordinate system may be placed anywhere along such axis, such as
+        at the nozzle area, and must be kept the same for all other
+        positions specified. Options are "nozzle_to_combustion_chamber" and
+        "combustion_chamber_to_nozzle".
+    SolidMotor.nozzle_radius : float
+        Radius of motor nozzle outlet in meters.
+    SolidMotor.nozzle_position : float
+        Motor's nozzle outlet position in meters, specified in the motor's
+        coordinate system. See
+        :doc:`Positions and Coordinate Systems </user/positions>` for
+        more information.
+    SolidMotor.throat_radius : float
+        Radius of motor nozzle throat in meters.
+    SolidMotor.grain_number : int
+        Number of solid grains.
+    SolidMotor.grains_center_of_mass_position : float
+        Position of the center of mass of the grains in meters, specified in
+        the motor's coordinate system.
+        See :doc:`Positions and Coordinate Systems </user/positions>`
+        for more information.
+    SolidMotor.grain_separation : float
+        Distance between two grains in meters.
+    SolidMotor.grain_density : float
+        Density of each grain in kg/meters cubed.
+    SolidMotor.grain_outer_radius : float
+        Outer radius of each grain in meters.
+    SolidMotor.grain_initial_inner_radius : float
+        Initial inner radius of each grain in meters.
+    SolidMotor.grain_initial_height : float
+        Initial height of each grain in meters.
+    SolidMotor.grain_initial_volume : float
+        Initial volume of each grain in meters cubed.
+    SolidMotor.grain_inner_radius : Function
+        Inner radius of each grain in meters as a function of time.
+    SolidMotor.grain_height : Function
+        Height of each grain in meters as a function of time.
+    SolidMotor.grain_initial_mass : float
+        Initial mass of each grain in kg.
+    SolidMotor.dry_mass : float
+        The total mass of the motor structure, including chambers
+        and tanks, when it is empty and does not contain any propellant.
+    SolidMotor.propellant_initial_mass : float
+        Total propellant initial mass in kg.
+    SolidMotor.total_mass : Function
+        Total motor mass in kg as a function of time, defined as the sum
+        of propellant and dry mass.
+    SolidMotor.propellant_mass : Function
+        Total propellant mass in kg as a function of time.
+    SolidMotor.total_mass_flow_rate : Function
+        Time derivative of propellant total mass in kg/s as a function
+        of time as obtained by the thrust source.
+    SolidMotor.center_of_mass : Function
+        Position of the motor center of mass in
+        meters as a function of time.
+        See
+        :doc:`Positions and Coordinate Systems </user/positions>` for more
+        information regarding the motor's coordinate system.
+    SolidMotor.center_of_propellant_mass : Function
+        Position of the motor propellant center of mass in meters as a
+        function of time.
+        See
+        :doc:`Positions and Coordinate Systems </user/positions>` for more
+        information regarding the motor's coordinate system.
+    SolidMotor.I_11 : Function
+        Component of the motor's inertia tensor relative to the e_1 axis
+        in kg*m^2, as a function of time. The e_1 axis is the direction
+        perpendicular to the motor body axis of symmetry, centered at
+        the instantaneous motor center of mass.
+    SolidMotor.I_22 : Function
+        Component of the motor's inertia tensor relative to the e_2 axis
+        in kg*m^2, as a function of time. The e_2 axis is the direction
+        perpendicular to the motor body axis of symmetry, centered at
+        the instantaneous motor center of mass.
+        Numerically equivalent to I_11 due to symmetry.
+    SolidMotor.I_33 : Function
+        Component of the motor's inertia tensor relative to the e_3 axis
+        in kg*m^2, as a function of time. The e_3 axis is the direction of
+        the motor body axis of symmetry, centered at the instantaneous
+        motor center of mass.
+    SolidMotor.I_12 : Function
+        Component of the motor's inertia tensor relative to the e_1 and
+        e_2 axes in kg*m^2, as a function of time. See SolidMotor.I_11 and
+        SolidMotor.I_22 for more information.
+    SolidMotor.I_13 : Function
+        Component of the motor's inertia tensor relative to the e_1 and
+        e_3 axes in kg*m^2, as a function of time. See SolidMotor.I_11 and
+        SolidMotor.I_33 for more information.
+    SolidMotor.I_23 : Function
+        Component of the motor's inertia tensor relative to the e_2 and
+        e_3 axes in kg*m^2, as a function of time. See SolidMotor.I_22 and
+        SolidMotor.I_33 for more information.
+    SolidMotor.propellant_I_11 : Function
+        Component of the propellant inertia tensor relative to the e_1
+        axis in kg*m^2, as a function of time. The e_1 axis is the
+        direction perpendicular to the motor body axis of symmetry,
+        centered at the instantaneous propellant center of mass.
+    SolidMotor.propellant_I_22 : Function
+        Component of the propellant inertia tensor relative to the e_2
+        axis in kg*m^2, as a function of time. The e_2 axis is the
+        direction perpendicular to the motor body axis of symmetry,
+        centered at the instantaneous propellant center of mass.
+        Numerically equivalent to propellant_I_11 due to symmetry.
+    SolidMotor.propellant_I_33 : Function
+        Component of the propellant inertia tensor relative to the e_3
+        axis in kg*m^2, as a function of time. The e_3 axis is the
+        direction of the motor body axis of symmetry, centered at the
+        instantaneous propellant center of mass.
+    SolidMotor.propellant_I_12 : Function
+        Component of the propellant inertia tensor relative to the e_1 and
+        e_2 axes in kg*m^2, as a function of time.
+        See SolidMotor.propellant_I_11 and SolidMotor.propellant_I_22 for
+        more information.
+    SolidMotor.propellant_I_13 : Function
+        Component of the propellant inertia tensor relative to the e_1 and
+        e_3 axes in kg*m^2, as a function of time.
+        See SolidMotor.propellant_I_11 and SolidMotor.propellant_I_33 for
+        more information.
+    SolidMotor.propellant_I_23 : Function
+        Component of the propellant inertia tensor relative to the e_2 and
+        e_3 axes in kg*m^2, as a function of time.
+        See SolidMotor.propellant_I_22 and SolidMotor.propellant_I_33 for more
+        information.
+    SolidMotor.thrust : Function
+        Motor thrust force, in Newtons, as a function of time.
+    SolidMotor.total_impulse : float
+        Total impulse of the thrust curve in N*s.
+    SolidMotor.max_thrust : float
+        Maximum thrust value of the given thrust curve, in N.
+    SolidMotor.max_thrust_time : float
+        Time, in seconds, in which the maximum thrust value is achieved.
+    SolidMotor.average_thrust : float
+        Average thrust of the motor, given in N.
+    SolidMotor.burn_time : tuple of float
+        Tuple containing the initial and final time of the motor's burn time
+        in seconds.
+    SolidMotor.burn_start_time : float
+        Motor burn start time, in seconds.
+    SolidMotor.burn_out_time : float
+        Motor burn out time, in seconds.
+    SolidMotor.burn_duration : float
+        Total motor burn duration, in seconds. It is the difference between the
+        ``burn_out_time`` and the ``burn_start_time``.
+    SolidMotor.exhaust_velocity : Function
+        Propulsion gases exhaust velocity, assumed constant, in m/s.
+    SolidMotor.burn_area : Function
+        Total burn area considering all grains, made out of inner
+        cylindrical burn area and grain top and bottom faces. Expressed
+        in meters squared as a function of time.
+    SolidMotor.Kn : Function
+        Motor Kn as a function of time. Defined as burn_area divided by
+        nozzle throat cross sectional area. Has no units.
+    SolidMotor.burn_rate : Function
+        Propellant burn rate in meter/second as a function of time.
+    SolidMotor.interpolate : string
+        Method of interpolation used in case thrust curve is given
+        by data set in .csv or .eng, or as an array. Options are 'spline'
+        'akima' and 'linear'. Default is "linear".
     """
 
     def __init__(
         self,
         thrust_source,
         dry_mass,
-        center_of_dry_mass,
         dry_inertia,
-        grains_center_of_mass_position,
+        nozzle_radius,
         grain_number,
         grain_density,
         grain_outer_radius,
         grain_initial_inner_radius,
         grain_initial_height,
         grain_separation,
-        nozzle_radius,
-        burn_time=None,
+        grains_center_of_mass_position,
+        center_of_dry_mass_position,
         nozzle_position=0,
+        burn_time=None,
         throat_radius=0.01,
         reshape_thrust_curve=False,
         interpolation_method="linear",
@@ -211,7 +213,7 @@ class SolidMotor(Motor):
 
         Parameters
         ----------
-        thrust_source : int, float, callable, string, array
+        thrust_source : int, float, callable, string, array, Function
             Motor's thrust curve. Can be given as an int or float, in which
             case the thrust will be considered constant in time. It can
             also be given as a callable function, whose argument is time in
@@ -220,39 +222,25 @@ class SolidMotor(Motor):
             The .csv file shall contain no headers and the first column must
             specify time in seconds, while the second column specifies thrust.
             Arrays may also be specified, following rules set by the class
-            Function. See help(Function). Thrust units are Newtons.
-        burn_time: float, tuple of float, optional
-            Motor's burn time.
-            If a float is given, the burn time is assumed to be between 0 and the
-            given float, in seconds.
-            If a tuple of float is given, the burn time is assumed to be between
-            the first and second elements of the tuple, in seconds.
-            If not specified, automatically sourced as the range between the first- and
-            last-time step of the motor's thrust curve. This can only be used if the
-            motor's thrust is defined by a list of points, such as a .csv file, a .eng
-            file or a Function instance whose source is a list.
+            Function. Thrust units are Newtons.
+
+            .. seealso:: :doc:`Thrust Source Details </user/motors/thrust>`
+        nozzle_radius : int, float
+            Motor's nozzle outlet radius in meters.
         dry_mass : int, float
             The total mass of the motor structure, including chambers
             and tanks, when it is empty and does not contain any propellant.
-        center_of_dry_mass : int, float
-            The position, in meters, of the motor's center of mass with respect
-            to the motor's coordinate system when it is devoid of propellant.
-            See `Motor.coordinate_system_orientation`.
         dry_inertia : tuple, list
             Tuple or list containing the motor's dry mass inertia tensor
             components, in kg*m^2. This inertia is defined with respect to the
-            the `center_of_dry_mass` position.
+            the `center_of_dry_mass_position` position.
             Assuming e_3 is the rocket's axis of symmetry, e_1 and e_2 are
             orthogonal and form a plane perpendicular to e_3, the dry mass
             inertia tensor components must be given in the following order:
             (I_11, I_22, I_33, I_12, I_13, I_23), where I_ij is the
             component of the inertia tensor in the direction of e_i x e_j.
-            Alternatively, the inertia tensor can be given as (I_11, I_22, I_33),
-            where I_12 = I_13 = I_23 = 0.
-        grains_center_of_mass_position : float
-            Position of the center of mass of the grains in meters. More specifically,
-            the coordinate of the center of mass specified in the motor's coordinate
-            system. See `Motor.coordinate_system_orientation` for more information.
+            Alternatively, the inertia tensor can be given as
+            (I_11, I_22, I_33), where I_12 = I_13 = I_23 = 0.
         grain_number : int
             Number of solid grains
         grain_density : int, float
@@ -265,13 +253,32 @@ class SolidMotor(Motor):
             Solid grain initial height in meters.
         grain_separation : int, float
             Distance between grains, in meters.
-        nozzle_radius : int, float
-            Motor's nozzle outlet radius in meters.
+        grains_center_of_mass_position : float
+            Position of the center of mass of the grains in meters. More
+            specifically, the coordinate of the center of mass specified in the
+            motor's coordinate system.
+            See
+            :doc:`Positions and Coordinate Systems </user/positions>`
+            for more information.
+        center_of_dry_mass_position : int, float
+            The position, in meters, of the motor's center of mass with respect
+            to the motor's coordinate system when it is devoid of propellant.
+            See :doc:`Positions and Coordinate Systems </user/positions>`.
         nozzle_position : int, float, optional
             Motor's nozzle outlet position in meters, in the motor's coordinate
-            system. See `Motor.coordinate_system_orientation` for details.
-            Default is 0, in which case the origin of the coordinate system
-            is placed at the motor's nozzle outlet.
+            system. See :doc:`Positions and Coordinate Systems </user/positions>`
+            for details. Default is 0, in which case the origin of the
+            coordinate system is placed at the motor's nozzle outlet.
+        burn_time: float, tuple of float, optional
+            Motor's burn time.
+            If a float is given, the burn time is assumed to be between 0 and
+            the given float, in seconds. If a tuple of float is given, the burn
+            time is assumed to be between the first and second elements of the
+            tuple, in seconds. If not specified, automatically sourced as the
+            range between the first- and last-time step of the motor's thrust
+            curve. This can only be used if the motor's thrust is defined by a
+            list of points, such as a .csv file, a .eng file or a Function
+            instance whose source is a list.
         throat_radius : int, float, optional
             Motor's nozzle throat radius in meters. Used to calculate Kn curve.
             Optional if the Kn curve is not interesting. Its value does not
@@ -291,10 +298,11 @@ class SolidMotor(Motor):
         coordinate_system_orientation : string, optional
             Orientation of the motor's coordinate system. The coordinate system
             is defined by the motor's axis of symmetry. The origin of the
-            coordinate system  may be placed anywhere along such axis, such as
+            coordinate system may be placed anywhere along such axis, such as
             at the nozzle area, and must be kept the same for all other
             positions specified. Options are "nozzle_to_combustion_chamber" and
-            "combustion_chamber_to_nozzle". Default is "nozzle_to_combustion_chamber".
+            "combustion_chamber_to_nozzle". Default is
+            "nozzle_to_combustion_chamber".
 
         Returns
         -------
@@ -303,11 +311,11 @@ class SolidMotor(Motor):
         super().__init__(
             thrust_source,
             dry_mass,
-            center_of_dry_mass,
             dry_inertia,
             nozzle_radius,
-            burn_time,
+            center_of_dry_mass_position,
             nozzle_position,
+            burn_time,
             reshape_thrust_curve,
             interpolation_method,
             coordinate_system_orientation,
@@ -374,7 +382,7 @@ class SolidMotor(Motor):
 
         Returns
         -------
-        self.exhaust_velocity : rocketpy.Function
+        self.exhaust_velocity : Function
             Gas exhaust velocity of the motor.
         """
         return self.total_impulse / self.propellant_initial_mass
@@ -403,7 +411,7 @@ class SolidMotor(Motor):
 
         See Also
         --------
-        `Motor.total_mass_flow_rate` :
+        Motor.total_mass_flow_rate :
             Calculates the total mass flow rate of the motor assuming
             constant exhaust velocity.
         """
@@ -437,7 +445,7 @@ class SolidMotor(Motor):
 
         Returns
         -------
-        rocketpy.Function
+        Function
             Position of the propellant center of mass as a function of time.
         """
         time_source = self.grain_inner_radius.x_array
@@ -448,19 +456,11 @@ class SolidMotor(Motor):
         """Calculates grain inner radius and grain height as a function of time
         by assuming that every propellant mass burnt is exhausted. In order to
         do that, a system of differential equations is solved using
-        scipy.integrate.odeint. Furthermore, the function calculates burn area,
-        burn rate and Kn as a function of time using the previous results. All
-        functions are stored as objects of the class Function in
-        self.grain_inner_radius, self.grain_height, self.burn_area, self.burn_rate
-        and self.Kn.
-
+        scipy.integrate.solve_ivp.
 
         Returns
         -------
-        geometry : list of rocketpy.Functions
-            First element is the Function representing the inner radius of a
-            grain as a function of time. Second argument is the Function
-            representing the height of a grain as a function of time.
+        None
         """
         # Define initial conditions for integration
         y0 = [self.grain_initial_inner_radius, self.grain_initial_height]
@@ -522,7 +522,7 @@ class SolidMotor(Motor):
 
         reset_funcified_methods(self)
 
-        return [self.grain_inner_radius, self.grain_height]
+        return None
 
     @funcify_method("Time (s)", "burn area (m²)")
     def burn_area(self):
@@ -531,7 +531,7 @@ class SolidMotor(Motor):
 
         Returns
         -------
-        burn_area : rocketpy.Function
+        burn_area : Function
             Function representing the burn area progression with the time.
         """
         burn_area = (
@@ -548,13 +548,13 @@ class SolidMotor(Motor):
 
     @funcify_method("Time (s)", "burn rate (m/s)")
     def burn_rate(self):
-        """Calculates the BurnRate with respect to time. This evaluation
-        assumes that it was already calculated the massDot, burn_area time
+        """Calculates the burn_rate with respect to time. This evaluation
+        assumes that it was already calculated the mass_dot, burn_area time
         series.
 
         Returns
         -------
-        burn_rate : rocketpy.Function
+        burn_rate : Function
             Rate of progression of the inner radius during the combustion.
         """
         return -1 * self.mass_flow_rate / (self.burn_area * self.grain_density)
@@ -566,7 +566,7 @@ class SolidMotor(Motor):
 
         Returns
         -------
-        Kn : rocketpy.Function
+        Kn : Function
             Kn as a function of time.
         """
         Kn_source = (
@@ -686,13 +686,13 @@ class SolidMotor(Motor):
         return 0
 
     def info(self):
-        """Prints out basic data about the Motor."""
+        """Prints out basic data about the SolidMotor."""
         self.prints.all()
         self.plots.thrust()
         return None
 
     def all_info(self):
-        """Prints out all data and graphs available about the Motor."""
+        """Prints out all data and graphs available about the SolidMotor."""
         self.prints.all()
         self.plots.all()
 

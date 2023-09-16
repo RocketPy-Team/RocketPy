@@ -1,7 +1,3 @@
-__author__ = "Guilherme Fernandes Alves, Mateus Stano Junqueira"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -1594,12 +1590,8 @@ class CompareFlights(Compare):
     def all(self):
         """Prints out all data and graphs available about the Flight.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 

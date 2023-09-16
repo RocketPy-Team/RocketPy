@@ -1,8 +1,3 @@
-__author__ = "Mateus Stano Junqueira"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-
 class _RocketPrints:
     """Class that holds prints methods for Rocket class.
 
@@ -32,16 +27,13 @@ class _RocketPrints:
     def inertia_details(self):
         """Print inertia details.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         print("\nInertia Details\n")
-        print("Rocket Mass: {:.3f} kg (No Propellant)".format(self.rocket.mass))
+        print("Rocket Mass: {:.3f} kg".format(self.rocket.mass))
+        print("Rocket Dry Mass: {:.3f} kg (With Motor)".format(self.rocket.dry_mass))
         print(
             "Rocket Mass: {:.3f} kg (With Propellant)".format(self.rocket.total_mass(0))
         )
@@ -81,18 +73,23 @@ class _RocketPrints:
     def rocket_geometrical_parameters(self):
         """Print rocket geometrical parameters.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         print("\nGeometrical Parameters\n")
         print("Rocket Maximum Radius: " + str(self.rocket.radius) + " m")
         print("Rocket Frontal Area: " + "{:.6f}".format(self.rocket.area) + " m2")
         print("\nRocket Distances")
+        print(
+            "Rocket Center of Dry Mass - Center of Mass withour Motor: "
+            + "{:.3f} m".format(
+                abs(
+                    self.rocket.center_of_mass_without_motor
+                    - self.rocket.center_of_dry_mass_position
+                )
+            )
+        )
         print(
             "Rocket Center of Dry Mass - Nozzle Exit Distance: "
             + "{:.3f} m".format(
@@ -120,20 +117,13 @@ class _RocketPrints:
             )
         )
 
-        print("\nAerodynamic Components Parameters")
-        print("Currently not implemented.")
-
         return None
 
     def rocket_aerodynamics_quantities(self):
         """Print rocket aerodynamics quantities.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         print("\nAerodynamics Lift Coefficient Derivatives\n")
@@ -149,7 +139,13 @@ class _RocketPrints:
         for surface, position in self.rocket.aerodynamic_surfaces:
             name = surface.name
             cpz = surface.cp[2]
-            print(name + " Center of Pressure to CM: {:.3f}".format(cpz) + " m")
+            print(
+                name
+                + " Center of Pressure to CM: {:.3f}".format(
+                    position - self.rocket._csys * cpz
+                )
+                + " m"
+            )
         print(
             "Distance - Center of Pressure to Center of Dry Mass: "
             + "{:.3f}".format(self.rocket.center_of_mass(0) - self.rocket.cp_position)
@@ -173,12 +169,8 @@ class _RocketPrints:
     def parachute_data(self):
         """Print parachute data.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         for chute in self.rocket.parachutes:
@@ -188,12 +180,8 @@ class _RocketPrints:
     def all(self):
         """Prints all print methods about the Environment.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         # Print inertia details

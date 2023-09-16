@@ -1,12 +1,17 @@
-from itertools import product
+import importlib, importlib.metadata
+import re
+from bisect import bisect_left
 from cmath import isclose
+from itertools import product
+
+import pytz
+from cftime import num2pydate
+from packaging import version as packaging_version
 
 _NOT_FOUND = object()
 
-import numpy as np
-import pytz
-from cftime import num2pydate
-from bisect import bisect_left
+# Mapping of module name and the name of the package that should be installed
+INSTALL_MAPPING = {"IPython": "ipython"}
 
 
 class cached_property:
@@ -44,51 +49,65 @@ class Vector:
     Examples
     --------
     Creating a Vector instance requires passing its components as an iterable:
+
     >>> v = Vector([1, 2, 3])
     >>> v
     Vector(1, 2, 3)
 
     Vector components can be accessed by x, y and z or by indexing:
+
     >>> v.x, v.y, v.z
     (1, 2, 3)
+
     >>> v[0], v[1], v[2]
     (1, 2, 3)
 
     Vector instances can be added, subtracted, multiplied by a scalar, divided
     by a scalar, negated, and cross and dot product can be computed:
+
     >>> v + v
     Vector(2, 4, 6)
+
     >>> v - v
     Vector(0, 0, 0)
+
     >>> v * 2
     Vector(2, 4, 6)
+
     >>> v / 2
     Vector(0.5, 1.0, 1.5)
+
     >>> -v
     Vector(-1, -2, -3)
+
     >>> v @ v # Dot product
     14
 
     Cross products need to be wrapped in parentheses to ensure the ^ operator
     precedence:
+
     >>> (v ^ v)
     Vector(0, 0, 0)
 
     Vector instances can be called as functions if their elements are callable:
+
     >>> v = Vector([lambda x: x**2, lambda x: x**3, lambda x: x**4])
     >>> v(2)
     Vector(4, 8, 16)
 
     Vector instances magnitudes can be accessed as its absolute value:
+
     >>> v = Vector([1, 2, 3])
     >>> abs(v)
     3.7416573867739413
 
     Vector instances can be normalized:
+
     >>> v.unit_vector
     Vector(0.2672612419124244, 0.5345224838248488, 0.8017837257372732)
 
     Vector instances can be compared for equality:
+
     >>> v = Vector([1, 2, 3])
     >>> u = Vector([1, 2, 3])
     >>> v == u
@@ -98,6 +117,7 @@ class Vector:
 
     And last, but not least, it is also possible to check if two vectors are
     parallel or orthogonal:
+
     >>> v = Vector([1, 2, 3])
     >>> u = Vector([2, 4, 6])
     >>> v.is_parallel_to(u)
@@ -418,6 +438,7 @@ class Matrix:
     --------
     Creating a Matrix instance requires passing its components as a nested
     iterable:
+
     >>> M = Matrix([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     >>> M
     Matrix([1, 2, 3],
@@ -425,21 +446,27 @@ class Matrix:
            [7, 8, 9])
 
     Matrix instances can be indexed and sliced like lists:
+
     >>> M[0]
     [1, 2, 3]
+
     >>> M[0][0]
     1
+
     >>> M[0, 0]
     1
+
     >>> M[0, 0:2]
     [1, 2]
 
     Matrix instances components can be accessed as attributes:
+
     >>> M.xx, M.xy, M.xz
     (1, 2, 3)
 
     Matrix instances can be called as functions, if their elements are
     callable:
+
     >>> M = Matrix([[lambda x: x**1, lambda x: x**2, lambda x: x**3],
     ...             [lambda x: x**4, lambda x: x**5, lambda x: x**6],
     ...             [lambda x: x**7, lambda x: x**8, lambda x: x**9]])
@@ -450,25 +477,30 @@ class Matrix:
 
     Matrix instances can be added, subtracted, multiplied and divided by
     scalars:
+
     >>> M = Matrix([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     >>> M + M
     Matrix([2, 4, 6],
            [8, 10, 12],
            [14, 16, 18])
+
     >>> M - M
     Matrix([0, 0, 0],
            [0, 0, 0],
            [0, 0, 0])
+
     >>> M * 2
     Matrix([2, 4, 6],
            [8, 10, 12],
            [14, 16, 18])
+
     >>> M / 2
     Matrix([0.5, 1.0, 1.5],
            [2.0, 2.5, 3.0],
            [3.5, 4.0, 4.5])
 
     Matrix instances can be multiplied (inner product) by other matrices:
+
     >>> M = Matrix([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     >>> N = Matrix([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     >>> M @ N
@@ -477,12 +509,14 @@ class Matrix:
            [102, 126, 150])
 
     Matrix instances can be used to transform vectors by the inner product:
+
     >>> M = Matrix([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     >>> v = Vector([1, 2, 3])
     >>> M @ v
     Vector(14, 32, 50)
 
     Matrix instances can be transposed and inverted:
+
     >>> M = Matrix([[1, 2, 3], [4, 0, 6], [7, 8, 9]])
     >>> M.transpose
     Matrix([1, 4, 7],
@@ -494,6 +528,7 @@ class Matrix:
            [0.5333333333333333, 0.1, -0.13333333333333333])
 
     Matrix instances can be element-wise operated on by callables:
+
     >>> M = Matrix([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     >>> M.element_wise(lambda x: x**2)
     Matrix([1, 4, 9],
@@ -501,6 +536,7 @@ class Matrix:
            [49, 64, 81])
 
     Determinants can be calculated:
+
     >>> M = Matrix([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     >>> M.det
     0
@@ -508,6 +544,7 @@ class Matrix:
     0
 
     Matrices can be compared for equality:
+
     >>> M = Matrix([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     >>> N = Matrix([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     >>> M == N
@@ -1229,6 +1266,86 @@ def find_closest(ordered_sequence, value):
     smaller, greater = ordered_sequence[pivot_index - 1], ordered_sequence[pivot_index]
 
     return pivot_index - 1 if value - smaller <= greater - value else pivot_index
+
+
+def import_optional_dependency(name):
+    """Import an optional dependency. If the dependency is not installed, an
+    ImportError is raised. This function is based on the implementation found in
+    pandas repository:
+    github.com/pandas-dev/pandas/blob/main/pandas/compat/_optional.py
+
+    Parameters
+    ----------
+    name : str
+        The name of the module to import. Can be used to import submodules too.
+        The name will be used as an argument to importlib.import_module method.
+
+    Examples:
+    ---------
+    >>> from rocketpy.tools import import_optional_dependency
+    >>> matplotlib = import_optional_dependency("matplotlib")
+    >>> matplotlib.__name__
+    'matplotlib'
+    >>> plt = import_optional_dependency("matplotlib.pyplot")
+    >>> plt.__name__
+    'matplotlib.pyplot'
+    """
+    try:
+        module = importlib.import_module(name)
+    except ImportError as exc:
+        module_name = name.split(".")[0]
+        package_name = INSTALL_MAPPING.get(module_name, module_name)
+        raise ImportError(
+            f"{package_name} is an optional dependency and is not installed.\n"
+            + f"\t\tUse 'pip install {package_name}' to install it or "
+            + "'pip install rocketpy[all]' to install all optional dependencies."
+        ) from exc
+    return module
+
+
+def check_requirement_version(module_name, version):
+    """This function tests if a module is installed and if the version is
+    correct. If the module is not installed, an ImportError is raised. If the
+    version is not correct, an error is raised.
+
+    Parameters
+    ----------
+    module_name : str
+        The name of the module to be tested.
+    version : str
+        The version of the module that is required. The string must start with
+        one of the following operators: ">", "<", ">=", "<=", "==", "!=".
+
+    Example:
+    --------
+    >>> from rocketpy.tools import check_requirement_version
+    >>> check_requirement_version("numpy", ">=1.0.0")
+    True
+    >>> check_requirement_version("matplotlib", ">=3.0")
+    True
+    """
+    operators = [">=", "<=", "==", ">", "<", "!="]
+    # separator the operator from the version number
+    operator, v_number = re.match(f"({'|'.join(operators)})(.*)", version).groups()
+
+    if operator not in operators:
+        raise ValueError(
+            f"Version must start with one of the following operators: {operators}"
+        )
+    if importlib.util.find_spec(module_name) is None:
+        raise ImportError(
+            f"{module_name} is not installed. You can install it by running "
+            + f"'pip install {module_name}'"
+        )
+    installed_version = packaging_version.parse(importlib.metadata.version(module_name))
+    required_version = packaging_version.parse(v_number)
+    if installed_version < required_version:
+        raise ImportError(
+            f"{module_name} version is {installed_version}, which is not correct"
+            + f". A version {version} is required. You can install a correct "
+            + f"version by running 'pip install {module_name}{version}'"
+        )
+    return True
 
 
 if __name__ == "__main__":

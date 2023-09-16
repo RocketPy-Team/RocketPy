@@ -1,8 +1,3 @@
-__author__ = "Guilherme Fernandes Alves, Mateus Stano Junqueira"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -64,12 +59,8 @@ class _FlightPlots:
     def trajectory_3d(self):
         """Plot a 3D graph of the trajectory
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -124,12 +115,8 @@ class _FlightPlots:
     def linear_kinematics_data(self):
         """Prints out all Kinematics graphs available about the Flight
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -203,12 +190,8 @@ class _FlightPlots:
     def attitude_data(self):
         """Prints out all Angular position graphs available about the Flight
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -260,12 +243,8 @@ class _FlightPlots:
         """Prints out Flight path and Rocket Attitude angle graphs available
         about the Flight
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -311,12 +290,8 @@ class _FlightPlots:
         """Prints out all Angular velocity and acceleration graphs available
         about the Flight
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -464,12 +439,8 @@ class _FlightPlots:
     def aerodynamic_forces(self):
         """Prints out all Forces and Moments graphs available about the Flight
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -660,12 +631,8 @@ class _FlightPlots:
         """Prints out a summary of the Fluid Mechanics graphs available about
         the Flight
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -739,12 +706,8 @@ class _FlightPlots:
         """Prints out Rocket Stability and Control parameters graphs available
         about the Flight
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -802,12 +765,8 @@ class _FlightPlots:
     def pressure_rocket_altitude(self):
         """Plots out pressure at rocket's altitude.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -837,12 +796,8 @@ class _FlightPlots:
         This function aims to help the engineer to visually check if there
         are anomalies with the Flight Simulation.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -861,12 +816,8 @@ class _FlightPlots:
     def all(self):
         """Prints out all plots available about the Flight.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 

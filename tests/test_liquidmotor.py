@@ -47,7 +47,7 @@ def test_liquid_motor_basic_parameters(liquid_motor):
         liquid_motor.dry_I_22,
         liquid_motor.dry_I_33,
     ) == dry_inertia
-    assert liquid_motor.center_of_dry_mass == center_of_dry_mass
+    assert liquid_motor.center_of_dry_mass_position == center_of_dry_mass
     assert liquid_motor.nozzle_position == nozzle_position
     assert liquid_motor.nozzle_radius == nozzle_radius
     assert liquid_motor.positioned_tanks[0]["position"] == pressurant_tank_position

@@ -1,11 +1,21 @@
-Environment at RocketPy
-========================
+Environment with RocketPy
+=========================
 
 .. toctree::
-    :maxdepth: 4
-    :caption: Contents:
+    :maxdepth: 3
+    :caption: Details
 
-    ../notebooks/environment_class_usage.ipynb
-    ../notebooks/environment_analysis_class_usage.ipynb
-    ../notebooks/environment_analysis_EuroC_example.ipynb
-    ../notebooks/topography_usage.ipynb
+    ../notebooks/environment/environment_class_usage.ipynb
+
+.. toctree::
+    :maxdepth: 2
+    :caption: Topography
+
+    ../notebooks/environment/topography_usage.ipynb
+ 
+.. toctree::
+    :maxdepth: 2
+    :caption: Environment Analysis
+
+    ../notebooks/environment/environment_analysis_class_usage.ipynb
+    ../notebooks/environment/environment_analysis_EuroC_example.ipynb

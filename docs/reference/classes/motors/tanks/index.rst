@@ -2,12 +2,10 @@ Tanks and TanksGeometry Classes
 ===============================
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 1
    :caption: Contents:
 
-   TankGeometry
-   CylindricalTank
-   SphericalTank
+   Tank
    MassFlowRateBasedTank
    UllageBasedTank
    MassBasedTank

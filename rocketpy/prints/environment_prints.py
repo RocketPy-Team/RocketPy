@@ -1,8 +1,3 @@
-__author__ = "Mateus Stano Junqueira"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-
 class _EnvironmentPrints:
     """Class that holds prints methods for Environment class.
 
@@ -34,12 +29,8 @@ class _EnvironmentPrints:
     def gravity_details(self):
         """Prints gravity details.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         print("\nGravity Details\n")
@@ -54,12 +45,8 @@ class _EnvironmentPrints:
     def launch_site_details(self):
         """Prints launch site details.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         print("\nLaunch Site Details\n")
@@ -105,12 +92,8 @@ class _EnvironmentPrints:
     def atmospheric_model_details(self):
         """Prints atmospheric model details.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         print("\nAtmospheric Model Details\n")
@@ -149,12 +132,8 @@ class _EnvironmentPrints:
     def atmospheric_conditions(self):
         """Prints atmospheric conditions.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         print("\nSurface Atmospheric Conditions\n")
@@ -224,12 +203,8 @@ class _EnvironmentPrints:
     def all(self):
         """Prints all print methods about the Environment.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 

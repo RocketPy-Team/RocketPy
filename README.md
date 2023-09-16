@@ -1,4 +1,8 @@
-![RocketPy Logo](https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/RocketPy_Logo_Black.svg)
+.. image:: https://drive.google.com/uc?id=19f5D0PIBb0oGc-t1-qGp-icAbe5dIhB9
+    :class: only-dark
+
+.. image:: https://drive.google.com/uc?id=1xKt6u5mI8x8ZuA5IZvIFDolg2_0iQUf-
+    :class: only-light
 
 <br>
 
@@ -12,89 +16,52 @@
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/company/rocketpy)
 [![DOI](https://img.shields.io/badge/DOI-10.1061%2F%28ASCE%29AS.1943--5525.0001331-blue.svg)](http://dx.doi.org/10.1061/%28ASCE%29AS.1943-5525.0001331)
 
-<img src="https://static.scarf.sh/a.png?x-pxid=6f4094ab-00fa-4a8d-9247-b7ed27e7164d" />
+<br>
 
 # RocketPy
 
 RocketPy is the next-generation trajectory simulation solution for High-Power Rocketry. The code is written as a [Python](http://www.python.org) library and allows for a complete 6 degrees of freedom simulation of a rocket's flight trajectory, including high-fidelity variable mass effects as well as descent under parachutes. Weather conditions, such as wind profiles, can be imported from sophisticated datasets, allowing for realistic scenarios. Furthermore, the implementation facilitates complex simulations, such as multi-stage rockets, design and trajectory optimization and dispersion analysis.
 
-<br>
 
 ## Main features
 
-<details>
-<summary>Nonlinear 6 degrees of freedom simulations</summary>
-<ul>
-  <li>Rigorous treatment of mass variation effects</li>
-  <li>Solved using LSODA with adjustable error tolerances</li>
-  <li>Highly optimized to run fast</li>
-</ul>
-</details>
+1. **Nonlinear 6 Degrees of Freedom Simulations**
+   - Rigorous treatment of mass variation effects
+   - Efficiently solved using LSODA with adjustable error tolerances
+   - Highly optimized for fast performance
 
-<details>
-<summary>Accurate weather modeling</summary>
-<ul>
-  <li>International Standard Atmosphere (1976)</li>
-  <li>Custom atmospheric profiles</li>
-  <li>Soundings (Wyoming, NOAARuc)</li>
-  <li>Weather forecasts and reanalysis</li>
-  <li>Weather ensembles</li>
-</ul>
-</details>
+2. **Accurate Weather Modeling**
+   - Supports International Standard Atmosphere (1976)
+   - Custom atmospheric profiles and Soundings (Wyoming, NOAARuc)
+   - Weather forecasts, reanalysis, and ensembles for realistic scenarios
 
-<details>
-<summary>Aerodynamic models</summary>
-<ul>
-  <li>Barrowman equations for lift coefficients (optional)</li>
-  <li>Drag coefficients can be easily imported from other sources (e.g. CFD simulations)</li>
-</ul>
-</details>
+3. **Aerodynamic Models**
+   - Optional Barrowman equations for lift coefficients
+   - Easy import of drag coefficients from other sources (e.g., CFD simulations)
 
-<details>
-<summary>Parachutes with external trigger functions</summary>
-<ul>
-  <li>Test the exact code that will fly</li>
-  <li>Sensor data can be augmented with noise</li>
-</ul>
-</details>
+4. **Parachutes with External Trigger Functions**
+   - Test the exact code that will fly
+   - Sensor data augmentation with noise for comprehensive parachute simulations
 
-<details>
-<summary>Solid, Hybrid and Liquid motors models</summary>
-<ul>
-  <li>Burn rate and mass variation properties from thrust curve</li>
-  <li>Define custom rocket tanks based on their flux data</li>
-  <li>CSV and ENG file support</li>
-</ul>
-</details>
+5. **Solid, Hybrid, and Liquid Motors Models**
+   - Burn rate and mass variation properties from the thrust curve
+   - Define custom rocket tanks based on flux data
+   - Support for CSV and ENG file formats
 
-<details>
-<summary>Monte Carlo simulations</summary>
-<ul>
-  <li>Dispersion analysis</li>
-  <li>Global sensitivity analysis</li>
-</ul>
-</details>
+6. **Monte Carlo Simulations**
+   - Conduct dispersion analysis and global sensitivity analysis
 
-<details>
-<summary>Flexible and modular</summary>
-<ul>
-  <li>Straightforward engineering analysis (e.g. apogee and lifting off speed as a function of mass)</li>
-  <li>Non-standard flights (e.g. parachute drop test from a helicopter)</li>
-  <li>Multi-stage rockets</li>
-  <li>Custom continuous and discrete control laws</li>
-  <li>Create new classes (e.g. other types of motors)</li>
-</ul>
-</details>
+7. **Flexible and Modular**
+   - Perform straightforward engineering analysis (e.g., apogee and lift-off speed as a function of mass)
+   - Handle non-standard flights (e.g., parachute drop test from a helicopter)
+   - Support multi-stage rockets and custom continuous/discrete control laws
+   - Easily create new classes, such as other types of motors
 
-<details>
-<summary>Integration with MATLAB®</summary>
-<ul>
-  <li>Straightforward way to run RocketPy from MATLAB®</li>
-  <li>Convert RocketPy results to MATLAB® variables so that they can be processed by MATLAB®</li>
-</ul>
-</details>
+8. **Integration with MATLAB®**
+   - Effortlessly run RocketPy from MATLAB®
+   - Convert RocketPy results to MATLAB® variables for further processing
 
-<br>
+These powerful features make RocketPy an indispensable tool for high-power rocket trajectory simulation, catering to enthusiasts, researchers, and engineers in the field of rocketry.
 
 ## Validation
 
@@ -112,9 +79,7 @@ Flight data and rocket parameters used in this comparison were kindly provided b
 |   NDRT launch vehicle   | Apogee time (s)        |    16.77  |    17.10  |   **-1.90 %**   |
 |   NDRT launch vehicle   | Maximum velocity (m/s) |   172.86  |   168.95  |   **2.31 %**    |
 
-<br>
-
-## Documentation
+# Documentation
 
 Check out documentation details using the links below:
 
@@ -153,18 +118,16 @@ pip install rocketpy
 For other installation options, visit our [Installation Docs](https://docs.rocketpy.org/en/latest/user/installation.html).
 To learn more about RocketPy's requirements, visit our [Requirements Docs](https://docs.rocketpy.org/en/latest/user/requirements.html).
 
-<br>
-
 ## Running Your First Simulation
 
-In order to run your first rocket trajectory simulation using RocketPy, you can start a Jupyter Notebook and navigate to the _docs/notebooks_ folder. Open _getting_started.ipynb_ and you are ready to go.
+In order to run your first rocket trajectory simulation using RocketPy, you can start a Jupyter Notebook and navigate to the `docs/notebooks` folder. Open `getting_started.ipynb` and you are ready to go.
 
 Otherwise, you may want to create your own script or your own notebook using RocketPy. To do this, let's see how to use RocketPy's four main classes:
 
-- Environment - Keeps data related to weather.
-- Motor - Subdivided into SolidMotor, HybridMotor and LiquidMotor. Keeps data related to rocket motors.
-- Rocket - Keeps data related to a rocket.
-- Flight - Runs the simulation and keeps the results.
+- `Environment` - Keeps data related to weather.
+- `Motor` - Subdivided into `SolidMotor`, `HybridMotor` and `LiquidMotor`. Keeps data related to rocket motors.
+- `Rocket` - Keeps data related to a rocket.
+- `Flight` - Runs the simulation and keeps the results.
 
 The following image shows how the four main classes interact with each other:
 
@@ -219,7 +182,7 @@ Pro75M1670 = SolidMotor(
     thrust_source="data/motors/Cesaroni_M1670.eng",
     dry_mass=1.815,
     dry_inertia=(0.125, 0.125, 0.002),
-    center_of_dry_mass=0.317,
+    center_of_dry_mass_position=0.317,
     grains_center_of_mass_position=0.397,
     burn_time=3.9,
     grain_number=5,
@@ -340,8 +303,6 @@ If you want to see the trajectory on Google Earth, RocketPy acn easily export a 
 test_flight.export_kml(file_name="test_flight.kml")
 ```
 
-<br>
-
 # Authors and Contributors
 
 This package was originally created by [Giovani Ceotto](https://github.com/giovaniceotto/) as part of his work at [Projeto Jupiter](https://github.com/Projeto-Jupiter/). [Rodrigo Schmitt](https://github.com/rodrigo-schmitt/) was one of the first contributors.
@@ -365,13 +326,9 @@ If you are actively using RocketPy in one of your projects, reaching out to our 
 
 And if you are interested in going one step further, please read [CONTRIBUTING.md](https://github.com/RocketPy-Team/RocketPy/blob/master/CONTRIBUTING.md) for details on our code of conduct and learn more about how you can contribute to the development of this next-gen trajectory simulation solution for rocketry.
 
-<br>
-
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/RocketPy-Team/RocketPy/blob/master/LICENSE) file for details
-
-<br>
 
 ## Release Notes
 

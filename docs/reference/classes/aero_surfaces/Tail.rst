@@ -1,5 +1,5 @@
 Tail Class
 ----------
 
-.. automodule:: rocketpy.Tail
+.. autoclass:: rocketpy.Tail
    :members:

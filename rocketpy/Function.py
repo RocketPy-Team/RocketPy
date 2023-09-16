@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-
-__author__ = "Giovani Hidalgo Ceotto, Lucas Kierulff Balabram"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
 from inspect import signature
 from pathlib import Path
 
@@ -249,7 +243,7 @@ class Function:
 
         Returns
         -------
-        minimum: float.
+        minimum : float
         """
         return self.y_array.min()
 
@@ -260,7 +254,7 @@ class Function:
 
         Returns
         -------
-        maximum: float.
+        maximum : float
         """
         return self.y_array.max()
 
@@ -320,8 +314,8 @@ class Function:
     def set_get_value_opt(self):
         """Crates a method that evaluates interpolations rather quickly
         when compared to other options available, such as just calling
-        the object instance or calling self.get_value directly. See
-        Function.get_value_opt for documentation.
+        the object instance or calling ``Function.get_value directly``. See
+        ``Function.get_value_opt`` for documentation.
 
         Returns
         -------
@@ -538,29 +532,30 @@ class Function:
         self, model_function, one_by_one=True, keep_self=True
     ):
         """This method transforms the domain of Function instance into a list of
-        discrete points based on the domain of a model Function instance. It does so by
-        retrieving the domain, domain name, interpolation method and extrapolation
-        method of the model Function instance. It then evaluates the original Function
-        instance in all points of the retrieved domain to generate the list of discrete
-        points that will be used for interpolation when this Function is called.
+        discrete points based on the domain of a model Function instance. It
+        does so by retrieving the domain, domain name, interpolation method and
+        extrapolation method of the model Function instance. It then evaluates
+        the original Function instance in all points of the retrieved domain to
+        generate the list of discrete points that will be used for interpolation
+        when this Function is called.
 
         Parameters
         ----------
         model_function : Function
             Function object that will be used to define the sampling points,
             interpolation method and extrapolation method.
-            Must be a Function whose source attribute is a list (i.e. a list based
-            Function instance).
-            Must have the same domain dimension as the Function to be discretized.
+            Must be a Function whose source attribute is a list (i.e. a list
+            based Function instance). Must have the same domain dimension as the
+            Function to be discretized.
 
         one_by_one : boolean, optional
             If True, evaluate Function in each sample point separately. If
             False, evaluates Function in vectorized form. Default is True.
 
         keepSelf : boolean, optional
-            If True, the original Function interpolation and extrapolation methods
-            will be kept. If False, those are substituted by the ones from the model
-            Function. Default is True.
+            If True, the original Function interpolation and extrapolation
+            methods will be kept. If False, those are substituted by the ones
+            from the model Function. Default is True.
 
         Returns
         -------
@@ -572,14 +567,15 @@ class Function:
 
         Examples
         --------
-        This method is particularly useful when algebraic operations are carried out
-        using Function instances defined by different discretized domains (same range,
-        but different mesh size). Once an algebraic operation is done, it will not
-        directly be applied between the list of discrete points of the two Function
-        instances. Instead, the result will be a Function instance defined by a callable
-        that calls both Function instances and performs the operation. This makes the
-        evaluation of the resulting Function inefficient, due to extra function calling
-        overhead and multiple interpolations being carried out.
+        This method is particularly useful when algebraic operations are carried
+        out using Function instances defined by different discretized domains
+        (same range, but different mesh size). Once an algebraic operation is
+        done, it will not directly be applied between the list of discrete
+        points of the two Function instances. Instead, the result will be a
+        Function instance defined by a callable that calls both Function
+        instances and performs the operation. This makes the evaluation of the
+        resulting Function inefficient, due to extra function calling overhead
+        and multiple interpolations being carried out.
 
         >>> from rocketpy import Function
         >>> f = Function([(0, 0), (1, 1), (2, 4), (3, 9), (4, 16)])
@@ -588,12 +584,12 @@ class Function:
         >>> type(h.source)
         <class 'function'>
 
-        Therefore, it is good practice to make sure both Function instances are defined
-        by the same domain, i.e. by the same list of mesh points. This way, the
-        algebraic operation will be carried out directly between the lists of discrete
-        points, generating a new Function instance defined by this result. When it is
-        evaluated, there are no extra function calling overheads neither multiple
-        interpolations.
+        Therefore, it is good practice to make sure both Function instances are
+        defined by the same domain, i.e. by the same list of mesh points. This
+        way, the algebraic operation will be carried out directly between the
+        lists of discrete points, generating a new Function instance defined by
+        this result. When it is evaluated, there are no extra function calling
+        overheads neither multiple interpolations.
 
         >>> g.set_discrete_based_on_model(f)
         'Function from R1 to R1 : (Scalar) → (Scalar)'
@@ -607,11 +603,11 @@ class Function:
 
         Notes
         -----
-        1. This method performs in place replacement of the original Function object
-        source.
+        1. This method performs in place replacement of the original Function
+        object source.
 
-        2. This method is similar to set_discrete, but it uses the domain of a model
-        Function to define the domain of the new Function instance.
+        2. This method is similar to set_discrete, but it uses the domain of a
+        model Function to define the domain of the new Function instance.
         """
         if not isinstance(model_function.source, np.ndarray):
             raise TypeError("model_function must be a list based Function.")
@@ -653,9 +649,9 @@ class Function:
         extrapolation=None,
         title=None,
     ):
-        """This method allows the user to reset the inputs, outputs, interpolation
-        and extrapolation settings of a Function object, all at once, without
-        having to call each of the corresponding methods.
+        """This method allows the user to reset the inputs, outputs,
+        interpolation and extrapolation settings of a Function object, all at
+        once, without having to call each of the corresponding methods.
 
         Parameters
         ----------
@@ -663,8 +659,8 @@ class Function:
             List of input variable names. If None, the original inputs are kept.
             See Function.set_inputs for more information.
         outputs : string, sequence of strings, optional
-            List of output variable names. If None, the original outputs are kept.
-            See Function.set_outputs for more information.
+            List of output variable names. If None, the original outputs are
+            kept. See Function.set_outputs for more information.
         interpolation : string, optional
             Interpolation method to be used if source type is ndarray.
             See Function.set_interpolation for more information.
@@ -674,8 +670,9 @@ class Function:
 
         Examples
         --------
-        A simple use case is to reset the inputs and outputs of a Function object
-        that has been defined by algebraic manipulation of other Function objects.
+        A simple use case is to reset the inputs and outputs of a Function
+        object that has been defined by algebraic manipulation of other Function
+        objects.
 
         >>> from rocketpy import Function
         >>> v = Function(lambda t: (9.8*t**2)/2, inputs='t', outputs='v')
@@ -1183,10 +1180,10 @@ class Function:
 
     # Define all conversion methods
     def to_frequency_domain(self, lower, upper, sampling_frequency, remove_dc=True):
-        """Performs the conversion of the Function to the Frequency Domain and returns
-        the result. This is done by taking the Fourier transform of the Function.
-        The resulting frequency domain is symmetric, i.e., the negative frequencies are
-        included as well.
+        """Performs the conversion of the Function to the Frequency Domain and
+        returns the result. This is done by taking the Fourier transform of the
+        Function. The resulting frequency domain is symmetric, i.e., the
+        negative frequencies are included as well.
 
         Parameters
         ----------
@@ -2337,8 +2334,7 @@ class Function:
 
     def __matmul__(self, other):
         """Operator @ as an alias for composition. Therefore, this
-        method is a shorthand for self.compose(other). See self.compose
-        for more information.
+        method is a shorthand for Function.compose(other).
 
         Parameters
         ----------
@@ -2349,6 +2345,10 @@ class Function:
         -------
         result : Function
             A Function object which gives the result of self(other(x)).
+
+        See Also
+        --------
+        Function.compose
         """
         return self.compose(other)
 
@@ -2888,9 +2888,9 @@ class PiecewiseFunction(Function):
         ----------
         source: dictionary
             A dictionary of Function objects, where the keys are the domains.
-        inputs : list
+        inputs : list of strings
             A list of strings that represent the inputs of the function.
-        outputs: list
+        outputs: list of strings
             A list of strings that represent the outputs of the function.
         interpolation: str
             The type of interpolation to use. The default value is 'akima'.

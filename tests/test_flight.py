@@ -183,7 +183,7 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
         burn_time=1e-10,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
-        center_of_dry_mass=0.317,
+        center_of_dry_mass_position=0.317,
         grains_center_of_mass_position=0.397,
         grain_number=5,
         grain_separation=5 / 1000,
@@ -287,7 +287,9 @@ def test_rolling_flight(
 def test_simpler_parachute_triggers(mock_show, example_env, calisto_robust):
     """Tests different types of parachute triggers. This is important to ensure
     the code is working as intended, since the parachute triggers can have very
-    different format definitions.
+    different format definitions. It will add 3 parachutes using different
+    triggers format and check if the parachute events are being at the correct
+    altitude
 
     Parameters
     ----------
@@ -300,15 +302,23 @@ def test_simpler_parachute_triggers(mock_show, example_env, calisto_robust):
     """
     calisto_robust.parachutes = []
 
-    main = calisto_robust.add_parachute(
+    _ = calisto_robust.add_parachute(
         "Main",
         cd_s=10.0,
-        trigger=800,
+        trigger=400,
         sampling_rate=105,
         lag=0,
     )
 
-    drogue = calisto_robust.add_parachute(
+    _ = calisto_robust.add_parachute(
+        "Drogue2",
+        cd_s=5.5,
+        trigger=lambda pressure, height, state: height < 800 and state[5] < 0,
+        sampling_rate=105,
+        lag=0,
+    )
+
+    _ = calisto_robust.add_parachute(
         "Drogue",
         cd_s=1.0,
         trigger="apogee",
@@ -334,6 +344,14 @@ def test_simpler_parachute_triggers(mock_show, example_env, calisto_robust):
         )
         <= 1
     )
+    assert (
+        abs(
+            test_flight.z(test_flight.parachute_events[2][0])
+            - (400 + example_env.elevation)
+        )
+        <= 1
+    )
+    assert calisto_robust.all_info() == None
     assert test_flight.all_info() == None
 
 

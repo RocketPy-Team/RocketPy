@@ -2,10 +2,10 @@ import copy
 import os
 from unittest.mock import patch
 
-import ipywidgets as widgets
 import matplotlib as plt
 import pytest
-from IPython.display import HTML
+
+from rocketpy.tools import import_optional_dependency
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
@@ -146,6 +146,9 @@ def test_animation_plots(mock_show, env_analysis):
     env_analysis : EnvironmentAnalysis
         A simple object of the EnvironmentAnalysis class.
     """
+    # import dependencies
+    widgets = import_optional_dependency("ipywidgets")
+    HTML = import_optional_dependency("IPython.display").HTML
 
     # Check animation plots
     assert isinstance(env_analysis.plots.animate_average_wind_rose(), widgets.Image)

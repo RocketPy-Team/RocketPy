@@ -1,8 +1,3 @@
-__author__ = "Mateus Stano Junqueira"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-
 class _TankGeometryPlots:
     """Class that holds plot methods for TankGeometry class.
 
@@ -46,11 +41,8 @@ class _TankGeometryPlots:
         """Prints out all graphs available about the TankGeometry. It simply calls
         all the other plotter methods in this class.
 
-        Parameters
-        ----------
-        None
-        Return
-        ------
+        Returns
+        -------
         None
         """
         self.radius()
