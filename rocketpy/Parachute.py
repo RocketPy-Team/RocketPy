@@ -26,10 +26,11 @@ class Parachute:
         system. It can be one of the following:
 
         - A callable function that takes three arguments:
-            1. Freestream pressure in pascals.
-            2. Height in meters above ground level.
-            3. The state vector of the simulation, which is defined as:
-                [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz].
+        1. Freestream pressure in pascals.
+        2. Height in meters above ground level.
+        3. The state vector of the simulation, which is defined as:
+
+           `[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]`.
 
         The function should return True if the parachute ejection system should
         be triggered and False otherwise.
@@ -42,7 +43,24 @@ class Parachute:
         when the rocket reaches its highest point and starts descending.
 
         Note: The function will be called according to the sampling rate
-        specified next.
+        specified.
+    Parachute.triggerfunc : function
+        This parameter defines the trigger function created from the trigger
+        parameter. It is used to evaluate the trigger condition for the
+        parachute ejection system. It is a callable function that takes three
+        arguments:
+
+        1. Freestream pressure in pascals.
+        2. Height in meters above ground level.
+        3. The state vector of the simulation, which is defined as:
+
+           `[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]`.
+
+        The function should return True if the parachute ejection system should
+        be triggered and False otherwise.
+
+        Note: The function will be called according to the sampling rate
+        specified.
     Parachute.sampling_rate : float
         Sampling rate, in hertz, for the trigger function.
     Parachute.lag : float
@@ -156,7 +174,7 @@ class Parachute:
 
         # evaluate the trigger
         if callable(trigger):
-            self.trigger = trigger
+            self.triggerfunc = trigger
         elif isinstance(trigger, (int, float)):
             # trigger is interpreted as the absolute height at which the parachute will be ejected
             def triggerfunc(p, h, y):
@@ -165,7 +183,7 @@ class Parachute:
                 # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
                 return True if y[5] < 0 and h < trigger else False
 
-            self.trigger = triggerfunc
+            self.triggerfunc = triggerfunc
 
         elif trigger == "apogee":
             # trigger for apogee
@@ -175,7 +193,7 @@ class Parachute:
                 # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
                 return True if y[5] < 0 else False
 
-            self.trigger = triggerfunc
+            self.triggerfunc = triggerfunc
 
         return None
 
