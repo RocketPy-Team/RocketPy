@@ -1001,17 +1001,27 @@ class Rocket:
             times its cd_s coefficient. Has units of area and must be
             given in squared meters.
         trigger : function, float, string
-            Trigger for the parachute deployment. Can be a float with the height
-            in which the parachute is ejected (ejection happens after apogee);
-            or the string "apogee", for ejection at apogee.
-            Can also be a function which defines if the parachute ejection
-            system is to be triggered. It must take as input the freestream
-            pressure in pascal, the height in meters (above ground level), and
-            the state vector of the simulation, which is defined by
-            [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz].
-            The trigger will be called according to the sampling rate given
-            next. It should return True if the parachute ejection system is to
+            This parameter defines the trigger condition for the parachute
+            ejection system. It can be one of the following:
+
+            - A callable function that takes three arguments:
+                1. Freestream pressure in pascals.
+                2. Height in meters above ground level.
+                3. The state vector of the simulation, which is defined as:
+                    [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz].
+
+            The function should return True if the parachute ejection system should
             be triggered and False otherwise.
+
+            - A float value, representing an absolute height in meters. In this
+            case, the parachute will be ejected when the rocket reaches this height
+            above ground level.
+
+            - The string "apogee," which triggers the parachute at apogee, i.e.,
+            when the rocket reaches its highest point and starts descending.
+
+            Note: The function will be called according to the sampling rate
+            specified next.
         sampling_rate : float, optional
             Sampling rate in which the trigger function works. It is used to
             simulate the refresh rate of onboard sensors such as barometers.

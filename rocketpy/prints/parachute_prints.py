@@ -1,3 +1,6 @@
+from inspect import getsourcelines
+
+
 class _ParachutePrints:
     """Class that holds prints methods for Parachute class.
 
@@ -32,14 +35,18 @@ class _ParachutePrints:
         None
         """
 
-        if self.parachute.trigger.__name__ == "<lambda>":
-            line = self.rocket.getsourcelines(self.parachute.trigger)[0][0]
+        if callable(self.parachute.trigger):
+            if self.parachute.trigger.__name__ == "<lambda>":
+                line = getsourcelines(self.parachute.trigger)[0][0]
+                print("Ejection signal trigger: " + line.split("=")[0].strip())
+            else:
+                print("Ejection signal trigger: " + self.parachute.trigger.__name__)
+        elif isinstance(self.parachute.trigger, (int, float)):
             print(
-                "Ejection signal trigger: "
-                + line.split("lambda ")[1].split(",")[0].split("\n")[0]
+                "Ejection signal trigger: " + str(self.parachute.trigger) + " m (AGL)"
             )
-        else:
-            print("Ejection signal trigger: " + self.parachute.trigger.__name__)
+        elif isinstance(self.parachute.trigger, str):
+            print("Ejection signal trigger: At Apogee")
 
         print(f"Ejection system refresh rate: {self.parachute.sampling_rate:.3f} Hz")
         print(

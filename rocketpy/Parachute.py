@@ -10,53 +10,84 @@ class Parachute:
 
     Attributes
     ----------
-    name : string
+    Parachute.name : string
         Parachute name, such as drogue and main. Has no impact in
         simulation, as it is only used to display data in a more
         organized matter.
-    cd_s : float
+    Parachute.cd_s : float
         Drag coefficient times reference area for parachute. It is
         used to compute the drag force exerted on the parachute by
         the equation F = ((1/2)*rho*V^2)*cd_s, that is, the drag
         force is the dynamic pressure computed on the parachute
         times its cd_s coefficient. Has units of area and must be
         given in squared meters.
-    trigger : function, callable
-        Function which defines if the parachute ejection system is
-        to be triggered. It must take as input the freestream
-        pressure in pascal, the height in meters (above ground level), and
-        the state vector of the simulation, which is defined by
-        [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz].
-        It will be called according to the sampling rate given next.
-        It should return True if the parachute ejection system is
-        to be triggered and False otherwise.
-    sampling_rate : float
+    Parachute.trigger : callable, float, str
+        This parameter defines the trigger condition for the parachute ejection
+        system. It can be one of the following:
+
+        - A callable function that takes three arguments:
+        1. Freestream pressure in pascals.
+        2. Height in meters above ground level.
+        3. The state vector of the simulation, which is defined as:
+
+           `[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]`.
+
+        The function should return True if the parachute ejection system should
+        be triggered and False otherwise.
+
+        - A float value, representing an absolute height in meters. In this
+        case, the parachute will be ejected when the rocket reaches this height
+        above ground level.
+
+        - The string "apogee," which triggers the parachute at apogee, i.e.,
+        when the rocket reaches its highest point and starts descending.
+
+        Note: The function will be called according to the sampling rate
+        specified.
+    Parachute.triggerfunc : function
+        This parameter defines the trigger function created from the trigger
+        parameter. It is used to evaluate the trigger condition for the
+        parachute ejection system. It is a callable function that takes three
+        arguments:
+
+        1. Freestream pressure in pascals.
+        2. Height in meters above ground level.
+        3. The state vector of the simulation, which is defined as:
+
+           `[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]`.
+
+        The function should return True if the parachute ejection system should
+        be triggered and False otherwise.
+
+        Note: The function will be called according to the sampling rate
+        specified.
+    Parachute.sampling_rate : float
         Sampling rate, in hertz, for the trigger function.
-    lag : float
+    Parachute.lag : float
         Time, in seconds, between the parachute ejection system is triggered
         and the parachute is fully opened.
-    noise_bias : float
+    Parachute.noise_bias : float
         Mean value of the noise added to the pressure signal, which is
         passed to the trigger function. Unit is in pascal.
-    noise_deviation : float
+    Parachute.noise_deviation : float
         Standard deviation of the noise added to the pressure signal,
         which is passed to the trigger function. Unit is in pascal.
-    noise_corr : tuple, list
+    Parachute.noise_corr : tuple, list
         Tuple with the correlation between noise and time.
-    noise_signal : list of tuple
+    Parachute.noise_signal : list of tuple
         List of (t, noise signal) corresponding to signal passed to
         trigger function. Completed after running a simulation.
-    noisy_pressure_signal : list of tuple
+    Parachute.noisy_pressure_signal : list of tuple
         List of (t, noisy pressure signal) that is passed to the
         trigger function. Completed after running a simulation.
-    clean_pressure_signal : list of tuple
+    Parachute.clean_pressure_signal : list of tuple
         List of (t, clean pressure signal) corresponding to signal passed to
         trigger function. Completed after running a simulation.
-    noise_signal_function : Function
+    Parachute.noise_signal_function : Function
         Function of noiseSignal.
-    noisy_pressure_signal_function : Function
+    Parachute.noisy_pressure_signal_function : Function
         Function of noisy_pressure_signal.
-    clean_pressure_signal_function : Function
+    Parachute.clean_pressure_signal_function : Function
         Function of clean_pressure_signal.
     """
 
@@ -79,15 +110,28 @@ class Parachute:
             organized matter.
         cd_s : float
             Drag coefficient times reference area of the parachute.
-        trigger : function, float, string
-            Function which defines if the parachute ejection system is
-            to be triggered. It must take as input the freestream
-            pressure in pascal, the height in meters (above ground level), and
-            the state vector of the simulation, which is defined by
-            [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz].
-            It will be called according to the sampling rate given next.
-            It should return True if the parachute ejection system is
-            to be triggered and False otherwise.
+        trigger : callable, float, str
+            This parameter defines the trigger condition for the parachute
+            ejection system. It can be one of the following:
+
+            - A callable function that takes three arguments:
+                1. Freestream pressure in pascals.
+                2. Height in meters above ground level.
+                3. The state vector of the simulation, which is defined as:
+                    [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz].
+
+            The function should return True if the parachute ejection system
+            should be triggered and False otherwise.
+
+            - A float value, representing an absolute height in meters. In this
+            case, the parachute will be ejected when the rocket reaches this
+            height above ground level.
+
+            - The string "apogee," which triggers the parachute at apogee, i.e.,
+            when the rocket reaches its highest point and starts descending.
+
+            Note: The function will be called according to the sampling rate
+            specified next.
         sampling_rate : float
             Sampling rate in which the parachute trigger will be checked at.
             It is used to simulate the refresh rate of onboard sensors such
@@ -130,7 +174,7 @@ class Parachute:
 
         # evaluate the trigger
         if callable(trigger):
-            self.trigger = trigger
+            self.triggerfunc = trigger
         elif isinstance(trigger, (int, float)):
             # trigger is interpreted as the absolute height at which the parachute will be ejected
             def triggerfunc(p, h, y):
@@ -139,7 +183,7 @@ class Parachute:
                 # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
                 return True if y[5] < 0 and h < trigger else False
 
-            self.trigger = triggerfunc
+            self.triggerfunc = triggerfunc
 
         elif trigger == "apogee":
             # trigger for apogee
@@ -149,7 +193,7 @@ class Parachute:
                 # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
                 return True if y[5] < 0 else False
 
-            self.trigger = triggerfunc
+            self.triggerfunc = triggerfunc
 
         return None
 
