@@ -620,7 +620,7 @@ def test_hybrid_motor_flight(mock_show, calisto_hybrid_modded):
     assert test_flight.all_info() == None
 
 
-def test_surface_wind(flight_calisto_custom_wind, atol=1e-8):
+def test_surface_wind(flight_calisto_custom_wind):
     """Tests the surface wind of the flight simulation. The expected values
     are provided by the definition of the 'light_calisto_custom_wind' fixture.
     If the fixture changes, this test must be updated.
@@ -634,13 +634,12 @@ def test_surface_wind(flight_calisto_custom_wind, atol=1e-8):
         Absolute tolerance error, by default 1e-8
     """
     test = flight_calisto_custom_wind
+    atol = 1e-8
     assert pytest.approx(2.0, abs=atol) == test.frontal_surface_wind
     assert pytest.approx(-5.0, abs=atol) == test.lateral_surface_wind
 
 
-def test_effective_rail_length(
-    flight_calisto_robust, flight_calisto_nose_to_tail, atol=1e-8
-):
+def test_effective_rail_length(flight_calisto_robust, flight_calisto_nose_to_tail):
     """Tests the effective rail length of the flight simulation. The expected
     values are calculated by hand, and should be valid as long as the rail
     length and the position of the buttons and nozzle do not change in the
@@ -662,6 +661,7 @@ def test_effective_rail_length(
     """
     test1 = flight_calisto_robust
     test2 = flight_calisto_nose_to_tail
+    atol = 1e-8
 
     rail_length = 5.2
     upper_button_position = 0.082
@@ -679,7 +679,7 @@ def test_effective_rail_length(
     assert pytest.approx(test2.effective_2rl, abs=atol) == effective_2rl
 
 
-def test_max_values(flight_calisto_robust, atol=5e-3):
+def test_max_values(flight_calisto_robust):
     """Test the max values of the flight. This tests if the max values are
     close to the expected values. However, the expected values were NOT
     calculated by hand, it was just copied from the test results. This is
@@ -701,13 +701,14 @@ def test_max_values(flight_calisto_robust, atol=5e-3):
         Absolute tolerance error, by default 5e-3
     """
     test = flight_calisto_robust
+    atol = 5e-3
     assert pytest.approx(105.2774, abs=atol) == test.max_acceleration_power_on
     assert pytest.approx(105.2774, abs=atol) == test.max_acceleration
     assert pytest.approx(0.85999, abs=atol) == test.max_mach_number
     assert pytest.approx(285.90240, abs=atol) == test.max_speed
 
 
-def test_rail_buttons_forces(flight_calisto_custom_wind, atol=5e-3):
+def test_rail_buttons_forces(flight_calisto_custom_wind):
     """Test the rail buttons forces. This tests if the rail buttons forces are
     close to the expected values. However, the expected values were NOT
     calculated by hand, it was just copied from the test results. The results
@@ -723,13 +724,14 @@ def test_rail_buttons_forces(flight_calisto_custom_wind, atol=5e-3):
         The absolute tolerance error, by default 5e-3
     """
     test = flight_calisto_custom_wind
+    atol = 5e-3
     assert pytest.approx(3.80358, abs=atol) == test.max_rail_button1_normal_force
     assert pytest.approx(1.63602, abs=atol) == test.max_rail_button1_shear_force
     assert pytest.approx(1.19353, abs=atol) == test.max_rail_button2_normal_force
     assert pytest.approx(0.51337, abs=atol) == test.max_rail_button2_shear_force
 
 
-def test_accelerations(flight_calisto_custom_wind, atol=5e-3):
+def test_accelerations(flight_calisto_custom_wind):
     """Tests if the acceleration in some particular points of the trajectory is
     correct. The expected values were NOT calculated by hand, it was just
     copied from the test results. The results are not expected to change,
@@ -743,6 +745,7 @@ def test_accelerations(flight_calisto_custom_wind, atol=5e-3):
         The absolute tolerance error, by default 5e-3
     """
     test = flight_calisto_custom_wind
+    atol = 5e-3
 
     points = {
         "t_initial": (test.t_initial, 0, 0, 0),
@@ -757,7 +760,7 @@ def test_accelerations(flight_calisto_custom_wind, atol=5e-3):
         assert_approx_equal(test.az(t), expected_az, atol, label)
 
 
-def test_velocities(flight_calisto_custom_wind, atol=5e-3):
+def test_velocities(flight_calisto_custom_wind):
     """Tests if the velocity in some particular points of the trajectory is
     correct. The expected values were NOT calculated by hand, it was just
     copied from the test results. The results are not expected to change,
@@ -771,6 +774,7 @@ def test_velocities(flight_calisto_custom_wind, atol=5e-3):
         The absolute tolerance error, by default 5e-3
     """
     test = flight_calisto_custom_wind
+    atol = 5e-3
 
     points = {
         "t_initial": (test.t_initial, 0, 0, 0),
@@ -785,7 +789,7 @@ def test_velocities(flight_calisto_custom_wind, atol=5e-3):
         assert_approx_equal(test.vz(t), expected_vz, atol, label)
 
 
-def test_aerodynamic_forces(flight_calisto_custom_wind, atol=5e-3):
+def test_aerodynamic_forces(flight_calisto_custom_wind):
     """Tests if the aerodynamic forces in some particular points of the
     trajectory is correct. The expected values were NOT calculated by hand, it
     was just copied from the test results. The results are not expected to
@@ -799,6 +803,7 @@ def test_aerodynamic_forces(flight_calisto_custom_wind, atol=5e-3):
         The absolute tolerance error, by default 5e-3
     """
     test = flight_calisto_custom_wind
+    atol = 5e-3
 
     points = {
         "t_initial": (test.t_initial, 1.6542528, 0.65918, -0.067107),
@@ -813,7 +818,7 @@ def test_aerodynamic_forces(flight_calisto_custom_wind, atol=5e-3):
         assert_approx_equal(test.R3(t), expected_R3, atol, label)
 
 
-def test_aerodynamic_moments(flight_calisto_custom_wind, atol=5e-3):
+def test_aerodynamic_moments(flight_calisto_custom_wind):
     """Tests if the aerodynamic moments in some particular points of the
     trajectory is correct. The expected values were NOT calculated by hand, it
     was just copied from the test results. The results are not expected to
@@ -827,6 +832,7 @@ def test_aerodynamic_moments(flight_calisto_custom_wind, atol=5e-3):
         The absolute tolerance error, by default 5e-3
     """
     test = flight_calisto_custom_wind
+    atol = 5e-3
 
     points = {
         "t_initial": (test.t_initial, 0.17179073815516033, -0.431117, 0),
