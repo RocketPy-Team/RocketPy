@@ -71,7 +71,75 @@ class _NoseConePlots(_AeroSurfacePlots):
         return None
 
     def draw(self):
-        # This will de done in the future
+        """Draw the nosecone shape along with some important information,
+        including the center line and the center of pressure position.
+
+        Returns
+        -------
+        None
+        """
+        self.aero_surface.evaluate_nose_shape()
+        # Figure creation and set up
+        fig_ogive, ax = plt.subplots()
+        ax.set_xlim(-0.05, self.aero_surface.length * 1.02)  # Horizontal size
+        ax.set_ylim(
+            -self.aero_surface.base_radius * 1.05, self.aero_surface.base_radius * 1.05
+        )  # Vertical size
+        ax.set_aspect("equal")  # Makes the graduation be the same on both axis
+        ax.set_facecolor("#EEEEEE")  # Background color
+        ax.grid(True, linestyle="--", linewidth=0.5)
+
+        cp_plot = (self.aero_surface.cpz, 0)
+        # Plotting
+        ax.plot(
+            self.aero_surface.nosecone_x,
+            self.aero_surface.nosecone_y,
+            linestyle="-",
+            color="#A60628",
+        )  # Ogive's upper side
+        ax.plot(
+            self.aero_surface.nosecone_x,
+            -self.aero_surface.nosecone_y,
+            linestyle="-",
+            color="#A60628",
+        )  # Ogive's lower side
+        ax.scatter(
+            *cp_plot, label="Center Of Pressure", color="red", s=100, zorder=10
+        )  # Center of pressure inner circle
+        ax.scatter(
+            *cp_plot, facecolors="none", edgecolors="red", s=500, zorder=10
+        )  # Center of pressure outer circle
+        # Center Line
+        ax.plot(
+            [0, self.aero_surface.nosecone_x[len(self.aero_surface.nosecone_x) - 1]],
+            [0, 0],
+            linestyle="--",
+            color="#7A68A6",
+            linewidth=1.5,
+            label="Center Line",
+        )
+        # Vertical base line
+        ax.plot(
+            [
+                self.aero_surface.nosecone_x[len(self.aero_surface.nosecone_x) - 1],
+                self.aero_surface.nosecone_x[len(self.aero_surface.nosecone_x) - 1],
+            ],
+            [
+                self.aero_surface.nosecone_y[len(self.aero_surface.nosecone_y) - 1],
+                -self.aero_surface.nosecone_y[len(self.aero_surface.nosecone_y) - 1],
+            ],
+            linestyle="-",
+            color="#A60628",
+            linewidth=1.5,
+        )
+
+        # Labels and legend
+        ax.set_xlabel("Length")
+        ax.set_ylabel("Radius")
+        ax.set_title(self.aero_surface.kind + " Nose Cone")
+        ax.legend(bbox_to_anchor=(1, -0.2))
+        # Show Plot
+        plt.show()
         return None
 
 
