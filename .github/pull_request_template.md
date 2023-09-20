@@ -9,7 +9,7 @@
 
 - [ ] Tests for the changes have been added (if needed)
 - [ ] Docs have been reviewed and added / updated
-- [ ] Lint (`black rocketpy`) has passed locally 
+- [ ] Lint (`black rocketpy/ tests/`) has passed locally 
 - [ ] All tests (`pytest --runslow`) have passed locally
 
 ## Current behavior
