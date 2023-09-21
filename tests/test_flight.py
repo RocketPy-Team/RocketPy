@@ -711,15 +711,15 @@ def test_rail_buttons_forces(flight_calisto_custom_wind):
 
 
 @pytest.mark.parametrize(
-    "params",
+    "flight_time, expected_values",
     [
-        ("t_initial", 0, 0, 0),
-        ("out_of_rail_time", 0, 7.8068, 89.2325),
-        ("apogee_time", 0.07534, -0.058127, -9.614386),
-        ("t_final", 0, 0, 0.0017346294117130806),
+        ("t_initial", (0, 0, 0)),
+        ("out_of_rail_time", (0, 7.8068, 89.2325)),
+        ("apogee_time", (0.07534, -0.058127, -9.614386)),
+        ("t_final", (0, 0, 0.0017346294117130806)),
     ],
 )
-def test_accelerations(flight_calisto_custom_wind, params):
+def test_accelerations(flight_calisto_custom_wind, flight_time, expected_values):
     """Tests if the acceleration in some particular points of the trajectory is
     correct. The expected values were NOT calculated by hand, it was just
     copied from the test results. The results are not expected to change,
@@ -732,28 +732,29 @@ def test_accelerations(flight_calisto_custom_wind, params):
     atol : float, optional
         The absolute tolerance error, by default 5e-3
     """
-    expected_attr, *expected_acc = params
+    expected_attr, expected_acc = flight_time, expected_values
 
     test = flight_calisto_custom_wind
     t = getattr(test, expected_attr)
     atol = 5e-3
 
-    assert (
-        pytest.approx(expected_acc, abs=atol) == (test.ax(t), test.ay(t), test.az(t)),
-        f"Assertion error for acceleration vector at {expected_attr}.",
-    )
+    assert pytest.approx(expected_acc, abs=atol) == (
+        test.ax(t),
+        test.ay(t),
+        test.az(t),
+    ), f"Assertion error for acceleration vector at {expected_attr}."
 
 
 @pytest.mark.parametrize(
-    "params",
+    "flight_time, expected_values",
     [
-        ("t_initial", 0, 0, 0),
-        ("out_of_rail_time", 0, 2.248727, 25.703072),
-        ("apogee_time", -13.209436, 16.05115, -0.000257),
-        ("t_final", 5, 2, -5.334289),
+        ("t_initial", (0, 0, 0)),
+        ("out_of_rail_time", (0, 2.248727, 25.703072)),
+        ("apogee_time", (-13.209436, 16.05115, -0.000257)),
+        ("t_final", (5, 2, -5.334289)),
     ],
 )
-def test_velocities(flight_calisto_custom_wind, params):
+def test_velocities(flight_calisto_custom_wind, flight_time, expected_values):
     """Tests if the velocity in some particular points of the trajectory is
     correct. The expected values were NOT calculated by hand, it was just
     copied from the test results. The results are not expected to change,
@@ -766,28 +767,29 @@ def test_velocities(flight_calisto_custom_wind, params):
     atol : float, optional
         The absolute tolerance error, by default 5e-3
     """
-    expected_attr, *expected_vel = params
+    expected_attr, expected_vel = flight_time, expected_values
 
     test = flight_calisto_custom_wind
     t = getattr(test, expected_attr)
     atol = 5e-3
 
-    assert (
-        pytest.approx(expected_vel, abs=atol) == (test.vx(t), test.vy(t), test.vz(t)),
-        f"Assertion error for velocity vector at {expected_attr}.",
-    )
+    assert pytest.approx(expected_vel, abs=atol) == (
+        test.vx(t),
+        test.vy(t),
+        test.vz(t),
+    ), f"Assertion error for velocity vector at {expected_attr}."
 
 
 @pytest.mark.parametrize(
-    "params",
+    "flight_time, expected_values",
     [
-        ("t_initial", 1.6542528, 0.65918, -0.067107),
-        ("out_of_rail_time", 5.05334, 2.01364, -1.7541),
-        ("apogee_time", 2.35291, -1.8275, -0.87851),
-        ("t_final", 0, 0, 141.42421),
+        ("t_initial", (1.6542528, 0.65918, -0.067107)),
+        ("out_of_rail_time", (5.05334, 2.01364, -1.7541)),
+        ("apogee_time", (2.35291, -1.8275, -0.87851)),
+        ("t_final", (0, 0, 141.42421)),
     ],
 )
-def test_aerodynamic_forces(flight_calisto_custom_wind, params):
+def test_aerodynamic_forces(flight_calisto_custom_wind, flight_time, expected_values):
     """Tests if the aerodynamic forces in some particular points of the
     trajectory is correct. The expected values were NOT calculated by hand, it
     was just copied from the test results. The results are not expected to
@@ -800,28 +802,29 @@ def test_aerodynamic_forces(flight_calisto_custom_wind, params):
     atol : float, optional
         The absolute tolerance error, by default 5e-3
     """
-    expected_attr, *expected_R = params
+    expected_attr, expected_R = flight_time, expected_values
 
     test = flight_calisto_custom_wind
     t = getattr(test, expected_attr)
     atol = 5e-3
 
-    assert (
-        pytest.approx(expected_R, abs=atol) == (test.R1(t), test.R2(t), test.R3(t)),
-        f"Assertion error for aerodynamic forces vector at {expected_attr}.",
-    )
+    assert pytest.approx(expected_R, abs=atol) == (
+        test.R1(t),
+        test.R2(t),
+        test.R3(t),
+    ), f"Assertion error for aerodynamic forces vector at {expected_attr}."
 
 
 @pytest.mark.parametrize(
-    "params",
+    "flight_time, expected_values",
     [
-        ("t_initial", 0.17179073815516033, -0.431117, 0),
-        ("out_of_rail_time", 0.547026, -1.3727895, 0),
-        ("apogee_time", -0.5874848151271623, -0.7563596, 0),
-        ("t_final", 0, 0, 0),
+        ("t_initial", (0.17179073815516033, -0.431117, 0)),
+        ("out_of_rail_time", (0.547026, -1.3727895, 0)),
+        ("apogee_time", (-0.5874848151271623, -0.7563596, 0)),
+        ("t_final", (0, 0, 0)),
     ],
 )
-def test_aerodynamic_moments(flight_calisto_custom_wind, params):
+def test_aerodynamic_moments(flight_calisto_custom_wind, flight_time, expected_values):
     """Tests if the aerodynamic moments in some particular points of the
     trajectory is correct. The expected values were NOT calculated by hand, it
     was just copied from the test results. The results are not expected to
@@ -834,13 +837,14 @@ def test_aerodynamic_moments(flight_calisto_custom_wind, params):
     atol : float, optional
         The absolute tolerance error, by default 5e-3
     """
-    expected_attr, *expected_M = params
+    expected_attr, expected_M = flight_time, expected_values
 
     test = flight_calisto_custom_wind
     t = getattr(test, expected_attr)
     atol = 5e-3
 
-    assert (
-        pytest.approx(expected_M, abs=atol) == (test.M1(t), test.M2(t), test.M3(t)),
-        f"Assertion error for moment vector at {expected_attr}.",
-    )
+    assert pytest.approx(expected_M, abs=atol) == (
+        test.M1(t),
+        test.M2(t),
+        test.M3(t),
+    ), f"Assertion error for moment vector at {expected_attr}."
