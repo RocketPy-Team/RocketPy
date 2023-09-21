@@ -1,3 +1,7 @@
+<!-- You are awesome! Your contribution to RocketPy is fundamental in our endeavour to create the next generation solution for rocketry trajectory simulation! -->
+
+<!-- You may use this template to describe your Pull Request. But if you believe there is a better way to express yourself, don't hesitate! -->
+
 ## Pull request type
 
 - [ ] Code changes (bugfix, features)
