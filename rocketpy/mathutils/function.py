@@ -2962,7 +2962,7 @@ def funcify_method(*args, **kwargs):
 
     1. Method which returns a valid rocketpy.Function source argument.
 
-    >>> from rocketpy.Function import funcify_method
+    >>> from rocketpy.mathutils import funcify_method
     >>> class Example():
     ...     @funcify_method(inputs=['x'], outputs=['y'])
     ...     def f(self):
@@ -3084,4 +3084,8 @@ def reset_funcified_methods(instance):
 if __name__ == "__main__":
     import doctest
 
-    doctest.testmod()
+    results = doctest.testmod()
+    if results.failed < 1:
+        print(f"All the {results.attempted} tests passed!")
+    else:
+        print(f"{results.failed} out of {results.attempted} tests failed.")

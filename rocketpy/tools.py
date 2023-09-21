@@ -368,4 +368,8 @@ def check_requirement_version(module_name, version):
 if __name__ == "__main__":
     import doctest
 
-    doctest.testmod()
+    results = doctest.testmod()
+    if results.failed < 1:
+        print(f"All the {results.attempted} tests passed!")
+    else:
+        print(f"{results.failed} out of {results.attempted} tests failed.")

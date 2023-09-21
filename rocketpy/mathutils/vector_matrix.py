@@ -1,7 +1,7 @@
 from cmath import isclose
 from itertools import product
 
-from ..tools import cached_property
+from rocketpy.tools import cached_property
 
 
 class Vector:
@@ -988,4 +988,8 @@ class Matrix:
 if __name__ == "__main__":
     import doctest
 
-    doctest.testmod()
+    results = doctest.testmod()
+    if results.failed < 1:
+        print(f"All the {results.attempted} tests passed!")
+    else:
+        print(f"{results.failed} out of {results.attempted} tests failed.")
