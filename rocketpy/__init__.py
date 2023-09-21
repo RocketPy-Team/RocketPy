@@ -1,13 +1,12 @@
+from .environment import Environment, EnvironmentAnalysis
 from .mathutils import (
     Function,
     PiecewiseFunction,
     funcify_method,
     reset_funcified_methods,
 )
-from .environment import Environment, EnvironmentAnalysis
 from .motors import (
     CylindricalTank,
-    Motor,
     EmptyMotor,
     Fluid,
     GenericMotor,
@@ -16,25 +15,26 @@ from .motors import (
     LiquidMotor,
     MassBasedTank,
     MassFlowRateBasedTank,
+    Motor,
     SolidMotor,
     SphericalTank,
     Tank,
     TankGeometry,
     UllageBasedTank,
 )
+from .plots import *
+from .prints import *
 from .rocket import (
     AeroSurface,
+    Components,
     EllipticalFins,
     Fins,
     NoseCone,
+    Parachute,
     RailButtons,
+    Rocket,
     Tail,
     TrapezoidalFins,
-    Components,
-    Parachute,
-    Rocket,
 )
 from .simulation import Flight
-from .plots import *
-from .prints import *
 from .utilities import *

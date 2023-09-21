@@ -4,4 +4,4 @@ from .function import (
     funcify_method,
     reset_funcified_methods,
 )
-from .vector_matrix import Vector, Matrix
+from .vector_matrix import Matrix, Vector

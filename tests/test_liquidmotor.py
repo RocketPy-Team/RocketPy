@@ -1,8 +1,8 @@
 from unittest.mock import patch
 
 import numpy as np
-import scipy.integrate
 import pytest
+import scipy.integrate
 
 from rocketpy import Function
 
