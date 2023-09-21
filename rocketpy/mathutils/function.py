@@ -9,7 +9,8 @@ try:
     from functools import cached_property
 except ImportError:
     from ..tools import cached_property
-    
+
+
 class Function:
     """Class converts a python function or a data sequence into an object
     which can be handled more naturally, enabling easy interpolation,
