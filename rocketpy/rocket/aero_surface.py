@@ -1,18 +1,17 @@
 from abc import ABC, abstractmethod
 
-import numpy as np
-
-from .Function import Function
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import root_scalar
-from .plots.aero_surface_plots import (
+
+from ..mathutils.function import Function
+from ..plots.aero_surface_plots import (
     _EllipticalFinsPlots,
     _NoseConePlots,
     _TailPlots,
     _TrapezoidalFinsPlots,
 )
-from .prints.aero_surface_prints import (
+from ..prints.aero_surface_prints import (
     _EllipticalFinsPrints,
     _NoseConePrints,
     _RailButtonsPrints,

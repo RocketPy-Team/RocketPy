@@ -1,17 +1,15 @@
 import numpy as np
 from scipy import integrate
 
-from rocketpy.plots.solid_motor_plots import _SolidMotorPlots
-from rocketpy.prints.solid_motor_prints import _SolidMotorPrints
+from ..mathutils.function import Function, funcify_method, reset_funcified_methods
+from ..plots.solid_motor_plots import _SolidMotorPlots
+from ..prints.solid_motor_prints import _SolidMotorPrints
+from .motor import Motor
 
 try:
     from functools import cached_property
 except ImportError:
-    from rocketpy.tools import cached_property
-
-from rocketpy.Function import Function, funcify_method, reset_funcified_methods
-
-from .Motor import Motor
+    from ..tools import cached_property
 
 
 class SolidMotor(Motor):

@@ -2,7 +2,11 @@ import warnings
 
 import numpy as np
 
-from .AeroSurface import (
+from ..mathutils.function import Function
+from ..motors.motor import EmptyMotor
+from ..plots.rocket_plots import _RocketPlots
+from ..prints.rocket_prints import _RocketPrints
+from .aero_surface import (
     EllipticalFins,
     Fins,
     NoseCone,
@@ -10,12 +14,8 @@ from .AeroSurface import (
     Tail,
     TrapezoidalFins,
 )
-from .Components import Components
-from .Function import Function, funcify_method
-from .motors.Motor import EmptyMotor
-from .Parachute import Parachute
-from .plots.rocket_plots import _RocketPlots
-from .prints.rocket_prints import _RocketPrints
+from .components import Components
+from .parachute import Parachute
 
 
 class Rocket:

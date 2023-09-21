@@ -1,13 +1,12 @@
+from ..mathutils.function import funcify_method, reset_funcified_methods
+from ..plots.liquid_motor_plots import _LiquidMotorPlots
+from ..prints.liquid_motor_prints import _LiquidMotorPrints
+from .motor import Motor
+
 try:
     from functools import cached_property
 except ImportError:
-    from rocketpy.tools import cached_property
-
-from rocketpy.Function import Function, funcify_method, reset_funcified_methods
-from rocketpy.plots.liquid_motor_plots import _LiquidMotorPlots
-from rocketpy.prints.liquid_motor_prints import _LiquidMotorPrints
-
-from .Motor import Motor
+    from ..tools import cached_property
 
 
 class LiquidMotor(Motor):

@@ -2,18 +2,17 @@ import re
 import warnings
 from abc import ABC, abstractmethod
 
-from rocketpy.plots.motor_plots import _MotorPlots
-from rocketpy.prints.motor_prints import _MotorPrints
-from rocketpy.tools import tuple_handler
+import numpy as np
+
+from ..mathutils.function import Function, funcify_method
+from ..plots.motor_plots import _MotorPlots
+from ..prints.motor_prints import _MotorPrints
+from ..tools import tuple_handler
 
 try:
     from functools import cached_property
 except ImportError:
-    from rocketpy.tools import cached_property
-
-import numpy as np
-
-from rocketpy.Function import Function, funcify_method
+    from ..tools import cached_property
 
 
 class Motor(ABC):

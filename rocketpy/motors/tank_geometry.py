@@ -1,8 +1,8 @@
 import numpy as np
 
-from rocketpy.Function import Function, PiecewiseFunction, funcify_method
-from rocketpy.plots.tank_geometry_plots import _TankGeometryPlots
-from rocketpy.prints.tank_geometry_prints import _TankGeometryPrints
+from ..mathutils.function import Function, PiecewiseFunction, funcify_method
+from ..plots.tank_geometry_plots import _TankGeometryPlots
+from ..prints.tank_geometry_prints import _TankGeometryPrints
 
 try:
     from functools import cache
@@ -14,7 +14,7 @@ except ImportError:
 try:
     from functools import cached_property
 except ImportError:
-    from rocketpy.tools import cached_property
+    from ..tools import cached_property
 
 
 class TankGeometry:

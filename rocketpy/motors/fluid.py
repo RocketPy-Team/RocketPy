@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
-from rocketpy.plots.fluid_plots import _FluidPlots
-from rocketpy.prints.fluid_prints import _FluidPrints
+from ..plots.fluid_plots import _FluidPlots
+from ..prints.fluid_prints import _FluidPrints
 
 
 @dataclass

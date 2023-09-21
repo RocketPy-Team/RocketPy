@@ -1,17 +1,10 @@
-from .AeroSurface import (
-    AeroSurface,
-    EllipticalFins,
-    Fins,
-    NoseCone,
-    RailButtons,
-    Tail,
-    TrapezoidalFins,
+from .mathutils import (
+    Function,
+    PiecewiseFunction,
+    funcify_method,
+    reset_funcified_methods,
 )
-from .Components import Components
-from .Environment import Environment
-from .EnvironmentAnalysis import EnvironmentAnalysis
-from .Flight import Flight
-from .Function import Function
+from .environment import Environment, EnvironmentAnalysis
 from .motors import (
     CylindricalTank,
     Motor,
@@ -29,8 +22,19 @@ from .motors import (
     TankGeometry,
     UllageBasedTank,
 )
-from .Parachute import Parachute
+from .rocket import (
+    AeroSurface,
+    EllipticalFins,
+    Fins,
+    NoseCone,
+    RailButtons,
+    Tail,
+    TrapezoidalFins,
+    Components,
+    Parachute,
+    Rocket,
+)
+from .simulation import Flight
 from .plots import *
 from .prints import *
-from .Rocket import Rocket
 from .utilities import *

@@ -9,10 +9,11 @@ import numpy as np
 import simplekml
 from scipy import integrate
 
-from .Function import Function, funcify_method
-from .plots.flight_plots import _FlightPlots
-from .prints.flight_prints import _FlightPrints
-from .tools import Matrix, Vector, find_closest
+from ..mathutils.function import Function, funcify_method
+from ..mathutils.vector_matrix import Matrix, Vector
+from ..plots.flight_plots import _FlightPlots
+from ..prints.flight_prints import _FlightPrints
+from ..tools import find_closest
 
 
 class Flight:

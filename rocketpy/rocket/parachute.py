@@ -1,8 +1,7 @@
 import numpy as np
 
-from .Function import Function
-
-from .prints.parachute_prints import _ParachutePrints
+from ..mathutils.function import Function
+from ..prints.parachute_prints import _ParachutePrints
 
 
 class Parachute:

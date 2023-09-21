@@ -8,13 +8,10 @@ import netCDF4
 import numpy as np
 import pytz
 
-from rocketpy.Environment import Environment
-from rocketpy.Function import Function
-from rocketpy.units import convert_units
-
-from .plots.environment_analysis_plots import _EnvironmentAnalysisPlots
-from .prints.environment_analysis_prints import _EnvironmentAnalysisPrints
-from .tools import (
+from ..mathutils.function import Function
+from ..plots.environment_analysis_plots import _EnvironmentAnalysisPlots
+from ..prints.environment_analysis_prints import _EnvironmentAnalysisPrints
+from ..tools import (
     bilinear_interpolation,
     check_requirement_version,
     geopotential_to_height_agl,
@@ -22,11 +19,13 @@ from .tools import (
     import_optional_dependency,
     time_num_to_date_string,
 )
+from ..units import convert_units
+from .environment import Environment
 
 try:
     from functools import cached_property
 except ImportError:
-    from .tools import cached_property
+    from ..tools import cached_property
 
 # TODO: the average_wind_speed_profile_by_hour and similar methods could be more abstract than currently are
 

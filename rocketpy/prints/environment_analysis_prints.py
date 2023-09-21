@@ -1,6 +1,6 @@
 import numpy as np
 
-from rocketpy.units import convert_units
+from ..units import convert_units
 
 
 class _EnvironmentAnalysisPrints:

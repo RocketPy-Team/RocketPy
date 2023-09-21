@@ -4,12 +4,14 @@ from math import isclose
 import numpy as np
 import pytest
 
-from rocketpy import Fluid
-from rocketpy.Function import Function
-from rocketpy.motors import TankGeometry
-from rocketpy.motors.Fluid import Fluid
-from rocketpy.motors.Tank import LevelBasedTank, MassBasedTank, MassFlowRateBasedTank
-
+from rocketpy import (
+    Fluid,
+    Function,
+    LevelBasedTank,
+    MassBasedTank,
+    MassFlowRateBasedTank,
+    TankGeometry,
+)
 
 pressurant_params = (0.135 / 2, 0.846)
 fuel_params = (0.0744, 0.658)

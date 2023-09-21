@@ -2,10 +2,10 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from rocketpy.Function import Function, funcify_method
-from rocketpy.plots.tank_plots import _TankPlots
-from rocketpy.prints.tank_prints import _TankPrints
-from rocketpy.tools import tuple_handler
+from ..mathutils.function import Function, funcify_method
+from ..plots.tank_plots import _TankPlots
+from ..prints.tank_prints import _TankPrints
+from ..tools import tuple_handler
 
 
 class Tank(ABC):

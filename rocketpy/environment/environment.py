@@ -2,19 +2,17 @@ import bisect
 import json
 import re
 import warnings
+from collections import namedtuple
 from datetime import datetime, timedelta
 
 import numpy as np
 import numpy.ma as ma
 import pytz
 import requests
-from collections import namedtuple
-from rocketpy.Function import funcify_method
 
-from .Function import Function
-
-from .plots.environment_plots import _EnvironmentPlots
-from .prints.environment_prints import _EnvironmentPrints
+from ..mathutils.function import Function, funcify_method
+from ..plots.environment_plots import _EnvironmentPlots
+from ..prints.environment_prints import _EnvironmentPrints
 
 try:
     import netCDF4

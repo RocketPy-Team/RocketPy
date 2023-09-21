@@ -1,8 +1,6 @@
 import importlib, importlib.metadata
 import re
 from bisect import bisect_left
-from cmath import isclose
-from itertools import product
 
 import pytz
 from cftime import num2pydate

@@ -1,15 +1,14 @@
+from ..mathutils.function import funcify_method, reset_funcified_methods
+from ..plots.hybrid_motor_plots import _HybridMotorPlots
+from ..prints.hybrid_motor_prints import _HybridMotorPrints
+from .liquid_motor import LiquidMotor
+from .motor import Motor
+from .solid_motor import SolidMotor
+
 try:
     from functools import cached_property
 except ImportError:
-    from rocketpy.tools import cached_property
-
-from rocketpy.Function import funcify_method, reset_funcified_methods
-from rocketpy.plots.hybrid_motor_plots import _HybridMotorPlots
-from rocketpy.prints.hybrid_motor_prints import _HybridMotorPrints
-
-from .LiquidMotor import LiquidMotor
-from .Motor import Motor
-from .SolidMotor import SolidMotor
+    from ..tools import cached_property
 
 
 class HybridMotor(Motor):
