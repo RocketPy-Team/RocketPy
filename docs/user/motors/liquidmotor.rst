@@ -23,8 +23,7 @@ Let's first import the necessary modules:
 .. jupyter-execute::
 
   from math import exp
-  from rocketpy.motors import CylindricalTank, Fluid, LiquidMotor
-  from rocketpy.motors.Tank import MassFlowRateBasedTank
+  from rocketpy import Fluid, LiquidMotor, CylindricalTank, MassFlowRateBasedTank
 
 Then we must first define the tanks:
 
