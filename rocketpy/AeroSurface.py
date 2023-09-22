@@ -97,12 +97,27 @@ class NoseCone(AeroSurface):
     ----------
     NoseCone.length : float
         Nose cone length. Has units of length and must be given in meters.
-    NoseCone.rocket_radius : float
-        The reference rocket radius used for lift coefficient normalization,
-        in meters.
     NoseCone.kind : string
         Nose cone kind. Can be "conical", "ogive", "elliptical", "tangent",
         "von karman", "parabolic" or "lvhaack".
+    NoseCone.bluffness : float
+        Ratio between the radius of the circle on the tip of the ogive and the
+        radius of the base of the ogive. Currently only used for the nose cone's
+        drawing. Must be between 0 and 1. Default is None, which means that the
+        nose cone will not have a sphere on the tip. If a value is given, the
+        nose cone's length will be slightly reduced because of the addition of
+        the sphere.
+    NoseCone.rocket_radius : float
+        The reference rocket radius used for lift coefficient normalization,
+        in meters.
+    NoseCone.base_radius : float
+        Nose cone base radius. Has units of length and must be given in meters.
+    NoseCone.radius_ratio : float
+        Ratio between the nose cone base radius and the rocket radius. Has no
+        units. If base radius is not given, the ratio between base radius and
+        rocket radius is assumed as 1, meaning that the nose cone has the same
+        radius as the rocket. If base radius is given, the ratio between base
+        radius and rocket radius is calculated and used for lift calculation.
     NoseCone.name : string
         Nose cone name. Has no impact in simulation, as it is only used to
         display data in a more organized matter.
@@ -158,7 +173,10 @@ class NoseCone(AeroSurface):
         bluffness : float, optional
             Ratio between the radius of the circle on the tip of the ogive and
             the radius of the base of the ogive. Currently only used for the
-            nose cone's drawing. Must be between 0 and 1.
+            nose cone's drawing. Must be between 0 and 1. Default is None, which
+            means that the nose cone will not have a sphere on the tip. If a
+            value is given, the nose cone's length will be slightly reduced
+            because of the addition of the sphere.
         rocket_radius : int, float, optional
             The reference rocket radius used for lift coefficient normalization.
             If not given, the ratio between ``base_radius`` and
@@ -328,8 +346,9 @@ class NoseCone(AeroSurface):
         return None
 
     def evaluate_nose_shape(self):
-        """Calculates and saves nose cone's shape. The shape is saved as two
-        vectors, one for the x coordinates and one for the y coordinates.
+        """Calculates and saves nose cone's shape as lists and reavulates the
+        nose cone's length for a given bluffness ratio. The shape is saved as
+        two vectors, one for the x coordinates and one for the y coordinates.
 
         Returns
         -------
