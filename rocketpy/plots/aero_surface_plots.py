@@ -78,7 +78,10 @@ class _NoseConePlots(_AeroSurfacePlots):
         -------
         None
         """
-        self.aero_surface.evaluate_nose_shape()
+        # Create the vectors X and Y with the points of the curve
+        nosecone_x = self.aero_surface.shape_vec[0]
+        nosecone_y = self.aero_surface.shape_vec[1]
+
         # Figure creation and set up
         fig_ogive, ax = plt.subplots()
         ax.set_xlim(-0.05, self.aero_surface.length * 1.02)  # Horizontal size
@@ -92,14 +95,14 @@ class _NoseConePlots(_AeroSurfacePlots):
         cp_plot = (self.aero_surface.cpz, 0)
         # Plotting
         ax.plot(
-            self.aero_surface.nosecone_x,
-            self.aero_surface.nosecone_y,
+            nosecone_x,
+            nosecone_y,
             linestyle="-",
             color="#A60628",
         )  # Ogive's upper side
         ax.plot(
-            self.aero_surface.nosecone_x,
-            -self.aero_surface.nosecone_y,
+            nosecone_x,
+            -nosecone_y,
             linestyle="-",
             color="#A60628",
         )  # Ogive's lower side
@@ -111,7 +114,7 @@ class _NoseConePlots(_AeroSurfacePlots):
         )  # Center of pressure outer circle
         # Center Line
         ax.plot(
-            [0, self.aero_surface.nosecone_x[len(self.aero_surface.nosecone_x) - 1]],
+            [0, nosecone_x[len(nosecone_x) - 1]],
             [0, 0],
             linestyle="--",
             color="#7A68A6",
@@ -121,12 +124,12 @@ class _NoseConePlots(_AeroSurfacePlots):
         # Vertical base line
         ax.plot(
             [
-                self.aero_surface.nosecone_x[len(self.aero_surface.nosecone_x) - 1],
-                self.aero_surface.nosecone_x[len(self.aero_surface.nosecone_x) - 1],
+                nosecone_x[len(nosecone_x) - 1],
+                nosecone_x[len(nosecone_x) - 1],
             ],
             [
-                self.aero_surface.nosecone_y[len(self.aero_surface.nosecone_y) - 1],
-                -self.aero_surface.nosecone_y[len(self.aero_surface.nosecone_y) - 1],
+                nosecone_y[len(nosecone_y) - 1],
+                -nosecone_y[len(nosecone_y) - 1],
             ],
             linestyle="-",
             color="#A60628",

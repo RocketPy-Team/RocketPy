@@ -194,10 +194,16 @@ class NoseCone(AeroSurface):
         self._rocket_radius = rocket_radius
         self._base_radius = base_radius
         self._length = length
-        self.bluffness = bluffness
+        if bluffness is not None:
+            if bluffness > 1 or bluffness < 0:
+                raise ValueError(
+                    f"Bluffness ratio of {bluffness} is out of range. It must be between 0 and 1."
+                )
+        self._bluffness = bluffness
         self.kind = kind
 
         self.evaluate_lift_coefficient()
+        self.evaluate_center_of_pressure()
 
         self.plots = _NoseConePlots(self)
         self.prints = _NoseConePrints(self)
@@ -213,6 +219,7 @@ class NoseCone(AeroSurface):
         self._rocket_radius = value
         self.evaluate_geometrical_parameters()
         self.evaluate_lift_coefficient()
+        self.evaluate_nose_shape()
 
     @property
     def base_radius(self):
@@ -223,6 +230,7 @@ class NoseCone(AeroSurface):
         self._base_radius = value
         self.evaluate_geometrical_parameters()
         self.evaluate_lift_coefficient()
+        self.evaluate_nose_shape()
 
     @property
     def length(self):
@@ -232,6 +240,7 @@ class NoseCone(AeroSurface):
     def length(self, value):
         self._length = value
         self.evaluate_center_of_pressure()
+        self.evaluate_nose_shape()
 
     @property
     def kind(self):
@@ -310,6 +319,7 @@ class NoseCone(AeroSurface):
 
         self.evaluate_center_of_pressure()
         self.evaluate_geometrical_parameters()
+        self.evaluate_nose_shape()
 
     @property
     def bluffness(self):
@@ -323,6 +333,7 @@ class NoseCone(AeroSurface):
                     f"Bluffness ratio of {value} is out of range. It must be between 0 and 1."
                 )
         self._bluffness = value
+        self.evaluate_nose_shape()
 
     def evaluate_geometrical_parameters(self):
         """Calculates and saves nose cone's radius ratio.
@@ -409,13 +420,14 @@ class NoseCone(AeroSurface):
         final_shape_vec = np.vectorize(final_shape)
 
         # Create the vectors X and Y with the points of the curve
-        self.nosecone_x = (self.length - (circle_center - r_circle)) * (
+        nosecone_x = (self.length - (circle_center - r_circle)) * (
             np.linspace(0, 1, n) ** p
         )
-        self.nosecone_y = final_shape_vec(self.nosecone_x + (circle_center - r_circle))
+        nosecone_y = final_shape_vec(nosecone_x + (circle_center - r_circle))
 
         # Evaluate final geometry parameters
-        self.length = self.nosecone_x[-1]
+        self.shape_vec = (nosecone_x, nosecone_y)
+        self._length = nosecone_x[-1]
         self.fineness_ratio = self.length / (2 * self.base_radius)
 
         return None
