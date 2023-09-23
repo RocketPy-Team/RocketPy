@@ -1,10 +1,8 @@
 import math
-import time
 import warnings
 from copy import deepcopy
 from functools import cached_property
 
-import matplotlib.pyplot as plt
 import numpy as np
 import simplekml
 from scipy import integrate
@@ -3313,67 +3311,6 @@ class Flight:
         self.plots.all()
 
         return None
-
-    def animate(self, start=0, stop=None, fps=12, speed=4, elev=None, azim=None):
-        """Plays an animation of the flight. Not implemented yet. Only
-        kinda works outside notebook.
-        """
-        # Set up stopping time
-        stop = self.t_final if stop is None else stop
-        # Speed = 4 makes it almost real time - matplotlib is way to slow
-        # Set up graph
-        fig = plt.figure(figsize=(18, 15))
-        axes = fig.gca(projection="3d")
-        # Initialize time
-        time_range = np.linspace(start, stop, fps * (stop - start))
-        # Initialize first frame
-        axes.set_title("Trajectory and Velocity Animation")
-        axes.set_xlabel("X (m)")
-        axes.set_ylabel("Y (m)")
-        axes.set_zlabel("Z (m)")
-        axes.view_init(elev, azim)
-        R = axes.quiver(0, 0, 0, 0, 0, 0, color="r", label="Rocket")
-        V = axes.quiver(0, 0, 0, 0, 0, 0, color="g", label="Velocity")
-        W = axes.quiver(0, 0, 0, 0, 0, 0, color="b", label="Wind")
-        S = axes.quiver(0, 0, 0, 0, 0, 0, color="black", label="Freestream")
-        axes.legend()
-        # Animate
-        for t in time_range:
-            R.remove()
-            V.remove()
-            W.remove()
-            S.remove()
-            # Calculate rocket position
-            Rx, Ry, Rz = self.x(t), self.y(t), self.z(t)
-            Ru = 1 * (2 * (self.e1(t) * self.e3(t) + self.e0(t) * self.e2(t)))
-            Rv = 1 * (2 * (self.e2(t) * self.e3(t) - self.e0(t) * self.e1(t)))
-            Rw = 1 * (1 - 2 * (self.e1(t) ** 2 + self.e2(t) ** 2))
-            # Calculate rocket Mach number
-            Vx = self.vx(t) / 340.40
-            Vy = self.vy(t) / 340.40
-            Vz = self.vz(t) / 340.40
-            # Calculate wind Mach Number
-            z = self.z(t)
-            Wx = self.env.wind_velocity_x(z) / 20
-            Wy = self.env.wind_velocity_y(z) / 20
-            # Calculate freestream Mach Number
-            Sx = self.stream_velocity_x(t) / 340.40
-            Sy = self.stream_velocity_y(t) / 340.40
-            Sz = self.stream_velocity_z(t) / 340.40
-            # Plot Quivers
-            R = axes.quiver(Rx, Ry, Rz, Ru, Rv, Rw, color="r")
-            V = axes.quiver(Rx, Ry, Rz, -Vx, -Vy, -Vz, color="g")
-            W = axes.quiver(Rx - Vx, Ry - Vy, Rz - Vz, Wx, Wy, 0, color="b")
-            S = axes.quiver(Rx, Ry, Rz, Sx, Sy, Sz, color="black")
-            # Adjust axis
-            axes.set_xlim(Rx - 1, Rx + 1)
-            axes.set_ylim(Ry - 1, Ry + 1)
-            axes.set_zlim(Rz - 1, Rz + 1)
-            # plt.pause(1/(fps*speed))
-            try:
-                plt.pause(1 / (fps * speed))
-            except:
-                time.sleep(1 / (fps * speed))
 
     def time_iterator(self, node_list):
         i = 0
