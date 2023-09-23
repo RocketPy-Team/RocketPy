@@ -79,8 +79,7 @@ class _NoseConePlots(_AeroSurfacePlots):
         None
         """
         # Create the vectors X and Y with the points of the curve
-        nosecone_x = self.aero_surface.shape_vec[0]
-        nosecone_y = self.aero_surface.shape_vec[1]
+        nosecone_x, nosecone_y = self.aero_surface.shape_vec
 
         # Figure creation and set up
         fig_ogive, ax = plt.subplots()

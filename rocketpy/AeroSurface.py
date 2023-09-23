@@ -175,8 +175,8 @@ class NoseCone(AeroSurface):
             the radius of the base of the ogive. Currently only used for the
             nose cone's drawing. Must be between 0 and 1. Default is None, which
             means that the nose cone will not have a sphere on the tip. If a
-            value is given, the nose cone's length will be slightly reduced
-            because of the addition of the sphere.
+            value is given, the nose cone's length will be reduced to account
+            for the addition of the sphere at the tip.
         rocket_radius : int, float, optional
             The reference rocket radius used for lift coefficient normalization.
             If not given, the ratio between ``base_radius`` and
@@ -426,7 +426,7 @@ class NoseCone(AeroSurface):
         nosecone_y = final_shape_vec(nosecone_x + (circle_center - r_circle))
 
         # Evaluate final geometry parameters
-        self.shape_vec = (nosecone_x, nosecone_y)
+        self.shape_vec = [nosecone_x, nosecone_y]
         self._length = nosecone_x[-1]
         self.fineness_ratio = self.length / (2 * self.base_radius)
 
