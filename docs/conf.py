@@ -19,12 +19,12 @@ sys.path.insert(0, os.path.abspath("../"))
 # -- Project information -----------------------------------------------------
 
 project = "RocketPy"
-copyright = "2020, RocketPy Team"
+copyright = "2023, RocketPy Team"
 
-author = "Giovani Hidalgo Ceotto"
+author = "RocketPy Team"
 
 # The full version, including alpha/beta/rc tags
-release = "0.13.0"
+release = "1.0.0"
 
 
 # -- General configuration ---------------------------------------------------
@@ -36,6 +36,9 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
+    "sphinx.ext.mathjax",
+    "sphinx_design",
+    "jupyter_sphinx",
     "nbsphinx",
     "m2r2",
 ]
@@ -49,9 +52,31 @@ nbsphinx_execute = "never"
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 
+# Napoleon settings
 napoleon_numpy_docstring = True
+napoleon_include_init_with_doc = True
+napoleon_include_private_with_doc = True
+napoleon_include_special_with_doc = True
+napoleon_use_admonition_for_examples = True
+napoleon_use_admonition_for_notes = True
+napoleon_use_admonition_for_references = True
+napoleon_use_ivar = True
+napoleon_use_param = True
+napoleon_use_rtype = True
+napoleon_preprocess_types = True
+
 autodoc_member_order = "bysource"
-autoclass_content = "both"
+autoclass_content = "class"
+
+# -- Options for autodoc ----------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html#configuration
+
+# Automatically extract typehints when specified and place them in
+# descriptions of the relevant function/method.
+autodoc_typehints = "description"
+
+# Don't show class signature with the class' name.
+autodoc_class_signature = "separated"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -71,20 +96,45 @@ html_theme = "pydata_sphinx_theme"
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["static"]
 html_css_files = ["notebooks.css"]
-html_logo = "static/RocketPy_Logo_Black.svg"
 html_favicon = "static/favicon.ico"
 html_theme_options = {
     "logo_link": "index",
     "github_url": "https://github.com/RocketPy-Team/RocketPy",
     "collapse_navigation": True,
-    "show_toc_level": 3,
+    "show_toc_level": 4,
+    "show_nav_level": 4,
 }
 
 html_sidebars = {
     "**": ["search-field.html", "sidebar-nav-bs.html", "sidebar-ethical-ads.html"]
 }
-html_theme_options = {"navbar_end": ["navbar-icon-links.html", "search-field.html"]}
-
+html_theme_options = {
+    "logo": {
+        "image_light": "static/RocketPy_Logo_black.png",
+        "image_dark": "static/RocketPy_Logo_white.png",
+    },
+    "navbar_end": ["theme-switcher", "navbar-icon-links.html"],
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/RocketPy-Team/RocketPy/",
+            "icon": "fa-brands fa-square-github",
+            "type": "fontawesome",
+        },
+        {
+            "name": "LinkedIn",
+            "url": "https://www.linkedin.com/company/rocketpy/",
+            "icon": "fa-brands fa-linkedin",
+            "type": "fontawesome",
+        },
+        {
+            "name": "PyPI",
+            "url": "https://pypi.org/project/rocketpy/",
+            "icon": "fa-solid fa-box",
+            "type": "fontawesome",
+        },
+    ],
+}
 html_use_modindex = True
 html_copy_source = False
 html_domain_indices = False

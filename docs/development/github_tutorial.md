@@ -42,7 +42,7 @@ git pull
 git add .
 # update the local repository with changes and 
 # a descriptive commit message
-git commit -m "Updade README.md file"
+git commit -m "Update README.md file"
 # upload changes to the remote repository
 git push
 ```
