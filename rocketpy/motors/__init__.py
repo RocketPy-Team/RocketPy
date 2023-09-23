@@ -1,13 +1,13 @@
-from .Fluid import Fluid
-from .HybridMotor import HybridMotor
-from .LiquidMotor import LiquidMotor
-from .Motor import EmptyMotor, GenericMotor, Motor
-from .SolidMotor import SolidMotor
-from .Tank import (
+from .fluid import Fluid
+from .hybrid_motor import HybridMotor
+from .liquid_motor import LiquidMotor
+from .motor import EmptyMotor, GenericMotor, Motor
+from .solid_motor import SolidMotor
+from .tank import (
     LevelBasedTank,
     MassBasedTank,
     MassFlowRateBasedTank,
     Tank,
     UllageBasedTank,
 )
-from .TankGeometry import CylindricalTank, SphericalTank, TankGeometry
+from .tank_geometry import CylindricalTank, SphericalTank, TankGeometry

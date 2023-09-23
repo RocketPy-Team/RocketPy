@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from rocketpy import Function
-from rocketpy.tools import Matrix, Vector
+from rocketpy.mathutils import Matrix, Vector
 
 test_matrix_1 = [[-7, 2, 3], [4, 5, -6], [1, -8, 9]]
 

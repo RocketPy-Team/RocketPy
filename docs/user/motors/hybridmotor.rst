@@ -39,9 +39,7 @@ So, lets first import the necessary classes:
 
 .. jupyter-execute::
 
-  from rocketpy.motors import HybridMotor, CylindricalTank
-  from rocketpy.motors.Tank import MassFlowRateBasedTank
-  from rocketpy.motors import Fluid
+  from rocketpy import Fluid, CylindricalTank, MassFlowRateBasedTank, HybridMotor 
 
 Then we must first define the oxidizer tank:
 

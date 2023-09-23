@@ -8,4 +8,6 @@ Utils functions
    tools
    units
    utilities   
+   vector
+   matrix
    

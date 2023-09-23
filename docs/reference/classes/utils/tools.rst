@@ -1,5 +1,5 @@
-Tools Classes and Functions
----------------------------
+Tools functions
+---------------
 
 .. automodule:: rocketpy.tools
    :members:

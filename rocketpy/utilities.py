@@ -5,10 +5,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 
-from .Environment import Environment
-from .Function import Function
-from .AeroSurface import TrapezoidalFins
-from .Flight import Flight
+from .environment.environment import Environment
+from .mathutils.function import Function
+from .rocket.aero_surface import TrapezoidalFins
+from .simulation.flight import Flight
 
 
 # TODO: Needs tests

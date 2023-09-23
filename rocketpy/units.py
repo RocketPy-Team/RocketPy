@@ -1,5 +1,6 @@
 import numpy as np
-from rocketpy.Function import Function
+
+from .mathutils.function import Function
 
 
 def conversion_factor(from_unit, to_unit):

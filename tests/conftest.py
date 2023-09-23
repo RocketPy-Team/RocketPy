@@ -1,29 +1,30 @@
-import numpy as np
 import datetime
+
 import numericalunits
+import numpy as np
 import pytest
 
 from rocketpy import (
+    CylindricalTank,
     Environment,
     EnvironmentAnalysis,
     Flight,
+    Fluid,
     Function,
+    GenericMotor,
+    HybridMotor,
+    LevelBasedTank,
+    LiquidMotor,
+    MassBasedTank,
     NoseCone,
     Parachute,
     RailButtons,
     Rocket,
     SolidMotor,
-    HybridMotor,
-    LiquidMotor,
-    GenericMotor,
-    CylindricalTank,
     SphericalTank,
-    Fluid,
-    UllageBasedTank,
-    LevelBasedTank,
-    MassBasedTank,
     Tail,
     TrapezoidalFins,
+    UllageBasedTank,
 )
 
 # Pytest configuration

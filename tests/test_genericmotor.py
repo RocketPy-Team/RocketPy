@@ -1,8 +1,8 @@
 from unittest.mock import patch
 
 import numpy as np
-import scipy.integrate
 import pytest
+import scipy.integrate
 
 burn_time = (2, 7)
 thrust_source = lambda t: 2000 - 100 * (t - 2)

@@ -5,7 +5,7 @@ from .aero_surface_plots import (
     _TailPlots,
     _TrapezoidalFinsPlots,
 )
-from .compare import *
+from .compare import Compare, CompareFlights
 from .environment_analysis_plots import _EnvironmentAnalysisPlots
 from .environment_plots import _EnvironmentPlots
 from .flight_plots import _FlightPlots
