@@ -428,6 +428,11 @@ class NoseCone(AeroSurface):
         # Evaluate final geometry parameters
         self.shape_vec = [nosecone_x, nosecone_y]
         self._length = nosecone_x[-1]
+        print(
+            "Due to the chosen bluffness ratio, the nose cone length was reduced to {:.3f} m.".format(
+                self.length
+            )
+        )
         self.fineness_ratio = self.length / (2 * self.base_radius)
 
         return None
