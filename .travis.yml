@@ -1,13 +1,13 @@
 language: python
 python:
-- '3.8'
+  - "3.8"
 install:
-- make install
-- pip install -r requirements_test.txt
+  - make install
+  - pip install -r requirements-tests.txt
 before_script:
-- make verify-lint
+  - make verify-lint
 script:
-- make test
+  - make test
 deploy:
   provider: pypi
   username: __token__

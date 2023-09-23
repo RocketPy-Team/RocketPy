@@ -1,5 +1,5 @@
-Welcome to RocketPy's development documentation!
-================================================
+Contributing to RocketPy
+========================
 
 .. toctree::
    :maxdepth: 2

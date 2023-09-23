@@ -1,7 +1,10 @@
 test:
 	python -m pytest tests -vv
 
-tests: 
+testfile:
+	python -m pytest tests/$(file) -vv
+
+tests:
 	test
 
 coverage: 
