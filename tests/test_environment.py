@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 import pytz
 
-from rocketpy.Environment import Environment
+from rocketpy import Environment
 
 
 def test_env_set_date(example_env):
