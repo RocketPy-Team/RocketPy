@@ -4,7 +4,6 @@ import warnings
 import numpy as np
 
 from .Function import Function
-import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import fsolve
 from .plots.aero_surface_plots import (
