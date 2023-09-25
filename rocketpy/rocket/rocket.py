@@ -1185,7 +1185,7 @@ class Rocket:
 
     def draw(self, vis_args=None):
         """Draws the rocket in a matplotlib figure.
-        
+
         Parameters
         ----------
         vis_args : dict, optional

@@ -21,6 +21,7 @@ from ..prints.aero_surface_prints import (
 
 # TODO: all the evaluate_shape() methods need tests and documentation
 
+
 class AeroSurface(ABC):
     """Abstract class used to define aerodynamic surfaces."""
 
