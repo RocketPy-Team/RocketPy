@@ -1,8 +1,8 @@
-.. image:: https://drive.google.com/uc?id=19f5D0PIBb0oGc-t1-qGp-icAbe5dIhB9
-    :class: only-dark
-
-.. image:: https://drive.google.com/uc?id=1xKt6u5mI8x8ZuA5IZvIFDolg2_0iQUf-
-    :class: only-light
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="/../master/docs/static/RocketPy_Logo_white.png">
+  <source media="(prefers-color-scheme: light)" srcset="/../master/docs/static/RocketPy_Logo_black.png">
+  <img alt="RocketPy Logo" src="/../master/docs/static/RocketPy_Logo_black.png">
+</picture>
 
 <br>
 
