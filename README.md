@@ -311,7 +311,11 @@ Since then, the [RocketPy Team](https://github.com/orgs/RocketPy-Team/teams/rock
 
 ## Institutional Contributors
 
-[![Projeto Jupiter Logo](/../docs/refactor-readme/docs/static/institutional_contributors/projeto_jupiter_light.png)](https://github.com/Projeto-Jupiter)
+<a href="https://github.com/Projeto-Jupiter"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="/../docs/refactor-readme/docs/static/institutional_contributors/projeto_jupiter_light.jpg">
+  <source media="(prefers-color-scheme: light)" srcset="/../docs/refactor-readme/docs/static/institutional_contributors/projeto_jupiter_dark.png">
+  <img alt="Projeto Jupiter Logo" src="/../docs/refactor-readme/docs/static/institutional_contributors/projeto_jupiter_light.jpg">
+</picture></a>
 
 [![Space Enterprise at Berkeley Logo](/../docs/refactor-readme/docs/static/institutional_contributors/space_enterprise_at_berkeley.jpeg)](https://github.com/Space-Enterprise-at-Berkeley)
 
