@@ -305,11 +305,17 @@ test_flight.export_kml(file_name="test_flight.kml")
 
 # Authors and Contributors
 
-This package was originally created by [Giovani Ceotto](https://github.com/giovaniceotto/) as part of his work at [Projeto Jupiter](https://github.com/Projeto-Jupiter/). [Rodrigo Schmitt](https://github.com/rodrigo-schmitt/) was one of the first contributors.
-
-Later, [Guilherme Fernandes](https://github.com/Gui-FernandesBR/) and [Lucas Azevedo](https://github.com/lucasfourier/) joined the team to work on the expansion and sustainability of this project.
+This package was originally created by [Giovani Ceotto](https://github.com/giovaniceotto/) as part of his work at [Projeto Jupiter](https://github.com/Projeto-Jupiter/). [Rodrigo Schmitt](https://github.com/rodrigo-schmitt/) was one of the first contributors. Later, [Guilherme Fernandes](https://github.com/Gui-FernandesBR/) and [Lucas Azevedo](https://github.com/lucasfourier/) joined the team to work on the expansion and sustainability of this project.
 
 Since then, the [RocketPy Team](https://github.com/orgs/RocketPy-Team/teams/rocketpy-team) has been growing fast and our contributors are what makes us special!
+
+## Institutional Contributors
+
+[![Projeto Jupiter Logo](/../master/docs/static/institutional_contributors/projeto_jupiter_light.png)](https://github.com/Projeto-Jupiter)
+
+[![Space Enterprise at Berkeley Logo](/../master/docs/static/institutional_contributors/space_enterprise_at_berkeley.jpeg)](https://github.com/Space-Enterprise-at-Berkeley)
+
+## Individual Contributors
 
 [![GitHub Contributors Image](https://contrib.rocks/image?repo=RocketPy-Team/RocketPy)](https://github.com/RocketPy-Team/RocketPy/contributors)
 
