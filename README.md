@@ -86,6 +86,8 @@ Check out documentation details using the links below:
 - [User Guide](https://docs.rocketpy.org/en/latest/user/index.html)
 - [Code Documentation](https://docs.rocketpy.org/en/latest/reference/index.html)
 - [Development Guide](https://docs.rocketpy.org/en/latest/development/index.html)
+- [Technical Documentation](https://docs.rocketpy.org/en/latest/technical/index.html)
+- [Flight Examples](https://docs.rocketpy.org/en/latest/examples/index.html)
 
 <br>
 
@@ -295,13 +297,20 @@ test_flight.all_info()
 
 Here is just a quick taste of what RocketPy is able to calculate. There are hundreds of plots and data points computed by RocketPy to enhance your analyses.
 
-![6-DOF Trajectory Plot](https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/rocketpy_example_trajectory.svg)
-
 If you want to see the trajectory on Google Earth, RocketPy acn easily export a KML file for you:
 
 ```python
 test_flight.export_kml(file_name="test_flight.kml")
 ```
+
+<div style="display: flex; align-items: center;">
+    <div style="flex: 1;">
+        <img src="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/docs/refactor-readme/docs/static/rocketpy_example_trajectory.svg" alt="6-DOF Trajectory Plot" height="300">
+    </div>
+    <div style="flex: 1;">
+        <img src="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/docs/refactor-readme/docs/static/trajectory-earth.png" alt="KML Trajectory Plot" height="300">
+    </div>
+</div>
 
 # Authors and Contributors
 
@@ -311,15 +320,24 @@ Since then, the [RocketPy Team](https://github.com/orgs/RocketPy-Team/teams/rock
 
 ## Institutional Contributors
 
-<a href="https://github.com/Projeto-Jupiter"><picture>
-  <source media="(prefers-color-scheme: dark)" srcset="/../docs/refactor-readme/docs/static/institutional_contributors/projeto_jupiter_light.jpg">
-  <source media="(prefers-color-scheme: light)" srcset="/../docs/refactor-readme/docs/static/institutional_contributors/projeto_jupiter_dark.png">
-  <img alt="Projeto Jupiter Logo" src="/../docs/refactor-readme/docs/static/institutional_contributors/projeto_jupiter_light.jpg">
-</picture></a>
+RocketPy extends its gratitude to the following institutions for their support and contributions:
 
-[![Space Enterprise at Berkeley Logo](/../docs/refactor-readme/docs/static/institutional_contributors/space_enterprise_at_berkeley.jpeg)](https://github.com/Space-Enterprise-at-Berkeley)
+<div style="display: flex; justify-content: center; align-items: center;">
+    <div style="flex: 1;">
+        <a href="https://github.com/Projeto-Jupiter">
+            <img id="projeto-jupiter-image" alt="Projeto Jupiter Logo" src="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/docs/refactor-readme/docs/static/institutional_contributors/projeto_jupiter_light.jpg" style="height: 150px;">
+        </a>
+    </div>
+    <div style="flex: 1;">
+        <a href="https://github.com/Space-Enterprise-at-Berkeley">
+            <img alt="Space Enterprise at Berkeley Logo" src="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/docs/refactor-readme/docs/static/institutional_contributors/space_enterprise_at_berkeley.jpeg" style="height: 150px;">
+        </a>
+    </div>
+</div>
 
 ## Individual Contributors
+
+RocketPy is also indebted to a growing list of individual contributors who actively participate in its development. These include:
 
 [![GitHub Contributors Image](https://contrib.rocks/image?repo=RocketPy-Team/RocketPy)](https://github.com/RocketPy-Team/RocketPy/contributors)
 
@@ -328,6 +346,7 @@ See a [detailed list of contributors](https://github.com/RocketPy-Team/RocketPy/
 ## Supporting RocketPy and Contributing
 
 The easiest way to help RocketPy is to demonstrate your support by starring our repository!
+
 [![starcharts stargazers over time](https://starchart.cc/rocketpy-team/rocketpy.svg)](https://starchart.cc/rocketpy-team/rocketpy)
 
 You can also become a [sponsor](https://github.com/sponsors/RocketPy-Team) and help us financially to keep the project going.
