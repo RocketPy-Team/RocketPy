@@ -325,7 +325,11 @@ RocketPy extends its gratitude to the following institutions for their support a
 <div style="display: flex; justify-content: center; align-items: center;">
     <div style="flex: 1;">
         <a href="https://github.com/Projeto-Jupiter">
-            <img id="projeto-jupiter-image" alt="Projeto Jupiter Logo" src="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/docs/refactor-readme/docs/static/institutional_contributors/projeto_jupiter_light.jpg" style="height: 150px;">
+            <picture>
+                <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/docs/refactor-readme/docs/static/institutional_contributors/projeto_jupiter_dark.png" style="height: 150px;">
+                <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/docs/refactor-readme/docs/static/institutional_contributors/projeto_jupiter_light.jpg" style="height: 150px;">
+                <img id="projeto-jupiter-image" alt="Projeto Jupiter Logo" src="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/docs/refactor-readme/docs/static/institutional_contributors/projeto_jupiter_light.jpg" style="height: 150px;">
+            </picture>
         </a>
     </div>
     <div style="flex: 1;">
