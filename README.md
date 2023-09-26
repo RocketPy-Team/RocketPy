@@ -297,20 +297,15 @@ test_flight.all_info()
 
 Here is just a quick taste of what RocketPy is able to calculate. There are hundreds of plots and data points computed by RocketPy to enhance your analyses.
 
+![6-DOF Trajectory Plot](https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/rocketpy_example_trajectory.svg)
+
 If you want to see the trajectory on Google Earth, RocketPy acn easily export a KML file for you:
 
 ```python
 test_flight.export_kml(file_name="test_flight.kml")
 ```
 
-<div style="display: flex; align-items: center;">
-    <div style="flex: 1;">
-        <img src="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/docs/refactor-readme/docs/static/rocketpy_example_trajectory.svg" alt="6-DOF Trajectory Plot" height="300">
-    </div>
-    <div style="flex: 1;">
-        <img src="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/docs/refactor-readme/docs/static/trajectory-earth.png" alt="KML Trajectory Plot" height="300">
-    </div>
-</div>
+![6-DOF Trajectory Plot](https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/trajectory-earth.png)
 
 # Authors and Contributors
 
@@ -326,15 +321,15 @@ RocketPy extends its gratitude to the following institutions for their support a
     <div style="flex: 1;">
         <a href="https://github.com/Projeto-Jupiter">
             <picture>
-                <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/docs/refactor-readme/docs/static/institutional_contributors/projeto_jupiter_dark.png" style="height: 150px;">
-                <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/docs/refactor-readme/docs/static/institutional_contributors/projeto_jupiter_light.jpg" style="height: 150px;">
-                <img id="projeto-jupiter-image" alt="Projeto Jupiter Logo" src="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/docs/refactor-readme/docs/static/institutional_contributors/projeto_jupiter_light.jpg" style="height: 150px;">
+                <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/institutional/projeto_jupiter_dark.png" style="height: 150px;">
+                <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/institutional/projeto_jupiter_light.jpg" style="height: 150px;">
+                <img id="projeto-jupiter-image" alt="Projeto Jupiter Logo" src="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/institutional/projeto_jupiter_light.jpg" style="height: 150px;">
             </picture>
         </a>
     </div>
     <div style="flex: 1;">
         <a href="https://github.com/Space-Enterprise-at-Berkeley">
-            <img alt="Space Enterprise at Berkeley Logo" src="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/docs/refactor-readme/docs/static/institutional_contributors/space_enterprise_at_berkeley.jpeg" style="height: 150px;">
+            <img alt="Space Enterprise at Berkeley Logo" src="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/institutional/space_enterprise_at_berkeley.jpeg" style="height: 150px;">
         </a>
     </div>
 </div>
