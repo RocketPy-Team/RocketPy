@@ -329,7 +329,6 @@ RocketPy extends its gratitude to the following institutions for their support a
         <img align=top alt="Space Enterprise at Berkeley Logo" src="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/institutional/space_enterprise_at_berkeley.jpeg" height="150px">
     </a>
 </div>
-</div>
 
 ## Individual Contributors
 
