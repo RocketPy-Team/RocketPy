@@ -1,7 +1,7 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="/../master/docs/static/RocketPy_Logo_white.png">
-  <source media="(prefers-color-scheme: light)" srcset="/../master/docs/static/RocketPy_Logo_black.png">
-  <img alt="RocketPy Logo" src="/../master/docs/static/RocketPy_Logo_black.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/RocketPy_Logo_white.png">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/RocketPy_Logo_black.png">
+  <img alt="RocketPy Logo" src="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/RocketPy_Logo_black.png">
 </picture>
 
 <br>
