@@ -1,18 +1,18 @@
-.. image:: https://drive.google.com/uc?id=19f5D0PIBb0oGc-t1-qGp-icAbe5dIhB9
-    :class: only-dark
-
-.. image:: https://drive.google.com/uc?id=1xKt6u5mI8x8ZuA5IZvIFDolg2_0iQUf-
-    :class: only-light
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/RocketPy_Logo_white.png">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/RocketPy_Logo_black.png">
+  <img alt="RocketPy Logo" src="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/RocketPy_Logo_black.png">
+</picture>
 
 <br>
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/RocketPy-Team/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb)
 [![PyPI](https://img.shields.io/pypi/v/rocketpy?color=g)](https://pypi.org/project/rocketpy/)
 [![Documentation Status](https://readthedocs.org/projects/rocketpyalpha/badge/?version=latest)](https://docs.rocketpy.org/en/latest/?badge=latest)
-[![Build Status](https://app.travis-ci.com/RocketPy-Team/RocketPy.svg?branch=master)](https://app.travis-ci.com/RocketPy-Team/RocketPy)
 [![Contributors](https://img.shields.io/github/contributors/RocketPy-Team/rocketpy)](https://github.com/RocketPy-Team/RocketPy/graphs/contributors)
 [![Chat on Discord](https://img.shields.io/discord/765037887016140840?logo=discord)](https://discord.gg/b6xYnNh)
 [![Sponsor RocketPy](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/RocketPy-Team)
+[![Instagram](https://img.shields.io/badge/Instagram-E4405F?style=flat&logo=instagram&logoColor=white)](https://www.instagram.com/rocketpyteam)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/company/rocketpy)
 [![DOI](https://img.shields.io/badge/DOI-10.1061%2F%28ASCE%29AS.1943--5525.0001331-blue.svg)](http://dx.doi.org/10.1061/%28ASCE%29AS.1943-5525.0001331)
 
@@ -86,6 +86,8 @@ Check out documentation details using the links below:
 - [User Guide](https://docs.rocketpy.org/en/latest/user/index.html)
 - [Code Documentation](https://docs.rocketpy.org/en/latest/reference/index.html)
 - [Development Guide](https://docs.rocketpy.org/en/latest/development/index.html)
+- [Technical Documentation](https://docs.rocketpy.org/en/latest/technical/index.html)
+- [Flight Examples](https://docs.rocketpy.org/en/latest/examples/index.html)
 
 <br>
 
@@ -303,13 +305,34 @@ If you want to see the trajectory on Google Earth, RocketPy acn easily export a 
 test_flight.export_kml(file_name="test_flight.kml")
 ```
 
+<img alt="6-DOF Trajectory Plot" src="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/trajectory-earth.png" width="501">
+
 # Authors and Contributors
 
-This package was originally created by [Giovani Ceotto](https://github.com/giovaniceotto/) as part of his work at [Projeto Jupiter](https://github.com/Projeto-Jupiter/). [Rodrigo Schmitt](https://github.com/rodrigo-schmitt/) was one of the first contributors.
-
-Later, [Guilherme Fernandes](https://github.com/Gui-FernandesBR/) and [Lucas Azevedo](https://github.com/lucasfourier/) joined the team to work on the expansion and sustainability of this project.
+This package was originally created by [Giovani Ceotto](https://github.com/giovaniceotto/) as part of his work at [Projeto Jupiter](https://github.com/Projeto-Jupiter/). [Rodrigo Schmitt](https://github.com/rodrigo-schmitt/) was one of the first contributors. Later, [Guilherme Fernandes](https://github.com/Gui-FernandesBR/) and [Lucas Azevedo](https://github.com/lucasfourier/) joined the team to work on the expansion and sustainability of this project.
 
 Since then, the [RocketPy Team](https://github.com/orgs/RocketPy-Team/teams/rocketpy-team) has been growing fast and our contributors are what makes us special!
+
+## Institutional Contributors
+
+RocketPy extends its gratitude to the following institutions for their support and contributions:
+
+<div>
+    <a href="https://github.com/Projeto-Jupiter">
+        <picture align=top>
+            <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/institutional/projeto_jupiter_dark.png" height="150px">
+            <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/institutional/projeto_jupiter_light.jpg" height="150px">
+            <img align=top id="projeto-jupiter-image" alt="Projeto Jupiter Logo" src="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/institutional/projeto_jupiter_light.jpg" height="150px">
+        </picture>
+    </a>
+    <a href="https://github.com/Space-Enterprise-at-Berkeley">
+        <img align=top alt="Space Enterprise at Berkeley Logo" src="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/institutional/space_enterprise_at_berkeley.jpeg" height="150px">
+    </a>
+</div>
+
+## Individual Contributors
+
+RocketPy is also indebted to a growing list of individual contributors who actively participate in its development. These include:
 
 [![GitHub Contributors Image](https://contrib.rocks/image?repo=RocketPy-Team/RocketPy)](https://github.com/RocketPy-Team/RocketPy/contributors)
 
@@ -318,6 +341,7 @@ See a [detailed list of contributors](https://github.com/RocketPy-Team/RocketPy/
 ## Supporting RocketPy and Contributing
 
 The easiest way to help RocketPy is to demonstrate your support by starring our repository!
+
 [![starcharts stargazers over time](https://starchart.cc/rocketpy-team/rocketpy.svg)](https://starchart.cc/rocketpy-team/rocketpy)
 
 You can also become a [sponsor](https://github.com/sponsors/RocketPy-Team) and help us financially to keep the project going.
