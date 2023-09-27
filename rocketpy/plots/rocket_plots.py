@@ -1,14 +1,9 @@
-__author__ = "Oscar Mauricio Prada Ramirez"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-
 import matplotlib.pyplot as plt
 import numpy as np
 
 
 class _RocketPlots:
-    """Class that holds plot methods for Environment class.
+    """Class that holds plot methods for Rocket class.
 
     Attributes
     ----------
@@ -18,7 +13,7 @@ class _RocketPlots:
     """
 
     def __init__(self, rocket) -> None:
-        """Initializes _EnvironmentPlots class.
+        """Initializes _RocketPlots class.
 
         Parameters
         ----------
@@ -34,111 +29,78 @@ class _RocketPlots:
 
         return None
 
-    def totalMass(self):
+    def total_mass(self):
         """Plots total mass of the rocket as a function of time.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
-        self.rocket.totalMass()
+        self.rocket.total_mass()
 
         return None
 
-    def reducedMass(self):
+    def reduced_mass(self):
         """Plots reduced mass of the rocket as a function of time.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
-        self.rocket.reducedMass()
+        self.rocket.reduced_mass()
 
         return None
 
-    def stabilityMargin(self):
+    def static_margin(self):
         """Plots static margin of the rocket as a function of time.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
-        # TODO: it would be interesting to make a 3D plot of stability margin
-        # (https://matplotlib.org/stable/gallery/mplot3d/surface3d.html)
-
-        x = np.linspace(0, self.rocket.motor.burnOutTime, 20)
-        y = np.array([self.rocket.stabilityMargin(t, 0) for t in x])
-
-        plt.plot(x, y)
-        plt.xlabel("Time (s)")
-        plt.ylabel("Stability Margin (calibers)")
-        plt.title("Stability Margin (mach = 0)")
-        plt.grid()
-        plt.show()
+        self.rocket.static_margin()
 
         return None
 
-    def powerOnDrag(self):
+    def power_on_drag(self):
         """Plots power on drag of the rocket as a function of time.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
-        self.rocket.powerOnDrag()
+        self.rocket.power_on_drag()
 
         return None
 
-    def powerOffDrag(self):
+    def power_off_drag(self):
         """Plots power off drag of the rocket as a function of time.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
-        self.rocket.powerOffDrag()
+        self.rocket.power_off_drag()
 
         return None
 
-    def thrustToWeight(self):
+    def thrust_to_weight(self):
         """Plots the motor thrust force divided by rocket
             weight as a function of time.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
-        self.rocket.thrustToWeight.plot(lower=0, upper=self.rocket.motor.burnOutTime)
+        self.rocket.thrust_to_weight.plot(
+            lower=0, upper=self.rocket.motor.burn_out_time
+        )
 
         return None
 
@@ -146,22 +108,19 @@ class _RocketPlots:
         """Prints out all graphs available about the Rocket. It simply calls
         all the other plotter methods in this class.
 
-        Parameters
-        ----------
-        None
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
         # Show plots
         print("\nMass Plots")
-        self.totalMass()
-        self.reducedMass()
+        self.total_mass()
+        self.reduced_mass()
         print("\nAerodynamics Plots")
-        self.stabilityMargin()
-        self.powerOnDrag()
-        self.powerOffDrag()
-        self.thrustToWeight()
+        self.static_margin()
+        self.power_on_drag()
+        self.power_off_drag()
+        self.thrust_to_weight()
 
         return None

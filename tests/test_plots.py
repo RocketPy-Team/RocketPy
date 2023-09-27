@@ -8,7 +8,7 @@ from rocketpy.plots.compare import Compare, CompareFlights
 
 
 @patch("matplotlib.pyplot.show")
-def test_compare(mock_show, rocket, example_env):
+def test_compare(mock_show, flight_calisto):
     """Here we want to test the 'x_attributes' argument, which is the only one
     that is not tested in the other tests.
 
@@ -16,13 +16,10 @@ def test_compare(mock_show, rocket, example_env):
     ----------
     mock_show :
         Mocks the matplotlib.pyplot.show() function to avoid showing the plots.
-    rocket : rocketpy.Rocket
-        Rocket object to be used in the tests. See conftest.py for more details.
-    example_env : rocketpy.Environment
-        Environment object to be used in the tests. See conftest.py for more details.
+    flight_calisto : rocketpy.Flight
+        Flight object to be used in the tests. See conftest.py for more details.
     """
-    rocket.setRailButtons(-0.5, 0.2)
-    flight = Flight(environment=example_env, rocket=rocket, inclination=85, heading=0)
+    flight = flight_calisto
 
     objects = [flight, flight, flight]
 
@@ -46,7 +43,7 @@ def test_compare(mock_show, rocket, example_env):
 
 
 @patch("matplotlib.pyplot.show")
-def test_compare_flights(mock_show, rocket, example_env):
+def test_compare_flights(mock_show, calisto, example_env):
     """Tests the CompareFlights class. It simply ensures that all the methods
     are being called without errors. It does not test the actual plots, which
     would be very difficult to do.
@@ -55,7 +52,7 @@ def test_compare_flights(mock_show, rocket, example_env):
     ----------
     mock_show :
         Mocks the matplotlib.pyplot.show() function to avoid showing the plots.
-    rocket : rocketpy.Rocket
+    calisto : rocketpy.Rocket
         Rocket object to be used in the tests. See conftest.py for more details.
     example_env : rocketpy.Environment
         Environment object to be used in the tests. See conftest.py for more details.
@@ -64,26 +61,25 @@ def test_compare_flights(mock_show, rocket, example_env):
     -------
     None
     """
-    example_env.setAtmosphericModel(
-        type="CustomAtmosphere",
+    example_env.set_atmospheric_model(
+        type="custom_atmosphere",
         pressure=None,
         temperature=300,
         wind_u=[(0, 5), (1000, 10)],
         wind_v=[(0, -2), (500, 3), (1600, 2)],
     )
 
-    rocket.setRailButtons(-0.5, 0.2)
-
+    calisto.set_rail_buttons(-0.5, 0.2)
     inclinations = [60, 70, 80, 90]
     headings = [0, 45, 90, 180]
     flights = []
-
     # Create (4 * 4) = 16 different flights to be compared
     for heading in headings:
         for inclination in inclinations:
             flight = Flight(
                 environment=example_env,
-                rocket=rocket,
+                rocket=calisto,
+                rail_length=5,
                 inclination=inclination,
                 heading=heading,
                 name=f"Incl {inclination} Head {heading}",

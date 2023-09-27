@@ -1,8 +1,3 @@
-__author__ = "Mateus Stano Junqueira"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-
 class _RocketPrints:
     """Class that holds prints methods for Rocket class.
 
@@ -13,7 +8,7 @@ class _RocketPrints:
 
     """
 
-    def __init__(self, rocket) -> None:
+    def __init__(self, rocket):
         """Initializes _EnvironmentPrints class
 
         Parameters
@@ -32,33 +27,54 @@ class _RocketPrints:
     def inertia_details(self):
         """Print inertia details.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         print("\nInertia Details\n")
-        print("Rocket Mass: {:.3f} kg (No Propellant)".format(self.rocket.mass))
+        print("Rocket Mass: {:.3f} kg".format(self.rocket.mass))
+        print("Rocket Dry Mass: {:.3f} kg (With Motor)".format(self.rocket.dry_mass))
         print(
-            "Rocket Mass: {:.3f} kg (With Propellant)".format(self.rocket.totalMass(0))
+            "Rocket Mass: {:.3f} kg (With Propellant)".format(self.rocket.total_mass(0))
         )
-        print("Rocket Inertia I: {:.3f} kg*m2".format(self.rocket.inertiaI))
-        print("Rocket Inertia Z: {:.3f} kg*m2".format(self.rocket.inertiaZ))
+        print(
+            "Rocket Inertia (with motor, but without propellant) 11: {:.3f} kg*m2".format(
+                self.rocket.dry_I_11
+            )
+        )
+        print(
+            "Rocket Inertia (with motor, but without propellant) 22: {:.3f} kg*m2".format(
+                self.rocket.dry_I_22
+            )
+        )
+        print(
+            "Rocket Inertia (with motor, but without propellant) 33: {:.3f} kg*m2".format(
+                self.rocket.dry_I_33
+            )
+        )
+        print(
+            "Rocket Inertia (with motor, but without propellant) 12: {:.3f} kg*m2".format(
+                self.rocket.dry_I_12
+            )
+        )
+        print(
+            "Rocket Inertia (with motor, but without propellant) 13: {:.3f} kg*m2".format(
+                self.rocket.dry_I_13
+            )
+        )
+        print(
+            "Rocket Inertia (with motor, but without propellant) 23: {:.3f} kg*m2".format(
+                self.rocket.dry_I_23
+            )
+        )
 
         return None
 
     def rocket_geometrical_parameters(self):
         """Print rocket geometrical parameters.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         print("\nGeometrical Parameters\n")
@@ -66,45 +82,52 @@ class _RocketPrints:
         print("Rocket Frontal Area: " + "{:.6f}".format(self.rocket.area) + " m2")
         print("\nRocket Distances")
         print(
+            "Rocket Center of Dry Mass - Center of Mass withour Motor: "
+            + "{:.3f} m".format(
+                abs(
+                    self.rocket.center_of_mass_without_motor
+                    - self.rocket.center_of_dry_mass_position
+                )
+            )
+        )
+        print(
             "Rocket Center of Dry Mass - Nozzle Exit Distance: "
             + "{:.3f} m".format(
-                abs(self.rocket.centerOfDryMassPosition - self.rocket.motorPosition)
+                abs(
+                    self.rocket.center_of_dry_mass_position - self.rocket.motor_position
+                )
             )
         )
         print(
             "Rocket Center of Dry Mass - Center of Propellant Mass: "
             + "{:.3f} m".format(
                 abs(
-                    self.rocket.centerOfPropellantPosition(0)
-                    - self.rocket.centerOfDryMassPosition
+                    self.rocket.center_of_propellant_position(0)
+                    - self.rocket.center_of_dry_mass_position
                 )
             )
         )
         print(
             "Rocket Center of Mass - Rocket Loaded Center of Mass: "
             + "{:.3f} m".format(
-                abs(self.rocket.centerOfMass(0) - self.rocket.centerOfDryMassPosition)
+                abs(
+                    self.rocket.center_of_mass(0)
+                    - self.rocket.center_of_dry_mass_position
+                )
             )
         )
-
-        print("\nAerodynamic Components Parameters")
-        print("Currently not implemented.")
 
         return None
 
     def rocket_aerodynamics_quantities(self):
         """Print rocket aerodynamics quantities.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         print("\nAerodynamics Lift Coefficient Derivatives\n")
-        for surface, position in self.rocket.aerodynamicSurfaces:
+        for surface, position in self.rocket.aerodynamic_surfaces:
             name = surface.name
             print(
                 name
@@ -113,24 +136,30 @@ class _RocketPrints:
             )
 
         print("\nAerodynamics Center of Pressure\n")
-        for surface, position in self.rocket.aerodynamicSurfaces:
+        for surface, position in self.rocket.aerodynamic_surfaces:
             name = surface.name
             cpz = surface.cp[2]
-            print(name + " Center of Pressure to CM: {:.3f}".format(cpz) + " m")
+            print(
+                name
+                + " Center of Pressure to CM: {:.3f}".format(
+                    position - self.rocket._csys * cpz
+                )
+                + " m"
+            )
         print(
-            "Distance - Center of Pressure to CM (Mach=0): "
-            + "{:.3f}".format(self.rocket.centerOfPressure(0))
+            "Distance - Center of Pressure to Center of Dry Mass: "
+            + "{:.3f}".format(self.rocket.center_of_mass(0) - self.rocket.cp_position)
             + " m"
         )
         print(
-            "Initial Stability Margin (Mach=0): "
-            + "{:.3f}".format(self.rocket.initialStabilityMargin(mach=0))
+            "Initial Static Margin: "
+            + "{:.3f}".format(self.rocket.static_margin(0))
             + " c"
         )
         print(
-            "Final Stability Margin (Mach=0): "
+            "Final Static Margin: "
             + "{:.3f}".format(
-                self.rocket.stabilityMargin(time=self.rocket.motor.burnOutTime, mach=0)
+                self.rocket.static_margin(self.rocket.motor.burn_out_time)
             )
             + " c"
         )
@@ -140,27 +169,19 @@ class _RocketPrints:
     def parachute_data(self):
         """Print parachute data.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         for chute in self.rocket.parachutes:
-            chute.allInfo()
+            chute.all_info()
         return None
 
     def all(self):
         """Prints all print methods about the Environment.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         # Print inertia details

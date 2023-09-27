@@ -1,8 +1,3 @@
-__author__ = "Mateus Stano Junqueira, Guilherme Fernandes Alves"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -33,7 +28,7 @@ class _EnvironmentPlots:
         None
         """
         # Create height grid
-        self.grid = np.linspace(environment.elevation, environment.maxExpectedHeight)
+        self.grid = np.linspace(environment.elevation, environment.max_expected_height)
 
         self.environment = environment
 
@@ -53,7 +48,7 @@ class _EnvironmentPlots:
             Axis with the graphs.
         """
         ax.plot(
-            [self.environment.windSpeed(i) for i in self.grid],
+            [self.environment.wind_speed(i) for i in self.grid],
             self.grid,
             "#ff7f0e",
             label="Wind Speed",
@@ -62,7 +57,7 @@ class _EnvironmentPlots:
         ax.tick_params("x", colors="#ff7f0e")
         axup = ax.twiny()
         axup.plot(
-            [self.environment.windDirection(i) for i in self.grid],
+            [self.environment.wind_direction(i) for i in self.grid],
             self.grid,
             color="#1f77b4",
             label="Wind Direction",
@@ -89,7 +84,7 @@ class _EnvironmentPlots:
             Axis with the graphs.
         """
         ax.plot(
-            [self.environment.speedOfSound(i) for i in self.grid],
+            [self.environment.speed_of_sound(i) for i in self.grid],
             self.grid,
             "#ff7f0e",
             label="Speed of Sound",
@@ -124,16 +119,16 @@ class _EnvironmentPlots:
             Axis with the graphs.
         """
         ax.plot(
-            [self.environment.windVelocityX(i) for i in self.grid],
+            [self.environment.wind_velocity_x(i) for i in self.grid],
             self.grid,
             label="Wind U",
         )
         ax.plot(
-            [self.environment.windVelocityY(i) for i in self.grid],
+            [self.environment.wind_velocity_y(i) for i in self.grid],
             self.grid,
             label="Wind V",
         )
-        ax.legend(loc="best").set_draggable(True)
+        # ax.legend(loc="best").set_draggable(True)
         ax.set_ylabel("Height Above Sea Level (m)")
         ax.set_xlabel("Wind Speed (m/s)")
         ax.grid(True)
@@ -179,12 +174,8 @@ class _EnvironmentPlots:
         """Plots the gravity model graph that represents the gravitational
         acceleration as a function of height.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         # Create figure
@@ -202,16 +193,12 @@ class _EnvironmentPlots:
         return None
 
     def atmospheric_model(self):
-        """Plots all atmospheric model graphs available. This includes wind speed
-        and wind direction, density and speed of sound, wind u and wind v, and
-        pressure and temperature.
+        """Plots all atmospheric model graphs available. This includes wind
+        speed and wind direction, density and speed of sound, wind u and wind v,
+        and pressure and temperature.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -229,7 +216,7 @@ class _EnvironmentPlots:
         # Create wind u and wind v subplot
         ax3 = plt.subplot(223)
         ax3 = self.__wind_components(ax3)
-        ax3.legend(loc="best").set_draggable(True)
+        # ax3.legend(loc="best").set_draggable(True)
 
         # Create pressure and temperature subplot
         ax4 = plt.subplot(224)
@@ -244,26 +231,22 @@ class _EnvironmentPlots:
         """Plots ensemble member comparisons. It requires that the environment
         model has been set as Ensemble.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
-        currentMember = self.environment.ensembleMember
+        current_member = self.environment.ensemble_member
 
         # Create figure
         plt.figure(figsize=(9, 13.5))
 
         # Create wind u subplot
         ax5 = plt.subplot(321)
-        for i in range(self.environment.numEnsembleMembers):
-            self.environment.selectEnsembleMember(i)
+        for i in range(self.environment.num_ensemble_members):
+            self.environment.select_ensemble_member(i)
             ax5.plot(
-                [self.environment.windVelocityX(i) for i in self.grid],
+                [self.environment.wind_velocity_x(i) for i in self.grid],
                 self.grid,
                 label=i,
             )
@@ -275,10 +258,10 @@ class _EnvironmentPlots:
 
         # Create wind v subplot
         ax6 = plt.subplot(322)
-        for i in range(self.environment.numEnsembleMembers):
-            self.environment.selectEnsembleMember(i)
+        for i in range(self.environment.num_ensemble_members):
+            self.environment.select_ensemble_member(i)
             ax6.plot(
-                [self.environment.windVelocityY(i) for i in self.grid],
+                [self.environment.wind_velocity_y(i) for i in self.grid],
                 self.grid,
                 label=i,
             )
@@ -290,10 +273,10 @@ class _EnvironmentPlots:
 
         # Create wind speed subplot
         ax7 = plt.subplot(323)
-        for i in range(self.environment.numEnsembleMembers):
-            self.environment.selectEnsembleMember(i)
+        for i in range(self.environment.num_ensemble_members):
+            self.environment.select_ensemble_member(i)
             ax7.plot(
-                [self.environment.windSpeed(i) for i in self.grid], self.grid, label=i
+                [self.environment.wind_speed(i) for i in self.grid], self.grid, label=i
             )
         # ax7.legend(loc='best').set_draggable(True)
         ax7.set_ylabel("Height Above Sea Level (m)")
@@ -303,10 +286,10 @@ class _EnvironmentPlots:
 
         # Create wind direction subplot
         ax8 = plt.subplot(324)
-        for i in range(self.environment.numEnsembleMembers):
-            self.environment.selectEnsembleMember(i)
+        for i in range(self.environment.num_ensemble_members):
+            self.environment.select_ensemble_member(i)
             ax8.plot(
-                [self.environment.windDirection(i) for i in self.grid],
+                [self.environment.wind_direction(i) for i in self.grid],
                 self.grid,
                 label=i,
             )
@@ -318,8 +301,8 @@ class _EnvironmentPlots:
 
         # Create pressure subplot
         ax9 = plt.subplot(325)
-        for i in range(self.environment.numEnsembleMembers):
-            self.environment.selectEnsembleMember(i)
+        for i in range(self.environment.num_ensemble_members):
+            self.environment.select_ensemble_member(i)
             ax9.plot(
                 [self.environment.pressure(i) for i in self.grid], self.grid, label=i
             )
@@ -331,8 +314,8 @@ class _EnvironmentPlots:
 
         # Create temperature subplot
         ax10 = plt.subplot(326)
-        for i in range(self.environment.numEnsembleMembers):
-            self.environment.selectEnsembleMember(i)
+        for i in range(self.environment.num_ensemble_members):
+            self.environment.select_ensemble_member(i)
             ax10.plot(
                 [self.environment.temperature(i) for i in self.grid], self.grid, label=i
             )
@@ -347,7 +330,7 @@ class _EnvironmentPlots:
         plt.show()
 
         # Clean up
-        self.environment.selectEnsembleMember(currentMember)
+        self.environment.select_ensemble_member(current_member)
 
         return None
 
@@ -379,12 +362,8 @@ class _EnvironmentPlots:
         a complete description of the atmospheric model and the ensemble members
         comparison if the atmospheric model is an ensemble.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -396,7 +375,7 @@ class _EnvironmentPlots:
         self.atmospheric_model()
 
         # Plot ensemble member comparison
-        if self.environment.atmosphericModelType == "Ensemble":
+        if self.environment.atmospheric_model_type == "Ensemble":
             print("\n\nEnsemble Members Comparison")
             self.ensemble_member_comparison()
 

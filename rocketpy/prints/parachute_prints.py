@@ -1,6 +1,4 @@
-__author__ = "Guilherme Fernandes Alves"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
+from inspect import getsourcelines
 
 
 class _ParachutePrints:
@@ -13,7 +11,7 @@ class _ParachutePrints:
 
     """
 
-    def __init__(self, parachute) -> None:
+    def __init__(self, parachute):
         """Initializes _ParachutePrints class
 
         Parameters
@@ -32,25 +30,25 @@ class _ParachutePrints:
     def trigger(self):
         """Prints trigger information.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
-        if self.parachute.trigger.__name__ == "<lambda>":
-            line = self.rocket.getsourcelines(self.parachute.trigger)[0][0]
+        if callable(self.parachute.trigger):
+            if self.parachute.trigger.__name__ == "<lambda>":
+                line = getsourcelines(self.parachute.trigger)[0][0]
+                print("Ejection signal trigger: " + line.split("=")[0].strip())
+            else:
+                print("Ejection signal trigger: " + self.parachute.trigger.__name__)
+        elif isinstance(self.parachute.trigger, (int, float)):
             print(
-                "Ejection signal trigger: "
-                + line.split("lambda ")[1].split(",")[0].split("\n")[0]
+                "Ejection signal trigger: " + str(self.parachute.trigger) + " m (AGL)"
             )
-        else:
-            print("Ejection signal trigger: " + self.parachute.trigger.__name__)
+        elif isinstance(self.parachute.trigger, str):
+            print("Ejection signal trigger: At Apogee")
 
-        print(f"Ejection system refresh rate: {self.parachute.samplingRate:.3f} Hz")
+        print(f"Ejection system refresh rate: {self.parachute.sampling_rate:.3f} Hz")
         print(
             f"Time between ejection signal is triggered and the parachute is fully opened: {self.parachute.lag:.1f} s\n"
         )
@@ -64,12 +62,8 @@ class _ParachutePrints:
     def all(self):
         """Prints all information about the parachute.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 

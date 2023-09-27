@@ -1,11 +1,6 @@
-# -*- coding: utf-8 -*-
-__author__ = "Giovani Hidalgo Ceotto"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-
 import numpy as np
-from rocketpy.Function import Function
+
+from .mathutils.function import Function
 
 
 def conversion_factor(from_unit, to_unit):
@@ -73,7 +68,7 @@ def conversion_factor(from_unit, to_unit):
 def convert_units_Functions(variable, from_unit, to_unit, axis=1):
     """See units.convert_units() for documentation."""
     # Perform conversion, take special care with temperatures
-    variable_source = variable.source
+    variable_source = variable.get_source()
     if from_unit in ["K", "degC", "degF"]:
         variable_source[:, axis] = convert_temperature(
             variable_source[:, axis], from_unit, to_unit
@@ -122,7 +117,7 @@ def convert_units(variable, from_unit, to_unit, axis=1):
 
     Parameters
     ----------
-    variable : int, float, numpy.array, Function
+    variable : int, float, numpy.array, rocketpy.Function
         Variable to be converted. If Function, specify axis that should
         be converted.
     from_unit : string
@@ -136,7 +131,7 @@ def convert_units(variable, from_unit, to_unit, axis=1):
 
     Returns
     -------
-    variable : int, float, numpy.array, Function
+    variable : int, float, numpy.array, rocketpy.Function
         Variable converted from "from_unit" to "to_unit".
     """
     if from_unit == to_unit:

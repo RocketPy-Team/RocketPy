@@ -1,13 +1,7 @@
-numpy>=1.0
+numpy>=1.13
 scipy>=1.0
 matplotlib>=3.0
-netCDF4>=1.4,<1.6; python_version == "3.7"
-netCDF4>=1.6.2; python_version != "3.7"
-windrose>=1.6.8
-ipywidgets>=7.6.3
+netCDF4>=1.6.4
 requests
 pytz
-timezonefinder
 simplekml
-jsonpickle
-numericalunits

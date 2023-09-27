@@ -34,14 +34,12 @@ def test_getters(func_from_csv):
     func_from_csv : rocketpy.Function
         A Function object created from a .csv file.
     """
-    assert func_from_csv.getInputs() == ["Scalar"]
-    assert func_from_csv.getOutputs() == ["Scalar"]
-    assert func_from_csv.getInterpolationMethod() == "linear"
-    assert func_from_csv.getExtrapolationMethod() == "natural"
-    assert np.isclose(func_from_csv.getValue(0), 0.0, atol=1e-6)
-    assert np.isclose(func_from_csv.getValueOpt_deprecated(0), 0.0, atol=1e-6)
-    assert np.isclose(func_from_csv.getValueOpt(0), 0.0, atol=1e-6)
-    assert np.isclose(func_from_csv.getValueOpt2(0), 0.0, atol=1e-6)
+    assert func_from_csv.get_inputs() == ["Scalar"]
+    assert func_from_csv.get_outputs() == ["Scalar"]
+    assert func_from_csv.get_interpolation_method() == "linear"
+    assert func_from_csv.get_extrapolation_method() == "natural"
+    assert np.isclose(func_from_csv.get_value(0), 0.0, atol=1e-6)
+    assert np.isclose(func_from_csv.get_value_opt(0), 0.0, atol=1e-6)
 
 
 def test_setters(func_from_csv):
@@ -53,14 +51,14 @@ def test_setters(func_from_csv):
         A Function object created from a .csv file.
     """
     # Test set methods
-    func_from_csv.setInputs(["Scalar2"])
-    assert func_from_csv.getInputs() == ["Scalar2"]
-    func_from_csv.setOutputs(["Scalar2"])
-    assert func_from_csv.getOutputs() == ["Scalar2"]
-    func_from_csv.setInterpolation("linear")
-    assert func_from_csv.getInterpolationMethod() == "linear"
-    func_from_csv.setExtrapolation("natural")
-    assert func_from_csv.getExtrapolationMethod() == "natural"
+    func_from_csv.set_inputs(["Scalar2"])
+    assert func_from_csv.get_inputs() == ["Scalar2"]
+    func_from_csv.set_outputs(["Scalar2"])
+    assert func_from_csv.get_outputs() == ["Scalar2"]
+    func_from_csv.set_interpolation("linear")
+    assert func_from_csv.get_interpolation_method() == "linear"
+    func_from_csv.set_extrapolation("natural")
+    assert func_from_csv.get_extrapolation_method() == "natural"
 
 
 @patch("matplotlib.pyplot.show")
@@ -76,7 +74,7 @@ def test_plots(mock_show, func_from_csv):
     """
     # Test plot methods
     assert func_from_csv.plot() == None
-    # Test comparePlots
+    # Test compare_plots
     func2 = Function(
         source="tests/fixtures/airfoils/e473-10e6-degrees.csv",
         inputs=["Scalar"],
@@ -85,7 +83,7 @@ def test_plots(mock_show, func_from_csv):
         extrapolation="natural",
     )
     assert (
-        func_from_csv.comparePlots([func_from_csv, func2], returnObject=False) == None
+        func_from_csv.compare_plots([func_from_csv, func2], return_object=False) == None
     )
 
 
@@ -99,14 +97,14 @@ def test_interpolation_methods(linear_func):
         A Function object created from a list of values.
     """
     # Test Akima
-    linear_func.setInterpolation("akima")
-    assert linear_func.getInterpolationMethod() == "akima"
-    assert np.isclose(linear_func.getValue(0), 0.0, atol=1e-6)
+    linear_func.set_interpolation("akima")
+    assert linear_func.get_interpolation_method() == "akima"
+    assert np.isclose(linear_func.get_value(0), 0.0, atol=1e-6)
 
     # Test polynomial
-    linear_func.setInterpolation("polynomial")
-    assert linear_func.getInterpolationMethod() == "polynomial"
-    assert np.isclose(linear_func.getValue(0), 0.0, atol=1e-6)
+    linear_func.set_interpolation("polynomial")
+    assert linear_func.get_interpolation_method() == "polynomial"
+    assert np.isclose(linear_func.get_value(0), 0.0, atol=1e-6)
 
 
 def test_extrapolation_methods(linear_func):
@@ -119,19 +117,19 @@ def test_extrapolation_methods(linear_func):
         A Function object created from a list of values.
     """
     # Test zero
-    linear_func.setExtrapolation("zero")
-    assert linear_func.getExtrapolationMethod() == "zero"
-    assert np.isclose(linear_func.getValue(-1), 0, atol=1e-6)
+    linear_func.set_extrapolation("zero")
+    assert linear_func.get_extrapolation_method() == "zero"
+    assert np.isclose(linear_func.get_value(-1), 0, atol=1e-6)
 
     # Test constant
-    linear_func.setExtrapolation("constant")
-    assert linear_func.getExtrapolationMethod() == "constant"
-    assert np.isclose(linear_func.getValue(-1), 0, atol=1e-6)
+    linear_func.set_extrapolation("constant")
+    assert linear_func.get_extrapolation_method() == "constant"
+    assert np.isclose(linear_func.get_value(-1), 0, atol=1e-6)
 
     # Test natural
-    linear_func.setExtrapolation("natural")
-    assert linear_func.getExtrapolationMethod() == "natural"
-    assert np.isclose(linear_func.getValue(-1), -1, atol=1e-6)
+    linear_func.set_extrapolation("natural")
+    assert linear_func.get_extrapolation_method() == "natural"
+    assert np.isclose(linear_func.get_value(-1), -1, atol=1e-6)
 
 
 @pytest.mark.parametrize("a", [-1, 0, 0.5, 1, 2, 2.5, 3.5, 4, 5])
