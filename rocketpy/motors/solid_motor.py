@@ -479,10 +479,10 @@ class SolidMotor(Motor):
             # Compute state vector derivative
             rI, h = y
             burn_area = 2 * np.pi * (rO**2 - rI**2 + rI * h)
-            rIDot = -volume_diff / burn_area
-            hDot = -2 * rIDot
+            rI_dot = -volume_diff / burn_area
+            h_dot = -2 * rI_dot
 
-            return [rIDot, hDot]
+            return [rI_dot, h_dot]
 
         # Define jacobian of the system of differential equations
         def geometry_jacobian(t, y):
