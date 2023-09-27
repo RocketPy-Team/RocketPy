@@ -469,17 +469,19 @@ class SolidMotor(Motor):
 
         density = self.grain_density
         rO = self.grain_outer_radius
+        n_grain = self.grain_number
 
         # Define system of differential equations
         def geometry_dot(t, y):
-            grain_mass_dot = self.mass_flow_rate(t) / self.grain_number
+            # Store physical parameters
+            volume_diff = self.mass_flow_rate(t) / (n_grain * density)
+
+            # Compute state vector derivative
             rI, h = y
-            rIDot = (
-                -0.5 * grain_mass_dot / (density * np.pi * (rO**2 - rI**2 + rI * h))
-            )
-            hDot = (
-                1.0 * grain_mass_dot / (density * np.pi * (rO**2 - rI**2 + rI * h))
-            )
+            burn_area = 2 * np.pi * (rO**2 - rI**2 + rI * h)
+            rIDot = -volume_diff / burn_area
+            hDot = -2 * rIDot
+
             return [rIDot, hDot]
 
         def terminate_burn(t, y):
