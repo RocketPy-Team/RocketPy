@@ -148,7 +148,7 @@ class _RocketPrints:
             )
         print(
             "Distance - Center of Pressure to Center of Dry Mass: "
-            + "{:.3f}".format(self.rocket.center_of_mass(0) - self.rocket.cp_position)
+            + "{:.3f}".format(self.rocket.center_of_mass(0) - self.rocket.cp_position(0))
             + " m"
         )
         print(

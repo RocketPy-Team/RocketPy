@@ -12,7 +12,7 @@ class _RocketPlots:
 
     """
 
-    def __init__(self, rocket) -> None:
+    def __init__(self, rocket):
         """Initializes _RocketPlots class.
 
         Parameters
@@ -62,6 +62,18 @@ class _RocketPlots:
         """
 
         self.rocket.static_margin()
+
+        return None
+
+    def stability_margin(self):
+        """Plots static margin of the rocket as a function of time.
+
+        Returns
+        -------
+        None
+        """
+
+        self.rocket.stability_margin()
 
         return None
 
@@ -119,6 +131,7 @@ class _RocketPlots:
         self.reduced_mass()
         print("\nAerodynamics Plots")
         self.static_margin()
+        self.stability_margin()
         self.power_on_drag()
         self.power_off_drag()
         self.thrust_to_weight()
