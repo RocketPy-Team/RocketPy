@@ -6,6 +6,7 @@ from .aero_surface import (
     RailButtons,
     Tail,
     TrapezoidalFins,
+    Airbrakes,
 )
 from .components import Components
 from .parachute import Parachute

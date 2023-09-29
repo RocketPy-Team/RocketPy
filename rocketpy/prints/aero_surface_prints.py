@@ -291,3 +291,41 @@ class _RailButtonsPrints(_AeroSurfacePrints):
             f"Angular position of the buttons: {self.aero_surface.angular_position:.3f} deg\n"
         )
         return None
+
+
+class _AirbreaksPrints(_AeroSurfacePrints):
+    """Class that contains all tail prints."""
+
+    def __init__(self, airbreaks):
+        """Initialize the class
+
+        Parameters
+        ----------
+        airbreaks : rocketpy.AeroSurface.AirBreaks
+            Air break object to be printed.
+
+        Returns
+        -------
+        None
+        """
+        super().__init__(airbreaks)
+        return None
+
+    def geometry(self):
+        """Prints the geometric information of the air break.
+
+        Returns
+        -------
+        None
+        """
+        print(f"Geometric information of the Air Break:")
+        print(f"----------------------------------")
+        print(
+            f"Current deployed level: {self.aero_surface.deployed_level:.2f} = {100*self.aero_surface.deployed_level:.0f} %"
+        )
+        print(
+            f"Current Cd_S: {self.aero_surface.cd_s_curve(self.aero_surface.deployed_level)} m²"
+        )
+        print(f"Maximum Cd_S: {self.aero_surface.cd_s.max:.3f} m²")
+        print(f"Minimum Cd_S: {self.aero_surface.cd_s.min:.3f} m²")
+        return None

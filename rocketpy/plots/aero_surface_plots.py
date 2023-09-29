@@ -448,3 +448,28 @@ class _TailPlots(_AeroSurfacePlots):
     def draw(self):
         # This will de done in the future
         return None
+
+
+class _AirbreakPlots(_AeroSurfacePlots):
+    """Class that contains all tail plots."""
+
+    def __init__(self, tail):
+        """Initialize the class
+
+        Parameters
+        ----------
+        tail : rocketpy.AeroSurface.Tail
+            Tail object to be plotted
+
+        Returns
+        -------
+        None
+        """
+        super().__init__(tail)
+        return None
+
+    def cd_s_curve(self):
+        return self.cd_s_curve.plot(0, 1)
+
+    def draw(self):
+        raise NotImplementedError
