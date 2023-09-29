@@ -170,7 +170,7 @@ def test_evaluate_static_margin_assert_cp_equals_cm(dimensionless_calisto):
     assert pytest.approx(
         rocket.center_of_mass(burn_time[1]) / (2 * rocket.radius), 1e-8
     ) == pytest.approx(rocket.static_margin(burn_time[1]), 1e-8)
-    assert pytest.approx(rocket.total_lift_coeff_der, 1e-8) == pytest.approx(0, 1e-8)
+    assert pytest.approx(rocket.total_lift_coeff_der(0), 1e-8) == pytest.approx(0, 1e-8)
     assert pytest.approx(rocket.cp_position(0), 1e-8) == pytest.approx(0, 1e-8)
 
 
@@ -189,7 +189,7 @@ def test_add_nose_assert_cp_cm_plus_nose(k, type, calisto, dimensionless_calisto
     static_margin_final = (calisto.center_of_mass(np.inf) - cpz) / (2 * calisto.radius)
     assert static_margin_final == pytest.approx(calisto.static_margin(np.inf), 1e-8)
 
-    assert clalpha == pytest.approx(calisto.total_lift_coeff_der, 1e-8)
+    assert clalpha == pytest.approx(calisto.total_lift_coeff_der(0), 1e-8)
     assert calisto.cp_position(0) == pytest.approx(cpz, 1e-8)
 
     dimensionless_calisto.add_nose(length=0.55829 * m, kind=type, position=(1.160) * m)
@@ -200,8 +200,8 @@ def test_add_nose_assert_cp_cm_plus_nose(k, type, calisto, dimensionless_calisto
         dimensionless_calisto.static_margin(np.inf), 1e-8
     ) == pytest.approx(calisto.static_margin(np.inf), 1e-8)
     assert pytest.approx(
-        dimensionless_calisto.total_lift_coeff_der, 1e-8
-    ) == pytest.approx(calisto.total_lift_coeff_der, 1e-8)
+        dimensionless_calisto.total_lift_coeff_der(0), 1e-8
+    ) == pytest.approx(calisto.total_lift_coeff_der(0), 1e-8)
     assert pytest.approx(
         dimensionless_calisto.cp_position(0) / m, 1e-8
     ) == pytest.approx(calisto.cp_position(0), 1e-8)
@@ -225,7 +225,9 @@ def test_add_tail_assert_cp_cm_plus_tail(calisto, dimensionless_calisto, m):
 
     static_margin_final = (calisto.center_of_mass(np.inf) - cpz) / (2 * calisto.radius)
     assert static_margin_final == pytest.approx(calisto.static_margin(np.inf), 1e-8)
-    assert np.abs(clalpha) == pytest.approx(np.abs(calisto.total_lift_coeff_der), 1e-8)
+    assert np.abs(clalpha) == pytest.approx(
+        np.abs(calisto.total_lift_coeff_der(0)), 1e-8
+    )
     assert calisto.cp_position(0) == cpz
 
     dimensionless_calisto.add_tail(
@@ -241,8 +243,8 @@ def test_add_tail_assert_cp_cm_plus_tail(calisto, dimensionless_calisto, m):
         dimensionless_calisto.static_margin(np.inf), 1e-8
     ) == pytest.approx(calisto.static_margin(np.inf), 1e-8)
     assert pytest.approx(
-        dimensionless_calisto.total_lift_coeff_der, 1e-8
-    ) == pytest.approx(calisto.total_lift_coeff_der, 1e-8)
+        dimensionless_calisto.total_lift_coeff_der(0), 1e-8
+    ) == pytest.approx(calisto.total_lift_coeff_der(0), 1e-8)
     assert pytest.approx(
         dimensionless_calisto.cp_position(0) / m, 1e-8
     ) == pytest.approx(calisto.cp_position(0), 1e-8)
@@ -356,7 +358,9 @@ def test_add_fins_assert_cp_cm_plus_fins(calisto, dimensionless_calisto, m):
     static_margin_final = (calisto.center_of_mass(np.inf) - cpz) / (2 * calisto.radius)
     assert static_margin_final == pytest.approx(calisto.static_margin(np.inf), 1e-8)
 
-    assert np.abs(clalpha) == pytest.approx(np.abs(calisto.total_lift_coeff_der), 1e-8)
+    assert np.abs(clalpha) == pytest.approx(
+        np.abs(calisto.total_lift_coeff_der(0)), 1e-8
+    )
     assert calisto.cp_position(0) == pytest.approx(cpz, 1e-8)
 
     dimensionless_calisto.add_trapezoidal_fins(
@@ -373,8 +377,8 @@ def test_add_fins_assert_cp_cm_plus_fins(calisto, dimensionless_calisto, m):
         dimensionless_calisto.static_margin(np.inf), 1e-8
     ) == pytest.approx(calisto.static_margin(np.inf), 1e-8)
     assert pytest.approx(
-        dimensionless_calisto.total_lift_coeff_der, 1e-8
-    ) == pytest.approx(calisto.total_lift_coeff_der, 1e-8)
+        dimensionless_calisto.total_lift_coeff_der(0), 1e-8
+    ) == pytest.approx(calisto.total_lift_coeff_der(0), 1e-8)
     assert pytest.approx(
         dimensionless_calisto.cp_position(0) / m, 1e-8
     ) == pytest.approx(calisto.cp_position(0), 1e-8)
