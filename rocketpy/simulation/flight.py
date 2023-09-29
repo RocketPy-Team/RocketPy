@@ -2566,8 +2566,8 @@ class Flight:
         """Static margin of the rocket."""
         return self.rocket.static_margin
 
-    @funcify_method("Time (s)", "Stability Margin (c)", "spline", "constant")
-    def stabilityMargin(self):
+    @funcify_method("Time (s)", "Stability Margin (c)", "linear", "zero")
+    def stability_margin(self):
         """Stability margin of the rocket along the flight, it considers the
         variation of the center of pressure position according to the mach
         number, as well as the variation of the center of gravity position
@@ -2584,8 +2584,7 @@ class Flight:
             is defined as the distance between the center of pressure and the
             center of gravity, divided by the rocket diameter.
         """
-        s = [(t, self.rocket.stabilityMargin(t, m)) for t, m in self.MachNumber]
-        return Function(s, "Time (s)", "Stability Margin (c)")
+        return [(t, self.rocket.stability_margin(m, t)) for t, m in self.mach_number]
 
     # Rail Button Forces
     @cached_property
