@@ -2,11 +2,14 @@ import warnings
 
 import numpy as np
 
+from rocketpy.control import controller
+
 from ..mathutils.function import Function
 from ..motors.motor import EmptyMotor
 from ..plots.rocket_plots import _RocketPlots
 from ..prints.rocket_prints import _RocketPrints
 from .aero_surface import (
+    Airbrakes,
     EllipticalFins,
     Fins,
     NoseCone,
@@ -214,6 +217,9 @@ class Rocket:
 
         # Parachute data initialization
         self.parachutes = []
+
+        # Controllers data initialization
+        self.controllers = []
 
         # Aerodynamic data initialization
         self.aerodynamic_surfaces = Components()
@@ -699,6 +705,26 @@ class Rocket:
         self.evaluate_static_margin()
         return None
 
+    def add_controllers(self, controllers):
+        """Adds a controller to the rocket.
+
+        Parameters
+        ----------
+        controllers : Controller
+            Controller to be added to the rocket.
+
+        Returns
+        -------
+        None
+        """
+        try:
+            for controller in controllers:
+                self.controllers.append(controller)
+        except TypeError:
+            self.controllers.append(controllers)
+
+        return None
+
     def add_tail(
         self, top_radius, bottom_radius, length, position, radius=None, name="Tail"
     ):
@@ -1053,6 +1079,26 @@ class Rocket:
 
         # Return self
         return self.parachutes[-1]
+
+    def add_airbrakes(
+        self,
+        cd_s_curve,
+        controller_function,
+        sampling_rate,
+        position=0,
+        name="Airbrakes",
+        controller_name="Airbrakes Controller",
+    ):
+        """Creates a new airbrake, storing its parameters such as drag
+        coefficients and controller function. The controller function is
+        used to compute the airbrake deflection angle."""
+
+        airbrakes = Airbrakes(cd_s_curve, deployed_level=0, name=name)
+        controller = controller(
+            [airbrakes], controller_function, sampling_rate, controller_name
+        )
+        self.add_surfaces(airbrakes, position)
+        self.add_controller(controller)
 
     def set_rail_buttons(
         self, upper_button_position, lower_button_position, angular_position=45
