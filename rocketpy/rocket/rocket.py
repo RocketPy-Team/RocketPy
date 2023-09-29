@@ -284,9 +284,6 @@ class Rocket:
         self.evaluate_thrust_to_weight()
 
         # Evaluate stability (even though no aerodynamic surfaces are present yet)
-        # TODO: should we have a funtion call evaluate_stability that evaluates all stability related functions?
-        # or maybe have these three functions' code inside a function called evaluate_stability?
-        # because there isnt much reason to call them independently
         self.evaluate_center_of_pressure()
         self.evaluate_stability_margin()
         self.evaluate_static_margin()
