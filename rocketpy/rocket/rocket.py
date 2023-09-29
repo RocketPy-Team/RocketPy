@@ -830,6 +830,26 @@ class Rocket:
         except TypeError:
             self._controllers.append(controllers)
 
+    def add_controllers(self, controllers):
+        """Adds a controller to the rocket.
+
+        Parameters
+        ----------
+        controllers : Controller
+            Controller to be added to the rocket.
+
+        Returns
+        -------
+        None
+        """
+        try:
+            for controller in controllers:
+                self.controllers.append(controller)
+        except TypeError:
+            self.controllers.append(controllers)
+
+        return None
+
     def add_tail(
         self, top_radius, bottom_radius, length, position, radius=None, name="Tail"
     ):
