@@ -2340,7 +2340,7 @@ class Flight:
         """Time of maximum stability margin."""
         max_stability_margin_time_index = np.argmax(self.stability_margin[:, 1])
         return self.stability_margin[max_stability_margin_time_index, 0]
-    
+
     @cached_property
     def max_stability_margin(self):
         """Maximum stability margin."""
@@ -2351,7 +2351,7 @@ class Flight:
         """Time of minimum stability margin."""
         min_stability_margin_time_index = np.argmin(self.stability_margin[:, 1])
         return self.stability_margin[min_stability_margin_time_index, 0]
-    
+
     @cached_property
     def min_stability_margin(self):
         """Minimum stability margin."""
