@@ -2229,7 +2229,7 @@ class Function:
             ans = np.trapz(y_integration_data, x_integration_data)
         else:
             # Integrate numerically
-            ans, _ = integrate.quad(self, a, b, epsabs=0.001, limit=10000)
+            ans, _ = integrate.quad(self, a, b, epsabs=1e-4, epsrel=1e-3, limit=1000)
         return integration_sign * ans
 
     def differentiate(self, x, dx=1e-6, order=1):
