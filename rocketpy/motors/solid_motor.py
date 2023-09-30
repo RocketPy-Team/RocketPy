@@ -494,8 +494,8 @@ class SolidMotor(Motor):
             factor = volume_diff / (2 * np.pi * (rO**2 - rI**2 + rI * h) ** 2)
             drI_dot_drI = factor * (h - 2 * rI)
             drI_dot_dh = factor * rI
-            dh_dot_drI = -2 * factor * (h - 2 * rI)
-            dh_dot_dh = -2 * factor * rI
+            dh_dot_drI = -2 * drI_dot_drI
+            dh_dot_dh = -2 * drI_dot_dh
 
             return [[drI_dot_drI, drI_dot_dh], [dh_dot_drI, dh_dot_dh]]
 
