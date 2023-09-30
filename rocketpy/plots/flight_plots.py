@@ -718,7 +718,28 @@ class _FlightPlots:
         ax1.set_xlim(0, self.flight.stability_margin[:, 0][-1])
         ax1.set_title("Stability Margin")
         ax1.set_xlabel("Time (s)")
-        ax1.set_ylabel("Static Margin (c)")
+        ax1.set_ylabel("Stability Margin (c)")
+        ax1.set_xlim(0, self.first_event_time)
+        ax1.axvline(
+            x=self.flight.out_of_rail_time,
+            color="r",
+            linestyle="--",
+            label="Out of Rail Time",
+        )
+        ax1.axvline(
+            x=self.flight.rocket.motor.burn_out_time,
+            color="g",
+            linestyle="--",
+            label="Burn Out Time",
+        )
+
+        ax1.axvline(
+            x=self.flight.apogee_time,
+            color="m",
+            linestyle="--",
+            label="Apogee Time",
+        )
+        ax1.legend()
         ax1.grid()
 
         ax2 = plt.subplot(212)

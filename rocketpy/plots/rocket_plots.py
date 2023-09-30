@@ -73,7 +73,12 @@ class _RocketPlots:
         None
         """
 
-        self.rocket.stability_margin()
+        self.rocket.stability_margin.plot2D(
+            lower=0,
+            upper=[2, self.rocket.motor.burn_out_time],  # Mach 2 and burnout
+            samples=[20, 20],
+            disp_type="surface",
+        )
 
         return None
 

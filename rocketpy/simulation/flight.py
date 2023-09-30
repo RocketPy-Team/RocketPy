@@ -2334,6 +2334,29 @@ class Flight:
         """Maximum Mach number."""
         return self.mach_number(self.max_mach_number_time)
 
+    # Stability Margin
+    @cached_property
+    def max_stability_margin_time(self):
+        """Time of maximum stability margin."""
+        max_stability_margin_time_index = np.argmax(self.stability_margin[:, 1])
+        return self.stability_margin[max_stability_margin_time_index, 0]
+    
+    @cached_property
+    def max_stability_margin(self):
+        """Maximum stability margin."""
+        return self.stability_margin(self.max_stability_margin_time)
+
+    @cached_property
+    def min_stability_margin_time(self):
+        """Time of minimum stability margin."""
+        min_stability_margin_time_index = np.argmin(self.stability_margin[:, 1])
+        return self.stability_margin[min_stability_margin_time_index, 0]
+    
+    @cached_property
+    def min_stability_margin(self):
+        """Minimum stability margin."""
+        return self.stability_margin(self.min_stability_margin_time)
+
     # Reynolds Number
     @funcify_method("Time (s)", "Reynolds Number", "spline", "zero")
     def reynolds_number(self):
