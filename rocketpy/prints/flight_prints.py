@@ -301,12 +301,19 @@ class _FlightPrints:
             print("\nImpact Conditions\n")
             print("X Impact: {:.3f} m".format(self.flight.x_impact))
             print("Y Impact: {:.3f} m".format(self.flight.y_impact))
+            print("Latitude: {:.7f}°".format(self.flight.latitude(self.flight.t_final)))
+            print(
+                "Longitude: {:.7f}°".format(self.flight.longitude(self.flight.t_final))
+            )
             print("Time of Impact: {:.3f} s".format(self.flight.t_final))
             print("Velocity at Impact: {:.3f} m/s".format(self.flight.impact_velocity))
         elif self.flight.terminate_on_apogee is False:
             print("End of Simulation")
-            print("Time: {:.3f} s".format(self.flight.solution[-1][0]))
+            t_final = self.flight.solution[-1][0]
+            print("Time: {:.3f} s".format(t_final))
             print("Altitude: {:.3f} m".format(self.flight.solution[-1][3]))
+            print("Latitude: {:.3f}°".format(self.flight.latitude(t_final)))
+            print("Longitude: {:.3f}°".format(self.flight.longitude(t_final)))
 
         return None
 

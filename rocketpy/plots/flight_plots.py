@@ -682,19 +682,11 @@ class _FlightPlots:
 
         ax4 = plt.subplot(414)
         ax4.plot(self.flight.angle_of_attack[:, 0], self.flight.angle_of_attack[:, 1])
-        # Make sure bottom and top limits are different
-        if (
-            self.flight.out_of_rail_time
-            * self.flight.angle_of_attack(self.flight.out_of_rail_time)
-            != 0
-        ):
-            ax4.set_xlim(
-                self.flight.out_of_rail_time, 10 * self.flight.out_of_rail_time + 1
-            )
-            ax4.set_ylim(0, self.flight.angle_of_attack(self.flight.out_of_rail_time))
         ax4.set_title("Angle of Attack")
         ax4.set_xlabel("Time (s)")
         ax4.set_ylabel("Angle of Attack (°)")
+        ax4.set_xlim(self.flight.out_of_rail_time, self.first_event_time)
+        ax4.set_ylim(0, self.flight.angle_of_attack(self.flight.out_of_rail_time) + 15)
         ax4.grid()
 
         plt.subplots_adjust(hspace=0.5)

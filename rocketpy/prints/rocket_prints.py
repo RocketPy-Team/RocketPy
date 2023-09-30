@@ -63,7 +63,7 @@ class _RocketPrints:
             )
         )
         print(
-            "Rocket Inertia (with motor, but without propellant) 23: {:.3f} kg*m2".format(
+            "Rocket Inertia (with motor, but without propellant) 23: {:.3f} kg*m2\n".format(
                 self.rocket.dry_I_23
             )
         )
@@ -82,7 +82,7 @@ class _RocketPrints:
         print("Rocket Frontal Area: " + "{:.6f}".format(self.rocket.area) + " m2")
         print("\nRocket Distances")
         print(
-            "Rocket Center of Dry Mass - Center of Mass withour Motor: "
+            "Rocket Center of Dry Mass - Center of Mass without Motor: "
             + "{:.3f} m".format(
                 abs(
                     self.rocket.center_of_mass_without_motor
@@ -91,7 +91,7 @@ class _RocketPrints:
             )
         )
         print(
-            "Rocket Center of Dry Mass - Nozzle Exit Distance: "
+            "Rocket Center of Dry Mass - Nozzle Exit: "
             + "{:.3f} m".format(
                 abs(
                     self.rocket.center_of_dry_mass_position - self.rocket.motor_position
@@ -109,7 +109,7 @@ class _RocketPrints:
         )
         print(
             "Rocket Center of Mass - Rocket Loaded Center of Mass: "
-            + "{:.3f} m".format(
+            + "{:.3f} m\n".format(
                 abs(
                     self.rocket.center_of_mass(0)
                     - self.rocket.center_of_dry_mass_position
@@ -192,18 +192,14 @@ class _RocketPrints:
         """
         # Print inertia details
         self.inertia_details()
-        print()
 
         # Print rocket geometrical parameters
         self.rocket_geometrical_parameters()
-        print()
 
         # Print rocket aerodynamics quantities
         self.rocket_aerodynamics_quantities()
-        print()
 
         # Print parachute data
         self.parachute_data()
-        print()
 
         return None
