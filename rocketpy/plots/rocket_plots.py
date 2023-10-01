@@ -1,3 +1,4 @@
+import numpy as np
 import matplotlib.pyplot as plt
 
 from rocketpy.rocket.aero_surface import Fins, NoseCone, Tail
@@ -105,7 +106,7 @@ class _RocketPlots:
 
         return None
 
-    def draw(self, vis_args=None):
+    def draw2(self, vis_args=None):
         """Draws the rocket in a matplotlib figure.
 
         Parameters
@@ -117,7 +118,7 @@ class _RocketPlots:
                 "background": "#EEEEEE",
                 "tail": "black",
                 "nose": "black",
-                "body": "dimgrey",
+                "body": "black",
                 "fins": "black",
                 "motor": "black",
                 "buttons": "black",
@@ -131,144 +132,248 @@ class _RocketPlots:
                 "background": "#EEEEEE",
                 "tail": "black",
                 "nose": "black",
-                "body": "dimgrey",
+                "body": "black",
                 "fins": "black",
                 "motor": "black",
                 "buttons": "black",
-                "line_width": 2.0,
+                "line_width": 1.0,
             }
 
         # Create the figure and axis
-        _, ax = plt.subplots(figsize=(10, 5))
+        _, ax = plt.subplots(figsize=(8, 5))
         ax.set_aspect("equal")
         ax.set_facecolor(vis_args["background"])
         ax.grid(True, linestyle="--", linewidth=0.5)
 
         csys = self.rocket._csys
-
-        # Draw rocket body
         reverse = csys == 1
         self.rocket.aerodynamic_surfaces.sort_by_position(reverse=reverse)
-        y_tube, x_tube = [], []
+
+        # List of drawn surfaces with the position of points of interest
+        # and the radius of the rocket at that point
+        drawn_surfaces = []
+
+        # Ideia is to get the shape of each aerodynamic surface in their own
+        # coordinate system and then plot them in the rocket coordinate system
+        # using the position of each surface
+        # For the tubes, the surfaces need to be checked in order to check for
+        # diameter changes. The final point of the last surface is the final
+        # point of the last tube
+
         for surface, position in self.rocket.aerodynamic_surfaces:
-            if isinstance(surface, (NoseCone, Tail)):
-                # Append the x and y coordinates of the surface shape_vec to the respective lists
-                x_tube.extend((-csys) * surface.shape_vec[0] + position)
-                y_tube.extend(surface.shape_vec[1])
-            if isinstance(surface, Fins):
-                pass
+            if isinstance(surface, NoseCone):
+                x_nosecone = -csys * surface.shape_vec[0] + position
+                y_nosecone = surface.shape_vec[1]
 
-        # Negate each element in the y_tube list using a list comprehension
-        y_tube_negated = [-y for y in y_tube]
-        plt.plot(
-            x_tube, y_tube, color=vis_args["body"], linewidth=vis_args["line_width"]
-        )
-        plt.plot(
-            x_tube,
-            y_tube_negated,
-            color=vis_args["body"],
-            linewidth=vis_args["line_width"],
-        )
+                ax.plot(
+                    x_nosecone,
+                    y_nosecone,
+                    color=vis_args["nose"],
+                    linewidth=vis_args["line_width"],
+                )
+                ax.plot(
+                    x_nosecone,
+                    -y_nosecone,
+                    color=vis_args["nose"],
+                    linewidth=vis_args["line_width"],
+                )
+                # close the nosecone
+                ax.plot(
+                    [x_nosecone[-1], x_nosecone[-1]],
+                    [y_nosecone[-1], -y_nosecone[-1]],
+                    color=vis_args["nose"],
+                    linewidth=vis_args["line_width"],
+                )
 
-        # Get nozzle position (kinda not working for EmptyMotor class)
-        x_nozzle = self.rocket.motor_position + self.rocket.motor.nozzle_position
+                # Add the nosecone to the list of drawn surfaces
+                drawn_surfaces.append(
+                    (surface, x_nosecone[-1], surface.rocket_radius, x_nosecone[-1])
+                )
 
-        # Find the last point of the rocket
-        idx = -1 if csys == 1 else 0
-        surface, position = self.rocket.aerodynamic_surfaces[idx]
-        length = surface.shape_vec[0][-1] - surface.shape_vec[0][0]
-        x_last = position + (-1 * csys) * length
-        y_last = surface.shape_vec[1][-1]
+            elif isinstance(surface, Tail):
+                x_tail = -csys * surface.shape_vec[0] + position
+                y_tail = surface.shape_vec[1]
 
-        plt.plot(
-            [x_nozzle, x_last],
-            [0, y_last],
-            color=vis_args["body"],
-            linewidth=vis_args["line_width"],
-        )
-        plt.plot(
-            [x_nozzle, x_last],
-            [0, -y_last],
-            color=vis_args["body"],
-            linewidth=vis_args["line_width"],
-        )
+                ax.plot(
+                    x_tail,
+                    y_tail,
+                    color=vis_args["tail"],
+                    linewidth=vis_args["line_width"],
+                )
+                ax.plot(
+                    x_tail,
+                    -y_tail,
+                    color=vis_args["tail"],
+                    linewidth=vis_args["line_width"],
+                )
+                # close above and below the tail
+                ax.plot(
+                    [x_tail[-1], x_tail[-1]],
+                    [y_tail[-1], -y_tail[-1]],
+                    color=vis_args["tail"],
+                    linewidth=vis_args["line_width"],
+                )
+                ax.plot(
+                    [x_tail[0], x_tail[0]],
+                    [y_tail[0], -y_tail[0]],
+                    color=vis_args["tail"],
+                    linewidth=vis_args["line_width"],
+                )
 
-        # Draw nosecone
-        nosecones = self.rocket.aerodynamic_surfaces.get_tuple_by_type(NoseCone)
-        for nose, position in nosecones:
-            x_nosecone = -csys * nose.shape_vec[0] + position
-            y_nosecone = nose.shape_vec[1]
+                # Add the tail to the list of drawn surfaces
+                drawn_surfaces.append(
+                    (surface, position, surface.bottom_radius, x_tail[-1])
+                )
 
-            plt.plot(
-                x_nosecone,
-                y_nosecone,
-                color=vis_args["nose"],
-                linewidth=vis_args["line_width"] - 0.05,
-            )
-            plt.plot(
-                x_nosecone,
-                -y_nosecone,
-                color=vis_args["nose"],
-                linewidth=vis_args["line_width"] - 0.05,
-            )
+            # Draw fins
+            elif isinstance(surface, Fins):
+                num_fins = surface.n
+                x_fin = -csys * surface.shape_vec[0] + position
+                y_fin = surface.shape_vec[1] + surface.rocket_radius
 
-        # Draw transitions
-        tails = self.rocket.aerodynamic_surfaces.get_tuple_by_type(Tail)
-        for tail, position in tails:
-            x_tail = -csys * tail.shape_vec[0] + position
-            y_tail = tail.shape_vec[1]
+                # Calculate the rotation angles for the other two fins (symmetrically)
+                rotation_angles = [2 * np.pi * i / num_fins for i in range(num_fins)]
 
-            plt.plot(
-                x_tail,
-                y_tail,
-                color=vis_args["tail"],
+                # Apply rotation transformations to get points for the other fins in 2D space
+                for angle in rotation_angles:
+                    # Create a rotation matrix for the current angle around the x-axis
+                    rotation_matrix = np.array([[1, 0], [0, np.cos(angle)]])
+
+                    # Apply the rotation to the original fin points
+                    rotated_points_2d = np.dot(
+                        rotation_matrix, np.vstack((x_fin, y_fin))
+                    )
+
+                    # Extract x and y coordinates of the rotated points
+                    x_rotated, y_rotated = rotated_points_2d
+
+                    # Project points above the XY plane back into the XY plane (set z-coordinate to 0)
+                    x_rotated = np.where(
+                        rotated_points_2d[1] > 0, rotated_points_2d[0], x_rotated
+                    )
+                    y_rotated = np.where(
+                        rotated_points_2d[1] > 0, rotated_points_2d[1], y_rotated
+                    )
+
+                    # Plot the fins
+                    ax.plot(
+                        x_rotated,
+                        y_rotated,
+                        color=vis_args["fins"],
+                        linewidth=vis_args["line_width"],
+                    )
+
+                # Add the fin to the list of drawn surfaces
+                drawn_surfaces.append(
+                    (surface, position, surface.rocket_radius, x_rotated[-1])
+                )
+
+        # Draw tubes
+        for i, d_surface in enumerate(drawn_surfaces):
+            # Draw the tubes, from the end of the first surface to the beggining
+            # of the next surface, with the radius of the rocket at that point
+            surface, position, radius, last_x = d_surface
+
+            if i == len(drawn_surfaces) - 1:
+                # If the last surface is a tail, do nothing
+                if isinstance(surface, Tail):
+                    continue
+                # Else goes to the end of the surface
+                else:
+                    x_tube = [position, last_x]
+                    y_tube = [radius, radius]
+                    y_tube_negated = [-radius, -radius]
+            else:
+                # If it is not the last surface, the tube goes to the beggining
+                # of the next surface
+                next_surface, next_position, next_radius, next_last_x = drawn_surfaces[
+                    i + 1
+                ]
+                x_tube = [last_x, next_position]
+                y_tube = [radius, radius]
+                y_tube_negated = [-radius, -radius]
+
+            ax.plot(
+                x_tube,
+                y_tube,
+                color=vis_args["body"],
                 linewidth=vis_args["line_width"],
             )
-            plt.plot(
-                x_tail,
-                -y_tail,
-                color=vis_args["tail"],
+            ax.plot(
+                x_tube,
+                y_tube_negated,
+                color=vis_args["body"],
                 linewidth=vis_args["line_width"],
             )
 
-        # Draw fins
-        fins = self.rocket.aerodynamic_surfaces.get_tuple_by_type(Fins)
-        for fin, position in fins:
-            x_fin = -csys * fin.shape_vec[0] + position
-            y_fin = fin.shape_vec[1] + self.rocket.radius
+        # TODO - Draw motor
+        nozzle_position = (
+            self.rocket.motor_position
+            + self.rocket.motor.nozzle_position
+            * self.rocket._csys
+            * self.rocket.motor._csys
+        )
+        ax.scatter(
+            nozzle_position, 0, label="Nozzle Outlet", color="brown", s=10, zorder=10
+        )
+        # Check if nozzle is beyond the last surface, if so draw a tube
+        # to it, with the radius of the last surface
+        if self.rocket._csys == 1:
+            if nozzle_position < last_x:
+                x_tube = [last_x, nozzle_position]
+                y_tube = [radius, radius]
+                y_tube_negated = [-radius, -radius]
 
-            plt.plot(
-                x_fin,
-                y_fin,
-                color=vis_args["fins"],
-                linewidth=vis_args["line_width"],
-            )
-            plt.plot(
-                x_fin,
-                -y_fin,
-                color=vis_args["fins"],
-                linewidth=vis_args["line_width"],
-            )
+                ax.plot(
+                    x_tube,
+                    y_tube,
+                    color=vis_args["body"],
+                    linewidth=vis_args["line_width"],
+                )
+                ax.plot(
+                    x_tube,
+                    y_tube_negated,
+                    color=vis_args["body"],
+                    linewidth=vis_args["line_width"],
+                )
+        else:  # if self.rocket._csys == -1:
+            if nozzle_position > last_x:
+                x_tube = [last_x, nozzle_position]
+                y_tube = [radius, radius]
+                y_tube_negated = [-radius, -radius]
+
+                ax.plot(
+                    x_tube,
+                    y_tube,
+                    color=vis_args["body"],
+                    linewidth=vis_args["line_width"],
+                )
+                ax.plot(
+                    x_tube,
+                    y_tube_negated,
+                    color=vis_args["body"],
+                    linewidth=vis_args["line_width"],
+                )
 
         # Draw rail buttons
         buttons, pos = self.rocket.rail_buttons[0]
         lower = pos
         upper = pos + buttons.buttons_distance * csys
-        plt.scatter(
-            lower, -self.rocket.radius, marker="s", color=vis_args["buttons"], s=10
+        ax.scatter(
+            lower, -self.rocket.radius, marker="s", color=vis_args["buttons"], s=15
         )
-        plt.scatter(
-            upper, -self.rocket.radius, marker="s", color=vis_args["buttons"], s=10
+        ax.scatter(
+            upper, -self.rocket.radius, marker="s", color=vis_args["buttons"], s=15
         )
 
         # Draw center of mass and center of pressure
         cm = self.rocket.center_of_mass(0)
-        plt.scatter(cm, 0, color="black", label="Center of Mass", s=30)
-        plt.scatter(cm, 0, facecolors="none", edgecolors="black", s=100)
+        ax.scatter(cm, 0, color="black", label="Center of Mass", s=30)
+        ax.scatter(cm, 0, facecolors="none", edgecolors="black", s=100)
 
         cp = self.rocket.cp_position
-        plt.scatter(cp, 0, label="Center Of Pressure", color="red", s=30, zorder=10)
-        plt.scatter(cp, 0, facecolors="none", edgecolors="red", s=100, zorder=10)
+        ax.scatter(cp, 0, label="Center Of Pressure", color="red", s=30, zorder=10)
+        ax.scatter(cp, 0, facecolors="none", edgecolors="red", s=100, zorder=10)
 
         # Set plot attributes
         plt.title(f"Rocket Geometry")
@@ -278,6 +383,7 @@ class _RocketPlots:
         plt.legend(loc="best")
         plt.tight_layout()
         plt.show()
+
         return None
 
     def all(self):
