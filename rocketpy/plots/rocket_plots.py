@@ -106,7 +106,7 @@ class _RocketPlots:
 
         return None
 
-    def draw2(self, vis_args=None):
+    def draw(self, vis_args=None):
         """Draws the rocket in a matplotlib figure.
 
         Parameters
