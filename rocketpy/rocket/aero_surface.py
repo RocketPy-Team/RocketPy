@@ -12,7 +12,7 @@ from ..plots.aero_surface_plots import (
     _NoseConePlots,
     _TailPlots,
     _TrapezoidalFinsPlots,
-    _AirbreaksPlots,
+    _AirbrakesPlots,
 )
 from ..prints.aero_surface_prints import (
     _AirBrakesPrints,
@@ -21,7 +21,7 @@ from ..prints.aero_surface_prints import (
     _RailButtonsPrints,
     _TailPrints,
     _TrapezoidalFinsPrints,
-    _AirbreaksPrints,
+    _AirbrakesPrints,
 )
 
 # TODO: all the evaluate_shape() methods need tests and documentation
