@@ -2,7 +2,7 @@ import warnings
 
 import numpy as np
 
-from rocketpy.control import controller
+from ..control.controller import Controller
 
 from ..mathutils.function import Function
 from ..motors.motor import EmptyMotor
@@ -220,6 +220,9 @@ class Rocket:
 
         # Controllers data initialization
         self.controllers = []
+
+        # Airbrakes data initialization
+        self.airbrakes = []
 
         # Aerodynamic data initialization
         self.aerodynamic_surfaces = Components()
@@ -1094,11 +1097,11 @@ class Rocket:
         used to compute the airbrake deflection angle."""
 
         airbrakes = Airbrakes(cd_s_curve, deployed_level=0, name=name)
-        controller = controller(
-            [airbrakes], controller_function, sampling_rate, controller_name
+        controller = Controller(
+            airbrakes, controller_function, sampling_rate, controller_name
         )
-        self.add_surfaces(airbrakes, position)
-        self.add_controller(controller)
+        self.airbrakes.append(airbrakes)
+        self.add_controllers(controller)
 
     def set_rail_buttons(
         self, upper_button_position, lower_button_position, angular_position=45

@@ -4,6 +4,7 @@ from .aero_surface_prints import (
     _RailButtonsPrints,
     _TailPrints,
     _TrapezoidalFinsPrints,
+    _AirbrakesPrints,
 )
 from .compare_prints import _ComparePrints
 from .environment_analysis_prints import _EnvironmentAnalysisPrints

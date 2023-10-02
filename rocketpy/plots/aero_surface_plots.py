@@ -450,7 +450,7 @@ class _TailPlots(_AeroSurfacePlots):
         return None
 
 
-class _AirbreakPlots(_AeroSurfacePlots):
+class _AirbrakesPlots(_AeroSurfacePlots):
     """Class that contains all tail plots."""
 
     def __init__(self, tail):

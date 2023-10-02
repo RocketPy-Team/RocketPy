@@ -293,22 +293,22 @@ class _RailButtonsPrints(_AeroSurfacePrints):
         return None
 
 
-class _AirbreaksPrints(_AeroSurfacePrints):
+class _AirbrakesPrints(_AeroSurfacePrints):
     """Class that contains all tail prints."""
 
-    def __init__(self, airbreaks):
+    def __init__(self, Airbrakes):
         """Initialize the class
 
         Parameters
         ----------
-        airbreaks : rocketpy.AeroSurface.AirBreaks
+        Airbrakes : rocketpy.AeroSurface.Airbrakes
             Air break object to be printed.
 
         Returns
         -------
         None
         """
-        super().__init__(airbreaks)
+        super().__init__(Airbrakes)
         return None
 
     def geometry(self):

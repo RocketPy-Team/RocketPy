@@ -11,7 +11,7 @@ from ..plots.aero_surface_plots import (
     _NoseConePlots,
     _TailPlots,
     _TrapezoidalFinsPlots,
-    _AirbreaksPlots,
+    _AirbrakesPlots,
 )
 from ..prints.aero_surface_prints import (
     _EllipticalFinsPrints,
@@ -19,7 +19,7 @@ from ..prints.aero_surface_prints import (
     _RailButtonsPrints,
     _TailPrints,
     _TrapezoidalFinsPrints,
-    _AirbreaksPrints,
+    _AirbrakesPrints,
 )
 
 
@@ -1889,8 +1889,8 @@ class Airbrakes(AeroSurface):
         super().__init__(name)
         self.cd_s_curve = Function(cd_s_curve).set_discrete(0, 1, 50)
         self.deployed_level = deployed_level
-        self.prints = _AirbreaksPrints
-        self.plots = _AirbreaksPlots
+        self.prints = _AirbrakesPrints
+        self.plots = _AirbrakesPlots
 
     @property
     def cd_s(self):
