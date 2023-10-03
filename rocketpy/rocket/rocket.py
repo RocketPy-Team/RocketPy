@@ -642,14 +642,14 @@ class Rocket:
         self.motor_position = position
         _ = self._csys * self.motor._csys
         self.center_of_propellant_position = (
-            self.motor.center_of_propellant_mass - self.motor.nozzle_position
-        ) * _ + self.motor_position
+            self.motor.center_of_propellant_mass * _ + self.motor_position
+        )
         self.motor_center_of_mass_position = (
-            self.motor.center_of_mass - self.motor.nozzle_position
-        ) * _ + self.motor_position
+            self.motor.center_of_mass * _ + self.motor_position
+        )
         self.motor_center_of_dry_mass_position = (
-            self.motor.center_of_dry_mass_position - self.motor.nozzle_position
-        ) * _ + self.motor_position
+            self.motor.center_of_dry_mass_position * _ + self.motor_position
+        )
         self.evaluate_dry_mass()
         self.evaluate_total_mass()
         self.evaluate_center_of_dry_mass()
