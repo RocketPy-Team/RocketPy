@@ -379,6 +379,56 @@ def test_add_fins_assert_cp_cm_plus_fins(calisto, dimensionless_calisto, m):
     )
 
 
+@pytest.mark.parametrize(
+    """cdm_position, grain_cm_position, nozzle_position, coord_direction, 
+    motor_position, expected_motor_cdm, expected_motor_cpp""",
+    [
+        (0.317, 0.397, 0, "nozzle_to_combustion_chamber", -1.373, -1.056, -0.976),
+        (0, 0.08, -0.317, "nozzle_to_combustion_chamber", -1, -1, -0.92),
+        (-0.317, -0.397, 0, "combustion_chamber_to_nozzle", -1.373, -1.056, -0.976),
+        (0, -0.08, 0.317, "combustion_chamber_to_nozzle", -1, -1, -0.92),
+        (1.317, 1.397, 1, "nozzle_to_combustion_chamber", -2.373, -1.056, -0.976),
+    ],
+)
+def test_add_motor_coordinates(
+    calisto_motorless,
+    cdm_position,
+    grain_cm_position,
+    nozzle_position,
+    coord_direction,
+    motor_position,
+    expected_motor_cdm,
+    expected_motor_cpp,
+):
+    example_motor = SolidMotor(
+        thrust_source="data/motors/Cesaroni_M1670.eng",
+        burn_time=3.9,
+        dry_mass=0,
+        dry_inertia=(0, 0, 0),
+        center_of_dry_mass_position=cdm_position,
+        nozzle_position=nozzle_position,
+        grain_number=5,
+        grain_density=1815,
+        nozzle_radius=33 / 1000,
+        throat_radius=11 / 1000,
+        grain_separation=5 / 1000,
+        grain_outer_radius=33 / 1000,
+        grain_initial_height=120 / 1000,
+        grains_center_of_mass_position=grain_cm_position,
+        grain_initial_inner_radius=15 / 1000,
+        interpolation_method="linear",
+        coordinate_system_orientation=coord_direction,
+    )
+    calisto = calisto_motorless
+    calisto.add_motor(example_motor, position=motor_position)
+
+    calculated_motor_cdm = calisto.motor_center_of_dry_mass_position
+    calculated_motor_cpp = calisto.center_of_propellant_position
+
+    assert pytest.approx(expected_motor_cdm) == calculated_motor_cdm
+    assert pytest.approx(expected_motor_cpp) == calculated_motor_cpp(0)
+
+
 def test_add_cm_eccentricity_assert_properties_set(calisto):
     calisto.add_cm_eccentricity(x=4, y=5)
 
