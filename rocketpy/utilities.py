@@ -636,7 +636,9 @@ def liftoff_speed_by_mass(flight, min_mass, max_mass, points=10, plot=True):
     source = np.array(list(zip(x, y)), dtype=np.float64)
 
     retfunc = Function(
-        source, inputs="Rocket Mass without motor (kg)", outputs="Out of Rail Speed (m/s)"
+        source,
+        inputs="Rocket Mass without motor (kg)",
+        outputs="Out of Rail Speed (m/s)",
     )
     if plot:
         retfunc.plot(min_mass, max_mass, points)
