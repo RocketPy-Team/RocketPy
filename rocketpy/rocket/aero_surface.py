@@ -83,6 +83,166 @@ class AeroSurface(ABC):
         pass
 
 
+class AxisymmetricAeroSurface(AeroSurface):
+    """Class that holds common methods for the axisymmetric aero surfaces.
+
+    Attributes
+    ----------
+    AxisymmetricAeroSurface.c_A : Function
+        Axial force coefficient as a function of angle of attack (rad) and
+        Mach number as independent variables.
+    AxisymmetricAeroSurface.c_N : Function
+        Normal force coefficient as a function of angle of attack (rad) and
+        Mach number as independent variables.
+    AxisymmetricAeroSurface.c_m : Function
+        Pitch moment coefficient as a function of angle of attack (rad) and
+        Mach number as independent variables.
+    AxisymmetricAeroSurface.c_l : Function
+        Roll moment coefficient as a function of angle of attack (rad) and
+        Mach number as independent variables.
+    AxisymmetricAeroSurface.c_m_d : Function
+        Pitch moment damping coefficient as a function of angle of attack
+        (rad) and Mach number as independent variables.
+    AxisymmetricAeroSurface.c_l_d : Function
+        Roll moment damping coefficient as a function of angle of attack
+        (rad) and Mach number as independent variables.
+    AxisymmetricAeroSurface.origin : float
+        Origin of the axisymmetric aero surface. Has units of length and
+        must be given in meters.
+    AxisymmetricAeroSurface.name : string
+        Name of the axisymmetric aero surface. Has no impact in simulation,
+        as it is only used to display data in a more organized matter.
+    """
+
+    def __init__(
+        self,
+        c_A,
+        c_N,
+        c_m,
+        c_l,
+        c_m_d,
+        c_l_d,
+        origin=0,
+        reference_area=None,
+        reference_length=None,
+        name="Axisymmetric Aero Surface",
+    ):
+        """Initializes the axisymmetric aero surface.
+
+        Parameters
+        ----------
+        c_A : Function
+            Axial force coefficient as a function of angle of attack (rad) and
+            Mach number as independent variables.
+        c_N : Function
+            Normal force coefficient as a function of angle of attack (rad) and
+            Mach number as independent variables.
+        c_m : Function
+            Pitch moment coefficient as a function of angle of attack (rad) and
+            Mach number as independent variables.
+        c_l : Function
+            Roll moment coefficient as a function of angle of attack (rad) and
+            Mach number as independent variables.
+        c_m_d : Function
+            Pitch moment damping coefficient as a function of angle of attack
+            (rad) and Mach number as independent variables.
+        c_l_d : Function
+            Roll moment damping coefficient as a function of angle of attack
+            (rad) and Mach number as independent variables.
+        origin : Function, tuple
+            Origin of the axisymmetric aero surface as a function of angle of
+            attack (rad) and Mach number as independent variables. Has units of
+            length and must be given in meters. Default is constant 0. If a
+            tuple is given, it must be a tuple of three Functions, each one
+            corresponding to the x, y and z coordinates of the origin,
+            respectively (z aligned with the rocket axis).
+        reference_area : float, optional
+            Reference area of the surface. Has units of length squared and must
+            be given in meters squared. If not given, the reference area will
+            be assumed as 1.
+        reference_length : float, optional
+            Reference length of the surface. Has units of length and must be
+            given in meters. If not given, the reference length will be assumed
+            as 1.
+        name : string, optional
+            Name of the axisymmetric aero surface. Has no impact in simulation,
+            as it is only used to display data in a more organized matter.
+
+        Returns
+        -------
+        None
+        """
+        super().__init__(name)
+        self.c_A = c_A
+        self.c_N = c_N
+        self.c_m = c_m
+        self.c_l = c_l
+        self.c_m_d = c_m_d
+        self.c_l_d = c_l_d
+        self.reference_area = reference_area
+        self.reference_length = reference_length
+
+        if isinstance(origin, (tuple, list)):
+            self.cpz = origin
+            self.cpx = Function(lambda a, M: 0)
+            self.cpy = Function(lambda a, M: 0)
+        else:
+            self.cpx, self.cpy, self.cpz = origin
+
+        return None
+
+    @abstractmethod
+    def evaluate_center_of_pressure(self):
+        """Evaluates the center of pressure of the aerodynamic surface in local
+        coordinates. This corresponds to the point where the pitching moment
+        coefficient is null. Assumes zero pitching rate.
+
+        Returns
+        -------
+        None
+        """
+        pass
+
+    @abstractmethod
+    def evaluate_lift_coefficient(self):
+        """Evaluates the lift coefficient curve of the aerodynamic surface.
+
+        Returns
+        -------
+        None
+        """
+        pass
+
+    @abstractmethod
+    def evaluate_geometrical_parameters(self):
+        """Evaluates the geometrical parameters of the aerodynamic surface.
+
+        Returns
+        -------
+        None
+        """
+        pass
+
+    @abstractmethod
+    def info(self):
+        """Prints and plots summarized information of the aerodynamic surface.
+
+        Returns
+        -------
+        None
+        """
+
+    @abstractmethod
+    def all_info(self):
+        """Prints and plots all the available information of the aero surface.
+
+        Returns
+        -------
+        None
+        """
+        pass
+
+
 class NoseCone(AeroSurface):
     """Keeps nose cone information.
 
