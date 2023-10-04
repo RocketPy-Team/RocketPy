@@ -1806,6 +1806,7 @@ class Flight:
                     * reference_length**2
                     * c_m_d
                     * pitching_rate
+                    / 2
                 )
                 # Add to total pitching moment
                 comp_pitching_moment *= pitching_moment_dir
@@ -1818,15 +1819,16 @@ class Flight:
                 )
                 # Roll damping moment magnitude
                 c_l_d = aero_surface.c_l_d(comp_attack_angle, comp_stream_mach)
-                comp_roll_moment_d = (
-                    -(comp_dynamic_pressure / comp_stream_speed)
+                comp_roll_moment = -(
+                    (comp_dynamic_pressure / comp_stream_speed)
                     * reference_area
                     * reference_length**2
                     * c_l_d
                     * omega3
+                    / 2
                 )
                 # Add to total roll moment
-                M3 += comp_roll_moment + comp_roll_moment_d
+                M3 += comp_roll_moment
 
         weightB = Kt @ Vector([0, 0, -total_mass * self.env.gravity(z)])
         T00 = total_mass * r_CM
