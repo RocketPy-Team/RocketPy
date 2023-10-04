@@ -1172,31 +1172,6 @@ class Flight:
             self.u_dot_generalized = self.u_dot
 
     @cached_property
-    def effective_1rl(self):
-        nozzle = self.rocket.motor_position
-        try:
-            rail_buttons = self.rocket.rail_buttons[0]
-            upper_r_button = (
-                rail_buttons.component.buttons_distance * self.rocket._csys
-                + rail_buttons.position
-            )
-        except IndexError:  # No rail buttons defined
-            upper_r_button = nozzle
-        effective_1rl = self.rail_length - abs(nozzle - upper_r_button)
-        return effective_1rl
-
-    @cached_property
-    def effective_2rl(self):
-        nozzle = self.rocket.motor_position
-        try:
-            rail_buttons = self.rocket.rail_buttons[0]
-            lower_r_button = rail_buttons.position
-        except IndexError:  # No rail buttons defined
-            lower_r_button = nozzle
-        effective_2rl = self.rail_length - abs(nozzle - lower_r_button)
-        return effective_2rl
-
-    @cached_property
     def frontal_surface_wind(self):
         # Surface wind magnitude in the frontal direction at the rail's elevation
         wind_u = self.env.wind_velocity_x(self.env.elevation)
