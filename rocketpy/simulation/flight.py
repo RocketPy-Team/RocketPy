@@ -1819,7 +1819,11 @@ class Flight:
                 # Roll damping moment magnitude
                 c_l_d = aero_surface.c_l_d(comp_attack_angle, comp_stream_mach)
                 comp_roll_moment_d = (
-                    - (comp_dynamic_pressure / comp_stream_speed) * reference_area * reference_length**2 * c_l_d * omega3
+                    -(comp_dynamic_pressure / comp_stream_speed)
+                    * reference_area
+                    * reference_length**2
+                    * c_l_d
+                    * omega3
                 )
                 # Add to total roll moment
                 M3 += comp_roll_moment + comp_roll_moment_d
