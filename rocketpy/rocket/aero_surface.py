@@ -223,6 +223,22 @@ class AxisymmetricAeroSurface(AeroSurface):
         """
         pass
 
+    def clalpha(self, mach):
+        """Calculates the lift coefficient slope.
+
+        Parameters
+        ----------
+        mach : float
+            Mach number.
+
+        Returns
+        -------
+        clalpha : float
+            Lift coefficient slope. Has units of 1/rad.
+        """
+        cl = Function(lambda alpha: self.c_N(alpha, mach))
+        return self.c_N.differentiate(0.01, dx=0.01)
+
     @abstractmethod
     def info(self):
         """Prints and plots summarized information of the aerodynamic surface.
