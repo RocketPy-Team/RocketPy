@@ -100,9 +100,9 @@ class Rocket:
     Rocket.motor : Motor
         Rocket's motor. See Motor class for more details.
     Rocket.motor_position : float
-        Position, in m, of the motor's nozzle exit area relative to the user
-        defined rocket coordinate system. See
-        :doc:`Positions and Coordinate Systems </user/positions>`
+        Position, in meters, of the motor's coordinate system origin
+        relative to the user defined rocket coordinate system.
+        See :doc:`Positions and Coordinate Systems </user/positions>`
         for more information
         regarding the rocket's coordinate system.
     Rocket.center_of_propellant_position : Function
@@ -650,6 +650,7 @@ class Rocket:
         self.motor_center_of_dry_mass_position = (
             self.motor.center_of_dry_mass_position * _ + self.motor_position
         )
+        self.nozzle_position = self.motor.nozzle_position * _ + self.motor_position
         self.evaluate_dry_mass()
         self.evaluate_total_mass()
         self.evaluate_center_of_dry_mass()
