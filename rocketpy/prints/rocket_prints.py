@@ -63,7 +63,7 @@ class _RocketPrints:
             )
         )
         print(
-            "Rocket Inertia (with motor, but without propellant) 23: {:.3f} kg*m2".format(
+            "Rocket Inertia (with motor, but without propellant) 23: {:.3f} kg*m2\n".format(
                 self.rocket.dry_I_23
             )
         )
@@ -82,7 +82,7 @@ class _RocketPrints:
         print("Rocket Frontal Area: " + "{:.6f}".format(self.rocket.area) + " m2")
         print("\nRocket Distances")
         print(
-            "Rocket Center of Dry Mass - Center of Mass withour Motor: "
+            "Rocket Center of Dry Mass - Center of Mass without Motor: "
             + "{:.3f} m".format(
                 abs(
                     self.rocket.center_of_mass_without_motor
@@ -91,7 +91,7 @@ class _RocketPrints:
             )
         )
         print(
-            "Rocket Center of Dry Mass - Nozzle Exit Distance: "
+            "Rocket Center of Dry Mass - Nozzle Exit: "
             + "{:.3f} m".format(
                 abs(
                     self.rocket.center_of_dry_mass_position - self.rocket.motor_position
@@ -109,7 +109,7 @@ class _RocketPrints:
         )
         print(
             "Rocket Center of Mass - Rocket Loaded Center of Mass: "
-            + "{:.3f} m".format(
+            + "{:.3f} m\n".format(
                 abs(
                     self.rocket.center_of_mass(0)
                     - self.rocket.center_of_dry_mass_position
@@ -135,33 +135,39 @@ class _RocketPrints:
                 + "/rad"
             )
 
-        print("\nAerodynamics Center of Pressure\n")
+        print("\nCenter of Pressure\n")
         for surface, position in self.rocket.aerodynamic_surfaces:
             name = surface.name
-            cpz = surface.cp[2]
+            cpz = surface.cp[2]  # relative to the user defined coordinate system
             print(
                 name
-                + " Center of Pressure to CM: {:.3f}".format(
+                + " Center of Pressure position: {:.3f}".format(
                     position - self.rocket._csys * cpz
                 )
                 + " m"
             )
+        print("\nStability\n")
         print(
-            "Distance - Center of Pressure to Center of Dry Mass: "
-            + "{:.3f}".format(self.rocket.center_of_mass(0) - self.rocket.cp_position)
-            + " m"
+            f"Center of Mass position (time=0): {self.rocket.center_of_mass(0):.3f} m"
         )
         print(
-            "Initial Static Margin: "
+            "Initial Static Margin (mach=0, time=0): "
             + "{:.3f}".format(self.rocket.static_margin(0))
             + " c"
         )
         print(
-            "Final Static Margin: "
+            "Final Static Margin (mach=0, time=burn_out): "
             + "{:.3f}".format(
                 self.rocket.static_margin(self.rocket.motor.burn_out_time)
             )
             + " c"
+        )
+        print(
+            "Rocket Center of Mass (time=0) - Center of Pressure (mach=0): "
+            + "{:.3f}".format(
+                abs(self.rocket.center_of_mass(0) - self.rocket.cp_position(0))
+            )
+            + " m\n"
         )
 
         return None
@@ -186,18 +192,14 @@ class _RocketPrints:
         """
         # Print inertia details
         self.inertia_details()
-        print()
 
         # Print rocket geometrical parameters
         self.rocket_geometrical_parameters()
-        print()
 
         # Print rocket aerodynamics quantities
         self.rocket_aerodynamics_quantities()
-        print()
 
         # Print parachute data
         self.parachute_data()
-        print()
 
         return None

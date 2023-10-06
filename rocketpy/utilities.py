@@ -555,6 +555,7 @@ def apogee_by_mass(flight, min_mass, max_mass, points=10, plot=True):
         rocket.evaluate_center_of_mass()
         rocket.evaluate_reduced_mass()
         rocket.evaluate_thrust_to_weight()
+        rocket.evaluate_center_of_pressure()
         rocket.evaluate_static_margin()
         # Then we can run the flight simulation
         test_flight = Flight(
@@ -619,6 +620,7 @@ def liftoff_speed_by_mass(flight, min_mass, max_mass, points=10, plot=True):
         rocket.evaluate_center_of_mass()
         rocket.evaluate_reduced_mass()
         rocket.evaluate_thrust_to_weight()
+        rocket.evaluate_center_of_pressure()
         rocket.evaluate_static_margin()
         # Then we can run the flight simulation
         test_flight = Flight(
