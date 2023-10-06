@@ -1352,7 +1352,7 @@ class Flight:
         )
         # c = -self.rocket.distance_rocket_nozzle
         c = (
-            -(self.rocket.motor_position - self.rocket.center_of_dry_mass_position)
+            -(self.rocket.nozzle_position - self.rocket.center_of_dry_mass_position)
             * self.rocket._csys
         )
         a = b * Mt / M
@@ -1607,7 +1607,7 @@ class Flight:
         r_CM_ddot = Vector([0, 0, r_CM_z.differentiate(t, order=2)])
         ## Nozzle gyration tensor
         r_NOZ = (
-            -(self.rocket.motor_position - self.rocket.center_of_dry_mass_position)
+            -(self.rocket.nozzle_position - self.rocket.center_of_dry_mass_position)
             * self.rocket._csys
         )
         S_noz_33 = 0.5 * self.rocket.motor.nozzle_radius**2
@@ -2388,7 +2388,7 @@ class Flight:
     def rotational_energy(self):
         # b = -self.rocket.distanceRocketPropellant
         b = (
-            -(self.rocket.motor_position - self.rocket.center_of_dry_mass_position)
+            -(self.rocket.nozzle_position - self.rocket.center_of_dry_mass_position)
             * self.rocket._csys
         )
         mu = self.rocket.reduced_mass
@@ -2546,7 +2546,7 @@ class Flight:
         to the upper rail button. It assumes the nozzle to be aligned with
         the beginning of the rail."""
         nozzle = (
-            self.rocket.motor_position - self.rocket.center_of_dry_mass_position
+            self.rocket.nozzle_position - self.rocket.center_of_dry_mass_position
         ) * self.rocket._csys  # Kinda works for single nozzle
         try:
             rail_buttons = self.rocket.rail_buttons[0]
@@ -2564,7 +2564,7 @@ class Flight:
         to the lower rail button. It assumes the nozzle to be aligned with
         the beginning of the rail."""
         nozzle = (
-            self.rocket.motor_position - self.rocket.center_of_dry_mass_position
+            self.rocket.nozzle_position - self.rocket.center_of_dry_mass_position
         ) * self.rocket._csys
         try:
             rail_buttons = self.rocket.rail_buttons[0]
