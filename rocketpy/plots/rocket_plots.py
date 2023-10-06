@@ -73,7 +73,13 @@ class _RocketPlots:
         None
         """
 
-        self.rocket.stability_margin()
+        self.rocket.stability_margin.plot2D(
+            lower=0,
+            upper=[2, self.rocket.motor.burn_out_time],  # Mach 2 and burnout
+            samples=[20, 20],
+            disp_type="surface",
+            alpha=1,
+        )
 
         return None
 
@@ -125,15 +131,31 @@ class _RocketPlots:
         None
         """
 
-        # Show plots
+        # Mass Plots
         print("\nMass Plots")
+        print("-" * 40)
         self.total_mass()
         self.reduced_mass()
+
+        # Aerodynamics Plots
         print("\nAerodynamics Plots")
-        self.static_margin()
-        self.stability_margin()
+        print("-" * 40)
+
+        # Drag Plots
+        print("Drag Plots")
+        print("-" * 20)  # Separator for Drag Plots
         self.power_on_drag()
         self.power_off_drag()
+
+        # Stability Plots
+        print("\nStability Plots")
+        print("-" * 20)  # Separator for Stability Plots
+        self.static_margin()
+        self.stability_margin()
+
+        # Thrust-to-Weight Plot
+        print("\nThrust-to-Weight Plot")
+        print("-" * 40)
         self.thrust_to_weight()
 
         return None

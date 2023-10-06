@@ -327,6 +327,7 @@ class Rocket:
         # Calculate total mass by summing up propellant and dry mass
         self.total_mass = self.mass + self.motor.total_mass
         self.total_mass.set_outputs("Total Mass (Rocket + Propellant) (kg)")
+        self.total_mass.set_title("Total Mass (Rocket + Propellant) (kg) x Time (s)")
 
         # Return total mass
         return self.total_mass
@@ -427,6 +428,7 @@ class Rocket:
         # calculate reduced mass
         self.reduced_mass = motor_mass * mass / (motor_mass + mass)
         self.reduced_mass.set_outputs("Reduced Mass (kg)")
+        self.reduced_mass.set_title("Reduced Mass (kg) x Time (s)")
 
         # Return reduced mass
         return self.reduced_mass
@@ -443,6 +445,7 @@ class Rocket:
         self.thrust_to_weight = self.motor.thrust / (9.80665 * self.total_mass)
         self.thrust_to_weight.set_inputs("Time (s)")
         self.thrust_to_weight.set_outputs("Thrust/Weight")
+        self.thrust_to_weight.set_title(None)
 
     def evaluate_center_of_pressure(self):
         """Evaluates rocket center of pressure position relative to user defined
