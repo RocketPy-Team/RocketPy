@@ -511,9 +511,6 @@ class Rocket:
             / (2 * self.radius)
             * self._csys
         )
-        self.static_margin.set_discrete(
-            lower=0, upper=self.motor.burn_out_time, samples=200
-        )
         return self.static_margin
 
     def evaluate_dry_inertias(self):
