@@ -10,7 +10,6 @@ from ..plots.aero_surface_plots import (
     _NoseConePlots,
     _TailPlots,
     _TrapezoidalFinsPlots,
-    _AirbrakesPlots,
 )
 from ..prints.aero_surface_prints import (
     _EllipticalFinsPrints,
@@ -18,7 +17,6 @@ from ..prints.aero_surface_prints import (
     _RailButtonsPrints,
     _TailPrints,
     _TrapezoidalFinsPrints,
-    _AirbrakesPrints,
 )
 
 
@@ -1845,135 +1843,3 @@ class RailButtons(AeroSurface):
         """
         self.prints.all()
         return None
-
-
-class Airbrakes(AeroSurface):
-    """Airbrakes class. Inherits from AeroSurface.
-
-    Attributes
-    ----------
-    Airbrakes.cd_s : int, float, callable, array, Function
-        Product between drag coefficient of the airbrakes and its reference
-        area, such that the drag force created by it is given by F_D = q*cd_S,
-        where q is dynamic pressure. This value can be constant (int, float),
-        for static airbrakes. For controllable airbrakes, this value should be
-        given as a function of deployed level, which ranges from 0 (not
-        deployed) to 1 (fully deployed). Units of m^2.
-    Airbrakes.deployed_level : float
-        Current deployed level, ranging from 0 to 1. Deployed level is the
-        fraction of the total airbrake area that is deployed.
-    Airbrakes.name : str
-        Name of the airbrakes.
-    """
-
-    def __init__(self, cd_s_curve, deployed_level=0, name="Airbrakes"):
-        """Initializes the Airbrakes class.
-
-        Parameters
-        ----------
-        cd_s_curve : int, float, callable, array, Function
-            Product between drag coefficient of the airbrakes and its reference
-            area, such that the drag force created by it is given by
-            F_D = q*cd_S, where q is dynamic pressure. This value can be
-            constant (int, float), for static airbrakes. For controllable
-            airbrakes, this value should be given as a function of deployed
-            level, which ranges from 0 (not deployed) to 1 (fully deployed).
-            Units of m^2.
-        deployed_level : float, optional
-            Current deployed level, ranging from 0 to 1. Default is 0.
-
-        Returns
-        -------
-        None
-        """
-        super().__init__(name)
-        self.cd_s_curve = Function(cd_s_curve).set_discrete(0, 1, 50)
-        self.deployed_level = deployed_level
-        self.prints = _AirbrakesPrints
-        self.plots = _AirbrakesPlots
-
-    @property
-    def cd_s(self):
-        return self.cd_s_curve(self.deployed_level)
-
-    def set_deployed_level(self, deployed_level):
-        """Set airbrake deployed level.
-
-        Parameters
-        ----------
-        deployed_level : float
-            Current deployed level, ranging from 0 to 1. Deployed level is the
-            fraction of the total airbrake area that is deployed.
-
-        Returns
-        -------
-        None
-        """
-        self.deployed_level = deployed_level
-
-    def evaluate_center_of_pressure(self):
-        """Evaluates the center of pressure of the aerodynamic surface in local
-        coordinates.
-
-        For airbrakes, all components of the center of pressure position are
-        0.
-
-        Returns
-        -------
-        None
-        """
-        self.cpx = 0
-        self.cpy = 0
-        self.cpz = 0
-        self.cp = (self.cpx, self.cpy, self.cpz)
-        pass
-
-    def evaluate_lift_coefficient(self):
-        """Evaluates the lift coefficient curve of the aerodynamic surface.
-
-        For airbrakes, the current model assumes no lift is generated.
-        Therefore, the lift coefficient (C_L) and its derivative relative to the
-        angle of attack (C_L_alpha), is 0.
-
-        Returns
-        -------
-        None
-        """
-        self.clalpha = Function(
-            lambda mach: 0,
-            "Mach",
-            f"Lift coefficient derivative for {self.name}",
-        )
-        self.cl = Function(
-            lambda alpha, mach: 0,
-            ["Alpha (rad)", "Mach"],
-            "Cl",
-        )
-
-    def evaluate_geometrical_parameters(self):
-        """Evaluates the geometrical parameters of the aerodynamic surface.
-
-        Returns
-        -------
-        None
-        """
-        pass
-
-    def info(self):
-        """Prints and plots summarized information of the aerodynamic surface.
-
-        Returns
-        -------
-        None
-        """
-        self.prints.geometry()
-
-    def all_info(self):
-        """Prints and plots all information of the aerodynamic surface.
-
-        Returns
-        -------
-        None
-        """
-        self.prints.geometry()
-        self.plots.cd_s_curve()

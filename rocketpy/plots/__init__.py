@@ -4,7 +4,6 @@ from .aero_surface_plots import (
     _NoseConePlots,
     _TailPlots,
     _TrapezoidalFinsPlots,
-    _AirbrakesPlots,
 )
 from .compare import Compare, CompareFlights
 from .environment_analysis_plots import _EnvironmentAnalysisPlots

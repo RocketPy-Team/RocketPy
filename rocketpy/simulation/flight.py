@@ -580,7 +580,6 @@ class Flight:
         if self.rail_length <= 0:
             raise ValueError("Rail length must be a positive value.")
         self.parachutes = self.rocket.parachutes[:]
-        self.controllers = self.rocket.controllers[:]
         self.inclination = inclination
         self.heading = heading
         self.max_time = max_time
@@ -655,9 +654,6 @@ class Flight:
                 phase.TimeNodes.add_parachutes(
                     self.parachutes, phase.t, phase.time_bound
                 )
-                phase.TimeNodes.add_controllers(
-                    self.controllers, phase.t, phase.time_bound
-                )
             # Add lst time node to permanent list
             phase.TimeNodes.add_node(phase.time_bound, [], [])
             # Sort time nodes
@@ -688,9 +684,6 @@ class Flight:
                 # Feed required parachute and discrete controller triggers
                 for callback in node.callbacks:
                     callback(self)
-
-                for controller in node.controllers:
-                    controller(self.t, self.y_sol)
 
                 for parachute in node.parachutes:
                     # Calculate and save pressure signal
@@ -1705,8 +1698,6 @@ class Flight:
             drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach)
         else:
             drag_coeff = self.rocket.power_off_drag.get_value_opt(free_stream_mach)
-        for airbrakes in self.rocket.airbrakes:
-            drag_coeff += airbrakes.cd_s
         R3 += -0.5 * rho * (free_stream_speed**2) * self.rocket.area * (drag_coeff)
 
         ## Off center moment
@@ -3481,20 +3472,6 @@ class Flight:
                 ]
                 self.list += parachute_node_list
 
-        def add_controllers(self, controllers, t_init, t_end):
-            # Iterate over controllers
-            for controller in controllers:
-                # Calculate start of sampling time nodes
-                controller_time_step = 1 / controller.sampling_rate
-                controller_node_list = [
-                    self.TimeNode(i * controller_time_step, [], [controller])
-                    for i in range(
-                        math.ceil(t_init / controller_time_step),
-                        math.floor(t_end / controller_time_step) + 1,
-                    )
-                ]
-                self.list += controller_node_list
-
         def sort(self):
             self.list.sort(key=(lambda node: node.t))
 
@@ -3518,11 +3495,10 @@ class Flight:
             del self.list[index + 1 :]
 
         class TimeNode:
-            def __init__(self, t, parachutes, controllers):
+            def __init__(self, t, parachutes, callbacks):
                 self.t = t
                 self.parachutes = parachutes
-                self.callbacks = []
-                self.controllers = controllers
+                self.callbacks = callbacks
 
             def __repr__(self):
                 return (

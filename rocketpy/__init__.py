@@ -22,7 +22,6 @@ from .motors import (
     TankGeometry,
     UllageBasedTank,
 )
-from .control import Controller
 from .rocket import (
     AeroSurface,
     Components,
