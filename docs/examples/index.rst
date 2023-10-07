@@ -14,5 +14,5 @@ If you want to see your rocket here, please contact the maintainers!
    bella_lui_flight_sim.ipynb
    ndrt_2020_flight_sim.ipynb
    valetudo_flight_sim.ipynb
-   ../notebooks/SEBLM.ipynb
+   SEB_liquid_motor.ipynb
 
