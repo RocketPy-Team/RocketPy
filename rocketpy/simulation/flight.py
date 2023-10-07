@@ -2388,7 +2388,10 @@ class Flight:
     def rotational_energy(self):
         # b = -self.rocket.distanceRocketPropellant
         b = (
-            -(self.rocket.nozzle_position - self.rocket.center_of_dry_mass_position)
+            -(
+                self.rocket.center_of_propellant_position(0)
+                - self.rocket.center_of_dry_mass_position
+            )
             * self.rocket._csys
         )
         mu = self.rocket.reduced_mass
