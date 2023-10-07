@@ -379,6 +379,87 @@ def test_add_fins_assert_cp_cm_plus_fins(calisto, dimensionless_calisto, m):
     )
 
 
+@pytest.mark.parametrize(
+    """cdm_position, grain_cm_position, nozzle_position, coord_direction, 
+    motor_position, expected_motor_cdm, expected_motor_cpp""",
+    [
+        (0.317, 0.397, 0, "nozzle_to_combustion_chamber", -1.373, -1.056, -0.976),
+        (0, 0.08, -0.317, "nozzle_to_combustion_chamber", -1, -1, -0.92),
+        (-0.317, -0.397, 0, "combustion_chamber_to_nozzle", -1.373, -1.056, -0.976),
+        (0, -0.08, 0.317, "combustion_chamber_to_nozzle", -1, -1, -0.92),
+        (1.317, 1.397, 1, "nozzle_to_combustion_chamber", -2.373, -1.056, -0.976),
+    ],
+)
+def test_add_motor_coordinates(
+    calisto_motorless,
+    cdm_position,
+    grain_cm_position,
+    nozzle_position,
+    coord_direction,
+    motor_position,
+    expected_motor_cdm,
+    expected_motor_cpp,
+):
+    """Test the method add_motor and related position properties in a Rocket
+    instance.
+
+    This test checks the correctness of the `add_motor` method and the computed
+    `motor_center_of_dry_mass_position` and `center_of_propellant_position`
+    properties in the `Rocket` class using various parameters related to the
+    motor's position, nozzle's position, and other related coordinates.
+    Different scenarios are tested using parameterization, checking scenarios
+    moving from the nozzle to the combustion chamber and vice versa, and with
+    various specific physical and geometrical characteristics of the motor.
+
+    Parameters
+    ----------
+    calisto_motorless : Rocket instance
+        A predefined instance of a Rocket without a motor, used as a base for testing.
+    cdm_position : float
+        Position of the center of dry mass of the motor.
+    grain_cm_position : float
+        Position of the grains' center of mass.
+    nozzle_position : float
+        Position of the nozzle.
+    coord_direction : str
+        Direction for coordinate system orientation;
+        it can be "nozzle_to_combustion_chamber" or "combustion_chamber_to_nozzle".
+    motor_position : float
+        Position where the motor should be added to the rocket.
+    expected_motor_cdm : float
+        Expected position of the motor's center of dry mass after addition.
+    expected_motor_cpp : float
+        Expected position of the center of propellant after addition.
+    """
+    example_motor = SolidMotor(
+        thrust_source="data/motors/Cesaroni_M1670.eng",
+        burn_time=3.9,
+        dry_mass=0,
+        dry_inertia=(0, 0, 0),
+        center_of_dry_mass_position=cdm_position,
+        nozzle_position=nozzle_position,
+        grain_number=5,
+        grain_density=1815,
+        nozzle_radius=33 / 1000,
+        throat_radius=11 / 1000,
+        grain_separation=5 / 1000,
+        grain_outer_radius=33 / 1000,
+        grain_initial_height=120 / 1000,
+        grains_center_of_mass_position=grain_cm_position,
+        grain_initial_inner_radius=15 / 1000,
+        interpolation_method="linear",
+        coordinate_system_orientation=coord_direction,
+    )
+    calisto = calisto_motorless
+    calisto.add_motor(example_motor, position=motor_position)
+
+    calculated_motor_cdm = calisto.motor_center_of_dry_mass_position
+    calculated_motor_cpp = calisto.center_of_propellant_position
+
+    assert pytest.approx(expected_motor_cdm) == calculated_motor_cdm
+    assert pytest.approx(expected_motor_cpp) == calculated_motor_cpp(0)
+
+
 def test_add_cm_eccentricity_assert_properties_set(calisto):
     calisto.add_cm_eccentricity(x=4, y=5)
 

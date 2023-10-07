@@ -94,7 +94,8 @@ class _RocketPrints:
             "Rocket Center of Dry Mass - Nozzle Exit Distance: "
             + "{:.3f} m".format(
                 abs(
-                    self.rocket.center_of_dry_mass_position - self.rocket.motor_position
+                    self.rocket.center_of_dry_mass_position
+                    - self.rocket.nozzle_position
                 )
             )
         )
