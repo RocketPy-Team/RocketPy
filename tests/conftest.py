@@ -111,7 +111,30 @@ def cesaroni_m1670():  # old name: solid_motor
 
 
 @pytest.fixture
-def calisto(cesaroni_m1670):  # old name: rocket
+def calisto_motorless():
+    """Create a simple object of the Rocket class to be used in the tests. This
+    is the same rocket that has been used in the getting started guide for years
+    but without a motor.
+
+    Returns
+    -------
+    rocketpy.Rocket
+        A simple object of the Rocket class
+    """
+    calisto = Rocket(
+        radius=0.0635,
+        mass=14.426,
+        inertia=(6.321, 6.321, 0.034),
+        power_off_drag="data/calisto/powerOffDragCurve.csv",
+        power_on_drag="data/calisto/powerOnDragCurve.csv",
+        center_of_mass_without_motor=0,
+        coordinate_system_orientation="tail_to_nose",
+    )
+    return calisto
+
+
+@pytest.fixture
+def calisto(calisto_motorless, cesaroni_m1670):  # old name: rocket
     """Create a simple object of the Rocket class to be used in the tests. This
     is the same rocket that has been used in the getting started guide for
     years. The Calisto rocket is the Projeto Jupiter's project launched at the
@@ -119,6 +142,8 @@ def calisto(cesaroni_m1670):  # old name: rocket
 
     Parameters
     ----------
+    calisto_motorless : rocketpy.Rocket
+        An object of the Rocket class. This is a pytest fixture too.
     cesaroni_m1670 : rocketpy.SolidMotor
         An object of the SolidMotor class. This is a pytest fixture too.
 
@@ -127,26 +152,20 @@ def calisto(cesaroni_m1670):  # old name: rocket
     rocketpy.Rocket
         A simple object of the Rocket class
     """
-    calisto = Rocket(
-        radius=0.0635,
-        mass=14.426,
-        inertia=(6.321, 6.321, 0.034),
-        power_off_drag="data/calisto/powerOffDragCurve.csv",
-        power_on_drag="data/calisto/powerOnDragCurve.csv",
-        center_of_mass_without_motor=0,
-        coordinate_system_orientation="tail_to_nose",
-    )
+    calisto = calisto_motorless
     calisto.add_motor(cesaroni_m1670, position=-1.373)
     return calisto
 
 
 @pytest.fixture
-def calisto_liquid_modded(liquid_motor):
+def calisto_liquid_modded(calisto_motorless, liquid_motor):
     """Create a simple object of the Rocket class to be used in the tests. This
     is an example of the Calisto rocket with a liquid motor.
 
     Parameters
     ----------
+    calisto_motorless : rocketpy.Rocket
+        An object of the Rocket class. This is a pytest fixture too.
     liquid_motor : rocketpy.LiquidMotor
 
     Returns
@@ -154,26 +173,20 @@ def calisto_liquid_modded(liquid_motor):
     rocketpy.Rocket
         A simple object of the Rocket class
     """
-    calisto = Rocket(
-        radius=0.0635,
-        mass=14.426,
-        inertia=(6.321, 6.321, 0.034),
-        power_off_drag="data/calisto/powerOffDragCurve.csv",
-        power_on_drag="data/calisto/powerOnDragCurve.csv",
-        center_of_mass_without_motor=0,
-        coordinate_system_orientation="tail_to_nose",
-    )
+    calisto = calisto_motorless
     calisto.add_motor(liquid_motor, position=-1.373)
     return calisto
 
 
 @pytest.fixture
-def calisto_hybrid_modded(hybrid_motor):
+def calisto_hybrid_modded(calisto_motorless, hybrid_motor):
     """Create a simple object of the Rocket class to be used in the tests. This
     is an example of the Calisto rocket with a hybrid motor.
 
     Parameters
     ----------
+    calisto_motorless : rocketpy.Rocket
+        An object of the Rocket class. This is a pytest fixture too.
     hybrid_motor : rocketpy.HybridMotor
 
     Returns
@@ -181,15 +194,7 @@ def calisto_hybrid_modded(hybrid_motor):
     rocketpy.Rocket
         A simple object of the Rocket class
     """
-    calisto = Rocket(
-        radius=0.0635,
-        mass=14.426,
-        inertia=(6.321, 6.321, 0.034),
-        power_off_drag="data/calisto/powerOffDragCurve.csv",
-        power_on_drag="data/calisto/powerOnDragCurve.csv",
-        center_of_mass_without_motor=0,
-        coordinate_system_orientation="tail_to_nose",
-    )
+    calisto = calisto_motorless
     calisto.add_motor(hybrid_motor, position=-1.373)
     return calisto
 

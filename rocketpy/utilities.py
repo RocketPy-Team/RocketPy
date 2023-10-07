@@ -573,7 +573,7 @@ def apogee_by_mass(flight, min_mass, max_mass, points=10, plot=True):
     source = np.array(list(zip(x, y)), dtype=np.float64)
 
     retfunc = Function(
-        source, inputs="Rocket Dry Mass (kg)", outputs="Estimated Apogee AGL (m)"
+        source, inputs="Rocket Mass without motor (kg)", outputs="Apogee AGL (m)"
     )
     if plot:
         retfunc.plot(min_mass, max_mass, points)
@@ -638,7 +638,9 @@ def liftoff_speed_by_mass(flight, min_mass, max_mass, points=10, plot=True):
     source = np.array(list(zip(x, y)), dtype=np.float64)
 
     retfunc = Function(
-        source, inputs="Rocket Dry Mass (kg)", outputs="Liftoff Speed (m/s)"
+        source,
+        inputs="Rocket Mass without motor (kg)",
+        outputs="Out of Rail Speed (m/s)",
     )
     if plot:
         retfunc.plot(min_mass, max_mass, points)
