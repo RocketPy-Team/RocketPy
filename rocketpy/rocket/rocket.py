@@ -2,11 +2,11 @@ import warnings
 
 import numpy as np
 
-from ..mathutils.function import Function
-from ..motors.motor import EmptyMotor
-from ..plots.rocket_plots import _RocketPlots
-from ..prints.rocket_prints import _RocketPrints
-from .aero_surface import (
+from rocketpy.mathutils.function import Function
+from rocketpy.motors.motor import EmptyMotor
+from rocketpy.plots.rocket_plots import _RocketPlots
+from rocketpy.prints.rocket_prints import _RocketPrints
+from rocketpy.rocket.aero_surface import (
     EllipticalFins,
     Fins,
     NoseCone,
@@ -14,8 +14,8 @@ from .aero_surface import (
     Tail,
     TrapezoidalFins,
 )
-from .components import Components
-from .parachute import Parachute
+from rocketpy.rocket.components import Components
+from rocketpy.rocket.parachute import Parachute
 
 
 class Rocket:
@@ -1241,6 +1241,30 @@ class Rocket:
 
         # Return self
         return self
+
+    def draw(self, vis_args=None):
+        """Draws the rocket in a matplotlib figure.
+
+        Parameters
+        ----------
+        vis_args : dict, optional
+            Determines the visual aspects when drawing the rocket. If None,
+            default values are used. Default values are:
+            {
+                "background": "#EEEEEE",
+                "tail": "black",
+                "nose": "black",
+                "body": "dimgrey",
+                "fins": "black",
+                "motor": "black",
+                "buttons": "black",
+                "line_width": 2.0,
+            }
+            A full list of color names can be found at:
+            https://matplotlib.org/stable/gallery/color/named_colors
+        """
+        self.plots.draw(vis_args)
+        return None
 
     def info(self):
         """Prints out a summary of the data and graphs available about

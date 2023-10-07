@@ -25,7 +25,13 @@ class Components:
 
     def __repr__(self):
         """Return a string representation of the Components instance."""
-        return repr(self._components)
+        components_str = "\n".join(
+            [
+                f"\tComponent: {str(c.component):80} Position: {c.position:>6.3f}"
+                for c in self._components
+            ]
+        )
+        return f"Components:\n{components_str}"
 
     def __len__(self):
         """Return the number of components in the list of components."""
@@ -155,3 +161,19 @@ class Components:
         None
         """
         self._components.clear()
+
+    def sort_by_position(self, reverse=False):
+        """Sort the list of components by position.
+
+        Parameters
+        ----------
+        reverse : bool
+            If True, sort in descending order. If False, sort in ascending
+            order.
+
+        Returns
+        -------
+        None
+        """
+        self._components.sort(key=lambda x: x.position, reverse=reverse)
+        return None
