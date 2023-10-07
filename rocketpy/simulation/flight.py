@@ -2417,26 +2417,10 @@ class Flight:
     # Kinetic Energy
     @funcify_method("Time (s)", "Rotational Kinetic Energy (J)")
     def rotational_energy(self):
-        # b = -self.rocket.distanceRocketPropellant
-        b = (
-            -(
-                self.rocket.center_of_propellant_position(0)
-                - self.rocket.center_of_dry_mass_position
-            )
-            * self.rocket._csys
-        )
-        mu = self.rocket.reduced_mass
-        Rz = self.rocket.dry_I_33
-        Ri = self.rocket.dry_I_11
-        Tz = self.rocket.motor.I_33
-        Ti = self.rocket.motor.I_11
-        I1, I2, I3 = (Ri + Ti + mu * b**2), (Ri + Ti + mu * b**2), (Rz + Tz)
-        # Redefine I1, I2 and I3 time grid to allow for efficient Function algebra
-        I1.set_discrete_based_on_model(self.w1)
-        I2.set_discrete_based_on_model(self.w1)
-        I3.set_discrete_based_on_model(self.w1)
         rotational_energy = 0.5 * (
-            I1 * self.w1**2 + I2 * self.w2**2 + I3 * self.w3**2
+            self.rocket.I_11 * self.w1**2
+            + self.rocket.I_22 * self.w2**2
+            + self.rocket.I_33 * self.w3**2
         )
         rotational_energy.set_discrete_based_on_model(self.w1)
         return rotational_energy
