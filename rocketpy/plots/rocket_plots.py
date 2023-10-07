@@ -127,6 +127,7 @@ class _RocketPlots:
             A full list of color names can be found at:
             https://matplotlib.org/stable/gallery/color/named_colors
         """
+        # TODO: we need to modularize this function, it is too big
         if vis_args is None:
             vis_args = {
                 "background": "#EEEEEE",
@@ -270,7 +271,7 @@ class _RocketPlots:
 
         # Draw tubes
         for i, d_surface in enumerate(drawn_surfaces):
-            # Draw the tubes, from the end of the first surface to the beggining
+            # Draw the tubes, from the end of the first surface to the beginning
             # of the next surface, with the radius of the rocket at that point
             surface, position, radius, last_x = d_surface
 
@@ -284,7 +285,7 @@ class _RocketPlots:
                     y_tube = [radius, radius]
                     y_tube_negated = [-radius, -radius]
             else:
-                # If it is not the last surface, the tube goes to the beggining
+                # If it is not the last surface, the tube goes to the beginning
                 # of the next surface
                 next_surface, next_position, next_radius, next_last_x = drawn_surfaces[
                     i + 1
@@ -356,15 +357,18 @@ class _RocketPlots:
                 )
 
         # Draw rail buttons
-        buttons, pos = self.rocket.rail_buttons[0]
-        lower = pos
-        upper = pos + buttons.buttons_distance * csys
-        ax.scatter(
-            lower, -self.rocket.radius, marker="s", color=vis_args["buttons"], s=15
-        )
-        ax.scatter(
-            upper, -self.rocket.radius, marker="s", color=vis_args["buttons"], s=15
-        )
+        try:
+            buttons, pos = self.rocket.rail_buttons[0]
+            lower = pos
+            upper = pos + buttons.buttons_distance * csys
+            ax.scatter(
+                lower, -self.rocket.radius, marker="s", color=vis_args["buttons"], s=15
+            )
+            ax.scatter(
+                upper, -self.rocket.radius, marker="s", color=vis_args["buttons"], s=15
+            )
+        except IndexError:
+            pass
 
         # Draw center of mass and center of pressure
         cm = self.rocket.center_of_mass(0)
