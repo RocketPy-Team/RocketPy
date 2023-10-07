@@ -103,8 +103,13 @@ class Rocket:
         Position, in meters, of the motor's coordinate system origin
         relative to the user defined rocket coordinate system.
         See :doc:`Positions and Coordinate Systems </user/positions>`
-        for more information
+        for more information.
         regarding the rocket's coordinate system.
+    Rocket.nozzle_position : float
+        Position, in meters, of the motor's nozzle exit relative to the user
+        defined rocket coordinate system.
+        See :doc:`Positions and Coordinate Systems </user/positions>`
+        for more information.
     Rocket.center_of_propellant_position : Function
         Position of the propellant's center of mass relative to the user defined
         rocket reference system. See
