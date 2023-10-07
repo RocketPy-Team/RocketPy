@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 import warnings
 
-import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import fsolve
 
@@ -426,12 +425,13 @@ class NoseCone(AeroSurface):
 
         # Evaluate final geometry parameters
         self.shape_vec = [nosecone_x, nosecone_y]
-        self._length = nosecone_x[-1]
-        print(
-            "Due to the chosen bluffness ratio, the nose cone length was reduced to {:.3f} m.".format(
-                self.length
+        if abs(nosecone_x[-1] - self.length) >= 0.001:  # 1 milimiter
+            self._length = nosecone_x[-1]
+            print(
+                "Due to the chosen bluffness ratio, the nose cone length was reduced to m.".format(
+                    self.length
+                )
             )
-        )
         self.fineness_ratio = self.length / (2 * self.base_radius)
 
         return None
