@@ -1152,6 +1152,8 @@ class Function:
         samples=[30, 30],
         force_data=True,
         disp_type="surface",
+        alpha=0.6,
+        cmap="viridis",
     ):
         """Plot 2-Dimensional Function, from a lower limit to an upper limit,
         by sampling the Function several times in the interval. The title of
@@ -1185,6 +1187,12 @@ class Function:
         disp_type : string, optional
             Display type of plotted graph, which can be surface, wireframe,
             contour, or contourf. Default value is surface.
+        alpha : float, optional
+            Transparency of plotted graph, which can be a value between 0 and
+            1. Default value is 0.6.
+        cmap : string, optional
+            Colormap of plotted graph, which can be any of the colormaps
+            available in matplotlib. Default value is viridis.
 
         Returns
         -------
@@ -1221,6 +1229,9 @@ class Function:
         mesh = [[mesh_x_flat[i], mesh_y_flat[i]] for i in range(len(mesh_x_flat))]
         # Evaluate function at all mesh nodes and convert it to matrix
         z = np.array(self.get_value(mesh)).reshape(mesh_x.shape)
+        z_min, z_max = z.min(), z.max()
+        color_map = plt.cm.get_cmap(cmap)
+        norm = plt.Normalize(z_min, z_max)
         # Plot function
         if disp_type == "surface":
             surf = axes.plot_surface(
@@ -1229,9 +1240,11 @@ class Function:
                 z,
                 rstride=1,
                 cstride=1,
-                # cmap=cm.coolwarm,
+                cmap=color_map,
                 linewidth=0,
-                alpha=0.6,
+                alpha=alpha,
+                vmin=z_min,
+                vmax=z_max,
             )
             figure.colorbar(surf)
         elif disp_type == "wireframe":
@@ -2229,7 +2242,7 @@ class Function:
             ans = np.trapz(y_integration_data, x_integration_data)
         else:
             # Integrate numerically
-            ans, _ = integrate.quad(self, a, b, epsabs=0.001, limit=10000)
+            ans, _ = integrate.quad(self, a, b, epsabs=1e-4, epsrel=1e-3, limit=1000)
         return integration_sign * ans
 
     def differentiate(self, x, dx=1e-6, order=1):

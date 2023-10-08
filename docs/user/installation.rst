@@ -19,7 +19,7 @@ If you want to choose a specific version to guarantee compatibility, you may ins
 
 .. code-block:: shell
 
-    pip install rocketpy==1.0.0
+    pip install rocketpy==1.0.1
 
 
 Optional Installation Method: ``conda``

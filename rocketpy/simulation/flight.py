@@ -417,6 +417,8 @@ class Flight:
         of frequency in Hz. Can be called or accessed as array.
     Flight.static_margin : Function
         Rocket's static margin during flight in calibers.
+    Flight.stability_margin : rocketpy.Function
+            Rocket's stability margin during flight, in calibers.
     Flight.stream_velocity_x : Function
         Freestream velocity x (East) component, in m/s, as a function of
         time. Can be called or accessed as array.
@@ -1180,7 +1182,10 @@ class Flight:
 
     @cached_property
     def effective_1rl(self):
-        nozzle = self.rocket.motor_position
+        """Original rail length minus the distance measured from nozzle exit
+        to the upper rail button. It assumes the nozzle to be aligned with
+        the beginning of the rail."""
+        nozzle = self.rocket.nozzle_position
         try:
             rail_buttons = self.rocket.rail_buttons[0]
             upper_r_button = (
@@ -1194,7 +1199,10 @@ class Flight:
 
     @cached_property
     def effective_2rl(self):
-        nozzle = self.rocket.motor_position
+        """Original rail length minus the distance measured from nozzle exit
+        to the lower rail button. It assumes the nozzle to be aligned with
+        the beginning of the rail."""
+        nozzle = self.rocket.nozzle_position
         try:
             rail_buttons = self.rocket.rail_buttons[0]
             lower_r_button = rail_buttons.position
@@ -1384,7 +1392,7 @@ class Flight:
         )
         # c = -self.rocket.distance_rocket_nozzle
         c = (
-            -(self.rocket.motor_position - self.rocket.center_of_dry_mass_position)
+            -(self.rocket.nozzle_position - self.rocket.center_of_dry_mass_position)
             * self.rocket._csys
         )
         a = b * Mt / M
@@ -1639,7 +1647,7 @@ class Flight:
         r_CM_ddot = Vector([0, 0, r_CM_z.differentiate(t, order=2)])
         ## Nozzle gyration tensor
         r_NOZ = (
-            -(self.rocket.motor_position - self.rocket.center_of_dry_mass_position)
+            -(self.rocket.nozzle_position - self.rocket.center_of_dry_mass_position)
             * self.rocket._csys
         )
         S_noz_33 = 0.5 * self.rocket.motor.nozzle_radius**2
@@ -2341,6 +2349,29 @@ class Flight:
         """Maximum Mach number."""
         return self.mach_number(self.max_mach_number_time)
 
+    # Stability Margin
+    @cached_property
+    def max_stability_margin_time(self):
+        """Time of maximum stability margin."""
+        max_stability_margin_time_index = np.argmax(self.stability_margin[:, 1])
+        return self.stability_margin[max_stability_margin_time_index, 0]
+
+    @cached_property
+    def max_stability_margin(self):
+        """Maximum stability margin."""
+        return self.stability_margin(self.max_stability_margin_time)
+
+    @cached_property
+    def min_stability_margin_time(self):
+        """Time of minimum stability margin."""
+        min_stability_margin_time_index = np.argmin(self.stability_margin[:, 1])
+        return self.stability_margin[min_stability_margin_time_index, 0]
+
+    @cached_property
+    def min_stability_margin(self):
+        """Minimum stability margin."""
+        return self.stability_margin(self.min_stability_margin_time)
+
     # Reynolds Number
     @funcify_method("Time (s)", "Reynolds Number", "spline", "zero")
     def reynolds_number(self):
@@ -2420,23 +2451,10 @@ class Flight:
     # Kinetic Energy
     @funcify_method("Time (s)", "Rotational Kinetic Energy (J)")
     def rotational_energy(self):
-        # b = -self.rocket.distanceRocketPropellant
-        b = (
-            -(self.rocket.motor_position - self.rocket.center_of_dry_mass_position)
-            * self.rocket._csys
-        )
-        mu = self.rocket.reduced_mass
-        Rz = self.rocket.dry_I_33
-        Ri = self.rocket.dry_I_11
-        Tz = self.rocket.motor.I_33
-        Ti = self.rocket.motor.I_11
-        I1, I2, I3 = (Ri + Ti + mu * b**2), (Ri + Ti + mu * b**2), (Rz + Tz)
-        # Redefine I1, I2 and I3 time grid to allow for efficient Function algebra
-        I1.set_discrete_based_on_model(self.w1)
-        I2.set_discrete_based_on_model(self.w1)
-        I3.set_discrete_based_on_model(self.w1)
         rotational_energy = 0.5 * (
-            I1 * self.w1**2 + I2 * self.w2**2 + I3 * self.w3**2
+            self.rocket.I_11 * self.w1**2
+            + self.rocket.I_22 * self.w2**2
+            + self.rocket.I_33 * self.w3**2
         )
         rotational_energy.set_discrete_based_on_model(self.w1)
         return rotational_energy
@@ -2573,41 +2591,27 @@ class Flight:
         """Static margin of the rocket."""
         return self.rocket.static_margin
 
+    @funcify_method("Time (s)", "Stability Margin (c)", "linear", "zero")
+    def stability_margin(self):
+        """Stability margin of the rocket along the flight, it considers the
+        variation of the center of pressure position according to the mach
+        number, as well as the variation of the center of gravity position
+        according to the propellant mass evolution.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        stability : rocketpy.Function
+            Stability margin as a rocketpy.Function of time. The stability margin
+            is defined as the distance between the center of pressure and the
+            center of gravity, divided by the rocket diameter.
+        """
+        return [(t, self.rocket.stability_margin(m, t)) for t, m in self.mach_number]
+
     # Rail Button Forces
-    @cached_property
-    def effective_1rl(self):
-        """Original rail length minus the distance measured from nozzle exit
-        to the upper rail button. It assumes the nozzle to be aligned with
-        the beginning of the rail."""
-        nozzle = (
-            self.rocket.motor_position - self.rocket.center_of_dry_mass_position
-        ) * self.rocket._csys  # Kinda works for single nozzle
-        try:
-            rail_buttons = self.rocket.rail_buttons[0]
-            upper_r_button = (
-                rail_buttons.component.buttons_distance + rail_buttons.position
-            )
-        except IndexError:  # No rail buttons defined
-            upper_r_button = nozzle
-        effective_1rl = self.rail_length - abs(nozzle - upper_r_button)
-        return effective_1rl
-
-    @cached_property
-    def effective_2rl(self):
-        """Original rail length minus the distance measured from nozzle exit
-        to the lower rail button. It assumes the nozzle to be aligned with
-        the beginning of the rail."""
-        nozzle = (
-            self.rocket.motor_position - self.rocket.center_of_dry_mass_position
-        ) * self.rocket._csys
-        try:
-            rail_buttons = self.rocket.rail_buttons[0]
-            lower_r_button = rail_buttons.position
-        except IndexError:  # No rail buttons defined
-            lower_r_button = nozzle
-        effective_2rl = self.rail_length - abs(nozzle - lower_r_button)
-        return effective_2rl
-
     @cached_property
     def frontal_surface_wind(self):
         """Surface wind speed in m/s aligned with the launch rail."""

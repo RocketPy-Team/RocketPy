@@ -585,6 +585,7 @@ def test_liquid_motor_flight(mock_show, calisto_liquid_modded):
         rail_length=5,
         inclination=85,
         heading=0,
+        max_time_step=0.25,
     )
 
     assert test_flight.all_info() == None
@@ -609,6 +610,7 @@ def test_hybrid_motor_flight(mock_show, calisto_hybrid_modded):
         rail_length=5,
         inclination=85,
         heading=0,
+        max_time_step=0.25,
     )
 
     assert test_flight.all_info() == None

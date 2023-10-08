@@ -1,4 +1,4 @@
-from .aero_surface import (
+from rocketpy.rocket.aero_surface import (
     AeroSurface,
     EllipticalFins,
     Fins,
@@ -8,6 +8,6 @@ from .aero_surface import (
     TrapezoidalFins,
     Airbrakes,
 )
-from .components import Components
-from .parachute import Parachute
-from .rocket import Rocket
+from rocketpy.rocket.components import Components
+from rocketpy.rocket.parachute import Parachute
+from rocketpy.rocket.rocket import Rocket
