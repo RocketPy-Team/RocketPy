@@ -1734,8 +1734,11 @@ class Function:
                     outputs = self.__outputs__[0] + " + " + str(other)
                     outputs = "(" + outputs + ")"
                     interpolation = self.__interpolation__
+                    extrapolation = self.__extrapolation__
                     # Create new Function object
-                    return Function(source, inputs, outputs, interpolation)
+                    return Function(
+                        source, inputs, outputs, interpolation, extrapolation
+                    )
                 else:
                     return Function(lambda x: (self.get_value(x) + other))
             # Or if it is just a callable
