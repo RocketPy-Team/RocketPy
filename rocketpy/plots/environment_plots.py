@@ -29,9 +29,7 @@ class _EnvironmentPlots:
         """
         # Create height grid
         self.grid = np.linspace(environment.elevation, environment.max_expected_height)
-
         self.environment = environment
-
         return None
 
     def __wind(self, ax):
@@ -179,14 +177,16 @@ class _EnvironmentPlots:
         None
         """
         # Create figure
-        plt.figure(figsize=(9, 9))
+        plt.figure(figsize=(4.5, 4.5))
 
         # Create gravity model subplot
         ax = plt.subplot(111)
-        ax.plot(self.grid, [self.environment.gravity(i) for i in self.grid])
-        ax.set_ylabel("Gravity (m/s²)")
-        ax.set_xlabel("Height Above Sea Level (m)")
+        gravity = [self.environment.gravity(i) for i in self.grid]
+        ax.plot(gravity, self.grid)
+        ax.set_ylabel("Height Above Sea Level (m)")
+        ax.set_xlabel("Gravity Acceleration (m/s²)")
         ax.grid(True)
+        plt.xticks(rotation=45)
 
         plt.show()
 
