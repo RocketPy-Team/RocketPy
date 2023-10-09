@@ -481,8 +481,8 @@ class Environment:
 
     @max_expected_height.setter
     def max_expected_height(self, value):
-        if value < 0:
-            raise ValueError("Max expected height cannot be negative")
+        if value < self.elevation:
+            raise ValueError("Max expected height cannot be lower than the surface elevation")
         self._max_expected_height = value
         self.plots.grid = np.linspace(self.elevation, self.max_expected_height)
 
