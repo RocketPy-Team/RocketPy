@@ -319,14 +319,17 @@ class Environment:
         self.air_gas_constant = 287.05287  # in J/K/Kg
         self.standard_g = 9.80665
 
+        # Initialize launch site details
+        self.elevation = elevation
+        self.set_elevation(elevation)
+        self._max_expected_height = 80000  # default value
+
+        # Initialize plots and prints objects
+        self.prints = _EnvironmentPrints(self)
+        self.plots = _EnvironmentPlots(self)
+
         # Initialize atmosphere
         self.set_atmospheric_model("standard_atmosphere")
-
-        # Save latitude and longitude
-        if latitude != None and longitude != None:
-            self.set_location(latitude, longitude)
-        else:
-            self.latitude, self.longitude = None, None
 
         # Save date
         if date != None:
@@ -340,15 +343,6 @@ class Environment:
         # Initialize Earth geometry and save datum
         self.datum = datum
         self.ellipsoid = self.set_earth_geometry(datum)
-
-        # Set gravity model
-        self.gravity = self.set_gravity_model(gravity)
-
-        # Initialize plots and prints objects
-        self.prints = _EnvironmentPrints(self)
-
-        # Initialize atmosphere
-        self.set_atmospheric_model("standard_atmosphere")
 
         # Save latitude and longitude
         self.latitude = latitude
@@ -374,9 +368,8 @@ class Environment:
             self.initial_hemisphere = convert[4]
             self.initial_ew = convert[5]
 
-        # Save elevation
-        self.elevation = elevation
-        self.set_elevation(elevation)
+        # Set gravity model
+        self.gravity = self.set_gravity_model(gravity)
 
         # Recalculate Earth Radius (meters)
         self.earth_radius = self.calculate_earth_radius(
@@ -384,9 +377,6 @@ class Environment:
             semi_major_axis=self.ellipsoid.semi_major_axis,
             flattening=self.ellipsoid.flattening,
         )
-
-        # Initialize plots and prints object
-        self.plots = _EnvironmentPlots(self)
 
         return None
 
@@ -484,6 +474,17 @@ class Environment:
             return Function(gravity, "height (m)", "gravity (m/s²)").set_discrete(
                 0, self.max_expected_height, 100
             )
+
+    @property
+    def max_expected_height(self):
+        return self._max_expected_height
+
+    @max_expected_height.setter
+    def max_expected_height(self, value):
+        if value < 0:
+            raise ValueError("Max expected height cannot be negative")
+        self._max_expected_height = value
+        self.plots.grid = np.linspace(self.elevation, self.max_expected_height)
 
     @funcify_method("height (m)", "gravity (m/s²)")
     def somigliana_gravity(self, height):
