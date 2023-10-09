@@ -15,6 +15,7 @@ from rocketpy.rocket.aero_surface import (
     RailButtons,
     Tail,
     TrapezoidalFins,
+    Airbrakes,
 )
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
@@ -1149,23 +1150,87 @@ class Rocket:
 
     def add_airbrakes(
         self,
-        cd_s_curve,
+        cd_curve,
         controller_function,
         sampling_rate,
-        position=0,
+        reference_area=None,
         name="Airbrakes",
         controller_name="Airbrakes Controller",
     ):
-        """Creates a new airbrake, storing its parameters such as drag
-        coefficients and controller function. The controller function is
-        used to compute the airbrake deflection angle."""
+        """Creates a new airbrakes, storing its parameters such as
+        opening delay, drag coefficients and trigger function.
 
-        airbrakes = Airbrakes(cd_s_curve, deployed_level=0, name=name)
+        Parameters
+        ----------
+        cd_curve : int, float, callable, array, string, Function
+            Drag coefficient as a function of deployed level and Mach number.
+            If constant, it must be an int or float. If a function, it must
+            take as input the deployed level and the Mach number and return
+            the drag coefficient. If an array, it must be a 2D array where the
+            first column is the deployed level, the second column is the Mach
+            number and the third column is the drag coefficient. If a string,
+            it must be the path to a .csv or .txt file containing the drag
+            coefficient curve. The file must contain no headers and the first
+            column must specify the deployed level, the second column must
+            specify the Mach number and the third column must specify the drag
+            coefficient. If a Function, it must take as input the deployed
+            level and the Mach number and return the drag coefficient.
+        controller_function : function, callable
+            A function that takes the following arguments, in this order:
+
+            1. Time of the simulation at the current step in seconds.
+            2. The state vector of the simulation, which is defined as:
+
+               `[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]`.
+            3. A list containing the objects to be acted upon by the controller.
+               The objects in this list are the same as the objects in the
+               observed_objects list, but they can be modified by the controller.
+
+            This function will be called during the simulation at the specified
+            sampling rate. The function should evaluate and change the observed
+            objects as needed. The function should return None.
+
+            Note: The function will be called according to the sampling rate
+            specified.
+        sampling_rate : float
+            The sampling rate of the controller function in Hertz (Hz). This
+            means that the controller function will be called every
+            `1/sampling_rate` seconds.
+        reference_area : float, optional
+            Reference area used to calculate the drag force of the airbrakes
+            from the drag coefficient curve. If None, which is default, use
+            rocket section area. Must be given in squared meters.
+        name : string, optional
+            Airbrakes name, such as drogue and main. Has no impact in
+            simulation, as it is only used to display data in a more
+            organized matter.
+        controller_name : string, optional
+            Controller name. Has no impact in simulation, as it is only used to
+            display data in a more organized matter.
+
+        Returns
+        -------
+        airbrakes : Airbrakes
+            Airbrakes object created.
+        controller : Controller
+            Controller object created.
+        """
+        reference_area = reference_area if reference_area is not None else self.area
+        airbrakes = Airbrakes(
+            cd_curve=cd_curve,
+            reference_area=reference_area,
+            deployed_level=0,
+            name=name,
+        )
+        # save sampling rate on airbrakes so that it is available to inside
+        # controller function if needed
+        airbrakes.sampling_rate = sampling_rate
         controller = Controller(
             airbrakes, controller_function, sampling_rate, controller_name
         )
         self.airbrakes.append(airbrakes)
         self.add_controllers(controller)
+        return airbrakes, controller
 
     def set_rail_buttons(
         self, upper_button_position, lower_button_position, angular_position=45

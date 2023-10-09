@@ -324,8 +324,8 @@ class _AirbrakesPrints(_AeroSurfacePrints):
             f"Current deployed level: {self.aero_surface.deployed_level:.2f} = {100*self.aero_surface.deployed_level:.0f} %"
         )
         print(
-            f"Current Cd_S: {self.aero_surface.cd_s_curve(self.aero_surface.deployed_level)} m²"
+            f"Current Cd: {self.aero_surface.cd_curve(self.aero_surface.deployed_level)} m²"
         )
-        print(f"Maximum Cd_S: {self.aero_surface.cd_s.max:.3f} m²")
-        print(f"Minimum Cd_S: {self.aero_surface.cd_s.min:.3f} m²")
+        print(f"Maximum Cd: {self.aero_surface.cd.max:.3f} m²")
+        print(f"Minimum Cd: {self.aero_surface.cd.min:.3f} m²")
         return None

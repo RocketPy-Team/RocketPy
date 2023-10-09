@@ -451,25 +451,94 @@ class _TailPlots(_AeroSurfacePlots):
 
 
 class _AirbrakesPlots(_AeroSurfacePlots):
-    """Class that contains all tail plots."""
+    """Class that contains all airbrakes plots."""
 
-    def __init__(self, tail):
+    def __init__(self, airbrakes):
         """Initialize the class
 
         Parameters
         ----------
-        tail : rocketpy.AeroSurface.Tail
-            Tail object to be plotted
+        airbrakes : rocketpy.AeroSurface.airbrakes
+            Airbrakes object to be plotted
 
         Returns
         -------
         None
         """
-        super().__init__(tail)
+        super().__init__(airbrakes)
         return None
 
-    def cd_s_curve(self):
-        return self.cd_s_curve.plot(0, 1)
+    def cd_curve(self):
+        return self.aero_surface.cd.plot(0, 1)
+
+    def deployed_level(self):
+        """Plots the deployed level of the airbrakes as a function of time.
+
+        Returns
+        -------
+        None
+        """
+
+        # Extract the first and second columns as x and y
+        x = [row[0] for row in self.aero_surface.state_history]
+        y = [row[1] for row in self.aero_surface.state_history]
+
+        # Create the plot
+        plt.figure(figsize=(10, 6))  # Adjust the figure size as needed
+        plt.scatter(
+            x, y, marker="o", linestyle="-", color="b", s=0.5
+        )  # You can customize the marker, linestyle, and color
+
+        # Add labels and a title
+        plt.xlabel("Time (s)")
+        plt.ylabel("Deployed Level")
+        plt.title("Deployed Level X Time (s)")
+
+        # Show the plot
+        plt.grid(True)  # Add grid lines if needed
+        plt.show()
+
+        return None
+
+    def cd(self):
+        """Plots the drag coefficient of the airbrakes as a function of time.
+
+        Returns
+        -------
+        None
+        """
+        # Extract the first and second columns as x and y
+        x = [row[0] for row in self.aero_surface.state_history]
+        y = [row[2] for row in self.aero_surface.state_history]
+
+        # Create the plot
+        plt.figure(figsize=(10, 6))  # Adjust the figure size as needed
+        plt.scatter(
+            x, y, marker="o", linestyle="-", color="b", s=0.5
+        )  # You can customize the marker, linestyle, and color
+
+        # Add labels and a title
+        plt.xlabel("Time (s)")
+        plt.ylabel("Drag Coefficient")
+        plt.title("Drag Coefficient X Time (s)")
+
+        # Show the plot
+        plt.grid(True)  # Add grid lines if needed
+        plt.show()
+
+        return None
 
     def draw(self):
         raise NotImplementedError
+
+    def all(self):
+        """Plots all available airbrakes plots.
+
+        Returns
+        -------
+        None
+        """
+        self.deployed_level()
+        self.cd()
+        self.cd_curve()
+        return None

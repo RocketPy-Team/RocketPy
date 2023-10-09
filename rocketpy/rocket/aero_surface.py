@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import warnings
+from functools import cached_property
 
 import numpy as np
 from scipy.optimize import fsolve
@@ -1898,13 +1899,11 @@ class Airbrakes(AeroSurface):
 
     Attributes
     ----------
-    Airbrakes.cd_s : int, float, callable, array, Function
-        Product between drag coefficient of the airbrakes and its reference
-        area, such that the drag force created by it is given by F_D = q*cd_S,
-        where q is dynamic pressure. This value can be constant (int, float),
-        for static airbrakes. For controllable airbrakes, this value should be
-        given as a function of deployed level, which ranges from 0 (not
-        deployed) to 1 (fully deployed). Units of m^2.
+    Airbrakes.cd : int, float, callable, array, Function
+        Drag coefficient as a function of deployed level and Mach number.
+    Airbrakes.cd_curve : int, float, callable, array, string, Function
+        Curve that defines the drag coefficient as a function of deployed level
+        and Mach number.
     Airbrakes.deployed_level : float
         Current deployed level, ranging from 0 to 1. Deployed level is the
         fraction of the total airbrake area that is deployed.
@@ -1912,35 +1911,52 @@ class Airbrakes(AeroSurface):
         Name of the airbrakes.
     """
 
-    def __init__(self, cd_s_curve, deployed_level=0, name="Airbrakes"):
+    def __init__(self, cd_curve, reference_area, deployed_level=0, name="Airbrakes"):
         """Initializes the Airbrakes class.
 
         Parameters
         ----------
-        cd_s_curve : int, float, callable, array, Function
-            Product between drag coefficient of the airbrakes and its reference
-            area, such that the drag force created by it is given by
-            F_D = q*cd_S, where q is dynamic pressure. This value can be
-            constant (int, float), for static airbrakes. For controllable
-            airbrakes, this value should be given as a function of deployed
-            level, which ranges from 0 (not deployed) to 1 (fully deployed).
-            Units of m^2.
+        cd_curve : int, float, callable, array, string, Function
+            Drag coefficient as a function of deployed level and Mach number.
+            If constant, it must be an int or float. If a function, it must
+            take as input the deployed level and the Mach number and return
+            the drag coefficient. If an array, it must be a 2D array where the
+            first column is the deployed level, the second column is the Mach
+            number and the third column is the drag coefficient. If a string,
+            it must be the path to a .csv or .txt file containing the drag
+            coefficient curve. The file must contain no headers and the first
+            column must specify the deployed level, the second column must
+            specify the Mach number and the third column must specify the drag
+            coefficient. If a Function, it must take as input the deployed
+            level and the Mach number and return the drag coefficient.
+        reference_area : int, float
+            Reference area used to calculate the drag force of the airbrakes
+            from the drag coefficient curve. Units of m^2.
         deployed_level : float, optional
-            Current deployed level, ranging from 0 to 1. Default is 0.
+            Current deployed level, ranging from 0 to 1. Deployed level is the
+            fraction of the total airbrake area that is deployed. Default is 0.
+        name : str, optional
+            Name of the airbrakes. Default is "Airbrakes".
 
         Returns
         -------
         None
         """
         super().__init__(name)
-        self.cd_s_curve = Function(cd_s_curve).set_discrete(0, 1, 50)
+        self.cd_curve = cd_curve
+        self.cd = Function(
+            cd_curve,
+            inputs=["Deployed Level", "Mach"],
+            outputs="Cd",
+            extrapolation="zero",
+        )
+        self.reference_area = reference_area
         self.deployed_level = deployed_level
-        self.prints = _AirbrakesPrints
-        self.plots = _AirbrakesPlots
+        self.prints = _AirbrakesPrints(self)
+        self.plots = _AirbrakesPlots(self)
 
-    @property
-    def cd_s(self):
-        return self.cd_s_curve(self.deployed_level)
+        # Initialize tracker lists
+        self.state_history = []
 
     def set_deployed_level(self, deployed_level):
         """Set airbrake deployed level.
@@ -2005,6 +2021,36 @@ class Airbrakes(AeroSurface):
         """
         pass
 
+    @cached_property
+    def cd_by_time(self):
+        # get state history
+        state_history = self.state_history
+        # create [[time,cd]] list
+        cd_by_time = [[state[0], state[2]] for state in state_history]
+
+        return Function(
+            cd_by_time,
+            inputs="Time",
+            outputs="Cd",
+            interpolation="linear",
+            extrapolation="zero",
+        )
+
+    @cached_property
+    def deployed_level_by_time(self):
+        # get state history
+        state_history = self.state_history
+        # create [[deployed_level,time]] list
+        deployed_level_by_time = [[state[0], state[1]] for state in state_history]
+
+        return Function(
+            deployed_level_by_time,
+            inputs="Time",
+            outputs="Deployed Level",
+            interpolation="linear",
+            extrapolation="zero",
+        )
+
     def info(self):
         """Prints and plots summarized information of the aerodynamic surface.
 
@@ -2021,5 +2067,4 @@ class Airbrakes(AeroSurface):
         -------
         None
         """
-        self.prints.geometry()
-        self.plots.cd_s_curve()
+        self.plots.all()
