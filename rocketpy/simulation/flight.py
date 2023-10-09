@@ -2070,6 +2070,11 @@ class Flight:
         """Rocket angular velocity ω3 as a Function of time."""
         return self.solution_array[:, [0, 13]]
 
+    @funcify_method("Time (s)", "Altitude (m/s²)", "spline", "zero")
+    def altitude(self):
+        """Rocket altitude as a Function of time."""
+        return self.z - self.env.elevation
+
     # Process second type of outputs - accelerations components
     @funcify_method("Time (s)", "Ax (m/s²)", "spline", "zero")
     def ax(self):
