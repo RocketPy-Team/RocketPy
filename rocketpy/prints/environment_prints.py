@@ -33,11 +33,14 @@ class _EnvironmentPrints:
         -------
         None
         """
-        surface_gravity = self.environment.gravity(self.environment.elevation)
+        elevation = self.environment.elevation
+        max_expected_height = self.environment.max_expected_height
+        surface_gravity = self.environment.gravity([elevation])
+        ceiling_gravity = self.environment.gravity([max_expected_height])
         print("\nGravity Details\n")
         print(f"Acceleration of gravity at surface level: {surface_gravity:9.4f} m/s²")
         print(
-            f"Acceleration of gravity at {self.environment.max_expected_height/1000:7.3f} km (ASL): {self.environment.gravity(self.environment.max_expected_height):.4f} m/s²"
+            f"Acceleration of gravity at {max_expected_height/1000:7.3f} km (ASL): {ceiling_gravity:.4f} m/s²"
         )
         return None
 
