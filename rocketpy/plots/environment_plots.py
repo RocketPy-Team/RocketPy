@@ -63,6 +63,7 @@ class _EnvironmentPlots:
         axup.set_xlabel("Wind Direction (°)", color="#1f77b4")
         axup.tick_params("x", colors="#1f77b4")
         axup.set_xlim(0, 360)
+        ax.set_ylim(self.grid[0], self.grid[-1])
         ax.set_ylabel("Height Above Sea Level (m)")
         ax.grid(True)
 
@@ -98,6 +99,7 @@ class _EnvironmentPlots:
         )
         axup.set_xlabel("Density (kg/m³)", color="#1f77b4")
         axup.tick_params("x", colors="#1f77b4")
+        ax.set_ylim(self.grid[0], self.grid[-1])
         ax.set_ylabel("Height Above Sea Level (m)")
         ax.grid(True)
 
@@ -130,6 +132,7 @@ class _EnvironmentPlots:
         ax.set_ylabel("Height Above Sea Level (m)")
         ax.set_xlabel("Wind Speed (m/s)")
         ax.grid(True)
+        ax.set_ylim(self.grid[0], self.grid[-1])
 
         return ax
 
@@ -165,6 +168,7 @@ class _EnvironmentPlots:
         axup.tick_params("x", colors="#1f77b4")
         ax.set_ylabel("Height Above Sea Level (m)")
         ax.grid(True)
+        ax.set_ylim(self.grid[0], self.grid[-1])
 
         return ax
 
@@ -186,6 +190,7 @@ class _EnvironmentPlots:
         ax.set_ylabel("Height Above Sea Level (m)")
         ax.set_xlabel("Gravity Acceleration (m/s²)")
         ax.grid(True)
+        ax.set_ylim(self.grid[0], self.grid[-1])
         plt.xticks(rotation=45)
 
         plt.show()
