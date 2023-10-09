@@ -1429,6 +1429,30 @@ class Flight:
             drag_coeff = self.rocket.power_off_drag.get_value_opt(free_stream_mach)
         rho = self.env.density.get_value_opt(z)
         R3 = -0.5 * rho * (free_stream_speed**2) * self.rocket.area * (drag_coeff)
+        for airbrakes in self.rocket.airbrakes:
+            if airbrakes.deployed_level > 0:
+                R3 += (
+                    -0.5
+                    * rho
+                    * (free_stream_speed**2)
+                    * airbrakes.reference_area
+                    * airbrakes.cd(airbrakes.deployed_level, free_stream_mach)
+                )
+                airbrakes.state_history.append(
+                    [
+                        t,
+                        airbrakes.deployed_level,
+                        airbrakes.cd(airbrakes.deployed_level, free_stream_mach),
+                    ]
+                )
+            else:
+                airbrakes.state_history.append(
+                    [
+                        t,
+                        airbrakes.deployed_level,
+                        0,
+                    ]
+                )
         # R3 += self.__computeDragForce(z, Vector(vx, vy, vz))
         # Off center moment
         M1 += self.rocket.cp_eccentricity_y * R3
@@ -1713,10 +1737,31 @@ class Flight:
             drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach)
         else:
             drag_coeff = self.rocket.power_off_drag.get_value_opt(free_stream_mach)
-        for airbrakes in self.rocket.airbrakes:
-            drag_coeff += airbrakes.cd_s
         R3 += -0.5 * rho * (free_stream_speed**2) * self.rocket.area * (drag_coeff)
-
+        for airbrakes in self.rocket.airbrakes:
+            if airbrakes.deployed_level > 0:
+                R3 += (
+                    -0.5
+                    * rho
+                    * (free_stream_speed**2)
+                    * airbrakes.reference_area
+                    * airbrakes.cd(airbrakes.deployed_level, free_stream_mach)
+                )
+                airbrakes.state_history.append(
+                    [
+                        t,
+                        airbrakes.deployed_level,
+                        airbrakes.cd(airbrakes.deployed_level, free_stream_mach),
+                    ]
+                )
+            else:
+                airbrakes.state_history.append(
+                    [
+                        t,
+                        airbrakes.deployed_level,
+                        0,
+                    ]
+                )
         ## Off center moment
         M1 += self.rocket.cp_eccentricity_y * R3
         M2 -= self.rocket.cp_eccentricity_x * R3
@@ -2009,6 +2054,11 @@ class Flight:
     def w3(self):
         """Rocket angular velocity ω3 as a Function of time."""
         return self.solution_array[:, [0, 13]]
+
+    @funcify_method("Time (s)", "Altitude (m/s²)", "spline", "zero")
+    def altitude(self):
+        """Rocket altitude as a Function of time."""
+        return self.z - self.env.elevation
 
     # Process second type of outputs - accelerations components
     @funcify_method("Time (s)", "Ax (m/s²)", "spline", "zero")
