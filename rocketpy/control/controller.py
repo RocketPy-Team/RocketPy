@@ -22,7 +22,7 @@ class Controller:
             as positional arguments, meaning that the order of the objects in
             this list matters. These objects will then be able to be accessed
             and modified by the controller function.
-        controller_function : function
+        controller_function : function, callable
             A function that takes the following arguments, in this order:
 
             1. Time of the simulation at the current step in seconds.
@@ -41,8 +41,9 @@ class Controller:
             specified.
 
         sampling_rate : float
-            The sampling rate of the controller function in Hertz. The
-            controller function will be called every sampling_rate Hertz.
+            The sampling rate of the controller function in Hertz (Hz). This
+            means that the controller function will be called every
+            `1/sampling_rate` seconds.
         name : str
             The name of the controller. This will be used for printing and
             plotting.
