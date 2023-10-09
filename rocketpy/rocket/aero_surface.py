@@ -2064,6 +2064,36 @@ class AirBrakes(AeroSurface):
         """
         pass
 
+    @cached_property
+    def cd_by_time(self):
+        # get state history
+        state_history = self.state_history
+        # create [[time,cd]] list
+        cd_by_time = [[state[0], state[2]] for state in state_history]
+
+        return Function(
+            cd_by_time,
+            inputs="Time",
+            outputs="Cd",
+            interpolation="linear",
+            extrapolation="zero",
+        )
+
+    @cached_property
+    def deployed_level_by_time(self):
+        # get state history
+        state_history = self.state_history
+        # create [[deployed_level,time]] list
+        deployed_level_by_time = [[state[0], state[1]] for state in state_history]
+
+        return Function(
+            deployed_level_by_time,
+            inputs="Time",
+            outputs="Deployed Level",
+            interpolation="linear",
+            extrapolation="zero",
+        )
+
     def info(self):
         """Prints and plots summarized information of the aerodynamic surface.
 
