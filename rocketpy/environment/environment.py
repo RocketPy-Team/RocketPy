@@ -93,9 +93,9 @@ class Environment:
     Environment.topographic_profile_activated : bool
         True if the user already set a topographic profile. False otherwise.
     Environment.max_expected_height : float
-        Maximum altitude in meters to keep weather data.
-        Used especially for plotting range.
-        Can be altered as desired.
+        Maximum altitude in meters to keep weather data. The altitude must be
+        above sea level (ASL). Especially useful for controlling plottings.
+        Can be altered as desired by doing `max_expected_height = number`.
     Environment.pressure_ISA : Function
         Air pressure in Pa as a function of altitude as defined by the
         `International Standard Atmosphere ISO 2533`. Only defined after load
@@ -270,6 +270,7 @@ class Environment:
         elevation=0,
         datum="SIRGAS2000",
         timezone="UTC",
+        max_expected_height=80000.0,
     ):
         """Initialize Environment class, saving launch rail length,
         launch date, location coordinates and elevation. Note that
@@ -308,7 +309,12 @@ class Environment:
         timezone : string, optional
             Name of the time zone. To see all time zones, import pytz and run
             print(pytz.all_timezones). Default time zone is "UTC".
-
+        max_expected_height : float, optional
+            Maximum altitude in meters to keep weather data. The altitude must
+            be above sea level (ASL). Especially useful for visualization.
+            Can be altered as desired by doing `max_expected_height = number`.
+            Depending on the atmospheric model, this value may be automatically
+            mofified.
 
         Returns
         -------
@@ -322,7 +328,7 @@ class Environment:
         # Initialize launch site details
         self.elevation = elevation
         self.set_elevation(elevation)
-        self._max_expected_height = 80000  # default value
+        self._max_expected_height = max_expected_height
 
         # Initialize plots and prints objects
         self.prints = _EnvironmentPrints(self)
