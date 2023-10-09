@@ -1867,7 +1867,9 @@ class Function:
                     interpolation = self.__interpolation__
                     extrapolation = self.__extrapolation__
                     # Create new Function object
-                    return Function(source, inputs, outputs, interpolation, extrapolation)
+                    return Function(
+                        source, inputs, outputs, interpolation, extrapolation
+                    )
                 else:
                     return Function(lambda x: (self.get_value(x) * other))
             # Or if it is just a callable
@@ -1954,7 +1956,9 @@ class Function:
                     interpolation = self.__interpolation__
                     extrapolation = self.__extrapolation__
                     # Create new Function object
-                    return Function(source, inputs, outputs, interpolation, extrapolation)
+                    return Function(
+                        source, inputs, outputs, interpolation, extrapolation
+                    )
                 else:
                     return Function(lambda x: (self.get_value_opt(x) / other))
             # Or if it is just a callable
@@ -2059,7 +2063,9 @@ class Function:
                     interpolation = self.__interpolation__
                     extrapolation = self.__extrapolation__
                     # Create new Function object
-                    return Function(source, inputs, outputs, interpolation, extrapolation)
+                    return Function(
+                        source, inputs, outputs, interpolation, extrapolation
+                    )
                 else:
                     return Function(lambda x: (self.get_value(x) ** other))
             # Or if it is just a callable
@@ -2335,7 +2341,9 @@ class Function:
             outputs = f"d({self.__outputs__[0]})/d({inputs[0]})"
 
         # Create new Function object
-        return Function(source, inputs, outputs, self.__interpolation__, self.__extrapolation__)
+        return Function(
+            source, inputs, outputs, self.__interpolation__, self.__extrapolation__
+        )
 
     def integral_function(self, lower=None, upper=None, datapoints=100):
         """Returns a Function object representing the integral of the Function
