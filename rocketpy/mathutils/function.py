@@ -1716,8 +1716,9 @@ class Function:
                 outputs = self.__outputs__[0] + " + " + other.__outputs__[0]
                 outputs = "(" + outputs + ")"
                 interpolation = self.__interpolation__
+                extrapolation = self.__extrapolation__
                 # Create new Function object
-                return Function(source, inputs, outputs, interpolation)
+                return Function(source, inputs, outputs, interpolation, extrapolation)
             else:
                 return Function(lambda x: (self.get_value(x) + other(x)))
         # If other is Float except...
@@ -1845,8 +1846,9 @@ class Function:
                 outputs = self.__outputs__[0] + "*" + other.__outputs__[0]
                 outputs = "(" + outputs + ")"
                 interpolation = self.__interpolation__
+                extrapolation = self.__extrapolation__
                 # Create new Function object
-                return Function(source, inputs, outputs, interpolation)
+                return Function(source, inputs, outputs, interpolation, extrapolation)
             else:
                 return Function(lambda x: (self.get_value(x) * other(x)))
         # If other is Float except...
@@ -1863,8 +1865,9 @@ class Function:
                     outputs = self.__outputs__[0] + "*" + str(other)
                     outputs = "(" + outputs + ")"
                     interpolation = self.__interpolation__
+                    extrapolation = self.__extrapolation__
                     # Create new Function object
-                    return Function(source, inputs, outputs, interpolation)
+                    return Function(source, inputs, outputs, interpolation, extrapolation)
                 else:
                     return Function(lambda x: (self.get_value(x) * other))
             # Or if it is just a callable
@@ -1930,8 +1933,9 @@ class Function:
                 outputs = self.__outputs__[0] + "/" + other.__outputs__[0]
                 outputs = "(" + outputs + ")"
                 interpolation = self.__interpolation__
+                extrapolation = self.__extrapolation__
                 # Create new Function object
-                return Function(source, inputs, outputs, interpolation)
+                return Function(source, inputs, outputs, interpolation, extrapolation)
             else:
                 return Function(lambda x: (self.get_value_opt(x) / other(x)))
         # If other is Float except...
@@ -1948,8 +1952,9 @@ class Function:
                     outputs = self.__outputs__[0] + "/" + str(other)
                     outputs = "(" + outputs + ")"
                     interpolation = self.__interpolation__
+                    extrapolation = self.__extrapolation__
                     # Create new Function object
-                    return Function(source, inputs, outputs, interpolation)
+                    return Function(source, inputs, outputs, interpolation, extrapolation)
                 else:
                     return Function(lambda x: (self.get_value_opt(x) / other))
             # Or if it is just a callable
@@ -1983,8 +1988,9 @@ class Function:
                 outputs = str(other) + "/" + self.__outputs__[0]
                 outputs = "(" + outputs + ")"
                 interpolation = self.__interpolation__
+                extrapolation = self.__extrapolation__
                 # Create new Function object
-                return Function(source, inputs, outputs, interpolation)
+                return Function(source, inputs, outputs, interpolation, extrapolation)
             else:
                 return Function(lambda x: (other / self.get_value_opt(x)))
         # Or if it is just a callable
@@ -2032,8 +2038,9 @@ class Function:
                 outputs = self.__outputs__[0] + "**" + other.__outputs__[0]
                 outputs = "(" + outputs + ")"
                 interpolation = self.__interpolation__
+                extrapolation = self.__extrapolation__
                 # Create new Function object
-                return Function(source, inputs, outputs, interpolation)
+                return Function(source, inputs, outputs, interpolation, extrapolation)
             else:
                 return Function(lambda x: (self.get_value_opt(x) ** other(x)))
         # If other is Float except...
@@ -2050,8 +2057,9 @@ class Function:
                     outputs = self.__outputs__[0] + "**" + str(other)
                     outputs = "(" + outputs + ")"
                     interpolation = self.__interpolation__
+                    extrapolation = self.__extrapolation__
                     # Create new Function object
-                    return Function(source, inputs, outputs, interpolation)
+                    return Function(source, inputs, outputs, interpolation, extrapolation)
                 else:
                     return Function(lambda x: (self.get_value(x) ** other))
             # Or if it is just a callable
@@ -2085,8 +2093,9 @@ class Function:
                 outputs = str(other) + "**" + self.__outputs__[0]
                 outputs = "(" + outputs + ")"
                 interpolation = self.__interpolation__
+                extrapolation = self.__extrapolation__
                 # Create new Function object
-                return Function(source, inputs, outputs, interpolation)
+                return Function(source, inputs, outputs, interpolation, extrapolation)
             else:
                 return Function(lambda x: (other ** self.get_value(x)))
         # Or if it is just a callable
@@ -2326,7 +2335,7 @@ class Function:
             outputs = f"d({self.__outputs__[0]})/d({inputs[0]})"
 
         # Create new Function object
-        return Function(source, inputs, outputs, self.__interpolation__)
+        return Function(source, inputs, outputs, self.__interpolation__, self.__extrapolation__)
 
     def integral_function(self, lower=None, upper=None, datapoints=100):
         """Returns a Function object representing the integral of the Function
@@ -2494,6 +2503,7 @@ class Function:
             inputs=self.__outputs__,
             outputs=self.__inputs__,
             interpolation=self.__interpolation__,
+            extrapolation=self.__extrapolation__,
         )
 
     def find_input(self, val, start, tol=1e-4):
