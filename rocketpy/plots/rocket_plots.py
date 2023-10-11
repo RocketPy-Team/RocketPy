@@ -1,6 +1,8 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
+from rocketpy.motors import HybridMotor, LiquidMotor, SolidMotor
+from rocketpy.plots import _generate_nozzle
 from rocketpy.rocket.aero_surface import Fins, NoseCone, Tail
 
 
@@ -335,6 +337,18 @@ class _RocketPlots:
         ax.scatter(
             nozzle_position, 0, label="Nozzle Outlet", color="brown", s=10, zorder=10
         )
+
+        if isinstance(self.rocket.motor, (SolidMotor, HybridMotor)):
+            chamber = self.rocket.motor.plots._generate_combustion_chamber(
+                translate=(nozzle_position, 0), csys=self.rocket._csys
+            )
+            ax.add_patch(chamber)
+            grains = self.rocket.motor.plots._generate_grains(
+                translate=(nozzle_position, 0), csys=self.rocket._csys
+            )
+            for grain in grains:
+                ax.add_patch(grain)
+
         # Check if nozzle is beyond the last surface, if so draw a tube
         # to it, with the radius of the last surface
         if self.rocket._csys == 1:
