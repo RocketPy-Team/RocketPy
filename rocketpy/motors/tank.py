@@ -414,6 +414,7 @@ class Tank(ABC):
         """Draws the tank geometry."""
         return self.plots.draw()
 
+
 class MassFlowRateBasedTank(Tank):
     """Class to define a tank based on mass flow rates inputs. This class
     inherits from the Tank class. See the Tank class for more information
