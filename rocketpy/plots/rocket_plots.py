@@ -1,6 +1,8 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
+from rocketpy.motors import HybridMotor, LiquidMotor, SolidMotor
+from rocketpy.plots import _generate_nozzle
 from rocketpy.rocket.aero_surface import Fins, NoseCone, Tail
 
 
@@ -159,7 +161,7 @@ class _RocketPlots:
             }
 
         # Create the figure and axis
-        _, ax = plt.subplots(figsize=(8, 5))
+        _, ax = plt.subplots(figsize=(8, 6))
         ax.set_aspect("equal")
         ax.set_facecolor(vis_args["background"])
         ax.grid(True, linestyle="--", linewidth=0.5)
@@ -335,6 +337,30 @@ class _RocketPlots:
         ax.scatter(
             nozzle_position, 0, label="Nozzle Outlet", color="brown", s=10, zorder=10
         )
+
+        if isinstance(self.rocket.motor, (SolidMotor, HybridMotor)):
+            chamber = self.rocket.motor.plots._generate_combustion_chamber(
+                translate=(nozzle_position, 0), csys=self.rocket._csys
+            )
+            ax.add_patch(chamber)
+            grains = self.rocket.motor.plots._generate_grains(
+                translate=(nozzle_position, 0), csys=self.rocket._csys
+            )
+            for grain in grains:
+                ax.add_patch(grain)
+
+        elif isinstance(self.rocket.motor, LiquidMotor):
+            patches = self.rocket.motor.plots._generate_positioned_tanks(
+                translate=(self.rocket.motor_position, 0), csys=self.rocket._csys
+            )
+            for patch in patches:
+                ax.add_patch(patch)
+
+        nozzle = _generate_nozzle(
+            self.rocket.motor, translate=(nozzle_position, 0), csys=self.rocket._csys
+        )
+        ax.add_patch(nozzle)
+
         # Check if nozzle is beyond the last surface, if so draw a tube
         # to it, with the radius of the last surface
         if self.rocket._csys == 1:
@@ -393,8 +419,8 @@ class _RocketPlots:
         ax.scatter(cm, 0, color="black", label="Center of Mass", s=30)
         ax.scatter(cm, 0, facecolors="none", edgecolors="black", s=100)
 
-        cp = self.rocket.cp_position
-        ax.scatter(cp, 0, label="Center Of Pressure", color="red", s=30, zorder=10)
+        cp = self.rocket.cp_position(0)
+        ax.scatter(cp, 0, label="CP (M=0)", color="red", s=30, zorder=10)
         ax.scatter(cp, 0, facecolors="none", edgecolors="red", s=100, zorder=10)
 
         # Set plot attributes
@@ -402,7 +428,7 @@ class _RocketPlots:
         plt.ylim([-self.rocket.radius * 4, self.rocket.radius * 6])
         plt.xlabel("Position (m)")
         plt.ylabel("Radius (m)")
-        plt.legend(loc="best")
+        plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
         plt.tight_layout()
         plt.show()
 
