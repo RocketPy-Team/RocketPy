@@ -478,24 +478,17 @@ class _AirbrakesPlots(_AeroSurfacePlots):
         -------
         None
         """
-
         # Extract the first and second columns as x and y
         x = [row[0] for row in self.aero_surface.state_history]
         y = [row[1] for row in self.aero_surface.state_history]
 
         # Create the plot
-        plt.figure(figsize=(10, 6))  # Adjust the figure size as needed
-        plt.scatter(
-            x, y, marker="o", linestyle="-", color="b", s=0.5
-        )  # You can customize the marker, linestyle, and color
-
-        # Add labels and a title
+        plt.figure(figsize=(10, 6))
+        plt.scatter(x, y, marker="o", linestyle="-", color="b", s=0.5)
         plt.xlabel("Time (s)")
         plt.ylabel("Deployed Level")
         plt.title("Deployed Level X Time (s)")
-
-        # Show the plot
-        plt.grid(True)  # Add grid lines if needed
+        plt.grid(True)
         plt.show()
 
         return None
