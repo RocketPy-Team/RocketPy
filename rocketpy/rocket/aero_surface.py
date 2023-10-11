@@ -2067,4 +2067,5 @@ class Airbrakes(AeroSurface):
         -------
         None
         """
-        self.plots.all()
+        self.info()
+        self.plots.cd_curve()

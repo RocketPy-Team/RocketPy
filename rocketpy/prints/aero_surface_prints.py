@@ -318,14 +318,14 @@ class _AirbrakesPrints(_AeroSurfacePrints):
         -------
         None
         """
-        print(f"Geometric information of the Air Break:")
-        print(f"----------------------------------")
+        print(f"Geometric information of the Airbreak:")
+        print(f"--------------------------------------")
         print(
             f"Current deployed level: {self.aero_surface.deployed_level:.2f} = {100*self.aero_surface.deployed_level:.0f} %"
         )
         print(
-            f"Current Cd: {self.aero_surface.cd_curve(self.aero_surface.deployed_level)} m²"
+            f"Current Cd: {self.aero_surface.cd(self.aero_surface.deployed_level)}"
         )
-        print(f"Maximum Cd: {self.aero_surface.cd.max:.3f} m²")
-        print(f"Minimum Cd: {self.aero_surface.cd.min:.3f} m²")
+        print(f"Maximum Cd: {self.aero_surface.cd.max:.3f}")
+        print(f"Minimum Cd: {self.aero_surface.cd.min:.3f}")
         return None
