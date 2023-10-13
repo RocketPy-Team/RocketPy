@@ -141,6 +141,32 @@ def test_initial_solution(mock_show, example_env, calisto_robust):
     assert test_flight.all_info() == None
 
 
+@patch("matplotlib.pyplot.show")
+def test_empty_motor_flight(mock_show, example_env, calisto_motorless):
+    flight = Flight(
+        rocket=calisto_motorless,
+        environment=example_env,
+        rail_length=5,
+        initial_solution=[  # a random flight starting at apogee
+            22.945995194368354,
+            277.80976806186936,
+            353.29457980509113,
+            3856.1112773441596,
+            12.737953434495966,
+            15.524649322067267,
+            -0.00011874766384947776,
+            -0.06086838708814366,
+            0.019695167217632138,
+            -0.35099420532705555,
+            -0.9338841410225396,
+            0.25418555574446716,
+            0.03632002739509155,
+            2.0747266017020563,
+        ],
+    )
+    assert flight.all_info() == None
+
+
 @pytest.mark.parametrize("wind_u, wind_v", [(0, 10), (0, -10), (10, 0), (-10, 0)])
 @pytest.mark.parametrize(
     "static_margin, max_time",
@@ -537,6 +563,7 @@ def test_rail_length(calisto_robust, example_env, rail_length, out_of_rail_time)
     assert abs(test_flight.z(test_flight.out_of_rail_time) - out_of_rail_time) < 1e-6
 
 
+@pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_time_overshoot(mock_show, calisto_robust, example_env_robust):
     """Test the time_overshoot parameter of the Flight class. This basically
