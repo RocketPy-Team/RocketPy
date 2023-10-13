@@ -2137,6 +2137,9 @@ class Flight:
         burn_out_time_index = find_closest(
             self.acceleration.source[:, 0], self.rocket.motor.burn_out_time
         )
+        if burn_out_time_index == 0:
+            return 0 # the burn out time is before the first time step
+
         max_acceleration_time_index = np.argmax(
             self.acceleration[:burn_out_time_index, 1]
         )
