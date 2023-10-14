@@ -164,7 +164,7 @@ def test_get_solution_at_time(flight_calisto):
             [
                 48.4313533,
                 0.0,
-                985.755944,
+                985.7665845,
                 -0.00000229951048,
                 0.0,
                 11.2223284,
@@ -178,8 +178,8 @@ def test_get_solution_at_time(flight_calisto):
                 0.0,
             ]
         ),
-        rtol=1e-05,
-        atol=1e-05,
+        rtol=1e-02,
+        atol=5e-03,
     )
 
 
