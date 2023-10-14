@@ -151,7 +151,7 @@ def test_get_solution_at_time(flight_calisto):
     flight_calisto : rocketpy.Flight
         Flight object to be tested. See the conftest.py file for more info
         regarding this pytest fixture.
-    """    
+    """
     assert np.allclose(
         flight_calisto.get_solution_at_time(0),
         np.array([0, 0, 0, 0, 0, 0, 0, 0.99904822, -0.04361939, 0, 0, 0, 0, 0]),

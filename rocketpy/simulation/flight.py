@@ -1948,7 +1948,7 @@ class Flight:
         -------
         solution : np.array
             Solution state at time t. The array follows the format of the
-            solution array, with the first column being time like this: 
+            solution array, with the first column being time like this:
             [t, x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3].
 
         """
@@ -1956,7 +1956,8 @@ class Flight:
         if abs(self.time[time_index] - t) > 1e-5:
             warnings.warn(
                 f"Time {t} not found in solution. Closest time is "
-                f"{self.time[time_index]}. Using closest time.", UserWarning
+                f"{self.time[time_index]}. Using closest time.",
+                UserWarning,
             )
         return self.solution_array[time_index, :]
 
