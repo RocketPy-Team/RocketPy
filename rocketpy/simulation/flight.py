@@ -1934,7 +1934,7 @@ class Flight:
         """Returns time array from solution."""
         return self.solution_array[:, 0]
 
-    def get_solution_at_time(self, t):
+    def get_solution_at_time(self, t, atol=1e-3):
         """Returns the solution state vector at a given time. If the time is
         not found in the solution, the closest time is used and a warning is
         raised.
@@ -1943,6 +1943,10 @@ class Flight:
         ----------
         t : float
             Time in seconds.
+        atol : float, optional
+            Absolute tolerance for time comparison. Default is 1e-3. If the
+            difference between the time and the closest time in the solution
+            is greater than this value, a warning is raised.
 
         Returns
         -------
@@ -1953,7 +1957,7 @@ class Flight:
 
         """
         time_index = find_closest(self.time, t)
-        if abs(self.time[time_index] - t) > 1e-5:
+        if abs(self.time[time_index] - t) > atol:
             warnings.warn(
                 f"Time {t} not found in solution. Closest time is "
                 f"{self.time[time_index]}. Using closest time.",
