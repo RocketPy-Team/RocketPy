@@ -3045,41 +3045,20 @@ class Flight:
         ------
         None
         """
-
         time_points = np.arange(0, self.t_final, time_step)
-
-        # Create the file
-        file = open(file_name, "w")
-
-        if len(self.rocket.parachutes) == 0:
-            pressure = self.env.pressure(self.z(time_points))
-            for i in range(0, time_points.size, 1):
-                file.write("{:f}, {:.5f}\n".format(time_points[i], pressure[i]))
-
-        else:
-            for parachute in self.rocket.parachutes:
-                for i in range(0, time_points.size, 1):
-                    pCl = Function(
-                        parachute.clean_pressure_signal,
-                        "Time (s)",
-                        "Pressure - Without Noise (Pa)",
-                        "linear",
-                    )(time_points[i])
-                    pNs = Function(
-                        parachute.noisy_pressure_signal,
-                        "Time (s)",
-                        "Pressure - With Noise (Pa)",
-                        "linear",
-                    )(time_points[i])
-                    file.write(
-                        "{:f}, {:.5f}, {:.5f}\n".format(time_points[i], pCl, pNs)
-                    )
-                # We need to save only 1 parachute data
-                pass
-
-        file.close()
-
-        return None
+        with open(file_name, "w", encoding="utf-8") as file:
+            if len(self.rocket.parachutes) == 0:
+                print("No parachutes in the rocket, saving static pressure.")
+                for t in time_points:
+                    file.write(f"{t:f}, {self.pressure(t):.5f}\n")
+            else:
+                for parachute in self.rocket.parachutes:
+                    for t in time_points:
+                        p_cl = parachute.clean_pressure_signal(t)
+                        p_ns = parachute.noisy_pressure_signal(t)
+                        file.write(f"{t:f}, {p_cl:.5f}, {p_ns:.5f}\n")
+                    # We need to save only 1 parachute data
+                    break
 
     def export_data(self, file_name, *variables, time_step=None):
         """Exports flight data to a comma separated value file (.csv).
