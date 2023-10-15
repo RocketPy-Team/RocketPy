@@ -2302,7 +2302,7 @@ class Flight:
         return stream_velocity_y
 
     @funcify_method("Time (s)", "Freestream Velocity Z (m/s)", "spline", "constant")
-    def stream_velocity_z(self, interpolation="spline", extrapolation="natural"):
+    def stream_velocity_z(self):
         """Freestream velocity Z component as a Function of time."""
         stream_velocity_z = np.column_stack((self.time, -self.vz[:, 1]))
         return stream_velocity_z
