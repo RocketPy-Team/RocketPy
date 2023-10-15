@@ -15,7 +15,6 @@ from rocketpy.rocket.aero_surface import (
     RailButtons,
     Tail,
     TrapezoidalFins,
-    Airbrakes,
 )
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
@@ -839,20 +838,19 @@ class Rocket:
 
         Parameters
         ----------
-        controllers : Controller
-            Controller to be added to the rocket.
+        controllers : list of Controller objects
+            List of controllers to be added to the rocket. If a single
+            Controller object is passed, outside of a list, a try/except block
+            will be used to try to append the controller to the list.
 
         Returns
         -------
         None
         """
         try:
-            for controller in controllers:
-                self.controllers.append(controller)
+            self.controllers.extend(controllers)
         except TypeError:
             self.controllers.append(controllers)
-
-        return None
 
     def add_tail(
         self, top_radius, bottom_radius, length, position, radius=None, name="Tail"

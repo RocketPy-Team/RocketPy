@@ -12,7 +12,6 @@ from ..plots.aero_surface_plots import (
     _NoseConePlots,
     _TailPlots,
     _TrapezoidalFinsPlots,
-    _AirbrakesPlots,
 )
 from ..prints.aero_surface_prints import (
     _AirBrakesPrints,
@@ -21,7 +20,6 @@ from ..prints.aero_surface_prints import (
     _RailButtonsPrints,
     _TailPrints,
     _TrapezoidalFinsPrints,
-    _AirbrakesPrints,
 )
 
 # TODO: all the evaluate_shape() methods need tests and documentation
@@ -2066,14 +2064,14 @@ class AirBrakes(AeroSurface):
 
     @cached_property
     def cd_by_time(self):
-        # get state history
+        """Returns the drag coefficient as a function of time."""
         state_history = self.state_history
         # create [[time,cd]] list
         cd_by_time = [[state[0], state[2]] for state in state_history]
 
         return Function(
             cd_by_time,
-            inputs="Time",
+            inputs="Time (s)",
             outputs="Cd",
             interpolation="linear",
             extrapolation="zero",
@@ -2081,14 +2079,14 @@ class AirBrakes(AeroSurface):
 
     @cached_property
     def deployed_level_by_time(self):
-        # get state history
+        """Returns the deployed level as a function of time."""
         state_history = self.state_history
         # create [[deployed_level,time]] list
         deployed_level_by_time = [[state[0], state[1]] for state in state_history]
 
         return Function(
             deployed_level_by_time,
-            inputs="Time",
+            inputs="Time (s)",
             outputs="Deployed Level",
             interpolation="linear",
             extrapolation="zero",
