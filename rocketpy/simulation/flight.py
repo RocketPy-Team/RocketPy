@@ -2658,8 +2658,6 @@ class Flight:
             (self.time, (self.x[:, 1] ** 2 + self.y[:, 1] ** 2) ** 0.5)
         )
 
-        return drift
-
     @funcify_method("Time (s)", "Bearing (°)", "spline", "constant")
     def bearing(self):
         """Rocket bearing compass, in degrees, as a Function of time."""
@@ -3015,9 +3013,8 @@ class Flight:
         # Convert stall_angle to degrees
         stall_angle = stall_angle * 180 / np.pi
         print(
-            "Maximum wind velocity at Rail Departure time before angle of attack exceeds {:.3f}°: {:.3f} m/s".format(
-                stall_angle, w_v
-            )
+            "Maximum wind velocity at Rail Departure time before angle"
+            + f" of attack exceeds {stall_angle:.3f}°: {w_v:.3f} m/s"
         )
 
         return None
