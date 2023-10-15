@@ -141,6 +141,48 @@ def test_initial_solution(mock_show, example_env, calisto_robust):
     assert test_flight.all_info() == None
 
 
+def test_get_solution_at_time(flight_calisto):
+    """Test the get_solution_at_time method of the Flight class. This test
+    simply calls the method at the initial and final time and checks if the
+    returned values are correct.
+
+    Parameters
+    ----------
+    flight_calisto : rocketpy.Flight
+        Flight object to be tested. See the conftest.py file for more info
+        regarding this pytest fixture.
+    """
+    assert np.allclose(
+        flight_calisto.get_solution_at_time(0),
+        np.array([0, 0, 0, 0, 0, 0, 0, 0.99904822, -0.04361939, 0, 0, 0, 0, 0]),
+        rtol=1e-05,
+        atol=1e-08,
+    )
+    assert np.allclose(
+        flight_calisto.get_solution_at_time(flight_calisto.t_final),
+        np.array(
+            [
+                48.4313533,
+                0.0,
+                985.7665845,
+                -0.00000229951048,
+                0.0,
+                11.2223284,
+                -341.028803,
+                0.999048222,
+                -0.0436193874,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ]
+        ),
+        rtol=1e-02,
+        atol=5e-03,
+    )
+
+
 @pytest.mark.parametrize("wind_u, wind_v", [(0, 10), (0, -10), (10, 0), (-10, 0)])
 @pytest.mark.parametrize(
     "static_margin, max_time",
