@@ -1,12 +1,13 @@
 from .aero_surface_prints import (
+    _AirbrakesPrints,
     _EllipticalFinsPrints,
     _NoseConePrints,
     _RailButtonsPrints,
     _TailPrints,
     _TrapezoidalFinsPrints,
-    _AirbrakesPrints,
 )
 from .compare_prints import _ComparePrints
+from .control_prints import _ControllerPrints
 from .environment_analysis_prints import _EnvironmentAnalysisPrints
 from .environment_prints import _EnvironmentPrints
 from .flight_prints import _FlightPrints

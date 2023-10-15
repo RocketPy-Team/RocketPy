@@ -57,7 +57,7 @@ class Controller:
         self.controller_function = controller_function
         self.sampling_rate = sampling_rate
         self.name = name
-        self.print = _ControllerPrints
+        self.prints = _ControllerPrints
 
     def __call__(self, time, state_vector):
         """Call the controller function. This is used by the simulation class.
@@ -81,7 +81,9 @@ class Controller:
         return self.name
 
     def info(self):
+        """Prints out summarized information about the controller."""
         self.prints.all()
 
     def all_info(self):
+        """Prints out all information about the controller."""
         self.info()

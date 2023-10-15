@@ -2,20 +2,19 @@ import warnings
 
 import numpy as np
 
-from ..control.controller import Controller
-
+from rocketpy.control.controller import Controller
 from rocketpy.mathutils.function import Function
 from rocketpy.motors.motor import EmptyMotor
 from rocketpy.plots.rocket_plots import _RocketPlots
 from rocketpy.prints.rocket_prints import _RocketPrints
 from rocketpy.rocket.aero_surface import (
+    Airbrakes,
     EllipticalFins,
     Fins,
     NoseCone,
     RailButtons,
     Tail,
     TrapezoidalFins,
-    Airbrakes,
 )
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
@@ -778,20 +777,19 @@ class Rocket:
 
         Parameters
         ----------
-        controllers : Controller
-            Controller to be added to the rocket.
+        controllers : list of Controller objects
+            List of controllers to be added to the rocket. If a single
+            Controller object is passed, outside of a list, a try/except block
+            will be used to try to append the controller to the list.
 
         Returns
         -------
         None
         """
         try:
-            for controller in controllers:
-                self.controllers.append(controller)
+            self.controllers.extend(controllers)
         except TypeError:
             self.controllers.append(controllers)
-
-        return None
 
     def add_tail(
         self, top_radius, bottom_radius, length, position, radius=None, name="Tail"

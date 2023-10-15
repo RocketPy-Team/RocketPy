@@ -469,6 +469,7 @@ class _AirbrakesPlots(_AeroSurfacePlots):
         return None
 
     def cd_curve(self):
+        """Plots the drag coefficient curve of the airbrakes."""
         return self.aero_surface.cd.plot(0, 1)
 
     def deployed_level(self):
@@ -495,6 +496,10 @@ class _AirbrakesPlots(_AeroSurfacePlots):
 
     def cd(self):
         """Plots the drag coefficient of the airbrakes as a function of time.
+
+        This function extracts the first and second columns of the state history
+        of the aero surface object and plots the drag coefficient as a function
+        of time. The resulting plot is displayed on the screen.
 
         Returns
         -------
