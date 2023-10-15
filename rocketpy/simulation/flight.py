@@ -1934,6 +1934,37 @@ class Flight:
         """Returns time array from solution."""
         return self.solution_array[:, 0]
 
+    def get_solution_at_time(self, t, atol=1e-3):
+        """Returns the solution state vector at a given time. If the time is
+        not found in the solution, the closest time is used and a warning is
+        raised.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+        atol : float, optional
+            Absolute tolerance for time comparison. Default is 1e-3. If the
+            difference between the time and the closest time in the solution
+            is greater than this value, a warning is raised.
+
+        Returns
+        -------
+        solution : np.array
+            Solution state at time t. The array follows the format of the
+            solution array, with the first column being time like this:
+            [t, x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3].
+
+        """
+        time_index = find_closest(self.time, t)
+        if abs(self.time[time_index] - t) > atol:
+            warnings.warn(
+                f"Time {t} not found in solution. Closest time is "
+                f"{self.time[time_index]}. Using closest time.",
+                UserWarning,
+            )
+        return self.solution_array[time_index, :]
+
     # Process first type of outputs - state vector
     # Transform solution array into Functions
     @funcify_method("Time (s)", "X (m)", "spline", "constant")
