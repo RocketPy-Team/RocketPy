@@ -2603,29 +2603,6 @@ class Flight:
         return [(t, self.rocket.stability_margin(m, t)) for t, m in self.mach_number]
 
     # Rail Button Forces
-    @cached_property
-    def frontal_surface_wind(self):
-        """Surface wind speed in m/s aligned with the launch rail."""
-        # Surface wind magnitude in the frontal direction at the rail's elevation
-        wind_u = self.env.wind_velocity_x(self.env.elevation)
-        wind_v = self.env.wind_velocity_y(self.env.elevation)
-        heading_rad = self.heading * np.pi / 180
-        frontal_surface_wind = wind_u * np.sin(heading_rad) + wind_v * np.cos(
-            heading_rad
-        )
-        return frontal_surface_wind
-
-    @cached_property
-    def lateral_surface_wind(self):
-        """Surface wind speed in m/s perpendicular to launch rail."""
-        # Surface wind magnitude in the lateral direction at the rail's elevation
-        wind_u = self.env.wind_velocity_x(self.env.elevation)
-        wind_v = self.env.wind_velocity_y(self.env.elevation)
-        heading_rad = self.heading * np.pi / 180
-        lateral_surface_wind = -wind_u * np.cos(heading_rad) + wind_v * np.sin(
-            heading_rad
-        )
-        return lateral_surface_wind
 
     @funcify_method("Time (s)", "Upper Rail Button Normal Force (N)", "spline", "zero")
     def rail_button1_normal_force(self):
