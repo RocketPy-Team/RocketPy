@@ -1,8 +1,8 @@
 import traceback
 import warnings
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from scipy.integrate import solve_ivp
 
 from .environment.environment import Environment
@@ -517,11 +517,11 @@ def create_dispersion_dictionary(filename):
 
 def apogee_by_mass(flight, min_mass, max_mass, points=10, plot=True):
     """Returns a Function object that estimates the apogee of a rocket given
-    its dry mass. The function will use the rocket's mass as the independent
-    variable and the estimated apogee as the dependent variable. The function
-    will use the rocket's environment and inclination to estimate the apogee.
-    This is useful when you want to adjust the rocket's mass to reach a
-    specific apogee.
+    its mass (no motor). The function will use the rocket's mass as the
+    independent variable and the estimated apogee as the dependent variable.
+    The function will use the rocket's environment and inclination to estimate
+    the apogee. This is useful when you want to adjust the rocket's mass to
+    reach a specific apogee.
 
     Parameters
     ----------
@@ -529,8 +529,8 @@ def apogee_by_mass(flight, min_mass, max_mass, points=10, plot=True):
         Flight object containing the rocket's flight data
     min_mass : int
         The minimum value of mass to calculate the apogee, by default 3. This
-        value should be the minimum dry mass of the rocket, therefore, a
-        positive value is expected.
+        value should be the minimum rocket's mass, therefore, a positive value
+        is expected.
     max_mass : int
         The maximum value of mass to calculate the apogee, by default 30.
     points : int, optional
@@ -544,7 +544,7 @@ def apogee_by_mass(flight, min_mass, max_mass, points=10, plot=True):
     -------
     rocketpy.Function
         Function object containing the estimated apogee as a function of the
-        rocket's dry mass.
+        rocket's mass (without motor nor propellant).
     """
     rocket = flight.rocket
 
@@ -581,8 +581,8 @@ def apogee_by_mass(flight, min_mass, max_mass, points=10, plot=True):
 
 def liftoff_speed_by_mass(flight, min_mass, max_mass, points=10, plot=True):
     """Returns a Function object that estimates the liftoff speed of a rocket
-    given its dry mass. The function will use the rocket's mass as the
-    independent variable and the estimated liftoff speed as the dependent
+    given its mass (without motor). The function will use the rocket's mass as
+    the independent variable and the estimated liftoff speed as the dependent
     variable. The function will use the rocket's environment and inclination
     to estimate the liftoff speed. This is useful when you want to adjust the
     rocket's mass to reach a specific liftoff speed.
@@ -593,8 +593,8 @@ def liftoff_speed_by_mass(flight, min_mass, max_mass, points=10, plot=True):
         Flight object containing the rocket's flight data
     min_mass : int
         The minimum value of mass to calculate the liftoff speed, by default 3.
-        This value should be the minimum dry mass of the rocket, therefore, a
-        positive value is expected.
+        This value should be the minimum mass of the rocket (without a motor),
+        therefore, a positive value is expected.
     max_mass : int
         The maximum value of mass to calculate the liftoff speed, by default 30.
     points : int, optional
@@ -608,7 +608,7 @@ def liftoff_speed_by_mass(flight, min_mass, max_mass, points=10, plot=True):
     -------
     rocketpy.Function
         Function object containing the estimated liftoff speed as a function of
-        the rocket's dry mass.
+        the rocket's mass (without motor nor propellant).
     """
     rocket = flight.rocket
 
