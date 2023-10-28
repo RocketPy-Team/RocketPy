@@ -22,8 +22,6 @@ class _RocketPrints:
         """
         self.rocket = rocket
 
-        pass
-
     def inertia_details(self):
         """Print inertia details.
 
@@ -32,43 +30,27 @@ class _RocketPrints:
         None
         """
         print("\nInertia Details\n")
-        print("Rocket Mass: {:.3f} kg".format(self.rocket.mass))
-        print("Rocket Dry Mass: {:.3f} kg (With Motor)".format(self.rocket.dry_mass))
+        print("Rocket Mass: {self.rocket.mass:.3f} kg")
+        print(f"Rocket Dry Mass: {self.rocket.dry_mass:.3f} kg (with unloaded motor)")
+        print(f"Rocket Mass: {self.rocket.total_mass(0):.3f} kg (With Propellant)")
         print(
-            "Rocket Mass: {:.3f} kg (With Propellant)".format(self.rocket.total_mass(0))
+            f"Rocket Inertia (with unloaded motor) 11: {self.rocket.dry_I_11:.3f} kg*m2"
         )
         print(
-            "Rocket Inertia (with motor, but without propellant) 11: {:.3f} kg*m2".format(
-                self.rocket.dry_I_11
-            )
+            f"Rocket Inertia (with unloaded motor) 22: {self.rocket.dry_I_22:.3f} kg*m2"
         )
         print(
-            "Rocket Inertia (with motor, but without propellant) 22: {:.3f} kg*m2".format(
-                self.rocket.dry_I_22
-            )
+            f"Rocket Inertia (with unloaded motor) 33: {self.rocket.dry_I_33:.3f} kg*m2"
         )
         print(
-            "Rocket Inertia (with motor, but without propellant) 33: {:.3f} kg*m2".format(
-                self.rocket.dry_I_33
-            )
+            f"Rocket Inertia (with unloaded motor) 12: {self.rocket.dry_I_12:.3f} kg*m2"
         )
         print(
-            "Rocket Inertia (with motor, but without propellant) 12: {:.3f} kg*m2".format(
-                self.rocket.dry_I_12
-            )
+            f"Rocket Inertia (with unloaded motor) 13: {self.rocket.dry_I_13:.3f} kg*m2"
         )
         print(
-            "Rocket Inertia (with motor, but without propellant) 13: {:.3f} kg*m2".format(
-                self.rocket.dry_I_13
-            )
+            f"Rocket Inertia (with unloaded motor) 23: {self.rocket.dry_I_23:.3f} kg*m2"
         )
-        print(
-            "Rocket Inertia (with motor, but without propellant) 23: {:.3f} kg*m2".format(
-                self.rocket.dry_I_23
-            )
-        )
-
-        return None
 
     def rocket_geometrical_parameters(self):
         """Print rocket geometrical parameters.
