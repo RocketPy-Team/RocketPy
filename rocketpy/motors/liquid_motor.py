@@ -40,11 +40,10 @@ class LiquidMotor(Motor):
         The total mass of the motor structure, including chambers
         and tanks, when it is empty and does not contain any propellant.
     LiquidMotor.propellant_initial_mass : float
-        Total propellant initial mass in kg, includes
-        fuel and oxidizer.
+        Total propellant initial mass in kg, includes fuel and oxidizer.
     LiquidMotor.total_mass : Function
         Total motor mass in kg as a function of time, defined as the sum
-        of propellant and dry mass.
+        of propellant mass and the motor's dry mass (i.e. structure mass).
     LiquidMotor.propellant_mass : Function
         Total propellant mass in kg as a function of time, includes fuel
         and oxidizer.
@@ -260,12 +259,19 @@ class LiquidMotor(Motor):
         -------
         self.exhaust_velocity : Function
             Gas exhaust velocity of the motor.
+
+        Notes
+        -----
+        The exhaust velocity is computed as the ratio of the thrust and the
+        mass flow rate. Therefore, this will vary with time if the mass flow
+        rate varies with time.
         """
         return self.thrust / (-1 * self.mass_flow_rate)
 
     @funcify_method("Time (s)", "Propellant Mass (kg)")
     def propellant_mass(self):
-        """Evaluates the mass of the motor as the sum of each tank mass.
+        """Evaluates the mass of the motor as the sum of fluids mass in each
+        tank, which may include fuel and oxidizer and usually vary with time.
 
         Returns
         -------
@@ -281,7 +287,8 @@ class LiquidMotor(Motor):
 
     @cached_property
     def propellant_initial_mass(self):
-        """Property to store the initial mass of the propellant.
+        """Property to store the initial mass of the propellant, this includes
+        fuel and oxidizer.
 
         Returns
         -------
@@ -292,8 +299,9 @@ class LiquidMotor(Motor):
 
     @funcify_method("Time (s)", "Mass flow rate (kg/s)", extrapolation="zero")
     def mass_flow_rate(self):
-        """Evaluates the mass flow rate of the motor as the sum of each tank
-        mass flow rate.
+        """Evaluates the mass flow rate of the motor as the sum of mass flow
+        rate from each tank, which may include fuel and oxidizer and usually
+        vary with time.
 
         Returns
         -------
@@ -317,12 +325,12 @@ class LiquidMotor(Motor):
     def center_of_propellant_mass(self):
         """Evaluates the center of mass of the motor from each tank center of
         mass and positioning. The center of mass height is measured relative to
-        the motor nozzle.
+        the origin of the motor's coordinate system.
 
         Returns
         -------
         Function
-            Center of mass of the motor, in meters.
+            Position of the propellant center of mass, in meters.
         """
         total_mass = 0
         mass_balance = 0
