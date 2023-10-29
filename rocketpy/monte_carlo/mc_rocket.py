@@ -5,20 +5,16 @@ __license__ = "MIT"
 from typing import Any, List, Union
 
 from pydantic import Field, FilePath, PrivateAttr
-from rocketpy import Components
 
+from rocketpy.rocket.aero_surface import (EllipticalFins, NoseCone,
+                                          RailButtons, Tail, TrapezoidalFins)
+from rocketpy.rocket.components import Components
+from rocketpy.rocket.rocket import Rocket
 from rocketpy.tools import get_distribution
 
-from ..AeroSurface import EllipticalFins, NoseCone, RailButtons, Tail, TrapezoidalFins
-from ..Rocket import Rocket
 from .DispersionModel import DispersionModel
-from .mc_aero_surfaces import (
-    McEllipticalFins,
-    McNoseCone,
-    McRailButtons,
-    McTail,
-    McTrapezoidalFins,
-)
+from .mc_aero_surfaces import (McEllipticalFins, McNoseCone, McRailButtons,
+                               McTail, McTrapezoidalFins)
 from .mc_parachute import McParachute
 from .mc_solid_motor import McSolidMotor
 

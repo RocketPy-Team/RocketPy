@@ -1,8 +1,3 @@
-__author__ = "Mateus Stano Junqueira, Guilherme Fernandes Alves"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-
 from random import choice
 
 from pydantic import BaseModel, Extra, root_validator, validator

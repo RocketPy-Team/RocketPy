@@ -1,12 +1,9 @@
-__author__ = "Mateus Stano Junqueira"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
 from typing import Any, Callable, List, Tuple, Union
 
 from pydantic import Field, StrictFloat, StrictInt, StrictStr
 
-from ..Parachute import Parachute
+from rocketpy.rocket import Parachute
+
 from .DispersionModel import DispersionModel
 
 

@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 necessary_require = [
-    "numpy>=1.0",
+    "numpy>=1.13",
     "scipy>=1.0",
     "matplotlib>=3.0",
     "netCDF4>=1.6.4",
@@ -16,13 +16,14 @@ necessary_require = [
 env_analysis_require = [
     "timezonefinder",
     "windrose>=1.6.8",
+    "IPython",
     "ipywidgets>=7.6.3",
     "jsonpickle",
 ]
 
 setuptools.setup(
     name="rocketpy",
-    version="0.13.1",
+    version="1.0.1",
     install_requires=necessary_require,
     extras_require={
         "env_analysis": env_analysis_require,

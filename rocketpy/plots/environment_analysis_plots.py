@@ -1,21 +1,14 @@
-__author__ = "Guilherme Fernandes Alves"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-import ipywidgets as widgets
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import numpy as np
-from IPython.display import HTML
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.animation import PillowWriter as ImageWriter
 from scipy import stats
-from windrose import WindroseAxes
 
 from rocketpy.units import convert_units
 
-from ..tools import find_two_closest_integers
+from ..tools import find_two_closest_integers, import_optional_dependency
 
 # TODO: `wind_speed_limit` and `clear_range_limits` and should be numbers, not booleans
 
@@ -215,7 +208,7 @@ class _EnvironmentAnalysisPlots:
         for hour_entries in self.surface_level_dict.values():
             plt.plot(
                 [int(hour) for hour in hour_entries.keys()],
-                [val["surfaceTemperature"] for val in hour_entries.values()],
+                [val["surface_temperature"] for val in hour_entries.values()],
                 "gray",
                 alpha=0.1,
             )
@@ -291,8 +284,8 @@ class _EnvironmentAnalysisPlots:
                 [x for x in self.env_analysis.hours],
                 [
                     (
-                        val["surface10mWindVelocityX"] ** 2
-                        + val["surface10mWindVelocityY"] ** 2
+                        val["surface10m_wind_velocity_x"] ** 2
+                        + val["surface10m_wind_velocity_y"] ** 2
                     )
                     ** 0.5
                     for val in hour_entries.values()
@@ -378,8 +371,8 @@ class _EnvironmentAnalysisPlots:
                 [int(hour) for hour in hour_entries.keys()],
                 [
                     (
-                        val["surface100mWindVelocityX"] ** 2
-                        + val["surface100mWindVelocityY"] ** 2
+                        val["surface100m_wind_velocity_x"] ** 2
+                        + val["surface100m_wind_velocity_y"] ** 2
                     )
                     ** 0.5
                     for val in hour_entries.values()
@@ -487,9 +480,9 @@ class _EnvironmentAnalysisPlots:
         plt.autoscale(enable=True, axis="y", tight=True)
 
         if clear_range_limits:
-            xmin, xmax, _, _ = plt.axis()
+            x_min, xmax, _, _ = plt.axis()
             plt.fill_between(
-                [xmin, xmax],
+                [x_min, xmax],
                 0.7
                 * convert_units(10000, "ft", self.env_analysis.unit_system["length"]),
                 1.3
@@ -499,7 +492,7 @@ class _EnvironmentAnalysisPlots:
                 label=f"10,000 {self.env_analysis.unit_system['length']} ± 30%",
             )
             plt.fill_between(
-                [xmin, xmax],
+                [x_min, xmax],
                 0.7
                 * convert_units(30000, "ft", self.env_analysis.unit_system["length"]),
                 1.3
@@ -555,9 +548,9 @@ class _EnvironmentAnalysisPlots:
         )
 
         if clear_range_limits:
-            xmin, xmax, _, _ = plt.axis()
+            x_min, xmax, _, _ = plt.axis()
             plt.fill_between(
-                [xmin, xmax],
+                [x_min, xmax],
                 0.7
                 * convert_units(10000, "ft", self.env_analysis.unit_system["length"]),
                 1.3
@@ -567,7 +560,7 @@ class _EnvironmentAnalysisPlots:
                 label=f"10,000 {self.env_analysis.unit_system['length']} ± 30%",
             )
             plt.fill_between(
-                [xmin, xmax],
+                [x_min, xmax],
                 0.7
                 * convert_units(30000, "ft", self.env_analysis.unit_system["length"]),
                 1.3
@@ -614,9 +607,9 @@ class _EnvironmentAnalysisPlots:
         plt.autoscale(enable=True, axis="y", tight=True)
 
         if clear_range_limits:
-            xmin, xmax = 0, 360
+            x_min, xmax = 0, 360
             plt.fill_between(
-                [xmin, xmax],
+                [x_min, xmax],
                 0.7
                 * convert_units(10000, "ft", self.env_analysis.unit_system["length"]),
                 1.3
@@ -626,7 +619,7 @@ class _EnvironmentAnalysisPlots:
                 label=f"10,000 {self.env_analysis.unit_system['length']} ± 30%",
             )
             plt.fill_between(
-                [xmin, xmax],
+                [x_min, xmax],
                 0.7
                 * convert_units(30000, "ft", self.env_analysis.unit_system["length"]),
                 1.3
@@ -700,9 +693,9 @@ class _EnvironmentAnalysisPlots:
         plt.autoscale(enable=True, axis="y", tight=True)
 
         if clear_range_limits:
-            xmin, xmax, _, _ = plt.axis()
+            x_min, xmax, _, _ = plt.axis()
             plt.fill_between(
-                [xmin, xmax],
+                [x_min, xmax],
                 0.7
                 * convert_units(10000, "ft", self.env_analysis.unit_system["length"]),
                 1.3
@@ -712,7 +705,7 @@ class _EnvironmentAnalysisPlots:
                 label=f"10,000 {self.env_analysis.unit_system['length']} ± 30%",
             )
             plt.fill_between(
-                [xmin, xmax],
+                [x_min, xmax],
                 0.7
                 * convert_units(30000, "ft", self.env_analysis.unit_system["length"]),
                 1.3
@@ -788,9 +781,9 @@ class _EnvironmentAnalysisPlots:
         plt.autoscale(enable=True, axis="y", tight=True)
 
         if clear_range_limits:
-            xmin, xmax, ymax, ymin = plt.axis()
+            x_min, xmax, ymax, ymin = plt.axis()
             plt.fill_between(
-                [xmin, xmax],
+                [x_min, xmax],
                 0.7
                 * convert_units(10000, "ft", self.env_analysis.unit_system["length"]),
                 1.3
@@ -800,7 +793,7 @@ class _EnvironmentAnalysisPlots:
                 label=f"10,000 {self.env_analysis.unit_system['length']} ± 30%",
             )
             plt.fill_between(
-                [xmin, xmax],
+                [x_min, xmax],
                 0.7
                 * convert_units(30000, "ft", self.env_analysis.unit_system["length"]),
                 1.3
@@ -856,6 +849,8 @@ class _EnvironmentAnalysisPlots:
         -------
         WindroseAxes
         """
+        windrose = import_optional_dependency("windrose")
+        WindroseAxes = windrose.WindroseAxes
         ax = WindroseAxes.from_ax(fig=fig, rect=rect)
         ax.bar(
             wind_direction,
@@ -990,8 +985,9 @@ class _EnvironmentAnalysisPlots:
 
         Returns
         -------
-        Image : ipywidgets.widgets.widget_media.Image
+        Image : ipywidgets.widget_media.Image
         """
+        widgets = import_optional_dependency("ipywidgets")
         metadata = dict(
             title="windrose",
             artist="windrose",
@@ -1078,7 +1074,6 @@ class _EnvironmentAnalysisPlots:
             y_max = current_y_max if current_y_max > y_max else y_max
             ax.label_outer()
             ax.grid()
-
         # Set x and y limits for the last axis. Since axes are shared, set to all
         ax.set_xlim(x_min, x_max)
         ax.set_ylim(y_min, y_max)
@@ -1114,6 +1109,9 @@ class _EnvironmentAnalysisPlots:
         HTML : IPython.core.display.HTML
             The animation as an HTML object
         """
+        module = import_optional_dependency("IPython.display")
+        HTML = module.HTML  # this is a class
+
         # Gather animation data
         wind_gusts = self.env_analysis.surface_wind_gust_by_hour
 
@@ -1312,6 +1310,9 @@ class _EnvironmentAnalysisPlots:
         -------
         HTML : IPython.core.display.HTML
         """
+        module = import_optional_dependency("IPython.display")
+        HTML = module.HTML  # this is a class
+
         # Gather animation data
         surface_wind_speeds_at_given_hour = self.env_analysis.surface_wind_speed_by_hour
 
@@ -1453,14 +1454,13 @@ class _EnvironmentAnalysisPlots:
             if self.env_analysis.forecast:
                 forecast = self.env_analysis.forecast
                 y = self.env_analysis.average_wind_speed_profile_by_hour[hour][1]
-                x = forecast[hour].windSpeed.getValue(y) * convert_units(
+                x = forecast[hour].wind_speed.get_value(y) * convert_units(
                     1, "m/s", self.env_analysis.unit_system["wind_speed"]
                 )
                 ax.plot(x, y, "b--")
 
             ax.label_outer()
             ax.grid()
-
         # Set x and y limits for the last axis. Since axes are shared, set to all
         ax.set_xlim(x_min, x_max)
         ax.set_ylim(y_min, y_max)
@@ -1610,6 +1610,8 @@ class _EnvironmentAnalysisPlots:
             Whether to clear the sky range limits or not, by default False. This
             is useful when the launch site is constrained in terms or altitude.
         """
+        module = import_optional_dependency("IPython.display")
+        HTML = module.HTML  # this is a class
 
         # Create animation
         fig, ax = plt.subplots(dpi=200)
@@ -1689,6 +1691,8 @@ class _EnvironmentAnalysisPlots:
             Whether to clear the sky range limits or not, by default False. This
             is useful when the launch site is constrained in terms or altitude.
         """
+        module = import_optional_dependency("IPython.display")
+        HTML = module.HTML  # this is a class
 
         # Create animation
         fig, ax = plt.subplots(dpi=200)

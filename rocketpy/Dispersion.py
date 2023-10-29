@@ -1,23 +1,17 @@
-__author__ = "Mateus Stano Junqueira, Sofia Lopes Suesdek Rocha, Guilherme Fernandes Alves, Bruno Abdulklech Sorban"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-
 import ast
 from time import process_time, time
 
 import numpy as np
 import simplekml
 
-from .Flight import Flight
-from .Function import Function
-from .tools import (
+from rocketpy.mathutils.function import Function
+from rocketpy.plots.dispersion_plots import _DispersionPlots
+from rocketpy.prints.dispersion_prints import _DispersionPrints
+from rocketpy.simulation.flight import Flight
+from rocketpy.tools import (
     generate_dispersion_ellipses,
     generate_dispersion_ellipses_coordinates,
 )
-from .prints import _DispersionPrints
-from .plots import _DispersionPlots
-
 
 # TODO: How to save Functions? With pickle? Save just the source?
 

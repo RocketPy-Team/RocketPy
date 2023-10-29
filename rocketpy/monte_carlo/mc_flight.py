@@ -1,13 +1,10 @@
-__author__ = "Mateus Stano Junqueira"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
 
 from typing import Any, Tuple, Union
 
 from pydantic import Field, StrictFloat, StrictInt
 
-from ..Flight import Flight
+from rocketpy.simulation import Flight
+
 from .DispersionModel import DispersionModel
 
 

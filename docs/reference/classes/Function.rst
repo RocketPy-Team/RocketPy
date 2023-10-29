@@ -1,5 +1,5 @@
-Function Class
---------------
+Function Classes
+----------------
 
-.. automodule:: rocketpy.Function
+.. autoclass:: rocketpy.Function
    :members:

@@ -1,12 +1,15 @@
-__author__ = "Mateus Stano Junqueira"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
 from typing import Any, List, Tuple, Union
 
 from pydantic import Field, FilePath, StrictInt, StrictStr
 
-from ..AeroSurface import EllipticalFins, NoseCone, RailButtons, Tail, TrapezoidalFins
+from rocketpy.rocket.aero_surface import (
+    EllipticalFins,
+    NoseCone,
+    RailButtons,
+    Tail,
+    TrapezoidalFins,
+)
+
 from .DispersionModel import DispersionModel
 
 

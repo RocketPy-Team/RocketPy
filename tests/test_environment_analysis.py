@@ -2,24 +2,24 @@ import copy
 import os
 from unittest.mock import patch
 
-import ipywidgets as widgets
 import matplotlib as plt
 import pytest
-from IPython.display import HTML
+
+from rocketpy.tools import import_optional_dependency
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_allInfo(mock_show, env_analysis):
-    """Test the EnvironmentAnalysis.allInfo() method, which already invokes
+def test_all_info(mock_show, env_analysis):
+    """Test the EnvironmentAnalysis.all_info() method, which already invokes
     several other methods. It is a good way to test the whole class in a first view.
     However, if it fails, it is hard to know which method is failing.
 
     Parameters
     ----------
-    env_analysis : EnvironmentAnalysis
+    env_analysis : rocketpy.EnvironmentAnalysis
         A simple object of the Environment Analysis class
 
     Returns
@@ -27,7 +27,7 @@ def test_allInfo(mock_show, env_analysis):
     None
     """
     assert env_analysis.info() == None
-    assert env_analysis.allInfo() == None
+    assert env_analysis.all_info() == None
     assert env_analysis.plots.info() == None
     os.remove("wind_rose.gif")  # remove the files created by the method
 
@@ -42,7 +42,7 @@ def test_distribution_plots(mock_show, env_analysis):
 
     Parameters
     ----------
-    env_analysis : EnvironmentAnalysis
+    env_analysis : rocketpy.EnvironmentAnalysis
         A simple object of the EnvironmentAnalysis class.
 
     Returns
@@ -73,7 +73,7 @@ def test_average_plots(mock_show, env_analysis):
 
     Parameters
     ----------
-    env_analysis : EnvironmentAnalysis
+    env_analysis : rocketpy.EnvironmentAnalysis
         A simple object of the EnvironmentAnalysis class.
 
     Returns
@@ -101,7 +101,7 @@ def test_profile_plots(mock_show, env_analysis):
     ----------
     mock_show : Mock
         Mock of the matplotlib.pyplot.show() method
-    env_analysis : EnvironmentAnalysis
+    env_analysis : rocketpy.EnvironmentAnalysis
         A simple object of the EnvironmentAnalysis class.
     """
     # Check profile plots
@@ -146,6 +146,9 @@ def test_animation_plots(mock_show, env_analysis):
     env_analysis : EnvironmentAnalysis
         A simple object of the EnvironmentAnalysis class.
     """
+    # import dependencies
+    widgets = import_optional_dependency("ipywidgets")
+    HTML = import_optional_dependency("IPython.display").HTML
 
     # Check animation plots
     assert isinstance(env_analysis.plots.animate_average_wind_rose(), widgets.Image)
@@ -160,7 +163,8 @@ def test_animation_plots(mock_show, env_analysis):
 
 
 @pytest.mark.slow
-def test_exports(env_analysis):
+@patch("matplotlib.pyplot.show")
+def test_exports(mock_show, env_analysis):
     """Check the export methods of the EnvironmentAnalysis class. It
     only checks if the method runs without errors. It does not check if the
     files are correct, as this would require a lot of work and would be
@@ -173,14 +177,14 @@ def test_exports(env_analysis):
     """
 
     assert env_analysis.export_mean_profiles() == None
-    assert env_analysis.save("EnvAnalysisDict") == None
+    assert env_analysis.save("env_analysis_dict") == None
 
     env2 = copy.deepcopy(env_analysis)
-    env2.load("EnvAnalysisDict")
-    assert env2.allInfo() == None
+    env2.load("env_analysis_dict")
+    assert env2.all_info() == None
 
     # Delete file created by save method
-    os.remove("EnvAnalysisDict")
+    os.remove("env_analysis_dict")
     os.remove("wind_rose.gif")
     os.remove("export_env_analysis.json")
 

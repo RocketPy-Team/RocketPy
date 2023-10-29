@@ -7,7 +7,8 @@ from typing import Any, List, Tuple, Union
 
 from pydantic import Field, StrictInt, StrictStr, validator
 
-from ..Environment import Environment
+from rocketpy.environment import Environment
+
 from .DispersionModel import DispersionModel
 
 # TODO: name suggestions: `DispersionEnvironment`, `DispEnvironment`, EnvironmentDispersion`, EnvironmentDisp`, `MonteCarloEnvironment`, `EnvironmentMonteCarlo`,

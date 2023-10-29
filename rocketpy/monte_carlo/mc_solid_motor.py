@@ -6,7 +6,8 @@ from typing import Any, List, Union
 
 from pydantic import Field, FilePath, StrictFloat, StrictInt
 
-from ..Motor import SolidMotor
+from rocketpy.motors import SolidMotor
+
 from .DispersionModel import DispersionModel
 
 
