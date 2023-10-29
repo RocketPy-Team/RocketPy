@@ -26,8 +26,8 @@ class Function:
     def __init__(
         self,
         source,
-        inputs=["Scalar"],
-        outputs=["Scalar"],
+        inputs=None,
+        outputs=None,
         interpolation=None,
         extrapolation=None,
         title=None,
@@ -74,21 +74,25 @@ class Function:
         -------
         None
         """
+        # initialize variables to avoid pylint W0201
+        self.get_value_opt = None
+        self.__polynomial_coefficients__ = None
+        self.__akima_coefficients__ = None
+        self.__spline_coefficients__ = None
+
         # Set input and output
+        if inputs is None:
+            inputs = ["Scalar"]
+        if outputs is None:
+            outputs = ["Scalar"]
+
+        # store variables
         self.set_inputs(inputs)
         self.set_outputs(outputs)
-        # Save interpolation method
         self.__interpolation__ = interpolation
         self.__extrapolation__ = extrapolation
-        # Initialize last_interval
-        self.last_interval = 0
-        # Set source
         self.set_source(source)
-        #  Set function title
         self.set_title(title)
-
-        # Return
-        return None
 
     # Define all set methods
     def set_inputs(self, inputs):
@@ -150,8 +154,8 @@ class Function:
         # Import CSV if source is a string or Path and convert values to ndarray
         if isinstance(source, (str, Path)):
             # Read file and check for headers
-            f = open(source, "r")
-            first_line = f.readline()
+            with open(source, mode="r", encoding="utf-8") as f:
+                first_line = f.readline()
             # If headers are found...
             if first_line[0] in ['"', "'"]:
                 # Headers available
@@ -170,8 +174,10 @@ class Function:
         if isinstance(source, (int, float)):
             temp = 1 * source
 
-            def source(x):
+            def source_function(_):
                 return temp
+
+            source = source_function
 
         # Handle callable source or number source
         if callable(source):
@@ -426,16 +432,16 @@ class Function:
                 if x_min <= x <= x_max:
                     # Interpolate
                     y = 0
-                    for i in range(len(coeffs)):
-                        y += coeffs[i] * (x**i)
+                    for i, coef in enumerate(coeffs):
+                        y += coef * (x**i)
                 else:
                     # Extrapolate
                     if extrapolation == 0:  # Extrapolation == zero
                         y = 0
                     elif extrapolation == 1:  # Extrapolation == natural
                         y = 0
-                        for i in range(len(coeffs)):
-                            y += coeffs[i] * (x**i)
+                        for i, coef in enumerate(coeffs):
+                            y += coef * (x**i)
                     else:  # Extrapolation is set to constant
                         y = y_data[0] if x < x_min else y_data[-1]
                 return y
@@ -774,13 +780,12 @@ class Function:
             ans = x
             x_data = self.source[:, 0:-1]
             y_data = self.source[:, -1]
-            for i in range(len(x)):
+            for i, _ in enumerate(x):
                 numerator_sum = 0
                 denominator_sum = 0
-                for o in range(len(y_data)):
+                for o, _ in enumerate(y_data):
                     sub = x_data[o] - x[i]
                     distance = (sub.dot(sub)) ** (0.5)
-                    # print(x_data[o], x[i], distance)
                     if distance == 0:
                         numerator_sum = y_data[o]
                         denominator_sum = 1
@@ -804,8 +809,8 @@ class Function:
             for i in range(coeffs.shape[0]):
                 A[:, i] = x**i
             ans = A.dot(coeffs).tolist()
-            for i in range(len(x)):
-                if not (x_min <= x[i] <= x_max):
+            for i, _ in enumerate(x):
+                if not x_min <= x[i] <= x_max:
                     if self.__extrapolation__ == "constant":
                         ans[i] = y_data[0] if x[i] < x_min else y_data[-1]
                     elif self.__extrapolation__ == "zero":
@@ -822,7 +827,7 @@ class Function:
             x_min, x_max = self.xinitial, self.xfinal
             if self.__interpolation__ == "spline":
                 coeffs = self.__spline_coefficients__
-                for i in range(len(x)):
+                for i, _ in enumerate(x):
                     if x[i] == x_min or x[i] == x_max:
                         x[i] = y_data[x_intervals[i]]
                     elif x_min < x[i] < x_max or (self.__extrapolation__ == "natural"):
@@ -842,7 +847,7 @@ class Function:
                         else:  # Extrapolation is set to constant
                             x[i] = y_data[0] if x[i] < x_min else y_data[-1]
             elif self.__interpolation__ == "linear":
-                for i in range(len(x)):
+                for i, _ in enumerate(x):
                     # Interval found... interpolate... or extrapolate
                     inter = x_intervals[i]
                     if x_min <= x[i] <= x_max:
@@ -869,11 +874,11 @@ class Function:
                             x[i] = y_data[0] if x[i] < x_min else y_data[-1]
             else:
                 coeffs = self.__akima_coefficients__
-                for i in range(len(x)):
+                for i, _ in enumerate(x):
                     if x[i] == x_min or x[i] == x_max:
                         x[i] = y_data[x_intervals[i]]
                     elif x_min < x[i] < x_max or (self.__extrapolation__ == "natural"):
-                        if not (x_min < x[i] < x_max):
+                        if not x_min < x[i] < x_max:
                             a = coeffs[:4] if x[i] < x_min else coeffs[-4:]
                         else:
                             a = coeffs[4 * x_intervals[i] - 4 : 4 * x_intervals[i]]
@@ -1133,8 +1138,8 @@ class Function:
             lower = x_min if lower is None else lower
             upper = x_max if upper is None else upper
             # Plot data points if force_data = True
-            too_low = True if x_min >= lower else False
-            too_high = True if x_max <= upper else False
+            too_low = x_min >= lower
+            too_high = x_max <= upper
             lo_ind = 0 if too_low else np.where(x_data >= lower)[0][0]
             up_ind = len(x_data) - 1 if too_high else np.where(x_data <= upper)[0][0]
             points = self.source[lo_ind : (up_ind + 1), :].T.tolist()
@@ -1162,7 +1167,7 @@ class Function:
         self,
         lower=None,
         upper=None,
-        samples=[30, 30],
+        samples=None,
         force_data=True,
         disp_type="surface",
         alpha=0.6,
@@ -1211,6 +1216,8 @@ class Function:
         -------
         None
         """
+        if samples is None:
+            samples = [30, 30]
         # Prepare plot
         figure = plt.figure()
         axes = figure.add_subplot(111, projection="3d")
@@ -1332,7 +1339,7 @@ class Function:
         -------
         None
         """
-        no_range_specified = True if lower is None and upper is None else False
+        no_range_specified = lower is None and upper is None
         # Convert to list of tuples if list of Function was given
         plots = []
         for plot in plot_list:
@@ -1382,8 +1389,8 @@ class Function:
                 if not callable(plot[0].source):
                     x_data = plot[0].source[:, 0]
                     x_min, x_max = x_data[0], x_data[-1]
-                    too_low = True if x_min >= lower else False
-                    too_high = True if x_max <= upper else False
+                    too_low = x_min >= lower
+                    too_high = x_max <= upper
                     lo_ind = 0 if too_low else np.where(x_data >= lower)[0][0]
                     up_ind = (
                         len(x_data) - 1 if too_high else np.where(x_data <= upper)[0][0]
@@ -2023,7 +2030,7 @@ class Function:
                 isinstance(other.source, np.ndarray)
                 and isinstance(self.source, np.ndarray)
                 and self.__dom_dim__ == other.__dom_dim__
-                and np.any(self.x_array - other.x_array) == False
+                and np.any(self.x_array - other.x_array) is False
                 and np.array_equal(self.x_array, other.x_array)
             ):
                 # Operate on grid values
@@ -2279,6 +2286,7 @@ class Function:
             return (
                 self.get_value(x + dx) - 2 * self.get_value(x) + self.get_value(x - dx)
             ) / dx**2
+        return None
 
     def identity_function(self):
         """Returns a Function object that correspond to the identity mapping,
@@ -2329,7 +2337,11 @@ class Function:
             inputs = self.__inputs__[:]
             outputs = f"d({self.__outputs__[0]})/d({inputs[0]})"
         else:
-            source = lambda x: self.differentiate(x)
+
+            def source_function(x):
+                return self.differentiate(x)
+
+            source = source_function
             inputs = self.__inputs__[:]
             outputs = f"d({self.__outputs__[0]})/d({inputs[0]})"
 
@@ -2496,9 +2508,16 @@ class Function:
                 )
         else:
             if approx_func is not None:
-                source = lambda x: self.find_input(x, start=approx_func(x), tol=tol)
+
+                def source_function(x):
+                    return self.find_input(x, start=approx_func(x), tol=tol)
+
             else:
-                source = lambda x: self.find_input(x, start=0, tol=tol)
+
+                def source_function(x):
+                    return self.find_input(x, start=0, tol=tol)
+
+            source = source_function
         return Function(
             source,
             inputs=self.__outputs__,
@@ -2580,8 +2599,7 @@ class Function:
                 outputs=[o + " Average" for o in self.__outputs__],
             )
         else:
-            if lower is None:
-                lower = 0
+            lower = 0 if lower is None else lower
             return Function(
                 lambda x: self.average(lower, x),
                 inputs=self.__inputs__,
@@ -2649,8 +2667,8 @@ class PiecewiseFunction(Function):
     def __new__(
         cls,
         source,
-        inputs=["Scalar"],
-        outputs=["Scalar"],
+        inputs=None,
+        outputs=None,
         interpolation="spline",
         extrapolation=None,
         datapoints=100,
@@ -2677,6 +2695,10 @@ class PiecewiseFunction(Function):
             The number of points in which the piecewise function will be
             evaluated to create a base function. The default value is 100.
         """
+        if inputs is None:
+            inputs = ["Scalar"]
+        if outputs is None:
+            outputs = ["Scalar"]
         # Check if source is a dictionary
         if not isinstance(source, dict):
             raise TypeError("source must be a dictionary")
@@ -2715,6 +2737,10 @@ class PiecewiseFunction(Function):
             -----
             In the future, consider using the built-in map function from python.
             """
+            output = np.zeros(len(inputs))
+            for j, value in enumerate(inputs):
+                output[j] = func.get_value(value)
+            return output
 
         input_data = []
         output_data = []
@@ -2843,7 +2869,10 @@ def funcify_method(*args, **kwargs):
                     val = Function(source, *args, **kwargs)
                 except TypeError:
                     # Handle methods which are the source themselves
-                    source = lambda *_: self.func(instance, *_)
+                    def source_function(*_):
+                        return self.func(instance, *_)
+
+                    source = source_function
                     val = Function(source, *args, **kwargs)
                 except Exception as exc:
                     # TODO: Raising too general exception Pylint W0719
