@@ -671,8 +671,6 @@ def test_surface_wind(flight_calisto_custom_wind):
     flight_calisto_custom_wind : rocketpy.Flight
         Flight object to be tested. See the conftest.py file for more info
         regarding this pytest fixture.
-    atol : float, optional
-        Absolute tolerance error, by default 1e-8
     """
     test = flight_calisto_custom_wind
     atol = 1e-8
@@ -697,8 +695,6 @@ def test_effective_rail_length(flight_calisto_robust, flight_calisto_nose_to_tai
         defined with the "nose_to_tail" orientation instead of the
         "tail_to_nose" orientation. See the conftest.py file for more info
         regarding this pytest fixture.
-    atol : float, optional
-        The absolute tolerance error, by default 1e-8
     """
     test1 = flight_calisto_robust
     test2 = flight_calisto_nose_to_tail
@@ -738,8 +734,6 @@ def test_max_values(flight_calisto_robust):
     flight_calisto_robust : rocketpy.Flight
         Flight object to be tested. See the conftest.py file for more info
         regarding this pytest fixture.
-    atol : float, optional
-        Absolute tolerance error, by default 5e-3
     """
     test = flight_calisto_robust
     atol = 5e-3
@@ -761,8 +755,6 @@ def test_rail_buttons_forces(flight_calisto_custom_wind):
     flight_calisto_custom_wind : rocketpy.Flight
         Flight object to be tested. See the conftest.py file for more info
         regarding this pytest fixture.
-    atol : float, optional
-        The absolute tolerance error, by default 5e-3
     """
     test = flight_calisto_custom_wind
     atol = 5e-3
