@@ -4,11 +4,28 @@ import numericalunits
 import numpy as np
 import pytest
 
-from rocketpy import (CylindricalTank, Environment, EnvironmentAnalysis,
-                      Flight, Fluid, Function, GenericMotor, HybridMotor,
-                      LevelBasedTank, LiquidMotor, MassBasedTank, NoseCone,
-                      Parachute, RailButtons, Rocket, SolidMotor,
-                      SphericalTank, Tail, TrapezoidalFins, UllageBasedTank)
+from rocketpy import (
+    CylindricalTank,
+    Environment,
+    EnvironmentAnalysis,
+    Flight,
+    Fluid,
+    Function,
+    GenericMotor,
+    HybridMotor,
+    LevelBasedTank,
+    LiquidMotor,
+    MassBasedTank,
+    NoseCone,
+    Parachute,
+    RailButtons,
+    Rocket,
+    SolidMotor,
+    SphericalTank,
+    Tail,
+    TrapezoidalFins,
+    UllageBasedTank,
+)
 
 # Pytest configuration
 
