@@ -198,10 +198,10 @@ class Function:
             # Check to see if dimensions match incoming data set
             new_total_dim = len(source[0, :])
             old_total_dim = self.__dom_dim__ + self.__img_dim__
-            dV = self.__inputs__ == ["Scalar"] and self.__outputs__ == ["Scalar"]
+            d_v = self.__inputs__ == ["Scalar"] and self.__outputs__ == ["Scalar"]
             # If they don't, update default values or throw error
             if new_total_dim != old_total_dim:
-                if dV:
+                if d_v:
                     # Update dimensions and inputs
                     self.__dom_dim__ = new_total_dim - 1
                     self.__inputs__ = self.__dom_dim__ * self.__inputs__
@@ -369,8 +369,6 @@ class Function:
                         y = y_data[0] if x < x_min else y_data[-1]
                 return y
 
-            self.get_value_opt = get_value_opt
-
         elif self.__interpolation__ == "linear":
 
             def get_value_opt(x):
@@ -398,8 +396,6 @@ class Function:
                         y = y_data[0] if x < x_min else y_data[-1]
                 return y
 
-            self.get_value_opt = get_value_opt
-
         elif self.__interpolation__ == "akima":
             coeffs = np.array(self.__akima_coefficients__)
 
@@ -421,8 +417,6 @@ class Function:
                     else:  # Extrapolation is set to constant
                         y = y_data[0] if x < x_min else y_data[-1]
                 return y
-
-            self.get_value_opt = get_value_opt
 
         elif self.__interpolation__ == "polynomial":
             coeffs = self.__polynomial_coefficients__
@@ -446,13 +440,12 @@ class Function:
                         y = y_data[0] if x < x_min else y_data[-1]
                 return y
 
-            self.get_value_opt = get_value_opt
-
         elif self.__interpolation__ == "shepard":
             x_data = self.source[:, 0:-1]  # Support for N-Dimensions
             len_y_data = len(y_data)  # A little speed up
 
-            def get_value_opt(*args):
+            # change the function's name to avoid mypy's error
+            def get_value_opt_multiple(*args):
                 x = np.array([[float(x) for x in list(args)]])
                 numerator_sum = 0
                 denominator_sum = 0
@@ -463,15 +456,14 @@ class Function:
                         numerator_sum = y_data[i]
                         denominator_sum = 1
                         break
-                    else:
-                        weight = distance ** (-3)
-                        numerator_sum = numerator_sum + y_data[i] * weight
-                        denominator_sum = denominator_sum + weight
+                    weight = distance ** (-3)
+                    numerator_sum = numerator_sum + y_data[i] * weight
+                    denominator_sum = denominator_sum + weight
                 return numerator_sum / denominator_sum
 
-            self.get_value_opt = get_value_opt
+            get_value_opt = get_value_opt_multiple
 
-        # Returns self
+        self.get_value_opt = get_value_opt
         return self
 
     def set_discrete(
@@ -790,10 +782,9 @@ class Function:
                         numerator_sum = y_data[o]
                         denominator_sum = 1
                         break
-                    else:
-                        weight = distance ** (-3)
-                        numerator_sum = numerator_sum + y_data[o] * weight
-                        denominator_sum = denominator_sum + weight
+                    weight = distance ** (-3)
+                    numerator_sum = numerator_sum + y_data[o] * weight
+                    denominator_sum = denominator_sum + weight
                 ans[i] = numerator_sum / denominator_sum
             return ans if len(ans) > 1 else ans[0]
         # Returns value for polynomial interpolation function type
@@ -805,10 +796,10 @@ class Function:
             y_data = self.y_array
             x_min, x_max = self.xinitial, self.xfinal
             coeffs = self.__polynomial_coefficients__
-            A = np.zeros((len(args[0]), coeffs.shape[0]))
+            matrix = np.zeros((len(args[0]), coeffs.shape[0]))
             for i in range(coeffs.shape[0]):
-                A[:, i] = x**i
-            ans = A.dot(coeffs).tolist()
+                matrix[:, i] = x**i
+            ans = matrix.dot(coeffs).tolist()
             for i, _ in enumerate(x):
                 if not x_min <= x[i] <= x_max:
                     if self.__extrapolation__ == "constant":
@@ -820,7 +811,7 @@ class Function:
         elif self.__interpolation__ in ["spline", "akima", "linear"]:
             if isinstance(args[0], (int, float, complex, np.integer)):
                 args = [list(args)]
-            x = [arg for arg in args[0]]
+            x = list(args[0])
             x_data = self.x_array
             y_data = self.y_array
             x_intervals = np.searchsorted(x_data, x)
@@ -1438,38 +1429,33 @@ class Function:
     def __interpolate_spline__(self):
         """Calculate natural spline coefficients that fit the data exactly."""
         # Get x and y values for all supplied points
-        x = self.x_array
-        y = self.y_array
-        mdim = len(x)
-        h = [x[i + 1] - x[i] for i in range(0, mdim - 1)]
+        x, y = self.x_array, self.y_array
+        m_dim = len(x)
+        h = np.diff(x)
         # Initialize the matrix
-        Ab = np.zeros((3, mdim))
+        banded_matrix = np.zeros((3, m_dim))
+        banded_matrix[1, 0] = banded_matrix[1, m_dim - 1] = 1
         # Construct the Ab banded matrix and B vector
-        Ab[1, 0] = 1  # A[0, 0] = 1
-        B = [0]
-        for i in range(1, mdim - 1):
-            Ab[2, i - 1] = h[i - 1]  # A[i, i - 1] = h[i - 1]
-            Ab[1, i] = 2 * (h[i] + h[i - 1])  # A[i, i] = 2*(h[i] + h[i - 1])
-            Ab[0, i + 1] = h[i]  # A[i, i + 1] = h[i]
-            B.append(3 * ((y[i + 1] - y[i]) / (h[i]) - (y[i] - y[i - 1]) / (h[i - 1])))
-        Ab[1, mdim - 1] = 1  # A[-1, -1] = 1
-        B.append(0)
+        vector_b = [0]
+        banded_matrix[2, :-2] = h[:-1]
+        banded_matrix[1, 1:-1] = 2 * (h[:-1] + h[1:])
+        banded_matrix[0, 2:] = h[1:]
+        vector_b.extend(3 * ((y[2:] - y[1:-1]) / h[1:] - (y[1:-1] - y[:-2]) / h[:-1]))
+        vector_b.append(0)
         # Solve the system for c coefficients
-        c = linalg.solve_banded((1, 1), Ab, B, True, True)
+        c = linalg.solve_banded(
+            (1, 1), banded_matrix, vector_b, overwrite_ab=True, overwrite_b=True
+        )
         # Calculate other coefficients
-        b = [
-            ((y[i + 1] - y[i]) / h[i] - h[i] * (2 * c[i] + c[i + 1]) / 3)
-            for i in range(0, mdim - 1)
-        ]
-        d = [(c[i + 1] - c[i]) / (3 * h[i]) for i in range(0, mdim - 1)]
+        b = (y[1:] - y[:-1]) / h - h * (2 * c[:-1] + c[1:]) / 3
+        d = (c[1:] - c[:-1]) / (3 * h)
         # Store coefficients
-        self.__spline_coefficients__ = np.array([y[0:-1], b, c[0:-1], d])
+        self.__spline_coefficients__ = np.vstack([y[:-1], b, c[:-1], d])
 
     def __interpolate_akima__(self):
         """Calculate akima spline coefficients that fit the data exactly"""
         # Get x and y values for all supplied points
-        x = self.x_array
-        y = self.y_array
+        x, y = self.x_array, self.y_array
         # Estimate derivatives at each point
         d = [0] * len(x)
         d[0] = (y[1] - y[0]) / (x[1] - x[0])
@@ -1484,7 +1470,7 @@ class Function:
             xl, xr = x[i], x[i + 1]
             yl, yr = y[i], y[i + 1]
             dl, dr = d[i], d[i + 1]
-            A = np.array(
+            matrix = np.array(
                 [
                     [1, xl, xl**2, xl**3],
                     [1, xr, xr**2, xr**3],
@@ -1492,6 +1478,7 @@ class Function:
                     [0, 1, 2 * xr, 3 * xr**2],
                 ]
             )
+            result = np.array([yl, yr, dl, dr]).T
             coeffs[4 * i : 4 * i + 4] = np.linalg.solve(matrix, result)
         self.__akima_coefficients__ = coeffs
 
