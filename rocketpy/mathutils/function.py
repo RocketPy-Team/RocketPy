@@ -1,3 +1,9 @@
+""" The mathutils/function.py is a rocketpy module totally dedicated to function
+operations, including interpolation, extrapolation, integration, differentiation
+and more. This is a core class of our package, and should be maintained
+carefully as it may impact all the rest of the project.
+"""
+import warnings
 from inspect import signature
 from pathlib import Path
 
@@ -287,7 +293,6 @@ class Function:
         # Set get_value_opt
         self.set_get_value_opt()
 
-        # Returns self
         return self
 
     def set_extrapolation(self, method="constant"):
@@ -305,10 +310,9 @@ class Function:
         Returns
         -------
         self : Function
+            The Function object.
         """
-        # Set extrapolation method
         self.__extrapolation__ = method
-        # Return self
         return self
 
     def set_get_value_opt(self):
@@ -954,7 +958,9 @@ class Function:
         >>> time = np.linspace(0, 10, 1000)
         >>> signal = np.sin(2 * np.pi * main_frequency * time)
         >>> time_domain = Function(np.array([time, signal]).T)
-        >>> frequency_domain = time_domain.to_frequency_domain(lower=0, upper=10, sampling_frequency=100)
+        >>> frequency_domain = time_domain.to_frequency_domain(
+        ...     lower=0, upper=10, sampling_frequency=100
+        ... )
         >>> peak_frequencies_index = np.where(frequency_domain[:, 1] > 0.001)
         >>> peak_frequencies = frequency_domain[peak_frequencies_index, 0]
         >>> print(peak_frequencies)
@@ -1031,6 +1037,13 @@ class Function:
         )
 
     def set_title(self, title):
+        """Used to define the title of the Function object.
+
+        Parameters
+        ----------
+        title : str
+            Title to be assigned to the Function.
+        """
         if title:
             self.title = title
         else:
@@ -1191,7 +1204,7 @@ class Function:
             Transparency of plotted graph, which can be a value between 0 and
             1. Default value is 0.6.
         cmap : string, optional
-            Colormap of plotted graph, which can be any of the colormaps
+            Colormap of plotted graph, which can be any of the color maps
             available in matplotlib. Default value is viridis.
 
         Returns
@@ -1231,7 +1244,6 @@ class Function:
         z = np.array(self.get_value(mesh)).reshape(mesh_x.shape)
         z_min, z_max = z.min(), z.max()
         color_map = plt.cm.get_cmap(cmap)
-        norm = plt.Normalize(z_min, z_max)
         # Plot function
         if disp_type == "surface":
             surf = axes.plot_surface(
@@ -1251,15 +1263,13 @@ class Function:
             axes.plot_wireframe(mesh_x, mesh_y, z, rstride=1, cstride=1)
         elif disp_type == "contour":
             figure.clf()
-            CS = plt.contour(mesh_x, mesh_y, z)
-            plt.clabel(CS, inline=1, fontsize=10)
+            contour_set = plt.contour(mesh_x, mesh_y, z)
+            plt.clabel(contour_set, inline=1, fontsize=10)
         elif disp_type == "contourf":
             figure.clf()
-            CS = plt.contour(mesh_x, mesh_y, z)
+            contour_set = plt.contour(mesh_x, mesh_y, z)
             plt.contourf(mesh_x, mesh_y, z)
-            plt.clabel(CS, inline=1, fontsize=10)
-        # axes.contourf(mesh_x, mesh_y, z, zdir='x', offset=x_min, cmap=cm.coolwarm)
-        # axes.contourf(mesh_x, mesh_y, z, zdir='y', offset=y_max, cmap=cm.coolwarm)
+            plt.clabel(contour_set, inline=1, fontsize=10)
         plt.title(self.title)
         axes.set_xlabel(self.__inputs__[0].title())
         axes.set_ylabel(self.__inputs__[1].title())
@@ -1331,13 +1341,6 @@ class Function:
             else:
                 plots.append((plot, ""))
 
-        # plots = []
-        # if isinstance(plot_list[0], (tuple, list)) == False:
-        #     for plot in plot_list:
-        #         plots.append((plot, " "))
-        # else:
-        #     plots = plot_list
-
         # Create plot figure
         fig, ax = plt.subplots()
 
@@ -1397,7 +1400,6 @@ class Function:
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
 
-        # Show plot
         plt.show()
 
         if return_object:
@@ -1405,7 +1407,7 @@ class Function:
 
     # Define all interpolation methods
     def __interpolate_polynomial__(self):
-        """Calculate polynomail coefficients that fit the data exactly."""
+        """Calculate polynomial coefficients that fit the data exactly."""
         # Find the degree of the polynomial interpolation
         degree = self.source.shape[0] - 1
         # Get x and y values for all supplied points.
@@ -1420,11 +1422,11 @@ class Function:
             )
             return self.set_interpolation("spline")
         # Create coefficient matrix1
-        A = np.zeros((degree + 1, degree + 1))
+        matrix = np.zeros((degree + 1, degree + 1))
         for i in range(degree + 1):
-            A[:, i] = x**i
+            matrix[:, i] = x**i
         # Solve the system and store the resultant coefficients
-        self.__polynomial_coefficients__ = np.linalg.solve(A, y)
+        self.__polynomial_coefficients__ = np.linalg.solve(matrix, y)
 
     def __interpolate_spline__(self):
         """Calculate natural spline coefficients that fit the data exactly."""
@@ -1483,20 +1485,7 @@ class Function:
                     [0, 1, 2 * xr, 3 * xr**2],
                 ]
             )
-            Y = np.array([yl, yr, dl, dr]).T
-            coeffs[4 * i : 4 * i + 4] = np.linalg.solve(A, Y)
-            """For some reason this doesn't always work!
-            coeffs[4*i] = (dr*xl**2*xr*(-xl + xr) + dl*xl*xr**2*(-xl + xr) +
-                           3*xl*xr**2*yl - xr**3*yl + xl**3*yr -
-                          3*xl**2*xr*yr)/(xl-xr)**3
-            coeffs[4*i+1] = (dr*xl*(xl**2 + xl*xr - 2*xr**2) -
-                             xr*(dl*(-2*xl**2 + xl*xr + xr**2) +
-                             6*xl*(yl - yr)))/(xl-xr)**3
-            coeffs[4*i+2] = (-dl*(xl**2 + xl*xr - 2*xr**2) +
-                             dr*(-2*xl**2 + xl*xr + xr**2) +
-                             3*(xl + xr)*(yl - yr))/(xl-xr)**3
-            coeffs[4*i+3] = (dl*(xl - xr) + dr*(xl - xr) -
-                             2*yl + 2*yr)/(xl-xr)**3"""
+            coeffs[4 * i : 4 * i + 4] = np.linalg.solve(matrix, result)
         self.__akima_coefficients__ = coeffs
 
     def __neg__(self):
@@ -1555,30 +1544,31 @@ class Function:
                 except AttributeError:
                     # Other is lambda based Function
                     return self.y_array >= other(self.x_array)
-                except ValueError:
+                except ValueError as exc:
                     raise ValueError(
                         "Comparison not supported between instances of the "
                         "Function class with different domain discretization."
-                    )
+                    ) from exc
             else:
                 # Other is not a Function
                 try:
                     return self.y_array >= other
-                except TypeError:
+                except TypeError as exc:
                     raise TypeError(
                         "Comparison not supported between instances of "
                         f"'Function' and '{type(other)}'."
-                    )
+                    ) from exc
         else:
             # self is lambda based Function
             if other_is_function:
                 try:
                     return self(other.x_array) >= other.y_array
-                except AttributeError:
+                except AttributeError as exc:
                     raise TypeError(
                         "Comparison not supported between two instances of "
                         "the Function class with callable sources."
-                    )
+                    ) from exc
+        return None
 
     def __le__(self, other):
         """Less than or equal to comparison operator. It can be used to
@@ -1609,27 +1599,30 @@ class Function:
                 except AttributeError:
                     # Other is lambda based Function
                     return self.y_array <= other(self.x_array)
-                except ValueError:
-                    raise ValueError("Operands should have the same discretization.")
+                except ValueError as exc:
+                    raise ValueError(
+                        "Operands should have the same discretization."
+                    ) from exc
             else:
                 # Other is not a Function
                 try:
                     return self.y_array <= other
-                except TypeError:
+                except TypeError as exc:
                     raise TypeError(
                         "Comparison not supported between instances of "
                         f"'Function' and '{type(other)}'."
-                    )
+                    ) from exc
         else:
             # self is lambda based Function
             if other_is_function:
                 try:
                     return self(other.x_array) <= other.y_array
-                except AttributeError:
+                except AttributeError as exc:
                     raise TypeError(
                         "Comparison not supported between two instances of "
                         "the Function class with callable sources."
-                    )
+                    ) from exc
+        return None
 
     def __gt__(self, other):
         """Greater than comparison operator. It can be used to compare a
@@ -2080,7 +2073,7 @@ class Function:
         Parameters
         ----------
         other : int, float, callable
-            What self will exponentiate.
+            The object that will be exponentiate by function.
 
         Returns
         -------
@@ -2472,7 +2465,7 @@ class Function:
         If the Function is given by a list of points, its bijectivity is
         checked and an error is raised if it is not bijective.
         If the Function is given by a function, its bijection is not
-        checked and may lead to innacuracies outside of its bijective region.
+        checked and may lead to inaccuracies outside of its bijective region.
 
         Parameters
         ----------
@@ -2648,6 +2641,11 @@ class Function:
 
 
 class PiecewiseFunction(Function):
+    """Class for creating piecewise functions. These kind of functions are
+    defined by a dictionary of functions, where the keys are tuples that
+    represent the domain of the function. The domains must be disjoint.
+    """
+
     def __new__(
         cls,
         source,
@@ -2695,10 +2693,28 @@ class PiecewiseFunction(Function):
 
         # Crate Function
         def calc_output(func, inputs):
-            o = np.zeros(len(inputs))
-            for j in range(len(inputs)):
-                o[j] = func.get_value(inputs[j])
-            return o
+            """Receives a list of inputs value and a function, populates another
+            list with the results corresponding to the same results.
+
+            Parameters
+            ----------
+            func : Function
+                The Function object to be
+            inputs : list, tuple, np.array
+                The array of points to applied the func to.
+
+            Examples
+            --------
+            >>> inputs = [0, 1, 2, 3, 4, 5]
+            >>> def func(x):
+            ...     return x*10
+            >>> calc_output(func, inputs)
+            [0, 10, 20, 30, 40, 50]
+
+            Notes
+            -----
+            In the future, consider using the built-in map function from python.
+            """
 
         input_data = []
         output_data = []
@@ -2794,6 +2810,13 @@ def funcify_method(*args, **kwargs):
         args = []
 
     class funcify_method_decorator:
+        """Decorator class to transform a cached property that is being defined
+        inside a class to a Function object. This improves readability of the
+        code since it will not require the user to directly invoke the Function
+        class.
+        """
+
+        # pylint: disable=C0103,R0903
         def __init__(self, func):
             self.func = func
             self.attrname = None
@@ -2822,12 +2845,14 @@ def funcify_method(*args, **kwargs):
                     # Handle methods which are the source themselves
                     source = lambda *_: self.func(instance, *_)
                     val = Function(source, *args, **kwargs)
-                except Exception:
+                except Exception as exc:
+                    # TODO: Raising too general exception Pylint W0719
                     raise Exception(
                         "Could not create Function object from method "
                         f"{self.func.__name__}."
-                    )
+                    ) from exc
 
+                # pylint: disable=W0201
                 val.__doc__ = self.__doc__
                 val.__cached__ = True
                 cache[self.attrname] = val
@@ -2841,7 +2866,7 @@ def funcify_method(*args, **kwargs):
 
 def reset_funcified_methods(instance):
     """Resets all the funcified methods of the instance. It does so by
-    deleting the current Functions, which will make the interperter redefine
+    deleting the current Functions, which will make the interpreter redefine
     them when they are called. This is useful when the instance has changed
     and the methods need to be recalculated.
 
