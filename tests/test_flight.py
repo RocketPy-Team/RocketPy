@@ -791,8 +791,12 @@ def test_accelerations(flight_calisto_custom_wind, flight_time, expected_values)
     ----------
     flight_calisto_custom_wind : rocketpy.Flight
         Flight object to be tested. See the conftest.py file for more info.
-    atol : float, optional
-        The absolute tolerance error, by default 5e-3
+    flight_time : str
+        The name of the attribute of the flight object that contains the time
+        of the point to be tested.
+    expected_values : tuple
+        The expected values of the acceleration vector at the point to be
+        tested.
     """
     expected_attr, expected_acc = flight_time, expected_values
 
@@ -826,8 +830,11 @@ def test_velocities(flight_calisto_custom_wind, flight_time, expected_values):
     ----------
     flight_calisto_custom_wind : rocketpy.Flight
         Flight object to be tested. See the conftest.py file for more info.
-    atol : float, optional
-        The absolute tolerance error, by default 5e-3
+    flight_time : str
+        The name of the attribute of the flight object that contains the time
+        of the point to be tested.
+    expected_values : tuple
+        The expected values of the velocity vector at the point to be tested.
     """
     expected_attr, expected_vel = flight_time, expected_values
 
@@ -861,8 +868,12 @@ def test_aerodynamic_forces(flight_calisto_custom_wind, flight_time, expected_va
     ----------
     flight_calisto_custom_wind : rocketpy.Flight
         Flight object to be tested. See the conftest.py file for more info.
-    atol : float, optional
-        The absolute tolerance error, by default 5e-3
+    flight_time : str
+        The name of the attribute of the flight object that contains the time
+        of the point to be tested.
+    expected_values : tuple
+        The expected values of the aerodynamic forces vector at the point to be
+        tested.
     """
     expected_attr, expected_R = flight_time, expected_values
 
@@ -896,8 +907,12 @@ def test_aerodynamic_moments(flight_calisto_custom_wind, flight_time, expected_v
     ----------
     flight_calisto_custom_wind : rocketpy.Flight
         Flight object to be tested. See the conftest.py file for more info.
-    atol : float, optional
-        The absolute tolerance error, by default 5e-3
+    flight_time : str
+        The name of the attribute of the flight object that contains the time
+        of the point to be tested.
+    expected_values : tuple
+        The expected values of the aerodynamic moments vector at the point to
+        be tested.
     """
     expected_attr, expected_M = flight_time, expected_values
 
