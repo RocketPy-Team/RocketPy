@@ -4,15 +4,40 @@ import numericalunits
 import numpy as np
 import pytest
 
-from rocketpy import (CylindricalTank, Environment, EnvironmentAnalysis,
-                      Flight, Fluid, Function, GenericMotor, HybridMotor,
-                      LevelBasedTank, LiquidMotor, MassBasedTank, NoseCone,
-                      Parachute, RailButtons, Rocket, SolidMotor,
-                      SphericalTank, Tail, TrapezoidalFins, UllageBasedTank)
+from rocketpy import (
+    CylindricalTank,
+    Environment,
+    EnvironmentAnalysis,
+    Flight,
+    Fluid,
+    Function,
+    GenericMotor,
+    HybridMotor,
+    LevelBasedTank,
+    LiquidMotor,
+    MassBasedTank,
+    NoseCone,
+    Parachute,
+    RailButtons,
+    Rocket,
+    SolidMotor,
+    SphericalTank,
+    Tail,
+    TrapezoidalFins,
+    UllageBasedTank,
+)
 from rocketpy.Dispersion import Dispersion
-from rocketpy.monte_carlo import (McEnvironment, McFlight, McNoseCone,
-                                  McParachute, McRailButtons, McRocket,
-                                  McSolidMotor, McTail, McTrapezoidalFins)
+from rocketpy.monte_carlo import (
+    McEnvironment,
+    McFlight,
+    McNoseCone,
+    McParachute,
+    McRailButtons,
+    McRocket,
+    McSolidMotor,
+    McTail,
+    McTrapezoidalFins,
+)
 
 # Pytest configuration
 
