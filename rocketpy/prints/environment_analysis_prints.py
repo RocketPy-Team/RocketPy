@@ -1,10 +1,6 @@
-__author__ = "Guilherme Fernandes Alves"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
 import numpy as np
 
-from rocketpy.units import convert_units
+from ..units import convert_units
 
 
 class _EnvironmentAnalysisPrints:

@@ -1,5 +1,5 @@
 Components Class
 ----------------
 
-.. automodule:: rocketpy.Components
+.. autoclass:: rocketpy.Components
    :members:

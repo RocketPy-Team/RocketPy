@@ -1,21 +1,14 @@
-__author__ = "Guilherme Fernandes Alves"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-import ipywidgets as widgets
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import numpy as np
-from IPython.display import HTML
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.animation import PillowWriter as ImageWriter
 from scipy import stats
-from windrose import WindroseAxes
 
 from rocketpy.units import convert_units
 
-from ..tools import find_two_closest_integers
+from ..tools import find_two_closest_integers, import_optional_dependency
 
 # TODO: `wind_speed_limit` and `clear_range_limits` and should be numbers, not booleans
 
@@ -856,6 +849,8 @@ class _EnvironmentAnalysisPlots:
         -------
         WindroseAxes
         """
+        windrose = import_optional_dependency("windrose")
+        WindroseAxes = windrose.WindroseAxes
         ax = WindroseAxes.from_ax(fig=fig, rect=rect)
         ax.bar(
             wind_direction,
@@ -990,8 +985,9 @@ class _EnvironmentAnalysisPlots:
 
         Returns
         -------
-        Image : ipywidgets.widgets.widget_media.Image
+        Image : ipywidgets.widget_media.Image
         """
+        widgets = import_optional_dependency("ipywidgets")
         metadata = dict(
             title="windrose",
             artist="windrose",
@@ -1113,6 +1109,9 @@ class _EnvironmentAnalysisPlots:
         HTML : IPython.core.display.HTML
             The animation as an HTML object
         """
+        module = import_optional_dependency("IPython.display")
+        HTML = module.HTML  # this is a class
+
         # Gather animation data
         wind_gusts = self.env_analysis.surface_wind_gust_by_hour
 
@@ -1311,6 +1310,9 @@ class _EnvironmentAnalysisPlots:
         -------
         HTML : IPython.core.display.HTML
         """
+        module = import_optional_dependency("IPython.display")
+        HTML = module.HTML  # this is a class
+
         # Gather animation data
         surface_wind_speeds_at_given_hour = self.env_analysis.surface_wind_speed_by_hour
 
@@ -1608,6 +1610,8 @@ class _EnvironmentAnalysisPlots:
             Whether to clear the sky range limits or not, by default False. This
             is useful when the launch site is constrained in terms or altitude.
         """
+        module = import_optional_dependency("IPython.display")
+        HTML = module.HTML  # this is a class
 
         # Create animation
         fig, ax = plt.subplots(dpi=200)
@@ -1687,6 +1691,8 @@ class _EnvironmentAnalysisPlots:
             Whether to clear the sky range limits or not, by default False. This
             is useful when the launch site is constrained in terms or altitude.
         """
+        module = import_optional_dependency("IPython.display")
+        HTML = module.HTML  # this is a class
 
         # Create animation
         fig, ax = plt.subplots(dpi=200)

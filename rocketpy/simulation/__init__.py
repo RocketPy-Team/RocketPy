@@ -1,0 +1,1 @@
+from .flight import Flight

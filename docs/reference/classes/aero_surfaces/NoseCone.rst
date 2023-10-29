@@ -1,5 +1,5 @@
 NoseCone Class
 --------------
 
-.. automodule:: rocketpy.NoseCone
+.. autoclass:: rocketpy.NoseCone
    :members:

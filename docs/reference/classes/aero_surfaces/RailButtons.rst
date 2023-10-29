@@ -1,5 +1,5 @@
 RailButtons Class
 -----------------
 
-.. automodule:: rocketpy.RailButtons
+.. autoclass:: rocketpy.RailButtons
    :members:

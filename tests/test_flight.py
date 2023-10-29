@@ -144,6 +144,48 @@ def test_initial_solution(mock_show, example_env, calisto_robust):
     assert test_flight.all_info() == None
 
 
+def test_get_solution_at_time(flight_calisto):
+    """Test the get_solution_at_time method of the Flight class. This test
+    simply calls the method at the initial and final time and checks if the
+    returned values are correct.
+
+    Parameters
+    ----------
+    flight_calisto : rocketpy.Flight
+        Flight object to be tested. See the conftest.py file for more info
+        regarding this pytest fixture.
+    """
+    assert np.allclose(
+        flight_calisto.get_solution_at_time(0),
+        np.array([0, 0, 0, 0, 0, 0, 0, 0.99904822, -0.04361939, 0, 0, 0, 0, 0]),
+        rtol=1e-05,
+        atol=1e-08,
+    )
+    assert np.allclose(
+        flight_calisto.get_solution_at_time(flight_calisto.t_final),
+        np.array(
+            [
+                48.4313533,
+                0.0,
+                985.7665845,
+                -0.00000229951048,
+                0.0,
+                11.2223284,
+                -341.028803,
+                0.999048222,
+                -0.0436193874,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ]
+        ),
+        rtol=1e-02,
+        atol=5e-03,
+    )
+
+
 @pytest.mark.parametrize("wind_u, wind_v", [(0, 10), (0, -10), (10, 0), (-10, 0)])
 @pytest.mark.parametrize(
     "static_margin, max_time",
@@ -186,7 +228,7 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
         burn_time=1e-10,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
-        center_of_dry_mass=0.317,
+        center_of_dry_mass_position=0.317,
         grains_center_of_mass_position=0.397,
         grain_number=5,
         grain_separation=5 / 1000,
@@ -290,7 +332,9 @@ def test_rolling_flight(
 def test_simpler_parachute_triggers(mock_show, example_env, calisto_robust):
     """Tests different types of parachute triggers. This is important to ensure
     the code is working as intended, since the parachute triggers can have very
-    different format definitions.
+    different format definitions. It will add 3 parachutes using different
+    triggers format and check if the parachute events are being at the correct
+    altitude
 
     Parameters
     ----------
@@ -303,15 +347,23 @@ def test_simpler_parachute_triggers(mock_show, example_env, calisto_robust):
     """
     calisto_robust.parachutes = []
 
-    main = calisto_robust.add_parachute(
+    _ = calisto_robust.add_parachute(
         "Main",
         cd_s=10.0,
-        trigger=800,
+        trigger=400,
         sampling_rate=105,
         lag=0,
     )
 
-    drogue = calisto_robust.add_parachute(
+    _ = calisto_robust.add_parachute(
+        "Drogue2",
+        cd_s=5.5,
+        trigger=lambda pressure, height, state: height < 800 and state[5] < 0,
+        sampling_rate=105,
+        lag=0,
+    )
+
+    _ = calisto_robust.add_parachute(
         "Drogue",
         cd_s=1.0,
         trigger="apogee",
@@ -337,6 +389,14 @@ def test_simpler_parachute_triggers(mock_show, example_env, calisto_robust):
         )
         <= 1
     )
+    assert (
+        abs(
+            test_flight.z(test_flight.parachute_events[2][0])
+            - (400 + example_env.elevation)
+        )
+        <= 1
+    )
+    assert calisto_robust.all_info() == None
     assert test_flight.all_info() == None
 
 
@@ -570,6 +630,7 @@ def test_liquid_motor_flight(mock_show, calisto_liquid_modded):
         rail_length=5,
         inclination=85,
         heading=0,
+        max_time_step=0.25,
     )
 
     assert test_flight.all_info() == None
@@ -594,6 +655,7 @@ def test_hybrid_motor_flight(mock_show, calisto_hybrid_modded):
         rail_length=5,
         inclination=85,
         heading=0,
+        max_time_step=0.25,
     )
 
     assert test_flight.all_info() == None

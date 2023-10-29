@@ -1,5 +1,5 @@
 GenericMotor Class
 -------------------
 
-.. automodule:: rocketpy.GenericMotor
+.. autoclass:: rocketpy.GenericMotor
    :members:

@@ -7,6 +7,8 @@ import numpy as np
 import pytest
 import pytz
 
+from rocketpy import Environment
+
 
 def test_env_set_date(example_env):
     """Test that the date is set correctly in the environment object. This
@@ -369,17 +371,83 @@ def test_export_environment(example_env_robust):
     os.remove("environment.json")
 
 
-def test_utm_to_geodesic(example_env_robust):
-    """Tests the conversion from UTM to geodesic coordinates.
+def test_geodesic_to_utm():
+    """Tests the conversion from geodesic to UTM coordinates."""
+    x, y, utm_zone, utm_letter, hemis, EW = Environment.geodesic_to_utm(
+        lat=32.990254,
+        lon=-106.974998,
+        semi_major_axis=6378137.0,  # WGS84
+        flattening=1 / 298.257223563,  # WGS84
+    )
+    assert np.isclose(x, 315468.64, atol=1e-5) == True
+    assert np.isclose(y, 3651938.65, atol=1e-5) == True
+    assert utm_zone == 13
+    assert utm_letter == "S"
+    assert hemis == "N"
+    assert EW == "W"
 
-    Parameters
-    ----------
-    example_env_robust : rocketpy.Environment
-        Example environment object to be tested.
-    """
-    # TODO: maybe the utm_to_geodesic should be a static method, or move to tools.py
-    lat, lon = example_env_robust.utm_to_geodesic(
-        x=315468.64, y=3651938.65, utm_zone=13, hemis="N"
+
+def test_utm_to_geodesic():
+    """Tests the conversion from UTM to geodesic coordinates."""
+
+    lat, lon = Environment.utm_to_geodesic(
+        x=315468.64,
+        y=3651938.65,
+        utm_zone=13,
+        hemis="N",
+        semi_major_axis=6378137.0,  # WGS84
+        flattening=1 / 298.257223563,  # WGS84
     )
     assert np.isclose(lat, 32.99025, atol=1e-5) == True
     assert np.isclose(lon, -106.9750, atol=1e-5) == True
+
+
+@pytest.mark.parametrize(
+    "lat, radius", [(0, 6378137.0), (90, 6356752.31424518), (-90, 6356752.31424518)]
+)
+def test_earth_radius_calculation(lat, radius):
+    """Tests if the earth radius calculation is correct. It takes 3 different
+    latitudes and their expected results and compares them with the results
+    from the method.
+
+    Parameters
+    ----------
+    lat : float
+        The latitude in decimal degrees.
+    radius : float
+        The expected radius in meters at the given latitude.
+    """
+    semi_major_axis = 6378137.0  # WGS84
+    flattening = 1 / 298.257223563  # WGS84
+    res = Environment.calculate_earth_radius(lat, semi_major_axis, flattening)
+    assert pytest.approx(res, abs=1e-8) == radius
+
+
+@pytest.mark.parametrize(
+    "angle, deg, arc_min, arc_sec",
+    [
+        (-106.974998, -106.0, 58, 29.9928),
+        (32.990254, 32, 59.0, 24.9144),
+        (90.0, 90, 0, 0),
+    ],
+)
+def test_decimal_degrees_to_arc_seconds(angle, deg, arc_min, arc_sec):
+    """Tests if the conversion from decimal degrees to arc seconds is correct.
+    It takes 3 different angles and their expected results and compares them
+    with the results from the method.
+
+    Parameters
+    ----------
+    angle : float
+        Angle in decimal degrees.
+    deg : int
+        Expected degrees.
+    arc_min : int
+        Expected arc minutes.
+    arc_sec : float
+        Expected arc seconds.
+    """
+    res = Environment.decimal_degrees_to_arc_seconds(angle)
+    assert pytest.approx(res[0], abs=1e-8) == deg
+    assert pytest.approx(res[1], abs=1e-8) == arc_min
+    assert pytest.approx(res[2], abs=1e-8) == arc_sec

@@ -2,10 +2,12 @@ Utils functions
 ===============
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 1
    :caption: Contents:
 
    tools
    units
    utilities   
+   vector
+   matrix
    

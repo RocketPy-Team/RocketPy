@@ -3,8 +3,7 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
-from rocketpy import Rocket, SolidMotor
-from rocketpy.AeroSurface import NoseCone
+from rocketpy import NoseCone, Rocket, SolidMotor
 
 
 @patch("matplotlib.pyplot.show")
@@ -51,7 +50,7 @@ def test_coordinate_system_orientation(
         burn_time=3.9,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
-        center_of_dry_mass=0.317,
+        center_of_dry_mass_position=0.317,
         nozzle_position=0,
         grain_number=5,
         grain_density=1815,
@@ -160,6 +159,7 @@ def test_airfoil(
 
 def test_evaluate_static_margin_assert_cp_equals_cm(dimensionless_calisto):
     rocket = dimensionless_calisto
+    rocket.evaluate_center_of_pressure()
     rocket.evaluate_static_margin()
 
     burn_time = rocket.motor.burn_time
@@ -170,8 +170,8 @@ def test_evaluate_static_margin_assert_cp_equals_cm(dimensionless_calisto):
     assert pytest.approx(
         rocket.center_of_mass(burn_time[1]) / (2 * rocket.radius), 1e-8
     ) == pytest.approx(rocket.static_margin(burn_time[1]), 1e-8)
-    assert pytest.approx(rocket.total_lift_coeff_der, 1e-8) == pytest.approx(0, 1e-8)
-    assert pytest.approx(rocket.cp_position, 1e-8) == pytest.approx(0, 1e-8)
+    assert pytest.approx(rocket.total_lift_coeff_der(0), 1e-8) == pytest.approx(0, 1e-8)
+    assert pytest.approx(rocket.cp_position(0), 1e-8) == pytest.approx(0, 1e-8)
 
 
 @pytest.mark.parametrize(
@@ -189,8 +189,8 @@ def test_add_nose_assert_cp_cm_plus_nose(k, type, calisto, dimensionless_calisto
     static_margin_final = (calisto.center_of_mass(np.inf) - cpz) / (2 * calisto.radius)
     assert static_margin_final == pytest.approx(calisto.static_margin(np.inf), 1e-8)
 
-    assert clalpha == pytest.approx(calisto.total_lift_coeff_der, 1e-8)
-    assert calisto.cp_position == pytest.approx(cpz, 1e-8)
+    assert clalpha == pytest.approx(calisto.total_lift_coeff_der(0), 1e-8)
+    assert calisto.cp_position(0) == pytest.approx(cpz, 1e-8)
 
     dimensionless_calisto.add_nose(length=0.55829 * m, kind=type, position=(1.160) * m)
     assert pytest.approx(dimensionless_calisto.static_margin(0), 1e-8) == pytest.approx(
@@ -200,11 +200,11 @@ def test_add_nose_assert_cp_cm_plus_nose(k, type, calisto, dimensionless_calisto
         dimensionless_calisto.static_margin(np.inf), 1e-8
     ) == pytest.approx(calisto.static_margin(np.inf), 1e-8)
     assert pytest.approx(
-        dimensionless_calisto.total_lift_coeff_der, 1e-8
-    ) == pytest.approx(calisto.total_lift_coeff_der, 1e-8)
-    assert pytest.approx(dimensionless_calisto.cp_position / m, 1e-8) == pytest.approx(
-        calisto.cp_position, 1e-8
-    )
+        dimensionless_calisto.total_lift_coeff_der(0), 1e-8
+    ) == pytest.approx(calisto.total_lift_coeff_der(0), 1e-8)
+    assert pytest.approx(
+        dimensionless_calisto.cp_position(0) / m, 1e-8
+    ) == pytest.approx(calisto.cp_position(0), 1e-8)
 
 
 def test_add_tail_assert_cp_cm_plus_tail(calisto, dimensionless_calisto, m):
@@ -225,8 +225,10 @@ def test_add_tail_assert_cp_cm_plus_tail(calisto, dimensionless_calisto, m):
 
     static_margin_final = (calisto.center_of_mass(np.inf) - cpz) / (2 * calisto.radius)
     assert static_margin_final == pytest.approx(calisto.static_margin(np.inf), 1e-8)
-    assert np.abs(clalpha) == pytest.approx(np.abs(calisto.total_lift_coeff_der), 1e-8)
-    assert calisto.cp_position == cpz
+    assert np.abs(clalpha) == pytest.approx(
+        np.abs(calisto.total_lift_coeff_der(0)), 1e-8
+    )
+    assert calisto.cp_position(0) == cpz
 
     dimensionless_calisto.add_tail(
         top_radius=0.0635 * m,
@@ -241,11 +243,11 @@ def test_add_tail_assert_cp_cm_plus_tail(calisto, dimensionless_calisto, m):
         dimensionless_calisto.static_margin(np.inf), 1e-8
     ) == pytest.approx(calisto.static_margin(np.inf), 1e-8)
     assert pytest.approx(
-        dimensionless_calisto.total_lift_coeff_der, 1e-8
-    ) == pytest.approx(calisto.total_lift_coeff_der, 1e-8)
-    assert pytest.approx(dimensionless_calisto.cp_position / m, 1e-8) == pytest.approx(
-        calisto.cp_position, 1e-8
-    )
+        dimensionless_calisto.total_lift_coeff_der(0), 1e-8
+    ) == pytest.approx(calisto.total_lift_coeff_der(0), 1e-8)
+    assert pytest.approx(
+        dimensionless_calisto.cp_position(0) / m, 1e-8
+    ) == pytest.approx(calisto.cp_position(0), 1e-8)
 
 
 @pytest.mark.parametrize(
@@ -281,7 +283,7 @@ def test_add_trapezoidal_fins_sweep_angle(
     assert cl_alpha == pytest.approx(expected_clalpha, 0.01)
 
     # Check rocket's center of pressure (just double checking)
-    assert translate - calisto.cp_position == pytest.approx(expected_cpz_cm, 0.01)
+    assert translate - calisto.cp_position(0) == pytest.approx(expected_cpz_cm, 0.01)
 
 
 @pytest.mark.parametrize(
@@ -321,7 +323,7 @@ def test_add_trapezoidal_fins_sweep_length(
     assert cl_alpha == pytest.approx(expected_clalpha, 0.01)
 
     # Check rocket's center of pressure (just double checking)
-    assert translate - calisto.cp_position == pytest.approx(expected_cpz_cm, 0.01)
+    assert translate - calisto.cp_position(0) == pytest.approx(expected_cpz_cm, 0.01)
 
     assert isinstance(calisto.aerodynamic_surfaces[0].component, NoseCone)
 
@@ -356,8 +358,10 @@ def test_add_fins_assert_cp_cm_plus_fins(calisto, dimensionless_calisto, m):
     static_margin_final = (calisto.center_of_mass(np.inf) - cpz) / (2 * calisto.radius)
     assert static_margin_final == pytest.approx(calisto.static_margin(np.inf), 1e-8)
 
-    assert np.abs(clalpha) == pytest.approx(np.abs(calisto.total_lift_coeff_der), 1e-8)
-    assert calisto.cp_position == pytest.approx(cpz, 1e-8)
+    assert np.abs(clalpha) == pytest.approx(
+        np.abs(calisto.total_lift_coeff_der(0)), 1e-8
+    )
+    assert calisto.cp_position(0) == pytest.approx(cpz, 1e-8)
 
     dimensionless_calisto.add_trapezoidal_fins(
         4,
@@ -373,11 +377,92 @@ def test_add_fins_assert_cp_cm_plus_fins(calisto, dimensionless_calisto, m):
         dimensionless_calisto.static_margin(np.inf), 1e-8
     ) == pytest.approx(calisto.static_margin(np.inf), 1e-8)
     assert pytest.approx(
-        dimensionless_calisto.total_lift_coeff_der, 1e-8
-    ) == pytest.approx(calisto.total_lift_coeff_der, 1e-8)
-    assert pytest.approx(dimensionless_calisto.cp_position / m, 1e-8) == pytest.approx(
-        calisto.cp_position, 1e-8
+        dimensionless_calisto.total_lift_coeff_der(0), 1e-8
+    ) == pytest.approx(calisto.total_lift_coeff_der(0), 1e-8)
+    assert pytest.approx(
+        dimensionless_calisto.cp_position(0) / m, 1e-8
+    ) == pytest.approx(calisto.cp_position(0), 1e-8)
+
+
+@pytest.mark.parametrize(
+    """cdm_position, grain_cm_position, nozzle_position, coord_direction, 
+    motor_position, expected_motor_cdm, expected_motor_cpp""",
+    [
+        (0.317, 0.397, 0, "nozzle_to_combustion_chamber", -1.373, -1.056, -0.976),
+        (0, 0.08, -0.317, "nozzle_to_combustion_chamber", -1, -1, -0.92),
+        (-0.317, -0.397, 0, "combustion_chamber_to_nozzle", -1.373, -1.056, -0.976),
+        (0, -0.08, 0.317, "combustion_chamber_to_nozzle", -1, -1, -0.92),
+        (1.317, 1.397, 1, "nozzle_to_combustion_chamber", -2.373, -1.056, -0.976),
+    ],
+)
+def test_add_motor_coordinates(
+    calisto_motorless,
+    cdm_position,
+    grain_cm_position,
+    nozzle_position,
+    coord_direction,
+    motor_position,
+    expected_motor_cdm,
+    expected_motor_cpp,
+):
+    """Test the method add_motor and related position properties in a Rocket
+    instance.
+
+    This test checks the correctness of the `add_motor` method and the computed
+    `motor_center_of_dry_mass_position` and `center_of_propellant_position`
+    properties in the `Rocket` class using various parameters related to the
+    motor's position, nozzle's position, and other related coordinates.
+    Different scenarios are tested using parameterization, checking scenarios
+    moving from the nozzle to the combustion chamber and vice versa, and with
+    various specific physical and geometrical characteristics of the motor.
+
+    Parameters
+    ----------
+    calisto_motorless : Rocket instance
+        A predefined instance of a Rocket without a motor, used as a base for testing.
+    cdm_position : float
+        Position of the center of dry mass of the motor.
+    grain_cm_position : float
+        Position of the grains' center of mass.
+    nozzle_position : float
+        Position of the nozzle.
+    coord_direction : str
+        Direction for coordinate system orientation;
+        it can be "nozzle_to_combustion_chamber" or "combustion_chamber_to_nozzle".
+    motor_position : float
+        Position where the motor should be added to the rocket.
+    expected_motor_cdm : float
+        Expected position of the motor's center of dry mass after addition.
+    expected_motor_cpp : float
+        Expected position of the center of propellant after addition.
+    """
+    example_motor = SolidMotor(
+        thrust_source="data/motors/Cesaroni_M1670.eng",
+        burn_time=3.9,
+        dry_mass=0,
+        dry_inertia=(0, 0, 0),
+        center_of_dry_mass_position=cdm_position,
+        nozzle_position=nozzle_position,
+        grain_number=5,
+        grain_density=1815,
+        nozzle_radius=33 / 1000,
+        throat_radius=11 / 1000,
+        grain_separation=5 / 1000,
+        grain_outer_radius=33 / 1000,
+        grain_initial_height=120 / 1000,
+        grains_center_of_mass_position=grain_cm_position,
+        grain_initial_inner_radius=15 / 1000,
+        interpolation_method="linear",
+        coordinate_system_orientation=coord_direction,
     )
+    calisto = calisto_motorless
+    calisto.add_motor(example_motor, position=motor_position)
+
+    calculated_motor_cdm = calisto.motor_center_of_dry_mass_position
+    calculated_motor_cpp = calisto.center_of_propellant_position
+
+    assert pytest.approx(expected_motor_cdm) == calculated_motor_cdm
+    assert pytest.approx(expected_motor_cpp) == calculated_motor_cpp(0)
 
 
 def test_add_cm_eccentricity_assert_properties_set(calisto):

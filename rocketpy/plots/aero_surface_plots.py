@@ -1,7 +1,3 @@
-__author__ = "Guilherme Fernandes Alves"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
 from abc import ABC, abstractmethod
 
 import matplotlib.pyplot as plt
@@ -75,11 +71,81 @@ class _NoseConePlots(_AeroSurfacePlots):
         return None
 
     def draw(self):
-        # This will de done in the future
+        """Draw the nosecone shape along with some important information,
+        including the center line and the center of pressure position.
+
+        Returns
+        -------
+        None
+        """
+        # Create the vectors X and Y with the points of the curve
+        nosecone_x, nosecone_y = self.aero_surface.shape_vec
+
+        # Figure creation and set up
+        fig_ogive, ax = plt.subplots()
+        ax.set_xlim(-0.05, self.aero_surface.length * 1.02)  # Horizontal size
+        ax.set_ylim(
+            -self.aero_surface.base_radius * 1.05, self.aero_surface.base_radius * 1.05
+        )  # Vertical size
+        ax.set_aspect("equal")  # Makes the graduation be the same on both axis
+        ax.set_facecolor("#EEEEEE")  # Background color
+        ax.grid(True, linestyle="--", linewidth=0.5)
+
+        cp_plot = (self.aero_surface.cpz, 0)
+        # Plotting
+        ax.plot(
+            nosecone_x,
+            nosecone_y,
+            linestyle="-",
+            color="#A60628",
+        )  # Ogive's upper side
+        ax.plot(
+            nosecone_x,
+            -nosecone_y,
+            linestyle="-",
+            color="#A60628",
+        )  # Ogive's lower side
+        ax.scatter(
+            *cp_plot, label="Center Of Pressure", color="red", s=100, zorder=10
+        )  # Center of pressure inner circle
+        ax.scatter(
+            *cp_plot, facecolors="none", edgecolors="red", s=500, zorder=10
+        )  # Center of pressure outer circle
+        # Center Line
+        ax.plot(
+            [0, nosecone_x[len(nosecone_x) - 1]],
+            [0, 0],
+            linestyle="--",
+            color="#7A68A6",
+            linewidth=1.5,
+            label="Center Line",
+        )
+        # Vertical base line
+        ax.plot(
+            [
+                nosecone_x[len(nosecone_x) - 1],
+                nosecone_x[len(nosecone_x) - 1],
+            ],
+            [
+                nosecone_y[len(nosecone_y) - 1],
+                -nosecone_y[len(nosecone_y) - 1],
+            ],
+            linestyle="-",
+            color="#A60628",
+            linewidth=1.5,
+        )
+
+        # Labels and legend
+        ax.set_xlabel("Length")
+        ax.set_ylabel("Radius")
+        ax.set_title(self.aero_surface.kind + " Nose Cone")
+        ax.legend(bbox_to_anchor=(1, -0.2))
+        # Show Plot
+        plt.show()
         return None
 
 
-class _FinPlots(_AeroSurfacePlots):
+class _FinsPlots(_AeroSurfacePlots):
     """Abstract class that contains all fin plots. This class inherits from the
     _AeroSurfacePlots class."""
 
@@ -160,7 +226,7 @@ class _FinPlots(_AeroSurfacePlots):
         return None
 
 
-class _TrapezoidalFinsPlots(_FinPlots):
+class _TrapezoidalFinsPlots(_FinsPlots):
     """Class that contains all trapezoidal fin plots."""
 
     def __init__(self, fin_set):
@@ -170,10 +236,6 @@ class _TrapezoidalFinsPlots(_FinPlots):
     def draw(self):
         """Draw the fin shape along with some important information, including
         the center line, the quarter line and the center of pressure position.
-
-        Parameters
-        ----------
-        None
 
         Returns
         -------
@@ -289,7 +351,7 @@ class _TrapezoidalFinsPlots(_FinPlots):
         return None
 
 
-class _EllipticalFinsPlots(_FinPlots):
+class _EllipticalFinsPlots(_FinsPlots):
     """Class that contains all elliptical fin plots."""
 
     def __init__(self, fin_set):
@@ -299,10 +361,6 @@ class _EllipticalFinsPlots(_FinPlots):
     def draw(self):
         """Draw the fin shape along with some important information.
         These being: the center line and the center of pressure position.
-
-        Parameters
-        ----------
-        None
 
         Returns
         -------

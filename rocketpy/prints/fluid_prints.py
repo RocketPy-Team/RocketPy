@@ -1,8 +1,3 @@
-__author__ = "Mateus Stano Junqueira"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-
 class _FluidPrints:
     """Class that holds prints methods for Fluid class.
 
@@ -34,12 +29,8 @@ class _FluidPrints:
     def all(self):
         """Prints out all data available about the Fluid.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 

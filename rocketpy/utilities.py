@@ -1,8 +1,3 @@
-# -*- coding: utf-8 -*-
-__author__ = "Franz Masatoshi Yuri, Lucas Kierulff Balabram, Guilherme Fernandes Alves"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
 import traceback
 import warnings
 
@@ -10,10 +5,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 
-from .Environment import Environment
-from .Function import Function
-from .AeroSurface import TrapezoidalFins
-from .Flight import Flight
+from .environment.environment import Environment
+from .mathutils.function import Function
+from .rocket.aero_surface import TrapezoidalFins
+from .simulation.flight import Flight
 
 
 # TODO: Needs tests
@@ -448,13 +443,22 @@ def create_dispersion_dictionary(filename):
         String with the path to the .csv file. The file should follow the
         following structure:
 
+        .. code-block::
+
             attribute_class; parameter_name; mean_value; standard_deviation;
+
             environment; ensemble_member; [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];;
+
             motor; impulse; 1415.15; 35.3;
+
             motor; burn_time; 5.274; 1;
+
             motor; nozzle_radius; 0.021642; 0.0005;
+
             motor; throat_radius; 0.008; 0.0005;
+
             motor; grain_separation; 0.006; 0.001;
+
             motor; grain_density; 1707; 50;
 
     Returns
@@ -462,6 +466,9 @@ def create_dispersion_dictionary(filename):
     dictionary
         Dictionary with all rocket data to be used in dispersion analysis. The
         dictionary will follow the following structure:
+
+        .. code-block:: python
+
             analysis_parameters = {
                 'environment': {
                     'ensemble_member': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -522,14 +529,14 @@ def apogee_by_mass(flight, min_mass, max_mass, points=10, plot=True):
         Flight object containing the rocket's flight data
     min_mass : int
         The minimum value of mass to calculate the apogee, by default 3. This
-        value should be the minimum dry mass of the rocket, therefore, a positive
-        value is expected.
+        value should be the minimum dry mass of the rocket, therefore, a
+        positive value is expected.
     max_mass : int
         The maximum value of mass to calculate the apogee, by default 30.
     points : int, optional
-        The number of points to calculate the apogee between the mass boundaries,
-        by default 10. Increasing this value will refine the results, but will
-        also increase the computational time.
+        The number of points to calculate the apogee between the mass
+        boundaries, by default 10. Increasing this value will refine the
+        results, but will also increase the computational time.
     plot : bool, optional
         If True, the function will plot the results, by default True.
 
@@ -548,11 +555,13 @@ def apogee_by_mass(flight, min_mass, max_mass, points=10, plot=True):
         rocket.evaluate_center_of_mass()
         rocket.evaluate_reduced_mass()
         rocket.evaluate_thrust_to_weight()
+        rocket.evaluate_center_of_pressure()
         rocket.evaluate_static_margin()
         # Then we can run the flight simulation
         test_flight = Flight(
             rocket=rocket,
             environment=flight.env,
+            rail_length=flight.rail_length,
             inclination=flight.inclination,
             heading=flight.heading,
             terminate_on_apogee=True,
@@ -564,7 +573,7 @@ def apogee_by_mass(flight, min_mass, max_mass, points=10, plot=True):
     source = np.array(list(zip(x, y)), dtype=np.float64)
 
     retfunc = Function(
-        source, inputs="Rocket Dry Mass (kg)", outputs="Estimated Apogee AGL (m)"
+        source, inputs="Rocket Mass without motor (kg)", outputs="Apogee AGL (m)"
     )
     if plot:
         retfunc.plot(min_mass, max_mass, points)
@@ -611,11 +620,13 @@ def liftoff_speed_by_mass(flight, min_mass, max_mass, points=10, plot=True):
         rocket.evaluate_center_of_mass()
         rocket.evaluate_reduced_mass()
         rocket.evaluate_thrust_to_weight()
+        rocket.evaluate_center_of_pressure()
         rocket.evaluate_static_margin()
         # Then we can run the flight simulation
         test_flight = Flight(
             rocket=rocket,
             environment=flight.env,
+            rail_length=flight.rail_length,
             inclination=flight.inclination,
             heading=flight.heading,
             terminate_on_apogee=True,
@@ -627,7 +638,9 @@ def liftoff_speed_by_mass(flight, min_mass, max_mass, points=10, plot=True):
     source = np.array(list(zip(x, y)), dtype=np.float64)
 
     retfunc = Function(
-        source, inputs="Rocket Dry Mass (kg)", outputs="Liftoff Speed (m/s)"
+        source,
+        inputs="Rocket Mass without motor (kg)",
+        outputs="Out of Rail Speed (m/s)",
     )
     if plot:
         retfunc.plot(min_mass, max_mass, points)

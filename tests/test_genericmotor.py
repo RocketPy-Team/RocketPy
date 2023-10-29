@@ -1,8 +1,8 @@
 from unittest.mock import patch
 
 import numpy as np
-import scipy.integrate
 import pytest
+import scipy.integrate
 
 burn_time = (2, 7)
 thrust_source = lambda t: 2000 - 100 * (t - 2)
@@ -101,7 +101,9 @@ def test_generic_motor_center_of_mass(generic_motor):
     assert generic_motor.center_of_propellant_mass.y_array == pytest.approx(
         center_of_propellant_mass
     )
-    assert generic_motor.center_of_dry_mass == pytest.approx(center_of_dry_mass)
+    assert generic_motor.center_of_dry_mass_position == pytest.approx(
+        center_of_dry_mass
+    )
     assert generic_motor.center_of_mass.y_array == pytest.approx(center_of_mass)
 
 

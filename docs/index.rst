@@ -13,8 +13,6 @@
    Technical <technical/index>
    Flight Examples <examples/index>
 
-.. _`RocketPy`: https://www.linkedin.com/company/75016723
-
 .. mdinclude:: ../README.md
 
 Indices and tables

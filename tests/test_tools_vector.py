@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from rocketpy import Function
-from rocketpy.tools import Vector
+from rocketpy.mathutils import Vector
 
 test_vector_1 = [1, 2, 3]
 test_vector_2 = [-np.pi, 1, np.e]

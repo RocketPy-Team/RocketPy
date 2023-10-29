@@ -39,9 +39,7 @@ def test_getters(func_from_csv):
     assert func_from_csv.get_interpolation_method() == "linear"
     assert func_from_csv.get_extrapolation_method() == "natural"
     assert np.isclose(func_from_csv.get_value(0), 0.0, atol=1e-6)
-    assert np.isclose(func_from_csv.get_value_opt_deprecated(0), 0.0, atol=1e-6)
     assert np.isclose(func_from_csv.get_value_opt(0), 0.0, atol=1e-6)
-    assert np.isclose(func_from_csv.get_value_opt2(0), 0.0, atol=1e-6)
 
 
 def test_setters(func_from_csv):

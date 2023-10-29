@@ -4,12 +4,14 @@ from math import isclose
 import numpy as np
 import pytest
 
-from rocketpy import Fluid
-from rocketpy.Function import Function
-from rocketpy.motors import TankGeometry
-from rocketpy.motors.Fluid import Fluid
-from rocketpy.motors.Tank import LevelBasedTank, MassBasedTank, MassFlowRateBasedTank
-
+from rocketpy import (
+    Fluid,
+    Function,
+    LevelBasedTank,
+    MassBasedTank,
+    MassFlowRateBasedTank,
+    TankGeometry,
+)
 
 pressurant_params = (0.135 / 2, 0.846)
 fuel_params = (0.0744, 0.658)
@@ -125,13 +127,15 @@ def test_mass_based_tank():
     net mass flow rate properties. The test is performed on both a real
     tank and a simplified tank.
     """
-    lox = Fluid(name="LOx", density=1141.7, quality=1.0)  # Placeholder quality value
+    lox = Fluid(name="LOx", density=1141.7)
     propane = Fluid(
-        name="Propane", density=493, quality=1.0
-    )  # Placeholder quality value
+        name="Propane",
+        density=493,
+    )
     n2 = Fluid(
-        name="Nitrogen Gas", density=51.75, quality=1.0
-    )  # Placeholder quality value; density value may be estimate
+        name="Nitrogen Gas",
+        density=51.75,
+    )  # density value may be estimate
 
     top_endcap = lambda y: np.sqrt(
         0.0775**2 - (y - 0.6924) ** 2
@@ -252,8 +256,8 @@ def test_level_based_tank():
     """Test LevelBasedTank subclass of Tank class using Berkeley SEB team's
     tank data of fluid level.
     """
-    lox = Fluid(name="LOx", density=1141.7, quality=1.0)
-    n2 = Fluid(name="Nitrogen Gas", density=51.75, quality=1.0)
+    lox = Fluid(name="LOx", density=1141.7)
+    n2 = Fluid(name="Nitrogen Gas", density=51.75)
 
     test_dir = "./data/berkeley/"
 
@@ -425,10 +429,14 @@ def test_mfr_tank_basic():
         test(t.inertia, ixy, tol=1e-3)
 
     tank_radius_function = TankGeometry({(0, 5): 1})
-    lox = Fluid(name="LOx", density=1141, quality=1.0)  # Placeholder quality value
+    lox = Fluid(
+        name="LOx",
+        density=1141,
+    )
     n2 = Fluid(
-        name="Nitrogen Gas", density=51.75, quality=1.0
-    )  # Placeholder quality value; density value may be estimate
+        name="Nitrogen Gas",
+        density=51.75,
+    )  # density value may be estimate
     initial_liquid_mass = 5
     initial_gas_mass = 0.1
     liquid_mass_flow_rate_in = 0.1

@@ -1,30 +1,14 @@
-import numpy as np
 import datetime
+
 import numericalunits
+import numpy as np
 import pytest
 
-from rocketpy import (
-    Environment,
-    EnvironmentAnalysis,
-    Flight,
-    Function,
-    NoseCone,
-    Parachute,
-    RailButtons,
-    Rocket,
-    SolidMotor,
-    HybridMotor,
-    LiquidMotor,
-    GenericMotor,
-    CylindricalTank,
-    SphericalTank,
-    Fluid,
-    UllageBasedTank,
-    LevelBasedTank,
-    MassBasedTank,
-    Tail,
-    TrapezoidalFins,
-)
+from rocketpy import (CylindricalTank, Environment, EnvironmentAnalysis,
+                      Flight, Fluid, Function, GenericMotor, HybridMotor,
+                      LevelBasedTank, LiquidMotor, MassBasedTank, NoseCone,
+                      Parachute, RailButtons, Rocket, SolidMotor,
+                      SphericalTank, Tail, TrapezoidalFins, UllageBasedTank)
 
 # Pytest configuration
 
@@ -92,7 +76,7 @@ def cesaroni_m1670():  # old name: solid_motor
         burn_time=3.9,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
-        center_of_dry_mass=0.317,
+        center_of_dry_mass_position=0.317,
         nozzle_position=0,
         grain_number=5,
         grain_density=1815,
@@ -110,16 +94,10 @@ def cesaroni_m1670():  # old name: solid_motor
 
 
 @pytest.fixture
-def calisto(cesaroni_m1670):  # old name: rocket
+def calisto_motorless():
     """Create a simple object of the Rocket class to be used in the tests. This
-    is the same rocket that has been used in the getting started guide for
-    years. The Calisto rocket is the Projeto Jupiter's project launched at the
-    2019 Spaceport America Cup.
-
-    Parameters
-    ----------
-    cesaroni_m1670 : rocketpy.SolidMotor
-        An object of the SolidMotor class. This is a pytest fixture too.
+    is the same rocket that has been used in the getting started guide for years
+    but without a motor.
 
     Returns
     -------
@@ -135,6 +113,29 @@ def calisto(cesaroni_m1670):  # old name: rocket
         center_of_mass_without_motor=0,
         coordinate_system_orientation="tail_to_nose",
     )
+    return calisto
+
+
+@pytest.fixture
+def calisto(calisto_motorless, cesaroni_m1670):  # old name: rocket
+    """Create a simple object of the Rocket class to be used in the tests. This
+    is the same rocket that has been used in the getting started guide for
+    years. The Calisto rocket is the Projeto Jupiter's project launched at the
+    2019 Spaceport America Cup.
+
+    Parameters
+    ----------
+    calisto_motorless : rocketpy.Rocket
+        An object of the Rocket class. This is a pytest fixture too.
+    cesaroni_m1670 : rocketpy.SolidMotor
+        An object of the SolidMotor class. This is a pytest fixture too.
+
+    Returns
+    -------
+    rocketpy.Rocket
+        A simple object of the Rocket class
+    """
+    calisto = calisto_motorless
     calisto.add_motor(cesaroni_m1670, position=-1.373)
     return calisto
 
@@ -177,12 +178,14 @@ def calisto_nose_to_tail(cesaroni_m1670):
 
 
 @pytest.fixture
-def calisto_liquid_modded(liquid_motor):
+def calisto_liquid_modded(calisto_motorless, liquid_motor):
     """Create a simple object of the Rocket class to be used in the tests. This
     is an example of the Calisto rocket with a liquid motor.
 
     Parameters
     ----------
+    calisto_motorless : rocketpy.Rocket
+        An object of the Rocket class. This is a pytest fixture too.
     liquid_motor : rocketpy.LiquidMotor
 
     Returns
@@ -190,26 +193,20 @@ def calisto_liquid_modded(liquid_motor):
     rocketpy.Rocket
         A simple object of the Rocket class
     """
-    calisto = Rocket(
-        radius=0.0635,
-        mass=14.426,
-        inertia=(6.321, 6.321, 0.034),
-        power_off_drag="data/calisto/powerOffDragCurve.csv",
-        power_on_drag="data/calisto/powerOnDragCurve.csv",
-        center_of_mass_without_motor=0,
-        coordinate_system_orientation="tail_to_nose",
-    )
+    calisto = calisto_motorless
     calisto.add_motor(liquid_motor, position=-1.373)
     return calisto
 
 
 @pytest.fixture
-def calisto_hybrid_modded(hybrid_motor):
+def calisto_hybrid_modded(calisto_motorless, hybrid_motor):
     """Create a simple object of the Rocket class to be used in the tests. This
     is an example of the Calisto rocket with a hybrid motor.
 
     Parameters
     ----------
+    calisto_motorless : rocketpy.Rocket
+        An object of the Rocket class. This is a pytest fixture too.
     hybrid_motor : rocketpy.HybridMotor
 
     Returns
@@ -217,15 +214,7 @@ def calisto_hybrid_modded(hybrid_motor):
     rocketpy.Rocket
         A simple object of the Rocket class
     """
-    calisto = Rocket(
-        radius=0.0635,
-        mass=14.426,
-        inertia=(6.321, 6.321, 0.034),
-        power_off_drag="data/calisto/powerOffDragCurve.csv",
-        power_on_drag="data/calisto/powerOnDragCurve.csv",
-        center_of_mass_without_motor=0,
-        coordinate_system_orientation="tail_to_nose",
-    )
+    calisto = calisto_motorless
     calisto.add_motor(hybrid_motor, position=-1.373)
     return calisto
 
@@ -294,7 +283,7 @@ def pressurant_fluid():
     rocketpy.Fluid
         An object of the Fluid class.
     """
-    return Fluid(name="N2", density=300, quality=1)
+    return Fluid(name="N2", density=300)
 
 
 @pytest.fixture
@@ -307,7 +296,7 @@ def fuel_pressurant():
     rocketpy.Fluid
         An object of the Fluid class.
     """
-    return Fluid(name="N2", density=25, quality=1)
+    return Fluid(name="N2", density=25)
 
 
 @pytest.fixture
@@ -320,7 +309,7 @@ def oxidizer_pressurant():
     rocketpy.Fluid
         An object of the Fluid class.
     """
-    return Fluid(name="N2", density=35, quality=1)
+    return Fluid(name="N2", density=35)
 
 
 @pytest.fixture
@@ -333,7 +322,7 @@ def fuel_fluid():
     rocketpy.Fluid
         An object of the Fluid class.
     """
-    return Fluid(name="Propane", density=500, quality=1)
+    return Fluid(name="Propane", density=500)
 
 
 @pytest.fixture
@@ -346,7 +335,7 @@ def oxidizer_fluid():
     rocketpy.Fluid
         An object of the Fluid class.
     """
-    return Fluid(name="O2", density=1000, quality=1)
+    return Fluid(name="O2", density=1000)
 
 
 @pytest.fixture
@@ -467,7 +456,7 @@ def liquid_motor(pressurant_tank, fuel_tank, oxidizer_tank):
         burn_time=(8, 20),
         dry_mass=10,
         dry_inertia=(5, 5, 0.2),
-        center_of_dry_mass=0,
+        center_of_dry_mass_position=0,
         nozzle_position=-1.364,
         nozzle_radius=0.069 / 2,
     )
@@ -526,7 +515,7 @@ def hybrid_motor(spherical_oxidizer_tank):
     motor = HybridMotor(
         thrust_source=lambda t: 2000 - 100 * t,
         burn_time=10,
-        center_of_dry_mass=0,
+        center_of_dry_mass_position=0,
         dry_inertia=(4, 4, 0.1),
         dry_mass=8,
         grain_density=1700,
@@ -920,7 +909,7 @@ def dimensionless_cesaroni_m1670(kg, m):  # old name: dimensionless_motor
             0.125 * (kg * m**2),
             0.002 * (kg * m**2),
         ),
-        center_of_dry_mass=0.317 * m,
+        center_of_dry_mass_position=0.317 * m,
         grain_number=5,
         grain_separation=5 / 1000 * m,
         grain_density=1815 * (kg / m**3),

@@ -1,8 +1,3 @@
-__author__ = "Guilherme Fernandes Alves, Mateus Stano Junqueira"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -64,12 +59,8 @@ class _FlightPlots:
     def trajectory_3d(self):
         """Plot a 3D graph of the trajectory
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -124,12 +115,8 @@ class _FlightPlots:
     def linear_kinematics_data(self):
         """Prints out all Kinematics graphs available about the Flight
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -203,12 +190,8 @@ class _FlightPlots:
     def attitude_data(self):
         """Prints out all Angular position graphs available about the Flight
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -260,12 +243,8 @@ class _FlightPlots:
         """Prints out Flight path and Rocket Attitude angle graphs available
         about the Flight
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -311,12 +290,8 @@ class _FlightPlots:
         """Prints out all Angular velocity and acceleration graphs available
         about the Flight
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -464,12 +439,8 @@ class _FlightPlots:
     def aerodynamic_forces(self):
         """Prints out all Forces and Moments graphs available about the Flight
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -660,12 +631,8 @@ class _FlightPlots:
         """Prints out a summary of the Fluid Mechanics graphs available about
         the Flight
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -715,19 +682,11 @@ class _FlightPlots:
 
         ax4 = plt.subplot(414)
         ax4.plot(self.flight.angle_of_attack[:, 0], self.flight.angle_of_attack[:, 1])
-        # Make sure bottom and top limits are different
-        if (
-            self.flight.out_of_rail_time
-            * self.flight.angle_of_attack(self.flight.out_of_rail_time)
-            != 0
-        ):
-            ax4.set_xlim(
-                self.flight.out_of_rail_time, 10 * self.flight.out_of_rail_time + 1
-            )
-            ax4.set_ylim(0, self.flight.angle_of_attack(self.flight.out_of_rail_time))
         ax4.set_title("Angle of Attack")
         ax4.set_xlabel("Time (s)")
         ax4.set_ylabel("Angle of Attack (°)")
+        ax4.set_xlim(self.flight.out_of_rail_time, self.first_event_time)
+        ax4.set_ylim(0, self.flight.angle_of_attack(self.flight.out_of_rail_time) + 15)
         ax4.grid()
 
         plt.subplots_adjust(hspace=0.5)
@@ -739,23 +698,40 @@ class _FlightPlots:
         """Prints out Rocket Stability and Control parameters graphs available
         about the Flight
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
         fig9 = plt.figure(figsize=(9, 6))
 
         ax1 = plt.subplot(211)
-        ax1.plot(self.flight.static_margin[:, 0], self.flight.static_margin[:, 1])
-        ax1.set_xlim(0, self.flight.static_margin[:, 0][-1])
-        ax1.set_title("Static Margin")
+        ax1.plot(self.flight.stability_margin[:, 0], self.flight.stability_margin[:, 1])
+        ax1.set_xlim(0, self.flight.stability_margin[:, 0][-1])
+        ax1.set_title("Stability Margin")
         ax1.set_xlabel("Time (s)")
-        ax1.set_ylabel("Static Margin (c)")
+        ax1.set_ylabel("Stability Margin (c)")
+        ax1.set_xlim(0, self.first_event_time)
+        ax1.axvline(
+            x=self.flight.out_of_rail_time,
+            color="r",
+            linestyle="--",
+            label="Out of Rail Time",
+        )
+        ax1.axvline(
+            x=self.flight.rocket.motor.burn_out_time,
+            color="g",
+            linestyle="--",
+            label="Burn Out Time",
+        )
+
+        ax1.axvline(
+            x=self.flight.apogee_time,
+            color="m",
+            linestyle="--",
+            label="Apogee Time",
+        )
+        ax1.legend()
         ax1.grid()
 
         ax2 = plt.subplot(212)
@@ -802,12 +778,8 @@ class _FlightPlots:
     def pressure_rocket_altitude(self):
         """Plots out pressure at rocket's altitude.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -837,12 +809,8 @@ class _FlightPlots:
         This function aims to help the engineer to visually check if there
         are anomalies with the Flight Simulation.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -861,12 +829,8 @@ class _FlightPlots:
     def all(self):
         """Prints out all plots available about the Flight.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 

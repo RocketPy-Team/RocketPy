@@ -1,8 +1,3 @@
-__author__ = "Mateus Stano Junqueira"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-
 class _TankGeometryPrints:
     """Class that holds prints methods for TankGeometry class.
 
@@ -34,12 +29,8 @@ class _TankGeometryPrints:
     def geometry(self):
         """Prints out the geometry of the tank.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         print(f"Tank Geometry:")
@@ -53,12 +44,8 @@ class _TankGeometryPrints:
     def all(self):
         """Prints out all data available about the TankGeometry.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
         self.geometry()

@@ -1,8 +1,3 @@
-__author__ = " "
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-
 class _FlightPrints:
     """Class that holds prints methods for Flight class.
 
@@ -34,12 +29,8 @@ class _FlightPrints:
     def initial_conditions(self):
         """Prints all initial conditions data available about the Flight.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -83,12 +74,8 @@ class _FlightPrints:
         """Prints out the Numerical Integration settings available about the
         flight.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -140,10 +127,6 @@ class _FlightPrints:
     def launch_rail_conditions(self):
         """Prints out the Launch Rail Conditions available about the flight.
 
-        Parameters
-        ----------
-        None
-
         Returns
         -------
         None
@@ -172,8 +155,8 @@ class _FlightPrints:
             )
         )
         print(
-            "Rail Departure Static Margin: {:.3f} c".format(
-                self.flight.static_margin(self.flight.out_of_rail_time)
+            "Rail Departure Stability Margin: {:.3f} c".format(
+                self.flight.stability_margin(self.flight.out_of_rail_time)
             )
         )
         print(
@@ -318,12 +301,19 @@ class _FlightPrints:
             print("\nImpact Conditions\n")
             print("X Impact: {:.3f} m".format(self.flight.x_impact))
             print("Y Impact: {:.3f} m".format(self.flight.y_impact))
+            print("Latitude: {:.7f}°".format(self.flight.latitude(self.flight.t_final)))
+            print(
+                "Longitude: {:.7f}°".format(self.flight.longitude(self.flight.t_final))
+            )
             print("Time of Impact: {:.3f} s".format(self.flight.t_final))
             print("Velocity at Impact: {:.3f} m/s".format(self.flight.impact_velocity))
         elif self.flight.terminate_on_apogee is False:
             print("End of Simulation")
-            print("Time: {:.3f} s".format(self.flight.solution[-1][0]))
+            t_final = self.flight.solution[-1][0]
+            print("Time: {:.3f} s".format(t_final))
             print("Altitude: {:.3f} m".format(self.flight.solution[-1][3]))
+            print("Latitude: {:.3f}°".format(self.flight.latitude(t_final)))
+            print("Longitude: {:.3f}°".format(self.flight.longitude(t_final)))
 
         return None
 
@@ -379,6 +369,11 @@ class _FlightPrints:
                 self.flight.max_acceleration_power_off_time,
             )
         )
+        print(
+            "Maximum Stability Margin: {:.3f} c at {:.2f} s".format(
+                self.flight.max_stability_margin, self.flight.max_stability_margin_time
+            )
+        )
 
         if (
             len(self.flight.rocket.rail_buttons) == 0
@@ -408,15 +403,27 @@ class _FlightPrints:
             )
         return None
 
+    def stability_margin(self):
+        """Prints out the maximum and minimum stability margin available
+        about the flight."""
+        print("\nStability Margin\n")
+        print(
+            "Maximum Stability Margin: {:.3f} c at {:.2f} s".format(
+                self.flight.max_stability_margin, self.flight.max_stability_margin_time
+            )
+        )
+        print(
+            "Minimum Stability Margin: {:.3f} c at {:.2f} s".format(
+                self.flight.min_stability_margin, self.flight.min_stability_margin_time
+            )
+        )
+        return None
+
     def all(self):
         """Prints out all data available about the Flight.
 
-        Parameters
-        ----------
-        None
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
@@ -450,6 +457,10 @@ class _FlightPrints:
 
         # Print impact conditions
         self.impact_conditions()
+        print()
+
+        # Print stability margin
+        self.stability_margin()
         print()
 
         # Print maximum values

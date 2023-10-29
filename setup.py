@@ -16,13 +16,14 @@ necessary_require = [
 env_analysis_require = [
     "timezonefinder",
     "windrose>=1.6.8",
+    "IPython",
     "ipywidgets>=7.6.3",
     "jsonpickle",
 ]
 
 setuptools.setup(
     name="rocketpy",
-    version="0.13.1",
+    version="1.0.1",
     install_requires=necessary_require,
     extras_require={
         "env_analysis": env_analysis_require,
