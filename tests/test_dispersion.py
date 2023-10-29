@@ -35,7 +35,7 @@ def test_dispersion(mock_show, dispersion):
     )
     assert dispersion.errors_log == []
     assert len(dispersion.outputs_log) == 10
-    assert dispersion.plotEllipses(save=True) == None
+    assert dispersion.plots.ellipses(save=True) == None
 
     # Delete the test files
     os.remove("test_dispersion_class.disp_errors.txt")
