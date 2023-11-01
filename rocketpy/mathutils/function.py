@@ -1,9 +1,11 @@
 from inspect import signature
 from pathlib import Path
 
-import matplotlib.pyplot as plt
-import numpy as np
 from scipy import integrate, linalg, optimize
+import matplotlib.pyplot as plt
+from typing import Union, List
+import numpy as np
+import warnings
 
 try:
     from functools import cached_property
@@ -19,12 +21,12 @@ class Function:
 
     def __init__(
         self,
-        source,
-        inputs=["Scalar"],
-        outputs=["Scalar"],
-        interpolation=None,
-        extrapolation=None,
-        title=None,
+        source: Union[str, List, np.ndarray, float, int, callable],
+        inputs: Union[str, List] = ["Scalar"],
+        outputs: Union[str, List] = ["Scalar"],
+        interpolation: str = None,
+        extrapolation: str = None,
+        title: str = None,
     ):
         """Convert source into a Function, to be used more naturally.
         Set inputs, outputs, domain dimension, interpolation and extrapolation
@@ -68,6 +70,9 @@ class Function:
         -------
         None
         """
+        inputs, outputs, interpolation, extrapolation = self._check_user_input(
+            source, inputs, outputs, interpolation, extrapolation
+        )
         # Set input and output
         self.set_inputs(inputs)
         self.set_outputs(outputs)
@@ -750,6 +755,11 @@ class Function:
         -------
         ans : scalar, list
         """
+        if len(args) != self.__dom_dim__:
+            raise ValueError(
+                f"This Function takes {self.__dom_dim__} arguments, {len(args)} given."
+            )
+
         # Return value for Function of function type
         if callable(self.source):
             if len(args) == 1 and isinstance(args[0], (list, tuple)):
@@ -2611,6 +2621,77 @@ class Function:
                 interpolation=self.__interpolation__,
                 extrapolation=self.__extrapolation__,
             )
+            
+    def _check_user_input(
+        self,
+        source,
+        inputs,
+        outputs,
+        interpolation,
+        extrapolation,
+    ):
+        # check source for data type
+
+        # if list or ndarray, check for dimensions, interpolation and extrapolation
+        if isinstance(source, (list, np.ndarray)):
+            # this will also trigger an error if the source is not a list of numbers or if the array is not homogeneous
+            source = np.array(source, dtype=np.float64)
+
+            # check dimensions
+            source_dim = source.shape[1]
+
+            # check output type and dimensions
+            if isinstance(outputs, str):
+                outputs = [outputs]
+                
+            elif len(outputs) > 1:
+                raise ValueError(
+                    f"Output must either be a string or have dimension 1, it currently has dimension ({len(outputs)})."
+                )
+
+            # check interpolation and extrapolation
+            if source_dim > 2:
+                # check for inputs and outputs
+                if inputs == ["Scalar"]:
+                    inputs = [f"Input {i+1}" for i in range(source_dim - 1)]
+                    warnings.warn(
+                        f"Inputs not set, defaulting to {inputs} for multidimensional functions.",
+                    )
+
+                if interpolation != None and interpolation != "shepard":
+                    interpolation = "shepard"
+                    warnings.warn(
+                        "Interpolation method for multidimensional functions is set to 'shepard', currently other methods are not supported.",
+                    )
+
+                if extrapolation == None:
+                    extrapolation = "natural"
+                    warnings.warn(
+                        "Extrapolation not set, defaulting to 'natural' for multidimensional functions.",
+                    )
+
+            # check input dimensions
+            in_out_dim = len(inputs) + len(outputs)
+            if source_dim != in_out_dim:
+                raise ValueError(
+                    f"Source dimension ({source_dim}) does not match input and output dimension ({in_out_dim})."
+                )
+
+        # if function, check for inputs and outputs
+        if isinstance(source, Function):
+            # check inputs
+            if inputs != None and inputs != source.get_inputs():
+                warnings.warn(
+                    f"Inputs do not match source inputs, setting inputs to {inputs}.",
+                )
+
+            # check outputs
+            if outputs != None and outputs != source.get_outputs():
+                warnings.warn(
+                    f"Outputs do not match source outputs, setting outputs to {outputs}.",
+                )
+
+        return inputs, outputs, interpolation, extrapolation
 
 
 class PiecewiseFunction(Function):
