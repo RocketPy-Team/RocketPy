@@ -2621,7 +2621,7 @@ class Function:
                 interpolation=self.__interpolation__,
                 extrapolation=self.__extrapolation__,
             )
-            
+
     def _check_user_input(
         self,
         source,
@@ -2643,7 +2643,7 @@ class Function:
             # check output type and dimensions
             if isinstance(outputs, str):
                 outputs = [outputs]
-                
+
             elif len(outputs) > 1:
                 raise ValueError(
                     f"Output must either be a string or have dimension 1, it currently has dimension ({len(outputs)})."
