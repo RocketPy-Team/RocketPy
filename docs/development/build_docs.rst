@@ -31,25 +31,25 @@ requirements that are needed to run the sphinx generator.
 All these requirements are listed in the ``requirements.txt`` file inside the
 ``docs`` folder.
 
-To install the requirements, run the following command in your terminal:
+To install the requirements, navigate the terminal to the ``docs`` folder and
+run the following command:
 
-```bash
-cd docs
-pip install -r requirements.txt
-```
+.. code-block:: bash
+    
+    pip install -r requirements.txt
 
 After installing the requirements, you can build the documentation by running
 the following command in your terminal:
 
-```bash
-make html
-```
+.. code-block:: bash
+    
+    make html
 
 The file named ``Makefile`` contains the commands to build the documentation.
 The ``make html`` command will generate the documentation in the ``docs/_build/html``
 folder.
 
-To see the documentation, open the `docs/_build/html/index.html` file in your
+To see the documentation, open the ``docs/_build/html/index.html`` file in your
 browser.
 
 .. note:: Watch out for any warnings or errors that may appear in the terminal
@@ -63,9 +63,9 @@ This may happen because sphinx does not clean the ``docs/_build`` folder before
 building the documentation again.
 To clean the ``docs/_build`` folder, run the following command in your terminal:
 
-```bash
-make clean
-```
+.. code-block:: bash
+
+    make clean
 
 After cleaning the ``docs/_build`` folder, you can build the documentation again
 by running the ``make html`` command.
