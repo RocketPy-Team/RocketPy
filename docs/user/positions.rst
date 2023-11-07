@@ -58,7 +58,7 @@ And with ``coordinate_system_orientation = nose_to_tail``:
 
 .. important::
 
-  - The coordinate system origin is the point where the axis intersect. This
+  - The coordinate system origin is the point where the axes intersect. This
     point is not explicitly specified and can be chosen by the user. All 
     positions given by the user must be relative to this point.
   - The coordinate system origin does not need to be inside the rocket. It can
@@ -226,7 +226,7 @@ an arbitrary point and the
 
 .. note::
 
-  Liquid motors are do not have the ``grains_center_of_mass_position`` parameter.
+  Liquid motors do not have the ``grains_center_of_mass_position`` parameter.
 
 .. figure:: ../static/positions/nozzletocomb.png
   :align: center
@@ -234,7 +234,7 @@ an arbitrary point and the
 
 .. note::
     
-  We have, in this case:
+  In this case:
 
   - ``nozzle_position`` is negative.
   - ``grains_center_of_mass_position`` is negative.
@@ -248,7 +248,7 @@ And with ``coordinate_system_orientation = combustion_chamber_to_nozzle``:
 
 .. note::
     
-  We have, in this case:
+  In this case:
 
   - ``nozzle_position`` is positive.
   - ``grains_center_of_mass_position`` is positive.
@@ -256,7 +256,7 @@ And with ``coordinate_system_orientation = combustion_chamber_to_nozzle``:
 
 .. important::
 
-  - The coordinate system origin is the point where the axis intersect. This
+  - The coordinate system origin is the point where the axes intersect. This
     point is not explicitly specified and can be chosen by the user. All 
     positions given by the user must be relative to this point.
   - The coordinate system origin does not need to be outside the motor. It can
