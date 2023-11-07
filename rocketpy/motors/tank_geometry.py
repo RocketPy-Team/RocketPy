@@ -393,12 +393,13 @@ class CylindricalTank(TankGeometry):
             height = total_height
             bottom_cap_range = (-height / 2, -height / 2 + radius)
             upper_cap_range = (height / 2 - radius, height / 2)
-            bottom_cap_radius = (
-                lambda h: abs(radius**2 - (h + (height / 2 - radius)) ** 2) ** 0.5
-            )
-            upper_cap_radius = (
-                lambda h: abs(radius**2 - (h - (height / 2 - radius)) ** 2) ** 0.5
-            )
+
+            def bottom_cap_radius(h):
+                return abs(radius**2 - (h + (height / 2 - radius)) ** 2) ** 0.5
+
+            def upper_cap_radius(h):
+                return abs(radius**2 - (h - (height / 2 - radius)) ** 2) ** 0.5
+
             self.add_geometry(bottom_cap_range, bottom_cap_radius)
             self.add_geometry(upper_cap_range, upper_cap_radius)
             self.has_caps = True
