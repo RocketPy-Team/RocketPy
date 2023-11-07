@@ -102,13 +102,13 @@ the coordinate system origin at the center of mass without motor:
 
 .. important::
 
-  - The coordinate system origin is at the tip of the nose cone. This point is
-    not explicitly specified and can be chosen by the user. All positions given
-    by the user must be relative to this point.
-  - Since the coordinate system origin is at the tip of the nose cone, the
-    position of the nose cone is **zero**. 
-  - We are using the ``nose_to_tail`` coordinate system orientation. This means
-    that the ``center_of_mass_without_motor`` is positive.
+  - The coordinate system origin is at the center of mass without motor. This
+    point is not explicitly specified and can be chosen by the user. All
+    positions given by the user must be relative to this point.
+  - Since the coordinate system origin is at the center of mass without motor,
+    the position of the ``center_of_mass_without_motor`` is **zero**.
+  - We are using the ``tail_to_nose`` coordinate system orientation. This means
+    that the position of the nose cone is positive.
 
 .. _addsurface:
 
