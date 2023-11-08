@@ -606,7 +606,7 @@ class Rocket:
         """
         # Get masses
         prop_mass = self.motor.propellant_mass  # Propellant mass as a function of time
-        dry_mass = self.dry_mass  # Constant rocket mass without motor
+        dry_mass = self.dry_mass  # Constant rocket mass with motor, without propellant
 
         # Compute axes distances
         CM_to_CDM = self.center_of_mass - self.center_of_dry_mass_position
