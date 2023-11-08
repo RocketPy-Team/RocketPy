@@ -391,7 +391,7 @@ class Rocket:
         self.center_of_mass.set_inputs("Time (s)")
         self.center_of_mass.set_outputs("Center of Mass Position (m)")
         self.center_of_mass.set_title(
-            "Center of Mass Position (includes motor and propellant)"
+            "Center of Mass Position (Rocket + Motor + Propellant)"
         )
         return self.center_of_mass
 
