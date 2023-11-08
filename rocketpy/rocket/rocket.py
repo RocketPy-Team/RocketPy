@@ -313,7 +313,7 @@ class Rocket:
 
     @property
     def nosecones(self):
-        """A list containing all the noses currently added to the rocket."""
+        """A list containing all the nose cones currently added to the rocket."""
         return self.aerodynamic_surfaces.get_by_type(NoseCone)
 
     @property
