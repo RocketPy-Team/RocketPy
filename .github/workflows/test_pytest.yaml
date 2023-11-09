@@ -5,6 +5,7 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "**.py"
+      - ".github/**"
 
 jobs:
   fail_if_pr_is_draft:
