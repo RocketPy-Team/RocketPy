@@ -37,8 +37,10 @@ class LiquidMotor(Motor):
         List containing the motor's added tanks and their respective
         positions.
     LiquidMotor.dry_mass : float
-        The total mass of the motor structure, including chambers
-        and tanks, when it is empty and does not contain any propellant.
+        The total mass of the motor structure, including chambers, bulkheads,
+        screws, tanks, and others. This should be taken when the motor is empty
+        and does not contain any propellant. You should not double count a
+        component that is already accounted for in the rocket class.
     LiquidMotor.propellant_initial_mass : float
         Total propellant initial mass in kg, includes fuel and oxidizer.
     LiquidMotor.total_mass : Function
@@ -174,8 +176,11 @@ class LiquidMotor(Motor):
 
             .. seealso:: :doc:`Thrust Source Details </user/motors/thrust>`
         dry_mass : int, float
-            The total mass of the motor structure, including chambers
-            and tanks, when it is empty and does not contain any propellant.
+            The total mass of the motor structure, including chambers,
+            bulkheads, screws, tanks, and others. This should be taken when the
+            motor is empty and does not contain any propellant. You should not
+            double count a component that is already accounted for in the rocket
+            class.
         dry_inertia : tuple, list
             Tuple or list containing the motor's dry mass inertia tensor
             components, in kg*m^2. This inertia is defined with respect to the

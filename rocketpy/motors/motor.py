@@ -36,8 +36,10 @@ class Motor(ABC):
         :doc:`Positions and Coordinate Systems </user/positions>` for more
         information.
     Motor.dry_mass : float
-        The total mass of the motor structure, including chambers
-        and tanks, when it is empty and does not contain any propellant.
+        The total mass of the motor structure, including chambers, bulkheads,
+        screws, tanks, and others. This should be taken when the motor is empty
+        and does not contain any propellant. You should not double count a
+        component that is already accounted for in the rocket class.
     Motor.propellant_initial_mass : float
         Total propellant initial mass in kg, including solid, liquid and gas
         phases.
@@ -176,8 +178,11 @@ class Motor(ABC):
             .. seealso:: :doc:`Thrust Source Details </user/motors/thrust>`
 
         dry_mass : int, float
-            The total mass of the motor structure, including chambers
-            and tanks, when it is empty and does not contain any propellant.
+            The total mass of the motor structure, including chambers,
+            bulkheads, screws, tanks, and others. This should be taken when the
+            motor is empty and does not contain any propellant. You should not
+            double count a component that is already accounted for in the rocket
+            class.
         center_of_dry_mass_position : int, float
             The position, in meters, of the motor's center of mass with respect
             to the motor's coordinate system when it is devoid of propellant.
@@ -1104,8 +1109,11 @@ class GenericMotor(Motor):
             coordinate system.
             See :doc:`Positions and Coordinate Systems </user/positions>`
         dry_mass : int, float
-            The total mass of the motor structure, including chambers
-            and tanks, when it is empty and does not contain any propellant.
+            The total mass of the motor structure, including chambers,
+            bulkheads, screws, tanks, and others. This should be taken when the
+            motor is empty and does not contain any propellant. You should not
+            double count a component that is already accounted for in the rocket
+            class.
         propellant_initial_mass : int, float
             The initial mass of the propellant in the motor.
         center_of_dry_mass_position : int, float, optional
