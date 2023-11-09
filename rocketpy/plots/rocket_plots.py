@@ -393,7 +393,7 @@ class _RocketPlots:
         ax.scatter(cm, 0, color="black", label="Center of Mass", s=30)
         ax.scatter(cm, 0, facecolors="none", edgecolors="black", s=100)
 
-        cp = self.rocket.cp_position
+        cp = self.rocket.cp_position(0)
         ax.scatter(cp, 0, label="Center Of Pressure", color="red", s=30, zorder=10)
         ax.scatter(cp, 0, facecolors="none", edgecolors="red", s=100, zorder=10)
 
