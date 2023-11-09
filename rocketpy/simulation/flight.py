@@ -3077,7 +3077,8 @@ class Flight:
         None
         """
         time_points = np.arange(0, self.t_final, time_step)
-        with open(file_name, "w", encoding="utf-8") as file:
+        # pylint: disable=W1514, E1121
+        with open(file_name, "w") as file:
             if len(self.rocket.parachutes) == 0:
                 print("No parachutes in the rocket, saving static pressure.")
                 for t in time_points:
