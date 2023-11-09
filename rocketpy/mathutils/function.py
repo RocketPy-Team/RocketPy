@@ -3,7 +3,6 @@ operations, including interpolation, extrapolation, integration, differentiation
 and more. This is a core class of our package, and should be maintained
 carefully as it may impact all the rest of the project.
 """
-import warnings
 from inspect import signature
 from pathlib import Path
 
@@ -154,7 +153,7 @@ class Function:
         # Import CSV if source is a string or Path and convert values to ndarray
         if isinstance(source, (str, Path)):
             # Read file and check for headers
-            with open(source, mode="r", encoding="utf-8") as f:
+            with open(source, mode="r") as f:
                 first_line = f.readline()
             # If headers are found...
             if first_line[0] in ['"', "'"]:
@@ -2273,7 +2272,6 @@ class Function:
             return (
                 self.get_value(x + dx) - 2 * self.get_value(x) + self.get_value(x - dx)
             ) / dx**2
-        return None
 
     def identity_function(self):
         """Returns a Function object that correspond to the identity mapping,
