@@ -439,6 +439,8 @@ class Motor(ABC):
         - The ``LiquidMotor`` class favors the more accurate data from the
           Tanks's mass flow rates. Therefore this value is numerically
           independent of the ``LiquidMotor.mass_flow_rate``.
+        - The ``GenericMotor`` class considers the total_mass_flow_rate as the
+        same as the mass_flow_rate.
 
         It should be noted that, for hybrid motors, the oxidizer mass flow
         rate should not be greater than `total_mass_flow_rate`, otherwise the
@@ -1218,6 +1220,14 @@ class GenericMotor(Motor):
             Gas exhaust velocity of the motor.
         """
         return self.total_impulse / self.propellant_initial_mass
+
+    @funcify_method("Time (s)", "Mass Flow Rate (kg/s)")
+    def mass_flow_rate(self):
+        """Time derivative of propellant mass. Assumes constant exhaust
+        velocity. The formula used is the opposite of thrust divided by
+        exhaust velocity.
+        """
+        return -1 * self.thrust / self.exhaust_velocity
 
     @funcify_method("Time (s)", "center of mass (m)")
     def center_of_propellant_mass(self):
