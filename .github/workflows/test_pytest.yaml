@@ -45,10 +45,16 @@ jobs:
           pip install -r requirements-tests.txt
       - name: Test with pytest
         run: |
-          pytest
+          pytest --cov=rocketpy --cov-report=xml
           cd rocketpy
-          pytest --doctest-modules
-      - name: Upload reports to Codecov
+          pytest --doctest-modules --cov=rocketpy --cov-report=xml --cov-append
+      - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: true
+          verbose: true
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
