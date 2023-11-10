@@ -33,12 +33,12 @@ class _LiquidMotorPlots(_MotorPlots):
         -------
         None
         """
-
         self.thrust(*self.motor.burn_time)
-        self.total_mass(*self.motor.burn_time)
-        self.center_of_mass(*self.motor.burn_time)
         self.mass_flow_rate(*self.motor.burn_time)
         self.exhaust_velocity(*self.motor.burn_time)
+        self.total_mass(*self.motor.burn_time)
+        self.propellant_mass(*self.motor.burn_time)
+        self.center_of_mass(*self.motor.burn_time)
         self.I_11(*self.motor.burn_time)
         self.I_22(*self.motor.burn_time)
         self.I_33(*self.motor.burn_time)

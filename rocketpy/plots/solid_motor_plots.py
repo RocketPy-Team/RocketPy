@@ -129,12 +129,12 @@ class _SolidMotorPlots(_MotorPlots):
         -------
         None
         """
-
         self.thrust(*self.motor.burn_time)
-        self.total_mass(*self.motor.burn_time)
-        self.center_of_mass(*self.motor.burn_time)
         self.mass_flow_rate(*self.motor.burn_time)
         self.exhaust_velocity(*self.motor.burn_time)
+        self.total_mass(*self.motor.burn_time)
+        self.propellant_mass(*self.motor.burn_time)
+        self.center_of_mass(*self.motor.burn_time)
         self.grain_inner_radius(*self.motor.burn_time)
         self.grain_height(*self.motor.burn_time)
         self.burn_rate(self.motor.burn_time[0], self.motor.grain_burn_out)
