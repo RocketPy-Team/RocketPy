@@ -36,15 +36,23 @@ class Motor(ABC):
         :doc:`Positions and Coordinate Systems </user/positions>` for more
         information.
     Motor.dry_mass : float
-        The total mass of the motor structure, including chambers
-        and tanks, when it is empty and does not contain any propellant.
+        The mass of the motor when devoid of any propellants, measured in
+        kilograms (kg). It encompasses the structural weight of the motor,
+        including the combustion chamber, nozzles, tanks, and fasteners.
+        Excluded from this measure are the propellants and any other elements
+        that are dynamically accounted for in the `mass` parameter of the rocket
+        class. Ensure that mass contributions from components shared with the
+        rocket structure are not recounted here. This parameter does not vary
+        with time.
     Motor.propellant_initial_mass : float
-        Total propellant initial mass in kg.
+        Total propellant initial mass in kg, including solid, liquid and gas
+        phases.
     Motor.total_mass : Function
         Total motor mass in kg as a function of time, defined as the sum
-        of propellant and dry mass.
+        of propellant mass and the motor's dry mass (i.e. structure mass).
     Motor.propellant_mass : Function
-        Total propellant mass in kg as a function of time.
+        Total propellant mass in kg as a function of time, including solid,
+        liquid and gas phases.
     Motor.total_mass_flow_rate : Function
         Time derivative of propellant total mass in kg/s as a function
         of time as obtained by the thrust source.
@@ -174,8 +182,7 @@ class Motor(ABC):
             .. seealso:: :doc:`Thrust Source Details </user/motors/thrust>`
 
         dry_mass : int, float
-            The total mass of the motor structure, including chambers
-            and tanks, when it is empty and does not contain any propellant.
+            Same as in Motor class. See the :class:`Motor <rocketpy.Motor>` docs
         center_of_dry_mass_position : int, float
             The position, in meters, of the motor's center of mass with respect
             to the motor's coordinate system when it is devoid of propellant.
@@ -378,7 +385,7 @@ class Motor(ABC):
         """
         pass
 
-    @funcify_method("Time (s)", "total mass (kg)")
+    @funcify_method("Time (s)", "Total mass (kg)")
     def total_mass(self):
         """Total mass of the motor as a function of time. It is defined as the
         propellant mass plus the dry mass.
@@ -386,11 +393,11 @@ class Motor(ABC):
         Returns
         -------
         Function
-            Total mass as a function of time.
+            Motor total mass as a function of time.
         """
         return self.propellant_mass + self.dry_mass
 
-    @funcify_method("Time (s)", "propellant mass (kg)")
+    @funcify_method("Time (s)", "Propellant mass (kg)")
     def propellant_mass(self):
         """Total propellant mass as a Function of time.
 
@@ -403,11 +410,10 @@ class Motor(ABC):
             self.total_mass_flow_rate.integral_function() + self.propellant_initial_mass
         )
 
-    @funcify_method("Time (s)", "mass dot (kg/s)", extrapolation="zero")
+    @funcify_method("Time (s)", "Mass flow rate (kg/s)", extrapolation="zero")
     def total_mass_flow_rate(self):
-        """Time derivative of propellant mass. Assumes constant exhaust
-        velocity. The formula used is the opposite of thrust divided by
-        exhaust velocity.
+        """Time derivative of the propellant mass as a function of time. The
+        formula used is the opposite of thrust divided by exhaust velocity.
 
         Returns
         -------
@@ -427,10 +433,8 @@ class Motor(ABC):
         Notes
         -----
         This function computes the total mass flow rate of the motor by
-        dividing the thrust data by a constant approximation of the exhaust
-        velocity.
-        This approximation of the total mass flow rate is used in the
-        following manner by the child Motor classes:
+        dividing the thrust data by the exhaust velocity. This is an
+        approximation, and it  is used by the child Motor classes as follows:
 
         - The ``SolidMotor`` class uses this approximation to compute the
           grain's mass flow rate;
@@ -449,7 +453,7 @@ class Motor(ABC):
     @property
     @abstractmethod
     def propellant_initial_mass(self):
-        """Propellant initial mass in kg.
+        """Propellant initial mass in kg, including solid, liquid and gas phases
 
         Returns
         -------
@@ -478,8 +482,8 @@ class Motor(ABC):
     @abstractmethod
     def center_of_propellant_mass(self):
         """Position of the propellant center of mass as a function of time.
-        The position is specified as a scalar, relative to the motor's
-        coordinate system.
+        The position is specified as a scalar, relative to the origin of the
+        motor's coordinate system.
 
         Returns
         -------
@@ -501,7 +505,7 @@ class Motor(ABC):
         Notes
         -----
         The e_1 direction is assumed to be the direction perpendicular to the
-        motor body axis.
+        motor body axis. Also, due to symmetry, I_11 = I_22.
 
         References
         ----------
@@ -540,7 +544,8 @@ class Motor(ABC):
         Notes
         -----
         The e_2 direction is assumed to be the direction perpendicular to the
-        motor body axis, and perpendicular to e_1.
+        motor body axis, and perpendicular to e_1. Also, due to symmetry,
+        I_22 = I_11.
 
         References
         ----------
@@ -667,6 +672,7 @@ class Motor(ABC):
         ----------
         https://en.wikipedia.org/wiki/Moment_of_inertia
         """
+        # wrt = with respect to
         # Propellant inertia tensor 23 component wrt propellant center of mass
         propellant_I_23 = self.propellant_I_23
 
@@ -1103,8 +1109,7 @@ class GenericMotor(Motor):
             coordinate system.
             See :doc:`Positions and Coordinate Systems </user/positions>`
         dry_mass : int, float
-            The total mass of the motor structure, including chambers
-            and tanks, when it is empty and does not contain any propellant.
+            Same as in Motor class. See the :class:`Motor <rocketpy.Motor>` docs
         propellant_initial_mass : int, float
             The initial mass of the propellant in the motor.
         center_of_dry_mass_position : int, float, optional
