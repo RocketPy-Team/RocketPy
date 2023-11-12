@@ -1,11 +1,11 @@
+import warnings
 from inspect import signature
 from pathlib import Path
+from typing import List, Union
 
-from scipy import integrate, linalg, optimize
 import matplotlib.pyplot as plt
-from typing import Union, List
 import numpy as np
-import warnings
+from scipy import integrate, linalg, optimize
 
 try:
     from functools import cached_property
@@ -143,6 +143,9 @@ class Function:
         -------
         self : Function
         """
+        inputs, outputs, interpolation, extrapolation = self._check_user_input(
+            source, inputs, outputs, interpolation, extrapolation
+        )
         # If the source is a Function
         if isinstance(source, Function):
             source = source.get_source()
@@ -191,17 +194,13 @@ class Function:
             # Check to see if dimensions match incoming data set
             new_total_dim = len(source[0, :])
             old_total_dim = self.__dom_dim__ + self.__img_dim__
-            dV = self.__inputs__ == ["Scalar"] and self.__outputs__ == ["Scalar"]
+
             # If they don't, update default values or throw error
             if new_total_dim != old_total_dim:
-                if dV:
-                    # Update dimensions and inputs
-                    self.__dom_dim__ = new_total_dim - 1
-                    self.__inputs__ = self.__dom_dim__ * self.__inputs__
-                else:
-                    # User has made a mistake inputting inputs and outputs
-                    print("Error in input and output dimensions!")
-                    return None
+                # Update dimensions and inputs
+                self.__dom_dim__ = new_total_dim - 1
+                self.__inputs__ = self.__dom_dim__ * self.__inputs__
+
             # Do things if domDim is 1
             if self.__dom_dim__ == 1:
                 source = source[source[:, 0].argsort()]
@@ -2622,16 +2621,68 @@ class Function:
                 extrapolation=self.__extrapolation__,
             )
 
+    @staticmethod
     def _check_user_input(
-        self,
         source,
         inputs,
         outputs,
         interpolation,
         extrapolation,
     ):
-        # check source for data type
+        """
+        Validates and processes the user input parameters for creating or modifying a
+        Function object. This function ensures the inputs, outputs, interpolation,
+        and extrapolation parameters are compatible with the given source. It converts
+        the source to a numpy array if necessary, sets default values and raises
+        warnings or errors for incompatible or ill-defined parameters.
 
+        Parameters
+        ----------
+        source : list, np.ndarray, or Function
+            The source data or Function object. If a list or ndarray, it should contain
+            numeric data. If a Function, its inputs and outputs are checked against the
+            provided inputs and outputs.
+        inputs : list of str or None
+            The names of the input variables. If None, defaults are generated based on
+            the dimensionality of the source.
+        outputs : str or list of str
+            The name(s) of the output variable(s). If a list is provided, it must have
+            a single element.
+        interpolation : str or None
+            The method of interpolation to be used. For multidimensional sources,
+            defaults to 'shepard' if not provided.
+        extrapolation : str or None
+            The method of extrapolation to be used. For multidimensional sources,
+            defaults to 'natural' if not provided.
+
+        Returns
+        -------
+        tuple
+            A tuple containing the processed inputs, outputs, interpolation, and
+            extrapolation parameters.
+
+        Raises
+        ------
+        ValueError
+            If the dimensionality of the source does not match the combined dimensions
+            of inputs and outputs. If the outputs list has more than one element.
+        TypeError
+            If the source is not a list, np.ndarray, or Function object.
+        Warning
+            If inputs or outputs do not match for a Function source, or if defaults are
+            used for inputs, interpolation,and extrapolation for a multidimensional
+            source.
+        """
+        # check output type and dimensions
+        if isinstance(outputs, str):
+            outputs = [outputs]
+
+        elif len(outputs) > 1:
+            raise ValueError(
+                f"Output must either be a string or have dimension 1, it currently has dimension ({len(outputs)})."
+            )
+
+        # check source for data type
         # if list or ndarray, check for dimensions, interpolation and extrapolation
         if isinstance(source, (list, np.ndarray)):
             # this will also trigger an error if the source is not a list of numbers or if the array is not homogeneous
@@ -2639,15 +2690,6 @@ class Function:
 
             # check dimensions
             source_dim = source.shape[1]
-
-            # check output type and dimensions
-            if isinstance(outputs, str):
-                outputs = [outputs]
-
-            elif len(outputs) > 1:
-                raise ValueError(
-                    f"Output must either be a string or have dimension 1, it currently has dimension ({len(outputs)})."
-                )
 
             # check interpolation and extrapolation
             if source_dim > 2:
@@ -2658,13 +2700,16 @@ class Function:
                         f"Inputs not set, defaulting to {inputs} for multidimensional functions.",
                     )
 
-                if interpolation != None and interpolation != "shepard":
+                if interpolation not in [None, "shepard"]:
                     interpolation = "shepard"
                     warnings.warn(
-                        "Interpolation method for multidimensional functions is set to 'shepard', currently other methods are not supported.",
+                        (
+                            "Interpolation method for multidimensional functions is set"
+                            "to 'shepard', currently other methods are not supported."
+                        ),
                     )
 
-                if extrapolation == None:
+                if extrapolation is None:
                     extrapolation = "natural"
                     warnings.warn(
                         "Extrapolation not set, defaulting to 'natural' for multidimensional functions.",
@@ -2680,13 +2725,13 @@ class Function:
         # if function, check for inputs and outputs
         if isinstance(source, Function):
             # check inputs
-            if inputs != None and inputs != source.get_inputs():
+            if inputs is not None and inputs != source.get_inputs():
                 warnings.warn(
                     f"Inputs do not match source inputs, setting inputs to {inputs}.",
                 )
 
             # check outputs
-            if outputs != None and outputs != source.get_outputs():
+            if outputs is not None and outputs != source.get_outputs():
                 warnings.warn(
                     f"Outputs do not match source outputs, setting outputs to {outputs}.",
                 )
