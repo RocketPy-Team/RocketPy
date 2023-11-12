@@ -144,7 +144,11 @@ class Function:
         self : Function
         """
         inputs, outputs, interpolation, extrapolation = self._check_user_input(
-            source, self.__inputs__, self.__outputs__, self.__interpolation__, self.__extrapolation__
+            source,
+            self.__inputs__,
+            self.__outputs__,
+            self.__interpolation__,
+            self.__extrapolation__,
         )
         # If the source is a Function
         if isinstance(source, Function):
