@@ -182,11 +182,7 @@ class Motor(ABC):
             .. seealso:: :doc:`Thrust Source Details </user/motors/thrust>`
 
         dry_mass : int, float
-            The total mass of the motor structure, including chambers,
-            bulkheads, screws, tanks, and others. This should be taken when the
-            motor is empty and does not contain any propellant. You should not
-            double count a component that is already accounted for in the rocket
-            class.
+            Same as in Motor class. See the :class:`Motor <rocketpy.Motor>` docs
         center_of_dry_mass_position : int, float
             The position, in meters, of the motor's center of mass with respect
             to the motor's coordinate system when it is devoid of propellant.
@@ -1113,11 +1109,7 @@ class GenericMotor(Motor):
             coordinate system.
             See :doc:`Positions and Coordinate Systems </user/positions>`
         dry_mass : int, float
-            The total mass of the motor structure, including chambers,
-            bulkheads, screws, tanks, and others. This should be taken when the
-            motor is empty and does not contain any propellant. You should not
-            double count a component that is already accounted for in the rocket
-            class.
+            Same as in Motor class. See the :class:`Motor <rocketpy.Motor>` docs
         propellant_initial_mass : int, float
             The initial mass of the propellant in the motor.
         center_of_dry_mass_position : int, float, optional

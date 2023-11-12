@@ -30,9 +30,11 @@ class _RocketPrints:
         None
         """
         print("\nInertia Details\n")
-        print("Rocket Mass: {self.rocket.mass:.3f} kg")
+        print(f"Rocket Mass: {self.rocket.mass:.3f} kg (without motor)")
         print(f"Rocket Dry Mass: {self.rocket.dry_mass:.3f} kg (with unloaded motor)")
-        print(f"Rocket Mass: {self.rocket.total_mass(0):.3f} kg (With Propellant)")
+        print(
+            f"Rocket Loaded Mass: {self.rocket.total_mass(0):.3f} kg (with loaded motor)"
+        )
         print(
             f"Rocket Inertia (with unloaded motor) 11: {self.rocket.dry_I_11:.3f} kg*m2"
         )

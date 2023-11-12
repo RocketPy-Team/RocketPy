@@ -201,11 +201,7 @@ class HybridMotor(Motor):
 
             .. seealso:: :doc:`Thrust Source Details </user/motors/thrust>`
         dry_mass : int, float
-            The total mass of the motor structure, including chambers,
-            bulkheads, screws, tanks, and others. This should be taken when the
-            motor is empty and does not contain any propellant. You should not
-            double count a component that is already accounted for in the rocket
-            class.
+            Same as in Motor class. See the :class:`Motor <rocketpy.Motor>` docs
         dry_inertia : tuple, list
             Tuple or list containing the motor's dry mass inertia tensor
             components, in kg*m^2. This inertia is defined with respect to the
