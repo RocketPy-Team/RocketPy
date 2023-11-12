@@ -65,10 +65,7 @@ class SolidMotor(Motor):
     SolidMotor.grain_initial_mass : float
         Initial mass of each grain in kg.
     SolidMotor.dry_mass : float
-        The total mass of the motor structure, including chambers, bulkheads,
-        screws, and others. This should be taken when the motor is empty and
-        does not contain any propellant. You should not double count a component
-        that is already accounted for in the rocket class.
+        Same as in Motor class. See the :class:`Motor <rocketpy.Motor>` docs.
     SolidMotor.propellant_initial_mass : float
         Total propellant initial mass in kg.
     SolidMotor.total_mass : Function

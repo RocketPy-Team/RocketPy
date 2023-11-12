@@ -527,12 +527,16 @@ def apogee_by_mass(flight, min_mass, max_mass, points=10, plot=True):
     ----------
     flight : rocketpy.Flight
         Flight object containing the rocket's flight data
-    min_mass : int
-        The minimum value of mass to calculate the apogee, by default 3. This
-        value should be the minimum rocket's mass, therefore, a positive value
-        is expected.
-    max_mass : int
-        The maximum value of mass to calculate the apogee, by default 30.
+    min_mass : float
+        The minimum value for the rocket's mass to calculate the apogee, given
+        in kilograms (kg). This value should be the minimum rocket's mass,
+        therefore, a positive value is expected. See the Rocket.mass attribute
+        for more details.
+    max_mass : float
+        The maximum value for the rocket's mass to calculate the apogee, given
+        in kilograms (kg). This value should be the maximum rocket's mass,
+        therefore, a positive value is expected and it should be higher than the
+        min_mass attribute. See the Rocket.mass attribute for more details.
     points : int, optional
         The number of points to calculate the apogee between the mass
         boundaries, by default 10. Increasing this value will refine the
@@ -591,16 +595,21 @@ def liftoff_speed_by_mass(flight, min_mass, max_mass, points=10, plot=True):
     ----------
     flight : rocketpy.Flight
         Flight object containing the rocket's flight data
-    min_mass : int
-        The minimum value of mass to calculate the liftoff speed, by default 3.
-        This value should be the minimum mass of the rocket (without a motor),
-        therefore, a positive value is expected.
-    max_mass : int
-        The maximum value of mass to calculate the liftoff speed, by default 30.
+    min_mass : float
+        The minimum value for the rocket's mass to calculate the out of rail
+        speed, given in kilograms (kg). This value should be the minimum
+        rocket's mass, therefore, a positive value is expected. See the
+        Rocket.mass attribute for more details.
+    max_mass : float
+        The maximum value for the rocket's mass to calculate the out of rail
+        speed, given in kilograms (kg). This value should be the maximum
+        rocket's mass, therefore, a positive value is expected and it should be
+        higher than the min_mass attribute. See the Rocket.mass attribute for
+        more details.
     points : int, optional
         The number of points to calculate the liftoff speed between the mass
-        boundaries, by default 10. Increasing this value will refine the results,
-        but will also increase the computational time.
+        boundaries, by default 10. Increasing this value will refine the
+        results, but will also increase the computational time.
     plot : bool, optional
         If True, the function will plot the results, by default True.
 

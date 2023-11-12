@@ -42,10 +42,7 @@ class HybridMotor(Motor):
     HybridMotor.liquid : LiquidMotor
         Liquid motor object that composes the hybrid motor.
     HybridMotor.dry_mass : float
-        The total mass of the motor structure, including chambers, bulkheads,
-        screws, tanks, and others. This should be taken when the motor is
-        empty and does not contain any propellant. You should not double
-        count a component that is already accounted for in the rocket class.
+        Same as in Motor class. See the :class:`Motor <rocketpy.Motor>` docs.
     HybridMotor.propellant_initial_mass : float
         Total propellant initial mass in kg. This is the sum of the initial
         mass of fluids in each tank and the initial mass of the solid grains.
@@ -514,10 +511,40 @@ class HybridMotor(Motor):
 
     @funcify_method("Time (s)", "Inertia I_13 (kg m²)")
     def propellant_I_13(self):
+        """Inertia tensor 13 component of the propellant, the inertia is
+        relative to the e_1 and e_3 axes, centered at the instantaneous
+        propellant center of mass.
+
+        Returns
+        -------
+        Function
+            Propellant inertia tensor 13 component at time t.
+
+        Notes
+        -----
+            This is assumed to be zero due to axial symmetry of the motor. This
+            could be improved in the future to account for the fact that the
+            motor is not perfectly symmetric.
+        """
         return 0
 
     @funcify_method("Time (s)", "Inertia I_23 (kg m²)")
     def propellant_I_23(self):
+        """Inertia tensor 23 component of the propellant, the inertia is
+        relative to the e_2 and e_3 axes, centered at the instantaneous
+        propellant center of mass.
+
+        Returns
+        -------
+        Function
+            Propellant inertia tensor 23 component at time t.
+
+        Notes
+        -----
+            This is assumed to be zero due to axial symmetry of the motor. This
+            could be improved in the future to account for the fact that the
+            motor is not perfectly symmetric.
+        """
         return 0
 
     def add_tank(self, tank, position):

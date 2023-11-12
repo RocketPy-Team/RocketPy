@@ -37,10 +37,7 @@ class LiquidMotor(Motor):
         List containing the motor's added tanks and their respective
         positions.
     LiquidMotor.dry_mass : float
-        The total mass of the motor structure, including chambers, bulkheads,
-        screws, tanks, and others. This should be taken when the motor is empty
-        and does not contain any propellant. You should not double count a
-        component that is already accounted for in the rocket class.
+        Same as in Motor class. See the :class:`Motor <rocketpy.Motor>` docs.
     LiquidMotor.propellant_initial_mass : float
         Total propellant initial mass in kg, includes fuel and oxidizer.
     LiquidMotor.total_mass : Function
@@ -275,8 +272,9 @@ class LiquidMotor(Motor):
 
     @funcify_method("Time (s)", "Propellant Mass (kg)")
     def propellant_mass(self):
-        """Evaluates the mass of the motor as the sum of fluids mass in each
-        tank, which may include fuel and oxidizer and usually vary with time.
+        """Evaluates the total propellant mass of the motor as the sum of fluids
+        mass in each tank, which may include fuel and oxidizer and usually vary
+        with time.
 
         Returns
         -------

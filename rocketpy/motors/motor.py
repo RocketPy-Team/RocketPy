@@ -36,10 +36,14 @@ class Motor(ABC):
         :doc:`Positions and Coordinate Systems </user/positions>` for more
         information.
     Motor.dry_mass : float
-        The total mass of the motor structure, including chambers, bulkheads,
-        screws, tanks, and others. This should be taken when the motor is empty
-        and does not contain any propellant. You should not double count a
-        component that is already accounted for in the rocket class.
+        The mass of the motor when devoid of any propellants, measured in
+        kilograms (kg). It encompasses the structural weight of the motor,
+        including the combustion chamber, nozzles, tanks, and fasteners.
+        Excluded from this measure are the propellants and any other elements
+        that are dynamically accounted for in the `mass` parameter of the rocket
+        class. Ensure that mass contributions from components shared with the
+        rocket structure are not recounted here. This parameter does not vary
+        with time.
     Motor.propellant_initial_mass : float
         Total propellant initial mass in kg, including solid, liquid and gas
         phases.
@@ -410,7 +414,7 @@ class Motor(ABC):
             self.total_mass_flow_rate.integral_function() + self.propellant_initial_mass
         )
 
-    @funcify_method("Time (s)", "Mass dot (kg/s)", extrapolation="zero")
+    @funcify_method("Time (s)", "Mass flow rate (kg/s)", extrapolation="zero")
     def total_mass_flow_rate(self):
         """Time derivative of the propellant mass as a function of time. The
         formula used is the opposite of thrust divided by exhaust velocity.

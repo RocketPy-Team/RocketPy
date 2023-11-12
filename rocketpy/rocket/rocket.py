@@ -181,7 +181,9 @@ class Rocket:
             Rocket total mass without motor in kg.
         inertia : tuple, list
             Tuple or list containing the rocket's inertia tensor components,
-            in kg*m^2. This should be measured without motor and propellant.
+            in kg*m^2. This should be measured without motor and propellant so
+            that the inertia reference point is the
+            `center_of_mass_without_motor`.
             Assuming e_3 is the rocket's axis of symmetry, e_1 and e_2 are
             orthogonal and form a plane perpendicular to e_3, the inertia tensor
             components must be given in the following order: (I_11, I_22, I_33,
@@ -396,8 +398,9 @@ class Rocket:
         return self.center_of_mass
 
     def evaluate_center_of_dry_mass(self):
-        """Evaluates rocket center dry of mass (i.e. rocket + motor without
-        propellant) position relative to user defined rocket reference system.
+        """Evaluates the rocket's center of dry mass (i.e. rocket with motor but
+        without propellant) position relative to user defined rocket reference
+        system.
 
         Returns
         -------
@@ -440,7 +443,7 @@ class Rocket:
     def evaluate_thrust_to_weight(self):
         """Evaluates thrust to weight as a Function of time. This is defined as
         the motor thrust force divided by rocket weight. The gravitational
-        acceleration is assumed constants and equal to 9.80665 m/s^2.
+        acceleration is assumed constant and equals to 9.80665 m/s^2.
 
         Returns
         -------
