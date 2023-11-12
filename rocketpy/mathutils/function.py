@@ -144,7 +144,7 @@ class Function:
         self : Function
         """
         inputs, outputs, interpolation, extrapolation = self._check_user_input(
-            source, inputs, outputs, interpolation, extrapolation
+            source, self.__inputs__, self.__outputs__, self.__interpolation__, self.__extrapolation__
         )
         # If the source is a Function
         if isinstance(source, Function):
@@ -2676,6 +2676,8 @@ class Function:
         # check output type and dimensions
         if isinstance(outputs, str):
             outputs = [outputs]
+        if isinstance(inputs, str):
+            inputs = [inputs]
 
         elif len(outputs) > 1:
             raise ValueError(
