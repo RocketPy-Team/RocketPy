@@ -1233,7 +1233,7 @@ class Function:
         mesh_x_flat, mesh_y_flat = mesh_x.flatten(), mesh_y.flatten()
         mesh = [[mesh_x_flat[i], mesh_y_flat[i]] for i in range(len(mesh_x_flat))]
         # Evaluate function at all mesh nodes and convert it to matrix
-        z = np.array(self.get_value(mesh)).reshape(mesh_x.shape)
+        z = np.array(self.get_value(mesh[:, 0], mesh[:, 1])).reshape(mesh_x.shape)
         # Plot function
         if disp_type == "surface":
             surf = axes.plot_surface(
