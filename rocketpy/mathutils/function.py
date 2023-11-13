@@ -73,7 +73,7 @@ class Function:
         -------
         None
         """
-        # initialize variables to avoid pylint W0201
+        # initialize variables to avoid errors when being called by other methods
         self.get_value_opt = None
         self.__polynomial_coefficients__ = None
         self.__akima_coefficients__ = None
@@ -1419,11 +1419,11 @@ class Function:
             )
             return self.set_interpolation("spline")
         # Create coefficient matrix1
-        matrix = np.zeros((degree + 1, degree + 1))
+        sys_coeffs = np.zeros((degree + 1, degree + 1))
         for i in range(degree + 1):
-            matrix[:, i] = x**i
+            sys_coeffs[:, i] = x**i
         # Solve the system and store the resultant coefficients
-        self.__polynomial_coefficients__ = np.linalg.solve(matrix, y)
+        self.__polynomial_coefficients__ = np.linalg.solve(sys_coeffs, y)
 
     def __interpolate_spline__(self):
         """Calculate natural spline coefficients that fit the data exactly."""
@@ -2066,7 +2066,7 @@ class Function:
         Parameters
         ----------
         other : int, float, callable
-            The object that will be exponentiate by function.
+            The object that will be exponentiated by the function.
 
         Returns
         -------
