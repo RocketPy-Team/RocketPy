@@ -369,20 +369,22 @@ class CylindricalTank(TankGeometry):
         height : float
             Height of the cylindrical tank, in meters.
         spherical_caps : bool, optional
-            If True, the tank will have spherical caps. The height of the
-            tank is maintained. The default is False.
+            If True, the tank will have spherical caps at the top and bottom
+            with the same radius as the cylindrical part. If False, the tank
+            will have flat caps at the top and bottom. Defaults to False.
         geometry_dict : dict, optional
             Dictionary containing the geometry of the tank. See TankGeometry.
         """
         super().__init__(geometry_dict)
+        self.height = height
         self.has_caps = False
         if spherical_caps:
             self.add_geometry((-height / 2 + radius, height / 2 - radius), radius)
-            self.add_spherical_caps(height)
+            self.add_spherical_caps()
         else:
             self.add_geometry((-height / 2, height / 2), radius)
 
-    def add_spherical_caps(self, total_height):
+    def add_spherical_caps(self):
         """
         Adds spherical caps to the tank. The caps are added at the bottom
         and at the top of the tank. If the tank already has caps, it raises a
@@ -390,7 +392,7 @@ class CylindricalTank(TankGeometry):
         """
         if not self.has_caps:
             radius = self.radius(0)
-            height = total_height
+            height = self.height
             bottom_cap_range = (-height / 2, -height / 2 + radius)
             upper_cap_range = (height / 2 - radius, height / 2)
 
