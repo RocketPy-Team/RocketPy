@@ -356,6 +356,57 @@ To see a very large summary of the results, we can call the ``all_info`` method:
         altitude_mode="relative_to_ground",
     )
 
+Exporting Flight Data
+---------------------
+
+In this section, we will explore how to export specific data from your RocketPy simulations to CSV files. This is particularly useful if you want to insert the data into spreadsheets or other software for further analysis.
+
+The main method that is used to export data is the :meth:`rocketpy.Flight.export_data` method. This method exports selected flight attributes to a CSV file. In this first example, we will export the rocket angle of attack (see :meth:`rocketpy.Flight.angle_of_attack`) and the rocket mach number (see :meth:`rocketpy.Flight.mach_number`) to the file ``calisto_flight_data.csv``.
+
+.. jupyter-execute::
+
+    test_flight.export_data(
+        "calisto_flight_data.csv",
+        "angle_of_attack", 
+        "mach_number",
+    )
+
+| As you can see, the first argument of the method is the name of the file to be created. The following arguments are the attributes to be exported. We can check the file that was created by reading it with the :func:`pandas.read_csv` function:
+
+.. jupyter-execute::
+
+    import pandas as pd
+
+    pd.read_csv("calisto_flight_data.csv")
+
+| The file header specifies the meaning of each column. The time samples are obtained from the simulation solver steps. Should you want to export the data at a different sampling rate, you can use the ``time_step`` argument of the :meth:`rocketpy.Flight.export_data` method as follows.
+
+.. jupyter-execute::
+
+    test_flight.export_data(
+        "calisto_flight_data.csv",
+        "angle_of_attack", 
+        "mach_number",
+        time_step=1.0,
+    )
+
+    pd.read_csv("calisto_flight_data.csv")
+
+This will export the same data at a sampling rate of 1 second. The flight data will be linearly interpolated to match the new sampling rate.
+
+Finally, the :meth:`rocketpy.Flight.export_data` method also provides a convenient way to export the entire flight solution (see :meth:`rocketpy.Flight.solution_array`) to a CSV file. This is done by not passing any attributes names to the method.
+
+.. jupyter-execute::
+
+    test_flight.export_data(
+        "calisto_flight_data.csv",
+    )
+
+    # Sample file cleanup
+    import os
+    os.remove("calisto_flight_data.csv")
+    
+
 Further Analysis
 ----------------
 
