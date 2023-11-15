@@ -235,12 +235,12 @@ class Function:
                 # Update extrapolation method
                 if (
                     self.__extrapolation__ is None
-                    or self.__extrapolation__ == "shepard"
+                    or self.__extrapolation__ == "natural"
                 ):
-                    self.set_extrapolation("shepard")
+                    self.set_extrapolation("natural")
                 else:
                     raise ValueError(
-                        "Multidimensional datasets only support shepard extrapolation."
+                        "Multidimensional datasets only support natural extrapolation."
                     )
 
                 # Set default multidimensional interpolation if it hasn't
