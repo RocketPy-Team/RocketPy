@@ -16,6 +16,7 @@ RocketPy's User Guide
    Motors <motors/motors.rst>
    Rocket <rocket.rst>
    Environment <environment.rst>
+   Function <function.rst>
 
 .. toctree::
    :maxdepth: 2
