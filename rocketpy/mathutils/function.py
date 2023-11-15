@@ -231,8 +231,29 @@ class Function:
 
                 # Finally set data source as source
                 self.source = source
-                if self.__interpolation__ is None:
+
+                # Update extrapolation method
+                if (
+                    self.__extrapolation__ is None
+                    or self.__extrapolation__ == "shepard"
+                ):
+                    self.set_extrapolation("shepard")
+                else:
+                    raise ValueError(
+                        "Multidimensional datasets only support shepard extrapolation."
+                    )
+
+                # Set default multidimensional interpolation if it hasn't
+                if (
+                    self.__interpolation__ is None
+                    or self.__interpolation__ == "shepard"
+                ):
                     self.set_interpolation("shepard")
+                else:
+                    raise ValueError(
+                        "Multidimensional datasets only support shepard interpolation."
+                    )
+
         # Return self
         return self
 
