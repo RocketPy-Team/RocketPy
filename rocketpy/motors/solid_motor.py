@@ -468,18 +468,35 @@ class SolidMotor(Motor):
 
         density = self.grain_density
         rO = self.grain_outer_radius
+        n_grain = self.grain_number
 
         # Define system of differential equations
         def geometry_dot(t, y):
-            grain_mass_dot = self.mass_flow_rate(t) / self.grain_number
+            # Store physical parameters
+            volume_diff = self.mass_flow_rate(t) / (n_grain * density)
+
+            # Compute state vector derivative
             rI, h = y
-            rIDot = (
-                -0.5 * grain_mass_dot / (density * np.pi * (rO**2 - rI**2 + rI * h))
-            )
-            hDot = (
-                1.0 * grain_mass_dot / (density * np.pi * (rO**2 - rI**2 + rI * h))
-            )
-            return [rIDot, hDot]
+            burn_area = 2 * np.pi * (rO**2 - rI**2 + rI * h)
+            rI_dot = -volume_diff / burn_area
+            h_dot = -2 * rI_dot
+
+            return [rI_dot, h_dot]
+
+        # Define jacobian of the system of differential equations
+        def geometry_jacobian(t, y):
+            # Store physical parameters
+            volume_diff = self.mass_flow_rate(t) / (n_grain * density)
+
+            # Compute jacobian
+            rI, h = y
+            factor = volume_diff / (2 * np.pi * (rO**2 - rI**2 + rI * h) ** 2)
+            drI_dot_drI = factor * (h - 2 * rI)
+            drI_dot_dh = factor * rI
+            dh_dot_drI = -2 * drI_dot_drI
+            dh_dot_dh = -2 * drI_dot_dh
+
+            return [[drI_dot_drI, drI_dot_dh], [dh_dot_drI, dh_dot_dh]]
 
         def terminate_burn(t, y):
             end_function = (self.grain_outer_radius - y[0]) * y[1]
@@ -493,6 +510,7 @@ class SolidMotor(Motor):
             geometry_dot,
             t_span,
             y0,
+            jac=geometry_jacobian,
             events=terminate_burn,
             atol=1e-12,
             rtol=1e-11,

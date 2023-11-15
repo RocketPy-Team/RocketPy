@@ -19,6 +19,8 @@ from ..prints.aero_surface_prints import (
     _TrapezoidalFinsPrints,
 )
 
+# TODO: all the evaluate_shape() methods need tests and documentation
+
 
 class AeroSurface(ABC):
     """Abstract class used to define aerodynamic surfaces."""
@@ -1215,6 +1217,30 @@ class TrapezoidalFins(Fins):
         self.roll_damping_interference_factor = roll_damping_interference_factor
         self.roll_forcing_interference_factor = roll_forcing_interference_factor
 
+        self.evaluate_shape()
+        return None
+
+    def evaluate_shape(self):
+        if self.sweep_length:
+            points = [
+                (0, 0),
+                (self.sweep_length, self.span),
+                (self.sweep_length + self.tip_chord, self.span),
+                (self.root_chord, 0),
+            ]
+        else:
+            points = [
+                (0, 0),
+                (self.root_chord - self.tip_chord, self.span),
+                (self.root_chord, self.span),
+                (self.root_chord, 0),
+            ]
+
+        x_array, y_array = zip(*points)
+        self.shape_vec = [np.array(x_array), np.array(y_array)]
+
+        return None
+
     def info(self):
         self.prints.geometry()
         self.prints.lift()
@@ -1521,6 +1547,16 @@ class EllipticalFins(Fins):
         self.roll_damping_interference_factor = roll_damping_interference_factor
         self.roll_forcing_interference_factor = roll_forcing_interference_factor
 
+        self.evaluate_shape()
+        return None
+
+    def evaluate_shape(self):
+        angles = np.arange(0, 360, 5)
+        x_array = self.root_chord / 2 + self.root_chord / 2 * np.cos(np.radians(angles))
+        y_array = self.span * np.sin(np.radians(angles))
+        self.shape_vec = [x_array, y_array]
+        return None
+
     def info(self):
         self.prints.geometry()
         self.prints.lift()
@@ -1675,6 +1711,16 @@ class Tail(AeroSurface):
         self.surface_area = (
             np.pi * self.slant_length * (self.top_radius + self.bottom_radius)
         )
+        self.evaluate_shape()
+        return None
+
+    def evaluate_shape(self):
+        # Assuming the tail is a cone, calculate the shape vector
+        self.shape_vec = [
+            np.array([0, self.length]),
+            np.array([self.top_radius, self.bottom_radius]),
+        ]
+        return None
 
     def evaluate_lift_coefficient(self):
         """Calculates and returns tail's lift coefficient.

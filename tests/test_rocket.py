@@ -159,6 +159,7 @@ def test_airfoil(
 
 def test_evaluate_static_margin_assert_cp_equals_cm(dimensionless_calisto):
     rocket = dimensionless_calisto
+    rocket.evaluate_center_of_pressure()
     rocket.evaluate_static_margin()
 
     burn_time = rocket.motor.burn_time
@@ -169,8 +170,8 @@ def test_evaluate_static_margin_assert_cp_equals_cm(dimensionless_calisto):
     assert pytest.approx(
         rocket.center_of_mass(burn_time[1]) / (2 * rocket.radius), 1e-8
     ) == pytest.approx(rocket.static_margin(burn_time[1]), 1e-8)
-    assert pytest.approx(rocket.total_lift_coeff_der, 1e-8) == pytest.approx(0, 1e-8)
-    assert pytest.approx(rocket.cp_position, 1e-8) == pytest.approx(0, 1e-8)
+    assert pytest.approx(rocket.total_lift_coeff_der(0), 1e-8) == pytest.approx(0, 1e-8)
+    assert pytest.approx(rocket.cp_position(0), 1e-8) == pytest.approx(0, 1e-8)
 
 
 @pytest.mark.parametrize(
@@ -188,8 +189,8 @@ def test_add_nose_assert_cp_cm_plus_nose(k, type, calisto, dimensionless_calisto
     static_margin_final = (calisto.center_of_mass(np.inf) - cpz) / (2 * calisto.radius)
     assert static_margin_final == pytest.approx(calisto.static_margin(np.inf), 1e-8)
 
-    assert clalpha == pytest.approx(calisto.total_lift_coeff_der, 1e-8)
-    assert calisto.cp_position == pytest.approx(cpz, 1e-8)
+    assert clalpha == pytest.approx(calisto.total_lift_coeff_der(0), 1e-8)
+    assert calisto.cp_position(0) == pytest.approx(cpz, 1e-8)
 
     dimensionless_calisto.add_nose(length=0.55829 * m, kind=type, position=(1.160) * m)
     assert pytest.approx(dimensionless_calisto.static_margin(0), 1e-8) == pytest.approx(
@@ -199,11 +200,11 @@ def test_add_nose_assert_cp_cm_plus_nose(k, type, calisto, dimensionless_calisto
         dimensionless_calisto.static_margin(np.inf), 1e-8
     ) == pytest.approx(calisto.static_margin(np.inf), 1e-8)
     assert pytest.approx(
-        dimensionless_calisto.total_lift_coeff_der, 1e-8
-    ) == pytest.approx(calisto.total_lift_coeff_der, 1e-8)
-    assert pytest.approx(dimensionless_calisto.cp_position / m, 1e-8) == pytest.approx(
-        calisto.cp_position, 1e-8
-    )
+        dimensionless_calisto.total_lift_coeff_der(0), 1e-8
+    ) == pytest.approx(calisto.total_lift_coeff_der(0), 1e-8)
+    assert pytest.approx(
+        dimensionless_calisto.cp_position(0) / m, 1e-8
+    ) == pytest.approx(calisto.cp_position(0), 1e-8)
 
 
 def test_add_tail_assert_cp_cm_plus_tail(calisto, dimensionless_calisto, m):
@@ -224,8 +225,10 @@ def test_add_tail_assert_cp_cm_plus_tail(calisto, dimensionless_calisto, m):
 
     static_margin_final = (calisto.center_of_mass(np.inf) - cpz) / (2 * calisto.radius)
     assert static_margin_final == pytest.approx(calisto.static_margin(np.inf), 1e-8)
-    assert np.abs(clalpha) == pytest.approx(np.abs(calisto.total_lift_coeff_der), 1e-8)
-    assert calisto.cp_position == cpz
+    assert np.abs(clalpha) == pytest.approx(
+        np.abs(calisto.total_lift_coeff_der(0)), 1e-8
+    )
+    assert calisto.cp_position(0) == cpz
 
     dimensionless_calisto.add_tail(
         top_radius=0.0635 * m,
@@ -240,11 +243,11 @@ def test_add_tail_assert_cp_cm_plus_tail(calisto, dimensionless_calisto, m):
         dimensionless_calisto.static_margin(np.inf), 1e-8
     ) == pytest.approx(calisto.static_margin(np.inf), 1e-8)
     assert pytest.approx(
-        dimensionless_calisto.total_lift_coeff_der, 1e-8
-    ) == pytest.approx(calisto.total_lift_coeff_der, 1e-8)
-    assert pytest.approx(dimensionless_calisto.cp_position / m, 1e-8) == pytest.approx(
-        calisto.cp_position, 1e-8
-    )
+        dimensionless_calisto.total_lift_coeff_der(0), 1e-8
+    ) == pytest.approx(calisto.total_lift_coeff_der(0), 1e-8)
+    assert pytest.approx(
+        dimensionless_calisto.cp_position(0) / m, 1e-8
+    ) == pytest.approx(calisto.cp_position(0), 1e-8)
 
 
 @pytest.mark.parametrize(
@@ -280,7 +283,7 @@ def test_add_trapezoidal_fins_sweep_angle(
     assert cl_alpha == pytest.approx(expected_clalpha, 0.01)
 
     # Check rocket's center of pressure (just double checking)
-    assert translate - calisto.cp_position == pytest.approx(expected_cpz_cm, 0.01)
+    assert translate - calisto.cp_position(0) == pytest.approx(expected_cpz_cm, 0.01)
 
 
 @pytest.mark.parametrize(
@@ -320,7 +323,7 @@ def test_add_trapezoidal_fins_sweep_length(
     assert cl_alpha == pytest.approx(expected_clalpha, 0.01)
 
     # Check rocket's center of pressure (just double checking)
-    assert translate - calisto.cp_position == pytest.approx(expected_cpz_cm, 0.01)
+    assert translate - calisto.cp_position(0) == pytest.approx(expected_cpz_cm, 0.01)
 
     assert isinstance(calisto.aerodynamic_surfaces[0].component, NoseCone)
 
@@ -355,8 +358,10 @@ def test_add_fins_assert_cp_cm_plus_fins(calisto, dimensionless_calisto, m):
     static_margin_final = (calisto.center_of_mass(np.inf) - cpz) / (2 * calisto.radius)
     assert static_margin_final == pytest.approx(calisto.static_margin(np.inf), 1e-8)
 
-    assert np.abs(clalpha) == pytest.approx(np.abs(calisto.total_lift_coeff_der), 1e-8)
-    assert calisto.cp_position == pytest.approx(cpz, 1e-8)
+    assert np.abs(clalpha) == pytest.approx(
+        np.abs(calisto.total_lift_coeff_der(0)), 1e-8
+    )
+    assert calisto.cp_position(0) == pytest.approx(cpz, 1e-8)
 
     dimensionless_calisto.add_trapezoidal_fins(
         4,
@@ -372,11 +377,11 @@ def test_add_fins_assert_cp_cm_plus_fins(calisto, dimensionless_calisto, m):
         dimensionless_calisto.static_margin(np.inf), 1e-8
     ) == pytest.approx(calisto.static_margin(np.inf), 1e-8)
     assert pytest.approx(
-        dimensionless_calisto.total_lift_coeff_der, 1e-8
-    ) == pytest.approx(calisto.total_lift_coeff_der, 1e-8)
-    assert pytest.approx(dimensionless_calisto.cp_position / m, 1e-8) == pytest.approx(
-        calisto.cp_position, 1e-8
-    )
+        dimensionless_calisto.total_lift_coeff_der(0), 1e-8
+    ) == pytest.approx(calisto.total_lift_coeff_der(0), 1e-8)
+    assert pytest.approx(
+        dimensionless_calisto.cp_position(0) / m, 1e-8
+    ) == pytest.approx(calisto.cp_position(0), 1e-8)
 
 
 @pytest.mark.parametrize(
