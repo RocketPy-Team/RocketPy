@@ -553,6 +553,11 @@ class HybridMotor(Motor):
         )
         reset_funcified_methods(self)
 
+    def draw(self):
+        """Draws a representation of the HybridMotor."""
+        self.plots.draw()
+        return None
+
     def info(self):
         """Prints out basic data about the Motor."""
         self.prints.all()

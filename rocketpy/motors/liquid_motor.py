@@ -445,6 +445,7 @@ class LiquidMotor(Motor):
         reset_funcified_methods(self)
 
     def draw(self):
+        """Draw a representation of the LiquidMotor."""
         return self.plots.draw()
 
     def info(self):
