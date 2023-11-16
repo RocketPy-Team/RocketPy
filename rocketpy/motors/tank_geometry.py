@@ -387,9 +387,16 @@ class CylindricalTank(TankGeometry):
     def add_spherical_caps(self):
         """
         Adds spherical caps to the tank. The caps are added at the bottom
-        and at the top of the tank. If the tank already has caps, it raises a
-        ValueError.
+        and at the top of the tank with the same radius as the cylindrical
+        part. The height is not modified, meaning that the total volume of
+        the tank will decrease.
         """
+        # raise warning
+        print(
+            "Warning: Adding spherical caps to the tank will not modify the "
+            + "height of the tank."
+        )
+
         if not self.has_caps:
             radius = self.radius(0)
             height = self.height
