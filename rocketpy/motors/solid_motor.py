@@ -1,8 +1,7 @@
 import numpy as np
 from scipy import integrate
 
-from ..mathutils.function import (Function, funcify_method,
-                                  reset_funcified_methods)
+from ..mathutils.function import Function, funcify_method, reset_funcified_methods
 from ..plots.solid_motor_plots import _SolidMotorPlots
 from ..prints.solid_motor_prints import _SolidMotorPrints
 from .motor import Motor
