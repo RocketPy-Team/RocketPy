@@ -1,5 +1,6 @@
 import warnings
 from inspect import signature
+from collections.abc import Iterable
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -821,7 +822,7 @@ class Function:
                 if isinstance(args[0], (int, float)):
                     return self.source(args[0])
                 # if the arguments are iterable, we map and return a list
-                if isinstance(args[0], (list, tuple, np.ndarray)):
+                if isinstance(args[0], Iterable):
                     return list(map(self.source, args[0]))
 
             # if the function is n-D:
@@ -830,12 +831,12 @@ class Function:
                 if all(isinstance(arg, (int, float)) for arg in args):
                     return self.source(*args)
                 # if each arg is iterable, we map and return a list
-                if all(isinstance(arg, (list, tuple, np.ndarray)) for arg in args):
+                if all(isinstance(arg, Iterable) for arg in args):
                     return [self.source(*arg) for arg in zip(*args)]
 
         # Returns value for shepard interpolation
         elif self.__interpolation__ == "shepard":
-            if isinstance(args[0], (list, tuple)):
+            if isinstance(args[0], Iterable):
                 x = list(args[0])
             else:
                 x = [[float(x) for x in list(args)]]
