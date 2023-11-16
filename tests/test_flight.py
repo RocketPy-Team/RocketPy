@@ -184,6 +184,8 @@ def test_get_solution_at_time(flight_calisto):
         rtol=1e-02,
         atol=5e-03,
     )
+
+
 @patch("matplotlib.pyplot.show")
 def test_empty_motor_flight(mock_show, example_env, calisto_motorless):
     flight = Flight(

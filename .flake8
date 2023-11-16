@@ -1,0 +1,5 @@
+[flake8]
+max-line-length = 88
+max-module-lines= 3000
+exclude = .git,__pycache__
+ignore = E203, W503

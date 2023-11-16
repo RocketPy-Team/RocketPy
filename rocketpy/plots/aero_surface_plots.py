@@ -179,7 +179,7 @@ class _FinsPlots(_AeroSurfacePlots):
 
         if self.aero_surface.airfoil:
             print("Airfoil lift curve:")
-            self.aero_surface.airfoil_cl.plot1D(force_data=True)
+            self.aero_surface.airfoil_cl.plot_1d(force_data=True)
         return None
 
     def roll(self):
