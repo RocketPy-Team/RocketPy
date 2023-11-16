@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.animation import FuncAnimation
-from matplotlib.patches import Polygon, Rectangle
+from matplotlib.patches import Polygon
 
 
 class _TankPlots:
@@ -67,6 +66,12 @@ class _TankPlots:
         return tank
 
     def draw(self):
+        """Draws the tank geometry.
+
+        Returns
+        -------
+        None
+        """
         fig, ax = plt.subplots(facecolor="#EEEEEE")
 
         ax.add_patch(self._generate_tank())

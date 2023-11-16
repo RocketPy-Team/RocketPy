@@ -1,10 +1,4 @@
-import copy
-
 import matplotlib.pyplot as plt
-import numpy as np
-from matplotlib.patches import Polygon
-
-from rocketpy.plots import _generate_nozzle
 
 from .motor_plots import _MotorPlots
 
@@ -33,71 +27,34 @@ class _LiquidMotorPlots(_MotorPlots):
         """
         super().__init__(liquid_motor)
 
-    def _generate_positioned_tanks(self, translate=(0, 0), csys=1):
-        """Generates a list of patches that represent the tanks of the
-        liquid_motor.
-
-        Parameters
-        ----------
-        None
+    def draw(self):
+        """Draw a representation of the LiquidMotor.
 
         Returns
         -------
-        patches : list
-            List of patches that represent the tanks of the liquid_motor.
+        None
         """
-        colors = {
-            0: ("black", "dimgray"),
-            1: ("darkblue", "cornflowerblue"),
-            2: ("darkgreen", "limegreen"),
-            3: ("darkorange", "gold"),
-            4: ("darkred", "tomato"),
-            5: ("darkviolet", "violet"),
-        }
-        patches = []
-        for idx, pos_tank in enumerate(self.liquid_motor.positioned_tanks):
-            tank = pos_tank["tank"]
-            position = pos_tank["position"]
-            trans = (position + translate[0], translate[1])
-            patch = tank.plots._generate_tank(trans, csys)
-            patch.set_facecolor(colors[idx][1])
-            patch.set_edgecolor(colors[idx][0])
-            patches.append(patch)
-        return patches
+        _, ax = plt.subplots(figsize=(8, 6), facecolor="#EEEEEE")
 
-    def _draw_center_of_interests(self, ax, translate=(0, 0)):
-        # center of dry mass position
-        # center of wet mass time = 0
-        # center of wet mass time = end
-        return None
+        tanks_and_centers = self._generate_positioned_tanks(csys=self.motor._csys)
+        nozzle = self._generate_nozzle(
+            translate=(self.motor.nozzle_position, 0), csys=self.motor._csys
+        )
+        outline = self._generate_motor_region(
+            list_of_patches=[nozzle] + [tank for tank, _ in tanks_and_centers]
+        )
 
-    def draw(self):
-        fig, ax = plt.subplots(facecolor="#EEEEEE")
-
-        patches = self._generate_positioned_tanks()
-        for patch in patches:
+        ax.add_patch(outline)
+        for patch, center in tanks_and_centers:
             ax.add_patch(patch)
+            ax.plot(center[0], center[1], marker="o", color="red", markersize=2)
 
         # add the nozzle
-        ax.add_patch(_generate_nozzle(self.liquid_motor, translate=(0, 0)))
+        ax.add_patch(nozzle)
 
-        # find the maximum and minimum x and y values of the tanks
-        x_min = y_min = np.inf
-        x_max = y_max = -np.inf
-        for patch in patches:
-            x_min = min(x_min, patch.xy[:, 0].min())
-            x_max = max(x_max, patch.xy[:, 0].max())
-            y_min = min(y_min, patch.xy[:, 1].min())
-            y_max = max(y_max, patch.xy[:, 1].max())
-
-        ax.set_aspect("equal")
-        ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
-        ax.grid(True, linestyle="--", linewidth=0.5)
-        ax.set_ylim(y_min - 0.25, y_max + 0.25)
-        ax.set_xlim(x_min - 0.10, x_max + 0.10)
-        ax.set_xlabel("Position (m)")
-        ax.set_ylabel("Radius (m)")
-        ax.set_title("Liquid Motor Geometry")
+        ax.set_title("Liquid Motor Representation")
+        self._draw_center_of_mass(ax)
+        self._set_plot_properties(ax)
         plt.show()
 
     def all(self):
