@@ -3,6 +3,7 @@ operations, including interpolation, extrapolation, integration, differentiation
 and more. This is a core class of our package, and should be maintained
 carefully as it may impact all the rest of the project.
 """
+import warnings
 from inspect import signature
 from pathlib import Path
 
@@ -1056,21 +1057,31 @@ class Function:
                 )
 
     def plot(self, *args, **kwargs):
-        """Call Function.plot1D if Function is 1-Dimensional or call
-        Function.plot2D if Function is 2-Dimensional and forward arguments
+        """Call Function.plot_1d if Function is 1-Dimensional or call
+        Function.plot_2d if Function is 2-Dimensional and forward arguments
         and key-word arguments."""
         if isinstance(self, list):
             # Compare multiple plots
             Function.compare_plots(self)
         else:
             if self.__dom_dim__ == 1:
-                self.plot1D(*args, **kwargs)
+                self.plot_1d(*args, **kwargs)
             elif self.__dom_dim__ == 2:
-                self.plot2D(*args, **kwargs)
+                self.plot_2d(*args, **kwargs)
             else:
                 print("Error: Only functions with 1D or 2D domains are plottable!")
 
-    def plot1D(
+    def plot1D(self, *args, **kwargs):
+        """Deprecated method, use Function.plot_1d instead."""
+        warnings.warn(
+            "The `Function.plot1D` method is set to be deprecated and fully "
+            + "removed in rocketpy v2.0.0, use `Function.plot_1d` instead. "
+            + "This method is calling `Function.plot_1d`.",
+            DeprecationWarning,
+        )
+        return self.plot_1d(*args, **kwargs)
+
+    def plot_1d(
         self,
         lower=None,
         upper=None,
@@ -1153,7 +1164,17 @@ class Function:
         if return_object:
             return fig, ax
 
-    def plot2D(
+    def plot2D(self, *args, **kwargs):
+        """Deprecated method, use Function.plot_2d instead."""
+        warnings.warn(
+            "The `Function.plot2D` method is set to be deprecated and fully "
+            + "removed in rocketpy v2.0.0, use `Function.plot_2d` instead. "
+            + "This method is calling `Function.plot_2d`.",
+            DeprecationWarning,
+        )
+        return self.plot_2d(*args, **kwargs)
+
+    def plot_2d(
         self,
         lower=None,
         upper=None,
