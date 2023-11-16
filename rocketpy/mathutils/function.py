@@ -836,8 +836,8 @@ class Function:
 
         # Returns value for shepard interpolation
         elif self.__interpolation__ == "shepard":
-            if isinstance(args[0], Iterable):
-                x = list(args[0])
+            if all(isinstance(arg, Iterable) for arg in args):
+                x = list(np.column_stack(args))
             else:
                 x = [[float(x) for x in list(args)]]
             ans = x
@@ -1298,10 +1298,11 @@ class Function:
         x = np.linspace(lower[0], upper[0], samples[0])
         y = np.linspace(lower[1], upper[1], samples[1])
         mesh_x, mesh_y = np.meshgrid(x, y)
-        mesh = np.column_stack((mesh_x.flatten(), mesh_y.flatten()))
 
         # Evaluate function at all mesh nodes and convert it to matrix
-        z = np.array(self.get_value(mesh[:, 0], mesh[:, 1])).reshape(mesh_x.shape)
+        z = np.array(self.get_value(mesh_x.flatten(), mesh_y.flatten())).reshape(
+            mesh_x.shape
+        )
         z_min, z_max = z.min(), z.max()
         color_map = plt.cm.get_cmap(cmap)
         norm = plt.Normalize(z_min, z_max)
