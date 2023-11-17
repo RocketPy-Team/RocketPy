@@ -3126,7 +3126,18 @@ class Environment:
         ------
         plot_info : Dict
             Dict of data relevant to plot externally
+
+        Warning
+        -------
+        Deprecated in favor of `utilities.get_instance_attributes`.
+
         """
+        warnings.warn(
+            "The method 'all_plot_info_returned' is deprecated. "
+            + "Use 'utilities.get_instance_attributes' instead.",
+            DeprecationWarning,
+        )
+
         grid = np.linspace(self.elevation, self.max_expected_height)
         plot_info = dict(
             grid=[i for i in grid],
@@ -3187,7 +3198,17 @@ class Environment:
         ------
         info : Dict
             Information relevant about the Environment class.
+
+        Warning
+        -------
+        Deprecated in favor of `utilities.get_instance_attributes`.
+
         """
+        warnings.warn(
+            "The method 'all_info_returned' is deprecated. "
+            + "Use 'utilities.get_instance_attributes' instead.",
+            DeprecationWarning,
+        )
 
         # Dictionary creation, if not commented follows the SI
         info = dict(
