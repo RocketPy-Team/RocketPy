@@ -243,3 +243,23 @@ def test_multivariable_function_plot(mock_show):
 
     # Assert plot
     assert func.plot() == None
+
+
+@pytest.mark.parametrize(
+    "x,y,z_expected",
+    [
+        (1, 0, 0),
+        (0, 1, 0),
+        (0, 0, 1),
+        (0.5, 0.5, 1 / 3),
+        (0.25, 0.25, 25 / (25 + 2 * 5**0.5)),
+        ([0, 0.5], [0, 0.5], [1, 1 / 3]),
+    ],
+)
+def test_shepard_interpolation(x, y, z_expected):
+    """Test the shepard interpolation method of the Function class."""
+    # Test plane x + y + z = 1
+    source = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+    func = Function(source=source, inputs=["x", "y"], outputs=["z"])
+    z = func(x, y)
+    assert np.isclose(z, z_expected, atol=1e-8).all()
