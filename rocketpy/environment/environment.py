@@ -2365,7 +2365,7 @@ class Environment:
         self.wind_vs = wind_vs
         self.levels = levels
         self.temperatures = temperatures
-        self.time_array = time_array
+        self.time_array = time_array[:].tolist()
         self.height = height
 
         # Close weather data
@@ -2735,7 +2735,7 @@ class Environment:
         self.wind_vs = wind_vs
         self.levels = levels
         self.temperatures = temperatures
-        self.time_array = time_array
+        self.time_array = time_array[:].tolist()
         self.height = height
 
         # Close weather data
