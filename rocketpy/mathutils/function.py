@@ -2757,7 +2757,7 @@ class Function:
 
         Parameters
         ----------
-        source : list, np.ndarray, or Function
+        source : list, np.ndarray, or callable
             The source data or Function object. If a list or ndarray, it should
             contain numeric data. If a Function, its inputs and outputs are
             checked against the provided inputs and outputs.
