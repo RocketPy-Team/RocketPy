@@ -153,7 +153,7 @@ class Function:
         -------
         self : Function
         """
-        _, _, _, _ = self._check_user_input(
+        _ = self._check_user_input(
             source,
             self.__inputs__,
             self.__outputs__,
@@ -2778,7 +2778,7 @@ class Function:
 
         Parameters
         ----------
-        source : list, np.ndarray, or Function
+        source : list, np.ndarray, or callable
             The source data or Function object. If a list or ndarray, it should
             contain numeric data. If a Function, its inputs and outputs are
             checked against the provided inputs and outputs.
