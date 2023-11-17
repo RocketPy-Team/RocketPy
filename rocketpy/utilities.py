@@ -670,5 +670,10 @@ def get_instance_attributes(instance):
     dictionary
         Dictionary with all attributes of the given instance.
     """
-    attributes_dict = inspect.getmembers(instance)
+    attributes_dict = dict()
+    members = inspect.getmembers(instance)
+    for member in members:
+        # Filter out methods and protected attributes
+        if not inspect.ismethod(member[1]) and not member[0].startswith("__"):
+            attributes_dict[member[0]] = member[1]
     return attributes_dict
