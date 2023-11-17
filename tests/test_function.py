@@ -253,6 +253,7 @@ def test_multivariable_function_plot(mock_show):
         (0, 0, 1),
         (0.5, 0.5, 1 / 3),
         (0.25, 0.25, 25 / (25 + 2 * 5**0.5)),
+        ([0, 0.5], [0, 0.5], [1, 1 / 3]),
     ],
 )
 def test_shepard_interpolation(x, y, z_expected):
@@ -261,4 +262,4 @@ def test_shepard_interpolation(x, y, z_expected):
     source = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
     func = Function(source=source, inputs=["x", "y"], outputs=["z"])
     z = func(x, y)
-    assert np.isclose(z, z_expected, atol=1e-8)
+    assert np.isclose(z, z_expected, atol=1e-8).all()
