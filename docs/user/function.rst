@@ -1,4 +1,4 @@
-.. _functionusage::
+.. _functionusage:
 
 Function Class Usage
 ====================
@@ -21,8 +21,8 @@ a. Datasets
 
 The ``Function`` class supports a wide variety of dataset sources:
 
-- List or Numpy Array
-^^^^^^^^^^^^^^^^^^^^^
+List or Numpy Array
+^^^^^^^^^^^^^^^^^^^
 
 A ``list`` or ``numpy.ndarray`` of datapoints that maps input values to an output can be used as a ``Function`` source. For instance, we can define a dataset that follows the function :math:`f(x) = x^2`:
 
@@ -86,8 +86,8 @@ Two dimensional plots are also supported, therefore this data source can be plot
 .. important::
     The ``Function`` class only supports interpolation ``shepard`` and extrapolation ``natural`` for datasets higher than one dimension (more than one input). 
 
-- CSV File
-^^^^^^^^^^
+CSV File
+^^^^^^^^
 
 A CSV file path can be passed as ``string`` to the ``Function`` source. The file must contain a dataset structured so that each line is a datapoint: the last column is the output and the previous columns are the inputs.
 
@@ -141,8 +141,8 @@ A Python function that maps a set of parameters to a result can be used as a ``F
 
 The result of this operation is a ``Function`` object that wraps the source function and features many functionalities, such as plotting.
 
-- Constant Functions
-^^^^^^^^^^^^^^^^^^^^
+Constant Functions
+^^^^^^^^^^^^^^^^^^
 
 A special case of the python function source is the definition of a constant ``Function``. The class supports a convenient shortcut to ease the definition of a constant source:
 
