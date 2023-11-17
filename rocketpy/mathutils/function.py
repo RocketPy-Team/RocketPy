@@ -75,20 +75,21 @@ class Function:
         -------
         None
         """
-        inputs, outputs, interpolation, extrapolation = self._check_user_input(
-            source, inputs, outputs, interpolation, extrapolation
-        )
-        # initialize variables to avoid errors when being called by other methods
-        self.get_value_opt = None
-        self.__polynomial_coefficients__ = None
-        self.__akima_coefficients__ = None
-        self.__spline_coefficients__ = None
-
         # Set input and output
         if inputs is None:
             inputs = ["Scalar"]
         if outputs is None:
             outputs = ["Scalar"]
+
+        inputs, outputs, interpolation, extrapolation = self._check_user_input(
+            source, inputs, outputs, interpolation, extrapolation
+        )
+
+        # initialize variables to avoid errors when being called by other methods
+        self.get_value_opt = None
+        self.__polynomial_coefficients__ = None
+        self.__akima_coefficients__ = None
+        self.__spline_coefficients__ = None
 
         # store variables
         self.set_inputs(inputs)
