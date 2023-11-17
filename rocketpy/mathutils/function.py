@@ -153,7 +153,7 @@ class Function:
         -------
         self : Function
         """
-        _, _, _, _ = self._check_user_input(
+        _ = self._check_user_input(
             source,
             self.__inputs__,
             self.__outputs__,
