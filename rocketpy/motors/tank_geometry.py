@@ -394,7 +394,8 @@ class CylindricalTank(TankGeometry):
         # raise warning
         print(
             "Warning: Adding spherical caps to the tank will not modify the "
-            + "height of the tank."
+            + f"total height of the tank {self.height}."
+            + f"Its cylindrical portion height will be reduced to {self.height - 2*self.radius}."
         )
 
         if not self.has_caps:
