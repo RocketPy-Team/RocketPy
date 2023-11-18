@@ -36,4 +36,5 @@ RocketPy's User Guide
    :maxdepth: 2
    :caption: Further Analysis
 
+   Function <function.rst>
    Utilities <analysis.rst>
