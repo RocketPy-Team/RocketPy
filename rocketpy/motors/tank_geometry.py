@@ -391,7 +391,6 @@ class CylindricalTank(TankGeometry):
         part. The height is not modified, meaning that the total volume of
         the tank will decrease.
         """
-        # raise warning
         print(
             "Warning: Adding spherical caps to the tank will not modify the "
             + f"total height of the tank {self.height}."
