@@ -301,6 +301,14 @@ We can then see if the rocket is stable by plotting the static margin:
     If it is unreasonably **high**, your rocket is **super stable** and the
     simulation will most likely **fail**.
 
+
+To guarantee that the rocket is stable, the positions of all added components
+must be correct. The ``Rocket`` class can help you with the ``draw`` method:
+
+.. jupyter-execute::
+
+    calisto.draw()
+
 Running the Simulation
 ----------------------
 

@@ -91,14 +91,14 @@ curve, but keep in mind that you can use
       thrust_source=lambda t: 4000 - 100 * t**2,
       dry_mass=2,
       dry_inertia=(0.125, 0.125, 0.002),
-      nozzle_radius=0.15,
-      center_of_dry_mass_position=0.584,
+      nozzle_radius=0.075,
+      center_of_dry_mass_position=1.75,
       nozzle_position=0,
       burn_time=5,
       coordinate_system_orientation="nozzle_to_combustion_chamber",
   )
-  example_liquid.add_tank(tank=oxidizer_tank, position=0.6)
-  example_liquid.add_tank(tank=fuel_tank, position=1.8)
+  example_liquid.add_tank(tank=oxidizer_tank, position=1.0)
+  example_liquid.add_tank(tank=fuel_tank, position=2.5)
 
 
 .. caution::
@@ -120,7 +120,7 @@ curve, but keep in mind that you can use
 .. seealso:: 
     
     You can find details on each of the initialization parameters in 
-    :class:`rocketpy.SolidMotor.__init__`
+    :class:`rocketpy.LiquidMotor.__init__`
 
     And you can find details on adding tanks in :ref:`Adding Tanks`
 
