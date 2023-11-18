@@ -182,7 +182,7 @@ In this section we are going to delve deeper on ``Function`` creation and its pa
 
 With these in mind, let us create a more concrete example so that each of these parameters usefulness is explored.
 
-    Suppose we have a dataset containing the data from a static fire test of a rocket engine in testing phase. The dataset contain has a column for time (s) and thrust (N). We want to create a ``Function`` object that represents the thrust curve of this engine.
+Suppose we have a dataset containing the data from a static fire test of a rocket engine in testing phase. The dataset contain has a column for time (s) and thrust (N). We want to create a ``Function`` object that represents the thrust curve of this engine.
 
 .. jupyter-execute::
 
