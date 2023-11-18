@@ -128,7 +128,7 @@ Finally we can add the oxidizer tank to the hybrid motor. This is done using the
 .. jupyter-execute::
 
   example_hybrid.add_tank(
-    tank = oxidizer_tank, position = 1.0115
+    tank = oxidizer_tank, position = 1.0615
   )
 
 And we can see all the results with:
