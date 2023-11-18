@@ -352,27 +352,45 @@ To see a very large summary of the results, we can call the ``info`` method:
 Moreover, we can get plots of multiple data:
 
 
-Rocket's full trajectory
+
+
+**Rocket's full trajectory**
+
 .. jupyter-execute::
 
     test_flight.plots.trajectory_3d()
 
-Rocket's velocity and acceleration
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+**Rocket's velocity and acceleration**
+
 .. jupyter-execute::
 
     test_flight.plots.linear_kinematics_data()
 
-Rocket's Angular Positions
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+**Rocket's Angular Positions**
+
 .. jupyter-execute::
 
     test_flight.plots.flight_path_angle_data()
 
-Rocket's Orientation or Attitude
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+**Rocket's Orientation or Attitude**
 
 Rocket's orientation in RocketPy is done through Euler Parameters or Quaternials.
 Additionally, RocketPy calculates the Euler Angles and their changes (Precession,
 nutation and spin). All these information can be accessed through the following
 method: 
+
 .. jupyter-execute::
 
     test_flight.plots.attitude_data()
@@ -383,48 +401,83 @@ method:
     Further information about Euler Angles can b e found in
     https://en.wikipedia.org/wiki/Euler_angles
 
-Rocket's Angular Velocity and Acceleration
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+**Rocket's Angular Velocity and Acceleration**
+
 .. jupyter-execute::
 
     test_flight.plots.angular_kinematics_data()
 
-Rocket's Lift, Drag, Bending Moment and Spin Moment
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+**Rocket's Lift, Drag, Bending Moment and Spin Moment**
+
 .. jupyter-execute::
 
     test_flight.plots.aerodynamic_forces()
 
-Forces Applied to the Rail Buttons
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+**Forces Applied to the Rail Buttons**
 
 RocketPy can also plot the forces applied to the rail buttons during
 the launch:
+
 .. jupyter-execute::
 
     test_flight.plots.rail_buttons_forces()
 
 
-Data of Energy and Power
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+**Data of Energy and Power**
 
 RocketPy also calculates the kinetic and potential energy of the rocket during
 the flight, as well as the thrust and drag power:
+
 .. jupyter-execute::
 
     test_flight.plots.energy_data()
 
-Fluid Mechanics Related Parameters
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+**Fluid Mechanics Related Parameters**
 
 RocketPy computates the Mach Number, Reynolds Number, total and dynamic pressure
 felt by the rocket and the rocket's angle of attack, all available through the 
 following method: 
+
 .. jupyter-execute::
 
     test_flight.plots.fluid_mechanics_data()
 
-Static Margin and Frequency Response 
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+**Static Margin and Frequency Response** 
+
 .. jupyter-execute::
 
     test_flight.plots.stability_and_control_data()
 
-atmospheric Pressure Felt by the Rocket and Pressure felt by the Parachutes
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+**Atmospheric Pressure Felt by the Rocket and Pressure felt by the Parachutes**
+
 .. jupyter-execute::
 
     test_flight.plots.pressure_rocket_altitude()
