@@ -1,0 +1,46 @@
+# Python files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+db.sqlite3
+/db.sqlite3
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+
+# Documentation and Tests
+docs/
+.coverage
+readthedocs.yml
+.travis.yml
+Makefile
+
+# Binary and Package files
+*.egg-info/
+*.egg
+dist/
+build/
+
+# VCS
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# IDEs and Editors
+.vscode
+
+# Virtual environments
+.venv
+venv
+ENV/
+env/
+
+# Others
+*.log
+
+# Docker
+Dockerfile
+.dockerignore

@@ -93,9 +93,9 @@ class Environment:
     Environment.topographic_profile_activated : bool
         True if the user already set a topographic profile. False otherwise.
     Environment.max_expected_height : float
-        Maximum altitude in meters to keep weather data.
-        Used especially for plotting range.
-        Can be altered as desired.
+        Maximum altitude in meters to keep weather data. The altitude must be
+        above sea level (ASL). Especially useful for controlling plottings.
+        Can be altered as desired by doing `max_expected_height = number`.
     Environment.pressure_ISA : Function
         Air pressure in Pa as a function of altitude as defined by the
         `International Standard Atmosphere ISO 2533`. Only defined after load
@@ -270,6 +270,7 @@ class Environment:
         elevation=0,
         datum="SIRGAS2000",
         timezone="UTC",
+        max_expected_height=80000.0,
     ):
         """Initialize Environment class, saving launch rail length,
         launch date, location coordinates and elevation. Note that
@@ -308,7 +309,12 @@ class Environment:
         timezone : string, optional
             Name of the time zone. To see all time zones, import pytz and run
             print(pytz.all_timezones). Default time zone is "UTC".
-
+        max_expected_height : float, optional
+            Maximum altitude in meters to keep weather data. The altitude must
+            be above sea level (ASL). Especially useful for visualization.
+            Can be altered as desired by doing `max_expected_height = number`.
+            Depending on the atmospheric model, this value may be automatically
+            mofified.
 
         Returns
         -------
@@ -319,14 +325,17 @@ class Environment:
         self.air_gas_constant = 287.05287  # in J/K/Kg
         self.standard_g = 9.80665
 
+        # Initialize launch site details
+        self.elevation = elevation
+        self.set_elevation(elevation)
+        self._max_expected_height = max_expected_height
+
+        # Initialize plots and prints objects
+        self.prints = _EnvironmentPrints(self)
+        self.plots = _EnvironmentPlots(self)
+
         # Initialize atmosphere
         self.set_atmospheric_model("standard_atmosphere")
-
-        # Save latitude and longitude
-        if latitude != None and longitude != None:
-            self.set_location(latitude, longitude)
-        else:
-            self.latitude, self.longitude = None, None
 
         # Save date
         if date != None:
@@ -340,15 +349,6 @@ class Environment:
         # Initialize Earth geometry and save datum
         self.datum = datum
         self.ellipsoid = self.set_earth_geometry(datum)
-
-        # Set gravity model
-        self.gravity = self.set_gravity_model(gravity)
-
-        # Initialize plots and prints objects
-        self.prints = _EnvironmentPrints(self)
-
-        # Initialize atmosphere
-        self.set_atmospheric_model("standard_atmosphere")
 
         # Save latitude and longitude
         self.latitude = latitude
@@ -374,9 +374,8 @@ class Environment:
             self.initial_hemisphere = convert[4]
             self.initial_ew = convert[5]
 
-        # Save elevation
-        self.elevation = elevation
-        self.set_elevation(elevation)
+        # Set gravity model
+        self.gravity = self.set_gravity_model(gravity)
 
         # Recalculate Earth Radius (meters)
         self.earth_radius = self.calculate_earth_radius(
@@ -384,9 +383,6 @@ class Environment:
             semi_major_axis=self.ellipsoid.semi_major_axis,
             flattening=self.ellipsoid.flattening,
         )
-
-        # Initialize plots and prints object
-        self.plots = _EnvironmentPlots(self)
 
         return None
 
@@ -484,6 +480,19 @@ class Environment:
             return Function(gravity, "height (m)", "gravity (m/s²)").set_discrete(
                 0, self.max_expected_height, 100
             )
+
+    @property
+    def max_expected_height(self):
+        return self._max_expected_height
+
+    @max_expected_height.setter
+    def max_expected_height(self, value):
+        if value < self.elevation:
+            raise ValueError(
+                "Max expected height cannot be lower than the surface elevation"
+            )
+        self._max_expected_height = value
+        self.plots.grid = np.linspace(self.elevation, self.max_expected_height)
 
     @funcify_method("height (m)", "gravity (m/s²)")
     def somigliana_gravity(self, height):

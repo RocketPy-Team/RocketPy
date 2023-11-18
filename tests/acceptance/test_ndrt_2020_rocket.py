@@ -27,7 +27,7 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
         "rocket_mass": (23.321 - 2.475 - 1, 0.010),
         # propulsion details
         "impulse": (4895.050, 0.033 * 4895.050),
-        "burn_time": (3.51, 0.1),
+        "burn_time": (3.45, 0.1),
         "nozzle_radius": (49.5 / 2000, 0.001),
         "throat_radius": (21.5 / 2000, 0.001),
         "grain_separation": (3 / 1000, 0.001),

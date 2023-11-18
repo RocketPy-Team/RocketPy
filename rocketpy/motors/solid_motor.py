@@ -65,8 +65,7 @@ class SolidMotor(Motor):
     SolidMotor.grain_initial_mass : float
         Initial mass of each grain in kg.
     SolidMotor.dry_mass : float
-        The total mass of the motor structure, including chambers
-        and tanks, when it is empty and does not contain any propellant.
+        Same as in Motor class. See the :class:`Motor <rocketpy.Motor>` docs.
     SolidMotor.propellant_initial_mass : float
         Total propellant initial mass in kg.
     SolidMotor.total_mass : Function
@@ -78,8 +77,8 @@ class SolidMotor(Motor):
         Time derivative of propellant total mass in kg/s as a function
         of time as obtained by the thrust source.
     SolidMotor.center_of_mass : Function
-        Position of the motor center of mass in
-        meters as a function of time.
+        Position of the motor center of mass in meters as a function of time,
+        with respect to the motor's coordinate system.
         See
         :doc:`Positions and Coordinate Systems </user/positions>` for more
         information regarding the motor's coordinate system.
@@ -226,8 +225,7 @@ class SolidMotor(Motor):
         nozzle_radius : int, float
             Motor's nozzle outlet radius in meters.
         dry_mass : int, float
-            The total mass of the motor structure, including chambers
-            and tanks, when it is empty and does not contain any propellant.
+            Same as in Motor class. See the :class:`Motor <rocketpy.Motor>` docs
         dry_inertia : tuple, list
             Tuple or list containing the motor's dry mass inertia tensor
             components, in kg*m^2. This inertia is defined with respect to the
@@ -421,7 +419,8 @@ class SolidMotor(Motor):
 
     @mass_flow_rate.setter
     def mass_flow_rate(self, value):
-        """Sets the mass flow rate of the motor.
+        """Sets the mass flow rate of the motor. This includes all the grains
+        burning all at once.
 
         Parameters
         ----------
@@ -432,10 +431,10 @@ class SolidMotor(Motor):
         -------
         None
         """
-        self._mass_flow_rate = value.reset("Time (s)", "grain mass flow rate (kg/s)")
+        self._mass_flow_rate = value.reset("Time (s)", "Grain mass flow rate (kg/s)")
         self.evaluate_geometry()
 
-    @funcify_method("Time (s)", "center of mass (m)", "linear")
+    @funcify_method("Time (s)", "Center of Propellant Mass (m)", "linear")
     def center_of_propellant_mass(self):
         """Position of the propellant center of mass as a function of time.
         The position is specified as a scalar, relative to the motor's
@@ -469,18 +468,35 @@ class SolidMotor(Motor):
 
         density = self.grain_density
         rO = self.grain_outer_radius
+        n_grain = self.grain_number
 
         # Define system of differential equations
         def geometry_dot(t, y):
-            grain_mass_dot = self.mass_flow_rate(t) / self.grain_number
+            # Store physical parameters
+            volume_diff = self.mass_flow_rate(t) / (n_grain * density)
+
+            # Compute state vector derivative
             rI, h = y
-            rIDot = (
-                -0.5 * grain_mass_dot / (density * np.pi * (rO**2 - rI**2 + rI * h))
-            )
-            hDot = (
-                1.0 * grain_mass_dot / (density * np.pi * (rO**2 - rI**2 + rI * h))
-            )
-            return [rIDot, hDot]
+            burn_area = 2 * np.pi * (rO**2 - rI**2 + rI * h)
+            rI_dot = -volume_diff / burn_area
+            h_dot = -2 * rI_dot
+
+            return [rI_dot, h_dot]
+
+        # Define jacobian of the system of differential equations
+        def geometry_jacobian(t, y):
+            # Store physical parameters
+            volume_diff = self.mass_flow_rate(t) / (n_grain * density)
+
+            # Compute jacobian
+            rI, h = y
+            factor = volume_diff / (2 * np.pi * (rO**2 - rI**2 + rI * h) ** 2)
+            drI_dot_drI = factor * (h - 2 * rI)
+            drI_dot_dh = factor * rI
+            dh_dot_drI = -2 * drI_dot_drI
+            dh_dot_dh = -2 * drI_dot_dh
+
+            return [[drI_dot_drI, drI_dot_dh], [dh_dot_drI, dh_dot_dh]]
 
         def terminate_burn(t, y):
             end_function = (self.grain_outer_radius - y[0]) * y[1]
@@ -494,6 +510,7 @@ class SolidMotor(Motor):
             geometry_dot,
             t_span,
             y0,
+            jac=geometry_jacobian,
             events=terminate_burn,
             atol=1e-12,
             rtol=1e-11,
@@ -682,6 +699,10 @@ class SolidMotor(Motor):
     @funcify_method("Time (s)", "Inertia I_23 (kg m²)")
     def propellant_I_23(self):
         return 0
+
+    def draw(self):
+        """Draw a representation of the SolidMotor."""
+        self.plots.draw()
 
     def info(self):
         """Prints out basic data about the SolidMotor."""

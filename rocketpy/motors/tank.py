@@ -36,7 +36,7 @@ class Tank(ABC):
         of time.
     Tank.net_mass_flow_rate : Function
         Net mass flow rate of the tank in kg/s as a function of time, also
-        understood as time derivative of the tank mass.
+        understood as time derivative of the fluids mass.
     Tank.liquid_volume : Function
         Volume of the liquid inside the Tank in m^3 as a function of time.
     Tank.gas_volume : Function
@@ -409,6 +409,10 @@ class Tank(ABC):
             Inertia tensor of the tank's fluids as a function of time.
         """
         return self.liquid_inertia + self.gas_inertia
+
+    def draw(self):
+        """Draws the tank geometry."""
+        self.plots.draw()
 
 
 class MassFlowRateBasedTank(Tank):
