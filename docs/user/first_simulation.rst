@@ -392,7 +392,7 @@ The main method that is used to export data is the :meth:`rocketpy.Flight.export
 
     pd.read_csv("calisto_flight_data.csv")
 
-This will export the same data at a sampling rate of 1 second. The flight data will be linearly interpolated to match the new sampling rate.
+This will export the same data at a sampling rate of 1 second. The flight data will be interpolated to match the new sampling rate.
 
 Finally, the :meth:`rocketpy.Flight.export_data` method also provides a convenient way to export the entire flight solution (see :meth:`rocketpy.Flight.solution_array`) to a CSV file. This is done by not passing any attributes names to the method.
 
