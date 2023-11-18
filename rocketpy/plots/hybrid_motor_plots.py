@@ -152,16 +152,13 @@ class _HybridMotorPlots(_MotorPlots):
             ax.add_patch(grain)
         for patch, center in tanks_and_centers:
             ax.add_patch(patch)
-            ax.plot(
-                center[0], center[1], marker="o", color="red", markersize=2
-            )  # Adjust markersize for better visibility
+            ax.plot(center[0], center[1], marker="o", color="red", markersize=2)
         ax.add_patch(nozzle)
 
         ax.set_title("Hybrid Motor Representation")
         self._draw_center_of_mass(ax)
         self._set_plot_properties(ax)
         plt.show()
-        return None
 
     def all(self):
         """Prints out all graphs available about the HybridMotor. It simply calls

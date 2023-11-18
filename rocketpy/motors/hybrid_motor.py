@@ -603,7 +603,6 @@ class HybridMotor(Motor):
     def draw(self):
         """Draws a representation of the HybridMotor."""
         self.plots.draw()
-        return None
 
     def info(self):
         """Prints out basic data about the Motor."""

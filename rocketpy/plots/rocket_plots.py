@@ -413,13 +413,13 @@ class _RocketPlots:
                 )
                 motor_patches += [tank]
 
-        motor_patches += [
-            nozzle
-        ]  # add nozzle last so it is in front of the other patches
+        # add nozzle last so it is in front of the other patches
+        motor_patches += [nozzle]
         outline = self.rocket.motor.plots._generate_motor_region(
             list_of_patches=motor_patches
         )
-        ax.add_patch(outline)  # add outline first so it is behind the other patches
+        # add outline first so it is behind the other patches
+        ax.add_patch(outline)
         for patch in motor_patches:
             ax.add_patch(patch)
 

@@ -255,7 +255,9 @@ class _MotorPlots:
             Tuple with the x and y coordinates of the translation that will be
             applied to the nozzle.
         csys : float
-            Coordinate system of the motor or rocket.
+            Coordinate system of the motor or rocket. This will define the
+            orientation of the nozzle draw. Default is 1, which means that the
+            nozzle will be drawn with its outlet pointing to the right.
 
         Returns
         -------
@@ -305,6 +307,9 @@ class _MotorPlots:
         translate : tuple
             Tuple with the x and y coordinates of the translation that will be
             applied to the combustion chamber.
+        label : str
+            Label that will be used in the legend of the plot. Default is
+            "Combustion Chamber".
 
         Returns
         -------
@@ -414,7 +419,13 @@ class _MotorPlots:
 
         Parameters
         ----------
-        None
+        translate : tuple
+            Tuple with the x and y coordinates of the translation that will be
+            applied to the tanks.
+        csys : float
+            Coordinate system of the motor or rocket. This will define the
+            orientation of the tanks draw. Default is 1, which means that the
+            tanks will be drawn with the nose cone pointing left.
 
         Returns
         -------
@@ -444,6 +455,14 @@ class _MotorPlots:
         return patches_and_centers
 
     def _draw_center_of_mass(self, ax):
+        """Draws a red circle in the center of mass of the motor. This can be
+        used for grains center of mass and the center of dry mass.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes
+            Axes object to plot the center of mass on.
+        """
         ax.axhline(0, color="k", linestyle="--", alpha=0.5)  # symmetry line
         try:
             ax.plot(

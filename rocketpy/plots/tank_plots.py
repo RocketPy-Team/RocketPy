@@ -43,6 +43,10 @@ class _TankPlots:
         translate : tuple, optional
             Tuple of floats that represents the translation of the tank
             geometry.
+        csys : float, optional
+            Coordinate system of the tank, this will define the orientation of
+            the tank. Default is 1, which means that the tank will be drawn
+            with the nose cone pointing left.
 
         Returns
         -------

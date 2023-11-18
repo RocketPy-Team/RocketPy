@@ -155,7 +155,6 @@ class _SolidMotorPlots(_MotorPlots):
         self._draw_center_of_mass(ax)
         self._set_plot_properties(ax)
         plt.show()
-        return None
 
     def all(self):
         """Prints out all graphs available about the SolidMotor. It simply calls

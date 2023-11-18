@@ -703,7 +703,6 @@ class SolidMotor(Motor):
     def draw(self):
         """Draw a representation of the SolidMotor."""
         self.plots.draw()
-        return None
 
     def info(self):
         """Prints out basic data about the SolidMotor."""

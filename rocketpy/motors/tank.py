@@ -412,7 +412,7 @@ class Tank(ABC):
 
     def draw(self):
         """Draws the tank geometry."""
-        return self.plots.draw()
+        self.plots.draw()
 
 
 class MassFlowRateBasedTank(Tank):

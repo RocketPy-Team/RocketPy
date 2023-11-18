@@ -453,7 +453,7 @@ class LiquidMotor(Motor):
 
     def draw(self):
         """Draw a representation of the LiquidMotor."""
-        return self.plots.draw()
+        self.plots.draw()
 
     def info(self):
         """Prints out basic data about the Motor."""
