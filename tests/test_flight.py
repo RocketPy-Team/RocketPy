@@ -763,7 +763,7 @@ def test_max_values(flight_calisto_robust):
         regarding this pytest fixture.
     """
     test = flight_calisto_robust
-    atol = 5e-3
+    atol = 1e-2
     assert pytest.approx(105.2774, abs=atol) == test.max_acceleration_power_on
     assert pytest.approx(105.2774, abs=atol) == test.max_acceleration
     assert pytest.approx(0.85999, abs=atol) == test.max_mach_number

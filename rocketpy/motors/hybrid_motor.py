@@ -41,6 +41,26 @@ class HybridMotor(Motor):
         Solid motor object that composes the hybrid motor.
     HybridMotor.liquid : LiquidMotor
         Liquid motor object that composes the hybrid motor.
+    HybridMotor.positioned_tanks : list
+        List containing the motor's added tanks and their respective
+        positions.
+    HybridMotor.grains_center_of_mass_position : float
+        Position of the center of mass of the grains in meters, specified in
+        the motor's coordinate system.
+        See :doc:`Positions and Coordinate Systems </user/positions>`
+        for more information.
+    HybridMotor.grain_number : int
+        Number of solid grains.
+    HybridMotor.grain_density : float
+        Density of each grain in kg/meters cubed.
+    HybridMotor.grain_outer_radius : float
+        Outer radius of each grain in meters.
+    HybridMotor.grain_initial_inner_radius : float
+        Initial inner radius of each grain in meters.
+    HybridMotor.grain_initial_height : float
+        Initial height of each grain in meters.
+    HybridMotor.grain_separation : float
+        Distance between two grains in meters.
     HybridMotor.dry_mass : float
         Same as in Motor class. See the :class:`Motor <rocketpy.Motor>` docs.
     HybridMotor.propellant_initial_mass : float
@@ -326,6 +346,17 @@ class HybridMotor(Motor):
             interpolation_method,
             coordinate_system_orientation,
         )
+
+        self.positioned_tanks = self.liquid.positioned_tanks
+        self.grain_number = grain_number
+        self.grain_density = grain_density
+        self.grain_outer_radius = grain_outer_radius
+        self.grain_initial_inner_radius = grain_initial_inner_radius
+        self.grain_initial_height = grain_initial_height
+        self.grain_separation = grain_separation
+        self.grains_center_of_mass_position = grains_center_of_mass_position
+        self.throat_radius = throat_radius
+
         # Initialize plots and prints object
         self.prints = _HybridMotorPrints(self)
         self.plots = _HybridMotorPlots(self)
@@ -568,6 +599,10 @@ class HybridMotor(Motor):
             self.total_mass_flow_rate - self.liquid.mass_flow_rate
         )
         reset_funcified_methods(self)
+
+    def draw(self):
+        """Draws a representation of the HybridMotor."""
+        self.plots.draw()
 
     def info(self):
         """Prints out basic data about the Motor."""
