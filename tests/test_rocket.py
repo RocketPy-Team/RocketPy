@@ -489,6 +489,7 @@ def test_add_cp_eccentricity_assert_properties_set(calisto):
     assert calisto.cp_eccentricity_x == 4
     assert calisto.cp_eccentricity_y == 5
 
+
 def test_add_motor(calisto_motorless, cesaroni_m1670):
     """Tests the add_motor method of the Rocket class.
     Both with respect to return instances and expected behaviour.
@@ -499,8 +500,8 @@ def test_add_motor(calisto_motorless, cesaroni_m1670):
     cesaroni_m1670 : rocketpy.SolidMotor
         Cesaroni M1670 motor
     """
-    assert isinstance(calisto_motorless.motor, EmptyMotor) 
-    center_of_mass_motorless = calisto_motorless.center_of_mass 
+    assert isinstance(calisto_motorless.motor, EmptyMotor)
+    center_of_mass_motorless = calisto_motorless.center_of_mass
     calisto_motorless.add_motor(cesaroni_m1670, 0)
 
     assert calisto_motorless.motor is not None
@@ -509,7 +510,7 @@ def test_add_motor(calisto_motorless, cesaroni_m1670):
     print(center_of_mass_motorless)
     print(center_of_mass_with_motor)
     assert center_of_mass_motorless is not center_of_mass_with_motor
-    
+
 
 def test_set_rail_button(calisto):
     rail_buttons = calisto.set_rail_buttons(0.2, -0.5, 30)
@@ -532,6 +533,7 @@ def test_set_rail_button(calisto):
         0
     ].position == pytest.approx(0.2, 1e-12)
 
+
 def test_evaluate_total_mass(calisto_motorless):
     """Tests the evaluate_total_mass method of the Rocket class.
     Both with respect to return instances and expected behaviour.
@@ -542,6 +544,7 @@ def test_evaluate_total_mass(calisto_motorless):
     """
     assert isinstance(calisto_motorless.evaluate_total_mass(), Function)
 
+
 def test_evaluate_center_of_mass(calisto):
     """Tests the evaluate_center_of_mass method of the Rocket class.
     Both with respect to return instances and expected behaviour.
@@ -551,6 +554,3 @@ def test_evaluate_center_of_mass(calisto):
         A predefined instance of the calisto Rocket with a motor, used as a base for testing.
     """
     assert isinstance(calisto.evaluate_center_of_mass(), Function)
-    
-
-

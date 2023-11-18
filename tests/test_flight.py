@@ -156,7 +156,9 @@ def test_get_solution_at_time(flight_calisto):
         regarding this pytest fixture.
     """
     assert isinstance(flight_calisto.get_solution_at_time(0), np.ndarray)
-    assert isinstance(flight_calisto.get_solution_at_time(flight_calisto.t_final), np.ndarray)
+    assert isinstance(
+        flight_calisto.get_solution_at_time(flight_calisto.t_final), np.ndarray
+    )
 
     assert np.allclose(
         flight_calisto.get_solution_at_time(0),

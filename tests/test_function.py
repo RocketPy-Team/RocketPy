@@ -105,7 +105,7 @@ def test_interpolation_methods(linear_func):
 
     # Test polynomial
 
-    assert isinstance(linear_func.set_interpolation("polynomial"), Function) 
+    assert isinstance(linear_func.set_interpolation("polynomial"), Function)
     linear_func.set_interpolation("polynomial")
     assert isinstance(linear_func.get_interpolation_method(), str)
     assert linear_func.get_interpolation_method() == "polynomial"
@@ -184,6 +184,7 @@ def test_integral_spline_interpolation(request, func, a, b):
         atol=1e-3,
     )
 
+
 def test_differentiate():
     """Tests the differentiation method of the Function class.
     Both with respect to return instances and expected behaviour.
@@ -200,12 +201,14 @@ def test_differentiate():
     assert isinstance(f_square.differentiate(1), float)
     assert np.isclose(f_square.differentiate(1), 2)
 
+
 def test_get_value():
     """Tests the get_value method of the Function class.
     Both with respect to return instances and expected behaviour.
     """
-    func = Function(lambda x: 2*x)
-    assert isinstance(func.get_value(1), int or float) 
+    func = Function(lambda x: 2 * x)
+    assert isinstance(func.get_value(1), int or float)
+
 
 def test_identity_function():
     """Tests the identity_function method of the Function class.
@@ -235,15 +238,17 @@ def test_integral():
 
     square = Function(lambda x: x**2)
     assert isinstance
-    assert square.integral(2, 4, numerical=True) == -square.integral(4, 2, numerical=True)
-    assert square.integral(2, 4, numerical=False) == -square.integral(4, 2, numerical=False)
+    assert square.integral(2, 4, numerical=True) == -square.integral(
+        4, 2, numerical=True
+    )
+    assert square.integral(2, 4, numerical=False) == -square.integral(
+        4, 2, numerical=False
+    )
 
-    
+
 def test_integral_function():
     """Tests the integral_function method of the Function class.
     Both with respect to return instances and expected behaviour.
     """
     zero_func = Function(0)
     assert isinstance(zero_func, Function)
-
-
