@@ -410,6 +410,10 @@ class Tank(ABC):
         """
         return self.liquid_inertia + self.gas_inertia
 
+    def draw(self):
+        """Draws the tank geometry."""
+        self.plots.draw()
+
 
 class MassFlowRateBasedTank(Tank):
     """Class to define a tank based on mass flow rates inputs. This class
