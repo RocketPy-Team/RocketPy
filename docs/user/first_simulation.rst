@@ -402,6 +402,10 @@ Finally, the :meth:`rocketpy.Flight.export_data` method also provides a convenie
         "calisto_flight_data.csv",
     )
 
+.. jupyter-execute::
+    :hide-code:
+    :hide-output:
+    
     # Sample file cleanup
     import os
     os.remove("calisto_flight_data.csv")
