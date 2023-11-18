@@ -279,6 +279,8 @@ The following operations are supported:
 - Division: ``/``;
 - Exponentiation: ``**``.
 
+Let's see some examples of these operations:
+
 .. jupyter-execute::
 
     import numpy as np
