@@ -217,8 +217,17 @@ Let's plot this curve to visualize the effect of these options in action:
     # Plotting from 0 to 5 seconds
     thrust.plot(0, 5)
 
-.. note::
-    Compare the interpolation and extrapolation effects by changing their methods. Check out this plot results with ``linear`` interpolation and ``constant`` extrapolation and see their difference.
+Now lets visualize what happens if we were to use a ``linear`` interpolation and a ``constant`` extrapolation:
+
+.. jupyter-execute::
+
+    # Change interpolation and extrapolation
+    thrust.set_interpolation("linear")
+    thrust.set_extrapolation("constant")
+
+    # Plotting from 0 to 5 seconds
+    thrust.plot(0, 5)
+
 
 3. Function Features
 --------------------
@@ -238,22 +247,37 @@ A ``Function`` objects maps input data to an output, therefore should you want t
 
     print(f.get_value(9))
 
-Equivalently, the same operation is defined by the Python dunder method ``__call__`` so that the object can be used like a common function. For instance:
+Equivalently, the same operation is defined by the Python dunder method 
+``__call__`` so that the object can be used like a common function.
+ For instance:
 
 .. jupyter-execute::
 
     print(f(9), f(25))
 
-Furthermore, the :meth:`rocketpy.Function.get_value` method can be used to get a list of outputs from a list of inputs:
+Furthermore, both the :meth:`rocketpy.Function.get_value` and the dunder
+``__call__`` method can be used to get a list of outputs from a list of inputs:
 
 .. jupyter-execute::
 
+    # Using __call__
+    print(f([1, 4, 9, 16, 25]))
+
+    # Using get_value
     print(f.get_value([1, 4, 9, 16, 25]))
 
 b. Function Arithmetic
 ~~~~~~~~~~~~~~~~~~~~~~
 
-An important feature of the ``Function`` class is the ability to perform arithmetic operations between real values or even other ``Function`` objects.
+An important feature of the ``Function`` class is the ability to perform 
+arithmetic operations between real values or even other ``Function`` objects.
+The following operations are supported:
+
+- Addition: ``+``;
+- Subtraction: ``-``;
+- Multiplication: ``*``;
+- Division: ``/``;
+- Exponentiation: ``**``.
 
 .. jupyter-execute::
 
