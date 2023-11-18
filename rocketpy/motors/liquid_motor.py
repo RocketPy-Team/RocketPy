@@ -451,6 +451,10 @@ class LiquidMotor(Motor):
         self.positioned_tanks.append({"tank": tank, "position": position})
         reset_funcified_methods(self)
 
+    def draw(self):
+        """Draw a representation of the LiquidMotor."""
+        self.plots.draw()
+
     def info(self):
         """Prints out basic data about the Motor."""
         self.prints.all()

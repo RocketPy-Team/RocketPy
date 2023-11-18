@@ -700,6 +700,10 @@ class SolidMotor(Motor):
     def propellant_I_23(self):
         return 0
 
+    def draw(self):
+        """Draw a representation of the SolidMotor."""
+        self.plots.draw()
+
     def info(self):
         """Prints out basic data about the SolidMotor."""
         self.prints.all()
