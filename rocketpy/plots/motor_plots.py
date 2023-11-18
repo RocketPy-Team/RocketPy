@@ -328,7 +328,7 @@ class _MotorPlots:
                 0,
             ]
         )
-        # we need to draw the other half of the nozzle
+        # we need to draw the other half of the chamber
         x = np.concatenate([x, x[::-1]])
         y = np.concatenate([y, -y[::-1]])
         # the point of reference for the chamber is its center
