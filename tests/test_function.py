@@ -252,6 +252,8 @@ def test_integral_function():
     """
     zero_func = Function(0)
     assert isinstance(zero_func, Function)
+
+
 @pytest.mark.parametrize("a", [-1, 0, 1])
 @pytest.mark.parametrize("b", [-1, 0, 1])
 def test_multivariable_dataset(a, b):
