@@ -369,28 +369,47 @@ class CylindricalTank(TankGeometry):
         height : float
             Height of the cylindrical tank, in meters.
         spherical_caps : bool, optional
-            If True, the tank will have spherical caps. The default is False.
+            If True, the tank will have spherical caps at the top and bottom
+            with the same radius as the cylindrical part. If False, the tank
+            will have flat caps at the top and bottom. Defaults to False.
         geometry_dict : dict, optional
             Dictionary containing the geometry of the tank. See TankGeometry.
         """
         super().__init__(geometry_dict)
+        self.height = height
         self.has_caps = False
-        self.add_geometry((-height / 2, height / 2), radius)
-        self.add_spherical_caps() if spherical_caps else None
+        if spherical_caps:
+            self.add_geometry((-height / 2 + radius, height / 2 - radius), radius)
+            self.add_spherical_caps()
+        else:
+            self.add_geometry((-height / 2, height / 2), radius)
 
     def add_spherical_caps(self):
         """
         Adds spherical caps to the tank. The caps are added at the bottom
-        and at the top of the tank. If the tank already has caps, it raises a
-        ValueError.
+        and at the top of the tank with the same radius as the cylindrical
+        part. The height is not modified, meaning that the total volume of
+        the tank will decrease.
         """
+        print(
+            "Warning: Adding spherical caps to the tank will not modify the "
+            + f"total height of the tank {self.height} m. "
+            + "Its cylindrical portion height will be reduced to "
+            + f"{self.height - 2*self.radius(0)} m."
+        )
+
         if not self.has_caps:
             radius = self.radius(0)
-            height = self.total_height
-            bottom_cap_range = (-height / 2 - radius, -height / 2)
-            upper_cap_range = (height / 2, height / 2 + radius)
-            bottom_cap_radius = lambda h: (radius**2 - (h + height / 2) ** 2) ** 0.5
-            upper_cap_radius = lambda h: (radius**2 - (h - height / 2) ** 2) ** 0.5
+            height = self.height
+            bottom_cap_range = (-height / 2, -height / 2 + radius)
+            upper_cap_range = (height / 2 - radius, height / 2)
+
+            def bottom_cap_radius(h):
+                return abs(radius**2 - (h + (height / 2 - radius)) ** 2) ** 0.5
+
+            def upper_cap_radius(h):
+                return abs(radius**2 - (h - (height / 2 - radius)) ** 2) ** 0.5
+
             self.add_geometry(bottom_cap_range, bottom_cap_radius)
             self.add_geometry(upper_cap_range, upper_cap_radius)
             self.has_caps = True
