@@ -396,9 +396,9 @@ method:
     test_flight.plots.attitude_data()
 
 .. seealso::
-    Further information about Euler Parameters, or Quaternials, can b e found in
+    Further information about Euler Parameters, or Quaternials, can be found in
     https://en.wikipedia.org/wiki/Quaternion
-    Further information about Euler Angles can b e found in
+    Further information about Euler Angles can be found in
     https://en.wikipedia.org/wiki/Euler_angles
 
 
