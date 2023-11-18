@@ -65,6 +65,7 @@ class _LiquidMotorPlots(_MotorPlots):
         -------
         None
         """
+        self.draw()
         self.thrust(*self.motor.burn_time)
         self.mass_flow_rate(*self.motor.burn_time)
         self.exhaust_velocity(*self.motor.burn_time)

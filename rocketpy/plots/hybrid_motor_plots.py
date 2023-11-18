@@ -168,7 +168,7 @@ class _HybridMotorPlots(_MotorPlots):
         -------
         None
         """
-
+        self.draw()
         self.thrust(*self.motor.burn_time)
         self.total_mass(*self.motor.burn_time)
         self.center_of_mass(*self.motor.burn_time)

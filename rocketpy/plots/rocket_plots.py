@@ -506,6 +506,11 @@ class _RocketPlots:
         None
         """
 
+        # Rocket draw
+        print("\nRocket Draw")
+        print("-" * 40)
+        self.draw()
+
         # Mass Plots
         print("\nMass Plots")
         print("-" * 40)
