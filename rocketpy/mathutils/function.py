@@ -2648,7 +2648,7 @@ class Function:
             The value of the input which gives the output closest to val.
         """
         return optimize.root(
-            lambda x: self.get_value(x) - val,
+            lambda x: self.get_value(x)[0] - val,
             start,
             tol=tol,
         ).x[0]
