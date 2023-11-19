@@ -1,4 +1,13 @@
-from ..mathutils.function import funcify_method, reset_funcified_methods
+import warnings
+
+import numpy as np
+
+from rocketpy.mathutils.function import (
+    Function,
+    funcify_method,
+    reset_funcified_methods,
+)
+
 from ..plots.liquid_motor_plots import _LiquidMotorPlots
 from ..prints.liquid_motor_prints import _LiquidMotorPrints
 from .motor import Motor
@@ -264,7 +273,34 @@ class LiquidMotor(Motor):
         mass flow rate. Therefore, this will vary with time if the mass flow
         rate varies with time.
         """
-        return self.thrust / (-1 * self.mass_flow_rate)
+        if not isinstance(self.thrust.source, np.ndarray):
+            return self.thrust / (-1 * self.mass_flow_rate)
+
+        times, thrusts = self.thrust.source[:, 0], self.thrust.source[:, 1]
+        mass_flow_rates = self.mass_flow_rate(times)
+
+        # Avoid division by zero by replacing 0 with NaN
+        mass_flow_rates_nonzero = np.where(
+            np.isclose(mass_flow_rates, 0), np.nan, mass_flow_rates
+        )
+        ext_vel = -thrusts / mass_flow_rates_nonzero
+
+        if np.any(np.isnan(ext_vel)):
+            warnings.warn(
+                "Exhaust velocity is NaN for some values of time, probably due to a"
+                "division by zero. Check if the mass flow rate curve isn't zero for "
+                "some values of time. The times used to calculate the exhaust "
+                "velocity are the same as the computed thrust curve."
+            )
+
+        return Function(
+            np.column_stack([times, ext_vel]),
+            title="Exhaust Velocity",
+            inputs=["Time (s)"],
+            outputs="Exhaust Velocity [m/s]",
+            interpolation="linear",
+            extrapolation="zero",
+        )
 
     @funcify_method("Time (s)", "Propellant Mass (kg)")
     def propellant_mass(self):
