@@ -500,7 +500,7 @@ def test_add_motor(calisto_motorless, cesaroni_m1670):
     cesaroni_m1670 : rocketpy.SolidMotor
         Cesaroni M1670 motor
     """
-    
+
     assert isinstance(calisto_motorless.motor, EmptyMotor)
     center_of_mass_motorless = calisto_motorless.center_of_mass
     calisto_motorless.add_motor(cesaroni_m1670, 0)
