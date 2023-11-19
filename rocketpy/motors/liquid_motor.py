@@ -273,34 +273,18 @@ class LiquidMotor(Motor):
         mass flow rate. Therefore, this will vary with time if the mass flow
         rate varies with time.
         """
-        if not isinstance(self.thrust.source, np.ndarray):
-            return self.thrust / (-1 * self.mass_flow_rate)
-
         times, thrusts = self.thrust.source[:, 0], self.thrust.source[:, 1]
         mass_flow_rates = self.mass_flow_rate(times)
 
-        # Avoid division by zero by replacing 0 with NaN
-        mass_flow_rates_nonzero = np.where(
-            np.isclose(mass_flow_rates, 0), np.nan, mass_flow_rates
-        )
-        ext_vel = -thrusts / mass_flow_rates_nonzero
+        # Compute exhaust velocity only for non-zero mass flow rates
+        valid_indices = mass_flow_rates != 0
+        valid_times = times[valid_indices]
+        valid_thrusts = thrusts[valid_indices]
+        valid_mass_flow_rates = mass_flow_rates[valid_indices]
 
-        if np.any(np.isnan(ext_vel)):
-            warnings.warn(
-                "Exhaust velocity is NaN for some values of time, probably due to a"
-                "division by zero. Check if the mass flow rate curve isn't zero for "
-                "some values of time. The times used to calculate the exhaust "
-                "velocity are the same as the computed thrust curve."
-            )
+        ext_vel = -valid_thrusts / valid_mass_flow_rates
 
-        return Function(
-            np.column_stack([times, ext_vel]),
-            title="Exhaust Velocity",
-            inputs=["Time (s)"],
-            outputs="Exhaust Velocity [m/s]",
-            interpolation="linear",
-            extrapolation="zero",
-        )
+        return np.column_stack([valid_times, ext_vel])
 
     @funcify_method("Time (s)", "Propellant Mass (kg)")
     def propellant_mass(self):

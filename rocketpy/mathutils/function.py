@@ -2863,7 +2863,7 @@ class Function:
                     extrapolation = "constant"
 
             ## multiple dimensions
-            if source_dim > 2:
+            elif source_dim > 2:
                 # check for inputs and outputs
                 if inputs == ["Scalar"]:
                     inputs = [f"Input {i+1}" for i in range(source_dim - 1)]
