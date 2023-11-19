@@ -88,7 +88,7 @@ def test_plots(mock_show, func_from_csv):
 
 
 def test_interpolation_methods(linear_func):
-    """Test some of the interpolation methods of the Function class. Methods
+    """Tests some of the interpolation methods of the Function class. Methods
     not tested here are already being called in other tests.
 
     Parameters
@@ -97,12 +97,17 @@ def test_interpolation_methods(linear_func):
         A Function object created from a list of values.
     """
     # Test Akima
+    assert isinstance(linear_func.set_interpolation("akima"), Function)
     linear_func.set_interpolation("akima")
+    assert isinstance(linear_func.get_interpolation_method(), str)
     assert linear_func.get_interpolation_method() == "akima"
     assert np.isclose(linear_func.get_value(0), 0.0, atol=1e-6)
 
     # Test polynomial
+
+    assert isinstance(linear_func.set_interpolation("polynomial"), Function)
     linear_func.set_interpolation("polynomial")
+    assert isinstance(linear_func.get_interpolation_method(), str)
     assert linear_func.get_interpolation_method() == "polynomial"
     assert np.isclose(linear_func.get_value(0), 0.0, atol=1e-6)
 
@@ -122,12 +127,16 @@ def test_extrapolation_methods(linear_func):
     assert np.isclose(linear_func.get_value(-1), 0, atol=1e-6)
 
     # Test constant
+    assert isinstance(linear_func.set_extrapolation("constant"), Function)
     linear_func.set_extrapolation("constant")
+    assert isinstance(linear_func.get_extrapolation_method(), str)
     assert linear_func.get_extrapolation_method() == "constant"
     assert np.isclose(linear_func.get_value(-1), 0, atol=1e-6)
 
     # Test natural
+    assert isinstance(linear_func.set_extrapolation("natural"), Function)
     linear_func.set_extrapolation("natural")
+    assert isinstance(linear_func.get_extrapolation_method(), str)
     assert linear_func.get_extrapolation_method() == "natural"
     assert np.isclose(linear_func.get_value(-1), -1, atol=1e-6)
 
@@ -143,6 +152,7 @@ def test_integral_linear_interpolation(linearly_interpolated_func, a, b):
         A Function object created from a list of values.
     """
     # Test integral
+    assert isinstance(linearly_interpolated_func.integral(a, b, numerical=True), float)
     assert np.isclose(
         linearly_interpolated_func.integral(a, b, numerical=False),
         linearly_interpolated_func.integral(a, b, numerical=True),
@@ -173,3 +183,162 @@ def test_integral_spline_interpolation(request, func, a, b):
         func.integral(a, b, numerical=True),
         atol=1e-3,
     )
+
+
+def test_differentiate():
+    """Tests the differentiation method of the Function class.
+    Both with respect to return instances and expected behaviour.
+    """
+    func = Function(1)
+    assert isinstance(func.differentiate(0), float)
+    assert np.isclose(func.differentiate(5), 0)
+
+    func_x = Function(lambda x: x)
+    assert isinstance(func_x.differentiate(0), float)
+    assert np.isclose(func_x.differentiate(0), 1)
+
+    f_square = Function(lambda x: x**2)
+    assert isinstance(f_square.differentiate(1), float)
+    assert np.isclose(f_square.differentiate(1), 2)
+
+
+def test_get_value():
+    """Tests the get_value method of the Function class.
+    Both with respect to return instances and expected behaviour.
+    """
+    func = Function(lambda x: 2 * x)
+    assert isinstance(func.get_value(1), int or float)
+
+
+def test_identity_function():
+    """Tests the identity_function method of the Function class.
+    Both with respect to return instances and expected behaviour.
+    """
+
+    func = Function(lambda x: x**2)
+    assert isinstance(func.identity_function(), Function)
+
+
+def test_derivative_function():
+    """Tests the derivative_function method of the Function class.
+    Both with respect to return instances and expected behaviour.
+    """
+    square = Function(lambda x: x**2)
+    assert isinstance(square.derivative_function(), Function)
+
+
+def test_integral():
+    """Tests the integral method of the Function class.
+    Both with respect to return instances and expected behaviour.
+    """
+
+    zero_func = Function(0)
+    assert isinstance(zero_func.integral(2, 4, numerical=True), float)
+    assert zero_func.integral(2, 4, numerical=True) == 0
+
+    square = Function(lambda x: x**2)
+    assert isinstance
+    assert square.integral(2, 4, numerical=True) == -square.integral(
+        4, 2, numerical=True
+    )
+    assert square.integral(2, 4, numerical=False) == -square.integral(
+        4, 2, numerical=False
+    )
+
+
+def test_integral_function():
+    """Tests the integral_function method of the Function class.
+    Both with respect to return instances and expected behaviour.
+    """
+    zero_func = Function(0)
+    assert isinstance(zero_func, Function)
+
+
+@pytest.mark.parametrize("a", [-1, 0, 1])
+@pytest.mark.parametrize("b", [-1, 0, 1])
+def test_multivariable_dataset(a, b):
+    """Test the Function class with a multivariable dataset."""
+    # Test plane f(x,y) = x + y
+    source = [
+        (-1, -1, -2),
+        (-1, 0, -1),
+        (-1, 1, 0),
+        (0, -1, -1),
+        (0, 0, 0),
+        (0, 1, 1),
+        (1, -1, 0),
+        (1, 0, 1),
+        (1, 1, 2),
+    ]
+    func = Function(source=source, inputs=["x", "y"], outputs=["z"])
+
+    # Assert interpolation and extrapolation methods
+    assert func.get_interpolation_method() == "shepard"
+    assert func.get_extrapolation_method() == "natural"
+
+    # Assert values
+    assert np.isclose(func(a, b), a + b, atol=1e-6)
+
+
+@pytest.mark.parametrize("a", [-1, -0.5, 0, 0.5, 1])
+@pytest.mark.parametrize("b", [-1, -0.5, 0, 0.5, 1])
+def test_multivariable_function(a, b):
+    """Test the Function class with a multivariable function."""
+    # Test plane f(x,y) = sin(x + y)
+    source = lambda x, y: np.sin(x + y)
+    func = Function(source=source, inputs=["x", "y"], outputs=["z"])
+
+    # Assert values
+    assert np.isclose(func(a, b), np.sin(a + b), atol=1e-6)
+
+
+@patch("matplotlib.pyplot.show")
+def test_multivariable_dataset_plot(mock_show):
+    """Test the plot method of the Function class with a multivariable dataset."""
+    # Test plane f(x,y) = x - y
+    source = [
+        (-1, -1, -1),
+        (-1, 0, -1),
+        (-1, 1, -2),
+        (0, 1, 1),
+        (0, 0, 0),
+        (0, 1, -1),
+        (1, -1, 2),
+        (1, 0, 1),
+        (1, 1, 0),
+    ]
+    func = Function(source=source, inputs=["x", "y"], outputs=["z"])
+
+    # Assert plot
+    assert func.plot() == None
+
+
+@patch("matplotlib.pyplot.show")
+def test_multivariable_function_plot(mock_show):
+    """Test the plot method of the Function class with a multivariable function."""
+    # Test plane f(x,y) = sin(x + y)
+    source = lambda x, y: np.sin(x * y)
+    func = Function(source=source, inputs=["x", "y"], outputs=["z"])
+
+    # Assert plot
+    assert func.plot() == None
+
+
+@pytest.mark.parametrize(
+    "x,y,z_expected",
+    [
+        (1, 0, 0),
+        (0, 1, 0),
+        (0, 0, 1),
+        (0.5, 0.5, 1 / 3),
+        (0.25, 0.25, 25 / (25 + 2 * 5**0.5)),
+        ([0, 0.5], [0, 0.5], [1, 1 / 3]),
+    ],
+)
+def test_shepard_interpolation(x, y, z_expected):
+    """Test the shepard interpolation method of the Function class."""
+    # Test plane x + y + z = 1
+    source = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+    func = Function(source=source, inputs=["x", "y"], outputs=["z"])
+    z = func(x, y)
+    assert np.isclose(z, z_expected, atol=1e-8).all()

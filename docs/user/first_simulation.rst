@@ -301,6 +301,14 @@ We can then see if the rocket is stable by plotting the static margin:
     If it is unreasonably **high**, your rocket is **super stable** and the
     simulation will most likely **fail**.
 
+
+To guarantee that the rocket is stable, the positions of all added components
+must be correct. The ``Rocket`` class can help you with the ``draw`` method:
+
+.. jupyter-execute::
+
+    calisto.draw()
+
 Running the Simulation
 ----------------------
 
@@ -318,7 +326,253 @@ rail.
         rocket=calisto, environment=env, rail_length=5.2, inclination=85, heading=0
         )
 
-All simulation information will be saved in the ``test_flight``.
+All simulation information will be saved in the ``test_flight`` object.
+
+RocketPy has two submodules to access the results of the simulation: ``prints``
+and ``plots``. Each class has its ``prints`` and ``plots`` submodule imported as
+an attribute. For example, to access the ``prints`` submodule of the ``Flight``
+object, we can use ``test_flight.prints``.
+
+Also, each class has its own methods to quickly access all the information, for
+example, the ``test_flight.all_info()`` for visualizing all the plots and
+the ``test_flight.info()`` for a summary of the numerical results. 
+
+Bellow we describe how to access and manipulate the results of the simulation. 
+
+Accessing numerical results
+---------------------------
+
+.. note::
+
+    All the methods that are used in this section can be accessed at once by
+    running ``test_flight.info()``.
+
+
+You may want to start by checking the initial conditions of the simulation. This
+will allow you to check the state of the rocket at the time of ignition:
+
+.. jupyter-execute::
+
+    test_flight.prints.initial_conditions()
+
+Also important to check the surface wind conditions at launch site and the
+conditions of the launch rail:
+
+.. jupyter-execute::
+
+    test_flight.prints.surface_wind_conditions()
+
+.. jupyter-execute::
+
+    test_flight.prints.launch_rail_conditions()
+
+Once we have checked the initial conditions, we can check the conditions at the
+out of rail state, which is the first important moment of the flight. After this
+point, the rocket will start to fly freely:
+
+.. jupyter-execute::
+
+    test_flight.prints.out_of_rail_conditions()
+
+
+Next, we can check at the burn out time, which is the moment when the motor
+stops burning. From this point on, the rocket will fly without any thrust:
+
+.. jupyter-execute::
+
+    test_flight.prints.burn_out_conditions()
+
+We can also check the apogee conditions, which is the moment when the rocket
+reaches its maximum altitude. The apogee will be displayed in both
+"Above Sea Level (ASL)" and "Above Ground Level (AGL)" formats.
+
+.. jupyter-execute::
+
+    test_flight.prints.apogee_conditions()
+
+To check for the ejection of any parachutes, we can use the following method:
+
+.. jupyter-execute::
+
+    test_flight.prints.events_registered()
+
+To understand the conditions at the end of the simulation, especially upon
+impact, we can use:
+
+.. jupyter-execute::
+
+    test_flight.prints.impact_conditions()
+
+Finally, the ``prints.maximum_values()`` provides a summary of the maximum
+values recorded during the flight for various parameters.
+
+.. jupyter-execute::
+
+    test_flight.prints.maximum_values()
+
+
+Plotting the Results
+--------------------
+
+.. note::
+
+    All the methods that are used in this section can be accessed at once by
+    running ``test_flight.all_info()``. The output will be equivalent to
+    running block by block the following methods. 
+
+Using the ``test_flight.plots`` module, we can access multiple results of the
+simulation. For example, we can plot the rocket's trajectory. Moreover, we can
+get plots of multiple data:
+
+Full trajectory
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. jupyter-execute::
+
+    test_flight.plots.trajectory_3d()
+
+
+Velocity and acceleration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The velocity and acceleration in 3 directions can be accessed using the
+following method. The reference frame used for these plots is the absolute
+reference frame, which is the reference frame of the launch site. 
+The acceleration might have a hard drop when the motor stops burning.
+
+.. jupyter-execute::
+
+    test_flight.plots.linear_kinematics_data()
+
+
+Angular Positions
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Here you can plot 3 different parameters of the rocket's angular position:
+
+1. ``Flight Path Angle``: The angle between the rocket's velocity vector and the horizontal plane. This angle is 90° when the rocket is going straight up and 0° when the rocket is turned horizontally.
+2. ``Attitude Angle``: The angle between the axis of the rocket and the horizontal plane.
+3. ``Lateral Attitude Angle``: The angle between the rockets axis and the vertical plane that contains the launch rail. The bigger this angle, the larger is the deviation from the original heading of the rocket.
+
+.. jupyter-execute::
+
+    test_flight.plots.flight_path_angle_data()
+
+.. tip::
+
+    The ``Flight Path Angle`` and the ``Attitude Angle`` should be close to each
+    other as long as the rocket is stable.
+
+Rocket's Orientation or Attitude
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Rocket's orientation in RocketPy is done through Euler Parameters or Quaternions.
+Additionally, RocketPy uses the quaternions to calculate the Euler Angles
+(Precession, nutation and spin) and their changes. All these information can be
+accessed through the following method: 
+
+.. jupyter-execute::
+
+    test_flight.plots.attitude_data()
+
+.. seealso::
+    Further information about Euler Parameters, or Quaternions, can be found
+    in `Quaternions <https://en.wikipedia.org/wiki/Quaternion>`_, while
+    further information about Euler Angles can be found in
+    `Euler Angles <https://en.wikipedia.org/wiki/Euler_angles>`_.
+
+
+Angular Velocity and Acceleration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The angular velocity and acceleration are particularly important to check the
+stability of the rocket. You may expect a sudden change in the angular velocity
+and acceleration when the motor stops burning, for example:
+
+.. jupyter-execute::
+
+    test_flight.plots.angular_kinematics_data()
+
+
+Aerodynamic forces and moments
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The aerodynamic forces and moments are also important to check the flight
+behavior of the rocket. The drag (axial) and lift forces are made available,
+as well as the bending and spin moments. The lift is decomposed in two
+directions orthogonal to the drag force.
+
+.. jupyter-execute::
+
+    test_flight.plots.aerodynamic_forces()
+
+
+Forces Applied to the Rail Buttons
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+RocketPy can also plot the forces applied to the rail buttons before the rocket
+leaves the rail. This information may be useful when designing the rail buttons
+and the launch rail.
+
+.. jupyter-execute::
+
+    test_flight.plots.rail_buttons_forces()
+
+Energies and Power
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+RocketPy also calculates the kinetic and potential energy of the rocket during
+the flight, as well as the thrust and drag power:
+
+.. jupyter-execute::
+
+    test_flight.plots.energy_data()
+
+
+Fluid Mechanics Related Parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+RocketPy computes the Mach Number, Reynolds Number, total and dynamic pressure
+felt by the rocket and the rocket's angle of attack, all available through the 
+following method: 
+
+.. jupyter-execute::
+
+    test_flight.plots.fluid_mechanics_data()
+
+
+Stability Margin and Frequency Response
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The Stability margin can be checked along with the frequency response of the
+rocket:
+
+.. jupyter-execute::
+
+    test_flight.plots.stability_and_control_data()
+
+
+Visualizing the Trajectory in Google Earth
+------------------------------------------
+
+We can export the trajectory to ``.kml`` to visualize it in Google Earth:
+
+.. jupyter-input::
+
+    test_flight.export_kml(
+        file_name="trajectory.kml",
+        extrude=True,
+        altitude_mode="relative_to_ground",
+    )
+
+.. note::
+
+    To learn more about the ``.kml`` format, see
+    `KML Reference <https://developers.google.com/kml/documentation/kmlreference>`_.
+
+
+Manipulating results
+--------------------
 
 There are several methods to access the results. For example, we can plot the 
 speed of the rocket until the first parachute is deployed:
@@ -338,23 +592,65 @@ of ``[[time, speed], ...]``:
 
     The ``Flight`` object has several attributes containing every result of the 
     simulation. To see all the attributes of the ``Flight`` object, see
-    :class:`rocketpy.Flight`.
+    :class:`rocketpy.Flight`. These attributes are usually instances of the
+    :class:`rocketpy.Function` class, see the :ref:`Function Class Usage <functionusage>` for more information.
 
-To see a very large summary of the results, we can call the ``all_info`` method:
+Exporting Flight Data
+---------------------
+
+In this section, we will explore how to export specific data from your RocketPy
+simulations to CSV files. This is particularly useful if you want to insert the
+data into spreadsheets or other software for further analysis.
+
+The main method that is used to export data is the :meth:`rocketpy.Flight.export_data` method. This method exports selected flight attributes to a CSV file. In this first example, we will export the rocket angle of attack (see :meth:`rocketpy.Flight.angle_of_attack`) and the rocket mach number (see :meth:`rocketpy.Flight.mach_number`) to the file ``calisto_flight_data.csv``.
 
 .. jupyter-execute::
 
-    test_flight.all_info()
-
-| At last, we can export the trajectory to ``.kml`` to visualize it in Google Earth:
-
-.. jupyter-input::
-
-    test_flight.export_kml(
-        file_name="trajectory.kml",
-        extrude=True,
-        altitude_mode="relative_to_ground",
+    test_flight.export_data(
+        "calisto_flight_data.csv",
+        "angle_of_attack", 
+        "mach_number",
     )
+
+| As you can see, the first argument of the method is the name of the file to be created. The following arguments are the attributes to be exported. We can check the file that was created by reading it with the :func:`pandas.read_csv` function:
+
+.. jupyter-execute::
+
+    import pandas as pd
+
+    pd.read_csv("calisto_flight_data.csv")
+
+| The file header specifies the meaning of each column. The time samples are obtained from the simulation solver steps. Should you want to export the data at a different sampling rate, you can use the ``time_step`` argument of the :meth:`rocketpy.Flight.export_data` method as follows.
+
+.. jupyter-execute::
+
+    test_flight.export_data(
+        "calisto_flight_data.csv",
+        "angle_of_attack", 
+        "mach_number",
+        time_step=1.0,
+    )
+
+    pd.read_csv("calisto_flight_data.csv")
+
+This will export the same data at a sampling rate of 1 second. The flight data will be interpolated to match the new sampling rate.
+
+Finally, the :meth:`rocketpy.Flight.export_data` method also provides a convenient way to export the entire flight solution (see :meth:`rocketpy.Flight.solution_array`) to a CSV file. This is done by not passing any attributes names to the method.
+
+.. jupyter-execute::
+
+    test_flight.export_data(
+        "calisto_flight_data.csv",
+    )
+
+.. jupyter-execute::
+    :hide-code:
+    :hide-output:
+    
+    # Sample file cleanup
+    import os
+    os.remove("calisto_flight_data.csv")
+    
 
 Further Analysis
 ----------------

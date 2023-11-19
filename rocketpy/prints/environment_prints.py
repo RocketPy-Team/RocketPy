@@ -33,13 +33,15 @@ class _EnvironmentPrints:
         -------
         None
         """
+        elevation = self.environment.elevation
+        max_expected_height = self.environment.max_expected_height
+        surface_gravity = self.environment.gravity([elevation])
+        ceiling_gravity = self.environment.gravity([max_expected_height])
         print("\nGravity Details\n")
+        print(f"Acceleration of gravity at surface level: {surface_gravity:9.4f} m/s²")
         print(
-            "Acceleration of Gravity at Lauch Site: "
-            + str(self.environment.gravity(self.environment.elevation))
-            + " m/s²"
+            f"Acceleration of gravity at {max_expected_height/1000:7.3f} km (ASL): {ceiling_gravity:.4f} m/s²"
         )
-
         return None
 
     def launch_site_details(self):
@@ -176,27 +178,20 @@ class _EnvironmentPrints:
         return None
 
     def print_earth_details(self):
-        """[UNDER CONSTRUCTION]
+        """
         Function to print information about the Earth Model used in the
         Environment Class
 
         """
-        # Print launch site details
-        # print("Launch Site Details")
-        # print("Launch Site Latitude: {:.5f}°".format(self.environment.latitude))
-        # print("Launch Site Longitude: {:.5f}°".format(self.environment.longitude))
-        # print("Reference Datum: " + self.environment.datum)
-        # print("Launch Site UTM coordinates: {:.2f} ".format(self.environment.initial_east)
-        #    + self.environment.initial_ew + "    {:.2f} ".format(self.environment.initial_north) + self.environment.initial_hemisphere
-        # )
-        # print("Launch Site UTM zone number:", self.environment.initial_utm_zone)
-        # print("Launch Site Surface Elevation: {:.1f} m".format(self.environment.elevation))
-        print(
-            "Earth Radius at Launch site: {:.1f} m".format(
-                self.environment.earth_radius
-            )
-        )
-        print("Gravity acceleration at launch site: Still not implemented :(")
+        print("\nEarth Model Details\n")
+        earth_radius = self.environment.earth_radius
+        semi_major_axis = self.environment.ellipsoid.semi_major_axis
+        flattening = self.environment.ellipsoid.flattening
+        semi_minor_axis = semi_major_axis * (1 - flattening)
+        print(f"Earth Radius at Launch site: {earth_radius/1000:.2f} km")
+        print(f"Semi-major Axis: {semi_major_axis/1000:.2f} km")
+        print(f"Semi-minor Axis: {semi_minor_axis/1000:.2f} km")
+        print(f"Flattening: {flattening:.4f}\n")
 
         return None
 
@@ -223,5 +218,7 @@ class _EnvironmentPrints:
         # Print atmospheric conditions
         self.atmospheric_conditions()
         print()
+
+        self.print_earth_details()
 
         return None

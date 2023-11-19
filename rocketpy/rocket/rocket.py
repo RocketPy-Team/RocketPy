@@ -2,11 +2,11 @@ import warnings
 
 import numpy as np
 
-from ..mathutils.function import Function
-from ..motors.motor import EmptyMotor
-from ..plots.rocket_plots import _RocketPlots
-from ..prints.rocket_prints import _RocketPrints
-from .aero_surface import (
+from rocketpy.mathutils.function import Function
+from rocketpy.motors.motor import EmptyMotor
+from rocketpy.plots.rocket_plots import _RocketPlots
+from rocketpy.prints.rocket_prints import _RocketPrints
+from rocketpy.rocket.aero_surface import (
     EllipticalFins,
     Fins,
     NoseCone,
@@ -14,8 +14,8 @@ from .aero_surface import (
     Tail,
     TrapezoidalFins,
 )
-from .components import Components
-from .parachute import Parachute
+from rocketpy.rocket.components import Components
+from rocketpy.rocket.parachute import Parachute
 
 
 class Rocket:
@@ -93,11 +93,20 @@ class Rocket:
     Rocket.aerodynamic_surfaces : list
         Collection of aerodynamic surfaces of the rocket. Holds Nose cones,
         Fin sets, and Tails.
-    Rocket.cp_position : float
-        Rocket's center of pressure position relative to the user defined rocket
-        reference system. See
-        :doc:`Positions and Coordinate Systems </user/positions>` for more
-        information regarding the reference system. Expressed in meters.
+    Rocket.cp_position : Function
+        Function of Mach number expressing the rocket's center of pressure
+        position relative to user defined rocket reference system.
+        See :doc:`Positions and Coordinate Systems </user/positions>`
+        for more information.
+    Rocket.stability_margin : Function
+        Stability margin of the rocket, in calibers, as a function of mach
+        number and time. Stability margin is defined as the distance between
+        the center of pressure and the center of mass, divided by the
+        rocket's diameter.
+    Rocket.static_margin : Function
+        Static margin of the rocket, in calibers, as a function of time. Static
+        margin is defined as the distance between the center of pressure and the
+        center of mass, divided by the rocket's diameter.
     Rocket.static_margin : float
         Float value corresponding to rocket static margin when
         loaded with propellant in units of rocket diameter or calibers.
@@ -266,9 +275,23 @@ class Rocket:
         self.aerodynamic_surfaces = Components()
         self.rail_buttons = Components()
 
-        self.cp_position = 0
+        self.cp_position = Function(
+            lambda mach: 0,
+            inputs="Mach Number",
+            outputs="Center of Pressure Position (m)",
+        )
+        self.total_lift_coeff_der = Function(
+            lambda mach: 0,
+            inputs="Mach Number",
+            outputs="Total Lift Coefficient Derivative",
+        )
         self.static_margin = Function(
-            lambda x: 0, inputs="Time (s)", outputs="Static Margin (c)"
+            lambda time: 0, inputs="Time (s)", outputs="Static Margin (c)"
+        )
+        self.stability_margin = Function(
+            lambda mach, time: 0,
+            inputs=["Mach", "Time (s)"],
+            outputs="Stability Margin (c)",
         )
 
         # Define aerodynamic drag coefficients
@@ -286,7 +309,6 @@ class Rocket:
             "linear",
             "constant",
         )
-        self.cp_position = 0  # Set by self.evaluate_static_margin()
 
         # Create a, possibly, temporary empty motor
         # self.motors = Components()  # currently unused, only 1 motor is supported
@@ -306,7 +328,9 @@ class Rocket:
         self.evaluate_reduced_mass()
         self.evaluate_thrust_to_weight()
 
-        # Evaluate static margin (even though no aerodynamic surfaces are present yet)
+        # Evaluate stability (even though no aerodynamic surfaces are present yet)
+        self.evaluate_center_of_pressure()
+        self.evaluate_stability_margin()
         self.evaluate_static_margin()
 
         # Initialize plots and prints object
@@ -454,35 +478,72 @@ class Rocket:
         self.thrust_to_weight.set_outputs("Thrust/Weight")
         self.thrust_to_weight.set_title("Thrust to Weight ratio")
 
-    def evaluate_static_margin(self):
-        """Calculates and returns the rocket's static margin when
-        loaded with propellant. The static margin is saved and returned
-        in units of rocket diameter or calibers. This function also calculates
-        the rocket center of pressure and total lift coefficients.
+    def evaluate_center_of_pressure(self):
+        """Evaluates rocket center of pressure position relative to user defined
+        rocket reference system. It can be called as many times as needed, as it
+        will update the center of pressure function every time it is called. The
+        code will iterate through all aerodynamic surfaces and consider each of
+        their center of pressure position and derivative of the coefficient of
+        lift as a function of Mach number.
 
         Returns
         -------
-        self.static_margin : float
-            Float value corresponding to rocket static margin when
-            loaded with propellant in units of rocket diameter or
-            calibers.
+        self.cp_position : Function
+            Function of Mach number expressing the rocket's center of pressure
+            position relative to user defined rocket reference system.
+            See :doc:`Positions and Coordinate Systems </user/positions>`
+            for more information.
         """
-        # Initialize total lift coefficient derivative and center of pressure position
-        self.total_lift_coeff_der = 0
-        self.cp_position = 0
+        # Re-Initialize total lift coefficient derivative and center of pressure position
+        self.total_lift_coeff_der.set_source(lambda mach: 0)
+        self.cp_position.set_source(lambda mach: 0)
 
         # Calculate total lift coefficient derivative and center of pressure
         if len(self.aerodynamic_surfaces) > 0:
             for aero_surface, position in self.aerodynamic_surfaces:
-                self.total_lift_coeff_der += aero_surface.clalpha(0)
-                self.cp_position += aero_surface.clalpha(0) * (
+                self.total_lift_coeff_der += aero_surface.clalpha
+                self.cp_position += aero_surface.clalpha * (
                     position - self._csys * aero_surface.cpz
                 )
             self.cp_position /= self.total_lift_coeff_der
 
+        return self.cp_position
+
+    def evaluate_stability_margin(self):
+        """Calculates the stability margin of the rocket as a function of mach
+        number and time.
+
+        Returns
+        -------
+        stability_margin : Function
+            Stability margin of the rocket, in calibers, as a function of mach
+            number and time. Stability margin is defined as the distance between
+            the center of pressure and the center of mass, divided by the
+            rocket's diameter.
+        """
+        self.stability_margin.set_source(
+            lambda mach, time: (
+                (self.center_of_mass(time) - self.cp_position(mach)) / (2 * self.radius)
+            )
+            * self._csys
+        )
+        return self.stability_margin
+
+    def evaluate_static_margin(self):
+        """Calculates the static margin of the rocket as a function of time.
+
+        Returns
+        -------
+        static_margin : Function
+            Static margin of the rocket, in calibers, as a function of time.
+            Static margin is defined as the distance between the center of
+            pressure and the center of mass, divided by the rocket's diameter.
+        """
         # Calculate static margin
-        self.static_margin = (self.center_of_mass - self.cp_position) / (
-            2 * self.radius
+        self.static_margin.set_source(
+            lambda time: (self.center_of_mass(time) - self.cp_position(0))
+            / (2 * self.radius)
+            * self._csys
         )
         # Change sign if coordinate system is upside down
         self.static_margin *= self._csys
@@ -492,6 +553,7 @@ class Rocket:
         self.static_margin.set_discrete(
             lower=0, upper=self.motor.burn_out_time, samples=200
         )
+        return self.static_margin
 
     def evaluate_dry_inertias(self):
         """Calculates and returns the rocket's dry inertias relative to
@@ -691,6 +753,8 @@ class Rocket:
         self.evaluate_inertias()
         self.evaluate_reduced_mass()
         self.evaluate_thrust_to_weight()
+        self.evaluate_center_of_pressure()
+        self.evaluate_stability_margin()
         self.evaluate_static_margin()
 
     def add_surfaces(self, surfaces, positions):
@@ -728,6 +792,8 @@ class Rocket:
         except TypeError:
             self.aerodynamic_surfaces.add(surfaces, positions)
 
+        self.evaluate_center_of_pressure()
+        self.evaluate_stability_margin()
         self.evaluate_static_margin()
 
     def add_tail(
@@ -1179,6 +1245,30 @@ class Rocket:
         self.thrust_eccentricity_y = x
         self.thrust_eccentricity_x = y
         return self
+
+    def draw(self, vis_args=None):
+        """Draws the rocket in a matplotlib figure.
+
+        Parameters
+        ----------
+        vis_args : dict, optional
+            Determines the visual aspects when drawing the rocket. If None,
+            default values are used. Default values are:
+            {
+                "background": "#EEEEEE",
+                "tail": "black",
+                "nose": "black",
+                "body": "dimgrey",
+                "fins": "black",
+                "motor": "black",
+                "buttons": "black",
+                "line_width": 2.0,
+            }
+            A full list of color names can be found at:
+            https://matplotlib.org/stable/gallery/color/named_colors
+        """
+        self.plots.draw(vis_args)
+        return None
 
     def info(self):
         """Prints out a summary of the data and graphs available about
