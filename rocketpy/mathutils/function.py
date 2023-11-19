@@ -222,7 +222,7 @@ class Function:
                 source = source[source[:, 0].argsort()]
 
                 self.x_array = source[:, 0]
-                self.xinitial, self.xfinal = self.x_array[0], self.x_array[-1]
+                self.x_initial, self.x_final = self.x_array[0], self.x_array[-1]
 
                 self.y_array = source[:, 1]
                 self.y_initial, self.y_final = self.y_array[0], self.y_array[-1]
@@ -241,7 +241,7 @@ class Function:
             # Do things if function is multivariate
             else:
                 self.x_array = source[:, 0]
-                self.xinitial, self.xfinal = self.x_array[0], self.x_array[-1]
+                self.x_initial, self.x_final = self.x_array[0], self.x_array[-1]
 
                 self.y_array = source[:, 1]
                 self.y_initial, self.y_final = self.y_array[0], self.y_array[-1]
@@ -251,30 +251,6 @@ class Function:
 
                 # Finally set data source as source
                 self.source = source
-
-                # Update extrapolation method
-                if (
-                    self.__extrapolation__ is None
-                    or self.__extrapolation__ == "natural"
-                ):
-                    self.set_extrapolation("natural")
-                else:
-                    raise ValueError(
-                        "Multidimensional datasets only support natural extrapolation."
-                    )
-
-                # Set default multidimensional interpolation if it hasn't
-                if (
-                    self.__interpolation__ is None
-                    or self.__interpolation__ == "shepard"
-                ):
-                    self.set_interpolation("shepard")
-                else:
-                    raise ValueError(
-                        "Multidimensional datasets only support shepard interpolation."
-                    )
-
-        # Return self
         return self
 
     @cached_property
@@ -363,7 +339,7 @@ class Function:
         # Retrieve general info
         x_data = self.x_array
         y_data = self.y_array
-        x_min, x_max = self.xinitial, self.xfinal
+        x_min, x_max = self.x_initial, self.x_final
         if self.__extrapolation__ == "zero":
             extrapolation = 0  # Extrapolation is zero
         elif self.__extrapolation__ == "natural":
@@ -557,6 +533,7 @@ class Function:
             zs = np.array(self.get_value(mesh))
             self.set_source(np.concatenate(([xs], [ys], [zs])).transpose())
             self.__interpolation__ = "shepard"
+            self.__extrapolation__ = "natural"
         return self
 
     def set_discrete_based_on_model(
@@ -888,7 +865,7 @@ class Function:
             x = np.array(args[0])
             x_data = self.x_array
             y_data = self.y_array
-            x_min, x_max = self.xinitial, self.xfinal
+            x_min, x_max = self.x_initial, self.x_final
             coeffs = self.__polynomial_coefficients__
             matrix = np.zeros((len(args[0]), coeffs.shape[0]))
             for i in range(coeffs.shape[0]):
@@ -909,7 +886,7 @@ class Function:
             x_data = self.x_array
             y_data = self.y_array
             x_intervals = np.searchsorted(x_data, x)
-            x_min, x_max = self.xinitial, self.xfinal
+            x_min, x_max = self.x_initial, self.x_final
             if self.__interpolation__ == "spline":
                 coeffs = self.__spline_coefficients__
                 for i, _ in enumerate(x):
@@ -1229,7 +1206,7 @@ class Function:
         else:
             # Determine boundaries
             x_data = self.x_array
-            x_min, x_max = self.xinitial, self.xfinal
+            x_min, x_max = self.x_initial, self.x_final
             lower = x_min if lower is None else lower
             upper = x_max if upper is None else upper
             # Plot data points if force_data = True
@@ -1530,7 +1507,7 @@ class Function:
         y = self.y_array
         # Check if interpolation requires large numbers
         if np.amax(x) ** degree > 1e308:
-            print(
+            warnings.warn(
                 "Polynomial interpolation of too many points can't be done."
                 " Once the degree is too high, numbers get too large."
                 " The process becomes inefficient. Using spline instead."
@@ -2738,10 +2715,10 @@ class Function:
         if isinstance(self.source, np.ndarray) and isinstance(func.source, np.ndarray):
             # Perform bounds check for composition
             if not extrapolate:
-                if func.min < self.xinitial and func.max > self.xfinal:
+                if func.min < self.x_initial and func.max > self.x_final:
                     raise ValueError(
                         f"Input Function image {func.min, func.max} must be within "
-                        f"the domain of the Function {self.xinitial, self.xfinal}."
+                        f"the domain of the Function {self.x_initial, self.x_final}."
                     )
 
             return Function(
@@ -2763,10 +2740,10 @@ class Function:
     @staticmethod
     def _check_user_input(
         source,
-        inputs,
-        outputs,
-        interpolation,
-        extrapolation,
+        inputs=None,
+        outputs=None,
+        interpolation=None,
+        extrapolation=None,
     ):
         """
         Validates and processes the user input parameters for creating or
@@ -2857,7 +2834,36 @@ class Function:
             source_dim = source.shape[1]
 
             # check interpolation and extrapolation
-            if source_dim > 2:  # (multiple dimensions)
+
+            ## single dimension
+            if source_dim == 2:
+                # possible interpolation values: llinear, polynomial, akima and spline
+                if interpolation is None:
+                    interpolation = "spline"
+                elif interpolation.lower() not in [
+                    "spline",
+                    "linear",
+                    "polynomial",
+                    "akima",
+                ]:
+                    warnings.warn(
+                        "Interpolation method for single dimensional functions was "
+                        + f"set to 'spline', the {interpolation} method is not supported."
+                    )
+                    interpolation = "spline"
+
+                # possible extrapolation values: constant, natural, zero
+                if extrapolation is None:
+                    extrapolation = "constant"
+                elif extrapolation.lower() not in ["constant", "natural", "zero"]:
+                    warnings.warn(
+                        "Extrapolation method for single dimensional functions was "
+                        + f"set to 'constant', the {extrapolation} method is not supported."
+                    )
+                    extrapolation = "constant"
+
+            ## multiple dimensions
+            if source_dim > 2:
                 # check for inputs and outputs
                 if inputs == ["Scalar"]:
                     inputs = [f"Input {i+1}" for i in range(source_dim - 1)]
@@ -2918,7 +2924,7 @@ class PiecewiseFunction(Function):
         outputs: list of strings
             A list of strings that represent the outputs of the function.
         interpolation: str
-            The type of interpolation to use. The default value is 'akima'.
+            The type of interpolation to use. The default value is 'spline'.
         extrapolation: str
             The type of extrapolation to use. The default value is None.
         datapoints: int
