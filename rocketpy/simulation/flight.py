@@ -417,7 +417,7 @@ class Flight:
         of frequency in Hz. Can be called or accessed as array.
     Flight.static_margin : Function
         Rocket's static margin during flight in calibers.
-    Flight.stability_margin : rocketpy.Function
+    Flight.stability_margin : Function
             Rocket's stability margin during flight, in calibers.
     Flight.stream_velocity_x : Function
         Freestream velocity x (East) component, in m/s, as a function of
