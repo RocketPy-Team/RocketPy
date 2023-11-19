@@ -1356,7 +1356,7 @@ class Function:
             mesh_x.shape
         )
         z_min, z_max = z.min(), z.max()
-        color_map = plt.cm.get_cmap(cmap)
+        color_map = plt.colormaps[cmap]
         norm = plt.Normalize(z_min, z_max)
 
         # Plot function
@@ -2857,30 +2857,26 @@ class Function:
             source_dim = source.shape[1]
 
             # check interpolation and extrapolation
-            if source_dim > 2:
+            if source_dim > 2:  # (multiple dimensions)
                 # check for inputs and outputs
                 if inputs == ["Scalar"]:
                     inputs = [f"Input {i+1}" for i in range(source_dim - 1)]
-                    warnings.warn(
-                        f"Inputs not set, defaulting to {inputs} for "
-                        + "multidimensional functions.",
-                    )
 
                 if interpolation not in [None, "shepard"]:
-                    interpolation = "shepard"
                     warnings.warn(
                         (
-                            "Interpolation method for multidimensional functions is set"
-                            "to 'shepard', currently other methods are not supported."
+                            "Interpolation method for multidimensional functions was"
+                            "set to 'shepard', other methods are not supported yet."
                         ),
                     )
+                interpolation = "shepard"
 
-                if extrapolation is None:
-                    extrapolation = "natural"
+                if extrapolation not in [None, "natural"]:
                     warnings.warn(
-                        "Extrapolation not set, defaulting to 'natural' "
-                        + "for multidimensional functions.",
+                        "Extrapolation method for multidimensional functions was set"
+                        "to 'natural', other methods are not supported yet."
                     )
+                extrapolation = "natural"
 
             # check input dimensions
             in_out_dim = len(inputs) + len(outputs)
@@ -2889,21 +2885,6 @@ class Function:
                     "Source dimension ({source_dim}) does not match input "
                     + f"and output dimension ({in_out_dim})."
                 )
-
-        # if function, check for inputs and outputs
-        if isinstance(source, Function):
-            # check inputs
-            if inputs is not None and inputs != source.get_inputs():
-                warnings.warn(
-                    f"Inputs do not match source inputs, setting inputs to {inputs}.",
-                )
-
-            # check outputs
-            if outputs is not None and outputs != source.get_outputs():
-                warnings.warn(
-                    f"Outputs do not match source outputs, setting outputs to {outputs}.",
-                )
-
         return inputs, outputs, interpolation, extrapolation
 
 
@@ -3123,13 +3104,6 @@ def funcify_method(*args, **kwargs):
 
                     source = source_function
                     val = Function(source, *args, **kwargs)
-                except Exception as exc:
-                    # TODO: Raising too general exception Pylint W0719
-                    raise Exception(
-                        "Could not create Function object from method "
-                        f"{self.func.__name__}."
-                    ) from exc
-
                 # pylint: disable=W0201
                 val.__doc__ = self.__doc__
                 val.__cached__ = True
