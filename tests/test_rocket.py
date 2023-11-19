@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from rocketpy import NoseCone, Rocket, SolidMotor, Function
-from rocketpy.motors.motor import EmptyMotor
+from rocketpy.motors.motor import Motor, EmptyMotor
 
 
 @patch("matplotlib.pyplot.show")
@@ -500,15 +500,14 @@ def test_add_motor(calisto_motorless, cesaroni_m1670):
     cesaroni_m1670 : rocketpy.SolidMotor
         Cesaroni M1670 motor
     """
+    
     assert isinstance(calisto_motorless.motor, EmptyMotor)
     center_of_mass_motorless = calisto_motorless.center_of_mass
     calisto_motorless.add_motor(cesaroni_m1670, 0)
 
-    assert calisto_motorless.motor is not None
+    assert isinstance(calisto_motorless.motor, Motor)
     center_of_mass_with_motor = calisto_motorless.center_of_mass
 
-    print(center_of_mass_motorless)
-    print(center_of_mass_with_motor)
     assert center_of_mass_motorless is not center_of_mass_with_motor
 
 
@@ -537,6 +536,7 @@ def test_set_rail_button(calisto):
 def test_evaluate_total_mass(calisto_motorless):
     """Tests the evaluate_total_mass method of the Rocket class.
     Both with respect to return instances and expected behaviour.
+
     Parameters
     ----------
     calisto_motorless : Rocket instance
