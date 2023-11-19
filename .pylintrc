@@ -185,16 +185,18 @@ function-naming-style=snake_case
 #function-rgx=
 
 # Good variable names which should always be accepted, separated by a comma.
-good-names=i,
-           j,
-           k,
-           ex,
-           Run,
-           _
+good-names=FlightPhases,
+           WindroseAxes,
+
 
 # Good variable names regexes, separated by a comma. If names match any regex,
 # they will always be accepted
-good-names-rgxs=
+good-names-rgxs= ^[a-z][0-9]?$,  # Single lowercase characters, possibly followed by a single digit
+                 ^[A-Z][0-9]{0,2}$,  # Single uppercase characters, possibly followed by one or two digits
+                 ^[A-Z]+_\d+(_dot)?$,  # Uppercase characters followed by underscore and digits, optionally followed by _dot
+                 ^(dry_|propellant_)[A-Z]+_\d+$,  # Variables starting with 'dry_' or 'propellant_', followed by uppercase characters, underscore, and digits
+                 ^[a-z]+_ISA$,  # Lowercase words ending with '_ISA'
+                 ^plot(1D|2D)$,  # Variables starting with 'plot' followed by '1D' or '2D'
 
 # Include a hint for the correct naming format with invalid-name.
 include-naming-hint=no

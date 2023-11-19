@@ -147,7 +147,7 @@ def test_initial_solution(mock_show, example_env, calisto_robust):
 def test_get_solution_at_time(flight_calisto):
     """Test the get_solution_at_time method of the Flight class. This test
     simply calls the method at the initial and final time and checks if the
-    returned values are correct.
+    returned values are correct. Also, checking for valid return instance.
 
     Parameters
     ----------
@@ -155,6 +155,11 @@ def test_get_solution_at_time(flight_calisto):
         Flight object to be tested. See the conftest.py file for more info
         regarding this pytest fixture.
     """
+    assert isinstance(flight_calisto.get_solution_at_time(0), np.ndarray)
+    assert isinstance(
+        flight_calisto.get_solution_at_time(flight_calisto.t_final), np.ndarray
+    )
+
     assert np.allclose(
         flight_calisto.get_solution_at_time(0),
         np.array([0, 0, 0, 0, 0, 0, 0, 0.99904822, -0.04361939, 0, 0, 0, 0, 0]),
@@ -576,7 +581,7 @@ def test_lat_lon_conversion_from_origin(mock_show, example_env, calisto_robust):
     ],
 )
 def test_rail_length(calisto_robust, example_env, rail_length, out_of_rail_time):
-    """Test the rail length parameter of the Flight class. This test simply
+    """Tests the rail length parameter of the Flight class. This test simply
     simulate the flight using different rail lengths and checks if the expected
     out of rail altitude is achieved. Four different rail lengths are
     tested: 0.001, 1, 10, and 100000 meters. This provides a good test range.

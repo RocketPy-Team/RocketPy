@@ -1,4 +1,13 @@
-from ..mathutils.function import funcify_method, reset_funcified_methods
+import warnings
+
+import numpy as np
+
+from rocketpy.mathutils.function import (
+    Function,
+    funcify_method,
+    reset_funcified_methods,
+)
+
 from ..plots.liquid_motor_plots import _LiquidMotorPlots
 from ..prints.liquid_motor_prints import _LiquidMotorPrints
 from .motor import Motor
@@ -264,7 +273,18 @@ class LiquidMotor(Motor):
         mass flow rate. Therefore, this will vary with time if the mass flow
         rate varies with time.
         """
-        return self.thrust / (-1 * self.mass_flow_rate)
+        times, thrusts = self.thrust.source[:, 0], self.thrust.source[:, 1]
+        mass_flow_rates = self.mass_flow_rate(times)
+
+        # Compute exhaust velocity only for non-zero mass flow rates
+        valid_indices = mass_flow_rates != 0
+        valid_times = times[valid_indices]
+        valid_thrusts = thrusts[valid_indices]
+        valid_mass_flow_rates = mass_flow_rates[valid_indices]
+
+        ext_vel = -valid_thrusts / valid_mass_flow_rates
+
+        return np.column_stack([valid_times, ext_vel])
 
     @funcify_method("Time (s)", "Propellant Mass (kg)")
     def propellant_mass(self):
