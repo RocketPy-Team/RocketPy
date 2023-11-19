@@ -4,8 +4,8 @@ and more. This is a core class of our package, and should be maintained
 carefully as it may impact all the rest of the project.
 """
 import warnings
-from inspect import signature
 from collections.abc import Iterable
+from inspect import signature
 from pathlib import Path
 
 import matplotlib.pyplot as plt
