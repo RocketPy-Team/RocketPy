@@ -32,7 +32,7 @@ straightforward as possible.
 
 ### Added
 
-- DOC: Added this changelog file
+- DOC: Added this changelog file [#472](https://github.com/RocketPy-Team/RocketPy/pull/472)
 -
 
 ### Changed
