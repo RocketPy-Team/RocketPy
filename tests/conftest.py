@@ -1113,11 +1113,8 @@ def func_from_csv():
     func = Function(
         source="tests/fixtures/airfoils/e473-10e6-degrees.csv",
     )
-        outputs=["Scalar"],
     return func
-        interpolation="linear",
 
-        extrapolation="natural",
 
 @pytest.fixture
 def func_2d_from_csv():
@@ -1132,3 +1129,4 @@ def func_2d_from_csv():
     func = Function(
         source="tests/fixtures/function/2d.csv",
     )
+    return func
