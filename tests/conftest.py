@@ -1112,9 +1112,23 @@ def func_from_csv():
     """
     func = Function(
         source="tests/fixtures/airfoils/e473-10e6-degrees.csv",
-        inputs=["Scalar"],
-        outputs=["Scalar"],
-        interpolation="linear",
-        extrapolation="natural",
     )
+        outputs=["Scalar"],
     return func
+        interpolation="linear",
+
+        extrapolation="natural",
+
+@pytest.fixture
+def func_2d_from_csv():
+    """Create a 2d function based on a csv file. The csv file contains the
+    Returns
+    -------
+    rocketpy.Function
+        A function based on a csv file.
+    """
+    # Do not define any of the optional parameters so that the tests can check
+    # if the defaults are being used correctly.
+    func = Function(
+        source="tests/fixtures/function/2d.csv",
+    )
