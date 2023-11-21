@@ -25,6 +25,7 @@ from .motors import (
 from .control import Controller
 from .rocket import (
     AeroSurface,
+    AirBrakes,
     Components,
     EllipticalFins,
     Fins,

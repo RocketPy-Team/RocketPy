@@ -1918,17 +1918,26 @@ class AirBrakes(AeroSurface):
         ----------
         cd_curve : int, float, callable, array, string, Function
             Drag coefficient as a function of deployed level and Mach number.
-            If constant, it must be an int or float. If a function, it must
-            take as input the deployed level and the Mach number and return
-            the drag coefficient. If an array, it must be a 2D array where the
-            first column is the deployed level, the second column is the Mach
-            number and the third column is the drag coefficient. If a string,
-            it must be the path to a .csv or .txt file containing the drag
-            coefficient curve. The file must contain no headers and the first
-            column must specify the deployed level, the second column must
-            specify the Mach number and the third column must specify the drag
-            coefficient. If a Function, it must take as input the deployed
-            level and the Mach number and return the drag coefficient.
+            Deployed level is a float ranging from 0 to 1 that defines the
+            fraction of the total airbrake area that is deployed. If constant,
+            it must be an int or float. If a function, it must take as input the
+            deployed level and the Mach number and return the drag coefficient.
+            If an array, it must be a 2D array where the first column is the
+            deployed level, the second column is the Mach number and the third
+            column is the drag coefficient. If a string, it must be the path to
+            a .csv or .txt file containing the drag coefficient curve. The file
+            must contain no headers and the first column must specify the
+            deployed level, the second column must specify the Mach number and
+            the third column must specify the drag coefficient. If a Function,
+            it must take as input the deployed level and the Mach number and
+            return the drag coefficient.
+
+            .. note:: At deployed level 0, the drag coefficient is assumed to
+                be 0, independent of the input drag coefficient curve. This
+                means that the simulation always considers that at a deployed
+                level of 0, the airbrakes are completely retracted and do not
+                contribute to the drag of the rocket.
+
         reference_area : int, float
             Reference area used to calculate the drag force of the airbrakes
             from the drag coefficient curve. Units of m^2.
