@@ -1,7 +1,7 @@
 from rocketpy.control.controller import Controller
 from rocketpy.rocket.aero_surface import (
     AeroSurface,
-    Airbrakes,
+    AirBrakes,
     EllipticalFins,
     Fins,
     NoseCone,

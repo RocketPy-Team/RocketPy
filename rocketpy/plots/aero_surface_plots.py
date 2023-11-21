@@ -450,7 +450,7 @@ class _TailPlots(_AeroSurfacePlots):
         return None
 
 
-class _AirbrakesPlots(_AeroSurfacePlots):
+class _AirBrakesPlots(_AeroSurfacePlots):
     """Class that contains all airbrakes plots."""
 
     def __init__(self, airbrakes):
@@ -459,7 +459,7 @@ class _AirbrakesPlots(_AeroSurfacePlots):
         Parameters
         ----------
         airbrakes : rocketpy.AeroSurface.airbrakes
-            Airbrakes object to be plotted
+            AirBrakes object to be plotted
 
         Returns
         -------

@@ -8,7 +8,7 @@ from rocketpy.motors.motor import EmptyMotor
 from rocketpy.plots.rocket_plots import _RocketPlots
 from rocketpy.prints.rocket_prints import _RocketPrints
 from rocketpy.rocket.aero_surface import (
-    Airbrakes,
+    AirBrakes,
     EllipticalFins,
     Fins,
     NoseCone,
@@ -278,7 +278,7 @@ class Rocket:
         # Controllers data initialization
         self.controllers = []
 
-        # Airbrakes data initialization
+        # AirBrakes data initialization
         self.airbrakes = []
 
         # Aerodynamic data initialization
@@ -1161,8 +1161,8 @@ class Rocket:
         controller_function,
         sampling_rate,
         reference_area=None,
-        name="Airbrakes",
-        controller_name="Airbrakes Controller",
+        name="AirBrakes",
+        controller_name="AirBrakes Controller",
     ):
         """Creates a new airbrakes, storing its parameters such as
         opening delay, drag coefficients and trigger function.
@@ -1208,7 +1208,7 @@ class Rocket:
             from the drag coefficient curve. If None, which is default, use
             rocket section area. Must be given in squared meters.
         name : string, optional
-            Airbrakes name, such as drogue and main. Has no impact in
+            AirBrakes name, such as drogue and main. Has no impact in
             simulation, as it is only used to display data in a more
             organized matter.
         controller_name : string, optional
@@ -1217,13 +1217,13 @@ class Rocket:
 
         Returns
         -------
-        airbrakes : Airbrakes
-            Airbrakes object created.
+        airbrakes : AirBrakes
+            AirBrakes object created.
         controller : Controller
             Controller object created.
         """
         reference_area = reference_area if reference_area is not None else self.area
-        airbrakes = Airbrakes(
+        airbrakes = AirBrakes(
             cd_curve=cd_curve,
             reference_area=reference_area,
             deployed_level=0,

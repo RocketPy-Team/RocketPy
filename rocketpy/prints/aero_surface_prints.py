@@ -293,7 +293,7 @@ class _RailButtonsPrints(_AeroSurfacePrints):
         return None
 
 
-class _AirbrakesPrints(_AeroSurfacePrints):
+class _AirBrakesPrints(_AeroSurfacePrints):
     """Class that contains all airbrakes prints."""
 
     def geometry(self):

@@ -7,14 +7,14 @@ from scipy.optimize import fsolve
 
 from ..mathutils.function import Function
 from ..plots.aero_surface_plots import (
-    _AirbrakesPlots,
+    _AirBrakesPlots,
     _EllipticalFinsPlots,
     _NoseConePlots,
     _TailPlots,
     _TrapezoidalFinsPlots,
 )
 from ..prints.aero_surface_prints import (
-    _AirbrakesPrints,
+    _AirBrakesPrints,
     _EllipticalFinsPrints,
     _NoseConePrints,
     _RailButtonsPrints,
@@ -1894,25 +1894,25 @@ class RailButtons(AeroSurface):
         return None
 
 
-class Airbrakes(AeroSurface):
-    """Airbrakes class. Inherits from AeroSurface.
+class AirBrakes(AeroSurface):
+    """AirBrakes class. Inherits from AeroSurface.
 
     Attributes
     ----------
-    Airbrakes.cd : int, float, callable, array, Function
+    AirBrakes.cd : int, float, callable, array, Function
         Drag coefficient as a function of deployed level and Mach number.
-    Airbrakes.cd_curve : int, float, callable, array, string, Function
+    AirBrakes.cd_curve : int, float, callable, array, string, Function
         Curve that defines the drag coefficient as a function of deployed level
         and Mach number.
-    Airbrakes.deployed_level : float
+    AirBrakes.deployed_level : float
         Current deployed level, ranging from 0 to 1. Deployed level is the
         fraction of the total airbrake area that is deployed.
-    Airbrakes.name : str
+    AirBrakes.name : str
         Name of the airbrakes.
     """
 
-    def __init__(self, cd_curve, reference_area, deployed_level=0, name="Airbrakes"):
-        """Initializes the Airbrakes class.
+    def __init__(self, cd_curve, reference_area, deployed_level=0, name="AirBrakes"):
+        """Initializes the AirBrakes class.
 
         Parameters
         ----------
@@ -1936,7 +1936,7 @@ class Airbrakes(AeroSurface):
             Current deployed level, ranging from 0 to 1. Deployed level is the
             fraction of the total airbrake area that is deployed. Default is 0.
         name : str, optional
-            Name of the airbrakes. Default is "Airbrakes".
+            Name of the airbrakes. Default is "AirBrakes".
 
         Returns
         -------
@@ -1952,8 +1952,8 @@ class Airbrakes(AeroSurface):
         )
         self.reference_area = reference_area
         self.deployed_level = deployed_level
-        self.prints = _AirbrakesPrints(self)
-        self.plots = _AirbrakesPlots(self)
+        self.prints = _AirBrakesPrints(self)
+        self.plots = _AirBrakesPlots(self)
 
         # Initialize tracker lists
         self.state_history = []
