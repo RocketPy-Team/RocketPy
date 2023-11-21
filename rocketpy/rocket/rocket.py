@@ -288,7 +288,7 @@ class Rocket:
         self.air_brakes = []
 
         # AirBrakes data initialization
-        self.airbrakes = []
+        self.air_brakes = []
 
         # Aerodynamic data initialization
         self.aerodynamic_surfaces = Components()
