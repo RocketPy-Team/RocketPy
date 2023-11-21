@@ -1304,7 +1304,7 @@ class MassBasedTank(Tank):
                 + "\n\t\tThe difference is more than 1e-6 m^3 at "
                 + f"{diff.x_array[np.argmin(diff.y_array)]} s."
             )
-        
+
         return fluid_volume
 
     @funcify_method("Time (s)", "Volume (m³)")
