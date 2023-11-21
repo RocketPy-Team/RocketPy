@@ -2072,7 +2072,7 @@ class Flight:
 
     @funcify_method("Time (s)", "Altitude (m)", "spline", "zero")
     def altitude(self):
-        """Rocket altitude as a Function of time."""
+        """Rocket altitude above ground level (AGL) as a Function of time."""
         return self.z - self.env.elevation
 
     # Process second type of outputs - accelerations components
