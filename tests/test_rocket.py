@@ -25,9 +25,8 @@ def test_aero_surfaces_infos(
     assert calisto_trapezoidal_fins.draw() == None
 
 
-@patch("matplotlib.pyplot.show")
 def test_coordinate_system_orientation(
-    mock_show, calisto_nose_cone, cesaroni_m1670, calisto_trapezoidal_fins
+    calisto_nose_cone, cesaroni_m1670, calisto_trapezoidal_fins
 ):
     """Test if the coordinate system orientation is working properly. This test
     basically checks if the static margin is the same for the same rocket with
@@ -35,8 +34,6 @@ def test_coordinate_system_orientation(
 
     Parameters
     ----------
-    mock_show : mock
-        Mock of matplotlib.pyplot.show
     calisto_nose_cone : rocketpy.NoseCone
         Nose cone of the rocket
     cesaroni_m1670 : rocketpy.SolidMotor
