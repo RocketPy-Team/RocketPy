@@ -1908,7 +1908,7 @@ class AirBrakes(AeroSurface):
         Current deployed level, ranging from 0 to 1. Deployed level is the
         fraction of the total airbrake area that is deployed.
     AirBrakes.name : str
-        Name of the airbrakes.
+        Name of the air brakes.
     """
 
     def __init__(self, cd_curve, reference_area, deployed_level=0, name="AirBrakes"):
@@ -1935,17 +1935,17 @@ class AirBrakes(AeroSurface):
             .. note:: At deployed level 0, the drag coefficient is assumed to
                 be 0, independent of the input drag coefficient curve. This
                 means that the simulation always considers that at a deployed
-                level of 0, the airbrakes are completely retracted and do not
+                level of 0, the air brakes are completely retracted and do not
                 contribute to the drag of the rocket.
 
         reference_area : int, float
-            Reference area used to calculate the drag force of the airbrakes
+            Reference area used to calculate the drag force of the air brakes
             from the drag coefficient curve. Units of m^2.
         deployed_level : float, optional
             Current deployed level, ranging from 0 to 1. Deployed level is the
             fraction of the total airbrake area that is deployed. Default is 0.
         name : str, optional
-            Name of the airbrakes. Default is "AirBrakes".
+            Name of the air brakes. Default is "AirBrakes".
 
         Returns
         -------
@@ -1986,7 +1986,7 @@ class AirBrakes(AeroSurface):
         """Evaluates the center of pressure of the aerodynamic surface in local
         coordinates.
 
-        For airbrakes, all components of the center of pressure position are
+        For air brakes, all components of the center of pressure position are
         0.
 
         Returns
@@ -2001,7 +2001,7 @@ class AirBrakes(AeroSurface):
     def evaluate_lift_coefficient(self):
         """Evaluates the lift coefficient curve of the aerodynamic surface.
 
-        For airbrakes, the current model assumes no lift is generated.
+        For air brakes, the current model assumes no lift is generated.
         Therefore, the lift coefficient (C_L) and its derivative relative to the
         angle of attack (C_L_alpha), is 0.
 
@@ -2017,7 +2017,7 @@ class AirBrakes(AeroSurface):
         self.cl = Function(
             lambda alpha, mach: 0,
             ["Alpha (rad)", "Mach"],
-            "Cl",
+            "Lift Coefficient",
         )
 
     def evaluate_geometrical_parameters(self):

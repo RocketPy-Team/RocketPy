@@ -279,7 +279,7 @@ class Rocket:
         self.controllers = []
 
         # AirBrakes data initialization
-        self.airbrakes = []
+        self.air_brakes = []
 
         # Aerodynamic data initialization
         self.aerodynamic_surfaces = Components()
@@ -1155,7 +1155,7 @@ class Rocket:
         self.parachutes.append(parachute)
         return self.parachutes[-1]
 
-    def add_airbrakes(
+    def add_air_brakes(
         self,
         cd_curve,
         controller_function,
@@ -1164,7 +1164,7 @@ class Rocket:
         name="AirBrakes",
         controller_name="AirBrakes Controller",
     ):
-        """Creates a new airbrakes, storing its parameters such as
+        """Creates a new air brakes, storing its parameters such as
         opening delay, drag coefficients and trigger function.
 
         Parameters
@@ -1204,7 +1204,7 @@ class Rocket:
             means that the controller function will be called every
             `1/sampling_rate` seconds.
         reference_area : float, optional
-            Reference area used to calculate the drag force of the airbrakes
+            Reference area used to calculate the drag force of the air brakes
             from the drag coefficient curve. If None, which is default, use
             rocket section area. Must be given in squared meters.
         name : string, optional
@@ -1217,27 +1217,27 @@ class Rocket:
 
         Returns
         -------
-        airbrakes : AirBrakes
+        air_brakes : AirBrakes
             AirBrakes object created.
         controller : Controller
             Controller object created.
         """
         reference_area = reference_area if reference_area is not None else self.area
-        airbrakes = AirBrakes(
+        air_brakes = AirBrakes(
             cd_curve=cd_curve,
             reference_area=reference_area,
             deployed_level=0,
             name=name,
         )
-        # save sampling rate on airbrakes so that it is available to inside
+        # save sampling rate on air_brakes so that it is available to inside
         # controller function if needed
-        airbrakes.sampling_rate = sampling_rate
+        air_brakes.sampling_rate = sampling_rate
         controller = Controller(
-            airbrakes, controller_function, sampling_rate, controller_name
+            air_brakes, controller_function, sampling_rate, controller_name
         )
-        self.airbrakes.append(airbrakes)
+        self.air_brakes.append(air_brakes)
         self.add_controllers(controller)
-        return airbrakes, controller
+        return air_brakes, controller
 
     def set_rail_buttons(
         self, upper_button_position, lower_button_position, angular_position=45

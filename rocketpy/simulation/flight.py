@@ -1429,27 +1429,27 @@ class Flight:
             drag_coeff = self.rocket.power_off_drag.get_value_opt(free_stream_mach)
         rho = self.env.density.get_value_opt(z)
         R3 = -0.5 * rho * (free_stream_speed**2) * self.rocket.area * (drag_coeff)
-        for airbrakes in self.rocket.airbrakes:
-            if airbrakes.deployed_level > 0:
+        for air_brakes in self.rocket.air_brakes:
+            if air_brakes.deployed_level > 0:
                 R3 += (
                     -0.5
                     * rho
                     * (free_stream_speed**2)
-                    * airbrakes.reference_area
-                    * airbrakes.cd(airbrakes.deployed_level, free_stream_mach)
+                    * air_brakes.reference_area
+                    * air_brakes.cd(air_brakes.deployed_level, free_stream_mach)
                 )
-                airbrakes.state_history.append(
+                air_brakes.state_history.append(
                     [
                         t,
-                        airbrakes.deployed_level,
-                        airbrakes.cd(airbrakes.deployed_level, free_stream_mach),
+                        air_brakes.deployed_level,
+                        air_brakes.cd(air_brakes.deployed_level, free_stream_mach),
                     ]
                 )
             else:
-                airbrakes.state_history.append(
+                air_brakes.state_history.append(
                     [
                         t,
-                        airbrakes.deployed_level,
+                        air_brakes.deployed_level,
                         0,
                     ]
                 )
@@ -1738,27 +1738,27 @@ class Flight:
         else:
             drag_coeff = self.rocket.power_off_drag.get_value_opt(free_stream_mach)
         R3 += -0.5 * rho * (free_stream_speed**2) * self.rocket.area * (drag_coeff)
-        for airbrakes in self.rocket.airbrakes:
-            if airbrakes.deployed_level > 0:
+        for air_brakes in self.rocket.air_brakes:
+            if air_brakes.deployed_level > 0:
                 R3 += (
                     -0.5
                     * rho
                     * (free_stream_speed**2)
-                    * airbrakes.reference_area
-                    * airbrakes.cd(airbrakes.deployed_level, free_stream_mach)
+                    * air_brakes.reference_area
+                    * air_brakes.cd(air_brakes.deployed_level, free_stream_mach)
                 )
-                airbrakes.state_history.append(
+                air_brakes.state_history.append(
                     [
                         t,
-                        airbrakes.deployed_level,
-                        airbrakes.cd(airbrakes.deployed_level, free_stream_mach),
+                        air_brakes.deployed_level,
+                        air_brakes.cd(air_brakes.deployed_level, free_stream_mach),
                     ]
                 )
             else:
-                airbrakes.state_history.append(
+                air_brakes.state_history.append(
                     [
                         t,
-                        airbrakes.deployed_level,
+                        air_brakes.deployed_level,
                         0,
                     ]
                 )

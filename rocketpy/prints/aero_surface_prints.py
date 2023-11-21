@@ -294,7 +294,7 @@ class _RailButtonsPrints(_AeroSurfacePrints):
 
 
 class _AirBrakesPrints(_AeroSurfacePrints):
-    """Class that contains all airbrakes prints."""
+    """Class that contains all air_brakes prints."""
 
     def geometry(self):
         """Prints the geometric information of the air break.

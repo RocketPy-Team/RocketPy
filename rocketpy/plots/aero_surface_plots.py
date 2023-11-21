@@ -451,29 +451,29 @@ class _TailPlots(_AeroSurfacePlots):
 
 
 class _AirBrakesPlots(_AeroSurfacePlots):
-    """Class that contains all airbrakes plots."""
+    """Class that contains all air brakes plots."""
 
-    def __init__(self, airbrakes):
+    def __init__(self, air_brakes):
         """Initialize the class
 
         Parameters
         ----------
-        airbrakes : rocketpy.AeroSurface.airbrakes
+        air_brakes : rocketpy.AeroSurface.air_brakes
             AirBrakes object to be plotted
 
         Returns
         -------
         None
         """
-        super().__init__(airbrakes)
+        super().__init__(air_brakes)
         return None
 
     def cd_curve(self):
-        """Plots the drag coefficient curve of the airbrakes."""
+        """Plots the drag coefficient curve of the air_brakes."""
         return self.aero_surface.cd.plot(0, 1)
 
     def deployed_level(self):
-        """Plots the deployed level of the airbrakes as a function of time.
+        """Plots the deployed level of the air_brakes as a function of time.
 
         Returns
         -------
@@ -495,7 +495,7 @@ class _AirBrakesPlots(_AeroSurfacePlots):
         return None
 
     def cd(self):
-        """Plots the drag coefficient of the airbrakes as a function of time.
+        """Plots the drag coefficient of the air_brakes as a function of time.
 
         This function extracts the first and second columns of the state history
         of the aero surface object and plots the drag coefficient as a function
@@ -524,7 +524,7 @@ class _AirBrakesPlots(_AeroSurfacePlots):
         raise NotImplementedError
 
     def all(self):
-        """Plots all available airbrakes plots.
+        """Plots all available air_brakes plots.
 
         Returns
         -------
