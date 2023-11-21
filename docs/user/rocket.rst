@@ -224,6 +224,13 @@ to the rocket in one step:
     - :class:`rocketpy.Rocket.add_elliptical_fins`
     - :class:`rocketpy.Rocket.add_tail`
 
+Now we can see a representation of the rocket, this will guarantee that the
+rocket has been constructed correctly:
+
+.. jupyter-execute::
+
+    calisto.draw()
+
 
 Adding Airfoil Profile to Fins
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

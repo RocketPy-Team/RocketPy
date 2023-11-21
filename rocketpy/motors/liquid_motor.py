@@ -1,4 +1,13 @@
-from ..mathutils.function import funcify_method, reset_funcified_methods
+import warnings
+
+import numpy as np
+
+from rocketpy.mathutils.function import (
+    Function,
+    funcify_method,
+    reset_funcified_methods,
+)
+
 from ..plots.liquid_motor_plots import _LiquidMotorPlots
 from ..prints.liquid_motor_prints import _LiquidMotorPrints
 from .motor import Motor
@@ -37,14 +46,12 @@ class LiquidMotor(Motor):
         List containing the motor's added tanks and their respective
         positions.
     LiquidMotor.dry_mass : float
-        The total mass of the motor structure, including chambers
-        and tanks, when it is empty and does not contain any propellant.
+        Same as in Motor class. See the :class:`Motor <rocketpy.Motor>` docs.
     LiquidMotor.propellant_initial_mass : float
-        Total propellant initial mass in kg, includes
-        fuel and oxidizer.
+        Total propellant initial mass in kg, includes fuel and oxidizer.
     LiquidMotor.total_mass : Function
         Total motor mass in kg as a function of time, defined as the sum
-        of propellant and dry mass.
+        of propellant mass and the motor's dry mass (i.e. structure mass).
     LiquidMotor.propellant_mass : Function
         Total propellant mass in kg as a function of time, includes fuel
         and oxidizer.
@@ -175,8 +182,7 @@ class LiquidMotor(Motor):
 
             .. seealso:: :doc:`Thrust Source Details </user/motors/thrust>`
         dry_mass : int, float
-            The total mass of the motor structure, including chambers
-            and tanks, when it is empty and does not contain any propellant.
+            Same as in Motor class. See the :class:`Motor <rocketpy.Motor>` docs.
         dry_inertia : tuple, list
             Tuple or list containing the motor's dry mass inertia tensor
             components, in kg*m^2. This inertia is defined with respect to the
@@ -260,12 +266,31 @@ class LiquidMotor(Motor):
         -------
         self.exhaust_velocity : Function
             Gas exhaust velocity of the motor.
+
+        Notes
+        -----
+        The exhaust velocity is computed as the ratio of the thrust and the
+        mass flow rate. Therefore, this will vary with time if the mass flow
+        rate varies with time.
         """
-        return self.thrust / (-1 * self.mass_flow_rate)
+        times, thrusts = self.thrust.source[:, 0], self.thrust.source[:, 1]
+        mass_flow_rates = self.mass_flow_rate(times)
+
+        # Compute exhaust velocity only for non-zero mass flow rates
+        valid_indices = mass_flow_rates != 0
+        valid_times = times[valid_indices]
+        valid_thrusts = thrusts[valid_indices]
+        valid_mass_flow_rates = mass_flow_rates[valid_indices]
+
+        ext_vel = -valid_thrusts / valid_mass_flow_rates
+
+        return np.column_stack([valid_times, ext_vel])
 
     @funcify_method("Time (s)", "Propellant Mass (kg)")
     def propellant_mass(self):
-        """Evaluates the mass of the motor as the sum of each tank mass.
+        """Evaluates the total propellant mass of the motor as the sum of fluids
+        mass in each tank, which may include fuel and oxidizer and usually vary
+        with time.
 
         Returns
         -------
@@ -281,7 +306,8 @@ class LiquidMotor(Motor):
 
     @cached_property
     def propellant_initial_mass(self):
-        """Property to store the initial mass of the propellant.
+        """Property to store the initial mass of the propellant, this includes
+        fuel and oxidizer.
 
         Returns
         -------
@@ -292,8 +318,9 @@ class LiquidMotor(Motor):
 
     @funcify_method("Time (s)", "Mass flow rate (kg/s)", extrapolation="zero")
     def mass_flow_rate(self):
-        """Evaluates the mass flow rate of the motor as the sum of each tank
-        mass flow rate.
+        """Evaluates the mass flow rate of the motor as the sum of mass flow
+        rate from each tank, which may include fuel and oxidizer and usually
+        vary with time.
 
         Returns
         -------
@@ -317,12 +344,12 @@ class LiquidMotor(Motor):
     def center_of_propellant_mass(self):
         """Evaluates the center of mass of the motor from each tank center of
         mass and positioning. The center of mass height is measured relative to
-        the motor nozzle.
+        the origin of the motor's coordinate system.
 
         Returns
         -------
         Function
-            Center of mass of the motor, in meters.
+            Position of the propellant center of mass, in meters.
         """
         total_mass = 0
         mass_balance = 0
@@ -443,6 +470,10 @@ class LiquidMotor(Motor):
         """
         self.positioned_tanks.append({"tank": tank, "position": position})
         reset_funcified_methods(self)
+
+    def draw(self):
+        """Draw a representation of the LiquidMotor."""
+        self.plots.draw()
 
     def info(self):
         """Prints out basic data about the Motor."""

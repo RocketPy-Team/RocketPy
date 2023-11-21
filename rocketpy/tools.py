@@ -1,4 +1,5 @@
-import importlib, importlib.metadata
+import importlib
+import importlib.metadata
 import re
 from bisect import bisect_left
 
@@ -266,14 +267,29 @@ def find_closest(ordered_sequence, value):
     -------
     index : int
         The index of the closest value to the given value within the ordered
-        sequence. If the given value is less than the first value in the
+        sequence. If the given value is lower than the first value in the
         sequence, then 0 is returned. If the given value is greater than the
         last value in the sequence, then the index of the last value in the
         sequence is returned.
-    """
-    if len(ordered_sequence) == 1:
-        return 0
 
+    Examples
+    --------
+    >>> from rocketpy.tools import find_closest
+    >>> find_closest([1, 2, 3, 4, 5], 0)
+    0
+    >>> find_closest([1, 2, 3, 4, 5], 1.5)
+    0
+    >>> find_closest([1, 2, 3, 4, 5], 2.0)
+    1
+    >>> find_closest([1, 2, 3, 4, 5], 2.8)
+    2
+    >>> find_closest([1, 2, 3, 4, 5], 4.9)
+    4
+    >>> find_closest([1, 2, 3, 4, 5], 5.5)
+    4
+    >>> find_closest([], 10)
+    0
+    """
     pivot_index = bisect_left(ordered_sequence, value)
     if pivot_index == 0:
         return pivot_index

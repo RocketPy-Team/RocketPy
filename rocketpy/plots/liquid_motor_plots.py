@@ -1,4 +1,9 @@
-class _LiquidMotorPlots:
+import matplotlib.pyplot as plt
+
+from .motor_plots import _MotorPlots
+
+
+class _LiquidMotorPlots(_MotorPlots):
     """Class that holds plot methods for LiquidMotor class.
 
     Attributes
@@ -20,241 +25,37 @@ class _LiquidMotorPlots:
         -------
         None
         """
+        super().__init__(liquid_motor)
 
-        self.liquid_motor = liquid_motor
+    def draw(self):
+        """Draw a representation of the LiquidMotor.
 
-        return None
-
-    def thrust(self, lower_limit=None, upper_limit=None):
-        """Plots thrust of the liquid_motor as a function of time.
-
-        Parameters
-        ----------
-        lower_limit : float
-            Lower limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-        upper_limit : float
-            Upper limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
+        _, ax = plt.subplots(figsize=(8, 6), facecolor="#EEEEEE")
 
-        self.liquid_motor.thrust.plot(lower=lower_limit, upper=upper_limit)
+        tanks_and_centers = self._generate_positioned_tanks(csys=self.motor._csys)
+        nozzle = self._generate_nozzle(
+            translate=(self.motor.nozzle_position, 0), csys=self.motor._csys
+        )
+        outline = self._generate_motor_region(
+            list_of_patches=[nozzle] + [tank for tank, _ in tanks_and_centers]
+        )
 
-        return None
+        ax.add_patch(outline)
+        for patch, center in tanks_and_centers:
+            ax.add_patch(patch)
+            ax.plot(center[0], center[1], marker="o", color="red", markersize=2)
 
-    def total_mass(self, lower_limit=None, upper_limit=None):
-        """Plots total_mass of the liquid_motor as a function of time.
+        # add the nozzle
+        ax.add_patch(nozzle)
 
-        Parameters
-        ----------
-        lower_limit : float
-            Lower limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-        upper_limit : float
-            Upper limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-
-        Return
-        ------
-        None
-        """
-
-        self.liquid_motor.total_mass.plot(lower=lower_limit, upper=upper_limit)
-
-        return None
-
-    def mass_flow_rate(self, lower_limit=None, upper_limit=None):
-        """Plots mass_flow_rate of the liquid_motor as a function of time.
-
-        Parameters
-        ----------
-        lower_limit : float
-            Lower limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-        upper_limit : float
-            Upper limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-
-        Return
-        ------
-        None
-        """
-
-        self.liquid_motor.mass_flow_rate.plot(lower=lower_limit, upper=upper_limit)
-
-        return None
-
-    def exhaust_velocity(self, lower_limit=None, upper_limit=None):
-        """Plots exhaust_velocity of the liquid_motor as a function of time.
-
-        Parameters
-        ----------
-        lower_limit : float
-            Lower limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-        upper_limit : float
-            Upper limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-
-        Return
-        ------
-        None
-        """
-
-        self.liquid_motor.exhaust_velocity.plot(lower=lower_limit, upper=upper_limit)
-
-        return None
-
-    def center_of_mass(self, lower_limit=None, upper_limit=None):
-        """Plots center_of_mass of the liquid_motor as a function of time.
-
-        Parameters
-        ----------
-        lower_limit : float
-            Lower limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-        upper_limit : float
-            Upper limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-
-        Return
-        ------
-        None
-        """
-
-        self.liquid_motor.center_of_mass.plot(lower=lower_limit, upper=upper_limit)
-
-        return None
-
-    def I_11(self, lower_limit=None, upper_limit=None):
-        """Plots I_11 of the liquid_motor as a function of time.
-
-        Parameters
-        ----------
-        lower_limit : float
-            Lower limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-        upper_limit : float
-            Upper limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-
-        Return
-        ------
-        None
-        """
-
-        self.liquid_motor.I_11.plot(lower=lower_limit, upper=upper_limit)
-
-        return None
-
-    def I_22(self, lower_limit=None, upper_limit=None):
-        """Plots I_22 of the liquid_motor as a function of time.
-
-        Parameters
-        ----------
-        lower_limit : float
-            Lower limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-        upper_limit : float
-            Upper limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-
-        Return
-        ------
-        None
-        """
-
-        self.liquid_motor.I_22.plot(lower=lower_limit, upper=upper_limit)
-
-        return None
-
-    def I_33(self, lower_limit=None, upper_limit=None):
-        """Plots I_33 of the liquid_motor as a function of time.
-
-        Parameters
-        ----------
-        lower_limit : float
-            Lower limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-        upper_limit : float
-            Upper limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-
-        Return
-        ------
-        None
-        """
-
-        self.liquid_motor.I_33.plot(lower=lower_limit, upper=upper_limit)
-
-        return None
-
-    def I_12(self, lower_limit=None, upper_limit=None):
-        """Plots I_12 of the liquid_motor as a function of time.
-
-        Parameters
-        ----------
-        lower_limit : float
-            Lower limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-        upper_limit : float
-            Upper limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-
-        Return
-        ------
-        None
-        """
-
-        self.liquid_motor.I_12.plot(lower=lower_limit, upper=upper_limit)
-
-        return None
-
-    def I_13(self, lower_limit=None, upper_limit=None):
-        """Plots I_13 of the liquid_motor as a function of time.
-
-        Parameters
-        ----------
-        lower_limit : float
-            Lower limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-        upper_limit : float
-            Upper limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-
-        Return
-        ------
-        None
-        """
-
-        self.liquid_motor.I_13.plot(lower=lower_limit, upper=upper_limit)
-
-        return None
-
-    def I_23(self, lower_limit=None, upper_limit=None):
-        """Plots I_23 of the liquid_motor as a function of time.
-
-        Parameters
-        ----------
-        lower_limit : float
-            Lower limit of the plot. Default is None, which means that the plot
-            limits will be automatically calculated.
-        upper_limit : float
-            Upper limit of the plot. Default is None, which means that the plot
-            limits will be automatically calculated.
-
-        Return
-        ------
-        None
-        """
-
-        self.liquid_motor.I_23.plot(lower=lower_limit, upper=upper_limit)
-
-        return None
+        ax.set_title("Liquid Motor Representation")
+        self._draw_center_of_mass(ax)
+        self._set_plot_properties(ax)
+        plt.show()
 
     def all(self):
         """Prints out all graphs available about the LiquidMotor. It simply calls
@@ -264,17 +65,16 @@ class _LiquidMotorPlots:
         -------
         None
         """
-
-        self.thrust(*self.liquid_motor.burn_time)
-        self.total_mass(*self.liquid_motor.burn_time)
-        self.mass_flow_rate(*self.liquid_motor.burn_time)
-        self.exhaust_velocity(*self.liquid_motor.burn_time)
-        self.center_of_mass(*self.liquid_motor.burn_time)
-        self.I_11(*self.liquid_motor.burn_time)
-        self.I_22(*self.liquid_motor.burn_time)
-        self.I_33(*self.liquid_motor.burn_time)
-        self.I_12(*self.liquid_motor.burn_time)
-        self.I_13(*self.liquid_motor.burn_time)
-        self.I_23(*self.liquid_motor.burn_time)
-
-        return None
+        self.draw()
+        self.thrust(*self.motor.burn_time)
+        self.mass_flow_rate(*self.motor.burn_time)
+        self.exhaust_velocity(*self.motor.burn_time)
+        self.total_mass(*self.motor.burn_time)
+        self.propellant_mass(*self.motor.burn_time)
+        self.center_of_mass(*self.motor.burn_time)
+        self.I_11(*self.motor.burn_time)
+        self.I_22(*self.motor.burn_time)
+        self.I_33(*self.motor.burn_time)
+        self.I_12(*self.motor.burn_time)
+        self.I_13(*self.motor.burn_time)
+        self.I_23(*self.motor.burn_time)

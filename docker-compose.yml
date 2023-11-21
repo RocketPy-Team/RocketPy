@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  python38-linux:
+    image: python:3.8
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: bash -c "pip install . && pip install -r requirements-tests.txt && pytest && cd rocketpy && pytest --doctest-modules"
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  python312-linux:
+    image: python:3.12
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: bash -c "pip install . && pip install -r requirements-tests.txt && pytest && cd rocketpy && pytest --doctest-modules"
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"

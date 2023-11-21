@@ -1,6 +1,7 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
+from rocketpy.motors import HybridMotor, LiquidMotor, SolidMotor
 from rocketpy.rocket.aero_surface import Fins, NoseCone, Tail
 
 
@@ -75,7 +76,7 @@ class _RocketPlots:
         None
         """
 
-        self.rocket.stability_margin.plot2D(
+        self.rocket.stability_margin.plot_2d(
             lower=0,
             upper=[2, self.rocket.motor.burn_out_time],  # Mach 2 and burnout
             samples=[20, 20],
@@ -159,7 +160,7 @@ class _RocketPlots:
             }
 
         # Create the figure and axis
-        _, ax = plt.subplots(figsize=(8, 5))
+        _, ax = plt.subplots(figsize=(8, 6), facecolor="#EEEEEE")
         ax.set_aspect("equal")
         ax.set_facecolor(vis_args["background"])
         ax.grid(True, linestyle="--", linewidth=0.5)
@@ -172,7 +173,7 @@ class _RocketPlots:
         # and the radius of the rocket at that point
         drawn_surfaces = []
 
-        # Ideia is to get the shape of each aerodynamic surface in their own
+        # Idea is to get the shape of each aerodynamic surface in their own
         # coordinate system and then plot them in the rocket coordinate system
         # using the position of each surface
         # For the tubes, the surfaces need to be checked in order to check for
@@ -325,16 +326,103 @@ class _RocketPlots:
                 linewidth=vis_args["line_width"],
             )
 
-        # TODO - Draw motor
+        # Draw motor
+        total_csys = self.rocket._csys * self.rocket.motor._csys
         nozzle_position = (
-            self.rocket.motor_position
-            + self.rocket.motor.nozzle_position
-            * self.rocket._csys
-            * self.rocket.motor._csys
+            self.rocket.motor_position + self.rocket.motor.nozzle_position * total_csys
         )
-        ax.scatter(
-            nozzle_position, 0, label="Nozzle Outlet", color="brown", s=10, zorder=10
+
+        nozzle = self.rocket.motor.plots._generate_nozzle(
+            translate=(nozzle_position, 0), csys=self.rocket._csys
         )
+
+        # List of motor patches
+        motor_patches = []
+
+        # Get motor patches translated to the correct position
+        if isinstance(self.rocket.motor, (SolidMotor)):
+            grains_cm_position = (
+                self.rocket.motor_position
+                + self.rocket.motor.grains_center_of_mass_position * total_csys
+            )
+            ax.scatter(
+                grains_cm_position,
+                0,
+                color="brown",
+                label="Grains Center of Mass",
+                s=8,
+                zorder=10,
+            )
+
+            chamber = self.rocket.motor.plots._generate_combustion_chamber(
+                translate=(grains_cm_position, 0), label=None
+            )
+            grains = self.rocket.motor.plots._generate_grains(
+                translate=(grains_cm_position, 0)
+            )
+
+            motor_patches += [chamber, *grains]
+
+        elif isinstance(self.rocket.motor, HybridMotor):
+            grains_cm_position = (
+                self.rocket.motor_position
+                + self.rocket.motor.grains_center_of_mass_position * total_csys
+            )
+            ax.scatter(
+                grains_cm_position,
+                0,
+                color="brown",
+                label="Grains Center of Mass",
+                s=8,
+                zorder=10,
+            )
+
+            tanks_and_centers = self.rocket.motor.plots._generate_positioned_tanks(
+                translate=(self.rocket.motor_position, 0), csys=total_csys
+            )
+            chamber = self.rocket.motor.plots._generate_combustion_chamber(
+                translate=(grains_cm_position, 0), label=None
+            )
+            grains = self.rocket.motor.plots._generate_grains(
+                translate=(grains_cm_position, 0)
+            )
+            motor_patches += [chamber, *grains]
+            for tank, center in tanks_and_centers:
+                ax.scatter(
+                    center[0],
+                    center[1],
+                    color="black",
+                    alpha=0.2,
+                    s=5,
+                    zorder=10,
+                )
+                motor_patches += [tank]
+
+        elif isinstance(self.rocket.motor, LiquidMotor):
+            tanks_and_centers = self.rocket.motor.plots._generate_positioned_tanks(
+                translate=(self.rocket.motor_position, 0), csys=total_csys
+            )
+            for tank, center in tanks_and_centers:
+                ax.scatter(
+                    center[0],
+                    center[1],
+                    color="black",
+                    alpha=0.2,
+                    s=4,
+                    zorder=10,
+                )
+                motor_patches += [tank]
+
+        # add nozzle last so it is in front of the other patches
+        motor_patches += [nozzle]
+        outline = self.rocket.motor.plots._generate_motor_region(
+            list_of_patches=motor_patches
+        )
+        # add outline first so it is behind the other patches
+        ax.add_patch(outline)
+        for patch in motor_patches:
+            ax.add_patch(patch)
+
         # Check if nozzle is beyond the last surface, if so draw a tube
         # to it, with the radius of the last surface
         if self.rocket._csys == 1:
@@ -390,19 +478,20 @@ class _RocketPlots:
 
         # Draw center of mass and center of pressure
         cm = self.rocket.center_of_mass(0)
-        ax.scatter(cm, 0, color="black", label="Center of Mass", s=30)
-        ax.scatter(cm, 0, facecolors="none", edgecolors="black", s=100)
+        ax.scatter(cm, 0, color="#1565c0", label="Center of Mass", s=10)
 
-        cp = self.rocket.cp_position
-        ax.scatter(cp, 0, label="Center Of Pressure", color="red", s=30, zorder=10)
-        ax.scatter(cp, 0, facecolors="none", edgecolors="red", s=100, zorder=10)
+        cp = self.rocket.cp_position(0)
+        ax.scatter(
+            cp, 0, label="Static Center of Pressure", color="red", s=10, zorder=10
+        )
 
         # Set plot attributes
-        plt.title(f"Rocket Geometry")
+        plt.title("Rocket Representation")
+        plt.xlim()
         plt.ylim([-self.rocket.radius * 4, self.rocket.radius * 6])
         plt.xlabel("Position (m)")
         plt.ylabel("Radius (m)")
-        plt.legend(loc="best")
+        plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
         plt.tight_layout()
         plt.show()
 
@@ -416,6 +505,11 @@ class _RocketPlots:
         -------
         None
         """
+
+        # Rocket draw
+        print("\nRocket Draw")
+        print("-" * 40)
+        self.draw()
 
         # Mass Plots
         print("\nMass Plots")

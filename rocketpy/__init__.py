@@ -36,3 +36,4 @@ from .rocket import (
     TrapezoidalFins,
 )
 from .simulation import Flight
+from .plots.compare import Compare, CompareFlights

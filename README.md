@@ -9,6 +9,7 @@
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/RocketPy-Team/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb)
 [![PyPI](https://img.shields.io/pypi/v/rocketpy?color=g)](https://pypi.org/project/rocketpy/)
 [![Documentation Status](https://readthedocs.org/projects/rocketpyalpha/badge/?version=latest)](https://docs.rocketpy.org/en/latest/?badge=latest)
+[![codecov](https://codecov.io/gh/RocketPy-Team/RocketPy/graph/badge.svg?token=Ecc3bsHFeP)](https://codecov.io/gh/RocketPy-Team/RocketPy)
 [![Contributors](https://img.shields.io/github/contributors/RocketPy-Team/rocketpy)](https://github.com/RocketPy-Team/RocketPy/graphs/contributors)
 [![Chat on Discord](https://img.shields.io/discord/765037887016140840?logo=discord)](https://discord.gg/b6xYnNh)
 [![Sponsor RocketPy](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/RocketPy-Team)
@@ -122,7 +123,7 @@ To learn more about RocketPy's requirements, visit our [Requirements Docs](https
 
 ## Running Your First Simulation
 
-In order to run your first rocket trajectory simulation using RocketPy, you can start a Jupyter Notebook and navigate to the `docs/notebooks` folder. Open `getting_started.ipynb` and you are ready to go.
+In order to run your first rocket trajectory simulation using RocketPy, you can start a Jupyter Notebook and navigate to the `docs/notebooks` folder. Open `getting_started.ipynb` and you are ready to go. We recommend that you read the [First Simulation](https://docs.rocketpy.org/en/latest/user/first_simulation.html) page to get a complete description.
 
 Otherwise, you may want to create your own script or your own notebook using RocketPy. To do this, let's see how to use RocketPy's four main classes:
 
