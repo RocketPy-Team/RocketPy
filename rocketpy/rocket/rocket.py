@@ -1186,10 +1186,16 @@ class Rocket:
             A function that takes the following arguments, in this order:
 
             1. Time of the simulation at the current step in seconds.
-            2. The state vector of the simulation, which is defined as:
+            2. The sampling rate at which the controller function is called in
+               Hertz (Hz).
+            3. The state vector of the simulation, which is defined as:
 
                `[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]`.
-            3. A list containing the objects to be acted upon by the controller.
+            4. A list containing the state history of the simulation. The state
+               history is a list of every state vector of every step of the
+                simulation. The state history is a list of lists, where each
+                sublist is a state vector and is ordered from oldest to newest.
+            5. A list containing the objects to be acted upon by the controller.
                The objects in this list are the same as the objects in the
                observed_objects list, but they can be modified by the controller.
 
@@ -1197,8 +1203,9 @@ class Rocket:
             sampling rate. The function should evaluate and change the observed
             objects as needed. The function should return None.
 
-            Note: The function will be called according to the sampling rate
+            .. note:: The function will be called according to the sampling rate
             specified.
+
         sampling_rate : float
             The sampling rate of the controller function in Hertz (Hz). This
             means that the controller function will be called every
@@ -1229,9 +1236,6 @@ class Rocket:
             deployed_level=0,
             name=name,
         )
-        # save sampling rate on air_brakes so that it is available to inside
-        # controller function if needed
-        air_brakes.sampling_rate = sampling_rate
         controller = Controller(
             air_brakes, controller_function, sampling_rate, controller_name
         )

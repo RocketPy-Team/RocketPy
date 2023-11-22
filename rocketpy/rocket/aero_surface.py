@@ -2022,7 +2022,7 @@ class AirBrakes(AeroSurface):
 
         # Update previous state
         self.previous_state = [time, self.deployed_level, cd]
-        
+
     def finalize_state(self):
         """Updates the state list history of the air brakes.
 
