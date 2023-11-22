@@ -229,15 +229,6 @@ class Function:
 
                 # Finally set data source as source
                 self.source = source
-                # Update extrapolation method
-                if self.__extrapolation__ is None:
-                    self.set_extrapolation()
-                # Set default interpolation for point source if it hasn't
-                if self.__interpolation__ is None:
-                    self.set_interpolation()
-                else:
-                    # Updates interpolation coefficients
-                    self.set_interpolation(self.__interpolation__)
             # Do things if function is multivariate
             else:
                 self.x_array = source[:, 0]
@@ -251,6 +242,15 @@ class Function:
 
                 # Finally set data source as source
                 self.source = source
+            # Update extrapolation method
+            if self.__extrapolation__ is None:
+                self.set_extrapolation()
+            # Set default interpolation for point source if it hasn't
+            if self.__interpolation__ is None:
+                self.set_interpolation()
+            else:
+                # Updates interpolation coefficients
+                self.set_interpolation(self.__interpolation__)
         return self
 
     @cached_property
@@ -329,7 +329,7 @@ class Function:
     def set_get_value_opt(self):
         """Crates a method that evaluates interpolations rather quickly
         when compared to other options available, such as just calling
-        the object instance or calling ``Function.get_value directly``. See
+        the object instance or calling ``Function.get_value`` directly. See
         ``Function.get_value_opt`` for documentation.
 
         Returns
@@ -2785,7 +2785,8 @@ class Function:
             dimensions of inputs and outputs. If the outputs list has more than
             one element.
         TypeError
-            If the source is not a list, np.ndarray, or Function object.
+            If the source is not a list, np.ndarray, Function object, str or
+            Path.
         Warning
             If inputs or outputs do not match for a Function source, or if
             defaults are used for inputs, interpolation,and extrapolation for a
@@ -2825,10 +2826,16 @@ class Function:
 
         # check source for data type
         # if list or ndarray, check for dimensions, interpolation and extrapolation
-        if isinstance(source, (list, np.ndarray)):
-            # this will also trigger an error if the source is not a list of
-            # numbers or if the array is not homogeneous
-            source = np.array(source, dtype=np.float64)
+        if isinstance(source, (list, np.ndarray, str, Path)):
+            # Deal with csv or txt
+            if isinstance(source, (str, Path)):
+                # Convert to numpy array
+                source = np.loadtxt(source, delimiter=",", dtype=float)
+
+            else:
+                # this will also trigger an error if the source is not a list of
+                # numbers or if the array is not homogeneous
+                source = np.array(source, dtype=np.float64)
 
             # check dimensions
             source_dim = source.shape[1]
