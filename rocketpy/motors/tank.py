@@ -1299,10 +1299,11 @@ class MassBasedTank(Tank):
 
         if (diff > 1e-6).any():
             raise ValueError(
-                "The `fluid_volume`, defined as the sum of `gas_volume` and "
-                + "`liquid_volume`, is not equal to the total volume of the tank."
-                + "\n\t\tThe difference is more than 1e-6 m^3 at "
-                + f"{diff.x_array[np.argmin(diff.y_array)]} s."
+                f"The tank {self.name} was overfilled. The input fluid masses "
+                + "produce a volume that surpasses the tank total volume by more "
+                + f"than 1e-6 m^3 at {diff.x_array[np.argmax(diff.y_array)]} s."
+                + "\n\t\tCheck out the input masses, fluid densities or raise the "
+                + "tank height so as to increase its total volume."
             )
 
         return fluid_volume
