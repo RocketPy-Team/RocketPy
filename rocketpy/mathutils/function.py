@@ -2785,7 +2785,8 @@ class Function:
             dimensions of inputs and outputs. If the outputs list has more than
             one element.
         TypeError
-            If the source is not a list, np.ndarray, or Function object.
+            If the source is not a list, np.ndarray, Function object, str or
+            Path.
         Warning
             If inputs or outputs do not match for a Function source, or if
             defaults are used for inputs, interpolation,and extrapolation for a
@@ -2831,9 +2832,10 @@ class Function:
                 # Convert to numpy array
                 source = np.loadtxt(source, delimiter=",", dtype=float)
 
-            # this will also trigger an error if the source is not a list of
-            # numbers or if the array is not homogeneous
-            source = np.array(source, dtype=np.float64)
+            else:
+                # this will also trigger an error if the source is not a list of
+                # numbers or if the array is not homogeneous
+                source = np.array(source, dtype=np.float64)
 
             # check dimensions
             source_dim = source.shape[1]
