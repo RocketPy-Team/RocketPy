@@ -608,6 +608,9 @@ class Flight:
         # Initialize solver monitors
         self.__init_solver_monitors()
 
+        # Initialize controllable components
+        self.init_controllable_components()
+
         # Create known flight phases
         self.FlightPhases = FlightPhases()
         self.FlightPhases.add_phase(
@@ -1072,6 +1075,10 @@ class Flight:
                                         )
 
         self.t_final = self.t
+
+        # Run finalization routine of controllable components
+        self.finalize_controllable_components()
+
         if verbose:
             print("Simulation Completed at Time: {:3.4f} s".format(self.t))
 
@@ -1179,6 +1186,24 @@ class Flight:
         """Initialize equations of motion."""
         if self.equations_of_motion == "solid_propulsion":
             self.u_dot_generalized = self.u_dot
+
+    def init_controllable_components(self):
+        """Initialize controllable components. Currently only air brakes are
+        supported."""
+        # Check if rocket has any controllable components
+        # Currently only air brakes are supported
+        for air_brakes in self.rocket.air_brakes:
+            # Resets air brakes state
+            air_brakes.reset_state()
+
+    def finalize_controllable_components(self):
+        """Finalize controllable components. Currently only air brakes are
+        supported."""
+        # Check if rocket has any controllable components
+        # Currently only air brakes are supported
+        for air_brakes in self.rocket.air_brakes:
+            # Resets air brakes state
+            air_brakes.finalize_state()
 
     @cached_property
     def effective_1rl(self):
@@ -1431,28 +1456,20 @@ class Flight:
         R3 = -0.5 * rho * (free_stream_speed**2) * self.rocket.area * (drag_coeff)
         for air_brakes in self.rocket.air_brakes:
             if air_brakes.deployed_level > 0:
+                # Avoid calculating cd several times
+                air_brakes_cd = air_brakes.cd(
+                    air_brakes.deployed_level, free_stream_mach
+                )
                 R3 += (
                     -0.5
                     * rho
                     * (free_stream_speed**2)
                     * air_brakes.reference_area
-                    * air_brakes.cd(air_brakes.deployed_level, free_stream_mach)
+                    * air_brakes_cd
                 )
-                air_brakes.state_history.append(
-                    [
-                        t,
-                        air_brakes.deployed_level,
-                        air_brakes.cd(air_brakes.deployed_level, free_stream_mach),
-                    ]
-                )
+                air_brakes.update_state(t, air_brakes_cd)
             else:
-                air_brakes.state_history.append(
-                    [
-                        t,
-                        air_brakes.deployed_level,
-                        0,
-                    ]
-                )
+                air_brakes.update_state(t, 0)
         # R3 += self.__computeDragForce(z, Vector(vx, vy, vz))
         # Off center moment
         M1 += self.rocket.cp_eccentricity_y * R3
@@ -1740,28 +1757,20 @@ class Flight:
         R3 += -0.5 * rho * (free_stream_speed**2) * self.rocket.area * (drag_coeff)
         for air_brakes in self.rocket.air_brakes:
             if air_brakes.deployed_level > 0:
+                # Avoid calculating cd several times
+                air_brakes_cd = air_brakes.cd(
+                    air_brakes.deployed_level, free_stream_mach
+                )
                 R3 += (
                     -0.5
                     * rho
                     * (free_stream_speed**2)
                     * air_brakes.reference_area
-                    * air_brakes.cd(air_brakes.deployed_level, free_stream_mach)
+                    * air_brakes_cd
                 )
-                air_brakes.state_history.append(
-                    [
-                        t,
-                        air_brakes.deployed_level,
-                        air_brakes.cd(air_brakes.deployed_level, free_stream_mach),
-                    ]
-                )
+                air_brakes.update_state(t, air_brakes_cd)
             else:
-                air_brakes.state_history.append(
-                    [
-                        t,
-                        air_brakes.deployed_level,
-                        0,
-                    ]
-                )
+                air_brakes.update_state(t, 0)
         ## Off center moment
         M1 += self.rocket.cp_eccentricity_y * R3
         M2 -= self.rocket.cp_eccentricity_x * R3

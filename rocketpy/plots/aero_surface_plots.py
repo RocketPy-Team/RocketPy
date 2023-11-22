@@ -479,9 +479,23 @@ class _AirBrakesPlots(_AeroSurfacePlots):
         -------
         None
         """
+        # Checks if the state list is empty
+        if not self.aero_surface.state_list:
+            print(
+                "The state list is empty. Run a simulation with the "
+                + "air breaks first to plot the drag coefficient"
+            )
+            return None
+
+        # Check if the state list history has more than one element
+        if len(self.aero_surface.state_list_history) > 1:
+            print(
+                "More than one simulation was run with the air brakes. "
+                + "The following plot will refers to the last simulation."
+            )
         # Extract the first and second columns as x and y
-        x = [row[0] for row in self.aero_surface.state_history]
-        y = [row[1] for row in self.aero_surface.state_history]
+        x = [row[0] for row in self.aero_surface.state_list]
+        y = [row[1] for row in self.aero_surface.state_list]
 
         # Create the plot
         plt.figure(figsize=(10, 6))
@@ -505,9 +519,23 @@ class _AirBrakesPlots(_AeroSurfacePlots):
         -------
         None
         """
+        # Checks if the state list is empty
+        if not self.aero_surface.state_list:
+            print(
+                "The state list is empty. Run a simulation with the "
+                + "air breaks first to plot the drag coefficient"
+            )
+            return None
+
+        # Check if the state list history has more than one element
+        if len(self.aero_surface.state_list_history) > 1:
+            print(
+                "More than one simulation was run with the air brakes. "
+                + "The following plot will refers to the last simulation."
+            )
         # Extract the first and second columns as x and y
-        x = [row[0] for row in self.aero_surface.state_history]
-        y = [row[2] for row in self.aero_surface.state_history]
+        x = [row[0] for row in self.aero_surface.state_list]
+        y = [row[2] for row in self.aero_surface.state_list]
 
         # Create the plot
         plt.figure(figsize=(10, 6))

@@ -1907,6 +1907,20 @@ class AirBrakes(AeroSurface):
     AirBrakes.deployed_level : float
         Current deployed level, ranging from 0 to 1. Deployed level is the
         fraction of the total airbrake area that is deployed.
+    AirBrakes.reference_area : int, float
+        Reference area used to calculate the drag force of the air brakes
+        from the drag coefficient curve. Units of m^2.
+    AirBrakes.previous_state : list
+        List that stores the previous state of the air brakes. The state is
+        stored as a list with the following format:
+        [time, deployed_level, drag coefficient]
+    AirBrakes.state_list : list
+        List that stores all the states vector of the air brakes at each step
+        of the simulation. A single state is a defined as:
+        [time, deployed_level, drag coefficient]
+    AirBrakes.state_list_history : list
+        List that stores the `state_list` of each complete simulation ran with
+        the air brakes.
     AirBrakes.name : str
         Name of the air brakes.
     """
@@ -1964,8 +1978,61 @@ class AirBrakes(AeroSurface):
         self.prints = _AirBrakesPrints(self)
         self.plots = _AirBrakesPlots(self)
 
-        # Initialize tracker lists
-        self.state_history = []
+        # Initialize state related attributes
+        self.previous_state = [deployed_level, 0, 0]
+        self.state_list = None
+        self.state_list_history = []
+
+    def reset_state(self):
+        """Resets the state of the air brakes. This function is called at the
+        beginning of each simulation. It resets the state list and the previous
+        state and saves the previous state list to the state list history.
+
+        Returns
+        -------
+        None
+        """
+        # Resets cached properties so they are recalculated to the last sim
+        self.__dict__.pop("cd_by_time", None)
+        self.__dict__.pop("deployed_level_by_time", None)
+        # Initialize state list
+        self.state_list = []
+        # Initialize previous state
+        self.previous_state = [self.deployed_level, 0, 0]
+
+    def update_state(self, time, cd):
+        """Updates the state of the air brakes.
+
+        Parameters
+        ----------
+        time : float
+            Current time of the simulation.
+        deployed_level : float
+            Current deployed level, ranging from 0 to 1. Deployed level is the
+            fraction of the total airbrake area that is deployed.
+        mach : float
+            Current Mach number.
+
+        Returns
+        -------
+        None
+        """
+        # Update state list
+        self.state_list.append(self.previous_state)
+
+        # Update previous state
+        self.previous_state = [time, self.deployed_level, cd]
+        
+    def finalize_state(self):
+        """Updates the state list history of the air brakes.
+
+        Returns
+        -------
+        None
+        """
+        # Save previous state list to state list history
+        self.state_list_history.append(self.state_list)
+        return None
 
     def set_deployed_level(self, deployed_level):
         """Set airbrake deployed level.
@@ -2032,9 +2099,9 @@ class AirBrakes(AeroSurface):
     @cached_property
     def cd_by_time(self):
         """Returns the drag coefficient as a function of time."""
-        state_history = self.state_history
+        state_list = self.state_list
         # create [[time,cd]] list
-        cd_by_time = [[state[0], state[2]] for state in state_history]
+        cd_by_time = [[state[0], state[2]] for state in state_list]
 
         return Function(
             cd_by_time,
@@ -2047,9 +2114,9 @@ class AirBrakes(AeroSurface):
     @cached_property
     def deployed_level_by_time(self):
         """Returns the deployed level as a function of time."""
-        state_history = self.state_history
+        state_list = self.state_list
         # create [[deployed_level,time]] list
-        deployed_level_by_time = [[state[0], state[1]] for state in state_history]
+        deployed_level_by_time = [[state[0], state[1]] for state in state_list]
 
         return Function(
             deployed_level_by_time,
