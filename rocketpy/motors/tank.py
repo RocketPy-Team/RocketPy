@@ -925,7 +925,9 @@ class UllageBasedTank(Tank):
         Function
             Volume of the fluid as a function of time.
         """
-        return Function(self.geometry.total_volume).set_discrete_based_on_model(self.gas_volume)
+        return Function(self.geometry.total_volume).set_discrete_based_on_model(
+            self.gas_volume
+        )
 
     @funcify_method("Time (s)", "Volume (m³)")
     def liquid_volume(self):
@@ -1155,7 +1157,9 @@ class LevelBasedTank(Tank):
             Volume of the gas as a function of time.
         """
         # TODO: there's a bug on the gas_center_of_mass is I don't discretize here
-        func = Function(self.geometry.total_volume).set_discrete_based_on_model(self.liquid_volume)
+        func = Function(self.geometry.total_volume).set_discrete_based_on_model(
+            self.liquid_volume
+        )
         func -= self.liquid_volume
         return func
 
