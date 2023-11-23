@@ -2715,7 +2715,7 @@ class Function:
         if isinstance(self.source, np.ndarray) and isinstance(func.source, np.ndarray):
             # Perform bounds check for composition
             if not extrapolate:
-                if func.min < self.x_initial and func.max > self.x_final:
+                if func.min < self.x_initial or func.max > self.x_final:
                     raise ValueError(
                         f"Input Function image {func.min, func.max} must be within "
                         f"the domain of the Function {self.x_initial, self.x_final}."

@@ -1292,7 +1292,21 @@ class MassBasedTank(Tank):
         Function
             Volume of the fluid as a function of time.
         """
-        return self.liquid_volume + self.gas_volume
+        fluid_volume = self.liquid_volume + self.gas_volume
+
+        # Check if within bounds
+        diff = fluid_volume - self.geometry.total_volume
+
+        if (diff > 1e-6).any():
+            raise ValueError(
+                f"The tank {self.name} was overfilled. The input fluid masses "
+                + "produce a volume that surpasses the tank total volume by more "
+                + f"than 1e-6 m^3 at {diff.x_array[np.argmax(diff.y_array)]} s."
+                + "\n\t\tCheck out the input masses, fluid densities or raise the "
+                + "tank height so as to increase its total volume."
+            )
+
+        return fluid_volume
 
     @funcify_method("Time (s)", "Volume (m³)")
     def gas_volume(self):
