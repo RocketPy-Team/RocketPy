@@ -411,70 +411,79 @@ class Tank(ABC):
 
     def _check_volume_bounds(self):
         """Checks if the tank is overfilled or underfilled. Raises a ValueError
-        if the tank is overfilled or underfilled.
+        if either the `gas_volume` or `liquid_volume` are out of tank geometry
+        bounds.
         """
-        if (self.fluid_volume > self.geometry.total_volume + 1e-6).any():
+
+        def overfill_volume_exception(param_name, param):
             raise ValueError(
-                f"The tank '{self.name}' is overfilled. The fluid volume is "
+                f"The tank '{self.name}' is overfilled. The {param_name} is "
                 + "greater than the total volume of the tank.\n\t\t"
-                + "Try increasing the tank height and check out the fluid density"
-                + " values.\n\t\t"
-                + f"The fluid volume is {np.max(self.fluid_volume.y_array):.3f} m³ at "
-                + f"{self.fluid_volume.x_array[np.argmax(self.fluid_volume.y_array)]:.3f} s."
+                + "Try increasing the tank height and check out the fluid density "
+                + "values.\n\t\t"
+                + f"The {param_name} is {param.max:.3f} m³ at "
+                + f"{param.x_array[np.argmax(param.y_array)]:.3f} s.\n\t\t"
+                + f"The tank total volume is {self.geometry.total_volume:.3f} m³."
             )
-        elif (self.fluid_volume < -1e-6).any():
+
+        def underfill_volume_exception(param_name, param):
             raise ValueError(
-                f"The tank '{self.name}' is underfilled. The fluid volume is "
+                f"The tank '{self.name}' is underfilled. The {param_name} is "
                 + "negative.\n\t\t"
-                + "Try increasing input fluid quantities and check out the fluid density"
-                + " values.\n\t\t"
-                + f"The fluid volume is {np.min(self.fluid_volume.y_array):.3f} m³ at "
-                + f"{self.fluid_volume.x_array[np.argmin(self.fluid_volume.y_array)]:.3f} s."
+                + "Try increasing input fluid quantities and check out the fluid "
+                + "density values.\n\t\t"
+                + f"The {param_name} is {param.min:.3f} m³ at "
+                + f"{param.x_array[np.argmin(param.y_array)]:.3f} s.\n\t\t"
+                + f"The tank total volume is {self.geometry.total_volume:.3f} m³."
             )
+
+        for name, volume in [
+            ("gas volume", self.gas_volume),
+            ("liquid volume", self.liquid_volume),
+        ]:
+            if (volume > self.geometry.total_volume + 1e-6).any():
+                overfill_volume_exception(name, volume)
+            elif (volume < -1e-6).any():
+                underfill_volume_exception(name, volume)
 
     def _check_height_bounds(self):
         """Checks if the tank is overfilled or underfilled. Raises a ValueError
-        if the tank is overfilled or underfilled.
+        if either the `gas_height` or `liquid_height` are out of tank geometry
+        bounds.
         """
         top_tolerance = self.geometry.top + 1e-4
         bottom_tolerance = self.geometry.bottom - 1e-4
 
-        if (self.liquid_height > top_tolerance).any():
+        def overfill_height_exception(param_name, param):
             raise ValueError(
                 f"The tank '{self.name}' is overfilled. "
-                + f"The liquid height is above the tank top.\n\t\t"
-                + "Try increasing the tank height and check out the fluid density"
-                + " values.\n\t\t"
-                + f"The liquid height is {np.max(self.liquid_height.y_array):.3f} m above "
-                + f"the tank top at {self.liquid_height.x_array[np.argmax(self.liquid_height.y_array)]:.3f} s."
+                + f"The {param_name} is above the tank top.\n\t\t"
+                + "Try increasing the tank height and check out the fluid density "
+                + "values.\n\t\t"
+                + f"The {param_name} is {param.max:.3f} m above the tank top "
+                + f"at {param.x_array[np.argmax(param.y_array)]:.3f} s.\n\t\t"
+                + f"The tank top is at {self.geometry.top:.3f} m."
             )
-        elif (self.liquid_height < bottom_tolerance).any():
+
+        def underfill_height_exception(param_name, param):
             raise ValueError(
                 f"The tank '{self.name}' is underfilled. "
-                + "The liquid height is below the tank bottom.\n\t\t"
-                + "Try increasing input fluid quantities and check out the fluid density"
-                + " values.\n\t\t"
-                + f"The liquid height is {np.min(self.liquid_height.y_array):.3f} m below "
-                + f"the tank bottom at {self.liquid_height.x_array[np.argmin(self.liquid_height.y_array)]:.3f} s."
+                + f"The {param_name} is below the tank bottom.\n\t\t"
+                + "Try increasing input fluid quantities and check out the fluid "
+                + "density values.\n\t\t"
+                + f"The {param_name} is {param.min:.3f} m below the tank bottom "
+                + f"at {param.x_array[np.argmin(param.y_array)]:.3f} s.\n\t\t"
+                + f"The tank bottom is at {self.geometry.bottom:.3f} m."
             )
-        elif (self.gas_height > top_tolerance).any():
-            raise ValueError(
-                f"The tank '{self.name}' is overfilled. "
-                + "The gas height is above the tank top.\n\t\t"
-                + "Try increasing the tank height and check out the fluid density"
-                + " values.\n\t\t"
-                + f"The gas height is {np.max(self.gas_height.y_array):.3f} m above "
-                + f"the tank top at {self.gas_height.x_array[np.argmax(self.gas_height.y_array)]:.3f} s."
-            )
-        elif (self.gas_height < bottom_tolerance).any():
-            raise ValueError(
-                f"The tank '{self.name}' is underfilled. "
-                + "The gas height is below the tank bottom.\n\t\t"
-                + "Try increasing input fluid quantities and check out the fluid density"
-                + " values.\n\t\t"
-                + f"The gas height is {np.min(self.gas_height.y_array):.3f} m below "
-                + f"the tank bottom at {self.gas_height.x_array[np.argmin(self.gas_height.y_array)]:.3f} s."
-            )
+
+        for name, height in [
+            ("gas height", self.gas_height),
+            ("liquid height", self.liquid_height),
+        ]:
+            if (height > top_tolerance).any():
+                overfill_height_exception(name, height)
+            elif (height < bottom_tolerance).any():
+                underfill_height_exception(name, height)
 
     def draw(self):
         """Draws the tank geometry."""
@@ -1078,8 +1087,8 @@ class LevelBasedTank(Tank):
         self.discretize_liquid_height() if discretize else None
 
         # Check if the tank is overfilled or underfilled
-        self._check_volume_bounds()
         self._check_height_bounds()
+        self._check_volume_bounds()
 
     @funcify_method("Time (s)", "Mass (kg)")
     def fluid_mass(self):
