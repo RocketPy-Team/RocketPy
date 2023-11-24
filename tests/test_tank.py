@@ -190,7 +190,7 @@ def test_mass_based_tank():
     )
 
     # Assert volume bounds
-    assert (real_tank_lox.gas_height <= real_tank_lox.geometry.total_volume).all
+    assert (real_tank_lox.gas_height <= real_tank_lox.geometry.top).all
     assert (example_tank_lox.gas_height <= example_tank_lox.geometry.total_volume).all
 
     initial_liquid_mass = 5
