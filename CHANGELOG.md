@@ -33,7 +33,7 @@ straightforward as possible.
 ### Added
 
 - DOC: Added this changelog file [#472](https://github.com/RocketPy-Team/RocketPy/pull/472)
--
+- ENH: Prevent out of bounds Tanks from Instantiation #484 [#484](https://github.com/RocketPy-Team/RocketPy/pull/484)
 
 ### Changed
 
