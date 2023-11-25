@@ -40,7 +40,7 @@ Then we must first define the tanks:
   fuel_gas = Fluid(name="ethanol_g", density=1.59)
 
   # Define tanks geometry
-  tanks_shape = CylindricalTank(radius = 0.1, height = 1, spherical_caps = True)
+  tanks_shape = CylindricalTank(radius = 0.1, height = 1.2, spherical_caps = True)
 
   # Define tanks
   oxidizer_tank = MassFlowRateBasedTank(
@@ -48,7 +48,7 @@ Then we must first define the tanks:
       geometry=tanks_shape,
       flux_time=5,
       initial_liquid_mass=32,
-      initial_gas_mass=0.1,
+      initial_gas_mass=0.01,
       liquid_mass_flow_rate_in=0,
       liquid_mass_flow_rate_out=lambda t: 32 / 3 * exp(-0.25 * t),
       gas_mass_flow_rate_in=0,
