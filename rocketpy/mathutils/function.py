@@ -2830,7 +2830,13 @@ class Function:
             # Deal with csv or txt
             if isinstance(source, (str, Path)):
                 # Convert to numpy array
-                source = np.loadtxt(source, delimiter=",", dtype=float)
+                try:
+                    source = np.loadtxt(source, delimiter=",", dtype=float)
+                except ValueError:
+                    # Skip header
+                    source = np.loadtxt(source, delimiter=",", dtype=float, skiprows=1)
+                except Exception:
+                    raise ValueError("The source file is not a valid csv or txt file.")
 
             else:
                 # this will also trigger an error if the source is not a list of
