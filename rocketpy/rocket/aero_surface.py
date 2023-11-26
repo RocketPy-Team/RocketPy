@@ -1925,7 +1925,9 @@ class AirBrakes(AeroSurface):
         Name of the air brakes.
     """
 
-    def __init__(self, cd_curve, reference_area, deployed_level=0, name="AirBrakes"):
+    def __init__(
+        self, cd_curve, reference_area, clamp=True, deployed_level=0, name="AirBrakes"
+    ):
         """Initializes the AirBrakes class.
 
         Parameters
@@ -1955,6 +1957,11 @@ class AirBrakes(AeroSurface):
         reference_area : int, float
             Reference area used to calculate the drag force of the air brakes
             from the drag coefficient curve. Units of m^2.
+        clamp : bool, optional
+            If True, the simulation will clamp the deployed level to 0 or 1 if
+            the deployed level is out of bounds. If False, the simulation will
+            not clamp the deployed level and will instead raise a warning if
+            the deployed level is out of bounds. Default is True.
         deployed_level : float, optional
             Current deployed level, ranging from 0 to 1. Deployed level is the
             fraction of the total airbrake area that is deployed. Default is 0.
@@ -1974,7 +1981,8 @@ class AirBrakes(AeroSurface):
             extrapolation="zero",
         )
         self.reference_area = reference_area
-        self.deployed_level = deployed_level
+        self.clamp = clamp
+        self._deployed_level = deployed_level
         self.prints = _AirBrakesPrints(self)
         self.plots = _AirBrakesPlots(self)
 
@@ -1982,6 +1990,28 @@ class AirBrakes(AeroSurface):
         self.previous_state = [deployed_level, 0, 0]
         self.state_list = None
         self.state_list_history = []
+
+    @property
+    def deployed_level(self):
+        """Returns the deployed level of the air brakes."""
+        return self._deployed_level
+
+    @deployed_level.setter
+    def deployed_level(self, value):
+        # Check if deployed level is within bounds and warn user if not
+        if value < 0 or value > 1:
+            # Clamp deployed level if clamp is True
+            if self.clamp:
+                # Make sure deployed level is between 0 and 1
+                value = np.clip(value, 0, 1)
+            else:
+                # Raise warning if clamp is False
+                warnings.warn(
+                    f"Deployed level of {self.name} is smaller than 0 or "
+                    + "larger than 1. Extrapolation for the drag coefficient "
+                    + "curve will be used."
+                )
+        self._deployed_level = value
 
     def reset_state(self):
         """Resets the state of the air brakes. This function is called at the
