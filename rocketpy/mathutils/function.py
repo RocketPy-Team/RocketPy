@@ -138,7 +138,7 @@ class Function:
 
             - Python function: Called for evaluation with input values.
 
-            - int or float: Treated as a constant value.
+            - int or float: Treated as a constant value function.
 
             - ndarray: Used for interpolation. Format as [(x0, y0, z0),
             (x1, y1, z1), ..., (xn, yn, zn)], where 'x' and 'y' are inputs,
