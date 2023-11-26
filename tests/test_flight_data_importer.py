@@ -44,7 +44,7 @@ def test_flight_importer_ndrt():
         columns_map=columns_map,
         units=units,
     )
-    assert fd.name == "name"
+    assert fd.name == "NDRT Rocket team, 2020"
     assert "time" in fd.columns, "Can't find 'time' column in fd.columns"
     assert "altitude" in fd.columns, "Can't find 'altitude' column in fd.columns"
     assert np.isclose(fd.altitude(0), 0)
