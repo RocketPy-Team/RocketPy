@@ -39,9 +39,33 @@ class Function:
 
         Parameters
         ----------
-        source : function, scalar, ndarray, string, Function
-            The data source to be used for the function. See the ``set_source``
-            method's documentation for more details.
+        source : callable, scalar, ndarray, string, or Function
+            The data source to be used for the function:
+
+            - Callable: Called for evaluation with input values. Must have the
+              desired inputs as arguments and return a single output value.
+              Input order is important. Example: Python functions, classes, and
+              methods.
+
+            - int or float: Treated as a constant value function.
+
+            - ndarray: Used for interpolation. Format as [(x0, y0, z0),
+            (x1, y1, z1), ..., (xn, yn, zn)], where 'x' and 'y' are inputs,
+            and 'z' is the output.
+
+            - string: Path to a CSV file. The file is read and converted into an
+            ndarray. The file can optionally contain a single header line.
+
+            - Function: Copies the source of the provided Function object,
+            creating a new Function with adjusted inputs and outputs.
+
+        Notes
+        -----
+        (I) CSV files can optionally contain a single header line. If present,
+        the header is ignored during processing.
+        (II) Fields in CSV files may be enclosed in double quotes. If fields are
+        not quoted, double quotes should not appear inside them.
+
         inputs : string, sequence of strings, optional
             The name of the inputs of the function. Will be used for
             representation and graphing (axis names). 'Scalar' is default.
@@ -133,10 +157,13 @@ class Function:
 
         Parameters
         ----------
-        source : function, scalar, ndarray, string, or Function
+        source : callable, scalar, ndarray, string, or Function
             The data source to be used for the function:
 
-            - Callable: Called for evaluation with input values. Must have the desired inputs as arguments and return a single output value. Input order is important. Example: Python functions, classes, and methods.
+            - Callable: Called for evaluation with input values. Must have the
+              desired inputs as arguments and return a single output value.
+              Input order is important. Example: Python functions, classes, and
+              methods.
 
             - int or float: Treated as a constant value function.
 
@@ -175,18 +202,15 @@ class Function:
         # Import CSV if source is a string or Path and convert values to ndarray
         if isinstance(source, (str, Path)):
             with open(source, "r") as file:
-                first_line = file.readline()
                 try:
-                    # Try to convert the first line to floats
-                    np.array([float(item) for item in first_line.split(",")])
-                    # If successful, no headers are present
-                    file.seek(0)  # Reset file read position
                     source = np.loadtxt(file, delimiter=",", dtype=float)
                 except ValueError:
                     # If an error occurs, headers are present
-                    source = np.genfromtxt(
-                        source, delimiter=",", dtype=float, skip_header=1
-                    )
+                    source = np.loadtxt(source, delimiter=",", dtype=float, skiprows=1)
+                except Exception as e:
+                    raise ValueError(
+                        "The source file is not a valid csv or txt file."
+                    ) from e
 
         # Convert to ndarray if source is a list
         if isinstance(source, (list, tuple)):
