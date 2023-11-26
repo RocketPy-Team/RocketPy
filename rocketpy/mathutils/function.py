@@ -136,7 +136,7 @@ class Function:
         source : function, scalar, ndarray, string, or Function
             The data source to be used for the function:
 
-            - Python function: Called for evaluation with input values.
+            - Callable: Called for evaluation with input values. Must have the desired inputs as arguments and return a single output value. Input order is important. Example: Python functions, classes, and methods.
 
             - int or float: Treated as a constant value function.
 
