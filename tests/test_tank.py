@@ -140,7 +140,7 @@ def test_mass_based_tank():
     )  # density value may be estimate
 
     top_endcap = lambda y: np.sqrt(
-        0.0775**2 - (y - 0.6924) ** 2
+        0.0775**2 - (y - 0.7924) ** 2
     )  # Hemisphere equation creating top endcap
     bottom_endcap = lambda y: np.sqrt(
         0.0775**2 - (0.0775 - y) ** 2
@@ -150,8 +150,8 @@ def test_mass_based_tank():
     real_geometry = TankGeometry(
         {
             (0, 0.0559): bottom_endcap,
-            (0.0559, 0.7139): lambda y: 0.0744,
-            (0.7139, 0.7698): top_endcap,
+            (0.0559, 0.8039): lambda y: 0.0744,
+            (0.8039, 0.8698): top_endcap,
         }
     )
 
@@ -172,7 +172,6 @@ def test_mass_based_tank():
         gas_mass=gas_masses,
         liquid=lox,
         gas=n2,
-        discretize=None,
     )
 
     # Generate tank geometry {radius: height, ...}
@@ -189,6 +188,12 @@ def test_mass_based_tank():
         gas=n2,
         discretize=None,
     )
+
+    # Assert volume bounds
+    assert (real_tank_lox.gas_height <= real_tank_lox.geometry.top).all
+    assert (real_tank_lox.fluid_volume <= real_tank_lox.geometry.total_volume).all
+    assert (example_tank_lox.gas_height <= example_tank_lox.geometry.top).all
+    assert (example_tank_lox.fluid_volume <= example_tank_lox.geometry.total_volume).all
 
     initial_liquid_mass = 5
     initial_gas_mass = 0

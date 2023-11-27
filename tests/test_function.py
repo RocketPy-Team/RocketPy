@@ -10,23 +10,51 @@ plt.rcParams.update({"figure.max_open_warning": 0})
 
 
 # Test Function creation from .csv file
-def test_function_from_csv(func_from_csv):
+def test_function_from_csv(func_from_csv, func_2d_from_csv):
     """Test the Function class creation from a .csv file.
 
     Parameters
     ----------
     func_from_csv : rocketpy.Function
         A Function object created from a .csv file.
+    func_2d_from_csv : rocketpy.Function
+        A Function object created from a .csv file with 2 inputs.
     """
     # Assert the function is zero at 0 but with a certain tolerance
     assert np.isclose(func_from_csv(0), 0.0, atol=1e-6)
+    assert np.isclose(func_2d_from_csv(0, 0), 0.0, atol=1e-6)
     # Check the __str__ method
     assert func_from_csv.__str__() == "Function from R1 to R1 : (Scalar) → (Scalar)"
+    assert (
+        func_2d_from_csv.__str__()
+        == "Function from R2 to R1 : (Input 1, Input 2) → (Scalar)"
+    )
     # Check the __repr__ method
     assert func_from_csv.__repr__() == "'Function from R1 to R1 : (Scalar) → (Scalar)'"
+    assert (
+        func_2d_from_csv.__repr__()
+        == "'Function from R2 to R1 : (Input 1, Input 2) → (Scalar)'"
+    )
 
 
-def test_getters(func_from_csv):
+@pytest.mark.parametrize(
+    "csv_file",
+    [
+        "tests/fixtures/function/1d_quotes.csv",
+        "tests/fixtures/function/1d_no_quotes.csv",
+    ],
+)
+def test_func_from_csv_with_header(csv_file):
+    """Tests if a Function can be created from a CSV file with a single header
+    line. It tests cases where the fields are separated by quotes and without
+    quotes."""
+    f = Function(csv_file)
+    assert f.__repr__() == "'Function from R1 to R1 : (Scalar) → (Scalar)'"
+    assert np.isclose(f(0), 100)
+    assert np.isclose(f(0) + f(1), 300), "Error summing the values of the function"
+
+
+def test_getters(func_from_csv, func_2d_from_csv):
     """Test the different getters of the Function class.
 
     Parameters
@@ -36,13 +64,20 @@ def test_getters(func_from_csv):
     """
     assert func_from_csv.get_inputs() == ["Scalar"]
     assert func_from_csv.get_outputs() == ["Scalar"]
-    assert func_from_csv.get_interpolation_method() == "linear"
-    assert func_from_csv.get_extrapolation_method() == "natural"
+    assert func_from_csv.get_interpolation_method() == "spline"
+    assert func_from_csv.get_extrapolation_method() == "constant"
     assert np.isclose(func_from_csv.get_value(0), 0.0, atol=1e-6)
     assert np.isclose(func_from_csv.get_value_opt(0), 0.0, atol=1e-6)
 
+    assert func_2d_from_csv.get_inputs() == ["Input 1", "Input 2"]
+    assert func_2d_from_csv.get_outputs() == ["Scalar"]
+    assert func_2d_from_csv.get_interpolation_method() == "shepard"
+    assert func_2d_from_csv.get_extrapolation_method() == "natural"
+    assert np.isclose(func_2d_from_csv.get_value(0, 0), 0.0, atol=1e-6)
+    assert np.isclose(func_2d_from_csv.get_value_opt(0, 0), 0.0, atol=1e-6)
 
-def test_setters(func_from_csv):
+
+def test_setters(func_from_csv, func_2d_from_csv):
     """Test the different setters of the Function class.
 
     Parameters
@@ -60,9 +95,18 @@ def test_setters(func_from_csv):
     func_from_csv.set_extrapolation("natural")
     assert func_from_csv.get_extrapolation_method() == "natural"
 
+    func_2d_from_csv.set_inputs(["Scalar1", "Scalar2"])
+    assert func_2d_from_csv.get_inputs() == ["Scalar1", "Scalar2"]
+    func_2d_from_csv.set_outputs(["Scalar3"])
+    assert func_2d_from_csv.get_outputs() == ["Scalar3"]
+    func_2d_from_csv.set_interpolation("shepard")
+    assert func_2d_from_csv.get_interpolation_method() == "shepard"
+    func_2d_from_csv.set_extrapolation("zero")
+    assert func_2d_from_csv.get_extrapolation_method() == "zero"
+
 
 @patch("matplotlib.pyplot.show")
-def test_plots(mock_show, func_from_csv):
+def test_plots(mock_show, func_from_csv, func_2d_from_csv):
     """Test different plot methods of the Function class.
 
     Parameters
@@ -74,6 +118,10 @@ def test_plots(mock_show, func_from_csv):
     """
     # Test plot methods
     assert func_from_csv.plot() == None
+    assert func_2d_from_csv.plot() == None
+    # Test plot methods with limits
+    assert func_from_csv.plot(-1, 1) == None
+    assert func_2d_from_csv.plot(-1, 1) == None
     # Test compare_plots
     func2 = Function(
         source="tests/fixtures/airfoils/e473-10e6-degrees.csv",
