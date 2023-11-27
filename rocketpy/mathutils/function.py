@@ -59,13 +59,6 @@ class Function:
             - Function: Copies the source of the provided Function object,
             creating a new Function with adjusted inputs and outputs.
 
-        Notes
-        -----
-        (I) CSV files can optionally contain a single header line. If present,
-        the header is ignored during processing.
-        (II) Fields in CSV files may be enclosed in double quotes. If fields are
-        not quoted, double quotes should not appear inside them.
-
         inputs : string, sequence of strings, optional
             The name of the inputs of the function. Will be used for
             representation and graphing (axis names). 'Scalar' is default.
@@ -93,6 +86,13 @@ class Function:
         Returns
         -------
         None
+
+        Notes
+        -----
+        (I) CSV files can optionally contain a single header line. If present,
+        the header is ignored during processing.
+        (II) Fields in CSV files may be enclosed in double quotes. If fields are
+        not quoted, double quotes should not appear inside them.
         """
         # Set input and output
         if inputs is None:
