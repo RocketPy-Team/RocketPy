@@ -37,6 +37,23 @@ def test_function_from_csv(func_from_csv, func_2d_from_csv):
     )
 
 
+@pytest.mark.parametrize(
+    "csv_file",
+    [
+        "tests/fixtures/function/1d_quotes.csv",
+        "tests/fixtures/function/1d_no_quotes.csv",
+    ],
+)
+def test_func_from_csv_with_header(csv_file):
+    """Tests if a Function can be created from a CSV file with a single header
+    line. It tests cases where the fields are separated by quotes and without
+    quotes."""
+    f = Function(csv_file)
+    assert f.__repr__() == "'Function from R1 to R1 : (Scalar) → (Scalar)'"
+    assert np.isclose(f(0), 100)
+    assert np.isclose(f(0) + f(1), 300), "Error summing the values of the function"
+
+
 def test_getters(func_from_csv, func_2d_from_csv):
     """Test the different getters of the Function class.
 

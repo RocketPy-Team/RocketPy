@@ -42,11 +42,17 @@ straightforward as possible.
 
 -
 
+## [v1.1.2] - 2023-11-25
+
+You can install this version by running `pip install rocketpy==1.1.2`
+
+### Fixed
+
+- BUG: Function breaks if a header is present in the csv file [#485](https://github.com/RocketPy-Team/RocketPy/pull/485)
 
 ## [v1.1.1] - 2023-11-23
 
 You can install this version by running `pip install rocketpy==1.1.1`
-
 
 ### Added
 

@@ -23,7 +23,7 @@ env_analysis_require = [
 
 setuptools.setup(
     name="rocketpy",
-    version="1.1.1",
+    version="1.1.2",
     install_requires=necessary_require,
     extras_require={
         "env_analysis": env_analysis_require,

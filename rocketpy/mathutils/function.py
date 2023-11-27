@@ -39,14 +39,26 @@ class Function:
 
         Parameters
         ----------
-        source : function, scalar, ndarray, string
-            The actual function. If type is function, it will be called for
-            evaluation. If type is int or float, it will be treated as a
-            constant function. If ndarray, its points will be used for
-            interpolation. An ndarray should be as [(x0, y0, z0), (x1, y1, z1),
-            (x2, y2, z2), ...] where x0 and y0 are inputs and z0 is output. If
-            string, imports file named by the string and treats it as csv.
-            The file is converted into ndarray and should not have headers.
+        source : callable, scalar, ndarray, string, or Function
+            The data source to be used for the function:
+
+            - Callable: Called for evaluation with input values. Must have the
+              desired inputs as arguments and return a single output value.
+              Input order is important. Example: Python functions, classes, and
+              methods.
+
+            - int or float: Treated as a constant value function.
+
+            - ndarray: Used for interpolation. Format as [(x0, y0, z0),
+            (x1, y1, z1), ..., (xn, yn, zn)], where 'x' and 'y' are inputs,
+            and 'z' is the output.
+
+            - string: Path to a CSV file. The file is read and converted into an
+            ndarray. The file can optionally contain a single header line.
+
+            - Function: Copies the source of the provided Function object,
+            creating a new Function with adjusted inputs and outputs.
+
         inputs : string, sequence of strings, optional
             The name of the inputs of the function. Will be used for
             representation and graphing (axis names). 'Scalar' is default.
@@ -74,6 +86,13 @@ class Function:
         Returns
         -------
         None
+
+        Notes
+        -----
+        (I) CSV files can optionally contain a single header line. If present,
+        the header is ignored during processing.
+        (II) Fields in CSV files may be enclosed in double quotes. If fields are
+        not quoted, double quotes should not appear inside them.
         """
         # Set input and output
         if inputs is None:
@@ -133,25 +152,42 @@ class Function:
         return self
 
     def set_source(self, source):
-        """Set the source which defines the output of the function giving a
-        certain input.
+        """Sets the data source for the function, defining how the function
+        produces output from a given input.
 
         Parameters
         ----------
-        source : function, scalar, ndarray, string, Function
-            The actual function. If type is function, it will be called for
-            evaluation. If type is int or float, it will be treated as a
-            constant function. If ndarray, its points will be used for
-            interpolation. An ndarray should be as [(x0, y0, z0), (x1, y1, z1),
-            (x2, y2, z2), ...] where x0 and y0 are inputs and z0 is output. If
-            string, imports file named by the string and treats it as csv.
-            The file is converted into ndarray and should not have headers.
-            If the source is a Function, its source will be copied and another
-            Function will be created following the new inputs and outputs.
+        source : callable, scalar, ndarray, string, or Function
+            The data source to be used for the function:
+
+            - Callable: Called for evaluation with input values. Must have the
+              desired inputs as arguments and return a single output value.
+              Input order is important. Example: Python functions, classes, and
+              methods.
+
+            - int or float: Treated as a constant value function.
+
+            - ndarray: Used for interpolation. Format as [(x0, y0, z0),
+            (x1, y1, z1), ..., (xn, yn, zn)], where 'x' and 'y' are inputs,
+            and 'z' is the output.
+
+            - string: Path to a CSV file. The file is read and converted into an
+            ndarray. The file can optionally contain a single header line.
+
+            - Function: Copies the source of the provided Function object,
+            creating a new Function with adjusted inputs and outputs.
+
+        Notes
+        -----
+        (I) CSV files can optionally contain a single header line. If present,
+        the header is ignored during processing.
+        (II) Fields in CSV files may be enclosed in double quotes. If fields are
+        not quoted, double quotes should not appear inside them.
 
         Returns
         -------
         self : Function
+            Returns the Function instance.
         """
         _ = self._check_user_input(
             source,
@@ -165,20 +201,17 @@ class Function:
             source = source.get_source()
         # Import CSV if source is a string or Path and convert values to ndarray
         if isinstance(source, (str, Path)):
-            # Read file and check for headers
-            with open(source, mode="r") as f:
-                first_line = f.readline()
-            # If headers are found...
-            if first_line[0] in ['"', "'"]:
-                # Headers available
-                first_line = first_line.replace('"', " ").replace("'", " ")
-                first_line = first_line.split(" , ")
-                self.set_inputs(first_line[0])
-                self.set_outputs(first_line[1:])
-                source = np.loadtxt(source, delimiter=",", skiprows=1, dtype=float)
-            # if headers are not found
-            else:
-                source = np.loadtxt(source, delimiter=",", dtype=float)
+            with open(source, "r") as file:
+                try:
+                    source = np.loadtxt(file, delimiter=",", dtype=float)
+                except ValueError:
+                    # If an error occurs, headers are present
+                    source = np.loadtxt(source, delimiter=",", dtype=float, skiprows=1)
+                except Exception as e:
+                    raise ValueError(
+                        "The source file is not a valid csv or txt file."
+                    ) from e
+
         # Convert to ndarray if source is a list
         if isinstance(source, (list, tuple)):
             source = np.array(source, dtype=np.float64)
@@ -2830,7 +2863,15 @@ class Function:
             # Deal with csv or txt
             if isinstance(source, (str, Path)):
                 # Convert to numpy array
-                source = np.loadtxt(source, delimiter=",", dtype=float)
+                try:
+                    source = np.loadtxt(source, delimiter=",", dtype=float)
+                except ValueError:
+                    # Skip header
+                    source = np.loadtxt(source, delimiter=",", dtype=float, skiprows=1)
+                except Exception as e:
+                    raise ValueError(
+                        "The source file is not a valid csv or txt file."
+                    ) from e
 
             else:
                 # this will also trigger an error if the source is not a list of
