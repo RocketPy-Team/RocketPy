@@ -204,7 +204,7 @@ class Parachute:
             raise ValueError(
                 f"Unable to set the trigger function for parachute '{self.name}'. "
                 + "Trigger must be a callable, a float value or the string 'apogee'. "
-                + "See the Parachute class documentation for mor information."
+                + "See the Parachute class documentation for more information."
             )
 
     def __str__(self):
