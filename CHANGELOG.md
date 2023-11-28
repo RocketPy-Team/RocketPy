@@ -36,7 +36,7 @@ straightforward as possible.
 
 ### Changed
 
--
+- ENH: Function Reverse Arithmetic Priority [#488](https://github.com/RocketPy-Team/RocketPy/pull/488)
 
 ### Fixed
 
