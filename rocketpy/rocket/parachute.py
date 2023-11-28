@@ -220,6 +220,13 @@ class Parachute:
             self.cd_s,
         )
 
+    def __repr__(self):
+        """Representation method for the class, useful when debugging."""
+        return (
+            f"'{self.name}' parachute "
+            + f"(cd_s = {self.cd_s:.4f} m2, trigger = {self.trigger})"
+        )
+
     def info(self):
         """Prints information about the Parachute class."""
         self.prints.all()
