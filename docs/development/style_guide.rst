@@ -69,6 +69,7 @@ So here are a couple of **guidelines** to help you when creating new branches to
     #. ``enh``: when you add new features and enhancements
     #. ``maint``: when your branch is all about refactoring, fixing typos, etc.
     #. ``rel``: when your branch makes changes related to creating new releases
+    #. ``tst``: when your branch makes changes related to tests
 
 * Use ``-`` instead of spaces for the description text.
 * Keep branch names with lowercase letters.
@@ -80,6 +81,7 @@ Here are a couple of example branch names:
 - ``bug/issue-98-upside-down-rockets``
 - ``enh/hybrid-motor-feature``
 - ``maint/typos-flight-class``
+- ``tst/refactor-tests-flight-class``
 
 Once you are ready to create a Pull Request for your branch, we advise you to merge with the ``develop`` branch instead of the default ``master`` branch.
 This way, we keep the ``master`` branch stable and use the ``develop`` branch to test out new features!
