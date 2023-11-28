@@ -23,7 +23,7 @@ RocketPy's User Guide
 
    ../notebooks/deployable_payload_example.ipynb
    ../notebooks/compare_flights_usage.ipynb
-   ../notebooks/air_brakes_example.ipynb
+   Air Brakes Example <airbrakes.rst>
    ../matlab/matlab.rst
 
 .. toctree::
