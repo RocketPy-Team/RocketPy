@@ -1996,7 +1996,7 @@ class AirBrakes(AeroSurface):
         self.plots = _AirBrakesPlots(self)
 
         # Initialize state related attributes
-        self.previous_state = [deployed_level, 0, 0]
+        self.previous_state = [0, deployed_level, 0]
         self.state_list = None
         self.state_list_history = []
 
@@ -2069,9 +2069,10 @@ class AirBrakes(AeroSurface):
         -------
         None
         """
+        # Update state list with last state
+        self.state_list.append(self.previous_state)
         # Save previous state list to state list history
         self.state_list_history.append(self.state_list)
-        return None
 
     def set_deployed_level(self, deployed_level):
         """Set airbrake deployed level.
