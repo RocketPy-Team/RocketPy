@@ -184,7 +184,7 @@ class Parachute:
 
             self.triggerfunc = triggerfunc
 
-        elif trigger == "apogee":
+        elif trigger.lower() == "apogee":
             # trigger for apogee
             def triggerfunc(p, h, y):
                 # p = pressure considering parachute noise signal
