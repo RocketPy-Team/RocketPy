@@ -390,3 +390,19 @@ def test_shepard_interpolation(x, y, z_expected):
     func = Function(source=source, inputs=["x", "y"], outputs=["z"])
     z = func(x, y)
     assert np.isclose(z, z_expected, atol=1e-8).all()
+
+
+def test_arithmetic_priority():
+    """Test the arithmetic priority of the Function class, specially
+    comparing to the numpy array operations.
+    """
+    func_lambda = Function(lambda x: x**2)
+    func_array = Function([(0, 0), (1, 1), (2, 4)])
+    array = np.array([1])
+
+    assert isinstance(func_lambda + func_array, Function)
+    assert isinstance(func_array + func_lambda, Function)
+    assert isinstance(func_lambda + array, Function)
+    assert isinstance(array + func_lambda, Function)
+    assert isinstance(func_array + array, Function)
+    assert isinstance(array + func_array, Function)
