@@ -308,5 +308,5 @@ class _AirBrakesPrints(_AeroSurfacePrints):
         print(
             f"Current deployed level: {self.aero_surface.deployed_level:.2f} = {100*self.aero_surface.deployed_level:.0f} %"
         )
-        print(f"Maximum Cd: {self.aero_surface.cd.max:.3f}")
-        print(f"Minimum Cd: {self.aero_surface.cd.min:.3f}")
+        print(f"Maximum Drag Coefficient: {self.aero_surface.drag_coefficient.max:.3f}")
+        print(f"Minimum Drag Coefficient: {self.aero_surface.drag_coefficient.min:.3f}")

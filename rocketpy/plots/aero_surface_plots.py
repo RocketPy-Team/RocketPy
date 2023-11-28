@@ -468,9 +468,9 @@ class _AirBrakesPlots(_AeroSurfacePlots):
         super().__init__(air_brakes)
         return None
 
-    def cd_curve(self):
+    def drag_coefficient_curve(self):
         """Plots the drag coefficient curve of the air_brakes."""
-        return self.aero_surface.cd.plot(0, 1)
+        return self.aero_surface.drag_coefficient.plot(0, 1)
 
     def deployed_level(self):
         """Plots the deployed level of the air_brakes as a function of time.
@@ -508,7 +508,7 @@ class _AirBrakesPlots(_AeroSurfacePlots):
 
         return None
 
-    def cd(self):
+    def drag_coefficient(self):
         """Plots the drag coefficient of the air_brakes as a function of time.
 
         This function extracts the first and second columns of the state history
@@ -559,6 +559,6 @@ class _AirBrakesPlots(_AeroSurfacePlots):
         None
         """
         self.deployed_level()
-        self.cd()
-        self.cd_curve()
+        self.drag_coefficient()
+        self.drag_coefficient_curve()
         return None

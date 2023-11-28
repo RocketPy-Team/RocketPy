@@ -279,7 +279,7 @@ controller function. If you want to disable this feature, set ``clamp`` to
 .. jupyter-execute::
 
     air_brakes, controller = calisto.add_air_brakes(
-        cd_curve="../data/calisto/air_brakes_cd.csv",
+        drag_coefficient_curve="../data/calisto/air_brakes_cd.csv",
         controller_function=controller_function,
         sampling_rate=100,
         reference_area=None,
@@ -327,7 +327,7 @@ Now we can see some plots from our air brakes:
 .. jupyter-execute::
 
     air_brakes.deployed_level_by_time.plot(force_data=True)
-    air_brakes.cd_by_time.plot(force_data=True)
+    air_brakes.drag_coefficient_by_time.plot(force_data=True)
 
 .. seealso::
 

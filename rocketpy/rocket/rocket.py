@@ -1156,7 +1156,7 @@ class Rocket:
 
     def add_air_brakes(
         self,
-        cd_curve,
+        drag_coefficient_curve,
         controller_function,
         sampling_rate,
         clamp=True,
@@ -1169,7 +1169,7 @@ class Rocket:
 
         Parameters
         ----------
-        cd_curve : int, float, callable, array, string, Function
+        drag_coefficient_curve : int, float, callable, array, string, Function
             Drag coefficient as a function of deployed level and Mach number.
             If constant, it must be an int or float. If a function, it must
             take as input the deployed level and the Mach number and return
@@ -1236,7 +1236,7 @@ class Rocket:
         """
         reference_area = reference_area if reference_area is not None else self.area
         air_brakes = AirBrakes(
-            cd_curve=cd_curve,
+            drag_coefficient_curve=drag_coefficient_curve,
             reference_area=reference_area,
             clamp=clamp,
             deployed_level=0,

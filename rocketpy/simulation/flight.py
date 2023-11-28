@@ -1457,7 +1457,7 @@ class Flight:
         for air_brakes in self.rocket.air_brakes:
             if air_brakes.deployed_level > 0:
                 # Avoid calculating cd several times
-                air_brakes_cd = air_brakes.cd(
+                air_brakes_cd = air_brakes.drag_coefficient(
                     air_brakes.deployed_level, free_stream_mach
                 )
                 R3 += (
@@ -1758,7 +1758,7 @@ class Flight:
         for air_brakes in self.rocket.air_brakes:
             if air_brakes.deployed_level > 0:
                 # Avoid calculating cd several times
-                air_brakes_cd = air_brakes.cd(
+                air_brakes_cd = air_brakes.drag_coefficient(
                     air_brakes.deployed_level, free_stream_mach
                 )
                 R3 += (

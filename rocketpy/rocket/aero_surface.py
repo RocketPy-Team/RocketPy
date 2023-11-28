@@ -1899,9 +1899,9 @@ class AirBrakes(AeroSurface):
 
     Attributes
     ----------
-    AirBrakes.cd : int, float, callable, array, Function
+    AirBrakes.drag_coefficient : int, float, callable, array, Function
         Drag coefficient as a function of deployed level and Mach number.
-    AirBrakes.cd_curve : int, float, callable, array, string, Function
+    AirBrakes.drag_coefficient_curve : int, float, callable, array, string, Function
         Curve that defines the drag coefficient as a function of deployed level
         and Mach number.
     AirBrakes.deployed_level : float
@@ -1931,13 +1931,18 @@ class AirBrakes(AeroSurface):
     """
 
     def __init__(
-        self, cd_curve, reference_area, clamp=True, deployed_level=0, name="AirBrakes"
+        self,
+        drag_coefficient_curve,
+        reference_area,
+        clamp=True,
+        deployed_level=0,
+        name="AirBrakes",
     ):
         """Initializes the AirBrakes class.
 
         Parameters
         ----------
-        cd_curve : int, float, callable, array, string, Function
+        drag_coefficient_curve : int, float, callable, array, string, Function
             Drag coefficient as a function of deployed level and Mach number.
             Deployed level is a float ranging from 0 to 1 that defines the
             fraction of the total airbrake area that is deployed. If constant,
@@ -1978,11 +1983,11 @@ class AirBrakes(AeroSurface):
         None
         """
         super().__init__(name)
-        self.cd_curve = cd_curve
-        self.cd = Function(
-            cd_curve,
+        self.drag_coefficient_curve = drag_coefficient_curve
+        self.drag_coefficient = Function(
+            drag_coefficient_curve,
             inputs=["Deployed Level", "Mach"],
-            outputs="Cd",
+            outputs="Drag Coefficient",
         )
         self.reference_area = reference_area
         self.clamp = clamp
@@ -2027,14 +2032,14 @@ class AirBrakes(AeroSurface):
         None
         """
         # Resets cached properties so they are recalculated to the last sim
-        self.__dict__.pop("cd_by_time", None)
+        self.__dict__.pop("drag_coefficient_by_time", None)
         self.__dict__.pop("deployed_level_by_time", None)
         # Initialize state list
         self.state_list = []
         # Initialize previous state
-        self.previous_state = [self.deployed_level, 0, 0]
+        self.previous_state = [0, self.deployed_level, 0]
 
-    def update_state(self, time, cd):
+    def update_state(self, time, drag_coefficient):
         """Updates the state of the air brakes.
 
         Parameters
@@ -2055,7 +2060,7 @@ class AirBrakes(AeroSurface):
         self.state_list.append(self.previous_state)
 
         # Update previous state
-        self.previous_state = [time, self.deployed_level, cd]
+        self.previous_state = [time, self.deployed_level, drag_coefficient]
 
     def finalize_state(self):
         """Updates the state list history of the air brakes.
@@ -2131,16 +2136,16 @@ class AirBrakes(AeroSurface):
         pass
 
     @cached_property
-    def cd_by_time(self):
+    def drag_coefficient_by_time(self):
         """Returns the drag coefficient as a function of time."""
         state_list = self.state_list
-        # create [[time,cd]] list
-        cd_by_time = [[state[0], state[2]] for state in state_list]
+        # create [[time,drag_coefficient]] list
+        drag_coefficient_by_time = [[state[0], state[2]] for state in state_list]
 
         return Function(
-            cd_by_time,
+            drag_coefficient_by_time,
             inputs="Time (s)",
-            outputs="Cd",
+            outputs="Drag Coefficient",
             interpolation="linear",
             extrapolation="zero",
         )
@@ -2177,4 +2182,4 @@ class AirBrakes(AeroSurface):
         None
         """
         self.info()
-        self.plots.cd_curve()
+        self.plots.drag_coefficient_curve()
