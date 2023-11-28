@@ -360,6 +360,37 @@ def test_rolling_flight(
 
 
 @patch("matplotlib.pyplot.show")
+def test_air_brakes_flight(mock_show, flight_calisto_air_brakes):
+    """Test the flight of a rocket with air brakes. This test only validates
+    that a flight simulation can be performed with air brakes; it does not
+    validate the results.
+
+    Parameters
+    ----------
+    mock_show : unittest.mock.MagicMock
+        Mock object to replace matplotlib.pyplot.show
+    flight_calisto_air_brakes_clamp_on : rocketpy.Flight
+        Flight object to be tested. See the conftest.py file for more info
+        regarding this pytest fixture.
+    """
+    test_flight = flight_calisto_air_brakes
+    air_brakes = test_flight.rocket.air_brakes[0]
+
+    assert test_flight.all_info() == None
+    # assert last air_brakes state is in between one sampling rate of the end of the simulation
+    assert (
+        abs(test_flight.t_final - air_brakes.previous_state[0])
+        <= test_flight.rocket.controllers[0].sampling_rate
+    )
+    assert (
+        abs(test_flight.t_final - air_brakes.state_list[-1][0])
+        <= test_flight.rocket.controllers[0].sampling_rate
+    )
+    assert len(air_brakes.state_list_history) == 1
+    assert air_brakes.plots.all() == None
+
+
+@patch("matplotlib.pyplot.show")
 def test_simpler_parachute_triggers(mock_show, example_env, calisto_robust):
     """Tests different types of parachute triggers. This is important to ensure
     the code is working as intended, since the parachute triggers can have very
