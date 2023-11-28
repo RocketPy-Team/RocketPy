@@ -392,17 +392,81 @@ def test_shepard_interpolation(x, y, z_expected):
     assert np.isclose(z, z_expected, atol=1e-8).all()
 
 
-def test_arithmetic_priority():
-    """Test the arithmetic priority of the Function class, specially
-    comparing to the numpy array operations.
+@pytest.mark.parametrize("other", [1, 0.1, np.int_(1), np.float_(0.1), np.array([1])])
+def test_sum_arithmetic_priority(other):
+    """Test the arithmetic priority of the add operation of the Function class,
+    specially comparing to the numpy array operations.
     """
     func_lambda = Function(lambda x: x**2)
     func_array = Function([(0, 0), (1, 1), (2, 4)])
-    array = np.array([1])
 
     assert isinstance(func_lambda + func_array, Function)
     assert isinstance(func_array + func_lambda, Function)
-    assert isinstance(func_lambda + array, Function)
-    assert isinstance(array + func_lambda, Function)
-    assert isinstance(func_array + array, Function)
-    assert isinstance(array + func_array, Function)
+    assert isinstance(func_lambda + other, Function)
+    assert isinstance(other + func_lambda, Function)
+    assert isinstance(func_array + other, Function)
+    assert isinstance(other + func_array, Function)
+
+
+@pytest.mark.parametrize("other", [1, 0.1, np.int_(1), np.float_(0.1), np.array([1])])
+def test_sub_arithmetic_priority(other):
+    """Test the arithmetic priority of the sub operation of the Function class,
+    specially comparing to the numpy array operations.
+    """
+    func_lambda = Function(lambda x: x**2)
+    func_array = Function([(0, 0), (1, 1), (2, 4)])
+
+    assert isinstance(func_lambda - func_array, Function)
+    assert isinstance(func_array - func_lambda, Function)
+    assert isinstance(func_lambda - other, Function)
+    assert isinstance(other - func_lambda, Function)
+    assert isinstance(func_array - other, Function)
+    assert isinstance(other - func_array, Function)
+
+
+@pytest.mark.parametrize("other", [1, 0.1, np.int_(1), np.float_(0.1), np.array([1])])
+def test_mul_arithmetic_priority(other):
+    """Test the arithmetic priority of the mul operation of the Function class,
+    specially comparing to the numpy array operations.
+    """
+    func_lambda = Function(lambda x: x**2)
+    func_array = Function([(0, 0), (1, 1), (2, 4)])
+
+    assert isinstance(func_lambda * func_array, Function)
+    assert isinstance(func_array * func_lambda, Function)
+    assert isinstance(func_lambda * other, Function)
+    assert isinstance(other * func_lambda, Function)
+    assert isinstance(func_array * other, Function)
+    assert isinstance(other * func_array, Function)
+
+
+@pytest.mark.parametrize("other", [1, 0.1, np.int_(1), np.float_(0.1), np.array([1])])
+def test_truediv_arithmetic_priority(other):
+    """Test the arithmetic priority of the truediv operation of the Function class,
+    specially comparing to the numpy array operations.
+    """
+    func_lambda = Function(lambda x: x**2)
+    func_array = Function([(1, 1), (2, 4)])
+
+    assert isinstance(func_lambda / func_array, Function)
+    assert isinstance(func_array / func_lambda, Function)
+    assert isinstance(func_lambda / other, Function)
+    assert isinstance(other / func_lambda, Function)
+    assert isinstance(func_array / other, Function)
+    assert isinstance(other / func_array, Function)
+
+
+@pytest.mark.parametrize("other", [1, 0.1, np.int_(1), np.float_(0.1), np.array([1])])
+def test_pow_arithmetic_priority(other):
+    """Test the arithmetic priority of the pow operation of the Function class,
+    specially comparing to the numpy array operations.
+    """
+    func_lambda = Function(lambda x: x**2)
+    func_array = Function([(0, 0), (1, 1), (2, 4)])
+
+    assert isinstance(func_lambda**func_array, Function)
+    assert isinstance(func_array**func_lambda, Function)
+    assert isinstance(func_lambda**other, Function)
+    assert isinstance(other**func_lambda, Function)
+    assert isinstance(func_array**other, Function)
+    assert isinstance(other**func_array, Function)
