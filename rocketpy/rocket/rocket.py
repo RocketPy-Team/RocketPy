@@ -553,7 +553,6 @@ class Rocket:
         self.static_margin.set_source(
             lambda time: (self.center_of_mass(time) - self.cp_position(0))
             / (2 * self.radius)
-            * self._csys
         )
         # Change sign if coordinate system is upside down
         self.static_margin *= self._csys

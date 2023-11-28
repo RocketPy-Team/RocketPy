@@ -1118,7 +1118,7 @@ def func_from_csv():
 
 @pytest.fixture
 def func_2d_from_csv():
-    """Create a 2d function based on a csv file. The csv file contains the
+    """Create a 2d function based on a csv file.
 
     Returns
     -------

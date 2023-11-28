@@ -32,7 +32,6 @@ straightforward as possible.
 
 ### Added
 
-- DOC: Added this changelog file [#472](https://github.com/RocketPy-Team/RocketPy/pull/472)
 -
 
 ### Changed
@@ -42,6 +41,29 @@ straightforward as possible.
 ### Fixed
 
 -
+
+## [v1.1.2] - 2023-11-25
+
+You can install this version by running `pip install rocketpy==1.1.2`
+
+### Fixed
+
+- BUG: Function breaks if a header is present in the csv file [#485](https://github.com/RocketPy-Team/RocketPy/pull/485)
+
+## [v1.1.1] - 2023-11-23
+
+You can install this version by running `pip install rocketpy==1.1.1`
+
+### Added
+
+- DOC: Added this changelog file [#472](https://github.com/RocketPy-Team/RocketPy/pull/472)
+- ENH: Prevent out of bounds Tanks from Instantiation #484 [#484](https://github.com/RocketPy-Team/RocketPy/pull/484)
+
+### Fixed
+
+- HOTFIX: Negative Static Margin [#476](https://github.com/RocketPy-Team/RocketPy/pull/476)
+- HOTFIX: 2D .CSV Function and missing set_get_value_opt call [#478](https://github.com/RocketPy-Team/RocketPy/pull/478)
+- HOTFIX: Tanks Overfill not Being Detected [#479](https://github.com/RocketPy-Team/RocketPy/pull/479)
 
 ## [v1.1.0] - 2023-11-19
 
