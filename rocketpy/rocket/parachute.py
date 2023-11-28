@@ -171,11 +171,17 @@ class Parachute:
 
         self.prints = _ParachutePrints(self)
 
-        # evaluate the trigger
+        self.__evaluate_trigger_function(trigger)
+
+    def __evaluate_trigger_function(self, trigger):
+        """This is used to set the triggerfunc attribute that will be used to
+        interact with the Flight class.
+        """
         if callable(trigger):
             self.triggerfunc = trigger
+
         elif isinstance(trigger, (int, float)):
-            # trigger is interpreted as the absolute height at which the parachute will be ejected
+            # The parachute is deployed at a given height
             def triggerfunc(p, h, y):
                 # p = pressure considering parachute noise signal
                 # h = height above ground level considering parachute noise signal
@@ -185,7 +191,7 @@ class Parachute:
             self.triggerfunc = triggerfunc
 
         elif trigger.lower() == "apogee":
-            # trigger for apogee
+            # The parachute is deployed at apogee
             def triggerfunc(p, h, y):
                 # p = pressure considering parachute noise signal
                 # h = height above ground level considering parachute noise signal
@@ -194,7 +200,12 @@ class Parachute:
 
             self.triggerfunc = triggerfunc
 
-        return None
+        else:
+            raise ValueError(
+                f"Unable to set the trigger function for parachute '{self.name}'. "
+                + "Trigger must be a callable, a float value or the string 'apogee'. "
+                + "See the Parachute class documentation for mor information."
+            )
 
     def __str__(self):
         """Returns a string representation of the Parachute class.
