@@ -1910,6 +1910,11 @@ class AirBrakes(AeroSurface):
     AirBrakes.reference_area : int, float
         Reference area used to calculate the drag force of the air brakes
         from the drag coefficient curve. Units of m^2.
+    AirBrakes.clamp : bool, optional
+        If True, the simulation will clamp the deployed level to 0 or 1 if
+        the deployed level is out of bounds. If False, the simulation will
+        not clamp the deployed level and will instead raise a warning if
+        the deployed level is out of bounds. Default is True.
     AirBrakes.previous_state : list
         List that stores the previous state of the air brakes. The state is
         stored as a list with the following format:
@@ -1941,12 +1946,12 @@ class AirBrakes(AeroSurface):
             If an array, it must be a 2D array where the first column is the
             deployed level, the second column is the Mach number and the third
             column is the drag coefficient. If a string, it must be the path to
-            a .csv or .txt file containing the drag coefficient curve. The file
-            must contain no headers and the first column must specify the
-            deployed level, the second column must specify the Mach number and
-            the third column must specify the drag coefficient. If a Function,
-            it must take as input the deployed level and the Mach number and
-            return the drag coefficient.
+            a .csv or .txt file containing the drag coefficient curve. The
+            file's first column must specify the deployed level, the second
+            column must specify the Mach number and the third column must
+            specify the drag coefficient. If a Function, it must take as input
+            the deployed level and the Mach number and return the drag
+            coefficient.
 
             .. note:: At deployed level 0, the drag coefficient is assumed to
                 be 0, independent of the input drag coefficient curve. This
@@ -1978,7 +1983,6 @@ class AirBrakes(AeroSurface):
             cd_curve,
             inputs=["Deployed Level", "Mach"],
             outputs="Cd",
-            extrapolation="zero",
         )
         self.reference_area = reference_area
         self.clamp = clamp

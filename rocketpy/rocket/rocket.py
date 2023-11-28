@@ -1159,6 +1159,7 @@ class Rocket:
         cd_curve,
         controller_function,
         sampling_rate,
+        clamp=True,
         reference_area=None,
         name="AirBrakes",
         controller_name="AirBrakes Controller",
@@ -1209,6 +1210,11 @@ class Rocket:
             The sampling rate of the controller function in Hertz (Hz). This
             means that the controller function will be called every
             `1/sampling_rate` seconds.
+        clamp : bool, optional
+            If True, the simulation will clamp the deployed level to 0 or 1 if
+            the deployed level is out of bounds. If False, the simulation will
+            not clamp the deployed level and will instead raise a warning if
+            the deployed level is out of bounds. Default is True.
         reference_area : float, optional
             Reference area used to calculate the drag force of the air brakes
             from the drag coefficient curve. If None, which is default, use
@@ -1232,6 +1238,7 @@ class Rocket:
         air_brakes = AirBrakes(
             cd_curve=cd_curve,
             reference_area=reference_area,
+            clamp=clamp,
             deployed_level=0,
             name=name,
         )
