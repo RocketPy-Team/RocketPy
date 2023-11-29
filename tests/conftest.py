@@ -370,7 +370,7 @@ def pressurant_tank(pressurant_fluid):
     rocketpy.MassBasedTank
         An object of the CylindricalTank class.
     """
-    geometry = CylindricalTank(0.135 / 2, 0.846, spherical_caps=True)
+    geometry = CylindricalTank(0.135 / 2, 0.981, spherical_caps=True)
     pressurant_tank = MassBasedTank(
         name="Pressure Tank",
         geometry=geometry,
@@ -401,7 +401,7 @@ def fuel_tank(fuel_fluid, fuel_pressurant):
     -------
     rocketpy.UllageBasedTank
     """
-    geometry = CylindricalTank(0.0744, 0.658, spherical_caps=True)
+    geometry = CylindricalTank(0.0744, 0.8068, spherical_caps=True)
     ullage = (
         -Function("data/SEBLM/test124_Propane_Volume.csv") * 1e-3
         + geometry.total_volume
@@ -435,7 +435,7 @@ def oxidizer_tank(oxidizer_fluid, oxidizer_pressurant):
     -------
     rocketpy.UllageBasedTank
     """
-    geometry = CylindricalTank(0.0744, 0.658, spherical_caps=True)
+    geometry = CylindricalTank(0.0744, 0.8068, spherical_caps=True)
     ullage = (
         -Function("data/SEBLM/test124_Lox_Volume.csv") * 1e-3 + geometry.total_volume
     )
@@ -1112,9 +1112,22 @@ def func_from_csv():
     """
     func = Function(
         source="tests/fixtures/airfoils/e473-10e6-degrees.csv",
-        inputs=["Scalar"],
-        outputs=["Scalar"],
-        interpolation="linear",
-        extrapolation="natural",
+    )
+    return func
+
+
+@pytest.fixture
+def func_2d_from_csv():
+    """Create a 2d function based on a csv file.
+
+    Returns
+    -------
+    rocketpy.Function
+        A function based on a csv file.
+    """
+    # Do not define any of the optional parameters so that the tests can check
+    # if the defaults are being used correctly.
+    func = Function(
+        source="tests/fixtures/function/2d.csv",
     )
     return func

@@ -110,7 +110,6 @@ class Tank(ABC):
         # Initialize plots and prints object
         self.prints = _TankPrints(self)
         self.plots = _TankPlots(self)
-        return None
 
     @property
     def flux_time(self):
@@ -410,6 +409,86 @@ class Tank(ABC):
         """
         return self.liquid_inertia + self.gas_inertia
 
+    def _check_volume_bounds(self):
+        """Checks if the tank is overfilled or underfilled. Raises a ValueError
+        if either the `gas_volume` or `liquid_volume` are out of tank geometry
+        bounds.
+        """
+
+        def overfill_volume_exception(param_name, param):
+            raise ValueError(
+                f"The tank '{self.name}' is overfilled. The {param_name} is "
+                + "greater than the total volume of the tank.\n\t\t"
+                + "Try increasing the tank height and check out the fluid density "
+                + "values.\n\t\t"
+                + f"The {param_name} is {param.max:.3f} m³ at "
+                + f"{param.x_array[np.argmax(param.y_array)]:.3f} s.\n\t\t"
+                + f"The tank total volume is {self.geometry.total_volume:.3f} m³."
+            )
+
+        def underfill_volume_exception(param_name, param):
+            raise ValueError(
+                f"The tank '{self.name}' is underfilled. The {param_name} is "
+                + "negative.\n\t\t"
+                + "Try increasing input fluid quantities and check out the fluid "
+                + "density values.\n\t\t"
+                + f"The {param_name} is {param.min:.3f} m³ at "
+                + f"{param.x_array[np.argmin(param.y_array)]:.3f} s.\n\t\t"
+                + f"The tank total volume is {self.geometry.total_volume:.3f} m³."
+            )
+
+        for name, volume in [
+            ("gas volume", self.gas_volume),
+            ("liquid volume", self.liquid_volume),
+        ]:
+            if (volume > self.geometry.total_volume + 1e-6).any():
+                overfill_volume_exception(name, volume)
+            elif (volume < -1e-6).any():
+                underfill_volume_exception(name, volume)
+
+    def _check_height_bounds(self):
+        """Checks if the tank is overfilled or underfilled. Raises a ValueError
+        if either the `gas_height` or `liquid_height` are out of tank geometry
+        bounds.
+        """
+        top_tolerance = self.geometry.top + 1e-4
+        bottom_tolerance = self.geometry.bottom - 1e-4
+
+        def overfill_height_exception(param_name, param):
+            raise ValueError(
+                f"The tank '{self.name}' is overfilled. "
+                + f"The {param_name} is above the tank top.\n\t\t"
+                + "Try increasing the tank height and check out the fluid density "
+                + "values.\n\t\t"
+                + f"The {param_name} is {param.max:.3f} m above the tank top "
+                + f"at {param.x_array[np.argmax(param.y_array)]:.3f} s.\n\t\t"
+                + f"The tank top is at {self.geometry.top:.3f} m."
+            )
+
+        def underfill_height_exception(param_name, param):
+            raise ValueError(
+                f"The tank '{self.name}' is underfilled. "
+                + f"The {param_name} is below the tank bottom.\n\t\t"
+                + "Try increasing input fluid quantities and check out the fluid "
+                + "density values.\n\t\t"
+                + f"The {param_name} is {param.min:.3f} m below the tank bottom "
+                + f"at {param.x_array[np.argmin(param.y_array)]:.3f} s.\n\t\t"
+                + f"The tank bottom is at {self.geometry.bottom:.3f} m."
+            )
+
+        for name, height in [
+            ("gas height", self.gas_height),
+            ("liquid height", self.liquid_height),
+        ]:
+            if (height > top_tolerance).any():
+                overfill_height_exception(name, height)
+            elif (height < bottom_tolerance).any():
+                underfill_height_exception(name, height)
+
+    def draw(self):
+        """Draws the tank geometry."""
+        self.plots.draw()
+
 
 class MassFlowRateBasedTank(Tank):
     """Class to define a tank based on mass flow rates inputs. This class
@@ -531,7 +610,10 @@ class MassFlowRateBasedTank(Tank):
 
         # Discretize input flow if needed
         self.discretize_flow() if discretize else None
-        return None
+
+        # Check if the tank is overfilled or underfilled
+        self._check_volume_bounds()
+        self._check_height_bounds()
 
     @funcify_method("Time (s)", "Mass (kg)")
     def fluid_mass(self):
@@ -810,15 +892,9 @@ class UllageBasedTank(Tank):
         # Discretize input if needed
         self.discretize_ullage() if discretize else None
 
-        # Check if the ullage is within bounds
-        if (self.ullage > self.geometry.total_volume).any():
-            raise ValueError(
-                "The ullage volume is out of bounds. It is greater than the "
-                + "total volume of the tank."
-            )
-        if (self.ullage < 0).any():
-            raise ValueError("The ullage volume is out of bounds. It is negative.")
-        return None
+        # Check if the tank is overfilled or underfilled
+        self._check_volume_bounds()
+        self._check_height_bounds()
 
     @funcify_method("Time (s)", "Mass (kg)")
     def fluid_mass(self):
@@ -858,7 +934,9 @@ class UllageBasedTank(Tank):
         Function
             Volume of the fluid as a function of time.
         """
-        return self.geometry.total_volume
+        return Function(self.geometry.total_volume).set_discrete_based_on_model(
+            self.gas_volume
+        )
 
     @funcify_method("Time (s)", "Volume (m³)")
     def liquid_volume(self):
@@ -1008,13 +1086,9 @@ class LevelBasedTank(Tank):
         # Discretize input if needed
         self.discretize_liquid_height() if discretize else None
 
-        # Check if the liquid level is within bounds
-        if (self.liquid_level > self.geometry.top).any():
-            raise ValueError(
-                "The liquid level is out of bounds. It is greater than the tank top."
-            )
-        if (self.liquid_level < self.geometry.bottom).any():
-            raise ValueError("The liquid level is out of bounds. It is negative.")
+        # Check if the tank is overfilled or underfilled
+        self._check_height_bounds()
+        self._check_volume_bounds()
 
     @funcify_method("Time (s)", "Mass (kg)")
     def fluid_mass(self):
@@ -1058,7 +1132,7 @@ class LevelBasedTank(Tank):
             Volume of the fluid as a function of time.
         """
         volume = self.gas_volume + self.liquid_volume
-        diff = abs(volume - self.geometry.total_volume)
+        diff = volume - self.geometry.total_volume
         if (diff > 1e-6).any():
             raise ValueError(
                 "The `fluid_volume`, defined as the sum of `gas_volume` and "
@@ -1092,9 +1166,10 @@ class LevelBasedTank(Tank):
             Volume of the gas as a function of time.
         """
         # TODO: there's a bug on the gas_center_of_mass is I don't discretize here
-        func = Function(self.geometry.total_volume)
+        func = Function(self.geometry.total_volume).set_discrete_based_on_model(
+            self.liquid_volume
+        )
         func -= self.liquid_volume
-        func.set_discrete_based_on_model(self.liquid_volume)
         return func
 
     @funcify_method("Time (s)", "Height (m)")
@@ -1226,6 +1301,10 @@ class MassBasedTank(Tank):
         # Discretize input if needed
         self.discretize_masses() if discretize else None
 
+        # Check if the tank is overfilled or underfilled
+        self._check_volume_bounds()
+        self._check_height_bounds()
+
     @funcify_method("Time (s)", "Mass (kg)")
     def fluid_mass(self):
         """
@@ -1288,7 +1367,21 @@ class MassBasedTank(Tank):
         Function
             Volume of the fluid as a function of time.
         """
-        return self.liquid_volume + self.gas_volume
+        fluid_volume = self.liquid_volume + self.gas_volume
+
+        # Check if within bounds
+        diff = fluid_volume - self.geometry.total_volume
+
+        if (diff > 1e-6).any():
+            raise ValueError(
+                f"The tank {self.name} was overfilled. The input fluid masses "
+                + "produce a volume that surpasses the tank total volume by more "
+                + f"than 1e-6 m^3 at {diff.x_array[np.argmax(diff.y_array)]} s."
+                + "\n\t\tCheck out the input masses, fluid densities or raise the "
+                + "tank height so as to increase its total volume."
+            )
+
+        return fluid_volume
 
     @funcify_method("Time (s)", "Volume (m³)")
     def gas_volume(self):

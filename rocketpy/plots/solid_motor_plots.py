@@ -1,3 +1,5 @@
+import matplotlib.pyplot as plt
+
 from .motor_plots import _MotorPlots
 
 
@@ -121,6 +123,39 @@ class _SolidMotorPlots(_MotorPlots):
 
         self.motor.Kn.plot(lower=lower_limit, upper=upper_limit)
 
+    def draw(self):
+        """Draw a representation of the SolidMotor.
+
+        Returns
+        -------
+        None
+        """
+        _, ax = plt.subplots(figsize=(8, 6), facecolor="#EEEEEE")
+
+        nozzle = self._generate_nozzle(
+            translate=(self.motor.nozzle_position, 0), csys=self.motor._csys
+        )
+        chamber = self._generate_combustion_chamber(
+            translate=(self.motor.grains_center_of_mass_position, 0)
+        )
+        grains = self._generate_grains(
+            translate=(self.motor.grains_center_of_mass_position, 0)
+        )
+        outline = self._generate_motor_region(
+            list_of_patches=[nozzle, chamber, *grains]
+        )
+
+        ax.add_patch(outline)
+        ax.add_patch(chamber)
+        for grain in grains:
+            ax.add_patch(grain)
+        ax.add_patch(nozzle)
+
+        ax.set_title("Solid Motor Representation")
+        self._draw_center_of_mass(ax)
+        self._set_plot_properties(ax)
+        plt.show()
+
     def all(self):
         """Prints out all graphs available about the SolidMotor. It simply calls
         all the other plotter methods in this class.
@@ -129,6 +164,7 @@ class _SolidMotorPlots(_MotorPlots):
         -------
         None
         """
+        self.draw()
         self.thrust(*self.motor.burn_time)
         self.mass_flow_rate(*self.motor.burn_time)
         self.exhaust_velocity(*self.motor.burn_time)

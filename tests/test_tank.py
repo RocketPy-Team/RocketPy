@@ -13,9 +13,9 @@ from rocketpy import (
     TankGeometry,
 )
 
-pressurant_params = (0.135 / 2, 0.846)
-fuel_params = (0.0744, 0.658)
-oxidizer_params = (0.0744, 0.658)
+pressurant_params = (0.135 / 2, 0.981)
+fuel_params = (0.0744, 0.8068)
+oxidizer_params = (0.0744, 0.8068)
 
 parametrize_fixtures = pytest.mark.parametrize(
     "params",
@@ -33,7 +33,7 @@ def test_tank_bounds(params, request):
     tank, (expected_radius, expected_height) = params
     tank = request.getfixturevalue(tank)
 
-    expected_total_height = expected_height + 2 * expected_radius
+    expected_total_height = expected_height
 
     assert tank.geometry.radius(0) == pytest.approx(expected_radius, abs=1e-6)
     assert tank.geometry.total_height == pytest.approx(expected_total_height, abs=1e-6)
@@ -45,8 +45,8 @@ def test_tank_coordinates(params, request):
     tank, (radius, height) = params
     tank = request.getfixturevalue(tank)
 
-    expected_bottom = -(height / 2 + radius)
-    expected_top = height / 2 + radius
+    expected_bottom = -height / 2
+    expected_top = height / 2
 
     assert tank.geometry.bottom == pytest.approx(expected_bottom, abs=1e-6)
     assert tank.geometry.top == pytest.approx(expected_top, abs=1e-6)
@@ -60,7 +60,9 @@ def test_tank_total_volume(params, request):
     tank, (radius, height) = params
     tank = request.getfixturevalue(tank)
 
-    expected_total_volume = np.pi * radius**2 * height + 4 / 3 * np.pi * radius**3
+    expected_total_volume = (
+        np.pi * radius**2 * (height - 2 * radius) + 4 / 3 * np.pi * radius**3
+    )
 
     assert tank.geometry.total_volume == pytest.approx(expected_total_volume, abs=1e-6)
 
@@ -73,9 +75,9 @@ def test_tank_volume(params, request):
     tank, (radius, height) = params
     tank = request.getfixturevalue(tank)
 
-    total_height = height + 2 * radius
-    bottom = -(height / 2 + radius)
-    top = height / 2 + radius
+    total_height = height
+    bottom = -height / 2
+    top = height / 2
 
     expected_volume = tank_volume_function(radius, total_height, bottom)
 
@@ -91,8 +93,8 @@ def test_tank_centroid(params, request):
     tank, (radius, height) = params
     tank = request.getfixturevalue(tank)
 
-    total_height = height + 2 * radius
-    bottom = -(height / 2 + radius)
+    total_height = height
+    bottom = -height / 2
 
     expected_centroid = tank_centroid_function(radius, total_height, bottom)
 
@@ -111,8 +113,8 @@ def test_tank_inertia(params, request):
     tank, (radius, height) = params
     tank = request.getfixturevalue(tank)
 
-    total_height = height + 2 * radius
-    bottom = -(height / 2 + radius)
+    total_height = height
+    bottom = -height / 2
 
     expected_inertia = tank_inertia_function(radius, total_height, bottom)
 
@@ -138,7 +140,7 @@ def test_mass_based_tank():
     )  # density value may be estimate
 
     top_endcap = lambda y: np.sqrt(
-        0.0775**2 - (y - 0.6924) ** 2
+        0.0775**2 - (y - 0.7924) ** 2
     )  # Hemisphere equation creating top endcap
     bottom_endcap = lambda y: np.sqrt(
         0.0775**2 - (0.0775 - y) ** 2
@@ -148,8 +150,8 @@ def test_mass_based_tank():
     real_geometry = TankGeometry(
         {
             (0, 0.0559): bottom_endcap,
-            (0.0559, 0.7139): lambda y: 0.0744,
-            (0.7139, 0.7698): top_endcap,
+            (0.0559, 0.8039): lambda y: 0.0744,
+            (0.8039, 0.8698): top_endcap,
         }
     )
 
@@ -170,7 +172,6 @@ def test_mass_based_tank():
         gas_mass=gas_masses,
         liquid=lox,
         gas=n2,
-        discretize=None,
     )
 
     # Generate tank geometry {radius: height, ...}
@@ -187,6 +188,12 @@ def test_mass_based_tank():
         gas=n2,
         discretize=None,
     )
+
+    # Assert volume bounds
+    assert (real_tank_lox.gas_height <= real_tank_lox.geometry.top).all
+    assert (real_tank_lox.fluid_volume <= real_tank_lox.geometry.total_volume).all
+    assert (example_tank_lox.gas_height <= example_tank_lox.geometry.top).all
+    assert (example_tank_lox.fluid_volume <= example_tank_lox.geometry.total_volume).all
 
     initial_liquid_mass = 5
     initial_gas_mass = 0

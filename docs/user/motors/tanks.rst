@@ -174,7 +174,14 @@ and gas masses through time and is defined as such:
 
   More details can be found in :class:`rocketpy.MassFlowRateBasedTank.__init__`.
 
-We can some useful with:
+We can see some useful plots with:
+
+.. jupyter-execute::
+
+  # Draw the tank
+  N2O_flow_tank.draw()
+
+|
 
 .. jupyter-execute::
 
@@ -221,6 +228,13 @@ Then we can define the ``MassBasedTank`` as such:
   More details can be found in :class:`rocketpy.MassBasedTank.__init__`.
 
 We can see some outputs with:
+
+.. jupyter-execute::
+
+  # Draw the tank
+  N2O_mass_tank.draw()
+
+|
 
 .. jupyter-execute::
 
@@ -272,6 +286,13 @@ We can see some outputs with:
 
 .. jupyter-execute::
 
+  # Draw the tank
+  N2O_ullage_tank.draw()
+
+|
+
+.. jupyter-execute::
+
   # Evolution of the Propellant Mass and the Mass flow rate
   N2O_ullage_tank.fluid_mass.plot()
   N2O_ullage_tank.net_mass_flow_rate.plot()
@@ -316,6 +337,13 @@ Then we can define the ``LevelBasedTank`` as such:
   More details can be found in :class:`rocketpy.LevelBasedTank.__init__`.
 
 We can see some outputs with:
+
+.. jupyter-execute::
+
+  # Draw the tank
+  N20_level_tank.draw()
+
+| 
 
 .. jupyter-execute::
 

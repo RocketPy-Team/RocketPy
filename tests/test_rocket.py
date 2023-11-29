@@ -3,7 +3,8 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
-from rocketpy import NoseCone, Rocket, SolidMotor
+from rocketpy import NoseCone, Rocket, SolidMotor, Function
+from rocketpy.motors.motor import Motor, EmptyMotor
 
 
 @patch("matplotlib.pyplot.show")
@@ -24,9 +25,8 @@ def test_aero_surfaces_infos(
     assert calisto_trapezoidal_fins.draw() == None
 
 
-@patch("matplotlib.pyplot.show")
 def test_coordinate_system_orientation(
-    mock_show, calisto_nose_cone, cesaroni_m1670, calisto_trapezoidal_fins
+    calisto_nose_cone, cesaroni_m1670, calisto_trapezoidal_fins
 ):
     """Test if the coordinate system orientation is working properly. This test
     basically checks if the static margin is the same for the same rocket with
@@ -34,8 +34,6 @@ def test_coordinate_system_orientation(
 
     Parameters
     ----------
-    mock_show : mock
-        Mock of matplotlib.pyplot.show
     calisto_nose_cone : rocketpy.NoseCone
         Nose cone of the rocket
     cesaroni_m1670 : rocketpy.SolidMotor
@@ -50,7 +48,7 @@ def test_coordinate_system_orientation(
         burn_time=3.9,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
-        center_of_dry_mass_position=0.317,
+        center_of_dry_mass_position=-0.317,
         nozzle_position=0,
         grain_number=5,
         grain_density=1815,
@@ -59,7 +57,7 @@ def test_coordinate_system_orientation(
         grain_separation=5 / 1000,
         grain_outer_radius=33 / 1000,
         grain_initial_height=120 / 1000,
-        grains_center_of_mass_position=0.397,
+        grains_center_of_mass_position=-0.397,
         grain_initial_inner_radius=15 / 1000,
         interpolation_method="linear",
         coordinate_system_orientation="combustion_chamber_to_nozzle",
@@ -80,7 +78,7 @@ def test_coordinate_system_orientation(
     rocket_tail_to_nose.aerodynamic_surfaces.add(calisto_nose_cone, 1.160)
     rocket_tail_to_nose.aerodynamic_surfaces.add(calisto_trapezoidal_fins, -1.168)
 
-    static_margin_tail_to_nose = rocket_tail_to_nose.static_margin(0)
+    static_margin_tail_to_nose = rocket_tail_to_nose.static_margin
 
     rocket_nose_to_tail = Rocket(
         radius=0.0635,
@@ -97,13 +95,9 @@ def test_coordinate_system_orientation(
     rocket_nose_to_tail.aerodynamic_surfaces.add(calisto_nose_cone, -1.160)
     rocket_nose_to_tail.aerodynamic_surfaces.add(calisto_trapezoidal_fins, 1.168)
 
-    static_margin_nose_to_tail = rocket_nose_to_tail.static_margin(0)
+    static_margin_nose_to_tail = rocket_nose_to_tail.static_margin
 
-    assert (
-        rocket_tail_to_nose.all_info() == None
-        or rocket_nose_to_tail.all_info() == None
-        or not abs(static_margin_tail_to_nose - static_margin_nose_to_tail) < 0.0001
-    )
+    assert np.array_equal(static_margin_tail_to_nose, static_margin_nose_to_tail)
 
 
 @patch("matplotlib.pyplot.show")
@@ -489,6 +483,27 @@ def test_add_cp_eccentricity_assert_properties_set(calisto):
     assert calisto.cp_eccentricity_y == 5
 
 
+def test_add_motor(calisto_motorless, cesaroni_m1670):
+    """Tests the add_motor method of the Rocket class.
+    Both with respect to return instances and expected behaviour.
+    Parameters
+    ----------
+    calisto_motorless : Rocket instance
+        A predefined instance of a Rocket without a motor, used as a base for testing.
+    cesaroni_m1670 : rocketpy.SolidMotor
+        Cesaroni M1670 motor
+    """
+
+    assert isinstance(calisto_motorless.motor, EmptyMotor)
+    center_of_mass_motorless = calisto_motorless.center_of_mass
+    calisto_motorless.add_motor(cesaroni_m1670, 0)
+
+    assert isinstance(calisto_motorless.motor, Motor)
+    center_of_mass_with_motor = calisto_motorless.center_of_mass
+
+    assert center_of_mass_motorless is not center_of_mass_with_motor
+
+
 def test_set_rail_button(calisto):
     rail_buttons = calisto.set_rail_buttons(0.2, -0.5, 30)
     # assert buttons_distance
@@ -509,3 +524,26 @@ def test_set_rail_button(calisto):
     assert calisto.rail_buttons[0].component.buttons_distance + calisto.rail_buttons[
         0
     ].position == pytest.approx(0.2, 1e-12)
+
+
+def test_evaluate_total_mass(calisto_motorless):
+    """Tests the evaluate_total_mass method of the Rocket class.
+    Both with respect to return instances and expected behaviour.
+
+    Parameters
+    ----------
+    calisto_motorless : Rocket instance
+        A predefined instance of a Rocket without a motor, used as a base for testing.
+    """
+    assert isinstance(calisto_motorless.evaluate_total_mass(), Function)
+
+
+def test_evaluate_center_of_mass(calisto):
+    """Tests the evaluate_center_of_mass method of the Rocket class.
+    Both with respect to return instances and expected behaviour.
+    Parameters
+    ----------
+    calisto : Rocket instance
+        A predefined instance of the calisto Rocket with a motor, used as a base for testing.
+    """
+    assert isinstance(calisto.evaluate_center_of_mass(), Function)
