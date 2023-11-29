@@ -217,7 +217,7 @@ class SolidMotor(Motor):
             seconds and returns the thrust supplied by the motor in the
             instant. If a string is given, it must point to a .csv or .eng file.
             The .csv file can contain a single line header and the first column
-            must specify time in seconds, while the second column specifies 
+            must specify time in seconds, while the second column specifies
             thrust. Arrays may also be specified, following rules set by the
             class Function. Thrust units are Newtons.
 
