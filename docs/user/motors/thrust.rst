@@ -52,7 +52,7 @@ specify a directory containing a .csv file.
 .. note::
     
         The first column of the .csv file must be time in seconds and the second 
-        column must be thrust in Newtons. The file must contain no headers.
+        column must be thrust in Newtons. The file can contain a single line header.
 
 That can be done as follows:
 

@@ -120,7 +120,7 @@ Having the csv file, we can define a ``Function`` object with it:
     print(f.source)
 
 .. note::
-    A header in the csv file is optional, but if present must be in a string like format, i.e. beginning and ending with quotation marks.
+    A single header line in the csv file is optional.
 
 b. Function Map
 ~~~~~~~~~~~~~~~
