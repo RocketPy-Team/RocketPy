@@ -232,11 +232,12 @@ def test_integral_spline_interpolation(request, func, a, b):
         atol=1e-3,
     )
 
+
 @pytest.mark.parametrize(
     "func_input, derivative_input, expected_derivative",
     [
-        (1, 0, 0),               # Test case 1: Function(1)
-        (lambda x: x, 0, 1),     # Test case 2: Function(lambda x: x)
+        (1, 0, 0),  # Test case 1: Function(1)
+        (lambda x: x, 0, 1),  # Test case 2: Function(lambda x: x)
         (lambda x: x**2, 1, 2),  # Test case 3: Function(lambda x: x**2)
     ],
 )
@@ -255,6 +256,7 @@ def test_differentiate(func_input, derivative_input, expected_derivative):
     func = Function(func_input)
     assert isinstance(func.differentiate(derivative_input), float)
     assert np.isclose(func.differentiate(derivative_input), expected_derivative)
+
 
 def test_get_value():
     """Tests the get_value method of the Function class.

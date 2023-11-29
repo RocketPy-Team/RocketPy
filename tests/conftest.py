@@ -109,6 +109,7 @@ def cesaroni_m1670():  # old name: solid_motor
     )
     return example_motor
 
+
 @pytest.fixture
 def cesaroni_m1670_shifted():  # old name: solid_motor
     """Create a simple object of the SolidMotor class to be used in the tests.
@@ -141,7 +142,8 @@ def cesaroni_m1670_shifted():  # old name: solid_motor
         coordinate_system_orientation="nozzle_to_combustion_chamber",
         reshape_thrust_curve=(5, 3000),
     )
-    return example_motor 
+    return example_motor
+
 
 @pytest.fixture
 def calisto_motorless():

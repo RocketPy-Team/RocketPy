@@ -254,11 +254,14 @@ def tests_export_eng_asserts_exported_values_correct(cesaroni_m1670):
         [3.9, 0.0],
     ]
 
+
 @pytest.mark.parametrize("tuple_parametric", [(5, 3000)])
-def test_reshape_thrust_curve_asserts_resultant_thrust_curve_correct(cesaroni_m1670_shifted, tuple_parametric, linear_func):
-    """Tests the reshape_thrust_curve. It checks whether the resultant 
-    thrust curve is correct when the user passes a certain tuple to the 
-    reshape_thrust_curve attribute. Also checking for the correct return 
+def test_reshape_thrust_curve_asserts_resultant_thrust_curve_correct(
+    cesaroni_m1670_shifted, tuple_parametric, linear_func
+):
+    """Tests the reshape_thrust_curve. It checks whether the resultant
+    thrust curve is correct when the user passes a certain tuple to the
+    reshape_thrust_curve attribute. Also checking for the correct return
     data type.
 
     Parameters
@@ -269,7 +272,9 @@ def test_reshape_thrust_curve_asserts_resultant_thrust_curve_correct(cesaroni_m1
         Tuple passed to the reshape_thrust_curve method.
     """
 
-    assert isinstance(cesaroni_m1670_shifted.reshape_thrust_curve(linear_func, 1, 3000), Function)
+    assert isinstance(
+        cesaroni_m1670_shifted.reshape_thrust_curve(linear_func, 1, 3000), Function
+    )
     thrust_reshaped = cesaroni_m1670_shifted.thrust.get_source()
 
     assert thrust_reshaped[1][0] == 0.155 * (tuple_parametric[0] / 4)
