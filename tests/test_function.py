@@ -73,8 +73,8 @@ def test_getters(func_from_csv, func_2d_from_csv):
     assert func_2d_from_csv.get_outputs() == ["Scalar"]
     assert func_2d_from_csv.get_interpolation_method() == "shepard"
     assert func_2d_from_csv.get_extrapolation_method() == "natural"
-    assert np.isclose(func_2d_from_csv.get_value(0, 0), 0.0, atol=1e-6)
-    assert np.isclose(func_2d_from_csv.get_value_opt(0, 0), 0.0, atol=1e-6)
+    assert np.isclose(func_2d_from_csv.get_value(0.1, 0.8), 0.058, atol=1e-6)
+    assert np.isclose(func_2d_from_csv.get_value_opt(0.1, 0.8), 0.058, atol=1e-6)
 
 
 def test_setters(func_from_csv, func_2d_from_csv):

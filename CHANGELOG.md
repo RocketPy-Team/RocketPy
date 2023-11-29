@@ -42,6 +42,15 @@ straightforward as possible.
 
 -
 
+## [v1.1.3] - 2023-11-29
+
+Here we write upgrading notes for brands. It's a team effort to make them as
+straightforward as possible.
+
+### Fixed
+
+-  FIX: Broken Function.get_value_opt for N-Dimensional Functions [#492](https://github.com/RocketPy-Team/RocketPy/pull/492/files) 
+
 ## [v1.1.2] - 2023-11-25
 
 You can install this version by running `pip install rocketpy==1.1.2`
