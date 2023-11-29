@@ -3133,7 +3133,8 @@ class Environment:
 
         """
         warnings.warn(
-            "The method 'all_plot_info_returned' is deprecated. "
+            "The method 'all_plot_info_returned' is deprecated as of version "
+            + "1.2 and will be removed in version 1.4 "
             + "Use 'utilities.get_instance_attributes' instead.",
             DeprecationWarning,
         )
@@ -3205,7 +3206,8 @@ class Environment:
 
         """
         warnings.warn(
-            "The method 'all_info_returned' is deprecated. "
+            "The method 'all_info_returned' is deprecated as of version "
+            + "1.2 and will be removed in version 1.4 "
             + "Use 'utilities.get_instance_attributes' instead.",
             DeprecationWarning,
         )
