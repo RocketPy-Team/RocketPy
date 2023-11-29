@@ -4,7 +4,7 @@ import os
 import numpy as np
 import pytest
 
-from rocketpy import SolidMotor
+from rocketpy import Function, SolidMotor
 
 burn_time = 3.9
 grain_number = 5
@@ -15,6 +15,8 @@ grain_initial_inner_radius = 15 / 1000
 grain_initial_height = 120 / 1000
 nozzle_radius = 33 / 1000
 throat_radius = 11 / 1000
+grain_vol = 0.12 * (np.pi * (0.033**2 - 0.015**2))
+grain_mass = grain_vol * 1815 * 5
 
 
 @patch("matplotlib.pyplot.show")
@@ -170,6 +172,14 @@ def test_evaluate_inertia_33_asserts_extreme_values(cesaroni_m1670):
 
 
 def tests_import_eng_asserts_read_values_correctly(cesaroni_m1670):
+    """Tests the import_eng method. It checks whether the import operation
+    extracts the values correctly.
+
+    Parameters
+    ----------
+    cesaroni_m1670_shifted : rocketpy.SolidMotor
+        The SolidMotor object to be used in the tests.
+    """
     comments, description, data_points = cesaroni_m1670.import_eng(
         "tests/fixtures/motor/Cesaroni_M1670.eng"
     )
@@ -197,8 +207,14 @@ def tests_import_eng_asserts_read_values_correctly(cesaroni_m1670):
 
 
 def tests_export_eng_asserts_exported_values_correct(cesaroni_m1670):
-    grain_vol = 0.12 * (np.pi * (0.033**2 - 0.015**2))
-    grain_mass = grain_vol * 1815 * 5
+    """Tests the export_eng method. It checks whether the exported values
+    of the thrust curve still match data_points.
+
+    Parameters
+    ----------
+    cesaroni_m1670_shifted : rocketpy.SolidMotor
+        The SolidMotor object to be used in the tests.
+    """
 
     cesaroni_m1670.export_eng(
         file_name="tests/cesaroni_m1670.eng", motor_name="test_motor"
@@ -238,32 +254,26 @@ def tests_export_eng_asserts_exported_values_correct(cesaroni_m1670):
         [3.9, 0.0],
     ]
 
+@pytest.mark.parametrize("tuple_parametric", [(5, 3000)])
+def test_reshape_thrust_curve_asserts_resultant_thrust_curve_correct(cesaroni_m1670_shifted, tuple_parametric, linear_func):
+    """Tests the reshape_thrust_curve. It checks whether the resultant 
+    thrust curve is correct when the user passes a certain tuple to the 
+    reshape_thrust_curve attribute. Also checking for the correct return 
+    data type.
 
-def test_reshape_thrust_curve_asserts_resultant_thrust_curve_correct():
-    example_motor = SolidMotor(
-        thrust_source="tests/fixtures/motor/Cesaroni_M1670_shifted.eng",
-        burn_time=burn_time,
-        dry_mass=1.815,
-        dry_inertia=(0.125, 0.125, 0.002),
-        center_of_dry_mass_position=0.317,
-        nozzle_position=0,
-        grain_number=grain_number,
-        grain_density=grain_density,
-        nozzle_radius=nozzle_radius,
-        throat_radius=throat_radius,
-        grain_separation=grain_separation,
-        grain_outer_radius=grain_outer_radius,
-        grain_initial_height=grain_initial_height,
-        grains_center_of_mass_position=0.397,
-        grain_initial_inner_radius=grain_initial_inner_radius,
-        interpolation_method="linear",
-        coordinate_system_orientation="nozzle_to_combustion_chamber",
-        reshape_thrust_curve=(5, 3000),
-    )
+    Parameters
+    ----------
+    cesaroni_m1670_shifted : rocketpy.SolidMotor
+        The SolidMotor object to be used in the tests.
+    tuple_parametric : tuple
+        Tuple passed to the reshape_thrust_curve method.
+    """
 
-    thrust_reshaped = example_motor.thrust.get_source()
-    assert thrust_reshaped[1][0] == 0.155 * (5 / 4)
-    assert thrust_reshaped[-1][0] == 5
+    assert isinstance(cesaroni_m1670_shifted.reshape_thrust_curve(linear_func, 1, 3000), Function)
+    thrust_reshaped = cesaroni_m1670_shifted.thrust.get_source()
 
-    assert thrust_reshaped[1][1] == 100 * (3000 / 7539.1875)
-    assert thrust_reshaped[7][1] == 2034 * (3000 / 7539.1875)
+    assert thrust_reshaped[1][0] == 0.155 * (tuple_parametric[0] / 4)
+    assert thrust_reshaped[-1][0] == tuple_parametric[0]
+
+    assert thrust_reshaped[1][1] == 100 * (tuple_parametric[1] / 7539.1875)
+    assert thrust_reshaped[7][1] == 2034 * (tuple_parametric[1] / 7539.1875)
