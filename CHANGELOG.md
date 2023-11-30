@@ -40,7 +40,7 @@ straightforward as possible.
 
 ### Fixed
 
--
+- ENH: Parachute trigger doesn't work if "Apogee" is used instead of "apogee" [#489](https://github.com/RocketPy-Team/RocketPy/pull/489)
 
 ## [v1.1.2] - 2023-11-25
 
