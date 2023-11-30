@@ -1214,7 +1214,7 @@ class GenericMotor(Motor):
         """
         return self.propellant_initial_mass
 
-    @funcify_method("Time (s)", "Exhaust velocity (m/s)")
+    @cached_property
     def exhaust_velocity(self):
         """Exhaust velocity by assuming it as a constant. The formula used is
         total impulse/propellant initial mass.
