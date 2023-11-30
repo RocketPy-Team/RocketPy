@@ -36,7 +36,7 @@ straightforward as possible.
 
 ### Changed
 
--
+- MNT: Add repr method to Parachute class [#490](https://github.com/RocketPy-Team/RocketPy/pull/490)
 
 ### Fixed
 
