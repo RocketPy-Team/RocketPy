@@ -450,11 +450,7 @@ class Motor(ABC):
         rate should not be greater than `total_mass_flow_rate`, otherwise the
         grains mass flow rate will be negative, losing physical meaning.
         """
-        return (
-            -1
-            * self.thrust
-            / self.exhaust_velocity.set_discrete_based_on_model(self.thrust)
-        )
+        return -1 * self.thrust / self.exhaust_velocity
 
     @property
     @abstractmethod
@@ -1228,7 +1224,9 @@ class GenericMotor(Motor):
         self.exhaust_velocity : Function
             Gas exhaust velocity of the motor.
         """
-        return self.total_impulse / self.propellant_initial_mass
+        return Function(
+            self.total_impulse / self.propellant_initial_mass
+        ).set_discrete_based_on_model(self.thrust)
 
     @funcify_method("Time (s)", "Mass Flow Rate (kg/s)")
     def mass_flow_rate(self):
@@ -1236,11 +1234,7 @@ class GenericMotor(Motor):
         velocity. The formula used is the opposite of thrust divided by
         exhaust velocity.
         """
-        return (
-            -1
-            * self.thrust
-            / self.exhaust_velocity.set_discrete_based_on_model(self.thrust)
-        )
+        return -1 * self.thrust / self.exhaust_velocity
 
     @funcify_method("Time (s)", "center of mass (m)")
     def center_of_propellant_mass(self):
