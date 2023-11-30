@@ -38,7 +38,7 @@ class Parachute:
         case, the parachute will be ejected when the rocket reaches this height
         above ground level.
 
-        - The string "apogee," which triggers the parachute at apogee, i.e.,
+        - The string "apogee" which triggers the parachute at apogee, i.e.,
         when the rocket reaches its highest point and starts descending.
 
         Note: The function will be called according to the sampling rate
@@ -126,7 +126,7 @@ class Parachute:
             case, the parachute will be ejected when the rocket reaches this
             height above ground level.
 
-            - The string "apogee," which triggers the parachute at apogee, i.e.,
+            - The string "apogee" which triggers the parachute at apogee, i.e.,
             when the rocket reaches its highest point and starts descending.
 
             Note: The function will be called according to the sampling rate
