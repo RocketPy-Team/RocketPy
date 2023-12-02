@@ -41,16 +41,38 @@ class HybridMotor(Motor):
         Solid motor object that composes the hybrid motor.
     HybridMotor.liquid : LiquidMotor
         Liquid motor object that composes the hybrid motor.
+    HybridMotor.positioned_tanks : list
+        List containing the motor's added tanks and their respective
+        positions.
+    HybridMotor.grains_center_of_mass_position : float
+        Position of the center of mass of the grains in meters, specified in
+        the motor's coordinate system.
+        See :doc:`Positions and Coordinate Systems </user/positions>`
+        for more information.
+    HybridMotor.grain_number : int
+        Number of solid grains.
+    HybridMotor.grain_density : float
+        Density of each grain in kg/meters cubed.
+    HybridMotor.grain_outer_radius : float
+        Outer radius of each grain in meters.
+    HybridMotor.grain_initial_inner_radius : float
+        Initial inner radius of each grain in meters.
+    HybridMotor.grain_initial_height : float
+        Initial height of each grain in meters.
+    HybridMotor.grain_separation : float
+        Distance between two grains in meters.
     HybridMotor.dry_mass : float
-        The total mass of the motor structure, including chambers
-        and tanks, when it is empty and does not contain any propellant.
+        Same as in Motor class. See the :class:`Motor <rocketpy.Motor>` docs.
     HybridMotor.propellant_initial_mass : float
-        Total propellant initial mass in kg.
+        Total propellant initial mass in kg. This is the sum of the initial
+        mass of fluids in each tank and the initial mass of the solid grains.
     HybridMotor.total_mass : Function
         Total motor mass in kg as a function of time, defined as the sum
-        of propellant and dry mass.
+        of the dry mass (motor's structure mass) and the propellant mass, which
+        varies with time.
     HybridMotor.propellant_mass : Function
-        Total propellant mass in kg as a function of time.
+        Total propellant mass in kg as a function of time, this includes the
+        mass of fluids in each tank and the mass of the solid grains.
     HybridMotor.total_mass_flow_rate : Function
         Time derivative of propellant total mass in kg/s as a function
         of time as obtained by the thrust source.
@@ -199,8 +221,7 @@ class HybridMotor(Motor):
 
             .. seealso:: :doc:`Thrust Source Details </user/motors/thrust>`
         dry_mass : int, float
-            The total mass of the motor structure, including chambers
-            and tanks, when it is empty and does not contain any propellant.
+            Same as in Motor class. See the :class:`Motor <rocketpy.Motor>` docs
         dry_inertia : tuple, list
             Tuple or list containing the motor's dry mass inertia tensor
             components, in kg*m^2. This inertia is defined with respect to the
@@ -325,6 +346,17 @@ class HybridMotor(Motor):
             interpolation_method,
             coordinate_system_orientation,
         )
+
+        self.positioned_tanks = self.liquid.positioned_tanks
+        self.grain_number = grain_number
+        self.grain_density = grain_density
+        self.grain_outer_radius = grain_outer_radius
+        self.grain_initial_inner_radius = grain_initial_inner_radius
+        self.grain_initial_height = grain_initial_height
+        self.grain_separation = grain_separation
+        self.grains_center_of_mass_position = grains_center_of_mass_position
+        self.throat_radius = throat_radius
+
         # Initialize plots and prints object
         self.prints = _HybridMotorPrints(self)
         self.plots = _HybridMotorPlots(self)
@@ -345,18 +377,19 @@ class HybridMotor(Motor):
     @funcify_method("Time (s)", "Mass (kg)")
     def propellant_mass(self):
         """Evaluates the total propellant mass of the motor as the sum
-        of each tank mass and the grains mass.
+        of fluids mass in each tank and the grains mass.
 
         Returns
         -------
         Function
-            Total propellant mass of the motor, in kg.
+            Total propellant mass of the motor as a function of time, in kg.
         """
         return self.solid.propellant_mass + self.liquid.propellant_mass
 
     @cached_property
     def propellant_initial_mass(self):
-        """Returns the initial propellant mass of the motor.
+        """Returns the initial propellant mass of the motor. See the docs of the
+        HybridMotor.propellant_mass property for more information.
 
         Returns
         -------
@@ -367,8 +400,8 @@ class HybridMotor(Motor):
 
     @funcify_method("Time (s)", "mass flow rate (kg/s)", extrapolation="zero")
     def mass_flow_rate(self):
-        """Evaluates the mass flow rate of the motor as the sum of each tank
-        mass flow rate and the grains mass flow rate.
+        """Evaluates the mass flow rate of the motor as the sum of mass flow
+        rates from all tanks and the solid grains mass flow rate.
 
         Returns
         -------
@@ -486,14 +519,59 @@ class HybridMotor(Motor):
 
     @funcify_method("Time (s)", "Inertia I_12 (kg m²)")
     def propellant_I_12(self):
+        """Inertia tensor 12 component of the propellant, the inertia is
+        relative to the e_1 and e_2 axes, centered at the instantaneous
+        propellant center of mass.
+
+        Returns
+        -------
+        Function
+            Propellant inertia tensor 12 component at time t.
+
+        Notes
+        -----
+            This is assumed to be zero due to axial symmetry of the motor. This
+            could be improved in the future to account for the fact that the
+            motor is not perfectly symmetric.
+        """
         return 0
 
     @funcify_method("Time (s)", "Inertia I_13 (kg m²)")
     def propellant_I_13(self):
+        """Inertia tensor 13 component of the propellant, the inertia is
+        relative to the e_1 and e_3 axes, centered at the instantaneous
+        propellant center of mass.
+
+        Returns
+        -------
+        Function
+            Propellant inertia tensor 13 component at time t.
+
+        Notes
+        -----
+            This is assumed to be zero due to axial symmetry of the motor. This
+            could be improved in the future to account for the fact that the
+            motor is not perfectly symmetric.
+        """
         return 0
 
     @funcify_method("Time (s)", "Inertia I_23 (kg m²)")
     def propellant_I_23(self):
+        """Inertia tensor 23 component of the propellant, the inertia is
+        relative to the e_2 and e_3 axes, centered at the instantaneous
+        propellant center of mass.
+
+        Returns
+        -------
+        Function
+            Propellant inertia tensor 23 component at time t.
+
+        Notes
+        -----
+            This is assumed to be zero due to axial symmetry of the motor. This
+            could be improved in the future to account for the fact that the
+            motor is not perfectly symmetric.
+        """
         return 0
 
     def add_tank(self, tank, position):
@@ -521,6 +599,10 @@ class HybridMotor(Motor):
             self.total_mass_flow_rate - self.liquid.mass_flow_rate
         )
         reset_funcified_methods(self)
+
+    def draw(self):
+        """Draws a representation of the HybridMotor."""
+        self.plots.draw()
 
     def info(self):
         """Prints out basic data about the Motor."""

@@ -4,3 +4,4 @@ m2r2>=0.2.1
 jupyter-sphinx==0.4.0
 sphinx_design==0.5.0
 ipykernel>=6.25.0
+pandas>=1.4.4
