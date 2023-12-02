@@ -96,9 +96,6 @@ Here is an example of a drag curve file:
     0.9, 0.45696342
     1.0, 0.62744566
 
-.. note::
-    The CSV file can contain a single line header.
-
 .. tip::
     Getting a drag curve can be a challenging task. To get really accurate
     drag curves, you can use CFD software or wind tunnel data.
