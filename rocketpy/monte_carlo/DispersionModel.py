@@ -35,18 +35,51 @@ class DispersionModel(BaseModel):
         return self.__str__()
 
     @root_validator(skip_on_failure=True)
-    def set_attr(cls, values):
-        """Validates inputs that can be either tuples, lists, ints or floats and
-        saves them in the format (nom_val,std) or (nom_val,std,'dist_func').
-        Lists are saved as they are inputted.
-        Inputs can be given as floats or ints, referring to the standard deviation.
-        In this case, the nominal value of that attribute will come from the rocket
-        object passed. If the distribution function needs to be specified, then a
-        tuple with the standard deviation as the first item, and the string containing
-        the name a numpy.random distribution function can be passed.
-        If a tuple with a nominal value and a standard deviation is passed, then it
-        will take priority over the rocket object attribute's value. A third item
-        can also be added to the tuple specifying the distribution function"""
+    def validate_generic_field(cls, values):
+        """Validates generic fields, which are those that can be either tuples,
+        lists, ints or floats, and saves them as atrributes of the object.
+        The saved values are either tuples or lists, depending on the input type.
+        If the input is a tuple, int or float, then it is saved in the format
+        (nominal value, standard deviation, distribution function).If the input
+        is a list, then it is saved as a list of values.
+
+        The following validation rules are applied according to the input type:
+
+        - Tuples are validated as follows:
+            - Must have length 2 or 3
+            - First item must be either an int or float
+            - If length is two, then the type of the second item must be either
+              an int, float or str.
+                - If the second item is an int or float, then it is assumed that
+                  the first item is the nominal value and the second item is the
+                  standard deviation.
+                - If the second item is a string, then it is assumed that the
+                  first item is the standard deviation, and the second item is
+                  the distribution function. In this case, the nominal value
+                  will be taken from the object passed.
+            - If length is three, then it is assumed that the first item is the
+              nominal value, the second item is the standard deviation and the
+              third item is the distribution function.
+        - Lists are validated as follows:
+            - If the list is empty, then the value will be taken from the object
+              passed and saved as a list with one item.
+            - If the list is not empty, then all items must be either ints or
+              floats.
+        - Ints or floats are validated as follows:
+            - The value is assumed to be the standard deviation, the nominal
+              value will be taken from the object passed and the distribution
+              function will be set to "normal".
+
+        Parameters
+        ----------
+        values : dict
+            Dictionary with the object's arguments and their values.
+
+        Returns
+        -------
+        values : dict
+            Dictionary with the object's arguments and their values.
+        """
 
         # gets name of the object to be used in getattr()
         obj_name = list(cls.__fields__.keys())[0]
@@ -73,70 +106,90 @@ class DispersionModel(BaseModel):
             if not field_type.required and field_name not in exception_list
         ]
         for field in validate_fields:
-            v = values[field]
+            current_value = values[field]
             # checks if tuple
-            if isinstance(v, tuple):
+            if isinstance(current_value, tuple):
                 # checks if tuple has acceptable length
-                assert len(v) in [
+                assert len(current_value) in [
                     2,
                     3,
                 ], f"Field '{field}': tuple must have length 2 or 3"
                 # checks if first item is valid
-                assert isinstance(
-                    v[0], (int, float)
-                ), f"Field '{field}': First item of tuple must be either an int or float"
+                assert isinstance(current_value[0], (int, float)), (
+                    f"Field '{field}': First item of tuple must be either an "
+                    "int or float"
+                )
                 # if len is two can either be (nom_val,std) or (std,'dist_func')
-                if len(v) == 2:
+                if len(current_value) == 2:
                     # checks if second value is either string or int/float
-                    assert isinstance(
-                        v[1], (int, float, str)
-                    ), f"Field '{field}': second item of tuple must be an int, float or string. tIf the first value refers to the nominal value of {field}, then the item's second value should be the desired standard deviation. If the first value is the standard deviation, then the second item's value should be a string containing a name of a numpy.random distribution function"
+                    assert isinstance(current_value[1], (int, float, str)), (
+                        f"Field '{field}': second item of tuple must be an "
+                        "int, float or string. If the first value refers to "
+                        "the nominal value of {field}, then the tuple's second "
+                        "value should be the desired standard deviation. If "
+                        "the first value is the standard deviation, then the "
+                        "tuple's second value should be a string containing a "
+                        "name of a numpy.random distribution function"
+                    )
                     # if second item is not str, then (nom_val, std, "normal")
-                    if not isinstance(v[1], str):
-                        values[field] = (v[0], v[1], get_distribution("normal"))
+                    if not isinstance(current_value[1], str):
+                        values[field] = (
+                            current_value[0],
+                            current_value[1],
+                            get_distribution("normal"),
+                        )
                     # if second item is str, then (nom_val, std, 'dist_func')
                     else:
                         # check if 'dist_func' is a valid name
-                        dist_func = get_distribution(v[1])
+                        dist_func = get_distribution(current_value[1])
                         # saves values
                         values[field] = (
                             getattr(values[obj_name], field),
-                            v[0],
+                            current_value[0],
                             dist_func,
                         )
                 # if len is three, then (nom_val, std, 'dist_func')
-                if len(v) == 3:
-                    assert isinstance(
-                        v[1], (int, float)
-                    ), f"Field '{field}': Second item of tuple must be either an int or float, representing the standard deviation to be used in the simulation"
-                    assert isinstance(
-                        v[2], str
-                    ), f"Field '{field}': Third item of tuple must be a string containing the name of a valid numpy.random distribution function"
+                if len(current_value) == 3:
+                    assert isinstance(current_value[1], (int, float)), (
+                        f"Field '{field}': Second item of tuple must be either "
+                        "an int or float, representing the standard deviation "
+                        "to be used in the simulation."
+                    )
+                    assert isinstance(current_value[2], str), (
+                        f"Field '{field}': Third item of tuple must be a "
+                        "string containing the name of a valid numpy.random "
+                        "distribution function"
+                    )
                     # check if 'dist_func' is a valid name
-                    dist_func = get_distribution(v[2])
-                    values[field] = (v[0], v[1], dist_func)
-            elif isinstance(v, list):
+                    dist_func = get_distribution(current_value[2])
+                    values[field] = (current_value[0], current_value[1], dist_func)
+            elif isinstance(current_value, list):
                 # checks if input list is empty, meaning nothing was inputted
                 # and values should be gotten from class
-                if len(v) == 0:
+                if len(current_value) == 0:
                     values[field] = [getattr(values[obj_name], field)]
                 else:
                     # guarantee all values are valid (ints or floats)
                     assert all(
-                        isinstance(item, (int, float)) for item in v
-                    ), f"Field '{field}' should be either int or float"
+                        isinstance(item, (int, float)) for item in current_value
+                    ), (
+                        f"Field '{field}' should be a list with items of type "
+                        "int or float"
+                    )
                     # all good, sets inputs
-                    values[field] = v
-            elif isinstance(v, (int, float)):
+                    values[field] = current_value
+            elif isinstance(current_value, (int, float)):
                 # not list or tuple, must be an int or float
                 # get attr and returns (nom_value, std, "normal")
                 values[field] = (
                     getattr(values[obj_name], field),
-                    v,
+                    current_value,
                     get_distribution("normal"),
                 )
             else:
-                raise ValueError(f"Field '{field}' must be a tuple, list, int or float")
+                raise ValueError(
+                    f"Field '{field}' must be a tuple, list, int " "or float"
+                )
         return values
 
     @validator(
@@ -147,7 +200,7 @@ class DispersionModel(BaseModel):
         check_fields=False,
         always=True,
     )
-    def val_factors(cls, v):
+    def validate_factors(cls, v):
         """Validator for factor arguments. Checks if input is in a valid format.
         Factors can only be tuples of two or three items, or lists. Currently,
         the supported factors are: windXFactor, windYFactor, powerOffDragFactor,
@@ -164,17 +217,19 @@ class DispersionModel(BaseModel):
             # checks if tuple has acceptable length
             assert len(v) in [2, 3], f"Factors tuple must have length 2 or 3"
             # checks if first and second items are valid
-            assert isinstance(v[0], (int, float)) and isinstance(
-                v[1], (int, float)
-            ), f"First and second items of Factors tuple must be either an int or float"
+            assert isinstance(v[0], (int, float)) and isinstance(v[1], (int, float)), (
+                f"First and second items of Factors tuple must be either an "
+                "int or float"
+            )
             # len is two, then (nom_val, std, "normal")
             if len(v) == 2:
                 return (v[0], v[1], get_distribution("normal"))
             # if len is three, then (nom_val, std, 'dist_func')
             if len(v) == 3:
-                assert isinstance(
-                    v[2], str
-                ), f"Third item of tuple must be a string containing the name of a valid numpy.random distribution function"
+                assert isinstance(v[2], str), (
+                    f"Third item of tuple must be a string containing the name "
+                    "of a valid numpy.random distribution function"
+                )
                 # check if 'dist_func' is a valid name
                 dist_func = get_distribution(v[2])
                 return (v[0], v[1], dist_func)
