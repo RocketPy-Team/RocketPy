@@ -11,7 +11,7 @@ brakes model.
 Setting Up The Simulation
 -------------------------
 
-First, lets define everythin we need for the simulation up to the rocket:
+First, lets define everything we need for the simulation up to the rocket:
 
 .. jupyter-execute::
 
@@ -83,7 +83,7 @@ To create an air brakes model, we essentially need to define the following:
 
 - The air brakes' **drag coefficient** as a function of the air brakes' 
   ``deployed level`` and of the ``Mach number``. This can be done by defining 
-  by inputing the directory of a ``CSV`` file containing the drag coefficient 
+  by inputting the directory of a ``CSV`` file containing the drag coefficient 
   as a function of the  air brakes' deployed level and of the ``Mach number``.
   The ``CSV`` file must have three columns: the first column must be the air
   brakes' deployed level, the second column must be the ``Mach number``, and
@@ -298,7 +298,7 @@ controller function. If you want to disable this feature, set ``clamp`` to
 Simulating a Flight
 -------------------
 
-To simulate the air brakes succesfully, we must set ``time_overshoot`` to
+To simulate the air brakes successfully, we must set ``time_overshoot`` to
 ``False``. This way the simulation will run at the time step defined by our 
 controller sampling rate. Be aware that this will make the simulation **much** 
 run slower.
