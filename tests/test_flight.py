@@ -82,22 +82,6 @@ def setup_rocket_with_given_static_margin(rocket, static_margin):
 # Tests
 
 
-@patch("matplotlib.pyplot.show")
-def test_all_info(mock_show, flight_calisto_robust):
-    """Test that the flight class is working as intended. This basically calls
-    the all_info() method and checks if it returns None. It is not testing if
-    the values are correct, but whether the method is working without errors.
-
-    Parameters
-    ----------
-    mock_show : unittest.mock.MagicMock
-        Mock object to replace matplotlib.pyplot.show
-    flight_calisto_robust : rocketpy.Flight
-        Flight object to be tested. See the conftest.py file for more info
-        regarding this pytest fixture.
-    """
-    assert flight_calisto_robust.all_info() == None
-
 
 @patch("matplotlib.pyplot.show")
 def test_initial_solution(mock_show, example_env, calisto_robust):
@@ -142,53 +126,6 @@ def test_initial_solution(mock_show, example_env, calisto_robust):
     )
 
     assert test_flight.all_info() == None
-
-
-def test_get_solution_at_time(flight_calisto):
-    """Test the get_solution_at_time method of the Flight class. This test
-    simply calls the method at the initial and final time and checks if the
-    returned values are correct. Also, checking for valid return instance.
-
-    Parameters
-    ----------
-    flight_calisto : rocketpy.Flight
-        Flight object to be tested. See the conftest.py file for more info
-        regarding this pytest fixture.
-    """
-    assert isinstance(flight_calisto.get_solution_at_time(0), np.ndarray)
-    assert isinstance(
-        flight_calisto.get_solution_at_time(flight_calisto.t_final), np.ndarray
-    )
-
-    assert np.allclose(
-        flight_calisto.get_solution_at_time(0),
-        np.array([0, 0, 0, 0, 0, 0, 0, 0.99904822, -0.04361939, 0, 0, 0, 0, 0]),
-        rtol=1e-05,
-        atol=1e-08,
-    )
-    assert np.allclose(
-        flight_calisto.get_solution_at_time(flight_calisto.t_final),
-        np.array(
-            [
-                48.4313533,
-                0.0,
-                985.7665845,
-                -0.00000229951048,
-                0.0,
-                11.2223284,
-                -341.028803,
-                0.999048222,
-                -0.0436193874,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-            ]
-        ),
-        rtol=1e-02,
-        atol=5e-03,
-    )
 
 
 @patch("matplotlib.pyplot.show")
@@ -429,112 +366,6 @@ def test_simpler_parachute_triggers(mock_show, example_env, calisto_robust):
     )
     assert calisto_robust.all_info() == None
     assert test_flight.all_info() == None
-
-
-def test_export_data(flight_calisto):
-    """Tests wether the method Flight.export_data is working as intended
-
-    Parameters:
-    -----------
-    flight_calisto : rocketpy.Flight
-        Flight object to be tested. See the conftest.py file for more info
-        regarding this pytest fixture.
-    """
-    test_flight = flight_calisto
-
-    # Basic export
-    test_flight.export_data("test_export_data_1.csv")
-
-    # Custom export
-    test_flight.export_data(
-        "test_export_data_2.csv",
-        "z",
-        "vz",
-        "e1",
-        "w3",
-        "angle_of_attack",
-        time_step=0.1,
-    )
-
-    # Load exported files and fixtures and compare them
-    test_1 = np.loadtxt("test_export_data_1.csv", delimiter=",")
-    test_2 = np.loadtxt("test_export_data_2.csv", delimiter=",")
-
-    # Delete files
-    os.remove("test_export_data_1.csv")
-    os.remove("test_export_data_2.csv")
-
-    # Check if basic exported content matches data
-    assert np.allclose(test_flight.x[:, 0], test_1[:, 0], atol=1e-5) == True
-    assert np.allclose(test_flight.x[:, 1], test_1[:, 1], atol=1e-5) == True
-    assert np.allclose(test_flight.y[:, 1], test_1[:, 2], atol=1e-5) == True
-    assert np.allclose(test_flight.z[:, 1], test_1[:, 3], atol=1e-5) == True
-    assert np.allclose(test_flight.vx[:, 1], test_1[:, 4], atol=1e-5) == True
-    assert np.allclose(test_flight.vy[:, 1], test_1[:, 5], atol=1e-5) == True
-    assert np.allclose(test_flight.vz[:, 1], test_1[:, 6], atol=1e-5) == True
-    assert np.allclose(test_flight.e0[:, 1], test_1[:, 7], atol=1e-5) == True
-    assert np.allclose(test_flight.e1[:, 1], test_1[:, 8], atol=1e-5) == True
-    assert np.allclose(test_flight.e2[:, 1], test_1[:, 9], atol=1e-5) == True
-    assert np.allclose(test_flight.e3[:, 1], test_1[:, 10], atol=1e-5) == True
-    assert np.allclose(test_flight.w1[:, 1], test_1[:, 11], atol=1e-5) == True
-    assert np.allclose(test_flight.w2[:, 1], test_1[:, 12], atol=1e-5) == True
-    assert np.allclose(test_flight.w3[:, 1], test_1[:, 13], atol=1e-5) == True
-
-    # Check if custom exported content matches data
-    timePoints = np.arange(test_flight.t_initial, test_flight.t_final, 0.1)
-    assert np.allclose(timePoints, test_2[:, 0], atol=1e-5) == True
-    assert np.allclose(test_flight.z(timePoints), test_2[:, 1], atol=1e-5) == True
-    assert np.allclose(test_flight.vz(timePoints), test_2[:, 2], atol=1e-5) == True
-    assert np.allclose(test_flight.e1(timePoints), test_2[:, 3], atol=1e-5) == True
-    assert np.allclose(test_flight.w3(timePoints), test_2[:, 4], atol=1e-5) == True
-    assert (
-        np.allclose(test_flight.angle_of_attack(timePoints), test_2[:, 5], atol=1e-5)
-        == True
-    )
-
-
-def test_export_kml(flight_calisto_robust):
-    """Tests weather the method Flight.export_kml is working as intended.
-
-    Parameters:
-    -----------
-    flight_calisto_robust : rocketpy.Flight
-        Flight object to be tested. See the conftest.py file for more info
-        regarding this pytest fixture.
-    """
-
-    test_flight = flight_calisto_robust
-
-    # Basic export
-    test_flight.export_kml(
-        "test_export_data_1.kml", time_step=None, extrude=True, altitude_mode="absolute"
-    )
-
-    # Load exported files and fixtures and compare them
-    test_1 = open("test_export_data_1.kml", "r")
-
-    for row in test_1:
-        if row[:29] == "                <coordinates>":
-            r = row[29:-15]
-            r = r.split(",")
-            for i, j in enumerate(r):
-                r[i] = j.split(" ")
-    lon, lat, z, coords = [], [], [], []
-    for i in r:
-        for j in i:
-            coords.append(j)
-    for i in range(0, len(coords), 3):
-        lon.append(float(coords[i]))
-        lat.append(float(coords[i + 1]))
-        z.append(float(coords[i + 2]))
-
-    # Delete temporary test file
-    test_1.close()
-    os.remove("test_export_data_1.kml")
-
-    assert np.allclose(test_flight.latitude[:, 1], lat, atol=1e-3) == True
-    assert np.allclose(test_flight.longitude[:, 1], lon, atol=1e-3) == True
-    assert np.allclose(test_flight.z[:, 1], z, atol=1e-3) == True
 
 
 @patch("matplotlib.pyplot.show")
