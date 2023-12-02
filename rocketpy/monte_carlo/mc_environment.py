@@ -40,6 +40,8 @@ class McEnvironment(DispersionModel):
     datum: List[Union[StrictStr, None]] = []
     timeZone: List[Union[StrictStr, None]] = []
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("ensembleMember")
     def val_ensemble(cls, v, values):
         """Special validator for the ensembleMember argument. It checks if the

@@ -366,6 +366,9 @@ class _EnvironmentPlots:
         """
 
         # Plot graphs
+        print("\n\nGravity Model Plots")
+        self.gravity_model()
+
         print("\n\nAtmospheric Model Plots")
         self.atmospheric_model()
 

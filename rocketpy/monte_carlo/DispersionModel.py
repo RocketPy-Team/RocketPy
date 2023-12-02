@@ -1,6 +1,6 @@
 from random import choice
 
-from pydantic import BaseModel, Extra, root_validator, validator
+from pydantic import model_validator, field_validator, ConfigDict, BaseModel
 
 from ..tools import get_distribution
 
@@ -10,14 +10,7 @@ class DispersionModel(BaseModel):
     the input parameters of the dispersion models, based on the pydantic library.
     """
 
-    class Config:
-        """Configures pydantic to allow arbitrary types and extra fields."""
-
-        # Allows fields to be checked if they are of RocketPy classes types
-        arbitrary_types_allowed = True
-        # Allows the dataclass to contain additional fields that are not
-        # defined in the class. Specially useful in McRocket
-        extra = Extra.allow
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="allow")
 
     def __str__(self):
         s = ""
@@ -34,7 +27,8 @@ class DispersionModel(BaseModel):
     def __repr__(self):
         return self.__str__()
 
-    @root_validator(skip_on_failure=True)
+    @model_validator(skip_on_failure=True)
+    @classmethod
     def validate_generic_field(cls, values):
         """Validates generic fields, which are those that can be either tuples,
         lists, ints or floats, and saves them as atrributes of the object.
@@ -192,7 +186,7 @@ class DispersionModel(BaseModel):
                 )
         return values
 
-    @validator(
+    @field_validator(
         "windXFactor",
         "windYFactor",
         "powerOffDragFactor",
