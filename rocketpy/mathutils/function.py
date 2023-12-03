@@ -496,7 +496,7 @@ class Function:
                 if len(zero_distance_index) > 0:
                     return y_data[zero_distance_index[0]]
 
-                weights = distances_squared**(-1.5)
+                weights = distances_squared ** (-1.5)
                 numerator_sum = np.sum(y_data * weights)
                 denominator_sum = np.sum(weights)
 
