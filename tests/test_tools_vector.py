@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 
-from rocketpy import Function
 from rocketpy.mathutils import Vector
 
 test_vector_1 = [1, 2, 3]

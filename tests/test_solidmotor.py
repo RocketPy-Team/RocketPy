@@ -1,10 +1,7 @@
-from unittest.mock import patch
-import os
-
 import numpy as np
 import pytest
 
-from rocketpy import Function, SolidMotor
+from rocketpy import Function
 
 burn_time = 3.9
 grain_number = 5

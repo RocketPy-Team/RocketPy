@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from rocketpy import Function
-from rocketpy.mathutils import Matrix, Vector
+from rocketpy.mathutils import Matrix
 
 test_matrix_1 = [[-7, 2, 3], [4, 5, -6], [1, -8, 9]]
 

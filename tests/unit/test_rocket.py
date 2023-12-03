@@ -3,8 +3,8 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
-from rocketpy import NoseCone, Rocket, SolidMotor, Function
-from rocketpy.motors.motor import Motor, EmptyMotor
+from rocketpy import Function, NoseCone, Rocket, SolidMotor
+from rocketpy.motors.motor import EmptyMotor, Motor
 
 
 @patch("matplotlib.pyplot.show")
