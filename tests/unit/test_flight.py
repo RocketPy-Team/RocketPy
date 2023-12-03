@@ -250,23 +250,3 @@ def test_export_kml(flight_calisto_robust):
     assert np.allclose(test_flight.latitude[:, 1], lat, atol=1e-3) == True
     assert np.allclose(test_flight.longitude[:, 1], lon, atol=1e-3) == True
     assert np.allclose(test_flight.z[:, 1], z, atol=1e-3) == True
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

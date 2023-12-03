@@ -82,7 +82,6 @@ def setup_rocket_with_given_static_margin(rocket, static_margin):
 # Tests
 
 
-
 @patch("matplotlib.pyplot.show")
 def test_initial_solution(mock_show, example_env, calisto_robust):
     """Tests the initial_solution option of the Flight class. This test simply
