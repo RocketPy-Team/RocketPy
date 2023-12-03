@@ -161,3 +161,16 @@ def test_fin_flutter_analysis(mock_show, flight):
         )
         == None
     )
+
+
+def test_get_instance_attributes(flight_calisto_robust):
+    """Tests if get_instance_attributes returns the expected results for a
+    robust flight object."""
+
+    attributes = utilities.get_instance_attributes(flight_calisto_robust)
+    for key, value in attributes.items():
+        attr = getattr(flight_calisto_robust, key)
+        if isinstance(attr, np.ndarray):
+            assert np.allclose(attr, value)
+        else:
+            assert attr == value

@@ -2365,7 +2365,7 @@ class Environment:
         self.wind_vs = wind_vs
         self.levels = levels
         self.temperatures = temperatures
-        self.time_array = time_array
+        self.time_array = time_array[:].tolist()
         self.height = height
 
         # Close weather data
@@ -2735,7 +2735,7 @@ class Environment:
         self.wind_vs = wind_vs
         self.levels = levels
         self.temperatures = temperatures
-        self.time_array = time_array
+        self.time_array = time_array[:].tolist()
         self.height = height
 
         # Close weather data
@@ -3126,7 +3126,19 @@ class Environment:
         ------
         plot_info : Dict
             Dict of data relevant to plot externally
+
+        Warning
+        -------
+        Deprecated in favor of `utilities.get_instance_attributes`.
+
         """
+        warnings.warn(
+            "The method 'all_plot_info_returned' is deprecated as of version "
+            + "1.2 and will be removed in version 1.4 "
+            + "Use 'utilities.get_instance_attributes' instead.",
+            DeprecationWarning,
+        )
+
         grid = np.linspace(self.elevation, self.max_expected_height)
         plot_info = dict(
             grid=[i for i in grid],
@@ -3187,7 +3199,18 @@ class Environment:
         ------
         info : Dict
             Information relevant about the Environment class.
+
+        Warning
+        -------
+        Deprecated in favor of `utilities.get_instance_attributes`.
+
         """
+        warnings.warn(
+            "The method 'all_info_returned' is deprecated as of version "
+            + "1.2 and will be removed in version 1.4 "
+            + "Use 'utilities.get_instance_attributes' instead.",
+            DeprecationWarning,
+        )
 
         # Dictionary creation, if not commented follows the SI
         info = dict(

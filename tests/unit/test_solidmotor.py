@@ -15,6 +15,8 @@ grain_initial_inner_radius = 15 / 1000
 grain_initial_height = 120 / 1000
 nozzle_radius = 33 / 1000
 throat_radius = 11 / 1000
+grain_vol = 0.12 * (np.pi * (0.033**2 - 0.015**2))
+grain_mass = grain_vol * 1815 * 5
 
 
 @patch("matplotlib.pyplot.show")
@@ -85,6 +87,14 @@ def test_evaluate_inertia_33_asserts_extreme_values(cesaroni_m1670):
 
 
 def tests_import_eng_asserts_read_values_correctly(cesaroni_m1670):
+    """Tests the import_eng method. It checks whether the import operation
+    extracts the values correctly.
+
+    Parameters
+    ----------
+    cesaroni_m1670_shifted : rocketpy.SolidMotor
+        The SolidMotor object to be used in the tests.
+    """
     comments, description, data_points = cesaroni_m1670.import_eng(
         "tests/fixtures/motor/Cesaroni_M1670.eng"
     )
@@ -112,8 +122,14 @@ def tests_import_eng_asserts_read_values_correctly(cesaroni_m1670):
 
 
 def tests_export_eng_asserts_exported_values_correct(cesaroni_m1670):
-    grain_vol = 0.12 * (np.pi * (0.033**2 - 0.015**2))
-    grain_mass = grain_vol * 1815 * 5
+    """Tests the export_eng method. It checks whether the exported values
+    of the thrust curve still match data_points.
+
+    Parameters
+    ----------
+    cesaroni_m1670_shifted : rocketpy.SolidMotor
+        The SolidMotor object to be used in the tests.
+    """
 
     cesaroni_m1670.export_eng(
         file_name="tests/cesaroni_m1670.eng", motor_name="test_motor"
@@ -152,5 +168,3 @@ def tests_export_eng_asserts_exported_values_correct(cesaroni_m1670):
         [3.4, 350.0],
         [3.9, 0.0],
     ]
-
-

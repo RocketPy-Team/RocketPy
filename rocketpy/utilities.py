@@ -1,3 +1,4 @@
+import inspect
 import traceback
 import warnings
 
@@ -654,3 +655,25 @@ def liftoff_speed_by_mass(flight, min_mass, max_mass, points=10, plot=True):
     if plot:
         retfunc.plot(min_mass, max_mass, points)
     return retfunc
+
+
+def get_instance_attributes(instance):
+    """Returns a dictionary with all attributes of a given instance.
+
+    Parameters
+    ----------
+    instance : object
+        Instance of a class.
+
+    Returns
+    -------
+    dictionary
+        Dictionary with all attributes of the given instance.
+    """
+    attributes_dict = dict()
+    members = inspect.getmembers(instance)
+    for member in members:
+        # Filter out methods and protected attributes
+        if not inspect.ismethod(member[1]) and not member[0].startswith("__"):
+            attributes_dict[member[0]] = member[1]
+    return attributes_dict
