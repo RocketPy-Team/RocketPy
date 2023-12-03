@@ -9,14 +9,19 @@ on:
 
 jobs:
   fail_if_pr_is_draft:
-    if: github.event.pull_request.draft == true
-    runs-on: ubuntu-18.04
+    timeout-minutes: 2
+    if: github.event.pull_request.draft
+    runs-on: ubuntu-latest
     steps:
-      - name: Fails in order to indicate that pull request needs to be marked as ready to review and unit tests workflow needs to pass.
+      - name: Check if PR is draft
+        run: echo "This pull request is a draft. Please mark it as ready for review before proceeding."
+      - name: Fail
         run: exit 1
   pytest_and_doctest:
+    needs: fail_if_pr_is_draft
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: true
       matrix:
         os:
           - ubuntu-latest
