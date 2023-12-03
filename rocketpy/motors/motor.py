@@ -174,10 +174,10 @@ class Motor(ABC):
             also be given as a callable function, whose argument is time in
             seconds and returns the thrust supplied by the motor in the
             instant. If a string is given, it must point to a .csv or .eng file.
-            The .csv file shall contain no headers and the first column must
-            specify time in seconds, while the second column specifies thrust.
-            Arrays may also be specified, following rules set by the class
-            Function. Thrust units are Newtons.
+            The .csv file can contain a single line header and the first column
+            must specify time in seconds, while the second column specifies
+            thrust. Arrays may also be specified, following rules set by the
+            class Function. Thrust units are Newtons.
 
             .. seealso:: :doc:`Thrust Source Details </user/motors/thrust>`
 
@@ -1092,7 +1092,7 @@ class GenericMotor(Motor):
             also be given as a callable function, whose argument is time in
             seconds and returns the thrust supplied by the motor in the
             instant. If a string is given, it must point to a .csv or .eng file.
-            The .csv file shall contain no headers and the first column must
+            The .csv file can contain a single line header and the first column must
             specify time in seconds, while the second column specifies thrust.
             Arrays may also be specified, following rules set by the class
             Function. Thrust units are Newtons.
