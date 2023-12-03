@@ -10,7 +10,7 @@ on:
 jobs:
   fail_if_pr_is_draft:
     timeout-minutes: 2
-    if: github.event.pull_request.draft
+    if: github.event.pull_request.draft == true
     runs-on: ubuntu-latest
     steps:
       - name: Check if PR is draft
@@ -21,7 +21,6 @@ jobs:
     needs: fail_if_pr_is_draft
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: true
       matrix:
         os:
           - ubuntu-latest
