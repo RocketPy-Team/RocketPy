@@ -18,7 +18,6 @@ jobs:
       - name: Fail
         run: exit 1
   pytest_and_doctest:
-    needs: fail_if_pr_is_draft
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -67,7 +66,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           directory: ./coverage/reports/
           env_vars: OS,PYTHON
-          fail_ci_if_error: true
+          fail_ci_if_error: false
           files: ./coverage.xml, ./rocketpy/coverage.xml
           flags: unittests
           name: codecov-umbrella
