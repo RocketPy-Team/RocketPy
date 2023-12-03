@@ -483,6 +483,7 @@ class Function:
 
         elif self.__interpolation__ == "shepard":
             x_data = self.source[:, 0:-1]  # Support for N-Dimensions
+            y_data = self.source[:, -1]
             len_y_data = len(y_data)  # A little speed up
 
             # change the function's name to avoid mypy's error
