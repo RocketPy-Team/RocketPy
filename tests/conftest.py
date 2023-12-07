@@ -1109,11 +1109,11 @@ def linearly_interpolated_func():
     Returns
     -------
     Function
-        Piece-wise linearly interpolated, with constant extrapolation
+        Linearly interpolated Function, with constant extrapolation
     """
     return Function(
         [[0, 0], [1, 7], [2, -3], [3, -1], [4, 3]],
-        interpolation="spline",
+        interpolation="linear",
         extrapolation="constant",
     )
 
