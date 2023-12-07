@@ -14,21 +14,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
     - `Security` in case of vulnerabilities.
 
     Should not be here:
-    - Tests and test updates.
-    - GitHub maintenance tasks (repository reorganization or CI changes, etc.)
-    - Merge commits, as they usually don't contain information valuable to the end-user.
-    - Small refactors that don't impact the functionality or improve performance.
-    - Minor changes such as "updated a notebook", "updated readme", or other
-      documentation tweaks unless they significantly enhance understanding or usability.
-    - In summary: if your change doesn't impact other codes or doesn't offer a
-    significant improvement for the final user, it probably shouldn't be here.
+    - tests
+    - github maintenance
+    - merge commits
 
     Types of messages:
-    - The primary message is usually the title of the PR and its number.
-    - If the PR encompasses a wide range of changes (which ideally it shouldn't),
-      you can use a second line or a brief list to describe these changes succinctly.
-    - Ensure the description is clear and understandable even for those who
-      might not have deep technical knowledge of the project.
+    - Usually the message is the PR title and number
+    - If the PR is too long to accomplish all the changes (it shouldn't be...),
+      you can use a second line to describe it
+
 -->
 
 ## [Unreleased] - yyyy-mm-dd
@@ -54,17 +48,19 @@ You can install this version by running `pip install rocketpy==1.1.4`
 
 ### Fixed
 
+- DOC: Change from % to ! in the first cell to run properly in Colab. [#496](https://github.com/RocketPy-Team/RocketPy/pull/496)
 - FIX: changes Generic Motor exhaust velocity to cached property [#497](https://github.com/RocketPy-Team/RocketPy/pull/497)
 
-## [v1.1.3] - 2023-11-29
+## [v1.1.3] - 2023-11-30
 
 You can install this version by running `pip install rocketpy==1.1.3`
 
 ### Fixed
 
-- FIX: Broken Function.get_value_opt for N-Dimensional Functions [#492](https://github.com/RocketPy-Team/RocketPy/pull/492)
+-  FIX: Broken Function.get_value_opt for N-Dimensional Functions [#492](https://github.com/RocketPy-Team/RocketPy/pull/492) 
+-  FIX: Never ending Flight simulations when using a GenericMotor [#497](https://github.com/RocketPy-Team/RocketPy/pull/497) 
 
-## [v1.1.2] - 2023-11-27
+## [v1.1.2] - 2023-11-25
 
 You can install this version by running `pip install rocketpy==1.1.2`
 
@@ -72,7 +68,7 @@ You can install this version by running `pip install rocketpy==1.1.2`
 
 - BUG: Function breaks if a header is present in the csv file [#485](https://github.com/RocketPy-Team/RocketPy/pull/485)
 
-## [v1.1.1] - 2023-11-24
+## [v1.1.1] - 2023-11-23
 
 You can install this version by running `pip install rocketpy==1.1.1`
 
