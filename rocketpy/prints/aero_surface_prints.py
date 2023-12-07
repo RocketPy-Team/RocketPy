@@ -303,10 +303,11 @@ class _AirBrakesPrints(_AeroSurfacePrints):
         -------
         None
         """
-        print("Geometric information of the Airbreak:")
+        print("Air Break's geometric information:")
         print("--------------------------------------")
         print(
-            f"Current deployed level: {self.aero_surface.deployed_level:.2f} = {100*self.aero_surface.deployed_level:.0f} %"
+            "Current deployed level: "
+            + f"{self.aero_surface.deployed_level:.2f} = {100*self.aero_surface.deployed_level:.0f} %"
         )
         print(f"Maximum Drag Coefficient: {self.aero_surface.drag_coefficient.max:.3f}")
         print(f"Minimum Drag Coefficient: {self.aero_surface.drag_coefficient.min:.3f}")

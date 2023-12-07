@@ -33,8 +33,8 @@ class Controller:
                `[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]`.
             4. A list containing the state history of the simulation. The state
                history is a list of every state vector of every step of the
-                simulation. The state history is a list of lists, where each
-                sublist is a state vector and is ordered from oldest to newest.
+               simulation. The state history is a list of lists, where each
+               sublist is a state vector and is ordered from oldest to newest.
             5. A list containing the objects to be acted upon by the controller.
                The objects in this list are the same as the objects in the
                observed_objects list, but they can be modified by the controller.
@@ -45,7 +45,6 @@ class Controller:
 
             .. note:: The function will be called according to the sampling rate
             specified.
-
         sampling_rate : float
             The sampling rate of the controller function in Hertz (Hz). This
             means that the controller function will be called every
@@ -76,6 +75,11 @@ class Controller:
             The state vector of the simulation, which is defined as:
 
             `[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]`.
+        state_history : list
+            A list containing the state history of the simulation. The state
+            history is a list of every state vector of every step of the
+            simulation. The state history is a list of lists, where each
+            sublist is a state vector and is ordered from oldest to newest.
 
         Returns
         -------
@@ -88,6 +92,7 @@ class Controller:
     def __str__(self):
         return self.name
         return f"Controller '{self.name}' with sampling rate {self.sampling_rate} Hz."
+
     def info(self):
         """Prints out summarized information about the controller."""
         self.prints.all()
