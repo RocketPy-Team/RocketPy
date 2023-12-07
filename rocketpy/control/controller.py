@@ -87,7 +87,7 @@ class Controller:
 
     def __str__(self):
         return self.name
-
+        return f"Controller '{self.name}' with sampling rate {self.sampling_rate} Hz."
     def info(self):
         """Prints out summarized information about the controller."""
         self.prints.all()
