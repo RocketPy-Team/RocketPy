@@ -42,6 +42,15 @@ straightforward as possible.
 
 -
 
+## [v1.1.4] - 2023-12-07
+
+You can install this version by running `pip install rocketpy==1.1.4`
+
+### Fixed
+
+- DOC: Change from % to ! in the first cell to run properly in Colab. [#496](https://github.com/RocketPy-Team/RocketPy/pull/496)
+- FIX: changes Generic Motor exhaust velocity to cached property [#497](https://github.com/RocketPy-Team/RocketPy/pull/497)
+
 ## [v1.1.3] - 2023-11-30
 
 You can install this version by running `pip install rocketpy==1.1.3`
