@@ -546,7 +546,6 @@ class _AirBrakesPlots(_AeroSurfacePlots):
         plt.grid(True)
         plt.show()
 
-        return None
 
     def draw(self):
         raise NotImplementedError
