@@ -1,4 +1,4 @@
-from ..mathutils.function import funcify_method, reset_funcified_methods
+from ..mathutils.function import Function, funcify_method, reset_funcified_methods
 from ..plots.hybrid_motor_plots import _HybridMotorPlots
 from ..prints.hybrid_motor_prints import _HybridMotorPrints
 from .liquid_motor import LiquidMotor
@@ -372,7 +372,9 @@ class HybridMotor(Motor):
         self.exhaust_velocity : Function
             Gas exhaust velocity of the motor.
         """
-        return self.total_impulse / self.propellant_initial_mass
+        return Function(
+            self.total_impulse / self.propellant_initial_mass
+        ).set_discrete_based_on_model(self.thrust)
 
     @funcify_method("Time (s)", "Mass (kg)")
     def propellant_mass(self):
