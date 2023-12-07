@@ -466,7 +466,6 @@ class _AirBrakesPlots(_AeroSurfacePlots):
         None
         """
         super().__init__(air_brakes)
-        return None
 
     def drag_coefficient_curve(self):
         """Plots the drag coefficient curve of the air_brakes."""
@@ -506,8 +505,6 @@ class _AirBrakesPlots(_AeroSurfacePlots):
         plt.grid(True)
         plt.show()
 
-        return None
-
     def drag_coefficient(self):
         """Plots the drag coefficient of the air_brakes as a function of time.
 
@@ -545,7 +542,6 @@ class _AirBrakesPlots(_AeroSurfacePlots):
         plt.title("Drag Coefficient X Time (s)")
         plt.grid(True)
         plt.show()
-
 
     def draw(self):
         raise NotImplementedError
