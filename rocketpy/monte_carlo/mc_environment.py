@@ -1,11 +1,4 @@
-__author__ = "Mateus Stano Junqueira"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
 from copy import deepcopy
-from typing import Any, List, Tuple, Union
-
-from pydantic import Field, StrictInt, StrictStr, validator
 
 from rocketpy.environment import Environment
 
@@ -22,41 +15,58 @@ class McEnvironment(DispersionModel):
     its docs for more information. Only environment field is required.
     """
 
-    # Field(...) means it is a required field, exclude=True removes it from the
-    # self.dict() method, which is used to convert the class to a dictionary
-    # Fields with typing Any must have the standard dispersion form of tuple or
-    # list. This is checked in the DispersionModel @root_validator
-    # Fields with typing that is not Any have special requirements
-    environment: Environment = Field(..., exclude=True)
-    railLength: Any = 0
-    date: List[Union[Tuple[int, int, int, int], None]] = []
-    elevation: Any = 0
-    gravity: Any = 0
-    latitude: Any = 0
-    longitude: Any = 0
-    ensembleMember: List[StrictInt] = []
-    windXFactor: Any = (1, 0)
-    windYFactor: Any = (1, 0)
-    datum: List[Union[StrictStr, None]] = []
-    timeZone: List[Union[StrictStr, None]] = []
+    # TODO: missing special validation from pydantic version:
+    # - ensemble_member must be a list of integers
+    # - date should be validated as a datetime object
+    # TODO: Should datum and timezone even be here?
+    def __init__(
+        self,
+        environment,
+        date=None,
+        elevation=None,
+        gravity=None,
+        latitude=None,
+        longitude=None,
+        ensemble_member=None,
+        wind_velocity_x_factor=None,
+        wind_velocity_y_factor=None,
+        datum=None,
+        time_zone=None,
+    ):
+        super().__init__(
+            environment,
+            date=date,
+            elevation=elevation,
+            gravity=gravity,
+            latitude=latitude,
+            longitude=longitude,
+            ensemble_member=ensemble_member,
+            wind_velocity_x_factor=wind_velocity_x_factor,
+            wind_velocity_y_factor=wind_velocity_y_factor,
+            datum=datum,
+            time_zone=time_zone,
+        )
+        # run special validators
+        if ensemble_member:
+            setattr(self, "ensemble_member", self.validate_ensemble(ensemble_member))
 
-    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
-    @validator("ensembleMember")
-    def val_ensemble(cls, v, values):
+    def validate_ensemble(self, ensemble_member):
         """Special validator for the ensembleMember argument. It checks if the
         environment has the correct atmospheric model type and if the list does
         not overflow the ensemble members.
         """
-        if v:
-            assert values["environment"].atmosphericModelType in [
-                "Ensemble",
-                "Reanalysis",
-            ], f"Environment with {values['environment'].atmosphericModelType} does not have ensemble members"
-            assert (
-                max(v) < values["environment"].numEnsembleMembers and min(v) >= 0
-            ), f"Please choose ensembleMember from 0 to {values['environment'].numEnsembleMembers - 1}"
-        return v
+        assert self.object.atmospheric_model_type in [
+            "Ensemble",
+            "Reanalysis",
+        ], (
+            f"Environment with {self.object.atmospheric_model_type} "
+            "does not have ensemble members"
+        )
+        assert (
+            max(ensemble_member) < self.object.num_ensemble_members
+            and min(ensemble_member) >= 0
+        ), f"`ensemble_member` must be in between from 0 to {self.object.num_ensemble_members - 1}"
+        return ensemble_member
 
     def create_object(self):
         """Creates a Environment object from the randomly generated input arguments.
@@ -73,19 +83,17 @@ class McEnvironment(DispersionModel):
         obj : Environment
             Environment object with the randomly generated input arguments.
         """
-        gen_dict = deepcopy(next(self.dict_generator()))
-        obj = self.environment
-        obj.railLength = gen_dict["railLength"]
-        obj.date = gen_dict["date"]
-        obj.elevation = gen_dict["elevation"]
-        obj.gravity = gen_dict["gravity"]
-        obj.latitude = gen_dict["latitude"]
-        obj.longitude = gen_dict["longitude"]
-        obj.datum = gen_dict["datum"]
-        obj.timeZone = gen_dict["timeZone"]
-        # Apply Factors
-        obj.windVelocityX *= gen_dict["windXFactor"]
-        obj.windVelocityY *= gen_dict["windYFactor"]
-        if gen_dict["ensembleMember"]:
-            obj.selectEnsembleMember(gen_dict["ensembleMember"])
-        return obj
+        generated_dict = next(self.dict_generator())
+        for key, value in generated_dict.items():
+            # special case for ensemble member
+            # TODO if env.ensemble_member had a setter this create_object method
+            # could be generalized
+            if key == "ensemble_member":
+                self.object.select_ensemble_member(value)
+            else:
+                if "factor" in key:
+                    # get original attribute value and multiply by factor
+                    attribute_name = f"_{key.replace('_factor', '')}"
+                    value = getattr(self, attribute_name) * value
+                setattr(self.object, key, value)
+        return self.object

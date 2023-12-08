@@ -1,4 +1,3 @@
-from .Dispersion import Dispersion
 from .environment import Environment, EnvironmentAnalysis
 from .mathutils import (
     Function,
@@ -46,5 +45,5 @@ from .rocket import (
     Tail,
     TrapezoidalFins,
 )
-from .simulation import Flight
+from .simulation import Flight, Dispersion
 from .plots.compare import Compare, CompareFlights
