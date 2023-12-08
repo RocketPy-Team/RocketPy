@@ -13,7 +13,7 @@ class Controller:
         interactable_objects,
         controller_function,
         sampling_rate,
-        initial_observed_variables=[],
+        initial_observed_variables=None,
         name="Controller",
     ):
         """Initialize the class with the controller function and the objects to
@@ -69,7 +69,7 @@ class Controller:
             A list of the initial values of the variables that the controller
             function returns. This list is used to initialize the
             `observed_variables` argument of the controller function. The
-            default value is an empty list.
+            default value is None, which initializes the list as an empty list.
         name : str
             The name of the controller. This will be used for printing and
             plotting.
@@ -85,7 +85,9 @@ class Controller:
         self.prints = _ControllerPrints
 
         self.observed_variables = (
-            initial_observed_variables  # list of lists of observed variables
+            [initial_observed_variables]
+            if initial_observed_variables is not None
+            else []
         )
 
     def __call__(self, time, state_vector, state_history):

@@ -1159,9 +1159,9 @@ class Rocket:
         drag_coefficient_curve,
         controller_function,
         sampling_rate,
-        initial_observed_variables=[],
         clamp=True,
         reference_area=None,
+        initial_observed_variables=None,
         name="AirBrakes",
         controller_name="AirBrakes Controller",
     ):
@@ -1216,11 +1216,6 @@ class Rocket:
             The sampling rate of the controller function in Hertz (Hz). This
             means that the controller function will be called every
             `1/sampling_rate` seconds.
-        initial_observed_variables : list, optional
-            A list of the initial values of the variables that the controller
-            function returns. This list is used to initialize the
-            `observed_variables` argument of the controller function. The
-            default value is an empty list.
         clamp : bool, optional
             If True, the simulation will clamp the deployed level to 0 or 1 if
             the deployed level is out of bounds. If False, the simulation will
@@ -1230,6 +1225,11 @@ class Rocket:
             Reference area used to calculate the drag force of the air brakes
             from the drag coefficient curve. If None, which is default, use
             rocket section area. Must be given in squared meters.
+        initial_observed_variables : list, optional
+            A list of the initial values of the variables that the controller
+            function returns. This list is used to initialize the
+            `observed_variables` argument of the controller function. The
+            default value is None, which initializes the list as an empty list.
         name : string, optional
             AirBrakes name, such as drogue and main. Has no impact in
             simulation, as it is only used to display data in a more
