@@ -1100,16 +1100,18 @@ class Function:
         Returns:
         - filtered_function (Function): The function that filter the incoming source
         """
-        filtered_signal = np.zeros_like(self.source) 
+        filtered_signal = np.zeros_like(self.source)
         filtered_signal[0] = self.source[0]
 
         for i in range(1, len(self.source)):
-            filtered_signal[i] = alpha * self.source[i] + (1 - alpha) * filtered_signal[i - 1]  # for each point of our dataset, we apply a exponential smoothing
+            filtered_signal[i] = (
+                alpha * self.source[i] + (1 - alpha) * filtered_signal[i - 1]
+            )  # for each point of our dataset, we apply a exponential smoothing
 
         filtered_function = Function(
-            source = filtered_signal,
+            source=filtered_signal,
             interpolation=self.__interpolation__,
-            extrapolation=self.__extrapolation__
+            extrapolation=self.__extrapolation__,
         )  # creation of the filtered function
 
         return filtered_function
