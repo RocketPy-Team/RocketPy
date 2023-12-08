@@ -1108,13 +1108,11 @@ class Function:
                 alpha * self.source[i] + (1 - alpha) * filtered_signal[i - 1]
             )  # for each point of our dataset, we apply a exponential smoothing
 
-        filtered_function = Function(
+        return Function(
             source=filtered_signal,
             interpolation=self.__interpolation__,
             extrapolation=self.__extrapolation__,
-        )  # creation of the filtered function
-
-        return filtered_function
+        )
 
     # Define all presentation methods
     def __call__(self, *args):
