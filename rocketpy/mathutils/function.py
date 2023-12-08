@@ -1104,9 +1104,8 @@ class Function:
         filtered_signal[0] = self.source[0]
 
         for i in range(1, len(self.source)):
-            filtered_signal[i] = (
-                alpha * self.source[i] + (1 - alpha) * filtered_signal[i - 1]
-            )  # for each point of our dataset, we apply a exponential smoothing
+             # for each point of our dataset, we apply a exponential smoothing
+            filtered_signal[i] = (alpha * self.source[i] + (1 - alpha) * filtered_signal[i - 1]) 
 
         return Function(
             source=filtered_signal,
