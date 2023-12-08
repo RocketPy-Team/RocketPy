@@ -1254,7 +1254,7 @@ class Rocket:
             name=name,
         )
         controller = Controller(
-            controllable_objects=air_brakes,
+            interactable_objects=air_brakes,
             controller_function=controller_function,
             sampling_rate=sampling_rate,
             initial_observed_variables=initial_observed_variables,

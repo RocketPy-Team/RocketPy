@@ -10,7 +10,7 @@ class Controller:
 
     def __init__(
         self,
-        controllable_objects,
+        interactable_objects,
         controller_function,
         sampling_rate,
         initial_observed_variables=[],
@@ -78,7 +78,7 @@ class Controller:
         -------
         None
         """
-        self.controllable_objects = controllable_objects
+        self.interactable_objects = interactable_objects
         self.controller_function = controller_function
         self.sampling_rate = sampling_rate
         self.name = name
@@ -115,7 +115,7 @@ class Controller:
             state_vector,
             state_history,
             self.observed_variables,
-            self.controllable_objects,
+            self.interactable_objects,
         )
         if observed_variables is not None:
             self.observed_variables.append(observed_variables)
