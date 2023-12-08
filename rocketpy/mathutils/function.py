@@ -1091,8 +1091,11 @@ class Function:
         Implements a low pass filter with a moving average filter
 
         Parameters:
-        - signal (numpy.ndarray): The input signal
         - alpha (float): attenuation coefficient, 0 < alpha < 1
+
+        - for a given dataset, the larger alpha is, the more closely the filtered function returned will match the function
+        - the smaller alpha is, the smoother the filtered function returned will be (but with a phase shift)
+
 
         Returns:
         - filtered_function (Function): The function that filter the incoming source
