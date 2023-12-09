@@ -4,8 +4,16 @@ from ..tools import get_distribution
 
 
 class DispersionModel:
-    """Base class for all dispersion models. This class is used to validate
-    the input parameters of the dispersion models, based on the pydantic library.
+    """Base class for all dispersion relayed classes. This class is used to
+    validate the input parameters of the dispersion models and to generate
+    random values for them.
+
+    Attributes
+    ----------
+    object : object
+        Main object of the class.
+    exception_list : list
+        List of arguments that are validated in child classes.
     """
 
     # List of arguments that are validated in child classes
@@ -17,48 +25,27 @@ class DispersionModel:
     ]
 
     def __init__(self, object, **kwargs):
-        """Validates generic fields, which are those that can be either tuples,
-        lists, ints or floats, and saves them as atrributes of the object.
-        The saved values are either tuples or lists, depending on the input type.
-        If the input is a tuple, int or float, then it is saved in the format
-        (nominal value, standard deviation, distribution function).If the input
-        is a list, then it is saved as a list of values.
-
-        The following validation rules are applied according to the input type:
-
-        - Tuples are validated as follows:
-            - Must have length 2 or 3
-            - First item must be either an int or float
-            - If length is two, then the type of the second item must be either
-              an int, float or str.
-                - If the second item is an int or float, then it is assumed that
-                  the first item is the nominal value and the second item is the
-                  standard deviation.
-                - If the second item is a string, then it is assumed that the
-                  first item is the standard deviation, and the second item is
-                  the distribution function. In this case, the nominal value
-                  will be taken from the object passed.
-            - If length is three, then it is assumed that the first item is the
-              nominal value, the second item is the standard deviation and the
-              third item is the distribution function.
-        - Lists are validated as follows:
-            - If the list is empty, then the value will be taken from the object
-              passed and saved as a list with one item.
-            - Else, the list is saved as is.
-        - Ints or floats are validated as follows:
-            - The value is assumed to be the standard deviation, the nominal
-              value will be taken from the object passed and the distribution
-              function will be set to "normal".
+        """Initialize the DispersionModel class with validated input arguments.
 
         Parameters
         ----------
-        values : dict
-            Dictionary with the object's arguments and their values.
+        main_object : object
+            The main object of the class.
+        **kwargs : dict
+            Dictionary with input arguments for the class. Arguments should be
+            provided as keyword arguments, where the key is the argument name,
+            and the value is the argument value. Valid argument types include
+            tuples, lists, ints, floats, or None. The arguments will then be
+            validated and saved as attributes of the class in the correct
+            format. See each validation method for more information.
+            None values are allowed and will be replaced by the value of the
+            attribute in the main object. When saved as an attribute, the value
+            will be saved as a list with one item.
 
-        Returns
-        -------
-        values : dict
-            Dictionary with the object's arguments and their values.
+        Raises
+        ------
+        AssertionError
+            If the input arguments do not conform to the specified formats.
         """
         self.object = object
 
@@ -102,6 +89,46 @@ class DispersionModel:
         return self.__str__()
 
     def _validate_tuple(self, input_name, input_value):
+        """Validator for tuple arguments. Checks if input is in a valid format.
+        Tuples are validated as follows:
+            - Must have length 2 or 3;
+            - First item must be either an int or float;
+            - If length is two, then the type of the second item must be either
+              an int, float or str:
+                - If the second item is an int or float, then it is assumed that
+                  the first item is the nominal value and the second item is the
+                  standard deviation;
+                - If the second item is a string, then it is assumed that the
+                  first item is the standard deviation, and the second item is
+                  the distribution function string. In this case, the nominal
+                  value will be taken from the main object;
+            - If length is three, then it is assumed that the first item is the
+              nominal value, the second item is the standard deviation and the
+              third item is the distribution function string.
+
+        Tuples are always saved as a tuple with length 3, where the first item
+        is the nominal value, the second item is the standard deviation and the
+        third item is the numpy distribution function.
+
+        Parameters
+        ----------
+        input_name : str
+            Name of the input argument.
+        input_value : tuple
+            Value of the input argument.
+
+        Returns
+        -------
+        tuple
+            Tuple with length 3, where the first item is the nominal value, the
+            second item is the standard deviation and the third item is the
+            numpy distribution function.
+
+        Raises
+        ------
+        AssertionError
+            If the input is not in a valid format.
+        """
         assert len(input_value) in [
             2,
             3,
@@ -116,6 +143,37 @@ class DispersionModel:
             return self._validate_tuple_length_three(input_name, input_value)
 
     def _validate_tuple_length_two(self, input_name, input_value):
+        """Validator for tuples with length 2. Checks if input is in a valid
+        format. If length is two, then the type of the second item must be
+        either an int, float or str:
+
+        - If the second item is an int or float, then it is assumed that the
+          first item is the nominal value and the second item is the standard
+          deviation;
+        - If the second item is a string, then it is assumed that the first
+          item is the standard deviation, and the second item is the
+          distribution function string. In this case, the nominal value will
+          be taken from the main object;
+
+        Parameters
+        ----------
+        input_name : str
+            Name of the input argument.
+        input_value : tuple
+            Value of the input argument.
+
+        Returns
+        -------
+        tuple
+            Tuple with length 3, where the first item is the nominal value, the
+            second item is the standard deviation and the third item is the
+            numpy distribution function.
+
+        Raises
+        ------
+        AssertionError
+            If the input is not in a valid format.
+        """
         assert isinstance(input_value[1], (int, float, str)), (
             f"'{input_name}': second item of tuple must be an int, float, or " "string."
         )
@@ -135,6 +193,30 @@ class DispersionModel:
             return (input_value[0], input_value[1], get_distribution("normal"))
 
     def _validate_tuple_length_three(self, input_name, input_value):
+        """Validator for tuples with length 3. Checks if input is in a valid
+        format. If length is three, then it is assumed that the first item is
+        the nominal value, the second item is the standard deviation and the
+        third item is the distribution function string.
+
+        Parameters
+        ----------
+        input_name : str
+            Name of the input argument.
+        input_value : tuple
+            Value of the input argument.
+
+        Returns
+        -------
+        tuple
+            Tuple with length 3, where the first item is the nominal value, the
+            second item is the standard deviation and the third item is the
+            numpy distribution function.
+
+        Raises
+        ------
+        AssertionError
+            If the input is not in a valid format.
+        """
         assert isinstance(input_value[1], (int, float)), (
             f"'{input_name}': Second item of a tuple with length 3 must be "
             "an int or float."
@@ -148,6 +230,29 @@ class DispersionModel:
         return (input_value[0], input_value[1], dist_func)
 
     def _validate_list(self, input_name, input_value):
+        """Validator for list arguments. Checks if input is in a valid format.
+        Lists are validated as follows:
+            - If the list is empty, then the value will be taken from the object
+              passed and returned as a list with one item.
+            - Else, the list is returned as is.
+
+        Parameters
+        ----------
+        input_name : str
+            Name of the input argument.
+        input_value : list
+            Value of the input argument.
+
+        Returns
+        -------
+        list
+            List with the input value.
+
+        Raises
+        ------
+        AssertionError
+            If the input is not in a valid format.
+        """
         if not input_value:
             # if list is empty, then the value will be taken from the object
             # passed and saved as a list with one item.
@@ -157,6 +262,31 @@ class DispersionModel:
             return input_value
 
     def _validate_scalar(self, input_name, input_value):
+        """Validator for scalar arguments. Checks if input is in a valid format.
+        Scalars are validated as follows:
+            - The value is assumed to be the standard deviation, the nominal
+              value will be taken from the object passed and the distribution
+              function will be set to "normal".
+
+        Parameters
+        ----------
+        input_name : str
+            Name of the input argument.
+        input_value : float
+            Value of the input argument.
+
+        Returns
+        -------
+        tuple
+            Tuple with length 3, where the first item is the nominal value, the
+            second item is the standard deviation and the third item is the
+            numpy distribution function.
+
+        Raises
+        ------
+        AssertionError
+            If the input is not in a valid format.
+        """
         return (
             getattr(self.object, input_name),
             input_value,
@@ -166,8 +296,20 @@ class DispersionModel:
     def _validate_factors(self, input_name, input_value):
         """Validator for factor arguments. Checks if input is in a valid format.
         Factors can only be tuples of two or three items, or lists. Currently,
-        the supported factors are: windXFactor, windYFactor, powerOffDragFactor,
-        powerOnDragFactor.
+        the supported factors are: wind_velocity_x_factor,
+        wind_velocity_y_factor, power_off_drag_factor, power_on_drag_factor.
+
+        Parameters
+        ----------
+        input_name : str
+            Name of the input argument.
+        input_value : tuple or list
+            Value of the input argument.
+
+        Returns
+        -------
+        tuple or list
+            Tuple or list in the correct format.
 
         Raises
         ------
@@ -187,6 +329,30 @@ class DispersionModel:
             raise AssertionError(f"`{input_name}`: must be either a tuple or list")
 
     def _validate_tuple_factor(self, input_name, factor_tuple):
+        """Validator for tuple factors. Checks if input is in a valid format.
+        Tuple factors can only have length 2 or 3. If length is two, then the
+        type of the second item must be either an int, float or str. If length
+        is three, then it is assumed that the first item is the nominal value,
+        the second item is the standard deviation and the third item is the
+        distribution function string.
+
+        Parameters
+        ----------
+        input_name : str
+            Name of the input argument.
+        factor_tuple : tuple
+            Value of the input argument.
+
+        Returns
+        -------
+        tuple
+            Tuple in the correct format.
+
+        Raises
+        ------
+        AssertionError
+            If input is not in a valid format.
+        """
         assert len(factor_tuple) in [
             2,
             3,
@@ -206,24 +372,48 @@ class DispersionModel:
             return (factor_tuple[0], factor_tuple[1], dist_func)
 
     def _validate_list_factor(self, input_name, factor_list):
+        """Validator for list factors. Checks if input is in a valid format.
+        List factors can only be lists of ints or floats.
+
+        Parameters
+        ----------
+        input_name : str
+            Name of the input argument.
+        factor_list : list
+            Value of the input argument.
+
+        Returns
+        -------
+        list
+            List in the correct format.
+
+        Raises
+        ------
+        AssertionError
+            If input is not in a valid format.
+        """
         assert all(
             isinstance(item, (int, float)) for item in factor_list
         ), f"'{input_name}`: Items in list must be either ints or floats"
         return factor_list
 
     def dict_generator(self):
-        """Generates a dictionary with the randomized values of the object's
-        arguments and saves it in self.last_rnd_dict. Dictionary is keys are
-        the object's arguments and values are the randomized values.
+        """Generator that yields a dictionary with the randomly generated input
+        arguments. The dictionary is saved as an attribute of the class.
+        The dictionary is generated by looping through all attributes of the
+        class and generating a random value for each attribute. The random
+        values are generated according to the format of each attribute. Tuples
+        are generated using the distribution function specified in the tuple.
+        Lists are generated using the random.choice function.
 
         Parameters
         ----------
         None
 
         Yields
-        ------
-        generated_dict : dict
-            Dictionary with randomized values of the object's arguments.
+        -------
+        dict
+            Dictionary with the randomly generated input arguments.
         """
         generated_dict = {}
         for arg, value in self.__dict__.items():
