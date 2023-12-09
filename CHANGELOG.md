@@ -42,14 +42,23 @@ straightforward as possible.
 
 -
 
-## [v1.1.3] - 2023-11-29
+## [v1.1.4] - 2023-12-07
 
-Here we write upgrading notes for brands. It's a team effort to make them as
-straightforward as possible.
+You can install this version by running `pip install rocketpy==1.1.4`
 
 ### Fixed
 
--  FIX: Broken Function.get_value_opt for N-Dimensional Functions [#492](https://github.com/RocketPy-Team/RocketPy/pull/492/files) 
+- DOC: Change from % to ! in the first cell to run properly in Colab. [#496](https://github.com/RocketPy-Team/RocketPy/pull/496)
+- FIX: changes Generic Motor exhaust velocity to cached property [#497](https://github.com/RocketPy-Team/RocketPy/pull/497)
+
+## [v1.1.3] - 2023-11-30
+
+You can install this version by running `pip install rocketpy==1.1.3`
+
+### Fixed
+
+-  FIX: Broken Function.get_value_opt for N-Dimensional Functions [#492](https://github.com/RocketPy-Team/RocketPy/pull/492) 
+-  FIX: Never ending Flight simulations when using a GenericMotor [#497](https://github.com/RocketPy-Team/RocketPy/pull/497) 
 
 ## [v1.1.2] - 2023-11-25
 
