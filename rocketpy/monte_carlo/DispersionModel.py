@@ -12,6 +12,7 @@ class DispersionModel:
     exception_list = [
         "initial_solution",
         "terminate_on_apogee",
+        "date",
         "ensemble_member",
     ]
 
@@ -62,20 +63,25 @@ class DispersionModel:
         self.object = object
 
         for input_name, input_value in kwargs.items():
-            if input_name not in self.exception_list and input_value is not None:
-                if "factor" in input_name:
-                    attr_value = self._validate_factors(input_name, input_value)
-                elif input_name not in self.exception_list:
-                    if isinstance(input_value, tuple):
-                        attr_value = self._validate_tuple(input_name, input_value)
-                    elif isinstance(input_value, list):
-                        attr_value = self._validate_list(input_name, input_value)
-                    elif isinstance(input_value, (int, float)):
-                        attr_value = self._validate_scalar(input_name, input_value)
-                    else:
-                        raise ValueError(
-                            f"'{input_name}' must be a tuple, list, int, or float"
-                        )
+            if input_name not in self.exception_list:
+                if input_value is not None:
+                    if "factor" in input_name:
+                        attr_value = self._validate_factors(input_name, input_value)
+                    elif input_name not in self.exception_list:
+                        if isinstance(input_value, tuple):
+                            attr_value = self._validate_tuple(input_name, input_value)
+                        elif isinstance(input_value, list):
+                            attr_value = self._validate_list(input_name, input_value)
+                        elif isinstance(input_value, (int, float)):
+                            attr_value = self._validate_scalar(input_name, input_value)
+                        else:
+                            raise ValueError(
+                                f"'{input_name}' must be a tuple, list, int, or float"
+                            )
+                else:
+                    # if input_value is None, then the value will be taken from
+                    # the main object and saved as a one item list.
+                    attr_value = [getattr(self.object, input_name)]
                 setattr(self, input_name, attr_value)
 
     def __str__(self):
@@ -111,7 +117,7 @@ class DispersionModel:
 
     def _validate_tuple_length_two(self, input_name, input_value):
         assert isinstance(input_value[1], (int, float, str)), (
-            f"'{input_name}': second item of tuple must be an " "int, float, or string."
+            f"'{input_name}': second item of tuple must be an int, float, or " "string."
         )
 
         if isinstance(input_value[1], str):
