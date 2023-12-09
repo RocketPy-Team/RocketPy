@@ -1,7 +1,3 @@
-__author__ = "Mateus Stano Junqueira, Guilherme Fernandes Alves"
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
 from typing import Any, List, Union
 
 from pydantic import Field, FilePath, PrivateAttr
@@ -17,7 +13,7 @@ from rocketpy.rocket.components import Components
 from rocketpy.rocket.rocket import Rocket
 from rocketpy.tools import get_distribution
 
-from .DispersionModel import DispersionModel
+from .dispersion_model import DispersionModel
 from .mc_aero_surfaces import (
     McEllipticalFins,
     McNoseCone,

@@ -1,7 +1,7 @@
 from random import choice
 
 from ..tools import get_distribution
-from .DispersionModel import DispersionModel
+from .dispersion_model import DispersionModel
 
 
 class MotorDispersionModel(DispersionModel):

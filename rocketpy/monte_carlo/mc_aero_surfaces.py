@@ -10,7 +10,7 @@ from rocketpy.rocket.aero_surface import (
     TrapezoidalFins,
 )
 
-from .DispersionModel import DispersionModel
+from .dispersion_model import DispersionModel
 
 
 class McNoseCone(DispersionModel):

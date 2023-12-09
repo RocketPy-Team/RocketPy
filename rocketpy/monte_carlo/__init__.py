@@ -1,4 +1,4 @@
-from .DispersionModel import DispersionModel
+from .dispersion_model import DispersionModel
 from .mc_aero_surfaces import (
     McEllipticalFins,
     McNoseCone,

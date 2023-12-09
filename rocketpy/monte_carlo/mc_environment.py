@@ -1,6 +1,6 @@
 from rocketpy.environment import Environment
 
-from .DispersionModel import DispersionModel
+from .dispersion_model import DispersionModel
 
 # TODO: name suggestions: `DispersionEnvironment`, `DispEnvironment`, EnvironmentDispersion`, EnvironmentDisp`, `MonteCarloEnvironment`, `EnvironmentMonteCarlo`,
 
