@@ -1,6 +1,3 @@
-from random import choice
-
-from ..tools import get_distribution
 from .dispersion_model import DispersionModel
 
 
@@ -11,27 +8,9 @@ class MotorDispersionModel(DispersionModel):
     """
 
     def __init__(self, object, **kwargs):
-        self._validate_thrust_source(kwargs.get("thrust_source"))
+        self._validate_1d_array_like("thrust_source", kwargs.get("thrust_source"))
         self._validate_grain_number(kwargs.get("grain_number"))
         super().__init__(object, **kwargs)
-
-    def _validate_thrust_source(self, thrust_source):
-        """Validates the thrust source input.
-
-        Parameters
-        ----------
-        thrust_source : list
-            List of strings representing the thrust source to be selected.
-
-        Raises
-        ------
-        AssertionError
-            If `thrust_source` is not a list of strings.
-        """
-        if thrust_source is not None:
-            assert isinstance(thrust_source, list) and all(
-                isinstance(member, str) for member in thrust_source
-            ), "`thrust_source` must be a list of strings"
 
     def _validate_grain_number(self, grain_number):
         """Validates the grain number input. If the grain number input argument

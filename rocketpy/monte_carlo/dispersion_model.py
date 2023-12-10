@@ -1,5 +1,9 @@
 from random import choice
 
+import numpy as np
+
+from rocketpy.mathutils.function import Function
+
 from ..tools import get_distribution
 
 
@@ -396,6 +400,48 @@ class DispersionModel:
             isinstance(item, (int, float)) for item in factor_list
         ), f"'{input_name}`: Items in list must be either ints or floats"
         return factor_list
+
+    def _validate_1d_array_like(self, input_name, input_value):
+        """Validator for 1D array like arguments. Checks if input is in a valid
+        format. 1D array like arguments can only be lists of strings, lists of
+        Functions, or lists of lists with shape (n,2).
+
+        Parameters
+        ----------
+        input_name : str
+            Name of the input argument.
+        input_value : list
+            Value of the input argument.
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        AssertionError
+            If input is not in a valid format.
+        """
+        # Check if input_value is not None
+        if input_value is not None:
+            error_msg = (
+                f"`{input_name}` must be a list of path strings, "
+                + "lists with shape (n,2), or Functions."
+            )
+
+            # Inputs must always be a list
+            if not isinstance(input_value, list):
+                raise AssertionError(error_msg)
+
+            for member in input_value:
+                # if item is a list, then it must have shape (n,2)
+                if isinstance(member, list):
+                    if len(np.shape(member)) != 2 and np.shape(member)[1] != 2:
+                        raise AssertionError(error_msg)
+
+                # If item is not a string or Function, then raise error
+                elif not isinstance(member, (str, Function)):
+                    raise AssertionError(error_msg)
 
     def dict_generator(self):
         """Generator that yields a dictionary with the randomly generated input
