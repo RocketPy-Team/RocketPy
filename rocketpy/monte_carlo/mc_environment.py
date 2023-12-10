@@ -24,8 +24,8 @@ class McEnvironment(DispersionModel):
         latitude=None,
         longitude=None,
         ensemble_member=None,
-        wind_velocity_x_factor=None,
-        wind_velocity_y_factor=None,
+        wind_velocity_x_factor=(1, 0),
+        wind_velocity_y_factor=(1, 0),
     ):
         """Initializes the Monte Carlo Environment class.
 
