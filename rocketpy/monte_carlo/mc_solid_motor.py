@@ -19,7 +19,8 @@ class McSolidMotor(MotorDispersionModel):
         solid_motor,
         thrust_source=None,
         total_impulse=None,
-        burn_time=None,
+        burn_start_time=None,
+        burn_out_time=None,
         dry_mass=None,
         dry_inertia_11=None,
         dry_inertia_22=None,
@@ -113,12 +114,12 @@ class McSolidMotor(MotorDispersionModel):
             Radius of the throat in the motor in meters. Follows the standard
             input format of Dispersion Models.
         """
-
         super().__init__(
             solid_motor,
             thrust_source=thrust_source,
             total_impulse=total_impulse,
-            burn_time=burn_time,
+            burn_start_time=burn_start_time,
+            burn_out_time=burn_out_time,
             dry_mass=dry_mass,
             dry_I_11=dry_inertia_11,
             dry_I_22=dry_inertia_22,
