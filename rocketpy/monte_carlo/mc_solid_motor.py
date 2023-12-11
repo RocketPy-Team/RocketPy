@@ -172,10 +172,13 @@ class McSolidMotor(MotorDispersionModel):
             ],
             center_of_dry_mass_position=generated_dict["center_of_dry_mass_position"],
             nozzle_position=generated_dict["nozzle_position"],
-            burn_time=generated_dict["burn_time"],
+            burn_time=(
+                generated_dict["burn_start_time"],
+                generated_dict["burn_out_time"],
+            ),
             throat_radius=generated_dict["throat_radius"],
             reshape_thrust_curve=(
-                generated_dict["burn_time"],
+                (generated_dict["burn_start_time"], generated_dict["burn_out_time"]),
                 generated_dict["total_impulse"],
             ),
         )
