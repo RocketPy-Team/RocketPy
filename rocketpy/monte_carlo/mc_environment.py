@@ -12,13 +12,9 @@ class McEnvironment(DispersionModel):
     the ones defined in the Environment class.
     """
 
-    # TODO: Since we are not recreating the environment object, to avoid having
-    # to reestablish the atmospheric model, I believe date, datum, time_zone
-    # and maybe elevation do not do anything?
     def __init__(
         self,
         environment,
-        date=None,
         elevation=None,
         gravity=None,
         latitude=None,
@@ -63,7 +59,7 @@ class McEnvironment(DispersionModel):
         # Validate in DispersionModel
         super().__init__(
             environment,
-            date=date,
+            date=None,
             elevation=elevation,
             gravity=gravity,
             latitude=latitude,
@@ -71,9 +67,9 @@ class McEnvironment(DispersionModel):
             ensemble_member=ensemble_member,
             wind_velocity_x_factor=wind_velocity_x_factor,
             wind_velocity_y_factor=wind_velocity_y_factor,
+            datum=None,
+            timezone=None,
         )
-        # Special validation
-        self._validate_date(date, environment)
         self._validate_ensemble(ensemble_member, environment)
 
     def __str__(self):
@@ -145,38 +141,6 @@ class McEnvironment(DispersionModel):
         else:
             # if no ensemble member is provided, get it from the environment
             setattr(self, "ensemble_member", environment.ensemble_member)
-
-    def _validate_date(self, date, environment):
-        """Validates the date input argument. If the date input argument is
-        None, gets the date from the environment and saves it as a list of
-        one element. Else, the input argument must be a list with tuples of four
-        elements (year, month, day, hour)
-
-        Parameters
-        ----------
-        date : list
-            Date to be used for validation.
-        environment : Environment
-            Environment object to be used for validation.
-
-        Returns
-        -------
-        None
-
-        Raises
-        ------
-        AssertionError
-            If the date input argument is not None, a datetime object or a list
-            of datetime objects.
-        """
-        if date is None:
-            date = [environment.date]
-        else:
-            assert isinstance(date, list) and all(
-                isinstance(member, tuple) and len(member) == 4 for member in date
-            ), "`date` must be a list of tuples of four elements "
-            "(year, month, day, hour)"
-        setattr(self, "date", date)
 
     def create_object(self):
         """Creates a Environment object from the randomly generated input
