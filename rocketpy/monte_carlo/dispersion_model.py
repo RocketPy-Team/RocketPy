@@ -33,7 +33,7 @@ class DispersionModel:
 
         Parameters
         ----------
-        main_object : object
+        object : object
             The main object of the class.
         **kwargs : dict
             Dictionary with input arguments for the class. Arguments should be
@@ -143,7 +143,7 @@ class DispersionModel:
 
         if len(input_value) == 2:
             return self._validate_tuple_length_two(input_name, input_value)
-        elif len(input_value) == 3:
+        if len(input_value) == 3:
             return self._validate_tuple_length_three(input_name, input_value)
 
     def _validate_tuple_length_two(self, input_name, input_value):
@@ -422,7 +422,6 @@ class DispersionModel:
         AssertionError
             If input is not in a valid format.
         """
-        # Check if input_value is not None
         if input_value is not None:
             error_msg = (
                 f"`{input_name}` must be a list of path strings, "
