@@ -123,3 +123,38 @@ def test_integral_function():
     """
     zero_func = Function(0)
     assert isinstance(zero_func, Function)
+
+
+@pytest.mark.parametrize(
+    "x, y, z",
+    [
+        (0, 0, 11.22540929),
+        (1, 2, 10),
+        (2, 3, 15.272727273),
+        (3, 4, 20),
+        (4, 5, 24.727272727),
+        (5, 6, 30),
+        (10, 10, 25.7201184),
+    ],
+)
+def test_get_value_opt(x, y, z):
+    """Test the get_value_opt method of the Function class. Currently only tests
+    a 2D function with shepard interpolation method. The tests are made on
+    points that are present or not in the source array.
+
+    Parameters
+    ----------
+    x : scalar
+        The x-coordinate.
+    y : scalar
+        The y-coordinate.
+    z : float
+        The expected interpolated value at (x, y).
+    """
+    x_data = np.array([1.0, 3.0, 5.0])
+    y_data = np.array([2.0, 4.0, 6.0])
+    z_data = np.array([10.0, 20.0, 30.0])
+    source = np.column_stack((x_data, y_data, z_data))
+    func = Function(source, interpolation="shepard", extrapolation="natural")
+    assert isinstance(func.get_value_opt(x, y), float)
+    assert np.isclose(func.get_value_opt(x, y), z, atol=1e-6)

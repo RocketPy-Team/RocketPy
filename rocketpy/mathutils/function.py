@@ -488,19 +488,18 @@ class Function:
 
             # change the function's name to avoid mypy's error
             def get_value_opt_multiple(*args):
-                x = np.array([[float(x) for x in list(args)]])
-                numerator_sum = 0
-                denominator_sum = 0
-                for i in range(len_y_data):
-                    sub = x_data[i] - x
-                    distance = np.linalg.norm(sub)
-                    if distance == 0:
-                        numerator_sum = y_data[i]
-                        denominator_sum = 1
-                        break
-                    weight = distance ** (-3)
-                    numerator_sum = numerator_sum + y_data[i] * weight
-                    denominator_sum = denominator_sum + weight
+                x = np.array([[float(val) for val in args]])
+                sub_matrix = x_data - x
+                distances_squared = np.sum(sub_matrix**2, axis=1)
+
+                zero_distance_index = np.where(distances_squared == 0)[0]
+                if len(zero_distance_index) > 0:
+                    return y_data[zero_distance_index[0]]
+
+                weights = distances_squared ** (-1.5)
+                numerator_sum = np.sum(y_data * weights)
+                denominator_sum = np.sum(weights)
+
                 return numerator_sum / denominator_sum
 
             get_value_opt = get_value_opt_multiple
