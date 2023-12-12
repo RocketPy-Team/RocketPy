@@ -1091,14 +1091,18 @@ class Function:
         Implements a low pass filter with a moving average filter
 
         Parameters:
-        - alpha (float): attenuation coefficient, 0 < alpha < 1
-
-        - for a given dataset, the larger alpha is, the more closely the filtered function returned will match the function
-        - the smaller alpha is, the smoother the filtered function returned will be (but with a phase shift)
-
+        ----------
+        - alpha : float 
+            Attenuation coefficient, 0 < alpha < 1
+            For a given dataset, the larger alpha is, the more closely the 
+            filtered function returned will match the function the smaller 
+            alpha is, the smoother the filtered function returned will be 
+            (but with a phase shift)
 
         Returns:
-        - filtered_function (Function): The function that filter the incoming source
+        ----------
+        - filtered_function : Function 
+            The function with the incoming source filtered
         """
         filtered_signal = np.zeros_like(self.source)
         filtered_signal[0] = self.source[0]
