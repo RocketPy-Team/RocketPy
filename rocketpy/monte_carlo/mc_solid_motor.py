@@ -138,6 +138,8 @@ class McSolidMotor(MotorDispersionModel):
             center_of_dry_mass_position=center_of_dry_mass_position,
             nozzle_position=nozzle_position,
             throat_radius=throat_radius,
+            interpolate=None,
+            coordinate_system_orientation=None,
         )
 
     def create_object(self):
@@ -149,7 +151,7 @@ class McSolidMotor(MotorDispersionModel):
             SolidMotor object with random input parameters.
         """
         generated_dict = next(self.dict_generator())
-        obj = SolidMotor(
+        solid_motor = SolidMotor(
             thrust_source=generated_dict["thrust_source"],
             dry_mass=generated_dict["dry_mass"],
             dry_inertia=(
@@ -182,6 +184,4 @@ class McSolidMotor(MotorDispersionModel):
                 generated_dict["total_impulse"],
             ),
         )
-        if "position" in generated_dict:
-            obj.position = generated_dict["position"]
-        return obj
+        return solid_motor
