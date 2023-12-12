@@ -2,14 +2,42 @@ from rocketpy.environment import Environment
 
 from .dispersion_model import DispersionModel
 
-# TODO: name suggestions: `DispersionEnvironment`, `DispEnvironment`, EnvironmentDispersion`, EnvironmentDisp`, `MonteCarloEnvironment`, `EnvironmentMonteCarlo`,
-
 
 class McEnvironment(DispersionModel):
-    """Monte Carlo Environment class, used to validate the input parameters of
-    the environment. It uses the DispersionModel class as a base class, see its
-    documentation for more information. The inputs defined here correspond to
-    the ones defined in the Environment class.
+    """A Monte Carlo Environment class that inherits from MonteCarloModel. This
+    class is used to receive a Environment object and information about the
+    dispersion of its parameters and generate a random environment object based
+    on the provided information.
+
+    Attributes
+    ----------
+    object : Environment
+        Environment object to be used for validation.
+    elevation : tuple, list, int, float
+        Elevation of the launch site in meters. Follows the standard input
+        format of Dispersion Models.
+    gravity : tuple, list, int, float
+        Gravitational acceleration in meters per second squared. Follows the
+        standard input format of Dispersion Models.
+    latitude : tuple, list, int, float
+        Latitude of the launch site in degrees. Follows the standard input
+        format of Dispersion Models.
+    longitude : tuple, list, int, float
+        Longitude of the launch site in degrees. Follows the standard input
+        format of Dispersion Models.
+    ensemble_member : list
+        List of integers representing the ensemble member to be selected.
+    wind_velocity_x_factor : tuple, list, int, float
+        Factor to be multiplied by the wind velocity in the x direction.
+    wind_velocity_y_factor : tuple, list, int, float
+        Factor to be multiplied by the wind velocity in the y direction.
+    date : list
+        List of dates, which are tuples of four elements
+        (year, month, day, hour). This attribute can not be randomized.
+    datum : list
+        List of datum. This attribute can not be randomized.
+    timezone : list
+        List of timezones. This attribute can not be randomized.
     """
 
     def __init__(
@@ -53,8 +81,10 @@ class McEnvironment(DispersionModel):
             List of integers representing the ensemble member to be selected.
         wind_velocity_x_factor : int, float, tuple, list, optional
             Factor to be multiplied by the wind velocity in the x direction.
+            Follows the factor input format of Dispersion Models.
         wind_velocity_y_factor : int, float, tuple, list, optional
             Factor to be multiplied by the wind velocity in the y direction.
+            Follows the factor input format of Dispersion Models.
         """
         # Validate in DispersionModel
         super().__init__(

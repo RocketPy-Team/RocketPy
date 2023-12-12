@@ -8,16 +8,11 @@ from ..tools import get_distribution
 
 
 class DispersionModel:
-    """Base class for all dispersion related classes. This class is used to
-    validate the input parameters of the dispersion models and to generate
-    random values for them.
-
-    Attributes
-    ----------
-    object : object
-        Main object of the class.
-    exception_list : list
-        List of arguments that are validated in child classes.
+    """Base class for all Monte Carlo classes. This class is used to validate
+    the input arguments of the child classes. The input arguments are validated
+    and saved as attributes of the class in the correct format. The attributes
+    are then used to generate a dictionary with the randomly generated input
+    arguments. The dictionary is saved as an attribute of the class.
     """
 
     # List of arguments that are validated in child classes

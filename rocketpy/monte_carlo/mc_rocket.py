@@ -27,6 +27,69 @@ from .mc_solid_motor import McSolidMotor
 
 
 class McRocket(DispersionModel):
+    """A Monte Carlo Rocket class that inherits from MonteCarloModel. This
+    class is used to receive a Rocket object and information about the
+    dispersion of its parameters and generate a random rocket object based on
+    the provided information.
+
+    Attributes
+    ----------
+    object : Rocket
+        The Rocket object to be used as a base for the Monte Carlo rocket.
+    motors : Components
+        A Components instance containing all the motors of the rocket.
+    aerodynamic_surfaces : Components
+        A Components instance containing all the aerodynamic surfaces of the
+        rocket.
+    rail_buttons : Components
+        A Components instance containing all the rail buttons of the rocket.
+    parachutes : list of McParachute
+        A list of McParachute instances containing all the parachutes of the
+        rocket.
+    radius : tuple, list, int, float
+        The radius of the rocket. Follows the standard input format of
+        Dispersion Models.
+    mass : tuple, list, int, float
+        The mass of the rocket. Follows the standard input format of
+        Dispersion Models.
+    inertia_11 : tuple, list, int, float
+        The inertia of the rocket around the x axis. Follows the standard input
+        format of Dispersion Models.
+    inertia_22 : tuple, list, int, float
+        The inertia of the rocket around the y axis. Follows the standard input
+        format of Dispersion Models.
+    inertia_33 : tuple, list, int, float
+        The inertia of the rocket around the z axis. Follows the standard input
+        format of Dispersion Models.
+    inertia_12 : tuple, list, int, float
+        The inertia of the rocket around the xy axis. Follows the standard
+        input format of Dispersion Models.
+    inertia_13 : tuple, list, int, float
+        The inertia of the rocket around the xz axis. Follows the standard
+        input format of Dispersion Models.
+    inertia_23 : tuple, list, int, float
+        The inertia of the rocket around the yz axis. Follows the standard
+        input format of Dispersion Models.
+    power_off_drag : list
+        The power off drag of the rocket. Follows the 1d array like input format
+        of Dispersion Models.
+    power_on_drag : list
+        The power on drag of the rocket. Follows the 1d array like input format
+        of Dispersion Models.
+    power_off_drag_factor : tuple, list, int, float
+        The power off drag factor of the rocket. Follows the factor input
+        format of Dispersion Models.
+    power_on_drag_factor : tuple, list, int, float
+        The power on drag factor of the rocket. Follows the standard input
+        format of Dispersion Models.
+    center_of_mass_without_motor : tuple, list, int, float
+        The center of mass of the rocket without the motor. Follows the
+        standard input format of Dispersion Models.
+    coordinate_system_orientation : list
+        The orientation of the coordinate system of the rocket. This attribute
+        can not be a randomized.
+    """
+
     def __init__(
         self,
         rocket,
@@ -44,6 +107,57 @@ class McRocket(DispersionModel):
         power_on_drag_factor=(1, 0),
         center_of_mass_without_motor=None,
     ):
+        """Initializes the Monte Carlo Rocket class.
+
+        See Also
+        --------
+        This should link to somewhere that explains how inputs works in
+        dispersion models.
+
+        Parameters
+        ----------
+        rocket : Rocket
+            The Rocket object to be used as a base for the Monte Carlo rocket.
+        radius : int, float, tuple, list, optional
+            The radius of the rocket. Follows the standard input format of
+            Dispersion Models.
+        mass : int, float, tuple, list, optional
+            The mass of the rocket. Follows the standard input format of
+            Dispersion Models.
+        inertia_11 : int, float, tuple, list, optional
+            The inertia of the rocket around the x axis. Follows the standard
+            input format of Dispersion Models.
+        inertia_22 : int, float, tuple, list, optional
+            The inertia of the rocket around the y axis. Follows the standard
+            input format of Dispersion Models.
+        inertia_33 : int, float, tuple, list, optional
+            The inertia of the rocket around the z axis. Follows the standard
+            input format of Dispersion Models.
+        inertia_12 : int, float, tuple, list, optional
+            The inertia of the rocket around the xy axis. Follows the standard
+            input format of Dispersion Models.
+        inertia_13 : int, float, tuple, list, optional
+            The inertia of the rocket around the xz axis. Follows the standard
+            input format of Dispersion Models.
+        inertia_23 : int, float, tuple, list, optional
+            The inertia of the rocket around the yz axis. Follows the standard
+            input format of Dispersion Models.
+        power_off_drag : list, optional
+            The power off drag of the rocket. Follows the 1d array like input
+            format of Dispersion Models.
+        power_on_drag : list, optional
+            The power on drag of the rocket. Follows the 1d array like input
+            format of Dispersion Models.
+        power_off_drag_factor : int, float, tuple, list, optional
+            The power off drag factor of the rocket. Follows the factor input
+            format of Dispersion Models.
+        power_on_drag_factor : int, float, tuple, list, optional
+            The power on drag factor of the rocket. Follows the standard input
+            format of Dispersion Models.
+        center_of_mass_without_motor : int, float, tuple, list, optional
+            The center of mass of the rocket without the motor. Follows the
+            standard input format of Dispersion Models.
+        """
         self._validate_1d_array_like("power_off_drag", power_off_drag)
         self._validate_1d_array_like("power_on_drag", power_on_drag)
         super().__init__(
@@ -93,15 +207,6 @@ class McRocket(DispersionModel):
                         s += f"at position: {component.position}\n"
                     else:
                         s += f"at position: {component.position:.5f}\n"
-            # elif isinstance(value, list) and isinstance(value[0], Parachute):
-            #     s += f"{key}:\n"
-            #     for parachute in value:
-            #         s += f"\t{parachute.name} "
-            #         s += f"with CdS: {parachute.cd_s:.5f} "
-            #         s += f"at trigger: {parachute.trigger:.5f} "
-            #         s += f"with sampling rate: {parachute.sampling_rate:.5f} "
-            #         s += f"with lag: {parachute.lag:.5f} "
-            #         s += f"with noise: {parachute.noise:.5f}\n"
             else:
                 # Otherwise, just use the default string representation of the value.
                 value_str = str(value)
@@ -114,6 +219,17 @@ class McRocket(DispersionModel):
         return s.strip()
 
     def add_motor(self, motor, position=None):
+        """Adds a monte carlo motor to the monte carlo rocket. If a motor is
+        already present, it will be replaced.
+
+        Parameters
+        ----------
+        motor : McMotor or Motor
+            The motor to be added to the monte carlo rocket.
+        position : tuple, list, int, float, optional
+            The position of the motor. Follows the standard input format of
+            Dispersion Models.
+        """
         # checks if there is a motor already
         if len(self.motors) > 0:
             warnings.warn(
@@ -132,6 +248,26 @@ class McRocket(DispersionModel):
         self.motors.add(motor, self._validate_position(motor, position))
 
     def _add_surfaces(self, surfaces, positions, type, monte_carlo_type, error_message):
+        """Adds a monte carlo aerodynamic surface to the monte carlo rocket. If
+        an aerodynamic surface is already present, it will be replaced.
+
+        Parameters
+        ----------
+        surfaces : McAeroSurface or AeroSurface
+            The aerodynamic surface to be added to the monte carlo rocket.
+        positions : tuple, list, int, float, optional
+            The position of the aerodynamic surface. Follows the standard input
+            format of Dispersion Models.
+        type : type
+            The type of the aerodynamic surface to be added to the monte carlo
+            rocket.
+        monte_carlo_type : type
+            The type of the monte carlo aerodynamic surface to be added to the
+            monte carlo rocket.
+        error_message : str
+            The error message to be raised if the input is not of the correct
+            type.
+        """
         if not isinstance(surfaces, (type, monte_carlo_type)):
             raise AssertionError(error_message)
         if isinstance(surfaces, type):
@@ -142,6 +278,16 @@ class McRocket(DispersionModel):
         )
 
     def add_nose(self, nose, position=None):
+        """Adds a monte carlo nose cone to the monte carlo rocket.
+
+        Parameters
+        ----------
+        nose : McNoseCone or NoseCone
+            The nose cone to be added to the monte carlo rocket.
+        position : tuple, list, int, float, optional
+            The position of the nose cone. Follows the standard input format of
+            Dispersion Models.
+        """
         self._add_surfaces(
             nose,
             position,
@@ -151,6 +297,16 @@ class McRocket(DispersionModel):
         )
 
     def add_trapezoidal_fins(self, fins, position=None):
+        """Adds a monte carlo trapezoidal fins to the monte carlo rocket.
+
+        Parameters
+        ----------
+        fins : McTrapezoidalFins or TrapezoidalFins
+            The trapezoidal fins to be added to the monte carlo rocket.
+        position : tuple, list, int, float, optional
+            The position of the trapezoidal fins. Follows the standard input
+            format of Dispersion Models.
+        """
         self._add_surfaces(
             fins,
             position,
@@ -160,6 +316,16 @@ class McRocket(DispersionModel):
         )
 
     def add_elliptical_fins(self, fins, position=None):
+        """Adds a monte carlo elliptical fins to the monte carlo rocket.
+
+        Parameters
+        ----------
+        fins : McEllipticalFins or EllipticalFins
+            The elliptical fins to be added to the monte carlo rocket.
+        position : tuple, list, int, float, optional
+            The position of the elliptical fins. Follows the standard input
+            format of Dispersion Models.
+        """
         self._add_surfaces(
             fins,
             position,
@@ -169,6 +335,16 @@ class McRocket(DispersionModel):
         )
 
     def add_tail(self, tail, position=None):
+        """Adds a monte carlo tail to the monte carlo rocket.
+
+        Parameters
+        ----------
+        tail : McTail or Tail
+            The tail to be added to the monte carlo rocket.
+        position : tuple, list, int, float, optional
+            The position of the tail. Follows the standard input format of
+            Dispersion Models.
+        """
         self._add_surfaces(
             tail,
             position,
@@ -178,6 +354,13 @@ class McRocket(DispersionModel):
         )
 
     def add_parachute(self, parachute):
+        """Adds a monte carlo parachute to the monte carlo rocket.
+
+        Parameters
+        ----------
+        parachute : McParachute or Parachute
+            The parachute to be added to the monte carlo rocket.
+        """
         # checks if input is a McParachute type
         if not isinstance(parachute, (Parachute, McParachute)):
             raise AssertionError("`parachute` must be of Parachute or McParachute type")
@@ -191,6 +374,16 @@ class McRocket(DispersionModel):
         rail_buttons,
         lower_button_position=None,
     ):
+        """Sets the rail buttons of the monte carlo rocket.
+
+        Parameters
+        ----------
+        rail_buttons : McRailButtons or RailButtons
+            The rail buttons to be added to the monte carlo rocket.
+        lower_button_position : tuple, list, int, float, optional
+            The position of the lower button. Follows the standard input format
+            of Dispersion Models.
+        """
         if not isinstance(rail_buttons, (McRailButtons, RailButtons)):
             raise AssertionError(
                 "`rail_buttons` must be of RailButtons or McRailButtons type"
@@ -252,7 +445,20 @@ class McRocket(DispersionModel):
             raise AssertionError(f"`position` must be a tuple, list, int, or float")
 
     def _create_get_position(self, validated_object):
-        """Validate a position provided as a scalar."""
+        """Create a function to get the nominal position from an object.
+
+        Parameters
+        ----------
+        validated_object : object
+            The object to which the position argument refers to.
+
+        Returns
+        -------
+        function
+            Function to get the nominal position from an object. The function
+            must receive two arguments.
+        """
+
         # try to get position from object
         error_msg = (
             "`position` standard deviation was provided but the rocket does "
@@ -307,6 +513,14 @@ class McRocket(DispersionModel):
             return choice(position) if position else position
 
     def create_object(self):
+        """Creates and returns a Rocket object from the randomly generated input
+        arguments.
+
+        Returns
+        -------
+        rocket : Rocket
+            Rocket object with the randomly generated input arguments.
+        """
         generated_dict = next(self.dict_generator())
         rocket = Rocket(
             radius=generated_dict["radius"],
