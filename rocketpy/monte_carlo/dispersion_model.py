@@ -465,6 +465,41 @@ class DispersionModel:
                 isinstance(member, int) and member >= 0 for member in input_value
             ), f"`{input_name}` must be a list of positive integers"
 
+    def _validate_airfoil(self, airfoil):
+        """Validates the input argument: if it is not None, it must be a list
+        of tuples with two items, where the first can be a 1D array like or
+        a string, and the second item must be a string.
+
+        Parameters
+        ----------
+        airfoil : list
+            List of tuples with two items.
+
+        Raises
+        ------
+        AssertionError
+            If input is not in a valid format.
+        """
+        if airfoil is not None:
+            assert isinstance(airfoil, list) and all(
+                isinstance(member, tuple) for member in airfoil
+            ), "`airfoil` must be a list of tuples"
+            for member in airfoil:
+                assert len(member) == 2, "`airfoil` tuples must have length 2"
+                assert isinstance(
+                    member[1], str
+                ), "`airfoil` tuples must have a string as second item"
+                # if item is a list, then it must have shape (n,2)
+                if isinstance(member[0], list):
+                    if len(np.shape(member[0])) != 2 and np.shape(member[0])[1] != 2:
+                        raise AssertionError("`airfoil` tuples must have shape (n,2)")
+
+                # If item is not a string or Function, then raise error
+                elif not isinstance(member[0], (str, Function)):
+                    raise AssertionError(
+                        "`airfoil` tuples must have a string as first item"
+                    )
+
     def dict_generator(self):
         """Generator that yields a dictionary with the randomly generated input
         arguments. The dictionary is saved as an attribute of the class.

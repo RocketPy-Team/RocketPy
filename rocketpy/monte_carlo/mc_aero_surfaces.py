@@ -66,8 +66,11 @@ class McTrapezoidalFins(DispersionModel):
         rocket_radius=None,
         cant_angle=None,
         sweep_length=None,
+        sweep_angle=None,
+        airfoil=None,
     ):
         self._validate_positive_int_list("n", n)
+        self._validate_airfoil(airfoil)
         super().__init__(
             trapezoidal_fins,
             n=n,
@@ -77,8 +80,8 @@ class McTrapezoidalFins(DispersionModel):
             rocket_radius=rocket_radius,
             cant_angle=cant_angle,
             sweep_length=sweep_length,
-            sweep_angle=None,
-            airfoil=None,
+            sweep_angle=sweep_angle,
+            airfoil=airfoil,
             name=None,
         )
 
@@ -107,8 +110,10 @@ class McEllipticalFins(DispersionModel):
         span=None,
         rocket_radius=None,
         cant_angle=None,
+        airfoil=None,
     ):
         self._validate_positive_int_list("n", n)
+        self._validate_airfoil(airfoil)
         super().__init__(
             elliptical_fins,
             n=n,
@@ -116,7 +121,7 @@ class McEllipticalFins(DispersionModel):
             span=span,
             rocket_radius=rocket_radius,
             cant_angle=cant_angle,
-            airfoil=None,
+            airfoil=airfoil,
             name=None,
         )
 
