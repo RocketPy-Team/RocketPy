@@ -8,7 +8,7 @@ from ..tools import get_distribution
 
 
 class DispersionModel:
-    """Base class for all dispersion relayed classes. This class is used to
+    """Base class for all dispersion related classes. This class is used to
     validate the input parameters of the dispersion models and to generate
     random values for them.
 
@@ -41,10 +41,12 @@ class DispersionModel:
             and the value is the argument value. Valid argument types include
             tuples, lists, ints, floats, or None. The arguments will then be
             validated and saved as attributes of the class in the correct
-            format. See each validation method for more information.
-            None values are allowed and will be replaced by the value of the
-            attribute in the main object. When saved as an attribute, the value
-            will be saved as a list with one item.
+            format. See each validation method for more information. None values
+            are allowed and will be replaced by the value of the attribute in
+            the main object. When saved as an attribute, the value will be saved
+            as a list with one item. If in the child class constructor an
+            argument of the original class is not allowed, then it has to be
+            passed as None in the super().__init__ call.
 
         Raises
         ------
@@ -66,7 +68,7 @@ class DispersionModel:
                         elif isinstance(input_value, (int, float)):
                             attr_value = self._validate_scalar(input_name, input_value)
                         else:
-                            raise ValueError(
+                            raise AssertionError(
                                 f"'{input_name}' must be a tuple, list, int, or float"
                             )
                 else:
@@ -92,7 +94,7 @@ class DispersionModel:
     def __repr__(self):
         return self.__str__()
 
-    def _validate_tuple(self, input_name, input_value):
+    def _validate_tuple(self, input_name, input_value, getattr=getattr):
         """Validator for tuple arguments. Checks if input is in a valid format.
         Tuples are validated as follows:
             - Must have length 2 or 3;
@@ -142,11 +144,11 @@ class DispersionModel:
         ), f"'{input_name}': First item of tuple must be either an int or float"
 
         if len(input_value) == 2:
-            return self._validate_tuple_length_two(input_name, input_value)
+            return self._validate_tuple_length_two(input_name, input_value, getattr)
         if len(input_value) == 3:
-            return self._validate_tuple_length_three(input_name, input_value)
+            return self._validate_tuple_length_three(input_name, input_value, getattr)
 
-    def _validate_tuple_length_two(self, input_name, input_value):
+    def _validate_tuple_length_two(self, input_name, input_value, getattr=getattr):
         """Validator for tuples with length 2. Checks if input is in a valid
         format. If length is two, then the type of the second item must be
         either an int, float or str:
@@ -178,9 +180,9 @@ class DispersionModel:
         AssertionError
             If the input is not in a valid format.
         """
-        assert isinstance(input_value[1], (int, float, str)), (
-            f"'{input_name}': second item of tuple must be an int, float, or " "string."
-        )
+        assert isinstance(
+            input_value[1], (int, float, str)
+        ), f"'{input_name}': second item of tuple must be an int, float, or string."
 
         if isinstance(input_value[1], str):
             # if second item is a string, then it is assumed that the first item
@@ -196,7 +198,7 @@ class DispersionModel:
             # "normal".
             return (input_value[0], input_value[1], get_distribution("normal"))
 
-    def _validate_tuple_length_three(self, input_name, input_value):
+    def _validate_tuple_length_three(self, input_name, input_value, getattr=getattr):
         """Validator for tuples with length 3. Checks if input is in a valid
         format. If length is three, then it is assumed that the first item is
         the nominal value, the second item is the standard deviation and the
@@ -233,7 +235,7 @@ class DispersionModel:
         dist_func = get_distribution(input_value[2])
         return (input_value[0], input_value[1], dist_func)
 
-    def _validate_list(self, input_name, input_value):
+    def _validate_list(self, input_name, input_value, getattr=getattr):
         """Validator for list arguments. Checks if input is in a valid format.
         Lists are validated as follows:
             - If the list is empty, then the value will be taken from the object
@@ -265,7 +267,7 @@ class DispersionModel:
             # else, the list is saved as is.
             return input_value
 
-    def _validate_scalar(self, input_name, input_value):
+    def _validate_scalar(self, input_name, input_value, getattr=getattr):
         """Validator for scalar arguments. Checks if input is in a valid format.
         Scalars are validated as follows:
             - The value is assumed to be the standard deviation, the nominal
@@ -317,7 +319,7 @@ class DispersionModel:
 
         Raises
         ------
-        ValueError
+        AssertionError
             If input is not a tuple, list, int, or float
         """
         # Save original value of attribute that factor is applied to as an
@@ -441,6 +443,27 @@ class DispersionModel:
                 # If item is not a string or Function, then raise error
                 elif not isinstance(member, (str, Function)):
                     raise AssertionError(error_msg)
+
+    def _validate_positive_int_list(self, input_name, input_value):
+        """Validates the input argument: if it is not None, it must be a list
+        of positive integers.
+
+        Parameters
+        ----------
+        input_name : str
+            Name of the input argument.
+        input_value : list
+            Value of the input argument.
+
+        Raises
+        ------
+        AssertionError
+            If input is not in a valid format.
+        """
+        if input_value is not None:
+            assert isinstance(input_value, list) and all(
+                isinstance(member, int) and member >= 0 for member in input_value
+            ), f"`{input_name}` must be a list of positive integers"
 
     def dict_generator(self):
         """Generator that yields a dictionary with the randomly generated input
