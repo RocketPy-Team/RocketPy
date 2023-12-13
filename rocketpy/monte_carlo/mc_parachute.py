@@ -4,7 +4,7 @@ from pydantic import Field, StrictFloat, StrictInt, StrictStr
 
 from rocketpy.rocket import Parachute
 
-from .DispersionModel import DispersionModel
+from .dispersion_model import DispersionModel
 
 
 class McParachute(DispersionModel):

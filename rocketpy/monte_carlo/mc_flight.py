@@ -4,7 +4,7 @@ from pydantic import Field, StrictFloat, StrictInt
 
 from rocketpy.simulation import Flight
 
-from .DispersionModel import DispersionModel
+from .dispersion_model import DispersionModel
 
 
 class McFlight(DispersionModel):
