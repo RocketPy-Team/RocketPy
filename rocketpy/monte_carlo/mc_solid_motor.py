@@ -254,5 +254,9 @@ class McSolidMotor(MotorDispersionModel):
                 (generated_dict["burn_start_time"], generated_dict["burn_out_time"]),
                 generated_dict["total_impulse"],
             ),
+            coordinate_system_orientation=generated_dict[
+                "coordinate_system_orientation"
+            ],
+            interpolation_method=generated_dict["interpolate"],
         )
         return solid_motor
