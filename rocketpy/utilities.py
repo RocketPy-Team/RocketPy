@@ -217,7 +217,7 @@ def fin_flutter_analysis(
         The fin thickness, in meters
     shear_modulus : float
         Shear Modulus of fins' material, must be given in Pascal
-    flight : rocketpy.Flight
+    flight : Flight
         Flight object containing the rocket's flight data
     see_prints : boolean, optional
         True if you want to see the prints, False otherwise.
@@ -229,21 +229,23 @@ def fin_flutter_analysis(
     ------
     None
     """
+    found_fin = False
 
     # First, we need identify if there is at least a fin set in the rocket
-    for aero_surface in flight.rocket.aerodynamic_surfaces:
+    for aero_surface in flight.rocket.fins:
         if isinstance(aero_surface, TrapezoidalFins):
             # s: surface area; ar: aspect ratio; la: lambda
             root_chord = aero_surface.root_chord
             s = (aero_surface.tip_chord + root_chord) * aero_surface.span / 2
             ar = aero_surface.span * aero_surface.span / s
             la = aero_surface.tip_chord / root_chord
+            if not found_fin:
+                found_fin = True
+            else:
+                warnings.warn("More than one fin set found. The last one will be used.")
 
-    # This ensures that a fin set was found in the rocket, if not, break
-    try:
-        s = s
-    except NameError:
-        print("There is no fin set in the rocket, can't run a Flutter Analysis.")
+    if not found_fin:
+        print("There is no TrapezoidalFins in the rocket, can't run Flutter Analysis.")
         return None
 
     # Calculate the Fin Flutter Mach Number
@@ -257,14 +259,7 @@ def fin_flutter_analysis(
     # Prints everything
     if see_prints:
         _flutter_prints(
-            fin_thickness,
-            shear_modulus,
-            s,
-            ar,
-            la,
-            flutter_mach,
-            safety_factor,
-            flight,
+            fin_thickness, shear_modulus, s, ar, la, flutter_mach, safety_factor, flight
         )
 
     # Plots everything
