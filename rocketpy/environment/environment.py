@@ -111,6 +111,10 @@ class Environment:
     Environment.pressure : Function
         Air pressure in Pa as a function of altitude. Can be accessed as regular
         array, or called as a Function. See Function for more information.
+    Environment.barometric_height : Function
+        Geometric height above sea level in m as a function of pressure. Can be
+        accessed as regular array, or called as a Function. See Function for
+        more information.
     Environment.temperature : Function
         Air temperature in K as a function of altitude. Can be accessed as
         regular array, or called as a Function. See Function for more
@@ -1315,6 +1319,8 @@ class Environment:
 
         # Save temperature, pressure and wind profiles
         self.pressure = self.pressure_ISA
+        self.barometric_height = self.barometric_height_ISA
+
         self.temperature = self.temperature_ISA
         self.wind_direction = Function(
             0,
@@ -1433,6 +1439,7 @@ class Environment:
         if pressure is None:
             # Use standard atmosphere
             self.pressure = self.pressure_ISA
+            self.barometric_height = self.barometric_height_ISA
         else:
             # Use custom input
             self.pressure = Function(
@@ -1441,6 +1448,11 @@ class Environment:
                 outputs="Pressure (Pa)",
                 interpolation="linear",
             )
+            self.barometric_height = self.pressure.inverse_function().set_discrete(
+                0, max_expected_height, 1000, extrapolation="constant"
+            )
+            self.barometric_height.set_inputs("Pressure (Pa)")
+            self.barometric_height.set_outputs("Height Above Sea Level (m)")
             # Check maximum height of custom pressure input
             if not callable(self.pressure.source):
                 max_expected_height = max(self.pressure[-1, 0], max_expected_height)
@@ -1605,6 +1617,12 @@ class Environment:
             outputs="Pressure (Pa)",
             interpolation="linear",
         )
+        self.barometric_height = Function(
+            data_array[:, (0, 1)],
+            inputs="Pressure (Pa)",
+            outputs="Height Above Sea Level (m)",
+            interpolation="linear",
+        )
         self.temperature = Function(
             data_array[:, (1, 2)],
             inputs="Height Above Sea Level (m)",
@@ -1732,6 +1750,12 @@ class Environment:
             outputs="Pressure (Pa)",
             interpolation="linear",
         )
+        self.barometric_height = Function(
+            data_array[:, (0, 1)],
+            inputs="Pressure (Pa)",
+            outputs="Height Above Sea Level (m)",
+            interpolation="linear",
+        )
 
         # Retrieve temperature from data array
         data_array[:, 2] = data_array[:, 2] + 273.15  # Converts C to K
@@ -1845,6 +1869,7 @@ class Environment:
 
         # Extract pressure as a function of height
         pressure_array = []
+        barometric_height_array = []
         for line in lines:
             # Split line into columns
             columns = re.split(" +", line)[1:]
@@ -1858,7 +1883,9 @@ class Environment:
                     if max(columns) != 99999:
                         # Save value
                         pressure_array.append(columns)
+                        barometric_height_array.append([columns[1], columns[0]])
         pressure_array = np.array(pressure_array)
+        barometric_height_array = np.array(barometric_height_array)
 
         # Extract temperature as a function of height
         temperature_array = []
@@ -1903,6 +1930,14 @@ class Environment:
             pressure_array,
             inputs="Height Above Sea Level (m)",
             outputs="Pressure (Pa)",
+            interpolation="linear",
+        )
+        # construct barometric height array from pressure array
+        barometric_height_array[:, 0] = 10 * barometric_height_array[:, 0]
+        self.barometric_height = Function(
+            barometric_height_array,
+            inputs="Pressure (Pa)",
+            outputs="Height Above Sea Level (m)",
             interpolation="linear",
         )
 
@@ -2272,6 +2307,12 @@ class Environment:
             data_array[:, (1, 0)],
             inputs="Height Above Sea Level (m)",
             outputs="Pressure (Pa)",
+            interpolation="linear",
+        )
+        self.barometric_height = Function(
+            data_array[:, (0, 1)],
+            inputs="Pressure (Pa)",
+            outputs="Height Above Sea Level (m)",
             interpolation="linear",
         )
         self.temperature = Function(
@@ -2803,6 +2844,12 @@ class Environment:
             outputs="Pressure (Pa)",
             interpolation="linear",
         )
+        self.barometric_height = Function(
+            data_array[:, (0, 1)],
+            inputs="Pressure (Pa)",
+            outputs="Height Above Sea Level (m)",
+            interpolation="linear",
+        )
         self.temperature = Function(
             data_array[:, (1, 2)],
             inputs="Height Above Sea Level (m)",
@@ -2965,7 +3012,14 @@ class Environment:
             outputs="Pressure (Pa)",
         )
 
-        return None
+        # Save international standard atmosphere height by pressure profile
+        # and discretize it. This is done to speed up the calculations in the
+        # trajectory simulation.
+        self.barometric_height_ISA = self.pressure_ISA.inverse_function().set_discrete(
+            pressure[-1], pressure[0], 1000, extrapolation="constant"
+        )
+        self.barometric_height_ISA.set_inputs("Pressure (Pa)")
+        self.barometric_height_ISA.set_outputs("Height Above Sea Level (m)")
 
     def calculate_density_profile(self):
         """Compute the density of the atmosphere as a function of
