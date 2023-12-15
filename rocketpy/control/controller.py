@@ -84,11 +84,10 @@ class Controller:
         self.name = name
         self.prints = _ControllerPrints
 
-        self.observed_variables = (
-            [initial_observed_variables]
-            if initial_observed_variables is not None
-            else []
-        )
+        if initial_observed_variables is not None:
+            self.observed_variables = [initial_observed_variables]
+        else:
+            self.observed_variables = []
 
     def __call__(self, time, state_vector, state_history):
         """Call the controller function. This is used by the simulation class.
