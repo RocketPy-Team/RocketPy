@@ -97,6 +97,28 @@ class McFlight(DispersionModel):
             else:
                 raise TypeError("`initial_solution` must be a tuple of numbers")
 
+    # TODO: these call dict_generator a lot of times unecessaryly
+    def _randomize_rail_length(self):
+        """Randomizes the rail length of the flight. Follows the standard input
+        format of Dispersion Models.
+        """
+        generated_dict = next(self.dict_generator())
+        return generated_dict["rail_length"]
+
+    def _randomize_inclination(self):
+        """Randomizes the inclination of the flight. Follows the standard input
+        format of Dispersion Models.
+        """
+        generated_dict = next(self.dict_generator())
+        return generated_dict["inclination"]
+
+    def _randomize_heading(self):
+        """Randomizes the heading of the flight. Follows the standard input
+        format of Dispersion Models.
+        """
+        generated_dict = next(self.dict_generator())
+        return generated_dict["heading"]
+
     def create_object(self):
         """Creates and returns a Flight object from the randomly generated input
         arguments.
