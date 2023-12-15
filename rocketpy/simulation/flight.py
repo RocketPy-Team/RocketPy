@@ -697,9 +697,8 @@ class Flight:
                     parachute.noisy_pressure_signal.append([node.t, pressure + noise])
                     # Gets height above ground level considering noise
                     hAGL = (
-                        self.env.pressure.find_input(
+                        self.env.barometric_height(
                             pressure + noise,
-                            self.y_sol[2],
                         )
                         - self.env.elevation
                     )
@@ -1006,9 +1005,8 @@ class Flight:
                                     )
                                     # Gets height above ground level considering noise
                                     hAGL = (
-                                        self.env.pressure.find_input(
+                                        self.env.barometric_height(
                                             pressure + noise,
-                                            overshootable_node.y[2],
                                         )
                                         - self.env.elevation
                                     )
