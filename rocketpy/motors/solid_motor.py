@@ -381,7 +381,9 @@ class SolidMotor(Motor):
         self.exhaust_velocity : Function
             Gas exhaust velocity of the motor.
         """
-        return self.total_impulse / self.propellant_initial_mass
+        return Function(
+            self.total_impulse / self.propellant_initial_mass
+        ).set_discrete_based_on_model(self.thrust)
 
     @property
     def propellant_initial_mass(self):
