@@ -56,7 +56,7 @@ jobs:
           python: ${{ matrix.python-version }}
 
   Acceptance:
-    needs: [Build, Unit]
+    needs: Unit
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -78,7 +78,7 @@ jobs:
           python: ${{ matrix.python-version }}
 
   Integration:
-    needs: [Build, Unit]
+    needs: Unit
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -100,7 +100,7 @@ jobs:
           python: ${{ matrix.python-version }}
 
   Doc:
-    needs: [Build, Unit]
+    needs: Unit
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -124,7 +124,7 @@ jobs:
           python: ${{ matrix.python-version }}
 
   Slow:
-    needs: [Build, Unit, Acceptance, Integration, Doc]
+    needs: [Acceptance, Integration, Doc]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
