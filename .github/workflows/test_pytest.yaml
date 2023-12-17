@@ -12,7 +12,7 @@ defaults:
     shell: bash
 
 jobs:
-  Build_and_Unit:
+  Normal:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -34,94 +34,28 @@ jobs:
         run: python -c "import sys, rocketpy; print(f'{rocketpy.__name__} running on Python {sys.version}')"
       - name: Install test dependencies
         run: pip install -r requirements-tests.txt
-      - name: Run pytest (Unit Tests)
+      - name: Run Unit Tests
         run: pytest -k "unit" --cov=rocketpy --cov-report=xml:./coverage_unit.xml
       - name: Upload coverage to artifacts
         uses: actions/upload-artifact@v2
         with:
           name: coverage-build-and-unit
           path: coverage_unit.xml
-
-  Integration:
-    needs: Build_and_Unit
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: [3.8, 3.12]
-    env:
-      OS: ${{ matrix.os }}
-      PYTHON: ${{ matrix.python-version }}
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-      - name: Install dependencies
-        run: |
-          pip install .
-          pip install -r requirements-tests.txt
-      - name: Run pytest (Integration Tests)
+      - name: Run Integration Tests
         run: pytest -k "not unit and not acceptance" --cov=rocketpy --cov-report=xml:./coverage_integr.xml
       - name: Upload coverage to artifacts
         uses: actions/upload-artifact@v2
         with:
           name: coverage-integration
           path: coverage_integr.xml
-
-  Acceptance:
-    needs: Integration
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: [3.8, 3.12]
-    env:
-      OS: ${{ matrix.os }}
-      PYTHON: ${{ matrix.python-version }}
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-      - name: Install dependencies
-        run: |
-          pip install .
-          pip install -r requirements-tests.txt
-      - name: Run pytest (Acceptance Tests)
+      - name: Run Acceptance Tests
         run: pytest --cov=rocketpy --cov-report=xml:./coverage_accept.xml
       - name: Upload coverage to artifacts
         uses: actions/upload-artifact@v2
         with:
           name: coverage-acceptance
           path: coverage_accept.xml
-
-  Doc:
-    needs: Integration
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: [3.8, 3.12]
-    env:
-      OS: ${{ matrix.os }}
-      PYTHON: ${{ matrix.python-version }}
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-      - name: Install dependencies
-        run: |
-          pip install .
-          pip install -r requirements-tests.txt
-      - name: Run pytest (Documentation Tests)
+      - name: Run Documentation Tests
         run: |
           cd rocketpy
           pytest --doctest-modules --cov=rocketpy --cov-report=xml:./coverage_docs.xml
@@ -131,7 +65,7 @@ jobs:
           name: coverage-docs
           path: coverage_docs.xml
   Slow:
-    needs: [Acceptance, Doc]
+    needs: Normal
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -163,7 +97,7 @@ jobs:
           path: coverage_slow.xml
 
   CodecovUpload:
-    needs: [Build_and_Unit, Acceptance, Integration, Doc, Slow]
+    needs: [Normal, Slow]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
