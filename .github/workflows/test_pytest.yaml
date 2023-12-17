@@ -7,202 +7,130 @@ on:
       - "**.py"
       - ".github/**"
 
+defaults:
+  run:
+    shell: bash
+
+setup-python: &setup-python
+  - uses: actions/checkout@v2
+  - name: Set up Python
+    uses: actions/setup-python@v2
+    with:
+      python-version: ${{ matrix.python-version }}
+      cache: pip
+  - name: Install dependencies
+    run: |
+      python -m pip install --upgrade pip
+      pip install .
+
+setup-tests: &setup-tests
+  - *setup-python
+  - name: Install optional dependencies
+    run: pip install -r requirements-tests.txt
+
+upload-codecov: &upload-codecov
+  - name: Upload coverage report to Codecov
+    uses: codecov/codecov-action@v3
+    with:
+      token: ${{ secrets.CODECOV_TOKEN }}
+      directory: ./coverage/reports/
+      env_vars: OS,PYTHON
+      fail_ci_if_error: false
+      files: ./coverage.xml, ./rocketpy/coverage.xml
+      flags: unittests
+      name: codecov-umbrella
+      verbose: true
+
 jobs:
   Build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
-          - windows-latest
-        python-version:
-          - 3.8
-          - 3.12
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: [3.8, 3.12]
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-      - name: Build rocketpy
-        run: |
-          pip install .
+      - *setup-python
       - name: Test importing rocketpy
-        run: |
-          python -c "import sys, rocketpy; print(f'{rocketpy.__name__} running on Python {sys.version}')"
+        run: python -c "import sys, rocketpy; print(f'{rocketpy.__name__} running on Python {sys.version}')"
 
   Unit:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
-          - windows-latest
-        python-version:
-          - 3.8
-          - 3.12
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: [3.8, 3.12]
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
     steps:
-      - name: Install optional dependencies
-        run: |
-          pip install -r requirements-tests.txt
-      - name: Run pytest
-        run: |
-          pytest -k "unit" --cov=rocketpy --cov-report=xml
-      - name: Upload coverage report to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          directory: ./coverage/reports/
-          env_vars: OS,PYTHON
-          fail_ci_if_error: false
-          files: ./coverage.xml, ./rocketpy/coverage.xml
-          flags: unittests
-          name: codecov-umbrella
-          verbose: true
+      - *setup-tests
+      - name: Run pytest (Unit Tests)
+        run: pytest -k "unit" --cov=rocketpy --cov-report=xml
+      - *upload-codecov
 
   Acceptance:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
-          - windows-latest
-        python-version:
-          - 3.8
-          - 3.12
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: [3.8, 3.12]
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
     steps:
-      - name: Install optional dependencies
-        run: |
-          pip install -r requirements-tests.txt
-      - name: Run pytest
-        run: |
-          pytest --cov=rocketpy --cov-report=xml
-      - name: Upload coverage report to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          directory: ./coverage/reports/
-          env_vars: OS,PYTHON
-          fail_ci_if_error: false
-          files: ./coverage.xml, ./rocketpy/coverage.xml
-          flags: unittests
-          name: codecov-umbrella
-          verbose: true
+      - *setup-tests
+      - name: Run pytest (Acceptance Tests)
+        run: pytest --cov=rocketpy --cov-report=xml
+      - *upload-codecov
 
   Integration:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
-          - windows-latest
-        python-version:
-          - 3.8
-          - 3.12
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: [3.8, 3.12]
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
     steps:
-      - name: Install optional dependencies
-        run: |
-          pip install -r requirements-tests.txt
-      - name: Run pytest
-        run: |
-          pytest -k "not unit and not acceptance" --cov=rocketpy --cov-report=xml
-      - name: Upload coverage report to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          directory: ./coverage/reports/
-          env_vars: OS,PYTHON
-          fail_ci_if_error: false
-          files: ./coverage.xml, ./rocketpy/coverage.xml
-          flags: unittests
-          name: codecov-umbrella
-          verbose: true
+      - *setup-tests
+      - name: Run pytest (Integration Tests)
+        run: pytest -k "not unit and not acceptance" --cov=rocketpy --cov-report=xml
+      - *upload-codecov
 
   Doc:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
-          - windows-latest
-        python-version:
-          - 3.8
-          - 3.12
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: [3.8, 3.12]
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
     steps:
-      - name: Install optional dependencies
-        run: |
-          pip install -r requirements-tests.txt
-      - name: Run pytest
+      - *setup-tests
+      - name: Run pytest (Documentation Tests)
         run: |
           cd rocketpy
           pytest --doctest-modules --cov=rocketpy --cov-report=xml
-      - name: Upload coverage report to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          directory: ./coverage/reports/
-          env_vars: OS,PYTHON
-          fail_ci_if_error: false
-          files: ./coverage.xml, ./rocketpy/coverage.xml
-          flags: unittests
-          name: codecov-umbrella
-          verbose: true
+      - *upload-codecov
 
   Slow:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
-          - windows-latest
-        python-version:
-          - 3.8
-          - 3.12
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: [3.8, 3.12]
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
     steps:
-      - name: Install optional dependencies
-        run: |
-          pip install -r requirements-tests.txt
+      - *setup-tests
       - name: Run pytest --runslow
         if: github.ref == 'refs/heads/master'
         run: |
-          cd ..
           pytest -m slow --runslow --cov=rocketpy --cov-report=xml
-      - name: Upload coverage report to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          directory: ./coverage/reports/
-          env_vars: OS,PYTHON
-          fail_ci_if_error: false
-          files: ./coverage.xml, ./rocketpy/coverage.xml
-          flags: unittests
-          name: codecov-umbrella
-          verbose: true
+      - *upload-codecov
