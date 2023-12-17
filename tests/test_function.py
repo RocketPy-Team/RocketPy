@@ -357,3 +357,30 @@ def test_pow_arithmetic_priority(other):
     assert isinstance(other**func_lambda, Function)
     assert isinstance(func_array**other, Function)
     assert isinstance(other**func_array, Function)
+
+
+@pytest.mark.parametrize("alpha", [0.1, 0.5, 0.9])
+def test_low_pass_filter(alpha):
+    """Test the low_pass_filter method of the Function class.
+
+    Parameters
+    ----------
+    alpha : float
+        Attenuation coefficient, 0 < alpha < 1.
+    """
+    # Create a test function, sinus here
+    source = np.array([(1, np.sin(1)), (2, np.sin(2)), (3, np.sin(3)), (4, np.sin(4)), (5,np.sin(5))])  
+    func = Function(source)
+
+    # Apply low pass filter
+    filtered_func = func.low_pass_filter(alpha)
+    
+    # Check that the method works as intended and returns the right object with no issue
+    assert isinstance(filtered_func, Function), "The returned type is not a Function"
+    assert filtered_func.source[0] == source[0], "The initial value is not the expected value"
+    assert len(filtered_func.source) == len(source), "The filtered function and the Function have different lengths"
+    assert filtered_func.interpolation == source.interpolation, "The interpolation changed"
+    assert filtered_func.extrapolation == source.extrapolation, "The extrapolation changed"
+    for i in range(1, len(source)):
+        expected_value = alpha * source[i] + (1 - alpha) * filtered_func.source[i - 1]
+        assert filtered_func.source[i] == pytest.approx(expected_value[i])
