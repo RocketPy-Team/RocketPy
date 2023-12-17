@@ -32,7 +32,7 @@ straightforward as possible.
 
 ### Added
 
--
+- ENH: adds new Function.savetxt method [#514](https://github.com/RocketPy-Team/RocketPy/pull/514)
 
 ### Changed
 
@@ -59,8 +59,8 @@ You can install this version by running `pip install rocketpy==1.1.3`
 
 ### Fixed
 
--  FIX: Broken Function.get_value_opt for N-Dimensional Functions [#492](https://github.com/RocketPy-Team/RocketPy/pull/492) 
--  FIX: Never ending Flight simulations when using a GenericMotor [#497](https://github.com/RocketPy-Team/RocketPy/pull/497) 
+- FIX: Broken Function.get_value_opt for N-Dimensional Functions [#492](https://github.com/RocketPy-Team/RocketPy/pull/492)
+- FIX: Never ending Flight simulations when using a GenericMotor [#497](https://github.com/RocketPy-Team/RocketPy/pull/497)
 
 ## [v1.1.2] - 2023-11-25
 
