@@ -50,7 +50,7 @@ jobs:
         if: github.ref == 'refs/heads/master'
         run: |
           cd ..
-          pytest --runslow --cov=rocketpy --cov-report=xml
+          pytest -m slow --runslow --cov=rocketpy --cov-report=xml
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v3
         with:
