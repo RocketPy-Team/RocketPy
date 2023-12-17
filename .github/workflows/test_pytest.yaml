@@ -59,6 +59,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
+      - name: Install dependencies
+        run: |
+          pip install .
+          pip install -r requirements-tests.txt
       - name: Run pytest (Acceptance Tests)
         run: pytest --cov=rocketpy --cov-report=xml:./coverage_accept.xml
       - name: Upload coverage to artifacts
@@ -79,7 +83,9 @@ jobs:
       PYTHON: ${{ matrix.python-version }}
     steps:
       - name: Install dependencies
-        run: pip install -r requirements-tests.txt
+        run: |
+          pip install .
+          pip install -r requirements-tests.txt
       - name: Run pytest (Integration Tests)
         run: pytest -k "not unit and not acceptance" --cov=rocketpy --cov-report=xml:./coverage_integr.xml
       - name: Upload coverage to artifacts
@@ -99,7 +105,9 @@ jobs:
       PYTHON: ${{ matrix.python-version }}
     steps:
       - name: Install dependencies
-        run: pip install -r requirements-tests.txt
+        run: |
+          pip install .
+          pip install -r requirements-tests.txt
       - name: Run pytest (Documentation Tests)
         run: |
           cd rocketpy
@@ -121,7 +129,10 @@ jobs:
       PYTHON: ${{ matrix.python-version }}
     steps:
       - name: Install dependencies
-        run: pip install -r requirements-tests.txt
+        run: |
+          pip install .
+          pip install -r requirements-tests.txt
+          pip install -r requirements-optional.txt
       - name: Run pytest --runslow
         if: github.ref == 'refs/heads/master'
         run: |
