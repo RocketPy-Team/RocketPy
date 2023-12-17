@@ -8,7 +8,7 @@ on:
       - ".github/**"
 
 jobs:
-  Pytest:
+  Build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -38,14 +38,158 @@ jobs:
       - name: Test importing rocketpy
         run: |
           python -c "import sys, rocketpy; print(f'{rocketpy.__name__} running on Python {sys.version}')"
+
+  Unit:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+        python-version:
+          - 3.8
+          - 3.12
+    env:
+      OS: ${{ matrix.os }}
+      PYTHON: ${{ matrix.python-version }}
+    steps:
+      - name: Install optional dependencies
+        run: |
+          pip install -r requirements-tests.txt
+      - name: Run pytest
+        run: |
+          pytest -k "unit" --cov=rocketpy --cov-report=xml
+      - name: Upload coverage report to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: ./coverage/reports/
+          env_vars: OS,PYTHON
+          fail_ci_if_error: false
+          files: ./coverage.xml, ./rocketpy/coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          verbose: true
+
+  Acceptance:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+        python-version:
+          - 3.8
+          - 3.12
+    env:
+      OS: ${{ matrix.os }}
+      PYTHON: ${{ matrix.python-version }}
+    steps:
       - name: Install optional dependencies
         run: |
           pip install -r requirements-tests.txt
       - name: Run pytest
         run: |
           pytest --cov=rocketpy --cov-report=xml
+      - name: Upload coverage report to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: ./coverage/reports/
+          env_vars: OS,PYTHON
+          fail_ci_if_error: false
+          files: ./coverage.xml, ./rocketpy/coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          verbose: true
+
+  Integration:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+        python-version:
+          - 3.8
+          - 3.12
+    env:
+      OS: ${{ matrix.os }}
+      PYTHON: ${{ matrix.python-version }}
+    steps:
+      - name: Install optional dependencies
+        run: |
+          pip install -r requirements-tests.txt
+      - name: Run pytest
+        run: |
+          pytest -k "not unit and not acceptance" --cov=rocketpy --cov-report=xml
+      - name: Upload coverage report to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: ./coverage/reports/
+          env_vars: OS,PYTHON
+          fail_ci_if_error: false
+          files: ./coverage.xml, ./rocketpy/coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          verbose: true
+
+  Doc:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+        python-version:
+          - 3.8
+          - 3.12
+    env:
+      OS: ${{ matrix.os }}
+      PYTHON: ${{ matrix.python-version }}
+    steps:
+      - name: Install optional dependencies
+        run: |
+          pip install -r requirements-tests.txt
+      - name: Run pytest
+        run: |
           cd rocketpy
           pytest --doctest-modules --cov=rocketpy --cov-report=xml
+      - name: Upload coverage report to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: ./coverage/reports/
+          env_vars: OS,PYTHON
+          fail_ci_if_error: false
+          files: ./coverage.xml, ./rocketpy/coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          verbose: true
+
+  Slow:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+        python-version:
+          - 3.8
+          - 3.12
+    env:
+      OS: ${{ matrix.os }}
+      PYTHON: ${{ matrix.python-version }}
+    steps:
+      - name: Install optional dependencies
+        run: |
+          pip install -r requirements-tests.txt
       - name: Run pytest --runslow
         if: github.ref == 'refs/heads/master'
         run: |
