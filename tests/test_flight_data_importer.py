@@ -7,12 +7,16 @@ from rocketpy.simulation import FlightDataImporter
 
 def test_flight_importer_bella_lui():
     """Tests the class using the Bella Lui flight data."""
-    columns_map = {"time_aprox_(s)": "time", "z_(m)": "altitude", "v_(m/s)": "vz"}
+    columns_map = {
+        "time_aprox_(s)": "time",
+        "z_(m)": "altitude",
+        "v_(m/s)": "vz",
+    }
     path = "tests/fixtures/acceptance/EPFL_Bella_Lui/bella_lui_flight_data_filtered.csv"
 
     fd = FlightDataImporter(
         name="Bella Lui, EPFL Rocket Team, 2020",
-        filepath=path,
+        path=path,
         columns_map=columns_map,
         units=None,
         interpolation="linear",
@@ -20,11 +24,10 @@ def test_flight_importer_bella_lui():
         separator=",",
         encoding="utf-8",
     )
-
     assert fd.name == "Bella Lui, EPFL Rocket Team, 2020"
-    assert "time" in fd.columns, "Can't find 'time' column in fd.columns"
-    assert "altitude" in fd.columns, "Can't find 'altitude' column in fd.columns"
-    assert "vz" in fd.columns, "Can't find 'vz' column in fd.columns"
+    assert "time" in fd.columns[path], "Can't find 'time' column in fd.columns"
+    assert "altitude" in fd.columns[path], "Can't find 'altitude' column in fd.columns"
+    assert "vz" in fd.columns[path], "Can't find 'vz' column in fd.columns"
     assert np.isclose(fd.altitude(0), 0.201, atol=1e-4)
     assert np.isclose(fd.vz(0), 5.028, atol=1e-4)
 
@@ -40,11 +43,11 @@ def test_flight_importer_ndrt():
 
     fd = FlightDataImporter(
         name="NDRT Rocket team, 2020",
-        filepath=path,
+        path=path,
         columns_map=columns_map,
         units=units,
     )
     assert fd.name == "NDRT Rocket team, 2020"
-    assert "time" in fd.columns, "Can't find 'time' column in fd.columns"
-    assert "altitude" in fd.columns, "Can't find 'altitude' column in fd.columns"
+    assert "time" in fd.columns[path], "Can't find 'time' column in fd.columns"
+    assert "altitude" in fd.columns[path], "Can't find 'altitude' column in fd.columns"
     assert np.isclose(fd.altitude(0), 0)
