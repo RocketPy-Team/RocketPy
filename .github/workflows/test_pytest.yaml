@@ -11,36 +11,6 @@ defaults:
   run:
     shell: bash
 
-setup-python: &setup-python
-  - uses: actions/checkout@v2
-  - name: Set up Python
-    uses: actions/setup-python@v2
-    with:
-      python-version: ${{ matrix.python-version }}
-      cache: pip
-  - name: Install dependencies
-    run: |
-      python -m pip install --upgrade pip
-      pip install .
-
-setup-tests: &setup-tests
-  - *setup-python
-  - name: Install optional dependencies
-    run: pip install -r requirements-tests.txt
-
-upload-codecov: &upload-codecov
-  - name: Upload coverage report to Codecov
-    uses: codecov/codecov-action@v3
-    with:
-      token: ${{ secrets.CODECOV_TOKEN }}
-      directory: ./coverage/reports/
-      env_vars: OS,PYTHON
-      fail_ci_if_error: false
-      files: ./coverage.xml, ./rocketpy/coverage.xml
-      flags: unittests
-      name: codecov-umbrella
-      verbose: true
-
 jobs:
   Build:
     runs-on: ${{ matrix.os }}
@@ -52,11 +22,19 @@ jobs:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
     steps:
-      - *setup-python
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install dependencies
+        run: bash setup-python.sh
       - name: Test importing rocketpy
         run: python -c "import sys, rocketpy; print(f'{rocketpy.__name__} running on Python {sys.version}')"
 
   Unit:
+    needs: Build
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -66,12 +44,19 @@ jobs:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
     steps:
-      - *setup-tests
+      - name: Install dependencies
+        run: bash setup-python.sh
       - name: Run pytest (Unit Tests)
         run: pytest -k "unit" --cov=rocketpy --cov-report=xml
-      - *upload-codecov
+      - name: Call reusable workflow for Codecov upload
+        uses: ./.github/workflows/upload-to-codecov.yml
+        with:
+          codecov_token: ${{ secrets.CODECOV_TOKEN }}
+          os: ${{ matrix.os }}
+          python: ${{ matrix.python-version }}
 
   Acceptance:
+    needs: [Build, Unit]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -81,12 +66,19 @@ jobs:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
     steps:
-      - *setup-tests
+      - name: Install dependencies
+        run: bash setup-python.sh
       - name: Run pytest (Acceptance Tests)
         run: pytest --cov=rocketpy --cov-report=xml
-      - *upload-codecov
+      - name: Call reusable workflow for Codecov upload
+        uses: ./.github/workflows/upload-to-codecov.yml
+        with:
+          codecov_token: ${{ secrets.CODECOV_TOKEN }}
+          os: ${{ matrix.os }}
+          python: ${{ matrix.python-version }}
 
   Integration:
+    needs: [Build, Unit]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -96,12 +88,19 @@ jobs:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
     steps:
-      - *setup-tests
+      - name: Install dependencies
+        run: bash setup-python.sh
       - name: Run pytest (Integration Tests)
         run: pytest -k "not unit and not acceptance" --cov=rocketpy --cov-report=xml
-      - *upload-codecov
+      - name: Call reusable workflow for Codecov upload
+        uses: ./.github/workflows/upload-to-codecov.yml
+        with:
+          codecov_token: ${{ secrets.CODECOV_TOKEN }}
+          os: ${{ matrix.os }}
+          python: ${{ matrix.python-version }}
 
   Doc:
+    needs: [Build, Unit]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -111,14 +110,21 @@ jobs:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
     steps:
-      - *setup-tests
+      - name: Install dependencies
+        run: bash setup-python.sh
       - name: Run pytest (Documentation Tests)
         run: |
           cd rocketpy
           pytest --doctest-modules --cov=rocketpy --cov-report=xml
-      - *upload-codecov
+      - name: Call reusable workflow for Codecov upload
+        uses: ./.github/workflows/upload-to-codecov.yml
+        with:
+          codecov_token: ${{ secrets.CODECOV_TOKEN }}
+          os: ${{ matrix.os }}
+          python: ${{ matrix.python-version }}
 
   Slow:
+    needs: [Build, Unit, Acceptance, Integration, Doc]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -128,9 +134,15 @@ jobs:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
     steps:
-      - *setup-tests
+      - name: Install dependencies
+        run: bash setup-python.sh
       - name: Run pytest --runslow
         if: github.ref == 'refs/heads/master'
         run: |
           pytest -m slow --runslow --cov=rocketpy --cov-report=xml
-      - *upload-codecov
+      - name: Call reusable workflow for Codecov upload
+        uses: ./.github/workflows/upload-to-codecov.yml
+        with:
+          codecov_token: ${{ secrets.CODECOV_TOKEN }}
+          os: ${{ matrix.os }}
+          python: ${{ matrix.python-version }}
