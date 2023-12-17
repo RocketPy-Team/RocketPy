@@ -61,7 +61,7 @@ class FlightDataImporter:
     def __init__(
         self,
         name,
-        path,
+        paths,
         columns_map=None,
         units=None,
         interpolation="linear",
@@ -69,10 +69,33 @@ class FlightDataImporter:
         separator=",",
         encoding="utf-8",
     ):
-        """_summary_
+        """Initializes the FlightDataImporter class.
 
         Parameters
         ----------
+        name : str
+            The name of the FlightDataImporter object.
+        paths : list
+            A list of paths or strings representing the file paths or directories
+            containing the flight data files. Only .csv and .txt files are supported.
+        columns_map : dict, optional
+            A dictionary mapping column names to desired column names.
+            Defaults to None, which will keep the original column names.
+        units : dict, optional
+            A dictionary mapping column names to desired units.
+            Defaults to None, which will consider that all the data is in SI.
+        interpolation : str, optional
+            The interpolation method to use for missing data.
+            Defaults to "linear", see rocketpy.mathutils.Function for more
+            information.
+        extrapolation : str, optional
+            The extrapolation method to use for data outside the range.
+            Defaults to "zero", see rocketpy.mathutils.Function for more
+            information.
+        separator : str, optional
+            The separator used in the data file. Defaults to ",".
+        encoding : str, optional
+            The encoding of the data file. Defaults to "utf-8".
 
         Notes
         -----
@@ -81,7 +104,7 @@ class FlightDataImporter:
         accessing the attributes of the Flight object.
         """
         self.name = name
-        self.path = path
+        self.paths = paths
 
         # Initialize debuggers
         self._columns_map = {}
@@ -96,7 +119,7 @@ class FlightDataImporter:
 
         # So now we are going to loop through the files and read them
         self.read_data(
-            path,
+            paths,
             columns_map,
             units,
             interpolation,
@@ -113,7 +136,7 @@ class FlightDataImporter:
         str
             A string representation of the FlightDataImporter class.
         """
-        return f"FlightDataImporter(name='{self.name}', dataset='{self.path}')"
+        return f"FlightDataImporter(name='{self.name}', paths='{self.paths}')"
 
     def __reveal_files(self, path):
         """Get a list of all the .csv or .txt files in the given path, or simply
@@ -293,7 +316,7 @@ class FlightDataImporter:
 
     def read_data(
         self,
-        path,
+        paths,
         columns_map=None,
         units=None,
         interpolation="linear",
@@ -301,13 +324,13 @@ class FlightDataImporter:
         separator=",",
         encoding="utf-8",
     ):
-        """Reads flight data from the specified path.
+        """Reads flight data from the specified paths.
 
         Parameters
         ----------
-        path : str
-            The path to the flight data file or directory. Only .csv and .txt
-            files are supported.
+        paths : list, str, path
+            A list of paths or strings representing the file paths or directories
+            containing the flight data files. Only .csv and .txt files are supported.
         columns_map : dict, optional
             A dictionary mapping column names to desired column names.
             Defaults to None, which will keep the original column names.
@@ -338,7 +361,11 @@ class FlightDataImporter:
         extrapolation methods, and sets the appropriate encoding and separator.
         """
         # We need to handle multiple files within the same path
-        list_of_files = self.__reveal_files(path)
+        if isinstance(paths, str):
+            paths = [paths]
+        list_of_files = []
+        for path in paths:
+            list_of_files.extend(self.__reveal_files(path))
         if not self._files:
             self._files = list_of_files
         else:
@@ -364,7 +391,7 @@ class FlightDataImporter:
             A list of flight attributes excluding private and weakly private
             attributes.
         """
-        to_exclude = ["name", "path", "read_data", "flight_attributes"]
+        to_exclude = ["name", "paths", "read_data", "flight_attributes"]
         return [
             attr
             for attr in dir(self)
