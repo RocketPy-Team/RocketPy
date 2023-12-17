@@ -2817,6 +2817,76 @@ class Function:
                 extrapolation=self.__extrapolation__,
             )
 
+    def savetxt(
+        self,
+        filename,
+        lower=None,
+        upper=None,
+        samples=None,
+        fmt="%.6f",
+        delimiter=",",
+        newline="\n",
+        encoding=None,
+    ):
+        """Save a Function object to a text file. The first line is the header
+        with inputs and outputs. The following lines are the data. The text file
+        can have any extension, but it is recommended to use .csv or .txt.
+
+        Parameters
+        ----------
+        filename : str
+            The name of the file to be saved, with the extension.
+        lower : float or int, optional
+            The lower bound of the range for which data is to be generated.
+            This is required if the source is a callable function.
+        upper : float or int, optional
+            The upper bound of the range for which data is to be generated.
+            This is required if the source is a callable function.
+        samples : int, optional
+            The number of sample points to generate within the specified range.
+            This is required if the source is a callable function.
+        fmt : str, optional
+            The format string for each line of the file, by default "%.6f".
+        delimiter : str, optional
+            The string used to separate values, by default ",".
+        newline : str, optional
+            The string used to separate lines in the file, by default "\n".
+        encoding : str, optional
+            The encoding to be used for the file, by default None (which means
+            using the system default encoding).
+
+        Raises
+        ------
+        ValueError
+            Raised if `lower`, `upper`, and `samples` are not provided when
+            the source is a callable function. These parameters are necessary
+            to generate the data points for saving.
+        """
+        # create the header
+        header_line = delimiter.join(self.__inputs__ + self.__outputs__)
+
+        # create the datapoints
+        if callable(self.source):
+            if lower is None or upper is None or samples is None:
+                raise ValueError(
+                    "If the source is a callable, lower, upper and samples"
+                    + " must be provided."
+                )
+            # Generate the data points using the callable
+            x = np.linspace(lower, upper, samples)
+            data_points = np.column_stack((x, self.source(x)))
+        else:
+            # If the source is already an array, use it as is
+            data_points = self.source
+
+            if lower and upper and samples:
+                data_points = self.set_discrete(lower, upper, samples).source
+
+        # export to a file
+        with open(filename, "w", encoding=encoding) as file:
+            file.write(header_line + newline)
+            np.savetxt(file, data_points, fmt=fmt, delimiter=delimiter, newline=newline)
+
     @staticmethod
     def _check_user_input(
         source,
