@@ -28,42 +28,42 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
+      - name: Cache Python dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: Install rocketpy
         run: pip install .
+
       - name: Test importing rocketpy
         run: python -c "import sys, rocketpy; print(f'{rocketpy.__name__} running on Python {sys.version}')"
+
       - name: Install test dependencies
         run: pip install -r requirements-tests.txt
+
       - name: Run Unit Tests
-        run: pytest -k "unit" --cov=rocketpy --cov-report=xml:./coverage_unit.xml
-      - name: Upload coverage to artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: coverage-build-and-unit
-          path: coverage_unit.xml
+        run: pytest tests/unit --cov=rocketpy --cov-report=xml
+
       - name: Run Integration Tests
-        run: pytest -k "not unit and not acceptance" --cov=rocketpy --cov-report=xml:./coverage_integr.xml
-      - name: Upload coverage to artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: coverage-integration
-          path: coverage_integr.xml
+        run: pytest tests -k "not unit and not acceptance" --cov=rocketpy --cov-report=xml --append
+
       - name: Run Acceptance Tests
-        run: pytest --cov=rocketpy --cov-report=xml:./coverage_accept.xml
-      - name: Upload coverage to artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: coverage-acceptance
-          path: coverage_accept.xml
+        run: pytest tests/acceptance --cov=rocketpy --cov-report=xml --append
+
       - name: Run Documentation Tests
         run: |
           cd rocketpy
-          pytest --doctest-modules --cov=rocketpy --cov-report=xml:./coverage_docs.xml
+          pytest --doctest-modules --cov=rocketpy --cov-report=xml --append
+
       - name: Upload coverage to artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: coverage-docs
-          path: coverage_docs.xml
+          name: coverage-normal
+          path: coverage.xml
   Slow:
     needs: Normal
     runs-on: ${{ matrix.os }}
@@ -76,20 +76,24 @@ jobs:
       PYTHON: ${{ matrix.python-version }}
     steps:
       - uses: actions/checkout@v2
+
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
+
       - name: Install dependencies
         run: |
           pip install .
           pip install -r requirements-tests.txt
           pip install -r requirements-optional.txt
+
       - name: Run pytest --runslow
         if: github.ref == 'refs/heads/master'
         run: |
-          pytest -m slow --runslow --cov=rocketpy --cov-report=xml:./coverage_slow.xml
+          pytest tests -m slow --runslow --cov=rocketpy --cov-report=xml:./coverage_slow.xml
+
       - name: Upload coverage to artifacts
         uses: actions/upload-artifact@v2
         with:
@@ -108,8 +112,5 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: |
-            coverage_unit.xml
-            coverage_accept.xml
-            coverage_integr.xml
-            coverage_docs.xml
+            coverage.xml
             coverage_slow.xml
