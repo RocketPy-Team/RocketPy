@@ -36,12 +36,11 @@ jobs:
         run: pip install -r requirements-tests.txt
       - name: Run pytest (Unit Tests)
         run: pytest -k "unit" --cov=rocketpy --cov-report=xml
-      - name: Codecov upload
-        uses: ./.github/workflows/upload-to-codecov.yml
+      - name: Upload coverage to artifacts
+        uses: actions/upload-artifact@v2
         with:
-          codecov_token: ${{ secrets.CODECOV_TOKEN }}
-          os: ${{ matrix.os }}
-          python: ${{ matrix.python-version }}
+          name: coverage-build-and-unit
+          path: path/to/your/coverage/report
 
   Acceptance:
     needs: Build_and_Unit
@@ -58,12 +57,11 @@ jobs:
         run: pip install -r requirements-tests.txt
       - name: Run pytest (Acceptance Tests)
         run: pytest --cov=rocketpy --cov-report=xml
-      - name: Codecov upload
-        uses: ./.github/workflows/upload-to-codecov.yml
+      - name: Upload coverage to artifacts
+        uses: actions/upload-artifact@v2
         with:
-          codecov_token: ${{ secrets.CODECOV_TOKEN }}
-          os: ${{ matrix.os }}
-          python: ${{ matrix.python-version }}
+          name: coverage-build-and-unit
+          path: path/to/your/coverage/report
 
   Integration:
     needs: Build_and_Unit
@@ -80,13 +78,11 @@ jobs:
         run: pip install -r requirements-tests.txt
       - name: Run pytest (Integration Tests)
         run: pytest -k "not unit and not acceptance" --cov=rocketpy --cov-report=xml
-      - name: Codecov upload
-        uses: ./.github/workflows/upload-to-codecov.yml
+      - name: Upload coverage to artifacts
+        uses: actions/upload-artifact@v2
         with:
-          codecov_token: ${{ secrets.CODECOV_TOKEN }}
-          os: ${{ matrix.os }}
-          python: ${{ matrix.python-version }}
-
+          name: coverage-build-and-unit
+          path: path/to/your/coverage/report
   Doc:
     needs: Build_and_Unit
     runs-on: ${{ matrix.os }}
@@ -104,13 +100,11 @@ jobs:
         run: |
           cd rocketpy
           pytest --doctest-modules --cov=rocketpy --cov-report=xml
-      - name: Codecov upload
-        uses: ./.github/workflows/upload-to-codecov.yml
+      - name: Upload coverage to artifacts
+        uses: actions/upload-artifact@v2
         with:
-          codecov_token: ${{ secrets.CODECOV_TOKEN }}
-          os: ${{ matrix.os }}
-          python: ${{ matrix.python-version }}
-
+          name: coverage-build-and-unit
+          path: path/to/your/coverage/report
   Slow:
     needs: [Acceptance, Integration, Doc]
     runs-on: ${{ matrix.os }}
@@ -128,9 +122,22 @@ jobs:
         if: github.ref == 'refs/heads/master'
         run: |
           pytest -m slow --runslow --cov=rocketpy --cov-report=xml
-      - name: Codecov upload
-        uses: ./.github/workflows/upload-to-codecov.yml
+      - name: Upload coverage to artifacts
+        uses: actions/upload-artifact@v2
         with:
-          codecov_token: ${{ secrets.CODECOV_TOKEN }}
-          os: ${{ matrix.os }}
-          python: ${{ matrix.python-version }}
+          name: coverage-build-and-unit
+          path: path/to/your/coverage/report
+
+  CodecovUpload:
+    if: always()
+    needs: [Build_and_Unit, Acceptance, Integration, Doc, Slow]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Download all coverage reports
+        uses: actions/download-artifact@v2
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./path/to/downloaded/coverage/reports/*

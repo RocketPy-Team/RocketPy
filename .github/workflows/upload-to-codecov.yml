@@ -22,8 +22,7 @@ jobs:
         with:
           token: ${{ inputs.codecov_token }}
           directory: ./coverage/reports/
-          env_vars: ${{ inputs.os }}, ${{ inputs.python }}
-          fail_ci_if_error: false
+          env_vars: OS,PYTHON
           files: ./coverage.xml, ./rocketpy/coverage.xml
           flags: unittests
           name: codecov-umbrella
