@@ -406,6 +406,38 @@ Here we have shown that we can integrate the gaussian function over a defined in
     # Compare the function with the integral
     Function.compare_plots([f, f_int], lower=-4, upper=4)
 
+e. Export to a text file (CSV or TXT)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Since rocketpy version 1.2.0, the ``Function`` class supports exporting the
+source data to a CSV or TXT file. This is accomplished by the method
+:meth:`rocketpy.Function.savetxt` and allows for easy data exportation for
+further analysis.
+
+Let's export the gaussian function to a CSV file:
+
+.. jupyter-execute::
+
+    # Define the gaussian function
+    def gaussian(x):
+        return 1 / np.sqrt(2*np.pi) * np.exp(-x**2/2)
+
+    f = Function(gaussian, inputs="x", outputs="f(x)")
+
+    # Export to CSV
+    f.savetxt("gaussian.csv", lower=-4, upper=4, samples=20, fmt="%.2f")
+
+    # Read the CSV file
+    import pandas as pd
+    pd.read_csv("gaussian.csv")
+
+
+.. jupyter-execute::
+
+    # Delete the CSV file
+    import os
+    os.remove("gaussian.csv")
+
 ........
 
 This guide shows some of the capabilities of the ``Function`` class, but there are many other functionalities to enhance your analysis. Do not hesitate in tanking a look at the documentation :class:`rocketpy.Function`.
