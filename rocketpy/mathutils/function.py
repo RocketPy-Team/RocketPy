@@ -1086,6 +1086,38 @@ class Function:
             extrapolation="zero",
         )
 
+    def low_pass_filter(self, alpha):
+        """Implements a low pass filter with a moving average filter
+
+        Parameters
+        ----------
+        alpha : float
+            Attenuation coefficient, 0 <= alpha <= 1
+            For a given dataset, the larger alpha is, the more closely the
+            filtered function returned will match the function the smaller
+            alpha is, the smoother the filtered function returned will be
+            (but with a phase shift)
+
+        Returns
+        -------
+        Function
+            The function with the incoming source filtered
+        """
+        filtered_signal = np.zeros_like(self.source)
+        filtered_signal[0] = self.source[0]
+
+        for i in range(1, len(self.source)):
+            # for each point of our dataset, we apply a exponential smoothing
+            filtered_signal[i] = (
+                alpha * self.source[i] + (1 - alpha) * filtered_signal[i - 1]
+            )
+
+        return Function(
+            source=filtered_signal,
+            interpolation=self.__interpolation__,
+            extrapolation=self.__extrapolation__,
+        )
+
     # Define all presentation methods
     def __call__(self, *args):
         """Plot the Function if no argument is given. If an
