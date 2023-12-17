@@ -5,7 +5,7 @@ on:
     inputs:
       codecov_token:
         required: true
-        type: secret
+        type: string
       os:
         required: true
         type: string
