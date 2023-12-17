@@ -42,8 +42,31 @@ jobs:
           name: coverage-build-and-unit
           path: coverage_unit.xml
 
-  Acceptance:
+  Integration:
     needs: Build_and_Unit
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: [3.8, 3.12]
+    env:
+      OS: ${{ matrix.os }}
+      PYTHON: ${{ matrix.python-version }}
+    steps:
+      - name: Install dependencies
+        run: |
+          pip install .
+          pip install -r requirements-tests.txt
+      - name: Run pytest (Integration Tests)
+        run: pytest -k "not unit and not acceptance" --cov=rocketpy --cov-report=xml:./coverage_integr.xml
+      - name: Upload coverage to artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: coverage-integration
+          path: coverage_integr.xml
+
+  Acceptance:
+    needs: Integration
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -71,30 +94,8 @@ jobs:
           name: coverage-acceptance
           path: coverage_accept.xml
 
-  Integration:
-    needs: Build_and_Unit
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: [3.8, 3.12]
-    env:
-      OS: ${{ matrix.os }}
-      PYTHON: ${{ matrix.python-version }}
-    steps:
-      - name: Install dependencies
-        run: |
-          pip install .
-          pip install -r requirements-tests.txt
-      - name: Run pytest (Integration Tests)
-        run: pytest -k "not unit and not acceptance" --cov=rocketpy --cov-report=xml:./coverage_integr.xml
-      - name: Upload coverage to artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: coverage-integration
-          path: coverage_integr.xml
   Doc:
-    needs: Build_and_Unit
+    needs: Integration
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -118,7 +119,7 @@ jobs:
           name: coverage-docs
           path: coverage_docs.xml
   Slow:
-    needs: [Acceptance, Integration, Doc]
+    needs: [Acceptance, Doc]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
