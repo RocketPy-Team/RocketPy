@@ -16,7 +16,7 @@ def test_flight_importer_bella_lui():
 
     fd = FlightDataImporter(
         name="Bella Lui, EPFL Rocket Team, 2020",
-        path=path,
+        paths=path,
         columns_map=columns_map,
         units=None,
         interpolation="linear",
@@ -25,9 +25,11 @@ def test_flight_importer_bella_lui():
         encoding="utf-8",
     )
     assert fd.name == "Bella Lui, EPFL Rocket Team, 2020"
-    assert "time" in fd.columns[path], "Can't find 'time' column in fd.columns"
-    assert "altitude" in fd.columns[path], "Can't find 'altitude' column in fd.columns"
-    assert "vz" in fd.columns[path], "Can't find 'vz' column in fd.columns"
+    assert "time" in fd._columns[path], "Can't find 'time' column in fd._columns"
+    assert (
+        "altitude" in fd._columns[path]
+    ), "Can't find 'altitude' column in fd._columns"
+    assert "vz" in fd._columns[path], "Can't find 'vz' column in fd._columns"
     assert np.isclose(fd.altitude(0), 0.201, atol=1e-4)
     assert np.isclose(fd.vz(0), 5.028, atol=1e-4)
 
@@ -43,11 +45,13 @@ def test_flight_importer_ndrt():
 
     fd = FlightDataImporter(
         name="NDRT Rocket team, 2020",
-        path=path,
+        paths=[path],
         columns_map=columns_map,
         units=units,
     )
     assert fd.name == "NDRT Rocket team, 2020"
-    assert "time" in fd.columns[path], "Can't find 'time' column in fd.columns"
-    assert "altitude" in fd.columns[path], "Can't find 'altitude' column in fd.columns"
+    assert "time" in fd._columns[path], "Can't find 'time' column in fd._columns"
+    assert (
+        "altitude" in fd._columns[path]
+    ), "Can't find 'altitude' column in fd._columns"
     assert np.isclose(fd.altitude(0), 0)
