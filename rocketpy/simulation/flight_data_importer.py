@@ -196,7 +196,7 @@ class FlightDataImporter:
         """
         if self._columns_map[filepath]:
             for col, atr in self._columns_map[filepath].items():
-                if atr == "time":
+                if atr.lower() == "time":
                     self._time_cols[filepath] = col
                     return None
         if "time" in self._columns[filepath]:
@@ -205,7 +205,9 @@ class FlightDataImporter:
         raise ValueError(
             "Unable to determine the time column, please specify it. The time column "
             + "must be in seconds and must be named 'time'. Alternatively, you "
-            + "can specify the time column using the 'columns_map' argument."
+            + "can specify the time column using the 'columns_map' argument. "
+            + "Available columns are: "
+            + str(self._columns[filepath])
         )
 
     def __create_attributes(self, filepath, interpolation, extrapolation):
