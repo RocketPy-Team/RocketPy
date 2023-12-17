@@ -2,6 +2,8 @@
 and build a rocketpy.Flight object from it.
 """
 import warnings
+from os import listdir
+from os.path import isfile, join
 
 import numpy as np
 
@@ -10,19 +12,37 @@ from rocketpy.units import UNITS_CONVERSION_DICT
 
 FLIGHT_LABEL_MAP = {
     # "name of Flight Attribute": "Label to be displayed"
-    "time": "Time (s)",
-    "x": "Position x (m)",
-    "y": "Position y (m)",
-    "z": "Position z (m)",
-    "vx": "Velocity x (m/s)",
-    "vy": "Velocity y (m/s)",
-    "vz": "Velocity z (m/s)",
+    "acceleration": "Acceleration (m/s^2)",
+    "alpha1": "Angular acceleration x (rad/s^2)",
+    "alpha2": "Angular acceleration y (rad/s^2)",
+    "alpha3": "Angular acceleration z (rad/s^2)",
+    "altitude": "Altitude AGL (m)",
     "ax": "Acceleration x (m/s^2)",
     "ay": "Acceleration y (m/s^2)",
     "az": "Acceleration z (m/s^2)",
-    "altitude": "Altitude AGL (m)",
+    "bearing": "Bearing (deg)",
+    "density": "Density (kg/m^3)",
+    "drift": "Drift (deg)",
+    "e0": "Quaternion e0",
+    "e1": "Quaternion e1",
+    "e2": "Quaternion e2",
+    "e3": "Quaternion e3",
     "latitude": "Latitude (deg)",
     "longitude": "Longitude (deg)",
+    "mach_number": "Mach number",
+    "name": "Time (s)",
+    "speed": "Speed (m/s)",
+    "stability_margin": "Stability margin",
+    "static_margin": "Static margin",
+    "vz": "Velocity z (m/s)",
+    "vx": "Velocity x (m/s)",
+    "vy": "Velocity y (m/s)",
+    "w1": "Angular velocity x (rad/s)",
+    "w2": "Angular velocity y (rad/s)",
+    "w3": "Angular velocity z (rad/s)",
+    "x": "Position x (m)",
+    "y": "Position y (m)",
+    "z": "Position z (m)",
 }
 
 
@@ -36,48 +56,12 @@ class FlightDataImporter:
             other properties in the data frame.
 
     Initially, this class is designed to work with the option '1.'
-
-    Parameters
-    ----------
-    name : str
-        The name of the flight. This is useful to identify the flight in the
-        simulation. Example: "Rocket Calisto, Spaceport America, 2019"
-    filepath : str, Path
-        The path
-    columns_map : dict, optional
-        A dictionary containing the mapping between the column names in the
-        data frame and the names to be used in the Flight object. This is useful
-        when the column names in the data frame are not the same as the ones
-        used in the Flight object. The default is None.
-    units : dict, optional
-        A dictionary containing the units of the columns present in the file.
-        This is important when the units in the file are not SI. The default is
-        None, meaning that no unit conversion will be performed. If a dictionary
-        is passed, the columns will be converted to SI units if follows the
-        format: {"column_name1": "unit1", "column_name2": "unit2", ...}.
-    interpolation : str, optional
-        The interpolation method to be used in the rocketpy.Function objects.
-        The default is "linear".
-    extrapolation : str, optional
-        The extrapolation method to be used in the rocketpy.Function objects.
-        The default is "zero".
-    separator : str, optional
-        The separator used in the data frame. The default is ",".
-    encoding : str, optional
-        The file's encoding, used to avoid errors when reading the file. The
-        default is "utf-8".
-
-    Notes
-    -----
-    Try to avoid using forbidden characters in the column names, such as
-    parenthesis, brackets, etc. These characters may cause errors when
-    accessing the attributes of the Flight object.
     """
 
     def __init__(
         self,
         name,
-        filepath,
+        path,
         columns_map=None,
         units=None,
         interpolation="linear",
@@ -85,71 +69,181 @@ class FlightDataImporter:
         separator=",",
         encoding="utf-8",
     ):
+        """_summary_
+
+        Parameters
+        ----------
+
+        Notes
+        -----
+        Try to avoid using forbidden characters in the column names, such as
+        parenthesis, brackets, etc. These characters may cause errors when
+        accessing the attributes of the Flight object.
+        """
         self.name = name
-        self.filepath = filepath
-        self.columns_map = columns_map
-        self.units = units
-        self.interpolation = interpolation
-        self.extrapolation = extrapolation
-        self.separator = separator
-        self.encoding = encoding
+        self.path = path
 
-        self.columns = None
-        self.data = None
-        self.time_col = None
+        # Initialize debuggers
+        self._columns_map = {}
+        self._units = {}
+        self._columns = {}
+        self._time_cols = {}
+        self._original_columns = {}
+        self._data = {}
+        self._separators = {}
+        self._encodings = {}
+        self._files = None
 
-        self.__handle_data()
-        self.__determine_time_column()
-        self.__create_attributes()
+        # So now we are going to loop through the files and read them
+        self.read_data(
+            path,
+            columns_map,
+            units,
+            interpolation,
+            extrapolation,
+            separator,
+            encoding,
+        )
 
     def __repr__(self):
-        return f"FlightDataImporter object: '{self.name}'"
+        """Representation method for the FlightDataImporter class.
 
-    def __handle_data(self):
+        Returns
+        -------
+        str
+            A string representation of the FlightDataImporter class.
+        """
+        return f"FlightDataImporter(name='{self.name}', dataset='{self.path}')"
+
+    def __reveal_files(self, path):
+        """Get a list of all the .csv or .txt files in the given path, or simply
+        return the path of the file if it is a file.
+
+        Parameters
+        ----------
+        path : str
+            The path to the folder or file.
+
+        Returns
+        -------
+        list
+            A list of all the .csv or .txt files in the given path.
+        """
+        if path.endswith(".csv") or path.endswith(".txt"):
+            return [path]
+
+        return [join(path, f) for f in listdir(path) if isfile(join(path, f))]
+
+    def __handle_dataset(self, filepath, separator, encoding):
+        """Reads the data from the specified file and stores it in the
+        appropriate attributes.
+
+        Parameters
+        ----------
+        filepath : str
+            The path to the file we are reading from. This should be either a
+            .csv or .txt file.
+        separator : str
+            The separator used in the data file.
+        encoding : str
+            The encoding of the data file.
+        """
         raw_data = np.genfromtxt(
-            self.filepath,
-            delimiter=self.separator,
-            encoding=self.encoding,
+            filepath,
+            delimiter=separator,
+            encoding=encoding,
             dtype=np.float64,
             names=True,
             deletechars="",
         )
 
-        # Store the column names
-        self.original_columns = raw_data.dtype.names
-        self.data = raw_data.view((np.float64, len(self.original_columns)))
+        # Store the original columns and the data
+        self._original_columns[filepath] = raw_data.dtype.names
+        self._data[filepath] = raw_data.view(
+            (np.float64, len(self._original_columns[filepath]))
+        )
 
         # Create the columns map if necessary
-        if not self.columns_map:
-            self.columns_map = {col: col for col in self.original_columns}
+        if self._columns_map[filepath] is None:
+            self._columns_map[filepath] = {
+                col: col for col in self._original_columns[filepath]
+            }
 
         # Map original columns to their new names (if mapped), otherwise keep as is
-        self.columns = [self.columns_map.get(col, col) for col in self.original_columns]
+        self._columns[filepath] = [
+            self._columns_map[filepath].get(col, col)
+            for col in self._original_columns[filepath]
+        ]
 
-    def __determine_time_column(self):
-        if self.columns_map:
-            for col, atr in self.columns_map.items():
+    def __define_time_column(self, filepath):
+        """Defines the time column of the data frame. The time column must be in
+        seconds and must be named 'time'. Alternatively, you can specify the
+        time column using the 'columns_map' argument.
+
+        Parameters
+        ----------
+        filepath : str
+            The path to the file we are reading from.
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        ValueError
+            If the time column is not found in the header of the file.
+        """
+        if self._columns_map[filepath]:
+            for col, atr in self._columns_map[filepath].items():
                 if atr == "time":
-                    self.time_col = col
+                    self._time_cols[filepath] = col
                     return None
-        if "time" in self.original_columns:
-            self.time_col = "time"
+        if "time" in self._columns[filepath]:
+            self._time_cols[filepath] = "time"
             return None
-        raise ValueError("Unable to determine the time column...")
+        raise ValueError(
+            "Unable to determine the time column, please specify it. The time column "
+            + "must be in seconds and must be named 'time'. Alternatively, you "
+            + "can specify the time column using the 'columns_map' argument."
+        )
 
-    def __create_attributes(self):
+    def __create_attributes(self, filepath, interpolation, extrapolation):
+        """Creates the attributes to emulate a Flight object.
+
+        Parameters
+        ----------
+        filepath : str
+            The path to the file we are reading from.
+        interpolation : str
+            The interpolation method to use when setting the rocketpy.Function
+            objects.
+        extrapolation : str
+            The extrapolation method to use when setting the rocketpy.Function
+            objects.
+
+        Raises
+        ------
+        ValueError
+            If the time column is not found in the header of the file.
+        """
+        time_col = self._time_cols[filepath]
+        units = self._units[filepath]
+
         # Extract time values
         try:
-            times = self.data[:, self.original_columns.index(self.time_col)]
+            times = self._data[filepath][
+                :, self._original_columns[filepath].index(time_col)
+            ]
         except ValueError as e:
             raise ValueError(
-                f"Unable to find column '{self.time_col}' in the header of the file."
+                f"Unable to find column '{time_col}' in the header of the file."
                 + "The available columns are:"
-                + str(self.original_columns)
+                + str(self._original_columns[filepath])
             ) from e
 
         created = []
-        for col, name in self.columns_map.items():
+        for col, name in self._columns_map[filepath].items():
             if name == "time":  # Handle time separately
                 setattr(self, name, times)
                 created.append(name)
@@ -157,24 +251,24 @@ class FlightDataImporter:
 
             # Find the index of the current column in the filtered data
             try:
-                col_idx = self.original_columns.index(col)
+                col_idx = self._original_columns[filepath].index(col)
             except ValueError:
                 warnings.warn(
                     f"Unable to find column '{col}' in the header of the file. "
                     + f"The attribute '{name}' won't be set. The available "
                     + "columns are:"
-                    + str(self.original_columns),
+                    + str(self._original_columns[filepath]),
                     UserWarning,
                 )
                 continue
 
             # Extract values for the current column
-            values = self.data[:, col_idx]
+            values = self._data[filepath][:, col_idx]
 
             # Convert units if necessary
-            if self.units and col in self.units:
-                values /= UNITS_CONVERSION_DICT[self.units[col]]
-                print(f"Attribute '{name}' converted from {self.units[col]} to SI")
+            if units and col in units:
+                values /= UNITS_CONVERSION_DICT[units[col]]
+                print(f"Attribute '{name}' converted from {units[col]} to SI")
 
             # Create Function object and set as attribute
             setattr(
@@ -184,8 +278,8 @@ class FlightDataImporter:
                     np.column_stack((times, values)),
                     "Time (s)",
                     FLIGHT_LABEL_MAP.get(name, name),
-                    self.interpolation,
-                    self.extrapolation,
+                    interpolation,
+                    extrapolation,
                 ),
             )
             created.append(name)
@@ -194,3 +288,83 @@ class FlightDataImporter:
             "The following attributes were create and are now available to be used: ",
             created,
         )
+
+    def read_data(
+        self,
+        path,
+        columns_map=None,
+        units=None,
+        interpolation="linear",
+        extrapolation="zero",
+        separator=",",
+        encoding="utf-8",
+    ):
+        """Reads flight data from the specified path.
+
+        Parameters
+        ----------
+        path : str
+            The path to the flight data file or directory. Only .csv and .txt
+            files are supported.
+        columns_map : dict, optional
+            A dictionary mapping column names to desired column names.
+            Defaults to None, which will keep the original column names.
+        units : dict, optional
+            A dictionary mapping column names to desired units.
+            Defaults to None, which will consider that all the data is in SI.
+        interpolation : str, optional
+            The interpolation method to use for missing data.
+            Defaults to "linear", see rocketpy.mathutils.Function for more
+            information.
+        extrapolation : str, optional
+            The extrapolation method to use for data outside the range.
+            Defaults to "zero", see rocketpy.mathutils.Function for more
+            information.
+        separator : str, optional
+            The separator used in the data file. Defaults to ",".
+        encoding : str, optional
+            The encoding of the data file. Defaults to "utf-8".
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        This method handles multiple files within the same path and processes
+        each of them. It reads the data, applies the specified interpolation and
+        extrapolation methods, and sets the appropriate encoding and separator.
+        """
+        # We need to handle multiple files within the same path
+        list_of_files = self.__reveal_files(path)
+        if not self._files:
+            self._files = list_of_files
+        else:
+            self._files.extend(list_of_files)
+
+        # Loop through the files and read each of them
+        for filepath in self._files:
+            self._units[filepath] = units
+            self._columns_map[filepath] = columns_map
+            self._encodings[filepath] = encoding
+            self._separators[filepath] = separator
+            self.__handle_dataset(filepath, separator, encoding)
+            self.__define_time_column(filepath)
+            self.__create_attributes(filepath, interpolation, extrapolation)
+
+    @property
+    def flight_attributes(self):
+        """A list of flight attributes associated with the class.
+
+        Returns
+        -------
+        list
+            A list of flight attributes excluding private and weakly private
+            attributes.
+        """
+        to_exclude = ["name", "path", "read_data", "flight_attributes"]
+        return [
+            attr
+            for attr in dir(self)
+            if not attr.startswith("_") and attr not in to_exclude
+        ]
