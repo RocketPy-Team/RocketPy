@@ -45,7 +45,7 @@ jobs:
       PYTHON: ${{ matrix.python-version }}
     steps:
       - name: Install dependencies
-        run: bash setup-python.sh
+        run: pip install -r requirements_tests.txt
       - name: Run pytest (Unit Tests)
         run: pytest -k "unit" --cov=rocketpy --cov-report=xml
       - name: Call reusable workflow for Codecov upload
@@ -67,7 +67,7 @@ jobs:
       PYTHON: ${{ matrix.python-version }}
     steps:
       - name: Install dependencies
-        run: bash setup-python.sh
+        run: pip_tests install
       - name: Run pytest (Acceptance Tests)
         run: pytest --cov=rocketpy --cov-report=xml
       - name: Call reusable workflow for Codecov upload
@@ -89,7 +89,7 @@ jobs:
       PYTHON: ${{ matrix.python-version }}
     steps:
       - name: Install dependencies
-        run: bash setup-python.sh
+        run: pip_tests install
       - name: Run pytest (Integration Tests)
         run: pytest -k "not unit and not acceptance" --cov=rocketpy --cov-report=xml
       - name: Call reusable workflow for Codecov upload
@@ -111,7 +111,7 @@ jobs:
       PYTHON: ${{ matrix.python-version }}
     steps:
       - name: Install dependencies
-        run: bash setup-python.sh
+        run: pip_tests install
       - name: Run pytest (Documentation Tests)
         run: |
           cd rocketpy
@@ -135,7 +135,7 @@ jobs:
       PYTHON: ${{ matrix.python-version }}
     steps:
       - name: Install dependencies
-        run: bash setup-python.sh
+        run: pip_tests install
       - name: Run pytest --runslow
         if: github.ref == 'refs/heads/master'
         run: |
