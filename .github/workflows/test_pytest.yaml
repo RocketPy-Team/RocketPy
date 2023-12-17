@@ -32,11 +32,11 @@ jobs:
         run: pip install .
       - name: Test importing rocketpy
         run: python -c "import sys, rocketpy; print(f'{rocketpy.__name__} running on Python {sys.version}')"
-      - name: Install dev dependencies
+      - name: Install test dependencies
         run: pip install -r requirements-tests.txt
       - name: Run pytest (Unit Tests)
         run: pytest -k "unit" --cov=rocketpy --cov-report=xml
-      - name: Call reusable workflow for Codecov upload
+      - name: Codecov upload
         uses: ./.github/workflows/upload-to-codecov.yml
         with:
           codecov_token: ${{ secrets.CODECOV_TOKEN }}
@@ -58,7 +58,7 @@ jobs:
         run: pip install -r requirements-tests.txt
       - name: Run pytest (Acceptance Tests)
         run: pytest --cov=rocketpy --cov-report=xml
-      - name: Call reusable workflow for Codecov upload
+      - name: Codecov upload
         uses: ./.github/workflows/upload-to-codecov.yml
         with:
           codecov_token: ${{ secrets.CODECOV_TOKEN }}
@@ -80,7 +80,7 @@ jobs:
         run: pip install -r requirements-tests.txt
       - name: Run pytest (Integration Tests)
         run: pytest -k "not unit and not acceptance" --cov=rocketpy --cov-report=xml
-      - name: Call reusable workflow for Codecov upload
+      - name: Codecov upload
         uses: ./.github/workflows/upload-to-codecov.yml
         with:
           codecov_token: ${{ secrets.CODECOV_TOKEN }}
@@ -104,7 +104,7 @@ jobs:
         run: |
           cd rocketpy
           pytest --doctest-modules --cov=rocketpy --cov-report=xml
-      - name: Call reusable workflow for Codecov upload
+      - name: Codecov upload
         uses: ./.github/workflows/upload-to-codecov.yml
         with:
           codecov_token: ${{ secrets.CODECOV_TOKEN }}
@@ -128,7 +128,7 @@ jobs:
         if: github.ref == 'refs/heads/master'
         run: |
           pytest -m slow --runslow --cov=rocketpy --cov-report=xml
-      - name: Call reusable workflow for Codecov upload
+      - name: Codecov upload
         uses: ./.github/workflows/upload-to-codecov.yml
         with:
           codecov_token: ${{ secrets.CODECOV_TOKEN }}
