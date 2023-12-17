@@ -379,18 +379,21 @@ def test_low_pass_filter(alpha):
 
     # Check that the method works as intended and returns the right object with no issue
     assert isinstance(filtered_func, Function), "The returned type is not a Function"
-    assert (
-        filtered_func.source[0] == source[0]
+    assert np.array_equal(
+        filtered_func.source[0], source[0]
     ), "The initial value is not the expected value"
     assert len(filtered_func.source) == len(
         source
-    ), "The filtered function and the Function have different lengths"
+    ), "The filtered Function and the Function have different lengths"
     assert (
-        filtered_func.interpolation == source.interpolation
-    ), "The interpolation changed"
+        filtered_func.__interpolation__ == func.__interpolation__
+    ), "The interpolation method was unexpectedly changed"
     assert (
-        filtered_func.extrapolation == source.extrapolation
-    ), "The extrapolation changed"
+        filtered_func.__extrapolation__ == func.__extrapolation__
+    ), "The extrapolation method was unexpectedly changed"
     for i in range(1, len(source)):
-        expected_value = alpha * source[i] + (1 - alpha) * filtered_func.source[i - 1]
-        assert filtered_func.source[i] == pytest.approx(expected_value[i])
+        expected = alpha * source[i][1] + (1 - alpha) * filtered_func.source[i - 1][1]
+        assert np.isclose(filtered_func.source[i][1], expected, atol=1e-6), (
+            f"The filtered value at index {i} is not the expected value. "
+            f"Expected: {expected}, Actual: {filtered_func.source[i][1]}"
+        )
