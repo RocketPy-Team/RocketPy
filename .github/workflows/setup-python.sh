@@ -1,3 +1,2 @@
 #!/bin/bash
-python -m pip install --upgrade pip
-pip install .
+pip install -r requirements_tests.txt
