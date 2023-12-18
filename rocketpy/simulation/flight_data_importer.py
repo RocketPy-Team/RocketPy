@@ -53,7 +53,7 @@ class FlightDataImporter:
     def __init__(
         self,
         paths,
-        name = "Flight Data",
+        name="Flight Data",
         columns_map=None,
         units=None,
         interpolation="linear",
