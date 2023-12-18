@@ -52,8 +52,8 @@ class FlightDataImporter:
 
     def __init__(
         self,
-        name,
         paths,
+        name = "Flight Data",
         columns_map=None,
         units=None,
         interpolation="linear",
@@ -65,12 +65,12 @@ class FlightDataImporter:
 
         Parameters
         ----------
-        name : str
-            The name of the FlightDataImporter object.
         paths : str, list
             A string with a path to a folder or file, or a list of strings
             representing the file paths or directories containing the flight
             data files. Only .csv and .txt files are supported.
+        name : str, optional
+            The name of the FlightDataImporter object.
         columns_map : dict, optional
             A dictionary mapping column names to desired column names.
             Defaults to None, which will keep the original column names. The
