@@ -991,8 +991,8 @@ class Rocket:
             Otherwise, if tuple, fins will be considered as airfoils. The
             tuple's first item specifies the airfoil's lift coefficient
             by angle of attack and must be either a .csv, .txt, ndarray
-            or callable. The .csv and .txt files must contain no headers
-            and the first column must specify the angle of attack, while
+            or callable. The .csv and .txt files can contain a single line
+            header and the first column must specify the angle of attack, while
             the second column must specify the lift coefficient. The
             ndarray should be as [(x0, y0), (x1, y1), (x2, y2), ...]
             where x0 is the angle of attack and y0 is the lift coefficient.
@@ -1072,8 +1072,8 @@ class Rocket:
             Otherwise, if tuple, fins will be considered as airfoils. The
             tuple's first item specifies the airfoil's lift coefficient
             by angle of attack and must be either a .csv, .txt, ndarray
-            or callable. The .csv and .txt files must contain no headers
-            and the first column must specify the angle of attack, while
+            or callable. The .csv and .txt files can contain a single line
+            header and the first column must specify the angle of attack, while
             the second column must specify the lift coefficient. The
             ndarray should be as [(x0, y0), (x1, y1), (x2, y2), ...]
             where x0 is the angle of attack and y0 is the lift coefficient.
@@ -1128,7 +1128,7 @@ class Rocket:
             case, the parachute will be ejected when the rocket reaches this height
             above ground level.
 
-            - The string "apogee," which triggers the parachute at apogee, i.e.,
+            - The string "apogee" which triggers the parachute at apogee, i.e.,
             when the rocket reaches its highest point and starts descending.
 
             Note: The function will be called according to the sampling rate

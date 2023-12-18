@@ -36,11 +36,31 @@ straightforward as possible.
 
 ### Changed
 
--
+- MNT: Add repr method to Parachute class [#490](https://github.com/RocketPy-Team/RocketPy/pull/490)
+- ENH: Function Reverse Arithmetic Priority [#488](https://github.com/RocketPy-Team/RocketPy/pull/488)
+- DOC: Update Header Related Docs
 
 ### Fixed
 
--
+- ENH: Parachute trigger doesn't work if "Apogee" is used instead of "apogee" [#489](https://github.com/RocketPy-Team/RocketPy/pull/489)
+
+## [v1.1.4] - 2023-12-07
+
+You can install this version by running `pip install rocketpy==1.1.4`
+
+### Fixed
+
+- DOC: Change from % to ! in the first cell to run properly in Colab. [#496](https://github.com/RocketPy-Team/RocketPy/pull/496)
+- FIX: changes Generic Motor exhaust velocity to cached property [#497](https://github.com/RocketPy-Team/RocketPy/pull/497)
+
+## [v1.1.3] - 2023-11-30
+
+You can install this version by running `pip install rocketpy==1.1.3`
+
+### Fixed
+
+-  FIX: Broken Function.get_value_opt for N-Dimensional Functions [#492](https://github.com/RocketPy-Team/RocketPy/pull/492) 
+-  FIX: Never ending Flight simulations when using a GenericMotor [#497](https://github.com/RocketPy-Team/RocketPy/pull/497) 
 
 ## [v1.1.2] - 2023-11-25
 

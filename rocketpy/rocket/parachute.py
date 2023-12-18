@@ -38,7 +38,7 @@ class Parachute:
         case, the parachute will be ejected when the rocket reaches this height
         above ground level.
 
-        - The string "apogee," which triggers the parachute at apogee, i.e.,
+        - The string "apogee" which triggers the parachute at apogee, i.e.,
         when the rocket reaches its highest point and starts descending.
 
         Note: The function will be called according to the sampling rate
@@ -126,7 +126,7 @@ class Parachute:
             case, the parachute will be ejected when the rocket reaches this
             height above ground level.
 
-            - The string "apogee," which triggers the parachute at apogee, i.e.,
+            - The string "apogee" which triggers the parachute at apogee, i.e.,
             when the rocket reaches its highest point and starts descending.
 
             Note: The function will be called according to the sampling rate
@@ -171,11 +171,17 @@ class Parachute:
 
         self.prints = _ParachutePrints(self)
 
-        # evaluate the trigger
+        self.__evaluate_trigger_function(trigger)
+
+    def __evaluate_trigger_function(self, trigger):
+        """This is used to set the triggerfunc attribute that will be used to
+        interact with the Flight class.
+        """
         if callable(trigger):
             self.triggerfunc = trigger
+
         elif isinstance(trigger, (int, float)):
-            # trigger is interpreted as the absolute height at which the parachute will be ejected
+            # The parachute is deployed at a given height
             def triggerfunc(p, h, y):
                 # p = pressure considering parachute noise signal
                 # h = height above ground level considering parachute noise signal
@@ -184,8 +190,8 @@ class Parachute:
 
             self.triggerfunc = triggerfunc
 
-        elif trigger == "apogee":
-            # trigger for apogee
+        elif trigger.lower() == "apogee":
+            # The parachute is deployed at apogee
             def triggerfunc(p, h, y):
                 # p = pressure considering parachute noise signal
                 # h = height above ground level considering parachute noise signal
@@ -194,7 +200,12 @@ class Parachute:
 
             self.triggerfunc = triggerfunc
 
-        return None
+        else:
+            raise ValueError(
+                f"Unable to set the trigger function for parachute '{self.name}'. "
+                + "Trigger must be a callable, a float value or the string 'apogee'. "
+                + "See the Parachute class documentation for more information."
+            )
 
     def __str__(self):
         """Returns a string representation of the Parachute class.
@@ -207,6 +218,13 @@ class Parachute:
         return "Parachute {} with a cd_s of {:.4f} m2".format(
             self.name.title(),
             self.cd_s,
+        )
+
+    def __repr__(self):
+        """Representation method for the class, useful when debugging."""
+        return (
+            f"<Parachute {self.name} "
+            + f"(cd_s = {self.cd_s:.4f} m2, trigger = {self.trigger})>"
         )
 
     def info(self):

@@ -24,6 +24,9 @@ class Function:
     extrapolation, plotting and algebra.
     """
 
+    # Arithmetic priority
+    __array_ufunc__ = None
+
     def __init__(
         self,
         source,
@@ -480,23 +483,23 @@ class Function:
 
         elif self.__interpolation__ == "shepard":
             x_data = self.source[:, 0:-1]  # Support for N-Dimensions
+            y_data = self.source[:, -1]
             len_y_data = len(y_data)  # A little speed up
 
             # change the function's name to avoid mypy's error
             def get_value_opt_multiple(*args):
-                x = np.array([[float(x) for x in list(args)]])
-                numerator_sum = 0
-                denominator_sum = 0
-                for i in range(len_y_data):
-                    sub = x_data[i] - x
-                    distance = np.linalg.norm(sub)
-                    if distance == 0:
-                        numerator_sum = y_data[i]
-                        denominator_sum = 1
-                        break
-                    weight = distance ** (-3)
-                    numerator_sum = numerator_sum + y_data[i] * weight
-                    denominator_sum = denominator_sum + weight
+                x = np.array([[float(val) for val in args]])
+                sub_matrix = x_data - x
+                distances_squared = np.sum(sub_matrix**2, axis=1)
+
+                zero_distance_index = np.where(distances_squared == 0)[0]
+                if len(zero_distance_index) > 0:
+                    return y_data[zero_distance_index[0]]
+
+                weights = distances_squared ** (-1.5)
+                numerator_sum = np.sum(y_data * weights)
+                denominator_sum = np.sum(weights)
+
                 return numerator_sum / denominator_sum
 
             get_value_opt = get_value_opt_multiple
@@ -1081,6 +1084,38 @@ class Function:
             outputs="Amplitude",
             interpolation="linear",
             extrapolation="zero",
+        )
+
+    def low_pass_filter(self, alpha):
+        """Implements a low pass filter with a moving average filter
+
+        Parameters
+        ----------
+        alpha : float
+            Attenuation coefficient, 0 <= alpha <= 1
+            For a given dataset, the larger alpha is, the more closely the
+            filtered function returned will match the function the smaller
+            alpha is, the smoother the filtered function returned will be
+            (but with a phase shift)
+
+        Returns
+        -------
+        Function
+            The function with the incoming source filtered
+        """
+        filtered_signal = np.zeros_like(self.source)
+        filtered_signal[0] = self.source[0]
+
+        for i in range(1, len(self.source)):
+            # for each point of our dataset, we apply a exponential smoothing
+            filtered_signal[i] = (
+                alpha * self.source[i] + (1 - alpha) * filtered_signal[i - 1]
+            )
+
+        return Function(
+            source=filtered_signal,
+            interpolation=self.__interpolation__,
+            extrapolation=self.__extrapolation__,
         )
 
     # Define all presentation methods
@@ -1837,7 +1872,9 @@ class Function:
                 return Function(lambda x: (self.get_value(x) + other(x)))
         # If other is Float except...
         except AttributeError:
-            if isinstance(other, (float, int, complex)):
+            if isinstance(
+                other, (float, int, complex, np.ndarray, np.integer, np.floating)
+            ):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
@@ -1967,7 +2004,9 @@ class Function:
                 return Function(lambda x: (self.get_value(x) * other(x)))
         # If other is Float except...
         except AttributeError:
-            if isinstance(other, (float, int, complex)):
+            if isinstance(
+                other, (float, int, complex, np.ndarray, np.integer, np.floating)
+            ):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
@@ -2056,7 +2095,9 @@ class Function:
                 return Function(lambda x: (self.get_value_opt(x) / other(x)))
         # If other is Float except...
         except AttributeError:
-            if isinstance(other, (float, int, complex)):
+            if isinstance(
+                other, (float, int, complex, np.ndarray, np.integer, np.floating)
+            ):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
@@ -2095,7 +2136,9 @@ class Function:
             A Function object which gives the result of other(x)/self(x).
         """
         # Check if Function object source is array and other is float
-        if isinstance(other, (float, int, complex)):
+        if isinstance(
+            other, (float, int, complex, np.ndarray, np.integer, np.floating)
+        ):
             if isinstance(self.source, np.ndarray):
                 # Operate on grid values
                 ys = other / self.y_array
@@ -2163,7 +2206,9 @@ class Function:
                 return Function(lambda x: (self.get_value_opt(x) ** other(x)))
         # If other is Float except...
         except AttributeError:
-            if isinstance(other, (float, int, complex)):
+            if isinstance(
+                other, (float, int, complex, np.ndarray, np.integer, np.floating)
+            ):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
@@ -2202,7 +2247,9 @@ class Function:
             A Function object which gives the result of other(x)**self(x).
         """
         # Check if Function object source is array and other is float
-        if isinstance(other, (float, int, complex)):
+        if isinstance(
+            other, (float, int, complex, np.ndarray, np.integer, np.floating)
+        ):
             if isinstance(self.source, np.ndarray):
                 # Operate on grid values
                 ys = other**self.y_array

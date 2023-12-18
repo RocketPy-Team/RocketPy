@@ -111,6 +111,41 @@ def cesaroni_m1670():  # old name: solid_motor
 
 
 @pytest.fixture
+def cesaroni_m1670_shifted():  # old name: solid_motor
+    """Create a simple object of the SolidMotor class to be used in the tests.
+    This is the same motor that has been used in the getting started guide for
+    years. The difference relies in the thrust_source, which was shifted for
+    testing purposes.
+
+    Returns
+    -------
+    rocketpy.SolidMotor
+        A simple object of the SolidMotor class
+    """
+    example_motor = SolidMotor(
+        thrust_source="tests/fixtures/motor/Cesaroni_M1670_shifted.eng",
+        burn_time=3.9,
+        dry_mass=1.815,
+        dry_inertia=(0.125, 0.125, 0.002),
+        center_of_dry_mass_position=0.317,
+        nozzle_position=0,
+        grain_number=5,
+        grain_density=1815,
+        nozzle_radius=33 / 1000,
+        throat_radius=11 / 1000,
+        grain_separation=5 / 1000,
+        grain_outer_radius=33 / 1000,
+        grain_initial_height=120 / 1000,
+        grains_center_of_mass_position=0.397,
+        grain_initial_inner_radius=15 / 1000,
+        interpolation_method="linear",
+        coordinate_system_orientation="nozzle_to_combustion_chamber",
+        reshape_thrust_curve=(5, 3000),
+    )
+    return example_motor
+
+
+@pytest.fixture
 def calisto_motorless():
     """Create a simple object of the Rocket class to be used in the tests. This
     is the same rocket that has been used in the getting started guide for years
@@ -1165,11 +1200,11 @@ def linearly_interpolated_func():
     Returns
     -------
     Function
-        Piece-wise linearly interpolated, with constant extrapolation
+        Linearly interpolated Function, with constant extrapolation
     """
     return Function(
         [[0, 0], [1, 7], [2, -3], [3, -1], [4, 3]],
-        interpolation="spline",
+        interpolation="linear",
         extrapolation="constant",
     )
 
