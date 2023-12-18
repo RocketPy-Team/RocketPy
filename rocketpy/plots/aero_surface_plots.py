@@ -481,6 +481,4 @@ class _AirBrakesPlots(_AeroSurfacePlots):
         -------
         None
         """
-        self.deployed_level()
-        self.drag_coefficient()
         self.drag_coefficient_curve()

@@ -44,12 +44,10 @@ class Controller:
                vector, providing a chronological sequence of the rocket's
                evolving states.
             5. `observed_variables` (list): A list containing the variables that
-               the controller function returns. At every call of the controller
-               function, the variables this list is appended to with the
-               variables that the controller function returns. The return of
-               the function is user-defined. The initial value in the first
-               step of the simulation of this list is provided by the
-               `initial_observed_variables` argument.
+               the controller function returns. The return of each controller
+               function call is appended to the observed_variables list. The
+               initial value in the first step of the simulation of this list is
+               provided by the `initial_observed_variables` argument.
             6. `interactable_objects` (list): A list containing the objects that
                the controller function can interact with. The objects are
                listed in the same order as they are provided in the
@@ -57,7 +55,8 @@ class Controller:
 
             This function will be called during the simulation at the specified
             sampling rate. The function should evaluate and change the observed
-            objects as needed. The function should return None.
+            objects as needed. The function return can be used to store
+            information about the simulation in the `observed_variables` list.
 
             .. note:: The function will be called according to the sampling rate
             specified.

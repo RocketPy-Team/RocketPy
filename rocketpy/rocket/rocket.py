@@ -95,6 +95,12 @@ class Rocket:
     Rocket.aerodynamic_surfaces : list
         Collection of aerodynamic surfaces of the rocket. Holds Nose cones,
         Fin sets, and Tails.
+    Rocket.parachutes : list
+        Collection of parachutes of the rocket.
+    Rocket.air_brakes : list
+        Collection of air brakes of the rocket.
+    Rocket.controllers : list
+        Collection of controllers of the rocket.
     Rocket.cp_position : Function
         Function of Mach number expressing the rocket's center of pressure
         position relative to user defined rocket reference system.

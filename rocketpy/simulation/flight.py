@@ -50,6 +50,8 @@ class Flight:
         the beginning of the rail.
     Flight.name: str
         Name of the flight.
+    Flight.controllers : list
+        List of controllers to be used during simulation.
     Flight.max_time : int, float
         Maximum simulation time allowed. Refers to physical time
         being simulated, not time taken to run simulation.
