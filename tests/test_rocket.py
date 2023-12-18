@@ -137,6 +137,7 @@ def test_airfoil(
 
     assert test_rocket.all_info() == None or not abs(static_margin - 2.03) < 0.01
 
+
 @patch("matplotlib.pyplot.show")
 def test_air_brakes_clamp_on(mock_show, calisto_air_brakes_clamp_on):
     """Test the air brakes class with clamp on configuration. This test checks
