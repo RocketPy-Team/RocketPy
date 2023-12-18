@@ -95,6 +95,12 @@ class Rocket:
     Rocket.aerodynamic_surfaces : list
         Collection of aerodynamic surfaces of the rocket. Holds Nose cones,
         Fin sets, and Tails.
+    Rocket.parachutes : list
+        Collection of parachutes of the rocket.
+    Rocket.air_brakes : list
+        Collection of air brakes of the rocket.
+    Rocket.controllers : list
+        Collection of controllers of the rocket.
     Rocket.cp_position : Function
         Function of Mach number expressing the rocket's center of pressure
         position relative to user defined rocket reference system.
@@ -1161,6 +1167,7 @@ class Rocket:
         sampling_rate,
         clamp=True,
         reference_area=None,
+        initial_observed_variables=None,
         name="AirBrakes",
         controller_name="AirBrakes Controller",
     ):
@@ -1183,21 +1190,27 @@ class Rocket:
             coefficient. If a Function, it must take as input the deployed
             level and the Mach number and return the drag coefficient.
         controller_function : function, callable
-            A function that takes the following arguments, in this order:
+            An user-defined function responsible for controlling the simulation.
+            This function is expected to take the following arguments, in order:
 
-            1. Time of the simulation at the current step in seconds.
-            2. The sampling rate at which the controller function is called in
-               Hertz (Hz).
-            3. The state vector of the simulation, which is defined as:
-
+            1. `time` (float): The current simulation time in seconds.
+            2. `sampling_rate` (float): The rate at which the controller
+               function is called, measured in Hertz (Hz).
+            3. `state` (list): The state vector of the simulation, structured as
                `[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]`.
-            4. A list containing the state history of the simulation. The state
-               history is a list of every state vector of every step of the
-                simulation. The state history is a list of lists, where each
-                sublist is a state vector and is ordered from oldest to newest.
-            5. A list containing the objects to be acted upon by the controller.
-               The objects in this list are the same as the objects in the
-               observed_objects list, but they can be modified by the controller.
+            4. `state_history` (list): A record of the rocket's state at each
+               step throughout the simulation. The state_history is organized as a
+               list of lists, with each sublist containing a state vector. The last
+               item in the list always corresponds to the previous state vector,
+               providing a chronological sequence of the rocket's evolving states.
+            5. `observed_variables` (list): A list containing the variables that
+               the controller function returns. The initial value in the first
+               step of the simulation of this list is provided by the
+               `initial_observed_variables` argument.
+            6. `interactable_objects` (list): A list containing the objects that
+               the controller function can interact with. The objects are
+               listed in the same order as they are provided in the
+               `interactable_objects`
 
             This function will be called during the simulation at the specified
             sampling rate. The function should evaluate and change the observed
@@ -1205,7 +1218,6 @@ class Rocket:
 
             .. note:: The function will be called according to the sampling rate
             specified.
-
         sampling_rate : float
             The sampling rate of the controller function in Hertz (Hz). This
             means that the controller function will be called every
@@ -1219,6 +1231,11 @@ class Rocket:
             Reference area used to calculate the drag force of the air brakes
             from the drag coefficient curve. If None, which is default, use
             rocket section area. Must be given in squared meters.
+        initial_observed_variables : list, optional
+            A list of the initial values of the variables that the controller
+            function returns. This list is used to initialize the
+            `observed_variables` argument of the controller function. The
+            default value is None, which initializes the list as an empty list.
         name : string, optional
             AirBrakes name, such as drogue and main. Has no impact in
             simulation, as it is only used to display data in a more
@@ -1243,7 +1260,11 @@ class Rocket:
             name=name,
         )
         controller = Controller(
-            air_brakes, controller_function, sampling_rate, controller_name
+            interactable_objects=air_brakes,
+            controller_function=controller_function,
+            sampling_rate=sampling_rate,
+            initial_observed_variables=initial_observed_variables,
+            name=controller_name,
         )
         self.air_brakes.append(air_brakes)
         self.add_controllers(controller)

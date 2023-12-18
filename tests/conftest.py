@@ -1240,7 +1240,9 @@ def controller_function():
         A controller function
     """
 
-    def controller_function(time, sampling_rate, state, state_history, air_brakes):
+    def controller_function(
+        time, sampling_rate, state, state_history, observed_variables, air_brakes
+    ):
         z = state[2]
         vz = state[5]
         previous_vz = state_history[-1][5]

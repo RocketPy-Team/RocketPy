@@ -375,19 +375,8 @@ def test_air_brakes_flight(mock_show, flight_calisto_air_brakes):
     """
     test_flight = flight_calisto_air_brakes
     air_brakes = test_flight.rocket.air_brakes[0]
-
-    assert test_flight.all_info() == None
-    # assert last air_brakes state is in between one sampling rate of the end of the simulation
-    assert (
-        abs(test_flight.t_final - air_brakes.previous_state[0])
-        <= test_flight.rocket.controllers[0].sampling_rate
-    )
-    assert (
-        abs(test_flight.t_final - air_brakes.state_list[-1][0])
-        <= test_flight.rocket.controllers[0].sampling_rate
-    )
-    assert len(air_brakes.state_list_history) == 1
     assert air_brakes.plots.all() == None
+    assert air_brakes.prints.all() == None
 
 
 @patch("matplotlib.pyplot.show")

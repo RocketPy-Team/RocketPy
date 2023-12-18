@@ -296,18 +296,11 @@ class _RailButtonsPrints(_AeroSurfacePrints):
 class _AirBrakesPrints(_AeroSurfacePrints):
     """Class that contains all air_brakes prints."""
 
-    def geometry(self):
-        """Prints the geometric information of the air break.
+    def __init__(self, rail_buttons):
+        super().__init__(rail_buttons)
 
-        Returns
-        -------
-        None
-        """
-        print("Air Break's geometric information:")
-        print("--------------------------------------")
-        print(
-            "Current deployed level: "
-            + f"{self.aero_surface.deployed_level:.2f} = {100*self.aero_surface.deployed_level:.0f} %"
-        )
-        print(f"Maximum Drag Coefficient: {self.aero_surface.drag_coefficient.max:.3f}")
-        print(f"Minimum Drag Coefficient: {self.aero_surface.drag_coefficient.min:.3f}")
+    def geometry(self):
+        pass
+
+    def all(self):
+        pass

@@ -471,78 +471,6 @@ class _AirBrakesPlots(_AeroSurfacePlots):
         """Plots the drag coefficient curve of the air_brakes."""
         return self.aero_surface.drag_coefficient.plot(0, 1)
 
-    def deployed_level(self):
-        """Plots the deployed level of the air_brakes as a function of time.
-
-        Returns
-        -------
-        None
-        """
-        # Checks if the state list is empty
-        if not self.aero_surface.state_list:
-            print(
-                "The state list is empty. Run a simulation with the "
-                + "air breaks first to plot the drag coefficient"
-            )
-            return None
-
-        # Check if the state list history has more than one element
-        if len(self.aero_surface.state_list_history) > 1:
-            print(
-                "More than one simulation was run with the air brakes. "
-                + "The following plot will refers to the last simulation."
-            )
-        # Extract the first and second columns as x and y
-        x = [row[0] for row in self.aero_surface.state_list]
-        y = [row[1] for row in self.aero_surface.state_list]
-
-        # Create the plot
-        plt.figure(figsize=(10, 6))
-        plt.scatter(x, y, marker="o", linestyle="-", color="b", s=0.5)
-        plt.xlabel("Time (s)")
-        plt.ylabel("Deployed Level")
-        plt.title("Deployed Level X Time (s)")
-        plt.grid(True)
-        plt.show()
-
-    def drag_coefficient(self):
-        """Plots the drag coefficient of the air_brakes as a function of time.
-
-        This function extracts the first and second columns of the state history
-        of the aero surface object and plots the drag coefficient as a function
-        of time. The resulting plot is displayed on the screen.
-
-        Returns
-        -------
-        None
-        """
-        # Checks if the state list is empty
-        if not self.aero_surface.state_list:
-            print(
-                "The state list is empty. Run a simulation with the "
-                + "air breaks first to plot the drag coefficient"
-            )
-            return None
-
-        # Check if the state list history has more than one element
-        if len(self.aero_surface.state_list_history) > 1:
-            print(
-                "More than one simulation was run with the air brakes. "
-                + "The following plot will refers to the last simulation."
-            )
-        # Extract the first and second columns as x and y
-        x = [row[0] for row in self.aero_surface.state_list]
-        y = [row[2] for row in self.aero_surface.state_list]
-
-        # Create the plot
-        plt.figure(figsize=(10, 6))
-        plt.scatter(x, y, marker="o", linestyle="-", color="b", s=0.5)
-        plt.xlabel("Time (s)")
-        plt.ylabel("Drag Coefficient")
-        plt.title("Drag Coefficient X Time (s)")
-        plt.grid(True)
-        plt.show()
-
     def draw(self):
         raise NotImplementedError
 
@@ -553,6 +481,4 @@ class _AirBrakesPlots(_AeroSurfacePlots):
         -------
         None
         """
-        self.deployed_level()
-        self.drag_coefficient()
         self.drag_coefficient_curve()
