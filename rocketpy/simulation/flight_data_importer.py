@@ -30,7 +30,6 @@ FLIGHT_LABEL_MAP = {
     "latitude": "Latitude (deg)",
     "longitude": "Longitude (deg)",
     "mach_number": "Mach number",
-    "name": "Time (s)",
     "speed": "Speed (m/s)",
     "stability_margin": "Stability margin",
     "static_margin": "Static margin",
@@ -47,15 +46,8 @@ FLIGHT_LABEL_MAP = {
 
 
 class FlightDataImporter:
-    """A class to create a rocketpy.Flight object from a .csv file. The data
-    frame must contain a time column in seconds.
-
-    There are different ways of calculating a property from the data frame.
-        1. The property is already in data frame and you want to use it as is
-        2. The property is not in the data frame but you can calculate it from
-            other properties in the data frame.
-
-    Initially, this class is designed to work with the option '1.'
+    """A class used to import flight data from a .csv or .txt file and build an
+    equivalent Flight object.
     """
 
     def __init__(
@@ -66,7 +58,7 @@ class FlightDataImporter:
         units=None,
         interpolation="linear",
         extrapolation="zero",
-        separator=",",
+        delimiter=",",
         encoding="utf-8",
     ):
         """Initializes the FlightDataImporter class.
@@ -75,15 +67,21 @@ class FlightDataImporter:
         ----------
         name : str
             The name of the FlightDataImporter object.
-        paths : list
-            A list of paths or strings representing the file paths or directories
-            containing the flight data files. Only .csv and .txt files are supported.
+        paths : str, list
+            A string with a path to a folder or file, or a list of strings
+            representing the file paths or directories containing the flight
+            data files. Only .csv and .txt files are supported.
         columns_map : dict, optional
             A dictionary mapping column names to desired column names.
-            Defaults to None, which will keep the original column names.
+            Defaults to None, which will keep the original column names. The
+            dictionary keys must be the original column names and the values
+            must be the desired column names.
         units : dict, optional
             A dictionary mapping column names to desired units.
             Defaults to None, which will consider that all the data is in SI.
+            The dictionary keys must be the original column names and the
+            values must be the units of the data in the column. There is no need
+            to specify the units for a column that is already in SI.
         interpolation : str, optional
             The interpolation method to use for missing data.
             Defaults to "linear", see rocketpy.mathutils.Function for more
@@ -92,8 +90,8 @@ class FlightDataImporter:
             The extrapolation method to use for data outside the range.
             Defaults to "zero", see rocketpy.mathutils.Function for more
             information.
-        separator : str, optional
-            The separator used in the data file. Defaults to ",".
+        delimiter : str, optional
+            The delimiter used in the data file. Defaults to ",".
         encoding : str, optional
             The encoding of the data file. Defaults to "utf-8".
 
@@ -113,7 +111,7 @@ class FlightDataImporter:
         self._time_cols = {}
         self._original_columns = {}
         self._data = {}
-        self._separators = {}
+        self._delimiters = {}
         self._encodings = {}
         self._files = None
 
@@ -124,7 +122,7 @@ class FlightDataImporter:
             units,
             interpolation,
             extrapolation,
-            separator,
+            delimiter,
             encoding,
         )
 
@@ -157,7 +155,7 @@ class FlightDataImporter:
 
         return [join(path, f) for f in listdir(path) if isfile(join(path, f))]
 
-    def __handle_dataset(self, filepath, separator, encoding):
+    def __handle_dataset(self, filepath, delimiter, encoding):
         """Reads the data from the specified file and stores it in the
         appropriate attributes.
 
@@ -166,14 +164,14 @@ class FlightDataImporter:
         filepath : str
             The path to the file we are reading from. This should be either a
             .csv or .txt file.
-        separator : str
-            The separator used in the data file.
+        delimiter : str
+            The delimiter used in the data file.
         encoding : str
             The encoding of the data file.
         """
         raw_data = np.genfromtxt(
             filepath,
-            delimiter=separator,
+            delimiter=delimiter,
             encoding=encoding,
             dtype=np.float64,
             names=True,
@@ -321,7 +319,7 @@ class FlightDataImporter:
         units=None,
         interpolation="linear",
         extrapolation="zero",
-        separator=",",
+        delimiter=",",
         encoding="utf-8",
     ):
         """Reads flight data from the specified paths.
@@ -345,8 +343,8 @@ class FlightDataImporter:
             The extrapolation method to use for data outside the range.
             Defaults to "zero", see rocketpy.mathutils.Function for more
             information.
-        separator : str, optional
-            The separator used in the data file. Defaults to ",".
+        delimiter : str, optional
+            The delimiter used in the data file. Defaults to ",".
         encoding : str, optional
             The encoding of the data file. Defaults to "utf-8".
 
@@ -358,7 +356,7 @@ class FlightDataImporter:
         -----
         This method handles multiple files within the same path and processes
         each of them. It reads the data, applies the specified interpolation and
-        extrapolation methods, and sets the appropriate encoding and separator.
+        extrapolation methods, and sets the appropriate encoding and delimiter.
         """
         # We need to handle multiple files within the same path
         if isinstance(paths, str):
@@ -376,8 +374,8 @@ class FlightDataImporter:
             self._units[filepath] = units
             self._columns_map[filepath] = columns_map
             self._encodings[filepath] = encoding
-            self._separators[filepath] = separator
-            self.__handle_dataset(filepath, separator, encoding)
+            self._delimiters[filepath] = delimiter
+            self.__handle_dataset(filepath, delimiter, encoding)
             self.__define_time_column(filepath)
             self.__create_attributes(filepath, interpolation, extrapolation)
 
