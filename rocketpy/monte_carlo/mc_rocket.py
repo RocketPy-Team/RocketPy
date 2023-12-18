@@ -1,8 +1,10 @@
 import warnings
 from random import choice
+from rocketpy.monte_carlo.mc_generic_motor import McGenericMotor
 
 from rocketpy.monte_carlo.motor_dispersion_model import MotorDispersionModel
-from rocketpy.motors.motor import EmptyMotor, Motor
+from rocketpy.motors.motor import EmptyMotor, GenericMotor, Motor
+from rocketpy.motors.solid_motor import SolidMotor
 from rocketpy.rocket.aero_surface import (
     EllipticalFins,
     NoseCone,
@@ -244,7 +246,10 @@ class McRocket(DispersionModel):
         if isinstance(motor, Motor):
             # create McMotor
             # TODO check motor type when hybrids and liquids are implemented
-            motor = McSolidMotor(solid_motor=motor)
+            if isinstance(motor, SolidMotor):
+                motor = McSolidMotor(solid_motor=motor)
+            elif isinstance(motor, GenericMotor):
+                motor = McGenericMotor(generic_motor=motor)
         self.motors.add(motor, self._validate_position(motor, position))
 
     def _add_surfaces(self, surfaces, positions, type, monte_carlo_type, error_message):
