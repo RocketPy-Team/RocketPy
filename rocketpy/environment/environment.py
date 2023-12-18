@@ -1449,7 +1449,7 @@ class Environment:
                 interpolation="linear",
             )
             self.barometric_height = self.pressure.inverse_function().set_discrete(
-                0, max_expected_height, 1000, extrapolation="constant"
+                0, max_expected_height, 100, extrapolation="constant"
             )
             self.barometric_height.set_inputs("Pressure (Pa)")
             self.barometric_height.set_outputs("Height Above Sea Level (m)")
@@ -1617,8 +1617,21 @@ class Environment:
             outputs="Pressure (Pa)",
             interpolation="linear",
         )
+        # Linearly extrapolate pressure to ground level
+        columns = data_array[:, (0, 1)]
+        pressure_ground = np.array(
+            [
+                [
+                    columns[1][0]
+                    + (-columns[1][1] / (columns[0][1] - columns[1][1]))
+                    * (columns[0][0] - columns[1][0]),
+                    0,
+                ]
+            ]
+        )
+        bar_height = np.concatenate((pressure_ground, columns))
         self.barometric_height = Function(
-            data_array[:, (0, 1)],
+            bar_height,
             inputs="Pressure (Pa)",
             outputs="Height Above Sea Level (m)",
             interpolation="linear",
@@ -1750,8 +1763,21 @@ class Environment:
             outputs="Pressure (Pa)",
             interpolation="linear",
         )
+        # Linearly extrapolate pressure to ground level
+        columns = data_array[:, (0, 1)]
+        pressure_ground = np.array(
+            [
+                [
+                    columns[1][0]
+                    + (-columns[1][1] / (columns[0][1] - columns[1][1]))
+                    * (columns[0][0] - columns[1][0]),
+                    0,
+                ]
+            ]
+        )
+        bar_height = np.concatenate((pressure_ground, columns))
         self.barometric_height = Function(
-            data_array[:, (0, 1)],
+            bar_height,
             inputs="Pressure (Pa)",
             outputs="Height Above Sea Level (m)",
             interpolation="linear",
@@ -1932,10 +1958,28 @@ class Environment:
             outputs="Pressure (Pa)",
             interpolation="linear",
         )
-        # construct barometric height array from pressure array
+        # Converts 10*hPa to Pa and save values
         barometric_height_array[:, 0] = 10 * barometric_height_array[:, 0]
+        # Linearly extrapolate pressure to ground level
+        pressure_ground = np.array(
+            [
+                [
+                    barometric_height_array[1][0]
+                    + (
+                        -barometric_height_array[1][1]
+                        / (
+                            barometric_height_array[0][1]
+                            - barometric_height_array[1][1]
+                        )
+                    )
+                    * (barometric_height_array[0][0] - barometric_height_array[1][0]),
+                    0,
+                ]
+            ]
+        )
+        bar_height = np.concatenate((pressure_ground, barometric_height_array))
         self.barometric_height = Function(
-            barometric_height_array,
+            bar_height,
             inputs="Pressure (Pa)",
             outputs="Height Above Sea Level (m)",
             interpolation="linear",
@@ -2309,8 +2353,21 @@ class Environment:
             outputs="Pressure (Pa)",
             interpolation="linear",
         )
+        # Linearly extrapolate pressure to ground level
+        columns = data_array[:, (0, 1)]
+        pressure_ground = np.array(
+            [
+                [
+                    columns[1][0]
+                    + (-columns[1][1] / (columns[0][1] - columns[1][1]))
+                    * (columns[0][0] - columns[1][0]),
+                    0,
+                ]
+            ]
+        )
+        bar_height = np.concatenate((pressure_ground, columns))
         self.barometric_height = Function(
-            data_array[:, (0, 1)],
+            bar_height,
             inputs="Pressure (Pa)",
             outputs="Height Above Sea Level (m)",
             interpolation="linear",
@@ -2844,11 +2901,24 @@ class Environment:
             outputs="Pressure (Pa)",
             interpolation="linear",
         )
+        # Linearly extrapolate pressure to ground level
+        columns = data_array[:, (0, 1)]
+        pressure_ground = np.array(
+            [
+                [
+                    columns[1][0]
+                    + (-columns[1][1] / (columns[0][1] - columns[1][1]))
+                    * (columns[0][0] - columns[1][0]),
+                    0,
+                ]
+            ]
+        )
+        bar_height = np.concatenate((pressure_ground, columns))
         self.barometric_height = Function(
-            data_array[:, (0, 1)],
+            bar_height,
             inputs="Pressure (Pa)",
             outputs="Height Above Sea Level (m)",
-            interpolation="linear",
+            interpolation="linearS",
         )
         self.temperature = Function(
             data_array[:, (1, 2)],
@@ -3016,7 +3086,7 @@ class Environment:
         # and discretize it. This is done to speed up the calculations in the
         # trajectory simulation.
         self.barometric_height_ISA = self.pressure_ISA.inverse_function().set_discrete(
-            pressure[-1], pressure[0], 1000, extrapolation="constant"
+            pressure[-1], pressure[0], 100, extrapolation="constant"
         )
         self.barometric_height_ISA.set_inputs("Pressure (Pa)")
         self.barometric_height_ISA.set_outputs("Height Above Sea Level (m)")
