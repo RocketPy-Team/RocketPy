@@ -22,19 +22,12 @@ jobs:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
-      - name: Cache Python dependencies
-        uses: actions/cache@v2
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
 
       - name: Install rocketpy
         run: pip install .
@@ -51,13 +44,15 @@ jobs:
       - name: Run Integration Tests
         run: pytest $(find tests -maxdepth 1 -name "*.py") --cov=rocketpy --cov-append
 
-      - name: Run Acceptance Tests
-        run: pytest tests/acceptance --cov=rocketpy --cov-append
-
       - name: Run Documentation Tests
         run: |
           cd rocketpy
-          pytest --doctest-modules --cov=rocketpy --cov-append --cov-report=xml
+          pytest --doctest-modules --cov=rocketpy --cov-append
+
+      - name: Run Acceptance Tests
+        run: |
+          cd ..
+          pytest tests/acceptance --cov=rocketpy --cov-append --cov-report=xml
 
       - name: Run pytest --runslow
         if: github.ref == 'refs/heads/master'
@@ -74,7 +69,7 @@ jobs:
     needs: Pytest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Download all coverage reports
         uses: actions/download-artifact@v2
       - name: Upload to Codecov
