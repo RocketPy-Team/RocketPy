@@ -63,6 +63,27 @@ class Components:
         """
         self._components.append(self.component_tuple(component, position))
 
+    def get_by_type(self, component_type):
+        """Search the list of components and return a list with all the
+        components of the given type.
+
+        Parameters
+        ----------
+        component_type : type
+            The type of component to be returned.
+
+        Returns
+        --------
+        list
+            A list of components matching the specified type.
+        """
+        component_type_list = [
+            c.component
+            for c in self._components
+            if isinstance(c.component, component_type)
+        ]
+        return component_type_list
+
     def get_tuple_by_type(self, component_type):
         """Search the list of components and return a list with all the components
         of the given type.
