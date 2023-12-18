@@ -21,7 +21,7 @@ def test_flight_importer_bella_lui():
         units=None,
         interpolation="linear",
         extrapolation="zero",
-        separator=",",
+        delimiter=",",
         encoding="utf-8",
     )
     assert fd.name == "Bella Lui, EPFL Rocket Team, 2020"
