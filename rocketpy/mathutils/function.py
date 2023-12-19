@@ -508,7 +508,7 @@ class Function:
                 result[valid_indexes] = numerator_sum / denominator_sum
                 result[~valid_indexes] = y_data[zero_distances[1]]
 
-                return result
+                return result if len(result) > 1 else result[0]
 
             get_value_opt = get_value_opt_multiple
 
