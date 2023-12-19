@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from rocketpy.motors import HybridMotor, LiquidMotor, SolidMotor
+from rocketpy.motors import EmptyMotor, HybridMotor, LiquidMotor, SolidMotor
 from rocketpy.rocket.aero_surface import Fins, NoseCone, Tail
 
 
@@ -332,10 +332,6 @@ class _RocketPlots:
             self.rocket.motor_position + self.rocket.motor.nozzle_position * total_csys
         )
 
-        nozzle = self.rocket.motor.plots._generate_nozzle(
-            translate=(nozzle_position, 0), csys=self.rocket._csys
-        )
-
         # List of motor patches
         motor_patches = []
 
@@ -414,14 +410,18 @@ class _RocketPlots:
                 motor_patches += [tank]
 
         # add nozzle last so it is in front of the other patches
-        motor_patches += [nozzle]
-        outline = self.rocket.motor.plots._generate_motor_region(
-            list_of_patches=motor_patches
-        )
-        # add outline first so it is behind the other patches
-        ax.add_patch(outline)
-        for patch in motor_patches:
-            ax.add_patch(patch)
+        if not isinstance(self.rocket.motor, EmptyMotor):
+            nozzle = self.rocket.motor.plots._generate_nozzle(
+                translate=(nozzle_position, 0), csys=self.rocket._csys
+            )
+            motor_patches += [nozzle]
+            outline = self.rocket.motor.plots._generate_motor_region(
+                list_of_patches=motor_patches
+            )
+            # add outline first so it is behind the other patches
+            ax.add_patch(outline)
+            for patch in motor_patches:
+                ax.add_patch(patch)
 
         # Check if nozzle is beyond the last surface, if so draw a tube
         # to it, with the radius of the last surface
