@@ -482,25 +482,33 @@ class Function:
                 return y
 
         elif self.__interpolation__ == "shepard":
-            x_data = self.source[:, 0:-1]  # Support for N-Dimensions
-            y_data = self.source[:, -1]
-            len_y_data = len(y_data)  # A little speed up
-
             # change the function's name to avoid mypy's error
             def get_value_opt_multiple(*args):
-                x = np.array([[float(val) for val in args]])
+                x_data = self.source[:, 0:-1]  # Support for N-Dimensions
+                y_data = self.source[:, -1]
+
+                arg_stack = np.column_stack(args)
+                arg_qty, arg_dim = arg_stack.shape
+                result = np.zeros(arg_qty)
+
+                # Reshape to vectorize calculations
+                x = arg_stack.reshape(arg_qty, 1, arg_dim)
+
                 sub_matrix = x_data - x
-                distances_squared = np.sum(sub_matrix**2, axis=1)
+                distances_squared = np.sum(sub_matrix**2, axis=2)
 
-                zero_distance_index = np.where(distances_squared == 0)[0]
-                if len(zero_distance_index) > 0:
-                    return y_data[zero_distance_index[0]]
+                # Remove zero distances from further calculations
+                zero_distances = np.where(distances_squared == 0)
+                valid_indexes = np.ones(arg_qty, dtype=bool)
+                valid_indexes[zero_distances[0]] = False
 
-                weights = distances_squared ** (-1.5)
-                numerator_sum = np.sum(y_data * weights)
-                denominator_sum = np.sum(weights)
+                weights = distances_squared[valid_indexes] ** (-1.5)
+                numerator_sum = np.sum(y_data * weights, axis=1)
+                denominator_sum = np.sum(weights, axis=1)
+                result[valid_indexes] = numerator_sum / denominator_sum
+                result[~valid_indexes] = y_data[zero_distances[1]]
 
-                return numerator_sum / denominator_sum
+                return result
 
             get_value_opt = get_value_opt_multiple
 
@@ -872,28 +880,32 @@ class Function:
 
         # Returns value for shepard interpolation
         elif self.__interpolation__ == "shepard":
-            if all(isinstance(arg, Iterable) for arg in args):
-                x = list(np.column_stack(args))
-            else:
-                x = [[float(x) for x in list(args)]]
-            ans = x
-            x_data = self.source[:, 0:-1]
+            x_data = self.source[:, 0:-1]  # Support for N-Dimensions
             y_data = self.source[:, -1]
-            for i, _ in enumerate(x):
-                numerator_sum = 0
-                denominator_sum = 0
-                for o, _ in enumerate(y_data):
-                    sub = x_data[o] - x[i]
-                    distance = (sub.dot(sub)) ** (0.5)
-                    if distance == 0:
-                        numerator_sum = y_data[o]
-                        denominator_sum = 1
-                        break
-                    weight = distance ** (-3)
-                    numerator_sum = numerator_sum + y_data[o] * weight
-                    denominator_sum = denominator_sum + weight
-                ans[i] = numerator_sum / denominator_sum
-            return ans if len(ans) > 1 else ans[0]
+
+            arg_stack = np.column_stack(args)
+            arg_qty, arg_dim = arg_stack.shape
+            result = np.zeros(arg_qty)
+
+            # Reshape to vectorize calculations
+            x = arg_stack.reshape(arg_qty, 1, arg_dim)
+
+            sub_matrix = x_data - x
+            distances_squared = np.sum(sub_matrix**2, axis=2)
+
+            # Remove zero distances from further calculations
+            zero_distances = np.where(distances_squared == 0)
+            valid_indexes = np.ones(arg_qty, dtype=bool)
+            valid_indexes[zero_distances[0]] = False
+
+            weights = distances_squared[valid_indexes] ** (-1.5)
+            numerator_sum = np.sum(y_data * weights, axis=1)
+            denominator_sum = np.sum(weights, axis=1)
+            result[valid_indexes] = numerator_sum / denominator_sum
+            result[~valid_indexes] = y_data[zero_distances[1]]
+
+            return result if len(result) > 1 else result[0]
+
         # Returns value for polynomial interpolation function type
         elif self.__interpolation__ == "polynomial":
             if isinstance(args[0], (int, float)):
