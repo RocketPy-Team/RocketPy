@@ -382,31 +382,29 @@ def check_requirement_version(module_name, version):
     return True
 
 
-
 def is_float(element):
-        """
-        Returns a boolean indicating us if an element is convertible to a float or not.
-        True : the element is convertible to a float
-        False : the element is not convertible to a float
+    """
+    Returns a boolean indicating us if an element is convertible to a float or not.
+    True : the element is convertible to a float
+    False : the element is not convertible to a float
 
-        Parameters
-        ----------
-        element : any
-            This is the element to test.
+    Parameters
+    ----------
+    element : any
+        This is the element to test.
 
-        Returns
-        -------
-        result : boolean
-            The element is convertible or not.
-        """
-        if element is None: 
-            return False
-        try:
-            float(element)
-            return True
-        except ValueError:
-            return False
-        
+    Returns
+    -------
+    result : boolean
+        The element is convertible or not.
+    """
+    try:
+        float(element)
+        return True
+    except (ValueError, TypeError):
+        return False
+
+
 def return_first_data(source):
     """
     Returns the first data of a CSV file.
@@ -422,10 +420,10 @@ def return_first_data(source):
         The first data of the CSV file.
     """
     native_data = open(source)
-    for row in native_data : 
-        for value in row :
+    for row in native_data:
+        for value in row:
             return value
-            
+
 
 def if_header(source):
     """
@@ -459,9 +457,9 @@ def data_preprocessing(source):
     Function
         The function with the incoming cleared CSV
     """
-    output_path = 'cleaned_data.csv'
-    
-    with open(source, 'r') as file:
+    output_path = "cleaned_data.csv"
+
+    with open(source, "r") as file:
         reader = csv.reader(file)
         header = next(reader)  # Read the header
 
@@ -476,12 +474,11 @@ def data_preprocessing(source):
             data_no_headers.append(row)
 
     # Save the processed data to a new CSV file
-    with open(output_path, 'w', encoding='utf-8') as output_file:
-        writer = csv.writer(output_file, delimiter=',')
+    with open(output_path, "w", encoding="utf-8") as output_file:
+        writer = csv.writer(output_file, delimiter=",")
         writer.writerows(data_no_headers)
-            
+
     return output_path
-    
 
 
 if __name__ == "__main__":
@@ -492,6 +489,3 @@ if __name__ == "__main__":
         print(f"All the {results.attempted} tests passed!")
     else:
         print(f"{results.failed} out of {results.attempted} tests failed.")
-
-
-

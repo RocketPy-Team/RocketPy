@@ -200,7 +200,7 @@ class Function:
             self.__outputs__,
             self.__interpolation__,
             self.__extrapolation__,
-        ) 
+        )
         # If the source is a Function
         if isinstance(source, Function):
             source = source.get_source()
@@ -211,7 +211,9 @@ class Function:
                     source = np.loadtxt(file, delimiter=",")
                 except ValueError:
                     # If an error occurs, headers are present
-                    source = np.loadtxt(data_preprocessing(source), delimiter=",", dtype=np.float64)
+                    source = np.loadtxt(
+                        data_preprocessing(source), delimiter=",", dtype=np.float64
+                    )
                 except Exception as e:
                     raise ValueError(
                         "The source file is not a valid csv or txt file."
@@ -1105,7 +1107,6 @@ class Function:
         Function
             The function with the incoming source filtered
         """
-        print(self.source)
         filtered_signal = np.zeros_like(self.source)
         filtered_signal[0] = self.source[0]
 
@@ -1119,8 +1120,7 @@ class Function:
             source=filtered_signal,
             interpolation=self.__interpolation__,
             extrapolation=self.__extrapolation__,
-        )   
-    
+        )
 
     # Define all presentation methods
     def __call__(self, *args):
@@ -2918,7 +2918,9 @@ class Function:
                     source = np.loadtxt(source, delimiter=",", dtype=np.float64)
                 except ValueError:
                     # If an error occurs, there is a header
-                    source = np.loadtxt(data_preprocessing(source), delimiter=",", dtype=np.float64)
+                    source = np.loadtxt(
+                        data_preprocessing(source), delimiter=",", dtype=np.float64
+                    )
                 except Exception as e:
                     raise ValueError(
                         "The source file is not a valid csv or txt file."
@@ -2991,8 +2993,8 @@ class Function:
                     + f"and output dimension ({in_out_dim})."
                 )
         return inputs, outputs, interpolation, extrapolation
-    
-    
+
+
 class PiecewiseFunction(Function):
     """Class for creating piecewise functions. These kind of functions are
     defined by a dictionary of functions, where the keys are tuples that
