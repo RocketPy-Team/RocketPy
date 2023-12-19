@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import csv
 from scipy import integrate, linalg, optimize
+from ..tools import data_preprocessing
 
 try:
     from functools import cached_property
@@ -199,7 +200,7 @@ class Function:
             self.__outputs__,
             self.__interpolation__,
             self.__extrapolation__,
-        )
+        ) 
         # If the source is a Function
         if isinstance(source, Function):
             source = source.get_source()
@@ -207,10 +208,10 @@ class Function:
         if isinstance(source, (str, Path)):
             with open(source, "r") as file:
                 try:
-                    source = np.loadtxt(file, delimiter=",", dtype=float)
+                    source = np.loadtxt(file, delimiter=",")
                 except ValueError:
                     # If an error occurs, headers are present
-                    source = self.data_preprocessing(source)
+                    source = np.loadtxt(data_preprocessing(source), delimiter=",", dtype=np.float64)
                 except Exception as e:
                     raise ValueError(
                         "The source file is not a valid csv or txt file."
@@ -1104,6 +1105,7 @@ class Function:
         Function
             The function with the incoming source filtered
         """
+        print(self.source)
         filtered_signal = np.zeros_like(self.source)
         filtered_signal[0] = self.source[0]
 
@@ -1117,46 +1119,8 @@ class Function:
             source=filtered_signal,
             interpolation=self.__interpolation__,
             extrapolation=self.__extrapolation__,
-        )
+        )   
     
-    def data_preprocessing(self, source):
-        """Clear data (in particular NaN objects) and returns a CSV file without header and its name.
-
-        Parameters
-        ----------
-        source : string
-            The file path to the CSV file.
-
-        Returns
-        -------
-        Function
-            The function with the incoming cleared CSV
-        """
-        output_path = 'cleared_data.csv'
-
-        with open(source, 'r') as file:
-            reader = csv.reader(file)
-            header = next(reader)  # Read the header
-
-            data = [row for row in reader]
-
-        # Create a new list without the headers
-        data_no_headers = []
-
-        for row in data[1:]:
-            # Check if the row is not empty and if all values in the row can be converted to float
-            if row and all(self.is_float(value) for value in row):
-                data_no_headers.append(row)
-
-        # Save the processed data to a new CSV file
-        with open(output_path, 'w', newline='') as output_file:
-            writer = csv.writer(output_file, delimiter=',')
-            writer.writerows(data_no_headers)
-            
-        return output_path
-    
-
-         
 
     # Define all presentation methods
     def __call__(self, *args):
@@ -2951,10 +2915,10 @@ class Function:
             if isinstance(source, (str, Path)):
                 # Convert to numpy array
                 try:
-                    source = np.loadtxt(source, delimiter=",", dtype=float)
+                    source = np.loadtxt(source, delimiter=",", dtype=np.float64)
                 except ValueError:
-                    # Skip header
-                    source = np.loadtxt(source, delimiter=",", dtype=float, skiprows=1)
+                    # If an error occurs, there is a header
+                    source = np.loadtxt(data_preprocessing(source), delimiter=",", dtype=np.float64)
                 except Exception as e:
                     raise ValueError(
                         "The source file is not a valid csv or txt file."
@@ -3028,73 +2992,7 @@ class Function:
                 )
         return inputs, outputs, interpolation, extrapolation
     
-    def is_float(self, element):
-        """
-        Returns a boolean indicating us if an element is convertible to a float or not.
-        True : the element is convertible to a float
-        False : the element is not convertible to a float
-
-        Parameters
-        ----------
-        element : any
-            This is the element to test.
-
-        Returns
-        -------
-        result : boolean
-            The element is convertible or not.
-        """
-        if element is None: 
-            return False
-        try:
-            float(element)
-            return True
-        except ValueError:
-            return False
-        
-    def return_first_data(self, source):
-        """
-        Returns the first data of a CSV file.
-
-        Parameters
-        ----------
-        source : string
-            This is the file path to the csv.
-
-        Returns
-        -------
-        result : any
-            The first data of the CSV file.
-        """
-        native_data = open(source)
-        for row in native_data : 
-            for value in row :
-                return value
-            
-
-    def if_header(self, source):
-        """
-        Returns if a CSV file has a header or not.
-        True : The CSV file has a header
-        False : The CSV file has no header
-
-        Parameters
-        ----------
-        source : string
-            This is the file path to the csv.
-
-        Returns
-        -------
-        result : boolean
-            The result of the CSV file containing a header or not.
-        """
-        return not self.is_float(self.return_first_data(source))
     
-
-
-
-
-
 class PiecewiseFunction(Function):
     """Class for creating piecewise functions. These kind of functions are
     defined by a dictionary of functions, where the keys are tuples that
