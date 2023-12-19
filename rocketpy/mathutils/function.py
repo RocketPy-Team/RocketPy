@@ -210,7 +210,7 @@ class Function:
                     source = np.loadtxt(file, delimiter=",", dtype=float)
                 except ValueError:
                     # If an error occurs, headers are present
-                    source = np.loadtxt(source, delimiter=",", dtype=float, skiprows=1)
+                    source = self.data_preprocessing(source)
                 except Exception as e:
                     raise ValueError(
                         "The source file is not a valid csv or txt file."
@@ -1153,11 +1153,7 @@ class Function:
             writer = csv.writer(output_file, delimiter=',')
             writer.writerows(data_no_headers)
             
-        return Function(
-            source=output_path,
-            interpolation=self.__interpolation__,
-            extrapolation=self.__extrapolation__,
-        )
+        return output_path
     
 
          
