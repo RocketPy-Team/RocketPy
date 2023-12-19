@@ -8,7 +8,7 @@ from os.path import isfile, join
 import numpy as np
 
 from rocketpy.mathutils import Function
-#from rocketpy.units import UNITS_CONVERSION_DICT
+from rocketpy.units import UNITS_CONVERSION_DICT
 
 FLIGHT_LABEL_MAP = {
     # "name of Flight Attribute": "Label to be displayed"
