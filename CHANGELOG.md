@@ -32,7 +32,7 @@ straightforward as possible.
 
 ### Added
 
--
+- ENH: Shepard Optimized Interpolation - Multiple Inputs Support [#515](https://github.com/RocketPy-Team/RocketPy/pull/515)
 
 ### Changed
 
