@@ -398,12 +398,10 @@ def is_float(element):
     result : boolean
         The element is convertible or not.
     """
-    if element is None:
-        return False
     try:
         float(element)
         return True
-    except ValueError:
+    except (ValueError, TypeError):
         return False
 
 
