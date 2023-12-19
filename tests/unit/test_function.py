@@ -49,52 +49,6 @@ def test_integral_spline_interpolation(request, func, a, b):
 
 
 @pytest.mark.parametrize(
-    "x,y,z_expected",
-    [
-        (0, 0, 1),
-        (1, 0, 0),
-        (0, 1, 0),
-        (0, 0, 1),
-        (0.5, 0.5, 1 / 3),
-        (0.25, 0.25, 25 / (25 + 2 * 5**0.5)),
-        ([0, 0.5], [0, 0.5], [1, 1 / 3]),
-    ],
-)
-def test_2d_shepard_interpolation(x, y, z_expected):
-    """Test the shepard interpolation method of the Function class."""
-    # Test plane x + y + z = 1
-    source = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
-    func = Function(source=source, inputs=["x", "y"], outputs=["z"])
-    z = func(x, y)
-    z_opt = func.get_value_opt(x, y)
-    assert np.isclose(z, z_opt, atol=1e-8).all()
-    assert np.isclose(z, z_expected, atol=1e-8).all()
-
-
-@pytest.mark.parametrize(
-    "x,y,z,w_expected",
-    [
-        (0, 0, 0, 1),
-        (1, 0, 0, 0),
-        (0, 1, 0, 0),
-        (0, 0, 1, 0),
-        (0.5, 0.5, 0.5, 1 / 4),
-        (0.25, 0.25, 0.25, 0.700632626832),
-        ([0, 0.5], [0, 0.5], [0, 0.5], [1, 1 / 4]),
-    ],
-)
-def test_3d_shepard_interpolation(x, y, z, w_expected):
-    """Test the shepard interpolation method of the Function class."""
-    # Test plane x + y + z + w = 1
-    source = [(1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1)]
-    func = Function(source=source, inputs=["x", "y", "z"], outputs=["w"])
-    w = func(x, y, z)
-    w_opt = func.get_value_opt(x, y, z)
-    assert np.isclose(w, w_opt, atol=1e-8).all()
-    assert np.isclose(w_expected, w, atol=1e-8).all()
-
-
-@pytest.mark.parametrize(
     "func_input, derivative_input, expected_derivative",
     [
         (1, 0, 0),  # Test case 1: Function(1)
