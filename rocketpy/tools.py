@@ -419,10 +419,10 @@ def return_first_data(source):
     result : any
         The first data of the CSV file.
     """
-    native_data = open(source)
-    for row in native_data:
-        for value in row:
-            return value
+    with open(source, "r") as native_data:
+        for row in native_data:
+            for value in row:
+                return value
 
 
 def if_header(source):
