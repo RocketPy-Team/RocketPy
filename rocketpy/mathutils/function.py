@@ -1107,7 +1107,6 @@ class Function:
         Function
             The function with the incoming source filtered
         """
-        print(self.source)
         filtered_signal = np.zeros_like(self.source)
         filtered_signal[0] = self.source[0]
 
