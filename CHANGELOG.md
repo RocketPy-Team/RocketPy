@@ -40,7 +40,7 @@ straightforward as possible.
 
 ### Fixed
 
--
+- BUG: Invalid Arguments on Two Dimensional Discretize. [#520](https://github.com/RocketPy-Team/RocketPy/pull/520)
 
 ## [v1.1.4] - 2023-12-07
 
