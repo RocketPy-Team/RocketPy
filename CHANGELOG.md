@@ -43,6 +43,7 @@ straightforward as possible.
 ### Fixed
 
 - ENH: Parachute trigger doesn't work if "Apogee" is used instead of "apogee" [#489](https://github.com/RocketPy-Team/RocketPy/pull/489)
+- BUG: fin_flutter_analysis doesn't find any fin set [#510](https://github.com/RocketPy-Team/RocketPy/pull/510)
 - FIX: EmptyMotor is breaking the Rocket.draw() method [#516](https://github.com/RocketPy-Team/RocketPy/pull/516)
 
 ## [v1.1.4] - 2023-12-07

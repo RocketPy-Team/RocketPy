@@ -244,8 +244,9 @@ def fin_flutter_analysis(
             else:
                 warnings.warn("More than one fin set found. The last one will be used.")
     if not found_fin:
-        print("There is no TrapezoidalFins in the rocket, can't run Flutter Analysis.")
-        return None
+        raise AttributeError(
+            "There is no TrapezoidalFins in the rocket, can't run Flutter Analysis."
+        )
 
     # Calculate variables
     flutter_mach = _flutter_mach_number(
