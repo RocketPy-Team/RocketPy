@@ -1115,7 +1115,7 @@ class Function:
                 alpha * self.source[i] + (1 - alpha) * filtered_signal[i - 1]
             )
 
-        # Save the new csv file with filtered data 
+        # Save the new csv file with filtered data
         if isinstance(file_path, str):
             np.savetxt(file_path, filtered_signal, delimiter=",")
 
