@@ -1086,7 +1086,7 @@ class Function:
             extrapolation="zero",
         )
 
-    def low_pass_filter(self, alpha, file_path = None):
+    def low_pass_filter(self, alpha, file_path=None):
         """Implements a low pass filter with a moving average filter
 
         Parameters
@@ -1098,7 +1098,7 @@ class Function:
             alpha is, the smoother the filtered function returned will be
             (but with a phase shift)
         file_path : string
-            File path or file name of the CSV to save. Don't save any CSV if 
+            File path or file name of the CSV to save. Don't save any CSV if
             if no argument is passed. Initiated to None.
 
         Returns
