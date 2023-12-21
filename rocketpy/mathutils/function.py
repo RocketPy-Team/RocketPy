@@ -2855,6 +2855,8 @@ class Function:
 
         # check source for data type
         # if list or ndarray, check for dimensions, interpolation and extrapolation
+        if isinstance(source, Function):
+            source = source.get_source()
         if isinstance(source, (list, np.ndarray, str, Path)):
             # Deal with csv or txt
             if isinstance(source, (str, Path)):
