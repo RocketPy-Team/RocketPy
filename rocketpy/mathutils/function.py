@@ -518,11 +518,11 @@ class Function:
         one_by_one=True,
         mutate_self=True,
     ):
-        """This method discretizes the Function by evaluating it at certain
-        points (sampling range) and storing the results in a list, which is
-        converted into a Function and then returned. By default, the original
-        Function object is replaced by the new one, which can be changed by
-        the attribute `mutate_self`.
+        """This method discretizes a 1-D or 2-D Function by evaluating it at
+        certain points (sampling range) and storing the results in a list,
+        which is converted into a Function and then returned. By default, the
+        original Function object is replaced by the new one, which can be
+        changed by the attribute `mutate_self`.
 
         This method is specially useful to change a dataset sampling or to
         convert a Function defined by a callable into a list based Function.
@@ -558,6 +558,13 @@ class Function:
         Returns
         -------
         self : Function
+
+        Notes
+        -----
+        1. This method performs by default in place replacement of the original
+        Function object source. This can be changed by the attribute `mutate_self`.
+
+        2. Currently, this method only supports 1-D and 2-D Functions.
         """
         func = deepcopy(self) if not mutate_self else self
 
@@ -582,20 +589,25 @@ class Function:
             func.set_source(np.concatenate(([xs], [ys], [zs])).transpose())
             func.__interpolation__ = "shepard"
             func.__extrapolation__ = "natural"
+        else:
+            raise ValueError(
+                "Discretization is only supported for 1-D and 2-D Functions."
+            )
         return func
 
     def set_discrete_based_on_model(
         self, model_function, one_by_one=True, keep_self=True, mutate_self=True
     ):
-        """This method transforms the domain of Function instance into a list of
-        discrete points based on the domain of a model Function instance. It
-        does so by retrieving the domain, domain name, interpolation method and
-        extrapolation method of the model Function instance. It then evaluates
-        the original Function instance in all points of the retrieved domain to
-        generate the list of discrete points that will be used for interpolation
-        when this Function is called. By default, the original Function object
-        is replaced by the new one, which can be changed by the attribute
-        `mutate_self`.
+        """This method transforms the domain of a 1-D or 2-D Function instance
+        into a list of discrete points based on the domain of a model Function
+        instance. It does so by retrieving the domain, domain name,
+        interpolation method and extrapolation method of the model Function
+        instance. It then evaluates the original Function instance in all
+        points of the retrieved domain to generate the list of discrete points
+        that will be used for interpolation when this Function is called.
+
+        By default, the original Function object is replaced by the new one,
+        which can be changed by the attribute `mutate_self`.
 
         Parameters
         ----------
@@ -668,6 +680,8 @@ class Function:
 
         2. This method is similar to set_discrete, but it uses the domain of a
         model Function to define the domain of the new Function instance.
+
+        3. Currently, this method only supports 1-D and 2-D Functions.
         """
         if not isinstance(model_function.source, np.ndarray):
             raise TypeError("model_function must be a list based Function.")
@@ -690,6 +704,10 @@ class Function:
             # Evaluate function at all mesh nodes and convert it to matrix
             zs = np.array(func.get_value(mesh))
             func.set_source(np.concatenate(([xs], [ys], [zs])).transpose())
+        else:
+            raise ValueError(
+                "Discretization is only supported for 1-D and 2-D Functions."
+            )
 
         interp = (
             func.__interpolation__ if keep_self else model_function.__interpolation__
