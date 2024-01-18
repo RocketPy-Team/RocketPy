@@ -1,90 +1,140 @@
-from typing import Any, Tuple, Union
-
-from pydantic import Field, StrictFloat, StrictInt
-
 from rocketpy.simulation import Flight
 
 from .dispersion_model import DispersionModel
 
 
 class McFlight(DispersionModel):
-    """Monte Carlo Flight class, used to validate the input parameters of the
-    flight to be used in the Dispersion class, based on the pydantic library. It
-    uses the DispersionModel class as a base class, see its documentation for
-    more information. The inputs defined here are the same as the ones defined
-    in the Flight class, see its documentation for more information.
+    """A Monte Carlo Flight class that inherits from MonteCarloModel. This
+    class is used to receive a Flight object and information about the
+    dispersion of its parameters and generate a random flight object based on
+    the provided information.
+
+    Attributes
+    ----------
+    flight : Flight
+        The Flight object to be used as a base for the Monte Carlo flight.
+    rail_length : int, float, tuple, list, optional
+        The rail length of the flight. Follows the standard input format of
+        Dispersion Models.
+    inclination : int, float, tuple, list, optional
+        The inclination of the flight. Follows the standard input format of
+        Dispersion Models.
+    heading : int, float, tuple, list, optional
+        The heading of the flight. Follows the standard input format of
+        Dispersion Models.
+    initial_solution : tuple, list, optional
+        The initial solution of the flight. This is a tuple of 14 elements that
+        represent the initial conditions of the flight. This attribute can not
+        be randomized.
+    terminate_on_apogee : bool, optional
+        Whether or not the flight should terminate on apogee. This attribute
+        can not be randomized.
     """
 
-    # Field(...) means it is a required field, exclude=True removes it from the
-    # self.dict() method, which is used to convert the class to a dictionary
-    # Fields with typing Any must have the standard dispersion form of tuple or
-    # list. This is checked in the DispersionModel @root_validator
-    # Fields with typing that is not Any have special requirements
-    flight: Flight = Field(..., exclude=True)
-    inclination: Any = 0
-    heading: Any = 0
-    initialSolution: Union[
-        Flight,
-        Tuple[
-            Union[StrictInt, StrictFloat],  # tInitial
-            Union[StrictInt, StrictFloat],  # xInit
-            Union[StrictInt, StrictFloat],  # yInit
-            Union[StrictInt, StrictFloat],  # zInit
-            Union[StrictInt, StrictFloat],  # vxInit
-            Union[StrictInt, StrictFloat],  # vyInit
-            Union[StrictInt, StrictFloat],  # vzInit
-            Union[StrictInt, StrictFloat],  # e0Init
-            Union[StrictInt, StrictFloat],  # e1Init
-            Union[StrictInt, StrictFloat],  # e2Init
-            Union[StrictInt, StrictFloat],  # e3Init
-            Union[StrictInt, StrictFloat],  # w1Init
-            Union[StrictInt, StrictFloat],  # w2Init
-            Union[StrictInt, StrictFloat],  # w3Init
-        ],
-    ] = None
-    terminateOnApogee: bool = False
+    def __init__(
+        self,
+        flight,
+        rail_length=None,
+        inclination=None,
+        heading=None,
+        initial_solution=None,
+        terminate_on_apogee=None,
+    ):
+        """Initializes the Monte Carlo Flight class.
 
-    def rnd_inclination(self):
-        """Creates a random inclination
-
-        Returns
-        -------
-        inclination : float
-            Random inclination
-        """
-        gen_dict = next(self.dict_generator())
-        return gen_dict["inclination"]
-
-    def rnd_heading(self):
-        """Creates a random heading
-
-        Returns
-        -------
-        heading : float
-            Random heading
-        """
-        gen_dict = next(self.dict_generator())
-        return gen_dict["heading"]
-
-    def create_object(self):
-        """Creates a Flight object from the randomly generated input arguments.
+        See Also
+        --------
+        This should link to somewhere that explains how inputs works in
+        dispersion models.
 
         Parameters
         ----------
-        None
+        flight : Flight
+            The Flight object to be used as a base for the Monte Carlo flight.
+        rail_length : int, float, tuple, list, optional
+            The rail length of the flight. Follows the standard input format of
+            Dispersion Models.
+        inclination : int, float, tuple, list, optional
+            The inclination of the flight. Follows the standard input format of
+            Dispersion Models.
+        heading : int, float, tuple, list, optional
+            The heading of the flight. Follows the standard input format of
+            Dispersion Models.
+        initial_solution : tuple, list, optional
+            The initial solution of the flight. This is a tuple of 14 elements
+            that represent the initial conditions of the flight. This attribute
+            can not be randomized.
+        terminate_on_apogee : bool, optional
+            Whether or not the flight should terminate on apogee. This attribute
+            can not be randomized.
+        """
+        if terminate_on_apogee is not None:
+            assert isinstance(
+                terminate_on_apogee, bool
+            ), "`terminate_on_apogee` must be a boolean"
+        super().__init__(
+            flight,
+            rail_length=rail_length,
+            inclination=inclination,
+            heading=heading,
+        )
+
+        self.initial_solution = initial_solution
+        self.terminate_on_apogee = terminate_on_apogee
+
+    def _validate_initial_solution(self, initial_solution):
+        if initial_solution is not None:
+            if isinstance(initial_solution, (tuple, list)):
+                assert len(initial_solution) == 14, (
+                    "`initial_solution` must be a 14 element tuple, the "
+                    "elements are:\n t_initial, x_init, y_init, z_init, "
+                    "vx_init, vy_init, vz_init, e0_init, e1_init, e2_init, "
+                    "e3_init, w1Init, w2Init, w3Init"
+                )
+                assert all(
+                    [isinstance(i, (int, float)) for i in initial_solution]
+                ), "`initial_solution` must be a tuple of numbers"
+            else:
+                raise TypeError("`initial_solution` must be a tuple of numbers")
+
+    # TODO: these call dict_generator a lot of times unecessaryly
+    def _randomize_rail_length(self):
+        """Randomizes the rail length of the flight. Follows the standard input
+        format of Dispersion Models.
+        """
+        generated_dict = next(self.dict_generator())
+        return generated_dict["rail_length"]
+
+    def _randomize_inclination(self):
+        """Randomizes the inclination of the flight. Follows the standard input
+        format of Dispersion Models.
+        """
+        generated_dict = next(self.dict_generator())
+        return generated_dict["inclination"]
+
+    def _randomize_heading(self):
+        """Randomizes the heading of the flight. Follows the standard input
+        format of Dispersion Models.
+        """
+        generated_dict = next(self.dict_generator())
+        return generated_dict["heading"]
+
+    def create_object(self):
+        """Creates and returns a Flight object from the randomly generated input
+        arguments.
 
         Returns
         -------
-        obj : Flight
+        flight : Flight
             Flight object with the randomly generated input arguments.
         """
-        gen_dict = next(self.dict_generator())
+        generated_dict = next(self.dict_generator())
         obj = Flight(
-            environment=self.flight.env,
-            rocket=self.flight.rocket,
-            inclination=gen_dict["inclination"],
-            heading=gen_dict["heading"],
-            initialSolution=self.initialSolution,
-            terminateOnApogee=self.terminateOnApogee,
+            environment=self.object.env,
+            rocket=self.object.rocket,
+            inclination=generated_dict["inclination"],
+            heading=generated_dict["heading"],
+            initialSolution=self.initial_solution,
+            terminateOnApogee=self.terminate_on_apogee,
         )
         return obj

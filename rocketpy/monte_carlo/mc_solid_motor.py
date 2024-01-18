@@ -4,15 +4,81 @@ from .motor_dispersion_model import MotorDispersionModel
 
 
 class McSolidMotor(MotorDispersionModel):
-    """Monte Carlo Solid Motor class, used to validate the input parameters of
-    the solid motor, based on the pydantic library. It uses the DispersionModel
-    class as a base class, see its documentation for more information. The
-    inputs defined here correspond to the ones defined in the SolidMotor class.
-    """
+    """A Monte Carlo Solid Motor class that inherits from MonteCarloModel. This
+    class is used to receive a SolidMotor object and information about the
+    dispersion of its parameters and generate a random solid motor object based
+    on the provided information.
 
-    # TODO:
-    # - separated dry_inertias?
-    # - coordinate system is not varied
+    Attributes
+    ----------
+    object : SolidMotor
+        SolidMotor object to be used for validation.
+    thrust_source : list
+        List of strings representing the thrust source to be selected.
+    total_impulse : int, float, tuple, list
+        Total impulse of the motor in newton seconds. Follows the standard
+        input format of Dispersion Models.
+    burn_start_time : int, float, tuple, list
+        Burn start time of the motor in seconds. Follows the standard input
+        format of Dispersion Models.
+    burn_out_time : int, float, tuple, list
+        Burn out time of the motor in seconds. Follows the standard input
+        format of Dispersion Models.
+    dry_mass : int, float, tuple, list
+        Dry mass of the motor in kilograms. Follows the standard input
+        format of Dispersion Models.
+    dry_I_11 : int, float, tuple, list
+        Dry inertia of the motor in kilograms times meters squared. Follows
+        the standard input format of Dispersion Models.
+    dry_I_22 : int, float, tuple, list
+        Dry inertia of the motor in kilograms times meters squared. Follows
+        the standard input format of Dispersion Models.
+    dry_I_33 : int, float, tuple, list
+        Dry inertia of the motor in kilograms times meters squared. Follows
+        the standard input format of Dispersion Models.
+    dry_I_12 : int, float, tuple, list
+        Dry inertia of the motor in kilograms times meters squared. Follows
+        the standard input format of Dispersion Models.
+    dry_I_13 : int, float, tuple, list
+        Dry inertia of the motor in kilograms times meters squared. Follows
+        the standard input format of Dispersion Models.
+    dry_I_23 : int, float, tuple, list
+        Dry inertia of the motor in kilograms times meters squared. Follows
+        the standard input format of Dispersion Models.
+    nozzle_radius : int, float, tuple, list
+        Nozzle radius of the motor in meters. Follows the standard input
+        format of Dispersion Models.
+    grain_number : int, float, tuple, list
+        Number of grains in the motor. Follows the standard input format of
+        Dispersion Models.
+    grain_density : int, float, tuple, list
+        Density of the grains in the motor in kilograms per meters cubed.
+        Follows the standard input format of Dispersion Models.
+    grain_outer_radius : int, float, tuple, list
+        Outer radius of the grains in the motor in meters. Follows the
+        standard input format of Dispersion Models.
+    grain_initial_inner_radius : int, float, tuple, list
+        Initial inner radius of the grains in the motor in meters. Follows
+        the standard input format of Dispersion Models.
+    grain_initial_height : int, float, tuple, list
+        Initial height of the grains in the motor in meters. Follows the
+        standard input format of Dispersion Models.
+    grain_separation : int, float, tuple, list
+        Separation between grains in the motor in meters. Follows the
+        standard input format of Dispersion Models.
+    grains_center_of_mass_position : int, float, tuple, list
+        Position of the center of mass of the grains in the motor in
+        meters. Follows the standard input format of Dispersion Models.
+    center_of_dry_mass_position : int, float, tuple, list
+        Position of the center of mass of the dry mass in the motor in
+        meters. Follows the standard input format of Dispersion Models.
+    nozzle_position : int, float, tuple, list
+        Position of the nozzle in the motor in meters. Follows the
+        standard input format of Dispersion Models.
+    throat_radius : int, float, tuple, list
+        Radius of the throat in the motor in meters. Follows the standard
+        input format of Dispersion Models.
+    """
 
     def __init__(
         self,
@@ -53,11 +119,15 @@ class McSolidMotor(MotorDispersionModel):
             SolidMotor object to be used for validation.
         thrust_source : list, optional
             List of strings representing the thrust source to be selected.
+            Follows the 1d array like input format of Dispersion Models.
         total_impulse : int, float, tuple, list, optional
             Total impulse of the motor in newton seconds. Follows the standard
             input format of Dispersion Models.
-        burn_time : int, float, tuple, list, optional
-            Burn time of the motor in seconds. Follows the standard input
+        burn_start_time : int, float, tuple, list, optional
+            Burn start time of the motor in seconds. Follows the standard input
+            format of Dispersion Models.
+        burn_out_time : int, float, tuple, list, optional
+            Burn out time of the motor in seconds. Follows the standard input
             format of Dispersion Models.
         dry_mass : int, float, tuple, list, optional
             Dry mass of the motor in kilograms. Follows the standard input
@@ -138,18 +208,21 @@ class McSolidMotor(MotorDispersionModel):
             center_of_dry_mass_position=center_of_dry_mass_position,
             nozzle_position=nozzle_position,
             throat_radius=throat_radius,
+            interpolate=None,
+            coordinate_system_orientation=None,
         )
 
     def create_object(self):
-        """Create a randomized SolidMotor object based on the input parameters.
+        """Creates and returns a SolidMotor object from the randomly generated
+        input arguments.
 
         Returns
         -------
-        SolidMotor
-            SolidMotor object with random input parameters.
+        solid_motor : SolidMotor
+            SolidMotor object with the randomly generated input arguments.
         """
         generated_dict = next(self.dict_generator())
-        obj = SolidMotor(
+        solid_motor = SolidMotor(
             thrust_source=generated_dict["thrust_source"],
             dry_mass=generated_dict["dry_mass"],
             dry_inertia=(
@@ -181,7 +254,9 @@ class McSolidMotor(MotorDispersionModel):
                 (generated_dict["burn_start_time"], generated_dict["burn_out_time"]),
                 generated_dict["total_impulse"],
             ),
+            coordinate_system_orientation=generated_dict[
+                "coordinate_system_orientation"
+            ],
+            interpolation_method=generated_dict["interpolate"],
         )
-        if "position" in generated_dict:
-            obj.position = generated_dict["position"]
-        return obj
+        return solid_motor

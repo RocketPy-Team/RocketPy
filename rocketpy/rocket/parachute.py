@@ -65,6 +65,11 @@ class Parachute:
     Parachute.lag : float
         Time, in seconds, between the parachute ejection system is triggered
         and the parachute is fully opened.
+    Parachute.noise : tuple, list
+        List in the format (mean, standard deviation, time-correlation).
+        The values are used to add noise to the pressure signal which is passed
+        to the trigger function. Default value is (0, 0, 0). Units are in
+        pascal.
     Parachute.noise_bias : float
         Mean value of the noise added to the pressure signal, which is
         passed to the trigger function. Unit is in pascal.
@@ -154,6 +159,7 @@ class Parachute:
         self.trigger = trigger
         self.sampling_rate = sampling_rate
         self.lag = lag
+        self.noise = noise
         self.noise_signal = [[-1e-6, np.random.normal(noise[0], noise[1])]]
         self.noisy_pressure_signal = []
         self.clean_pressure_signal = []

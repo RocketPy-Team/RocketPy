@@ -1,7 +1,3 @@
-from typing import Any, List, Tuple, Union
-
-from pydantic import Field, FilePath, StrictInt, StrictStr
-
 from rocketpy.rocket.aero_surface import (
     EllipticalFins,
     NoseCone,
@@ -14,203 +10,500 @@ from .dispersion_model import DispersionModel
 
 
 class McNoseCone(DispersionModel):
-    """Monte Carlo Nose cone class, used to validate the input parameters of the
-    nose cone, based on the pydantic library. It uses the DispersionModel class
-    as a base class, see its documentation for more information. The inputs
-    defined here correspond to the ones defined in the NoseCone class."""
+    """A Monte Carlo Nose Cone class that inherits from MonteCarloModel. This
+    class is used to receive a NoseCone object and information about the
+    dispersion of its parameters and generate a random nose cone object based
+    on the provided information.
 
-    # Field(...) means it is a required field, exclude=True removes it from the
-    # self.dict() method, which is used to convert the class to a dictionary
-    # Fields with typing Any must have the standard dispersion form of tuple or
-    # list. This is checked in the DispersionModel @root_validator
-    # Fields with typing that is not Any have special requirements
-    nosecone: NoseCone = Field(..., exclude=True)
-    length: Any = 0
-    kind: List[Union[StrictStr, None]] = []
-    baseRadius: Any = 0
-    rocketRadius: Any = 0
-    name: List[StrictStr] = []
+    Attributes
+    ----------
+    object : NoseCone
+        NoseCone object to be used for validation.
+    length : tuple, list, int, float
+        Length of the nose cone in meters. Follows the standard input format of
+        Dispersion Models.
+    kind : list
+        List of strings representing the kind of nose cone. Follows the standard
+        input format of Dispersion Models.
+    base_radius : tuple, list, int, float
+        Base radius of the nose cone in meters. Follows the standard input
+        format of Dispersion Models.
+    bluffness : tuple, list, int, float
+        Bluffness of the nose cone. Follows the standard input format of
+        Dispersion Models.
+    rocket_radius : tuple, list, int, float
+        Rocket radius of the nose cone in meters. Follows the standard input
+        format of Dispersion Models.
+    name : list
+        List of names. This attribute can not be randomized.
+    """
 
-    def create_object(self):
-        """Creates a NoseCone object from the randomly generated input arguments.
+    def __init__(
+        self,
+        nosecone,
+        length=None,
+        kind=None,
+        base_radius=None,
+        bluffness=None,
+        rocket_radius=None,
+    ):
+        """Initializes the Monte Carlo Nose Cone class.
+
+        See Also
+        --------
+        This should link to somewhere that explains how inputs works in
+        dispersion models.
 
         Parameters
         ----------
-        None
+        nosecone : NoseCone
+            NoseCone object to be used for validation.
+        length : tuple, list, int, float
+            Length of the nose cone in meters. Follows the standard input format
+            of Dispersion Models.
+        kind : list
+            List of strings representing the kind of nose cone. Follows the
+            standard input format of Dispersion Models.
+        base_radius : tuple, list, int, float
+            Base radius of the nose cone in meters. Follows the standard input
+            format of Dispersion Models.
+        bluffness : tuple, list, int, float
+            Bluffness of the nose cone. Follows the standard input format of
+            Dispersion Models.
+        rocket_radius : tuple, list, int, float
+            Rocket radius of the nose cone in meters. Follows the standard input
+            format of Dispersion Models.
+        """
+        self._validate_kind(kind)
+        super().__init__(
+            nosecone,
+            length=length,
+            kind=kind,
+            base_radius=base_radius,
+            bluffness=bluffness,
+            rocket_radius=rocket_radius,
+            name=None,
+        )
+
+    def _validate_kind(self, kind):
+        """Validates the kind input. If the kind input argument is not None, it
+        must be a list of strings."""
+        if kind is not None:
+            assert isinstance(kind, list) and all(
+                isinstance(member, str) for member in kind
+            ), "`kind` must be a list of strings"
+
+    def create_object(self):
+        """Creates and returns a NoseCone object from the randomly generated
+        input arguments.
 
         Returns
         -------
-        obj : NoseCone
+        nosecone : NoseCone
             NoseCone object with the randomly generated input arguments.
         """
-        gen_dict = next(self.dict_generator())
-        obj = NoseCone(
-            length=gen_dict["length"],
-            kind=gen_dict["kind"],
-            baseRadius=gen_dict["baseRadius"],
-            rocketRadius=gen_dict["rocketRadius"],
-            name=gen_dict["name"],
+        generated_dict = next(self.dict_generator())
+        nosecone = NoseCone(
+            length=generated_dict["length"],
+            kind=generated_dict["kind"],
+            base_radius=generated_dict["base_radius"],
+            bluffness=generated_dict["bluffness"],
+            rocket_radius=generated_dict["rocket_radius"],
+            name=generated_dict["name"],
         )
-        if "position" in gen_dict:
-            obj.position = gen_dict["position"]
-        return obj
+        return nosecone
 
 
 class McTrapezoidalFins(DispersionModel):
-    """Monte Carlo Trapezoidal fins class, used to validate the input parameters
-    of the trapezoidal fins, based on the pydantic library. It uses the
-    DispersionModel class as a base class, see its documentation for more
-    information.
+    """A Monte Carlo Trapezoidal Fins class that inherits from MonteCarloModel.
+    This class is used to receive a TrapezoidalFins object and information about
+    the dispersion of its parameters and generate a random trapezoidal fins
+    object based on the provided information.
+
+    Attributes
+    ----------
+    object : TrapezoidalFins
+        TrapezoidalFins object to be used for validation.
+    n : list of ints
+        List of integers representing the number of fins. Follows the standard
+        input format of Dispersion Models.
+    root_chord : tuple, list, int, float
+        Root chord of the fins in meters. Follows the standard input format of
+        Dispersion Models.
+    tip_chord : tuple, list, int, float
+        Tip chord of the fins in meters. Follows the standard input format of
+        Dispersion Models.
+    span : tuple, list, int, float
+        Span of the fins in meters. Follows the standard input format of
+        Dispersion Models.
+    rocket_radius : tuple, list, int, float
+        Rocket radius of the fins in meters. Follows the standard input format
+        of Dispersion Models.
+    cant_angle : tuple, list, int, float
+        Cant angle of the fins in degrees. Follows the standard input format of
+        Dispersion Models.
+    sweep_length : tuple, list, int, float
+        Sweep length of the fins in meters. Follows the standard input format of
+        Dispersion Models.
+    sweep_angle : tuple, list, int, float
+        Sweep angle of the fins in degrees. Follows the standard input format of
+        Dispersion Models.
+    airfoil : list
+        List of tuples in the form of (airfoil file path, airfoil name).
+    name : list
+        List of names. This attribute can not be randomized.
     """
 
-    trapezoidalFins: TrapezoidalFins = Field(..., exclude=True)
-    n: List[StrictInt] = []
-    rootChord: Any = 0
-    tipChord: Any = 0
-    span: Any = 0
-    rocketRadius: Any = 0
-    cantAngle: Any = 0
-    sweepLength: Any = 0
-    # The sweep angle is irrelevant for dispersion, use sweepLength instead
-    # sweepAngle: Any = 0
-    airfoil: List[Union[Tuple[FilePath, StrictStr], None]] = []
-    name: List[StrictStr] = []
+    def __init__(
+        self,
+        trapezoidal_fins,
+        n=None,
+        root_chord=None,
+        tip_chord=None,
+        span=None,
+        rocket_radius=None,
+        cant_angle=None,
+        sweep_length=None,
+        sweep_angle=None,
+        airfoil=None,
+    ):
+        """Initializes the Monte Carlo Trapezoidal Fins class.
 
-    def create_object(self):
-        """Creates a TrapezoidalFins object from the randomly generated input arguments.
+        See Also
+        --------
+        This should link to somewhere that explains how inputs works in
+        dispersion models.
 
         Parameters
         ----------
-        None
+        trapezoidal_fins : TrapezoidalFins
+            TrapezoidalFins object to be used for validation.
+        n : list of ints
+            List of integers representing the number of fins. Follows the
+            standard input format of Dispersion Models.
+        root_chord : tuple, list, int, float
+            Root chord of the fins in meters. Follows the standard input format
+            of Dispersion Models.
+        tip_chord : tuple, list, int, float
+            Tip chord of the fins in meters. Follows the standard input format
+            of Dispersion Models.
+        span : tuple, list, int, float
+            Span of the fins in meters. Follows the standard input format of
+            Dispersion Models.
+        rocket_radius : tuple, list, int, float
+            Rocket radius of the fins in meters. Follows the standard input
+            format of Dispersion Models.
+        cant_angle : tuple, list, int, float
+            Cant angle of the fins in degrees. Follows the standard input format
+            of Dispersion Models.
+        sweep_length : tuple, list, int, float
+            Sweep length of the fins in meters. Follows the standard input
+            format of Dispersion Models.
+        sweep_angle : tuple, list, int, float
+            Sweep angle of the fins in degrees. Follows the standard input
+            format of Dispersion Models.
+        airfoil : list
+            List of tuples in the form of (airfoil file path, airfoil name).
+        """
+        self._validate_positive_int_list("n", n)
+        self._validate_airfoil(airfoil)
+        super().__init__(
+            trapezoidal_fins,
+            n=n,
+            root_chord=root_chord,
+            tip_chord=tip_chord,
+            span=span,
+            rocket_radius=rocket_radius,
+            cant_angle=cant_angle,
+            sweep_length=sweep_length,
+            sweep_angle=sweep_angle,
+            airfoil=airfoil,
+            name=None,
+        )
+
+    def create_object(self):
+        """Creates and returns a TrapezoidalFins object from the randomly
+        generated input arguments.
 
         Returns
         -------
-        obj : TrapezoidalFins
+        trapezoidalfins : TrapezoidalFins
             TrapezoidalFins object with the randomly generated input arguments.
         """
-        gen_dict = next(self.dict_generator())
-        obj = TrapezoidalFins(
-            n=gen_dict["n"],
-            rootChord=gen_dict["rootChord"],
-            tipChord=gen_dict["tipChord"],
-            span=gen_dict["span"],
-            rocketRadius=gen_dict["rocketRadius"],
-            cantAngle=gen_dict["cantAngle"],
-            sweepLength=gen_dict["sweepLength"],
-            airfoil=gen_dict["airfoil"],
-            name=gen_dict["name"],
+        generated_dict = next(self.dict_generator())
+        fins = TrapezoidalFins(
+            n=generated_dict["n"],
+            root_chord=generated_dict["root_chord"],
+            tip_chord=generated_dict["tip_chord"],
+            span=generated_dict["span"],
+            rocket_radius=generated_dict["rocket_radius"],
+            cant_angle=generated_dict["cant_angle"],
+            sweep_length=generated_dict["sweep_length"],
+            airfoil=generated_dict["airfoil"],
+            name=generated_dict["name"],
         )
-        if "position" in gen_dict:
-            obj.position = gen_dict["position"]
-        return obj
+        return fins
 
 
 class McEllipticalFins(DispersionModel):
-    """Monte Carlo Elliptical fins class, used to validate the input parameters
-    of the elliptical fins, based on the pydantic library. It uses the
-    DispersionModel class as a base class, see its documentation for more
-    information.
+    """A Monte Carlo Elliptical Fins class that inherits from MonteCarloModel.
+    This class is used to receive a EllipticalFins object and information about
+    the dispersion of its parameters and generate a random elliptical fins
+    object based on the provided information.
+
+    Attributes
+    ----------
+    object : EllipticalFins
+        EllipticalFins object to be used for validation.
+    n : list of ints
+        List of integers representing the number of fins. Follows the standard
+        input format of Dispersion Models.
+    root_chord : tuple, list, int, float
+        Root chord of the fins in meters. Follows the standard input format of
+        Dispersion Models.
+    span : tuple, list, int, float
+        Span of the fins in meters. Follows the standard input format of
+        Dispersion Models.
+    rocket_radius : tuple, list, int, float
+        Rocket radius of the fins in meters. Follows the standard input format
+        of Dispersion Models.
+    cant_angle : tuple, list, int, float
+        Cant angle of the fins in degrees. Follows the standard input format of
+        Dispersion Models.
+    airfoil : list
+        List of tuples in the form of (airfoil file path, airfoil name).
+    name : list
+        List of names. This attribute can not be randomized.
     """
 
-    ellipticalFins: EllipticalFins = Field(..., exclude=True)
-    n: Any = 0
-    rootChord: Any = 0
-    span: Any = 0
-    rocketRadius: Any = 0
-    cantAngle: Any = 0
-    airfoil: List[Union[Tuple[FilePath, StrictStr], None]] = []
-    name: List[StrictStr] = []
+    def __init__(
+        self,
+        elliptical_fins=None,
+        n=None,
+        root_chord=None,
+        span=None,
+        rocket_radius=None,
+        cant_angle=None,
+        airfoil=None,
+    ):
+        """Initializes the Monte Carlo Elliptical Fins class.
 
-    def create_object(self):
-        """Creates a EllipticalFins object from the randomly generated input arguments.
+        See Also
+        --------
+        This should link to somewhere that explains how inputs works in
+        dispersion models.
 
         Parameters
         ----------
-        None
+        elliptical_fins : EllipticalFins
+            EllipticalFins object to be used for validation.
+        n : list of ints
+            List of integers representing the number of fins. Follows the
+            standard input format of Dispersion Models.
+        root_chord : tuple, list, int, float
+            Root chord of the fins in meters. Follows the standard input format
+            of Dispersion Models.
+        span : tuple, list, int, float
+            Span of the fins in meters. Follows the standard input format of
+            Dispersion Models.
+        rocket_radius : tuple, list, int, float
+            Rocket radius of the fins in meters. Follows the standard input
+            format of Dispersion Models.
+        cant_angle : tuple, list, int, float
+            Cant angle of the fins in degrees. Follows the standard input format
+            of Dispersion Models.
+        airfoil : list
+            List of tuples in the form of (airfoil file path, airfoil name).
+        """
+        self._validate_positive_int_list("n", n)
+        self._validate_airfoil(airfoil)
+        super().__init__(
+            elliptical_fins,
+            n=n,
+            root_chord=root_chord,
+            span=span,
+            rocket_radius=rocket_radius,
+            cant_angle=cant_angle,
+            airfoil=airfoil,
+            name=None,
+        )
+
+    def create_object(self):
+        """Creates and returns a EllipticalFins object from the randomly
+        generated input arguments.
 
         Returns
         -------
-        obj : EllipticalFins
+        ellipticalfins : EllipticalFins
             EllipticalFins object with the randomly generated input arguments.
         """
-        gen_dict = next(self.dict_generator())
-        obj = EllipticalFins(
-            n=gen_dict["n"],
-            rootChord=gen_dict["rootChord"],
-            span=gen_dict["span"],
-            rocketRadius=gen_dict["rocketRadius"],
-            cantAngle=gen_dict["cantAngle"],
-            airfoil=gen_dict["airfoil"],
-            name=gen_dict["name"],
+        generated_dict = next(self.dict_generator())
+        fins = EllipticalFins(
+            n=generated_dict["n"],
+            root_chord=generated_dict["root_chord"],
+            span=generated_dict["span"],
+            rocket_radius=generated_dict["rocket_radius"],
+            cant_angle=generated_dict["cant_angle"],
+            airfoil=generated_dict["airfoil"],
+            name=generated_dict["name"],
         )
-        if "position" in gen_dict:
-            obj.position = gen_dict["position"]
-        return obj
+        return fins
 
 
 class McTail(DispersionModel):
-    """Monte Carlo Tail class, used to validate the input parameters of the tail
-    based on the pydantic library. It uses the DispersionModel class as a base
-    class, see its documentation for more information."""
+    """A Monte Carlo Tail class that inherits from MonteCarloModel. This class
+    is used to receive a Tail object and information about the dispersion of its
+    parameters and generate a random tail object based on the provided
+    information.
 
-    tail: Tail = Field(..., exclude=True)
-    topRadius: Any = 0
-    bottomRadius: Any = 0
-    length: Any = 0
-    rocketRadius: Any = 0
-    name: List[StrictStr] = []
+    Attributes
+    ----------
+    object : Tail
+        Tail object to be used for validation.
+    top_radius : tuple, list, int, float
+        Top radius of the tail in meters. Follows the standard input format of
+        Dispersion Models.
+    bottom_radius : tuple, list, int, float
+        Bottom radius of the tail in meters. Follows the standard input format
+        of Dispersion Models.
+    length : tuple, list, int, float
+        Length of the tail in meters. Follows the standard input format of
+        Dispersion Models.
+    rocket_radius : tuple, list, int, float
+        Rocket radius of the tail in meters. Follows the standard input format
+        of Dispersion Models.
+    name : list
+        List of names. This attribute can not be randomized.
+    """
 
-    def create_object(self):
-        """Creates a Tail object from the randomly generated input arguments.
+    def __init__(
+        self,
+        tail,
+        top_radius=None,
+        bottom_radius=None,
+        length=None,
+        rocket_radius=None,
+    ):
+        """Initializes the Monte Carlo Tail class.
+
+        See Also
+        --------
+        This should link to somewhere that explains how inputs works in
+        dispersion models.
 
         Parameters
         ----------
-        None
+        tail : Tail
+            Tail object to be used for validation.
+        top_radius : tuple, list, int, float
+            Top radius of the tail in meters. Follows the standard input format
+            of Dispersion Models.
+        bottom_radius : tuple, list, int, float
+            Bottom radius of the tail in meters. Follows the standard input
+            format of Dispersion Models.
+        length : tuple, list, int, float
+            Length of the tail in meters. Follows the standard input format of
+            Dispersion Models.
+        rocket_radius : tuple, list, int, float
+            Rocket radius of the tail in meters. Follows the standard input
+            format of Dispersion Models.
+        """
+        super().__init__(
+            tail,
+            top_radius=top_radius,
+            bottom_radius=bottom_radius,
+            length=length,
+            rocket_radius=rocket_radius,
+            name=None,
+        )
+
+    def create_object(self):
+        """Creates and returns a Tail object from the randomly generated input
+        arguments.
 
         Returns
         -------
-        obj : Tail
+        tail : Tail
             Tail object with the randomly generated input arguments.
         """
-        gen_dict = next(self.dict_generator())
-        obj = Tail(
-            topRadius=gen_dict["topRadius"],
-            bottomRadius=gen_dict["bottomRadius"],
-            length=gen_dict["length"],
-            rocketRadius=gen_dict["rocketRadius"],
-            name=gen_dict["name"],
+        generated_dict = next(self.dict_generator())
+        tail = Tail(
+            top_radius=generated_dict["top_radius"],
+            bottom_radius=generated_dict["bottom_radius"],
+            length=generated_dict["length"],
+            rocket_radius=generated_dict["rocket_radius"],
+            name=generated_dict["name"],
         )
-        if "position" in gen_dict:
-            obj.position = gen_dict["position"]
-        return obj
+        return tail
 
 
 class McRailButtons(DispersionModel):
-    """Monte Carlo Rail buttons class, used to validate the input parameters of
-    the rail buttons, based on the pydantic library. It uses the DispersionModel
-    class as a base class, see its documentation for more information.
+    """A Monte Carlo RailButtons class that inherits from MonteCarloModel. This
+    class is used to receive a RailButtons object and information about the
+    dispersion of its parameters and generate a random rail buttons object based
+    on the provided information.
+
+    Attributes
+    ----------
+    object : RailButtons
+        RailButtons object to be used for validation.
+    rail_buttons : list
+        List of RailButton objects. Follows the standard input format of
+        Dispersion Models.
+    buttons_distance : tuple, list, int, float
+        Distance between the buttons in meters. Follows the standard input
+        format of Dispersion Models.
+    angular_position : tuple, list, int, float
+        Angular position of the buttons in degrees. Follows the standard input
+        format of Dispersion Models.
+    name : list
+        List of names. This attribute can not be randomized.
     """
 
-    rail_buttons: RailButtons = Field(..., exclude=True)
-    buttons_distance: Any = 0
-    angular_position: Any = 0
-    name: List[StrictStr] = []
+    def __init__(
+        self,
+        rail_buttons=None,
+        buttons_distance=None,
+        angular_position=None,
+    ):
+        """Initializes the Monte Carlo RailButtons class.
 
-    def create_object(self):
-        """Creates a RailButtons object from the randomly generated input arguments.
+        See Also
+        --------
+        This should link to somewhere that explains how inputs works in
+        dispersion models.
 
         Parameters
         ----------
-        None
+        rail_buttons : RailButtons
+            RailButtons object to be used for validation.
+        buttons_distance : tuple, list, int, float
+            Distance between the buttons in meters. Follows the standard input
+            format of Dispersion Models.
+        angular_position : tuple, list, int, float
+            Angular position of the buttons in degrees. Follows the standard
+            input format of Dispersion Models.
+        """
+        super().__init__(
+            rail_buttons,
+            buttons_distance=buttons_distance,
+            angular_position=angular_position,
+            name=None,
+        )
+
+    def create_object(self):
+        """Creates and returns a RailButtons object from the randomly generated
+        input arguments.
 
         Returns
         -------
-        obj : RailButtons
+        railbuttons : RailButtons
             RailButtons object with the randomly generated input arguments.
         """
-        gen_dict = next(self.dict_generator())
-        obj = RailButtons(
-            buttons_distance=gen_dict["buttons_distance"],
-            angular_position=gen_dict["angular_position"],
+        generated_dict = next(self.dict_generator())
+        rail_buttons = RailButtons(
+            buttons_distance=generated_dict["buttons_distance"],
+            angular_position=generated_dict["angular_position"],
+            name=generated_dict["name"],
         )
-        return obj
+        return rail_buttons
