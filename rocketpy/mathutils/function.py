@@ -189,7 +189,7 @@ class Function:
         self : Function
             Returns the Function instance.
         """
-        _ = self._check_user_input(
+        *_, interpolation, extrapolation = self._check_user_input(
             source,
             self.__inputs__,
             self.__outputs__,
@@ -277,10 +277,10 @@ class Function:
                 self.source = source
             # Update extrapolation method
             if self.__extrapolation__ is None:
-                self.set_extrapolation()
+                self.set_extrapolation(extrapolation)
             # Set default interpolation for point source if it hasn't
             if self.__interpolation__ is None:
-                self.set_interpolation()
+                self.set_interpolation(interpolation)
             else:
                 # Updates interpolation coefficients
                 self.set_interpolation(self.__interpolation__)
@@ -560,14 +560,12 @@ class Function:
             # Create nodes to evaluate function
             xs = np.linspace(lower[0], upper[0], sam[0])
             ys = np.linspace(lower[1], upper[1], sam[1])
-            xs, ys = np.meshgrid(xs, ys)
-            xs, ys = xs.flatten(), ys.flatten()
-            mesh = [[xs[i], ys[i]] for i in range(len(xs))]
+            xs, ys = np.array(np.meshgrid(xs, ys)).reshape(2, xs.size * ys.size)
             # Evaluate function at all mesh nodes and convert it to matrix
-            zs = np.array(self.get_value(mesh))
-            self.set_source(np.concatenate(([xs], [ys], [zs])).transpose())
+            zs = np.array(self.get_value(xs, ys))
             self.__interpolation__ = "shepard"
             self.__extrapolation__ = "natural"
+            self.set_source(np.concatenate(([xs], [ys], [zs])).transpose())
         return self
 
     def set_discrete_based_on_model(
@@ -664,11 +662,8 @@ class Function:
             # Create nodes to evaluate function
             xs = model_function.source[:, 0]
             ys = model_function.source[:, 1]
-            xs, ys = np.meshgrid(xs, ys)
-            xs, ys = xs.flatten(), ys.flatten()
-            mesh = [[xs[i], ys[i]] for i in range(len(xs))]
             # Evaluate function at all mesh nodes and convert it to matrix
-            zs = np.array(self.get_value(mesh))
+            zs = np.array(self.get_value(xs, ys))
             self.set_source(np.concatenate(([xs], [ys], [zs])).transpose())
 
         interp = (
@@ -2860,6 +2855,8 @@ class Function:
 
         # check source for data type
         # if list or ndarray, check for dimensions, interpolation and extrapolation
+        if isinstance(source, Function):
+            source = source.get_source()
         if isinstance(source, (list, np.ndarray, str, Path)):
             # Deal with csv or txt
             if isinstance(source, (str, Path)):
