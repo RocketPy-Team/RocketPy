@@ -1,0 +1,29 @@
+name: Upload to Codecov
+
+on:
+  workflow_call:
+    inputs:
+      codecov_token:
+        required: true
+        type: string
+      os:
+        required: true
+        type: string
+      python:
+        required: true
+        type: string
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Upload coverage report to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ inputs.codecov_token }}
+          directory: ./coverage/reports/
+          env_vars: OS,PYTHON
+          files: ./coverage.xml, ./rocketpy/coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          verbose: true

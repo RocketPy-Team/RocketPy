@@ -308,6 +308,75 @@ def test_multivariable_function_plot(mock_show):
     assert func.plot() == None
 
 
+def test_set_discrete_2d():
+    """Tests the set_discrete method of the Function for
+    two dimensional domains.
+    """
+    func = Function(lambda x, y: x**2 + y**2)
+    discretized_func = func.set_discrete([-5, -7], [8, 10], [50, 100])
+
+    assert isinstance(discretized_func, Function)
+    assert isinstance(func, Function)
+    assert discretized_func.source.shape == (50 * 100, 3)
+    assert np.isclose(discretized_func.source[0, 0], -5)
+    assert np.isclose(discretized_func.source[0, 1], -7)
+    assert np.isclose(discretized_func.source[-1, 0], 8)
+    assert np.isclose(discretized_func.source[-1, 1], 10)
+
+
+def test_set_discrete_2d_simplified():
+    """Tests the set_discrete method of the Function for
+    two dimensional domains with simplified inputs.
+    """
+    source = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+    func = Function(source=source, inputs=["x", "y"], outputs=["z"])
+    discretized_func = func.set_discrete(-1, 1, 10)
+
+    assert isinstance(discretized_func, Function)
+    assert isinstance(func, Function)
+    assert discretized_func.source.shape == (100, 3)
+    assert np.isclose(discretized_func.source[0, 0], -1)
+    assert np.isclose(discretized_func.source[0, 1], -1)
+    assert np.isclose(discretized_func.source[-1, 0], 1)
+    assert np.isclose(discretized_func.source[-1, 1], 1)
+
+
+def test_set_discrete_based_on_2d_model(func_2d_from_csv):
+    """Tests the set_discrete_based_on_model method with a 2d model
+    Function.
+    """
+    func = Function(lambda x, y: x**2 + y**2)
+    discretized_func = func.set_discrete_based_on_model(func_2d_from_csv)
+
+    assert isinstance(discretized_func, Function)
+    assert isinstance(func, Function)
+    assert np.array_equal(
+        discretized_func.source[:, :2], func_2d_from_csv.source[:, :2]
+    )
+    assert discretized_func.__interpolation__ == func_2d_from_csv.__interpolation__
+    assert discretized_func.__extrapolation__ == func_2d_from_csv.__extrapolation__
+
+
+@pytest.mark.parametrize(
+    "x,y,z_expected",
+    [
+        (1, 0, 0),
+        (0, 1, 0),
+        (0, 0, 1),
+        (0.5, 0.5, 1 / 3),
+        (0.25, 0.25, 25 / (25 + 2 * 5**0.5)),
+        ([0, 0.5], [0, 0.5], [1, 1 / 3]),
+    ],
+)
+def test_shepard_interpolation(x, y, z_expected):
+    """Test the shepard interpolation method of the Function class."""
+    # Test plane x + y + z = 1
+    source = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+    func = Function(source=source, inputs=["x", "y"], outputs=["z"])
+    z = func(x, y)
+    assert np.isclose(z, z_expected, atol=1e-8).all()
+
+
 @pytest.mark.parametrize("other", [1, 0.1, np.int_(1), np.float_(0.1), np.array([1])])
 def test_sum_arithmetic_priority(other):
     """Test the arithmetic priority of the add operation of the Function class,

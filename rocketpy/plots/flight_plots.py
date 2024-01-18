@@ -63,9 +63,8 @@ class _FlightPlots:
         -------
         None
         """
-
-        # Get max and min x and y
         max_z = max(self.flight.z[:, 1] - self.flight.env.elevation)
+        min_z = min(self.flight.z[:, 1] - self.flight.env.elevation)
         max_x = max(self.flight.x[:, 1])
         min_x = min(self.flight.x[:, 1])
         max_y = max(self.flight.y[:, 1])
@@ -73,8 +72,7 @@ class _FlightPlots:
         max_xy = max(max_x, max_y)
         min_xy = min(min_x, min_y)
 
-        # Create figure
-        fig1 = plt.figure(figsize=(9, 9))
+        _ = plt.figure(figsize=(9, 9))
         ax1 = plt.subplot(111, projection="3d")
         ax1.plot(
             self.flight.x[:, 1], self.flight.y[:, 1], zs=0, zdir="z", linestyle="--"
@@ -99,18 +97,29 @@ class _FlightPlots:
             self.flight.z[:, 1] - self.flight.env.elevation,
             linewidth="2",
         )
-        ax1.scatter(0, 0, 0)
+        ax1.scatter(
+            self.flight.x(0),
+            self.flight.y(0),
+            self.flight.z(0) - self.flight.env.elevation,
+            color="black",
+        )
+        ax1.scatter(
+            self.flight.x(self.flight.t_final),
+            self.flight.y(self.flight.t_final),
+            self.flight.z(self.flight.t_final) - self.flight.env.elevation,
+            color="red",
+            marker="X",
+        )
         ax1.set_xlabel("X - East (m)")
         ax1.set_ylabel("Y - North (m)")
         ax1.set_zlabel("Z - Altitude Above Ground Level (m)")
         ax1.set_title("Flight Trajectory")
-        ax1.set_zlim3d([0, max_z])
+        ax1.set_zlim3d([min_z, max_z])
         ax1.set_ylim3d([min_xy, max_xy])
         ax1.set_xlim3d([min_xy, max_xy])
         ax1.view_init(15, 45)
+        ax1.set_box_aspect(None, zoom=0.95)  # 95% for label adjustment
         plt.show()
-
-        return None
 
     def linear_kinematics_data(self):
         """Prints out all Kinematics graphs available about the Flight

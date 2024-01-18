@@ -1,4 +1,4 @@
-name: PyTest
+name: Tests
 
 on:
   pull_request:
@@ -7,58 +7,76 @@ on:
       - "**.py"
       - ".github/**"
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
-  fail_if_pr_is_draft:
-    if: github.event.pull_request.draft == true
-    runs-on: ubuntu-18.04
-    steps:
-      - name: Fails in order to indicate that pull request needs to be marked as ready to review and unit tests workflow needs to pass.
-        run: exit 1
-  pytest_and_doctest:
+  Pytest:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
-          - windows-latest
-        python-version:
-          - 3.8
-          - 3.12
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: [3.8, 3.12]
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
+      - uses: actions/checkout@v4
+      - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-      - name: Build RocketPy (without optional dependencies)
-        run: |
-          pip install .
-      - name: Import rocketpy in python and test if it works
-        run: |
-          python -c "import sys, rocketpy; print(f'{rocketpy.__name__} running on Python {sys.version}')"
-      - name: Install optional dependencies
-        run: |
-          pip install -r requirements-tests.txt
-      - name: Test with pytest
-        run: |
-          pytest --cov=rocketpy --cov-report=xml
-          cd rocketpy
-          pytest --doctest-modules --cov=rocketpy --cov-report=xml
-      - name: Upload coverage report to Codecov
-        uses: codecov/codecov-action@v3
+
+      - name: Cache Python dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-tests.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install rocketpy
+        run: pip install .
+
+      - name: Test importing rocketpy
+        run: python -c "import sys, rocketpy; print(f'{rocketpy.__name__} running on Python {sys.version}')"
+
+      - name: Install test dependencies
+        run: pip install -r requirements-tests.txt
+
+      - name: Run Unit Tests
+        run: pytest tests/unit --cov=rocketpy
+
+      - name: Run Integration Tests
+        run: pytest $(find tests -maxdepth 1 -name "*.py") --cov=rocketpy --cov-append
+
+      - name: Run Documentation Tests
+        run: pytest rocketpy --doctest-modules --cov=rocketpy --cov-append
+
+      - name: Run Acceptance Tests
+        run: pytest tests/acceptance --cov=rocketpy --cov-append --cov-report=xml
+
+      - name: Run pytest --runslow
+        if: github.ref == 'refs/heads/master'
+        run: pytest tests -m slow --runslow --cov=rocketpy --cov-append --cov-report=xml
+
+      - name: Upload coverage to artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: coverage
+          path: coverage.xml
+
+  CodecovUpload:
+    needs: Pytest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download all coverage reports
+        uses: actions/download-artifact@v2
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v2
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          directory: ./coverage/reports/
-          env_vars: OS,PYTHON
-          fail_ci_if_error: true
-          files: ./coverage.xml, ./rocketpy/coverage.xml
-          flags: unittests
-          name: codecov-umbrella
-          verbose: true
+          files: |
+            coverage.xml

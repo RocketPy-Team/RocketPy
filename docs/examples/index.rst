@@ -15,4 +15,5 @@ If you want to see your rocket here, please contact the maintainers!
    ndrt_2020_flight_sim.ipynb
    valetudo_flight_sim.ipynb
    SEB_liquid_motor.ipynb
+   juno3_flight_sim.ipynb
 
