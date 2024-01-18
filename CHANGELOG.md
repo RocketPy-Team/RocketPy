@@ -40,6 +40,7 @@ straightforward as possible.
 
 ### Fixed
 
+- BUG: Parachute Pressures not being Set before All Info. [#534](https://github.com/RocketPy-Team/RocketPy/pull/534)
 - BUG: Invalid Arguments on Two Dimensional Discretize. [#521](https://github.com/RocketPy-Team/RocketPy/pull/521)
 
 ## [v1.1.4] - 2023-12-07
