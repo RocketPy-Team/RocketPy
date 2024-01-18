@@ -1065,6 +1065,7 @@ class Flight:
                                         )
 
         self.t_final = self.t
+        self._calculate_pressure_signal()
         if verbose:
             print("Simulation Completed at Time: {:3.4f} s".format(self.t))
 
@@ -3089,8 +3090,8 @@ class Flight:
             else:
                 for parachute in self.rocket.parachutes:
                     for t in time_points:
-                        p_cl = parachute.clean_pressure_signal(t)
-                        p_ns = parachute.noisy_pressure_signal(t)
+                        p_cl = parachute.clean_pressure_signal_function(t)
+                        p_ns = parachute.noisy_pressure_signal_function(t)
                         file.write(f"{t:f}, {p_cl:.5f}, {p_ns:.5f}\n")
                     # We need to save only 1 parachute data
                     break
