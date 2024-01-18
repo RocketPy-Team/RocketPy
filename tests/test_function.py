@@ -218,7 +218,6 @@ def test_multivariable_dataset(a, b):
 @pytest.mark.parametrize(
     "x,y,z_expected",
     [
-        (0, 0, 1),
         (1, 0, 0),
         (0, 1, 0),
         (0, 0, 1),
