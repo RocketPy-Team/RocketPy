@@ -1122,7 +1122,7 @@ class Function:
             extrapolation="zero",
         )
 
-    def low_pass_filter(self, alpha):
+    def low_pass_filter(self, alpha, file_path=None):
         """Implements a low pass filter with a moving average filter
 
         Parameters
@@ -1133,6 +1133,9 @@ class Function:
             filtered function returned will match the function the smaller
             alpha is, the smoother the filtered function returned will be
             (but with a phase shift)
+        file_path : string
+            File path or file name of the CSV to save. Don't save any CSV if
+            if no argument is passed. Initiated to None.
 
         Returns
         -------
@@ -1147,6 +1150,10 @@ class Function:
             filtered_signal[i] = (
                 alpha * self.source[i] + (1 - alpha) * filtered_signal[i - 1]
             )
+
+        # Save the new csv file with filtered data
+        if isinstance(file_path, str):
+            np.savetxt(file_path, filtered_signal, delimiter=",")
 
         return Function(
             source=filtered_signal,
