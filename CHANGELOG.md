@@ -33,6 +33,7 @@ straightforward as possible.
 ### Added
 
 - ENH: Shepard Optimized Interpolation - Multiple Inputs Support [#515](https://github.com/RocketPy-Team/RocketPy/pull/515)
+- ENH: Argument for Optional Mutation on Function Discretize [#519](https://github.com/RocketPy-Team/RocketPy/pull/519)
 
 ### Changed
 
