@@ -32,7 +32,7 @@ straightforward as possible.
 
 ### Added
 
--
+- ENH: Argument for Optional Mutation on Function Discretize [#519](https://github.com/RocketPy-Team/RocketPy/pull/519)
 
 ### Changed
 
