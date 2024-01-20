@@ -10,6 +10,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+from copy import deepcopy
 from scipy import integrate, linalg, optimize
 
 try:
@@ -192,7 +193,7 @@ class Function:
         self : Function
             Returns the Function instance.
         """
-        _ = self._check_user_input(
+        *_, interpolation, extrapolation = self._check_user_input(
             source,
             self.__inputs__,
             self.__outputs__,
@@ -280,10 +281,10 @@ class Function:
                 self.source = source
             # Update extrapolation method
             if self.__extrapolation__ is None:
-                self.set_extrapolation()
+                self.set_extrapolation(extrapolation)
             # Set default interpolation for point source if it hasn't
             if self.__interpolation__ is None:
-                self.set_interpolation()
+                self.set_interpolation(interpolation)
             else:
                 # Updates interpolation coefficients
                 self.set_interpolation(self.__interpolation__)
@@ -515,12 +516,16 @@ class Function:
         interpolation="spline",
         extrapolation="constant",
         one_by_one=True,
+        mutate_self=True,
     ):
-        """This method transforms function defined Functions into list
-        defined Functions. It evaluates the function at certain points
-        (sampling range) and stores the results in a list, which is converted
-        into a Function and then returned. The original Function object is
-        replaced by the new one.
+        """This method discretizes a 1-D or 2-D Function by evaluating it at
+        certain points (sampling range) and storing the results in a list,
+        which is converted into a Function and then returned. By default, the
+        original Function object is replaced by the new one, which can be
+        changed by the attribute `mutate_self`.
+
+        This method is specially useful to change a dataset sampling or to
+        convert a Function defined by a callable into a list based Function.
 
         Parameters
         ----------
@@ -544,44 +549,63 @@ class Function:
         one_by_one : boolean, optional
             If True, evaluate Function in each sample point separately. If
             False, evaluates Function in vectorized form. Default is True.
+        mutate_self : boolean, optional
+            If True, the original Function object source will be replaced by
+            the new one. If False, the original Function object source will
+            remain unchanged, and the new one is simply returned.
+            Default is True.
 
         Returns
         -------
         self : Function
+
+        Notes
+        -----
+        1. This method performs by default in place replacement of the original
+        Function object source. This can be changed by the attribute `mutate_self`.
+
+        2. Currently, this method only supports 1-D and 2-D Functions.
         """
-        if self.__dom_dim__ == 1:
+        func = deepcopy(self) if not mutate_self else self
+
+        if func.__dom_dim__ == 1:
             xs = np.linspace(lower, upper, samples)
-            ys = self.get_value(xs.tolist()) if one_by_one else self.get_value(xs)
-            self.set_source(np.concatenate(([xs], [ys])).transpose())
-            self.set_interpolation(interpolation)
-            self.set_extrapolation(extrapolation)
-        elif self.__dom_dim__ == 2:
+            ys = func.get_value(xs.tolist()) if one_by_one else func.get_value(xs)
+            func.set_source(np.concatenate(([xs], [ys])).transpose())
+            func.set_interpolation(interpolation)
+            func.set_extrapolation(extrapolation)
+        elif func.__dom_dim__ == 2:
             lower = 2 * [lower] if isinstance(lower, (int, float)) else lower
             upper = 2 * [upper] if isinstance(upper, (int, float)) else upper
             sam = 2 * [samples] if isinstance(samples, (int, float)) else samples
             # Create nodes to evaluate function
             xs = np.linspace(lower[0], upper[0], sam[0])
             ys = np.linspace(lower[1], upper[1], sam[1])
-            xs, ys = np.meshgrid(xs, ys)
-            xs, ys = xs.flatten(), ys.flatten()
-            mesh = [[xs[i], ys[i]] for i in range(len(xs))]
+            xs, ys = np.array(np.meshgrid(xs, ys)).reshape(2, xs.size * ys.size)
             # Evaluate function at all mesh nodes and convert it to matrix
-            zs = np.array(self.get_value(mesh))
-            self.set_source(np.concatenate(([xs], [ys], [zs])).transpose())
-            self.__interpolation__ = "shepard"
-            self.__extrapolation__ = "natural"
-        return self
+            zs = np.array(func.get_value(xs, ys))
+            func.set_source(np.concatenate(([xs], [ys], [zs])).transpose())
+            func.__interpolation__ = "shepard"
+            func.__extrapolation__ = "natural"
+        else:
+            raise ValueError(
+                "Discretization is only supported for 1-D and 2-D Functions."
+            )
+        return func
 
     def set_discrete_based_on_model(
-        self, model_function, one_by_one=True, keep_self=True
+        self, model_function, one_by_one=True, keep_self=True, mutate_self=True
     ):
-        """This method transforms the domain of Function instance into a list of
-        discrete points based on the domain of a model Function instance. It
-        does so by retrieving the domain, domain name, interpolation method and
-        extrapolation method of the model Function instance. It then evaluates
-        the original Function instance in all points of the retrieved domain to
-        generate the list of discrete points that will be used for interpolation
-        when this Function is called.
+        """This method transforms the domain of a 1-D or 2-D Function instance
+        into a list of discrete points based on the domain of a model Function
+        instance. It does so by retrieving the domain, domain name,
+        interpolation method and extrapolation method of the model Function
+        instance. It then evaluates the original Function instance in all
+        points of the retrieved domain to generate the list of discrete points
+        that will be used for interpolation when this Function is called.
+
+        By default, the original Function object is replaced by the new one,
+        which can be changed by the attribute `mutate_self`.
 
         Parameters
         ----------
@@ -591,15 +615,17 @@ class Function:
             Must be a Function whose source attribute is a list (i.e. a list
             based Function instance). Must have the same domain dimension as the
             Function to be discretized.
-
         one_by_one : boolean, optional
             If True, evaluate Function in each sample point separately. If
             False, evaluates Function in vectorized form. Default is True.
-
-        keepSelf : boolean, optional
+        keep_self : boolean, optional
             If True, the original Function interpolation and extrapolation
             methods will be kept. If False, those are substituted by the ones
             from the model Function. Default is True.
+        mutate_self : boolean, optional
+            If True, the original Function object source will be replaced by
+            the new one. If False, the original Function object source will
+            remain unchanged, and the new one is simply returned.
 
         Returns
         -------
@@ -647,43 +673,48 @@ class Function:
 
         Notes
         -----
-        1. This method performs in place replacement of the original Function
-        object source.
+        1. This method performs by default in place replacement of the original
+        Function object source. This can be changed by the attribute `mutate_self`.
 
         2. This method is similar to set_discrete, but it uses the domain of a
         model Function to define the domain of the new Function instance.
+
+        3. Currently, this method only supports 1-D and 2-D Functions.
         """
         if not isinstance(model_function.source, np.ndarray):
             raise TypeError("model_function must be a list based Function.")
         if model_function.__dom_dim__ != self.__dom_dim__:
             raise ValueError("model_function must have the same domain dimension.")
 
-        if self.__dom_dim__ == 1:
+        func = deepcopy(self) if not mutate_self else self
+
+        if func.__dom_dim__ == 1:
             xs = model_function.source[:, 0]
-            ys = self.get_value(xs.tolist()) if one_by_one else self.get_value(xs)
-            self.set_source(np.concatenate(([xs], [ys])).transpose())
-        elif self.__dom_dim__ == 2:
+            ys = func.get_value(xs.tolist()) if one_by_one else func.get_value(xs)
+            func.set_source(np.concatenate(([xs], [ys])).transpose())
+        elif func.__dom_dim__ == 2:
             # Create nodes to evaluate function
             xs = model_function.source[:, 0]
             ys = model_function.source[:, 1]
-            xs, ys = np.meshgrid(xs, ys)
-            xs, ys = xs.flatten(), ys.flatten()
-            mesh = [[xs[i], ys[i]] for i in range(len(xs))]
             # Evaluate function at all mesh nodes and convert it to matrix
-            zs = np.array(self.get_value(mesh))
-            self.set_source(np.concatenate(([xs], [ys], [zs])).transpose())
+            zs = np.array(func.get_value(xs, ys))
+            func.set_source(np.concatenate(([xs], [ys], [zs])).transpose())
+        else:
+            raise ValueError(
+                "Discretization is only supported for 1-D and 2-D Functions."
+            )
 
         interp = (
-            self.__interpolation__ if keep_self else model_function.__interpolation__
+            func.__interpolation__ if keep_self else model_function.__interpolation__
         )
         extrap = (
-            self.__extrapolation__ if keep_self else model_function.__extrapolation__
+            func.__extrapolation__ if keep_self else model_function.__extrapolation__
         )
 
-        self.set_interpolation(interp)
-        self.set_extrapolation(extrap)
+        func.set_interpolation(interp)
+        func.set_extrapolation(extrap)
 
-        return self
+        return func
 
     def reset(
         self,
@@ -1086,7 +1117,7 @@ class Function:
             extrapolation="zero",
         )
 
-    def low_pass_filter(self, alpha):
+    def low_pass_filter(self, alpha, file_path=None):
         """Implements a low pass filter with a moving average filter
 
         Parameters
@@ -1097,6 +1128,9 @@ class Function:
             filtered function returned will match the function the smaller
             alpha is, the smoother the filtered function returned will be
             (but with a phase shift)
+        file_path : string
+            File path or file name of the CSV to save. Don't save any CSV if
+            if no argument is passed. Initiated to None.
 
         Returns
         -------
@@ -1111,6 +1145,10 @@ class Function:
             filtered_signal[i] = (
                 alpha * self.source[i] + (1 - alpha) * filtered_signal[i - 1]
             )
+
+        # Save the new csv file with filtered data
+        if isinstance(file_path, str):
+            np.savetxt(file_path, filtered_signal, delimiter=",")
 
         return Function(
             source=filtered_signal,
@@ -2976,6 +3014,8 @@ class Function:
 
         # check source for data type
         # if list or ndarray, check for dimensions, interpolation and extrapolation
+        if isinstance(source, Function):
+            source = source.get_source()
         if isinstance(source, (list, np.ndarray, str, Path)):
             # Deal with csv or txt
             if isinstance(source, (str, Path)):

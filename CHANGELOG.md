@@ -33,6 +33,7 @@ straightforward as possible.
 ### Added
 
 - ENH: adds new Function.savetxt method [#514](https://github.com/RocketPy-Team/RocketPy/pull/514)
+- ENH: Argument for Optional Mutation on Function Discretize [#519](https://github.com/RocketPy-Team/RocketPy/pull/519)
 
 ### Changed
 
@@ -43,6 +44,10 @@ straightforward as possible.
 ### Fixed
 
 - ENH: Parachute trigger doesn't work if "Apogee" is used instead of "apogee" [#489](https://github.com/RocketPy-Team/RocketPy/pull/489)
+- BUG: fin_flutter_analysis doesn't find any fin set [#510](https://github.com/RocketPy-Team/RocketPy/pull/510)
+- FIX: EmptyMotor is breaking the Rocket.draw() method [#516](https://github.com/RocketPy-Team/RocketPy/pull/516)
+- BUG: 3D trajectory plot not labeling axes [#533](https://github.com/RocketPy-Team/RocketPy/pull/533)
+- BUG: Invalid Arguments on Two Dimensional Discretize. [#521](https://github.com/RocketPy-Team/RocketPy/pull/521)
 
 ## [v1.1.4] - 2023-12-07
 

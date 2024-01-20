@@ -1982,6 +1982,11 @@ class Flight:
         """Rocket z position as a Function of time."""
         return self.solution_array[:, [0, 3]]
 
+    @funcify_method("Time (s)", "Altitude AGL (m)", "spline", "constant")
+    def altitude(self):
+        """Rocket altitude above ground level as a Function of time."""
+        return self.z - self.env.elevation
+
     @funcify_method("Time (s)", "Vx (m/s)", "spline", "zero")
     def vx(self):
         """Rocket x velocity as a Function of time."""

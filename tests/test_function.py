@@ -259,6 +259,55 @@ def test_multivariable_function_plot(mock_show):
     assert func.plot() == None
 
 
+def test_set_discrete_2d():
+    """Tests the set_discrete method of the Function for
+    two dimensional domains.
+    """
+    func = Function(lambda x, y: x**2 + y**2)
+    discretized_func = func.set_discrete([-5, -7], [8, 10], [50, 100])
+
+    assert isinstance(discretized_func, Function)
+    assert isinstance(func, Function)
+    assert discretized_func.source.shape == (50 * 100, 3)
+    assert np.isclose(discretized_func.source[0, 0], -5)
+    assert np.isclose(discretized_func.source[0, 1], -7)
+    assert np.isclose(discretized_func.source[-1, 0], 8)
+    assert np.isclose(discretized_func.source[-1, 1], 10)
+
+
+def test_set_discrete_2d_simplified():
+    """Tests the set_discrete method of the Function for
+    two dimensional domains with simplified inputs.
+    """
+    source = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+    func = Function(source=source, inputs=["x", "y"], outputs=["z"])
+    discretized_func = func.set_discrete(-1, 1, 10)
+
+    assert isinstance(discretized_func, Function)
+    assert isinstance(func, Function)
+    assert discretized_func.source.shape == (100, 3)
+    assert np.isclose(discretized_func.source[0, 0], -1)
+    assert np.isclose(discretized_func.source[0, 1], -1)
+    assert np.isclose(discretized_func.source[-1, 0], 1)
+    assert np.isclose(discretized_func.source[-1, 1], 1)
+
+
+def test_set_discrete_based_on_2d_model(func_2d_from_csv):
+    """Tests the set_discrete_based_on_model method with a 2d model
+    Function.
+    """
+    func = Function(lambda x, y: x**2 + y**2)
+    discretized_func = func.set_discrete_based_on_model(func_2d_from_csv)
+
+    assert isinstance(discretized_func, Function)
+    assert isinstance(func, Function)
+    assert np.array_equal(
+        discretized_func.source[:, :2], func_2d_from_csv.source[:, :2]
+    )
+    assert discretized_func.__interpolation__ == func_2d_from_csv.__interpolation__
+    assert discretized_func.__extrapolation__ == func_2d_from_csv.__extrapolation__
+
+
 @pytest.mark.parametrize(
     "x,y,z_expected",
     [
