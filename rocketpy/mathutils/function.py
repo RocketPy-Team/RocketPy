@@ -5,12 +5,12 @@ carefully as it may impact all the rest of the project.
 """
 import warnings
 from collections.abc import Iterable
+from copy import deepcopy
 from inspect import signature
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-from copy import deepcopy
 from scipy import integrate, linalg, optimize
 
 try:
@@ -2918,7 +2918,9 @@ class Function:
             data_points = self.source
 
             if lower and upper and samples:
-                data_points = self.set_discrete(lower, upper, samples).source
+                data_points = self.set_discrete(
+                    lower, upper, samples, mutate_self=False
+                ).source
 
         # export to a file
         with open(filename, "w", encoding=encoding) as file:
