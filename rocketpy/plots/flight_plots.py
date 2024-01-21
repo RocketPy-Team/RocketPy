@@ -817,7 +817,6 @@ class _FlightPlots:
         if len(self.flight.parachute_events) > 0:
             for parachute in self.flight.rocket.parachutes:
                 print("\nParachute: ", parachute.name)
-                self.flight._calculate_pressure_signal()
                 parachute.noise_signal_function()
                 parachute.noisy_pressure_signal_function()
                 parachute.clean_pressure_signal_function()

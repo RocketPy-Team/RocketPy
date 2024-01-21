@@ -949,3 +949,31 @@ def test_aerodynamic_moments(flight_calisto_custom_wind, flight_time, expected_v
         test.M2(t),
         test.M3(t),
     ), f"Assertion error for moment vector at {expected_attr}."
+
+
+def test_export_pressures(flight_calisto_robust):
+    """Tests if the method Flight.export_pressures is working as intended.
+
+    Parameters
+    ----------
+    flight_calisto_robust : Flight
+        Flight object to be tested. See the conftest.py file for more info
+        regarding this pytest fixture.
+    """
+    file_name = "pressures.csv"
+    time_step = 0.5
+    parachute = flight_calisto_robust.rocket.parachutes[0]
+
+    flight_calisto_robust.export_pressures(file_name, time_step)
+
+    with open(file_name, "r") as file:
+        contents = file.read()
+
+    expected_data = ""
+    for t in np.arange(0, flight_calisto_robust.t_final, time_step):
+        p_cl = parachute.clean_pressure_signal_function(t)
+        p_ns = parachute.noisy_pressure_signal_function(t)
+        expected_data += f"{t:f}, {p_cl:.5f}, {p_ns:.5f}\n"
+
+    assert contents == expected_data
+    os.remove(file_name)
