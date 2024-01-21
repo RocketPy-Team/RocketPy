@@ -60,4 +60,4 @@ class _ControllerPrints:
         print("\nController Details\n")
         print(self.controller)
         self.controller_function()
-        self.observed_objects()
+        self.interactable_objects()
