@@ -82,12 +82,11 @@ Now we can get started!
 To create an air brakes model, we essentially need to define the following:
 
 - The air brakes' **drag coefficient** as a function of the air brakes' 
-  ``deployed level`` and of the ``Mach number``. This can be done by defining 
-  by inputting the directory of a ``CSV`` file containing the drag coefficient 
-  as a function of the  air brakes' deployed level and of the ``Mach number``.
-  The ``CSV`` file must have three columns: the first column must be the air
-  brakes' deployed level, the second column must be the ``Mach number``, and
-  the third column must be the drag coefficient.
+  **deployment level** and of the **Mach number**. This can be done through
+  a ``CSV`` file which must have three columns: the first column is the air brakes'
+  **deployment level**, the second column is the **Mach number**, and the third
+  column is the **drag coefficient** added to rocket due to the air brakes at that
+  specific deployment level and Mach number.
 
 - The **controller function**, which takes in as argument information about the
   simulation up to the current time step, and the ``AirBrakes`` instance being 
