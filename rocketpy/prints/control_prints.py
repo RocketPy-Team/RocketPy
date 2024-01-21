@@ -43,10 +43,10 @@ class _ControllerPrints:
             )
         print(f"Controller refresh rate: {self.controller.sampling_rate:.3f} Hz")
 
-    def observed_objects(self):
-        """Prints observed objects."""
-        print("Observed Objects")
-        for obj in self.controller.observed_objects:
+    def interactable_objects(self):
+        """Prints interactable objects."""
+        print("Interactable Objects")
+        for obj in self.controller.interactable_objects:
             print(getattr(obj, "name", str(obj)))
 
     def all(self):
