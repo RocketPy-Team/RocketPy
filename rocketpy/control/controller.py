@@ -51,7 +51,7 @@ class Controller:
             6. `interactable_objects` (list): A list containing the objects that
                the controller function can interact with. The objects are
                listed in the same order as they are provided in the
-               `interactable_objects`
+               `interactable_objects`.
 
             This function will be called during the simulation at the specified
             sampling rate. The function should evaluate and change the observed
