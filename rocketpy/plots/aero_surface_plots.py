@@ -469,7 +469,10 @@ class _AirBrakesPlots(_AeroSurfacePlots):
 
     def drag_coefficient_curve(self):
         """Plots the drag coefficient curve of the air_brakes."""
-        return self.aero_surface.drag_coefficient.plot(0, 1)
+        if self.aero_surface.clamp is True:
+            return self.aero_surface.drag_coefficient.plot(0, 1)
+        else:
+            return self.aero_surface.drag_coefficient.plot()
 
     def draw(self):
         raise NotImplementedError

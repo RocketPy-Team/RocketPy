@@ -969,7 +969,7 @@ def flight_calisto_air_brakes(calisto_air_brakes_clamp_on, example_env):
     """A rocketpy.Flight object of the Calisto rocket. This uses the calisto
     with the aerodynamic surfaces and air brakes. The environment is the
     simplest possible, with no parameters set. The air brakes are set to clamp
-    the deployed level.
+    the deployment level.
 
     Parameters
     ----------
@@ -1264,7 +1264,7 @@ def func_2d_from_csv():
 
 @pytest.fixture
 def controller_function():
-    """Create a controller function that updates the air brakes deployed level
+    """Create a controller function that updates the air brakes deployment level
     based on the altitude and vertical velocity of the rocket. This is the same
     controller function that is used in the air brakes example in the
     documentation.
@@ -1283,19 +1283,27 @@ def controller_function():
         previous_vz = state_history[-1][5]
         if time > 3.9:
             if z < 1500:
-                air_brakes.set_deployed_level(0)
+                air_brakes.set_deployment_level(0)
             else:
-                new_deployed_level = (
-                    air_brakes.deployed_level + 0.1 * vz + 0.01 * previous_vz**2
+                new_deployment_level = (
+                    air_brakes.deployment_level + 0.1 * vz + 0.01 * previous_vz**2
                 )
-                if new_deployed_level > air_brakes.deployed_level + 0.2 / sampling_rate:
-                    new_deployed_level = air_brakes.deployed_level + 0.2 / sampling_rate
-                elif (
-                    new_deployed_level < air_brakes.deployed_level - 0.2 / sampling_rate
+                if (
+                    new_deployment_level
+                    > air_brakes.deployment_level + 0.2 / sampling_rate
                 ):
-                    new_deployed_level = air_brakes.deployed_level - 0.2 / sampling_rate
+                    new_deployment_level = (
+                        air_brakes.deployment_level + 0.2 / sampling_rate
+                    )
+                elif (
+                    new_deployment_level
+                    < air_brakes.deployment_level - 0.2 / sampling_rate
+                ):
+                    new_deployment_level = (
+                        air_brakes.deployment_level - 0.2 / sampling_rate
+                    )
                 else:
-                    new_deployed_level = air_brakes.deployed_level
-                air_brakes.set_deployed_level(new_deployed_level)
+                    new_deployment_level = air_brakes.deployment_level
+                air_brakes.set_deployment_level(new_deployment_level)
 
     return controller_function

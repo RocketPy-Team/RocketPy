@@ -1177,17 +1177,17 @@ class Rocket:
         Parameters
         ----------
         drag_coefficient_curve : int, float, callable, array, string, Function
-            Drag coefficient as a function of deployed level and Mach number.
+            Drag coefficient as a function of deployment level and Mach number.
             If constant, it must be an int or float. If a function, it must
-            take as input the deployed level and the Mach number and return
+            take as input the deployment level and the Mach number and return
             the drag coefficient. If an array, it must be a 2D array where the
-            first column is the deployed level, the second column is the Mach
+            first column is the deployment level, the second column is the Mach
             number and the third column is the drag coefficient. If a string,
             it must be the path to a .csv or .txt file containing the drag
             coefficient curve. The file must contain no headers and the first
-            column must specify the deployed level, the second column must
+            column must specify the deployment level, the second column must
             specify the Mach number and the third column must specify the drag
-            coefficient. If a Function, it must take as input the deployed
+            coefficient. If a Function, it must take as input the deployment
             level and the Mach number and return the drag coefficient.
         controller_function : function, callable
             An user-defined function responsible for controlling the simulation.
@@ -1223,10 +1223,10 @@ class Rocket:
             means that the controller function will be called every
             `1/sampling_rate` seconds.
         clamp : bool, optional
-            If True, the simulation will clamp the deployed level to 0 or 1 if
-            the deployed level is out of bounds. If False, the simulation will
-            not clamp the deployed level and will instead raise a warning if
-            the deployed level is out of bounds. Default is True.
+            If True, the simulation will clamp the deployment level to 0 or 1 if
+            the deployment level is out of bounds. If False, the simulation will
+            not clamp the deployment level and will instead raise a warning if
+            the deployment level is out of bounds. Default is True.
         reference_area : float, optional
             Reference area used to calculate the drag force of the air brakes
             from the drag coefficient curve. If None, which is default, use
@@ -1256,7 +1256,7 @@ class Rocket:
             drag_coefficient_curve=drag_coefficient_curve,
             reference_area=reference_area,
             clamp=clamp,
-            deployed_level=0,
+            deployment_level=0,
             name=name,
         )
         controller = Controller(

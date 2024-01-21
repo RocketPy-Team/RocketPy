@@ -46,7 +46,12 @@ class _ControllerPrints:
     def interactable_objects(self):
         """Prints interactable objects."""
         print("Interactable Objects")
-        for obj in self.controller.interactable_objects:
+        # check if is list
+        if isinstance(self.controller.interactable_objects, list):
+            for obj in self.controller.interactable_objects:
+                print(getattr(obj, "name", str(obj)))
+        else:
+            obj = self.controller.interactable_objects
             print(getattr(obj, "name", str(obj)))
 
     def all(self):

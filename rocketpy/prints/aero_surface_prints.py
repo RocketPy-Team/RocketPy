@@ -294,10 +294,10 @@ class _RailButtonsPrints(_AeroSurfacePrints):
 
 
 class _AirBrakesPrints(_AeroSurfacePrints):
-    """Class that contains all air_brakes prints."""
+    """Class that contains all air_brakes prints. Not yet implemented."""
 
-    def __init__(self, rail_buttons):
-        super().__init__(rail_buttons)
+    def __init__(self, air_brakes):
+        super().__init__(air_brakes)
 
     def geometry(self):
         pass

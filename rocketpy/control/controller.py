@@ -1,4 +1,4 @@
-from ..prints.control_prints import _ControllerPrints
+from ..prints.controller_prints import _ControllerPrints
 
 
 class Controller:
@@ -21,13 +21,13 @@ class Controller:
 
         Parameters
         ----------
-        interactable_objects : list
+        interactable_objects : list or object
             A collection of objects that the controller function can access and
-            potentially modify. This list is flexible and can include any Python
-            object. The objects listed here are provided to the controller
-            function as the last argument, maintaining the order specified in
-            this list. The controller function gains the ability to interact
-            with and make adjustments to these objects during its execution.
+            potentially modify. This can be either a list of objects or a single
+            object. The objects listed here are provided to the controller function
+            as the last argument, maintaining the order specified in this list if
+            it's a list. The controller function gains the ability to interact with
+            and make adjustments to these objects during its execution.
         controller_function : function, callable
             An user-defined function responsible for controlling the simulation.
             This function is expected to take the following arguments, in order:
@@ -81,7 +81,7 @@ class Controller:
         self.controller_function = controller_function
         self.sampling_rate = sampling_rate
         self.name = name
-        self.prints = _ControllerPrints
+        self.prints = _ControllerPrints(self)
 
         if initial_observed_variables is not None:
             self.observed_variables = [initial_observed_variables]

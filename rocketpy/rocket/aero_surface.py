@@ -1900,21 +1900,21 @@ class AirBrakes(AeroSurface):
     Attributes
     ----------
     AirBrakes.drag_coefficient : Function
-        Drag coefficient as a function of deployed level and Mach number.
+        Drag coefficient as a function of deployment level and Mach number.
     AirBrakes.drag_coefficient_curve : int, float, callable, array, string, Function
-        Curve that defines the drag coefficient as a function of deployed level
+        Curve that defines the drag coefficient as a function of deployment level
         and Mach number.  Used as the source of `AirBrakes.drag_coefficient`.
-    AirBrakes.deployed_level : float
-        Current deployed level, ranging from 0 to 1. Deployed level is the
+    AirBrakes.deployment_level : float
+        Current deployment level, ranging from 0 to 1. Deployment level is the
         fraction of the total airbrake area that is deployed.
     AirBrakes.reference_area : int, float
         Reference area used to calculate the drag force of the air brakes
         from the drag coefficient curve. Units of m^2.
     AirBrakes.clamp : bool, optional
-        If True, the simulation will clamp the deployed level to 0 or 1 if
-        the deployed level is out of bounds. If False, the simulation will
-        not clamp the deployed level and will instead raise a warning if
-        the deployed level is out of bounds. Default is True.
+        If True, the simulation will clamp the deployment level to 0 or 1 if
+        the deployment level is out of bounds. If False, the simulation will
+        not clamp the deployment level and will instead raise a warning if
+        the deployment level is out of bounds. Default is True.
     AirBrakes.name : str
         Name of the air brakes.
     """
@@ -1924,7 +1924,7 @@ class AirBrakes(AeroSurface):
         drag_coefficient_curve,
         reference_area,
         clamp=True,
-        deployed_level=0,
+        deployment_level=0,
         name="AirBrakes",
     ):
         """Initializes the AirBrakes class.
@@ -1932,24 +1932,24 @@ class AirBrakes(AeroSurface):
         Parameters
         ----------
         drag_coefficient_curve : int, float, callable, array, string, Function
-            Drag coefficient as a function of deployed level and Mach number.
-            Deployed level is a float ranging from 0 to 1 that defines the
+            Drag coefficient as a function of deployment level and Mach number.
+            Deployment level is a float ranging from 0 to 1 that defines the
             fraction of the total airbrake area that is deployed. If constant,
             it must be an int or float. If a function, it must take as input the
-            deployed level and the Mach number and return the drag coefficient.
+            deployment level and the Mach number and return the drag coefficient.
             If an array, it must be a 2D array where the first column is the
-            deployed level, the second column is the Mach number and the third
+            deployment level, the second column is the Mach number and the third
             column is the drag coefficient. If a string, it must be the path to
             a .csv or .txt file containing the drag coefficient curve. The
-            file's first column must specify the deployed level, the second
+            file's first column must specify the deployment level, the second
             column must specify the Mach number and the third column must
             specify the drag coefficient. If a Function, it must take as input
-            the deployed level and the Mach number and return the drag
+            the deployment level and the Mach number and return the drag
             coefficient.
 
-            .. note:: At deployed level 0, the drag coefficient is assumed to
+            .. note:: At deployment level 0, the drag coefficient is assumed to
                 be 0, independent of the input drag coefficient curve. This
-                means that the simulation always considers that at a deployed
+                means that the simulation always considers that at a deployment
                 level of 0, the air brakes are completely retracted and do not
                 contribute to the drag of the rocket.
 
@@ -1957,13 +1957,13 @@ class AirBrakes(AeroSurface):
             Reference area used to calculate the drag force of the air brakes
             from the drag coefficient curve. Units of m^2.
         clamp : bool, optional
-            If True, the simulation will clamp the deployed level to 0 or 1 if
-            the deployed level is out of bounds. If False, the simulation will
-            not clamp the deployed level and will instead raise a warning if
-            the deployed level is out of bounds. Default is True.
-        deployed_level : float, optional
-            Current deployed level, ranging from 0 to 1. Deployed level is the
-            fraction of the total airbrake area that is deployed. Default is 0.
+            If True, the simulation will clamp the deployment level to 0 or 1 if
+            the deployment level is out of bounds. If False, the simulation will
+            not clamp the deployment level and will instead raise a warning if
+            the deployment level is out of bounds. Default is True.
+        deployment_level : float, optional
+            Current deployment level, ranging from 0 to 1. Deployment level is the
+            fraction of the total airbrake area that is Deployment. Default is 0.
         name : str, optional
             Name of the air brakes. Default is "AirBrakes".
 
@@ -1975,51 +1975,51 @@ class AirBrakes(AeroSurface):
         self.drag_coefficient_curve = drag_coefficient_curve
         self.drag_coefficient = Function(
             drag_coefficient_curve,
-            inputs=["Deployed Level", "Mach"],
+            inputs=["Deployment Level", "Mach"],
             outputs="Drag Coefficient",
         )
         self.reference_area = reference_area
         self.clamp = clamp
-        self._deployed_level = deployed_level
+        self._deployment_level = deployment_level
         self.prints = _AirBrakesPrints(self)
         self.plots = _AirBrakesPlots(self)
 
     @property
-    def deployed_level(self):
-        """Returns the deployed level of the air brakes."""
-        return self._deployed_level
+    def deployment_level(self):
+        """Returns the deployment level of the air brakes."""
+        return self._deployment_level
 
-    @deployed_level.setter
-    def deployed_level(self, value):
-        # Check if deployed level is within bounds and warn user if not
+    @deployment_level.setter
+    def deployment_level(self, value):
+        # Check if deployment level is within bounds and warn user if not
         if value < 0 or value > 1:
-            # Clamp deployed level if clamp is True
+            # Clamp deployment level if clamp is True
             if self.clamp:
-                # Make sure deployed level is between 0 and 1
+                # Make sure deployment level is between 0 and 1
                 value = np.clip(value, 0, 1)
             else:
                 # Raise warning if clamp is False
                 warnings.warn(
-                    f"Deployed level of {self.name} is smaller than 0 or "
+                    f"Deployment level of {self.name} is smaller than 0 or "
                     + "larger than 1. Extrapolation for the drag coefficient "
                     + "curve will be used."
                 )
-        self._deployed_level = value
+        self._deployment_level = value
 
-    def set_deployed_level(self, deployed_level):
-        """Set airbrake deployed level.
+    def set_deployment_level(self, deployment_level):
+        """Set airbrake deployment level.
 
         Parameters
         ----------
-        deployed_level : float
-            Current deployed level, ranging from 0 to 1. Deployed level is the
-            fraction of the total airbrake area that is deployed.
+        deployment_level : float
+            Current deployment level, ranging from 0 to 1. Deployment level is the
+            fraction of the total airbrake area that is deployment.
 
         Returns
         -------
         None
         """
-        self.deployed_level = deployed_level
+        self.deployment_level = deployment_level
 
     def evaluate_center_of_pressure(self):
         """Evaluates the center of pressure of the aerodynamic surface in local

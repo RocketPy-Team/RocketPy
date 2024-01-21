@@ -90,9 +90,9 @@ To create an air brakes model, we essentially need to define the following:
 
 - The **controller function**, which takes in as argument information about the
   simulation up to the current time step, and the ``AirBrakes`` instance being 
-  defined, and sets the desired air brakes' deployed level. The air brakes'
-  deployed level must be between 0 and 1, and must be set using the
-  ``set_deployed_level`` method of the ``AirBrakes`` instance being controlled.
+  defined, and sets the desired air brakes' deployment level. The air brakes'
+  deployment level must be between 0 and 1, and must be set using the
+  ``set_deployment_level`` method of the ``AirBrakes`` instance being controlled.
   Inside this function, any controller logic, filters, and apogee prediction 
   can be implemented.
 
@@ -146,7 +146,7 @@ order:
 - ``air_brakes``: The ``AirBrakes`` instance being controlled.
     
 Our example ``controller_function`` will deploy the air brakes when the rocket
-reaches 1500 meters above the ground. The deployed level will be function of the
+reaches 1500 meters above the ground. The deployment level will be function of the
 vertical velocity at the current time step and of the vertical velocity at the
 previous time step.
 
@@ -177,37 +177,37 @@ Lets define the controller function:
         previous_vz = previous_state[5]
 
         # If we wanted to we could get the returned values from observed_variables:
-        # returned_time, deployed_level, drag_coefficient = observed_variables[-1]
+        # returned_time, deployment_level, drag_coefficient = observed_variables[-1]
 
         # Check if the rocket has reached burnout
         if time > Pro75M1670.burn_out_time:
-            # If below 1500 meters above ground level, air_brakes are not deployed
+            # If below 1500 meters above ground level, air_brakes are not deployment
             if altitude_AGL < 1500:
-                air_brakes.set_deployed_level(0)
+                air_brakes.set_deployment_level(0)
 
-            # Else calculate the deployed level
+            # Else calculate the deployment level
             else:
                 # Controller logic
-                new_deployed_level = (
-                    air_brakes.deployed_level + 0.1 * vz + 0.01 * previous_vz**2
+                new_deployment_level = (
+                    air_brakes.deployment_level + 0.1 * vz + 0.01 * previous_vz**2
                 )
 
                 # Limiting the speed of the air_brakes to 0.2 per second
                 # Since this function is called every 1/sampling_rate seconds
-                # the max change in deployed level per call is 0.2/sampling_rate
+                # the max change in deployment level per call is 0.2/sampling_rate
                 max_change = 0.2 / sampling_rate
-                if new_deployed_level > air_brakes.deployed_level + max_change:
-                    new_deployed_level = air_brakes.deployed_level + max_change
-                elif new_deployed_level < air_brakes.deployed_level - max_change:
-                    new_deployed_level = air_brakes.deployed_level - max_change
+                if new_deployment_level > air_brakes.deployment_level + max_change:
+                    new_deployment_level = air_brakes.deployment_level + max_change
+                elif new_deployment_level < air_brakes.deployment_level - max_change:
+                    new_deployment_level = air_brakes.deployment_level - max_change
 
-                air_brakes.set_deployed_level(new_deployed_level)
+                air_brakes.set_deployment_level(new_deployment_level)
 
             # Return variables of interest to be saved in the observed_variables list
             return (
                 time,
-                air_brakes.deployed_level,
-                air_brakes.drag_coefficient(air_brakes.deployed_level, mach_number),
+                air_brakes.deployment_level,
+                air_brakes.drag_coefficient(air_brakes.deployment_level, mach_number),
             )
 
 .. note::
@@ -216,8 +216,8 @@ Lets define the controller function:
       Anything can be implemented inside the function, including filters,
       apogee prediction, and any controller logic.
 
-    - The ``air_brakes`` instance ``deployed_level`` is clamped between 0 and 1.
-      This means that the deployed level will never be set to a value lower than
+    - The ``air_brakes`` instance ``deployment_level`` is clamped between 0 and 1.
+      This means that the deployment level will never be set to a value lower than
       0 or higher than 1. If you want to disable this feature, set ``clamp`` to
       ``False`` when defining the air brakes.
     
@@ -235,30 +235,30 @@ Lets define the controller function:
 Defining the Drag Coefficient
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Now lets define the drag coefficient as a function of the air brakes' deployed 
+Now lets define the drag coefficient as a function of the air brakes' deployment 
 level and of the Mach number. We will import the data from a CSV file. 
 
 The CSV file must have three columns: the first column must be the air brakes' 
-deployed level, the second column must be the Mach number, and the third column
+deployment level, the second column must be the Mach number, and the third column
 must be the drag coefficient.
 
 Alternatively, the drag coefficient can be defined as a function of the air
-brakes' deployed level and of the Mach number. This function must take in the
-air brakes' deployed level and the Mach number as arguments, and must return the
+brakes' deployment level and of the Mach number. This function must take in the
+air brakes' deployment level and the Mach number as arguments, and must return the
 drag coefficient.
 
 .. note::
 
-    At deployed level 0, the drag coefficient will always be set to 0, 
+    At deployment level 0, the drag coefficient will always be set to 0, 
     regardless of the input curve. This means that the simulation considers that 
-    at a deployed level of 0, the air brakes are completely retracted and do not 
+    at a deployment level of 0, the air brakes are completely retracted and do not 
     contribute to the drag of the rocket.
 
 Part of the data from the CSV can be seen in the code block below.
 
 .. code-block::
 
-    deployed_level, mach, cd
+    deployment_level, mach, cd
     0.0, 0.0, 0.0
     0.1, 0.0, 0.0
     0.1, 0.2, 0.0
@@ -296,8 +296,8 @@ rocket's reference area (the area of the cross section of the rocket). If we
 wanted to set a different reference area, we would set ``reference_area`` to 
 the desired value.
 
-Also, we will set ``clamp`` to ``True``. This means that the deployed level will
-be clamped between 0 and 1. This means that the deployed level will never be set
+Also, we will set ``clamp`` to ``True``. This means that the deployment level will
+be clamped between 0 and 1. This means that the deployment level will never be set
 to a value lower than 0 or higher than 1. This can alter the behavior of the
 controller function. If you want to disable this feature, set ``clamp`` to
 ``False``.
@@ -336,8 +336,8 @@ Simulating a Flight
 
     To simulate the air brakes successfully, we must set ``time_overshoot`` to
     ``False``. This way the simulation will run at the time step defined by our 
-    controller sampling rate. Be aware that this will make the simulation 
-    run **much** slower.
+    controller sampling rate. Be aware that this will make the simulation run 
+    **much** slower.
 
 We will be terminating the simulation at apogee, by setting 
 ``terminate_at_apogee`` to ``True``. This way the simulation will stop when the 
@@ -359,25 +359,31 @@ Analyzing the Results
 ---------------------
 
 Now we can create some plots to analyze the results. We rely on the 
-``observed_variables`` list to get the data we want to plot.
+``observed_variables`` list to get the data we want to plot. Since we returned
+the ``time``, ``deployment_level`` and the ``drag_coefficient`` in the
+``controller_function``, the ``observed_variables`` list will contain these
+values at every time step.
+
+We can get the data from the ``observed_variables`` list and plot it:
 
 .. jupyter-execute::
 
     import matplotlib.pyplot as plt
 
-    time, deployed_level, drag_coefficient = [], [], []
+    time, deployment_level, drag_coefficient = [], [], []
     
     # Get the data from the observed_variables list
     for vars in controller.observed_variables:
         time.append(vars[0])
-        deployed_level.append(vars[1])
+        deployment_level.append(vars[1])
         drag_coefficient.append(vars[2])
 
-    # Plot deployed level by time
-    plt.plot(time, deployed_level)
+    # Plot deployment level by time
+    plt.plot(time, deployment_level)
     plt.xlabel("Time (s)")
-    plt.ylabel("Deployed Level")
-    plt.title("Deployed Level by Time")
+    plt.ylabel("Deployment Level")
+    plt.title("Deployment Level by Time")
+    plt.grid()
     plt.show()
 
     # Plot drag coefficient by time
@@ -385,6 +391,7 @@ Now we can create some plots to analyze the results. We rely on the
     plt.xlabel("Time (s)")
     plt.ylabel("Drag Coefficient")
     plt.title("Drag Coefficient by Time")
+    plt.grid()
     plt.show()
 
 .. seealso::

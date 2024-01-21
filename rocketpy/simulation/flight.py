@@ -1433,10 +1433,10 @@ class Flight:
         rho = self.env.density.get_value_opt(z)
         R3 = -0.5 * rho * (free_stream_speed**2) * self.rocket.area * (drag_coeff)
         for air_brakes in self.rocket.air_brakes:
-            if air_brakes.deployed_level > 0:
+            if air_brakes.deploymentnt_level > 0:
                 # Avoid calculating cd several times
                 air_brakes_cd = air_brakes.drag_coefficient(
-                    air_brakes.deployed_level, free_stream_mach
+                    air_brakes.deployment_level, free_stream_mach
                 )
                 R3 += (
                     -0.5
@@ -1731,10 +1731,10 @@ class Flight:
             drag_coeff = self.rocket.power_off_drag.get_value_opt(free_stream_mach)
         R3 += -0.5 * rho * (free_stream_speed**2) * self.rocket.area * (drag_coeff)
         for air_brakes in self.rocket.air_brakes:
-            if air_brakes.deployed_level > 0:
+            if air_brakes.deployment_level > 0:
                 # Avoid calculating cd several times
                 air_brakes_cd = air_brakes.drag_coefficient(
-                    air_brakes.deployed_level, free_stream_mach
+                    air_brakes.deployment_level, free_stream_mach
                 )
                 R3 += (
                     -0.5
@@ -2069,7 +2069,7 @@ class Flight:
 
     @funcify_method("Time (s)", "Altitude (m)", "spline", "zero")
     def altitude(self):
-        """Rocket altitude above ground level (AGL) as a Function of time."""
+        """Rocket altitude Above Ground Level (AGL) as a Function of time."""
         return self.z - self.env.elevation
 
     # Process second type of outputs - accelerations components
