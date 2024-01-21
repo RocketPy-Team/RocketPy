@@ -153,8 +153,9 @@ previous time step.
 Also, the controller function will check for the burnout of the rocket's motor 
 and only deploy the air brakes if the rocket has reached burnout. 
 
-Then a limitation for the opening speed of the air brakes will be set. The air 
-brakes will not be able to deploy faster than 0.2 percentage per second.
+Then, a limitation for the opening/closing speed of the air brakes will be set.
+The air brakes deployment level will not be able to change faster than 20% per
+second, in our case.
 
 Lets define the controller function:
 
