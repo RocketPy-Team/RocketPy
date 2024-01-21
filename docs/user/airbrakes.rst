@@ -337,7 +337,7 @@ Simulating a Flight
     To simulate the air brakes successfully, we must set ``time_overshoot`` to
     ``False``. This way the simulation will run at the time step defined by our 
     controller sampling rate. Be aware that this will make the simulation 
-    **much** run slower.
+    run **much** slower.
 
 We will be terminating the simulation at apogee, by setting 
 ``terminate_at_apogee`` to ``True``. This way the simulation will stop when the 
