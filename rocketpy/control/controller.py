@@ -3,8 +3,8 @@ from ..prints.control_prints import _ControllerPrints
 
 class Controller:
     """A class for storing and running controllers on a rocket. Controllers
-    have a controller function that is called at every step of the simulation
-    at a specified sampling rate. The controller function can access and modify
+    have a controller function that is called at a specified sampling rate
+    during the simulation. The controller function can access and modify
     the objects that are passed to it. The controller function also stores the
     variables of interest in the objects that are passed to it."""
 
