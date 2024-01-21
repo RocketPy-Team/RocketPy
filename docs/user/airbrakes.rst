@@ -192,9 +192,9 @@ Lets define the controller function:
                     air_brakes.deployed_level + 0.1 * vz + 0.01 * previous_vz**2
                 )
 
-                # Limiting the speed of the air_brakes to 0.1 per second
+                # Limiting the speed of the air_brakes to 0.2 per second
                 # Since this function is called every 1/sampling_rate seconds
-                # the max change in deployed level per call is 0.1/sampling_rate
+                # the max change in deployed level per call is 0.2/sampling_rate
                 max_change = 0.2 / sampling_rate
                 if new_deployed_level > air_brakes.deployed_level + max_change:
                     new_deployed_level = air_brakes.deployed_level + max_change
