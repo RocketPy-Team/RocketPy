@@ -54,9 +54,9 @@ class Controller:
                `interactable_objects`.
 
             This function will be called during the simulation at the specified
-            sampling rate. The function should evaluate and change the observed
-            objects as needed. The function return can be used to store
-            information about the simulation in the `observed_variables` list.
+            sampling rate. The function should evaluate and change the interactable
+            objects as needed. The function return statement can be used to save
+            relevant information in the `observed_variables` list.
 
             .. note:: The function will be called according to the sampling rate
             specified.
