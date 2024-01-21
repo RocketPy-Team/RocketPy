@@ -40,6 +40,14 @@ straightforward as possible.
 
 ### Fixed
 
+- 
+
+## [v1.1.5] - 2024-01-21
+
+You can install this version by running `pip install rocketpy==1.1.5`
+
+### Fixed
+
 - BUG: Parachute Pressures not being Set before All Info. [#534](https://github.com/RocketPy-Team/RocketPy/pull/534)
 - BUG: Invalid Arguments on Two Dimensional Discretize. [#521](https://github.com/RocketPy-Team/RocketPy/pull/521)
 
