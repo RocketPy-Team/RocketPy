@@ -42,7 +42,7 @@ straightforward as possible.
 
 - 
 
-## [v1.1.5] - 2023-01-21
+## [v1.1.5] - 2024-01-21
 
 You can install this version by running `pip install rocketpy==1.1.5`
 
