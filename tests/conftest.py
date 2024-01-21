@@ -1166,3 +1166,18 @@ def func_2d_from_csv():
         source="tests/fixtures/function/2d.csv",
     )
     return func
+
+
+@pytest.fixture
+def lambda_quad_func():
+    """Create a lambda function based on a string.
+
+    Returns
+    -------
+    Function
+        A lambda function based on a string.
+    """
+    func = lambda x: x**2
+    return Function(
+        source=func,
+    )
