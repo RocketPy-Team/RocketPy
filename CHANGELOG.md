@@ -47,6 +47,15 @@ straightforward as possible.
 - BUG: fin_flutter_analysis doesn't find any fin set [#510](https://github.com/RocketPy-Team/RocketPy/pull/510)
 - FIX: EmptyMotor is breaking the Rocket.draw() method [#516](https://github.com/RocketPy-Team/RocketPy/pull/516)
 - BUG: 3D trajectory plot not labeling axes [#533](https://github.com/RocketPy-Team/RocketPy/pull/533)
+- 
+
+## [v1.1.5] - 2024-01-21
+
+You can install this version by running `pip install rocketpy==1.1.5`
+
+### Fixed
+
+- BUG: Parachute Pressures not being Set before All Info. [#534](https://github.com/RocketPy-Team/RocketPy/pull/534)
 - BUG: Invalid Arguments on Two Dimensional Discretize. [#521](https://github.com/RocketPy-Team/RocketPy/pull/521)
 
 ## [v1.1.4] - 2023-12-07
