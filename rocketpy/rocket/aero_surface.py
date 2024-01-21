@@ -1899,11 +1899,11 @@ class AirBrakes(AeroSurface):
 
     Attributes
     ----------
-    AirBrakes.drag_coefficient : int, float, callable, array, Function
+    AirBrakes.drag_coefficient : Function
         Drag coefficient as a function of deployed level and Mach number.
     AirBrakes.drag_coefficient_curve : int, float, callable, array, string, Function
         Curve that defines the drag coefficient as a function of deployed level
-        and Mach number.
+        and Mach number.  Used as the source of `AirBrakes.drag_coefficient`.
     AirBrakes.deployed_level : float
         Current deployed level, ranging from 0 to 1. Deployed level is the
         fraction of the total airbrake area that is deployed.
