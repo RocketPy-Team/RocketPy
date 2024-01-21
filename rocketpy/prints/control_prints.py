@@ -41,7 +41,7 @@ class _ControllerPrints:
             print(
                 "Controller function: " + self.controller.controller_function.__name__
             )
-        print(f"Controller refreshment rate: {self.controller.sampling_rate:.3f} Hz")
+        print(f"Controller refresh rate: {self.controller.sampling_rate:.3f} Hz")
 
     def observed_objects(self):
         """Prints observed objects."""
