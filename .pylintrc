@@ -436,6 +436,7 @@ disable=raw-checker-failed,
         no-else-return,
         inconsistent-return-statements,
         unspecified-encoding,
+        no-member, # because we use funcify_method decorator
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
