@@ -810,7 +810,6 @@ class Rocket:
         self.evaluate_center_of_pressure()
         self.evaluate_stability_margin()
         self.evaluate_static_margin()
-        return None
 
     def add_controllers(self, controllers):
         """Adds a controller to the rocket.
@@ -1168,6 +1167,7 @@ class Rocket:
         clamp=True,
         reference_area=None,
         initial_observed_variables=None,
+        substitute_rocket_drag_coefficient=False,
         name="AirBrakes",
         controller_name="AirBrakes Controller",
     ):
@@ -1177,18 +1177,32 @@ class Rocket:
         Parameters
         ----------
         drag_coefficient_curve : int, float, callable, array, string, Function
-            Drag coefficient as a function of deployment level and Mach number.
-            If constant, it must be an int or float. If a function, it must
-            take as input the deployment level and the Mach number and return
-            the drag coefficient. If an array, it must be a 2D array where the
-            first column is the deployment level, the second column is the Mach
-            number and the third column is the drag coefficient. If a string,
-            it must be the path to a .csv or .txt file containing the drag
-            coefficient curve. The file must contain no headers and the first
-            column must specify the deployment level, the second column must
-            specify the Mach number and the third column must specify the drag
-            coefficient. If a Function, it must take as input the deployment
-            level and the Mach number and return the drag coefficient.
+            This parameter represents the drag coefficient associated with the
+            air brakes and/or the entire rocket, depending on the value of
+            ``substitute_rocket_drag_coefficient``.
+
+            - If a constant, it should be an integer or a float representing a
+              fixed drag coefficient value.
+            - If a function, it must take two parameters: deployment level and
+              Mach number, and return the drag coefficient. This function allows
+              for dynamic computation based on deployment and Mach number.
+            - If an array, it should be a 2D array with three columns: the first
+              column for deployment level, the second for Mach number, and the
+              third for the corresponding drag coefficient.
+            - If a string, it should be the path to a .csv or .txt file. The
+              file must contain three columns: the first for deployment level,
+              the second for Mach number, and the third for the drag
+              coefficient.
+            - If a Function, it must take two parameters: deployment level and
+              Mach number, and return the drag coefficient.
+
+            .. note:: For ``substitute_rocket_drag_coefficient = False``, at
+                deployment level 0, the drag coefficient is assumed to be 0,
+                independent of the input drag coefficient curve. This means that
+                the simulation always considers that at a deployment level of 0,
+                the air brakes are completely retracted and do not contribute to
+                the drag of the rocket.
+
         controller_function : function, callable
             An user-defined function responsible for controlling the simulation.
             This function is expected to take the following arguments, in order:
@@ -1236,6 +1250,12 @@ class Rocket:
             function returns. This list is used to initialize the
             `observed_variables` argument of the controller function. The
             default value is None, which initializes the list as an empty list.
+        substitute_rocket_drag_coefficient : bool, optional
+            If False, the air brakes drag coefficient will be added to the
+            rocket's power off drag coefficient curve. If True, during the
+            simulation, the rocket's power off drag will be ignored and the air
+            brakes drag coefficient will be used for the entire rocket instead.
+            Default is False.
         name : string, optional
             AirBrakes name, such as drogue and main. Has no impact in
             simulation, as it is only used to display data in a more
@@ -1256,6 +1276,7 @@ class Rocket:
             drag_coefficient_curve=drag_coefficient_curve,
             reference_area=reference_area,
             clamp=clamp,
+            substitute_rocket_drag_coefficient=substitute_rocket_drag_coefficient,
             deployment_level=0,
             name=name,
         )

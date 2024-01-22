@@ -1924,6 +1924,7 @@ class AirBrakes(AeroSurface):
         drag_coefficient_curve,
         reference_area,
         clamp=True,
+        substitute_rocket_drag_coefficient=False,
         deployment_level=0,
         name="AirBrakes",
     ):
@@ -1932,26 +1933,31 @@ class AirBrakes(AeroSurface):
         Parameters
         ----------
         drag_coefficient_curve : int, float, callable, array, string, Function
-            Drag coefficient as a function of deployment level and Mach number.
-            Deployment level is a float ranging from 0 to 1 that defines the
-            fraction of the total airbrake area that is deployed. If constant,
-            it must be an int or float. If a function, it must take as input the
-            deployment level and the Mach number and return the drag coefficient.
-            If an array, it must be a 2D array where the first column is the
-            deployment level, the second column is the Mach number and the third
-            column is the drag coefficient. If a string, it must be the path to
-            a .csv or .txt file containing the drag coefficient curve. The
-            file's first column must specify the deployment level, the second
-            column must specify the Mach number and the third column must
-            specify the drag coefficient. If a Function, it must take as input
-            the deployment level and the Mach number and return the drag
-            coefficient.
+            This parameter represents the drag coefficient associated with the
+            air brakes and/or the entire rocket, depending on the value of
+            ``substitute_rocket_drag_coefficient``.
 
-            .. note:: At deployment level 0, the drag coefficient is assumed to
-                be 0, independent of the input drag coefficient curve. This
-                means that the simulation always considers that at a deployment
-                level of 0, the air brakes are completely retracted and do not
-                contribute to the drag of the rocket.
+            - If a constant, it should be an integer or a float representing a
+              fixed drag coefficient value.
+            - If a function, it must take two parameters: deployment level and
+              Mach number, and return the drag coefficient. This function allows
+              for dynamic computation based on deployment and Mach number.
+            - If an array, it should be a 2D array with three columns: the first
+              column for deployment level, the second for Mach number, and the
+              third for the corresponding drag coefficient.
+            - If a string, it should be the path to a .csv or .txt file. The
+              file must contain three columns: the first for deployment level,
+              the second for Mach number, and the third for the drag
+              coefficient.
+            - If a Function, it must take two parameters: deployment level and
+              Mach number, and return the drag coefficient.
+
+            .. note:: For ``substitute_rocket_drag_coefficient = False``, at
+                deployment level 0, the drag coefficient is assumed to be 0,
+                independent of the input drag coefficient curve. This means that
+                the simulation always considers that at a deployment level of 0,
+                the air brakes are completely retracted and do not contribute to
+                the drag of the rocket.
 
         reference_area : int, float
             Reference area used to calculate the drag force of the air brakes
@@ -1961,6 +1967,12 @@ class AirBrakes(AeroSurface):
             the deployment level is out of bounds. If False, the simulation will
             not clamp the deployment level and will instead raise a warning if
             the deployment level is out of bounds. Default is True.
+        substitute_rocket_drag_coefficient : bool, optional
+            If False, the air brakes drag coefficient will be added to the
+            rocket's power off drag coefficient curve. If True, during the
+            simulation, the rocket's power off drag will be ignored and the air
+            brakes drag coefficient will be used for the entire rocket instead.
+            Default is False.
         deployment_level : float, optional
             Current deployment level, ranging from 0 to 1. Deployment level is the
             fraction of the total airbrake area that is Deployment. Default is 0.
@@ -1980,6 +1992,7 @@ class AirBrakes(AeroSurface):
         )
         self.reference_area = reference_area
         self.clamp = clamp
+        self.substitute_rocket_drag_coefficient = substitute_rocket_drag_coefficient
         self._deployment_level = deployment_level
         self.prints = _AirBrakesPrints(self)
         self.plots = _AirBrakesPlots(self)

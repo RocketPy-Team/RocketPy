@@ -285,6 +285,20 @@ Part of the data from the CSV can be seen in the code block below.
     1.0, 0.7, 0.21
     1.0, 0.8, 0.218
 
+  The air brakes' drag coefficient curve can represent either the air brakes 
+  alone or both the air brakes and the rocket. This is determined by the 
+  ``substitute_rocket_drag_coefficient`` argument. If set to True, the drag 
+  coefficient curve will include both the air brakes and the rocket. If set to 
+  False, the curve will exclusively represent the air brakes.
+
+  When the curve represents only the air brakes, its drag coefficient will be
+  added to the rocket's existing drag coefficient. Conversely, if the curve 
+  represents both the air brakes and the rocket, the drag coefficient will be 
+  set to match that of the curve. This feature is particularly useful when you 
+  have a drag coefficient curve for the entire rocket with the air brakes 
+  deployed, such as data from a wind tunnel test, and you want to incorporate 
+  it into the simulation.
+
 Adding the Air Brakes to the Rocket
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -311,6 +325,7 @@ controller function. If you want to disable this feature, set ``clamp`` to
         reference_area=None,
         clamp=True,
         initial_observed_variables=[0, 0, 0],
+        substitute_rocket_drag_coefficient=False,
         name="Air Brakes",
         controller_name="Air Brakes Controller",
     )

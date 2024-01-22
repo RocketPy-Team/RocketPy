@@ -1431,20 +1431,23 @@ class Flight:
         else:
             drag_coeff = self.rocket.power_off_drag.get_value_opt(free_stream_mach)
         rho = self.env.density.get_value_opt(z)
-        R3 = -0.5 * rho * (free_stream_speed**2) * self.rocket.area * (drag_coeff)
+        R3 = -0.5 * rho * (free_stream_speed**2) * self.rocket.area * drag_coeff
         for air_brakes in self.rocket.air_brakes:
-            if air_brakes.deploymentnt_level > 0:
-                # Avoid calculating cd several times
+            if air_brakes.deployment_level > 0:
                 air_brakes_cd = air_brakes.drag_coefficient(
                     air_brakes.deployment_level, free_stream_mach
                 )
-                R3 += (
+                air_brakes_force = (
                     -0.5
                     * rho
                     * (free_stream_speed**2)
                     * air_brakes.reference_area
                     * air_brakes_cd
                 )
+                if air_brakes.substitute_rocket_drag_coefficient:
+                    R3 = air_brakes_force  # Substitutes rocket drag coefficient
+                else:
+                    R3 += air_brakes_force
         # R3 += self.__computeDragForce(z, Vector(vx, vy, vz))
         # Off center moment
         M1 += self.rocket.cp_eccentricity_y * R3
@@ -1729,20 +1732,23 @@ class Flight:
             drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach)
         else:
             drag_coeff = self.rocket.power_off_drag.get_value_opt(free_stream_mach)
-        R3 += -0.5 * rho * (free_stream_speed**2) * self.rocket.area * (drag_coeff)
+        R3 += -0.5 * rho * (free_stream_speed**2) * self.rocket.area * drag_coeff
         for air_brakes in self.rocket.air_brakes:
             if air_brakes.deployment_level > 0:
-                # Avoid calculating cd several times
                 air_brakes_cd = air_brakes.drag_coefficient(
                     air_brakes.deployment_level, free_stream_mach
                 )
-                R3 += (
+                air_brakes_force = (
                     -0.5
                     * rho
                     * (free_stream_speed**2)
                     * air_brakes.reference_area
                     * air_brakes_cd
                 )
+                if air_brakes.substitute_rocket_drag_coefficient:
+                    R3 = air_brakes_force  # Substitutes rocket drag coefficient
+                else:
+                    R3 += air_brakes_force
         ## Off center moment
         M1 += self.rocket.cp_eccentricity_y * R3
         M2 -= self.rocket.cp_eccentricity_x * R3
