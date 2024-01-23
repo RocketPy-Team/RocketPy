@@ -406,7 +406,7 @@ def quaternions_to_precession(e0, e1, e2, e3):
     return (180 / np.pi) * (np.arctan2(e3, e0) + np.arctan2(-e2, -e1))
 
 
-def quaternions_to_phi(e0, e1, e2, e3):
+def quaternions_to_spin(e0, e1, e2, e3):
     """Calculates the Spin angle from quaternions.
 
     Parameters
@@ -428,7 +428,7 @@ def quaternions_to_phi(e0, e1, e2, e3):
     return (180 / np.pi) * (np.arctan2(e3, e0) - np.arctan2(-e2, -e1))
 
 
-def quaternions_to_theta(e1, e2):
+def quaternions_to_nutation(e1, e2):
     """Calculates the Nutation angle from quaternions.
 
     Parameters

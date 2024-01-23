@@ -13,9 +13,9 @@ from ..plots.flight_plots import _FlightPlots
 from ..prints.flight_prints import _FlightPrints
 from ..tools import (
     find_closest,
-    quaternions_to_phi,
+    quaternions_to_spin,
     quaternions_to_precession,
-    quaternions_to_theta,
+    quaternions_to_nutation,
 )
 
 
@@ -2308,7 +2308,7 @@ class Flight:
     @funcify_method("Time (s)", "Spin Angle - φ (°)", "spline", "constant")
     def phi(self):
         """Spin angle as a Function of time."""
-        phi = quaternions_to_phi(
+        phi = quaternions_to_spin(
             self.e0.y_array, self.e1.y_array, self.e2.y_array, self.e3.y_array
         )
         return np.column_stack([self.time, phi])
@@ -2316,7 +2316,7 @@ class Flight:
     @funcify_method("Time (s)", "Nutation Angle - θ (°)", "spline", "constant")
     def theta(self):
         """Nutation angle as a Function of time."""
-        theta = quaternions_to_theta(self.e1.y_array, self.e2.y_array)
+        theta = quaternions_to_nutation(self.e1.y_array, self.e2.y_array)
         return np.column_stack([self.time, theta])
 
     # Fluid Mechanics variables
