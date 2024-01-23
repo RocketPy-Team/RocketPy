@@ -438,6 +438,30 @@ Let's export the gaussian function to a CSV file:
     import os
     os.remove("gaussian.csv")
 
+f. Filter data
+~~~~~~~~~~~~~~
+
+Since rocketpy version 1.2.0, the ``Function`` class supports filtering the
+source data. This is accomplished by the method :meth:`rocketpy.Function.low_pass_filter`
+and allows for easy data filtering for further analysis.
+
+Let's filter an example function:
+
+.. jupyter-execute::
+
+    x = np.linspace(-4, 4, 1000)
+    y = np.sin(x) + np.random.normal(0, 0.1, 1000)
+
+    f = Function(list(zip(x, y)), inputs="x", outputs="f(x)")
+
+    # Filter the function
+    f_filtered = f.low_pass_filter(0.5)
+
+    # Compare the function with the filtered function
+    Function.compare_plots(
+        [(f, "Original"), (f_filtered, "Filtered")], lower=-4, upper=4
+    )
+
 ........
 
 This guide shows some of the capabilities of the ``Function`` class, but there are many other functionalities to enhance your analysis. Do not hesitate in tanking a look at the documentation :class:`rocketpy.Function`.

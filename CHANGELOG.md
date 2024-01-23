@@ -40,6 +40,7 @@ straightforward as possible.
 - MNT: Add repr method to Parachute class [#490](https://github.com/RocketPy-Team/RocketPy/pull/490)
 - ENH: Function Reverse Arithmetic Priority [#488](https://github.com/RocketPy-Team/RocketPy/pull/488)
 - DOC: Update Header Related Docs
+- MNT: improve the low pass filter and document an example [#538](https://github.com/RocketPy-Team/RocketPy/pull/538)
 
 ### Fixed
 
