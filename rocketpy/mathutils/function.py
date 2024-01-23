@@ -1118,7 +1118,10 @@ class Function:
         )
 
     def low_pass_filter(self, alpha, file_path=None):
-        """Implements a low pass filter with a moving average filter
+        """Implements a low pass filter with a moving average filter. This does
+        not mutate the original Function object, but returns a new one with the
+        filtered source. The filtered source is also saved to a CSV file if a
+        file path is given.
 
         Parameters
         ----------
@@ -1128,7 +1131,7 @@ class Function:
             filtered function returned will match the function the smaller
             alpha is, the smoother the filtered function returned will be
             (but with a phase shift)
-        file_path : string
+        file_path : string, optional
             File path or file name of the CSV to save. Don't save any CSV if
             if no argument is passed. Initiated to None.
 
@@ -1146,14 +1149,16 @@ class Function:
                 alpha * self.source[i] + (1 - alpha) * filtered_signal[i - 1]
             )
 
-        # Save the new csv file with filtered data
         if isinstance(file_path, str):
-            np.savetxt(file_path, filtered_signal, delimiter=",")
+            self.savetxt(file_path)
 
         return Function(
             source=filtered_signal,
+            inputs=self.__inputs__,
+            outputs=self.__outputs__,
             interpolation=self.__interpolation__,
             extrapolation=self.__extrapolation__,
+            title=self.title,
         )
 
     # Define all presentation methods
