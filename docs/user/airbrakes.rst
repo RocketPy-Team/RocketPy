@@ -108,42 +108,48 @@ Lets start by defining a very simple controller function.
 The ``controller_function`` must take in the following arguments, in this
 order:
 
-- ``time``: The current time of the simulation, in seconds.
-- ``sampling_rate``: The sampling rate of the controller function, in seconds.
-- ``state``: The state of the simulation at the current time step. The state 
-  is a list containing the following values, in this order:
+1. ``time`` (float): The current simulation time in seconds.
+2. ``sampling_rate`` (float): The rate at which the controller
+   function is called, measured in Hertz (Hz).
+3. ``state`` (list): The state vector of the simulation. The state 
+   is a list containing the following values, in this order:
 
-  - ``x``: The x position of the rocket, in meters.
-  - ``y``: The y position of the rocket, in meters.
-  - ``z``: The z position of the rocket, in meters.
-  - ``v_x``: The x component of the velocity of the rocket, in meters per 
-    second.
-  - ``v_y``: The y component of the velocity of the rocket, in meters per 
-    second.
-  - ``v_z``: The z component of the velocity of the rocket, in meters per 
-    second.
-  - ``e0``: The first component of the quaternion representing the rotation 
-    of the rocket.
-  - ``e1``: The second component of the quaternion representing the rotation 
-    of the rocket.
-  - ``e2``: The third component of the quaternion representing the rotation 
-    of the rocket.
-  - ``e3``: The fourth component of the quaternion representing the rotation 
-    of the rocket.
-  - ``w_x``: The x component of the angular velocity of the rocket, in 
-    radians per second.
-  - ``w_y``: The y component of the angular velocity of the rocket, in 
-    radians per second.
-  - ``w_z``: The z component of the angular velocity of the rocket, in 
-    radians per second.
-- ``state_history``: A list containing the state of the simulation at every 
-  time step up to the current time step. The state of the simulation at the 
-  previous time step is the last element of the list.
-- ``observed_variables``: A list containing the variables of interest returned
-  by the controller function at every time step up to the current time step.
-  The variables of interest returned by the controller function at the previous
-  time step is the last element of the list.
-- ``air_brakes``: The ``AirBrakes`` instance being controlled.
+   - ``x``: The x position of the rocket, in meters.
+   - ``y``: The y position of the rocket, in meters.
+   - ``z``: The z position of the rocket, in meters.
+   - ``v_x``: The x component of the velocity of the rocket, in meters per 
+     second.
+   - ``v_y``: The y component of the velocity of the rocket, in meters per 
+     second.
+   - ``v_z``: The z component of the velocity of the rocket, in meters per 
+     second.
+   - ``e0``: The first component of the quaternion representing the rotation 
+     of the rocket.
+   - ``e1``: The second component of the quaternion representing the rotation 
+     of the rocket.
+   - ``e2``: The third component of the quaternion representing the rotation 
+     of the rocket.
+   - ``e3``: The fourth component of the quaternion representing the rotation 
+     of the rocket.
+   - ``w_x``: The x component of the angular velocity of the rocket, in 
+     radians per second.
+   - ``w_y``: The y component of the angular velocity of the rocket, in 
+     radians per second.
+   - ``w_z``: The z component of the angular velocity of the rocket, in 
+     radians per second.
+
+4. ``state_history`` (list): A record of the rocket's state at each
+   step throughout the simulation. The state_history is organized as
+   a list of lists, with each sublist containing a state vector. The
+   last item in the list always corresponds to the previous state
+   vector, providing a chronological sequence of the rocket's
+   evolving states.
+5. ``observed_variables`` (list): A list containing the variables that
+   the controller function returns. The return of each controller
+   function call is appended to the observed_variables list. The
+   initial value in the first step of the simulation of this list is
+   provided by the ``initial_observed_variables`` argument.
+6. ``air_brakes`` (AirBrakes): The ``AirBrakes`` instance being controlled.
     
 Our example ``controller_function`` will deploy the air brakes when the rocket
 reaches 1500 meters above the ground. The deployment level will be function of the
@@ -285,6 +291,7 @@ Part of the data from the CSV can be seen in the code block below.
     1.0, 0.7, 0.21
     1.0, 0.8, 0.218
 
+.. note:: 
   The air brakes' drag coefficient curve can represent either the air brakes 
   alone or both the air brakes and the rocket. This is determined by the 
   ``substitute_rocket_drag_coefficient`` argument. If set to True, the drag 
@@ -318,7 +325,7 @@ controller function. If you want to disable this feature, set ``clamp`` to
 
 .. jupyter-execute::
 
-    air_brakes, controller = calisto.add_air_brakes(
+    air_brakes = calisto.add_air_brakes(
         drag_coefficient_curve="../data/calisto/air_brakes_cd.csv",
         controller_function=controller_function,
         sampling_rate=10,
@@ -327,7 +334,6 @@ controller function. If you want to disable this feature, set ``clamp`` to
         initial_observed_variables=[0, 0, 0],
         substitute_rocket_drag_coefficient=False,
         name="Air Brakes",
-        controller_name="Air Brakes Controller",
     )
 
     air_brakes.all_info()
@@ -367,7 +373,7 @@ rocket reaches apogee, and we will save some time.
         inclination=85,
         heading=0,
         time_overshoot=False,
-        terminate_on_apogee=True
+        terminate_on_apogee=True,
     )
 
 Analyzing the Results
@@ -379,22 +385,23 @@ the ``time``, ``deployment_level`` and the ``drag_coefficient`` in the
 ``controller_function``, the ``observed_variables`` list will contain these
 values at every time step.
 
-We can get the data from the ``observed_variables`` list and plot it:
+We can retrieve the ``observed_variables`` list by calling the 
+``get_controller_observed_variables`` method of the ``Flight`` instance.
+Then we can plot the data we want.
 
 .. jupyter-execute::
 
     import matplotlib.pyplot as plt
 
-    time, deployment_level, drag_coefficient = [], [], []
-    
-    # Get the data from the observed_variables list
-    for vars in controller.observed_variables:
-        time.append(vars[0])
-        deployment_level.append(vars[1])
-        drag_coefficient.append(vars[2])
+    time_list, deployment_level_list, drag_coefficient_list = [], [], []
+
+    for time, deployment_level, drag_coefficient in test_flight.get_controller_observed_variables:
+        time_list.append(time)
+        deployment_level_list.append(deployment_level)
+        drag_coefficient_list.append(drag_coefficient)
 
     # Plot deployment level by time
-    plt.plot(time, deployment_level)
+    plt.plot(time_list, deployment_level_list)
     plt.xlabel("Time (s)")
     plt.ylabel("Deployment Level")
     plt.title("Deployment Level by Time")
@@ -402,7 +409,7 @@ We can get the data from the ``observed_variables`` list and plot it:
     plt.show()
 
     # Plot drag coefficient by time
-    plt.plot(time, drag_coefficient)
+    plt.plot(time_list, drag_coefficient_list)
     plt.xlabel("Time (s)")
     plt.ylabel("Drag Coefficient")
     plt.title("Drag Coefficient by Time")

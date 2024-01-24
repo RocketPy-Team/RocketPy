@@ -2922,6 +2922,21 @@ class Flight:
         return temporary_values
 
     @cached_property
+    def get_controller_observed_variables(self):
+        """Retrieve the observed variables related to air brakes from the 
+        controllers. If there is only one set of observed variables, it is
+        returned as a list. If there are multiple sets, the list containing 
+        all sets is returned."""
+        observed_variables = [
+            controller.observed_variables for controller in self._controllers
+        ]
+        return (
+            observed_variables[0]
+            if len(observed_variables) == 1
+            else observed_variables
+        )
+
+    @cached_property
     def __calculate_rail_button_forces(self):
         """Calculate the forces applied to the rail buttons while rocket is
         still on the launch rail. It will return 0 if no rail buttons are

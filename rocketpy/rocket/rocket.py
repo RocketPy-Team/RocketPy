@@ -1168,6 +1168,7 @@ class Rocket:
         reference_area=None,
         initial_observed_variables=None,
         substitute_rocket_drag_coefficient=False,
+        return_controller=False,
         name="AirBrakes",
         controller_name="AirBrakes Controller",
     ):
@@ -1256,6 +1257,9 @@ class Rocket:
             simulation, the rocket's power off drag will be ignored and the air
             brakes drag coefficient will be used for the entire rocket instead.
             Default is False.
+        return_controller : bool, optional
+            If True, the function will return the controller object created.
+            Default is False.
         name : string, optional
             AirBrakes name, such as drogue and main. Has no impact in
             simulation, as it is only used to display data in a more
@@ -1280,7 +1284,7 @@ class Rocket:
             deployment_level=0,
             name=name,
         )
-        controller = _Controller(
+        _controller = _Controller(
             interactable_objects=air_brakes,
             controller_function=controller_function,
             sampling_rate=sampling_rate,
@@ -1288,8 +1292,11 @@ class Rocket:
             name=controller_name,
         )
         self.air_brakes.append(air_brakes)
-        self._add_controllers(controller)
-        return air_brakes, controller
+        self._add_controllers(_controller)
+        if return_controller:
+            return air_brakes, _controller
+        else:
+            return air_brakes
 
     def set_rail_buttons(
         self, upper_button_position, lower_button_position, angular_position=45
