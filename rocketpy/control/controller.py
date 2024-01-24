@@ -1,7 +1,7 @@
 from ..prints.controller_prints import _ControllerPrints
 
 
-class Controller:
+class _Controller:
     """A class for storing and running controllers on a rocket. Controllers
     have a controller function that is called at a specified sampling rate
     during the simulation. The controller function can access and modify

@@ -50,7 +50,7 @@ class Flight:
         the beginning of the rail.
     Flight.name: str
         Name of the flight.
-    Flight.controllers : list
+    Flight._controllers : list
         List of controllers to be used during simulation.
     Flight.max_time : int, float
         Maximum simulation time allowed. Refers to physical time
@@ -584,7 +584,7 @@ class Flight:
         if self.rail_length <= 0:
             raise ValueError("Rail length must be a positive value.")
         self.parachutes = self.rocket.parachutes[:]
-        self.controllers = self.rocket.controllers[:]
+        self._controllers = self.rocket._controllers[:]
         self.inclination = inclination
         self.heading = heading
         self.max_time = max_time
@@ -660,7 +660,7 @@ class Flight:
                     self.parachutes, phase.t, phase.time_bound
                 )
                 phase.TimeNodes.add_controllers(
-                    self.controllers, phase.t, phase.time_bound
+                    self._controllers, phase.t, phase.time_bound
                 )
             # Add lst time node to permanent list
             phase.TimeNodes.add_node(phase.time_bound, [], [])
@@ -693,7 +693,7 @@ class Flight:
                 for callback in node.callbacks:
                     callback(self)
 
-                for controller in node.controllers:
+                for controller in node._controllers:
                     controller(self.t, self.y_sol, self.solution)
 
                 for parachute in node.parachutes:
@@ -3630,7 +3630,7 @@ class Flight:
                 self.t = t
                 self.parachutes = parachutes
                 self.callbacks = []
-                self.controllers = controllers
+                self._controllers = controllers
 
             def __repr__(self):
                 return (

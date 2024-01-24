@@ -2,7 +2,7 @@ import warnings
 
 import numpy as np
 
-from rocketpy.control.controller import Controller
+from rocketpy.control.controller import _Controller
 from rocketpy.mathutils.function import Function
 from rocketpy.motors.motor import EmptyMotor
 from rocketpy.plots.rocket_plots import _RocketPlots
@@ -99,7 +99,7 @@ class Rocket:
         Collection of parachutes of the rocket.
     Rocket.air_brakes : list
         Collection of air brakes of the rocket.
-    Rocket.controllers : list
+    Rocket._controllers : list
         Collection of controllers of the rocket.
     Rocket.cp_position : Function
         Function of Mach number expressing the rocket's center of pressure
@@ -282,7 +282,7 @@ class Rocket:
         self.parachutes = []
 
         # Controllers data initialization
-        self.controllers = []
+        self._controllers = []
 
         # AirBrakes data initialization
         self.air_brakes = []
@@ -811,7 +811,7 @@ class Rocket:
         self.evaluate_stability_margin()
         self.evaluate_static_margin()
 
-    def add_controllers(self, controllers):
+    def _add_controllers(self, controllers):
         """Adds a controller to the rocket.
 
         Parameters
@@ -826,9 +826,9 @@ class Rocket:
         None
         """
         try:
-            self.controllers.extend(controllers)
+            self._controllers.extend(controllers)
         except TypeError:
-            self.controllers.append(controllers)
+            self._controllers.append(controllers)
 
     def add_tail(
         self, top_radius, bottom_radius, length, position, radius=None, name="Tail"
@@ -1280,7 +1280,7 @@ class Rocket:
             deployment_level=0,
             name=name,
         )
-        controller = Controller(
+        controller = _Controller(
             interactable_objects=air_brakes,
             controller_function=controller_function,
             sampling_rate=sampling_rate,
@@ -1288,7 +1288,7 @@ class Rocket:
             name=controller_name,
         )
         self.air_brakes.append(air_brakes)
-        self.add_controllers(controller)
+        self._add_controllers(controller)
         return air_brakes, controller
 
     def set_rail_buttons(

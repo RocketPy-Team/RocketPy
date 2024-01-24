@@ -1,4 +1,4 @@
-from rocketpy.control.controller import Controller
+from rocketpy.control.controller import _Controller
 from rocketpy.rocket.aero_surface import (
     AeroSurface,
     AirBrakes,
