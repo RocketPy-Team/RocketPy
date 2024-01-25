@@ -11,7 +11,12 @@ from ..mathutils.function import Function, funcify_method
 from ..mathutils.vector_matrix import Matrix, Vector
 from ..plots.flight_plots import _FlightPlots
 from ..prints.flight_prints import _FlightPrints
-from ..tools import find_closest
+from ..tools import (
+    find_closest,
+    quaternions_to_spin,
+    quaternions_to_precession,
+    quaternions_to_nutation,
+)
 
 
 class Flight:
@@ -2295,33 +2300,24 @@ class Flight:
     @funcify_method("Time (s)", "Precession Angle - ψ (°)", "spline", "constant")
     def psi(self):
         """Precession angle as a Function of time."""
-        psi = (180 / np.pi) * (
-            np.arctan2(self.e3[:, 1], self.e0[:, 1])
-            + np.arctan2(-self.e2[:, 1], -self.e1[:, 1])
-        )  # Precession angle
-        psi = np.column_stack([self.time, psi])  # Precession angle
-        return psi
+        psi = quaternions_to_precession(
+            self.e0.y_array, self.e1.y_array, self.e2.y_array, self.e3.y_array
+        )
+        return np.column_stack([self.time, psi])
 
     @funcify_method("Time (s)", "Spin Angle - φ (°)", "spline", "constant")
     def phi(self):
         """Spin angle as a Function of time."""
-        phi = (180 / np.pi) * (
-            np.arctan2(self.e3[:, 1], self.e0[:, 1])
-            - np.arctan2(-self.e2[:, 1], -self.e1[:, 1])
-        )  # Spin angle
-        phi = np.column_stack([self.time, phi])  # Spin angle
-        return phi
+        phi = quaternions_to_spin(
+            self.e0.y_array, self.e1.y_array, self.e2.y_array, self.e3.y_array
+        )
+        return np.column_stack([self.time, phi])
 
     @funcify_method("Time (s)", "Nutation Angle - θ (°)", "spline", "constant")
     def theta(self):
         """Nutation angle as a Function of time."""
-        theta = (
-            (180 / np.pi)
-            * 2
-            * np.arcsin(-((self.e1[:, 1] ** 2 + self.e2[:, 1] ** 2) ** 0.5))
-        )  # Nutation angle
-        theta = np.column_stack([self.time, theta])  # Nutation angle
-        return theta
+        theta = quaternions_to_nutation(self.e1.y_array, self.e2.y_array)
+        return np.column_stack([self.time, theta])
 
     # Fluid Mechanics variables
     # Freestream Velocity
