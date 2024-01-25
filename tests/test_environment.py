@@ -73,7 +73,7 @@ def test_wyoming_sounding_atmosphere(mock_show, example_env):
             pass
     assert example_env.all_info() == None
     assert abs(example_env.pressure(0) - 93600.0) < 1e-8
-    assert example_env.barometric_height(example_env.pressure(0)) == 722.0
+    assert abs(example_env.barometric_height(example_env.pressure(0)) - 722.0) < 1e-8
     assert abs(example_env.wind_velocity_x(0) - -2.9005178894925043) < 1e-8
     assert abs(example_env.temperature(100) - 291.75) < 1e-8
 
