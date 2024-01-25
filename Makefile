@@ -1,27 +1,32 @@
-test:
-	python -m pytest tests -vv
+pytest:
+	python3 -m pytest tests
 
-testfile:
-	python -m pytest tests/$(file) -vv
+pytest-slow:
+	python3 -m pytest tests -vv -m slow --runslow
 
-tests:
-	test
-
-coverage: 
-	python -m pytest --cov=rocketpy tests -vv
+coverage:
+	python3 -m pytest --cov=rocketpy tests
 
 coverage-report:
-	python -m pytest --cov=rocketpy tests -vv --cov-report html
+	python3 -m pytest --cov=rocketpy tests --cov-report html
 
-install: 
-	python -m pip install --upgrade pip
+install:
+	python3 -m pip install --upgrade pip
 	pip install -r requirements.txt
-	python setup.py install
+	pip install -r requirements-optional.txt
+	pip install -e .
 
-verify-lint:
-	flake8 --select BLK rocketpy
-	flake8 --select BLK test
+isort:
+	isort --profile black rocketpy/ tests/ docs/
 
-lint:
-	black rocketpy
-	black tests
+black:
+	black rocketpy/ tests/ docs/
+	
+pylint:
+	-pylint rocketpy tests --output=.pylint-report.txt
+
+biuld-docs:
+	cd docs
+	python3 -m pip install -r requirements.txt
+	make html
+	cd ..
