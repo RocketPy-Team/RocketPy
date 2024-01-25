@@ -25,7 +25,7 @@ black:
 pylint:
 	-pylint rocketpy tests --output=.pylint-report.txt
 
-biuld-docs:
+build-docs:
 	cd docs
 	python3 -m pip install -r requirements.txt
 	make html
