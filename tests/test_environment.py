@@ -44,7 +44,7 @@ def test_custom_atmosphere(mock_show, example_env):
     )
     assert example_env.all_info() == None
     assert abs(example_env.pressure(0) - 101325.0) < 1e-8
-    assert example_env.barometric_height(101325.0) < 1e-2
+    assert abs(example_env.barometric_height(101325.0)) < 1e-2
     assert abs(example_env.wind_velocity_x(0) - 5) < 1e-8
     assert abs(example_env.temperature(100) - 300) < 1e-8
 
