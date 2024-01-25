@@ -6,35 +6,12 @@ from bisect import bisect_left
 import pytz
 from cftime import num2pydate
 from packaging import version as packaging_version
+from functools import cached_property
 
 _NOT_FOUND = object()
 
 # Mapping of module name and the name of the package that should be installed
 INSTALL_MAPPING = {"IPython": "ipython"}
-
-
-class cached_property:
-    def __init__(self, func):
-        self.func = func
-        self.attrname = None
-        self.__doc__ = func.__doc__
-
-    def __set_name__(self, owner, name):
-        self.attrname = name
-
-    def __get__(self, instance, owner=None):
-        if instance is None:
-            return self
-        if self.attrname is None:
-            raise TypeError(
-                "Cannot use cached_property instance without calling __set_name__ on it."
-            )
-        cache = instance.__dict__
-        val = cache.get(self.attrname, _NOT_FOUND)
-        if val is _NOT_FOUND:
-            val = self.func(instance)
-            cache[self.attrname] = val
-        return val
 
 
 def tuple_handler(value):
