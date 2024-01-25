@@ -1260,8 +1260,6 @@ def func_2d_from_csv():
 
 
 ## Controller
-
-
 @pytest.fixture
 def controller_function():
     """Create a controller function that updates the air brakes deployment level
@@ -1307,3 +1305,17 @@ def controller_function():
                 air_brakes.set_deployment_level(new_deployment_level)
 
     return controller_function
+
+@pytest.fixture
+def lambda_quad_func():
+    """Create a lambda function based on a string.
+
+    Returns
+    -------
+    Function
+        A lambda function based on a string.
+    """
+    func = lambda x: x**2
+    return Function(
+        source=func,
+    )
