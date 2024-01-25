@@ -20,7 +20,7 @@ def test_standard_atmosphere(mock_show, example_env):
     assert example_env.info() == None
     assert example_env.all_info() == None
     assert abs(example_env.pressure(0) - 101325.0) < 1e-8
-    assert example_env.barometric_height(101325.0) < 1e-2
+    assert abs(example_env.barometric_height(101325.0)) < 1e-2
     assert example_env.prints.print_earth_details() == None
 
 
