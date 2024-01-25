@@ -8,6 +8,11 @@ import netCDF4
 import numpy as np
 import pytz
 
+try:
+    from functools import cached_property
+except ImportError:
+    from ..tools import cached_property
+
 from ..mathutils.function import Function
 from ..plots.environment_analysis_plots import _EnvironmentAnalysisPlots
 from ..prints.environment_analysis_prints import _EnvironmentAnalysisPrints
@@ -21,11 +26,6 @@ from ..tools import (
 )
 from ..units import convert_units
 from .environment import Environment
-
-try:
-    from functools import cached_property
-except ImportError:
-    from ..tools import cached_property
 
 # TODO: the average_wind_speed_profile_by_hour and similar methods could be more abstract than currently are
 
