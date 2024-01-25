@@ -1306,6 +1306,7 @@ def controller_function():
 
     return controller_function
 
+
 @pytest.fixture
 def lambda_quad_func():
     """Create a lambda function based on a string.
