@@ -3025,9 +3025,7 @@ class Environment:
             outputs="Pressure (Pa)",
         )
 
-        # Save international standard atmosphere height by pressure profile
-        # and discretize it. This is done to speed up the calculations in the
-        # trajectory simulation.
+        # Discretize Function to speed up the trajectory simulation.
         self.barometric_height_ISA = self.pressure_ISA.inverse_function().set_discrete(
             pressure[-1], pressure[0], 100, extrapolation="constant"
         )
