@@ -20,6 +20,7 @@ def test_standard_atmosphere(mock_show, example_env):
     assert example_env.info() == None
     assert example_env.all_info() == None
     assert abs(example_env.pressure(0) - 101325.0) < 1e-8
+    assert abs(example_env.barometric_height(101325.0)) < 1e-2
     assert example_env.prints.print_earth_details() == None
 
 
@@ -43,6 +44,7 @@ def test_custom_atmosphere(mock_show, example_env):
     )
     assert example_env.all_info() == None
     assert abs(example_env.pressure(0) - 101325.0) < 1e-8
+    assert abs(example_env.barometric_height(101325.0)) < 1e-2
     assert abs(example_env.wind_velocity_x(0) - 5) < 1e-8
     assert abs(example_env.temperature(100) - 300) < 1e-8
 
@@ -71,6 +73,7 @@ def test_wyoming_sounding_atmosphere(mock_show, example_env):
             pass
     assert example_env.all_info() == None
     assert abs(example_env.pressure(0) - 93600.0) < 1e-8
+    assert abs(example_env.barometric_height(example_env.pressure(0)) - 722.0) < 1e-8
     assert abs(example_env.wind_velocity_x(0) - -2.9005178894925043) < 1e-8
     assert abs(example_env.temperature(100) - 291.75) < 1e-8
 

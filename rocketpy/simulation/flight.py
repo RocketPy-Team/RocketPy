@@ -11,7 +11,12 @@ from ..mathutils.function import Function, funcify_method
 from ..mathutils.vector_matrix import Matrix, Vector
 from ..plots.flight_plots import _FlightPlots
 from ..prints.flight_prints import _FlightPrints
-from ..tools import find_closest
+from ..tools import (
+    find_closest,
+    quaternions_to_spin,
+    quaternions_to_precession,
+    quaternions_to_nutation,
+)
 
 
 class Flight:
@@ -697,10 +702,7 @@ class Flight:
                     parachute.noisy_pressure_signal.append([node.t, pressure + noise])
                     # Gets height above ground level considering noise
                     hAGL = (
-                        self.env.pressure.find_input(
-                            pressure + noise,
-                            self.y_sol[2],
-                        )
+                        self.env.barometric_height(pressure + noise)
                         - self.env.elevation
                     )
                     if parachute.triggerfunc(pressure + noise, hAGL, self.y_sol):
@@ -1006,10 +1008,7 @@ class Flight:
                                     )
                                     # Gets height above ground level considering noise
                                     hAGL = (
-                                        self.env.pressure.find_input(
-                                            pressure + noise,
-                                            overshootable_node.y[2],
-                                        )
+                                        self.env.barometric_height(pressure + noise)
                                         - self.env.elevation
                                     )
 
@@ -1065,6 +1064,7 @@ class Flight:
                                         )
 
         self.t_final = self.t
+        self._calculate_pressure_signal()
         if verbose:
             print("Simulation Completed at Time: {:3.4f} s".format(self.t))
 
@@ -2294,33 +2294,24 @@ class Flight:
     @funcify_method("Time (s)", "Precession Angle - ψ (°)", "spline", "constant")
     def psi(self):
         """Precession angle as a Function of time."""
-        psi = (180 / np.pi) * (
-            np.arctan2(self.e3[:, 1], self.e0[:, 1])
-            + np.arctan2(-self.e2[:, 1], -self.e1[:, 1])
-        )  # Precession angle
-        psi = np.column_stack([self.time, psi])  # Precession angle
-        return psi
+        psi = quaternions_to_precession(
+            self.e0.y_array, self.e1.y_array, self.e2.y_array, self.e3.y_array
+        )
+        return np.column_stack([self.time, psi])
 
     @funcify_method("Time (s)", "Spin Angle - φ (°)", "spline", "constant")
     def phi(self):
         """Spin angle as a Function of time."""
-        phi = (180 / np.pi) * (
-            np.arctan2(self.e3[:, 1], self.e0[:, 1])
-            - np.arctan2(-self.e2[:, 1], -self.e1[:, 1])
-        )  # Spin angle
-        phi = np.column_stack([self.time, phi])  # Spin angle
-        return phi
+        phi = quaternions_to_spin(
+            self.e0.y_array, self.e1.y_array, self.e2.y_array, self.e3.y_array
+        )
+        return np.column_stack([self.time, phi])
 
     @funcify_method("Time (s)", "Nutation Angle - θ (°)", "spline", "constant")
     def theta(self):
         """Nutation angle as a Function of time."""
-        theta = (
-            (180 / np.pi)
-            * 2
-            * np.arcsin(-((self.e1[:, 1] ** 2 + self.e2[:, 1] ** 2) ** 0.5))
-        )  # Nutation angle
-        theta = np.column_stack([self.time, theta])  # Nutation angle
-        return theta
+        theta = quaternions_to_nutation(self.e1.y_array, self.e2.y_array)
+        return np.column_stack([self.time, theta])
 
     # Fluid Mechanics variables
     # Freestream Velocity
@@ -3094,8 +3085,8 @@ class Flight:
             else:
                 for parachute in self.rocket.parachutes:
                     for t in time_points:
-                        p_cl = parachute.clean_pressure_signal(t)
-                        p_ns = parachute.noisy_pressure_signal(t)
+                        p_cl = parachute.clean_pressure_signal_function(t)
+                        p_ns = parachute.noisy_pressure_signal_function(t)
                         file.write(f"{t:f}, {p_cl:.5f}, {p_ns:.5f}\n")
                     # We need to save only 1 parachute data
                     break
