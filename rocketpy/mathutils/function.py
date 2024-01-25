@@ -11,7 +11,9 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+import csv
 from scipy import integrate, linalg, optimize
+from ..tools import data_preprocessing
 
 try:
     from functools import cached_property
@@ -207,10 +209,12 @@ class Function:
         if isinstance(source, (str, Path)):
             with open(source, "r") as file:
                 try:
-                    source = np.loadtxt(file, delimiter=",", dtype=float)
+                    source = np.loadtxt(file, delimiter=",")
                 except ValueError:
                     # If an error occurs, headers are present
-                    source = np.loadtxt(source, delimiter=",", dtype=float, skiprows=1)
+                    source = np.loadtxt(
+                        data_preprocessing(source), delimiter=",", dtype=np.float64
+                    )
                 except Exception as e:
                     raise ValueError(
                         "The source file is not a valid csv or txt file."
@@ -3028,10 +3032,12 @@ class Function:
             if isinstance(source, (str, Path)):
                 # Convert to numpy array
                 try:
-                    source = np.loadtxt(source, delimiter=",", dtype=float)
+                    source = np.loadtxt(source, delimiter=",", dtype=np.float64)
                 except ValueError:
-                    # Skip header
-                    source = np.loadtxt(source, delimiter=",", dtype=float, skiprows=1)
+                    # If an error occurs, there is a header
+                    source = np.loadtxt(
+                        data_preprocessing(source), delimiter=",", dtype=np.float64
+                    )
                 except Exception as e:
                     raise ValueError(
                         "The source file is not a valid csv or txt file."

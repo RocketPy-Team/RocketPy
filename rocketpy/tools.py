@@ -1,6 +1,7 @@
 import importlib
 import importlib.metadata
 import re
+import csv
 from bisect import bisect_left
 
 import pytz
@@ -379,6 +380,105 @@ def check_requirement_version(module_name, version):
             + f"version by running 'pip install {module_name}{version}'"
         )
     return True
+
+
+def is_float(element):
+    """
+    Returns a boolean indicating us if an element is convertible to a float or not.
+    True : the element is convertible to a float
+    False : the element is not convertible to a float
+
+    Parameters
+    ----------
+    element : any
+        This is the element to test.
+
+    Returns
+    -------
+    result : boolean
+        The element is convertible or not.
+    """
+    try:
+        float(element)
+        return True
+    except (ValueError, TypeError):
+        return False
+
+
+def return_first_data(source):
+    """
+    Returns the first data of a CSV file.
+
+    Parameters
+    ----------
+    source : string
+        This is the file path to the csv.
+
+    Returns
+    -------
+    result : any
+        The first data of the CSV file.
+    """
+    with open(source, "r") as native_data:
+        for row in native_data:
+            for value in row:
+                return value
+
+
+def if_header(source):
+    """
+    Returns if a CSV file has a header or not.
+    True : The CSV file has a header
+    False : The CSV file has no header
+
+    Parameters
+    ----------
+    source : string
+        This is the file path to the csv.
+
+    Returns
+    -------
+    result : boolean
+        The result of the CSV file containing a header or not.
+    """
+    return not is_float(return_first_data(source))
+
+
+def data_preprocessing(source):
+    """Clear data (in particular NaN objects) and returns a CSV file without header and its name.
+
+    Parameters
+    ----------
+    source : string
+        The file path to the CSV file.
+
+    Returns
+    -------
+    Function
+        The function with the incoming cleared CSV
+    """
+    output_path = "cleaned_data.csv"
+
+    with open(source, "r") as file:
+        reader = csv.reader(file)
+        header = next(reader)  # Read the header
+
+        data = [row for row in reader]
+
+    # Create a new list without the headers
+    data_no_headers = []
+
+    for row in data[1:]:
+        # Check if the row is not empty and if all values in the row can be converted to float
+        if row and all(is_float(value) for value in row):
+            data_no_headers.append(row)
+
+    # Save the processed data to a new CSV file
+    with open(output_path, "w", encoding="utf-8") as output_file:
+        writer = csv.writer(output_file, delimiter=",")
+        writer.writerows(data_no_headers)
+
+    return output_path
 
 
 if __name__ == "__main__":
