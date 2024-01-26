@@ -207,8 +207,7 @@ def test_add_fins_assert_cp_cm_plus_fins(calisto, dimensionless_calisto, m):
         1
         + np.sqrt(
             1
-            + (2 * np.sqrt((0.12 / 2 - 0.04 / 2) ** 2 + 0.1**2) / (0.120 + 0.040))
-            ** 2
+            + (2 * np.sqrt((0.12 / 2 - 0.04 / 2) ** 2 + 0.1**2) / (0.120 + 0.040)) ** 2
         )
     )
     clalpha *= 1 + calisto.radius / (0.1 + calisto.radius)

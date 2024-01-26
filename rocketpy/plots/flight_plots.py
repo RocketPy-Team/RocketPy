@@ -400,9 +400,11 @@ class _FlightPlots:
             )
             ax1.set_xlim(
                 0,
-                self.flight.out_of_rail_time
-                if self.flight.out_of_rail_time > 0
-                else self.flight.tFinal,
+                (
+                    self.flight.out_of_rail_time
+                    if self.flight.out_of_rail_time > 0
+                    else self.flight.tFinal
+                ),
             )
             ax1.legend()
             ax1.grid(True)
@@ -431,9 +433,11 @@ class _FlightPlots:
             )
             ax2.set_xlim(
                 0,
-                self.flight.out_of_rail_time
-                if self.flight.out_of_rail_time > 0
-                else self.flight.tFinal,
+                (
+                    self.flight.out_of_rail_time
+                    if self.flight.out_of_rail_time > 0
+                    else self.flight.tFinal
+                ),
             )
             ax2.legend()
             ax2.grid(True)
@@ -557,9 +561,11 @@ class _FlightPlots:
         )
         ax1.set_xlim(
             0,
-            self.flight.apogee_time
-            if self.flight.apogee_time != 0.0
-            else self.flight.t_final,
+            (
+                self.flight.apogee_time
+                if self.flight.apogee_time != 0.0
+                else self.flight.t_final
+            ),
         )
         ax1.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
         ax1.set_title("Kinetic Energy Components")
@@ -587,9 +593,11 @@ class _FlightPlots:
         )
         ax2.set_xlim(
             0,
-            self.flight.apogee_time
-            if self.flight.apogee_time != 0.0
-            else self.flight.t_final,
+            (
+                self.flight.apogee_time
+                if self.flight.apogee_time != 0.0
+                else self.flight.t_final
+            ),
         )
         ax2.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
         ax2.set_title("Total Mechanical Energy Components")
@@ -620,9 +628,11 @@ class _FlightPlots:
         )
         ax4.set_xlim(
             0,
-            self.flight.apogee_time
-            if self.flight.apogee_time != 0.0
-            else self.flight.t_final,
+            (
+                self.flight.apogee_time
+                if self.flight.apogee_time != 0.0
+                else self.flight.t_final
+            ),
         )
         ax3.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
         ax4.set_title("Drag Absolute Power")
