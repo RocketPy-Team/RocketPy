@@ -684,9 +684,9 @@ class Flight:
                 node.time_bound = phase.TimeNodes[node_index + 1].t
                 phase.solver.t_bound = node.time_bound
                 phase.solver._lsoda_solver._integrator.rwork[0] = phase.solver.t_bound
-                phase.solver._lsoda_solver._integrator.call_args[
-                    4
-                ] = phase.solver._lsoda_solver._integrator.rwork
+                phase.solver._lsoda_solver._integrator.call_args[4] = (
+                    phase.solver._lsoda_solver._integrator.rwork
+                )
                 phase.solver.status = "running"
 
                 # Feed required parachute and discrete controller triggers
@@ -1285,9 +1285,7 @@ class Flight:
         R3 = -0.5 * rho * (free_stream_speed**2) * self.rocket.area * (drag_coeff)
 
         # Calculate Linear acceleration
-        a3 = (R3 + thrust) / M - (
-            e0**2 - e1**2 - e2**2 + e3**2
-        ) * self.env.gravity(z)
+        a3 = (R3 + thrust) / M - (e0**2 - e1**2 - e2**2 + e3**2) * self.env.gravity(z)
         if a3 > 0:
             ax = 2 * (e1 * e3 + e0 * e2) * a3
             ay = 2 * (e2 * e3 - e0 * e1) * a3
@@ -1495,9 +1493,7 @@ class Flight:
                         0.5 * rho * (comp_stream_speed**2) * reference_area * c_lift
                     )
                     # component lift force components
-                    lift_dir_norm = (
-                        comp_stream_vx_b**2 + comp_stream_vy_b**2
-                    ) ** 0.5
+                    lift_dir_norm = (comp_stream_vx_b**2 + comp_stream_vy_b**2) ** 0.5
                     comp_lift_xb = comp_lift * (comp_stream_vx_b / lift_dir_norm)
                     comp_lift_yb = comp_lift * (comp_stream_vy_b / lift_dir_norm)
                     # add to total lift force
@@ -1791,9 +1787,7 @@ class Flight:
                         0.5 * rho * (comp_stream_speed**2) * reference_area * c_lift
                     )
                     # Component lift force components
-                    lift_dir_norm = (
-                        comp_stream_vx_b**2 + comp_stream_vy_b**2
-                    ) ** 0.5
+                    lift_dir_norm = (comp_stream_vx_b**2 + comp_stream_vy_b**2) ** 0.5
                     comp_lift_xb = comp_lift * (comp_stream_vx_b / lift_dir_norm)
                     comp_lift_yb = comp_lift * (comp_stream_vy_b / lift_dir_norm)
                     # Add to total lift force
@@ -1937,8 +1931,7 @@ class Flight:
         freestream_z = vz
         # Determine drag force
         pseudoD = (
-            -0.5 * rho * cd_s * free_stream_speed
-            - ka * rho * 4 * np.pi * (R**2) * Rdot
+            -0.5 * rho * cd_s * free_stream_speed - ka * rho * 4 * np.pi * (R**2) * Rdot
         )
         Dx = pseudoD * freestream_x
         Dy = pseudoD * freestream_y
@@ -2536,9 +2529,7 @@ class Flight:
         # Redefine total_mass time grid to allow for efficient Function algebra
         total_mass = deepcopy(self.rocket.total_mass)
         total_mass.set_discrete_based_on_model(self.vz)
-        translational_energy = (
-            0.5 * total_mass * (self.vx**2 + self.vy**2 + self.vz**2)
-        )
+        translational_energy = 0.5 * total_mass * (self.vx**2 + self.vy**2 + self.vz**2)
         return translational_energy
 
     @funcify_method("Time (s)", "Kinetic Energy (J)", "spline", "zero")
@@ -3465,19 +3456,23 @@ class Flight:
                 )
                 if flight_phase.t == previous_phase.t
                 else (
-                    "Trying to add flight phase starting *together* with the one *proceeding* it. ",
-                    "This may be caused by multiple parachutes being triggered simultaneously.",
-                )
-                if flight_phase.t == next_phase.t
-                else (
-                    "Trying to add flight phase starting *before* the one *preceding* it. ",
-                    "This may be caused by multiple parachutes being triggered simultaneously",
-                    " or by having a negative parachute lag.",
-                )
-                if flight_phase.t < previous_phase.t
-                else (
-                    "Trying to add flight phase starting *after* the one *proceeding* it.",
-                    "This may be caused by multiple parachutes being triggered simultaneously.",
+                    (
+                        "Trying to add flight phase starting *together* with the one *proceeding* it. ",
+                        "This may be caused by multiple parachutes being triggered simultaneously.",
+                    )
+                    if flight_phase.t == next_phase.t
+                    else (
+                        (
+                            "Trying to add flight phase starting *before* the one *preceding* it. ",
+                            "This may be caused by multiple parachutes being triggered simultaneously",
+                            " or by having a negative parachute lag.",
+                        )
+                        if flight_phase.t < previous_phase.t
+                        else (
+                            "Trying to add flight phase starting *after* the one *proceeding* it.",
+                            "This may be caused by multiple parachutes being triggered simultaneously.",
+                        )
+                    )
                 )
             )
             self.display_warning(*warning_msg)
@@ -3485,9 +3480,7 @@ class Flight:
             new_index = (
                 index - 1
                 if flight_phase.t < previous_phase.t
-                else index + 1
-                if flight_phase.t > next_phase.t
-                else index
+                else index + 1 if flight_phase.t > next_phase.t else index
             )
             flight_phase.t += adjust
             self.add(flight_phase, new_index)
