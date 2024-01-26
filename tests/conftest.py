@@ -1279,30 +1279,23 @@ def controller_function():
         z = state[2]
         vz = state[5]
         previous_vz = state_history[-1][5]
-        if time > 3.9:
-            if z < 1500:
-                air_brakes.set_deployment_level(0)
+        if time < 3.9:
+            return None
+        if z < 1500:
+            air_brakes.set_deployment_level(0)
+        else:
+            new_deployment_level = (
+                air_brakes.deployment_level + 0.1 * vz + 0.01 * previous_vz**2
+            )
+            if new_deployment_level > air_brakes.deployment_level + 0.2 / sampling_rate:
+                new_deployment_level = air_brakes.deployment_level + 0.2 / sampling_rate
+            elif (
+                new_deployment_level < air_brakes.deployment_level - 0.2 / sampling_rate
+            ):
+                new_deployment_level = air_brakes.deployment_level - 0.2 / sampling_rate
             else:
-                new_deployment_level = (
-                    air_brakes.deployment_level + 0.1 * vz + 0.01 * previous_vz**2
-                )
-                if (
-                    new_deployment_level
-                    > air_brakes.deployment_level + 0.2 / sampling_rate
-                ):
-                    new_deployment_level = (
-                        air_brakes.deployment_level + 0.2 / sampling_rate
-                    )
-                elif (
-                    new_deployment_level
-                    < air_brakes.deployment_level - 0.2 / sampling_rate
-                ):
-                    new_deployment_level = (
-                        air_brakes.deployment_level - 0.2 / sampling_rate
-                    )
-                else:
-                    new_deployment_level = air_brakes.deployment_level
-                air_brakes.set_deployment_level(new_deployment_level)
+                new_deployment_level = air_brakes.deployment_level
+            air_brakes.set_deployment_level(new_deployment_level)
 
     return controller_function
 

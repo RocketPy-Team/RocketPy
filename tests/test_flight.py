@@ -311,8 +311,8 @@ def test_air_brakes_flight(mock_show, flight_calisto_air_brakes):
     """
     test_flight = flight_calisto_air_brakes
     air_brakes = test_flight.rocket.air_brakes[0]
-    assert air_brakes.plots.all() == None
-    assert air_brakes.prints.all() == None
+    assert air_brakes.plots.all() is None
+    assert air_brakes.prints.all() is None
 
 
 @patch("matplotlib.pyplot.show")
