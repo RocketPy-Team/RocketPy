@@ -1,7 +1,8 @@
-from rocketpy import Environment, SolidMotor, Rocket, Flight, Function
-from scipy.signal import savgol_filter
 import numpy as np
 import pandas as pd
+from scipy.signal import savgol_filter
+
+from rocketpy import Environment, Flight, Function, Rocket, SolidMotor
 
 
 def test_ndrt_2020_rocket_data_asserts_acceptance():
@@ -16,10 +17,11 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     # Drift: 2275 ft
 
     # Importing libraries
-    from rocketpy import Environment, SolidMotor, Rocket, Flight, Function
-    from scipy.signal import savgol_filter
     import numpy as np
     import pandas as pd
+    from scipy.signal import savgol_filter
+
+    from rocketpy import Environment, Flight, Function, Rocket, SolidMotor
 
     # Defining all parameters
     parameters = {

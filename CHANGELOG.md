@@ -32,16 +32,54 @@ straightforward as possible.
 
 ### Added
 
--
+- ENH: Shepard Optimized Interpolation - Multiple Inputs Support [#515](https://github.com/RocketPy-Team/RocketPy/pull/515)
+- ENH: adds new Function.savetxt method [#514](https://github.com/RocketPy-Team/RocketPy/pull/514)
+- ENH: Argument for Optional Mutation on Function Discretize [#519](https://github.com/RocketPy-Team/RocketPy/pull/519)
 
 ### Changed
 
 - MNT: Add repr method to Parachute class [#490](https://github.com/RocketPy-Team/RocketPy/pull/490)
 - ENH: Function Reverse Arithmetic Priority [#488](https://github.com/RocketPy-Team/RocketPy/pull/488)
+- DOC: Update Header Related Docs
+- ENH Precalculate Barometric Height [#511](https://github.com/RocketPy-Team/RocketPy/pull/511)
+- MNT: Encapsulate quaternion conversions [#537](https://github.com/RocketPy-Team/RocketPy/pull/537)
+- MNT: improve the low pass filter and document an example [#538](https://github.com/RocketPy-Team/RocketPy/pull/538)
+
 
 ### Fixed
 
 - ENH: Parachute trigger doesn't work if "Apogee" is used instead of "apogee" [#489](https://github.com/RocketPy-Team/RocketPy/pull/489)
+- BUG: fin_flutter_analysis doesn't find any fin set [#510](https://github.com/RocketPy-Team/RocketPy/pull/510)
+- FIX: EmptyMotor is breaking the Rocket.draw() method [#516](https://github.com/RocketPy-Team/RocketPy/pull/516)
+- BUG: 3D trajectory plot not labeling axes [#533](https://github.com/RocketPy-Team/RocketPy/pull/533)
+- 
+
+## [v1.1.5] - 2024-01-21
+
+You can install this version by running `pip install rocketpy==1.1.5`
+
+### Fixed
+
+- BUG: Parachute Pressures not being Set before All Info. [#534](https://github.com/RocketPy-Team/RocketPy/pull/534)
+- BUG: Invalid Arguments on Two Dimensional Discretize. [#521](https://github.com/RocketPy-Team/RocketPy/pull/521)
+
+## [v1.1.4] - 2023-12-07
+
+You can install this version by running `pip install rocketpy==1.1.4`
+
+### Fixed
+
+- DOC: Change from % to ! in the first cell to run properly in Colab. [#496](https://github.com/RocketPy-Team/RocketPy/pull/496)
+- FIX: changes Generic Motor exhaust velocity to cached property [#497](https://github.com/RocketPy-Team/RocketPy/pull/497)
+
+## [v1.1.3] - 2023-11-30
+
+You can install this version by running `pip install rocketpy==1.1.3`
+
+### Fixed
+
+- FIX: Broken Function.get_value_opt for N-Dimensional Functions [#492](https://github.com/RocketPy-Team/RocketPy/pull/492)
+- FIX: Never ending Flight simulations when using a GenericMotor [#497](https://github.com/RocketPy-Team/RocketPy/pull/497)
 
 ## [v1.1.2] - 2023-11-25
 

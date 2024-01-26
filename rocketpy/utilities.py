@@ -217,7 +217,7 @@ def fin_flutter_analysis(
         The fin thickness, in meters
     shear_modulus : float
         Shear Modulus of fins' material, must be given in Pascal
-    flight : rocketpy.Flight
+    flight : Flight
         Flight object containing the rocket's flight data
     see_prints : boolean, optional
         True if you want to see the prints, False otherwise.
@@ -229,50 +229,50 @@ def fin_flutter_analysis(
     ------
     None
     """
+    found_fin = False
 
-    # First, we need identify if there is at least a fin set in the rocket
-    for aero_surface in flight.rocket.aerodynamic_surfaces:
+    # First, we need identify if there is at least one fin set in the rocket
+    for aero_surface in flight.rocket.fins:
         if isinstance(aero_surface, TrapezoidalFins):
             # s: surface area; ar: aspect ratio; la: lambda
             root_chord = aero_surface.root_chord
             s = (aero_surface.tip_chord + root_chord) * aero_surface.span / 2
             ar = aero_surface.span * aero_surface.span / s
             la = aero_surface.tip_chord / root_chord
+            if not found_fin:
+                found_fin = True
+            else:
+                warnings.warn("More than one fin set found. The last one will be used.")
+    if not found_fin:
+        raise AttributeError(
+            "There is no TrapezoidalFins in the rocket, can't run Flutter Analysis."
+        )
 
-    # This ensures that a fin set was found in the rocket, if not, break
-    try:
-        s = s
-    except NameError:
-        print("There is no fin set in the rocket, can't run a Flutter Analysis.")
-        return None
+    # Calculate variables
+    flutter_mach = _flutter_mach_number(
+        fin_thickness, shear_modulus, flight, root_chord, ar, la
+    )
+    safety_factor = _flutter_safety_factor(flight, flutter_mach)
 
-    # Calculate the Fin Flutter Mach Number
+    # Prints and plots
+    if see_prints:
+        _flutter_prints(
+            fin_thickness, shear_modulus, s, ar, la, flutter_mach, safety_factor, flight
+        )
+    if see_graphs:
+        _flutter_plots(flight, flutter_mach, safety_factor)
+    else:
+        return flutter_mach, safety_factor
+
+
+def _flutter_mach_number(fin_thickness, shear_modulus, flight, root_chord, ar, la):
     flutter_mach = (
         (shear_modulus * 2 * (ar + 2) * (fin_thickness / root_chord) ** 3)
         / (1.337 * (ar**3) * (la + 1) * flight.pressure)
     ) ** 0.5
-
-    safety_factor = _flutter_safety_factor(flight, flutter_mach)
-
-    # Prints everything
-    if see_prints:
-        _flutter_prints(
-            fin_thickness,
-            shear_modulus,
-            s,
-            ar,
-            la,
-            flutter_mach,
-            safety_factor,
-            flight,
-        )
-
-    # Plots everything
-    if see_graphs:
-        _flutter_plots(flight, flutter_mach, safety_factor)
-        return None
-    else:
-        return flutter_mach, safety_factor
+    flutter_mach.set_title("Fin Flutter Mach Number")
+    flutter_mach.set_outputs("Mach")
+    return flutter_mach
 
 
 def _flutter_safety_factor(flight, flutter_mach):
@@ -291,25 +291,9 @@ def _flutter_safety_factor(flight, flutter_mach):
     rocketpy.Function
         The safety factor for the fin flutter analysis.
     """
-    safety_factor = [[t, 0] for t in flutter_mach[:, 0]]
-    for i in range(len(flutter_mach)):
-        try:
-            safety_factor[i][1] = flutter_mach[i][1] / flight.mach_number[i][1]
-        except ZeroDivisionError:
-            safety_factor[i][1] = np.nan
-
-    # Function needs to remove NaN and Inf values from the source
-    safety_factor = np.array(safety_factor)
-    safety_factor = safety_factor[~np.isnan(safety_factor).any(axis=1)]
-    safety_factor = safety_factor[~np.isinf(safety_factor).any(axis=1)]
-
-    safety_factor = Function(
-        source=safety_factor,
-        inputs="Time (s)",
-        outputs="Fin Flutter Safety Factor",
-        interpolation="linear",
-    )
-
+    safety_factor = flutter_mach / flight.mach_number
+    safety_factor.set_title("Fin Flutter Safety Factor")
+    safety_factor.set_outputs("Safety Factor")
     return safety_factor
 
 
@@ -331,7 +315,8 @@ def _flutter_plots(flight, flutter_mach, safety_factor):
     -------
     None
     """
-    fig = plt.figure(figsize=(6, 6))
+    # TODO: move to rocketpy.plots submodule
+    _ = plt.figure(figsize=(6, 6))
     ax1 = plt.subplot(211)
     ax1.plot(
         flutter_mach[:, 0],
@@ -361,8 +346,6 @@ def _flutter_plots(flight, flutter_mach, safety_factor):
 
     plt.subplots_adjust(hspace=0.5)
     plt.show()
-
-    return None
 
 
 def _flutter_prints(
@@ -404,6 +387,7 @@ def _flutter_prints(
     -------
     None
     """
+    # TODO: move to rocketpy.prints submodule
     time_index = np.argmin(flutter_mach[:, 1])
     time_min_mach = flutter_mach[time_index, 0]
     min_mach = flutter_mach[time_index, 1]
@@ -426,8 +410,6 @@ def _flutter_prints(
     print(f"Minimum Fin Flutter Mach Number: {min_mach:.3f} ")
     print(f"Minimum Safety Factor: {min_sf:.3f} at {time_min_sf:.2f} s")
     print(f"Altitude of minimum Safety Factor: {altitude_min_sf:.3f} m (AGL)\n")
-
-    return None
 
 
 def create_dispersion_dictionary(filename):
