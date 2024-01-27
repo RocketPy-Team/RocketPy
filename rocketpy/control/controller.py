@@ -10,7 +10,7 @@ class _Controller:
 
     def __init__(
         self,
-        interactable_objects,
+        interactive_objects,
         controller_function,
         sampling_rate,
         initial_observed_variables=None,
@@ -21,7 +21,7 @@ class _Controller:
 
         Parameters
         ----------
-        interactable_objects : list or object
+        interactive_objects : list or object
             A collection of objects that the controller function can access and
             potentially modify. This can be either a list of objects or a single
             object. The objects listed here are provided to the controller function
@@ -48,13 +48,13 @@ class _Controller:
                function call is appended to the observed_variables list. The
                initial value in the first step of the simulation of this list is
                provided by the `initial_observed_variables` argument.
-            6. `interactable_objects` (list): A list containing the objects that
+            6. `interactive_objects` (list): A list containing the objects that
                the controller function can interact with. The objects are
                listed in the same order as they are provided in the
-               `interactable_objects`.
+               `interactive_objects`.
 
             This function will be called during the simulation at the specified
-            sampling rate. The function should evaluate and change the interactable
+            sampling rate. The function should evaluate and change the interactive
             objects as needed. The function return statement can be used to save
             relevant information in the `observed_variables` list.
 
@@ -77,7 +77,7 @@ class _Controller:
         -------
         None
         """
-        self.interactable_objects = interactable_objects
+        self.interactive_objects = interactive_objects
         self.controller_function = controller_function
         self.sampling_rate = sampling_rate
         self.name = name
@@ -115,7 +115,7 @@ class _Controller:
             state_vector,
             state_history,
             self.observed_variables,
-            self.interactable_objects,
+            self.interactive_objects,
         )
         if observed_variables is not None:
             self.observed_variables.append(observed_variables)

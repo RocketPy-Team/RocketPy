@@ -1222,10 +1222,10 @@ class Rocket:
                the controller function returns. The initial value in the first
                step of the simulation of this list is provided by the
                `initial_observed_variables` argument.
-            6. `interactable_objects` (list): A list containing the objects that
+            6. `interactive_objects` (list): A list containing the objects that
                the controller function can interact with. The objects are
                listed in the same order as they are provided in the
-               `interactable_objects`
+               `interactive_objects`
 
             This function will be called during the simulation at the specified
             sampling rate. The function should evaluate and change the observed
@@ -1285,7 +1285,7 @@ class Rocket:
             name=name,
         )
         _controller = _Controller(
-            interactable_objects=air_brakes,
+            interactive_objects=air_brakes,
             controller_function=controller_function,
             sampling_rate=sampling_rate,
             initial_observed_variables=initial_observed_variables,

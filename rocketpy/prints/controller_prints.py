@@ -43,15 +43,15 @@ class _ControllerPrints:
             )
         print(f"Controller refresh rate: {self.controller.sampling_rate:.3f} Hz")
 
-    def interactable_objects(self):
-        """Prints interactable objects."""
-        print("Interactable Objects")
+    def interactive_objects(self):
+        """Prints interactive objects."""
+        print("interactive Objects")
         # check if is list
-        if isinstance(self.controller.interactable_objects, list):
-            for obj in self.controller.interactable_objects:
+        if isinstance(self.controller.interactive_objects, list):
+            for obj in self.controller.interactive_objects:
                 print(getattr(obj, "name", str(obj)))
         else:
-            obj = self.controller.interactable_objects
+            obj = self.controller.interactive_objects
             print(getattr(obj, "name", str(obj)))
 
     def all(self):
@@ -65,4 +65,4 @@ class _ControllerPrints:
         print("\nController Details\n")
         print(self.controller)
         self.controller_function()
-        self.interactable_objects()
+        self.interactive_objects()
