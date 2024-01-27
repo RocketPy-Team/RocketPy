@@ -1920,7 +1920,7 @@ class AirBrakes(AeroSurface):
         drag_coefficient_curve,
         reference_area,
         clamp=True,
-        substitute_rocket_drag_coefficient=False,
+        override_rocket_drag=False,
         deployment_level=0,
         name="AirBrakes",
     ):
@@ -1931,7 +1931,7 @@ class AirBrakes(AeroSurface):
         drag_coefficient_curve : int, float, callable, array, string, Function
             This parameter represents the drag coefficient associated with the
             air brakes and/or the entire rocket, depending on the value of
-            ``substitute_rocket_drag_coefficient``.
+            ``override_rocket_drag``.
 
             - If a constant, it should be an integer or a float representing a
               fixed drag coefficient value.
@@ -1948,7 +1948,7 @@ class AirBrakes(AeroSurface):
             - If a Function, it must take two parameters: deployment level and
               Mach number, and return the drag coefficient.
 
-            .. note:: For ``substitute_rocket_drag_coefficient = False``, at
+            .. note:: For ``override_rocket_drag = False``, at
                 deployment level 0, the drag coefficient is assumed to be 0,
                 independent of the input drag coefficient curve. This means that
                 the simulation always considers that at a deployment level of 0,
@@ -1963,7 +1963,7 @@ class AirBrakes(AeroSurface):
             the deployment level is out of bounds. If False, the simulation will
             not clamp the deployment level and will instead raise a warning if
             the deployment level is out of bounds. Default is True.
-        substitute_rocket_drag_coefficient : bool, optional
+        override_rocket_drag : bool, optional
             If False, the air brakes drag coefficient will be added to the
             rocket's power off drag coefficient curve. If True, during the
             simulation, the rocket's power off drag will be ignored and the air
@@ -1988,7 +1988,7 @@ class AirBrakes(AeroSurface):
         )
         self.reference_area = reference_area
         self.clamp = clamp
-        self.substitute_rocket_drag_coefficient = substitute_rocket_drag_coefficient
+        self.override_rocket_drag = override_rocket_drag
         self._deployment_level = deployment_level
         self.prints = _AirBrakesPrints(self)
         self.plots = _AirBrakesPlots(self)

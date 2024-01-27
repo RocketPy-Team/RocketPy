@@ -1167,7 +1167,7 @@ class Rocket:
         clamp=True,
         reference_area=None,
         initial_observed_variables=None,
-        substitute_rocket_drag_coefficient=False,
+        override_rocket_drag=False,
         return_controller=False,
         name="AirBrakes",
         controller_name="AirBrakes Controller",
@@ -1180,7 +1180,7 @@ class Rocket:
         drag_coefficient_curve : int, float, callable, array, string, Function
             This parameter represents the drag coefficient associated with the
             air brakes and/or the entire rocket, depending on the value of
-            ``substitute_rocket_drag_coefficient``.
+            ``override_rocket_drag``.
 
             - If a constant, it should be an integer or a float representing a
               fixed drag coefficient value.
@@ -1197,7 +1197,7 @@ class Rocket:
             - If a Function, it must take two parameters: deployment level and
               Mach number, and return the drag coefficient.
 
-            .. note:: For ``substitute_rocket_drag_coefficient = False``, at
+            .. note:: For ``override_rocket_drag = False``, at
                 deployment level 0, the drag coefficient is assumed to be 0,
                 independent of the input drag coefficient curve. This means that
                 the simulation always considers that at a deployment level of 0,
@@ -1251,7 +1251,7 @@ class Rocket:
             function returns. This list is used to initialize the
             `observed_variables` argument of the controller function. The
             default value is None, which initializes the list as an empty list.
-        substitute_rocket_drag_coefficient : bool, optional
+        override_rocket_drag : bool, optional
             If False, the air brakes drag coefficient will be added to the
             rocket's power off drag coefficient curve. If True, during the
             simulation, the rocket's power off drag will be ignored and the air
@@ -1280,7 +1280,7 @@ class Rocket:
             drag_coefficient_curve=drag_coefficient_curve,
             reference_area=reference_area,
             clamp=clamp,
-            substitute_rocket_drag_coefficient=substitute_rocket_drag_coefficient,
+            override_rocket_drag=override_rocket_drag,
             deployment_level=0,
             name=name,
         )

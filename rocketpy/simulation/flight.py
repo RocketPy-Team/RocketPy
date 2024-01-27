@@ -1442,7 +1442,7 @@ class Flight:
                     * air_brakes.reference_area
                     * air_brakes_cd
                 )
-                if air_brakes.substitute_rocket_drag_coefficient:
+                if air_brakes.override_rocket_drag:
                     R3 = air_brakes_force  # Substitutes rocket drag coefficient
                 else:
                     R3 += air_brakes_force
@@ -1741,7 +1741,7 @@ class Flight:
                     * air_brakes.reference_area
                     * air_brakes_cd
                 )
-                if air_brakes.substitute_rocket_drag_coefficient:
+                if air_brakes.override_rocket_drag:
                     R3 = air_brakes_force  # Substitutes rocket drag coefficient
                 else:
                     R3 += air_brakes_force
