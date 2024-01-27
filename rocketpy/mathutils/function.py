@@ -98,7 +98,6 @@ class Function:
         (II) Fields in CSV files may be enclosed in double quotes. If fields are
         not quoted, double quotes should not appear inside them.
         """
-        # Set input and output
         if inputs is None:
             inputs = ["Scalar"]
         if outputs is None:
@@ -3018,7 +3017,7 @@ class Function:
         if isinstance(inputs, str):
             inputs = [inputs]
 
-        elif len(outputs) > 1:
+        if len(outputs) > 1:
             raise ValueError(
                 "Output must either be a string or have dimension 1, "
                 + f"it currently has dimension ({len(outputs)})."
@@ -3035,8 +3034,16 @@ class Function:
                 try:
                     source = np.loadtxt(source, delimiter=",", dtype=float)
                 except ValueError:
-                    # Skip header
-                    source = np.loadtxt(source, delimiter=",", dtype=float, skiprows=1)
+                    with open(source, "r") as file:
+                        header, *data = file.read().splitlines()
+                    header = [
+                        label.strip("'").strip('"') for label in header.split(",")
+                    ]
+                    if inputs == ["Scalar"]:
+                        inputs = header[:-1]
+                    if outputs == ["Scalar"]:
+                        outputs = [header[-1]]
+                    source = np.loadtxt(data, delimiter=",", dtype=float)
                 except Exception as e:
                     raise ValueError(
                         "The source file is not a valid csv or txt file."
@@ -3054,7 +3061,7 @@ class Function:
 
             ## single dimension
             if source_dim == 2:
-                # possible interpolation values: llinear, polynomial, akima and spline
+                # possible interpolation values: linear, polynomial, akima and spline
                 if interpolation is None:
                     interpolation = "spline"
                 elif interpolation.lower() not in [
@@ -3105,7 +3112,7 @@ class Function:
             in_out_dim = len(inputs) + len(outputs)
             if source_dim != in_out_dim:
                 raise ValueError(
-                    "Source dimension ({source_dim}) does not match input "
+                    f"Source dimension ({source_dim}) does not match input "
                     + f"and output dimension ({in_out_dim})."
                 )
         return inputs, outputs, interpolation, extrapolation
