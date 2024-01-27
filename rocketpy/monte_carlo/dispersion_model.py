@@ -49,6 +49,7 @@ class DispersionModel:
             If the input arguments do not conform to the specified formats.
         """
         self.object = object
+        self.last_rnd_dict = {}
 
         for input_name, input_value in kwargs.items():
             if input_name not in self.exception_list:

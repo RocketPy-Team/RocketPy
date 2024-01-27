@@ -22,111 +22,109 @@ from rocketpy.tools import (
 
 
 class Dispersion:
-    """
-    This class is used to perform Monte Carlo analysis on the rocket's flight
-    trajectory. It is used to predict the probability distributions of the
-    rocket's landing point, apogee and other relevant information.
+    """Class to run a Monte Carlo simulation of a rocket flight.
 
     Attributes
     ----------
-    Dispersion.filename: string
-        When running a new simulation, this parameter represents the initial
-        part of the export filenames (e.g. 'filename.disp_outputs.txt'). When
-        analyzing the results of a previous simulation, this parameter shall be
-        the .txt filename containing the outputs of a previous ran dispersion
+    filename : str
+        When running a new simulation, this parameter represents the
+        initial part of the export filenames. For example, if the value
+        is 'filename', the exported output files will be named
+        'filename.disp_outputs.txt'. When analyzing the results of a
+        previous simulation, this parameter should be set to the .txt
+        file containing the outputs of the previous dispersion
         analysis.
-    Dispersion.environment: McEnvironment
-        The environment in which the rocket will be launched.
-    Dispersion.rocket: McRocket
-        The rocket to be launched.
-    Dispersion.flight: McFlight
-        The flight conditions of the rocket.
-    Dispersion.motors: list of McMotor
-        The motors to be used in the rocket during the Flight.
-    Dispersion.nosecones : list of McNosecone
-        The nosecones to be used in the rocket during the Flight.
-    Dispersion.fins : list of McTrapezoidalFins or McEllipticalFins
-        The fins to be used in the rocket during the Flight.
-    Dispersion.tails : list of McTail objects
-        The tails to be used in the rocket during the Flight.
-    Dispersion.parachutes :  list of McParachute objects
-        The parachutes to be used in the rocket during the Flight.
-    Dispersion.rail_buttons : list of McRailButtons objects
-        The rail buttons to be used in the rocket during the Flight. Usually
-        only one object will be present in this list.
-    Dispersion.number_of_simulations : int
-        Number of simulations to be performed in the run_dispersion() method.
-    Dispersion.dispersion_dictionary : dict
-        Dictionary containing the parameters to be used in the Monte Carlo
-        simulations.
-    Dispersion.export_list : list
-        List of parameters to be exported from each flight in the Monte Carlo
-        loop.
-    Dispersion.input_file : str
-        String containing the filepath of the input file created during the
-        simulation or that was imported.
-    Dispersion.output_file : str
-        String containing the filepath of the output file created during the
-        simulation or that was imported.
-    Dispersion.error_file : str
-        String containing the filepath of the error file created during the
-        simulation or that was imported.
-    Dispersion.inputs_log : list
-        List in which each item is a line of the input_file.
-    Dispersion.outputs_log : list
-        List in which each item is a line of the output_file.
-    Dispersion.errors_log : list
-        List in which each item is a line of the error_file.
-    Dispersion.num_of_loaded_sims : int
+    environment : StochasticEnvironment
+        The stochastic environment object to be iterated over.
+    rocket : StochasticRocket
+        The stochastic rocket object to be iterated over.
+    flight : StochasticFlight
+        The stochastic flight object to be iterated over.
+    export_list : list
+        The list of variables to export. If None, the default list will
+        be used. Default is None. # TODO: improve docs to explain the
+        default list, and what can be exported.
+    inputs_log : list
+        List of dictionaries with the inputs used in each simulation.
+    outputs_log : list
+        List of dictionaries with the outputs of each simulation.
+    errors_log : list
+        List of dictionaries with the errors of each simulation.
+    num_of_loaded_sims : int
         Number of simulations loaded from output_file being currently used.
-    Dispersion.results : dict
-        A dictionary containing all the output parameters saved from the flight
-        simulations.
-    Dispersion.processed_results : dict
-        Dictionary containing (mean, std. dev.) for each parameter available
-        in the dispersion dictionary.
+    results : dict
+        Dispersion results organized in a dictionary where the keys are the
+        names of the saved attributes, and the values are a list with all the
+        result number of the respective attribute
+    processed_results : dict
+        Creates a dictionary with the mean and standard deviation of each
+        parameter available in the results
+    prints : _DispersionPrints
+        Object with methods to print information about the dispersion
+        simulation.
+    plot : _DispersionPlots
+        Object with methods to plot information about the dispersion
+        simulation.
+    _inputs_dict : dict
+        Dictionary with the inputs of the last simulation.
+    _last_print_len : int
+        Used to print on the same line.
+    _input_file : str
+        String containing the filepath of the input file
+    _output_file : str
+        String containing the filepath of the output file
+    _error_file : str
+        String containing the filepath of the error file
+    _number_of_simulations : int
+        Number of simulations to be run, must be non-negative.
+    _iteration_count : int
+        Number of simulations already run.
+    _start_time : float
+        Time when the simulation started.
+    _start_cpu_time : float
+        CPU time when the simulation started.
+    _input_file : str
+        String containing the filepath of the input file
+    _output_file : str
+        String containing the filepath of the output file
+    _error_file : str
+        String containing the filepath of the error file
     """
 
-    def __init__(
-        self,
-        filename,
-        environment,
-        rocket,
-        flight,
-    ):
-        """Constructor of the Dispersion class.
+    def __init__(self, filename, environment, rocket, flight, export_list=None):
+        """
+        Initialize a Dispersion object.
 
         Parameters
         ----------
-        filename: string
-            When running a new simulation, this parameter represents the initial
-            part of the export filenames (e.g. 'filename.disp_outputs.txt').
-            When analyzing the results of a previous simulation, this parameter
-            shall be the .txt filename containing the outputs of a previous ran
-            dispersion analysis.
-        environment: McEnvironment
-            The environment in which the rocket will be launched.
-        rocket: McRocket
-            The rocket to be launched.
-        flight: McFlight
-            The flight conditions of the rocket.
+        filename : str
+            When running a new simulation, this parameter represents the
+            initial part of the export filenames. For example, if the value
+            is 'filename', the exported output files will be named
+            'filename.disp_outputs.txt'. When analyzing the results of a
+            previous simulation, this parameter should be set to the .txt
+            file containing the outputs of the previous dispersion
+            analysis.
+        environment : StochasticEnvironment
+            The stochastic environment object to be iterated over.
+        rocket : StochasticRocket
+            The stochastic rocket object to be iterated over.
+        flight : StochasticFlight
+            The stochastic flight object to be iterated over.
+        export_list : list, optional
+            The list of variables to export. If None, the default list will
+            be used. Default is None. # TODO: improve docs to explain the
+            default list, and what can be exported.
 
         Returns
         -------
         None
         """
-
         # Save and initialize parameters
         self.filename = filename
         self.environment = environment
         self.rocket = rocket
         self.flight = flight
-        self.motors = rocket.motors
-        self.nosecones = rocket.nosecones
-        self.fins = rocket.fins
-        self.tails = rocket.tails
-        self.parachutes = rocket.parachutes
-        self.rail_buttons = rocket.rail_buttons
         self.export_list = []
         self.inputs_log = []
         self.outputs_log = []
@@ -136,6 +134,11 @@ class Dispersion:
         self.processed_results = {}
         self.prints = _DispersionPrints(self)
         self.plots = _DispersionPlots(self)
+        self._inputs_dict = {}
+        self._last_print_len = 0  # used to print on the same line
+
+        # Checks export_list
+        self.export_list = self.__check_export_list(export_list)
 
         try:
             self.import_inputs()
@@ -153,9 +156,260 @@ class Dispersion:
             self._error_file = f"{filename}.disp_errors.txt"
 
         # TODO: Initialize variables so they can be accessed by MATLAB
-        return None
 
-    # getters and setters for dispersion input/output/error files
+    # TODO move export_list to init
+    def run_dispersion(self, number_of_simulations, append=False):
+        """
+        Runs the dispersion simulation and saves all data.
+
+        Parameters
+        ----------
+        number_of_simulations : int
+            Number of simulations to be run, must be non-negative.
+        append : bool, optional
+            If True, the results will be appended to the existing files. If
+            False, the files will be overwritten. Default is False.
+
+        Returns
+        -------
+        None
+        """
+        # Create data files for inputs, outputs and error logging
+        open_mode = "a" if append else "w"
+        input_file = open(self._input_file, open_mode, encoding="utf-8")
+        output_file = open(self._output_file, open_mode, encoding="utf-8")
+        error_file = open(self._error_file, open_mode, encoding="utf-8")
+
+        # initialize counters
+        self.number_of_simulations = number_of_simulations
+        self.iteration_count = self.num_of_loaded_sims if append else 0
+        self.start_time = time()
+        self.start_cpu_time = process_time()
+
+        # Begin display
+        print("Starting monte carlo analysis", end="\r")
+
+        try:
+            while self.iteration_count < self.number_of_simulations:
+                self.__run_single_simulation(input_file, output_file)
+        except (TypeError, ValueError, KeyError, AttributeError) as error:
+            print(f"Error on iteration {self.iteration_count}: {error}")
+            error_file.write(f"{self._inputs_dict}\n")
+            self.__close_files(input_file, output_file, error_file)
+            raise error
+        except KeyboardInterrupt:
+            print("Keyboard Interrupt, files saved.")
+            error_file.write(f"{self._inputs_dict}\n")
+            self.__close_files(input_file, output_file, error_file)
+
+        self.__finalize_simulation(input_file, output_file, error_file)
+
+    def __run_single_simulation(self, input_file, output_file):
+        """Runs a single simulation and saves the inputs and outputs to the
+        respective files."""
+        # Update iteration count
+        self.iteration_count += 1
+        # Run trajectory simulation
+        dispersion_flight = Flight(
+            rocket=self.rocket.create_object(),
+            environment=self.environment.create_object(),
+            rail_length=self.flight._randomize_rail_length(),
+            inclination=self.flight._randomize_inclination(),
+            heading=self.flight._randomize_heading(),
+            initial_solution=self.flight.initial_solution,
+            terminate_on_apogee=self.flight.terminate_on_apogee,
+        )
+
+        self._inputs_dict = dict(
+            item
+            for d in [
+                self.environment.last_rnd_dict,
+                self.rocket.last_rnd_dict,
+                self.flight.last_rnd_dict,
+            ]
+            for item in d.items()
+        )
+
+        # Export inputs and outputs to file
+        self.__export_flight_data(
+            flight=dispersion_flight,
+            inputs_dict=self._inputs_dict,
+            input_file=input_file,
+            output_file=output_file,
+        )
+
+        self.__reprint(
+            f"Current iteration: {self.iteration_count:06d} | "
+            f"Average Time per Iteration: {((process_time() - self.start_cpu_time) / self.iteration_count):2.6f} s | "
+            f"Estimated time left: {int((self.number_of_simulations - self.iteration_count) * ((process_time() - self.start_cpu_time) / self.iteration_count))} s",
+            end="\r",
+            flush=True,
+        )
+
+    def __close_files(self, input_file, output_file, error_file):
+        """Closes all the files."""
+        input_file.close()
+        output_file.close()
+        error_file.close()
+
+    def __finalize_simulation(self, input_file, output_file, error_file):
+        """Finalizes the simulation, closes the files and prints the results."""
+        final_string = (
+            f"Completed {self.iteration_count} iterations. Total CPU time: "
+            f"{process_time() - self.start_cpu_time:.1f} s. Total wall time: "
+            f"{time() - self.start_time:.1f} s\n"
+        )
+
+        self.__reprint(final_string + f"Saving results.", flush=True)
+
+        # close files to guarantee saving
+        self.__close_files(input_file, output_file, error_file)
+
+        # resave the files on self and calculate post simulation attributes
+        self.input_file = f"{self.filename}.disp_inputs.txt"
+        self.output_file = f"{self.filename}.disp_outputs.txt"
+        self.error_file = f"{self.filename}.disp_errors.txt"
+
+        print(f"Results saved to {self._output_file}")
+
+    def __export_flight_data(
+        self,
+        flight,
+        inputs_dict,
+        input_file,
+        output_file,
+    ):
+        """Exports the flight data to the respective files."""
+        # Construct the dict with the results from the flight
+        results = {}
+        for export_item in self.export_list:
+            # if attribute is function, get source
+            # TODO: check if there is a better way to do this
+            attr = getattr(flight, export_item)
+            if isinstance(attr, Function):
+                results[export_item] = list(attr.source)
+            else:
+                results[export_item] = getattr(flight, export_item)
+
+        # Write flight setting and results to file
+        input_file.write(f"{inputs_dict}\n")
+        output_file.write(f"{results}\n")
+
+    def __check_export_list(self, export_list):
+        """Checks if the export_list is valid and returns a valid list. If no
+        export_list is provided, the default list is used."""
+        standard_output = (
+            "apogee",
+            "apogee_time",
+            "apogee_x",
+            "apogee_y",
+            "apogee_freestream_speed",
+            "t_final",
+            "x_impact",
+            "y_impact",
+            "impact_velocity",
+            # "initial_static_margin",
+            # "final_static_margin",
+            # "out_of_rail_static_margin",
+            "out_of_rail_time",
+            "out_of_rail_velocity",
+            "max_speed",
+            "max_mach_number",
+            "max_acceleration",
+            "frontal_surface_wind",
+            "lateral_surface_wind",
+        )
+        exportables = (
+            "inclination",
+            "heading",
+            "effective1rl",
+            "effective2rl",
+            "out_of_rail_time",
+            "out_of_rail_time_index",
+            "out_of_rail_state",
+            "out_of_rail_velocity",
+            "rail_button1_normal_force",
+            "max_rail_button1_normal_force",
+            "rail_button1_shear_force",
+            "max_rail_button1_shear_force",
+            "rail_button2_normal_force",
+            "max_rail_button2_normal_force",
+            "rail_button2_shear_force",
+            "max_rail_button2_shear_force",
+            "out_of_rail_static_margin",
+            "apogee_state",
+            "apogee_time",
+            "apogee_x",
+            "apogee_y",
+            "apogee",
+            "x_impact",
+            "y_impact",
+            "z_impact",
+            "impact_velocity",
+            "impact_state",
+            "parachute_events",
+            "apogee_freestream_speed",
+            "final_static_margin",
+            "frontal_surface_wind",
+            "initial_static_margin",
+            "lateral_surface_wind",
+            "max_acceleration",
+            "max_acceleration_time",
+            "max_dynamic_pressure_time",
+            "max_dynamic_pressure",
+            "max_mach_number_time",
+            "max_mach_number",
+            "max_reynolds_number_time",
+            "max_reynolds_number",
+            "max_speed_time",
+            "max_speed",
+            "max_total_pressure_time",
+            "max_total_pressure",
+            "t_final",
+        )
+        if export_list:
+            for attr in export_list:
+                if not isinstance(attr, str):
+                    raise TypeError("Variables in export_list must be strings.")
+
+                # Checks if attribute is not valid
+                if attr not in exportables:
+                    raise ValueError(
+                        "Attribute can not be exported. Check export_list."
+                    )
+        else:
+            # No export list provided, using default list instead.
+            export_list = standard_output
+
+        return export_list
+
+    def __reprint(self, msg, end="\n", flush=False):
+        """Prints a message on the same line as the previous one and replaces
+        the previous message with the new one, deleting the extra characters
+        from the previous message.
+
+        Parameters
+        ----------
+        msg : str
+            Message to be printed.
+        end : str, optional
+            String appended after the message. Default is a new line.
+        flush : bool, optional
+            If True, the output is flushed. Default is False.
+
+        Returns
+        -------
+        None
+        """
+
+        len_msg = len(msg)
+        if len_msg < self._last_print_len:
+            msg += " " * (self._last_print_len - len_msg)
+        else:
+            self._last_print_len = len_msg
+
+        print(msg, end=end, flush=flush)
+
     @property
     def input_file(self):
         """String containing the filepath of the input file"""
@@ -223,7 +477,6 @@ class Dispersion:
                 d = ast.literal_eval(line)
                 # If successful, append the dictionary to the list
                 self.inputs_log.append(d)
-        return None
 
     def set_outputs_log(self):
         """Sets outputs_log from a file into an attribute for easy access"""
@@ -238,7 +491,6 @@ class Dispersion:
                 d = ast.literal_eval(line)
                 # If successful, append the dictionary to the list
                 self.outputs_log.append(d)
-        return None
 
     def set_errors_log(self):
         """Sets errors_log log from a file into an attribute for easy access"""
@@ -253,7 +505,6 @@ class Dispersion:
                 d = ast.literal_eval(line)
                 # If successful, append the dictionary to the list
                 self.errors_log.append(d)
-        return None
 
     def set_num_of_loaded_sims(self):
         """Number of simulations loaded from output_file being currently used."""
@@ -266,7 +517,6 @@ class Dispersion:
                 if line[0] != "{":
                     continue
                 self.num_of_loaded_sims += 1
-        return None
 
     def set_results(self):
         """Dispersion results organized in a dictionary where the keys are the
@@ -279,308 +529,16 @@ class Dispersion:
                     self.results[key].append(value)
                 else:
                     self.results[key] = [value]
-        return None
 
     def set_processed_results(self):
         """Creates a dictionary with the mean and standard deviation of each
-        parameter available in the results
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
+        parameter available in the results"""
         self.processed_results = {}
         for result in self.results.keys():
             mean = np.mean(self.results[result])
             stdev = np.std(self.results[result])
             self.processed_results[result] = (mean, stdev)
-        return None
 
-    # methods for running dispersion analysis
-    def run_dispersion(
-        self,
-        number_of_simulations,
-        export_list=None,
-        append=False,
-    ):
-        """Runs the dispersion simulation and saves all data. For the simulation to be run
-        all classes must be defined. This can happen either trough the dispersion_dictionary
-        or by inputting objects
-
-        Parameters
-        ----------
-        number_of_simulations : int
-            Number of simulations to be run, must be non negative.
-        export_list : list, optional
-            A list containing the name of the attributes to be saved on the dispersion
-            outputs file. See Examples for all possible attributes
-        append : bool, optional
-            If True, the results will be appended to the existing files. If False,
-            the files will be overwritten. By default False.
-
-        Returns
-        -------
-        None
-        """
-
-        # Saving the arguments as attributes
-        self.number_of_simulations = number_of_simulations
-
-        # Create data files for inputs, outputs and error logging
-        open_mode = "a" if append else "w"
-        input_file = open(self._input_file, open_mode, encoding="utf-8")
-        output_file = open(self._output_file, open_mode, encoding="utf-8")
-        error_file = open(self._error_file, open_mode, encoding="utf-8")
-
-        # Checks export_list
-        self.export_list = self.__check_export_list(export_list)
-
-        # Initializes inputs_dict in case of error in the first iteration
-        inputs_dict = {}
-
-        # Initialize counter and timer
-        i = self.num_of_loaded_sims if append else 0
-        initial_wall_time = time()
-        initial_cpu_time = process_time()
-
-        # Begin display
-        print("Starting", end="\r")
-
-        # Start the flight simulations
-        for _ in range(number_of_simulations):
-            start_time = process_time()
-            i += 1
-
-            # Run trajectory simulation
-            try:
-                dispersion_flight = Flight(
-                    rocket=self.rocket.create_object(),
-                    environment=self.environment.create_object(),
-                    inclination=self.flight.rnd_inclination(),
-                    heading=self.flight.rnd_heading(),
-                    initialSolution=self.flight.initialSolution,
-                    terminateOnApogee=self.flight.terminateOnApogee,
-                )
-
-                # create inputs dictionary
-                inputs_dict = dict(
-                    item
-                    for d in [
-                        self.environment.last_rnd_dict,
-                        self.rocket.last_rnd_dict,
-                        self.flight.last_rnd_dict,
-                    ]
-                    for item in d.items()
-                )
-                # TODO: I believe the positions are not being saved
-                # need to check if they are and fix if not
-                if self.rocket.motors:
-                    for motor in self.rocket.motors.get_components():
-                        inputs_dict.update(motor.last_rnd_dict)
-                if self.rocket.nosecones:
-                    for nosecone in self.rocket.nosecones.get_components():
-                        inputs_dict.update(nosecone.last_rnd_dict)
-                if self.rocket.fins:
-                    for fin in self.rocket.fins.get_components():
-                        inputs_dict.update(fin.last_rnd_dict)
-                if self.rocket.tails:
-                    for tail in self.rocket.tails.get_components():
-                        inputs_dict.update(tail.last_rnd_dict)
-                if self.rocket.parachutes:
-                    for parachute in self.rocket.parachutes:
-                        inputs_dict.update(parachute.last_rnd_dict)
-                if self.rocket.rail_buttons.get_components():
-                    for rail_buttons in self.rocket.rail_buttons.get_components():
-                        inputs_dict.update(rail_buttons.last_rnd_dict)
-                # Export inputs and outputs to file
-                self.__export_flight_data(
-                    setting=inputs_dict,
-                    flight=dispersion_flight,
-                    input_file=input_file,
-                    output_file=output_file,
-                )
-            except (TypeError, ValueError, KeyError, AttributeError) as error:
-                print(f"Error on iteration {i}: {error}\n")
-                error_file.write(f"{inputs_dict}\n")
-                raise error
-            except KeyboardInterrupt:
-                print("Keyboard Interrupt, file saved.")
-                error_file.write(f"{inputs_dict}\n")
-                break
-
-            # spaces after the last 's' are necessary to fix a bug with end='\r'
-            print(
-                f"Current iteration: {i:06d} | Average Time per Iteration: "
-                f"{(process_time() - initial_cpu_time)/i:2.6f} s | Estimated time"
-                f" left: {int((number_of_simulations - i)*((process_time() - initial_cpu_time)/i))} s      ",
-                end="\r",
-            )
-
-        ## Print and save total time
-        final_string = (
-            f"Completed {i} iterations. Total CPU time: "
-            f"{process_time() - initial_cpu_time:.1f} s. Total wall time: "
-            f"{time() - initial_wall_time:.1f} s"
-        )
-        print(final_string, end="\r")
-
-        # close files to guarantee saving
-        input_file.close()
-        output_file.close()
-        error_file.close()
-
-        # resave the files on self and calculate post simulation attributes
-        self.input_file = f"{self.filename}.disp_inputs.txt"
-        self.output_file = f"{self.filename}.disp_outputs.txt"
-        self.error_file = f"{self.filename}.disp_errors.txt"
-
-        return None
-
-    # methods for exporting data
-    def __check_export_list(self, export_list):
-        """Check if export list is valid or if it is None. In case it is
-        None, export a standard list of parameters.
-
-        Parameters
-        ----------
-        export_list : list
-            List of strings with the names of the attributes to be exported
-
-        Returns
-        -------
-        export_list
-        """
-        standard_output = (
-            "apogee",
-            "apogeeTime",
-            "apogeeX",
-            "apogeeY",
-            "apogeeFreestreamSpeed",
-            "tFinal",
-            "xImpact",
-            "yImpact",
-            "impactVelocity",
-            "initialStaticMargin",
-            "finalStaticMargin",
-            "outOfRailStaticMargin",
-            "outOfRailTime",
-            "outOfRailVelocity",
-            "maxSpeed",
-            "maxMachNumber",
-            "maxAcceleration",
-            "frontalSurfaceWind",
-            "lateralSurfaceWind",
-        )
-        exportables = (
-            "inclination",
-            "heading",
-            "effective1RL",
-            "effective2RL",
-            "outOfRailTime",
-            "outOfRailTimeIndex",
-            "outOfRailState",
-            "outOfRailVelocity",
-            "railButton1NormalForce",
-            "maxRailButton1NormalForce",
-            "railButton1ShearForce",
-            "maxRailButton1ShearForce",
-            "railButton2NormalForce",
-            "maxRailButton2NormalForce",
-            "railButton2ShearForce",
-            "maxRailButton2ShearForce",
-            "outOfRailStaticMargin",
-            "apogeeState",
-            "apogeeTime",
-            "apogeeX",
-            "apogeeY",
-            "apogee",
-            "xImpact",
-            "yImpact",
-            "zImpact",
-            "impactVelocity",
-            "impactState",
-            "parachuteEvents",
-            "apogeeFreestreamSpeed",
-            "finalStaticMargin",
-            "frontalSurfaceWind",
-            "initialStaticMargin",
-            "lateralSurfaceWind",
-            "maxAcceleration",
-            "maxAccelerationTime",
-            "maxDynamicPressureTime",
-            "maxDynamicPressure",
-            "maxMachNumberTime",
-            "maxMachNumber",
-            "maxReynoldsNumberTime",
-            "maxReynoldsNumber",
-            "maxSpeedTime",
-            "maxSpeed",
-            "maxTotalPressureTime",
-            "maxTotalPressure",
-            "tFinal",
-        )
-        if export_list:
-            for attr in export_list:
-                if not isinstance(attr, str):
-                    raise TypeError("Variables in export_list must be strings.")
-
-                # Checks if attribute is not valid
-                if attr not in exportables:
-                    raise ValueError(
-                        "Attribute can not be exported. Check export_list."
-                    )
-        else:
-            # No export list provided, using default list instead.
-            export_list = standard_output
-
-        return export_list
-
-    def __export_flight_data(
-        self,
-        setting,
-        flight,
-        input_file,
-        output_file,
-    ):
-        """Saves flight results in a .txt
-        Parameters
-        ----------
-        setting : dict
-            The flight setting used in the simulation.
-        flight : Flight
-            The flight object.
-        input_file : str
-            The name of the file containing all the inputs for the simulation.
-        output_file : str
-            The name of the file containing all the outputs for the simulation.
-        Returns
-        -------
-        inputs_log : str
-            The new string with the inputs of the simulation setting.
-        outputs_log : str
-            The new string with the outputs of the simulation setting.
-        """
-        # Construct the dict with the results from the flight
-        results = {}
-        for export_item in self.export_list:
-            # if attribute is function, get source
-            # TODO: check if there is a better way to do this
-            if isinstance(getattr(flight, export_item), Function):
-                results[export_item] = list(getattr(flight, export_item).source)
-            else:
-                results[export_item] = getattr(flight, export_item)
-
-        # Write flight setting and results to file
-        input_file.write(f"{setting}\n")
-        output_file.write(f"{results}\n")
-
-        return None
-
-    # methods for importing data
     def import_outputs(self, filename=None):
         """Import dispersion results from .txt file and save it into a dictionary.
 
@@ -613,16 +571,16 @@ class Dispersion:
                     f"A total of {self.num_of_loaded_sims} simulations results were loaded from"
                     f" the following output file: {filepath}\n"
                 )
-        return None
 
     def import_inputs(self, filename=None):
-        """Import dispersion results from .txt file and save it into a dictionary.
+        """Import dispersion results from .txt file and save it into a
+        dictionary.
 
         Parameters
         ----------
         filename : str
-            Name or directory path to the file to be imported. If none, Dispersion
-            filename will be used
+            Name or directory path to the file to be imported. If none,
+            Dispersion filename will be used
 
         Returns
         -------
@@ -643,16 +601,16 @@ class Dispersion:
                 self.input_file = filepath
                 # Print the number of flights simulated
                 print(f"The following input file was imported: {filepath}\n")
-        return None
 
     def import_errors(self, filename=None):
-        """Import dispersion results from .txt file and save it into a dictionary.
+        """Import dispersion results from .txt file and save it into a
+        dictionary.
 
         Parameters
         ----------
         filename : str
-            Name or directory path to the file to be imported. If none, Dispersion
-            filename will be used
+            Name or directory path to the file to be imported. If none,
+            Dispersion filename will be used
 
         Returns
         -------
@@ -673,16 +631,16 @@ class Dispersion:
                 self.error_file = filepath
                 # Print the number of flights simulated
                 print(f"The following error file was imported: {filepath}\n")
-        return None
 
     def import_results(self, filename=None):
-        """Import dispersion results from .txt file and save it into a dictionary.
+        """Import dispersion results from .txt file and save it into a
+        dictionary.
 
         Parameters
         ----------
         filename : str
-            Name or directory path to the file to be imported. If none, Dispersion
-            filename will be used
+            Name or directory path to the file to be imported. If none,
+            Dispersion filename will be used
 
         Returns
         -------
@@ -695,8 +653,6 @@ class Dispersion:
         self.import_inputs(filename=filepath)
         self.import_errors(filename=filepath)
 
-        return None
-
     def exportEllipsesToKML(
         self,
         filename,
@@ -707,6 +663,7 @@ class Dispersion:
         color="ff0000ff",
     ):
         """Generates a KML file with the ellipses on the impact point.
+
         Parameters
         ----------
         results : dict
@@ -786,23 +743,14 @@ class Dispersion:
             )
 
         kml.save(filename)
-        return None
-
-    # methods for printing and plotting results
 
     def info(self):
-        """Print information about the dispersion model.
-
-        Returns
-        -------
-        None
-        """
+        """Print information about the monte carlo simulation."""
         self.prints.all_results()
 
-        return None
-
     def allInfo(self):
-        """Print and plot information about the dispersion model and the results.
+        """Print and plot information about the monte carlo simulation
+        and its results.
 
         Returns
         -------
@@ -811,5 +759,3 @@ class Dispersion:
         self.info()
         self.plots.ellipses()
         self.plots.all_results()
-
-        return None
