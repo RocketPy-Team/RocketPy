@@ -59,7 +59,8 @@ class Function:
             and 'z' is the output.
 
             - string: Path to a CSV file. The file is read and converted into an
-            ndarray. The file can optionally contain a single header line.
+            ndarray. The file can optionally contain a single header line, see
+            notes below for more information.
 
             - Function: Copies the source of the provided Function object,
             creating a new Function with adjusted inputs and outputs.
@@ -94,8 +95,15 @@ class Function:
 
         Notes
         -----
-        (I) CSV files can optionally contain a single header line. If present,
-        the header is ignored during processing.
+        (I) CSV files can optionally contain a single header line. If a header
+        naming each data column is present, it will be used for naming the `inputs`
+        and `outputs` left `None`. If the header is not formatted in this way it
+        will be ignored.
+
+        Commas in a header will be interpreted as a delimiter, which may cause
+        undesired input or output labeling. To avoid this, specify each input
+        and output name using the `inputs` and `outputs` arguments.
+
         (II) Fields in CSV files may be enclosed in double quotes. If fields are
         not quoted, double quotes should not appear inside them.
         """
@@ -3037,14 +3045,17 @@ class Function:
                 except ValueError:
                     with open(source, "r") as file:
                         header, *data = file.read().splitlines()
+
                     header = [
                         label.strip("'").strip('"') for label in header.split(",")
                     ]
-                    if inputs == ["Scalar"]:
-                        inputs = header[:-1]
-                    if outputs == ["Scalar"]:
-                        outputs = [header[-1]]
                     source = np.loadtxt(data, delimiter=",", dtype=float)
+
+                    if len(source[0]) == len(header):
+                        if inputs == ["Scalar"]:
+                            inputs = header[:-1]
+                        if outputs == ["Scalar"]:
+                            outputs = [header[-1]]
                 except Exception as e:
                     raise ValueError(
                         "The source file is not a valid csv or txt file."
