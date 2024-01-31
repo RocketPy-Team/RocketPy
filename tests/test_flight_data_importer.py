@@ -1,5 +1,6 @@
 """Tests the FlightDataImporter class from rocketpy.simulation module.
 """
+
 import numpy as np
 
 from rocketpy.simulation import FlightDataImporter
