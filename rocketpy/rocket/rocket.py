@@ -1172,8 +1172,9 @@ class Rocket:
         name="AirBrakes",
         controller_name="AirBrakes Controller",
     ):
-        """Creates a new air brakes, storing its parameters such as
-        opening delay, drag coefficients and trigger function.
+        """Creates a new air brakes system, storing its parameters such as
+        drag coefficient curve, controller function, sampling rate, and
+        reference area.
 
         Parameters
         ----------
