@@ -91,10 +91,9 @@ To create an air brakes model, we essentially need to define the following:
 - The **controller function**, which takes in as argument information about the
   simulation up to the current time step, and the ``AirBrakes`` instance being 
   defined, and sets the desired air brakes' deployment level. The air brakes'
-  deployment level must be between 0 and 1, and must be set using the
-  ``set_deployment_level`` method of the ``AirBrakes`` instance being controlled.
-  Inside this function, any controller logic, filters, and apogee prediction 
-  can be implemented.
+  deployment level must be between 0 and 1, and is set using the 
+  ``deployment_level`` attribute. Inside this function, any controller logic, 
+  filters, and apogee prediction can be implemented.
 
 - The **sampling rate** of the controller function, in seconds. This is the time
   between each call of the controller function, in simulation time. Must be 
@@ -197,7 +196,7 @@ Lets define the controller function:
 
         # If below 1500 meters above ground level, air_brakes are not deployed
         if altitude_AGL < 1500:
-            air_brakes.set_deployment_level(0)
+            air_brakes.deployment_level = 0
 
         # Else calculate the deployment level
         else:
@@ -214,7 +213,7 @@ Lets define the controller function:
             upper_bound = air_brakes.deployment_level + max_change
             new_deployment_level = min(max(new_deployment_level, lower_bound), upper_bound)
 
-            air_brakes.set_deployment_level(new_deployment_level)
+            air_brakes.deployment_level = new_deployment_level
 
         # Return variables of interest to be saved in the observed_variables list
         return (

@@ -1282,7 +1282,7 @@ def controller_function():
         if time < 3.9:
             return None
         if z < 1500:
-            air_brakes.set_deployment_level(0)
+            air_brakes.deployment_level = 0
         else:
             new_deployment_level = (
                 air_brakes.deployment_level + 0.1 * vz + 0.01 * previous_vz**2
@@ -1295,7 +1295,7 @@ def controller_function():
                 new_deployment_level = air_brakes.deployment_level - 0.2 / sampling_rate
             else:
                 new_deployment_level = air_brakes.deployment_level
-            air_brakes.set_deployment_level(new_deployment_level)
+            air_brakes.deployment_level = new_deployment_level
 
     return controller_function
 

@@ -141,7 +141,7 @@ def test_airfoil(
 @patch("matplotlib.pyplot.show")
 def test_air_brakes_clamp_on(mock_show, calisto_air_brakes_clamp_on):
     """Test the air brakes class with clamp on configuration. This test checks
-    the basic attributes and the set_deployment_level method. It also checks the
+    the basic attributes and the deployment_level setter. It also checks the
     all_info method.
 
     Parameters
@@ -160,13 +160,13 @@ def test_air_brakes_clamp_on(mock_show, calisto_air_brakes_clamp_on):
         air_brakes_clamp_on.reference_area
         == calisto_air_brakes_clamp_on.radius**2 * np.pi
     )
-    air_brakes_clamp_on.set_deployment_level(0.5)
+    air_brakes_clamp_on.deployment_level = 0.5
     assert air_brakes_clamp_on.deployment_level == 0.5
-    air_brakes_clamp_on.set_deployment_level(1.5)
+    air_brakes_clamp_on.deployment_level = 1.5
     assert air_brakes_clamp_on.deployment_level == 1
-    air_brakes_clamp_on.set_deployment_level(-1)
+    air_brakes_clamp_on.deployment_level = -1
     assert air_brakes_clamp_on.deployment_level == 0
-    air_brakes_clamp_on.set_deployment_level(0)
+    air_brakes_clamp_on.deployment_level = 0
     assert air_brakes_clamp_on.deployment_level == 0
 
     assert air_brakes_clamp_on.all_info() == None
@@ -175,7 +175,7 @@ def test_air_brakes_clamp_on(mock_show, calisto_air_brakes_clamp_on):
 @patch("matplotlib.pyplot.show")
 def test_air_brakes_clamp_off(mock_show, calisto_air_brakes_clamp_off):
     """Test the air brakes class with clamp off configuration. This test checks
-    the basic attributes and the set_deployment_level method. It also checks the
+    the basic attributes and the deployment_level setter. It also checks the
     all_info method.
 
     Parameters
@@ -195,13 +195,13 @@ def test_air_brakes_clamp_off(mock_show, calisto_air_brakes_clamp_off):
         == calisto_air_brakes_clamp_off.radius**2 * np.pi
     )
 
-    air_brakes_clamp_off.set_deployment_level(0.5)
+    air_brakes_clamp_off.deployment_level = 0.5
     assert air_brakes_clamp_off.deployment_level == 0.5
-    air_brakes_clamp_off.set_deployment_level(1.5)
+    air_brakes_clamp_off.deployment_level = 1.5
     assert air_brakes_clamp_off.deployment_level == 1.5
-    air_brakes_clamp_off.set_deployment_level(-1)
+    air_brakes_clamp_off.deployment_level = -1
     assert air_brakes_clamp_off.deployment_level == -1
-    air_brakes_clamp_off.set_deployment_level(0)
+    air_brakes_clamp_off.deployment_level = 0
     assert air_brakes_clamp_off.deployment_level == 0
 
     assert air_brakes_clamp_off.all_info() == None

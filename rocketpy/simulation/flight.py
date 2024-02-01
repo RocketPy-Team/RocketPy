@@ -2912,7 +2912,6 @@ class Flight:
 
         return temporary_values
 
-    @cached_property
     def get_controller_observed_variables(self):
         """Retrieve the observed variables related to air brakes from the
         controllers. If there is only one set of observed variables, it is

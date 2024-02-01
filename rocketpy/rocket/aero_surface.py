@@ -2015,21 +2015,6 @@ class AirBrakes(AeroSurface):
                 )
         self._deployment_level = value
 
-    def set_deployment_level(self, deployment_level):
-        """Set airbrake deployment level.
-
-        Parameters
-        ----------
-        deployment_level : float
-            Current deployment level, ranging from 0 to 1. Deployment level is the
-            fraction of the total airbrake area that is deployment.
-
-        Returns
-        -------
-        None
-        """
-        self.deployment_level = deployment_level
-
     def evaluate_center_of_pressure(self):
         """Evaluates the center of pressure of the aerodynamic surface in local
         coordinates.
