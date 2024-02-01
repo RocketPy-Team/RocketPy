@@ -1,17 +1,24 @@
+# Set PYTHON variable according to OS
+ifeq ($(OS),Windows_NT)
+	PYTHON=python
+else
+	PYTHON=python3
+endif
+
 pytest:
-	python3 -m pytest tests
+	$(PYTHON) -m pytest tests
 
 pytest-slow:
-	python3 -m pytest tests -vv -m slow --runslow
+	$(PYTHON) -m pytest tests -vv -m slow --runslow
 
 coverage:
-	python3 -m pytest --cov=rocketpy tests
+	$(PYTHON) -m pytest --cov=rocketpy tests
 
 coverage-report:
-	python3 -m pytest --cov=rocketpy tests --cov-report html
+	$(PYTHON) -m pytest --cov=rocketpy tests --cov-report html
 
 install:
-	python3 -m pip install --upgrade pip
+	$(PYTHON) -m pip install --upgrade pip
 	pip install -r requirements.txt
 	pip install -r requirements-optional.txt
 	pip install -e .
@@ -26,5 +33,5 @@ pylint:
 	-pylint rocketpy tests --output=.pylint-report.txt
 
 build-docs:
-	cd docs && python3 -m pip install -r requirements.txt && make html
+	cd docs && $(PYTHON) -m pip install -r requirements.txt && make html
 	cd ..
