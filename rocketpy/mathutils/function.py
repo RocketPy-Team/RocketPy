@@ -95,17 +95,17 @@ class Function:
 
         Notes
         -----
-        (I) CSV files may include an optional single header line. If this 
-        header line is present and contains names for each data column, those 
-        names will be used to label the inputs and outputs unless specified 
-        otherwise by the `inputs` and `outputs` arguments. 
+        (I) CSV files may include an optional single header line. If this
+        header line is present and contains names for each data column, those
+        names will be used to label the inputs and outputs unless specified
+        otherwise by the `inputs` and `outputs` arguments.
         If the header is specified for only a few columns, it is ignored.
 
         Commas in a header will be interpreted as a delimiter, which may cause
         undesired input or output labeling. To avoid this, specify each input
         and output name using the `inputs` and `outputs` arguments.
 
-        (II) Fields in CSV files may be enclosed in double quotes. If fields 
+        (II) Fields in CSV files may be enclosed in double quotes. If fields
         are not quoted, double quotes should not appear inside them.
         """
         if inputs is None:
@@ -192,17 +192,17 @@ class Function:
 
         Notes
         -----
-        (I) CSV files may include an optional single header line. If this 
-        header line is present and contains names for each data column, those 
-        names will be used to label the inputs and outputs unless specified 
-        otherwise. If the header is specified for only a few columns, it is 
+        (I) CSV files may include an optional single header line. If this
+        header line is present and contains names for each data column, those
+        names will be used to label the inputs and outputs unless specified
+        otherwise. If the header is specified for only a few columns, it is
         ignored.
 
         Commas in a header will be interpreted as a delimiter, which may cause
         undesired input or output labeling. To avoid this, specify each input
         and output name using the `inputs` and `outputs` arguments.
 
-        (II) Fields in CSV files may be enclosed in double quotes. If fields 
+        (II) Fields in CSV files may be enclosed in double quotes. If fields
         are not quoted, double quotes should not appear inside them.
 
         Returns
