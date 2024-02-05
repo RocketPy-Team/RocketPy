@@ -901,10 +901,10 @@ class EnvironmentAnalysis:
             # Extract data from weather file
             indices = (time_index, lon_index, lat_index)
             for key, value in surface_file_dict.items():
-                dictionary[date_string][hour_string][
-                    key
-                ] = self.__extract_surface_data_value(
-                    surface_data, value, indices, lon_array, lat_array
+                dictionary[date_string][hour_string][key] = (
+                    self.__extract_surface_data_value(
+                        surface_data, value, indices, lon_array, lat_array
+                    )
                 )
 
         # Get elevation, time index does not matter, use last one

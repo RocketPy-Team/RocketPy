@@ -3,6 +3,7 @@ operations, including interpolation, extrapolation, integration, differentiation
 and more. This is a core class of our package, and should be maintained
 carefully as it may impact all the rest of the project.
 """
+
 import warnings
 from collections.abc import Iterable
 from copy import deepcopy
