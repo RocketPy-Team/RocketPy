@@ -32,6 +32,7 @@ straightforward as possible.
 
 ### Added
 
+- ENH: Shepard Optimized Interpolation - Multiple Inputs Support [#515](https://github.com/RocketPy-Team/RocketPy/pull/515)
 - ENH: adds new Function.savetxt method [#514](https://github.com/RocketPy-Team/RocketPy/pull/514)
 - ENH: Argument for Optional Mutation on Function Discretize [#519](https://github.com/RocketPy-Team/RocketPy/pull/519)
 
@@ -40,7 +41,10 @@ straightforward as possible.
 - MNT: Add repr method to Parachute class [#490](https://github.com/RocketPy-Team/RocketPy/pull/490)
 - ENH: Function Reverse Arithmetic Priority [#488](https://github.com/RocketPy-Team/RocketPy/pull/488)
 - DOC: Update Header Related Docs
+- ENH Precalculate Barometric Height [#511](https://github.com/RocketPy-Team/RocketPy/pull/511)
+- MNT: Encapsulate quaternion conversions [#537](https://github.com/RocketPy-Team/RocketPy/pull/537)
 - MNT: improve the low pass filter and document an example [#538](https://github.com/RocketPy-Team/RocketPy/pull/538)
+
 
 ### Fixed
 
