@@ -65,30 +65,6 @@ class Dispersion:
     plot : _DispersionPlots
         Object with methods to plot information about the dispersion
         simulation.
-    _inputs_dict : dict
-        Dictionary with the inputs of the last simulation.
-    _last_print_len : int
-        Used to print on the same line.
-    _input_file : str
-        String containing the filepath of the input file
-    _output_file : str
-        String containing the filepath of the output file
-    _error_file : str
-        String containing the filepath of the error file
-    _number_of_simulations : int
-        Number of simulations to be run, must be non-negative.
-    _iteration_count : int
-        Number of simulations already run.
-    _start_time : float
-        Time when the simulation started.
-    _start_cpu_time : float
-        CPU time when the simulation started.
-    _input_file : str
-        String containing the filepath of the input file
-    _output_file : str
-        String containing the filepath of the output file
-    _error_file : str
-        String containing the filepath of the error file
     """
 
     def __init__(self, filename, environment, rocket, flight, export_list=None):
@@ -238,10 +214,14 @@ class Dispersion:
             output_file=output_file,
         )
 
+        average_time = (process_time() - self.start_cpu_time) / self.iteration_count
+        estimated_time = int(
+            (self.number_of_simulations - self.iteration_count) * average_time
+        )
         self.__reprint(
             f"Current iteration: {self.iteration_count:06d} | "
-            f"Average Time per Iteration: {((process_time() - self.start_cpu_time) / self.iteration_count):2.6f} s | "
-            f"Estimated time left: {int((self.number_of_simulations - self.iteration_count) * ((process_time() - self.start_cpu_time) / self.iteration_count))} s",
+            f"Average Time per Iteration: {average_time:.3f} s | "
+            f"Estimated time left: {estimated_time} s",
             end="\r",
             flush=True,
         )
@@ -260,7 +240,7 @@ class Dispersion:
             f"{time() - self.start_time:.1f} s\n"
         )
 
-        self.__reprint(final_string + f"Saving results.", flush=True)
+        self.__reprint(final_string + "Saving results.", flush=True)
 
         # close files to guarantee saving
         self.__close_files(input_file, output_file, error_file)
@@ -534,9 +514,9 @@ class Dispersion:
         """Creates a dictionary with the mean and standard deviation of each
         parameter available in the results"""
         self.processed_results = {}
-        for result in self.results.keys():
-            mean = np.mean(self.results[result])
-            stdev = np.std(self.results[result])
+        for result, values in self.results.items():
+            mean = np.mean(values)
+            stdev = np.std(values)
             self.processed_results[result] = (mean, stdev)
 
     def import_outputs(self, filename=None):
@@ -653,7 +633,7 @@ class Dispersion:
         self.import_inputs(filename=filepath)
         self.import_errors(filename=filepath)
 
-    def exportEllipsesToKML(
+    def export_ellipses_to_kml(
         self,
         filename,
         origin_lat,
@@ -748,7 +728,7 @@ class Dispersion:
         """Print information about the monte carlo simulation."""
         self.prints.all_results()
 
-    def allInfo(self):
+    def all_info(self):
         """Print and plot information about the monte carlo simulation
         and its results.
 
