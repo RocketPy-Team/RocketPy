@@ -46,7 +46,7 @@ straightforward as possible.
 - ENH Precalculate Barometric Height [#511](https://github.com/RocketPy-Team/RocketPy/pull/511)
 - MNT: Encapsulate quaternion conversions [#537](https://github.com/RocketPy-Team/RocketPy/pull/537)
 - MNT: improve the low pass filter and document an example [#538](https://github.com/RocketPy-Team/RocketPy/pull/538)
-
+- ENH: Plotting both power on and off drag curves in a single plot [#547](https://github.com/RocketPy-Team/RocketPy/pull/547)
 
 ### Fixed
 
@@ -54,7 +54,7 @@ straightforward as possible.
 - BUG: fin_flutter_analysis doesn't find any fin set [#510](https://github.com/RocketPy-Team/RocketPy/pull/510)
 - FIX: EmptyMotor is breaking the Rocket.draw() method [#516](https://github.com/RocketPy-Team/RocketPy/pull/516)
 - BUG: 3D trajectory plot not labeling axes [#533](https://github.com/RocketPy-Team/RocketPy/pull/533)
-- 
+
 
 ## [v1.1.5] - 2024-01-21
 
