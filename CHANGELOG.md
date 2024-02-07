@@ -44,7 +44,7 @@ straightforward as possible.
 - ENH Precalculate Barometric Height [#511](https://github.com/RocketPy-Team/RocketPy/pull/511)
 - MNT: Encapsulate quaternion conversions [#537](https://github.com/RocketPy-Team/RocketPy/pull/537)
 - MNT: improve the low pass filter and document an example [#538](https://github.com/RocketPy-Team/RocketPy/pull/538)
-
+- BUG: Elliptical Fins Draw [#548](https://github.com/RocketPy-Team/RocketPy/pull/548)
 
 ### Fixed
 
