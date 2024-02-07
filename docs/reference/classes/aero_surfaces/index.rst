@@ -12,3 +12,4 @@ AeroSurface Classes
    TrapezoidalFins
    EllipticalFins
    RailButtons
+   AirBrakes

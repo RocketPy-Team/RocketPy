@@ -448,3 +448,40 @@ class _TailPlots(_AeroSurfacePlots):
     def draw(self):
         # This will de done in the future
         return None
+
+
+class _AirBrakesPlots(_AeroSurfacePlots):
+    """Class that contains all air brakes plots."""
+
+    def __init__(self, air_brakes):
+        """Initialize the class
+
+        Parameters
+        ----------
+        air_brakes : rocketpy.AeroSurface.air_brakes
+            AirBrakes object to be plotted
+
+        Returns
+        -------
+        None
+        """
+        super().__init__(air_brakes)
+
+    def drag_coefficient_curve(self):
+        """Plots the drag coefficient curve of the air_brakes."""
+        if self.aero_surface.clamp is True:
+            return self.aero_surface.drag_coefficient.plot(0, 1)
+        else:
+            return self.aero_surface.drag_coefficient.plot()
+
+    def draw(self):
+        raise NotImplementedError
+
+    def all(self):
+        """Plots all available air_brakes plots.
+
+        Returns
+        -------
+        None
+        """
+        self.drag_coefficient_curve()
