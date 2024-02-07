@@ -86,27 +86,31 @@ class _RocketPlots:
 
         return None
 
-    def power_on_drag(self):
-        """Plots power on drag of the rocket as a function of time.
+    def power_on_and_off_drag(self):
+        """Plots power off and on drag curve of the rocket as a function of time.
 
         Returns
         -------
         None
         """
+        x_power_drag_off = self.rocket.power_off_drag.x_array
+        y_power_drag_off = self.rocket.power_off_drag.y_array
+        x_power_drag_on = self.rocket.power_on_drag.x_array
+        y_power_drag_on = self.rocket.power_on_drag.y_array
 
-        self.rocket.power_on_drag()
+        fig, ax = plt.subplots()
+        ax.plot(x_power_drag_on, y_power_drag_on, label="Power on Drag")
+        ax.plot(
+            x_power_drag_off, y_power_drag_off, label="Power off Drag", linestyle="--"
+        )
 
-        return None
-
-    def power_off_drag(self):
-        """Plots power off drag of the rocket as a function of time.
-
-        Returns
-        -------
-        None
-        """
-
-        self.rocket.power_off_drag()
+        ax.set_title("Power on and off Drag")
+        ax.set_ylabel("Drag Coefficient")
+        ax.set_xlabel("Mach")
+        ax.axvspan(0.8, 1.2, alpha=0.3, color="gray", label="Transonic Region")
+        ax.legend(loc="best", shadow=True)
+        plt.grid(True)
+        plt.show()
 
         return None
 
@@ -524,8 +528,7 @@ class _RocketPlots:
         # Drag Plots
         print("Drag Plots")
         print("-" * 20)  # Separator for Drag Plots
-        self.power_on_drag()
-        self.power_off_drag()
+        self.power_on_and_off_drag()
 
         # Stability Plots
         print("\nStability Plots")
