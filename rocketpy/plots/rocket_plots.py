@@ -112,7 +112,6 @@ class _RocketPlots:
         plt.grid(True)
         plt.show()
 
-        return None
 
     def thrust_to_weight(self):
         """Plots the motor thrust force divided by rocket
