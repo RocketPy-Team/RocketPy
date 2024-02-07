@@ -1,3 +1,4 @@
+from .control import _Controller
 from .environment import Environment, EnvironmentAnalysis
 from .mathutils import (
     Function,
@@ -22,8 +23,10 @@ from .motors import (
     TankGeometry,
     UllageBasedTank,
 )
+from .plots.compare import Compare, CompareFlights
 from .rocket import (
     AeroSurface,
+    AirBrakes,
     Components,
     EllipticalFins,
     Fins,
@@ -35,4 +38,3 @@ from .rocket import (
     TrapezoidalFins,
 )
 from .simulation import Flight
-from .plots.compare import Compare, CompareFlights
