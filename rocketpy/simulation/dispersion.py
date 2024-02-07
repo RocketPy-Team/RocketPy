@@ -192,15 +192,15 @@ class Dispersion:
         try:
             while self.iteration_count < self.number_of_simulations:
                 self.__run_single_simulation(input_file, output_file)
-        except (TypeError, ValueError, KeyError, AttributeError) as error:
-            print(f"Error on iteration {self.iteration_count}: {error}")
-            error_file.write(f"{self._inputs_dict}\n")
-            self.__close_files(input_file, output_file, error_file)
-            raise error
         except KeyboardInterrupt:
             print("Keyboard Interrupt, files saved.")
             error_file.write(f"{self._inputs_dict}\n")
             self.__close_files(input_file, output_file, error_file)
+        except Exception as error:
+            print(f"Error on iteration {self.iteration_count}: {error}")
+            error_file.write(f"{self._inputs_dict}\n")
+            self.__close_files(input_file, output_file, error_file)
+            raise error
 
         self.__finalize_simulation(input_file, output_file, error_file)
 
