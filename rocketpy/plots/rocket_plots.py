@@ -88,13 +88,17 @@ class _RocketPlots:
 
         return None
 
-    def power_on_drag(self):
-        """Plots power on drag of the rocket as a function of time.
+    def power_on_and_off_drag(self):
+        """Plots power off and on drag curve of the rocket as a function of time.
 
         Returns
         -------
         None
         """
+        x_power_drag_off = self.rocket.power_off_drag.x_array
+        y_power_drag_off = self.rocket.power_off_drag.y_array
+        x_power_drag_on = self.rocket.power_on_drag.x_array
+        y_power_drag_on = self.rocket.power_on_drag.y_array
 
         warnings.warn(
             "The method 'power_on_drag' is deprecated as of version "
