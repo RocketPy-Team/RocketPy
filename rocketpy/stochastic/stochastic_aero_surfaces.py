@@ -1,5 +1,10 @@
-from rocketpy.rocket.aero_surface import (EllipticalFins, NoseCone,
-                                          RailButtons, Tail, TrapezoidalFins)
+from rocketpy.rocket.aero_surface import (
+    EllipticalFins,
+    NoseCone,
+    RailButtons,
+    Tail,
+    TrapezoidalFins,
+)
 
 from .stochastic_model import StochasticModel
 

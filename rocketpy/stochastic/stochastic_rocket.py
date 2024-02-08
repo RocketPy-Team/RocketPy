@@ -3,18 +3,26 @@ from random import choice
 
 from rocketpy.motors.motor import EmptyMotor, GenericMotor, Motor
 from rocketpy.motors.solid_motor import SolidMotor
-from rocketpy.rocket.aero_surface import (EllipticalFins, NoseCone,
-                                          RailButtons, Tail, TrapezoidalFins)
+from rocketpy.rocket.aero_surface import (
+    EllipticalFins,
+    NoseCone,
+    RailButtons,
+    Tail,
+    TrapezoidalFins,
+)
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
 from rocketpy.rocket.rocket import Rocket
 from rocketpy.stochastic.stochastic_generic_motor import StochasticGenericMotor
 from rocketpy.stochastic.stochastic_motor_model import StochasticMotorModel
 
-from .stochastic_aero_surfaces import (StochasticEllipticalFins,
-                                       StochasticNoseCone,
-                                       StochasticRailButtons, StochasticTail,
-                                       StochasticTrapezoidalFins)
+from .stochastic_aero_surfaces import (
+    StochasticEllipticalFins,
+    StochasticNoseCone,
+    StochasticRailButtons,
+    StochasticTail,
+    StochasticTrapezoidalFins,
+)
 from .stochastic_model import StochasticModel
 from .stochastic_parachute import StochasticParachute
 from .stochastic_solid_motor import StochasticSolidMotor
