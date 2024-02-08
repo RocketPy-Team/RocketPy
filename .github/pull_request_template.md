@@ -16,7 +16,7 @@
 - [ ] Tests for the changes have been added (if needed)
 - [ ] Docs have been reviewed and added / updated
 - [ ] Lint (`black rocketpy/ tests/`) has passed locally 
-- [ ] All tests (`python3 -m pytest tests -m slow --runslow`) have passed locally
+- [ ] All tests (`pytest tests -m slow --runslow`) have passed locally
 - [ ] `CHANGELOG.md` has been updated (if relevant)
 
 ## Current behavior
