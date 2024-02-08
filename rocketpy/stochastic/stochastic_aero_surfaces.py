@@ -1,16 +1,11 @@
-from rocketpy.rocket.aero_surface import (
-    EllipticalFins,
-    NoseCone,
-    RailButtons,
-    Tail,
-    TrapezoidalFins,
-)
+from rocketpy.rocket.aero_surface import (EllipticalFins, NoseCone,
+                                          RailButtons, Tail, TrapezoidalFins)
 
-from .dispersion_model import DispersionModel
+from .stochastic_model import StochasticModel
 
 
-class McNoseCone(DispersionModel):
-    """A Monte Carlo Nose Cone class that inherits from MonteCarloModel. This
+class StochasticNoseCone(StochasticModel):
+    """A Stochastic Nose Cone class that inherits from StochasticModel. This
     class is used to receive a NoseCone object and information about the
     dispersion of its parameters and generate a random nose cone object based
     on the provided information.
@@ -21,19 +16,19 @@ class McNoseCone(DispersionModel):
         NoseCone object to be used for validation.
     length : tuple, list, int, float
         Length of the nose cone in meters. Follows the standard input format of
-        Dispersion Models.
+        Stochastic Models.
     kind : list
         List of strings representing the kind of nose cone. Follows the standard
-        input format of Dispersion Models.
+        input format of Stochastic Models.
     base_radius : tuple, list, int, float
         Base radius of the nose cone in meters. Follows the standard input
-        format of Dispersion Models.
+        format of Stochastic Models.
     bluffness : tuple, list, int, float
         Bluffness of the nose cone. Follows the standard input format of
-        Dispersion Models.
+        Stochastic Models.
     rocket_radius : tuple, list, int, float
         Rocket radius of the nose cone in meters. Follows the standard input
-        format of Dispersion Models.
+        format of Stochastic Models.
     name : list
         List of names. This attribute can not be randomized.
     """
@@ -47,12 +42,12 @@ class McNoseCone(DispersionModel):
         bluffness=None,
         rocket_radius=None,
     ):
-        """Initializes the Monte Carlo Nose Cone class.
+        """Initializes the Stochastic Nose Cone class.
 
         See Also
         --------
         This should link to somewhere that explains how inputs works in
-        dispersion models.
+        stochastic models.
 
         Parameters
         ----------
@@ -60,19 +55,19 @@ class McNoseCone(DispersionModel):
             NoseCone object to be used for validation.
         length : tuple, list, int, float
             Length of the nose cone in meters. Follows the standard input format
-            of Dispersion Models.
+            of Stochastic Models.
         kind : list
             List of strings representing the kind of nose cone. Follows the
-            standard input format of Dispersion Models.
+            standard input format of Stochastic Models.
         base_radius : tuple, list, int, float
             Base radius of the nose cone in meters. Follows the standard input
-            format of Dispersion Models.
+            format of Stochastic Models.
         bluffness : tuple, list, int, float
             Bluffness of the nose cone. Follows the standard input format of
-            Dispersion Models.
+            Stochastic Models.
         rocket_radius : tuple, list, int, float
             Rocket radius of the nose cone in meters. Follows the standard input
-            format of Dispersion Models.
+            format of Stochastic Models.
         """
         self._validate_kind(kind)
         super().__init__(
@@ -114,8 +109,8 @@ class McNoseCone(DispersionModel):
         return nosecone
 
 
-class McTrapezoidalFins(DispersionModel):
-    """A Monte Carlo Trapezoidal Fins class that inherits from MonteCarloModel.
+class StochasticTrapezoidalFins(StochasticModel):
+    """A Stochastic Trapezoidal Fins class that inherits from StochasticModel.
     This class is used to receive a TrapezoidalFins object and information about
     the dispersion of its parameters and generate a random trapezoidal fins
     object based on the provided information.
@@ -126,28 +121,28 @@ class McTrapezoidalFins(DispersionModel):
         TrapezoidalFins object to be used for validation.
     n : list of ints
         List of integers representing the number of fins. Follows the standard
-        input format of Dispersion Models.
+        input format of Stochastic Models.
     root_chord : tuple, list, int, float
         Root chord of the fins in meters. Follows the standard input format of
-        Dispersion Models.
+        Stochastic Models.
     tip_chord : tuple, list, int, float
         Tip chord of the fins in meters. Follows the standard input format of
-        Dispersion Models.
+        Stochastic Models.
     span : tuple, list, int, float
         Span of the fins in meters. Follows the standard input format of
-        Dispersion Models.
+        Stochastic Models.
     rocket_radius : tuple, list, int, float
         Rocket radius of the fins in meters. Follows the standard input format
-        of Dispersion Models.
+        of Stochastic Models.
     cant_angle : tuple, list, int, float
         Cant angle of the fins in degrees. Follows the standard input format of
-        Dispersion Models.
+        Stochastic Models.
     sweep_length : tuple, list, int, float
         Sweep length of the fins in meters. Follows the standard input format of
-        Dispersion Models.
+        Stochastic Models.
     sweep_angle : tuple, list, int, float
         Sweep angle of the fins in degrees. Follows the standard input format of
-        Dispersion Models.
+        Stochastic Models.
     airfoil : list
         List of tuples in the form of (airfoil file path, airfoil name).
     name : list
@@ -167,12 +162,12 @@ class McTrapezoidalFins(DispersionModel):
         sweep_angle=None,
         airfoil=None,
     ):
-        """Initializes the Monte Carlo Trapezoidal Fins class.
+        """Initializes the Stochastic Trapezoidal Fins class.
 
         See Also
         --------
         This should link to somewhere that explains how inputs works in
-        dispersion models.
+        stochastic models.
 
         Parameters
         ----------
@@ -180,28 +175,28 @@ class McTrapezoidalFins(DispersionModel):
             TrapezoidalFins object to be used for validation.
         n : list of ints
             List of integers representing the number of fins. Follows the
-            standard input format of Dispersion Models.
+            standard input format of Stochastic Models.
         root_chord : tuple, list, int, float
             Root chord of the fins in meters. Follows the standard input format
-            of Dispersion Models.
+            of Stochastic Models.
         tip_chord : tuple, list, int, float
             Tip chord of the fins in meters. Follows the standard input format
-            of Dispersion Models.
+            of Stochastic Models.
         span : tuple, list, int, float
             Span of the fins in meters. Follows the standard input format of
-            Dispersion Models.
+            Stochastic Models.
         rocket_radius : tuple, list, int, float
             Rocket radius of the fins in meters. Follows the standard input
-            format of Dispersion Models.
+            format of Stochastic Models.
         cant_angle : tuple, list, int, float
             Cant angle of the fins in degrees. Follows the standard input format
-            of Dispersion Models.
+            of Stochastic Models.
         sweep_length : tuple, list, int, float
             Sweep length of the fins in meters. Follows the standard input
-            format of Dispersion Models.
+            format of Stochastic Models.
         sweep_angle : tuple, list, int, float
             Sweep angle of the fins in degrees. Follows the standard input
-            format of Dispersion Models.
+            format of Stochastic Models.
         airfoil : list
             List of tuples in the form of (airfoil file path, airfoil name).
         """
@@ -245,8 +240,8 @@ class McTrapezoidalFins(DispersionModel):
         return fins
 
 
-class McEllipticalFins(DispersionModel):
-    """A Monte Carlo Elliptical Fins class that inherits from MonteCarloModel.
+class StochasticEllipticalFins(StochasticModel):
+    """A Stochastic Elliptical Fins class that inherits from StochasticModel.
     This class is used to receive a EllipticalFins object and information about
     the dispersion of its parameters and generate a random elliptical fins
     object based on the provided information.
@@ -257,19 +252,19 @@ class McEllipticalFins(DispersionModel):
         EllipticalFins object to be used for validation.
     n : list of ints
         List of integers representing the number of fins. Follows the standard
-        input format of Dispersion Models.
+        input format of Stochastic Models.
     root_chord : tuple, list, int, float
         Root chord of the fins in meters. Follows the standard input format of
-        Dispersion Models.
+        Stochastic Models.
     span : tuple, list, int, float
         Span of the fins in meters. Follows the standard input format of
-        Dispersion Models.
+        Stochastic Models.
     rocket_radius : tuple, list, int, float
         Rocket radius of the fins in meters. Follows the standard input format
-        of Dispersion Models.
+        of Stochastic Models.
     cant_angle : tuple, list, int, float
         Cant angle of the fins in degrees. Follows the standard input format of
-        Dispersion Models.
+        Stochastic Models.
     airfoil : list
         List of tuples in the form of (airfoil file path, airfoil name).
     name : list
@@ -286,12 +281,12 @@ class McEllipticalFins(DispersionModel):
         cant_angle=None,
         airfoil=None,
     ):
-        """Initializes the Monte Carlo Elliptical Fins class.
+        """Initializes the Stochastic Elliptical Fins class.
 
         See Also
         --------
         This should link to somewhere that explains how inputs works in
-        dispersion models.
+        stochastic models.
 
         Parameters
         ----------
@@ -299,19 +294,19 @@ class McEllipticalFins(DispersionModel):
             EllipticalFins object to be used for validation.
         n : list of ints
             List of integers representing the number of fins. Follows the
-            standard input format of Dispersion Models.
+            standard input format of Stochastic Models.
         root_chord : tuple, list, int, float
             Root chord of the fins in meters. Follows the standard input format
-            of Dispersion Models.
+            of Stochastic Models.
         span : tuple, list, int, float
             Span of the fins in meters. Follows the standard input format of
-            Dispersion Models.
+            Stochastic Models.
         rocket_radius : tuple, list, int, float
             Rocket radius of the fins in meters. Follows the standard input
-            format of Dispersion Models.
+            format of Stochastic Models.
         cant_angle : tuple, list, int, float
             Cant angle of the fins in degrees. Follows the standard input format
-            of Dispersion Models.
+            of Stochastic Models.
         airfoil : list
             List of tuples in the form of (airfoil file path, airfoil name).
         """
@@ -350,8 +345,8 @@ class McEllipticalFins(DispersionModel):
         return fins
 
 
-class McTail(DispersionModel):
-    """A Monte Carlo Tail class that inherits from MonteCarloModel. This class
+class StochasticTail(StochasticModel):
+    """A Stochastic Tail class that inherits from StochasticModel. This class
     is used to receive a Tail object and information about the dispersion of its
     parameters and generate a random tail object based on the provided
     information.
@@ -362,16 +357,16 @@ class McTail(DispersionModel):
         Tail object to be used for validation.
     top_radius : tuple, list, int, float
         Top radius of the tail in meters. Follows the standard input format of
-        Dispersion Models.
+        Stochastic Models.
     bottom_radius : tuple, list, int, float
         Bottom radius of the tail in meters. Follows the standard input format
-        of Dispersion Models.
+        of Stochastic Models.
     length : tuple, list, int, float
         Length of the tail in meters. Follows the standard input format of
-        Dispersion Models.
+        Stochastic Models.
     rocket_radius : tuple, list, int, float
         Rocket radius of the tail in meters. Follows the standard input format
-        of Dispersion Models.
+        of Stochastic Models.
     name : list
         List of names. This attribute can not be randomized.
     """
@@ -384,12 +379,12 @@ class McTail(DispersionModel):
         length=None,
         rocket_radius=None,
     ):
-        """Initializes the Monte Carlo Tail class.
+        """Initializes the Stochastic Tail class.
 
         See Also
         --------
         This should link to somewhere that explains how inputs works in
-        dispersion models.
+        stochastic models.
 
         Parameters
         ----------
@@ -397,16 +392,16 @@ class McTail(DispersionModel):
             Tail object to be used for validation.
         top_radius : tuple, list, int, float
             Top radius of the tail in meters. Follows the standard input format
-            of Dispersion Models.
+            of Stochastic Models.
         bottom_radius : tuple, list, int, float
             Bottom radius of the tail in meters. Follows the standard input
-            format of Dispersion Models.
+            format of Stochastic Models.
         length : tuple, list, int, float
             Length of the tail in meters. Follows the standard input format of
-            Dispersion Models.
+            Stochastic Models.
         rocket_radius : tuple, list, int, float
             Rocket radius of the tail in meters. Follows the standard input
-            format of Dispersion Models.
+            format of Stochastic Models.
         """
         super().__init__(
             tail,
@@ -437,8 +432,8 @@ class McTail(DispersionModel):
         return tail
 
 
-class McRailButtons(DispersionModel):
-    """A Monte Carlo RailButtons class that inherits from MonteCarloModel. This
+class StochasticRailButtons(StochasticModel):
+    """A Stochastic RailButtons class that inherits from StochasticModel. This
     class is used to receive a RailButtons object and information about the
     dispersion of its parameters and generate a random rail buttons object based
     on the provided information.
@@ -449,13 +444,13 @@ class McRailButtons(DispersionModel):
         RailButtons object to be used for validation.
     rail_buttons : list
         List of RailButton objects. Follows the standard input format of
-        Dispersion Models.
+        Stochastic Models.
     buttons_distance : tuple, list, int, float
         Distance between the buttons in meters. Follows the standard input
-        format of Dispersion Models.
+        format of Stochastic Models.
     angular_position : tuple, list, int, float
         Angular position of the buttons in degrees. Follows the standard input
-        format of Dispersion Models.
+        format of Stochastic Models.
     name : list
         List of names. This attribute can not be randomized.
     """
@@ -466,12 +461,12 @@ class McRailButtons(DispersionModel):
         buttons_distance=None,
         angular_position=None,
     ):
-        """Initializes the Monte Carlo RailButtons class.
+        """Initializes the Stochastic RailButtons class.
 
         See Also
         --------
         This should link to somewhere that explains how inputs works in
-        dispersion models.
+        stochastic models.
 
         Parameters
         ----------
@@ -479,10 +474,10 @@ class McRailButtons(DispersionModel):
             RailButtons object to be used for validation.
         buttons_distance : tuple, list, int, float
             Distance between the buttons in meters. Follows the standard input
-            format of Dispersion Models.
+            format of Stochastic Models.
         angular_position : tuple, list, int, float
             Angular position of the buttons in degrees. Follows the standard
-            input format of Dispersion Models.
+            input format of Stochastic Models.
         """
         super().__init__(
             rail_buttons,

@@ -1,9 +1,9 @@
-from .dispersion_model import DispersionModel
+from .stochastic_model import StochasticModel
 
 
-class MotorDispersionModel(DispersionModel):
-    """Monte Carlo Motor Model class that inherits from MonteCarloModel. This
-    class is used to standardize the input of the motor dispersion model.
+class StochasticMotorModel(StochasticModel):
+    """Stochastic Motor Model class that inherits from StochasticModel. This
+    class is used to standardize the input of the motor stochastic model.
     """
 
     def __init__(self, object, **kwargs):

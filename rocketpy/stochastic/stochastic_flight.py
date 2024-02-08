@@ -1,10 +1,10 @@
 from rocketpy.simulation import Flight
 
-from .dispersion_model import DispersionModel
+from .stochastic_model import StochasticModel
 
 
-class McFlight(DispersionModel):
-    """A Monte Carlo Flight class that inherits from MonteCarloModel. This
+class StochasticFlight(StochasticModel):
+    """A Stochastic Flight class that inherits from StochasticModel. This
     class is used to receive a Flight object and information about the
     dispersion of its parameters and generate a random flight object based on
     the provided information.
@@ -12,16 +12,16 @@ class McFlight(DispersionModel):
     Attributes
     ----------
     flight : Flight
-        The Flight object to be used as a base for the Monte Carlo flight.
+        The Flight object to be used as a base for the Stochastic flight.
     rail_length : int, float, tuple, list, optional
         The rail length of the flight. Follows the standard input format of
-        Dispersion Models.
+        Stochastic Models.
     inclination : int, float, tuple, list, optional
         The inclination of the flight. Follows the standard input format of
-        Dispersion Models.
+        Stochastic Models.
     heading : int, float, tuple, list, optional
         The heading of the flight. Follows the standard input format of
-        Dispersion Models.
+        Stochastic Models.
     initial_solution : tuple, list, optional
         The initial solution of the flight. This is a tuple of 14 elements that
         represent the initial conditions of the flight. This attribute can not
@@ -40,26 +40,26 @@ class McFlight(DispersionModel):
         initial_solution=None,
         terminate_on_apogee=None,
     ):
-        """Initializes the Monte Carlo Flight class.
+        """Initializes the Stochastic Flight class.
 
         See Also
         --------
         This should link to somewhere that explains how inputs works in
-        dispersion models.
+        Stochastic models.
 
         Parameters
         ----------
         flight : Flight
-            The Flight object to be used as a base for the Monte Carlo flight.
+            The Flight object to be used as a base for the Stochastic flight.
         rail_length : int, float, tuple, list, optional
             The rail length of the flight. Follows the standard input format of
-            Dispersion Models.
+            Stochastic Models.
         inclination : int, float, tuple, list, optional
             The inclination of the flight. Follows the standard input format of
-            Dispersion Models.
+            Stochastic Models.
         heading : int, float, tuple, list, optional
             The heading of the flight. Follows the standard input format of
-            Dispersion Models.
+            Stochastic Models.
         initial_solution : tuple, list, optional
             The initial solution of the flight. This is a tuple of 14 elements
             that represent the initial conditions of the flight. This attribute
@@ -100,21 +100,21 @@ class McFlight(DispersionModel):
     # TODO: these call dict_generator a lot of times unecessaryly
     def _randomize_rail_length(self):
         """Randomizes the rail length of the flight. Follows the standard input
-        format of Dispersion Models.
+        format of Stochastic Models.
         """
         generated_dict = next(self.dict_generator())
         return generated_dict["rail_length"]
 
     def _randomize_inclination(self):
         """Randomizes the inclination of the flight. Follows the standard input
-        format of Dispersion Models.
+        format of Stochastic Models.
         """
         generated_dict = next(self.dict_generator())
         return generated_dict["inclination"]
 
     def _randomize_heading(self):
         """Randomizes the heading of the flight. Follows the standard input
-        format of Dispersion Models.
+        format of Stochastic Models.
         """
         generated_dict = next(self.dict_generator())
         return generated_dict["heading"]

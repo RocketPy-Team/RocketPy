@@ -1,14 +1,13 @@
 from random import choice
 
 import numpy as np
-
 from rocketpy.mathutils.function import Function
 
 from ..tools import get_distribution
 
 
-class DispersionModel:
-    """Base class for all Monte Carlo classes. This class is used to validate
+class StochasticModel:
+    """Base class for all Stochastic classes. This class is used to validate
     the input arguments of the child classes. The input arguments are validated
     and saved as attributes of the class in the correct format. The attributes
     are then used to generate a dictionary with the randomly generated input
@@ -24,7 +23,7 @@ class DispersionModel:
     ]
 
     def __init__(self, object, **kwargs):
-        """Initialize the DispersionModel class with validated input arguments.
+        """Initialize the StochasticModel class with validated input arguments.
 
         Parameters
         ----------
