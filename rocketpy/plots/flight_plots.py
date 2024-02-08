@@ -63,8 +63,8 @@ class _FlightPlots:
         -------
         None
         """
-        max_z = max(self.flight.z[:, 1] - self.flight.env.elevation)
-        min_z = min(self.flight.z[:, 1] - self.flight.env.elevation)
+        max_z = max(self.flight.altitude[:, 1])
+        min_z = min(self.flight.altitude[:, 1])
         max_x = max(self.flight.x[:, 1])
         min_x = min(self.flight.x[:, 1])
         max_y = max(self.flight.y[:, 1])
@@ -79,14 +79,14 @@ class _FlightPlots:
         )
         ax1.plot(
             self.flight.x[:, 1],
-            self.flight.z[:, 1] - self.flight.env.elevation,
+            self.flight.altitude[:, 1],
             zs=min_xy,
             zdir="y",
             linestyle="--",
         )
         ax1.plot(
             self.flight.y[:, 1],
-            self.flight.z[:, 1] - self.flight.env.elevation,
+            self.flight.altitude[:, 1],
             zs=min_xy,
             zdir="x",
             linestyle="--",
@@ -94,7 +94,7 @@ class _FlightPlots:
         ax1.plot(
             self.flight.x[:, 1],
             self.flight.y[:, 1],
-            self.flight.z[:, 1] - self.flight.env.elevation,
+            self.flight.altitude[:, 1],
             linewidth="2",
         )
         ax1.scatter(

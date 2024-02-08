@@ -3296,7 +3296,7 @@ class Flight:
                     (
                         self.longitude(t),
                         self.latitude(t),
-                        self.z(t) - self.env.elevation,
+                        self.altitude(t),
                     )
                 )
             trajectory.coords = coords
