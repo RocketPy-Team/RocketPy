@@ -57,13 +57,12 @@ You can install this version by running `pip install rocketpy==1.2.0`
 
 ### Changed
 
-- BUG: Elliptical Fins Draw [#548](https://github.com/RocketPy-Team/RocketPy/pull/548)
 - ENH: Plotting both power on and off drag curves in a single plot [#547](https://github.com/RocketPy-Team/RocketPy/pull/547)
 - DOC: Replacing git clone command with curl in notebooks. [#544](https://github.com/RocketPy-Team/RocketPy/pull/544)
 - DOC: Installing imageio library on dispersion analysis notebook [#540](https://github.com/RocketPy-Team/RocketPy/pull/540)
 - MNT: improve the low pass filter and document an example [#538](https://github.com/RocketPy-Team/RocketPy/pull/538)
 - MNT: Encapsulate quaternion conversions [#537](https://github.com/RocketPy-Team/RocketPy/pull/537)
-- ENH Precalculate Barometric Height [#511](https://github.com/RocketPy-Team/RocketPy/pull/511)
+- ENH: Precalculate Barometric Height [#511](https://github.com/RocketPy-Team/RocketPy/pull/511)
 - ENH: optimize get_value_opt in class Function [#501](https://github.com/RocketPy-Team/RocketPy/pull/501)
 - DOC: Update Header Related Docs [#495](https://github.com/RocketPy-Team/RocketPy/pull/495)
 - ENH: Function Reverse Arithmetic Priority [#488](https://github.com/RocketPy-Team/RocketPy/pull/488)
@@ -71,6 +70,8 @@ You can install this version by running `pip install rocketpy==1.2.0`
 
 ### Fixed
 
+- MNT: small fixes before v1.2 [#550](https://github.com/RocketPy-Team/RocketPy/pull/550)
+- BUG: Elliptical Fins Draw [#548](https://github.com/RocketPy-Team/RocketPy/pull/548)
 - BUG: 3D trajectory plot not labeling axes [#533](https://github.com/RocketPy-Team/RocketPy/pull/533)
 - FIX: EmptyMotor is breaking the Rocket.draw() method [#516](https://github.com/RocketPy-Team/RocketPy/pull/516)
 - BUG: fin_flutter_analysis doesn't find any fin set [#510](https://github.com/RocketPy-Team/RocketPy/pull/510)
