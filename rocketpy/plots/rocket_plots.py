@@ -2,7 +2,6 @@ import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
-import warnings
 
 from rocketpy.motors import EmptyMotor, HybridMotor, LiquidMotor, SolidMotor
 from rocketpy.rocket.aero_surface import Fins, NoseCone, Tail
