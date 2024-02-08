@@ -1550,7 +1550,7 @@ class EllipticalFins(Fins):
         return None
 
     def evaluate_shape(self):
-        angles = np.arange(0, 360, 5)
+        angles = np.arange(0, 180, 5)
         x_array = self.root_chord / 2 + self.root_chord / 2 * np.cos(np.radians(angles))
         y_array = self.span * np.sin(np.radians(angles))
         self.shape_vec = [x_array, y_array]
