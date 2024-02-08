@@ -13,9 +13,9 @@ from ..plots.flight_plots import _FlightPlots
 from ..prints.flight_prints import _FlightPrints
 from ..tools import (
     find_closest,
-    quaternions_to_spin,
-    quaternions_to_precession,
     quaternions_to_nutation,
+    quaternions_to_precession,
+    quaternions_to_spin,
 )
 
 
