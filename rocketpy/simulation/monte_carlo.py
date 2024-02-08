@@ -5,12 +5,12 @@ import numpy as np
 import simplekml
 
 from rocketpy.mathutils.function import Function
-from rocketpy.plots.dispersion_plots import _DispersionPlots
-from rocketpy.prints.dispersion_prints import _DispersionPrints
+from rocketpy.plots.monte_carlo_plots import _MonteCarloPlots
+from rocketpy.prints.monte_carlo_prints import _MonteCarloPrints
 from rocketpy.simulation.flight import Flight
 from rocketpy.tools import (
-    generate_dispersion_ellipses,
-    generate_dispersion_ellipses_coordinates,
+    generate_monte_carlo_ellipses,
+    generate_monte_carlo_ellipses_coordinates,
 )
 
 # TODO: How to save Functions? With pickle? Save just the source?
@@ -21,7 +21,7 @@ from rocketpy.tools import (
 # TODO: Create evolution plots to analyze convergence
 
 
-class Dispersion:
+class MonteCarlo:
     """Class to run a Monte Carlo simulation of a rocket flight.
 
     Attributes
@@ -32,8 +32,7 @@ class Dispersion:
         is 'filename', the exported output files will be named
         'filename.disp_outputs.txt'. When analyzing the results of a
         previous simulation, this parameter should be set to the .txt
-        file containing the outputs of the previous dispersion
-        analysis.
+        file containing the outputs of the previous monte carlo analysis.
     environment : StochasticEnvironment
         The stochastic environment object to be iterated over.
     rocket : StochasticRocket
@@ -53,23 +52,23 @@ class Dispersion:
     num_of_loaded_sims : int
         Number of simulations loaded from output_file being currently used.
     results : dict
-        Dispersion results organized in a dictionary where the keys are the
-        names of the saved attributes, and the values are a list with all the
-        result number of the respective attribute
+        Monte carlo analysis results organized in a dictionary where the keys
+        are the names of the saved attributes, and the values are a list with
+        all the result number of the respective attribute
     processed_results : dict
         Creates a dictionary with the mean and standard deviation of each
         parameter available in the results
-    prints : _DispersionPrints
-        Object with methods to print information about the dispersion
+    prints : _MonteCarloPrints
+        Object with methods to print information about the monte carlo
         simulation.
-    plot : _DispersionPlots
-        Object with methods to plot information about the dispersion
+    plot : _MonteCarloPlots
+        Object with methods to plot information about the monte carlo
         simulation.
     """
 
     def __init__(self, filename, environment, rocket, flight, export_list=None):
         """
-        Initialize a Dispersion object.
+        Initialize a MonteCarlo object.
 
         Parameters
         ----------
@@ -79,7 +78,7 @@ class Dispersion:
             is 'filename', the exported output files will be named
             'filename.disp_outputs.txt'. When analyzing the results of a
             previous simulation, this parameter should be set to the .txt
-            file containing the outputs of the previous dispersion
+            file containing the outputs of the previous monte carlo
             analysis.
         environment : StochasticEnvironment
             The stochastic environment object to be iterated over.
@@ -108,8 +107,8 @@ class Dispersion:
         self.num_of_loaded_sims = 0
         self.results = {}
         self.processed_results = {}
-        self.prints = _DispersionPrints(self)
-        self.plots = _DispersionPlots(self)
+        self.prints = _MonteCarloPrints(self)
+        self.plots = _MonteCarloPlots(self)
         self._inputs_dict = {}
         self._last_print_len = 0  # used to print on the same line
 
@@ -134,9 +133,9 @@ class Dispersion:
         # TODO: Initialize variables so they can be accessed by MATLAB
 
     # TODO move export_list to init
-    def run_dispersion(self, number_of_simulations, append=False):
+    def simulate(self, number_of_simulations, append=False):
         """
-        Runs the dispersion simulation and saves all data.
+        Runs the monte carlo simulation and saves all data.
 
         Parameters
         ----------
@@ -186,7 +185,7 @@ class Dispersion:
         # Update iteration count
         self.iteration_count += 1
         # Run trajectory simulation
-        dispersion_flight = Flight(
+        monte_carlo_flight = Flight(
             rocket=self.rocket.create_object(),
             environment=self.environment.create_object(),
             rail_length=self.flight._randomize_rail_length(),
@@ -208,7 +207,7 @@ class Dispersion:
 
         # Export inputs and outputs to file
         self.__export_flight_data(
-            flight=dispersion_flight,
+            flight=monte_carlo_flight,
             inputs_dict=self._inputs_dict,
             input_file=input_file,
             output_file=output_file,
@@ -499,7 +498,7 @@ class Dispersion:
                 self.num_of_loaded_sims += 1
 
     def set_results(self):
-        """Dispersion results organized in a dictionary where the keys are the
+        """Monte carlo results organized in a dictionary where the keys are the
         names of the saved attributes, and the values are a list with all the
         result number of the respective attribute"""
         self.results = {}
@@ -520,13 +519,14 @@ class Dispersion:
             self.processed_results[result] = (mean, stdev)
 
     def import_outputs(self, filename=None):
-        """Import dispersion results from .txt file and save it into a dictionary.
+        """Import monte carlo results from .txt file and save it into a
+        dictionary.
 
         Parameters
         ----------
         filename : str
-            Name or directory path to the file to be imported. If none, Dispersion
-            filename will be used
+            Name or directory path to the file to be imported. If none,
+            self.filename will be used.
 
         Returns
         -------
@@ -553,14 +553,14 @@ class Dispersion:
                 )
 
     def import_inputs(self, filename=None):
-        """Import dispersion results from .txt file and save it into a
+        """Import monte carlo results from .txt file and save it into a
         dictionary.
 
         Parameters
         ----------
         filename : str
             Name or directory path to the file to be imported. If none,
-            Dispersion filename will be used
+            self.filename will be used.
 
         Returns
         -------
@@ -583,14 +583,14 @@ class Dispersion:
                 print(f"The following input file was imported: {filepath}\n")
 
     def import_errors(self, filename=None):
-        """Import dispersion results from .txt file and save it into a
+        """Import monte carlo results from .txt file and save it into a
         dictionary.
 
         Parameters
         ----------
         filename : str
             Name or directory path to the file to be imported. If none,
-            Dispersion filename will be used
+            self.filename will be used.
 
         Returns
         -------
@@ -613,14 +613,14 @@ class Dispersion:
                 print(f"The following error file was imported: {filepath}\n")
 
     def import_results(self, filename=None):
-        """Import dispersion results from .txt file and save it into a
+        """Import monte carlo results from .txt file and save it into a
         dictionary.
 
         Parameters
         ----------
         filename : str
             Name or directory path to the file to be imported. If none,
-            Dispersion filename will be used
+            self.filename will be used.
 
         Returns
         -------
@@ -647,7 +647,7 @@ class Dispersion:
         Parameters
         ----------
         results : dict
-            Contains dispersion results from the Monte Carlo simulation.
+            Contains results from the Monte Carlo simulation.
         filename : String
             Name to the KML exported file.
         origin_lat : float
@@ -676,16 +676,16 @@ class Dispersion:
             _,
             _,
             _,
-        ) = generate_dispersion_ellipses(self.results)
+        ) = generate_monte_carlo_ellipses(self.results)
         outputs = []
 
         if type == "all" or type == "impact":
-            outputs = outputs + generate_dispersion_ellipses_coordinates(
+            outputs = outputs + generate_monte_carlo_ellipses_coordinates(
                 impact_ellipses, origin_lat, origin_lon, resolution=resolution
             )
 
         if type == "all" or type == "apogee":
-            outputs = outputs + generate_dispersion_ellipses_coordinates(
+            outputs = outputs + generate_monte_carlo_ellipses_coordinates(
                 apogee_ellipses, origin_lat, origin_lon, resolution=resolution
             )
 

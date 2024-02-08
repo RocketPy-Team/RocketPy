@@ -5,16 +5,16 @@ from .mathutils import (
     funcify_method,
     reset_funcified_methods,
 )
-from .monte_carlo import (
-    McEllipticalFins,
-    McEnvironment,
-    McFlight,
-    McNoseCone,
-    McParachute,
-    McRocket,
-    McSolidMotor,
-    McTail,
-    McTrapezoidalFins,
+from .stochastic import (
+    StochasticEllipticalFins,
+    StochasticEnvironment,
+    StochasticFlight,
+    StochasticNoseCone,
+    StochasticParachute,
+    StochasticRocket,
+    StochasticSolidMotor,
+    StochasticTail,
+    StochasticTrapezoidalFins,
 )
 from .motors import (
     CylindricalTank,
@@ -45,5 +45,5 @@ from .rocket import (
     Tail,
     TrapezoidalFins,
 )
-from .simulation import Flight, Dispersion
+from .simulation import Flight, MonteCarlo
 from .plots.compare import Compare, CompareFlights

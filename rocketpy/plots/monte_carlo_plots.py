@@ -1,21 +1,13 @@
-__author__ = (
-    "Mateus Stano Junqueira, Guilherme Fernandes Alves, Bruno Abdulklech Sorban"
-)
-__copyright__ = "Copyright 20XX, RocketPy Team"
-__license__ = "MIT"
-
-
 import matplotlib.pyplot as plt
 
-from ..tools import generate_dispersion_ellipses
+from ..tools import generate_monte_carlo_ellipses
 
 
-class _DispersionPlots:
-    """Class to plot the dispersion results of the dispersion analysis."""
+class _MonteCarloPlots:
+    """Class to plot the monte carlo analysis results."""
 
-    def __init__(self, dispersion):
-        self.dispersion = dispersion
-        return None
+    def __init__(self, monte_carlo):
+        self.monte_carlo = monte_carlo
 
     def ellipses(
         self,
@@ -36,7 +28,7 @@ class _DispersionPlots:
             The path to the image to be used as the background
         actual_landing_point : tuple, optional
             A tuple containing the actual landing point of the rocket, if known.
-            Useful when comparing the dispersion results with the actual landing.
+            Useful when comparing the monte_carlo results with the actual landing.
             Must be given in tuple format, such as (x, y) in meters.
             By default None.
         perimeterSize : int, optional
@@ -76,7 +68,7 @@ class _DispersionPlots:
             apogeeY,
             impactX,
             impactY,
-        ) = generate_dispersion_ellipses(self.dispersion.results)
+        ) = generate_monte_carlo_ellipses(self.monte_carlo.results)
 
         # Create plot figure
         plt.figure(num=None, figsize=(8, 6), dpi=150, facecolor="w", edgecolor="k")
@@ -117,7 +109,7 @@ class _DispersionPlots:
 
         # Add title and labels to plot
         ax.set_title(
-            "1$\\sigma$, 2$\\sigma$ and 3$\\sigma$ Dispersion Ellipses: Apogee and Landing Points"
+            "1$\\sigma$, 2$\\sigma$ and 3$\\sigma$ monte_carlo Ellipses: Apogee and Landing Points"
         )
         ax.set_ylabel("North (m)")
         ax.set_xlabel("East (m)")
@@ -146,16 +138,15 @@ class _DispersionPlots:
         # Save plot and show result
         if save:
             plt.savefig(
-                str(self.dispersion.filename) + ".png",
+                str(self.monte_carlo.filename) + ".png",
                 bbox_inches="tight",
                 pad_inches=0,
             )
         else:
             plt.show()
-        return None
 
     def all_results(self, keys=None):
-        """Plot the results of the dispersion analysis.
+        """Plot the results of the monte_carlo analysis.
 
         Parameters
         ----------
@@ -169,11 +160,11 @@ class _DispersionPlots:
         """
 
         if keys is None:
-            keys = self.dispersion.results.keys()
+            keys = self.monte_carlo.results.keys()
         elif isinstance(keys, str):
             keys = [keys]
         elif isinstance(keys, (list, tuple)):
-            keys = list(set(keys).intersection(self.dispersion.results.keys()))
+            keys = list(set(keys).intersection(self.monte_carlo.results.keys()))
             if len(keys) == 0:
                 raise ValueError(
                     "The selected 'keys' are not available in the results. "
@@ -187,10 +178,8 @@ class _DispersionPlots:
         for key in keys:
             plt.figure()
             plt.hist(
-                self.dispersion.results[key],
+                self.monte_carlo.results[key],
             )
             plt.title("Histogram of " + key)
             plt.ylabel("Number of Occurrences")
             plt.show()
-
-        return None
