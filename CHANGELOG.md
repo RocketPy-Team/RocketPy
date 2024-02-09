@@ -70,6 +70,7 @@ You can install this version by running `pip install rocketpy==1.2.0`
 
 ### Fixed
 
+- BUG: Update flight trajectory plot axes limits [#552](https://github.com/RocketPy-Team/RocketPy/pull/552)
 - MNT: small fixes before v1.2 [#550](https://github.com/RocketPy-Team/RocketPy/pull/550)
 - BUG: Elliptical Fins Draw [#548](https://github.com/RocketPy-Team/RocketPy/pull/548)
 - BUG: 3D trajectory plot not labeling axes [#533](https://github.com/RocketPy-Team/RocketPy/pull/533)
