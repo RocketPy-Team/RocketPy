@@ -401,7 +401,9 @@ Then we can plot the data we want.
 
     time_list, deployment_level_list, drag_coefficient_list = [], [], []
 
-    for time, deployment_level, drag_coefficient in test_flight.get_controller_observed_variables:
+    obs_vars = test_flight.get_controller_observed_variables()
+
+    for time, deployment_level, drag_coefficient in obs_vars:
         time_list.append(time)
         deployment_level_list.append(deployment_level)
         drag_coefficient_list.append(drag_coefficient)
