@@ -28,7 +28,7 @@ class _MonteCarloPlots:
             The path to the image to be used as the background
         actual_landing_point : tuple, optional
             A tuple containing the actual landing point of the rocket, if known.
-            Useful when comparing the monte_carlo results with the actual landing.
+            Useful when comparing the Monte Carlo results with the actual landing.
             Must be given in tuple format, such as (x, y) in meters.
             By default None.
         perimeterSize : int, optional
@@ -109,7 +109,8 @@ class _MonteCarloPlots:
 
         # Add title and labels to plot
         ax.set_title(
-            "1$\\sigma$, 2$\\sigma$ and 3$\\sigma$ monte_carlo Ellipses: Apogee and Landing Points"
+            "1$\\sigma$, 2$\\sigma$ and 3$\\sigma$ "
+            + "Monte Carlo Ellipses: Apogee and Landing Points"
         )
         ax.set_ylabel("North (m)")
         ax.set_xlabel("East (m)")
@@ -146,7 +147,7 @@ class _MonteCarloPlots:
             plt.show()
 
     def all_results(self, keys=None):
-        """Plot the results of the monte_carlo analysis.
+        """Plot the results of the Monte Carlo analysis.
 
         Parameters
         ----------

@@ -227,7 +227,7 @@ class StochasticTrapezoidalFins(StochasticModel):
 
         Returns
         -------
-        trapezoidalfins : TrapezoidalFins
+        fins : TrapezoidalFins
             TrapezoidalFins object with the randomly generated input arguments.
         """
         generated_dict = next(self.dict_generator())
@@ -334,7 +334,7 @@ class StochasticEllipticalFins(StochasticModel):
 
         Returns
         -------
-        ellipticalfins : EllipticalFins
+        fins : EllipticalFins
             EllipticalFins object with the randomly generated input arguments.
         """
         generated_dict = next(self.dict_generator())
@@ -388,7 +388,7 @@ class StochasticTail(StochasticModel):
 
         See Also
         --------
-        This should link to somewhere that explains how inputs works in
+        TODO: This should link to somewhere that explains how inputs works in
         stochastic models.
 
         Parameters
@@ -497,7 +497,7 @@ class StochasticRailButtons(StochasticModel):
 
         Returns
         -------
-        railbuttons : RailButtons
+        rail_buttons : RailButtons
             RailButtons object with the randomly generated input arguments.
         """
         generated_dict = next(self.dict_generator())

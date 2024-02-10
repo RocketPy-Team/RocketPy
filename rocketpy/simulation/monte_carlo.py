@@ -61,7 +61,7 @@ class MonteCarlo:
     prints : _MonteCarloPrints
         Object with methods to print information about the monte carlo
         simulation.
-    plot : _MonteCarloPlots
+    plots : _MonteCarloPlots
         Object with methods to plot information about the monte carlo
         simulation.
     """
