@@ -250,11 +250,3 @@ def test_export_kml(flight_calisto_robust):
     assert np.allclose(test_flight.latitude[:, 1], lat, atol=1e-3) == True
     assert np.allclose(test_flight.longitude[:, 1], lon, atol=1e-3) == True
     assert np.allclose(test_flight.z[:, 1], z, atol=1e-3) == True
-
-
-def test_get_controller_observed_variables(flight_calisto_air_brakes):
-    """Tests whether the method Flight.get_controller_observed_variables is
-    working as intended."""
-    obs_vars = flight_calisto_air_brakes.get_controller_observed_variables()
-    assert isinstance(obs_vars, list)
-    assert len(obs_vars) == 0

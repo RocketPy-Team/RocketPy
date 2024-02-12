@@ -63,36 +63,38 @@ class _FlightPlots:
         -------
         None
         """
-        max_z = max(self.flight.altitude[:, 1])
-        min_z = min(self.flight.altitude[:, 1])
+        max_z = max(self.flight.z[:, 1] - self.flight.env.elevation)
+        min_z = min(self.flight.z[:, 1] - self.flight.env.elevation)
         max_x = max(self.flight.x[:, 1])
         min_x = min(self.flight.x[:, 1])
         max_y = max(self.flight.y[:, 1])
         min_y = min(self.flight.y[:, 1])
+        max_xy = max(max_x, max_y)
+        min_xy = min(min_x, min_y)
 
         _ = plt.figure(figsize=(9, 9))
         ax1 = plt.subplot(111, projection="3d")
         ax1.plot(
-            self.flight.x[:, 1], self.flight.y[:, 1], zs=min_z, zdir="z", linestyle="--"
+            self.flight.x[:, 1], self.flight.y[:, 1], zs=0, zdir="z", linestyle="--"
         )
         ax1.plot(
             self.flight.x[:, 1],
-            self.flight.altitude[:, 1],
-            zs=min_y,
+            self.flight.z[:, 1] - self.flight.env.elevation,
+            zs=min_xy,
             zdir="y",
             linestyle="--",
         )
         ax1.plot(
             self.flight.y[:, 1],
-            self.flight.altitude[:, 1],
-            zs=min_x,
+            self.flight.z[:, 1] - self.flight.env.elevation,
+            zs=min_xy,
             zdir="x",
             linestyle="--",
         )
         ax1.plot(
             self.flight.x[:, 1],
             self.flight.y[:, 1],
-            self.flight.altitude[:, 1],
+            self.flight.z[:, 1] - self.flight.env.elevation,
             linewidth="2",
         )
         ax1.scatter(
@@ -112,9 +114,9 @@ class _FlightPlots:
         ax1.set_ylabel("Y - North (m)")
         ax1.set_zlabel("Z - Altitude Above Ground Level (m)")
         ax1.set_title("Flight Trajectory")
-        ax1.set_xlim(min_x, max_x)
-        ax1.set_ylim(min_y, max_y)
-        ax1.set_zlim(min_z, max_z)
+        ax1.set_zlim3d([min_z, max_z])
+        ax1.set_ylim3d([min_xy, max_xy])
+        ax1.set_xlim3d([min_xy, max_xy])
         ax1.view_init(15, 45)
         ax1.set_box_aspect(None, zoom=0.95)  # 95% for label adjustment
         plt.show()

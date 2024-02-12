@@ -57,6 +57,10 @@ jobs:
       - name: Run Acceptance Tests
         run: pytest tests/acceptance --cov=rocketpy --cov-append --cov-report=xml
 
+      - name: Run pytest --runslow
+        if: github.ref == 'refs/heads/master'
+        run: pytest tests -m slow --runslow --cov=rocketpy --cov-append --cov-report=xml
+
       - name: Upload coverage to artifacts
         uses: actions/upload-artifact@v2
         with:

@@ -291,16 +291,3 @@ class _RailButtonsPrints(_AeroSurfacePrints):
             f"Angular position of the buttons: {self.aero_surface.angular_position:.3f} deg\n"
         )
         return None
-
-
-class _AirBrakesPrints(_AeroSurfacePrints):
-    """Class that contains all air_brakes prints. Not yet implemented."""
-
-    def __init__(self, air_brakes):
-        super().__init__(air_brakes)
-
-    def geometry(self):
-        pass
-
-    def all(self):
-        pass

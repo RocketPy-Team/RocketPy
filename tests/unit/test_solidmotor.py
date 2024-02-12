@@ -2,18 +2,21 @@ import os
 from unittest.mock import patch
 
 import numpy as np
+import pytest
 
-BURN_TIME = 3.9
-GRAIN_NUMBER = 5
-GRAIN_SEPARATION = 5 / 1000
-GRAIN_DENSITY = 1815
-GRAIN_OUTER_RADIUS = 33 / 1000
-GRAIN_INITIAL_INNER_RADIUS = 15 / 1000
-GRAIN_INITIAL_HEIGHT = 120 / 1000
-NOZZLE_RADIUS = 33 / 1000
-THROAT_RADIUS = 11 / 1000
-GRAIN_VOL = 0.12 * (np.pi * (0.033**2 - 0.015**2))
-GRAIN_MASS = GRAIN_VOL * 1815 * 5
+from rocketpy import SolidMotor
+
+burn_time = 3.9
+grain_number = 5
+grain_separation = 5 / 1000
+grain_density = 1815
+grain_outer_radius = 33 / 1000
+grain_initial_inner_radius = 15 / 1000
+grain_initial_height = 120 / 1000
+nozzle_radius = 33 / 1000
+throat_radius = 11 / 1000
+grain_vol = 0.12 * (np.pi * (0.033**2 - 0.015**2))
+grain_mass = grain_vol * 1815 * 5
 
 
 @patch("matplotlib.pyplot.show")
@@ -31,21 +34,21 @@ def test_motor(mock_show, cesaroni_m1670):
 
 
 def test_evaluate_inertia_11_asserts_extreme_values(cesaroni_m1670):
-    grain_vol = GRAIN_INITIAL_HEIGHT * (
-        np.pi * (GRAIN_OUTER_RADIUS**2 - GRAIN_INITIAL_INNER_RADIUS**2)
+    grain_vol = grain_initial_height * (
+        np.pi * (grain_outer_radius**2 - grain_initial_inner_radius**2)
     )
-    grain_mass = grain_vol * GRAIN_DENSITY
+    grain_mass = grain_vol * grain_density
 
-    grain_inertia_11_initial = grain_mass * (
-        (1 / 4) * (GRAIN_OUTER_RADIUS**2 + GRAIN_INITIAL_INNER_RADIUS**2)
-        + (1 / 12) * GRAIN_INITIAL_HEIGHT**2
+    grainInertia_11_initial = grain_mass * (
+        (1 / 4) * (grain_outer_radius**2 + grain_initial_inner_radius**2)
+        + (1 / 12) * grain_initial_height**2
     )
 
-    initial_value = (GRAIN_NUMBER - 1) / 2
-    d = np.linspace(-initial_value, initial_value, GRAIN_NUMBER)
-    d = d * (GRAIN_INITIAL_HEIGHT + GRAIN_SEPARATION)
+    initial_value = (grain_number - 1) / 2
+    d = np.linspace(-initial_value, initial_value, grain_number)
+    d = d * (grain_initial_height + grain_separation)
 
-    inertia_11_initial = GRAIN_NUMBER * grain_inertia_11_initial + grain_mass * np.sum(
+    inertia_11_initial = grain_number * grainInertia_11_initial + grain_mass * np.sum(
         d**2
     )
 
@@ -61,13 +64,13 @@ def test_evaluate_inertia_11_asserts_extreme_values(cesaroni_m1670):
 
 
 def test_evaluate_inertia_33_asserts_extreme_values(cesaroni_m1670):
-    grain_vol = GRAIN_INITIAL_HEIGHT * (
-        np.pi * (GRAIN_OUTER_RADIUS**2 - GRAIN_INITIAL_INNER_RADIUS**2)
+    grain_vol = grain_initial_height * (
+        np.pi * (grain_outer_radius**2 - grain_initial_inner_radius**2)
     )
-    grain_mass = grain_vol * GRAIN_DENSITY
+    grain_mass = grain_vol * grain_density
 
     grain_I_33_initial = (
-        grain_mass * (1 / 2.0) * (GRAIN_INITIAL_INNER_RADIUS**2 + GRAIN_OUTER_RADIUS**2)
+        grain_mass * (1 / 2.0) * (grain_initial_inner_radius**2 + grain_outer_radius**2)
     )
 
     # not passing because I_33 is not discrete anymore
@@ -137,11 +140,11 @@ def tests_export_eng_asserts_exported_values_correct(cesaroni_m1670):
     assert comments == []
     assert description == [
         "test_motor",
-        "{:3.1f}".format(2000 * GRAIN_OUTER_RADIUS),
+        "{:3.1f}".format(2000 * grain_outer_radius),
         "{:3.1f}".format(1000 * 5 * (0.12 + 0.005)),
         "0",
-        "{:2.3}".format(GRAIN_MASS),
-        "{:2.3}".format(GRAIN_MASS),
+        "{:2.3}".format(grain_mass),
+        "{:2.3}".format(grain_mass),
         "RocketPy",
     ]
 

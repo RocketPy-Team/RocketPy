@@ -1,5 +1,3 @@
-.. _firstsimulation:
-
 First Simulation with RocketPy
 ==============================
 

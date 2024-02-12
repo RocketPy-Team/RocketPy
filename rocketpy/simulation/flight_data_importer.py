@@ -277,7 +277,13 @@ class FlightDataImporter:
             try:
                 col_idx = self._original_columns[filepath].index(col)
             except ValueError:
-                # Unable to find the column in the header of the file
+                warnings.warn(
+                    f"Unable to find column '{col}' in the header of the file. "
+                    + f"The attribute '{name}' won't be set. The available "
+                    + "columns are:"
+                    + str(self._original_columns[filepath]),
+                    UserWarning,
+                )
                 continue
 
             # Extract values for the current column

@@ -1,37 +1,27 @@
-# Set PYTHON variable according to OS
-ifeq ($(OS),Windows_NT)
-	PYTHON=python
-else
-	PYTHON=python3
-endif
+test:
+	python -m pytest tests -vv
 
-pytest:
-	$(PYTHON) -m pytest tests
+testfile:
+	python -m pytest tests/$(file) -vv
 
-pytest-slow:
-	$(PYTHON) -m pytest tests -vv -m slow --runslow
+tests:
+	test
 
-coverage:
-	$(PYTHON) -m pytest --cov=rocketpy tests
+coverage: 
+	python -m pytest --cov=rocketpy tests -vv
 
 coverage-report:
-	$(PYTHON) -m pytest --cov=rocketpy tests --cov-report html
+	python -m pytest --cov=rocketpy tests -vv --cov-report html
 
-install:
-	$(PYTHON) -m pip install --upgrade pip
+install: 
+	python -m pip install --upgrade pip
 	pip install -r requirements.txt
-	pip install -r requirements-optional.txt
-	pip install -e .
+	python setup.py install
 
-isort:
-	isort --profile black rocketpy/ tests/ docs/
+verify-lint:
+	flake8 --select BLK rocketpy
+	flake8 --select BLK test
 
-black:
-	black rocketpy/ tests/ docs/
-	
-pylint:
-	-pylint rocketpy tests --output=.pylint-report.txt
-
-build-docs:
-	cd docs && $(PYTHON) -m pip install -r requirements.txt && make html
-	cd ..
+lint:
+	black rocketpy
+	black tests

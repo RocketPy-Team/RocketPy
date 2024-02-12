@@ -338,66 +338,6 @@ def calisto_robust(
 
 
 @pytest.fixture
-def calisto_air_brakes_clamp_on(calisto_robust, controller_function):
-    """Create an object class of the Rocket class to be used in the tests. This
-    is the same Calisto rocket that was defined in the calisto_robust fixture,
-    but with air brakes added, with clamping.
-
-    Parameters
-    ----------
-    calisto_robust : rocketpy.Rocket
-        An object of the Rocket class. This is a pytest fixture.
-    controller_function : function
-        A function that controls the air brakes. This is a pytest fixture.
-
-    Returns
-    -------
-    rocketpy.Rocket
-        An object of the Rocket class
-    """
-    calisto = calisto_robust
-    # remove parachutes
-    calisto.parachutes = []
-    calisto.add_air_brakes(
-        drag_coefficient_curve="data/calisto/air_brakes_cd.csv",
-        controller_function=controller_function,
-        sampling_rate=10,
-        clamp=True,
-    )
-    return calisto
-
-
-@pytest.fixture
-def calisto_air_brakes_clamp_off(calisto_robust, controller_function):
-    """Create an object class of the Rocket class to be used in the tests. This
-    is the same Calisto rocket that was defined in the calisto_robust fixture,
-    but with air brakes added, without clamping.
-
-    Parameters
-    ----------
-    calisto_robust : rocketpy.Rocket
-        An object of the Rocket class. This is a pytest fixture.
-    controller_function : function
-        A function that controls the air brakes. This is a pytest fixture.
-
-    Returns
-    -------
-    rocketpy.Rocket
-        An object of the Rocket class
-    """
-    calisto = calisto_robust
-    # remove parachutes
-    calisto.parachutes = []
-    calisto.add_air_brakes(
-        drag_coefficient_curve="data/calisto/air_brakes_cd.csv",
-        controller_function=controller_function,
-        sampling_rate=10,
-        clamp=False,
-    )
-    return calisto
-
-
-@pytest.fixture
 def pressurant_fluid():
     """An example of a pressurant fluid as N2 gas at
     273.15K and 30MPa.
@@ -976,37 +916,6 @@ def flight_calisto_custom_wind(calisto_robust, example_env_robust):
     )
 
 
-@pytest.fixture
-def flight_calisto_air_brakes(calisto_air_brakes_clamp_on, example_env):
-    """A rocketpy.Flight object of the Calisto rocket. This uses the calisto
-    with the aerodynamic surfaces and air brakes. The environment is the
-    simplest possible, with no parameters set. The air brakes are set to clamp
-    the deployment level.
-
-    Parameters
-    ----------
-    calisto_air_brakes_clamp_on : rocketpy.Rocket
-        An object of the Rocket class.
-    example_env : rocketpy.Environment
-        An object of the Environment class.
-
-    Returns
-    -------
-    rocketpy.Flight
-        A rocketpy.Flight object of the Calisto rocket in a more complex
-        condition.
-    """
-    return Flight(
-        rocket=calisto_air_brakes_clamp_on,
-        environment=example_env,
-        rail_length=5.2,
-        inclination=85,
-        heading=0,
-        time_overshoot=False,
-        terminate_on_apogee=True,
-    )
-
-
 ## Dimensionless motors and rockets
 
 
@@ -1269,47 +1178,6 @@ def func_2d_from_csv():
         source="tests/fixtures/function/2d.csv",
     )
     return func
-
-
-## Controller
-@pytest.fixture
-def controller_function():
-    """Create a controller function that updates the air brakes deployment level
-    based on the altitude and vertical velocity of the rocket. This is the same
-    controller function that is used in the air brakes example in the
-    documentation.
-
-    Returns
-    -------
-    function
-        A controller function
-    """
-
-    def controller_function(
-        time, sampling_rate, state, state_history, observed_variables, air_brakes
-    ):
-        z = state[2]
-        vz = state[5]
-        previous_vz = state_history[-1][5]
-        if time < 3.9:
-            return None
-        if z < 1500:
-            air_brakes.deployment_level = 0
-        else:
-            new_deployment_level = (
-                air_brakes.deployment_level + 0.1 * vz + 0.01 * previous_vz**2
-            )
-            if new_deployment_level > air_brakes.deployment_level + 0.2 / sampling_rate:
-                new_deployment_level = air_brakes.deployment_level + 0.2 / sampling_rate
-            elif (
-                new_deployment_level < air_brakes.deployment_level - 0.2 / sampling_rate
-            ):
-                new_deployment_level = air_brakes.deployment_level - 0.2 / sampling_rate
-            else:
-                new_deployment_level = air_brakes.deployment_level
-            air_brakes.deployment_level = new_deployment_level
-
-    return controller_function
 
 
 @pytest.fixture

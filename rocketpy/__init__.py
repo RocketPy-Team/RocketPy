@@ -1,10 +1,20 @@
-from .control import _Controller
 from .environment import Environment, EnvironmentAnalysis
 from .mathutils import (
     Function,
     PiecewiseFunction,
     funcify_method,
     reset_funcified_methods,
+)
+from .stochastic import (
+    StochasticEllipticalFins,
+    StochasticEnvironment,
+    StochasticFlight,
+    StochasticNoseCone,
+    StochasticParachute,
+    StochasticRocket,
+    StochasticSolidMotor,
+    StochasticTail,
+    StochasticTrapezoidalFins,
 )
 from .motors import (
     CylindricalTank,
@@ -23,10 +33,8 @@ from .motors import (
     TankGeometry,
     UllageBasedTank,
 )
-from .plots.compare import Compare, CompareFlights
 from .rocket import (
     AeroSurface,
-    AirBrakes,
     Components,
     EllipticalFins,
     Fins,
@@ -38,14 +46,4 @@ from .rocket import (
     TrapezoidalFins,
 )
 from .simulation import Flight, MonteCarlo
-from .stochastic import (
-    StochasticEllipticalFins,
-    StochasticEnvironment,
-    StochasticFlight,
-    StochasticNoseCone,
-    StochasticParachute,
-    StochasticRocket,
-    StochasticSolidMotor,
-    StochasticTail,
-    StochasticTrapezoidalFins,
-)
+from .plots.compare import Compare, CompareFlights

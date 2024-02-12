@@ -1,5 +1,3 @@
-import warnings
-
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -96,13 +94,6 @@ class _RocketPlots:
         None
         """
 
-        warnings.warn(
-            "The method 'power_on_drag' is deprecated as of version "
-            + "1.2 and will be removed in version 1.4 "
-            + "Use 'plots.drag_curves' instead.",
-            DeprecationWarning,
-        )
-
         self.rocket.power_on_drag()
 
         return None
@@ -115,86 +106,9 @@ class _RocketPlots:
         None
         """
 
-        warnings.warn(
-            "The method 'power_off_drag' is deprecated as of version "
-            + "1.2 and will be removed in version 1.4 "
-            + "Use 'plots.drag_curves' instead.",
-            DeprecationWarning,
-        )
-
         self.rocket.power_off_drag()
 
         return None
-
-    def drag_curves(self):
-        """Plots power off and on drag curves of the rocket as a function of time.
-
-        Returns
-        -------
-        None
-        """
-
-        x_power_drag_off = self.rocket.power_off_drag.x_array
-        y_power_drag_off = self.rocket.power_off_drag.y_array
-        x_power_drag_on = self.rocket.power_on_drag.x_array
-        y_power_drag_on = self.rocket.power_on_drag.y_array
-
-        warnings.warn(
-            "The method 'power_on_drag' is deprecated as of version "
-            + "1.2 and will be removed in version 1.4 "
-            + "Use 'plots.drag_curves' instead.",
-            DeprecationWarning,
-        )
-
-        self.rocket.power_on_drag()
-
-        return None
-
-    def power_off_drag(self):
-        """Plots power off drag of the rocket as a function of time.
-
-        Returns
-        -------
-        None
-        """
-
-        warnings.warn(
-            "The method 'power_off_drag' is deprecated as of version "
-            + "1.2 and will be removed in version 1.4 "
-            + "Use 'plots.drag_curves' instead.",
-            DeprecationWarning,
-        )
-
-        self.rocket.power_off_drag()
-
-        return None
-
-    def drag_curves(self):
-        """Plots power off and on drag curves of the rocket as a function of time.
-
-        Returns
-        -------
-        None
-        """
-
-        x_power_drag_off = self.rocket.power_off_drag.x_array
-        y_power_drag_off = self.rocket.power_off_drag.y_array
-        x_power_drag_on = self.rocket.power_on_drag.x_array
-        y_power_drag_on = self.rocket.power_on_drag.y_array
-
-        fig, ax = plt.subplots()
-        ax.plot(x_power_drag_on, y_power_drag_on, label="Power on Drag")
-        ax.plot(
-            x_power_drag_off, y_power_drag_off, label="Power off Drag", linestyle="--"
-        )
-
-        ax.set_title("Drag Curves")
-        ax.set_ylabel("Drag Coefficient")
-        ax.set_xlabel("Mach")
-        ax.axvspan(0.8, 1.2, alpha=0.3, color="gray", label="Transonic Region")
-        ax.legend(loc="best", shadow=True)
-        plt.grid(True)
-        plt.show()
 
     def thrust_to_weight(self):
         """Plots the motor thrust force divided by rocket
@@ -610,7 +524,8 @@ class _RocketPlots:
         # Drag Plots
         print("Drag Plots")
         print("-" * 20)  # Separator for Drag Plots
-        self.drag_curves()
+        self.power_on_drag()
+        self.power_off_drag()
 
         # Stability Plots
         print("\nStability Plots")
