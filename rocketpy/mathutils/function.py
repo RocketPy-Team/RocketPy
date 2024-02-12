@@ -112,6 +112,9 @@ class Function:
         """
         if inputs is None:
             inputs = ["Scalar"]
+        if outputs is None:
+            outputs = ["Scalar"]
+
         inputs, outputs, interpolation, extrapolation = self._check_user_input(
             source, inputs, outputs, interpolation, extrapolation
         )

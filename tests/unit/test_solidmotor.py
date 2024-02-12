@@ -67,7 +67,7 @@ def test_evaluate_inertia_33_asserts_extreme_values(cesaroni_m1670):
     grain_mass = grain_vol * GRAIN_DENSITY
 
     grain_I_33_initial = (
-        grain_mass * (1 / 2.0) * (grain_initial_inner_radius**2 + grain_outer_radius**2)
+        grain_mass * (1 / 2.0) * (GRAIN_INITIAL_INNER_RADIUS**2 + GRAIN_OUTER_RADIUS**2)
     )
 
     # not passing because I_33 is not discrete anymore

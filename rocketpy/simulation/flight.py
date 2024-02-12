@@ -2070,11 +2070,6 @@ class Flight:
         """Rocket angular velocity ω3 as a Function of time."""
         return self.solution_array[:, [0, 13]]
 
-    @funcify_method("Time (s)", "Altitude (m)", "spline", "zero")
-    def altitude(self):
-        """Rocket altitude above ground level (AGL) as a Function of time."""
-        return self.z - self.env.elevation
-
     # Process second type of outputs - accelerations components
     @funcify_method("Time (s)", "Ax (m/s²)", "spline", "zero")
     def ax(self):
@@ -2907,21 +2902,6 @@ class Flight:
 
         return temporary_values
 
-    def get_controller_observed_variables(self):
-        """Retrieve the observed variables related to air brakes from the
-        controllers. If there is only one set of observed variables, it is
-        returned as a list. If there are multiple sets, the list containing
-        all sets is returned."""
-        observed_variables = [
-            controller.observed_variables for controller in self._controllers
-        ]
-        return (
-            observed_variables[0]
-            if len(observed_variables) == 1
-            else observed_variables
-        )
-
-    @cached_property
     def get_controller_observed_variables(self):
         """Retrieve the observed variables related to air brakes from the
         controllers. If there is only one set of observed variables, it is
