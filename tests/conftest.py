@@ -111,6 +111,41 @@ def cesaroni_m1670():  # old name: solid_motor
 
 
 @pytest.fixture
+def cesaroni_m1670_shifted():  # old name: solid_motor
+    """Create a simple object of the SolidMotor class to be used in the tests.
+    This is the same motor that has been used in the getting started guide for
+    years. The difference relies in the thrust_source, which was shifted for
+    testing purposes.
+
+    Returns
+    -------
+    rocketpy.SolidMotor
+        A simple object of the SolidMotor class
+    """
+    example_motor = SolidMotor(
+        thrust_source="tests/fixtures/motor/Cesaroni_M1670_shifted.eng",
+        burn_time=3.9,
+        dry_mass=1.815,
+        dry_inertia=(0.125, 0.125, 0.002),
+        center_of_dry_mass_position=0.317,
+        nozzle_position=0,
+        grain_number=5,
+        grain_density=1815,
+        nozzle_radius=33 / 1000,
+        throat_radius=11 / 1000,
+        grain_separation=5 / 1000,
+        grain_outer_radius=33 / 1000,
+        grain_initial_height=120 / 1000,
+        grains_center_of_mass_position=0.397,
+        grain_initial_inner_radius=15 / 1000,
+        interpolation_method="linear",
+        coordinate_system_orientation="nozzle_to_combustion_chamber",
+        reshape_thrust_curve=(5, 3000),
+    )
+    return example_motor
+
+
+@pytest.fixture
 def calisto_motorless():
     """Create a simple object of the Rocket class to be used in the tests. This
     is the same rocket that has been used in the getting started guide for years
@@ -287,6 +322,66 @@ def calisto_robust(
     )
     calisto.parachutes.append(calisto_main_chute)
     calisto.parachutes.append(calisto_drogue_chute)
+    return calisto
+
+
+@pytest.fixture
+def calisto_air_brakes_clamp_on(calisto_robust, controller_function):
+    """Create an object class of the Rocket class to be used in the tests. This
+    is the same Calisto rocket that was defined in the calisto_robust fixture,
+    but with air brakes added, with clamping.
+
+    Parameters
+    ----------
+    calisto_robust : rocketpy.Rocket
+        An object of the Rocket class. This is a pytest fixture.
+    controller_function : function
+        A function that controls the air brakes. This is a pytest fixture.
+
+    Returns
+    -------
+    rocketpy.Rocket
+        An object of the Rocket class
+    """
+    calisto = calisto_robust
+    # remove parachutes
+    calisto.parachutes = []
+    calisto.add_air_brakes(
+        drag_coefficient_curve="data/calisto/air_brakes_cd.csv",
+        controller_function=controller_function,
+        sampling_rate=10,
+        clamp=True,
+    )
+    return calisto
+
+
+@pytest.fixture
+def calisto_air_brakes_clamp_off(calisto_robust, controller_function):
+    """Create an object class of the Rocket class to be used in the tests. This
+    is the same Calisto rocket that was defined in the calisto_robust fixture,
+    but with air brakes added, without clamping.
+
+    Parameters
+    ----------
+    calisto_robust : rocketpy.Rocket
+        An object of the Rocket class. This is a pytest fixture.
+    controller_function : function
+        A function that controls the air brakes. This is a pytest fixture.
+
+    Returns
+    -------
+    rocketpy.Rocket
+        An object of the Rocket class
+    """
+    calisto = calisto_robust
+    # remove parachutes
+    calisto.parachutes = []
+    calisto.add_air_brakes(
+        drag_coefficient_curve="data/calisto/air_brakes_cd.csv",
+        controller_function=controller_function,
+        sampling_rate=10,
+        clamp=False,
+    )
     return calisto
 
 
@@ -869,6 +964,37 @@ def flight_calisto_custom_wind(calisto_robust, example_env_robust):
     )
 
 
+@pytest.fixture
+def flight_calisto_air_brakes(calisto_air_brakes_clamp_on, example_env):
+    """A rocketpy.Flight object of the Calisto rocket. This uses the calisto
+    with the aerodynamic surfaces and air brakes. The environment is the
+    simplest possible, with no parameters set. The air brakes are set to clamp
+    the deployment level.
+
+    Parameters
+    ----------
+    calisto_air_brakes_clamp_on : rocketpy.Rocket
+        An object of the Rocket class.
+    example_env : rocketpy.Environment
+        An object of the Environment class.
+
+    Returns
+    -------
+    rocketpy.Flight
+        A rocketpy.Flight object of the Calisto rocket in a more complex
+        condition.
+    """
+    return Flight(
+        rocket=calisto_air_brakes_clamp_on,
+        environment=example_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        time_overshoot=False,
+        terminate_on_apogee=True,
+    )
+
+
 ## Dimensionless motors and rockets
 
 
@@ -1074,11 +1200,11 @@ def linearly_interpolated_func():
     Returns
     -------
     Function
-        Piece-wise linearly interpolated, with constant extrapolation
+        Linearly interpolated Function, with constant extrapolation
     """
     return Function(
         [[0, 0], [1, 7], [2, -3], [3, -1], [4, 3]],
-        interpolation="spline",
+        interpolation="linear",
         extrapolation="constant",
     )
 
@@ -1131,3 +1257,59 @@ def func_2d_from_csv():
         source="tests/fixtures/function/2d.csv",
     )
     return func
+
+
+## Controller
+@pytest.fixture
+def controller_function():
+    """Create a controller function that updates the air brakes deployment level
+    based on the altitude and vertical velocity of the rocket. This is the same
+    controller function that is used in the air brakes example in the
+    documentation.
+
+    Returns
+    -------
+    function
+        A controller function
+    """
+
+    def controller_function(
+        time, sampling_rate, state, state_history, observed_variables, air_brakes
+    ):
+        z = state[2]
+        vz = state[5]
+        previous_vz = state_history[-1][5]
+        if time < 3.9:
+            return None
+        if z < 1500:
+            air_brakes.deployment_level = 0
+        else:
+            new_deployment_level = (
+                air_brakes.deployment_level + 0.1 * vz + 0.01 * previous_vz**2
+            )
+            if new_deployment_level > air_brakes.deployment_level + 0.2 / sampling_rate:
+                new_deployment_level = air_brakes.deployment_level + 0.2 / sampling_rate
+            elif (
+                new_deployment_level < air_brakes.deployment_level - 0.2 / sampling_rate
+            ):
+                new_deployment_level = air_brakes.deployment_level - 0.2 / sampling_rate
+            else:
+                new_deployment_level = air_brakes.deployment_level
+            air_brakes.deployment_level = new_deployment_level
+
+    return controller_function
+
+
+@pytest.fixture
+def lambda_quad_func():
+    """Create a lambda function based on a string.
+
+    Returns
+    -------
+    Function
+        A lambda function based on a string.
+    """
+    func = lambda x: x**2
+    return Function(
+        source=func,
+    )

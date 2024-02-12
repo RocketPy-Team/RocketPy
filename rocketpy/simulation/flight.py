@@ -11,7 +11,12 @@ from ..mathutils.function import Function, funcify_method
 from ..mathutils.vector_matrix import Matrix, Vector
 from ..plots.flight_plots import _FlightPlots
 from ..prints.flight_prints import _FlightPrints
-from ..tools import find_closest
+from ..tools import (
+    find_closest,
+    quaternions_to_nutation,
+    quaternions_to_precession,
+    quaternions_to_spin,
+)
 
 
 class Flight:
@@ -50,6 +55,8 @@ class Flight:
         the beginning of the rail.
     Flight.name: str
         Name of the flight.
+    Flight._controllers : list
+        List of controllers to be used during simulation.
     Flight.max_time : int, float
         Maximum simulation time allowed. Refers to physical time
         being simulated, not time taken to run simulation.
@@ -582,6 +589,7 @@ class Flight:
         if self.rail_length <= 0:
             raise ValueError("Rail length must be a positive value.")
         self.parachutes = self.rocket.parachutes[:]
+        self._controllers = self.rocket._controllers[:]
         self.inclination = inclination
         self.heading = heading
         self.max_time = max_time
@@ -656,6 +664,9 @@ class Flight:
                 phase.TimeNodes.add_parachutes(
                     self.parachutes, phase.t, phase.time_bound
                 )
+                phase.TimeNodes.add_controllers(
+                    self._controllers, phase.t, phase.time_bound
+                )
             # Add lst time node to permanent list
             phase.TimeNodes.add_node(phase.time_bound, [], [])
             # Sort time nodes
@@ -678,14 +689,17 @@ class Flight:
                 node.time_bound = phase.TimeNodes[node_index + 1].t
                 phase.solver.t_bound = node.time_bound
                 phase.solver._lsoda_solver._integrator.rwork[0] = phase.solver.t_bound
-                phase.solver._lsoda_solver._integrator.call_args[
-                    4
-                ] = phase.solver._lsoda_solver._integrator.rwork
+                phase.solver._lsoda_solver._integrator.call_args[4] = (
+                    phase.solver._lsoda_solver._integrator.rwork
+                )
                 phase.solver.status = "running"
 
                 # Feed required parachute and discrete controller triggers
                 for callback in node.callbacks:
                     callback(self)
+
+                for controller in node._controllers:
+                    controller(self.t, self.y_sol, self.solution)
 
                 for parachute in node.parachutes:
                     # Calculate and save pressure signal
@@ -697,10 +711,7 @@ class Flight:
                     parachute.noisy_pressure_signal.append([node.t, pressure + noise])
                     # Gets height above ground level considering noise
                     hAGL = (
-                        self.env.pressure.find_input(
-                            pressure + noise,
-                            self.y_sol[2],
-                        )
+                        self.env.barometric_height(pressure + noise)
                         - self.env.elevation
                     )
                     if parachute.triggerfunc(pressure + noise, hAGL, self.y_sol):
@@ -1006,10 +1017,7 @@ class Flight:
                                     )
                                     # Gets height above ground level considering noise
                                     hAGL = (
-                                        self.env.pressure.find_input(
-                                            pressure + noise,
-                                            overshootable_node.y[2],
-                                        )
+                                        self.env.barometric_height(pressure + noise)
                                         - self.env.elevation
                                     )
 
@@ -1276,9 +1284,7 @@ class Flight:
         R3 = -0.5 * rho * (free_stream_speed**2) * self.rocket.area * (drag_coeff)
 
         # Calculate Linear acceleration
-        a3 = (R3 + thrust) / M - (
-            e0**2 - e1**2 - e2**2 + e3**2
-        ) * self.env.gravity(z)
+        a3 = (R3 + thrust) / M - (e0**2 - e1**2 - e2**2 + e3**2) * self.env.gravity(z)
         if a3 > 0:
             ax = 2 * (e1 * e3 + e0 * e2) * a3
             ay = 2 * (e2 * e3 - e0 * e1) * a3
@@ -1422,7 +1428,23 @@ class Flight:
         else:
             drag_coeff = self.rocket.power_off_drag.get_value_opt(free_stream_mach)
         rho = self.env.density.get_value_opt(z)
-        R3 = -0.5 * rho * (free_stream_speed**2) * self.rocket.area * (drag_coeff)
+        R3 = -0.5 * rho * (free_stream_speed**2) * self.rocket.area * drag_coeff
+        for air_brakes in self.rocket.air_brakes:
+            if air_brakes.deployment_level > 0:
+                air_brakes_cd = air_brakes.drag_coefficient(
+                    air_brakes.deployment_level, free_stream_mach
+                )
+                air_brakes_force = (
+                    -0.5
+                    * rho
+                    * (free_stream_speed**2)
+                    * air_brakes.reference_area
+                    * air_brakes_cd
+                )
+                if air_brakes.override_rocket_drag:
+                    R3 = air_brakes_force  # Substitutes rocket drag coefficient
+                else:
+                    R3 += air_brakes_force
         # R3 += self.__computeDragForce(z, Vector(vx, vy, vz))
         # Off center moment
         M1 += self.rocket.cp_eccentricity_y * R3
@@ -1470,9 +1492,7 @@ class Flight:
                         0.5 * rho * (comp_stream_speed**2) * reference_area * c_lift
                     )
                     # component lift force components
-                    lift_dir_norm = (
-                        comp_stream_vx_b**2 + comp_stream_vy_b**2
-                    ) ** 0.5
+                    lift_dir_norm = (comp_stream_vx_b**2 + comp_stream_vy_b**2) ** 0.5
                     comp_lift_xb = comp_lift * (comp_stream_vx_b / lift_dir_norm)
                     comp_lift_yb = comp_lift * (comp_stream_vy_b / lift_dir_norm)
                     # add to total lift force
@@ -1707,8 +1727,23 @@ class Flight:
             drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach)
         else:
             drag_coeff = self.rocket.power_off_drag.get_value_opt(free_stream_mach)
-        R3 += -0.5 * rho * (free_stream_speed**2) * self.rocket.area * (drag_coeff)
-
+        R3 += -0.5 * rho * (free_stream_speed**2) * self.rocket.area * drag_coeff
+        for air_brakes in self.rocket.air_brakes:
+            if air_brakes.deployment_level > 0:
+                air_brakes_cd = air_brakes.drag_coefficient(
+                    air_brakes.deployment_level, free_stream_mach
+                )
+                air_brakes_force = (
+                    -0.5
+                    * rho
+                    * (free_stream_speed**2)
+                    * air_brakes.reference_area
+                    * air_brakes_cd
+                )
+                if air_brakes.override_rocket_drag:
+                    R3 = air_brakes_force  # Substitutes rocket drag coefficient
+                else:
+                    R3 += air_brakes_force
         ## Off center moment
         M1 += self.rocket.cp_eccentricity_y * R3
         M2 -= self.rocket.cp_eccentricity_x * R3
@@ -1751,9 +1786,7 @@ class Flight:
                         0.5 * rho * (comp_stream_speed**2) * reference_area * c_lift
                     )
                     # Component lift force components
-                    lift_dir_norm = (
-                        comp_stream_vx_b**2 + comp_stream_vy_b**2
-                    ) ** 0.5
+                    lift_dir_norm = (comp_stream_vx_b**2 + comp_stream_vy_b**2) ** 0.5
                     comp_lift_xb = comp_lift * (comp_stream_vx_b / lift_dir_norm)
                     comp_lift_yb = comp_lift * (comp_stream_vy_b / lift_dir_norm)
                     # Add to total lift force
@@ -1897,8 +1930,7 @@ class Flight:
         freestream_z = vz
         # Determine drag force
         pseudoD = (
-            -0.5 * rho * cd_s * free_stream_speed
-            - ka * rho * 4 * np.pi * (R**2) * Rdot
+            -0.5 * rho * cd_s * free_stream_speed - ka * rho * 4 * np.pi * (R**2) * Rdot
         )
         Dx = pseudoD * freestream_x
         Dy = pseudoD * freestream_y
@@ -1982,6 +2014,11 @@ class Flight:
     def z(self):
         """Rocket z position as a Function of time."""
         return self.solution_array[:, [0, 3]]
+
+    @funcify_method("Time (s)", "Altitude AGL (m)", "spline", "constant")
+    def altitude(self):
+        """Rocket altitude above ground level as a Function of time."""
+        return self.z - self.env.elevation
 
     @funcify_method("Time (s)", "Vx (m/s)", "spline", "zero")
     def vx(self):
@@ -2290,33 +2327,24 @@ class Flight:
     @funcify_method("Time (s)", "Precession Angle - ψ (°)", "spline", "constant")
     def psi(self):
         """Precession angle as a Function of time."""
-        psi = (180 / np.pi) * (
-            np.arctan2(self.e3[:, 1], self.e0[:, 1])
-            + np.arctan2(-self.e2[:, 1], -self.e1[:, 1])
-        )  # Precession angle
-        psi = np.column_stack([self.time, psi])  # Precession angle
-        return psi
+        psi = quaternions_to_precession(
+            self.e0.y_array, self.e1.y_array, self.e2.y_array, self.e3.y_array
+        )
+        return np.column_stack([self.time, psi])
 
     @funcify_method("Time (s)", "Spin Angle - φ (°)", "spline", "constant")
     def phi(self):
         """Spin angle as a Function of time."""
-        phi = (180 / np.pi) * (
-            np.arctan2(self.e3[:, 1], self.e0[:, 1])
-            - np.arctan2(-self.e2[:, 1], -self.e1[:, 1])
-        )  # Spin angle
-        phi = np.column_stack([self.time, phi])  # Spin angle
-        return phi
+        phi = quaternions_to_spin(
+            self.e0.y_array, self.e1.y_array, self.e2.y_array, self.e3.y_array
+        )
+        return np.column_stack([self.time, phi])
 
     @funcify_method("Time (s)", "Nutation Angle - θ (°)", "spline", "constant")
     def theta(self):
         """Nutation angle as a Function of time."""
-        theta = (
-            (180 / np.pi)
-            * 2
-            * np.arcsin(-((self.e1[:, 1] ** 2 + self.e2[:, 1] ** 2) ** 0.5))
-        )  # Nutation angle
-        theta = np.column_stack([self.time, theta])  # Nutation angle
-        return theta
+        theta = quaternions_to_nutation(self.e1.y_array, self.e2.y_array)
+        return np.column_stack([self.time, theta])
 
     # Fluid Mechanics variables
     # Freestream Velocity
@@ -2491,9 +2519,7 @@ class Flight:
         # Redefine total_mass time grid to allow for efficient Function algebra
         total_mass = deepcopy(self.rocket.total_mass)
         total_mass.set_discrete_based_on_model(self.vz)
-        translational_energy = (
-            0.5 * total_mass * (self.vx**2 + self.vy**2 + self.vz**2)
-        )
+        translational_energy = 0.5 * total_mass * (self.vx**2 + self.vy**2 + self.vz**2)
         return translational_energy
 
     @funcify_method("Time (s)", "Kinetic Energy (J)", "spline", "zero")
@@ -2876,6 +2902,20 @@ class Flight:
 
         return temporary_values
 
+    def get_controller_observed_variables(self):
+        """Retrieve the observed variables related to air brakes from the
+        controllers. If there is only one set of observed variables, it is
+        returned as a list. If there are multiple sets, the list containing
+        all sets is returned."""
+        observed_variables = [
+            controller.observed_variables for controller in self._controllers
+        ]
+        return (
+            observed_variables[0]
+            if len(observed_variables) == 1
+            else observed_variables
+        )
+
     @cached_property
     def __calculate_rail_button_forces(self):
         """Calculate the forces applied to the rail buttons while rocket is
@@ -3256,7 +3296,7 @@ class Flight:
                     (
                         self.longitude(t),
                         self.latitude(t),
-                        self.z(t) - self.env.elevation,
+                        self.altitude(t),
                     )
                 )
             trajectory.coords = coords
@@ -3405,19 +3445,23 @@ class Flight:
                 )
                 if flight_phase.t == previous_phase.t
                 else (
-                    "Trying to add flight phase starting *together* with the one *proceeding* it. ",
-                    "This may be caused by multiple parachutes being triggered simultaneously.",
-                )
-                if flight_phase.t == next_phase.t
-                else (
-                    "Trying to add flight phase starting *before* the one *preceding* it. ",
-                    "This may be caused by multiple parachutes being triggered simultaneously",
-                    " or by having a negative parachute lag.",
-                )
-                if flight_phase.t < previous_phase.t
-                else (
-                    "Trying to add flight phase starting *after* the one *proceeding* it.",
-                    "This may be caused by multiple parachutes being triggered simultaneously.",
+                    (
+                        "Trying to add flight phase starting *together* with the one *proceeding* it. ",
+                        "This may be caused by multiple parachutes being triggered simultaneously.",
+                    )
+                    if flight_phase.t == next_phase.t
+                    else (
+                        (
+                            "Trying to add flight phase starting *before* the one *preceding* it. ",
+                            "This may be caused by multiple parachutes being triggered simultaneously",
+                            " or by having a negative parachute lag.",
+                        )
+                        if flight_phase.t < previous_phase.t
+                        else (
+                            "Trying to add flight phase starting *after* the one *proceeding* it.",
+                            "This may be caused by multiple parachutes being triggered simultaneously.",
+                        )
+                    )
                 )
             )
             self.display_warning(*warning_msg)
@@ -3425,9 +3469,7 @@ class Flight:
             new_index = (
                 index - 1
                 if flight_phase.t < previous_phase.t
-                else index + 1
-                if flight_phase.t > next_phase.t
-                else index
+                else index + 1 if flight_phase.t > next_phase.t else index
             )
             flight_phase.t += adjust
             self.add(flight_phase, new_index)
@@ -3544,6 +3586,20 @@ class Flight:
                 ]
                 self.list += parachute_node_list
 
+        def add_controllers(self, controllers, t_init, t_end):
+            # Iterate over controllers
+            for controller in controllers:
+                # Calculate start of sampling time nodes
+                controller_time_step = 1 / controller.sampling_rate
+                controller_node_list = [
+                    self.TimeNode(i * controller_time_step, [], [controller])
+                    for i in range(
+                        math.ceil(t_init / controller_time_step),
+                        math.floor(t_end / controller_time_step) + 1,
+                    )
+                ]
+                self.list += controller_node_list
+
         def sort(self):
             self.list.sort(key=(lambda node: node.t))
 
@@ -3567,10 +3623,11 @@ class Flight:
             del self.list[index + 1 :]
 
         class TimeNode:
-            def __init__(self, t, parachutes, callbacks):
+            def __init__(self, t, parachutes, controllers):
                 self.t = t
                 self.parachutes = parachutes
-                self.callbacks = callbacks
+                self.callbacks = []
+                self._controllers = controllers
 
             def __repr__(self):
                 return (

@@ -67,8 +67,9 @@ So here are a couple of **guidelines** to help you when creating new branches to
     #. ``bug``: when your branch attempts to fix a bug
     #. ``doc``: when your branch adds documentation changes
     #. ``enh``: when you add new features and enhancements
-    #. ``maint``: when your branch is all about refactoring, fixing typos, etc.
+    #. ``mnt``: when your branch is all about refactoring, fixing typos, etc.
     #. ``rel``: when your branch makes changes related to creating new releases
+    #. ``tst``: when your branch makes changes related to tests
 
 * Use ``-`` instead of spaces for the description text.
 * Keep branch names with lowercase letters.
@@ -76,10 +77,11 @@ So here are a couple of **guidelines** to help you when creating new branches to
 
 Here are a couple of example branch names:
 
-- ``maint/refactor-parachute-implementation``
+- ``mnt/refactor-parachute-implementation``
 - ``bug/issue-98-upside-down-rockets``
 - ``enh/hybrid-motor-feature``
-- ``maint/typos-flight-class``
+- ``mnt/typos-flight-class``
+- ``tst/refactor-tests-flight-class``
 
 Once you are ready to create a Pull Request for your branch, we advise you to merge with the ``develop`` branch instead of the default ``master`` branch.
 This way, we keep the ``master`` branch stable and use the ``develop`` branch to test out new features!
@@ -102,7 +104,7 @@ Commit messages should be clear and follow a few basic rules.  Example::
 Describing the motivation for a change, the nature of a bug for bug fixes or
 some details on what an enhancement does are also good to include in a commit
 message.  Messages should be understandable without looking at the code
-changes.  A commit message like ``MAINT: fixed another one`` is an example of
+changes.  A commit message like ``MNT: fixed another one`` is an example of
 what not to do; the reader has to go look for context elsewhere.
 
 Standard acronyms to start the commit message with are::
@@ -113,7 +115,7 @@ Standard acronyms to start the commit message with are::
    DEV: development tool or utility
    DOC: documentation
    ENH: enhancement
-   MAINT: maintenance commit (refactoring, typos, etc.)
+   MNT: maintenance commit (refactoring, typos, etc.)
    REV: revert an earlier commit
    STY: style fix (whitespace, PEP8)
    TST: addition or modification of tests

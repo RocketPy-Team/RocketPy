@@ -3,6 +3,7 @@ import importlib.metadata
 import re
 from bisect import bisect_left
 
+import numpy as np
 import pytz
 from cftime import num2pydate
 from packaging import version as packaging_version
@@ -379,6 +380,69 @@ def check_requirement_version(module_name, version):
             + f"version by running 'pip install {module_name}{version}'"
         )
     return True
+
+
+# Flight
+
+
+def quaternions_to_precession(e0, e1, e2, e3):
+    """Calculates the Precession angle
+
+    Parameters
+    ----------
+    e0 : float
+        Euler parameter 0, must be between -1 and 1
+    e1 : float
+        Euler parameter 1, must be between -1 and 1
+    e2 : float
+        Euler parameter 2, must be between -1 and 1
+    e3 : float
+        Euler parameter 3, must be between -1 and 1
+    Returns
+    -------
+    float
+        Euler Precession angle in degrees
+    """
+    return (180 / np.pi) * (np.arctan2(e3, e0) + np.arctan2(-e2, -e1))
+
+
+def quaternions_to_spin(e0, e1, e2, e3):
+    """Calculates the Spin angle from quaternions.
+
+    Parameters
+    ----------
+    e0 : float
+        Euler parameter 0, must be between -1 and 1
+    e1 : float
+        Euler parameter 1, must be between -1 and 1
+    e2 : float
+        Euler parameter 2, must be between -1 and 1
+    e3 : float
+        Euler parameter 3, must be between -1 and 1
+
+    Returns
+    -------
+    float
+        Euler Spin angle in degrees
+    """
+    return (180 / np.pi) * (np.arctan2(e3, e0) - np.arctan2(-e2, -e1))
+
+
+def quaternions_to_nutation(e1, e2):
+    """Calculates the Nutation angle from quaternions.
+
+    Parameters
+    ----------
+    e1 : float
+        Euler parameter 1, must be between -1 and 1
+    e2 : float
+        Euler parameter 2, must be between -1 and 1
+    Returns
+    -------
+    float
+        Euler Nutation angle in degrees
+    """
+    return (180 / np.pi) * 2 * np.arcsin(-((e1**2 + e2**2) ** 0.5))
 
 
 if __name__ == "__main__":

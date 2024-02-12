@@ -63,54 +63,61 @@ class _FlightPlots:
         -------
         None
         """
-
-        # Get max and min x and y
-        max_z = max(self.flight.z[:, 1] - self.flight.env.elevation)
+        max_z = max(self.flight.altitude[:, 1])
+        min_z = min(self.flight.altitude[:, 1])
         max_x = max(self.flight.x[:, 1])
         min_x = min(self.flight.x[:, 1])
         max_y = max(self.flight.y[:, 1])
         min_y = min(self.flight.y[:, 1])
-        max_xy = max(max_x, max_y)
-        min_xy = min(min_x, min_y)
 
-        # Create figure
-        fig1 = plt.figure(figsize=(9, 9))
+        _ = plt.figure(figsize=(9, 9))
         ax1 = plt.subplot(111, projection="3d")
         ax1.plot(
-            self.flight.x[:, 1], self.flight.y[:, 1], zs=0, zdir="z", linestyle="--"
+            self.flight.x[:, 1], self.flight.y[:, 1], zs=min_z, zdir="z", linestyle="--"
         )
         ax1.plot(
             self.flight.x[:, 1],
-            self.flight.z[:, 1] - self.flight.env.elevation,
-            zs=min_xy,
+            self.flight.altitude[:, 1],
+            zs=min_y,
             zdir="y",
             linestyle="--",
         )
         ax1.plot(
             self.flight.y[:, 1],
-            self.flight.z[:, 1] - self.flight.env.elevation,
-            zs=min_xy,
+            self.flight.altitude[:, 1],
+            zs=min_x,
             zdir="x",
             linestyle="--",
         )
         ax1.plot(
             self.flight.x[:, 1],
             self.flight.y[:, 1],
-            self.flight.z[:, 1] - self.flight.env.elevation,
+            self.flight.altitude[:, 1],
             linewidth="2",
         )
-        ax1.scatter(0, 0, 0)
+        ax1.scatter(
+            self.flight.x(0),
+            self.flight.y(0),
+            self.flight.z(0) - self.flight.env.elevation,
+            color="black",
+        )
+        ax1.scatter(
+            self.flight.x(self.flight.t_final),
+            self.flight.y(self.flight.t_final),
+            self.flight.z(self.flight.t_final) - self.flight.env.elevation,
+            color="red",
+            marker="X",
+        )
         ax1.set_xlabel("X - East (m)")
         ax1.set_ylabel("Y - North (m)")
         ax1.set_zlabel("Z - Altitude Above Ground Level (m)")
         ax1.set_title("Flight Trajectory")
-        ax1.set_zlim3d([0, max_z])
-        ax1.set_ylim3d([min_xy, max_xy])
-        ax1.set_xlim3d([min_xy, max_xy])
+        ax1.set_xlim(min_x, max_x)
+        ax1.set_ylim(min_y, max_y)
+        ax1.set_zlim(min_z, max_z)
         ax1.view_init(15, 45)
+        ax1.set_box_aspect(None, zoom=0.95)  # 95% for label adjustment
         plt.show()
-
-        return None
 
     def linear_kinematics_data(self):
         """Prints out all Kinematics graphs available about the Flight
@@ -391,9 +398,11 @@ class _FlightPlots:
             )
             ax1.set_xlim(
                 0,
-                self.flight.out_of_rail_time
-                if self.flight.out_of_rail_time > 0
-                else self.flight.tFinal,
+                (
+                    self.flight.out_of_rail_time
+                    if self.flight.out_of_rail_time > 0
+                    else self.flight.tFinal
+                ),
             )
             ax1.legend()
             ax1.grid(True)
@@ -422,9 +431,11 @@ class _FlightPlots:
             )
             ax2.set_xlim(
                 0,
-                self.flight.out_of_rail_time
-                if self.flight.out_of_rail_time > 0
-                else self.flight.tFinal,
+                (
+                    self.flight.out_of_rail_time
+                    if self.flight.out_of_rail_time > 0
+                    else self.flight.tFinal
+                ),
             )
             ax2.legend()
             ax2.grid(True)
@@ -548,9 +559,11 @@ class _FlightPlots:
         )
         ax1.set_xlim(
             0,
-            self.flight.apogee_time
-            if self.flight.apogee_time != 0.0
-            else self.flight.t_final,
+            (
+                self.flight.apogee_time
+                if self.flight.apogee_time != 0.0
+                else self.flight.t_final
+            ),
         )
         ax1.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
         ax1.set_title("Kinetic Energy Components")
@@ -578,9 +591,11 @@ class _FlightPlots:
         )
         ax2.set_xlim(
             0,
-            self.flight.apogee_time
-            if self.flight.apogee_time != 0.0
-            else self.flight.t_final,
+            (
+                self.flight.apogee_time
+                if self.flight.apogee_time != 0.0
+                else self.flight.t_final
+            ),
         )
         ax2.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
         ax2.set_title("Total Mechanical Energy Components")
@@ -611,9 +626,11 @@ class _FlightPlots:
         )
         ax4.set_xlim(
             0,
-            self.flight.apogee_time
-            if self.flight.apogee_time != 0.0
-            else self.flight.t_final,
+            (
+                self.flight.apogee_time
+                if self.flight.apogee_time != 0.0
+                else self.flight.t_final
+            ),
         )
         ax3.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
         ax4.set_title("Drag Absolute Power")

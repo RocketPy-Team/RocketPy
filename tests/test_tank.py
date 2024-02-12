@@ -631,11 +631,7 @@ def upper_spherical_cap_centroid(radius, height=None):
     """
     if height is None:
         height = radius
-    return (
-        0.75
-        * (height**3 - 2 * height * radius**2)
-        / (height**2 - 3 * radius**2)
-    )
+    return 0.75 * (height**3 - 2 * height * radius**2) / (height**2 - 3 * radius**2)
 
 
 def tank_centroid_function(tank_radius, tank_height, zero_height=0):
@@ -775,10 +771,7 @@ def lower_spherical_cap_inertia(radius, height=None, reference=0):
     )
     inertia_y = inertia_x
     inertia_z = lower_spherical_cap_volume(radius, height) * (
-        np.pi
-        * height**3
-        * (3 * height**2 - 15 * height * radius + 20 * radius**2)
-        / 30
+        np.pi * height**3 * (3 * height**2 - 15 * height * radius + 20 * radius**2) / 30
     )
     return np.array([inertia_x, inertia_y, inertia_z])
 

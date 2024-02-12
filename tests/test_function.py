@@ -49,7 +49,7 @@ def test_func_from_csv_with_header(csv_file):
     line. It tests cases where the fields are separated by quotes and without
     quotes."""
     f = Function(csv_file)
-    assert f.__repr__() == "'Function from R1 to R1 : (Scalar) → (Scalar)'"
+    assert f.__repr__() == "'Function from R1 to R1 : (time) → (value)'"
     assert np.isclose(f(0), 100)
     assert np.isclose(f(0) + f(1), 300), "Error summing the values of the function"
 
@@ -189,119 +189,6 @@ def test_extrapolation_methods(linear_func):
     assert np.isclose(linear_func.get_value(-1), -1, atol=1e-6)
 
 
-@pytest.mark.parametrize("a", [-1, 0, 0.5, 1, 2, 2.5, 3.5, 4, 5])
-@pytest.mark.parametrize("b", [-1, 0, 0.5, 1, 2, 2.5, 3.5, 4, 5])
-def test_integral_linear_interpolation(linearly_interpolated_func, a, b):
-    """Test the integral method of the Function class.
-
-    Parameters
-    ----------
-    linear_func : rocketpy.Function
-        A Function object created from a list of values.
-    """
-    # Test integral
-    assert isinstance(linearly_interpolated_func.integral(a, b, numerical=True), float)
-    assert np.isclose(
-        linearly_interpolated_func.integral(a, b, numerical=False),
-        linearly_interpolated_func.integral(a, b, numerical=True),
-        atol=1e-3,
-    )
-
-
-@pytest.mark.parametrize("func", ["linear_func", "spline_interpolated_func"])
-@pytest.mark.parametrize("a", [-1, -0.5, 0, 0.5, 1, 2, 2.5, 3.5, 4, 5])
-@pytest.mark.parametrize("b", [-1, -0.5, 0, 0.5, 1, 2, 2.5, 3.5, 4, 5])
-def test_integral_spline_interpolation(request, func, a, b):
-    """Test the integral method of the Function class.
-
-    Parameters
-    ----------
-    spline_func : rocketpy.Function
-        A Function object created from a list of values.
-    a : float
-        Lower limit of the integral.
-    b : float
-        Upper limit of the integral.
-    """
-    # Test integral
-    # Get the function from the fixture
-    func = request.getfixturevalue(func)
-    assert np.isclose(
-        func.integral(a, b, numerical=False),
-        func.integral(a, b, numerical=True),
-        atol=1e-3,
-    )
-
-
-def test_differentiate():
-    """Tests the differentiation method of the Function class.
-    Both with respect to return instances and expected behaviour.
-    """
-    func = Function(1)
-    assert isinstance(func.differentiate(0), float)
-    assert np.isclose(func.differentiate(5), 0)
-
-    func_x = Function(lambda x: x)
-    assert isinstance(func_x.differentiate(0), float)
-    assert np.isclose(func_x.differentiate(0), 1)
-
-    f_square = Function(lambda x: x**2)
-    assert isinstance(f_square.differentiate(1), float)
-    assert np.isclose(f_square.differentiate(1), 2)
-
-
-def test_get_value():
-    """Tests the get_value method of the Function class.
-    Both with respect to return instances and expected behaviour.
-    """
-    func = Function(lambda x: 2 * x)
-    assert isinstance(func.get_value(1), int or float)
-
-
-def test_identity_function():
-    """Tests the identity_function method of the Function class.
-    Both with respect to return instances and expected behaviour.
-    """
-
-    func = Function(lambda x: x**2)
-    assert isinstance(func.identity_function(), Function)
-
-
-def test_derivative_function():
-    """Tests the derivative_function method of the Function class.
-    Both with respect to return instances and expected behaviour.
-    """
-    square = Function(lambda x: x**2)
-    assert isinstance(square.derivative_function(), Function)
-
-
-def test_integral():
-    """Tests the integral method of the Function class.
-    Both with respect to return instances and expected behaviour.
-    """
-
-    zero_func = Function(0)
-    assert isinstance(zero_func.integral(2, 4, numerical=True), float)
-    assert zero_func.integral(2, 4, numerical=True) == 0
-
-    square = Function(lambda x: x**2)
-    assert isinstance
-    assert square.integral(2, 4, numerical=True) == -square.integral(
-        4, 2, numerical=True
-    )
-    assert square.integral(2, 4, numerical=False) == -square.integral(
-        4, 2, numerical=False
-    )
-
-
-def test_integral_function():
-    """Tests the integral_function method of the Function class.
-    Both with respect to return instances and expected behaviour.
-    """
-    zero_func = Function(0)
-    assert isinstance(zero_func, Function)
-
-
 @pytest.mark.parametrize("a", [-1, 0, 1])
 @pytest.mark.parametrize("b", [-1, 0, 1])
 def test_multivariable_dataset(a, b):
@@ -326,6 +213,55 @@ def test_multivariable_dataset(a, b):
 
     # Assert values
     assert np.isclose(func(a, b), a + b, atol=1e-6)
+
+
+@pytest.mark.parametrize(
+    "x,y,z_expected",
+    [
+        (1, 0, 0),
+        (0, 1, 0),
+        (0, 0, 1),
+        (0.5, 0.5, 1 / 3),
+        (0.25, 0.25, 25 / (25 + 2 * 5**0.5)),
+        ([0, 0.5], [0, 0.5], [1, 1 / 3]),
+    ],
+)
+def test_2d_shepard_interpolation(x, y, z_expected):
+    """Test the shepard interpolation method of the Function class."""
+    # Test plane x + y + z = 1
+    source = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+    func = Function(
+        source=source, inputs=["x", "y"], outputs=["z"], interpolation="shepard"
+    )
+    z = func(x, y)
+    z_opt = func.get_value_opt(x, y)
+    assert np.isclose(z, z_opt, atol=1e-8).all()
+    assert np.isclose(z_expected, z, atol=1e-8).all()
+
+
+@pytest.mark.parametrize(
+    "x,y,z,w_expected",
+    [
+        (0, 0, 0, 1),
+        (1, 0, 0, 0),
+        (0, 1, 0, 0),
+        (0, 0, 1, 0),
+        (0.5, 0.5, 0.5, 1 / 4),
+        (0.25, 0.25, 0.25, 0.700632626832),
+        ([0, 0.5], [0, 0.5], [0, 0.5], [1, 1 / 4]),
+    ],
+)
+def test_3d_shepard_interpolation(x, y, z, w_expected):
+    """Test the shepard interpolation method of the Function class."""
+    # Test plane x + y + z + w = 1
+    source = [(1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1)]
+    func = Function(
+        source=source, inputs=["x", "y", "z"], outputs=["w"], interpolation="shepard"
+    )
+    w = func(x, y, z)
+    w_opt = func.get_value_opt(x, y, z)
+    assert np.isclose(w, w_opt, atol=1e-8).all()
+    assert np.isclose(w_expected, w, atol=1e-8).all()
 
 
 @pytest.mark.parametrize("a", [-1, -0.5, 0, 0.5, 1])
@@ -439,3 +375,123 @@ def test_shepard_interpolation(x, y, z_expected):
     func = Function(source=source, inputs=["x", "y"], outputs=["z"])
     z = func(x, y)
     assert np.isclose(z, z_expected, atol=1e-8).all()
+
+
+@pytest.mark.parametrize("other", [1, 0.1, np.int_(1), np.float_(0.1), np.array([1])])
+def test_sum_arithmetic_priority(other):
+    """Test the arithmetic priority of the add operation of the Function class,
+    specially comparing to the numpy array operations.
+    """
+    func_lambda = Function(lambda x: x**2)
+    func_array = Function([(0, 0), (1, 1), (2, 4)])
+
+    assert isinstance(func_lambda + func_array, Function)
+    assert isinstance(func_array + func_lambda, Function)
+    assert isinstance(func_lambda + other, Function)
+    assert isinstance(other + func_lambda, Function)
+    assert isinstance(func_array + other, Function)
+    assert isinstance(other + func_array, Function)
+
+
+@pytest.mark.parametrize("other", [1, 0.1, np.int_(1), np.float_(0.1), np.array([1])])
+def test_sub_arithmetic_priority(other):
+    """Test the arithmetic priority of the sub operation of the Function class,
+    specially comparing to the numpy array operations.
+    """
+    func_lambda = Function(lambda x: x**2)
+    func_array = Function([(0, 0), (1, 1), (2, 4)])
+
+    assert isinstance(func_lambda - func_array, Function)
+    assert isinstance(func_array - func_lambda, Function)
+    assert isinstance(func_lambda - other, Function)
+    assert isinstance(other - func_lambda, Function)
+    assert isinstance(func_array - other, Function)
+    assert isinstance(other - func_array, Function)
+
+
+@pytest.mark.parametrize("other", [1, 0.1, np.int_(1), np.float_(0.1), np.array([1])])
+def test_mul_arithmetic_priority(other):
+    """Test the arithmetic priority of the mul operation of the Function class,
+    specially comparing to the numpy array operations.
+    """
+    func_lambda = Function(lambda x: x**2)
+    func_array = Function([(0, 0), (1, 1), (2, 4)])
+
+    assert isinstance(func_lambda * func_array, Function)
+    assert isinstance(func_array * func_lambda, Function)
+    assert isinstance(func_lambda * other, Function)
+    assert isinstance(other * func_lambda, Function)
+    assert isinstance(func_array * other, Function)
+    assert isinstance(other * func_array, Function)
+
+
+@pytest.mark.parametrize("other", [1, 0.1, np.int_(1), np.float_(0.1), np.array([1])])
+def test_truediv_arithmetic_priority(other):
+    """Test the arithmetic priority of the truediv operation of the Function class,
+    specially comparing to the numpy array operations.
+    """
+    func_lambda = Function(lambda x: x**2)
+    func_array = Function([(1, 1), (2, 4)])
+
+    assert isinstance(func_lambda / func_array, Function)
+    assert isinstance(func_array / func_lambda, Function)
+    assert isinstance(func_lambda / other, Function)
+    assert isinstance(other / func_lambda, Function)
+    assert isinstance(func_array / other, Function)
+    assert isinstance(other / func_array, Function)
+
+
+@pytest.mark.parametrize("other", [1, 0.1, np.int_(1), np.float_(0.1), np.array([1])])
+def test_pow_arithmetic_priority(other):
+    """Test the arithmetic priority of the pow operation of the Function class,
+    specially comparing to the numpy array operations.
+    """
+    func_lambda = Function(lambda x: x**2)
+    func_array = Function([(0, 0), (1, 1), (2, 4)])
+
+    assert isinstance(func_lambda**func_array, Function)
+    assert isinstance(func_array**func_lambda, Function)
+    assert isinstance(func_lambda**other, Function)
+    assert isinstance(other**func_lambda, Function)
+    assert isinstance(func_array**other, Function)
+    assert isinstance(other**func_array, Function)
+
+
+@pytest.mark.parametrize("alpha", [0.1, 0.5, 0.9])
+def test_low_pass_filter(alpha):
+    """Test the low_pass_filter method of the Function class.
+
+    Parameters
+    ----------
+    alpha : float
+        Attenuation coefficient, 0 < alpha < 1.
+    """
+    # Create a test function, sinus here
+    source = np.array(
+        [(1, np.sin(1)), (2, np.sin(2)), (3, np.sin(3)), (4, np.sin(4)), (5, np.sin(5))]
+    )
+    func = Function(source)
+
+    # Apply low pass filter
+    filtered_func = func.low_pass_filter(alpha)
+
+    # Check that the method works as intended and returns the right object with no issue
+    assert isinstance(filtered_func, Function), "The returned type is not a Function"
+    assert np.array_equal(
+        filtered_func.source[0], source[0]
+    ), "The initial value is not the expected value"
+    assert len(filtered_func.source) == len(
+        source
+    ), "The filtered Function and the Function have different lengths"
+    assert (
+        filtered_func.__interpolation__ == func.__interpolation__
+    ), "The interpolation method was unexpectedly changed"
+    assert (
+        filtered_func.__extrapolation__ == func.__extrapolation__
+    ), "The extrapolation method was unexpectedly changed"
+    for i in range(1, len(source)):
+        expected = alpha * source[i][1] + (1 - alpha) * filtered_func.source[i - 1][1]
+        assert np.isclose(filtered_func.source[i][1], expected, atol=1e-6), (
+            f"The filtered value at index {i} is not the expected value. "
+            f"Expected: {expected}, Actual: {filtered_func.source[i][1]}"
+        )

@@ -3,8 +3,10 @@ operations, including interpolation, extrapolation, integration, differentiation
 and more. This is a core class of our package, and should be maintained
 carefully as it may impact all the rest of the project.
 """
+
 import warnings
 from collections.abc import Iterable
+from copy import deepcopy
 from inspect import signature
 from pathlib import Path
 
@@ -17,12 +19,17 @@ try:
 except ImportError:
     from ..tools import cached_property
 
+NUMERICAL_TYPES = (float, int, complex, np.ndarray, np.integer, np.floating)
+
 
 class Function:
     """Class converts a python function or a data sequence into an object
     which can be handled more naturally, enabling easy interpolation,
     extrapolation, plotting and algebra.
     """
+
+    # Arithmetic priority
+    __array_ufunc__ = None
 
     def __init__(
         self,
@@ -54,7 +61,8 @@ class Function:
             and 'z' is the output.
 
             - string: Path to a CSV file. The file is read and converted into an
-            ndarray. The file can optionally contain a single header line.
+            ndarray. The file can optionally contain a single header line, see
+            notes below for more information.
 
             - Function: Copies the source of the provided Function object,
             creating a new Function with adjusted inputs and outputs.
@@ -89,12 +97,19 @@ class Function:
 
         Notes
         -----
-        (I) CSV files can optionally contain a single header line. If present,
-        the header is ignored during processing.
-        (II) Fields in CSV files may be enclosed in double quotes. If fields are
-        not quoted, double quotes should not appear inside them.
+        (I) CSV files may include an optional single header line. If this
+        header line is present and contains names for each data column, those
+        names will be used to label the inputs and outputs unless specified
+        otherwise by the `inputs` and `outputs` arguments.
+        If the header is specified for only a few columns, it is ignored.
+
+        Commas in a header will be interpreted as a delimiter, which may cause
+        undesired input or output labeling. To avoid this, specify each input
+        and output name using the `inputs` and `outputs` arguments.
+
+        (II) Fields in CSV files may be enclosed in double quotes. If fields
+        are not quoted, double quotes should not appear inside them.
         """
-        # Set input and output
         if inputs is None:
             inputs = ["Scalar"]
         if outputs is None:
@@ -179,10 +194,18 @@ class Function:
 
         Notes
         -----
-        (I) CSV files can optionally contain a single header line. If present,
-        the header is ignored during processing.
-        (II) Fields in CSV files may be enclosed in double quotes. If fields are
-        not quoted, double quotes should not appear inside them.
+        (I) CSV files may include an optional single header line. If this
+        header line is present and contains names for each data column, those
+        names will be used to label the inputs and outputs unless specified
+        otherwise. If the header is specified for only a few columns, it is
+        ignored.
+
+        Commas in a header will be interpreted as a delimiter, which may cause
+        undesired input or output labeling. To avoid this, specify each input
+        and output name using the `inputs` and `outputs` arguments.
+
+        (II) Fields in CSV files may be enclosed in double quotes. If fields
+        are not quoted, double quotes should not appear inside them.
 
         Returns
         -------
@@ -479,26 +502,9 @@ class Function:
                 return y
 
         elif self.__interpolation__ == "shepard":
-            x_data = self.source[:, 0:-1]  # Support for N-Dimensions
-            y_data = self.source[:, -1]
-            len_y_data = len(y_data)  # A little speed up
-
             # change the function's name to avoid mypy's error
             def get_value_opt_multiple(*args):
-                x = np.array([[float(x) for x in list(args)]])
-                numerator_sum = 0
-                denominator_sum = 0
-                for i in range(len_y_data):
-                    sub = x_data[i] - x
-                    distance = np.linalg.norm(sub)
-                    if distance == 0:
-                        numerator_sum = y_data[i]
-                        denominator_sum = 1
-                        break
-                    weight = distance ** (-3)
-                    numerator_sum = numerator_sum + y_data[i] * weight
-                    denominator_sum = denominator_sum + weight
-                return numerator_sum / denominator_sum
+                return self.__interpolate_shepard__(args)
 
             get_value_opt = get_value_opt_multiple
 
@@ -513,12 +519,16 @@ class Function:
         interpolation="spline",
         extrapolation="constant",
         one_by_one=True,
+        mutate_self=True,
     ):
-        """This method transforms function defined Functions into list
-        defined Functions. It evaluates the function at certain points
-        (sampling range) and stores the results in a list, which is converted
-        into a Function and then returned. The original Function object is
-        replaced by the new one.
+        """This method discretizes a 1-D or 2-D Function by evaluating it at
+        certain points (sampling range) and storing the results in a list,
+        which is converted into a Function and then returned. By default, the
+        original Function object is replaced by the new one, which can be
+        changed by the attribute `mutate_self`.
+
+        This method is specially useful to change a dataset sampling or to
+        convert a Function defined by a callable into a list based Function.
 
         Parameters
         ----------
@@ -542,18 +552,32 @@ class Function:
         one_by_one : boolean, optional
             If True, evaluate Function in each sample point separately. If
             False, evaluates Function in vectorized form. Default is True.
+        mutate_self : boolean, optional
+            If True, the original Function object source will be replaced by
+            the new one. If False, the original Function object source will
+            remain unchanged, and the new one is simply returned.
+            Default is True.
 
         Returns
         -------
         self : Function
+
+        Notes
+        -----
+        1. This method performs by default in place replacement of the original
+        Function object source. This can be changed by the attribute `mutate_self`.
+
+        2. Currently, this method only supports 1-D and 2-D Functions.
         """
-        if self.__dom_dim__ == 1:
+        func = deepcopy(self) if not mutate_self else self
+
+        if func.__dom_dim__ == 1:
             xs = np.linspace(lower, upper, samples)
-            ys = self.get_value(xs.tolist()) if one_by_one else self.get_value(xs)
-            self.set_source(np.concatenate(([xs], [ys])).transpose())
-            self.set_interpolation(interpolation)
-            self.set_extrapolation(extrapolation)
-        elif self.__dom_dim__ == 2:
+            ys = func.get_value(xs.tolist()) if one_by_one else func.get_value(xs)
+            func.set_source(np.concatenate(([xs], [ys])).transpose())
+            func.set_interpolation(interpolation)
+            func.set_extrapolation(extrapolation)
+        elif func.__dom_dim__ == 2:
             lower = 2 * [lower] if isinstance(lower, (int, float)) else lower
             upper = 2 * [upper] if isinstance(upper, (int, float)) else upper
             sam = 2 * [samples] if isinstance(samples, (int, float)) else samples
@@ -562,22 +586,29 @@ class Function:
             ys = np.linspace(lower[1], upper[1], sam[1])
             xs, ys = np.array(np.meshgrid(xs, ys)).reshape(2, xs.size * ys.size)
             # Evaluate function at all mesh nodes and convert it to matrix
-            zs = np.array(self.get_value(xs, ys))
-            self.__interpolation__ = "shepard"
-            self.__extrapolation__ = "natural"
-            self.set_source(np.concatenate(([xs], [ys], [zs])).transpose())
-        return self
+            zs = np.array(func.get_value(xs, ys))
+            func.set_source(np.concatenate(([xs], [ys], [zs])).transpose())
+            func.__interpolation__ = "shepard"
+            func.__extrapolation__ = "natural"
+        else:
+            raise ValueError(
+                "Discretization is only supported for 1-D and 2-D Functions."
+            )
+        return func
 
     def set_discrete_based_on_model(
-        self, model_function, one_by_one=True, keep_self=True
+        self, model_function, one_by_one=True, keep_self=True, mutate_self=True
     ):
-        """This method transforms the domain of Function instance into a list of
-        discrete points based on the domain of a model Function instance. It
-        does so by retrieving the domain, domain name, interpolation method and
-        extrapolation method of the model Function instance. It then evaluates
-        the original Function instance in all points of the retrieved domain to
-        generate the list of discrete points that will be used for interpolation
-        when this Function is called.
+        """This method transforms the domain of a 1-D or 2-D Function instance
+        into a list of discrete points based on the domain of a model Function
+        instance. It does so by retrieving the domain, domain name,
+        interpolation method and extrapolation method of the model Function
+        instance. It then evaluates the original Function instance in all
+        points of the retrieved domain to generate the list of discrete points
+        that will be used for interpolation when this Function is called.
+
+        By default, the original Function object is replaced by the new one,
+        which can be changed by the attribute `mutate_self`.
 
         Parameters
         ----------
@@ -587,15 +618,17 @@ class Function:
             Must be a Function whose source attribute is a list (i.e. a list
             based Function instance). Must have the same domain dimension as the
             Function to be discretized.
-
         one_by_one : boolean, optional
             If True, evaluate Function in each sample point separately. If
             False, evaluates Function in vectorized form. Default is True.
-
-        keepSelf : boolean, optional
+        keep_self : boolean, optional
             If True, the original Function interpolation and extrapolation
             methods will be kept. If False, those are substituted by the ones
             from the model Function. Default is True.
+        mutate_self : boolean, optional
+            If True, the original Function object source will be replaced by
+            the new one. If False, the original Function object source will
+            remain unchanged, and the new one is simply returned.
 
         Returns
         -------
@@ -643,40 +676,48 @@ class Function:
 
         Notes
         -----
-        1. This method performs in place replacement of the original Function
-        object source.
+        1. This method performs by default in place replacement of the original
+        Function object source. This can be changed by the attribute `mutate_self`.
 
         2. This method is similar to set_discrete, but it uses the domain of a
         model Function to define the domain of the new Function instance.
+
+        3. Currently, this method only supports 1-D and 2-D Functions.
         """
         if not isinstance(model_function.source, np.ndarray):
             raise TypeError("model_function must be a list based Function.")
         if model_function.__dom_dim__ != self.__dom_dim__:
             raise ValueError("model_function must have the same domain dimension.")
 
-        if self.__dom_dim__ == 1:
+        func = deepcopy(self) if not mutate_self else self
+
+        if func.__dom_dim__ == 1:
             xs = model_function.source[:, 0]
-            ys = self.get_value(xs.tolist()) if one_by_one else self.get_value(xs)
-            self.set_source(np.concatenate(([xs], [ys])).transpose())
-        elif self.__dom_dim__ == 2:
+            ys = func.get_value(xs.tolist()) if one_by_one else func.get_value(xs)
+            func.set_source(np.concatenate(([xs], [ys])).transpose())
+        elif func.__dom_dim__ == 2:
             # Create nodes to evaluate function
             xs = model_function.source[:, 0]
             ys = model_function.source[:, 1]
             # Evaluate function at all mesh nodes and convert it to matrix
-            zs = np.array(self.get_value(xs, ys))
-            self.set_source(np.concatenate(([xs], [ys], [zs])).transpose())
+            zs = np.array(func.get_value(xs, ys))
+            func.set_source(np.concatenate(([xs], [ys], [zs])).transpose())
+        else:
+            raise ValueError(
+                "Discretization is only supported for 1-D and 2-D Functions."
+            )
 
         interp = (
-            self.__interpolation__ if keep_self else model_function.__interpolation__
+            func.__interpolation__ if keep_self else model_function.__interpolation__
         )
         extrap = (
-            self.__extrapolation__ if keep_self else model_function.__extrapolation__
+            func.__extrapolation__ if keep_self else model_function.__extrapolation__
         )
 
-        self.set_interpolation(interp)
-        self.set_extrapolation(extrap)
+        func.set_interpolation(interp)
+        func.set_extrapolation(extrap)
 
-        return self
+        return func
 
     def reset(
         self,
@@ -865,28 +906,8 @@ class Function:
 
         # Returns value for shepard interpolation
         elif self.__interpolation__ == "shepard":
-            if all(isinstance(arg, Iterable) for arg in args):
-                x = list(np.column_stack(args))
-            else:
-                x = [[float(x) for x in list(args)]]
-            ans = x
-            x_data = self.source[:, 0:-1]
-            y_data = self.source[:, -1]
-            for i, _ in enumerate(x):
-                numerator_sum = 0
-                denominator_sum = 0
-                for o, _ in enumerate(y_data):
-                    sub = x_data[o] - x[i]
-                    distance = (sub.dot(sub)) ** (0.5)
-                    if distance == 0:
-                        numerator_sum = y_data[o]
-                        denominator_sum = 1
-                        break
-                    weight = distance ** (-3)
-                    numerator_sum = numerator_sum + y_data[o] * weight
-                    denominator_sum = denominator_sum + weight
-                ans[i] = numerator_sum / denominator_sum
-            return ans if len(ans) > 1 else ans[0]
+            return self.__interpolate_shepard__(args)
+
         # Returns value for polynomial interpolation function type
         elif self.__interpolation__ == "polynomial":
             if isinstance(args[0], (int, float)):
@@ -1077,6 +1098,50 @@ class Function:
             outputs="Amplitude",
             interpolation="linear",
             extrapolation="zero",
+        )
+
+    def low_pass_filter(self, alpha, file_path=None):
+        """Implements a low pass filter with a moving average filter. This does
+        not mutate the original Function object, but returns a new one with the
+        filtered source. The filtered source is also saved to a CSV file if a
+        file path is given.
+
+        Parameters
+        ----------
+        alpha : float
+            Attenuation coefficient, 0 <= alpha <= 1
+            For a given dataset, the larger alpha is, the more closely the
+            filtered function returned will match the function the smaller
+            alpha is, the smoother the filtered function returned will be
+            (but with a phase shift)
+        file_path : string, optional
+            File path or file name of the CSV to save. Don't save any CSV if
+            if no argument is passed. Initiated to None.
+
+        Returns
+        -------
+        Function
+            The function with the incoming source filtered
+        """
+        filtered_signal = np.zeros_like(self.source)
+        filtered_signal[0] = self.source[0]
+
+        for i in range(1, len(self.source)):
+            # for each point of our dataset, we apply a exponential smoothing
+            filtered_signal[i] = (
+                alpha * self.source[i] + (1 - alpha) * filtered_signal[i - 1]
+            )
+
+        if isinstance(file_path, str):
+            self.savetxt(file_path)
+
+        return Function(
+            source=filtered_signal,
+            inputs=self.__inputs__,
+            outputs=self.__outputs__,
+            interpolation=self.__interpolation__,
+            extrapolation=self.__extrapolation__,
+            title=self.title,
         )
 
     # Define all presentation methods
@@ -1605,6 +1670,47 @@ class Function:
             coeffs[4 * i : 4 * i + 4] = np.linalg.solve(matrix, result)
         self.__akima_coefficients__ = coeffs
 
+    def __interpolate_shepard__(self, args):
+        """Calculates the shepard interpolation from the given arguments.
+        The shepard interpolation is computed by a inverse distance weighting
+        in a vectorized manner.
+
+        Parameters
+        ----------
+        args : scalar, list
+            Values where the Function is to be evaluated.
+
+        Returns
+        -------
+        result : scalar, list
+            The result of the interpolation.
+        """
+        x_data = self.source[:, 0:-1]  # Support for N-Dimensions
+        y_data = self.source[:, -1]
+
+        arg_stack = np.column_stack(args)
+        arg_qty, arg_dim = arg_stack.shape
+        result = np.zeros(arg_qty)
+
+        # Reshape to vectorize calculations
+        x = arg_stack.reshape(arg_qty, 1, arg_dim)
+
+        sub_matrix = x_data - x
+        distances_squared = np.sum(sub_matrix**2, axis=2)
+
+        # Remove zero distances from further calculations
+        zero_distances = np.where(distances_squared == 0)
+        valid_indexes = np.ones(arg_qty, dtype=bool)
+        valid_indexes[zero_distances[0]] = False
+
+        weights = distances_squared[valid_indexes] ** (-1.5)
+        numerator_sum = np.sum(y_data * weights, axis=1)
+        denominator_sum = np.sum(weights, axis=1)
+        result[valid_indexes] = numerator_sum / denominator_sum
+        result[~valid_indexes] = y_data[zero_distances[1]]
+
+        return result if len(result) > 1 else result[0]
+
     def __neg__(self):
         """Negates the Function object. The result has the same effect as
         multiplying the Function by -1.
@@ -1833,7 +1939,7 @@ class Function:
                 return Function(lambda x: (self.get_value(x) + other(x)))
         # If other is Float except...
         except AttributeError:
-            if isinstance(other, (float, int, complex)):
+            if isinstance(other, NUMERICAL_TYPES):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
@@ -1963,7 +2069,7 @@ class Function:
                 return Function(lambda x: (self.get_value(x) * other(x)))
         # If other is Float except...
         except AttributeError:
-            if isinstance(other, (float, int, complex)):
+            if isinstance(other, NUMERICAL_TYPES):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
@@ -2052,7 +2158,7 @@ class Function:
                 return Function(lambda x: (self.get_value_opt(x) / other(x)))
         # If other is Float except...
         except AttributeError:
-            if isinstance(other, (float, int, complex)):
+            if isinstance(other, NUMERICAL_TYPES):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
@@ -2091,7 +2197,7 @@ class Function:
             A Function object which gives the result of other(x)/self(x).
         """
         # Check if Function object source is array and other is float
-        if isinstance(other, (float, int, complex)):
+        if isinstance(other, NUMERICAL_TYPES):
             if isinstance(self.source, np.ndarray):
                 # Operate on grid values
                 ys = other / self.y_array
@@ -2159,7 +2265,7 @@ class Function:
                 return Function(lambda x: (self.get_value_opt(x) ** other(x)))
         # If other is Float except...
         except AttributeError:
-            if isinstance(other, (float, int, complex)):
+            if isinstance(other, NUMERICAL_TYPES):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
@@ -2198,7 +2304,7 @@ class Function:
             A Function object which gives the result of other(x)**self(x).
         """
         # Check if Function object source is array and other is float
-        if isinstance(other, (float, int, complex)):
+        if isinstance(other, NUMERICAL_TYPES):
             if isinstance(self.source, np.ndarray):
                 # Operate on grid values
                 ys = other**self.y_array
@@ -2766,6 +2872,78 @@ class Function:
                 extrapolation=self.__extrapolation__,
             )
 
+    def savetxt(
+        self,
+        filename,
+        lower=None,
+        upper=None,
+        samples=None,
+        fmt="%.6f",
+        delimiter=",",
+        newline="\n",
+        encoding=None,
+    ):
+        """Save a Function object to a text file. The first line is the header
+        with inputs and outputs. The following lines are the data. The text file
+        can have any extension, but it is recommended to use .csv or .txt.
+
+        Parameters
+        ----------
+        filename : str
+            The name of the file to be saved, with the extension.
+        lower : float or int, optional
+            The lower bound of the range for which data is to be generated.
+            This is required if the source is a callable function.
+        upper : float or int, optional
+            The upper bound of the range for which data is to be generated.
+            This is required if the source is a callable function.
+        samples : int, optional
+            The number of sample points to generate within the specified range.
+            This is required if the source is a callable function.
+        fmt : str, optional
+            The format string for each line of the file, by default "%.6f".
+        delimiter : str, optional
+            The string used to separate values, by default ",".
+        newline : str, optional
+            The string used to separate lines in the file, by default "\n".
+        encoding : str, optional
+            The encoding to be used for the file, by default None (which means
+            using the system default encoding).
+
+        Raises
+        ------
+        ValueError
+            Raised if `lower`, `upper`, and `samples` are not provided when
+            the source is a callable function. These parameters are necessary
+            to generate the data points for saving.
+        """
+        # create the header
+        header_line = delimiter.join(self.__inputs__ + self.__outputs__)
+
+        # create the datapoints
+        if callable(self.source):
+            if lower is None or upper is None or samples is None:
+                raise ValueError(
+                    "If the source is a callable, lower, upper and samples"
+                    + " must be provided."
+                )
+            # Generate the data points using the callable
+            x = np.linspace(lower, upper, samples)
+            data_points = np.column_stack((x, self.source(x)))
+        else:
+            # If the source is already an array, use it as is
+            data_points = self.source
+
+            if lower and upper and samples:
+                data_points = self.set_discrete(
+                    lower, upper, samples, mutate_self=False
+                ).source
+
+        # export to a file
+        with open(filename, "w", encoding=encoding) as file:
+            file.write(header_line + newline)
+            np.savetxt(file, data_points, fmt=fmt, delimiter=delimiter, newline=newline)
+
     @staticmethod
     def _check_user_input(
         source,
@@ -2847,7 +3025,7 @@ class Function:
         if isinstance(inputs, str):
             inputs = [inputs]
 
-        elif len(outputs) > 1:
+        if len(outputs) > 1:
             raise ValueError(
                 "Output must either be a string or have dimension 1, "
                 + f"it currently has dimension ({len(outputs)})."
@@ -2864,8 +3042,19 @@ class Function:
                 try:
                     source = np.loadtxt(source, delimiter=",", dtype=float)
                 except ValueError:
-                    # Skip header
-                    source = np.loadtxt(source, delimiter=",", dtype=float, skiprows=1)
+                    with open(source, "r") as file:
+                        header, *data = file.read().splitlines()
+
+                    header = [
+                        label.strip("'").strip('"') for label in header.split(",")
+                    ]
+                    source = np.loadtxt(data, delimiter=",", dtype=float)
+
+                    if len(source[0]) == len(header):
+                        if inputs == ["Scalar"]:
+                            inputs = header[:-1]
+                        if outputs == ["Scalar"]:
+                            outputs = [header[-1]]
                 except Exception as e:
                     raise ValueError(
                         "The source file is not a valid csv or txt file."
@@ -2883,7 +3072,7 @@ class Function:
 
             ## single dimension
             if source_dim == 2:
-                # possible interpolation values: llinear, polynomial, akima and spline
+                # possible interpolation values: linear, polynomial, akima and spline
                 if interpolation is None:
                     interpolation = "spline"
                 elif interpolation.lower() not in [
@@ -2934,7 +3123,7 @@ class Function:
             in_out_dim = len(inputs) + len(outputs)
             if source_dim != in_out_dim:
                 raise ValueError(
-                    "Source dimension ({source_dim}) does not match input "
+                    f"Source dimension ({source_dim}) does not match input "
                     + f"and output dimension ({in_out_dim})."
                 )
         return inputs, outputs, interpolation, extrapolation
