@@ -49,7 +49,7 @@ def test_func_from_csv_with_header(csv_file):
     line. It tests cases where the fields are separated by quotes and without
     quotes."""
     f = Function(csv_file)
-    assert f.__repr__() == "'Function from R1 to R1 : (Scalar) → (Scalar)'"
+    assert f.__repr__() == "'Function from R1 to R1 : (time) → (value)'"
     assert np.isclose(f(0), 100)
     assert np.isclose(f(0) + f(1), 300), "Error summing the values of the function"
 

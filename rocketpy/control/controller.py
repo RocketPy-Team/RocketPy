@@ -1,0 +1,132 @@
+from ..prints.controller_prints import _ControllerPrints
+
+
+class _Controller:
+    """A class for storing and running controllers on a rocket. Controllers
+    have a controller function that is called at a specified sampling rate
+    during the simulation. The controller function can access and modify
+    the objects that are passed to it. The controller function also stores the
+    variables of interest in the objects that are passed to it."""
+
+    def __init__(
+        self,
+        interactive_objects,
+        controller_function,
+        sampling_rate,
+        initial_observed_variables=None,
+        name="Controller",
+    ):
+        """Initialize the class with the controller function and the objects to
+        be observed.
+
+        Parameters
+        ----------
+        interactive_objects : list or object
+            A collection of objects that the controller function can access and
+            potentially modify. This can be either a list of objects or a single
+            object. The objects listed here are provided to the controller function
+            as the last argument, maintaining the order specified in this list if
+            it's a list. The controller function gains the ability to interact with
+            and make adjustments to these objects during its execution.
+        controller_function : function, callable
+            An user-defined function responsible for controlling the simulation.
+            This function is expected to take the following arguments, in order:
+
+            1. `time` (float): The current simulation time in seconds.
+            2. `sampling_rate` (float): The rate at which the controller
+               function is called, measured in Hertz (Hz).
+            3. `state` (list): The state vector of the simulation, structured as
+               `[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]`.
+            4. `state_history` (list): A record of the rocket's state at each
+               step throughout the simulation. The state_history is organized as
+               a list of lists, with each sublist containing a state vector. The
+               last item in the list always corresponds to the previous state
+               vector, providing a chronological sequence of the rocket's
+               evolving states.
+            5. `observed_variables` (list): A list containing the variables that
+               the controller function returns. The return of each controller
+               function call is appended to the observed_variables list. The
+               initial value in the first step of the simulation of this list is
+               provided by the `initial_observed_variables` argument.
+            6. `interactive_objects` (list): A list containing the objects that
+               the controller function can interact with. The objects are
+               listed in the same order as they are provided in the
+               `interactive_objects`.
+
+            This function will be called during the simulation at the specified
+            sampling rate. The function should evaluate and change the interactive
+            objects as needed. The function return statement can be used to save
+            relevant information in the `observed_variables` list.
+
+            .. note:: The function will be called according to the sampling rate
+            specified.
+        sampling_rate : float
+            The sampling rate of the controller function in Hertz (Hz). This
+            means that the controller function will be called every
+            `1/sampling_rate` seconds.
+        initial_observed_variables : list, optional
+            A list of the initial values of the variables that the controller
+            function returns. This list is used to initialize the
+            `observed_variables` argument of the controller function. The
+            default value is None, which initializes the list as an empty list.
+        name : str
+            The name of the controller. This will be used for printing and
+            plotting.
+
+        Returns
+        -------
+        None
+        """
+        self.interactive_objects = interactive_objects
+        self.controller_function = controller_function
+        self.sampling_rate = sampling_rate
+        self.name = name
+        self.prints = _ControllerPrints(self)
+
+        if initial_observed_variables is not None:
+            self.observed_variables = [initial_observed_variables]
+        else:
+            self.observed_variables = []
+
+    def __call__(self, time, state_vector, state_history):
+        """Call the controller function. This is used by the simulation class.
+
+        Parameters
+        ----------
+        time : float
+            The time of the simulation in seconds.
+        state_vector : list
+            The state vector of the simulation, which is defined as:
+
+            `[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]`.
+        state_history : list
+            A list containing the state history of the simulation. The state
+            history is a list of every state vector of every step of the
+            simulation. The state history is a list of lists, where each
+            sublist is a state vector and is ordered from oldest to newest.
+
+        Returns
+        -------
+        None
+        """
+        observed_variables = self.controller_function(
+            time,
+            self.sampling_rate,
+            state_vector,
+            state_history,
+            self.observed_variables,
+            self.interactive_objects,
+        )
+        if observed_variables is not None:
+            self.observed_variables.append(observed_variables)
+
+    def __str__(self):
+        return f"Controller '{self.name}' with sampling rate {self.sampling_rate} Hz."
+
+    def info(self):
+        """Prints out summarized information about the controller."""
+        self.prints.all()
+
+    def all_info(self):
+        """Prints out all information about the controller."""
+        self.info()

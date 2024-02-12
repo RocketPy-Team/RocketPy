@@ -19,6 +19,8 @@ try:
 except ImportError:
     from ..tools import cached_property
 
+NUMERICAL_TYPES = (float, int, complex, np.ndarray, np.integer, np.floating)
+
 
 class Function:
     """Class converts a python function or a data sequence into an object
@@ -59,7 +61,8 @@ class Function:
             and 'z' is the output.
 
             - string: Path to a CSV file. The file is read and converted into an
-            ndarray. The file can optionally contain a single header line.
+            ndarray. The file can optionally contain a single header line, see
+            notes below for more information.
 
             - Function: Copies the source of the provided Function object,
             creating a new Function with adjusted inputs and outputs.
@@ -94,12 +97,19 @@ class Function:
 
         Notes
         -----
-        (I) CSV files can optionally contain a single header line. If present,
-        the header is ignored during processing.
-        (II) Fields in CSV files may be enclosed in double quotes. If fields are
-        not quoted, double quotes should not appear inside them.
+        (I) CSV files may include an optional single header line. If this
+        header line is present and contains names for each data column, those
+        names will be used to label the inputs and outputs unless specified
+        otherwise by the `inputs` and `outputs` arguments.
+        If the header is specified for only a few columns, it is ignored.
+
+        Commas in a header will be interpreted as a delimiter, which may cause
+        undesired input or output labeling. To avoid this, specify each input
+        and output name using the `inputs` and `outputs` arguments.
+
+        (II) Fields in CSV files may be enclosed in double quotes. If fields
+        are not quoted, double quotes should not appear inside them.
         """
-        # Set input and output
         if inputs is None:
             inputs = ["Scalar"]
         if outputs is None:
@@ -184,10 +194,18 @@ class Function:
 
         Notes
         -----
-        (I) CSV files can optionally contain a single header line. If present,
-        the header is ignored during processing.
-        (II) Fields in CSV files may be enclosed in double quotes. If fields are
-        not quoted, double quotes should not appear inside them.
+        (I) CSV files may include an optional single header line. If this
+        header line is present and contains names for each data column, those
+        names will be used to label the inputs and outputs unless specified
+        otherwise. If the header is specified for only a few columns, it is
+        ignored.
+
+        Commas in a header will be interpreted as a delimiter, which may cause
+        undesired input or output labeling. To avoid this, specify each input
+        and output name using the `inputs` and `outputs` arguments.
+
+        (II) Fields in CSV files may be enclosed in double quotes. If fields
+        are not quoted, double quotes should not appear inside them.
 
         Returns
         -------
@@ -1921,9 +1939,7 @@ class Function:
                 return Function(lambda x: (self.get_value(x) + other(x)))
         # If other is Float except...
         except AttributeError:
-            if isinstance(
-                other, (float, int, complex, np.ndarray, np.integer, np.floating)
-            ):
+            if isinstance(other, NUMERICAL_TYPES):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
@@ -2053,9 +2069,7 @@ class Function:
                 return Function(lambda x: (self.get_value(x) * other(x)))
         # If other is Float except...
         except AttributeError:
-            if isinstance(
-                other, (float, int, complex, np.ndarray, np.integer, np.floating)
-            ):
+            if isinstance(other, NUMERICAL_TYPES):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
@@ -2144,9 +2158,7 @@ class Function:
                 return Function(lambda x: (self.get_value_opt(x) / other(x)))
         # If other is Float except...
         except AttributeError:
-            if isinstance(
-                other, (float, int, complex, np.ndarray, np.integer, np.floating)
-            ):
+            if isinstance(other, NUMERICAL_TYPES):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
@@ -2185,9 +2197,7 @@ class Function:
             A Function object which gives the result of other(x)/self(x).
         """
         # Check if Function object source is array and other is float
-        if isinstance(
-            other, (float, int, complex, np.ndarray, np.integer, np.floating)
-        ):
+        if isinstance(other, NUMERICAL_TYPES):
             if isinstance(self.source, np.ndarray):
                 # Operate on grid values
                 ys = other / self.y_array
@@ -2255,9 +2265,7 @@ class Function:
                 return Function(lambda x: (self.get_value_opt(x) ** other(x)))
         # If other is Float except...
         except AttributeError:
-            if isinstance(
-                other, (float, int, complex, np.ndarray, np.integer, np.floating)
-            ):
+            if isinstance(other, NUMERICAL_TYPES):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
@@ -2296,9 +2304,7 @@ class Function:
             A Function object which gives the result of other(x)**self(x).
         """
         # Check if Function object source is array and other is float
-        if isinstance(
-            other, (float, int, complex, np.ndarray, np.integer, np.floating)
-        ):
+        if isinstance(other, NUMERICAL_TYPES):
             if isinstance(self.source, np.ndarray):
                 # Operate on grid values
                 ys = other**self.y_array
@@ -3019,7 +3025,7 @@ class Function:
         if isinstance(inputs, str):
             inputs = [inputs]
 
-        elif len(outputs) > 1:
+        if len(outputs) > 1:
             raise ValueError(
                 "Output must either be a string or have dimension 1, "
                 + f"it currently has dimension ({len(outputs)})."
@@ -3036,8 +3042,19 @@ class Function:
                 try:
                     source = np.loadtxt(source, delimiter=",", dtype=float)
                 except ValueError:
-                    # Skip header
-                    source = np.loadtxt(source, delimiter=",", dtype=float, skiprows=1)
+                    with open(source, "r") as file:
+                        header, *data = file.read().splitlines()
+
+                    header = [
+                        label.strip("'").strip('"') for label in header.split(",")
+                    ]
+                    source = np.loadtxt(data, delimiter=",", dtype=float)
+
+                    if len(source[0]) == len(header):
+                        if inputs == ["Scalar"]:
+                            inputs = header[:-1]
+                        if outputs == ["Scalar"]:
+                            outputs = [header[-1]]
                 except Exception as e:
                     raise ValueError(
                         "The source file is not a valid csv or txt file."
@@ -3055,7 +3072,7 @@ class Function:
 
             ## single dimension
             if source_dim == 2:
-                # possible interpolation values: llinear, polynomial, akima and spline
+                # possible interpolation values: linear, polynomial, akima and spline
                 if interpolation is None:
                     interpolation = "spline"
                 elif interpolation.lower() not in [
@@ -3106,7 +3123,7 @@ class Function:
             in_out_dim = len(inputs) + len(outputs)
             if source_dim != in_out_dim:
                 raise ValueError(
-                    "Source dimension ({source_dim}) does not match input "
+                    f"Source dimension ({source_dim}) does not match input "
                     + f"and output dimension ({in_out_dim})."
                 )
         return inputs, outputs, interpolation, extrapolation
