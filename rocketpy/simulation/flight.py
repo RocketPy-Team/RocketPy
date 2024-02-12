@@ -13,9 +13,9 @@ from ..plots.flight_plots import _FlightPlots
 from ..prints.flight_prints import _FlightPrints
 from ..tools import (
     find_closest,
-    quaternions_to_spin,
-    quaternions_to_precession,
     quaternions_to_nutation,
+    quaternions_to_precession,
+    quaternions_to_spin,
 )
 
 
@@ -55,6 +55,8 @@ class Flight:
         the beginning of the rail.
     Flight.name: str
         Name of the flight.
+    Flight._controllers : list
+        List of controllers to be used during simulation.
     Flight.max_time : int, float
         Maximum simulation time allowed. Refers to physical time
         being simulated, not time taken to run simulation.
@@ -587,6 +589,7 @@ class Flight:
         if self.rail_length <= 0:
             raise ValueError("Rail length must be a positive value.")
         self.parachutes = self.rocket.parachutes[:]
+        self._controllers = self.rocket._controllers[:]
         self.inclination = inclination
         self.heading = heading
         self.max_time = max_time
@@ -661,6 +664,9 @@ class Flight:
                 phase.TimeNodes.add_parachutes(
                     self.parachutes, phase.t, phase.time_bound
                 )
+                phase.TimeNodes.add_controllers(
+                    self._controllers, phase.t, phase.time_bound
+                )
             # Add lst time node to permanent list
             phase.TimeNodes.add_node(phase.time_bound, [], [])
             # Sort time nodes
@@ -691,6 +697,9 @@ class Flight:
                 # Feed required parachute and discrete controller triggers
                 for callback in node.callbacks:
                     callback(self)
+
+                for controller in node._controllers:
+                    controller(self.t, self.y_sol, self.solution)
 
                 for parachute in node.parachutes:
                     # Calculate and save pressure signal
@@ -1419,7 +1428,23 @@ class Flight:
         else:
             drag_coeff = self.rocket.power_off_drag.get_value_opt(free_stream_mach)
         rho = self.env.density.get_value_opt(z)
-        R3 = -0.5 * rho * (free_stream_speed**2) * self.rocket.area * (drag_coeff)
+        R3 = -0.5 * rho * (free_stream_speed**2) * self.rocket.area * drag_coeff
+        for air_brakes in self.rocket.air_brakes:
+            if air_brakes.deployment_level > 0:
+                air_brakes_cd = air_brakes.drag_coefficient(
+                    air_brakes.deployment_level, free_stream_mach
+                )
+                air_brakes_force = (
+                    -0.5
+                    * rho
+                    * (free_stream_speed**2)
+                    * air_brakes.reference_area
+                    * air_brakes_cd
+                )
+                if air_brakes.override_rocket_drag:
+                    R3 = air_brakes_force  # Substitutes rocket drag coefficient
+                else:
+                    R3 += air_brakes_force
         # R3 += self.__computeDragForce(z, Vector(vx, vy, vz))
         # Off center moment
         M1 += self.rocket.cp_eccentricity_y * R3
@@ -1702,8 +1727,23 @@ class Flight:
             drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach)
         else:
             drag_coeff = self.rocket.power_off_drag.get_value_opt(free_stream_mach)
-        R3 += -0.5 * rho * (free_stream_speed**2) * self.rocket.area * (drag_coeff)
-
+        R3 += -0.5 * rho * (free_stream_speed**2) * self.rocket.area * drag_coeff
+        for air_brakes in self.rocket.air_brakes:
+            if air_brakes.deployment_level > 0:
+                air_brakes_cd = air_brakes.drag_coefficient(
+                    air_brakes.deployment_level, free_stream_mach
+                )
+                air_brakes_force = (
+                    -0.5
+                    * rho
+                    * (free_stream_speed**2)
+                    * air_brakes.reference_area
+                    * air_brakes_cd
+                )
+                if air_brakes.override_rocket_drag:
+                    R3 = air_brakes_force  # Substitutes rocket drag coefficient
+                else:
+                    R3 += air_brakes_force
         ## Off center moment
         M1 += self.rocket.cp_eccentricity_y * R3
         M2 -= self.rocket.cp_eccentricity_x * R3
@@ -2867,6 +2907,20 @@ class Flight:
 
         return temporary_values
 
+    def get_controller_observed_variables(self):
+        """Retrieve the observed variables related to air brakes from the
+        controllers. If there is only one set of observed variables, it is
+        returned as a list. If there are multiple sets, the list containing
+        all sets is returned."""
+        observed_variables = [
+            controller.observed_variables for controller in self._controllers
+        ]
+        return (
+            observed_variables[0]
+            if len(observed_variables) == 1
+            else observed_variables
+        )
+
     @cached_property
     def get_controller_observed_variables(self):
         """Retrieve the observed variables related to air brakes from the
@@ -3262,7 +3316,7 @@ class Flight:
                     (
                         self.longitude(t),
                         self.latitude(t),
-                        self.z(t) - self.env.elevation,
+                        self.altitude(t),
                     )
                 )
             trajectory.coords = coords
@@ -3552,6 +3606,20 @@ class Flight:
                 ]
                 self.list += parachute_node_list
 
+        def add_controllers(self, controllers, t_init, t_end):
+            # Iterate over controllers
+            for controller in controllers:
+                # Calculate start of sampling time nodes
+                controller_time_step = 1 / controller.sampling_rate
+                controller_node_list = [
+                    self.TimeNode(i * controller_time_step, [], [controller])
+                    for i in range(
+                        math.ceil(t_init / controller_time_step),
+                        math.floor(t_end / controller_time_step) + 1,
+                    )
+                ]
+                self.list += controller_node_list
+
         def sort(self):
             self.list.sort(key=(lambda node: node.t))
 
@@ -3575,10 +3643,11 @@ class Flight:
             del self.list[index + 1 :]
 
         class TimeNode:
-            def __init__(self, t, parachutes, callbacks):
+            def __init__(self, t, parachutes, controllers):
                 self.t = t
                 self.parachutes = parachutes
-                self.callbacks = callbacks
+                self.callbacks = []
+                self._controllers = controllers
 
             def __repr__(self):
                 return (

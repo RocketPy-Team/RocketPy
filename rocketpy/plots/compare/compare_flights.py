@@ -1343,7 +1343,7 @@ class CompareFlights(Compare):
             try:
                 x = flight.x[:, 1]
                 y = flight.y[:, 1]
-                z = flight.z[:, 1] - flight.env.elevation
+                z = flight.altitude[:, 1]
             except AttributeError:
                 raise AttributeError(
                     "Flight object {} does not have a trajectory.".format(flight.name)
