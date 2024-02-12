@@ -114,7 +114,7 @@ def bilinear_interpolation(x, y, x1, x2, y1, y2, z11, z12, z21, z22):
 
 
 def get_distribution(distribution_function_name):
-    """Sets the distribution function to be used in the dispersion analysis.
+    """Sets the distribution function to be used in the monte carlo analysis.
 
     Parameters
     ----------
@@ -281,16 +281,16 @@ def decimalDegreesToArcSeconds(angle):
     return deg, min, sec
 
 
-# Functions for dispersion analysis
-def generate_dispersion_ellipses(results):
-    """A function to create apogee and impact ellipses from the dispersion
-    results.
+# Functions for monte carlo analysis
+def generate_monte_carlo_ellipses(results):
+    """A function to create apogee and impact ellipses from the monte carlo
+    analysis results.
 
     Parameters
     ----------
     results : dict
-        A dictionary containing the results of the dispersion analysis. It should
-        contain the following keys:
+        A dictionary containing the results of the monte carlo analysis. It
+        should contain the following keys:
             - apogeeX: an array containing the x coordinates of the apogee
             - apogeeY: an array containing the y coordinates of the apogee
             - xImpact: an array containing the x coordinates of the impact
@@ -312,7 +312,7 @@ def generate_dispersion_ellipses(results):
         An array containing the y coordinates of the impact ellipse.
     """
 
-    # Retrieve dispersion data por apogee and impact XY position
+    # Retrieve monte carlo data por apogee and impact XY position
     try:
         apogee_x = np.array(results["apogeeX"])
         apogee_y = np.array(results["apogeeY"])
@@ -403,7 +403,7 @@ def generate_dispersion_ellipses(results):
     return impact_ellipses, apogee_ellipses, apogee_x, apogee_y, impact_x, impact_y
 
 
-def generate_dispersion_ellipses_coordinates(
+def generate_monte_carlo_ellipses_coordinates(
     ellipses, origin_lat, origin_lon, resolution=100
 ):
     """Generate a list of latitude and longitude points for each ellipse in

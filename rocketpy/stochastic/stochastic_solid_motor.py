@@ -1,10 +1,10 @@
 from rocketpy.motors import SolidMotor
 
-from .motor_dispersion_model import MotorDispersionModel
+from .stochastic_motor_model import StochasticMotorModel
 
 
-class McSolidMotor(MotorDispersionModel):
-    """A Monte Carlo Solid Motor class that inherits from MonteCarloModel. This
+class StochasticSolidMotor(StochasticMotorModel):
+    """A Stochastic Solid Motor class that inherits from StochasticModel. This
     class is used to receive a SolidMotor object and information about the
     dispersion of its parameters and generate a random solid motor object based
     on the provided information.
@@ -17,67 +17,67 @@ class McSolidMotor(MotorDispersionModel):
         List of strings representing the thrust source to be selected.
     total_impulse : int, float, tuple, list
         Total impulse of the motor in newton seconds. Follows the standard
-        input format of Dispersion Models.
+        input format of Stochastic Models.
     burn_start_time : int, float, tuple, list
         Burn start time of the motor in seconds. Follows the standard input
-        format of Dispersion Models.
+        format of Stochastic Models.
     burn_out_time : int, float, tuple, list
         Burn out time of the motor in seconds. Follows the standard input
-        format of Dispersion Models.
+        format of Stochastic Models.
     dry_mass : int, float, tuple, list
         Dry mass of the motor in kilograms. Follows the standard input
-        format of Dispersion Models.
+        format of Stochastic Models.
     dry_I_11 : int, float, tuple, list
         Dry inertia of the motor in kilograms times meters squared. Follows
-        the standard input format of Dispersion Models.
+        the standard input format of Stochastic Models.
     dry_I_22 : int, float, tuple, list
         Dry inertia of the motor in kilograms times meters squared. Follows
-        the standard input format of Dispersion Models.
+        the standard input format of Stochastic Models.
     dry_I_33 : int, float, tuple, list
         Dry inertia of the motor in kilograms times meters squared. Follows
-        the standard input format of Dispersion Models.
+        the standard input format of Stochastic Models.
     dry_I_12 : int, float, tuple, list
         Dry inertia of the motor in kilograms times meters squared. Follows
-        the standard input format of Dispersion Models.
+        the standard input format of Stochastic Models.
     dry_I_13 : int, float, tuple, list
         Dry inertia of the motor in kilograms times meters squared. Follows
-        the standard input format of Dispersion Models.
+        the standard input format of Stochastic Models.
     dry_I_23 : int, float, tuple, list
         Dry inertia of the motor in kilograms times meters squared. Follows
-        the standard input format of Dispersion Models.
+        the standard input format of Stochastic Models.
     nozzle_radius : int, float, tuple, list
         Nozzle radius of the motor in meters. Follows the standard input
-        format of Dispersion Models.
+        format of Stochastic Models.
     grain_number : int, float, tuple, list
         Number of grains in the motor. Follows the standard input format of
-        Dispersion Models.
+        Stochastic Models.
     grain_density : int, float, tuple, list
         Density of the grains in the motor in kilograms per meters cubed.
-        Follows the standard input format of Dispersion Models.
+        Follows the standard input format of Stochastic Models.
     grain_outer_radius : int, float, tuple, list
         Outer radius of the grains in the motor in meters. Follows the
-        standard input format of Dispersion Models.
+        standard input format of Stochastic Models.
     grain_initial_inner_radius : int, float, tuple, list
         Initial inner radius of the grains in the motor in meters. Follows
-        the standard input format of Dispersion Models.
+        the standard input format of Stochastic Models.
     grain_initial_height : int, float, tuple, list
         Initial height of the grains in the motor in meters. Follows the
-        standard input format of Dispersion Models.
+        standard input format of Stochastic Models.
     grain_separation : int, float, tuple, list
         Separation between grains in the motor in meters. Follows the
-        standard input format of Dispersion Models.
+        standard input format of Stochastic Models.
     grains_center_of_mass_position : int, float, tuple, list
         Position of the center of mass of the grains in the motor in
-        meters. Follows the standard input format of Dispersion Models.
+        meters. Follows the standard input format of Stochastic Models.
     center_of_dry_mass_position : int, float, tuple, list
         Position of the center of mass of the dry mass in the motor in
-        meters. Follows the standard input format of Dispersion Models.
+        meters. Follows the standard input format of Stochastic Models.
     nozzle_position : int, float, tuple, list
         Position of the nozzle in the motor in meters. Follows the
-        standard input format of Dispersion Models.
+        standard input format of Stochastic Models.
     throat_radius : int, float, tuple, list
         Radius of the throat in the motor in meters. Follows the standard
-        input format of Dispersion Models.
+        input format of Stochastic Models.
     """
 
     def __init__(
@@ -106,12 +106,12 @@ class McSolidMotor(MotorDispersionModel):
         nozzle_position=None,
         throat_radius=None,
     ):
-        """Initializes the Monte Carlo Solid Motor class.
+        """Initializes the Stochastic Solid Motor class.
 
         See Also
         --------
         This should link to somewhere that explains how inputs works in
-        dispersion models.
+        Stochastic Models.
 
         Parameters
         ----------
@@ -119,70 +119,70 @@ class McSolidMotor(MotorDispersionModel):
             SolidMotor object to be used for validation.
         thrust_source : list, optional
             List of strings representing the thrust source to be selected.
-            Follows the 1d array like input format of Dispersion Models.
+            Follows the 1d array like input format of Stochastic Models.
         total_impulse : int, float, tuple, list, optional
             Total impulse of the motor in newton seconds. Follows the standard
-            input format of Dispersion Models.
+            input format of Stochastic Models.
         burn_start_time : int, float, tuple, list, optional
             Burn start time of the motor in seconds. Follows the standard input
-            format of Dispersion Models.
+            format of Stochastic Models.
         burn_out_time : int, float, tuple, list, optional
             Burn out time of the motor in seconds. Follows the standard input
-            format of Dispersion Models.
+            format of Stochastic Models.
         dry_mass : int, float, tuple, list, optional
             Dry mass of the motor in kilograms. Follows the standard input
-            format of Dispersion Models.
+            format of Stochastic Models.
         dry_I_11 : int, float, tuple, list, optional
             Dry inertia of the motor in kilograms times meters squared. Follows
-            the standard input format of Dispersion Models.
+            the standard input format of Stochastic Models.
         dry_I_22 : int, float, tuple, list, optional
             Dry inertia of the motor in kilograms times meters squared. Follows
-            the standard input format of Dispersion Models.
+            the standard input format of Stochastic Models.
         dry_I_33 : int, float, tuple, list, optional
             Dry inertia of the motor in kilograms times meters squared. Follows
-            the standard input format of Dispersion Models.
+            the standard input format of Stochastic Models.
         dry_I_12 : int, float, tuple, list, optional
             Dry inertia of the motor in kilograms times meters squared. Follows
-            the standard input format of Dispersion Models.
+            the standard input format of Stochastic Models.
         dry_I_13 : int, float, tuple, list, optional
             Dry inertia of the motor in kilograms times meters squared. Follows
-            the standard input format of Dispersion Models.
+            the standard input format of Stochastic Models.
         dry_I_23 : int, float, tuple, list, optional
             Dry inertia of the motor in kilograms times meters squared. Follows
-            the standard input format of Dispersion Models.
+            the standard input format of Stochastic Models.
         nozzle_radius : int, float, tuple, list, optional
             Nozzle radius of the motor in meters. Follows the standard input
-            format of Dispersion Models.
+            format of Stochastic Models.
         grain_number : int, float, tuple, list, optional
             Number of grains in the motor. Follows the standard input format of
-            Dispersion Models.
+            Stochastic Models.
         grain_density : int, float, tuple, list, optional
             Density of the grains in the motor in kilograms per meters cubed.
-            Follows the standard input format of Dispersion Models.
+            Follows the standard input format of Stochastic Models.
         grain_outer_radius : int, float, tuple, list, optional
             Outer radius of the grains in the motor in meters. Follows the
-            standard input format of Dispersion Models.
+            standard input format of Stochastic Models.
         grain_initial_inner_radius : int, float, tuple, list, optional
             Initial inner radius of the grains in the motor in meters. Follows
-            the standard input format of Dispersion Models.
+            the standard input format of Stochastic Models.
         grain_initial_height : int, float, tuple, list, optional
             Initial height of the grains in the motor in meters. Follows the
-            standard input format of Dispersion Models.
+            standard input format of Stochastic Models.
         grain_separation : int, float, tuple, list, optional
             Separation between grains in the motor in meters. Follows the
-            standard input format of Dispersion Models.
+            standard input format of Stochastic Models.
         grains_center_of_mass_position : int, float, tuple, list, optional
             Position of the center of mass of the grains in the motor in
-            meters. Follows the standard input format of Dispersion Models.
+            meters. Follows the standard input format of Stochastic Models.
         center_of_dry_mass_position : int, float, tuple, list, optional
             Position of the center of mass of the dry mass in the motor in
-            meters. Follows the standard input format of Dispersion Models.
+            meters. Follows the standard input format of Stochastic Models.
         nozzle_position : int, float, tuple, list, optional
             Position of the nozzle in the motor in meters. Follows the
-            standard input format of Dispersion Models.
+            standard input format of Stochastic Models.
         throat_radius : int, float, tuple, list, optional
             Radius of the throat in the motor in meters. Follows the standard
-            input format of Dispersion Models.
+            input format of Stochastic Models.
         """
         super().__init__(
             solid_motor,

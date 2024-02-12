@@ -1,10 +1,10 @@
 from rocketpy.rocket import Parachute
 
-from .dispersion_model import DispersionModel
+from .stochastic_model import StochasticModel
 
 
-class McParachute(DispersionModel):
-    """A Monte Carlo Parachute class that inherits from MonteCarloModel. This
+class StochasticParachute(StochasticModel):
+    """A Stochastic Parachute class that inherits from StochasticModel. This
     class is used to receive a Parachute object and information about the
     dispersion of its parameters and generate a random parachute object based
     on the provided information.
@@ -15,19 +15,19 @@ class McParachute(DispersionModel):
         Parachute object to be used for validation.
     cd_s : tuple, list, int, float
         Drag coefficient of the parachute. Follows the standard input format of
-        Dispersion Models.
+        Stochastic Models.
     trigger : list
         List of callables, string "apogee" or ints/floats. Follows the standard
-        input format of Dispersion Models.
+        input format of Stochastic Models.
     sampling_rate : tuple, list, int, float
         Sampling rate of the parachute in seconds. Follows the standard input
-        format of Dispersion Models.
+        format of Stochastic Models.
     lag : tuple, list, int, float
         Lag of the parachute in seconds. Follows the standard input format of
-        Dispersion Models.
+        Stochastic Models.
     noise : list
         List of tuples in the form of (mean, standard deviation,
-        time-correlation). Follows the standard input format of Dispersion
+        time-correlation). Follows the standard input format of Stochastic
         Models.
     name : list
         List of names. This attribute can not be randomized.
@@ -42,12 +42,12 @@ class McParachute(DispersionModel):
         lag=None,
         noise=None,
     ):
-        """Initializes the Monte Carlo Parachute class.
+        """Initializes the Stochastic Parachute class.
 
         See Also
         --------
         This should link to somewhere that explains how inputs works in
-        dispersion models.
+        Stochastic Models.
 
         Parameters
         ----------
@@ -55,19 +55,19 @@ class McParachute(DispersionModel):
             Parachute object to be used for validation.
         cd_s : tuple, list, int, float
             Drag coefficient of the parachute. Follows the standard input
-            format of Dispersion Models.
+            format of Stochastic Models.
         trigger : list
             List of callables, string "apogee" or ints/floats. Follows the
-            standard input format of Dispersion Models.
+            standard input format of Stochastic Models.
         sampling_rate : tuple, list, int, float
             Sampling rate of the parachute in seconds. Follows the standard
-            input format of Dispersion Models.
+            input format of Stochastic Models.
         lag : tuple, list, int, float
             Lag of the parachute in seconds. Follows the standard input format
-            of Dispersion Models.
+            of Stochastic Models.
         noise : list
             List of tuples in the form of (mean, standard deviation,
-            time-correlation). Follows the standard input format of Dispersion
+            time-correlation). Follows the standard input format of Stochastic
             Models.
         """
         self._validate_trigger(trigger)
@@ -86,7 +86,7 @@ class McParachute(DispersionModel):
         """Validates the trigger input. If the trigger input argument is not
         None, it must be:
         - a list of callables, string "apogee" or ints/floats
-        - a tuple that will be further validated in the DispersionModel class
+        - a tuple that will be further validated in the StochasticModel class
         """
         if trigger is not None:
             assert isinstance(trigger, list) and all(

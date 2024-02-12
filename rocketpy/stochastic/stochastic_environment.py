@@ -1,10 +1,10 @@
 from rocketpy.environment import Environment
 
-from .dispersion_model import DispersionModel
+from .stochastic_model import StochasticModel
 
 
-class McEnvironment(DispersionModel):
-    """A Monte Carlo Environment class that inherits from MonteCarloModel. This
+class StochasticEnvironment(StochasticModel):
+    """A Stochastic Environment class that inherits from StochasticModel. This
     class is used to receive a Environment object and information about the
     dispersion of its parameters and generate a random environment object based
     on the provided information.
@@ -15,16 +15,16 @@ class McEnvironment(DispersionModel):
         Environment object to be used for validation.
     elevation : tuple, list, int, float
         Elevation of the launch site in meters. Follows the standard input
-        format of Dispersion Models.
+        format of Stochastic Models.
     gravity : tuple, list, int, float
         Gravitational acceleration in meters per second squared. Follows the
-        standard input format of Dispersion Models.
+        standard input format of Stochastic Models.
     latitude : tuple, list, int, float
         Latitude of the launch site in degrees. Follows the standard input
-        format of Dispersion Models.
+        format of Stochastic Models.
     longitude : tuple, list, int, float
         Longitude of the launch site in degrees. Follows the standard input
-        format of Dispersion Models.
+        format of Stochastic Models.
     ensemble_member : list
         List of integers representing the ensemble member to be selected.
     wind_velocity_x_factor : tuple, list, int, float
@@ -51,12 +51,12 @@ class McEnvironment(DispersionModel):
         wind_velocity_x_factor=(1, 0),
         wind_velocity_y_factor=(1, 0),
     ):
-        """Initializes the Monte Carlo Environment class.
+        """Initializes the Stochastic Environment class.
 
         See Also
         --------
         This should link to somewhere that explains how inputs works in
-        dispersion models.
+        Stochastic models.
 
         Parameters
         ----------
@@ -67,26 +67,26 @@ class McEnvironment(DispersionModel):
             (year, month, day, hour).
         elevation : int, float, tuple, list, optional
             Elevation of the launch site in meters. Follows the standard
-            input format of Dispersion Models.
+            input format of Stochastic Models.
         gravity : int, float, tuple, list, optional
             Gravitational acceleration in meters per second squared. Follows
-            the standard input format of Dispersion Models.
+            the standard input format of Stochastic Models.
         latitude : int, float, tuple, list, optional
             Latitude of the launch site in degrees. Follows the standard
-            input format of Dispersion Models.
+            input format of Stochastic Models.
         longitude : int, float, tuple, list, optional
             Longitude of the launch site in degrees. Follows the standard
-            input format of Dispersion Models.
+            input format of Stochastic Models.
         ensemble_member : list, optional
             List of integers representing the ensemble member to be selected.
         wind_velocity_x_factor : int, float, tuple, list, optional
             Factor to be multiplied by the wind velocity in the x direction.
-            Follows the factor input format of Dispersion Models.
+            Follows the factor input format of Stochastic Models.
         wind_velocity_y_factor : int, float, tuple, list, optional
             Factor to be multiplied by the wind velocity in the y direction.
-            Follows the factor input format of Dispersion Models.
+            Follows the factor input format of Stochastic Models.
         """
-        # Validate in DispersionModel
+        # Validate in StochasticModel
         super().__init__(
             environment,
             date=None,

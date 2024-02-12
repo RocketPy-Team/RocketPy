@@ -26,17 +26,17 @@ from rocketpy import (
     TrapezoidalFins,
     UllageBasedTank,
 )
-from rocketpy.Dispersion import Dispersion
-from rocketpy.monte_carlo import (
-    McEnvironment,
-    McFlight,
-    McNoseCone,
-    McParachute,
-    McRailButtons,
-    McRocket,
-    McSolidMotor,
-    McTail,
-    McTrapezoidalFins,
+from rocketpy.simulation.monte_carlo import MonteCarlo
+from rocketpy.stochastic import (
+    StochasticEnvironment,
+    StochasticFlight,
+    StochasticNoseCone,
+    StochasticParachute,
+    StochasticRailButtons,
+    StochasticRocket,
+    StochasticSolidMotor,
+    StochasticTail,
+    StochasticTrapezoidalFins,
 )
 
 # Pytest configuration

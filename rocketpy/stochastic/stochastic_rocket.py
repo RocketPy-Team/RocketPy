@@ -1,8 +1,6 @@
 import warnings
 from random import choice
-from rocketpy.monte_carlo.mc_generic_motor import McGenericMotor
 
-from rocketpy.monte_carlo.motor_dispersion_model import MotorDispersionModel
 from rocketpy.motors.motor import EmptyMotor, GenericMotor, Motor
 from rocketpy.motors.solid_motor import SolidMotor
 from rocketpy.rocket.aero_surface import (
@@ -15,21 +13,23 @@ from rocketpy.rocket.aero_surface import (
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
 from rocketpy.rocket.rocket import Rocket
+from rocketpy.stochastic.stochastic_generic_motor import StochasticGenericMotor
+from rocketpy.stochastic.stochastic_motor_model import StochasticMotorModel
 
-from .dispersion_model import DispersionModel
-from .mc_aero_surfaces import (
-    McEllipticalFins,
-    McNoseCone,
-    McRailButtons,
-    McTail,
-    McTrapezoidalFins,
+from .stochastic_aero_surfaces import (
+    StochasticEllipticalFins,
+    StochasticNoseCone,
+    StochasticRailButtons,
+    StochasticTail,
+    StochasticTrapezoidalFins,
 )
-from .mc_parachute import McParachute
-from .mc_solid_motor import McSolidMotor
+from .stochastic_model import StochasticModel
+from .stochastic_parachute import StochasticParachute
+from .stochastic_solid_motor import StochasticSolidMotor
 
 
-class McRocket(DispersionModel):
-    """A Monte Carlo Rocket class that inherits from MonteCarloModel. This
+class StochasticRocket(StochasticModel):
+    """A Stochastic Rocket class that inherits from StochasticModel. This
     class is used to receive a Rocket object and information about the
     dispersion of its parameters and generate a random rocket object based on
     the provided information.
@@ -37,7 +37,7 @@ class McRocket(DispersionModel):
     Attributes
     ----------
     object : Rocket
-        The Rocket object to be used as a base for the Monte Carlo rocket.
+        The Rocket object to be used as a base for the Stochastic rocket.
     motors : Components
         A Components instance containing all the motors of the rocket.
     aerodynamic_surfaces : Components
@@ -45,48 +45,48 @@ class McRocket(DispersionModel):
         rocket.
     rail_buttons : Components
         A Components instance containing all the rail buttons of the rocket.
-    parachutes : list of McParachute
-        A list of McParachute instances containing all the parachutes of the
+    parachutes : list of StochasticParachute
+        A list of StochasticParachute instances containing all the parachutes of the
         rocket.
     radius : tuple, list, int, float
         The radius of the rocket. Follows the standard input format of
-        Dispersion Models.
+        Stochastic Models.
     mass : tuple, list, int, float
         The mass of the rocket. Follows the standard input format of
-        Dispersion Models.
+        Stochastic Models.
     inertia_11 : tuple, list, int, float
         The inertia of the rocket around the x axis. Follows the standard input
-        format of Dispersion Models.
+        format of Stochastic Models.
     inertia_22 : tuple, list, int, float
         The inertia of the rocket around the y axis. Follows the standard input
-        format of Dispersion Models.
+        format of Stochastic Models.
     inertia_33 : tuple, list, int, float
         The inertia of the rocket around the z axis. Follows the standard input
-        format of Dispersion Models.
+        format of Stochastic Models.
     inertia_12 : tuple, list, int, float
         The inertia of the rocket around the xy axis. Follows the standard
-        input format of Dispersion Models.
+        input format of Stochastic Models.
     inertia_13 : tuple, list, int, float
         The inertia of the rocket around the xz axis. Follows the standard
-        input format of Dispersion Models.
+        input format of Stochastic Models.
     inertia_23 : tuple, list, int, float
         The inertia of the rocket around the yz axis. Follows the standard
-        input format of Dispersion Models.
+        input format of Stochastic Models.
     power_off_drag : list
         The power off drag of the rocket. Follows the 1d array like input format
-        of Dispersion Models.
+        of Stochastic Models.
     power_on_drag : list
         The power on drag of the rocket. Follows the 1d array like input format
-        of Dispersion Models.
+        of Stochastic Models.
     power_off_drag_factor : tuple, list, int, float
         The power off drag factor of the rocket. Follows the factor input
-        format of Dispersion Models.
+        format of Stochastic Models.
     power_on_drag_factor : tuple, list, int, float
         The power on drag factor of the rocket. Follows the standard input
-        format of Dispersion Models.
+        format of Stochastic Models.
     center_of_mass_without_motor : tuple, list, int, float
         The center of mass of the rocket without the motor. Follows the
-        standard input format of Dispersion Models.
+        standard input format of Stochastic Models.
     coordinate_system_orientation : list
         The orientation of the coordinate system of the rocket. This attribute
         can not be a randomized.
@@ -109,56 +109,56 @@ class McRocket(DispersionModel):
         power_on_drag_factor=(1, 0),
         center_of_mass_without_motor=None,
     ):
-        """Initializes the Monte Carlo Rocket class.
+        """Initializes the Stochastic Rocket class.
 
         See Also
         --------
         This should link to somewhere that explains how inputs works in
-        dispersion models.
+        Stochastic models.
 
         Parameters
         ----------
         rocket : Rocket
-            The Rocket object to be used as a base for the Monte Carlo rocket.
+            The Rocket object to be used as a base for the Stochastic rocket.
         radius : int, float, tuple, list, optional
             The radius of the rocket. Follows the standard input format of
-            Dispersion Models.
+            Stochastic Models.
         mass : int, float, tuple, list, optional
             The mass of the rocket. Follows the standard input format of
-            Dispersion Models.
+            Stochastic Models.
         inertia_11 : int, float, tuple, list, optional
             The inertia of the rocket around the x axis. Follows the standard
-            input format of Dispersion Models.
+            input format of Stochastic Models.
         inertia_22 : int, float, tuple, list, optional
             The inertia of the rocket around the y axis. Follows the standard
-            input format of Dispersion Models.
+            input format of Stochastic Models.
         inertia_33 : int, float, tuple, list, optional
             The inertia of the rocket around the z axis. Follows the standard
-            input format of Dispersion Models.
+            input format of Stochastic Models.
         inertia_12 : int, float, tuple, list, optional
             The inertia of the rocket around the xy axis. Follows the standard
-            input format of Dispersion Models.
+            input format of Stochastic Models.
         inertia_13 : int, float, tuple, list, optional
             The inertia of the rocket around the xz axis. Follows the standard
-            input format of Dispersion Models.
+            input format of Stochastic Models.
         inertia_23 : int, float, tuple, list, optional
             The inertia of the rocket around the yz axis. Follows the standard
-            input format of Dispersion Models.
+            input format of Stochastic Models.
         power_off_drag : list, optional
             The power off drag of the rocket. Follows the 1d array like input
-            format of Dispersion Models.
+            format of Stochastic Models.
         power_on_drag : list, optional
             The power on drag of the rocket. Follows the 1d array like input
-            format of Dispersion Models.
+            format of Stochastic Models.
         power_off_drag_factor : int, float, tuple, list, optional
             The power off drag factor of the rocket. Follows the factor input
-            format of Dispersion Models.
+            format of Stochastic Models.
         power_on_drag_factor : int, float, tuple, list, optional
             The power on drag factor of the rocket. Follows the standard input
-            format of Dispersion Models.
+            format of Stochastic Models.
         center_of_mass_without_motor : int, float, tuple, list, optional
             The center of mass of the rocket without the motor. Follows the
-            standard input format of Dispersion Models.
+            standard input format of Stochastic Models.
         """
         self._validate_1d_array_like("power_off_drag", power_off_drag)
         self._validate_1d_array_like("power_on_drag", power_on_drag)
@@ -213,7 +213,7 @@ class McRocket(DispersionModel):
                 # Otherwise, just use the default string representation of the value.
                 value_str = str(value)
                 if isinstance(value, list) and len(value) > 0:
-                    if isinstance(value[0], (McParachute)):
+                    if isinstance(value[0], (StochasticParachute)):
                         value_str = ""
                         for parachute in value:
                             value_str += f"\n\t{parachute.name[0]} "
@@ -221,157 +221,159 @@ class McRocket(DispersionModel):
         return s.strip()
 
     def add_motor(self, motor, position=None):
-        """Adds a monte carlo motor to the monte carlo rocket. If a motor is
+        """Adds a stochastic motor to the stochastic rocket. If a motor is
         already present, it will be replaced.
 
         Parameters
         ----------
-        motor : McMotor or Motor
-            The motor to be added to the monte carlo rocket.
+        motor : StochasticMotor or Motor
+            The motor to be added to the stochastic rocket.
         position : tuple, list, int, float, optional
             The position of the motor. Follows the standard input format of
-            Dispersion Models.
+            Stochastic Models.
         """
         # checks if there is a motor already
         if len(self.motors) > 0:
             warnings.warn(
-                "Only one motor can be added to the monte carlo rocket. "
+                "Only one motor can be added to the stochastic rocket. "
                 "The previous motor will be replaced."
             )
             self.motors = Components()
 
         # checks if input is a Motor
-        if not isinstance(motor, (Motor, MotorDispersionModel)):
-            raise AssertionError("`motor` must be a McMotor or Motor type")
+        if not isinstance(motor, (Motor, StochasticMotorModel)):
+            raise AssertionError("`motor` must be a StochasticMotor or Motor type")
         if isinstance(motor, Motor):
-            # create McMotor
+            # create StochasticMotor
             # TODO check motor type when hybrids and liquids are implemented
             if isinstance(motor, SolidMotor):
-                motor = McSolidMotor(solid_motor=motor)
+                motor = StochasticSolidMotor(solid_motor=motor)
             elif isinstance(motor, GenericMotor):
-                motor = McGenericMotor(generic_motor=motor)
+                motor = StochasticGenericMotor(generic_motor=motor)
         self.motors.add(motor, self._validate_position(motor, position))
 
-    def _add_surfaces(self, surfaces, positions, type, monte_carlo_type, error_message):
-        """Adds a monte carlo aerodynamic surface to the monte carlo rocket. If
+    def _add_surfaces(self, surfaces, positions, type, stochastic_type, error_message):
+        """Adds a stochastic aerodynamic surface to the stochastic rocket. If
         an aerodynamic surface is already present, it will be replaced.
 
         Parameters
         ----------
-        surfaces : McAeroSurface or AeroSurface
-            The aerodynamic surface to be added to the monte carlo rocket.
+        surfaces : StochasticAeroSurface or AeroSurface
+            The aerodynamic surface to be added to the stochastic rocket.
         positions : tuple, list, int, float, optional
             The position of the aerodynamic surface. Follows the standard input
-            format of Dispersion Models.
+            format of Stochastic Models.
         type : type
-            The type of the aerodynamic surface to be added to the monte carlo
+            The type of the aerodynamic surface to be added to the stochastic
             rocket.
-        monte_carlo_type : type
-            The type of the monte carlo aerodynamic surface to be added to the
-            monte carlo rocket.
+        stochastic_type : type
+            The type of the stochastic aerodynamic surface to be added to the
+            stochastic rocket.
         error_message : str
             The error message to be raised if the input is not of the correct
             type.
         """
-        if not isinstance(surfaces, (type, monte_carlo_type)):
+        if not isinstance(surfaces, (type, stochastic_type)):
             raise AssertionError(error_message)
         if isinstance(surfaces, type):
-            # create McSurfaces
-            surfaces = monte_carlo_type(component=surfaces)
+            # create StochasticSurfaces
+            surfaces = stochastic_type(component=surfaces)
         self.aerodynamic_surfaces.add(
             surfaces, self._validate_position(surfaces, positions)
         )
 
     def add_nose(self, nose, position=None):
-        """Adds a monte carlo nose cone to the monte carlo rocket.
+        """Adds a stochastic nose cone to the stochastic rocket.
 
         Parameters
         ----------
-        nose : McNoseCone or NoseCone
-            The nose cone to be added to the monte carlo rocket.
+        nose : StochasticNoseCone or NoseCone
+            The nose cone to be added to the stochastic rocket.
         position : tuple, list, int, float, optional
             The position of the nose cone. Follows the standard input format of
-            Dispersion Models.
+            Stochastic Models.
         """
         self._add_surfaces(
             nose,
             position,
             NoseCone,
-            McNoseCone,
-            "`nose` must be of NoseCone or McNoseCone type",
+            StochasticNoseCone,
+            "`nose` must be of NoseCone or StochasticNoseCone type",
         )
 
     def add_trapezoidal_fins(self, fins, position=None):
-        """Adds a monte carlo trapezoidal fins to the monte carlo rocket.
+        """Adds a stochastic trapezoidal fins to the stochastic rocket.
 
         Parameters
         ----------
-        fins : McTrapezoidalFins or TrapezoidalFins
-            The trapezoidal fins to be added to the monte carlo rocket.
+        fins : StochasticTrapezoidalFins or TrapezoidalFins
+            The trapezoidal fins to be added to the stochastic rocket.
         position : tuple, list, int, float, optional
             The position of the trapezoidal fins. Follows the standard input
-            format of Dispersion Models.
+            format of Stochastic Models.
         """
         self._add_surfaces(
             fins,
             position,
             TrapezoidalFins,
-            McTrapezoidalFins,
-            "`fins` must be of TrapezoidalFins or McTrapezoidalFins type",
+            StochasticTrapezoidalFins,
+            "`fins` must be of TrapezoidalFins or StochasticTrapezoidalFins type",
         )
 
     def add_elliptical_fins(self, fins, position=None):
-        """Adds a monte carlo elliptical fins to the monte carlo rocket.
+        """Adds a stochastic elliptical fins to the stochastic rocket.
 
         Parameters
         ----------
-        fins : McEllipticalFins or EllipticalFins
-            The elliptical fins to be added to the monte carlo rocket.
+        fins : StochasticEllipticalFins or EllipticalFins
+            The elliptical fins to be added to the stochastic rocket.
         position : tuple, list, int, float, optional
             The position of the elliptical fins. Follows the standard input
-            format of Dispersion Models.
+            format of Stochastic Models.
         """
         self._add_surfaces(
             fins,
             position,
             EllipticalFins,
-            McEllipticalFins,
-            "`fins` must be of EllipticalFins or McEllipticalFins type",
+            StochasticEllipticalFins,
+            "`fins` must be of EllipticalFins or StochasticEllipticalFins type",
         )
 
     def add_tail(self, tail, position=None):
-        """Adds a monte carlo tail to the monte carlo rocket.
+        """Adds a stochastic tail to the stochastic rocket.
 
         Parameters
         ----------
-        tail : McTail or Tail
-            The tail to be added to the monte carlo rocket.
+        tail : StochasticTail or Tail
+            The tail to be added to the stochastic rocket.
         position : tuple, list, int, float, optional
             The position of the tail. Follows the standard input format of
-            Dispersion Models.
+            Stochastic Models.
         """
         self._add_surfaces(
             tail,
             position,
             Tail,
-            McTail,
-            "`tail` must be of Tail or McTail type",
+            StochasticTail,
+            "`tail` must be of Tail or StochasticTail type",
         )
 
     def add_parachute(self, parachute):
-        """Adds a monte carlo parachute to the monte carlo rocket.
+        """Adds a stochastic parachute to the stochastic rocket.
 
         Parameters
         ----------
-        parachute : McParachute or Parachute
-            The parachute to be added to the monte carlo rocket.
+        parachute : StochasticParachute or Parachute
+            The parachute to be added to the stochastic rocket.
         """
-        # checks if input is a McParachute type
-        if not isinstance(parachute, (Parachute, McParachute)):
-            raise AssertionError("`parachute` must be of Parachute or McParachute type")
+        # checks if input is a StochasticParachute type
+        if not isinstance(parachute, (Parachute, StochasticParachute)):
+            raise AssertionError(
+                "`parachute` must be of Parachute or StochasticParachute type"
+            )
         if isinstance(parachute, Parachute):
-            # create McParachute
-            parachute = McParachute(parachute=parachute)
+            # create StochasticParachute
+            parachute = StochasticParachute(parachute=parachute)
         self.parachutes.append(parachute)
 
     def set_rail_buttons(
@@ -379,23 +381,23 @@ class McRocket(DispersionModel):
         rail_buttons,
         lower_button_position=None,
     ):
-        """Sets the rail buttons of the monte carlo rocket.
+        """Sets the rail buttons of the stochastic rocket.
 
         Parameters
         ----------
-        rail_buttons : McRailButtons or RailButtons
-            The rail buttons to be added to the monte carlo rocket.
+        rail_buttons : StochasticRailButtons or RailButtons
+            The rail buttons to be added to the stochastic rocket.
         lower_button_position : tuple, list, int, float, optional
             The position of the lower button. Follows the standard input format
-            of Dispersion Models.
+            of Stochastic Models.
         """
-        if not isinstance(rail_buttons, (McRailButtons, RailButtons)):
+        if not isinstance(rail_buttons, (StochasticRailButtons, RailButtons)):
             raise AssertionError(
-                "`rail_buttons` must be of RailButtons or McRailButtons type"
+                "`rail_buttons` must be of RailButtons or StochasticRailButtons type"
             )
         if isinstance(rail_buttons, RailButtons):
-            # create McRailButtons
-            rail_buttons = McRailButtons(rail_buttons=rail_buttons)
+            # create StochasticRailButtons
+            rail_buttons = StochasticRailButtons(rail_buttons=rail_buttons)
         self.rail_buttons.add(
             rail_buttons, self._validate_position(rail_buttons, lower_button_position)
         )
@@ -470,8 +472,8 @@ class McRocket(DispersionModel):
             f"not have the same {validated_object.object.__class__.__name__} "
             "to get the nominal position value from."
         )
-        # special case for motor dispersion model
-        if isinstance(validated_object, (MotorDispersionModel)):
+        # special case for motor stochastic model
+        if isinstance(validated_object, (StochasticMotorModel)):
             if isinstance(self.object.motor, EmptyMotor):
                 raise AssertionError(error_msg)
 
@@ -480,7 +482,7 @@ class McRocket(DispersionModel):
 
             return get_motor_position
         else:
-            if isinstance(validated_object, McRailButtons):
+            if isinstance(validated_object, StochasticRailButtons):
 
                 def get_surface_position(self_object, _):
                     surfaces = self_object.rail_buttons.get_tuple_by_type(
@@ -544,36 +546,34 @@ class McRocket(DispersionModel):
         self.last_rnd_dict = generated_dict
         yield generated_dict
 
-    def _create_motor(self, component_monte_carlo_motor):
-        monte_carlo_motor = component_monte_carlo_motor.component
-        motor = monte_carlo_motor.create_object()
-        position_rnd = self._randomize_position(component_monte_carlo_motor.position)
-        self.last_rnd_dict["motors"].append(monte_carlo_motor.last_rnd_dict)
+    def _create_motor(self, component_stochastic_motor):
+        stochastic_motor = component_stochastic_motor.component
+        motor = stochastic_motor.create_object()
+        position_rnd = self._randomize_position(component_stochastic_motor.position)
+        self.last_rnd_dict["motors"].append(stochastic_motor.last_rnd_dict)
         self.last_rnd_dict["motors"][-1]["position"] = position_rnd
         return motor, position_rnd
 
-    def _create_surface(self, component_monte_carlo_surface):
-        monte_carlo_surface = component_monte_carlo_surface.component
-        surface = monte_carlo_surface.create_object()
-        position_rnd = self._randomize_position(component_monte_carlo_surface.position)
+    def _create_surface(self, component_stochastic_surface):
+        stochastic_surface = component_stochastic_surface.component
+        surface = stochastic_surface.create_object()
+        position_rnd = self._randomize_position(component_stochastic_surface.position)
         self.last_rnd_dict["aerodynamic_surfaces"].append(
-            monte_carlo_surface.last_rnd_dict
+            stochastic_surface.last_rnd_dict
         )
         self.last_rnd_dict["aerodynamic_surfaces"][-1]["position"] = position_rnd
         return surface, position_rnd
 
-    def _create_rail_buttons(self, component_monte_carlo_rail_buttons):
-        monte_carlo_rail_buttons = component_monte_carlo_rail_buttons.component
-        rail_buttons = monte_carlo_rail_buttons.create_object()
+    def _create_rail_buttons(self, component_stochastic_rail_buttons):
+        stochastic_rail_buttons = component_stochastic_rail_buttons.component
+        rail_buttons = stochastic_rail_buttons.create_object()
         lower_button_position_rnd = self._randomize_position(
-            component_monte_carlo_rail_buttons.position
+            component_stochastic_rail_buttons.position
         )
         upper_button_position_rnd = (
             rail_buttons.buttons_distance + lower_button_position_rnd
         )
-        self.last_rnd_dict["rail_buttons"].append(
-            monte_carlo_rail_buttons.last_rnd_dict
-        )
+        self.last_rnd_dict["rail_buttons"].append(stochastic_rail_buttons.last_rnd_dict)
         self.last_rnd_dict["rail_buttons"][-1][
             "lower_button_position"
         ] = lower_button_position_rnd
@@ -582,9 +582,9 @@ class McRocket(DispersionModel):
         ] = upper_button_position_rnd
         return rail_buttons, lower_button_position_rnd, upper_button_position_rnd
 
-    def _create_parachute(self, monte_carlo_parachute):
-        parachute = monte_carlo_parachute.create_object()
-        self.last_rnd_dict["parachutes"].append(monte_carlo_parachute.last_rnd_dict)
+    def _create_parachute(self, stochastic_parachute):
+        parachute = stochastic_parachute.create_object()
+        self.last_rnd_dict["parachutes"].append(stochastic_parachute.last_rnd_dict)
         return parachute
 
     def create_object(self):

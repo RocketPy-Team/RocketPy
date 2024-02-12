@@ -29,8 +29,8 @@ RocketPy's User Guide
    :maxdepth: 2
    :caption: Dispersion Analysis
 
-   ../notebooks/dispersion_analysis/dispersion_analysis.ipynb  
-   ../notebooks/dispersion_analysis/parachute_drop_from_helicopter.ipynb
+   ../notebooks/monte_carlo_analysis/monte_carlo_analysis.ipynb  
+   ../notebooks/monte_carlo_analysis/parachute_drop_from_helicopter.ipynb
 
 .. toctree::
    :maxdepth: 2
