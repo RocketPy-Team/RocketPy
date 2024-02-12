@@ -57,6 +57,7 @@ You can install this version by running `pip install rocketpy==1.2.0`
 
 ### Changed
 
+- MNT: Final refactor before v1.2 [#553](https://github.com/RocketPy-Team/RocketPy/pull/553)
 - ENH: Plotting both power on and off drag curves in a single plot [#547](https://github.com/RocketPy-Team/RocketPy/pull/547)
 - DOC: Replacing git clone command with curl in notebooks. [#544](https://github.com/RocketPy-Team/RocketPy/pull/544)
 - DOC: Installing imageio library on dispersion analysis notebook [#540](https://github.com/RocketPy-Team/RocketPy/pull/540)

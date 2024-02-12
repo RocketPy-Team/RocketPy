@@ -19,6 +19,8 @@ try:
 except ImportError:
     from ..tools import cached_property
 
+NUMERICAL_TYPES = (float, int, complex, np.ndarray, np.integer, np.floating)
+
 
 class Function:
     """Class converts a python function or a data sequence into an object
@@ -1937,9 +1939,7 @@ class Function:
                 return Function(lambda x: (self.get_value(x) + other(x)))
         # If other is Float except...
         except AttributeError:
-            if isinstance(
-                other, (float, int, complex, np.ndarray, np.integer, np.floating)
-            ):
+            if isinstance(other, NUMERICAL_TYPES):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
@@ -2069,9 +2069,7 @@ class Function:
                 return Function(lambda x: (self.get_value(x) * other(x)))
         # If other is Float except...
         except AttributeError:
-            if isinstance(
-                other, (float, int, complex, np.ndarray, np.integer, np.floating)
-            ):
+            if isinstance(other, NUMERICAL_TYPES):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
@@ -2160,9 +2158,7 @@ class Function:
                 return Function(lambda x: (self.get_value_opt(x) / other(x)))
         # If other is Float except...
         except AttributeError:
-            if isinstance(
-                other, (float, int, complex, np.ndarray, np.integer, np.floating)
-            ):
+            if isinstance(other, NUMERICAL_TYPES):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
@@ -2201,9 +2197,7 @@ class Function:
             A Function object which gives the result of other(x)/self(x).
         """
         # Check if Function object source is array and other is float
-        if isinstance(
-            other, (float, int, complex, np.ndarray, np.integer, np.floating)
-        ):
+        if isinstance(other, NUMERICAL_TYPES):
             if isinstance(self.source, np.ndarray):
                 # Operate on grid values
                 ys = other / self.y_array
@@ -2271,9 +2265,7 @@ class Function:
                 return Function(lambda x: (self.get_value_opt(x) ** other(x)))
         # If other is Float except...
         except AttributeError:
-            if isinstance(
-                other, (float, int, complex, np.ndarray, np.integer, np.floating)
-            ):
+            if isinstance(other, NUMERICAL_TYPES):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
@@ -2312,9 +2304,7 @@ class Function:
             A Function object which gives the result of other(x)**self(x).
         """
         # Check if Function object source is array and other is float
-        if isinstance(
-            other, (float, int, complex, np.ndarray, np.integer, np.floating)
-        ):
+        if isinstance(other, NUMERICAL_TYPES):
             if isinstance(self.source, np.ndarray):
                 # Operate on grid values
                 ys = other**self.y_array
