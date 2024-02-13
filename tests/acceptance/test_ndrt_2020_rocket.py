@@ -16,13 +16,6 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     # Measured Altitude 4,320 ft or 1316.736 m
     # Drift: 2275 ft
 
-    # Importing libraries
-    import numpy as np
-    import pandas as pd
-    from scipy.signal import savgol_filter
-
-    from rocketpy import Environment, Flight, Function, Rocket, SolidMotor
-
     # Defining all parameters
     parameters = {
         # Mass Details
