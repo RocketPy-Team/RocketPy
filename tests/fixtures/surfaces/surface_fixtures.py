@@ -76,4 +76,3 @@ def calisto_rail_buttons():
         angular_position=45,
         name="Rail Buttons",
     )
-

@@ -12,10 +12,11 @@ pytest_plugins = [
     "tests.fixtures.parachutes.parachute_fixtures",
     "tests.fixtures.rockets.rocket_fixtures",
     "tests.fixtures.surfaces.surface_fixtures",
-    "tests.fixtures.units.numerical_fixtures"
+    "tests.fixtures.units.numerical_fixtures",
 ]
 
 #
+
 
 def pytest_addoption(parser):
     """Add option to run slow tests. This is used to skip slow tests by default.
@@ -76,5 +77,3 @@ def pytest_collection_modifyitems(config, items):
 
 
 ## Functions
-
-
