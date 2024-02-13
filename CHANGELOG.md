@@ -39,7 +39,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 
 
-## [v1.2.0] - 2024-02-dd
+## [v1.2.0] - 2024-02-12
 
 You can install this version by running `pip install rocketpy==1.2.0`
 
