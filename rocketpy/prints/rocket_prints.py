@@ -115,7 +115,7 @@ class _RocketPrints:
         for surface, position in self.rocket.aerodynamic_surfaces:
             name = surface.name
             # ref_factor corrects lift for different reference areas
-            ref_factor = (surface.rocket_radius / self.radius) ** 2
+            ref_factor = (surface.rocket_radius / self.rocket.radius) ** 2
             print(
                 name
                 + " Lift Coefficient Derivative: {:.3f}".format(
