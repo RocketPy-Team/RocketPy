@@ -875,7 +875,9 @@ class Rocket:
         self.add_surfaces(tail, position)
         return tail
 
-    def add_nose(self, length, kind, position, bluffness=0, name="Nose Cone"):
+    def add_nose(
+        self, length, kind, position, bluffness=0, base_radius=None, name="Nose Cone"
+    ):
         """Creates a nose cone, storing its parameters as part of the
         aerodynamic_surfaces list. Its parameters are the axial position
         along the rocket and its derivative of the coefficient of lift
@@ -896,6 +898,8 @@ class Rocket:
         bluffness : float, optional
             Ratio between the radius of the circle on the tip of the ogive and
             the radius of the base of the ogive.
+        base_radius : int, float, optional
+            Nose cone base radius in meters. If not given, use rocket radius.
         name : string
             Nose cone name. Default is "Nose Cone".
 
@@ -911,8 +915,8 @@ class Rocket:
         nose = NoseCone(
             length=length,
             kind=kind,
-            base_radius=self.radius,
-            rocket_radius=self.radius,
+            base_radius=base_radius or self.radius,
+            rocket_radius=base_radius or self.radius,
             bluffness=bluffness,
             name=name,
         )
@@ -987,8 +991,9 @@ class Rocket:
             with its base perpendicular to the rocket's axis. Cannot be used in
             conjunction with sweep_length.
         radius : int, float, optional
-            Reference radius to calculate lift coefficient. If None, which is
-            default, use rocket radius.
+            Reference fuselage radius where the fins are located. This is used
+            to calculate lift coefficient and to draw the rocket. If None,
+            which is default, use rocket radius.
         airfoil : tuple, optional
             Default is null, in which case fins will be treated as flat plates.
             Otherwise, if tuple, fins will be considered as airfoils. The
@@ -1068,8 +1073,9 @@ class Rocket:
             Fins cant angle with respect to the rocket centerline. Must be given
             in degrees.
         radius : int, float, optional
-            Reference radius to calculate lift coefficient. If None, which
-            is default, use rocket radius.
+            Reference fuselage radius where the fins are located. This is used
+            to calculate lift coefficient and to draw the rocket. If None,
+            which is default, use rocket radius.
         airfoil : tuple, optional
             Default is null, in which case fins will be treated as flat plates.
             Otherwise, if tuple, fins will be considered as airfoils. The
