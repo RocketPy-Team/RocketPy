@@ -876,7 +876,7 @@ class Rocket:
         return tail
 
     def add_nose(
-        self, length, kind, position, bluffness=0, base_radius=None, name="Nose Cone"
+        self, length, kind, position, bluffness=0, name="Nose Cone", base_radius=None
     ):
         """Creates a nose cone, storing its parameters as part of the
         aerodynamic_surfaces list. Its parameters are the axial position
@@ -898,10 +898,10 @@ class Rocket:
         bluffness : float, optional
             Ratio between the radius of the circle on the tip of the ogive and
             the radius of the base of the ogive.
-        base_radius : int, float, optional
-            Nose cone base radius in meters. If not given, use rocket radius.
         name : string
             Nose cone name. Default is "Nose Cone".
+        base_radius : int, float, optional
+            Nose cone base radius in meters. If not given, use rocket radius.
 
         See Also
         --------
