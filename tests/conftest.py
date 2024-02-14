@@ -10,13 +10,15 @@ pytest_plugins = [
     "tests.fixtures.motor.hybrid_fixtures",
     "tests.fixtures.motor.solid_motor_fixtures",
     "tests.fixtures.motor.liquid_fixtures",
+    "tests.fixtures.motor.generic_motor_fixtures",
     "tests.fixtures.parachutes.parachute_fixtures",
     "tests.fixtures.rockets.rocket_fixtures",
     "tests.fixtures.surfaces.surface_fixtures",
-    "tests.fixtures.units.numerical_fixtures"
+    "tests.fixtures.units.numerical_fixtures",
 ]
 
 #
+
 
 def pytest_addoption(parser):
     """Add option to run slow tests. This is used to skip slow tests by default.

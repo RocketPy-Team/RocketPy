@@ -1,9 +1,17 @@
 import numpy as np
 import pytest
 
-from rocketpy import (CylindricalTank, Fluid, Function, HybridMotor,
-                      LevelBasedTank, LiquidMotor, MassBasedTank,
-                      SphericalTank, UllageBasedTank)
+from rocketpy import (
+    CylindricalTank,
+    Fluid,
+    Function,
+    HybridMotor,
+    LevelBasedTank,
+    LiquidMotor,
+    MassBasedTank,
+    SphericalTank,
+    UllageBasedTank,
+)
 
 
 @pytest.fixture

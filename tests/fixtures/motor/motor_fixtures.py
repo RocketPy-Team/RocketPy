@@ -6,7 +6,6 @@ from rocketpy import GenericMotor, SolidMotor
 ## Motors and rockets
 
 
-
 @pytest.fixture
 def cesaroni_m1670():  # old name: solid_motor
     """Create a simple object of the SolidMotor class to be used in the tests.
