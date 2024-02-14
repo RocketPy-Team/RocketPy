@@ -517,9 +517,13 @@ class Rocket:
         # Calculate total lift coefficient derivative and center of pressure
         if len(self.aerodynamic_surfaces) > 0:
             for aero_surface, position in self.aerodynamic_surfaces:
-                self.total_lift_coeff_der += aero_surface.clalpha
-                self.cp_position += aero_surface.clalpha * (
-                    position - self._csys * aero_surface.cpz
+                # ref_factor corrects lift for different reference areas
+                ref_factor = (aero_surface.rocket_radius / self.radius) ** 2
+                self.total_lift_coeff_der += ref_factor * aero_surface.clalpha
+                self.cp_position += (
+                    ref_factor
+                    * aero_surface.clalpha
+                    * (position - self._csys * aero_surface.cpz)
                 )
             self.cp_position /= self.total_lift_coeff_der
 
