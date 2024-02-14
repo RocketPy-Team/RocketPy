@@ -349,12 +349,20 @@ class NoseCone(AeroSurface):
         # If base radius is not given, the ratio between base radius and
         # rocket radius is assumed as 1, meaning that the nose cone has the
         # same radius as the rocket
-        if self.base_radius is None or self.rocket_radius is None:
+        if self.base_radius is None and self.rocket_radius is not None:
             self.radius_ratio = 1
+            self.base_radius = self.rocket_radius
+        elif self.base_radius is not None and self.rocket_radius is None:
+            self.radius_ratio = 1
+            self.rocket_radius = self.base_radius
         # If base radius is given, the ratio between base radius and rocket
         # radius is calculated
-        else:
+        elif self.base_radius is not None or self.rocket_radius is not None:
             self.radius_ratio = self.base_radius / self.rocket_radius
+        else:
+            raise ValueError(
+                "Either base radius or rocket radius must be given to calculate the nose cone radius ratio."
+            )
 
         self.fineness_ratio = self.length / (2 * self.base_radius)
         return None
