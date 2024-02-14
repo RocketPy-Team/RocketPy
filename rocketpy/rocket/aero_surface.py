@@ -357,7 +357,7 @@ class NoseCone(AeroSurface):
             self.rocket_radius = self.base_radius
         # If base radius is given, the ratio between base radius and rocket
         # radius is calculated
-        elif self.base_radius is not None or self.rocket_radius is not None:
+        elif self.base_radius is not None and self.rocket_radius is not None:
             self.radius_ratio = self.base_radius / self.rocket_radius
         else:
             raise ValueError(
