@@ -12,7 +12,7 @@ pytest_plugins = [
     "tests.fixtures.parachutes.parachute_fixtures",
     "tests.fixtures.rockets.rocket_fixtures",
     "tests.fixtures.surfaces.surface_fixtures",
-    "tests.fixtures.units.numerical_fixtures"
+    "tests.fixtures.units.numerical_fixtures",
 ]
 
 
