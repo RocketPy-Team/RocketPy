@@ -1,23 +1,19 @@
 import pytest
 
-
-# Pytest configuration
-
 pytest_plugins = [
     "tests.fixtures.environment.environment_fixtures",
     "tests.fixtures.flight.flight_fixtures",
     "tests.fixtures.function.function_fixtures",
+    "tests.fixtures.motor.liquid_fixtures",
     "tests.fixtures.motor.hybrid_fixtures",
     "tests.fixtures.motor.solid_motor_fixtures",
-    "tests.fixtures.motor.liquid_fixtures",
+    "tests.fixtures.motor.tanks_fixtures",
     "tests.fixtures.motor.generic_motor_fixtures",
     "tests.fixtures.parachutes.parachute_fixtures",
     "tests.fixtures.rockets.rocket_fixtures",
     "tests.fixtures.surfaces.surface_fixtures",
-    "tests.fixtures.units.numerical_fixtures",
+    "tests.fixtures.units.numerical_fixtures"
 ]
-
-#
 
 
 def pytest_addoption(parser):
