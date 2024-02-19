@@ -1,8 +1,10 @@
 from unittest.mock import patch
 
 import numpy as np
+import pytest
 
 from rocketpy import Rocket, SolidMotor
+from rocketpy.rocket import NoseCone
 
 
 @patch("matplotlib.pyplot.show")
@@ -205,3 +207,76 @@ def test_air_brakes_clamp_off(mock_show, calisto_air_brakes_clamp_off):
     assert air_brakes_clamp_off.deployment_level == 0
 
     assert air_brakes_clamp_off.all_info() == None
+
+
+def test_add_surfaces_different_noses(calisto):
+    """Test the add_surfaces method with different nose cone configurations.
+    More specifically, this will checks the static margin of the rocket with
+    different nose cone configurations.
+
+    Parameters
+    ----------
+    calisto : Rocket
+        Pytest fixture for the calisto rocket.
+    """
+    length = 0.55829
+    kind = "vonkarman"
+    position = 1.16
+    bluffness = 0
+    base_radius = 0.0635
+    rocket_radius = 0.0635
+
+    # Case 1: base_radius == rocket_radius
+    nose1 = NoseCone(
+        length,
+        kind,
+        base_radius=base_radius,
+        bluffness=bluffness,
+        rocket_radius=rocket_radius,
+        name="Nose Cone 1",
+    )
+    calisto.add_surfaces(nose1, position)
+    assert nose1.radius_ratio == pytest.approx(1, 1e-8)
+    assert calisto.static_margin(0) == pytest.approx(-8.9053, 0.01)
+
+    # Case 2: base_radius == rocket_radius / 2
+    calisto.aerodynamic_surfaces.remove(nose1)
+    nose2 = NoseCone(
+        length,
+        kind,
+        base_radius=base_radius / 2,
+        bluffness=bluffness,
+        rocket_radius=rocket_radius,
+        name="Nose Cone 2",
+    )
+    calisto.add_surfaces(nose2, position)
+    assert nose2.radius_ratio == pytest.approx(0.5, 1e-8)
+    assert calisto.static_margin(0) == pytest.approx(-8.9053, 0.01)
+
+    # Case 3: base_radius == None
+    calisto.aerodynamic_surfaces.remove(nose2)
+    nose3 = NoseCone(
+        length,
+        kind,
+        base_radius=None,
+        bluffness=bluffness,
+        rocket_radius=rocket_radius * 2,
+        name="Nose Cone 3",
+    )
+    calisto.add_surfaces(nose3, position)
+    assert nose3.radius_ratio == pytest.approx(1, 1e-8)
+    assert calisto.static_margin(0) == pytest.approx(-8.9053, 0.01)
+
+    # Case 4: rocket_radius == None
+    calisto.aerodynamic_surfaces.remove(nose3)
+    nose4 = NoseCone(
+        length,
+        kind,
+        base_radius=base_radius,
+        bluffness=bluffness,
+        rocket_radius=None,
+        name="Nose Cone 4",
+    )
+    calisto.add_surfaces(nose4, position)
+    assert nose4.radius_ratio == pytest.approx(1, 1e-8)
+    assert calisto.static_margin(0) == pytest.approx(-8.9053, 0.01)
