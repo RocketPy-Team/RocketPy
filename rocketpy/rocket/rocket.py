@@ -901,7 +901,8 @@ class Rocket:
         name : string
             Nose cone name. Default is "Nose Cone".
         base_radius : int, float, optional
-            Nose cone base radius in meters. If not given, use rocket radius.
+            Nose cone base radius in meters. If not given, the rocket radius
+            will be used.
 
         See Also
         --------
@@ -993,7 +994,7 @@ class Rocket:
         radius : int, float, optional
             Reference fuselage radius where the fins are located. This is used
             to calculate lift coefficient and to draw the rocket. If None,
-            which is default, use rocket radius.
+            which is default, the rocket radius will be used.
         airfoil : tuple, optional
             Default is null, in which case fins will be treated as flat plates.
             Otherwise, if tuple, fins will be considered as airfoils. The
@@ -1075,7 +1076,7 @@ class Rocket:
         radius : int, float, optional
             Reference fuselage radius where the fins are located. This is used
             to calculate lift coefficient and to draw the rocket. If None,
-            which is default, use rocket radius.
+            which is default, the rocket radius will be used.
         airfoil : tuple, optional
             Default is null, in which case fins will be treated as flat plates.
             Otherwise, if tuple, fins will be considered as airfoils. The
