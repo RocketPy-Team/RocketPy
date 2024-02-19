@@ -211,7 +211,7 @@ def test_air_brakes_clamp_off(mock_show, calisto_air_brakes_clamp_off):
 
 def test_add_surfaces_different_noses(calisto):
     """Test the add_surfaces method with different nose cone configurations.
-    More specifically, this will checks the static margin of the rocket with
+    More specifically, this will check the static margin of the rocket with
     different nose cone configurations.
 
     Parameters
