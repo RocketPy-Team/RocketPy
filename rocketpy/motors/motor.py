@@ -1014,18 +1014,41 @@ class Motor(ABC):
         # Open file
         file = open(file_name, "w")
 
-        # Write first line
-        file.write(
-            motor_name
-            + " {:3.1f} {:3.1f} 0 {:2.3} {:2.3} RocketPy\n".format(
-                2000 * self.grain_outer_radius,
-                1000
-                * self.grain_number
-                * (self.grain_initial_height + self.grain_separation),
-                self.propellant_initial_mass,
-                self.propellant_initial_mass,
+        if (
+            hasattr(self, "grain_outer_radius")
+            and hasattr(self, "grain_number")
+            and hasattr(self, "grain_initial_height")
+            and hasattr(self, "grain_separation")
+        ):
+            # Write first line for motors with grains
+            file.write(
+                motor_name
+                + " {:3.1f} {:3.1f} 0 {:2.3} {:2.3} RocketPy\n".format(
+                    2000 * self.grain_outer_radius,
+                    1000
+                    * self.grain_number
+                    * (self.grain_initial_height + self.grain_separation),
+                    self.propellant_initial_mass,
+                    self.propellant_initial_mass,
+                )
             )
-        )
+
+        else:
+            # Warn the user that the motor doesn't have at least one grain attribute
+            warnings.warn(
+                "The motor object doesn't have some grain-related attributes. Using zeros to write to file."
+            )
+
+            # Write first line for motors without grain attributes
+            # The zeros are here because the first two placeholders
+            # are grain-related attributes.
+            file.write(
+                motor_name
+                + " 0 0 0 {:2.3} {:2.3} RocketPy\n".format(
+                    self.propellant_initial_mass,
+                    self.propellant_initial_mass,
+                )
+            )
 
         # Write thrust curve data points
         for time, thrust in self.thrust.source[1:-1, :]:
