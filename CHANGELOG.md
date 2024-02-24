@@ -71,6 +71,7 @@ You can install this version by running `pip install rocketpy==1.2.0`
 
 ### Fixed
 
+- BUG: export_eng 'Motor' method would not work for liquid motors. [#559](https://github.com/RocketPy-Team/RocketPy/pull/559)
 - BUG: Update flight trajectory plot axes limits [#552](https://github.com/RocketPy-Team/RocketPy/pull/552)
 - BUG: fix `get_controller_observed_variables` in the air brakes examples [#551](https://github.com/RocketPy-Team/RocketPy/pull/551)
 - MNT: small fixes before v1.2 [#550](https://github.com/RocketPy-Team/RocketPy/pull/550)
