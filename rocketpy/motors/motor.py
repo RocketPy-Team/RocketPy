@@ -1012,54 +1012,36 @@ class Motor(ABC):
         None
         """
         # Open file
-        file = open(file_name, "w")
+        with open(file_name, "w") as file:
+            # Write first line
+            def get_attr_value(obj, attr_name, multiplier=1):
+                return multiplier * getattr(obj, attr_name, 0)
 
-        if (
-            hasattr(self, "grain_outer_radius")
-            and hasattr(self, "grain_number")
-            and hasattr(self, "grain_initial_height")
-            and hasattr(self, "grain_separation")
-        ):
-            # Write first line for motors with grains
-            file.write(
-                motor_name
-                + " {:3.1f} {:3.1f} 0 {:2.3} {:2.3} RocketPy\n".format(
-                    2000 * self.grain_outer_radius,
-                    1000
-                    * self.grain_number
-                    * (self.grain_initial_height + self.grain_separation),
-                    self.propellant_initial_mass,
-                    self.propellant_initial_mass,
+            grain_outer_radius = get_attr_value(self, "grain_outer_radius", 2000)
+            grain_number = get_attr_value(self, "grain_number", 1000)
+            grain_initial_height = get_attr_value(self, "grain_initial_height")
+            grain_separation = get_attr_value(self, "grain_separation")
+
+            grain_total = grain_number * (grain_initial_height + grain_separation)
+
+            if grain_outer_radius == 0 or grain_total == 0:
+                warnings.warn(
+                    "The motor object doesn't have some grain-related attributes. "
+                    "Using zeros to write to file."
                 )
-            )
 
-        else:
-            # Warn the user that the motor doesn't have at least one grain attribute
-            warnings.warn(
-                "The motor object doesn't have some grain-related attributes. Using zeros to write to file."
-            )
-
-            # Write first line for motors without grain attributes
-            # The zeros are here because the first two placeholders
-            # are grain-related attributes.
             file.write(
-                motor_name
-                + " 0 0 0 {:2.3} {:2.3} RocketPy\n".format(
-                    self.propellant_initial_mass,
-                    self.propellant_initial_mass,
-                )
+                f"{motor_name} {grain_outer_radius:3.1f} {grain_total:3.1f} 0 "
+                f"{self.propellant_initial_mass:2.3} "
+                f"{self.propellant_initial_mass:2.3} RocketPy\n"
             )
 
-        # Write thrust curve data points
-        for time, thrust in self.thrust.source[1:-1, :]:
-            # time, thrust = item
-            file.write("{:.4f} {:.3f}\n".format(time, thrust))
+            # Write thrust curve data points
+            for time, thrust in self.thrust.source[1:-1, :]:
+                file.write(f"{time:.4f} {thrust:.3f}\n")
 
-        # Write last line
-        file.write("{:.4f} {:.3f}\n".format(self.thrust.source[-1, 0], 0))
-
-        # Close file
-        file.close()
+            # Write last line
+            file.write(f"{self.thrust.source[-1, 0]:.4f} {0:.3f}\n")
 
         return None
 
