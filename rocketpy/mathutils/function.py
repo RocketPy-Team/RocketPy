@@ -1474,6 +1474,7 @@ class Function:
         force_data=False,
         force_points=False,
         return_object=False,
+        show=True,
     ):
         """Plots N 1-Dimensional Functions in the same plot, from a lower
         limit to an upper limit, by sampling the Functions several times in
@@ -1513,6 +1514,8 @@ class Function:
             Setting force_points to True will plot all points, as a scatter, in
             which the Function was evaluated to plot it. Default value is
             False.
+        show : bool, optional
+            If True, shows the plot. Default value is True.
 
         Returns
         -------
@@ -1586,7 +1589,8 @@ class Function:
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
 
-        plt.show()
+        if show:
+            plt.show()
 
         if return_object:
             return fig, ax
