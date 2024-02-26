@@ -1482,37 +1482,40 @@ class Function:
 
         Parameters
         ----------
-        plot_list : list
+        plot_list : list[Tuple[Function,str]]
             List of Functions or list of tuples in the format (Function,
             label), where label is a string which will be displayed in the
             legend.
-        lower : scalar, optional
-            The lower limit of the interval in which the Functions are to be
-            plotted. The default value for function type Functions is 0. By
-            contrast, if the Functions given are defined by a dataset, the
-            default value is the lowest value of the datasets.
-        upper : scalar, optional
-            The upper limit of the interval in which the Functions are to be
-            plotted. The default value for function type Functions is 10. By
-            contrast, if the Functions given are defined by a dataset, the
-            default value is the highest value of the datasets.
+        lower : float, optional
+            This represents the lower limit of the interval for plotting the
+            Functions. If the Functions are defined by a dataset, the smallest
+            value from the dataset is used. If no value is provided (None), and
+            the Functions are of Function type, 0 is used as the default.
+        upper : float, optional
+            This represents the upper limit of the interval for plotting the
+            Functions. If the Functions are defined by a dataset, the largest
+            value from the dataset is used. If no value is provided (None), and
+            the Functions are of Function type, 10 is used as the default.
         samples : int, optional
             The number of samples in which the functions will be evaluated for
             plotting it, which draws lines between each evaluated point.
             The default value is 1000.
-        title : string, optional
+        title : str, optional
             Title of the plot. Default value is an empty string.
-        xlabel : string, optional
+        xlabel : str, optional
             X-axis label. Default value is an empty string.
-        ylabel : string, optional
+        ylabel : str, optional
             Y-axis label. Default value is an empty string.
-        force_data : Boolean, optional
+        force_data : bool, optional
             If Function is given by an interpolated dataset, setting force_data
             to True will plot all points, as a scatter, in the dataset.
             Default value is False.
-        force_points : Boolean, optional
+        force_points : bool, optional
             Setting force_points to True will plot all points, as a scatter, in
             which the Function was evaluated to plot it. Default value is
+            False.
+        return_object : bool, optional
+            If True, returns the figure and axis objects. Default value is
             False.
         show : bool, optional
             If True, shows the plot. Default value is True.
