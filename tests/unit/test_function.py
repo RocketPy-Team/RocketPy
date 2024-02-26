@@ -290,11 +290,11 @@ def test_set_discrete_based_on_model_non_mutator(linear_func):
     ],
 )
 def test_remove_outliers_iqr(x, y, expected_x, expected_y):
-    """Test the function __remove_outliers_iqr which is expected to remove
+    """Test the function remove_outliers_iqr which is expected to remove
     outliers from the data based on the Interquartile Range (IQR) method.
     """
     func = Function(source=np.column_stack((x, y)))
-    filtered_func = func.remove_outliers(method="iqr", threshold=1.5)
+    filtered_func = func.remove_outliers_iqr(threshold=1.5)
 
     # Check if the outliers are removed
     assert np.array_equal(filtered_func.x_array, expected_x)

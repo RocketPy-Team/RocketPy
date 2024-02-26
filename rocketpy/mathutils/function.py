@@ -1144,41 +1144,7 @@ class Function:
             title=self.title,
         )
 
-    def remove_outliers(self, method="iqr", **kwargs):
-        """Remove outliers from the Function source using the specified method.
-
-        Parameters
-        ----------
-        method : string, optional
-            Method to be used to remove outliers. Options are 'iqr'.
-            Default is 'iqr'.
-        **kwargs : optional
-            Keyword arguments to be passed to specific methods according to the
-            selected method.
-            If the selected method is the 'iqr', then the following kwargs are
-            available:
-            - threshold : float
-                Threshold for the interquartile range method. Default is 1.5.
-
-        Returns
-        -------
-        Function
-            The new Function object without outliers.
-        """
-        if callable(self.source):
-            print("Cannot remove outliers if the source is a callable object.")
-            return self
-
-        if method.lower() == "iqr":
-            return self.__remove_outliers_iqr(**kwargs)
-        else:
-            print(
-                f"Method '{method}' not recognized. No outliers removed."
-                + "Please use one of the following supported methods: 'iqr'."
-            )
-            return self
-
-    def __remove_outliers_iqr(self, threshold=1.5):
+    def remove_outliers_iqr(self, threshold=1.5):
         """Remove outliers from the Function source using the interquartile
         range method.
 
@@ -1196,6 +1162,11 @@ class Function:
         ----------
         [1] https://en.wikipedia.org/wiki/Outlier#Tukey's_fences
         """
+
+        if callable(self.source):
+            print("Cannot remove outliers if the source is a callable object.")
+            return self
+
         x = self.x_array
         y = self.y_array
         y_q1 = np.percentile(y, 25)
