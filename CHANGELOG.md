@@ -30,8 +30,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 <!-- These are the changes that were not release yet, please add them correctly.
   Attention: The newest changes should be on top -->
 
-- BUG: export_eng 'Motor' method would not work for liquid motors. [#559](https://github.com/RocketPy-Team/RocketPy/pull/559)
-
 ### Added
 
 
@@ -39,7 +37,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 ### Fixed
-
+- BUG: export_eng 'Motor' method would not work for liquid motors. [#559](https://github.com/RocketPy-Team/RocketPy/pull/559) 
 
 ## [v1.2.0] - 2024-02-dd
 
