@@ -1144,6 +1144,51 @@ class Function:
             title=self.title,
         )
 
+    def remove_outliers_iqr(self, threshold=1.5):
+        """Remove outliers from the Function source using the interquartile
+        range method. The Function should have an array-like source.
+
+        Parameters
+        ----------
+        threshold : float, optional
+            Threshold for the interquartile range method. Default is 1.5.
+
+        Returns
+        -------
+        Function
+            The Function with the outliers removed.
+
+        References
+        ----------
+        [1] https://en.wikipedia.org/wiki/Outlier#Tukey's_fences
+        """
+
+        if callable(self.source):
+            raise TypeError(
+                "Cannot remove outliers if the source is a callable object."
+                + " The Function.source should be array-like."
+            )
+
+        x = self.x_array
+        y = self.y_array
+        y_q1 = np.percentile(y, 25)
+        y_q3 = np.percentile(y, 75)
+        y_iqr = y_q3 - y_q1
+        y_lower = y_q1 - threshold * y_iqr
+        y_upper = y_q3 + threshold * y_iqr
+
+        y_filtered = y[(y >= y_lower) & (y <= y_upper)]
+        x_filtered = x[(y >= y_lower) & (y <= y_upper)]
+
+        return Function(
+            source=np.column_stack((x_filtered, y_filtered)),
+            inputs=self.__inputs__,
+            outputs=self.__outputs__,
+            interpolation=self.__interpolation__,
+            extrapolation=self.__extrapolation__,
+            title=self.title,
+        )
+
     # Define all presentation methods
     def __call__(self, *args):
         """Plot the Function if no argument is given. If an
