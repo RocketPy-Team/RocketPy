@@ -34,7 +34,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 ### Changed
-
+- ENH: Optional argument to show the plot in Function.compare_plots [#563](https://github.com/RocketPy-Team/RocketPy/pull/563)
 
 ### Fixed
 - BUG: export_eng 'Motor' method would not work for liquid motors. [#559](https://github.com/RocketPy-Team/RocketPy/pull/559) 
