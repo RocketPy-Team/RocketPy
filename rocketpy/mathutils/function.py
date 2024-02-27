@@ -1146,7 +1146,7 @@ class Function:
 
     def remove_outliers_iqr(self, threshold=1.5):
         """Remove outliers from the Function source using the interquartile
-        range method.
+        range method. The Function should have an array-like source.
 
         Parameters
         ----------
@@ -1164,8 +1164,10 @@ class Function:
         """
 
         if callable(self.source):
-            print("Cannot remove outliers if the source is a callable object.")
-            return self
+            raise TypeError(
+                "Cannot remove outliers if the source is a callable object."
+                + " The Function.source should be array-like."
+            )
 
         x = self.x_array
         y = self.y_array
