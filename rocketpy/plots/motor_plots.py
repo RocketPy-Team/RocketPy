@@ -158,7 +158,9 @@ class _MotorPlots:
         fig, ax = plt.subplots(figsize=(12, 8))
 
         for label in labels:
-            getattr(self.motor, label).plot(lower=lower_limit, upper=upper_limit, label=label)
+            getattr(self.motor, label).plot(
+                lower=lower_limit, upper=upper_limit, label=label
+            )
 
         ax.legend()
         ax.set_xlabel("Time (s)")
