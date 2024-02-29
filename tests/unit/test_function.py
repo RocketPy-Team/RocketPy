@@ -276,3 +276,33 @@ def test_set_discrete_based_on_model_non_mutator(linear_func):
     assert isinstance(func, Function)
     assert discretized_func.source.shape == (4, 2)
     assert callable(func.source)
+
+
+@pytest.mark.parametrize(
+    "x, y, expected_x, expected_y",
+    [
+        (
+            np.array([1, 2, 3, 4, 5, 6]),
+            np.array([10, 20, 30, 40, 50000, 60]),
+            np.array([1, 2, 3, 4, 6]),
+            np.array([10, 20, 30, 40, 60]),
+        ),
+    ],
+)
+def test_remove_outliers_iqr(x, y, expected_x, expected_y):
+    """Test the function remove_outliers_iqr which is expected to remove
+    outliers from the data based on the Interquartile Range (IQR) method.
+    """
+    func = Function(source=np.column_stack((x, y)))
+    filtered_func = func.remove_outliers_iqr(threshold=1.5)
+
+    # Check if the outliers are removed
+    assert np.array_equal(filtered_func.x_array, expected_x)
+    assert np.array_equal(filtered_func.y_array, expected_y)
+
+    # Check if the other attributes are preserved
+    assert filtered_func.__inputs__ == func.__inputs__
+    assert filtered_func.__outputs__ == func.__outputs__
+    assert filtered_func.__interpolation__ == func.__interpolation__
+    assert filtered_func.__extrapolation__ == func.__extrapolation__
+    assert filtered_func.title == func.title
