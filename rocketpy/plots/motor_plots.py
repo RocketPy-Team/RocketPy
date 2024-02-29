@@ -135,98 +135,9 @@ class _MotorPlots:
         """
         self.motor.exhaust_velocity.plot(lower=lower_limit, upper=upper_limit)
 
-    def I_11(self, lower_limit=None, upper_limit=None):
-        """Plots I_11 of the motor as a function of time.
-
-        Parameters
-        ----------
-        lower_limit : float
-            Lower limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-        upper_limit : float
-            Upper limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-
-        Return
-        ------
-        None
-        """
-        self.motor.I_11.plot(lower=lower_limit, upper=upper_limit)
-
-    def I_22(self, lower_limit=None, upper_limit=None):
-        """Plots I_22 of the motor as a function of time.
-
-        Parameters
-        ----------
-        lower_limit : float
-            Lower limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-        upper_limit : float
-            Upper limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-
-        Return
-        ------
-        None
-        """
-        self.motor.I_22.plot(lower=lower_limit, upper=upper_limit)
-
-    def I_33(self, lower_limit=None, upper_limit=None):
-        """Plots I_33 of the motor as a function of time.
-
-        Parameters
-        ----------
-        lower_limit : float
-            Lower limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-        upper_limit : float
-            Upper limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-
-        Return
-        ------
-        None
-        """
-        self.motor.I_33.plot(lower=lower_limit, upper=upper_limit)
-
-    def I_12(self, lower_limit=None, upper_limit=None):
-        """Plots I_12 of the motor as a function of time.
-
-        Parameters
-        ----------
-        lower_limit : float
-            Lower limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-        upper_limit : float
-            Upper limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-
-        Return
-        ------
-        None
-        """
-        self.motor.I_12.plot(lower=lower_limit, upper=upper_limit)
-
-    def I_13(self, lower_limit=None, upper_limit=None):
-        """Plots I_13 of the motor as a function of time.
-
-        Parameters
-        ----------
-        lower_limit : float
-            Lower limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-        upper_limit : float
-            Upper limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-
-        Return
-        ------
-        None
-        """
-        self.motor.I_13.plot(lower=lower_limit, upper=upper_limit)
-
-    def I_23(self, lower_limit=None, upper_limit=None):
-        """Plots I_23 of the motor as a function of time.
+    def inertia_tensors(self, lower_limit=None, upper_limit=None):
+        """Plots all inertia tensors (I_11, I_22, I_33, I_12, I_13, I_23)
+        of the motor as a function of time in a single chart.
 
         Parameters
         ----------
@@ -239,9 +150,24 @@ class _MotorPlots:
 
         Return
         ------
-        None
+        fig : matplotlib.figure.Figure
+            The matplotlib figure containing the inertia tensors plot.
         """
-        self.motor.I_23.plot(lower=lower_limit, upper=upper_limit)
+        labels = ["I_11", "I_22", "I_33", "I_12", "I_13", "I_23"]
+
+        fig, ax = plt.subplots(figsize=(12, 8))
+
+        for label in labels:
+            getattr(self.motor, label).plot(lower=lower_limit, upper=upper_limit, label=label)
+
+        ax.legend()
+        ax.set_xlabel("Time (s)")
+        ax.set_ylabel("Inertia Tensor Values")
+        ax.set_title("Inertia Tensors Over Time")
+        ax.grid(True)
+        plt.tight_layout()
+
+        return fig
 
     def _generate_nozzle(self, translate=(0, 0), csys=1):
         """Generates a patch that represents the nozzle of the motor. It is
