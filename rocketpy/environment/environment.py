@@ -276,20 +276,20 @@ class Environment:
         timezone="UTC",
         max_expected_height=80000.0,
     ):
-        """Initialize Environment class, saving parameters of the launch location, 
-        such as launch date, coordinates and elevation. This class also computes 
-        relevant quantities for the Flight simulation, such as air pressure, density 
+        """Initialize Environment class, saving parameters of the launch location,
+        such as launch date, coordinates and elevation. This class also computes
+        relevant quantities for the Flight simulation, such as air pressure, density
         and gravitational acceleration.
-        
-        Note that the default atmospheric model is the International Standard Atmosphere 
-        as defined by ISO 2533 unless specified otherwise in 
+
+        Note that the default atmospheric model is the International Standard Atmosphere
+        as defined by ISO 2533 unless specified otherwise in
         :meth:`Environment.set_atmospheric_model`.
 
         Parameters
         ----------
         gravity : int, float, callable, string, array, optional
             Surface gravitational acceleration. Positive values point the
-            acceleration down. If None, the Somigliana formula is used. 
+            acceleration down. If None, the Somigliana formula is used.
             See :meth:`Environment.set_gravity_model` for more information.
         date : array, optional
             Array of length 4, stating (year, month, day, hour (UTC))
@@ -474,7 +474,7 @@ class Environment:
         ----------
         gravity : None or Function source
             If None, the Somigliana formula is used to compute the gravity
-            acceleration. Otherwise, the user can provide a Function source 
+            acceleration. Otherwise, the user can provide a Function source
             object representing the gravity model.
 
         Returns
