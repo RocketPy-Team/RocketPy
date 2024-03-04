@@ -1101,6 +1101,7 @@ class Flight:  # pylint: disable=too-many-public-methods
         elif isinstance(self.initial_solution, Flight):
             # Initialize time and state variables based on last solution of
             # previous flight
+            self.solution = self.initial_solution.solution[:-1]
             self.initial_solution = self.initial_solution.solution[-1]
             # Set unused monitors
             self.out_of_rail_state = self.initial_solution[1:]

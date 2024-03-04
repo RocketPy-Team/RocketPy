@@ -36,6 +36,7 @@ Attention: The newest changes should be on top -->
 ### Changed
 
 - 
+- ENH: Initial solution from flights gets previous results [#568](https://github.com/RocketPy-Team/RocketPy/pull/568)
 - DOC: New Environment class docs pages [#644](https://github.com/RocketPy-Team/RocketPy/pull/644)
 
 ### Fixed
