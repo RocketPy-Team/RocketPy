@@ -32,14 +32,23 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+- ENH: adds `Function.remove_outliers` method [#554](https://github.com/RocketPy-Team/RocketPy/pull/554)
 
 ### Changed
+- ENH: Optional argument to show the plot in Function.compare_plots [#563](https://github.com/RocketPy-Team/RocketPy/pull/563)
 
+### Fixed
+- BUG: export_eng 'Motor' method would not work for liquid motors. [#559](https://github.com/RocketPy-Team/RocketPy/pull/559) 
+
+## [v1.2.1] - 2024-02-22
+
+You can install this version by running `pip install rocketpy==1.2.1`
 
 ### Fixed
 
+- BUG: Add reference area factor correction to aero surfaces (solves #557) [#558](https://github.com/RocketPy-Team/RocketPy/pull/558)
 
-## [v1.2.0] - 2024-02-dd
+## [v1.2.0] - 2024-02-12
 
 You can install this version by running `pip install rocketpy==1.2.0`
 

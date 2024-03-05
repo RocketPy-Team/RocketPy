@@ -27,7 +27,7 @@ monte_carlo_require = [
 
 setuptools.setup(
     name="rocketpy",
-    version="1.1.5",
+    version="1.2.1",
     install_requires=necessary_require,
     extras_require={
         "env_analysis": env_analysis_require,

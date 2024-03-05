@@ -517,9 +517,13 @@ class Rocket:
         # Calculate total lift coefficient derivative and center of pressure
         if len(self.aerodynamic_surfaces) > 0:
             for aero_surface, position in self.aerodynamic_surfaces:
-                self.total_lift_coeff_der += aero_surface.clalpha
-                self.cp_position += aero_surface.clalpha * (
-                    position - self._csys * aero_surface.cpz
+                # ref_factor corrects lift for different reference areas
+                ref_factor = (aero_surface.rocket_radius / self.radius) ** 2
+                self.total_lift_coeff_der += ref_factor * aero_surface.clalpha
+                self.cp_position += (
+                    ref_factor
+                    * aero_surface.clalpha
+                    * (position - self._csys * aero_surface.cpz)
                 )
             self.cp_position /= self.total_lift_coeff_der
 
@@ -871,7 +875,9 @@ class Rocket:
         self.add_surfaces(tail, position)
         return tail
 
-    def add_nose(self, length, kind, position, bluffness=0, name="Nose Cone"):
+    def add_nose(
+        self, length, kind, position, bluffness=0, name="Nose Cone", base_radius=None
+    ):
         """Creates a nose cone, storing its parameters as part of the
         aerodynamic_surfaces list. Its parameters are the axial position
         along the rocket and its derivative of the coefficient of lift
@@ -894,6 +900,9 @@ class Rocket:
             the radius of the base of the ogive.
         name : string
             Nose cone name. Default is "Nose Cone".
+        base_radius : int, float, optional
+            Nose cone base radius in meters. If not given, the rocket radius
+            will be used.
 
         See Also
         --------
@@ -907,8 +916,8 @@ class Rocket:
         nose = NoseCone(
             length=length,
             kind=kind,
-            base_radius=self.radius,
-            rocket_radius=self.radius,
+            base_radius=base_radius or self.radius,
+            rocket_radius=base_radius or self.radius,
             bluffness=bluffness,
             name=name,
         )
@@ -983,8 +992,9 @@ class Rocket:
             with its base perpendicular to the rocket's axis. Cannot be used in
             conjunction with sweep_length.
         radius : int, float, optional
-            Reference radius to calculate lift coefficient. If None, which is
-            default, use rocket radius.
+            Reference fuselage radius where the fins are located. This is used
+            to calculate lift coefficient and to draw the rocket. If None,
+            which is default, the rocket radius will be used.
         airfoil : tuple, optional
             Default is null, in which case fins will be treated as flat plates.
             Otherwise, if tuple, fins will be considered as airfoils. The
@@ -1064,8 +1074,9 @@ class Rocket:
             Fins cant angle with respect to the rocket centerline. Must be given
             in degrees.
         radius : int, float, optional
-            Reference radius to calculate lift coefficient. If None, which
-            is default, use rocket radius.
+            Reference fuselage radius where the fins are located. This is used
+            to calculate lift coefficient and to draw the rocket. If None,
+            which is default, the rocket radius will be used.
         airfoil : tuple, optional
             Default is null, in which case fins will be treated as flat plates.
             Otherwise, if tuple, fins will be considered as airfoils. The
