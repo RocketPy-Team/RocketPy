@@ -4,7 +4,6 @@ from time import process_time, time
 import numpy as np
 import simplekml
 
-from rocketpy.mathutils.function import Function
 from rocketpy.plots.monte_carlo_plots import _MonteCarloPlots
 from rocketpy.prints.monte_carlo_prints import _MonteCarloPrints
 from rocketpy.simulation.flight import Flight
@@ -130,9 +129,6 @@ class MonteCarlo:
         except FileNotFoundError:
             self._error_file = f"{filename}.disp_errors.txt"
 
-        # TODO: Initialize variables so they can be accessed by MATLAB
-
-    # TODO move export_list to init
     def simulate(self, number_of_simulations, append=False):
         """
         Runs the monte carlo simulation and saves all data.
@@ -260,15 +256,10 @@ class MonteCarlo:
     ):
         """Exports the flight data to the respective files."""
         # Construct the dict with the results from the flight
-        results = {}
-        for export_item in self.export_list:
-            # if attribute is function, get source
-            # TODO: check if there is a better way to do this
-            attr = getattr(flight, export_item)
-            if isinstance(attr, Function):
-                results[export_item] = list(attr.source)
-            else:
-                results[export_item] = getattr(flight, export_item)
+        results = {
+            export_item: getattr(flight, export_item)
+            for export_item in self.export_list
+        }
 
         # Write flight setting and results to file
         input_file.write(f"{inputs_dict}\n")
@@ -354,7 +345,7 @@ class MonteCarlo:
                 # Checks if attribute is not valid
                 if attr not in exportables:
                     raise ValueError(
-                        "Attribute can not be exported. Check export_list."
+                        f"Attribute '{attr}' can not be exported. Check export_list."
                     )
         else:
             # No export list provided, using default list instead.
@@ -504,7 +495,7 @@ class MonteCarlo:
         self.results = {}
         for result in self.outputs_log:
             for key, value in result.items():
-                if key in self.results.keys():
+                if key in self.results:
                     self.results[key].append(value)
                 else:
                     self.results[key] = [value]
@@ -690,25 +681,20 @@ class MonteCarlo:
             )
 
         # Prepare data to KML file
-        kml_data = []
-        for i in range(len(outputs)):
-            temp = []
-            for j in range(len(outputs[i])):
-                temp.append((outputs[i][j][1], outputs[i][j][0]))  # lon, lat
-            kml_data.append(temp)
+        kml_data = [[(coord[1], coord[0]) for coord in output] for output in outputs]
 
         # Export to KML
         kml = simplekml.Kml()
 
         for i in range(len(outputs)):
             if (type == "all" and i < 3) or (type == "impact"):
-                ellName = "Impact σ" + str(i + 1)
+                ellipse_name = "Impact σ" + str(i + 1)
             elif type == "all" and i >= 3:
-                ellName = "Apogee σ" + str(i - 2)
+                ellipse_name = "Apogee σ" + str(i - 2)
             else:
-                ellName = "Apogee σ" + str(i + 1)
+                ellipse_name = "Apogee σ" + str(i + 1)
 
-            mult_ell = kml.newmultigeometry(name=ellName)
+            mult_ell = kml.newmultigeometry(name=ellipse_name)
             mult_ell.newpolygon(
                 outerboundaryis=kml_data[i],
                 name="Ellipse " + str(i),
@@ -726,7 +712,7 @@ class MonteCarlo:
 
     def info(self):
         """Print information about the monte carlo simulation."""
-        self.prints.all_results()
+        self.prints.all()
 
     def all_info(self):
         """Print and plot information about the monte carlo simulation
@@ -738,4 +724,4 @@ class MonteCarlo:
         """
         self.info()
         self.plots.ellipses()
-        self.plots.all_results()
+        self.plots.all()

@@ -48,6 +48,7 @@ class _MonteCarloPlots:
         """
         # Import background map
         if image is not None:
+            # TODO: use the optional import function
             try:
                 from imageio import imread
 
@@ -64,10 +65,10 @@ class _MonteCarloPlots:
         (
             impact_ellipses,
             apogee_ellipses,
-            apogeeX,
-            apogeeY,
-            impactX,
-            impactY,
+            apogee_x,
+            apogee_y,
+            impact_x,
+            impact_y,
         ) = generate_monte_carlo_ellipses(self.monte_carlo.results)
 
         # Create plot figure
@@ -83,12 +84,12 @@ class _MonteCarloPlots:
         plt.scatter(0, 0, s=30, marker="*", color="black", label="Launch Point")
         # Draw apogee points
         plt.scatter(
-            apogeeX, apogeeY, s=5, marker="^", color="green", label="Simulated Apogee"
+            apogee_x, apogee_y, s=5, marker="^", color="green", label="Simulated Apogee"
         )
         # Draw impact points
         plt.scatter(
-            impactX,
-            impactY,
+            impact_x,
+            impact_y,
             s=5,
             marker="v",
             color="blue",
@@ -146,7 +147,7 @@ class _MonteCarloPlots:
         else:
             plt.show()
 
-    def all_results(self, keys=None):
+    def all(self, keys=None):
         """Plot the results of the Monte Carlo analysis.
 
         Parameters
@@ -181,6 +182,6 @@ class _MonteCarloPlots:
             plt.hist(
                 self.monte_carlo.results[key],
             )
-            plt.title("Histogram of " + key)
+            plt.title(f"Histogram of {key}")
             plt.ylabel("Number of Occurrences")
             plt.show()

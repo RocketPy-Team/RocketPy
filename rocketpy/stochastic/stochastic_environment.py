@@ -1,5 +1,3 @@
-from rocketpy.environment import Environment
-
 from .stochastic_model import StochasticModel
 
 
@@ -113,7 +111,7 @@ class StochasticEnvironment(StochasticModel):
                     # Format the tuple as a string with the mean and standard deviation.
                     value_str = f"{value[0]:.5f} ± {value[1]:.5f} (numpy.random.{value[2].__name__})"
                 except AttributeError:
-                    # treats date atribute
+                    # treats date attribute
                     value_str = str(value)
             else:
                 # Otherwise, just use the default string representation of the value.
@@ -174,7 +172,7 @@ class StochasticEnvironment(StochasticModel):
 
     def create_object(self):
         """Creates a Environment object from the randomly generated input
-        arguments.The environment object is not recreatead to avoid having to
+        arguments.The environment object is not recreated to avoid having to
         reestablish the atmospheric model. Instead, attributes are changed
         directly.
 

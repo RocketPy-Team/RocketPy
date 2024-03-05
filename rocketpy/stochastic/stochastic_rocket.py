@@ -294,11 +294,11 @@ class StochasticRocket(StochasticModel):
             Stochastic Models.
         """
         self._add_surfaces(
-            nose,
-            position,
-            NoseCone,
-            StochasticNoseCone,
-            "`nose` must be of NoseCone or StochasticNoseCone type",
+            surfaces=nose,
+            positions=position,
+            type=NoseCone,
+            stochastic_type=StochasticNoseCone,
+            error_message="`nose` must be of NoseCone or StochasticNoseCone type",
         )
 
     def add_trapezoidal_fins(self, fins, position=None):
@@ -449,7 +449,7 @@ class StochasticRocket(StochasticModel):
                 getattr=self._create_get_position(validated_object),
             )
         else:
-            raise AssertionError(f"`position` must be a tuple, list, int, or float")
+            raise AssertionError("`position` must be a tuple, list, int, or float")
 
     def _create_get_position(self, validated_object):
         """Create a function to get the nominal position from an object.

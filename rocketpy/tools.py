@@ -7,6 +7,7 @@ from bisect import bisect_left
 import numpy as np
 import pytz
 from cftime import num2pydate
+from matplotlib.patches import Ellipse
 from packaging import version as packaging_version
 
 _NOT_FOUND = object()
@@ -143,7 +144,7 @@ def get_distribution(distribution_function_name):
     }
     try:
         return distributions[distribution_function_name]
-    except KeyError:
+    except KeyError as e:
         raise ValueError(
             f"Distribution function '{distribution_function_name}' not found, "
             + "please use one of the following np.random distribution function:"
@@ -159,10 +160,10 @@ def get_distribution(distribution_function_name):
             + '\n\t"poisson"'
             + '\n\t"uniform"'
             + '\n\t"wald"\n'
-        )
+        ) from e
 
 
-def Haversine(lat0, lon0, lat1, lon1, eRadius=6.3781e6):
+def haversine(lat0, lon0, lat1, lon1, earth_radius=6.3781e6):
     """Returns the distance between two points in meters.
     The points are defined by their latitude and longitude coordinates.
 
@@ -176,7 +177,7 @@ def Haversine(lat0, lon0, lat1, lon1, eRadius=6.3781e6):
         Latitude of the second point, in degrees.
     lon1 : float
         Longitude of the second point, in degrees.
-    eRadius : float, optional
+    earth_radius : float, optional
         Earth's radius in meters. Default value is 6.3781e6.
 
     Returns
@@ -196,10 +197,10 @@ def Haversine(lat0, lon0, lat1, lon1, eRadius=6.3781e6):
     )
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
-    return eRadius * c
+    return earth_radius * c
 
 
-def invertedHaversine(lat0, lon0, distance, bearing, eRadius=6.3781e6):
+def inverted_haversine(lat0, lon0, distance, bearing, earth_radius=6.3781e6):
     """Returns a tuple with new latitude and longitude coordinates considering
     a displacement of a given distance in a given direction (bearing compass)
     starting from a point defined by (lat0, lon0). This is the opposite of
@@ -215,7 +216,7 @@ def invertedHaversine(lat0, lon0, distance, bearing, eRadius=6.3781e6):
         Distance from the origin point, in meters.
     bearing : float
         Azimuth (or bearing compass) from the origin point, in degrees.
-    eRadius : float, optional
+    earth_radius : float, optional
         Earth radius, in meters. Default value is 6.3781e6.
         See the Environment.calculateEarthRadius() function for more accuracy.
 
@@ -234,13 +235,13 @@ def invertedHaversine(lat0, lon0, distance, bearing, eRadius=6.3781e6):
 
     # Apply inverted Haversine formula
     lat1_rad = math.asin(
-        math.sin(lat0_rad) * math.cos(distance / eRadius)
-        + math.cos(lat0_rad) * math.sin(distance / eRadius) * math.cos(bearing)
+        math.sin(lat0_rad) * math.cos(distance / earth_radius)
+        + math.cos(lat0_rad) * math.sin(distance / earth_radius) * math.cos(bearing)
     )
 
     lon1_rad = lon0_rad + math.atan2(
-        math.sin(bearing) * math.sin(distance / eRadius) * math.cos(lat0_rad),
-        math.cos(distance / eRadius) - math.sin(lat0_rad) * math.sin(lat1_rad),
+        math.sin(bearing) * math.sin(distance / earth_radius) * math.cos(lat0_rad),
+        math.cos(distance / earth_radius) - math.sin(lat0_rad) * math.sin(lat1_rad),
     )
 
     # Convert back to degrees and then return
@@ -248,38 +249,6 @@ def invertedHaversine(lat0, lon0, distance, bearing, eRadius=6.3781e6):
     lon1_deg = np.rad2deg(lon1_rad)
 
     return lat1_deg, lon1_deg
-
-
-def decimalDegreesToArcSeconds(angle):
-    """Function to convert an angle in decimal degrees to deg/min/sec.
-     Converts (°) to (° ' ")
-
-    Parameters
-    ----------
-    angle : float
-        The angle that you need convert to deg/min/sec. Must be given in
-        decimal degrees.
-
-    Returns
-    -------
-    deg: float
-        The degrees.
-    min: float
-        The arc minutes. 1 arc-minute = (1/60)*degree
-    sec: float
-        The arc Seconds. 1 arc-second = (1/3600)*degree
-    """
-
-    if angle < 0:
-        signal = -1
-    else:
-        signal = 1
-
-    deg = (signal * angle) // 1
-    min = abs(signal * angle - deg) * 60 // 1
-    sec = abs((signal * angle - deg) * 60 - min) * 60
-
-    return deg, min, sec
 
 
 # Functions for monte carlo analysis
@@ -315,15 +284,15 @@ def generate_monte_carlo_ellipses(results):
 
     # Retrieve monte carlo data por apogee and impact XY position
     try:
-        apogee_x = np.array(results["apogeeX"])
-        apogee_y = np.array(results["apogeeY"])
+        apogee_x = np.array(results["apogee_x"])
+        apogee_y = np.array(results["apogee_y"])
     except KeyError:
         print("No apogee data found. Skipping apogee ellipses.")
         apogee_x = np.array([])
         apogee_y = np.array([])
     try:
-        impact_x = np.array(results["xImpact"])
-        impact_y = np.array(results["yImpact"])
+        impact_x = np.array(results["x_impact"])
+        impact_y = np.array(results["y_impact"])
     except KeyError:
         print("No impact data found. Skipping impact ellipses.")
         impact_x = np.array([])
@@ -455,8 +424,8 @@ def generate_monte_carlo_ellipses_coordinates(
                 x, y
             )  # math.atan2 returns the angle in the range [-pi, pi]
 
-            lat_lon_points[i] = invertedHaversine(
-                origin_lat, origin_lon, d, bearing, eRadius=6.3781e6
+            lat_lon_points[i] = inverted_haversine(
+                origin_lat, origin_lon, d, bearing, earth_radius=6.3781e6
             )
 
         outputs[index] = lat_lon_points

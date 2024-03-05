@@ -70,6 +70,13 @@ class StochasticParachute(StochasticModel):
             time-correlation). Follows the standard input format of Stochastic
             Models.
         """
+        self.parachute = parachute
+        self.cd_s = cd_s
+        self.trigger = trigger
+        self.sampling_rate = sampling_rate
+        self.lag = lag
+        self.noise = noise
+
         self._validate_trigger(trigger)
         self._validate_noise(noise)
         super().__init__(
@@ -80,6 +87,17 @@ class StochasticParachute(StochasticModel):
             lag=lag,
             noise=noise,
             name=None,
+        )
+
+    def __repr__(self):
+        return (
+            f"StochasticParachute("
+            f"parachute={self.object}, "
+            f"cd_s={self.cd_s}, "
+            f"trigger={self.trigger}, "
+            f"sampling_rate={self.sampling_rate}, "
+            f"lag={self.lag}, "
+            f"noise={self.noise})"
         )
 
     def _validate_trigger(self, trigger):

@@ -3,9 +3,8 @@ class _MonteCarloPrints:
 
     def __init__(self, monte_carlo):
         self.monte_carlo = monte_carlo
-        return None
 
-    def all_results(self):
+    def all(self):
         """Print the mean and standard deviation of each parameter in the results
         dictionary or of the variables passed as argument.
 
@@ -22,9 +21,7 @@ class _MonteCarloPrints:
         print("Data Source: ", self.monte_carlo.filename)
         print("Number of simulations: ", self.monte_carlo.num_of_loaded_sims)
         print("Results: \n")
-        print("{:>25} {:>15} {:>15}".format("Parameter", "Mean", "Std. Dev."))
+        print(f"{'Parameter':>25} {'Mean':>15} {'Std. Dev.':>15}")
         print("-" * 60)
         for key, value in self.monte_carlo.processed_results.items():
-            print("{:>25} {:>15.3f} {:>15.3f}".format(key, value[0], value[1]))
-
-        return None
+            print(f"{key:>25} {value[0]:>15.3f} {value[1]:>15.3f}")
