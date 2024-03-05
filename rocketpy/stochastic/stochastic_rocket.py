@@ -242,7 +242,7 @@ class StochasticRocket(StochasticModel):
 
         # checks if input is a Motor
         if not isinstance(motor, (Motor, StochasticMotorModel)):
-            raise AssertionError("`motor` must be a StochasticMotor or Motor type")
+            raise TypeError("`motor` must be a StochasticMotor or Motor type")
         if isinstance(motor, Motor):
             # create StochasticMotor
             # TODO check motor type when hybrids and liquids are implemented
@@ -368,7 +368,7 @@ class StochasticRocket(StochasticModel):
         """
         # checks if input is a StochasticParachute type
         if not isinstance(parachute, (Parachute, StochasticParachute)):
-            raise AssertionError(
+            raise TypeError(
                 "`parachute` must be of Parachute or StochasticParachute type"
             )
         if isinstance(parachute, Parachute):
