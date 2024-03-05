@@ -274,18 +274,18 @@ class MonteCarlo:
                 "apogee_time",
                 "apogee_x",
                 "apogee_y",
-                "apogee_freestream_speed",
+                # "apogee_freestream_speed",
                 "t_final",
                 "x_impact",
                 "y_impact",
                 "impact_velocity",
-                # "initial_stability_margin",
-                # "out_of_rail_stability_margin",
+                # "initial_stability_margin", # Needs to implement it!
+                # "out_of_rail_stability_margin", # Needs to implement it!
                 "out_of_rail_time",
                 "out_of_rail_velocity",
-                "max_speed",
+                # "max_speed",
                 "max_mach_number",
-                "max_acceleration_power_on",
+                # "max_acceleration_power_on",
                 "frontal_surface_wind",
                 "lateral_surface_wind",
             }
