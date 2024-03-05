@@ -21,13 +21,18 @@ env_analysis_require = [
     "jsonpickle",
 ]
 
+monte_carlo_require = [
+    "imageio",
+]
+
 setuptools.setup(
     name="rocketpy",
     version="1.1.5",
     install_requires=necessary_require,
     extras_require={
         "env_analysis": env_analysis_require,
-        "all": necessary_require + env_analysis_require,
+        "monte_carlo": monte_carlo_require,
+        "all": necessary_require + env_analysis_require + monte_carlo_require,
     },
     maintainer="RocketPy Developers",
     author="Giovani Hidalgo Ceotto",

@@ -5,6 +5,3 @@ netCDF4>=1.6.4
 requests
 pytz
 simplekml
-imageio
-jsonpickle
-pydantic
