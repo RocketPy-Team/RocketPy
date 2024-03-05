@@ -97,7 +97,7 @@ class StochasticFlight(StochasticModel):
             else:
                 raise TypeError("`initial_solution` must be a tuple of numbers")
 
-    # TODO: these call dict_generator a lot of times unecessaryly
+    # TODO: these call dict_generator a lot of times unnecessarily
     def _randomize_rail_length(self):
         """Randomizes the rail length of the flight. Follows the standard input
         format of Stochastic Models.
@@ -129,12 +129,12 @@ class StochasticFlight(StochasticModel):
             Flight object with the randomly generated input arguments.
         """
         generated_dict = next(self.dict_generator())
-        obj = Flight(
+        return Flight(
             environment=self.object.env,
+            rail_length=self._randomize_rail_length(),
             rocket=self.object.rocket,
             inclination=generated_dict["inclination"],
             heading=generated_dict["heading"],
-            initialSolution=self.initial_solution,
-            terminateOnApogee=self.terminate_on_apogee,
+            initial_solution=self.initial_solution,
+            terminate_on_apogee=self.terminate_on_apogee,
         )
-        return obj
