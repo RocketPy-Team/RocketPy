@@ -29,7 +29,7 @@ class MonteCarlo:
         When running a new simulation, this parameter represents the
         initial part of the export filenames. For example, if the value
         is 'filename', the exported output files will be named
-        'filename.disp_outputs.txt'. When analyzing the results of a
+        'filename.outputs.txt'. When analyzing the results of a
         previous simulation, this parameter should be set to the .txt
         file containing the outputs of the previous monte carlo analysis.
     environment : StochasticEnvironment
@@ -75,7 +75,7 @@ class MonteCarlo:
             When running a new simulation, this parameter represents the
             initial part of the export filenames. For example, if the value
             is 'filename', the exported output files will be named
-            'filename.disp_outputs.txt'. When analyzing the results of a
+            'filename.outputs.txt'. When analyzing the results of a
             previous simulation, this parameter should be set to the .txt
             file containing the outputs of the previous monte carlo
             analysis.
@@ -117,17 +117,17 @@ class MonteCarlo:
         try:
             self.import_inputs()
         except FileNotFoundError:
-            self._input_file = f"{filename}.disp_inputs.txt"
+            self._input_file = f"{filename}.inputs.txt"
 
         try:
             self.import_outputs()
         except FileNotFoundError:
-            self._output_file = f"{filename}.disp_outputs.txt"
+            self._output_file = f"{filename}.outputs.txt"
 
         try:
             self.import_errors()
         except FileNotFoundError:
-            self._error_file = f"{filename}.disp_errors.txt"
+            self._error_file = f"{filename}.errors.txt"
 
     def simulate(self, number_of_simulations, append=False):
         """
@@ -241,9 +241,9 @@ class MonteCarlo:
         self.__close_files(input_file, output_file, error_file)
 
         # resave the files on self and calculate post simulation attributes
-        self.input_file = f"{self.filename}.disp_inputs.txt"
-        self.output_file = f"{self.filename}.disp_outputs.txt"
-        self.error_file = f"{self.filename}.disp_errors.txt"
+        self.input_file = f"{self.filename}.inputs.txt"
+        self.output_file = f"{self.filename}.outputs.txt"
+        self.error_file = f"{self.filename}.errors.txt"
 
         print(f"Results saved to {self._output_file}")
 
@@ -425,9 +425,9 @@ class MonteCarlo:
         """Sets inputs_log from a file into an attribute for easy access"""
         # TODO: add pickle package to deal with parachute triggers and Function objects
         self.inputs_log = []
-        with open(self.input_file, mode="r", encoding="utf-8") as disp_inputs:
+        with open(self.input_file, mode="r", encoding="utf-8") as inputs:
             # Loop through each line in the file
-            for line in disp_inputs:
+            for line in inputs:
                 # swap "<" and ">" to "'"
                 # this is done to interpret the trigger functions
                 # Find the index of the first and last occurrences of '<' and '>'
@@ -455,8 +455,8 @@ class MonteCarlo:
         """Sets outputs_log from a file into an attribute for easy access"""
         self.outputs_log = []
         # Loop through each line in the file
-        with open(self.output_file, mode="r", encoding="utf-8") as disp_outputs:
-            for line in disp_outputs:
+        with open(self.output_file, mode="r", encoding="utf-8") as outputs:
+            for line in outputs:
                 # Skip comments lines
                 if line[0] != "{":
                     continue
@@ -469,8 +469,8 @@ class MonteCarlo:
         """Sets errors_log log from a file into an attribute for easy access"""
         self.errors_log = []
         # Loop through each line in the file
-        with open(self.error_file, mode="r", encoding="utf-8") as disp_errors:
-            for line in disp_errors:
+        with open(self.error_file, mode="r", encoding="utf-8") as errors:
+            for line in errors:
                 # Skip comments lines
                 if line[0] != "{":
                     continue
@@ -484,8 +484,8 @@ class MonteCarlo:
         # Calculate the number of flights simulated
         self.num_of_loaded_sims = 0
         # Loop through each line in the file
-        with open(self.output_file, mode="r", encoding="utf-8") as disp_outputs:
-            for line in disp_outputs:
+        with open(self.output_file, mode="r", encoding="utf-8") as outputs:
+            for line in outputs:
                 # Skip comments lines
                 if line[0] != "{":
                     continue
@@ -530,12 +530,12 @@ class MonteCarlo:
         filepath = filename if filename else self.filename
 
         try:
-            with open(f"{filepath}.disp_outputs.txt", "r+", encoding="utf-8"):
-                self.output_file = f"{filepath}.disp_outputs.txt"
+            with open(f"{filepath}.outputs.txt", "r+", encoding="utf-8"):
+                self.output_file = f"{filepath}.outputs.txt"
                 # Print the number of flights simulated
                 print(
                     f"A total of {self.num_of_loaded_sims} simulations results were loaded from"
-                    f" the following output file: {filepath}.disp_outputs.txt\n"
+                    f" the following output file: {filepath}.outputs.txt\n"
                 )
         except FileNotFoundError:
             with open(filepath, "r+", encoding="utf-8"):
@@ -564,12 +564,10 @@ class MonteCarlo:
         filepath = filename if filename else self.filename
 
         try:
-            with open(f"{filepath}.disp_inputs.txt", "r+", encoding="utf-8"):
-                self.input_file = f"{filepath}.disp_inputs.txt"
+            with open(f"{filepath}.inputs.txt", "r+", encoding="utf-8"):
+                self.input_file = f"{filepath}.inputs.txt"
                 # Print the number of flights simulated
-                print(
-                    f"The following input file was imported: {filepath}.disp_inputs.txt\n"
-                )
+                print(f"The following input file was imported: {filepath}.inputs.txt\n")
         except FileNotFoundError:
             with open(filepath, "r+", encoding="utf-8"):
                 self.input_file = filepath
@@ -594,12 +592,10 @@ class MonteCarlo:
         filepath = filename if filename else self.filename
 
         try:
-            with open(f"{filepath}.disp_errors.txt", "r+", encoding="utf-8"):
-                self.error_file = f"{filepath}.disp_errors.txt"
+            with open(f"{filepath}.errors.txt", "r+", encoding="utf-8"):
+                self.error_file = f"{filepath}.errors.txt"
                 # Print the number of flights simulated
-                print(
-                    f"The following error file was imported: {filepath}.disp_errors.txt\n"
-                )
+                print(f"The following error file was imported: {filepath}.errors.txt\n")
         except FileNotFoundError:
             with open(filepath, "r+", encoding="utf-8"):
                 self.error_file = filepath
