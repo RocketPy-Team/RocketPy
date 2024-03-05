@@ -88,7 +88,7 @@ class StochasticModel:
         return s.strip()
 
     def __repr__(self):
-        return self.__str__()
+        return f"{self.__class__.__name__}(object={self.object}, **kwargs)"
 
     def _validate_tuple(self, input_name, input_value, getattr=getattr):
         """Validator for tuple arguments. Checks if input is in a valid format.
