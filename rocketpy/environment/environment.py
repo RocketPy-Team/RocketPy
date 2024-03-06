@@ -3696,7 +3696,7 @@ class Environment:
         -------
         degrees : float
             The degrees.
-        arc_minutes : float
+        arc_minutes : int
             The arc minutes. 1 arc-minute = (1/60)*degree
         arc_seconds : float
             The arc Seconds. 1 arc-second = (1/3600)*degree

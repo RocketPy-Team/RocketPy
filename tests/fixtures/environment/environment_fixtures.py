@@ -1,58 +1,55 @@
-import datetime
-
 import pytest
-
+from datetime import datetime, timedelta
 from rocketpy import Environment, EnvironmentAnalysis
 
 
 @pytest.fixture
-def example_env():
-    """Create a simple object of the Environment class to be used in the tests.
-    This allows to avoid repeating the same code in all tests. The environment
-    set here is the simplest possible, with no parameters set.
+def example_plain_env():
+    """Simple object of the Environment class to be used in the tests.
 
     Returns
     -------
     rocketpy.Environment
-        The simplest object of the Environment class
     """
     return Environment()
 
 
 @pytest.fixture
-def example_env_robust():
-    """Create an object of the Environment class to be used in the tests. This
-    allows to avoid repeating the same code in all tests. The environment set
-    here is a bit more complex than the one in the example_env fixture. This
-    time the latitude, longitude and elevation are set, as well as the datum and
-    the date. The location refers to the Spaceport America Cup launch site,
-    while the date is set to tomorrow at noon.
+def example_date_naive():
+    """Naive tomorrow date
+
+    Returns
+    -------
+    datetime.datetime
+    """
+    return datetime.now() + timedelta(days=1)
+
+
+@pytest.fixture
+def example_spaceport_env(example_date_naive):
+    """Environment class with location set to Spaceport America Cup launch site
 
     Returns
     -------
     rocketpy.Environment
-        An object of the Environment class
     """
-    env = Environment(
+    spaceport_env = Environment(
         latitude=32.990254,
         longitude=-106.974998,
         elevation=1400,
         datum="WGS84",
     )
-    tomorrow = datetime.date.today() + datetime.timedelta(days=1)
-    env.set_date((tomorrow.year, tomorrow.month, tomorrow.day, 12))
-    return env
+    spaceport_env.set_date(example_date_naive)
+    return spaceport_env
 
 
 @pytest.fixture
 def env_analysis():
-    """Create a simple object of the Environment Analysis class to be used in
-    the tests. This allows to avoid repeating the same code in all tests.
+    """Environment Analysis class with hardcoded parameters
 
     Returns
     -------
     EnvironmentAnalysis
-        A simple object of the Environment Analysis class
     """
     env_analysis = EnvironmentAnalysis(
         start_date=datetime.datetime(2019, 10, 23),
