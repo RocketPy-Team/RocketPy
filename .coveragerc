@@ -1,0 +1,5 @@
+[report]
+exclude_also=
+    ; Don't complain about exceptions or warnings not being covered by tests
+    raise *
+    warnings.warn*
