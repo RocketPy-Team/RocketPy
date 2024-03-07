@@ -2426,6 +2426,26 @@ class Flight:
         """Minimum stability margin."""
         return self.stability_margin(self.min_stability_margin_time)
 
+    @property
+    def initial_stability_margin(self):
+        """Stability margin at time 0.
+        
+        Returns
+        -------
+        float
+        """
+        return self.stability_margin(0)
+
+    @property
+    def out_of_rail_stability_margin(self):
+        """Stability margin at the time the rocket leaves the rail.
+        
+        Returns
+        -------
+        float
+        """
+        return self.stability_margin(self.out_of_rail_time)
+
     # Reynolds Number
     @funcify_method("Time (s)", "Reynolds Number", "spline", "zero")
     def reynolds_number(self):
