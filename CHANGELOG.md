@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+- ENH: Add new stability margin properties to Flight class [#572](https://github.com/RocketPy-Team/RocketPy/pull/572)
 - ENH: adds `Function.remove_outliers` method [#554](https://github.com/RocketPy-Team/RocketPy/pull/554)
 
 ### Changed
