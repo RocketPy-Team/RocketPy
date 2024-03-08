@@ -61,6 +61,9 @@ class Rocket:
         pointing from the rocket's nose cone to the rocket's tail.
     Rocket.mass : float
         Rocket's mass without motor and propellant, measured in kg.
+    Rocket.dry_mass : float
+        Rocket's mass without propellant, measured in kg. It does include the
+        motor mass.
     Rocket.center_of_mass : Function
         Position of the rocket's center of mass, including propellant, relative
         to the user defined rocket reference system.
@@ -394,22 +397,18 @@ class Rocket:
     def evaluate_dry_mass(self):
         """Calculates and returns the rocket's dry mass. The dry
         mass is defined as the sum of the motor's dry mass and the
-        rocket mass without motor. The function returns an object
-        of the Function class and is defined as a function of time.
+        rocket mass without motor.
 
         Returns
         -------
-        self.total_mass : Function
-            Function of time expressing the total mass of the rocket,
-            defined as the sum of the propellant mass and the rocket
-            mass without propellant.
+        self.dry_mass : float
+            Rocket's dry mass (Rocket + Motor) (kg)
         """
         # Make sure there is a motor associated with the rocket
         if self.motor is None:
             print("Please associate this rocket with a motor!")
             return False
 
-        # Calculate total dry mass: motor (without propellant) + rocket mass
         self.dry_mass = self.mass + self.motor.dry_mass
 
         return self.dry_mass

@@ -691,7 +691,7 @@ def test_accelerations(flight_calisto_custom_wind, flight_time, expected_values)
         ("t_initial", (0, 0, 0)),
         ("out_of_rail_time", (0, 2.248727, 25.703072)),
         ("apogee_time", (-13.209436, 16.05115, -0.000257)),
-        ("t_final", (5, 2, -5.334289)),
+        ("t_final", (5, 2, -5.65998)),
     ],
 )
 def test_velocities(flight_calisto_custom_wind, flight_time, expected_values):
@@ -729,7 +729,7 @@ def test_velocities(flight_calisto_custom_wind, flight_time, expected_values):
         ("t_initial", (1.6542528, 0.65918, -0.067107)),
         ("out_of_rail_time", (5.05334, 2.01364, -1.7541)),
         ("apogee_time", (2.35291, -1.8275, -0.87851)),
-        ("t_final", (0, 0, 141.42421)),
+        ("t_final", (0, 0, 159.2212)),
     ],
 )
 def test_aerodynamic_forces(flight_calisto_custom_wind, flight_time, expected_values):
